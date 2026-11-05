@@ -126,22 +126,6 @@ impl Owner {
         {
             return Err("invited Host advertisement is invalid".into());
         }
-        // Retain a finite, session-local digest of the exact offer observed at
-        // invited admission. Membership itself retains identity, not equipment.
-        if !self
-            .invited_mask_offers
-            .contains_key(&request.host_advertisement.host_id)
-            && self.invited_mask_offers.len() >= conduit_body::MAX_BODY_PARTS
-        {
-            return Err("invited-mask-offer-pressure".into());
-        }
-        let offer_digest = super::super::super::digest(
-            &serde_json::to_vec(&request.host_advertisement).map_err(|error| error.to_string())?,
-        );
-        let observed_offer = super::native_mask_route::InvitedMaskOffer::observed(
-            &request.host_advertisement,
-            offer_digest,
-        );
         let proof = request
             .admission_proof()
             .map_err(|error| error.to_string())?;
@@ -179,6 +163,8 @@ impl Owner {
         receipt
             .validate_against(&request)
             .map_err(|error| error.to_string())?;
+        let offers =
+            self.next_member_offers(session.evidence(), request.host_advertisement.clone())?;
         // Persist both consumed invitation and biography before a receipt can
         // escape. The owner must never acknowledge a non-durable Part.
         state::retain_session(
@@ -191,8 +177,7 @@ impl Owner {
         )?;
         self.session = session;
         self.admissions = Some(manager);
-        self.invited_mask_offers
-            .insert(request.host_advertisement.host_id, observed_offer);
+        self.current_host_offers = offers;
         Ok(receipt)
     }
 }

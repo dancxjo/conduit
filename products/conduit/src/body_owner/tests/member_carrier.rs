@@ -312,20 +312,17 @@ fn receipt_attestation_requires_commit_exact_offer_and_pinned_owner() {
         .unwrap();
     let peer = owner.prepare_current_member_carrier_receiver().unwrap();
     // Membership alone must not authorize arbitrary equipment supplied by a caller.
-    owner.invited_mask_offers.remove(&ad.host_id);
+    owner.current_host_offers = Default::default();
     assert!(owner
         .attest_current_member_receipt(
             &crate::durable_host::owner::MembershipReceiptDocument::Spawn(receipt.clone()),
             &peer
         )
         .is_err());
-    owner.invited_mask_offers.insert(
-        ad.host_id.clone(),
-        super::super::native_mask_route::InvitedMaskOffer::observed(
-            &ad,
-            crate::durable_host::digest(&serde_json::to_vec(&ad).unwrap()),
-        ),
-    );
+    owner
+        .current_host_offers
+        .observe(owner.session.evidence(), ad.clone())
+        .unwrap();
     let before = owner.session.evidence().clone();
     let signed = owner
         .attest_current_member_receipt(

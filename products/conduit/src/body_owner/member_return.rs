@@ -177,19 +177,7 @@ impl Owner {
             .pending_member_return
             .as_ref()
             .ok_or("member return pending custody lost")?;
-        if !self
-            .invited_mask_offers
-            .contains_key(&pending.advertisement.host_id)
-            && self.invited_mask_offers.len() >= conduit_body::MAX_BODY_PARTS
-        {
-            return Err("member return observed-offer pressure".into());
-        }
-        let digest = crate::durable_host::digest(
-            &serde_json::to_vec(&pending.advertisement).map_err(|e| e.to_string())?,
-        );
-        let observed =
-            super::native_mask_route::InvitedMaskOffer::observed(&pending.advertisement, digest);
-        let host_id = pending.advertisement.host_id.clone();
+        let offers = self.next_member_offers(next.evidence(), pending.advertisement.clone())?;
         state::retain_session(
             root,
             &mut next,
@@ -200,7 +188,7 @@ impl Owner {
         )?;
         self.session = next;
         self.admissions = Some(manager);
-        self.invited_mask_offers.insert(host_id, observed);
+        self.current_host_offers = offers;
         self.pending_member_return
             .as_mut()
             .ok_or("member return pending custody lost")?

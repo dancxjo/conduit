@@ -14,7 +14,6 @@ mod member_basis;
 mod member_leave;
 #[path = "native_mask_route/profile.rs"]
 mod profile;
-pub(super) use profile::InvitedMaskOffer;
 
 enum SelectedRemoteMask<'a> {
     Native(
@@ -212,18 +211,10 @@ impl Owner {
         let credential = &member.credential;
         let native_offer = &member.host_advertisement;
         self.require_current_native_member(member)?;
-        if interaction_line.is_some() || spoken.is_some() {
-            let digest = super::super::super::digest(
-                &serde_json::to_vec(native_offer).map_err(|error| error.to_string())?,
-            );
-            if self
-                .invited_mask_offers
-                .get(&native_offer.host_id)
-                .map(|offer| &offer.digest)
-                != Some(&digest)
-            {
-                return Err("remote-terminal-offer-not-observed-at-admission".into());
-            }
+        if (interaction_line.is_some() || spoken.is_some())
+            && self.require_observed_member_offer(native_offer).is_err()
+        {
+            return Err("remote-terminal-offer-not-observed-at-admission".into());
         }
         // This Part's admission changed the owner Face. Keep the already
         // attached browser route in the same new-Face Plan only after its

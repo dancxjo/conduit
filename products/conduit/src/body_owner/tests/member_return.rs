@@ -12,6 +12,60 @@ fn prove(challenge: &PartReturnChallenge, key: &SpawnInvitationSecret) -> PartRe
         signature: key.sign(&challenge.signing_transcript()),
     }
 }
+
+#[test]
+fn current_member_offers_follow_authenticated_commit_not_membership_alone() {
+    let (mut owner, root) = owner_fixture();
+    let (prior, key, old) = admit_with_key(&mut owner, &root, "host/equipment");
+    assert!(owner.require_observed_member_offer(&old).is_ok());
+    assert_eq!(
+        owner.truth()["current_member_offers"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    let observed = owner.current_host_offers.clone();
+    owner.member_leave(&root, &prior).unwrap();
+    // A retained observation cannot become current by skipping reconciliation.
+    assert_eq!(observed.current_hosts(owner.session.evidence()).count(), 0);
+    assert!(owner.require_observed_member_offer(&old).is_err());
+    let mut new = old.clone();
+    new.boot_id = "boot/equipment/2".into();
+    new.offer_generation.0 += 1;
+    let challenge = owner.begin_member_return(&prior, &new).unwrap();
+    let valid = prove(&challenge, &key);
+    let mut forged = valid.clone();
+    forged.signature[0] ^= 1;
+    assert!(owner.complete_member_return(&root, &forged).is_err());
+    assert!(owner.current_offer_summary().is_empty());
+    let blocked = root.join("offer-commit-blocked");
+    std::fs::write(&blocked, b"occupied").unwrap();
+    assert!(owner.complete_member_return(&blocked, &valid).is_err());
+    assert!(owner.current_offer_summary().is_empty());
+    owner.complete_member_return(&root, &valid).unwrap();
+    assert!(owner.require_observed_member_offer(&new).is_ok());
+    assert!(owner.require_observed_member_offer(&old).is_err());
+    let mut altered = new.clone();
+    altered.capabilities.clear();
+    assert_ne!(new, altered);
+    assert!(owner.require_observed_member_offer(&altered).is_err());
+    assert!(owner.session.realization().is_none());
+    assert!(!owner.host.is_playing());
+    // Opening retained membership does not resurrect equipment observations.
+    let reopened = Owner::open(
+        host("boot/member-offers-owner/2"),
+        resident(&source()),
+        Some(state::load(&root).unwrap().unwrap()),
+        "Shared",
+    )
+    .unwrap();
+    assert!(reopened.current_host_offers.hosts().is_empty());
+    assert!(reopened.current_offer_summary().is_empty());
+    assert!(reopened.require_observed_member_offer(&new).is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn member_return_commits_once_and_replays_only_the_exact_signed_outcome() {
     let (mut owner, root) = owner_fixture();

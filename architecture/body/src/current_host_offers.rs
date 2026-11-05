@@ -33,6 +33,16 @@ impl CurrentHostOffers {
         &self.hosts
     }
 
+    /// Read only exact current incarnations, even if membership changed since
+    /// the last explicit reconciliation. This is planning evidence, not a lease,
+    /// resource reservation, Line, or permission to execute.
+    pub fn current_hosts<'a>(
+        &'a self,
+        evidence: &'a BodyBiographyEvidence,
+    ) -> impl Iterator<Item = &'a HostAdvertisement> + 'a {
+        self.hosts.iter().filter(move |ad| is_current(evidence, ad))
+    }
+
     /// Observe one exact offer only while its Host/Boot/generation is the
     /// authenticated current incarnation of an admitted Body Part.
     pub fn observe(
@@ -41,15 +51,7 @@ impl CurrentHostOffers {
         advertisement: HostAdvertisement,
     ) -> Result<(), CurrentHostOfferError> {
         validate_shape(&advertisement)?;
-        let current = evidence.membership.parts.iter().any(|part| {
-            part.state == MembershipState::Admitted
-                && part.current.as_ref().is_some_and(|current| {
-                    current.host_id == advertisement.host_id
-                        && current.boot_id == advertisement.boot_id
-                        && current.offer_generation == advertisement.offer_generation
-                })
-        });
-        if !current {
+        if !is_current(evidence, &advertisement) {
             return Err(CurrentHostOfferError::NotCurrentMember);
         }
         if let Some(index) = self
@@ -71,21 +73,25 @@ impl CurrentHostOffers {
 
     /// Remove observations whose exact incarnation is no longer current.
     pub fn reconcile(&mut self, evidence: &BodyBiographyEvidence) {
-        self.hosts.retain(|advertisement| {
-            evidence.membership.parts.iter().any(|part| {
-                part.state == MembershipState::Admitted
-                    && part.current.as_ref().is_some_and(|current| {
-                        current.host_id == advertisement.host_id
-                            && current.boot_id == advertisement.boot_id
-                            && current.offer_generation == advertisement.offer_generation
-                    })
-            })
-        });
+        self.hosts
+            .retain(|advertisement| is_current(evidence, advertisement));
     }
 }
 
+fn is_current(evidence: &BodyBiographyEvidence, advertisement: &HostAdvertisement) -> bool {
+    evidence.membership.parts.iter().any(|part| {
+        part.state == MembershipState::Admitted
+            && part.current.as_ref().is_some_and(|current| {
+                current.host_id == advertisement.host_id
+                    && current.boot_id == advertisement.boot_id
+                    && current.offer_generation == advertisement.offer_generation
+            })
+    })
+}
+
 fn validate_shape(advertisement: &HostAdvertisement) -> Result<(), CurrentHostOfferError> {
-    if advertisement.protocol_version != PROTOCOL_VERSION
+    if advertisement.offer_generation.0 == 0
+        || advertisement.protocol_version != PROTOCOL_VERSION
         || advertisement.host_id.as_str().is_empty()
         || advertisement.boot_id.as_str().is_empty()
         || advertisement.profile.as_str().is_empty()

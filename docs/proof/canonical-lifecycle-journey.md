@@ -4703,3 +4703,42 @@ The broader library loan remains a qualified component on this delivery branch;
 MCU Root admission, authenticated preparation/activation, sensing/display Plays,
 continuing Lines, selected recording and the shared graph remain unfinished.
 PR #6766's Candidate has now passed; the full journey remains active.
+
+
+### 2026-11-05: Retain member equipment through the shared offer registry
+
+The installed owner retained invited equipment as a Mask-specific digest and
+transfer-profile cache. The Body already supplies `CurrentHostOffers`, but the
+installed owner did not consume it. This delivery branch now retains the actual
+bounded authenticated advertisements there, shared by membership receipt
+attestation, native/terminal Mask selection and owner inspection. The control
+response projects Host/Boot/generation/profile and capability/resource counts;
+it does not repeat every member's complete catalog in each response.
+
+Invitation and returning-member paths stage observations against the future
+biography and publish them only after its durable commit. Departures reconcile
+the registry. Reads independently filter the exact current incarnation even
+when a caller has not reconciled a retained observation. Changing the Boot,
+generation or offered equipment cannot reuse the prior observation. Reopening
+membership starts with no current equipment observations; it does not recover
+readiness from durable identity alone.
+
+The CPU owner tests exercise real temporary-file membership commits, a forged
+return signature, failed persistence, successful return, altered equipment,
+withdrawal and owner restart. Nine return, fifteen carrier, twenty-four native
+and three leave selector tests pass; two native tests remain ignored. These
+selectors overlap and are not an additive count of distinct cases. The native
+seal-envelope test took 98 seconds and passed without restart. No physical
+firmware or live owner was replaced by this preparation.
+
+This replaces a presentation-specific cache with an existing Body mechanism.
+It does not yet change the installed planner's local-only selection, create
+remote reservations, authorize an MCU Play or establish sensing/history/graph
+execution. Those are the next execution obligations. Resident scalar review
+#6767 has passed Candidate; graphical construction repair #6768 addresses the
+failed combined-dev product tests and is still awaiting its selected CI lanes.
+
+Strict installed CLI binary/test Clippy, formatting and the shared Body's
+`thumbv6m-none-eabi` no-default-features check pass. Process-aware package-native
+cleanup recovered 5.5 GiB from the inactive isolated review cache; active outputs,
+installed releases, source, Seeds, credentials and proof logs were preserved.

@@ -24,7 +24,6 @@ pub(crate) use participants::{
     BrowserAdmittedSnapshot, BrowserCarrierLineEvidence, BrowserWindowAuthorization,
 };
 use std::{
-    collections::BTreeMap,
     io::Write,
     ops::{Deref, DerefMut},
     path::Path,
@@ -62,6 +61,8 @@ mod direct_spoken_route;
 mod member_carrier;
 #[path = "member_leave.rs"]
 mod member_leave;
+#[path = "member_offers.rs"]
+mod member_offers;
 #[path = "member_return.rs"]
 mod member_return;
 #[path = "planning.rs"]
@@ -223,7 +224,7 @@ pub(crate) struct Owner {
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
     pending_member_return: Option<member_return::PendingMemberReturn>,
     member_carrier: Option<Box<member_carrier::MemberCarrierCustody>>,
-    invited_mask_offers: BTreeMap<conduit_core::HostId, native_mask_route::InvitedMaskOffer>,
+    current_host_offers: conduit_body::CurrentHostOffers,
     attached_terminal_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_template:
@@ -339,7 +340,7 @@ impl Owner {
             pending_native_mask: None,
             pending_member_return: None,
             member_carrier: None,
-            invited_mask_offers: BTreeMap::new(),
+            current_host_offers: conduit_body::CurrentHostOffers::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,
             direct_spoken_template: None,
@@ -375,7 +376,7 @@ impl Owner {
             pending_native_mask: None,
             pending_member_return: None,
             member_carrier: None,
-            invited_mask_offers: BTreeMap::new(),
+            current_host_offers: conduit_body::CurrentHostOffers::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,
             direct_spoken_template: None,
@@ -427,7 +428,7 @@ impl Owner {
         Ok(())
     }
     pub(crate) fn truth(&self) -> serde_json::Value {
-        serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending})
+        serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending, "current_member_offers":self.current_offer_summary()})
     }
     /// Project one canonical Face from the current retained owner session.
     /// Credential matching and current incarnation are checked here, even
