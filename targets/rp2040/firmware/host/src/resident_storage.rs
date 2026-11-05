@@ -1,6 +1,6 @@
 //! Attempt-owned physical kernel storage. No Back, resource grant or Start.
 use super::{CheckedDocument, ValidationRefusal as E};
-use crate::resident::generated::{BorrowedBack, Initialized, ENTRY_COUNT};
+use crate::resident::generated::{BorrowedBack, Initialized, PreparedResidentLoans, ENTRY_COUNT};
 use conduit_kernel::{scheduler::*, *};
 
 // Explicit supported local representation. Larger signed envelopes refuse;
@@ -41,7 +41,7 @@ struct Fragment<'a, 'o> {
 /// allocations survive together. Cancellation frees only this preparation;
 /// no resource reservation or provider loan has yet been taken.
 pub struct AttemptStorage<'a, 'o> {
-    _owner: &'o mut Initialized,
+    _owner: PreparedResidentLoans<'o>,
     fragments: [Option<Fragment<'a, 'o>>; ENTRY_COUNT],
     bytes: usize,
     stamp: conduit_body::RetainedHostCommandStamp,
@@ -156,6 +156,29 @@ pub(super) fn prepare<'a, 'o>(
     stamp: conduit_body::RetainedHostCommandStamp,
     maximum_bytes: usize,
 ) -> Result<AttemptStorage<'a, 'o>, E> {
+    // Hold the independently checked inventory exclusively through fallible
+    // storage and Core reservation. No Back is withdrawn by this ticket.
+    let selected = core::array::from_fn(|entry| {
+        checked.iter().flatten().find_map(|checked| {
+            checked.selected.nodes().find(|choice| choice.entry == entry).map(|choice| {
+                let profile = checked.profile();
+                conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan {
+                    input: conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput::Contiguous(checked.fragment.projection()),
+                    maxima: checked.maxima,
+                    requirements: profile.requirements,
+                    computations: profile.computations,
+                    fore: profile.fore,
+                    fragment_id: checked.fragment.metadata().fragment,
+                    scope: conduit_plan_lowering::assigned_play_scope::AssignedPlayScope::Delegated(&checked.fragment),
+                    node: NodeId(choice.node),
+                    work_resource: 0,
+                }
+            })
+        })
+    });
+    let prepared_loans = owner
+        .prepare_selected_array(selected)
+        .map_err(|_| E::Selection)?;
     let mut output = core::array::from_fn(|_| None);
     let mut bytes = 0usize;
     for (target, checked) in output.iter_mut().zip(checked) {
@@ -196,7 +219,7 @@ pub(super) fn prepare<'a, 'o>(
         });
     }
     Ok(AttemptStorage {
-        _owner: owner,
+        _owner: prepared_loans,
         fragments: output,
         bytes,
         stamp,

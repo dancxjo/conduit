@@ -47,6 +47,62 @@ pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::
         let offer = offer.unwrap();
         (offer.as_ptr(), offer.len())
     });
+    // A prepared selection keeps exclusive custody but neither withdraws an
+    // offer nor retains the original assignment/Play inspection borrows.
+    let transient = assignment.active();
+    let (prepared, cost) = crate::probe::observe(|| {
+        library
+            .prepare_selected_array([Some(assignment.selected(&transient)), None])
+            .unwrap()
+    });
+    drop(transient); // The opaque ticket retains no assignment/Play inspection.
+    assert!(core::mem::size_of_val(&prepared) <= 3 * core::mem::size_of::<usize>());
+    drop(prepared);
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    assert_eq!(
+        library.offers().map(|o| {
+            let o = o.unwrap();
+            (o.as_ptr(), o.len())
+        }),
+        original
+    );
+    let ((), cost) = crate::probe::observe(|| {
+        assert!(library
+            .prepare_selected_array([
+                Some(assignment.selected(&active)),
+                Some(assignment.selected(&active)),
+            ])
+            .is_err());
+    });
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    assert_eq!(
+        library.offers().map(|o| {
+            let o = o.unwrap();
+            (o.as_ptr(), o.len())
+        }),
+        original
+    );
+    let ((), cost) = crate::probe::observe(|| {
+        let prepared = library
+            .prepare_selected_array([Some(assignment.selected(&active)), None])
+            .unwrap();
+        let [Some((node, mut back)), None] = prepared.bind() else {
+            panic!("exact selected loan")
+        };
+        assert_eq!(node, 0);
+        // This loan was never installed in a kernel or started. Explicitly end
+        // its stateless scratch before returning the original availability.
+        conduit_kernel::scheduler::StepBack::<1>::cancel(&mut back);
+        assert!(back.finish_retired().is_ok());
+    });
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    assert_eq!(
+        library.offers().map(|o| {
+            let o = o.unwrap();
+            (o.as_ptr(), o.len())
+        }),
+        original
+    );
     // The same program with a different temporal Kind is not interchangeable.
     let (result, cost) =
         crate::probe::observe(|| library.bind_entry_1(assignment.selected(&active)));

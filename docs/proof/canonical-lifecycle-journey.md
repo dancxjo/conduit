@@ -6358,3 +6358,32 @@ Before isolated builds, verified inactive package-native cleanup reclaimed
 cache. No running executable, open file or mapped library referenced that cache;
 active review outputs, source, firmware, private state and evidence were retained.
 No live device or service changed in this step.
+
+
+### Exclusive checked resident selection across Root admission
+
+The generated resident library now exposes an opaque `PreparedResidentLoans`
+ticket: all exact assignments check before it is constructed, and it holds the
+initialized inventory exclusively without withdrawing any Back. The original
+assignment/Play inspection can be released while that checked custody remains.
+After independent complete admission, binding is infallible and allocation-free;
+existing immediate borrowing delegates to the same path. Dropping a ticket before
+binding changes no availability. This is an ownership invariant, not authority,
+reservation, freshness approval, a new scheduler, or Start.
+
+The actual RP2040 Root storage constructor now holds this ticket through storage
+acquisition and Core reservation. It retains no second Source/projection/catalog.
+The generated resident-offer executable passes both tests, including actual Root
+construction, late invalid selection, cancellation, resource refusal and allocation
+failure sweeps. Root CPU storage remains 12,432 bytes in two allocations under
+its unchanged 16,384-byte ceiling; pending stored/reserved futures are 1,112/1,144
+bytes. Ticket creation, binding, unstarted cancellation and restoration have zero
+scoped allocations. Strict delegated embedded-build test Clippy passes. The
+initial new probe accidentally counted its own cloned Play setup; moving that
+setup outside the measurement fixed the probe, without changing the product.
+
+Raw logs remain in ignored `target/prepared-resident-loans-20261105`. No firmware
+was rebuilt/flashed, and neither physical peak RAM nor installed binding/Start
+is claimed. The receiver still releases feasibility storage for retained input;
+consuming this ticket into exact bound kernels and retaining terminal evidence
+remain the next Root continuation. Live sensing/display remain diagnostic.
