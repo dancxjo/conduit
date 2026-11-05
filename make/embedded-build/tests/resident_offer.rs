@@ -48,6 +48,7 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
 #[path={kernel:?}]mod support_kernel;
 #[path={refusals:?}]mod refusals;
 #[path={library_helper:?}]mod library_checks;
+#[path={reuse:?}]mod reuse;
 fn main(){{
     let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
@@ -65,11 +66,13 @@ fn main(){{
     assert_eq!(node,0);assert!(owner.is_none());
     assert!(matches!(image::Initialized::bind_assigned_retained(&mut owner,assignment.selected(&active)),Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)));
     assert!(back.required_step_fuel()<=assignment.tables.nodes[0].maximum_step_fuel);
+    reuse::run(&assignment);
     let library_back=library_checks::run(&assignment);
     support_kernel::run(library_back,assignment);
 
 }}
 "#,
+        reuse = root.join("tests/resident_offer/reuse.rs").to_str().unwrap(),
         probe = probe.to_str().unwrap(),
         helper = helper.to_str().unwrap(),
         kernel = root
@@ -148,6 +151,7 @@ fn main(){{
         &exercise,
         "resident-library-partial-refusal",
         &[
+            "conduit_kernel",
             "conduit_core",
             "conduit_plot",
             "conduit_semantic_catalog",

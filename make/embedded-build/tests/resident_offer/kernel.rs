@@ -3,7 +3,7 @@ use conduit_core as c;
 use conduit_kernel::{scheduler::*, *};
 use conduit_plot as p;
 
-pub fn run(back: crate::image::Back, assignment: crate::support::Assignment) {
+pub fn run<B: StepBack<1>>(back: B, assignment: crate::support::Assignment) {
     let (_, program, _) = crate::support::context();
     let input = frame(&program);
     let expected = program.evaluate(&input).unwrap();
@@ -86,7 +86,7 @@ fn field(ty: &c::StructuredInfoType, name: &str) -> c::StructuredInfoType {
         .value_type()
         .clone()
 }
-fn frame(program: &p::PortableExpressionProgram) -> Vec<u8> {
+pub fn frame(program: &p::PortableExpressionProgram) -> Vec<u8> {
     let ram = field(&program.input_type, "ram");
     let c::StructuredInfoTypeShape::Collection { element, .. } = ram.shape() else {
         panic!("collection")

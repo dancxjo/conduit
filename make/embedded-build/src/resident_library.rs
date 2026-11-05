@@ -55,7 +55,7 @@ pub fn generate_resident_library(
     ));
     for index in 0..images.len() {
         code.push_str(&format!(
-            "self.entry_{index}.as_ref().map(|owner|owner.offer_image()),\n"
+            "self.entry_{index}.as_ref().and_then(|owner|owner.available_offer_image()),\n"
         ));
     }
     code.push_str("]}\n");
@@ -66,8 +66,12 @@ pub fn generate_resident_library(
 pub fn bind_entry_{index}(&mut self,selected:conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>)->Result<(u16,entry_{index}::Back),conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
 entry_{index}::Initialized::bind_assigned_retained(&mut self.entry_{index},selected)
 }}
+/// Lend retained backing after exact assignment checking, without moving it.
+pub fn borrow_entry_{index}(&mut self,selected:conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>)->Result<(u16,entry_{index}::BorrowedBack<'_>),conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
+self.entry_{index}.as_mut().ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)?.borrow_assigned(selected)
+}}
 pub fn computation_requirement_{index}(&self,node:u16)->Result<conduit_core::AssignedComputationRequirement,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
-self.entry_{index}.as_ref().map(|owner|owner.computation_requirement(node)).ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)
+self.entry_{index}.as_ref().filter(|owner|owner.available_offer_image().is_some()).map(|owner|owner.computation_requirement(node)).ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)
 }}
 "#));
     }

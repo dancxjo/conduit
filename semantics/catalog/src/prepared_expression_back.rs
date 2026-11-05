@@ -55,6 +55,7 @@ pub struct PreparedExpressionBack<E = PreparedPortableExpressionEvaluator> {
     maximum_input_bytes: u32,
     maximum_output_bytes: u32,
     staged: bool,
+    closing: bool,
     complete: bool,
     flow: bool,
     cancelled: bool,
@@ -69,6 +70,7 @@ impl PreparedExpressionBack {
             maximum_input_bytes,
             maximum_output_bytes,
             staged: false,
+            closing: false,
             complete: false,
             flow: false,
             cancelled: false,
@@ -97,6 +99,7 @@ impl<const PORTS: usize, E: ExpressionEngine> StepBack<PORTS> for PreparedExpres
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         // Discard only uncommitted intent on a retried transaction.
         self.staged = false;
+        self.closing = false;
         if self.complete {
             return StepOutcome::Complete;
         }
@@ -109,6 +112,7 @@ impl<const PORTS: usize, E: ExpressionEngine> StepBack<PORTS> for PreparedExpres
                     if io.consume_closed(PortId(0)).is_err() {
                         return fail(1641);
                     }
+                    self.closing = true;
                     StepOutcome::Complete
                 } else {
                     fail(1641)
@@ -162,10 +166,12 @@ impl<const PORTS: usize, E: ExpressionEngine> StepBack<PORTS> for PreparedExpres
         if self.staged && !self.flow {
             self.committed_values += 1;
         }
-        self.complete |= self.staged && !self.flow;
+        self.complete |= self.closing || (self.staged && !self.flow);
         self.staged = false;
+        self.closing = false;
     }
     fn cancel(&mut self) {
+        self.closing = false;
         self.cancelled = true;
         self.complete = true;
         self.staged = false;

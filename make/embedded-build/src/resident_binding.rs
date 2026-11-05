@@ -37,6 +37,7 @@ pub fn computation_requirement(&self,node:u16)->conduit_core::AssignedComputatio
 conduit_core::AssignedComputationRequirement{{node,..BINDING.computation}}
 }}
 pub fn check_assigned(&self,selected:conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>)->Result<u16,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
+if !self.available{{return Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner);}}
 conduit_plan_lowering::selected_assigned_expression::check_selected_resident_expression(BINDING,selected).map(|node|node.0)
 }}
 /// All fallible checks precede the one-time transfer; refusal retains the same Back.

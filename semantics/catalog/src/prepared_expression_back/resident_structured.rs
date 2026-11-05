@@ -84,6 +84,7 @@ impl<const I: usize, const O: usize, const C: usize, const B: usize>
                 refusal: None,
             },
             staged: false,
+            closing: false,
             complete: false,
             flow: matches!(temporal, PortTemporal::Flow { closes: true }),
             cancelled: false,
@@ -104,5 +105,23 @@ impl<const I: usize, const O: usize, const C: usize, const B: usize>
     }
     pub fn scratch_bytes(&self) -> usize {
         B
+    }
+
+    /// Reuse the owned stateless evaluator after terminal kernel retirement.
+    /// Root must first drain/retire its scheduler and retain the old evidence;
+    /// this resets private scratch only, and issues no reservation or Play.
+    /// A nonterminal or staged Back refuses without changing its bytes.
+    pub fn reset_after_retirement(&mut self) -> bool {
+        if !self.complete || self.staged || self.closing {
+            return false;
+        }
+        self.evaluator.output.fill(0);
+        self.evaluator.scratch.fill(0);
+        self.evaluator.length = 0;
+        self.evaluator.refusal = None;
+        self.complete = false;
+        self.cancelled = false;
+        self.committed_values = 0;
+        true
     }
 }

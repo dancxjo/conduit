@@ -78,6 +78,13 @@ fn lifecycle() {
         StepOutcome::Complete
     );
     assert!(closed.test_consumed_closed(PortId(0)));
+    // Closing intent cannot release the backing until its transaction commits.
+    assert!(!flow.reset_after_retirement());
+    <image::Back as StepBack<1>>::step_committed(&mut flow);
+    assert!(flow.reset_after_retirement());
+    assert!(<image::Back as StepBack<1>>::prepared_output(&flow, PortId(0)).is_none());
+    let mut next = frame(INPUT, true, required);
+    assert_eq!(flow.step(&mut next, &input), StepOutcome::Progress);
 }
 enum Back {
     Source { sent: bool, staged: bool },

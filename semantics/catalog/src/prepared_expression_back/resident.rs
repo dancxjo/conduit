@@ -52,6 +52,7 @@ impl StaticScalarExpressionBack {
                 length: 0,
             },
             staged: false,
+            closing: false,
             complete: false,
             flow: matches!(temporal, PortTemporal::Flow { closes: true }),
             cancelled: false,

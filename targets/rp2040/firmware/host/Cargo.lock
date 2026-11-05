@@ -464,6 +464,7 @@ dependencies = [
  "conduit-host-make",
  "conduit-host-rp2040",
  "conduit-ht16k33",
+ "conduit-kernel",
  "conduit-net",
  "conduit-network-credential-journal",
  "conduit-plan-lowering",

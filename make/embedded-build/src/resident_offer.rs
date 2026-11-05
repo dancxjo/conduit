@@ -58,7 +58,21 @@ pub(crate) fn append(
     image.extend_from_slice(&compressed);
     // Keep only the lossless image, never a second raw catalog in firmware.
     code.push_str(&format!("static OFFER_IMAGE:&[u8]=&{image:?};\n"));
-    code.push_str("/// One actually initialized Back; metadata is neither a grant nor a reservation.\npub struct Initialized { back:Back }\nimpl Initialized {\npub fn prepare()->Result<Self,PreparationRefusal>{Ok(Self{back:prepare_back()?})}\n/// Lend a lossless document image only while this initialized owner is retained.\n/// Resolution requires the recipient's independent bounded decode workspace.\npub fn offer_image(&self)->&[u8]{OFFER_IMAGE}\npub fn into_back(self)->Back{self.back}\n}\n");
+    code.push_str(r#"
+/// One actually initialized Back; metadata grants no resource or execution.
+pub struct Initialized { back:Back, available:bool }
+impl Initialized {
+pub fn prepare()->Result<Self,PreparationRefusal>{Ok(Self{back:prepare_back()?,available:true})}
+/// Lossless descriptive image; availability remains separate.
+pub fn offer_image(&self)->&[u8]{OFFER_IMAGE}
+pub fn available_offer_image(&self)->Option<&[u8]>{self.available.then_some(OFFER_IMAGE)}
+pub fn into_back(self)->Back{self.back}
+/// All checks precede the exclusive loan. No second engine is constructed.
+pub fn borrow_assigned(&mut self,selected:conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>)->Result<(u16,BorrowedBack<'_>),conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{
+let node=self.check_assigned(selected)?;self.available=false;Ok((node,BorrowedBack{owner:self}))
+}
+}
+"#);
     crate::resident_binding::append(
         code,
         &offer,

@@ -96,7 +96,7 @@ impl PreparedResidentExpression {
         let output = program
             .maximum_prepared_output_bytes()
             .map_err(|_| R::Bounds)?;
-        code.push_str(&format!("#[derive(Debug)] pub enum PreparationRefusal {{Image(conduit_plot::StaticStructuredRefusal),Back(conduit_semantic_catalog::StaticExpressionBackRefusal)}}\npub type Back=conduit_semantic_catalog::StaticStructuredExpressionBack<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},{{CHILD_COUNT}},{output}>;\npub fn prepare_back()->Result<Back,PreparationRefusal>{{let image=prepare().map_err(PreparationRefusal::Image)?; let back=Back::from_resident_structured(image,{temporal_rust}).map_err(PreparationRefusal::Back)?;if back.computation_fuel()>PRIVATE_WORK_UNITS{{return Err(PreparationRefusal::Back(conduit_semantic_catalog::StaticExpressionBackRefusal::Work));}}Ok(back)}}\n"));
+        crate::resident_back::append(&mut code, output, temporal_rust);
         code.push_str(&format!(
             "pub const PRIVATE_WORK_UNITS:u16={};\n",
             bounds.private_work_units

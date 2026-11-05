@@ -118,3 +118,22 @@ node; it starts no operation, changes no lifecycle state and issues no authority
 Actual Host preparation, resource admission, execution and retirement remain
 separate. The existing fragment-Play entrance and its canonical active-Play law
 remain intact. Body validation is an optional dependency, disabled by default.
+
+
+## Resident backing across Plays
+
+Generated resident libraries can lend a selected Back through `borrow_entry_N`.
+The fixed kernel owns an exclusive pointer to that entry's existing backing,
+not another inline evaluator. Exact Source/Fore/artifact and active-Play checks
+still precede the loan. Nominal generated loan types retain the exact owning entry even when engines
+have identical Rust layouts but different program or temporal contracts.
+
+Root first drains or cancels the kernel and uses its existing `try_retire`
+boundary, retaining its old values and Signs. The returned loan's
+`finish_retired` clears stateless scratch and restores inventory eligibility;
+it does not release resource reservations, publish a Host generation or grant
+another Play. Uncommitted closure, live execution and abandoned loans cannot
+silently republish the implementation. The next Play still needs fresh checked
+binding and admission. These mechanics do not migrate semantic State or prove
+physical bus quiescence. Root's full workspace and actual execution remain
+independent custody obligations under #6341 and #6340.
