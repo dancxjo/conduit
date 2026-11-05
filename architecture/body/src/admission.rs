@@ -16,7 +16,9 @@ mod current_member;
 pub use current_member::CurrentMemberContinuity;
 mod documents;
 mod invitation;
+mod receipt_retirement;
 mod storage;
+pub use receipt_retirement::{AdmissionReceiptRetirement, ReceiptRetirementRefusal};
 pub use storage::{AdmissionStorageCompactionRefusal, AdmissionStorageUsage};
 
 use continuity::{ContinuityKeyRecord, PendingReturn};
@@ -122,6 +124,8 @@ pub struct AdmissionManager {
     continuity_keys: Vec<ContinuityKeyRecord>,
     pending_returns: Vec<PendingReturn>,
     pub receipts: Vec<AdmissionReceipt>,
+    #[serde(default)]
+    retired_receipt_count: u64,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -146,6 +150,7 @@ pub enum AdmissionRefusal {
     InvitationCapacityExhausted,
     InvitationSequenceExhausted,
     ReceiptCapacityExhausted,
+    ReceiptSequenceExhausted,
     Candidate(CandidateRefusal),
     Membership(MembershipRefusal),
 }
@@ -183,6 +188,7 @@ impl AdmissionManager {
             continuity_keys: Vec::new(),
             pending_returns: Vec::new(),
             receipts: Vec::new(),
+            retired_receipt_count: 0,
         })
     }
 
@@ -414,7 +420,7 @@ impl AdmissionManager {
         let part_id = PartId::bind(
             &self.body_id,
             admission_id.as_str(),
-            self.receipts.len() as u64,
+            self.receipt_ordinal()?,
         )?;
         let credential_id = MembershipCredentialId::bound(bind_identity(
             "membership-credential",
@@ -468,6 +474,7 @@ impl AdmissionManager {
         if self.receipts.len() == MAX_ADMISSION_RECEIPTS {
             return Err(AdmissionRefusal::ReceiptCapacityExhausted);
         }
+        self.receipt_ordinal()?;
         self.receipts.push(AdmissionReceipt {
             admission_id,
             credential,

@@ -202,6 +202,7 @@ impl AdmissionManager {
         if self.receipts.len() == MAX_ADMISSION_RECEIPTS {
             return Err(AdmissionRefusal::ReceiptCapacityExhausted);
         }
+        self.receipt_ordinal()?;
         if pending.attempts >= MAX_ADMISSION_ATTEMPTS {
             return Err(AdmissionRefusal::AttemptsExhausted);
         }
