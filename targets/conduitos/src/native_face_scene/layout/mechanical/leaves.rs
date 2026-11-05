@@ -48,12 +48,16 @@ fn arrange_content(
     });
     let mut items = context.items(region).peekable();
     let mut previous = None;
+    let mut previous_heading = None;
     let mut cluster_atomic = false;
     let mut control_atomic = None;
     while let Some((original, item)) = items.next() {
         if item.text.is_empty() {
             continue;
         }
+        let after_heading = previous_heading == Some((item.region, item.region_order));
+        previous_heading =
+            field_clusters::heading(item).then_some((item.region, item.region_order));
         let insets = context.spacing.insets(item);
         let maximum_height = inset(height, insets.block)?;
         let starts = field_clusters::starts(previous, item);
@@ -72,7 +76,7 @@ fn arrange_content(
                 metrics(),
                 marker,
             )?;
-            cluster_atomic = demand.is_some();
+            cluster_atomic = demand.as_ref().is_some_and(|demand| demand.complete);
             control_atomic = None;
         } else if previous.is_none() {
             cluster_atomic = false;
@@ -145,14 +149,31 @@ fn arrange_content(
             if context.rows.get() == MAX_ROWS {
                 return Err(FaceSceneError::DocumentBound);
             }
-            let (end, measured) = measure_prefix(
-                remaining,
-                item.role,
-                text_width,
-                maximum_height,
-                context.scale,
-                context.typography,
-            )?;
+            let (end, measured) =
+                measure_prefix(
+                    remaining,
+                    item.role,
+                    text_width,
+                    if after_heading && chunk == 0 {
+                        maximum_height.min(height.saturating_sub(
+                            current.height + context.spacing.gap + insets.block * 2,
+                        ))
+                    } else {
+                        maximum_height
+                    },
+                    context.scale,
+                    context.typography,
+                )
+                .or_else(|_| {
+                    measure_prefix(
+                        remaining,
+                        item.role,
+                        text_width,
+                        maximum_height,
+                        context.scale,
+                        context.typography,
+                    )
+                })?;
             let box_height = context.spacing.box_height(item, measured, context.scale)?;
             if box_height > height {
                 return Err(FaceSceneError::InvalidExtent);
@@ -190,8 +211,9 @@ fn arrange_content(
                 chunk,
                 cross_extent: 0,
                 cost,
-                break_before: !(cluster_atomic || control_atomic.is_some())
-                    || ((starts || control_start) && chunk == 0),
+                break_before: (!(cluster_atomic || control_atomic.is_some())
+                    || ((starts || control_start) && chunk == 0))
+                    && !(after_heading && chunk == 0),
                 outer_padding: 0,
                 extent: None,
                 row: Row {

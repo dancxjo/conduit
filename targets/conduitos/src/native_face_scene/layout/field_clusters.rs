@@ -1,4 +1,4 @@
-//! Bounded keep decisions for contiguous rows associated with one Face target.
+//! Bounded keep decisions for headings and rows associated with one Face target.
 //! Oversized targets keep the ordinary finite row/page continuation path.
 use super::*;
 
@@ -32,7 +32,11 @@ pub(super) fn key(item: &document::Item) -> Option<Key> {
 }
 
 pub(super) fn starts(previous: Option<Key>, current: &document::Item) -> bool {
-    key(current).is_some_and(|key| Some(key) != previous)
+    heading(current) || key(current).is_some_and(|key| Some(key) != previous)
+}
+
+pub(super) fn heading(item: &document::Item) -> bool {
+    item.role == GraphicsTextRole::Heading && item.control.is_none()
 }
 
 pub(super) fn text_width(
@@ -60,6 +64,7 @@ pub(super) fn text_width(
         .ok_or(FaceSceneError::InvalidExtent)
 }
 
+#[derive(Clone, Copy)]
 pub(super) struct Metrics {
     pub width: u16,
     pub maximum_height: u16,
@@ -69,6 +74,7 @@ pub(super) struct Metrics {
 }
 
 pub(super) struct Demand {
+    pub complete: bool,
     height: u32,
     rows: usize,
     commands: usize,
@@ -104,11 +110,34 @@ pub(super) fn measure<'a>(
     let Some(first) = items.clone().next() else {
         return Ok(None);
     };
+    if heading(first) {
+        // Read-only headings precede the first content target without changing
+        // that target's semantic identity or weakening its form-control cluster.
+        let mut content = None;
+        let cluster = items
+            .filter(|item| !item.text.is_empty())
+            .take_while(move |item| {
+                if item.region != first.region || item.region_order != first.region_order {
+                    return false;
+                }
+                if let Some(content) = content {
+                    return same(content, item);
+                }
+                if !heading(item) {
+                    content = Some(*item);
+                }
+                true
+            });
+        return match measure_cluster(cluster.clone(), metrics, region_start, false)? {
+            Some(demand) => Ok(Some(demand)),
+            None => measure_cluster(cluster, metrics, region_start, true),
+        };
+    }
     let cluster = items.take_while(|item| same(first, item));
     if !cluster.clone().any(|item| item.control.is_some()) {
         return Ok(None);
     }
-    measure_cluster(cluster, metrics, region_start)
+    measure_cluster(cluster, metrics, region_start, false)
 }
 
 /// An oversized subject may continue its prose while retaining a fitting
@@ -130,15 +159,17 @@ pub(super) fn measure_controls<'a>(
                 .control
                 .is_some_and(|next| next.action == control.action)
     });
-    measure_cluster(cluster, metrics, region_start)
+    measure_cluster(cluster, metrics, region_start, false)
 }
 
 fn measure_cluster<'a>(
     cluster: impl Iterator<Item = &'a document::Item>,
     metrics: Metrics,
     region_start: bool,
+    first_visible: bool,
 ) -> Result<Option<Demand>, FaceSceneError> {
     let mut demand = Demand {
+        complete: !first_visible,
         height: 0,
         rows: 0,
         commands: 0,
@@ -158,7 +189,14 @@ fn measure_cluster<'a>(
             .filter(|height| *height > 0)
             .ok_or(FaceSceneError::InvalidExtent)?;
         let width = text_width(item, width, insets, metrics.scale)?;
-        let mut remaining = item.text.as_str();
+        // An oversized first target need only keep its first visible line with
+        // the heading. Rendering can use the remaining page height for more.
+        let first_content = first_visible && !heading(item);
+        let mut remaining = if first_content {
+            &item.text[..item.text.chars().next().map_or(0, char::len_utf8)]
+        } else {
+            item.text.as_str()
+        };
         while !remaining.is_empty() {
             let (end, height) = measure_prefix(
                 remaining,
@@ -185,6 +223,9 @@ fn measure_cluster<'a>(
                 return Ok(None);
             }
             remaining = &remaining[end..];
+        }
+        if first_content {
+            break;
         }
     }
     if item_count < 2 || demand.rows == 0 {
