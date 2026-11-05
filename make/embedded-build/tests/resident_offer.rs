@@ -75,10 +75,10 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
 #[path={body_scope:?}]mod body_scope;
 {delegated}
 mod resident {{
- pub mod generated {{pub use crate::library::{{Initialized,ENTRY_COUNT}};}}
- pub fn inventory()->Result<&'static generated::Initialized,()> {{Err(())}}
+ pub mod generated {{pub use crate::library::{{Initialized,BorrowedBack,ENTRY_COUNT}};}}
+ pub fn inventory()->Result<&'static mut generated::Initialized,()> {{Err(())}}
 }}
-mod config {{pub const RESIDENT_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima=conduit_core::AssignedPlanMaxima{{encoded_bytes:8192,runtime_state_bytes:8192,counts:[32;conduit_core::ASSIGNED_PLAN_COUNT_KINDS]}};}}
+mod config {{pub const RESIDENT_PREPARATION_STORAGE_BYTES:usize=16384;pub const RESIDENT_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima=conduit_core::AssignedPlanMaxima{{encoded_bytes:8192,runtime_state_bytes:8192,counts:[32;conduit_core::ASSIGNED_PLAN_COUNT_KINDS]}};}}
 {root_preparer}
 fn main(){{
     let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());

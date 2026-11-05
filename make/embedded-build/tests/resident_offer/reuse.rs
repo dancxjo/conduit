@@ -27,7 +27,7 @@ pub fn run(assignment: &crate::support::Assignment) {
         1,
     >;
     type BorrowedKernel<'a> = FixedScheduler<
-        crate::library::entry_0::BorrowedBack<'a>,
+        crate::library::BorrowedBack<'a>,
         FixedValueStore<2, 2048>,
         FixedSignLog<128>,
         1,
@@ -41,7 +41,7 @@ pub fn run(assignment: &crate::support::Assignment) {
     let borrowed_kernel_bytes = core::mem::size_of::<BorrowedKernel<'_>>();
     assert_eq!(
         owned_kernel_bytes - borrowed_kernel_bytes,
-        size - core::mem::size_of::<usize>()
+        size - core::mem::size_of::<crate::library::BorrowedBack<'_>>()
     );
     let mut backing_address = None;
     let (_, program, _) = crate::support::context();
@@ -67,12 +67,12 @@ pub fn run(assignment: &crate::support::Assignment) {
             play_sequence,
         );
         let (_, cost) = crate::probe::observe(|| {
-            let (_, back) = library
-                .borrow_entry_0(assignment.selected(&active))
-                .unwrap();
-            let address = &*back as *const crate::library::entry_0::Back as usize;
+            let [Some((_, back)), None] = library
+                .borrow_selected_array([Some(assignment.selected(&active)), None])
+                .unwrap() else { panic!("wrong selected entry"); };
+            let address = entry_address(&back);
             assert_eq!(*backing_address.get_or_insert(address), address);
-            assert_eq!(core::mem::size_of_val(&*back), size);
+            assert!(core::mem::size_of_val(&back) <= 2 * core::mem::size_of::<usize>());
             // A loan is not automatically retired merely because it is owned.
             let back = match back.finish_retired() {
                 Err(back) => back,
@@ -185,7 +185,7 @@ pub fn run(assignment: &crate::support::Assignment) {
                 signs,
                 ..
             } = retired;
-            let address = &*back as *const crate::library::entry_0::Back as usize;
+            let address = entry_address(&back);
             assert_eq!(Some(address), backing_address);
             if back.finish_retired().is_err() {
                 panic!("retired Back did not return");
@@ -202,12 +202,19 @@ pub fn run(assignment: &crate::support::Assignment) {
         assert_eq!(cost.reallocations, 0);
     }
     let active = assignment.active();
-    let (_, abandoned) = library
-        .borrow_entry_0(assignment.selected(&active))
-        .unwrap();
+    let [Some((_, abandoned)), None] = library
+        .borrow_selected_array([Some(assignment.selected(&active)), None])
+        .unwrap() else { panic!("wrong selected entry"); };
     drop(abandoned);
     assert!(library.offers()[0].is_none());
     assert!(library.offers()[1].is_some());
     assert!(matches!(library.borrow_entry_0(assignment.selected(&active)), Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)));
-    println!("owned kernel {owned_kernel_bytes} B, borrowed kernel {borrowed_kernel_bytes} B, Back {size} B; 100 same-Plan Plays: 50 completed, 50 cancelled; same backing and exact resident image restored, pointer-sized loan, zero scoped allocation");
+    println!("owned kernel {owned_kernel_bytes} B, borrowed kernel {borrowed_kernel_bytes} B, Back {size} B; 100 same-Plan Plays: 50 completed, 50 cancelled; same backing and exact resident image restored, uniform nominal loans, zero scoped allocation");
+}
+
+fn entry_address(back: &crate::library::BorrowedBack<'_>) -> usize {
+    match back {
+        crate::library::BorrowedBack::Entry0(back) => &**back as *const crate::library::entry_0::Back as usize,
+        _ => panic!("selected entry changed nominal identity"),
+    }
 }

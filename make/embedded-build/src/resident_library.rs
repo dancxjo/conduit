@@ -100,6 +100,7 @@ self.entry_{index}.as_ref().filter(|owner|owner.available_offer_image().is_some(
         ));
     }
     code.push_str(")}\n}\n");
+    crate::resident_library_borrow::append_back(&mut code, images.len());
     if code.len() as u64 > u64::from(maximum_generated_bytes) {
         return Err(R::Bounds);
     }

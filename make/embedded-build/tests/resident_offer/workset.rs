@@ -44,6 +44,7 @@ pub fn run(
         "this complete workset must fit the actual Root receive slice"
     );
     assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    root_storage::run(&receiver, &bytes, first, &mut library);
     assert_eq!(
         library.offers().map(|image| image.unwrap().as_ptr()),
         original
@@ -261,3 +262,6 @@ pub fn run(
     assert!(library.offers()[0].is_some());
     println!("one signed complete local workset: {} bytes; allocation-free actual Root profile preflight; incomplete/duplicate/mixed/late-invalid/unavailable/double-assigned sets refused before provider transfer", bytes.len());
 }
+
+#[path = "root_storage.rs"]
+mod root_storage;

@@ -13,6 +13,13 @@ mod probe;
 static ALLOC: probe::Allocator = probe::Allocator;
 const LIMIT: usize = 4096;
 mod config {
+    pub const RESIDENT_PREPARATION_STORAGE_BYTES: usize = 16384;
+    pub const RESIDENT_PREPARATION_MAXIMA: conduit_core::AssignedPlanMaxima =
+        conduit_core::AssignedPlanMaxima {
+            encoded_bytes: 8192,
+            runtime_state_bytes: 8192,
+            counts: [32; conduit_core::ASSIGNED_PLAN_COUNT_KINDS],
+        };
     pub const IMAGE_ID: &str = "fixture/image";
     pub const CONFIGURATION_ID: &str = "fixture/config";
     pub const DIAGNOSTIC_HTTP_BUFFER_LIMIT: u64 = 8192;
@@ -27,12 +34,28 @@ mod resident_preparation {
     pub enum ValidationRefusal {
         Unavailable,
         InvalidAssignment,
+        #[allow(dead_code)]
+        Storage(conduit_kernel::scheduler::KernelPreparationError),
     }
-    pub fn validate(
+    pub struct AttemptStorage;
+    impl Drop for AttemptStorage {
+        fn drop(&mut self) {}
+    }
+    pub struct Inventory;
+    impl Drop for Inventory {
+        fn drop(&mut self) {}
+    }
+    pub fn inventory() -> Result<Inventory, ()> {
+        Ok(Inventory)
+    }
+    pub fn prepare_workset_storage(
+        _: &mut Inventory,
         _: Option<&conduit_body::HostPreparationDelegation>,
         _: conduit_body::NativePreparationContext<'_>,
         command: conduit_body::AttributedHostCommand<'_, '_>,
-    ) -> Result<(), ValidationRefusal> {
+        _: conduit_core::AssignedPlanMaxima,
+        _: usize,
+    ) -> Result<AttemptStorage, ValidationRefusal> {
         if command.payload().first() == Some(&0x46) {
             Err(ValidationRefusal::InvalidAssignment)
         } else {

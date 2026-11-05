@@ -41,6 +41,9 @@ fn main(){{
    let mut lease=inventory::inventory().unwrap();
    let address=(&*lease as *const inventory::generated::Initialized)as usize;
    let _: &mut inventory::generated::Initialized=&mut lease;
+   assert!(core::mem::size_of::<inventory::generated::BorrowedBack<'_>>()<=2*core::mem::size_of::<usize>());
+   let loans=lease.borrow_selected_array(core::array::from_fn(|_|None)).unwrap();
+   assert!(loans.into_iter().all(|loan|loan.is_none()));
    assert!(matches!(inventory::inventory(),Err(inventory::InventoryRefusal::Busy)));
    assert_eq!(inventory::summary().0,5);
    assert_eq!(lease.offers().into_iter().flatten().count(),5);
@@ -76,6 +79,7 @@ fn main(){{
         "resident-inventory-custody",
         &[
             "conduit_core",
+            "conduit_kernel",
             "conduit_plot",
             "conduit_semantic_catalog",
             "conduit_plan_lowering",

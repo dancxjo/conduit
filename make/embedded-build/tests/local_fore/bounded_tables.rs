@@ -19,7 +19,7 @@ fn checked_fore_plan_uses_only_its_active_prefix_without_enlarging_the_exact_ent
     let bytes = generated.encode(maxima).unwrap();
     let computations = b::assigned_computation_requirements(generated.kernel()).unwrap();
     let profile = c::AssignedComputationProfile {
-        maximum_text_bytes: u16::MAX,
+        maximum_text_bytes: u32::from(u16::MAX),
         maximum_total_text_bytes: u32::MAX,
         requirements: &computations,
     };

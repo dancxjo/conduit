@@ -71,6 +71,7 @@ fn main(){{
         "rp2040-resident-protocol",
         &[
             "conduit_core",
+            "conduit_kernel",
             "conduit_plot",
             "conduit_semantic_catalog",
             "conduit_plan_lowering",

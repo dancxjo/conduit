@@ -162,15 +162,26 @@ pub fn run(
         )
         .unwrap();
     let original = library.offers().map(|o| o.unwrap().as_ptr());
+    assert!(size_of::<crate::library::BorrowedBack<'_>>() <= 2 * size_of::<usize>());
+    let (invalid, checking) = crate::probe::observe(|| {
+        library.borrow_selected_array([
+            Some(first.selected_scope(AssignedPlayScope::Delegated(&left))),
+            Some(first.selected_scope(AssignedPlayScope::Delegated(&left))),
+        ]).is_err()
+    });
+    assert!(invalid);
+    assert_eq!((checking.allocations, checking.reallocations), (0, 0));
+    assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+
     let mut owner = c::ResourceAdmissionOwner::new(receiver.actual.clone());
     let before = owner.clone();
     let observed = observation(owner.host());
-    let total = size_of::<Kernel<crate::library::entry_0::BorrowedBack<'_>>>()
-        + size_of::<Kernel<crate::library::entry_1::BorrowedBack<'_>>>();
+    let total = size_of::<Kernel<crate::library::BorrowedBack<'_>>>()
+        + size_of::<Kernel<crate::library::BorrowedBack<'_>>>();
     let (result, cost) = crate::probe::observe(|| {
-        let left = prepare::<crate::library::entry_0::BorrowedBack<'_>>(first, total).unwrap();
+        let left = prepare::<crate::library::BorrowedBack<'_>>(first, total).unwrap();
         let remaining = total - 1 - left.storage_bytes();
-        prepare::<crate::library::entry_1::BorrowedBack<'_>>(second, remaining)
+        prepare::<crate::library::BorrowedBack<'_>>(second, remaining)
     });
     assert!(matches!(
         result,
@@ -185,9 +196,9 @@ pub fn run(
     short.unreserved_units -= 1;
     let ((), cost) = crate::probe::observe(|| {
         let ka =
-            prepare::<crate::library::entry_0::BorrowedBack<'_>>(first, FIXTURE_PREPARATION_BYTES)
+            prepare::<crate::library::BorrowedBack<'_>>(first, FIXTURE_PREPARATION_BYTES)
                 .unwrap();
-        let kb = prepare::<crate::library::entry_1::BorrowedBack<'_>>(
+        let kb = prepare::<crate::library::BorrowedBack<'_>>(
             second,
             FIXTURE_PREPARATION_BYTES - ka.storage_bytes(),
         )
@@ -211,10 +222,10 @@ pub fn run(
         Resources(DelegatedResourceRefusal),
     }
     let acquire = |owner: &mut c::ResourceAdmissionOwner| {
-        let ka = prepare::<crate::library::entry_0::BorrowedBack<'_>>(
+        let ka = prepare::<crate::library::BorrowedBack<'_>>(
             first, FIXTURE_PREPARATION_BYTES,
         ).map_err(Refusal::Kernel)?;
-        let kb = prepare::<crate::library::entry_1::BorrowedBack<'_>>(
+        let kb = prepare::<crate::library::BorrowedBack<'_>>(
             second, FIXTURE_PREPARATION_BYTES - ka.storage_bytes(),
         ).map_err(Refusal::Kernel)?;
         admit_delegated_plain_resources(
@@ -250,9 +261,9 @@ pub fn run(
     println!("complete workset: {} allocation boundaries return typed refusal without ledger mutation or provider transfer", baseline.allocation_attempts);
     let ((ka, kb), cost) = crate::probe::observe(|| {
         let ka =
-            prepare::<crate::library::entry_0::BorrowedBack<'_>>(first, FIXTURE_PREPARATION_BYTES)
+            prepare::<crate::library::BorrowedBack<'_>>(first, FIXTURE_PREPARATION_BYTES)
                 .unwrap();
-        let kb = prepare::<crate::library::entry_1::BorrowedBack<'_>>(
+        let kb = prepare::<crate::library::BorrowedBack<'_>>(
             second,
             FIXTURE_PREPARATION_BYTES - ka.storage_bytes(),
         )
@@ -272,20 +283,22 @@ pub fn run(
     let input = crate::support_kernel::frame(&program);
     let expected = program.evaluate(&input).unwrap();
     let ((), execution) = crate::probe::observe(|| {
-        let (a, b) = library
-            .borrow_selected([
+        let [a, b] = library
+            .borrow_selected_array([
                 Some(first.selected_scope(AssignedPlayScope::Delegated(&left))),
                 Some(second.selected_scope(AssignedPlayScope::Delegated(&right))),
             ])
             .unwrap();
-        let ka = ka.bind([a.unwrap().1]);
-        let kb = kb.bind([b.unwrap().1]);
-        assert!(finish(ka, first, &input, &expected)
-            .finish_retired()
-            .is_ok());
-        assert!(finish(kb, second, &input, &expected)
-            .finish_retired()
-            .is_ok());
+        let a = match a.unwrap().1.finish_retired() {
+            Err(a) => a,
+            Ok(()) => panic!("an unexecuted loan was republished"),
+        };
+        let b = b.unwrap().1;
+        // Same concrete kernel type, selected at runtime from nominal entries.
+        let kernels = [ka.bind([a]), kb.bind([b])];
+        for (kernel, assignment) in kernels.into_iter().zip([first, second]) {
+            assert!(finish(kernel, assignment, &input, &expected).finish_retired().is_ok());
+        }
     });
     assert_eq!((execution.allocations, execution.reallocations), (0, 0));
     assert_eq!(execution.deallocations, 2);
@@ -300,5 +313,28 @@ pub fn run(
             .unwrap();
     }
     assert!(owner.admissions().is_empty());
+    let mut abandoned = crate::library::Initialized::prepare().unwrap();
+    let pending = async {
+        let _loans = abandoned.borrow_selected_array([
+            Some(first.selected_scope(AssignedPlayScope::Delegated(&left))),
+            Some(second.selected_scope(AssignedPlayScope::Delegated(&right))),
+        ]).unwrap();
+        core::future::pending::<()>().await;
+    };
+    let mut pending = Box::pin(pending);
+    let ((), cancelled) = crate::probe::observe(|| {
+        use core::future::Future;
+        let mut cx = core::task::Context::from_waker(core::task::Waker::noop());
+        assert!(pending.as_mut().poll(&mut cx).is_pending());
+        drop(pending);
+    });
+    assert_eq!((cancelled.allocations, cancelled.reallocations), (0, 0));
+    // Losing a future/connection is not native retirement. Neither entry may be
+    // advertised again merely because its uniform loan collection was dropped.
+    assert!(abandoned.offers().into_iter().all(|o| o.is_none()));
+    assert!(abandoned.borrow_selected_array([
+        Some(first.selected_scope(AssignedPlayScope::Delegated(&left))),
+        Some(second.selected_scope(AssignedPlayScope::Delegated(&right))),
+    ]).is_err());
     println!("complete checked workset storage before Core reservations/Back transfer: {total} kernel payload bytes, {peak} peak preparation bytes; late storage/resource refusal preserves owners; typed output, retirement and exact releases, zero execution allocation");
 }

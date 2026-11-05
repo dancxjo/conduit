@@ -1,0 +1,149 @@
+//! Attempt-owned physical kernel storage. No Back, resource grant or Start.
+use super::{CheckedDocument, ValidationRefusal as E};
+use crate::resident::generated::{BorrowedBack, Initialized, ENTRY_COUNT};
+use conduit_kernel::{scheduler::*, *};
+
+// Explicit supported local representation. Larger signed envelopes refuse;
+// construction and policy byte ceilings never grow to accommodate an assignment.
+const VALUE_BYTES: usize = 2048;
+const SIGN_ITEMS: usize = 16;
+type Kernel<'a, const N: usize, const C: usize, const V: usize> = FixedScheduler<
+    BorrowedBack<'a>,
+    FixedValueStore<V, VALUE_BYTES>,
+    FixedSignLog<SIGN_ITEMS>,
+    N,
+    C,
+    1,
+    16,
+    N,
+    C,
+    0,
+    1,
+>;
+type Slot<'a, const N: usize, const C: usize, const V: usize> =
+    PreparedKernelStorage<BorrowedBack<'a>, Kernel<'a, N, C, V>, N>;
+
+// The selected package installs five unary protocol entries. Exact active-node
+// specialization avoids charging every one-node fragment five nodes' storage.
+#[allow(dead_code)] // Owners retain allocations; binding/start is not installed.
+enum Storage<'a> {
+    One(Slot<'a, 1, 2, 2>),
+    Two(Slot<'a, 2, 4, 4>),
+    Three(Slot<'a, 3, 6, 6>),
+    Four(Slot<'a, 4, 8, 8>),
+    Five(Slot<'a, 5, 10, 10>),
+}
+struct Fragment<'a, 'o> {
+    _approved: conduit_body::DelegatedBodyFragment<'a>,
+    _storage: Storage<'o>,
+}
+/// The exclusive inventory, original borrowed documents and actual unbound
+/// allocations survive together. Cancellation frees only this preparation;
+/// no resource reservation or provider loan has yet been taken.
+pub struct AttemptStorage<'a, 'o> {
+    _owner: &'o mut Initialized,
+    _fragments: [Option<Fragment<'a, 'o>>; ENTRY_COUNT],
+    bytes: usize,
+}
+impl AttemptStorage<'_, '_> {
+    pub fn storage_bytes(&self) -> usize {
+        self.bytes
+    }
+}
+
+pub(super) fn prepare<'a, 'o>(
+    owner: &'o mut Initialized,
+    checked: [Option<CheckedDocument<'a>>; ENTRY_COUNT],
+    maximum_bytes: usize,
+) -> Result<AttemptStorage<'a, 'o>, E> {
+    let mut output = core::array::from_fn(|_| None);
+    let mut bytes = 0usize;
+    for (target, checked) in output.iter_mut().zip(checked) {
+        let Some(checked) = checked else { continue };
+        let remaining = maximum_bytes.checked_sub(bytes).ok_or(E::Bounds)?;
+        let (storage, charge) = match checked.fragment.view().counts[0] {
+            1 => {
+                let s = slot::<1, 2, 2>(&checked, remaining)?;
+                let n = s.storage_bytes();
+                (Storage::One(s), n)
+            }
+            2 => {
+                let s = slot::<2, 4, 4>(&checked, remaining)?;
+                let n = s.storage_bytes();
+                (Storage::Two(s), n)
+            }
+            3 => {
+                let s = slot::<3, 6, 6>(&checked, remaining)?;
+                let n = s.storage_bytes();
+                (Storage::Three(s), n)
+            }
+            4 => {
+                let s = slot::<4, 8, 8>(&checked, remaining)?;
+                let n = s.storage_bytes();
+                (Storage::Four(s), n)
+            }
+            5 => {
+                let s = slot::<5, 10, 10>(&checked, remaining)?;
+                let n = s.storage_bytes();
+                (Storage::Five(s), n)
+            }
+            _ => return Err(E::Bounds),
+        };
+        bytes = bytes.checked_add(charge).ok_or(E::Bounds)?;
+        *target = Some(Fragment {
+            _approved: checked.fragment,
+            _storage: storage,
+        });
+    }
+    Ok(AttemptStorage {
+        _owner: owner,
+        _fragments: output,
+        bytes,
+    })
+}
+fn slot<'o, const N: usize, const C: usize, const V: usize>(
+    checked: &CheckedDocument<'_>,
+    maximum_bytes: usize,
+) -> Result<Slot<'o, N, C, V>, E> {
+    let tables = conduit_plan_lowering::delegated_kernel::prepare_delegated_body_kernel_tables::<
+        128,
+        N,
+        C,
+        1,
+        N,
+        C,
+        0,
+    >(&checked.fragment, checked.profile())
+    .map_err(|_| E::Kernel)?;
+    let (nodes, cords) = (tables.active_nodes(), tables.active_cords());
+    if nodes != N
+        || tables.cords[..cords]
+            .iter()
+            .any(|c| c.maximum_value_bytes > VALUE_BYTES as u32)
+        || tables.cords[..cords]
+            .iter()
+            .map(|c| usize::from(c.item_capacity))
+            .sum::<usize>()
+            > V
+        || checked.fragment.view().counts[8] as usize > SIGN_ITEMS
+    {
+        return Err(E::Bounds);
+    }
+    Kernel::<N, C, V>::prepare_boxed(
+        nodes,
+        cords,
+        tables.nodes,
+        tables.cords,
+        tables.routes,
+        tables.calls,
+        FixedValueStore::new((V * VALUE_BYTES) as u32).map_err(|_| E::Bounds)?,
+        FixedSignLog::new_with_remote_storage(
+            (SIGN_ITEMS * core::mem::size_of::<KernelEvent>()) as u32,
+            SIGN_ITEMS as u16,
+            remote_sign_storage_bytes(SIGN_ITEMS as u16).ok_or(E::Bounds)?,
+        )
+        .map_err(|_| E::Bounds)?,
+        maximum_bytes,
+    )
+    .map_err(E::Storage)
+}

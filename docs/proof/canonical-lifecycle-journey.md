@@ -5405,3 +5405,64 @@ observed at 1,021 successful samples and 15,306 acknowledged display frames,
 without reported sensor/display errors. This is continuity evidence only. Root
 still reports `validated-workset` / `start: not-installed`; retained preparation
 custody, actual bus/provider handover and physical admitted Play remain open.
+
+### 2026-11-05 — Uniform loans and attempt-owned Root storage
+
+Kernel storage #6775 and atomic allocation refusal #6776 are merged into dev.
+Their Candidate checks passed; merged-source Integration and physical Root
+acceptance remain distinct. The delivery composition retains the following
+additional work for focused extraction.
+
+Generated libraries now expose a finite array of nominal loan variants, reusing
+the existing whole-selection check and disjoint field loans. Enum dispatch adds
+no raw pointers, unchecked indexing or new Back allocation. Both selected entries
+can inhabit one concrete kernel type. The 100-Play CPU case still completes 50
+and cancels 50 Plays with no scoped execution allocation, preserving original
+backing and image addresses. A failed late selection changes no availability;
+dropping loan-owning pending work does not falsely republish either entry.
+A uniform loan is 16 bytes on this 64-bit test, versus eight for its underlying
+nominal loan. That representation cost is not a speed measurement.
+
+The actual RP2040 preparation source now acquires unbound kernel payloads after
+all complete-set/profile checks, then holds them with the original borrowed
+approval documents and exclusive inventory through its response await. It uses
+one-node through five-node instantiations of the existing kernel, rather than
+funding five nodes for every one-node fragment. Cancellation or failed response
+releases this unstarted preparation; no provider has been lent or resource
+reservation committed. The wire response remains `validated-workset`, now naming
+`storage: attempt-owned`, `resources: not-reserved`, `start: not-installed`.
+Allocation and byte-ceiling failures have distinct machine-readable reasons.
+
+A 512-byte draft storage profile refused the signed 1,581-byte value envelope;
+that refusal was correct. The final profile preserves it with 2,048-byte slots
+and refuses unsupported queue/value/evidence envelopes. Green's authored
+construction explicitly changes preparation bookkeeping from 8,192 to 16,384
+bytes within its unchanged 49,152-byte heap arena. No live grant is increased.
+A new checked configuration/Seed is required before deployment. This budget does
+not promise arbitrary worksets fit, nor fund a Start or native capability.
+
+The real Root constructor's two-fragment CPU case acquires 12,432 kernel payload
+bytes in two allocations. Its pending test future is 984 bytes; caller-owned
+3,504-byte input and receiver/signature context are separate. Zero capacity,
+the former 8 KiB ceiling, a late one-byte shortage, and each allocator failure
+refuse and clean up. Dropping its pending future frees both payloads without
+provider transfer. These are scoped CPU payload/frame measurements, excluding
+allocator overhead and physical stack high-water. The separate larger CPU
+execution fixture now retains 21,936 kernel bytes and peaks at 24,434 requested
+preparation bytes; its different sign-storage profile is not a matched MCU
+performance comparison.
+
+Default/delegated emitted-code tests, actual five-entry inventory/protocol
+compilation (including no_std generated code), ingress/work-pool tests, strict
+owning library/test Clippy and formatting qualify this source checkpoint.
+An old local-Fore test's U16 literal was explicitly converted to the current U32
+field while preserving its original numeric ceiling. No device or service was
+updated. Atomic actual-Root reservation coupling, start authority, typed IO/bus
+handover, late-operation retirement and physical sensing Plays remain open.
+
+The requested security/performance review stays with #6409 and #6078/#6092.
+Safe enum/field borrowing is not a full safety certificate: the lower kernel's
+manual allocation/initialization still requires adversarial lifetime validation.
+Miri is absent from the available current nightly and was not run. Timings,
+instruction counts and matched device/code-size effects have not been measured;
+the repeated ownership tests establish correctness properties, not speed.

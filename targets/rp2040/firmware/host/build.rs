@@ -45,6 +45,7 @@ pub const HEAP_BYTES:usize={heap};
 pub const PREPARATION_DELEGATION:Option<conduit_body::HostPreparationDelegation>={preparation};
 pub const RESIDENT_WORK_POOL:&str={work_pool:?};
 pub const RESIDENT_WORK_UNITS:u32={work_units};
+pub const RESIDENT_PREPARATION_STORAGE_BYTES:usize={storage_bytes};
 // Representation ceilings from checked construction, not new execution grants.
 pub const RESIDENT_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima=conduit_core::AssignedPlanMaxima{{
  encoded_bytes:{encoded},runtime_state_bytes:{runtime},
@@ -75,6 +76,7 @@ pub(crate) use start_local_io;
         buffers = checked.configuration().limits.buffered_bytes,
         work_pool = work.id,
         work_units = work.capacity_units,
+        storage_bytes = work.bookkeeping_bytes,
         encoded = checked
             .configuration()
             .limits

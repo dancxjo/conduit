@@ -86,15 +86,28 @@ impl Membership {
             // The workset receiver checks the installed policy and original
             // signed command before decoding any constituent fragment.
 
-            match crate::resident_preparation::validate(
+            let mut inventory = match crate::resident_preparation::inventory() {
+                Ok(owner) => owner,
+                Err(_) => return link.send(br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#).await,
+            };
+            match crate::resident_preparation::prepare_workset_storage(
+                &mut inventory,
                 Some(policy),
                 NativePreparationContext {
                     bootstrap: &self.seed, member, actual: self.resources.host(),
                     image_id: crate::config::IMAGE_ID, configuration_id: crate::config::CONFIGURATION_ID,
                     now_millis: Instant::now().as_millis(),
                 }, command,
+                crate::config::RESIDENT_PREPARATION_MAXIMA,
+                crate::config::RESIDENT_PREPARATION_STORAGE_BYTES,
             ) {
-                Ok(()) => link.send(br#"{"phase":"validated-workset","profile":"resident-structured","start":"not-installed"}"#).await,
+                Ok(stored) => {
+                    let result = link.send(br#"{"phase":"validated-workset","profile":"resident-structured","storage":"attempt-owned","resources":"not-reserved","start":"not-installed"}"#).await;
+                    drop(stored);
+                    result
+                },
+                Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Allocation)) => link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"allocation"}"#).await,
+                Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Capacity {..})) => link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"capacity"}"#).await,
                 Err(crate::resident_preparation::ValidationRefusal::Unavailable) => link.send(br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#).await,
                 Err(_) => Err(()),
             }

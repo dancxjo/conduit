@@ -2149,6 +2149,7 @@ dependencies = [
  "conduit-core",
  "conduit-embedded-build",
  "conduit-host-make",
+ "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
  "conduit-rp2040-flash-layout",

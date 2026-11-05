@@ -1,4 +1,6 @@
 //! Root composition over real initialized Backs; no catalog decode or transfer.
+#[path = "resident_storage.rs"]
+mod storage;
 use conduit_body::{
     check_host_preparation_delegation, decode_body_fragment_document,
     receive_delegated_body_fragment_with_approved_fore, receive_delegated_body_workset,
@@ -11,6 +13,7 @@ use conduit_plan_lowering::{
     selected_assigned_expression::SelectedAssignedExpressionPlan,
     selected_assigned_operation::AssignedOperationInput,
 };
+pub use storage::AttemptStorage;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ValidationRefusal {
@@ -22,21 +25,21 @@ pub enum ValidationRefusal {
     Kernel,
     Assignment,
     Workset,
+    Storage(conduit_kernel::scheduler::KernelPreparationError),
 }
 
-pub fn validate(
+pub use crate::resident::inventory;
+
+pub fn prepare_workset_storage<'a, 'o>(
+    owner: &'o mut crate::resident::generated::Initialized,
     installed: Option<&HostPreparationDelegation>,
     context: NativePreparationContext<'_>,
-    command: AttributedHostCommand<'_, '_>,
-) -> Result<(), ValidationRefusal> {
-    let owner = crate::resident::inventory().map_err(|_| ValidationRefusal::Unavailable)?;
-    validate_workset_with_inventory(
-        &owner,
-        installed,
-        context,
-        command,
-        crate::config::RESIDENT_PREPARATION_MAXIMA,
-    )
+    command: AttributedHostCommand<'_, 'a>,
+    maxima: c::AssignedPlanMaxima,
+    maximum_storage_bytes: usize,
+) -> Result<AttemptStorage<'a, 'o>, ValidationRefusal> {
+    let checked = check_workset(owner, installed, context, command, maxima)?;
+    storage::prepare(owner, checked, maximum_storage_bytes)
 }
 
 /// The original signed command must contain the complete local set before any
@@ -48,6 +51,17 @@ pub fn validate_workset_with_inventory(
     command: AttributedHostCommand<'_, '_>,
     maxima: c::AssignedPlanMaxima,
 ) -> Result<(), ValidationRefusal> {
+    check_workset(owner, installed, context, command, maxima).map(|_| ())
+}
+
+fn check_workset<'a>(
+    owner: &crate::resident::generated::Initialized,
+    installed: Option<&HostPreparationDelegation>,
+    context: NativePreparationContext<'_>,
+    command: AttributedHostCommand<'_, 'a>,
+    maxima: c::AssignedPlanMaxima,
+) -> Result<[Option<CheckedDocument<'a>>; crate::resident::generated::ENTRY_COUNT], ValidationRefusal>
+{
     let workset = receive_delegated_body_workset::<{ crate::resident::generated::ENTRY_COUNT }>(
         installed, context, command,
     )
@@ -56,21 +70,27 @@ pub fn validate_workset_with_inventory(
         return Err(ValidationRefusal::Bounds);
     }
     let mut used = [false; crate::resident::generated::ENTRY_COUNT];
-    for index in 0..workset.fragment_count() {
+    let mut checked = core::array::from_fn(|_| None);
+    for (index, output) in checked
+        .iter_mut()
+        .enumerate()
+        .take(workset.fragment_count())
+    {
         let document = workset.document(index).ok_or(ValidationRefusal::Document)?;
-        let selections = validate_document(owner, context, document, maxima, |profile| {
+        let prepared = validate_document(owner, context, document, maxima, |profile| {
             workset
                 .receive_fragment_with_approved_fore::<16>(index, installed, context, profile)
                 .map_err(|_| ValidationRefusal::Assignment)
         })?;
-        for (prior, new) in used.iter_mut().zip(selections) {
+        for (prior, new) in used.iter_mut().zip(prepared.used) {
             if *prior && new {
                 return Err(ValidationRefusal::Selection);
             }
             *prior |= new;
         }
+        *output = Some(prepared);
     }
-    Ok(())
+    Ok(checked)
 }
 
 /// Check the complete fragment against actual initialized entries, without
@@ -105,7 +125,7 @@ fn validate_document<'a>(
         (DelegatedBodyFragment<'a>, ApprovedBodyForePorts<16>),
         ValidationRefusal,
     >,
-) -> Result<[bool; crate::resident::generated::ENTRY_COUNT], ValidationRefusal> {
+) -> Result<CheckedDocument<'a>, ValidationRefusal> {
     use ValidationRefusal as E;
     let (_, projection) = decode_body_fragment_document(document).map_err(|_| E::Document)?;
     let selected = owner
@@ -179,5 +199,43 @@ fn validate_document<'a>(
             )
             .map_err(|_| E::Selection)?;
     }
-    Ok(used)
+    Ok(CheckedDocument {
+        fragment,
+        fore,
+        selected,
+        maxima,
+        used,
+    })
+}
+
+struct CheckedDocument<'a> {
+    fragment: DelegatedBodyFragment<'a>,
+    fore: ApprovedBodyForePorts<16>,
+    selected: conduit_plan_lowering::resident_inventory::ResidentInventorySelection<
+        { crate::resident::generated::ENTRY_COUNT },
+    >,
+    maxima: c::AssignedPlanMaxima,
+    used: [bool; crate::resident::generated::ENTRY_COUNT],
+}
+impl CheckedDocument<'_> {
+    fn profile(&self) -> AssignedBodyPreparationProfile<'_> {
+        let pins = self.selected.computations();
+        let metadata = self.fragment.metadata();
+        AssignedBodyPreparationProfile {
+            maxima: self.maxima,
+            requirements: c::AssignedPlanRequirements {
+                host: c::AssignedIdentity::from_text(metadata.host),
+                boot: c::AssignedIdentity::from_text(metadata.boot),
+                host_calls: &[],
+                resources: &[0],
+                remote_bindings: &[],
+            },
+            computations: c::AssignedComputationProfile {
+                maximum_text_bytes: pins.iter().map(|p| p.text_bytes).max().unwrap_or(0),
+                maximum_total_text_bytes: pins.iter().map(|p| p.text_bytes).sum(),
+                requirements: pins,
+            },
+            fore: Some(self.fore.as_slice()),
+        }
+    }
 }
