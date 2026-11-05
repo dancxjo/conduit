@@ -5,9 +5,11 @@ edition = "2021"
 
 [features]
 default = []
+body-plan-binding = ["dep:conduit-body"]
 hosted-region-storage = ["conduit-kernel/alloc"]
 
 [dependencies]
+conduit-body = { path = "../body", default-features = false, optional = true }
 conduit-core = { path = "../core" }
 conduit-kernel = { path = "../kernel" }
 
