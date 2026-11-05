@@ -16,6 +16,11 @@ fn program(source: &str) -> PortableExpressionProgram {
 
 fn refuses_without_native_witness(program: &PortableExpressionProgram) {
     assert!(matches!(
+        generate_static_scalar_expression(program),
+        Err(PortableExpressionEvaluationRefusal::UnsupportedType(reason))
+            if reason == "scalar-tape/native-law-witness-unavailable@1"
+    ));
+    assert!(matches!(
         PreparedPortableExpressionEvaluator::new_scalar_tape(program),
         Err(PortableExpressionEvaluationRefusal::UnsupportedType(reason))
             if reason == "scalar-tape/native-law-witness-unavailable@1"

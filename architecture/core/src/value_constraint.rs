@@ -11,6 +11,10 @@ use serde::{Deserialize, Serialize};
 use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
 mod decode;
 mod definition;
+mod resident_integer;
+pub use resident_integer::{
+    BorrowedFixedIntegerContract, FixedIntegerContractSpec, FixedIntegerRange,
+};
 mod identity;
 mod near_quantity;
 mod quantity_profile;
@@ -276,27 +280,13 @@ impl ValueConstraint {
                 maximum,
                 minimum_endpoint,
                 maximum_endpoint,
-            } => {
-                let kind = crate::primitive_info_kind(value_kind)
-                    .ok_or(ValueConstraintRefusal::WrongConstraintKind)?;
-                let value = crate::FixedInteger::decode(kind, canonical)
-                    .map_err(|_| ValueConstraintRefusal::FixedIntegerRange)?;
-                let above = minimum.as_ref().is_none_or(|minimum| {
-                    crate::FixedInteger::decode(kind, minimum).is_ok_and(|minimum| {
-                        fixed_integer_cmp(value, minimum)
-                            .is_some_and(|order| lower_accepts(order, *minimum_endpoint))
-                    })
-                });
-                let below = maximum.as_ref().is_none_or(|maximum| {
-                    crate::FixedInteger::decode(kind, maximum).is_ok_and(|maximum| {
-                        fixed_integer_cmp(value, maximum)
-                            .is_some_and(|order| upper_accepts(order, *maximum_endpoint))
-                    })
-                });
-                (above && below)
-                    .then_some(())
-                    .ok_or(ValueConstraintRefusal::FixedIntegerRange)
+            } => FixedIntegerRange {
+                minimum: minimum.as_deref(),
+                maximum: maximum.as_deref(),
+                minimum_endpoint: *minimum_endpoint,
+                maximum_endpoint: *maximum_endpoint,
             }
+            .validate(value_kind, canonical),
             Self::QuantityRange {
                 minimum,
                 maximum,
