@@ -3925,3 +3925,38 @@ components do not close S2 or imply an installed compiler service is available.
 The five existing IMAGE timer-construction regressions also pass, including
 unsupported workset refusal and preservation of the reconfiguration and
 unaccounted-Play gates.
+
+### Owned capability and local Fore accounting (5 November 2026)
+
+The Source execution investigation found another boundary beyond the IMAGE
+memory refusal: the ordinary Body kernel has no installed native-Source owner
+route yet, and the native selected-operation check requires its actual canonical
+Plan/Play identity. No arbitrary parent/child identity substitution or dispatch
+whitelist was added to make that fit.
+
+A focused Core extraction is in PR #6757. Its read-only counters cover actual
+owned capability table/claim/bound-operation and value-contract payload, using
+Vec/String capacities and nested owned buffers rather than encoded lengths.
+On the isolated current-dev checkout, 18 capability tests, two focused unit tests
+and strict all-target Core Clippy pass. The allocator-observed bytes released by
+retiring a bound owner and a nested value contract match their reported payload;
+observation/normal operation allocate nothing and do not change authority.
+Inline values, allocator overhead, transient workspace and borrowed values stay
+outside that retained-payload claim. Isolated qualification exposed the existing
+table/contract counters as integration-branch prerequisites, so the focused slice
+includes them explicitly and excludes unrelated resident-scalar changes.
+
+The integration branch also now accounts one-shot local Fore ingress metadata,
+including reserved target fan-out, while borrowing caller-owned input bytes.
+Local port accounting reuses Core's nested value-contract counter. Extracting
+that responsibility preserves the existing tick receipt's output-only and
+constraint restrictions; streaming/live ingress, Lines and input-origin custody
+still refuse this local profile. Three Fore tests and one ingress ownership
+test pass. Six existing IMAGE Body/result-custody regressions pass, including
+one-byte-short refusal before start and escaped-output lease retention. Strict
+all-target std Host Clippy passes.
+
+These are retained-storage accounting components, not a complete execution or
+validation-workspace receipt. IMAGE Source Play, ordinary Body dispatch, Source
+authority and full preparation accounting remain unfinished under #6447. No
+MCU/Pi firmware or installed service changed.

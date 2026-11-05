@@ -10,6 +10,8 @@ use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_kernel::{CordId, RemoteEndpointId};
 use conduit_plan_lowering::lowering::LoweredForePort;
 
+mod memory;
+
 pub(super) const MAX_SEQUENCE_ITEMS: u16 = 64;
 
 pub(super) enum PreparedForeInputs<'a> {
@@ -26,9 +28,7 @@ pub(super) struct SingleInput<'a> {
 impl<'a> PreparedForeInputs<'a> {
     pub(super) fn empty_backing_bytes(&self) -> Option<usize> {
         match self {
-            Self::Single(entries) if entries.is_empty() => entries
-                .capacity()
-                .checked_mul(core::mem::size_of::<SingleInput<'_>>()),
+            Self::Single(entries) if entries.is_empty() => self.one_shot_backing_bytes(),
             _ => None,
         }
     }
