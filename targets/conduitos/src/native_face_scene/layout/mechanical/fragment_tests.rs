@@ -4,6 +4,56 @@ use super::*;
 use alloc::{format, vec};
 
 #[test]
+fn checked_group_does_not_split_its_heading_from_first_content() {
+    let face = crate::native_face_scene::tests::face(7);
+    let profile = prepared(&face, vec![super::tests::narrow()]);
+    for (width, height) in [(360, 480), (1024, 600), (1920, 1080)] {
+        for scale in [100, 125] {
+            for preceding in 0..24 {
+                let mut items = (0..preceding)
+                    .map(|index| {
+                        let mut value = item("Earlier reading", Some(0), false);
+                        value.subject_index = Some(index + 10);
+                        value
+                    })
+                    .collect::<Vec<_>>();
+                let mut heading = item("Section heading", Some(1), false);
+                heading.role = GraphicsTextRole::Heading;
+                heading.subject_index = Some(100);
+                items.push(heading);
+                let mut content = item("First content", Some(1), true);
+                content.subject_index = Some(101);
+                let control = content.control;
+                items.push(content);
+                let rows = admit(
+                    items,
+                    LayoutRect {
+                        x: 0,
+                        y: 0,
+                        width,
+                        height,
+                    },
+                    &profile,
+                    scale,
+                    RowSpacing::legacy(SPACE_SM),
+                    Typography::EDITORIAL,
+                )
+                .unwrap();
+                assert_eq!(rows.len(), preceding + 2);
+                let heading = &rows[preceding];
+                let content = &rows[preceding + 1];
+                assert_eq!(
+                    heading.page, content.page,
+                    "{width}x{height}, {scale}%, {preceding} preceding"
+                );
+                assert_eq!(content.control, control);
+                assert_geometry(&rows, width, height);
+            }
+        }
+    }
+}
+
+#[test]
 fn accessible_lanes_fill_residual_command_capacity_before_continuing() {
     let face = crate::native_face_scene::tests::face(7);
     let profile = prepared(&face, vec![wide(false)]);

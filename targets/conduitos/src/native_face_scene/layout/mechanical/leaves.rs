@@ -48,12 +48,16 @@ fn arrange_content(
     });
     let mut items = context.items(region).peekable();
     let mut previous = None;
+    let mut previous_heading = None;
     let mut cluster_atomic = false;
     let mut control_atomic = None;
     while let Some((original, item)) = items.next() {
         if item.text.is_empty() {
             continue;
         }
+        let after_heading = previous_heading == Some((item.region, item.region_order));
+        previous_heading =
+            field_clusters::heading(item).then_some((item.region, item.region_order));
         let insets = context.spacing.insets(item);
         let maximum_height = inset(height, insets.block)?;
         let starts = field_clusters::starts(previous, item);
@@ -190,8 +194,9 @@ fn arrange_content(
                 chunk,
                 cross_extent: 0,
                 cost,
-                break_before: !(cluster_atomic || control_atomic.is_some())
-                    || ((starts || control_start) && chunk == 0),
+                break_before: (!(cluster_atomic || control_atomic.is_some())
+                    || ((starts || control_start) && chunk == 0))
+                    && !(after_heading && chunk == 0),
                 outer_padding: 0,
                 extent: None,
                 row: Row {

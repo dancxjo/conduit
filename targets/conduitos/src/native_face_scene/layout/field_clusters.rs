@@ -1,4 +1,4 @@
-//! Bounded keep decisions for contiguous rows associated with one Face target.
+//! Bounded keep decisions for headings and rows associated with one Face target.
 //! Oversized targets keep the ordinary finite row/page continuation path.
 use super::*;
 
@@ -32,7 +32,11 @@ pub(super) fn key(item: &document::Item) -> Option<Key> {
 }
 
 pub(super) fn starts(previous: Option<Key>, current: &document::Item) -> bool {
-    key(current).is_some_and(|key| Some(key) != previous)
+    heading(current) || key(current).is_some_and(|key| Some(key) != previous)
+}
+
+pub(super) fn heading(item: &document::Item) -> bool {
+    item.role == GraphicsTextRole::Heading && item.control.is_none()
 }
 
 pub(super) fn text_width(
@@ -104,6 +108,26 @@ pub(super) fn measure<'a>(
     let Some(first) = items.clone().next() else {
         return Ok(None);
     };
+    if heading(first) {
+        // Read-only headings precede the first content target without changing
+        // that target's semantic identity or weakening its form-control cluster.
+        let mut content = None;
+        let cluster = items
+            .filter(|item| !item.text.is_empty())
+            .take_while(|item| {
+                if item.region != first.region || item.region_order != first.region_order {
+                    return false;
+                }
+                if let Some(content) = content {
+                    return same(content, item);
+                }
+                if !heading(item) {
+                    content = Some(*item);
+                }
+                true
+            });
+        return measure_cluster(cluster, metrics, region_start);
+    }
     let cluster = items.take_while(|item| same(first, item));
     if !cluster.clone().any(|item| item.control.is_some()) {
         return Ok(None);

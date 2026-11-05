@@ -6,6 +6,45 @@ use super::{
 use alloc::{format, vec};
 
 #[test]
+fn group_heading_stays_with_its_first_visible_content() {
+    for scale in [100, 125] {
+        for preceding in 0..24 {
+            let mut items = (0..preceding)
+                .map(|index| item(&format!("Earlier reading {index}"), None))
+                .collect::<Vec<_>>();
+            let mut heading = item("Section heading", Some(0));
+            heading.role = GraphicsTextRole::Heading;
+            items.push(heading);
+            items.push(item("First section content", Some(0)));
+            items.push(item("Later section content", Some(0)));
+            let rows = admit_configured(
+                items,
+                screen(1024, 600),
+                12,
+                2,
+                scale,
+                SPACE_SM,
+                Some([0, 1]),
+            )
+            .unwrap();
+            let heading = rows
+                .iter()
+                .find(|row| row.text == "Section heading")
+                .unwrap();
+            let content = rows
+                .iter()
+                .find(|row| row.text == "First section content")
+                .unwrap();
+            assert_eq!(
+                heading.page, content.page,
+                "orphaned heading with {preceding} preceding rows at {scale}%"
+            );
+            assert_disjoint(&rows);
+        }
+    }
+}
+
+#[test]
 fn sole_populated_region_keeps_full_width_on_every_page() {
     let inputs = (0..24)
         .map(|index| item(&format!("Reading {index}"), Some(1)))
