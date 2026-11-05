@@ -5466,3 +5466,39 @@ manual allocation/initialization still requires adversarial lifetime validation.
 Miri is absent from the available current nightly and was not run. Timings,
 instruction counts and matched device/code-size effects have not been measured;
 the repeated ownership tests establish correctness properties, not speed.
+
+
+### Target link and deferred worker-transfer review
+
+The initial ARM build exposed E0597 in the actual async ingress: its tail-match
+result could retain the inventory borrow until after the local lease's drop.
+Source `54f5b4c4ff34a441d77abd403ab90448e82242da` names the response before
+returning it, so the preparation result temporary retires first. All five
+owning ingress tests and firmware formatting pass after this correction.
+
+The checked Green reference then builds and links for thumbv6m through Make
+(using the retained Make CLI and current source/firmware builder). The resulting
+UF2 is 2,093,056 bytes, SHA-256
+`3c05f00f2b38f2822297d024a9bb6cd5fb0e93bee3c0373413127b40caaba8f1`;
+the ELF SHA-256 is
+`14bebc13188b61220d7400a2a745d607a42492815f0173985a7a2566c0ae50cb`.
+ELF load segments contain 1,046,296 flash bytes. Static RAM remains 117,208
+bytes including the unchanged 49,152-byte heap arena; the linked gap to stack
+start is 153,128 bytes, not measured stack high-water or free execution RAM.
+The artifact retains policy None and records membership/local sampling proof
+false. It was not flashed. Four dead-code warnings remain in the preparation
+inspection helpers; compilation is not strict firmware warning acceptance.
+
+The Root/control-plane observation is routed to existing #5232 rather than a
+new scheduler. The current attempt keeps exclusive local inventory custody;
+it proves no worker migration, synchronization, multicore execution or remote
+lease protocol. Root admission/placement/lifecycle, kernel execution and Host
+facilities remain separate responsibilities. Worker-transfer proof must include
+Send/Sync constraints, synchronized visibility, bounded handoff and wakeups;
+cross-Host authority remains separately owned by #6340/#6409. Follow-up comments
+on #6409 and #6092 retain adversarial retirement and matched timing requirements
+without turning loan correctness tests into safety or speed claims.
+
+The unchanged live Green reports 1,105 samples/attempts and 16,567 acknowledged
+frames with no sensor/display errors. This is diagnostic continuity, not a
+newly admitted sampling/display Play.
