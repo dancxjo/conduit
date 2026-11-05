@@ -322,6 +322,7 @@ pub fn check_host_configuration(
     if !diagnostics.is_empty() {
         return Err(diagnostics);
     }
+    configuration.normalize_declarations();
     let canonical = identity::stable_host_configuration_identity_source(&configuration)
         .map_err(|item| vec![item])?;
     let configuration_id = format!("sha256:{:x}", Sha256::digest(canonical.as_bytes()));
@@ -350,6 +351,10 @@ pub fn check_host_configuration(
     facilities.extend(operations.facilities);
     facilities.sort();
     facilities.dedup();
+    let mut capabilities = operations.capabilities;
+    capabilities.extend(presentation.capabilities);
+    capabilities.sort_by(|a, b| a.implementation.cmp(&b.implementation));
+    capabilities.dedup_by(|a, b| a.implementation == b.implementation);
     let profile = HostProfile {
         schema: HOST_PROFILE_SCHEMA.into(),
         name: configuration.name.clone(),
@@ -363,7 +368,7 @@ pub fn check_host_configuration(
         },
         host_core: descriptor.host_core.clone(),
         fragments: Vec::new(),
-        capabilities: operations.capabilities,
+        capabilities,
         host_calls,
         resources: configuration.resources.clone(),
         bases: resolved_bases

@@ -39,6 +39,7 @@ pub struct PreparedNativeMaskPlay {
     show_bytes: Vec<u8>,
     pub(super) receipt: Option<NativeMaskPlayReceipt>,
     pub(super) retired: bool,
+    pub(super) read_only: bool,
 }
 
 impl PreparedNativeMaskPlay {
@@ -229,6 +230,7 @@ impl PreparedNativeMaskPlay {
             interaction_fore,
             interaction_node,
             show_bytes,
+            read_only: fragment.placements.iter().any(|placement| placement.kind_id.as_str() == conduit_face::FACE_INTERACTION_KIND && matches!(placement.execution_profile_id.as_str(), conduit_conduitos_mask_offer::READ_ONLY_INTERACTION_PROFILE | conduit_conduitos_mask_offer::READ_ONLY_COLLECTION_INTERACTION_PROFILE)),
             retired: false,
             receipt: Some(NativeMaskPlayReceipt {
                 mask_plan_id: planned.plan.plan_id.clone(),

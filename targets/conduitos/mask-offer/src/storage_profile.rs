@@ -93,13 +93,19 @@ impl NativeMaskStorageProfile {
                 .iter()
                 .filter(|offer| offer.capability_id.as_str() == id);
             let offer = matching.next().ok_or(MaskOfferError::InvalidPlan)?;
+            let read_only = id == "renderer-conduitos-input"
+                && offer.implementation.execution_profile_id.as_str()
+                    == READ_ONLY_COLLECTION_INTERACTION_PROFILE
+                && offer.resource_requirements.is_empty()
+                && offer.authority_requirements.is_empty();
             if matching.next().is_some()
-                || offer.implementation.execution_profile_id.as_str()
-                    != if id == "renderer-conduitos-input" {
-                        "conduitos/bounded-collection-interaction@1"
-                    } else {
-                        self.execution_profile()
-                    }
+                || (!read_only
+                    && offer.implementation.execution_profile_id.as_str()
+                        != if id == "renderer-conduitos-input" {
+                            "conduitos/bounded-collection-interaction@1"
+                        } else {
+                            self.execution_profile()
+                        })
                 || offer.limits.max_queue_items == 0
                 || offer.limits.max_queue_bytes < self.bytes()
             {

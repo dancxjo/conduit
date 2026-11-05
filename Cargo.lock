@@ -2185,6 +2185,9 @@ dependencies = [
 name = "conduit-linear-framebuffer-make"
 version = "0.1.0"
 dependencies = [
+ "conduit-conduitos-mask-offer",
+ "conduit-core",
+ "conduit-face",
  "conduit-host-make",
 ]
 

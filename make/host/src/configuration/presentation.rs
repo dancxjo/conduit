@@ -8,6 +8,7 @@ pub(super) struct ResolvedPresentation {
     pub supplemental: Vec<PresenterSelection>,
     pub host_calls: Vec<String>,
     pub facilities: Vec<String>,
+    pub capabilities: Vec<crate::CapabilitySelection>,
 }
 
 pub(super) fn resolve(
@@ -59,6 +60,7 @@ pub(super) fn resolve(
     let selected = candidates.pop();
     let mut host_calls = existing_host_calls.to_vec();
     let mut facilities = Vec::new();
+    let mut capabilities = Vec::new();
     if anchor_selected {
         if let Some(metadata) =
             default.and_then(|anchor| catalog.presenters.get(&anchor.implementation_id))
@@ -81,6 +83,23 @@ pub(super) fn resolve(
             &mut BTreeSet::new(),
         );
     }
+    for presenter in default
+        .filter(|_| anchor_selected)
+        .map(|value| value.implementation_id.as_str())
+        .into_iter()
+        .chain(selected.map(|(id, _)| id.as_str()))
+    {
+        if let Some(metadata) = catalog.presenters.get(presenter) {
+            collect_implementations(
+                &metadata.prerequisites,
+                catalog,
+                &mut capabilities,
+                &mut BTreeSet::new(),
+            );
+        }
+    }
+    capabilities.sort_by(|a, b| a.implementation.cmp(&b.implementation));
+    capabilities.dedup_by(|a, b| a.implementation == b.implementation);
     host_calls.sort();
     host_calls.dedup();
     facilities.sort();
@@ -121,6 +140,7 @@ pub(super) fn resolve(
         presenter,
         host_calls,
         facilities,
+        capabilities,
     })
 }
 
@@ -133,7 +153,7 @@ fn presenter_roots_are_selected(
 ) -> bool {
     roots.iter().all(|node| {
         if !visited.insert(node.clone()) {
-            return true;
+            return false;
         }
         let selected = match node {
             crate::PrerequisiteNode::Base(value) => bases.iter().any(|(kind, _)| kind == value),
@@ -144,12 +164,24 @@ fn presenter_roots_are_selected(
                 resources.iter().any(|resource| resource.class == *value)
             }
             crate::PrerequisiteNode::HostCall(_) | crate::PrerequisiteNode::Facility(_) => true,
-            crate::PrerequisiteNode::Implementation(_) => false,
+            crate::PrerequisiteNode::Implementation(value) => {
+                catalog.implementations.get(value).is_some_and(|metadata| {
+                    presenter_roots_are_selected(
+                        &metadata.prerequisites,
+                        catalog,
+                        bases,
+                        resources,
+                        visited,
+                    )
+                })
+            }
         };
-        selected
+        let satisfied = selected
             && catalog.dependencies.get(node).is_none_or(|dependencies| {
                 presenter_roots_are_selected(dependencies, catalog, bases, resources, visited)
-            })
+            });
+        visited.remove(node);
+        satisfied
     })
 }
 
@@ -169,6 +201,17 @@ fn collect_derived_face_requirements(
             crate::PrerequisiteNode::Facility(value) => facilities.push(value.clone()),
             _ => {}
         }
+        if let crate::PrerequisiteNode::Implementation(value) = node {
+            if let Some(metadata) = catalog.implementations.get(value) {
+                collect_derived_face_requirements(
+                    &metadata.prerequisites,
+                    catalog,
+                    host_calls,
+                    facilities,
+                    visited,
+                );
+            }
+        }
         if let Some(dependencies) = catalog.dependencies.get(node) {
             collect_derived_face_requirements(
                 dependencies,
@@ -177,6 +220,32 @@ fn collect_derived_face_requirements(
                 facilities,
                 visited,
             );
+        }
+    }
+}
+
+fn collect_implementations(
+    roots: &[crate::PrerequisiteNode],
+    catalog: &MakeCatalog,
+    output: &mut Vec<crate::CapabilitySelection>,
+    visited: &mut BTreeSet<crate::PrerequisiteNode>,
+) {
+    for node in roots {
+        if !visited.insert(node.clone()) {
+            continue;
+        }
+        if let crate::PrerequisiteNode::Implementation(value) = node {
+            if let Some(metadata) = catalog.implementations.get(value) {
+                output.push(crate::CapabilitySelection {
+                    kind: metadata.kind.clone(),
+                    contract_revision: metadata.contract_revision.clone(),
+                    implementation: value.clone(),
+                });
+                collect_implementations(&metadata.prerequisites, catalog, output, visited);
+            }
+        }
+        if let Some(dependencies) = catalog.dependencies.get(node) {
+            collect_implementations(dependencies, catalog, output, visited);
         }
     }
 }
