@@ -43,6 +43,30 @@ impl Link {
             }
         }
     }
+    /// Feed the already selected document receiver directly from the existing
+    /// frame decoder. No second frame/document buffer or transport is created.
+    /// Other control frames refuse this transaction; its caller owns one deadline.
+    pub async fn receive_document(
+        &mut self,
+        document: &mut conduit_wire::BorrowedBoundedDocumentAssembly<'_>,
+    ) -> Result<(), ()> {
+        let mut packet = [0u8; 64];
+        loop {
+            if let Some(frame) = self.decoder.next_frame().map_err(|_| ())? {
+                if document.push(frame).map_err(|_| ())? {
+                    return Ok(());
+                }
+                continue;
+            }
+            let n = with_timeout(Duration::from_secs(30), self.class.read_packet(&mut packet))
+                .await
+                .map_err(|_| ())?
+                .map_err(|_| ())?;
+            if n != 0 {
+                self.decoder.accept_bytes(&packet[..n]).map_err(|_| ())?;
+            }
+        }
+    }
     pub async fn send(&mut self, payload: &[u8]) -> Result<(), ()> {
         if payload.is_empty() || payload.len() > LIMIT {
             return Err(());

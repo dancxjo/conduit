@@ -1,6 +1,9 @@
 //! Installed construction intent for delegated preparation, not an effect grant.
 use serde::{Deserialize, Serialize};
 
+/// Control request on an already selected Host carrier; it grants no authority.
+pub const HOST_PREPARATION_REQUEST: &str = "conduit.body/prepare-fragments@1";
+
 /// The Seed resolves this explicit selection to its independently pinned owner.
 /// Merely having an owner or joining its Body does not select this policy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
