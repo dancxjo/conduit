@@ -108,17 +108,30 @@ fn checked_document_import_retains_private_inline_closure_and_preserves_scope_li
     )
     .unwrap();
     let holder = native(&imported, "Holder");
-    let good = StructuredInfoValue::record(
-        holder.value_type.clone(),
-        vec![StructuredFieldValue::new("reply", value(&root.value_type, "ready", 7)).unwrap()],
-    )
-    .unwrap()
-    .canonical_bytes()
-    .unwrap();
-    let mut admitted = PreparedNativeAdmission::new(&imported, &holder.identity, bounds()).unwrap();
-    assert_eq!(admitted.scope_count(), 3);
-    admitted.begin(&good).unwrap();
-    complete(&mut admitted).unwrap();
+    let holder_bytes = |n| {
+        StructuredInfoValue::record(
+            holder.value_type.clone(),
+            vec![StructuredFieldValue::new("reply", value(&root.value_type, "ready", n)).unwrap()],
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap()
+    };
+    let good = holder_bytes(7);
+    for invalid in [0, 8] {
+        let mut admitted =
+            PreparedNativeAdmission::new(&imported, &holder.identity, bounds()).unwrap();
+        assert_eq!(admitted.scope_count(), 3);
+        admitted.begin(&good).unwrap();
+        complete(&mut admitted).unwrap();
+        admitted.retire_admitted().unwrap();
+        // Reusing the imported owner must preserve the inline 1..=7 predicate.
+        admitted.begin(&holder_bytes(invalid)).unwrap();
+        assert!(matches!(
+            complete(&mut admitted),
+            Err(PreparedNativeRefusal::Contract { .. })
+        ));
+    }
     let mut small = PreparedNativeAdmission::new_with_occurrence_limit(
         &imported,
         &holder.identity,
