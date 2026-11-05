@@ -4483,3 +4483,35 @@ owner recovery. The next required change is to publish selected evidence and the
 resulting manager through the existing owner transaction, verify cold evidence
 on reopen, and only then resume browser/native returns on the physical Body.
 No live admission state, credentials or history were edited by this step.
+
+
+### 2026-11-05: The owner retains cold admission evidence before hot retirement
+
+Browser and native completion now share owner admission-pressure handling. At the
+unchanged 32-receipt hot bound, the owner prepares the Core-selected middle
+receipts and a smaller manager. Both travel in the existing recoverable owner
+transaction. Cold evidence is committed before the manager; only successful
+publication replaces the in-memory manager. This introduces no second journal,
+transport acknowledgment or environmental application path.
+
+The Linux owner's cold admission profile is finite: at most 1024 receipts and
+512 KiB of encoded evidence. Its replacement also fits the existing 2 MiB owner
+transaction bound. Exact Host/Body scope, receipt identities, count, digest and
+append-only evidence correspondence are checked. Normal reopening refuses
+missing or corrupt cold evidence; transaction replay can complete its retained
+replacement. These are Linux owner storage/preparation costs, not MCU grants.
+
+An actual Owner test performs 100 signed native member returns, with a fresh
+owner Boot and file reopen each cycle. It retains the same member Part/key,
+initial replay fence, unique credentials, 90 cold receipts and 11 hot receipts.
+Exact lost-delivery retransmission returns the already committed credential.
+Separate storage fault fixtures prove interruption before and after the cold
+commit, unchanged hot evidence before custody, and byte-identical replay. A full
+1024-receipt cold profile refuses further retirement without changing its bytes.
+All sixteen owner-state tests and strict product binary/tests Clippy pass.
+
+The installed Hamm owner, saturated private manager and physical devices are
+unchanged. This checkpoint is local Linux proof. The Core prerequisite remains
+in #6765, with the owner follow-up retained on the delivery branch pending the
+review lane. Browser pressure, deployment and resumption of the live Crèche
+journey remain acceptance work; no full journey or shared graph is claimed.
