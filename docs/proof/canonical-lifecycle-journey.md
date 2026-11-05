@@ -4922,3 +4922,36 @@ must authenticate and authorize a compact Body assignment, reserve the real
 pools, and transfer that one quiescent bus into the prepared native owner.
 The default MCU build does not validate a rich Body Plan; the portable trusted
 Root boundary for externally prepared Body scope remains to be connected.
+
+
+### 2026-11-05: Deliver borrowed workspace and name the missing execution delegation
+
+Review of the actual Seed and Host construction path confirms that its pinned
+owner key is membership/attribution material, not a preparation grant.
+`HostConfiguration` currently selects the fixed explicit-authority profile;
+there is no selected Seed policy delegating rich Source/Body Plan approval to
+another Host. The non-clonable command challenge binds exact bytes and scope,
+but explicitly supplies no execution permission. The existing local opaque
+Base grant remains necessary. No firmware endpoint was added that treats a
+valid member signature as permission to prepare or start work.
+
+Issue #6770 records this focused missing Root authorization boundary. It consumes
+current approved work and does not duplicate #6449's workset-revision lifecycle,
+#6340's retained-reservation control, or #6341's memory custody. Construction must
+explicitly select delegation; absent permission, correct signatures alone must
+refuse. The default small Host must not acquire the rich Body parser/planner.
+The acceptance includes a real fixed-kernel fragment and its exact Body Play,
+not merely metadata decoding or authentication. It stays in the existing
+implementation lane; no additional implementation branch was started for it.
+
+The independently qualified borrowed-document transport is extracted onto
+current `dev` as PR #6771, source `0f9a3757cc`. Its five files add caller-owned
+receive storage and segmented immutable publication in the existing CBD1 format,
+sharing the ordinary receiver validator and sender. It adds no dependency,
+compression, offer cache, grant or retry policy. All 109 wire tests, strict
+all-target Clippy, formatting and Cortex-M0+ no_std checks pass in the isolated
+review checkout. Exact storage and canaries, byte equivalence at segment/frame
+boundaries, unchanged partial input after refusal and zero scoped allocation
+are covered. The component is not claimed to fix the old physical 1,920-byte
+refusal. Scalar Body execution #6769 remains in its existing Candidate admission
+run `42017915991`; no healthy workflow was restarted or cancelled.
