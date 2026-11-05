@@ -4176,3 +4176,20 @@ interactive authoring tool, Seed fabrication or device acceptance. No installed
 service or device changed. Before the build, 1,357,526,744 bytes of verified
 inactive generated stripped test executables were reclaimed; sources, private
 state, active caches and installed products were preserved.
+
+
+### Deliver the portable binding and isolate byte identity (5 November 2026)
+
+Repaired #6758 passed exact-head Candidate 41960232770 and merged normally into
+`dev=e7324e03f13127a75447af333e5c240326f1d522`. This checkout absorbed it with an
+unchanged working tree: inspected conflicts retained the equivalent existing
+allocation-free active-scope check and branch-local development documentation,
+while all accepted Body-binding contracts/tests remain present.
+
+The next small delivery is #6759, head 21317f12a8: seven files for parser-free
+Source identity and snapshot construction. Its isolated current-dev checkout
+passes three identity/allocation tests, the 13 accepted Source/Native tests,
+strict all-target Plot Clippy, formatting/patch checks and thumbv6m-none-eabi
+checking. The extra Root-only incoming-reply law test remains in the larger
+checkpoint; no Source provider/IMAGE/descriptor implementation was folded into
+this PR. Hosted Candidate and normal acceptance of #6759 remain separate gates.
