@@ -6046,8 +6046,8 @@ about 2.0 GiB afterward, so the next substantial build needs another inventory.
 
 Before the first physical retained-input submission, recovery needs one concrete
 receiver correction: its occupied-input branch reads control into 64 bytes,
-while the existing build-bound BOOTSEL request is 24 prefix bytes plus the
-64-byte build ID (88 bytes). The short query can succeed but the reboot request
+while the existing build-bound BOOTSEL request is 25 prefix bytes plus the
+64-byte build ID (89 bytes). The short query can succeed but the reboot request
 cannot fit that buffer. This was found by inspecting the actual Link copy and
 BOOTSEL handler, not by changing a device. Preserve the original document while
 providing enough bounded maintenance-frame scratch; verify the ingress frame
