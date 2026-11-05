@@ -227,7 +227,7 @@ impl Owner {
                             &authority.host_id,
                             &authority.boot_id,
                         )
-                        .map_err(debug)?
+                        .map_err(proof_admission_refusal)?
                 }
                 (
                     PendingKind::Returning {
@@ -326,5 +326,16 @@ impl Owner {
         })();
         self.pending_browser = Some(window);
         result
+    }
+}
+
+// Project the actual canonical capacity refusal, never infer it from prose.
+fn proof_admission_refusal(error: conduit_body::BodyLifecycleSessionError) -> String {
+    use conduit_body::{AdmissionRefusal, BodyLifecycleSessionError as Session, MembershipRefusal};
+    match error {
+        Session::Admission(AdmissionRefusal::Membership(
+            MembershipRefusal::PartCapacityExhausted,
+        )) => "membership-part-capacity-exhausted".into(),
+        other => debug(other),
     }
 }
