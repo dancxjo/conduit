@@ -5703,3 +5703,52 @@ were inventoried against /proc ownership then removed, recovering 823,706,704
 bytes; retained logs, active executables/libraries, private state and source were
 preserved. Disk headroom afterward is about 5.2 GiB and must be checked again
 before another large build.
+
+
+### Qualified authorer update and Body-made enabled Green Seed
+
+The selected Linux authoring Host was updated through ordinary `host service
+configure` and `host service install`, using the checked native release from
+source `8ac1a867bc074a38e79c24be808ff64ab8677152`. Its selected configuration is
+`sha256:4d0fdee87f016d694cb23e6848a7ef0e96fca08bae0e45879727e1d78d581448`.
+The release executable is 65,080,456 bytes; its manifest bytes and digests were
+verified before installation. A private stopped-state archive was retained.
+Actual systemd ExecStart now selects the replacement release. The original
+installed Host and Hamm Creek House Body identities remain unchanged, as do
+15 continuity keys and 29 admission receipts across the owner restart.
+
+An initial browser attempt correctly refused because a different persistent
+profile was not an existing member and the 16-Part membership inventory was
+full. No capacity was enlarged. Reusing the original `browser-seed-ui` profile
+returned browser/249b3c75-0bf6-4501-bdea-e3841e9e6a54 through its retained
+credential. The current owner accepted ordinary Wake and exposed the checked
+Host editor, including explicit Seed-owner preparation delegation, 4,096-byte
+assignment and 16,384-byte runtime-state ceilings. One browser worker, no
+retries and ordinary visible controls were used.
+
+Clicking Check Host configuration through the owner-issued browser Show
+produced a new retained Seed:
+`spore:sha256:17649434236e455ec6bae006a065a6bffec2d5a82632e6ef844929163d7aa5d6`.
+Ordinary `body export-seed` then exported 2,140,102 verified package bytes with
+content digest
+`sha256:789525a26957da123390aaf7df1ff93fe4c06df86a280f0b4d7f4f569cd321e0`.
+The package and receipt are private; screenshots and raw owner Face captures
+are under ignored `target/green-enabled-seed-20261105`. This proves Body-made
+construction/export, not deployment or execution. Green was not reflashed;
+its existing diagnostic IO continued through 1,351 successful observations and
+20,255 acknowledged frames, with sensor/display errors false. Matching retained
+member preparation, flashing, return, and actual admitted execution remain next.
+
+PR #6782 passed Candidate 42088546223 at exact head
+`6c0e41d120ae642c44ba5ab3217e068b29898b4a` and merged into dev as
+`36d755bbf9c33aa082b2635f6ee43203e3fe830c`. A transient GitHub merge response
+returned HTTP 502; querying the authoritative PR state confirmed MERGED, so the
+operation was not repeated. This checkout absorbed that dev commit; the sole
+merge conflict was duplicate module declarations already present locally.
+
+Environment maintenance removed only inventoried inactive build-script ELF
+executables, preserving the newest two generations per package, generated
+outputs, source, private state and live artifacts. It recovered 4,897,540,840
+bytes. A terminal failed release build hit the per-user tmpfs quota; its cache
+was relocated to disk and reused successfully. Remaining root headroom is
+about 4.6 GiB and must be checked before further large builds.
