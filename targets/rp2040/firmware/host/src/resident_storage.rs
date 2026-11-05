@@ -1,6 +1,9 @@
-//! Attempt-owned physical kernel storage. No Back, resource grant or Start.
+//! Attempt-owned kernel storage, followed by exact reserved Back binding.
+#[path = "resident_binding.rs"]
+mod binding;
 use super::{CheckedDocument, ValidationRefusal as E};
 use crate::resident::generated::{BorrowedBack, Initialized, PreparedResidentLoans, ENTRY_COUNT};
+pub use binding::{BoundFragment, BoundKernel, BoundWorkset};
 use conduit_kernel::{scheduler::*, *};
 
 // Explicit supported local representation. Larger signed envelopes refuse;
@@ -25,7 +28,6 @@ type Slot<'a, const N: usize, const C: usize, const V: usize> =
 
 // The selected package installs five unary protocol entries. Exact active-node
 // specialization avoids charging every one-node fragment five nodes' storage.
-#[allow(dead_code)] // Owners retain allocations; binding/start is not installed.
 enum Storage<'a> {
     One(Slot<'a, 1, 2, 2>),
     Two(Slot<'a, 2, 4, 4>),
@@ -36,6 +38,7 @@ enum Storage<'a> {
 struct Fragment<'a, 'o> {
     approved: conduit_body::DelegatedBodyFragment<'a>,
     _storage: Storage<'o>,
+    entries: [u8; ENTRY_COUNT],
 }
 /// The exclusive inventory, original borrowed documents and actual unbound
 /// allocations survive together. Cancellation frees only this preparation;
@@ -214,6 +217,14 @@ pub(super) fn prepare<'a, 'o>(
         };
         bytes = bytes.checked_add(charge).ok_or(E::Bounds)?;
         *target = Some(Fragment {
+            entries: core::array::from_fn(|node| {
+                checked
+                    .selected
+                    .nodes()
+                    .find(|choice| usize::from(choice.node) == node)
+                    .map(|choice| choice.entry as u8)
+                    .unwrap_or(u8::MAX)
+            }),
             approved: checked.fragment,
             _storage: storage,
         });
@@ -241,6 +252,7 @@ fn slot<'o, const N: usize, const C: usize, const V: usize>(
     .map_err(|_| E::Kernel)?;
     let (nodes, cords) = (tables.active_nodes(), tables.active_cords());
     if nodes != N
+        || checked.selected.nodes().count() != N
         || tables.cords[..cords]
             .iter()
             .any(|c| c.maximum_value_bytes > VALUE_BYTES as u32)

@@ -1,0 +1,95 @@
+//! Exact Back loans into already acquired, complete Core-reserved storage.
+//! This prepares executable kernels; it does not publish or authorize Start.
+use super::*;
+use alloc::boxed::Box;
+
+pub enum BoundKernel<'o> {
+    One(Box<Kernel<'o, 1, 2, 2>>),
+    Two(Box<Kernel<'o, 2, 4, 4>>),
+    Three(Box<Kernel<'o, 3, 6, 6>>),
+    Four(Box<Kernel<'o, 4, 8, 8>>),
+    Five(Box<Kernel<'o, 5, 10, 10>>),
+}
+pub struct BoundFragment<'a, 'o> {
+    pub approved: conduit_body::DelegatedBodyFragment<'a>,
+    pub kernel: BoundKernel<'o>,
+}
+/// Field order destroys kernels before releasing their exact resource scope.
+/// Dropping without explicit kernel retirement leaves provider offers withdrawn.
+pub struct BoundWorkset<'a, 'o, 'r> {
+    fragments: [Option<BoundFragment<'a, 'o>>; ENTRY_COUNT],
+    reservations: conduit_core::ResourceAdmissionScope<'r>,
+    stamp: conduit_body::RetainedHostCommandStamp,
+}
+impl<'a, 'o, 'r> BoundWorkset<'a, 'o, 'r> {
+    pub fn admissions(&self) -> &[conduit_core::ResourceAdmission] {
+        self.reservations.admissions()
+    }
+    /// Trusted Root must retain terminal evidence and retire every kernel before
+    /// republishing Backs and releasing this resource scope. No Start is implied.
+    pub fn into_parts(
+        self,
+    ) -> (
+        [Option<BoundFragment<'a, 'o>>; ENTRY_COUNT],
+        conduit_core::ResourceAdmissionScope<'r>,
+        conduit_body::RetainedHostCommandStamp,
+    ) {
+        (self.fragments, self.reservations, self.stamp)
+    }
+}
+impl<'a, 'o, 'r> ReservedAttempt<'a, 'o, 'r> {
+    /// All assignment/storage/resource failures are over. Borrow each exact
+    /// initialized entry once, then initialize the acquired kernel's last field.
+    /// Root must still arrange authorized Start and current ingress/Line custody.
+    pub fn bind(self) -> BoundWorkset<'a, 'o, 'r> {
+        let Self {
+            _storage,
+            reservations,
+            ..
+        } = self;
+        let AttemptStorage {
+            _owner,
+            fragments,
+            stamp,
+            ..
+        } = _storage;
+        let mut loans = _owner.bind();
+        let fragments = fragments.map(|fragment| {
+            fragment.map(|fragment| {
+                let Fragment {
+                    approved,
+                    _storage,
+                    entries,
+                } = fragment;
+                let kernel = match _storage {
+                    Storage::One(slot) => BoundKernel::One(bind(slot, &entries, &mut loans)),
+                    Storage::Two(slot) => BoundKernel::Two(bind(slot, &entries, &mut loans)),
+                    Storage::Three(slot) => BoundKernel::Three(bind(slot, &entries, &mut loans)),
+                    Storage::Four(slot) => BoundKernel::Four(bind(slot, &entries, &mut loans)),
+                    Storage::Five(slot) => BoundKernel::Five(bind(slot, &entries, &mut loans)),
+                };
+                BoundFragment { approved, kernel }
+            })
+        });
+        debug_assert!(loans.iter().all(Option::is_none));
+        BoundWorkset {
+            fragments,
+            reservations,
+            stamp,
+        }
+    }
+}
+fn bind<'o, const N: usize, const C: usize, const V: usize>(
+    slot: Slot<'o, N, C, V>,
+    entries: &[u8; ENTRY_COUNT],
+    loans: &mut [Option<(u16, BorrowedBack<'o>)>; ENTRY_COUNT],
+) -> Box<Kernel<'o, N, C, V>> {
+    let drivers = core::array::from_fn(|node| {
+        let (actual, back) = loans[usize::from(entries[node])]
+            .take()
+            .expect("complete checked workset owns each exact Back once");
+        debug_assert_eq!(usize::from(actual), node);
+        back
+    });
+    slot.bind(drivers)
+}

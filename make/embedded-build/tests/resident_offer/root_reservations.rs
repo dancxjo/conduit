@@ -87,6 +87,9 @@ pub fn run(
     assert_eq!((cleanup.allocations, cleanup.reallocations), (0, 0));
     assert_eq!(owner, before);
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    binding::run(
+        receiver, bytes, assignment, library, &mut owner, binding.pool_id.as_str(),
+    );
     // The real constructor can retire its feasibility storage and hand only
     // the original attribution to a longer-lived, independently owned buffer.
     let mut pending = HostCommandInput::<4096>::new();
@@ -112,3 +115,6 @@ fn assignment_body_plan(bytes: &[u8]) -> &str {
         postcard::take_from_bytes(&bytes[14..]).unwrap();
     m.body_plan
 }
+
+#[path = "root_binding.rs"]
+mod binding;

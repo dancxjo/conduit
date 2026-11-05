@@ -6387,3 +6387,35 @@ was rebuilt/flashed, and neither physical peak RAM nor installed binding/Start
 is claimed. The receiver still releases feasibility storage for retained input;
 consuming this ticket into exact bound kernels and retaining terminal evidence
 remain the next Root continuation. Live sensing/display remain diagnostic.
+
+
+### Actual Root reserved kernels bind, execute and retire in CPU proof
+
+The existing `ReservedAttempt` can now consume its exclusive checked resident
+selection into the already acquired specialized kernels. Complete Core resource
+reservation precedes every Back loan. Node-to-entry mappings come only from the
+checked selection, and binding has no fallible recheck or allocation after loans
+begin. The bound workset retains the original delegated fragments, command stamp
+and exact resource scope. Kernel destruction precedes scope release; abandoning
+bound work cannot silently republish an unretired Back. No second scheduler,
+worker, catalog or provider allocation was introduced.
+
+The emitted resident-offer executable now exercises this actual firmware Root
+constructor through two reserved kernels: typed input/output, drain, cancellation,
+terminal Signs retained before Back restoration, and resource release only after
+both retire. Binding/execution/retirement allocate nothing in the measured scopes.
+A cancelled pending bound future releases the exact resources but leaves both
+unretired offers unavailable. Its CPU frame is 1,088 bytes. Existing stored and
+reserved CPU frames are 1,128/1,160 bytes; kernel payload remains 12,432 bytes in
+two allocations and kernel/bookkeeping remains 15,586 bytes plus 133 observation
+bytes under the unchanged 16,384-byte ceiling. The full generated executable's
+two tests pass, including previous refusal/allocation sweeps; strict delegated
+embedded-build test Clippy passes. Raw logs remain in ignored
+`target/root-reserved-binding-20261105`.
+
+This proves the actual Root component in CPU execution, not installed receiver
+Start, authorized ingress/Lines, durable terminal recording, physical heap/stack
+peaks, or sensor/display bus handover. No firmware was rebuilt/flashed or live
+service changed; the wire receiver still reports Start not installed. #6770 and
+#6341 remain open. PR #6791 Candidate 42128506875 still had admission in progress
+at its latest observation, so no merge or full acceptance is claimed.
