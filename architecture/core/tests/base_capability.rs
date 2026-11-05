@@ -336,3 +336,6 @@ fn empty_results_do_not_remove_positive_work_or_lifecycle_bounds() {
 
 #[path = "base_capability/bound.rs"]
 mod bound;
+
+#[path = "base_capability/owned_backing.rs"]
+mod owned_backing;
