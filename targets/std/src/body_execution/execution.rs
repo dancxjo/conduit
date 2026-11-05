@@ -66,10 +66,7 @@ impl StdHost {
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
-        request
-            .plan
-            .validate_for(request.wake)
-            .map_err(|error| format!("Body Plan validation: {error:?}"))?;
+        let prospective_play = self.prospective_body_play(request.wake, request.plan)?;
         let admitted_clock_quality = if let Some(requirement) = &request.plan.body_time_requirement
         {
             let correlation = correlation.ok_or_else(|| {
@@ -98,7 +95,6 @@ impl StdHost {
         // Bind the prospective identity without consuming the sequence. The
         // exact child pool must be prepared and correlated before Play start;
         // a preparation refusal leaves the Host sequence untouched.
-        let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
         let mut kernel = if let Some((queue, _)) = &live {
             BodyKernel::prepare_live_on_host(

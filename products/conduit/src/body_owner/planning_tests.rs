@@ -45,6 +45,18 @@ fn complete_checked_workset_uses_one_body_plan_and_actual_kernel_play() {
         .plan_workset_with_sources(&[(&b, &pb), (&a, &pa)])
         .unwrap();
     let sealed = owner.session.realization().unwrap().plan.clone();
+    let proposal = owner.session.realization().unwrap();
+    let prospective = owner
+        .host
+        .prospective_body_play(&proposal.wake, &sealed)
+        .unwrap();
+    assert_eq!(
+        owner
+            .host
+            .prospective_body_play(&proposal.wake, &sealed)
+            .unwrap(),
+        prospective
+    );
     assert_eq!(sealed.plots.len(), 2);
     assert!(owner.session.realization().unwrap().play.is_none());
     assert!(owner.last_execution.is_none());
@@ -57,6 +69,7 @@ fn complete_checked_workset_uses_one_body_plan_and_actual_kernel_play() {
     assert_eq!(owner.session.realization().unwrap().plan, sealed);
     owner.execute(1_000).unwrap();
     let actual = owner.last_execution.as_ref().unwrap();
+    assert_eq!(actual["play"], serde_json::to_value(&prospective).unwrap());
     assert_eq!(
         actual["terminal"],
         serde_json::json!(conduit_core::TerminalDisposition::Completed)
