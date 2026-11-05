@@ -4,7 +4,7 @@ use conduit_host_make::{
     parse_host_configuration_conduit, MakeCatalog, MakePackageSet,
 };
 fn source() -> String {
-    include_str!("../../../profiles/linux-computer.host.conduit").replace("  limits =", r#"  base = {kind: "language/source-compiler", implementation: "std/bounded-source-check@1", initialization: {executable: "/usr/bin/conduit", executable_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", address_space_bytes: 16777216, cpu_seconds: 2, deadline_milliseconds: 5000, maximum_startup_bytes: 1048576, preparation_bytes: 33554432, retained_bytes: 1048576, request_bytes: 16384, reply_bytes: 65536}}
+    include_str!("../../../profiles/linux-computer.host.conduit").replace("  limits =", r#"  base = {kind: "language/source-compiler", implementation: "std/bounded-source-check@1", initialization: {executable: "/usr/bin/conduit", executable_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", maximum_executable_bytes: 536870912, address_space_bytes: 16777216, cpu_seconds: 2, deadline_milliseconds: 5000, maximum_startup_bytes: 1048576, preparation_bytes: 33554432, retained_bytes: 1048576, request_bytes: 16384, reply_bytes: 65536}}
   limits ="#)
 }
 fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
@@ -47,6 +47,14 @@ fn compiler_source_roundtrips_with_exact_finite_equipment_intent() {
 fn compiler_fields_refuse_unbounded_missing_and_unrelated_input() {
     for (old, new) in [
         ("cpu_seconds: 2", "cpu_seconds: 0"),
+        (
+            "maximum_executable_bytes: 536870912",
+            "maximum_executable_bytes: 0",
+        ),
+        (
+            "maximum_executable_bytes: 536870912",
+            "maximum_executable_bytes: 536870913",
+        ),
         (
             "deadline_milliseconds: 5000",
             "deadline_milliseconds: 30001",

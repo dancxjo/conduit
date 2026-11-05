@@ -25,6 +25,7 @@ pub fn source_check_initialization_contract() -> BaseInitializationContract {
         fields: vec![
             text("executable", 4096),
             text("executable_sha256", 64),
+            count("maximum_executable_bytes", 1, 512 * 1024 * 1024),
             count("address_space_bytes", 8 * 1024 * 1024, 1024 * 1024 * 1024),
             count("cpu_seconds", 1, 30),
             count("deadline_milliseconds", 1, 30000),
@@ -73,6 +74,7 @@ pub struct CheckedSourceCheckInitialization {
     pub configuration_id: String,
     pub executable: PathBuf,
     pub executable_sha256: [u8; 32],
+    pub maximum_executable_bytes: u64,
     pub address_space_bytes: u64,
     pub cpu_seconds: u64,
     pub deadline_milliseconds: u64,
@@ -133,6 +135,7 @@ impl CheckedSourceCheckInitialization {
             configuration_id: checked.configuration_id().into(),
             executable,
             executable_sha256,
+            maximum_executable_bytes: count("maximum_executable_bytes")?,
             address_space_bytes: count("address_space_bytes")?,
             cpu_seconds: count("cpu_seconds")?,
             deadline_milliseconds: count("deadline_milliseconds")?,

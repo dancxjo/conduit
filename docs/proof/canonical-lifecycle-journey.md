@@ -3846,3 +3846,38 @@ This is construction intent only. The deployed owner still refuses this Base
 without a supported IMAGE initializer. Executable verification, independently
 admitted Root preparation, actual provider installation, and the complete S2
 production journey remain required. No device or live service changed.
+
+### Observe the selected compiler artifact before Source delivery (5 November 2026)
+
+The actual product can now construct bounded compiler preparation machinery from
+`CheckedSourceCheckInitialization`, through the workspace Make facade. The
+required Host declaration adds `maximum_executable_bytes` (1..512 MiB). It
+selects the exact digest, child limits, deadline, startup capacity and retained
+reply limit; it supplies neither Source nor authorization to read Source.
+The selected adapter currently requires Linux x86_64.
+
+Before every selected launch, the parent streams the executable through a fixed
+8 KiB hash buffer, refuses non-files, oversized or changed artifacts, and checks
+Stop/deadline during observation. Nonblocking open prevents waiting for a FIFO
+writer. The process receives only the remaining deadline, including startup
+encoding and artifact observation, and its output collector uses the selected
+reply capacity. Artifact observation does not grant immutable-file custody or
+hostile-filesystem confinement: Root must keep the selected file immutable
+through launch. The existing unbound constructor remains a reference helper;
+the checked product constructor always binds digest and artifact size.
+
+All 12 actual compiler-process tests pass, including the checked Host-to-worker
+bridge, correct and wrong digest, artifact overflow, real reply pressure,
+canonical comparison, cancellation, child reaping and resource refusal. The
+31 hosted-package and 33 product-library tests pass as well. Strict all-target
+product/hosted Make/std Host Clippy passes. The debug product
+was 778 MiB and correctly refused the 512 MiB artifact ceiling; qualification
+uses one ignored, debug-stripped 185 MiB copy of the same executable. The
+ceiling was not enlarged. No firmware or live service changed. IMAGE provider
+initialization, actual Source grants and full preparation workspace custody
+remain outstanding.
+
+The pure S3 workset-proposal slice #6754 merged as
+`8e8239d4f1d621719c51e3af38974f0f222b6b5c`. S2 Native projection #6756 passed its
+exact Candidate and is ready for review; neither result completes the full
+journey or guarded workset adoption.

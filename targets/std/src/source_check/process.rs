@@ -117,6 +117,7 @@ fn analyze(
     owner.project(&input.request)
 }
 
+mod executable;
 mod parent;
 mod prepared;
 pub use parent::{SourceCheckProcessFailure, SourceCheckProcessOutput, SourceCheckProcessWorker};
