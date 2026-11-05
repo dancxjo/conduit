@@ -4955,3 +4955,48 @@ boundaries, unchanged partial input after refusal and zero scoped allocation
 are covered. The component is not claimed to fix the old physical 1,920-byte
 refusal. Scalar Body execution #6769 remains in its existing Candidate admission
 run `42017915991`; no healthy workflow was restarted or cancelled.
+
+
+### 2026-11-05: Explicit preparation delegation in checked Host construction
+
+The #6770 implementation now adds an optional bounded `preparation` declaration
+to ordinary Host Conduitese. Its explicit `seed-owner` selection contains no
+private keys. Positive assignment/runtime-state ceilings must fit declared Host
+bounds; absence selects no permission. Unknown authorizers, unknown/duplicate
+fields or declarations, missing fields and zero/overflow/excessive ceilings
+refuse. Canonical Source and configuration/IMAGE identity retain the selection;
+existing configurations without it retain their exact identities.
+
+The Host-configuration Face exposes this construction selection through ordinary
+semantic text/property projection. Check and Rename preserve it; a target change
+refuses before discarding it. This is an acknowledged-Mask CPU encounter test,
+not a screenshot or live deployment. The common Rust generation helper emits a
+typed optional policy without a runtime configuration parser. The RP2040 Host
+builder consumes that helper. Both selected and absent expressions compile as
+actual Rust and no_std library code. This does not claim a new firmware link,
+physical memory result or installed Seed.
+
+The shared receiver guard checks an already attributed command against an
+independently installed policy and retained current native/member/Seed context.
+It rejects a missing delegation even for a valid signature, stale or substituted
+member/receiver/issuer facts, other payload contracts, invalid byte bounds and
+expired deadlines. Issuer Host, Boot, generation and key remain exact. Tested
+policy checks allocate/reallocate zero times. Success only permits considering
+preparation; it does not approve the contained Plan, reserve memory, issue a Base
+capability or start a kernel. No endpoint acknowledges such a success yet.
+
+Ninety Host Make tests, three policy tests, five existing attribution tests,
+eight Host-configuration encounter tests, browser library compilation, strict
+Body/Host Make/Body Make library-test Clippy, formatting, and Cortex-M0+ Body
+checks with and without authenticated admission pass. Configuration models and
+canonical rendering were extracted into coherent modules before growing their
+old files; public paths and preexisting no-delegation identities are preserved.
+Relevant standalone metadata resolves offline with no registry package upgrades.
+Process-aware cleanup reclaimed 461.5 MiB of inactive review debug output while
+preserving active builds, source, releases, Seeds, credentials and proof logs.
+
+The remaining actual boundary is authoring approval of the exact compact Body
+projection and the constrained Root's receive/reserve/start transaction, followed
+by the one physical bus handover. No physical Host, service, membership or
+current Root grant changed. The two existing PR review lanes remain #6769 and
+#6771; this checkpoint does not open a third implementation PR.

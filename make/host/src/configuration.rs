@@ -1,136 +1,21 @@
+mod model;
+pub use model::*;
 mod identity;
 mod operations;
+mod preparation;
 #[path = "configuration/presentation.rs"]
 mod presentation;
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
     validate_profile, BaseSelection, DriverSelection, HostBounds, HostPolicy, HostProfile,
-    MakeCatalog, MakePackageSet, ResourceBudget, TargetSelection, HOST_PROFILE_SCHEMA,
+    MakeCatalog, MakePackageSet, TargetSelection, HOST_PROFILE_SCHEMA,
 };
 
 pub const HOST_CONFIGURATION_SCHEMA: u32 = 1;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct HostConfiguration {
-    pub schema: u32,
-    pub name: String,
-    pub target: ConfigurationTarget,
-    #[serde(default)]
-    pub bases: Vec<ConfigurationBase>,
-    #[serde(default)]
-    pub resources: Vec<ResourceBudget>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub capabilities: Vec<crate::CapabilityIntent>,
-    pub limits: HostBounds,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ConfigurationTarget {
-    pub architecture: String,
-    pub machine: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub board: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub os: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub make_descriptor: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ConfigurationBase {
-    pub kind: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub implementation: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub implementations: Vec<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub initialization: Option<crate::BaseInitialization>,
-}
-
-impl ConfigurationBase {
-    fn preferences(&self) -> Vec<&str> {
-        self.implementation
-            .iter()
-            .map(String::as_str)
-            .chain(self.implementations.iter().map(String::as_str))
-            .collect()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ConfigurationDiagnostic {
-    Capability {
-        detail: String,
-    },
-    Decode {
-        detail: String,
-    },
-    UnsupportedSchema {
-        found: u32,
-    },
-    InvalidName,
-    Initialization {
-        kind: String,
-        detail: String,
-    },
-    UnknownTarget {
-        target: String,
-    },
-    UnknownBase {
-        kind: String,
-    },
-    MissingImplementation {
-        kind: String,
-    },
-    ContradictoryImplementations {
-        kind: String,
-    },
-    UnknownImplementation {
-        implementation: String,
-    },
-    UnsupportedBase {
-        kind: String,
-        target: String,
-    },
-    IncompatibleImplementation {
-        implementation: String,
-        target: String,
-    },
-    DuplicateContradictoryBase {
-        kind: String,
-    },
-    ConflictingResourceAssignment {
-        resource: String,
-    },
-    AmbiguousFaceRealization {
-        implementations: Vec<String>,
-    },
-    DuplicateResource {
-        id: String,
-    },
-    UnboundedCapacity {
-        field: &'static str,
-    },
-    LimitExceeded {
-        field: &'static str,
-        requested: u64,
-        maximum: u64,
-    },
-    Profile {
-        detail: String,
-    },
-    Encode {
-        detail: String,
-    },
-}
 
 #[derive(Debug, Clone)]
 pub struct CheckedHostConfiguration {
@@ -178,6 +63,7 @@ pub fn check_host_configuration(
         configuration.target.machine = "computer".into();
     }
     let mut diagnostics = Vec::new();
+    preparation::check(&configuration, &mut diagnostics);
     if configuration.schema != HOST_CONFIGURATION_SCHEMA {
         diagnostics.push(ConfigurationDiagnostic::UnsupportedSchema {
             found: configuration.schema,

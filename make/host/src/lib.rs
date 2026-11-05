@@ -72,3 +72,11 @@ mod native_release_configuration;
 pub use native_release_configuration::{
     bind_native_release_configuration, verify_native_release_build,
 };
+
+pub use conduit_body::{HostPreparationAuthorizer, HostPreparationDelegation};
+
+#[cfg(test)]
+mod preparation_delegation_tests;
+
+mod preparation_delegation_rust;
+pub use preparation_delegation_rust::rust_preparation_delegation;

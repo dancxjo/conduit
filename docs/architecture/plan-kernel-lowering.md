@@ -131,6 +131,37 @@ Body preparation witness or authorize remote execution. Compact remote Body
 scope admission remains a separate Root obligation.
 
 
+## Explicit delegated preparation
+
+Host construction can select an optional preparation policy:
+
+```conduit
+preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 8192, maximum_runtime_state_bytes: 8192}
+```
+
+Absence selects no delegation. The checker requires positive ceilings within
+Host construction bounds, rejects unknown authorizers and duplicate declarations,
+and includes selection in configuration/IMAGE identity. The ordinary Host
+configuration Face exposes the selection and preserves it across edits. Changing
+a target requires explicit review rather than silently discarding delegation.
+No private key is authored here. The Seed resolves `seed-owner` to its exact
+pinned Body/issuer context, independently of a request's self-description.
+
+Rust Root generation emits the checked policy as a typed constant, including
+`None` when absent. It does not add a runtime Host-configuration parser.
+`check_host_preparation_delegation` is an early, allocation-free policy guard
+over an already attributed command. It rechecks current membership, receiving
+Host/Boot/profile/generation, installed IMAGE/configuration, exact issuer
+Host/Boot/generation/key, payload contract, deadline and byte ceiling. The
+runtime-state ceiling must still constrain subsequent assignment validation.
+
+Success permits considering preparation; it is not approval of the particular
+Plan, a reservation, native possession or kernel start. The receiver must use
+its installed policy, never a policy supplied by the command. Connecting the
+approved compact Body scope, Root receive/start protocol and physical provider
+handover remains the #6770 delivery obligation. Construction and guard tests
+alone do not establish a playing constrained Host.
+
 ## Resident backing across Plays
 
 Generated resident libraries can lend a selected Back through `borrow_entry_N`.

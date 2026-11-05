@@ -281,3 +281,40 @@ fn saved_explicit_capabilities_survive_name_edit_and_check_and_target_refuses_wi
     assert_eq!(encounter.canonical_source().unwrap(), canonical);
     assert_eq!(encounter.configuration().unwrap().capabilities, before);
 }
+
+#[test]
+fn preparation_delegation_is_visible_and_survives_edit_check_and_refused_target_change() {
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
+    let source = source().replacen("schema = 1", "schema = 1\n preparation = {authorizer: \"seed-owner\", maximum_assignment_bytes: 8192, maximum_runtime_state_bytes: 8192}", 1);
+    let mut encounter = HostConfigurationEncounter::load(&source, &catalog, &packages).unwrap();
+    let b = basis();
+    let before = encounter.configuration().unwrap().preparation;
+    assert!(before.is_some());
+    let face = encounter.face(&b).unwrap();
+    assert!(face
+        .properties
+        .iter()
+        .any(|p| p.name == "preparation-authorizer"
+            && p.value == FacePropertyValue::Identity("seed-owner".into())));
+    assert!(matches!(
+        act(&mut encounter, &b, "host-config/check", None).unwrap(),
+        HostConfigurationEncounterOutcome::Checked(_)
+    ));
+    act(
+        &mut encounter,
+        &b,
+        "host-config/name",
+        Some("delegated-host"),
+    )
+    .unwrap();
+    assert_eq!(encounter.configuration().unwrap().preparation, before);
+    let canonical = encounter.canonical_source().unwrap();
+    act(&mut encounter, &b, "host-config/targets", None).unwrap();
+    assert!(act(&mut encounter, &b, "host-config/target/0", None)
+        .err()
+        .unwrap()
+        .contains("preparation delegation"));
+    assert_eq!(encounter.canonical_source().unwrap(), canonical);
+    assert_eq!(encounter.configuration().unwrap().preparation, before);
+}

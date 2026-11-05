@@ -1,3 +1,5 @@
+mod render;
+pub use render::canonical_host_configuration_conduit;
 use std::collections::BTreeMap;
 
 use conduit_plot::{
@@ -6,7 +8,6 @@ use conduit_plot::{
 };
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Number, Value};
-use std::fmt::Write as _;
 
 use crate::{
     ConfigurationBase, ConfigurationDiagnostic, ConfigurationTarget, HostBounds, HostConfiguration,
@@ -31,9 +32,24 @@ pub fn parse_host_configuration_conduit(
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     let resources = repeated::<ResourceBudget>(&declarations, "need")
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
+    let preparation = match declarations.get("preparation") {
+        None => None,
+        Some(_) => Some(
+            one_required::<conduit_body::HostPreparationDelegation>(&declarations, "preparation")
+                .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?,
+        ),
+    };
     reject_unknown(
         &declarations,
-        &["schema", "target", "limits", "base", "need", "capability"],
+        &[
+            "schema",
+            "target",
+            "limits",
+            "base",
+            "need",
+            "capability",
+            "preparation",
+        ],
     )
     .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     Ok(HostConfiguration {
@@ -43,157 +59,9 @@ pub fn parse_host_configuration_conduit(
         bases,
         resources,
         capabilities,
+        preparation,
         limits,
     })
-}
-
-pub fn canonical_host_configuration_conduit(
-    configuration: &HostConfiguration,
-) -> Result<String, ConfigurationDiagnostic> {
-    let mut canonical = configuration.clone();
-    canonical.normalize_declarations();
-    let mut source = String::new();
-    writeln!(&mut source, "host {} {{", canonical.name).map_err(|error| {
-        ConfigurationDiagnostic::Encode {
-            detail: error.to_string(),
-        }
-    })?;
-    writeln!(&mut source, "  schema = {}", canonical.schema).map_err(|error| {
-        ConfigurationDiagnostic::Encode {
-            detail: error.to_string(),
-        }
-    })?;
-    write!(
-        &mut source,
-        "  target = {{architecture: {}, machine: {}",
-        string(&canonical.target.architecture)?,
-        string(&canonical.target.machine)?
-    )
-    .map_err(|error| ConfigurationDiagnostic::Encode {
-        detail: error.to_string(),
-    })?;
-    if let Some(board) = &canonical.target.board {
-        write!(&mut source, ", board: {}", string(board)?).map_err(|error| {
-            ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            }
-        })?;
-    }
-    if let Some(os) = &canonical.target.os {
-        write!(&mut source, ", os: {}", string(os)?).map_err(|error| {
-            ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            }
-        })?;
-    }
-    if let Some(descriptor) = &canonical.target.make_descriptor {
-        write!(&mut source, ", make_descriptor: {}", string(descriptor)?).map_err(|error| {
-            ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            }
-        })?;
-    }
-    source.push_str("}\n");
-    for base in &canonical.bases {
-        write!(&mut source, "  base = {{kind: {}", string(&base.kind)?).map_err(|error| {
-            ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            }
-        })?;
-        if let Some(implementation) = &base.implementation {
-            write!(&mut source, ", implementation: {}", string(implementation)?).map_err(
-                |error| ConfigurationDiagnostic::Encode {
-                    detail: error.to_string(),
-                },
-            )?;
-        }
-        if !base.implementations.is_empty() {
-            let implementations = base
-                .implementations
-                .iter()
-                .map(|item| string(item))
-                .collect::<Result<Vec<_>, _>>()?
-                .join(", ");
-            write!(&mut source, ", implementations: [{implementations}]").map_err(|error| {
-                ConfigurationDiagnostic::Encode {
-                    detail: error.to_string(),
-                }
-            })?;
-        }
-        if let Some(initialization) = &base.initialization {
-            initialization
-                .validate_source()
-                .map_err(|detail| ConfigurationDiagnostic::Encode { detail })?;
-            write!(&mut source, ", initialization: {{").map_err(|error| {
-                ConfigurationDiagnostic::Encode {
-                    detail: error.to_string(),
-                }
-            })?;
-            for (index, (key, value)) in initialization.values.iter().enumerate() {
-                if index != 0 {
-                    source.push_str(", ");
-                }
-                write!(&mut source, "{}: {}", key, value).map_err(|error| {
-                    ConfigurationDiagnostic::Encode {
-                        detail: error.to_string(),
-                    }
-                })?;
-            }
-            source.push('}');
-        }
-        source.push_str("}\n");
-    }
-    for capability in &canonical.capabilities {
-        write!(
-            &mut source,
-            "  capability = {{kind: {}",
-            string(&capability.kind)?
-        )
-        .map_err(|error| ConfigurationDiagnostic::Encode {
-            detail: error.to_string(),
-        })?;
-        if let Some(implementation) = &capability.pinned_implementation {
-            write!(
-                &mut source,
-                ", pinned_implementation: {}",
-                string(implementation)?
-            )
-            .map_err(|error| ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            })?;
-        }
-        source.push_str("}\n");
-    }
-    for need in &canonical.resources {
-        writeln!(
-            &mut source,
-            "  need = {{id: {}, class: {}, slots: {}, bytes: {}}}",
-            string(&need.id)?,
-            string(&need.class)?,
-            need.slots,
-            need.bytes
-        )
-        .map_err(|error| ConfigurationDiagnostic::Encode {
-            detail: error.to_string(),
-        })?;
-    }
-    let limits = &canonical.limits;
-    writeln!(
-        &mut source,
-        "  limits = {{static_memory_bytes: {}, heap_arena_bytes: {}, queue_items: {}, buffered_bytes: {}, active_instances: {}, operation_slots: {}, timer_slots: {}, line_sessions: {}, evidence_items: {}}}",
-        limits.static_memory_bytes,
-        limits.heap_arena_bytes,
-        limits.queue_items,
-        limits.buffered_bytes,
-        limits.active_instances,
-        limits.operation_slots,
-        limits.timer_slots,
-        limits.line_sessions,
-        limits.evidence_items
-    )
-    .map_err(|error| ConfigurationDiagnostic::Encode { detail: error.to_string() })?;
-    source.push_str("}\n");
-    Ok(source)
 }
 
 fn one_host_construction(source: &str) -> Result<ConstructionSyntax, String> {
