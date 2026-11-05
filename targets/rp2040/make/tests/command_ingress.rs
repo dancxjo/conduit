@@ -130,8 +130,17 @@ mod resident_preparation {
     impl Drop for Inventory {
         fn drop(&mut self) {}
     }
+    thread_local! {
+        pub static BUSY: core::cell::Cell<bool> = const { core::cell::Cell::new(false) };
+        pub static WITHDRAWN: core::cell::Cell<bool> = const { core::cell::Cell::new(false) };
+    }
+    impl Inventory {
+        pub fn offers(&self) -> [Option<&[u8]>; 1] {
+            [if WITHDRAWN.with(core::cell::Cell::get) { None } else { Some(b"ready") }]
+        }
+    }
     pub fn inventory() -> Result<Inventory, ()> {
-        Ok(Inventory)
+        if BUSY.with(core::cell::Cell::get) { Err(()) } else { Ok(Inventory) }
     }
     pub fn prepare_workset_storage(
         _: &mut Inventory,
@@ -606,13 +615,22 @@ fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellati
         let original_nonce_sequence = member.freshness;
         let mut retry = Link::new(Mode::Valid, 1000);
         assert!(run(member.serve_preparation(&mut retry, &mut workspace)).is_ok());
-        assert!(!retry.challenged);
-        assert_eq!(retry.reads, 0);
-        assert_eq!(member.freshness, original_nonce_sequence);
-        assert_eq!(workspace.payload().unwrap(), link.payload);
-        let repeated: serde_json::Value =
-            serde_json::from_slice(&retry.response[..retry.response_len]).unwrap();
-        assert_eq!(repeated["payload_sha256"], report["payload_sha256"]);
+        if mode == Mode::ReservedDeadline {
+            // The original deadline ended and both reservation/Back custody
+            // retired. The next request receives a fresh challenge, not a lease
+            // renewal or another acknowledgment of expired input.
+            assert!(retry.challenged);
+            assert_eq!(member.freshness, original_nonce_sequence + 1);
+            assert!(!workspace.is_retained());
+        } else {
+            assert!(!retry.challenged);
+            assert_eq!(retry.reads, 0);
+            assert_eq!(member.freshness, original_nonce_sequence);
+            assert_eq!(workspace.payload().unwrap(), link.payload);
+            let repeated: serde_json::Value =
+                serde_json::from_slice(&retry.response[..retry.response_len]).unwrap();
+            assert_eq!(repeated["payload_sha256"], report["payload_sha256"]);
+        }
         assert!(std::str::from_utf8(&link.response[..link.response_len])
             .unwrap()
             .contains("input-retained"));
@@ -688,3 +706,6 @@ fn occupied_input_refuses_another_builds_reboot_without_losing_custody() {
             .contains("input-retained")
     );
 }
+
+#[path = "command_ingress/expiry.rs"]
+mod expiry;

@@ -102,6 +102,7 @@ impl MembershipState {
         link: &mut Link,
         workspace: &mut conduit_body::HostCommandInput<LIMIT>,
     ) -> Result<(), ()> {
+        self.reclaim_expired_preparation(workspace);
         if workspace.is_retained() {
             return preparation::serve_retained_input(link, workspace).await;
         }

@@ -11,11 +11,37 @@ const LIFETIME_MILLIS: u32 = 10_000;
 const MAXIMUM_CHUNKS: usize = 64;
 
 impl MembershipState {
+    /// Reclaim only an expired, unstarted preparation whose exact resource
+    /// scope ended and whose initialized Backs are all available. An abandoned
+    /// bound kernel leaves its Back withdrawn and therefore refuses this path.
+    pub(super) fn reclaim_expired_preparation(
+        &mut self,
+        workspace: &mut conduit_body::HostCommandInput<LIMIT>,
+    ) -> bool {
+        if workspace
+            .expires_at_millis()
+            .is_none_or(|at| Instant::now().as_millis() < at)
+            || !self.resources.admissions().is_empty()
+        {
+            return false;
+        }
+        let Ok(inventory) = crate::resident_preparation::inventory() else {
+            return false;
+        };
+        if inventory.offers().iter().any(Option::is_none) {
+            return false;
+        }
+        drop(inventory);
+        workspace.retire();
+        true
+    }
+
     pub(super) async fn serve_preparation(
         &mut self,
         link: &mut Link,
         workspace: &mut conduit_body::HostCommandInput<LIMIT>,
     ) -> Result<(), ()> {
+        self.reclaim_expired_preparation(workspace);
         if workspace.is_retained() {
             return report_retained_input(link, workspace).await;
         }

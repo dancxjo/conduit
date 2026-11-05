@@ -72,6 +72,11 @@ impl<const N: usize> HostCommandInput<N> {
         }
         Ok(&mut self.bytes)
     }
+    /// Original attribution deadline, never renewed by RAM custody. This is
+    /// inspection only: expiry does not prove worker or resource retirement.
+    pub fn expires_at_millis(&self) -> Option<u64> {
+        self.stamp.as_ref().map(|stamp| stamp.expires_at)
+    }
     pub fn payload(&self) -> Option<&[u8]> {
         self.stamp
             .as_ref()

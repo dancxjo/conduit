@@ -6419,3 +6419,38 @@ peaks, or sensor/display bus handover. No firmware was rebuilt/flashed or live
 service changed; the wire receiver still reports Start not installed. #6770 and
 #6341 remain open. PR #6791 Candidate 42128506875 still had admission in progress
 at its latest observation, so no merge or full acceptance is claimed.
+
+
+### Expired idle preparation can yield its input workspace
+
+Receiver inspection found that expired authenticated preparation input occupied
+its fixed buffer forever despite release of its unstarted feasibility resources.
+The shared input exposes its original attribution deadline as inspection only;
+expiry itself proves no execution/resource retirement. The real Root now reclaims
+expired input only when the existing resource ledger is empty and an exclusive
+inventory check finds every initialized resident Back available. Busy inventory,
+withdrawn/unretired Backs and outstanding admissions preserve exact old custody.
+Successful reclamation zeroes the same buffer; the next ordinary request gets a
+fresh challenge/nonce, never an extension of the old signature or deadline.
+
+Eleven actual-handler CPU tests and three attribution-retention tests pass,
+including boundary expiry, a fresh signed attempt through the same entry,
+allocation-free cleanup, nonexpired preservation, blocked inventory and an
+outstanding admission. The older lost-response/deadline regression was updated
+to require a fresh challenge only after its original deadline and retired scope;
+nonexpired retries still report the exact original retained digest. Strict
+RP2040 command-ingress Clippy and shared Body no-default-feature authenticated
+checking pass. Raw logs remain in ignored
+`target/expired-root-preparation-20261105`.
+
+This is unstarted command-workspace turnover, not termination of a Play, new
+execution authority, installed Start, physical bus handover or measurement
+history acknowledgment. No firmware or live service changed. Start still needs
+its ordinary local authority/native possession and admitted ingress boundaries;
+current CPU/reservation readiness is not substituted for those gates. PR #6791
+Candidate 42128506875 remains in progress at its last observation.
+
+As disk headroom approached 2 GiB, package-native cleanup removed the verified
+inactive isolated service-review compiler cache (Cargo reported 6.1 GiB). Its
+source/commit, PR and proof logs remained retained; no process, mapped library or
+open file referenced the cache, and no firmware image was present there.
