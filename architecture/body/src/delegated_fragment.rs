@@ -24,6 +24,10 @@ pub struct BodyFragmentApprovalMetadata<'a> {
     pub host: &'a str,
     pub boot: &'a str,
     pub offer_generation: u64,
+    pub local_fragment_count: u16,
+    pub local_fragment_digest: [u8; 32],
+    #[serde(borrow)]
+    pub resource_bindings: &'a [u8],
     pub projection_length: u32,
     pub projection_digest: [u8; 32],
 }
@@ -40,12 +44,14 @@ impl<'a> BodyFragmentApprovalMetadata<'a> {
     pub fn from_prepared(
         scope: PreparedBodyFragment<'a>,
         projection: &[u8],
+        resource_bindings: &'a [u8],
     ) -> Result<Self, BodyFragmentDocumentRefusal> {
         let plan = scope.plan();
         let play = scope.play();
         let f = scope.fragment();
+        let (local_fragment_count, local_fragment_digest) = workset::local_fragment_scope(scope)?;
         let metadata = Self {
-            schema: 1,
+            schema: 2,
             body: plan.body_id.as_str(),
             wake: plan.wake_id.as_str(),
             body_plan: plan.plan_id.as_str(),
@@ -60,6 +66,9 @@ impl<'a> BodyFragmentApprovalMetadata<'a> {
             host: f.host_id.as_str(),
             boot: f.boot_id.as_str(),
             offer_generation: f.offer_generation.0,
+            local_fragment_count,
+            local_fragment_digest,
+            resource_bindings,
             projection_length: u32::try_from(projection.len())
                 .map_err(|_| BodyFragmentDocumentRefusal::Bounds)?,
             projection_digest: Sha256::digest(projection).into(),
@@ -68,8 +77,9 @@ impl<'a> BodyFragmentApprovalMetadata<'a> {
         Ok(metadata)
     }
     pub(super) fn check(&self) -> Result<(), BodyFragmentDocumentRefusal> {
-        if self.schema != 1
+        if self.schema != 2
             || self.offer_generation == 0
+            || self.local_fragment_count == 0
             || self.projection_length == 0
             || ![
                 self.body,
@@ -130,3 +140,8 @@ pub fn encode_body_fragment_document(
 mod receiving;
 #[cfg(feature = "authenticated-admission")]
 pub use receiving::*;
+
+mod resources;
+pub use resources::*;
+
+mod workset;

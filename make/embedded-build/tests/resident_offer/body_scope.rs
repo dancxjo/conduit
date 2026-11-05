@@ -143,5 +143,6 @@ pub fn run() {
             .is_err()
     );
     crate::delegated::run(a, &first);
+    crate::delegated::batch(a, b, &first, &second);
     println!("two exact resident fragments bound to one checked Body Plan/Play; no child Play; zero scoped binding/retirement allocations; stale and substituted scope refused");
 }

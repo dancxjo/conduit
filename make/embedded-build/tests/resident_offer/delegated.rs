@@ -172,6 +172,7 @@ pub fn mask(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
     assert_eq!(prepared.metadata().body_plan, scope.plan().plan_id.as_str());
 }
 pub fn run(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
+    resources::run(a);
     let document = document(scope, a);
     let (_, program, _) = crate::support::context();
     let receiver = Receiver::new(scope);
@@ -306,4 +307,16 @@ pub fn run(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
     assert!(matches!(library.borrow_entry_0(selected), Err(E::Scope)));
     assert!(library.offers().iter().all(Option::is_some));
     println!("delegated exact Body projection: signed receive/bind/typed kernel output/retirement without allocation; mutated projection, absent policy, insufficient policy/profile memory and same-ID table substitution refused");
+}
+
+#[path = "delegated_resources.rs"]
+mod resources;
+
+pub fn batch(
+    a: PreparedBodyFragment<'_>,
+    b: PreparedBodyFragment<'_>,
+    first: &crate::support::Assignment,
+    second: &crate::support::Assignment,
+) {
+    resources::batch(a, b, first, second);
 }

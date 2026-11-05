@@ -196,6 +196,40 @@ admission, one-attempt custody, old-execution retirement and provider handover
 remain Root duties. CPU receive/bind/kernel/retirement proof and Cortex-M0+
 compilation do not establish physical MCU execution or native effect authority.
 
+### Exact plain resources and complete local admission
+
+Preparation document schema 2 also carries borrowed, self-delimiting plain
+resource descriptors: numeric node/resource, original sealed placement ID,
+pool/class and exact units. These preserve the rich Plan's identities across
+numeric lowering. They do not reconstruct a capability catalog. The canonical
+factory refuses protected, compute-lane or content bindings rather than erasing
+their contracts into this plain profile. Plain binding units are also the exact
+plain requirement units under Core's existing resource law.
+
+The receiver checks descriptor bounds, unique node/placement correspondence,
+exact numeric record coverage and units without allocating. It retains a compact
+pin of the independently checked receiver profile. Resource preparation rechecks
+the actual owner's Host/Boot/profile/generation and installed plain pools;
+public strings do not create a resource. Only then does it allocate the exact
+Core request/item capacities and call `ResourceAdmissionOwner::admit_batch`.
+There is no second reservation ledger. Core remains responsible for current
+Ready observations, existing reservations, exact binding satisfaction and atomic
+capacity refusal.
+
+Each approval commits to the complete local fragment set through a count and
+canonical digest over its fragment identities, covering ordinary Plots and
+selected Mask chains on that exact Host/Boot/generation. The batch entrance
+requires that complete set and one exact containing Body Plan/Play. Missing,
+duplicate or mixed-scope fragments refuse before resource mutation. The receiver
+checks the set digest without allocating or retaining another ID catalog.
+
+This reserves resources only. Root must still admit the whole preparation and
+execution workspace, enforce one-attempt/retirement custody, transfer actual
+initialized providers and start the kernel. Cleanup uses the retained original
+Body Plan/placement reservations. Kernel terminal evidence must precede returning
+resident loans or releasing live execution resources. The component API does not
+make its caller's ordering or physical execution automatic.
+
 ## Resident backing across Plays
 
 Generated resident libraries can lend a selected Back through `borrow_entry_N`.

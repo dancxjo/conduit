@@ -2018,6 +2018,7 @@ dependencies = [
  "conduit-wire",
  "ed25519-dalek",
  "miniz_oxide 0.8.9",
+ "postcard",
  "serde_json",
  "sha2 0.10.9",
 ]

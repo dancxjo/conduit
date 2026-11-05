@@ -50,7 +50,7 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
                 .unwrap()
         )
     } else {
-        "mod delegated{pub fn run(_:conduit_body::PreparedBodyFragment<'_>,_:&crate::support::Assignment){}pub fn mask(_:conduit_body::PreparedBodyFragment<'_>,_:&crate::support::Assignment){}}".into()
+        "mod delegated{pub fn run(_:conduit_body::PreparedBodyFragment<'_>,_:&crate::support::Assignment){}pub fn mask(_:conduit_body::PreparedBodyFragment<'_>,_:&crate::support::Assignment){}pub fn batch(_:conduit_body::PreparedBodyFragment<'_>,_:conduit_body::PreparedBodyFragment<'_>,_:&crate::support::Assignment,_:&crate::support::Assignment){}}".into()
     };
     let exercise = format!(
         r#"
@@ -130,6 +130,7 @@ fn main(){{
             "ed25519_dalek",
             "sha2",
             "serde_json",
+            "postcard",
         ],
     );
 }

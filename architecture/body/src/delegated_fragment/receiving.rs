@@ -13,12 +13,13 @@ pub struct AssignedBodyPreparationProfile<'a> {
     pub computations: c::AssignedComputationProfile<'a>,
     pub fore: Option<&'a [c::AssignedForeRequirement]>,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DelegatedFragmentRefusal {
     Policy(PreparationDelegationRefusal),
     Document(BodyFragmentDocumentRefusal),
     Scope,
     Assignment(c::AssignedPlanRefusal),
+    Resources(DelegatedResourceRefusal),
 }
 
 /// A checked delegated preparation, not a reservation, native capability or Play.
@@ -28,8 +29,12 @@ pub struct DelegatedBodyFragment<'a> {
     metadata: BodyFragmentApprovalMetadata<'a>,
     projection: &'a [u8],
     view: c::AssignedPlanView,
+    receiver_profile: c::AssignedIdentity,
 }
 impl<'a> DelegatedBodyFragment<'a> {
+    pub fn receiver_profile(&self) -> c::AssignedIdentity {
+        self.receiver_profile
+    }
     pub fn metadata(&self) -> &BodyFragmentApprovalMetadata<'a> {
         &self.metadata
     }
@@ -103,9 +108,14 @@ pub fn receive_delegated_body_fragment<'a>(
     {
         return Err(E::Scope);
     }
-    Ok(DelegatedBodyFragment {
+    let prepared = DelegatedBodyFragment {
         metadata,
         projection,
         view,
-    })
+        receiver_profile: c::AssignedIdentity::from_text(actual.profile.as_str()),
+    };
+    prepared
+        .check_plain_resource_projection()
+        .map_err(E::Resources)?;
+    Ok(prepared)
 }

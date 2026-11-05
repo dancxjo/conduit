@@ -5074,3 +5074,49 @@ were not changed. These diagnostics still do not establish admitted sampling
 or display Plays. Next is the actual constrained Root's bounded reservation and
 start transaction under exact current Body preparation, followed by provider
 handover for physical IO; durable recording and the shared graph remain open.
+
+
+### 2026-11-05 — Compact fragments reach the existing resource owner
+
+Inspection found that compact assigned resource indices alone could not name
+Core's exact Plan/placement reservations. The canonical authoring factory now
+retains original placement/pool/class/units as borrowed Postcard descriptors in
+preparation document schema 2. It refuses protected, content and compute-lane
+bindings in this plain profile. The receiver checks exact numeric coverage and
+units, rejects malformed/duplicate descriptors without allocation, and rechecks
+Host/Boot/profile/generation against the actual local resource owner. No decoded
+offer catalog, replacement ledger or invented placement identity was added.
+
+The approval also commits to the complete local fragment set with a count and
+canonical digest, including selected Mask chains. The shared batch entrance
+requires the entire approved set under one exact Body Plan/Play before calling
+Core's existing atomic `admit_batch`. A single fragment of a two-fragment local
+workset cannot be admitted through the convenience entrance. Request/item
+capacities come from checked descriptors rather than default vector growth.
+
+The emitted-code CPU proof now reserves exact original bindings, executes typed
+fixed-kernel transactions, drains/retires both Backs and releases only their
+original scopes. A late shortage preserves a preexisting reservation and admits
+neither new fragment. Missing/stale/unavailable/exhausted observations, wrong
+owner Host/Boot/profile/generation, unknown or unsupported pools, incomplete or
+duplicate worksets, altered resource indices/units and malformed descriptors
+refuse. After successful preparation, measured binding/kernel/retirement scopes
+allocate/reallocate zero times.
+
+On the 64-bit CPU harness, single-fragment resource preparation peaks at 1,705
+bytes (15 allocations), and the two-fragment batch at 2,802 bytes (26 allocations).
+These measure the ledger bridge, not total Root workspace, MCU RAM, parser costs
+or physical execution. The prepared document remains borrowed; retained resource
+records own only their required exact custody facts. Root receive/start, replay
+retirement policy, actual arena admission and physical bus handover remain open.
+No firmware, device membership, installed service or current grant was changed.
+
+
+Qualification passes both emitted-code tests with delegation, both default-feature
+emitted-code tests, 66 Body unit tests, strict Body/embedded Make all-target Clippy,
+Body Cortex-M0+ checks with and without authenticated admission, delegated lowerer
+Cortex-M0+ compilation, workspace formatting and direct formatting of dynamically
+included proof modules. Offline standalone lock refreshes preserve package
+versions; the sole dependency-edge change is an existing Postcard test dependency.
+The policy PR #6772 is still in Candidate, with its quick gate passed and the
+remaining jobs active at the last observation; this checkpoint opens no new PR.
