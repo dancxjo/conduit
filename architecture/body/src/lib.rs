@@ -127,5 +127,9 @@ pub use workload_plan::*;
 pub use workload_transition::*;
 pub use workset::*;
 
+#[cfg(feature = "authenticated-admission")]
+mod host_command_attribution;
 mod host_preparation_delegation;
+#[cfg(feature = "authenticated-admission")]
+pub use host_command_attribution::*;
 pub use host_preparation_delegation::*;
