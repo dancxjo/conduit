@@ -5752,3 +5752,44 @@ outputs, source, private state and live artifacts. It recovered 4,897,540,840
 bytes. A terminal failed release build hit the per-user tmpfs quota; its cache
 was relocated to disk and reused successfully. Remaining root headroom is
 about 4.6 GiB and must be checked before further large builds.
+
+
+### Physical deployment of the enabled Green Seed
+
+The Body-made Seed above was prepared with ordinary `make host prepare-seed
+--retained-member`. The owner pin was read through the authenticated existing
+local member-carrier control request and checked against the live Host/Boot/
+generation. Its proof key changes with the owner Boot; the previous Boot's pin
+was not reused. The first prepared input contained an older member credential;
+this was caught before attempting return and replaced from the owner's latest
+committed receipt, preserving the original member secret and Part.
+
+UF2 page addresses were independently checked before submission: application
+payloads remain below the bootstrap sector, and all bootstrap payloads lie
+within 0x101ff000..0x10200000. The application hash matches the previously
+qualified enabled image. Exact build-bound BOOTSEL acknowledgements selected
+Green's runtime UID e6639c758f40702c; ROM serial E0C9125B0D9B was checked before
+the narrowly authorized headless mount carrier submitted the files. No full
+flash erase, full-flash backup/readback, or unchanged-journal-byte proof is
+claimed. Updating the bootstrap required a second bounded transfer after the
+stale input was identified. The owner had already withdrawn the old attachment;
+ordinary member-leave refused without changing it.
+
+Ordinary installed `body return-usb` then committed the signed existing-member
+return and delivered its saved receipt. Green reports that exact receipt digest
+`74c749e79b08e9eccf5bb778aea4813bf27bb474af0b7a9c0a8b78e34ab58791`
+and body_member true. The owner's current Part agrees on Boot
+`rp2040/boot/c78e1c9ccce3071e611cc31ce31cc380`. Membership remains 16 Parts and
+15 continuity keys. Actual firmware build is
+`40f52a0256670311150fb509aa8e12ce7c66041022586df61fa06d27b94a9c7e`;
+configuration matches the enabled 9c159217... identity above. Initial physical
+status records one sample, ten acknowledged frames, five initialized resident
+Backs, 19,016 backing bytes, 4,924 allocator peak bytes and no sensor/display
+fault. These are component measurements, not total RAM or stack high-water.
+
+This closes the previously unflashed enabled-image gap. It does not prove a
+prepared command exchange, native resource installation/Start, admitted local
+sampling/display Plays, or restart-persistent advancement of the new credential.
+Those remain next; diagnostic sensing/display is still explicitly distinct.
+Private bootstrap, current input and signed return receipt remain outside Git;
+raw physical status is retained under target/green-enabled-seed-20261105.
