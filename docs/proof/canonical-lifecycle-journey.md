@@ -6042,3 +6042,14 @@ bytes), retaining the newest generation per package and generated outputs.
 Resumed lint found one array-chunk style issue; it was fixed without suppressing
 the check, and terminal lint plus all six tests then passed. Root headroom was
 about 2.0 GiB afterward, so the next substantial build needs another inventory.
+
+
+Before the first physical retained-input submission, recovery needs one concrete
+receiver correction: its occupied-input branch reads control into 64 bytes,
+while the existing build-bound BOOTSEL request is 24 prefix bytes plus the
+64-byte build ID (88 bytes). The short query can succeed but the reboot request
+cannot fit that buffer. This was found by inspecting the actual Link copy and
+BOOTSEL handler, not by changing a device. Preserve the original document while
+providing enough bounded maintenance-frame scratch; verify the ingress frame
+ceiling before qualifying another image. Do not knowingly seal the live input
+and strand the existing software recovery route.
