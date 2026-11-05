@@ -9,6 +9,18 @@ use std::{fs::File, io::ErrorKind, path::Path};
 /// parsing, scoped equipment, or restoration of a resident Plot.
 pub(super) fn checked(root: &Path) -> Result<Option<ExpandedAuthoringPlot>, String> {
     let biography = super::state::load(root)?;
+    if let Some(biography) = &biography {
+        if let Some(mut plots) = super::state::checked_workset_sources(root, biography)? {
+            return match plots.len() {
+                0 => Ok(None),
+                1 => Ok(plots.pop()),
+                _ => Err(
+                    "owner requires complete multi-Plot Source dispatch; no partial selection"
+                        .into(),
+                ),
+            };
+        }
+    }
     let file = match File::open(root.join("body/source.conduit")) {
         Ok(file) => file,
         Err(error) if error.kind() == ErrorKind::NotFound => return Ok(None),

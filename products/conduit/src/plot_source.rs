@@ -104,8 +104,15 @@ impl CanonicalSource {
     pub(crate) fn expand_entry_for_authoring(
         &self,
     ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
+        self.expand_named_for_authoring(self.authored_entry_name()?)
+    }
+
+    /// Select an explicit authored entry from the same checked immutable Source.
+    pub(crate) fn expand_named_for_authoring(
+        &self,
+        entry: &str,
+    ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
         let checked = self.check()?;
-        let entry = self.authored_entry_name()?;
         let Some(backs) = dsp_source_backs_for(&checked)? else {
             return conduit_plot::expand_canonical_plot_for_authoring(
                 &checked,

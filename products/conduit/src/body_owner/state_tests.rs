@@ -60,6 +60,7 @@ fn checked_source_and_biography_replay_as_one_owner_transaction() {
         admissions: None,
         admission_custody: None,
         source: Some(SOURCE.as_bytes().to_vec()),
+        workset_sources: None,
         archives: Vec::new(),
     };
     write_json_atomic(&root.join("body/owner-transaction.json"), &transaction).unwrap();
@@ -177,6 +178,7 @@ fn interrupted_publication_recovers_and_corruption_never_becomes_birth() {
             admissions: Some(manager.clone()),
             admission_custody: None,
             source: None,
+            workset_sources: None,
             archives: Vec::new(),
         },
     )

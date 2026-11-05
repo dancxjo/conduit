@@ -6154,3 +6154,33 @@ after startup. This proves deployment, return and diagnostic I/O on the new imag
 not an admitted sensing/display Play or occupied-input physical recovery. The
 latter still requires a lawful approved Body workset; no fixture was substituted.
 Private package, bootstrap, return material and backup remain outside Git.
+
+### Complete retained Source custody before authorized workset adoption
+
+Inspection of #6449 exposed a prerequisite: the installed owner journal retained
+one Source document, while a revision may contain several documents or several
+explicit entry Plots from one document. The delivery branch now retains complete
+bounded Source/entry selections in that same recoverable biography transaction.
+All count, aggregate byte and Source-document membership checks precede parsing;
+independent current-catalog expansion must reproduce the exact complete workset.
+The existing 256 KiB Source and 2 MiB transaction ceilings were not enlarged.
+Unknown entries, duplicate/missing candidates and conflicting single/complete
+selections refuse before publication. Existing complete custody cannot silently
+fall back to one document. The current single-Plot dispatcher explicitly refuses
+multi-Plot bundles until complete dispatch is integrated.
+
+Three new deterministic custody tests pass, alongside 20 journal and five
+retained-Source regressions (the three new cases are included in the 20).
+Strict product binary/test Clippy passes. A final rerun also proves a staged
+existing-lifecycle two-to-one removal reopens the explicitly selected first
+entry, preserving Body identity and membership. Interrupted publication replays
+both Source custody and biography. These fixtures do not authorize adoption or
+execute a kernel. Logs remain under ignored `target/workset-source-custody-20261105`.
+The new complete transaction entrance is not installed or exposed by an owner
+action. #6449's capability-mediated authorization/CAS, actual Play retirement,
+fresh planning and durable live adoption remain unfinished; #6447's installed
+source-check acceptance remains independent. No live device or service changed.
+
+Separately, the earlier borrowed containment extraction is reviewable in #6786
+at `c766c7fc85314420113463785c4b8c3c58e8865e`. Its Candidate 42114665595 was
+queued at the last observation; no merge or accepted-release claim is made.
