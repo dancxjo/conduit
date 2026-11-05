@@ -5983,8 +5983,8 @@ The test checks fifteen challenge substitutions, three invalid boundary maps,
 exact signature acceptance, unchanged biography/proposal/sequence, and occupied
 approval refusal after Lull. Three existing workset/planning regressions and two
 membership-withdrawal tests pass. Product binary checking and strict product
-binary Clippy pass. The additional strict test-target Clippy is recorded
-separately when terminal. Logs are retained under
+binary Clippy pass. The additional strict product test-target Clippy also
+finished successfully; no active build remains from these checks. Logs are retained under
 /tmp/conduit-owner-command-{approval-final-test,planning-tests,member-tests,
 approval-check,approval-clippy,approval-test-clippy}.log.
 
