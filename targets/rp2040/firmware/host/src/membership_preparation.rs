@@ -17,11 +17,7 @@ impl MembershipState {
         workspace: &mut conduit_body::HostCommandInput<LIMIT>,
     ) -> Result<(), ()> {
         if workspace.is_retained() {
-            return link
-                .send(
-                    br#"{"phase":"input-retained","resources":"released","start":"not-installed"}"#,
-                )
-                .await;
+            return report_retained_input(link, workspace).await;
         }
         // No signature, retained owner key or membership silently enables this.
         let Some(policy) = crate::config::PREPARATION_DELEGATION.as_ref() else {
@@ -126,7 +122,7 @@ impl MembershipState {
             response
             };
             workspace.retain(stamp).map_err(|_| ())?;
-            link.send(br#"{"phase":"input-retained","resources":"released","start":"not-installed"}"#).await
+            report_retained_input(link, workspace).await
         })
         .await;
         if !workspace.is_retained() {
@@ -134,6 +130,46 @@ impl MembershipState {
         }
         result.map_err(|_| ())?
     }
+}
+
+pub(super) async fn report_retained_input(
+    link: &mut Link,
+    workspace: &conduit_body::HostCommandInput<LIMIT>,
+) -> Result<(), ()> {
+    let mut output = [0u8; 192];
+    let length = encode_retained_input(workspace, &mut output)?;
+    link.send(&output[..length]).await
+}
+
+fn encode_retained_input(
+    workspace: &conduit_body::HostCommandInput<LIMIT>,
+    output: &mut [u8],
+) -> Result<usize, ()> {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut digest = [0u8; 64];
+    for (index, byte) in workspace.payload_digest().ok_or(())?.iter().enumerate() {
+        digest[index * 2] = HEX[usize::from(byte >> 4)];
+        digest[index * 2 + 1] = HEX[usize::from(byte & 15)];
+    }
+    #[derive(serde::Serialize)]
+    struct Status<'a> {
+        phase: &'static str,
+        custody: &'static str,
+        payload_sha256: &'a str,
+        resources: &'static str,
+        start: &'static str,
+    }
+    serde_json_core::to_slice(
+        &Status {
+            phase: "input-retained",
+            custody: "ram",
+            payload_sha256: core::str::from_utf8(&digest).map_err(|_| ())?,
+            resources: "released",
+            start: "not-installed",
+        },
+        output,
+    )
+    .map_err(|_| ())
 }
 
 async fn report_resource_refusal(

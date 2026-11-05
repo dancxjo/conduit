@@ -558,6 +558,13 @@ fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellati
         drop(future);
         assert_eq!(member.resources, before);
         assert_eq!(workspace.payload().unwrap(), link.payload);
+        let report: serde_json::Value =
+            serde_json::from_slice(&link.response[..link.response_len]).unwrap();
+        assert_eq!(report["custody"], "ram");
+        assert_eq!(
+            report["payload_sha256"],
+            format!("{:x}", Sha256::digest(&link.payload))
+        );
         assert_eq!(
             workspace.writable().err(),
             Some(HostCommandRetentionRefusal::Occupied)
@@ -569,6 +576,9 @@ fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellati
         assert_eq!(retry.reads, 0);
         assert_eq!(member.freshness, original_nonce_sequence);
         assert_eq!(workspace.payload().unwrap(), link.payload);
+        let repeated: serde_json::Value =
+            serde_json::from_slice(&retry.response[..retry.response_len]).unwrap();
+        assert_eq!(repeated["payload_sha256"], report["payload_sha256"]);
         assert!(std::str::from_utf8(&link.response[..link.response_len])
             .unwrap()
             .contains("input-retained"));

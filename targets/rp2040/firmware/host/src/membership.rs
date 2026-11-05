@@ -107,11 +107,7 @@ impl MembershipState {
             // stays sealed. No second document workspace or preparation begins.
             let mut request = [0u8; 64];
             link.receive(&mut request).await?;
-            return link
-                .send(
-                    br#"{"phase":"input-retained","resources":"released","start":"not-installed"}"#,
-                )
-                .await;
+            return preparation::report_retained_input(link, workspace).await;
         }
         let request = link.receive(workspace.writable().map_err(|_| ())?).await?;
         if request == conduit_body::HOST_PREPARATION_REQUEST {

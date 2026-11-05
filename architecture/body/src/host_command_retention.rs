@@ -24,7 +24,7 @@ pub struct RetainedHostCommandStamp {
     expires_at: u64,
 }
 
-/// One fixed, caller-funded input buffer. It exposes no mutable bytes. Root must
+/// One fixed, caller-funded input buffer. Retained bytes are immutable. Root must
 /// still perform policy/admission/retirement checks before interpreting it, and
 /// must own its consumption separately from transport delivery acknowledgments.
 pub struct HostCommandInput<const N: usize> {
@@ -76,6 +76,9 @@ impl<const N: usize> HostCommandInput<N> {
         self.stamp
             .as_ref()
             .map(|stamp| &self.bytes[..stamp.payload_bytes as usize])
+    }
+    pub fn payload_digest(&self) -> Option<&[u8; 32]> {
+        self.stamp.as_ref().map(|stamp| &stamp.payload_digest)
     }
     /// Seal the same receive buffer in place. No second document is allocated or
     /// copied. Refusal leaves the existing bytes and occupied state unchanged.
