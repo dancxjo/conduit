@@ -5354,3 +5354,10 @@ Installing this prepared storage/resource transaction into its retained Root
 lifecycle, acknowledged busy-input custody, native IO handover, exact old-worker
 retirement and physical start remain open. No device or live service was changed,
 and the observed physical 1,920-byte refusal is not declared repaired.
+
+A remaining allocation boundary is explicit: Core's admission staging and the
+plain descriptor bridge still construct owned vectors/IDs. The CPU shortage
+case above tests resource-capacity refusal, not allocator exhaustion inside
+that bookkeeping. Root adoption must make those allocations fallible or fund
+and retain their complete physical workspace first; the new fallible kernel
+slot alone does not make the whole Root preparation path failure-safe.
