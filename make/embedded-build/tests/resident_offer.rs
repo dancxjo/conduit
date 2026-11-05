@@ -42,6 +42,16 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let probe = root.join("../../architecture/plot/tests/common/allocation_probe.rs");
     let helper = root.join("tests/resident_offer/support.rs");
+    let delegated = if cfg!(feature = "delegated-preparation") {
+        format!(
+            "#[path={:?}]mod delegated;",
+            root.join("tests/resident_offer/delegated.rs")
+                .to_str()
+                .unwrap()
+        )
+    } else {
+        "mod delegated{pub fn run(_:conduit_body::PreparedBodyFragment<'_>,_:&crate::support::Assignment){}pub fn mask(_:conduit_body::PreparedBodyFragment<'_>,_:&crate::support::Assignment){}}".into()
+    };
     let exercise = format!(
         r#"
 #[path={probe:?}]mod probe;
@@ -53,6 +63,7 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
 #[path={reuse:?}]mod reuse;
 #[path={combined:?}]mod combined;
 #[path={body_scope:?}]mod body_scope;
+{delegated}
 fn main(){{
     let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);

@@ -96,6 +96,21 @@ pub fn run(first: &crate::support::Assignment) {
 }
 
 pub fn retire<D: StepBack<1>>(back: D, assignment: &crate::support::Assignment) -> D {
+    finish(back, assignment, None)
+}
+pub fn execute_and_retire<D: StepBack<1>>(
+    back: D,
+    assignment: &crate::support::Assignment,
+    input: &[u8],
+    expected: &[u8],
+) -> D {
+    finish(back, assignment, Some((input, expected)))
+}
+fn finish<D: StepBack<1>>(
+    back: D,
+    assignment: &crate::support::Assignment,
+    frame: Option<(&[u8], &[u8])>,
+) -> D {
     let mut slot = Some(back);
     let drivers = assignment
         .tables
@@ -133,6 +148,47 @@ pub fn retire<D: StepBack<1>>(back: D, assignment: &crate::support::Assignment) 
         signs,
     )
     .unwrap();
+    if let Some((input, expected)) = frame {
+        use conduit_core::AssignedForeDirection;
+        let ingress = assignment
+            .fore
+            .iter()
+            .find(|f| f.direction() == AssignedForeDirection::Input)
+            .unwrap();
+        let egress = assignment
+            .fore
+            .iter()
+            .find(|f| f.direction() == AssignedForeDirection::Output)
+            .unwrap();
+        kernel
+            .admit_remote_input(
+                RemoteEndpointId(ingress.endpoint()),
+                CordId(ingress.cord()),
+                0,
+                input,
+            )
+            .unwrap();
+        kernel.step().unwrap();
+        let offer = kernel
+            .remote_egress_offer(RemoteEndpointId(egress.endpoint()), CordId(egress.cord()))
+            .unwrap()
+            .unwrap();
+        assert_eq!(kernel.host_value(offer.value).unwrap(), expected);
+        kernel
+            .remote_egress_accept(
+                RemoteEndpointId(egress.endpoint()),
+                CordId(egress.cord()),
+                offer.sequence,
+            )
+            .unwrap();
+        kernel
+            .remote_egress_delivered(
+                RemoteEndpointId(egress.endpoint()),
+                CordId(egress.cord()),
+                offer.sequence,
+            )
+            .unwrap();
+    }
     kernel.cancel().unwrap();
     let retired = match kernel.try_retire() {
         Ok(retired) => retired,

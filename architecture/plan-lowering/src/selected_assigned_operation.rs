@@ -127,7 +127,7 @@ fn bind_assigned_profile(
         )
         .map_err(|_| wrong())?;
     if view.fragment != id(selected.fragment_id.as_str())
-        || !selected.scope.matches(&view)
+        || !selected.scope.matches(&view, selected.input.header())
         || !selected.scope.matches_claim(claim)
         || claim.subject_kind != definition.kind.kind_id
         || claim.operation_contract_id.as_str() != definition.call

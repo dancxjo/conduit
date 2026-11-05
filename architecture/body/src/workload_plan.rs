@@ -440,13 +440,13 @@ fn bind_body_play(
     plan_id: &PlanId,
     play_sequence: u64,
 ) -> ActivePlayId {
-    let mut bytes = Vec::new();
-    push(&mut bytes, "conduit.body/body-play@1");
-    push(&mut bytes, body_id.as_str());
-    push(&mut bytes, wake_id.as_str());
-    push(&mut bytes, plan_id.as_str());
-    bytes.extend_from_slice(&play_sequence.to_le_bytes());
-    ActivePlayId::from(digest_id("body-play", &bytes))
+    let digest = crate::body_play_digest(
+        body_id.as_str(),
+        wake_id.as_str(),
+        plan_id.as_str(),
+        play_sequence,
+    );
+    ActivePlayId::from(digest_result("body-play", &digest))
 }
 
 fn push(output: &mut Vec<u8>, value: &str) {
@@ -455,7 +455,9 @@ fn push(output: &mut Vec<u8>, value: &str) {
 }
 
 fn digest_id(prefix: &str, bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
+    digest_result(prefix, &Sha256::digest(bytes))
+}
+fn digest_result(prefix: &str, digest: &[u8]) -> String {
     let mut hex = String::with_capacity(digest.len() * 2);
     for byte in digest {
         hex.push_str(&format!("{byte:02x}"));

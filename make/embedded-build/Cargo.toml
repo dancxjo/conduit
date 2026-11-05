@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 description = "Host-only current-plan to fixed Conduit kernel table generator"
 
+[features]
+delegated-preparation = ["conduit-plan-lowering/delegated-preparation", "conduit-body/authenticated-admission"]
+
 [dependencies]
+conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-core = { path = "../../architecture/core" }
 conduit-wire = { path = "../../architecture/wire" }
 miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"] }

@@ -65,7 +65,7 @@ pub fn check_selected_resident_expression(
         )
         .map_err(E::Assignment)?;
     if view.fragment != c::AssignedIdentity::from_text(selected.fragment_id.as_str())
-        || !selected.scope.matches(&view)
+        || !selected.scope.matches(&view, selected.input.header())
     {
         return Err(E::Scope);
     }

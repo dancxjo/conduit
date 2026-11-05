@@ -5000,3 +5000,43 @@ projection and the constrained Root's receive/reserve/start transaction, followe
 by the one physical bus handover. No physical Host, service, membership or
 current Root grant changed. The two existing PR review lanes remain #6769 and
 #6771; this checkpoint does not open a third implementation PR.
+
+
+### 2026-11-05 — Exact delegated compact Body preparation
+
+The next #6770 component now carries checked containing Body scope into the
+existing compact assigned format. The canonical authoring factory uses one
+prepared containment witness and the existing projection generator. The witness
+now lives in Body, with the prior lowerer path re-exported, and includes selected
+Mask-chain Plans as well as ordinary Plots. Ambiguous duplicate containment
+refuses. No new transport, parser, scheduler or crypto protocol was added.
+
+The constrained receiver consumes an attributed command under independently
+installed Seed policy, checks current membership/Host/Boot/generation and exact
+projection digest, and invokes the existing Core decoder with receiver-local
+requirements and ceilings. Policy can only narrow those ceilings. Its opaque
+borrowed result binds outer Body Plan/Play and pins candidate tables through the
+validated assigned header digest. Public metadata alone grants nothing.
+
+The emitted-code CPU test passes one typed input through a real fixed kernel,
+checks output, drains/cancels, retires and restores the resident loan. Signature
+attribution, receive, bind, kernel transaction and retirement allocate/reallocate
+zero times in the measured scope. Tests reject absent policy, insufficient
+policy/profile memory, re-signed changed bytes, unsupported metadata schema and
+structurally valid same-ID table substitution, including borrowed records.
+Selected Mask-chain projection containment also passes; this is not proof of a
+native renderer. The allocation-free Body Play digest matches the old framed
+identity law for ASCII/Unicode and sequence bounds.
+
+Qualification: 66 Body unit tests, 34 lowerer unit tests, the identity regression,
+both emitted-code tests with delegated preparation and both default-feature
+emitted-code tests pass. Strict all-target Clippy for Body/lowerer/embedded Make,
+formatting and Cortex-M0+ lowerer checks with and without delegation pass.
+Standalone lock metadata resolves offline; only the new path-dependency edge is
+retained, with no registry upgrades. This component has not been flashed.
+
+The actual constrained Root still needs the receive/reserve/start transaction,
+one-attempt execution custody and physical bus handover. Current diagnostic
+sensing/display remains distinct from admitted Body Plays. Neither physical
+membership nor live services changed. Separately, #6769 and #6771 passed Candidate
+and merged into dev; their accepted changes are absorbed in this delivery branch.

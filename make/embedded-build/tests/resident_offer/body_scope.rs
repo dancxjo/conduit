@@ -1,5 +1,8 @@
 //! One actual Body Play contains both independently projected Plot fragments.
-use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, BodyWorkset, ResidentPlot};
+use conduit_body::{
+    Body, BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, BodyPlayIdentity,
+    BodyPlotPlan, BodyWorkset, ResidentPlot,
+};
 use conduit_plan_lowering::{
     assigned_play_scope::AssignedPlayScope, body_fragment_scope::PreparedBodyFragment,
     selected_assigned_expression::ResidentExpressionBindingRefusal as E,
@@ -90,5 +93,55 @@ pub fn run() {
         Err(E::Scope)
     ));
     assert!(library.offers().iter().all(Option::is_some));
+    let plot = ResidentPlot::new(
+        first.model.source_document_id.clone(),
+        first.model.checked_plot_id.clone(),
+    );
+    let mask_body = Body::born_with_plots(
+        BodyWorkset::from_plots([plot.clone()]).unwrap(),
+        2,
+        "fixture/mask-born".into(),
+    )
+    .unwrap();
+    let mask_wake = mask_body.wake(2, "fixture/mask-woke".into()).unwrap().1;
+    let topology = |model: &conduit_core::Plan| BodyMaskTopology {
+        face: BodyFaceSelector {
+            plot: None,
+            source_placement_id: None,
+        },
+        chains: vec![BodyMaskChainPlan {
+            plan: model.clone(),
+            stage_placement_ids: vec![model.fragments[0].placements[0].placement_id.clone()],
+        }],
+    };
+    let mask_plan = BodyPlan::seal_with_masks(
+        &mask_wake,
+        vec![BodyPlotPlan {
+            plot: plot.clone(),
+            plan: first.model.clone(),
+        }],
+        vec![topology(&second.model)],
+    )
+    .unwrap();
+    let mask_play = BodyPlayIdentity::bind(&mask_plan, 2);
+    let mask_scope =
+        PreparedBodyFragment::prepare(&mask_wake, &mask_plan, &mask_play, second_fragment).unwrap();
+    assert_eq!(mask_scope.plot_plan().plan_id, second.model.plan_id);
+    crate::delegated::mask(mask_scope, &second); // Containment, not a renderer claim.
+    let duplicate = BodyPlan::seal_with_masks(
+        &mask_wake,
+        vec![BodyPlotPlan {
+            plot,
+            plan: first.model.clone(),
+        }],
+        vec![topology(&first.model)],
+    )
+    .unwrap();
+    let duplicate_play = BodyPlayIdentity::bind(&duplicate, 2);
+    assert!(
+        PreparedBodyFragment::prepare(&mask_wake, &duplicate, &duplicate_play, first_fragment)
+            .is_err()
+    );
+    crate::delegated::run(a, &first);
     println!("two exact resident fragments bound to one checked Body Plan/Play; no child Play; zero scoped binding/retirement allocations; stale and substituted scope refused");
 }

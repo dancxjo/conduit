@@ -105,7 +105,8 @@ that authorization decision or install a transport/control endpoint.
 ## Selected operations under a Body Play
 
 The optional `body-plan-binding` preparation entrance validates a selected
-operation inside an ordinary Plot fragment of the exact Body Plan. It checks the
+operation inside an ordinary Plot or selected Mask-chain fragment of the exact
+Body Plan. It checks the
 current Wake/workset and Body Plan seal, the Body Play identity, exact fragment
 membership, Host/Boot, and the independently retained possession scope. The
 claim names the containing Body Plan and its one body-wide Play. It does not
@@ -127,8 +128,9 @@ claim must name the outer Body Plan/Play and still match the independently
 issued local Base capability, resource generation and envelope. A copied claim
 or a descriptive assignment cannot issue that capability. The default small
 Host build includes only Plot scope; receiving attributed bytes does not add a
-Body preparation witness or authorize remote execution. Compact remote Body
-scope admission remains a separate Root obligation.
+Body preparation witness or authorize remote execution. The opt-in `delegated-preparation` entrance can instead consume an opaque
+compact Body witness as described below. Root admission and start remain
+separate obligations.
 
 
 ## Explicit delegated preparation
@@ -157,10 +159,42 @@ runtime-state ceiling must still constrain subsequent assignment validation.
 
 Success permits considering preparation; it is not approval of the particular
 Plan, a reservation, native possession or kernel start. The receiver must use
-its installed policy, never a policy supplied by the command. Connecting the
-approved compact Body scope, Root receive/start protocol and physical provider
+its installed policy, never a policy supplied by the command. Connecting the Root receive/reserve/start protocol and physical provider
 handover remains the #6770 delivery obligation. Construction and guard tests
 alone do not establish a playing constrained Host.
+
+### Compact approved Body fragments
+
+The authoring-side `generate_prepared_body_fragment` takes a fully checked
+`PreparedBodyFragment`, including its exact containing inner Plan. Containment
+covers ordinary Plots and selected Mask-chain Plans; duplicate containment
+refuses. It uses the existing Fore/native projection generator and assigned
+format. Its current profile still refuses network Lines and fused activations.
+It creates no signature or execution permission.
+
+The document is self-delimiting borrowed Postcard scope metadata followed by
+unchanged assigned bytes. It travels inside the existing attributed command and
+bounded-document machinery. The metadata retains Body, Wake, outer Body Plan and
+Play, inner Source/checked/expanded Plot/Plan/fragment, Host/Boot/generation and
+an exact projection digest. The Body Play digest keeps its existing identity
+law; the small receiver checks it without constructing a concatenated buffer.
+
+`receive_delegated_body_fragment` consumes an attributed command, first checking
+the independently installed delegation and current Seed/member/receiver facts.
+It checks exact scope and projection bytes, then uses Core's existing decoder
+with receiver-local requirements, computation/Fore pins and actual profile
+ceilings narrowed by policy. Success returns a borrowed, opaque
+`DelegatedBodyFragment`; public metadata cannot construct one. It is preparation
+evidence, not a reservation, Base capability or active Play.
+
+`AssignedPlayScope::Delegated` binds the containing Body Plan/Play and the
+validated assigned header. Core checks the candidate records against the header
+digest, preventing substitution of different tables with the same descriptive
+IDs/counts. Both contiguous and borrowed-record inputs use this rule. The small
+Host need not parse Conduitese or re-run the rich planner. Actual resource
+admission, one-attempt custody, old-execution retirement and provider handover
+remain Root duties. CPU receive/bind/kernel/retirement proof and Cortex-M0+
+compilation do not establish physical MCU execution or native effect authority.
 
 ## Resident backing across Plays
 
