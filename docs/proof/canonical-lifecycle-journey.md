@@ -4096,3 +4096,17 @@ storage tests pass, as do strict all-target product/std Host Clippy and patch
 checks. These remain CPU proofs with an explicitly installed fixture Source
 grant, not ordinary installed authoring-tool authority, device execution or
 completion of #6447 or the full lifecycle journey. No service or device changed.
+
+
+### Repair the shared-fixture consumer boundary (5 November 2026)
+
+The first Candidate for #6758 caught a duplicate Vec import when Composite
+included the shared sealed-plan fixture. Lowerer-only qualification had missed
+that consumer. The repair removes the shared fixture import change entirely:
+the Body-binding test owns its alloc imports in a local include wrapper. On the
+isolated delivery checkout, all-target strict Clippy passes for all eight
+CI-selected packages with Body binding enabled, 43 Composite and 33 lowerer
+library tests pass, and the optional thumbv6m-none-eabi component check passes.
+The repair is pushed as #6758 head 91f02d2e52; its new hosted Candidate remains
+separate acceptance. The same test-only repair is retained in this journey
+checkout. Runtime Source/IMAGE behavior and the saved CPU evidence are unchanged.
