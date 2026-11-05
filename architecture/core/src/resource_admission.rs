@@ -8,6 +8,8 @@
 use alloc::{collections::BTreeSet, vec::Vec};
 use serde::{Deserialize, Serialize};
 mod preparation;
+mod scope;
+pub use scope::ResourceAdmissionScope;
 
 use crate::{
     resource_binding_satisfies, ActivePlayId, BaseExecutionLaneId, BootId, ComputeLaneAssignment,
