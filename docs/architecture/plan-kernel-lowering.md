@@ -101,3 +101,20 @@ concrete resource admission and native possession remain independent gates.
 Root must choose current offers for fresh preparation and the exact retained
 reservation scope for lifecycle control. This attribution helper does not make
 that authorization decision or install a transport/control endpoint.
+
+## Selected operations under a Body Play
+
+The optional `body-plan-binding` preparation entrance validates a selected
+operation inside an ordinary Plot fragment of the exact Body Plan. It checks the
+current Wake/workset and Body Plan seal, the Body Play identity, exact fragment
+membership, Host/Boot, and the independently retained possession scope. The
+claim names the containing Body Plan and its one body-wide Play. It does not
+invent a separate child Play to satisfy a fragment identity check.
+
+The selected Plot fragment retains its own identity and exact numeric lowering.
+Both entrances share the same private operation, Fore, configuration, Host Call,
+resource, authority and table correspondence checks. Binding returns a numeric
+node; it starts no operation, changes no lifecycle state and issues no authority.
+Actual Host preparation, resource admission, execution and retirement remain
+separate. The existing fragment-Play entrance and its canonical active-Play law
+remain intact. Body validation is an optional dependency, disabled by default.

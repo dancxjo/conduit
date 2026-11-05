@@ -5,6 +5,11 @@ use conduit_core::{
 };
 use conduit_kernel::{HostCallId, NodeId, PortId};
 
+#[cfg(feature = "body-plan-binding")]
+mod body;
+#[cfg(feature = "body-plan-binding")]
+pub use body::{bind_body_selected_configured_operation, SelectedBodyOperationPlan};
+
 pub struct SelectedOperationContract<'a> {
     pub kind: &'a Kind,
     pub call: &'a str,
@@ -49,9 +54,7 @@ pub fn bind_selected_configured_operation(
         active,
         placement_id,
     } = selection;
-    let expected = definition.kind;
-    if !conduit_core::verify_plan_fragment(fragment)
-        || fragment.plan_id != claim.plan_id
+    if fragment.plan_id != claim.plan_id
         || fragment.host_id != claim.host_id
         || fragment.boot_id != claim.boot_id
         || active.plan_id != claim.plan_id
@@ -59,6 +62,35 @@ pub fn bind_selected_configured_operation(
         || active.boot_id != claim.boot_id
         || active.active_play_id != claim.active_play_id
         || !crate::active_scope::matches(active)
+    {
+        return Err(SelectedCallRefusal::WrongBinding);
+    }
+    bind_fragment_operation(
+        table,
+        claim,
+        definition,
+        configuration,
+        fragment,
+        lowered,
+        placement_id,
+    )
+}
+
+// Scope validation belongs to the public Fragment/Body entrances. This shared
+// private check retains one exact operation/contract/lowering/possession law.
+fn bind_fragment_operation(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[conduit_core::ConfigurationEntry],
+    fragment: &PlanFragment,
+    lowered: &LoweredPlanFragment,
+    placement_id: &PlacementId,
+) -> Result<NodeId, SelectedCallRefusal> {
+    let expected = definition.kind;
+    if !conduit_core::verify_plan_fragment(fragment)
+        || fragment.host_id != claim.host_id
+        || fragment.boot_id != claim.boot_id
         || lowered.identity.plan_id != fragment.plan_id
         || lowered.identity.fragment_id != fragment.fragment_id
     {

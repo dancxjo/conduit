@@ -1,3 +1,5 @@
+extern crate alloc;
+use alloc::{vec, vec::Vec};
 use conduit_core::*;
 
 pub fn fragment() -> PlanFragment {

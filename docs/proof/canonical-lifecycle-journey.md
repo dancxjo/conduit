@@ -3960,3 +3960,35 @@ These are retained-storage accounting components, not a complete execution or
 validation-workspace receipt. IMAGE Source Play, ordinary Body dispatch, Source
 authority and full preparation accounting remain unfinished under #6447. No
 MCU/Pi firmware or installed service changed.
+
+### Preserve the containing Body Play in native binding (5 November 2026)
+
+The optional `body-plan-binding` entrance now checks a selected operation under
+its exact containing Body Plan/Play. This resolves a semantic prerequisite for
+Body-native dispatch: substituting a derived single-Plot child Play would have
+invented a separate execution identity. Instead, preparation verifies the given
+Wake/workset, Body Plan seal, Body Play digest and exact Plot-fragment membership.
+The independently retained table/claim stays scoped to the Body Plan and its
+one body-wide Play. The selected fragment keeps its separate identity and exact
+numeric lowering.
+
+The two public entrances share one private contract/lowering/possession check.
+The original fragment entrance retains its canonical active-Play check. Body
+validation is an optional dependency, disabled by default and selected by the
+std Host; it performs no planning, lifecycle transition or Host effect and
+returns only the matched numeric node. It does not issue a grant or possession.
+The shared minimal plan fixture now explicitly imports alloc so it is usable
+from the lowerer's no_std library tests as well as std integration tests.
+
+All 34 lowerer unit tests pass, including four Body-binding tests covering the
+full contract/table path, altered lowering, missing actual table possession,
+stale Wake/Play/Host/Boot/fragment and rejection of child-Play substitution.
+The 16 existing actual compiler-process/IMAGE tests pass unchanged. Strict
+all-target lowerer/std Host Clippy passes. Both the default fragment component and the optional Body-binding component
+pass thumbv6m-none-eabi checking. These are CPU/component proofs, not Body execution,
+firmware or physical-device proof.
+
+The std Body runner still needs to consume this binding, retain the actual
+native owner, dispatch its Host Call and admit complete owned kernel/Fore/result
+storage. Existing IMAGE refusal remains intact; no Source access was inferred
+from configuration or copied identities. No installed service or device changed.
