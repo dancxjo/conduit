@@ -341,3 +341,6 @@ fn checked_entry_identity_survives_unavailable_expansion_context() {
     assert_eq!(info.plan, RealizationPresence::Absent);
     assert_eq!(info.play, RealizationPresence::Absent);
 }
+
+#[path = "source_check_info/native.rs"]
+mod native;

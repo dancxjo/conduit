@@ -1,6 +1,7 @@
 //! Descriptive Source checking, with compiler custody retained privately.
 //! This surface cannot produce a Plan, Play, Host call or executable checked value.
 mod contract;
+mod native;
 use crate::{
     parse_syntax_document, source_span, CanonicalBackCatalog, DiagnosticSeverity,
     PreparationCacheLimits, ProfileCatalog, SourcePreparationCache, StartupCatalog,
@@ -8,6 +9,7 @@ use crate::{
 };
 use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 pub use contract::*;
+pub use native::{SourceCheckNativeRefusal, SourceCheckNativeSchema, SourceCheckReply};
 use sha2::{Digest, Sha256};
 
 /// An owner-admitted immutable reference context. Revision names are descriptive
