@@ -8,9 +8,7 @@ use std::{
     process::Command,
 };
 
-#[path = "host_rp2040_membership_seed.rs"]
-mod membership_seed;
-use membership_seed::compose_private_seed;
+use super::host_rp2040_membership_seed::compose_private_seed;
 
 pub(super) fn build(
     profile: &Path,

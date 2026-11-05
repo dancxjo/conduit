@@ -68,8 +68,16 @@ pub(super) enum HostCommand {
         #[arg(long)]
         export_receipt: PathBuf,
         /// Actual physical UID and independently selected current owner peer.
+        #[arg(
+            long,
+            required_unless_present = "retained_member",
+            conflicts_with = "retained_member"
+        )]
+        pins: Option<PathBuf>,
+        /// Existing Make private input with retained credential/key and physical/owner pins.
+        /// Uses ordinary member return instead of the package's first-admission invitation.
         #[arg(long)]
-        pins: PathBuf,
+        retained_member: Option<PathBuf>,
         /// New private directory; existing output is never overwritten.
         #[arg(long)]
         output: PathBuf,
@@ -302,6 +310,32 @@ mod tests {
     struct Cli {
         #[command(flatten)]
         host: HostArgs,
+    }
+
+    #[test]
+    fn seed_preparation_requires_one_explicit_membership_entrance() {
+        let base = [
+            "host",
+            "prepare-seed",
+            "seed.zip",
+            "--export-receipt",
+            "export.json",
+            "--output",
+            "new-private",
+        ];
+        assert!(Cli::try_parse_from(base).is_err());
+        assert!(Cli::try_parse_from(base.into_iter().chain(["--pins", "pins.json"])).is_ok());
+        assert!(
+            Cli::try_parse_from(base.into_iter().chain(["--retained-member", "member.json"]))
+                .is_ok()
+        );
+        assert!(Cli::try_parse_from(base.into_iter().chain([
+            "--pins",
+            "pins.json",
+            "--retained-member",
+            "member.json"
+        ]))
+        .is_err());
     }
 
     #[test]

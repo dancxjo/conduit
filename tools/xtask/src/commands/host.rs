@@ -31,6 +31,8 @@ mod host_release;
 mod host_release_catalog;
 #[path = "host_rp2040.rs"]
 mod host_rp2040;
+#[path = "host_rp2040_membership_seed.rs"]
+mod host_rp2040_membership_seed;
 #[path = "host_rp2040_seed.rs"]
 mod host_rp2040_seed;
 #[path = "host_spoken_birth.rs"]
@@ -203,12 +205,19 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             package,
             export_receipt,
             pins,
+            retained_member,
             output,
         } => {
             if opts.dry_run {
                 return Err("private Seed preparation requires actual verification".into());
             }
-            host_rp2040_seed::prepare(&package, &export_receipt, &pins, &output)
+            host_rp2040_seed::prepare(
+                &package,
+                &export_receipt,
+                pins.as_deref(),
+                retained_member.as_deref(),
+                &output,
+            )
         }
         HostCommand::Build {
             profile: profile_path,

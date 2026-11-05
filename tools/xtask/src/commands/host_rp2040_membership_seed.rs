@@ -47,6 +47,26 @@ pub(super) fn compose_private_seed(
     input: &Path,
     destination: &Path,
 ) -> Result<PreparedMembershipBasis, Box<dyn std::error::Error>> {
+    compose_scoped_private_seed(checked, image, input, destination, None)
+}
+
+pub(super) fn compose_retained_private_seed(
+    checked: &CheckedHostConfiguration,
+    image: &str,
+    body: &str,
+    input: &Path,
+    destination: &Path,
+) -> Result<PreparedMembershipBasis, Box<dyn std::error::Error>> {
+    compose_scoped_private_seed(checked, image, input, destination, Some(body))
+}
+
+fn compose_scoped_private_seed(
+    checked: &CheckedHostConfiguration,
+    image: &str,
+    input: &Path,
+    destination: &Path,
+    retained_body: Option<&str>,
+) -> Result<PreparedMembershipBasis, Box<dyn std::error::Error>> {
     let mut bytes = PrivateBytes(Vec::new());
     fs::File::open(input)?
         .take(4097)
@@ -56,6 +76,13 @@ pub(super) fn compose_private_seed(
     }
     let input: PrivateInput<'_> =
         serde_json::from_slice(&bytes.0).map_err(|_| "invalid private Seed input")?;
+    if let Some(body) = retained_body {
+        match &input.admission {
+            MemberBootstrapMaterial::Retained { credential, .. }
+                if credential.body_id.as_str() == body => {}
+            _ => return Err("Seed update requires retained membership of the same Body".into()),
+        }
+    }
     let (mut sector, basis) = compose_material(checked, image, &input)?;
     let private = PrivateBytes(conduit_host_rp2040::membership_seed_sector_uf2(&sector));
     wipe(&mut sector);
@@ -138,7 +165,7 @@ mod tests {
     use super::*;
     #[test]
     fn retained_make_input_has_no_invitation_and_cannot_change_the_physical_host() {
-        let checked = super::super::super::load_configuration(
+        let checked = super::super::load_configuration(
             &Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("../../targets/rp2040/profiles/pico-w-house-green.host.conduit"),
         )

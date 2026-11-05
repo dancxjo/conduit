@@ -22,6 +22,14 @@ journal. Preparation grants no flash authority or membership, and an
 application-only update must preserve the existing bootstrap. A combined UF2
 transfer is not currently qualified; see the [physical journey](../../docs/proof/canonical-lifecycle-journey.md).
 
+For a package updating an already admitted physical member, replace `--pins`
+with `--retained-member member.json`. This accepts the same private Make input
+described below, requires retained membership of the package's Body, and emits
+`usb-return.json` instead of first-admission pins. It reuses the package's exact
+application and IMAGE without compiling again or replacing the member key with
+the package invitation. The package and its export receipt must still verify;
+preparation does not grant current membership or authorize flashing.
+
 An already admitted member uses its retained credential and original member key,
 not another invitation. The existing `make host build` private input contains
 `physical_uid`, `pinned_owner`, and shared `admission` material: either `spawn`
