@@ -116,6 +116,11 @@ pub(super) fn apply(
     }
     if let Some(index) = action.strip_prefix("host-config/target/") {
         if c.as_ref()
+            .is_some_and(|configuration| configuration.preparation.is_some())
+        {
+            return Err("Target change requires explicit review of retained preparation delegation; source preserved".into());
+        }
+        if c.as_ref()
             .is_some_and(|configuration| !configuration.capabilities.is_empty())
         {
             return Err("Target change requires explicit review of retained capability intents; source preserved".into());
@@ -135,6 +140,7 @@ pub(super) fn apply(
             },
             bases: vec![],
             capabilities: Vec::new(),
+            preparation: None,
             resources: vec![],
             limits: HostBounds {
                 static_memory_bytes: 0,

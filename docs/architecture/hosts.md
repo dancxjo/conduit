@@ -42,6 +42,35 @@ Planning is an [optional host capability](portable-planner-capability.md).
 A host without a planner can execute its assigned fragment. Planning produces
 an immutable plan without starting it or granting permission to perform effects.
 
+## Selecting external preparation in Host construction
+
+An authored Host may explicitly select bounded preparation delegation:
+
+```conduit
+preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 8192, maximum_runtime_state_bytes: 8192}
+```
+
+This optional singleton selects construction intent. Absence selects no
+permission; membership or an owner key alone does not select it. The Seed must
+resolve `seed-owner` to its independently retained Body/issuer context. Private
+keys do not belong in this source. Unknown authorizers, missing or duplicate
+fields/declarations, and nonpositive or excessive byte ceilings refuse. Assignment
+bytes must fit the Host's buffered-byte bound; runtime-state bytes must fit its
+static-memory bound. These ceilings never enlarge a resource grant.
+
+Canonical Source, configuration identity and IMAGE correspondence retain the
+selection. Configurations without it retain their existing representation and
+identity. The ordinary Host-configuration Face exposes selected intent; Check and
+Rename preserve it, and target replacement refuses before silently discarding
+it. `rust_preparation_delegation` emits a typed optional constant from the checked
+configuration, without a runtime configuration parser.
+
+This construction surface does not itself approve an assignment, authenticate a
+request, reserve memory, issue a native capability or start a Play. The Root must
+still implement those boundaries, including exact current Body/Host/Boot scope,
+finite local admission, cancellation and retirement. This is a prerequisite of
+[#6770](https://github.com/dancxjo/conduit/issues/6770), not its physical acceptance.
+
 ## One kernel, explicit effects
 
 [plan lowering](plan-kernel-lowering.md) turns rich identities into finite

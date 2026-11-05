@@ -197,6 +197,7 @@ dependencies = [
 name = "conduit-host-make"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-face",
  "conduit-plot",
