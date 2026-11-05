@@ -5255,3 +5255,12 @@ pass, strict owning-library/test Clippy passes, and default/opt-in Cortex-M0+
 checks and formatting pass. This is component/CPU proof. Actual Root complete
 workset admission, execution-storage custody and kernel start remain open; no
 physical execution or selected-policy RAM high-water is claimed here.
+
+Ordinary Make also links the bounded-table checkpoint `d12ceec03e` for the checked
+Green reference profile. The 2,030,080-byte public UF2 has SHA-256
+`8793d25ed5d72933cc7f0af293903bc02792ba1a76b3923b2167d91fa8e30a55`.
+ELF load extents occupy 1,014,984 flash bytes; static RAM remains 117,208 bytes
+including the existing 49,152-byte arena. The 153,128-byte link-time stack gap
+remains a layout bound, not stack high-water or selected-policy preparation RAM.
+The reference profile still selects no external preparation delegation. No
+private Seed, flashed update, native handover or physical kernel start is claimed.
