@@ -71,3 +71,6 @@ pub(super) fn complete(
         .map_err(|error| format!("Body scalar completion: {error:?}"))?;
     Ok(true)
 }
+
+#[cfg(test)]
+mod tests;
