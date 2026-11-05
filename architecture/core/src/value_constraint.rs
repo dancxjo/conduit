@@ -14,6 +14,7 @@ mod definition;
 mod identity;
 mod near_quantity;
 mod quantity_profile;
+mod retained_backing;
 mod text_pattern;
 
 #[cfg(test)]
