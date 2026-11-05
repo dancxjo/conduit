@@ -3,7 +3,8 @@ use super::*;
 #[test]
 fn static_owner_keeps_complete_semantic_face_and_identical_initial_frame() {
     let original = super::super::tests::face(1);
-    let mut ordinary = NativeFaceScene::prepare_with_input(original.clone(), 640, 480, false).unwrap();
+    let mut ordinary =
+        NativeFaceScene::prepare_with_input(original.clone(), 640, 480, false).unwrap();
     // Compare the same installed-input truth. Retain its graph projection to
     // prove that omitting that inactive owner preserves the read-only frame.
     ordinary.local_input_available = false;

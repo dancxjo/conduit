@@ -64,8 +64,6 @@ mod member_carrier;
 mod member_leave;
 #[path = "member_return.rs"]
 mod member_return;
-#[path = "admission_retirement.rs"]
-mod admission_retirement;
 #[path = "planning.rs"]
 mod planning;
 pub(crate) use direct_spoken_route::DirectSpokenStart;

@@ -244,7 +244,6 @@ fn verify_release_manifest(
     .map_err(|_| NativeInstallRefusal::ImageMismatch)
 }
 
-
 fn create_new(path: &Path, bytes: &[u8]) -> Result<(), String> {
     OpenOptions::new()
         .write(true)

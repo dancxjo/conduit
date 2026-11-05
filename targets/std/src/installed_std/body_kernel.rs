@@ -40,8 +40,8 @@ use clock_observation::KernelClockObservations;
 use fore_route::BodyForeRoute;
 
 mod diagnostic;
-mod preparation_body;
 mod native_source;
+mod preparation_body;
 pub(crate) use native_source::NativeBodySource;
 pub(crate) mod memory;
 
@@ -659,7 +659,9 @@ impl<'a> BodyKernel<'a> {
                         }
                         self.requests.push(request);
                     }
-                    if self.begin_native_source(request)? { continue; }
+                    if self.begin_native_source(request)? {
+                        continue;
+                    }
                     let operation = self
                         .operations
                         .iter()

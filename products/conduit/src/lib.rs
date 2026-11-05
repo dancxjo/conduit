@@ -5,10 +5,10 @@
 mod mask_test_common;
 
 pub mod creche_encounter;
-pub mod source_check_worker;
 mod hosted_two_std;
 mod plot_source;
 mod product_execution;
+pub mod source_check_worker;
 pub mod todo_action_bridge;
 
 use std::{io::Write, path::Path};
