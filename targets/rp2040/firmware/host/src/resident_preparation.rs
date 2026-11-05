@@ -18,6 +18,7 @@ pub enum ValidationRefusal {
     Document,
     Selection,
     Bounds,
+    Kernel,
     Assignment,
 }
 
@@ -86,6 +87,26 @@ pub fn validate_with_inventory(
         },
     )
     .map_err(|_| E::Assignment)?;
+    // Prepare inside the installed fixed capacities using the same active-prefix
+    // scheduler topology. This does not admit its value/sign/queue workspace.
+    conduit_plan_lowering::delegated_kernel::prepare_delegated_body_kernel_tables::<
+        128,
+        { crate::resident::generated::ENTRY_COUNT },
+        { crate::resident::generated::ENTRY_COUNT * 2 },
+        1,
+        { crate::resident::generated::ENTRY_COUNT },
+        { crate::resident::generated::ENTRY_COUNT * 2 },
+        0,
+    >(
+        &fragment,
+        AssignedBodyPreparationProfile {
+            maxima,
+            requirements,
+            computations,
+            fore: Some(fore.as_slice()),
+        },
+    )
+    .map_err(|_| E::Kernel)?;
     for choice in selected.nodes() {
         owner
             .check_entry(

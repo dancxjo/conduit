@@ -10,7 +10,7 @@ pub fn generate_resident_library(
     if images.is_empty() || images.len() > 64 {
         return Err(R::Bounds);
     }
-    let mut code = String::new();
+    let mut code = format!("pub const ENTRY_COUNT:usize={};\n", images.len());
     for (index, image) in images.iter().enumerate() {
         if images[..index]
             .iter()

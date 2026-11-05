@@ -5221,3 +5221,37 @@ not selected-delegation runtime preparation costs. The public artifact contains
 no private membership Seed and was not flashed. Green's existing diagnostic path
 still reported 788/788 samples and 11,819/11,819 display ACKs with no errors;
 those counters do not establish admitted Body sampling/display execution.
+
+### 2026-11-05 — Approved topology uses the existing active-prefix kernel
+
+The fixed scheduler already supports exact active node/Cord counts within a
+larger installed capacity, but assigned-table preparation previously required
+those counts to equal the entire capacity. The new explicit bounded-table
+entrance shares the existing Core validation and table builder, retains the
+approved counts and dependency order, and leaves unused slots inert. The old
+exact-capacity entrance retains its stricter equality law.
+
+The delegated lowerer derives structural pins only from an opaque approved
+fragment; it retains local computation/Fore/maxima checks, with bounded record
+scratch and no decoded capability catalog. The actual Root validator now also
+checks this executable topology profile before replying. Its table capacities
+come from the generated resident inventory's entry count and unary port shape,
+not an incoming document or a guessed environmental topology. This prepares
+numeric tables only: it does not fund value/sign/queue storage or a complete
+workset, reserve resources, grant ingress/native IO, transfer providers or start.
+
+The generated-code CPU proof takes the real checked one-node/two-Cord fragment
+into a four-node/eight-Cord capacity, obtains the original typed output through
+the existing scheduler, cancels, retires and returns the same borrowed resident
+Back. Only the active Back is prepared or called; test tripwires reject any
+step/output/commit/cancel callback to inactive capacity. Scoped preparation,
+execution and retirement allocate/reallocate zero times. Insufficient node,
+Cord or record scratch capacity and an incomplete pinned layout refuse before
+provider transfer. The old exact-capacity constructor still refuses that larger
+capacity for the smaller Plan.
+
+Both generated-code suites pass, the three existing kernel active-prefix tests
+pass, strict owning-library/test Clippy passes, and default/opt-in Cortex-M0+
+checks and formatting pass. This is component/CPU proof. Actual Root complete
+workset admission, execution-storage custody and kernel start remain open; no
+physical execution or selected-policy RAM high-water is claimed here.

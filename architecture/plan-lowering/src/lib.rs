@@ -12,6 +12,9 @@ pub mod assigned_play_scope;
 #[cfg(feature = "body-plan-binding")]
 pub mod body_fragment_scope;
 
+#[cfg(feature = "delegated-preparation")]
+pub mod delegated_kernel;
+
 pub mod activation_fragment;
 pub mod execution_regions;
 pub mod fragment_set;

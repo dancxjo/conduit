@@ -49,6 +49,7 @@ pub fn run(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
     assert_eq!(cost.allocations, 0);
     assert_eq!(cost.reallocations, 0);
     assert_eq!(fore.as_slice(), a.fore);
+    bounded_tables::run(&fragment, a, &mut library);
     assert_eq!(
         fragment.view(),
         c::decode_assigned_plan_with_fore(
@@ -162,3 +163,6 @@ pub fn run(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
     );
     println!("actual Root inventory/profile preflight: real initialized identity pins, approved exact Fore ABI, zero allocation or provider transfer; unavailable/mutated artifact, fuel, node, Fore and insufficient memory refused");
 }
+
+#[path = "bounded_tables.rs"]
+mod bounded_tables;
