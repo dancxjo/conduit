@@ -170,3 +170,6 @@ pub fn decode_body_fragment_document(
 mod approved_fore;
 #[cfg(feature = "authenticated-admission")]
 pub use approved_fore::*;
+
+mod preparation_workset;
+pub use preparation_workset::*;

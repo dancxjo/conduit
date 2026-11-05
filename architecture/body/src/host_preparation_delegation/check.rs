@@ -4,6 +4,7 @@ use crate::{AttributedHostCommand, MemberBootstrap, MembershipCredential};
 use conduit_core::HostAdvertisement;
 
 pub const HOST_PREPARED_FRAGMENT_CONTRACT: &str = "conduit.body/prepared-fragment@1";
+pub const HOST_PREPARED_WORKSET_CONTRACT: &str = "conduit.body/prepared-workset@1";
 
 /// Independently retained current Root facts, never supplied by the command.
 /// Root must already have verified membership and installed the exact policy
@@ -39,6 +40,23 @@ pub fn check_host_preparation_delegation(
     installed: Option<&HostPreparationDelegation>,
     context: NativePreparationContext<'_>,
     command: &AttributedHostCommand<'_, '_>,
+) -> Result<(), PreparationDelegationRefusal> {
+    check_contract(installed, context, command, HOST_PREPARED_FRAGMENT_CONTRACT)
+}
+
+pub(crate) fn check_host_workset_preparation_delegation(
+    installed: Option<&HostPreparationDelegation>,
+    context: NativePreparationContext<'_>,
+    command: &AttributedHostCommand<'_, '_>,
+) -> Result<(), PreparationDelegationRefusal> {
+    check_contract(installed, context, command, HOST_PREPARED_WORKSET_CONTRACT)
+}
+
+fn check_contract(
+    installed: Option<&HostPreparationDelegation>,
+    context: NativePreparationContext<'_>,
+    command: &AttributedHostCommand<'_, '_>,
+    expected_contract: &str,
 ) -> Result<(), PreparationDelegationRefusal> {
     use PreparationDelegationRefusal as E;
     let policy = installed.ok_or(E::MissingDelegation)?;
@@ -88,7 +106,7 @@ pub fn check_host_preparation_delegation(
     {
         return Err(E::Issuer);
     }
-    if challenge.payload_contract != HOST_PREPARED_FRAGMENT_CONTRACT {
+    if challenge.payload_contract != expected_contract {
         return Err(E::Contract);
     }
     if now_millis < challenge.issued_at_millis || now_millis >= challenge.expires_at_millis {

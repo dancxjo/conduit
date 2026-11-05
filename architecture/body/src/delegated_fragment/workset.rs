@@ -43,30 +43,54 @@ pub(super) fn local_fragment_scope(
 
 #[cfg(feature = "authenticated-admission")]
 pub(super) fn matches_local_fragment_set(fragments: &[&DelegatedBodyFragment<'_>]) -> bool {
-    let Some(first) = fragments.first().map(|f| f.metadata()) else {
+    matches_local_metadata(fragments.len(), |i| *fragments[i].metadata())
+}
+
+pub(super) fn matches_local_metadata<'a>(
+    count: usize,
+    at: impl Fn(usize) -> BodyFragmentApprovalMetadata<'a>,
+) -> bool {
+    if count == 0 {
         return false;
+    }
+    let first = at(0);
+    if count != usize::from(first.local_fragment_count) {
+        return false;
+    }
+    let scope = |m: BodyFragmentApprovalMetadata<'a>| {
+        (
+            m.body,
+            m.wake,
+            m.body_plan,
+            m.body_play,
+            m.play_sequence,
+            m.workload_revision,
+            m.host,
+            m.boot,
+            m.offer_generation,
+        )
     };
-    if fragments.len() != usize::from(first.local_fragment_count) {
+    if (0..count).any(|i| {
+        let m = at(i);
+        scope(m) != scope(first)
+            || m.local_fragment_count != first.local_fragment_count
+            || m.local_fragment_digest != first.local_fragment_digest
+    }) {
         return false;
     }
     let mut hash = begin();
     let mut previous = None;
-    for _ in 0..fragments.len() {
-        // Canonical ordering with no pointer-vector or ID copies at the receiver.
-        let next = fragments
-            .iter()
-            .map(|f| f.metadata().fragment)
+    for _ in 0..count {
+        let Some(next) = (0..count)
+            .map(|i| at(i).fragment)
             .filter(|id| previous.is_none_or(|last| *id > last))
-            .min();
-        let Some(next) = next else {
+            .min()
+        else {
             return false;
-        }; // Duplicate fragment.
+        };
         update(&mut hash, next);
         previous = Some(next);
     }
     let digest: [u8; 32] = hash.finalize().into();
-    fragments.iter().all(|f| {
-        let m = f.metadata();
-        m.local_fragment_count == first.local_fragment_count && m.local_fragment_digest == digest
-    })
+    first.local_fragment_digest == digest
 }

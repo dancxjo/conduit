@@ -5264,3 +5264,39 @@ including the existing 49,152-byte arena. The 153,128-byte link-time stack gap
 remains a layout bound, not stack high-water or selected-policy preparation RAM.
 The reference profile still selects no external preparation delegation. No
 private Seed, flashed update, native handover or physical kernel start is claimed.
+
+### 2026-11-05 — One signed transaction covers the complete local fragment set
+
+The actual Root preparation request now expects a bounded local workset document
+under a distinct payload contract. It reuses the existing CBD1 receive slice,
+issued challenge, signature and original deadline. The shared receiver checks
+installed delegation before parsing, retains borrowed subdocument slices, and
+verifies the exact complete local fragment count/digest, common Body/Wake/Plan/
+Play/revision and actual receiver scope. Selected Mask-chain fragments remain
+part of that existing completeness commitment. No child command, nonce, lifetime,
+Body Play or authority is invented.
+
+Per-fragment approval rechecks the original whole command and original deadline,
+then runs the same Core/Fore/resource-projection checks. Root prepares/checks
+all numeric table profiles against actual initialized entries, refusing reuse
+of one one-instance Back across fragments. It does not withdraw any provider
+or mutate the resource ledger. Aggregate declared structural state is bounded
+by both installed policy and the receiver profile. A focused test caught an
+initially missing aggregate-policy check; the final receiver checks it both
+at whole-document acceptance and when approving a child. These structural
+ceilings do not fund complete value/sign/queue storage or total Root memory.
+
+The two-fragment generated-code CPU case is 3,504 bytes, fitting the actual
+4,096-byte receive slice. Actual Root profile preflight allocates/reallocates
+zero times and preserves original offer backing addresses. Missing/duplicate/
+mixed-scope/truncated/trailing/oversized sets, a late artifact mismatch, a late
+unavailable provider, duplicate provider use, wrong payload purpose and expired
+original approval refuse. Reordered complete sets remain valid. Default and
+opt-in generated-code tests, five ingress tests, strict owning library/test
+Clippy, default/opt-in Cortex-M0+ checks and formatting pass.
+
+The handler reports only `validated-workset`, with `start: not-installed`.
+Complete execution-storage admission, atomic Root resource reservation coupled
+to that storage, retirement custody and actual kernel start remain unfinished.
+This checkpoint is component/CPU/compilation proof; no device or live service
+was updated and no physical Body execution is claimed.

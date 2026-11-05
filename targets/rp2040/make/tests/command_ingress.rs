@@ -160,7 +160,7 @@ impl Link {
                 serde_json_core::from_slice(bytes).map_err(|_| ())?;
             assert_eq!(used, bytes.len());
             assert_eq!(challenge.maximum_payload_bytes, LIMIT as u32);
-            assert_eq!(challenge.payload_contract, HOST_PREPARED_FRAGMENT_CONTRACT);
+            assert_eq!(challenge.payload_contract, HOST_PREPARED_WORKSET_CONTRACT);
             self.challenged = true;
             self.nonce = challenge.nonce;
             if self.payload.len() <= LIMIT && self.mode != Mode::Replay {

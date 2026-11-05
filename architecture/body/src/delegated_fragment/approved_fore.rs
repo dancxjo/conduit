@@ -29,14 +29,32 @@ pub fn receive_delegated_body_fragment_with_approved_fore<'a, const PORTS: usize
     profile: AssignedBodyPreparationProfile<'_>,
 ) -> Result<(DelegatedBodyFragment<'a>, ApprovedBodyForePorts<PORTS>), DelegatedFragmentRefusal> {
     use DelegatedFragmentRefusal as E;
-    let actual = context.actual;
-    let member = context.member;
     check_host_preparation_delegation(installed, context, &command).map_err(E::Policy)?;
     if profile.fore.is_some() {
         return Err(E::ForeApproval);
     }
     let (metadata, projection) =
         decode_body_fragment_document(command.payload()).map_err(E::Document)?;
+    finish_approved_fore(
+        metadata,
+        projection,
+        installed.expect("checked delegation"),
+        context,
+        profile,
+    )
+}
+
+pub(super) fn finish_approved_fore<'a, const PORTS: usize>(
+    metadata: BodyFragmentApprovalMetadata<'a>,
+    projection: &'a [u8],
+    policy: &HostPreparationDelegation,
+    context: NativePreparationContext<'_>,
+    profile: AssignedBodyPreparationProfile<'_>,
+) -> Result<(DelegatedBodyFragment<'a>, ApprovedBodyForePorts<PORTS>), DelegatedFragmentRefusal> {
+    use DelegatedFragmentRefusal as E;
+    if profile.fore.is_some() {
+        return Err(E::ForeApproval);
+    }
     let (records, tail) = metadata
         .fore_ports
         .as_chunks::<{ c::ASSIGNED_LOCAL_FORE_BYTES }>();
@@ -71,9 +89,9 @@ pub fn receive_delegated_body_fragment_with_approved_fore<'a, const PORTS: usize
     let fragment = receiving::finish_receive(
         metadata,
         projection,
-        actual,
-        member,
-        installed.expect("checked installed delegation"),
+        context.actual,
+        context.member,
+        policy,
         AssignedBodyPreparationProfile {
             maxima: profile.maxima,
             requirements: profile.requirements,

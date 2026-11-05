@@ -72,6 +72,13 @@ impl Receiver {
         }
     }
     fn command<'a>(&'a self, bytes: &'a [u8]) -> AttributedHostCommand<'a, 'a> {
+        self.command_with_contract(bytes, HOST_PREPARED_FRAGMENT_CONTRACT)
+    }
+    fn command_with_contract<'a>(
+        &'a self,
+        bytes: &'a [u8],
+        contract: &'a str,
+    ) -> AttributedHostCommand<'a, 'a> {
         let nonce = self.nonce.get();
         self.nonce.set(nonce.checked_add(1).unwrap());
         let slot = IssuedHostCommandChallenge::issue(
@@ -79,7 +86,7 @@ impl Receiver {
             &self.actual,
             &self.bootstrap.owner,
             HostCommandReceiveBounds {
-                payload_contract: HOST_PREPARED_FRAGMENT_CONTRACT,
+                payload_contract: contract,
                 maximum_payload_bytes: 8192,
                 lifetime_millis: 10,
             },
@@ -319,8 +326,12 @@ pub fn batch(
     first: &crate::support::Assignment,
     second: &crate::support::Assignment,
 ) {
+    preparation_workset::run(a, b, first, second);
     resources::batch(a, b, first, second);
 }
 
 #[path = "inventory_preparation.rs"]
 mod inventory_preparation;
+
+#[path = "workset.rs"]
+mod preparation_workset;

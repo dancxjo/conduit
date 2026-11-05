@@ -1,8 +1,8 @@
 //! Seed-selected command ingress, not an execution or resource-grant shortcut.
 use super::*;
 use conduit_body::{
-    check_host_preparation_delegation, HostCommandReceiveBounds, IssuedHostCommandChallenge,
-    NativePreparationContext, HOST_PREPARED_FRAGMENT_CONTRACT,
+    HostCommandReceiveBounds, IssuedHostCommandChallenge, NativePreparationContext,
+    HOST_PREPARED_WORKSET_CONTRACT,
 };
 use conduit_wire::BorrowedBoundedDocumentAssembly;
 use embassy_time::{with_deadline, Duration, Instant};
@@ -58,7 +58,7 @@ impl Membership {
             self.resources.host(),
             &self.seed.owner,
             HostCommandReceiveBounds {
-                payload_contract: HOST_PREPARED_FRAGMENT_CONTRACT,
+                payload_contract: HOST_PREPARED_WORKSET_CONTRACT,
                 maximum_payload_bytes: ceiling as u32,
                 lifetime_millis: LIFETIME_MILLIS,
             },
@@ -83,19 +83,9 @@ impl Membership {
             let command = slot
                 .authenticate(payload, signature, Instant::now().as_millis())
                 .map_err(|_| ())?;
-            check_host_preparation_delegation(
-                Some(policy),
-                NativePreparationContext {
-                    bootstrap: &self.seed,
-                    member,
-                    actual: self.resources.host(),
-                    image_id: crate::config::IMAGE_ID,
-                    configuration_id: crate::config::CONFIGURATION_ID,
-                    now_millis: Instant::now().as_millis(),
-                },
-                &command,
-            )
-            .map_err(|_| ())?;
+            // The workset receiver checks the installed policy and original
+            // signed command before decoding any constituent fragment.
+
             match crate::resident_preparation::validate(
                 Some(policy),
                 NativePreparationContext {
@@ -104,7 +94,7 @@ impl Membership {
                     now_millis: Instant::now().as_millis(),
                 }, command,
             ) {
-                Ok(()) => link.send(br#"{"phase":"validated-fragment","profile":"resident-structured","start":"not-installed"}"#).await,
+                Ok(()) => link.send(br#"{"phase":"validated-workset","profile":"resident-structured","start":"not-installed"}"#).await,
                 Err(crate::resident_preparation::ValidationRefusal::Unavailable) => link.send(br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#).await,
                 Err(_) => Err(()),
             }
