@@ -4259,3 +4259,54 @@ the private integration cache removed another reported 8.2 GiB of product build
 outputs. No process executable, mapped file, directory or descriptor referenced
 that cache. Shared dependency outputs, source, result logs, Seed/private state
 and installed products were preserved; filesystem headroom returned to 11 GiB.
+
+### Exercise the installed Crèche and identify the admission obstruction (5 November 2026)
+
+The isolated actual Crèche owner test passes in 6.08 seconds with its unchanged
+execution deadline and resource limits. Its early-finish assertion now reports
+only the retained admission/terminal/failure/cleanup fields. This diagnostic
+pass does not erase the earlier concurrent-suite failure.
+
+The installed Forebrain owner (release `a20ef899`, existing process 406337) was
+then exercised through ordinary product commands. `body start` on retained
+Hamm Creek House (`d5b64df4...`) produced its real Host-configuration Face with
+correlated Wake, Plan and Play identities. `body terminal --owner-show` correctly
+refused attachment during Play. After ordinary Lull it rendered the retained
+Body, and its acknowledged Wake action started another bounded Play and retired
+the owner terminal Mask. That Mask therefore does not operate the live editor.
+
+A single pinned Chromium context exercised the existing packaged browser Host.
+The first admission attempt failed; diagnostic attempts were kept separate,
+including an active-window refusal. A stable loopback origin was selected for
+future identity continuity. The owner log established the actual refusal:
+`Admission(Membership(PartCapacityExhausted))`. The retained Body contains 16
+Parts; the new browser received no credential or membership acknowledgment.
+The browser instead showed only offline. Its screenshot and raw traces are
+ignored local evidence under `target/creche-live-owner-20261105/`; they are
+failed-journey evidence, not a successful browser Show.
+
+#6761 isolates the resulting general correction on current dev: preserve an
+owner proof refusal as distinct from control-Line failure, project the actual
+canonical capacity error to a bounded public code, and send the existing Refused
+frame before cancellation/close. Unknown private diagnostics stay in the owner
+log. Existing browser membership handling already preserves refusal across
+socket close. A full canonical membership plus a real signed proof refuses
+without changing live/retained Body or adding a receipt. The canonical wire
+encoding/privacy test and strict all-target product/std Clippy also pass. This
+change does not reclaim membership capacity or authorize another Part.
+
+Threebee is reachable and retains its real same-Body Part `e4acf902...` and
+installed Host identity. Its running release `7fa51d47` lacks the `body return`
+command. The attempted return stopped at CLI parsing; membership and services
+were not replaced. A temporary pinned return listener was closed and its TLS
+private key removed. Neither device artifacts nor private continuity keys were
+modified. A qualified Seed/runtime update is required before this existing Part
+can perform signed return; adding another Part is not that update.
+
+Green's live endpoint reports 988 samples, 14,806 acknowledged redraws, no
+sensor/display fault and its membership flag set. This is local hardware status,
+not proof of ordinary admitted sensor/display Plays, selected recording or
+cross-Host history. The full lifecycle goal remains active. No grant was enlarged,
+no biography was manually edited, and no hardware deployment or issue closure
+is claimed in this checkpoint. #6760 Candidate 41965552338 was last observed
+in progress; no hosted acceptance is inferred from its earlier immediate merge.
