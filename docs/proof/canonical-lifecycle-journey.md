@@ -4214,3 +4214,35 @@ This is installed Root acquisition policy, not a general Source grant service,
 a Ready compiler provider, or a new Play. Compiler workspace admission, installed
 provider construction and ordinary authoring dispatch remain required. No live
 service, device, Seed or Face was changed by this source checkpoint.
+
+### Deliver the installed acquisition policy (5 November 2026)
+
+Parser-free identity #6759 merged at `d75c91ddf7`. This delivery checkout now
+contains that dev head, including accepted scalar and display work. Inspected
+conflicts preserved the existing projected/structured evaluators, admitted
+member-return paths, cold Mask construction and stricter read-only closure;
+those implementations remain branch-local where not independently accepted.
+A misplaced initialization field in the initial merge resolution was caught by
+compilation and removed: cold-to-live construction already initializes it.
+
+The acquisition policy is isolated as #6760 (`79b9b3c5f1`) on current dev: five
+files, no compiler provider or environment application dependency. Six retained
+Source tests (five new), three descriptor-capture tests and strict all-target
+product/std Clippy pass there. The notebook stale-Show diagnostic also passes on
+that exact isolated head. The integration checkout passes 67 Source-related std
+tests (one ignored) and all 17 actual compiler-process tests after the descriptor
+extraction and dev reconciliation, including the admitted IMAGE execution and
+cancellation probes.
+
+The earlier broad integration-owner run was not green: 132 passed, three failed
+and three were ignored. One failure was this change's corruption-test expectation
+(the installation rejects the corrupt binding before the deeper loader); that
+expectation is corrected and passes in the isolated policy tests. The remaining
+Crèche worker progress and notebook idle-Face assertions are not explained by
+those focused results. The successful isolated notebook diagnostic does not
+turn that broad run into acceptance. Crèche integration still needs diagnosis.
+
+Reclaimed 3.5 GiB from the inactive, ignored qualification cache for merged
+#6758 after checking process executables, mappings, directories and descriptors.
+Source, raw result logs, private state, active caches and installed products
+were preserved. No live device or service was deployed in this checkpoint.

@@ -23,6 +23,9 @@ pub struct CapturedSourceFile {
     source: String,
 }
 impl CapturedSourceFile {
+    /// Preparation only: at most `maximum_bytes + 1` byte-buffer payload,
+    /// including the overflow sentinel. Root separately admits IO and parser
+    /// workspace; this synchronous file operation supplies no IO deadline.
     pub fn from_file(mut file: File, maximum_bytes: usize) -> Result<Self, SourceFileRefusal> {
         if maximum_bytes == 0 || maximum_bytes > MAXIMUM_PLOT_SOURCE_BYTES {
             return Err(SourceFileRefusal::Bounds);
