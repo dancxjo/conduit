@@ -25,7 +25,7 @@ pub struct SelectedAssignedExpressionPlan<'a> {
     pub computations: c::AssignedComputationProfile<'a>,
     pub fore: Option<&'a [c::AssignedForeRequirement]>,
     pub fragment_id: &'a c::FragmentId,
-    pub active: &'a c::ActivePlayIdentity,
+    pub scope: crate::assigned_play_scope::AssignedPlayScope<'a>,
     pub node: NodeId,
     pub work_resource: u16,
 }
@@ -64,13 +64,8 @@ pub fn check_selected_resident_expression(
             selected.fore,
         )
         .map_err(E::Assignment)?;
-    let active = selected.active;
-    let id = c::AssignedIdentity::from_text;
-    if view.plan != id(active.plan_id.as_str())
-        || view.fragment != id(selected.fragment_id.as_str())
-        || view.host != id(active.host_id.as_str())
-        || view.boot != id(active.boot_id.as_str())
-        || !crate::active_scope::matches(active)
+    if view.fragment != c::AssignedIdentity::from_text(selected.fragment_id.as_str())
+        || !selected.scope.matches(&view)
     {
         return Err(E::Scope);
     }

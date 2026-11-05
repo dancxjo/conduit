@@ -19,6 +19,7 @@ conduit-semantic-catalog = { path = "../../semantics/catalog", default-features 
 serde_json = "1"
 
 [dev-dependencies]
+conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false, features = ["body-plan-binding"] }
 conduit-body = { path = "../../architecture/body" }
 conduit-wire = { path = "../../architecture/wire", features = ["deflate"] }
 ed25519-dalek = { version = "2.2", default-features = false }

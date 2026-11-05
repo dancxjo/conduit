@@ -43,19 +43,13 @@ fn validate_scope(
         fragment,
         ..
     } = selection;
-    if plan.validate_for(wake).is_err()
-        || !play.validate_for(plan)
-        || claim.plan_id != plan.plan_id
-        || claim.active_play_id != play.active_play_id
+    let scope =
+        crate::body_fragment_scope::PreparedBodyFragment::prepare(wake, plan, play, fragment)
+            .map_err(|_| SelectedCallRefusal::WrongBinding)?;
+    if claim.plan_id != scope.plan().plan_id
+        || claim.active_play_id != scope.play().active_play_id
         || fragment.host_id != claim.host_id
         || fragment.boot_id != claim.boot_id
-        || plan
-            .plots
-            .iter()
-            .flat_map(|p| &p.plan.fragments)
-            .filter(|f| *f == *fragment)
-            .count()
-            != 1
     {
         return Err(SelectedCallRefusal::WrongBinding);
     }

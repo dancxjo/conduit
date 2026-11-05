@@ -52,6 +52,7 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
 #[path={library_helper:?}]mod library_checks;
 #[path={reuse:?}]mod reuse;
 #[path={combined:?}]mod combined;
+#[path={body_scope:?}]mod body_scope;
 fn main(){{
     let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
@@ -69,6 +70,7 @@ fn main(){{
     assert_eq!(node,0);assert!(owner.is_none());
     assert!(matches!(image::Initialized::bind_assigned_retained(&mut owner,assignment.selected(&active)),Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)));
     assert!(back.required_step_fuel()<=assignment.tables.nodes[0].maximum_step_fuel);
+    body_scope::run();
     combined::run(&assignment);
     reuse::run(&assignment);
     let library_back=library_checks::run(&assignment);
@@ -76,6 +78,10 @@ fn main(){{
 
 }}
 "#,
+        body_scope = root
+            .join("tests/resident_offer/body_scope.rs")
+            .to_str()
+            .unwrap(),
         combined = root
             .join("tests/resident_offer/combined.rs")
             .to_str()

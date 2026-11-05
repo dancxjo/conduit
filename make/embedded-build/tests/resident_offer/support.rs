@@ -88,6 +88,15 @@ impl Assignment {
         active: &'a c::ActivePlayIdentity,
     ) -> conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'a>
     {
+        self.selected_scope(
+            conduit_plan_lowering::assigned_play_scope::AssignedPlayScope::Plot(active),
+        )
+    }
+    pub fn selected_scope<'a>(
+        &'a self,
+        scope: conduit_plan_lowering::assigned_play_scope::AssignedPlayScope<'a>,
+    ) -> conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'a>
+    {
         conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan {
             input: conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput::Contiguous(&self.encoded),
             maxima: self.maxima,
@@ -103,7 +112,7 @@ impl Assignment {
             },
             fore: Some(&self.fore),
             fragment_id: &self.model.fragments[0].fragment_id,
-            active, node: conduit_kernel::NodeId(0), work_resource: 0,
+            scope, node: conduit_kernel::NodeId(0), work_resource: 0,
         }
     }
     pub fn active(&self) -> c::ActivePlayIdentity {

@@ -95,7 +95,7 @@ pub fn run(first: &crate::support::Assignment) {
     println!("20 simultaneous retained-library loan pairs; exact refusal before mutation, unchanged backing/image addresses, kernel retirement, zero scoped allocations");
 }
 
-fn retire<D: StepBack<1>>(back: D, assignment: &crate::support::Assignment) -> D {
+pub fn retire<D: StepBack<1>>(back: D, assignment: &crate::support::Assignment) -> D {
     let mut slot = Some(back);
     let drivers = assignment
         .tables

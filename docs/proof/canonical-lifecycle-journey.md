@@ -4848,3 +4848,39 @@ do not become evidence of admitted sampling/display Plays. No firmware, live
 owner or Threebee installation was changed by this preparation. Verified
 inactive native build outputs were reclaimed with package-native cleanup
 (2.5 GiB); source, installed releases, credentials and unique evidence remain.
+
+
+### 2026-11-05: Bind resident fragments to their containing Body Play
+
+A compiled generated-code reproduction rejected a real Body Plan/Play because
+the resident assignment binder required the assigned Plot's Plan and active
+identity to be the execution scope. The assigned tables correctly retain the
+inner Plot Plan identity; replacing it with the Body label or inventing a child
+Play is not a valid repair.
+
+An opt-in `PreparedBodyFragment` now checks the full Body Plan against its Wake,
+the Body Play against that Plan, and exact single-fragment containment. It
+borrows immutable checked context and grants neither resources nor execution.
+The existing rich native-operation Body binder uses the same containment law.
+Resident assignment checking accepts an explicit Plot or prepared Body scope;
+its exact Kind, implementation, artifact, port, computation and work checks
+remain shared. The default constrained-target build does not include the Body
+validator or require the rich Body Plan on the MCU.
+
+The emitted-code CPU test prepares two actual protocol Plot fragments under one
+Body Plan and one Body Play, lends both resident entries, and returns each
+through fixed-kernel cancellation/retirement. It refuses swapped fragment
+witnesses, stale Play/Wake, a relabeled Body Plan and changed Host/Boot/generation.
+Copying the Body label into a Plot active identity still refuses. Using the
+prepared witness allocates/reallocates zero times in the measured binding and
+retirement scope. Full Body validation happens outside that scope and is not an
+MCU workspace measurement or a newly admitted grant.
+
+Both emitted-code tests, 34 lowering unit tests with Body binding enabled, 21
+Make unit tests, strict owning-package all-target Clippy, formatting and default
+Cortex-M0+ `no_std` checking pass. The existing hundred-Play and twenty-pair loan
+proofs remain green. This is preparation/containment evidence, not an installed
+authenticated MCU start/reservation protocol, physical bus handover or live
+sensor/display Body Play. The compact native assigned-operation path still
+needs its corresponding Body scope; its old Plot-only check remains strict.
+No live firmware or services were replaced.

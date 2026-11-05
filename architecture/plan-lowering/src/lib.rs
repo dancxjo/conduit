@@ -8,6 +8,9 @@
 
 extern crate alloc;
 mod active_scope;
+pub mod assigned_play_scope;
+#[cfg(feature = "body-plan-binding")]
+pub mod body_fragment_scope;
 
 pub mod activation_fragment;
 pub mod execution_regions;

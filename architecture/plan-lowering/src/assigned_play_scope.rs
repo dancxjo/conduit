@@ -1,0 +1,32 @@
+//! Exact execution scope is independent of the assigned Plot's table identity.
+use conduit_core as c;
+
+#[derive(Clone, Copy)]
+pub enum AssignedPlayScope<'a> {
+    Plot(&'a c::ActivePlayIdentity),
+    /// Constructed by full Body preparation, not from an incoming Plan label.
+    #[cfg(feature = "body-plan-binding")]
+    Body(crate::body_fragment_scope::PreparedBodyFragment<'a>),
+}
+
+impl AssignedPlayScope<'_> {
+    pub(crate) fn matches(&self, view: &c::AssignedPlanView) -> bool {
+        let id = c::AssignedIdentity::from_text;
+        match self {
+            Self::Plot(active) => {
+                view.plan == id(active.plan_id.as_str())
+                    && view.host == id(active.host_id.as_str())
+                    && view.boot == id(active.boot_id.as_str())
+                    && crate::active_scope::matches(active)
+            }
+            #[cfg(feature = "body-plan-binding")]
+            Self::Body(scope) => {
+                let fragment = scope.fragment();
+                view.plan == id(fragment.plan_id.as_str())
+                    && view.fragment == id(fragment.fragment_id.as_str())
+                    && view.host == id(fragment.host_id.as_str())
+                    && view.boot == id(fragment.boot_id.as_str())
+            }
+        }
+    }
+}
