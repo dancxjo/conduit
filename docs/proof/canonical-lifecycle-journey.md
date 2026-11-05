@@ -6307,3 +6307,27 @@ removed an inactive marked fragment compiler cache (697.2 MiB) and 1,516,003,816
 bytes of debug data from two inactive test binaries; allocated ELF sections were
 hashed before/after and unchanged. Source, private state, firmware, active
 releases and proof logs were preserved.
+
+
+### Optimized installed-process replacement and Source custody in dev
+
+The standard optimized product build from `8a4d30d6ed` succeeded in 5m31s:
+65,137,992 bytes, SHA-256
+`84fdf37c557e9c5d0d6e71a993029872cff024eec3fd7b755b64dc6c5d3afd0a`.
+It fits the unchanged 64 MiB release-file bound. The fresh binary passed the
+existing ignored installed-service clock smoke: temporary release installation,
+actual Start/output/Lull, acknowledged terminal interval replacement, new Plan,
+second Lull, typed owner-Show refusal/acceptance and fresh-Boot restart retaining
+the same Body. The initial optimized attempt exposed outdated test navigation:
+one Next Control selected Wake, so typing refused and Apply started the clock.
+The corrected script traverses Wake, change action and its input field before
+typing; the unchanged product then passes (one test, 12.76s). This is a temporary
+installed-process proof, not canonical Crèche birth or live Hamm/device adoption.
+
+Focused Source-custody PR #6789 passed exact-head Candidate 42121805927 and
+merged as `b53aa0fae09b1799745b86f050b1b7182189600f`. General S4 adoption,
+aggregate workset resource admission and actual MCU Start are still incomplete.
+No live service/device changed. Green independently reported 177 successful
+samples and 2,644 acknowledged frames, no sensor/display errors and membership
+true on its existing build; those remain diagnostic IO. Raw logs and optimized
+artifact identity remain in ignored `target/shared-workset-effect-20261105`.
