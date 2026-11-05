@@ -4,6 +4,8 @@
 use crate as k;
 use conduit_assigned_plan as c;
 mod boundary;
+mod bounded;
+pub use bounded::BoundedAssignedKernelTables;
 mod record_input;
 use boundary::endpoint;
 use k::scheduler::{
@@ -148,6 +150,18 @@ impl<
         layout: &ResidentLayout<'_>,
         fore: Option<&[c::AssignedForeRequirement]>,
     ) -> Result<Self, AssignedKernelRefusal> {
+        Self::prepare_capacity_profile(input, maxima, required, computations, layout, fore, true)
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_capacity_profile(
+        input: RecordInput<'_>,
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        fore: Option<&[c::AssignedForeRequirement]>,
+        exact_counts: bool,
+    ) -> Result<Self, AssignedKernelRefusal> {
         use AssignedKernelRefusal as E;
         if !matches!(
             u16_at(input.header(), 8)?,
@@ -158,13 +172,17 @@ impl<
             return Err(E::Unsupported);
         }
         let identity = input.decode(maxima, required, computations, fore)?;
+        let active_nodes = usize::from(identity.counts[0]);
+        let active_cords = usize::from(identity.counts[3]);
         if N == 0
             || N > usize::from(u16::MAX)
             || P == 0
             || P > usize::from(u16::MAX)
             || identity.counts != layout.counts
-            || usize::from(identity.counts[0]) != N
-            || usize::from(identity.counts[3]) != C
+            || active_nodes == 0
+            || active_nodes > N
+            || active_cords > C
+            || (exact_counts && (active_nodes != N || active_cords != C))
         {
             return Err(E::Layout);
         }
@@ -302,10 +320,11 @@ impl<
                 _ => {}
             }
         }
-        if node_seen.contains(&false) || cord_seen.contains(&false) {
+        if node_seen[..active_nodes].contains(&false) || cord_seen[..active_cords].contains(&false)
+        {
             return Err(E::Layout);
         }
-        if startup_count != N {
+        if startup_count != active_nodes {
             return Err(E::Layout);
         }
         for record in input.records()? {
