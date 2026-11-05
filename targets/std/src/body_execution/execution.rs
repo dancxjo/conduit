@@ -154,6 +154,16 @@ impl StdHost {
                 sequential_fore,
                 has_fore_output,
                 &self.advertisement,
+                self.native_source.as_mut().map(|owner| {
+                    crate::installed_std::body_kernel::NativeBodySource {
+                        owner,
+                        registry: &self.base_registry,
+                        host: &self.advertisement,
+                        wake: request.wake,
+                        plan: request.plan,
+                        play: &prospective_play,
+                    }
+                }),
                 #[cfg(target_os = "linux")]
                 self.selected_text_file.as_ref(),
             )?

@@ -3992,3 +3992,32 @@ The std Body runner still needs to consume this binding, retain the actual
 native owner, dispatch its Host Call and admit complete owned kernel/Fore/result
 storage. Existing IMAGE refusal remains intact; no Source access was inferred
 from configuration or copied identities. No installed service or device changed.
+
+
+### Dispatch Source checks through the containing Body kernel (5 November 2026)
+
+The std reference Body runner now retains the actual immediate native Source
+owner and dispatches its exact selected Host Call through the existing combined
+Body scheduler. Selection shares the fragment contract checks, but its possession
+is scoped to the containing Body Plan and body-wide Play. Verified combined
+lowering remaps only the numeric node; it does not substitute a child execution
+identity or create another scheduler. The preparation responsibility has been
+extracted from the Body-kernel composition root without changing the other
+installed Back paths. Worker-backed and multiple native partitions remain
+explicitly unsupported by this new route.
+
+An actual product compiler-process test checks valid and deliberately invalid
+Source, compares both reports with the direct canonical compiler, then executes
+the prepared reports alongside an unrelated timer Plot. The Source operation
+occupies global node 1, exercising real combined remapping. Two successive Plays
+retain the same Body Plan and receive distinct Play identities with actual Host
+Call signs. Stop emits no result; retiring the provider makes the old Plan refuse
+before the started callback and without emitting output.
+
+All 17 product compiler-process tests pass, as do 51 existing Body-kernel tests
+and six IMAGE custody tests. This is CPU/reference execution using an explicitly
+installed fixture grant and a finite prepared owner. It does not establish
+ordinary installed Source authorization, complete IMAGE Source admission,
+Crèche authoring-tool interaction, or physical execution. The IMAGE memory
+receipt remains closed to this Source profile until all owned route/Fore/kernel
+storage and execution failure paths are admitted. No device or service changed.
