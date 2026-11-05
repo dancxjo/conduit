@@ -7,12 +7,13 @@ use conduit_std_host::browser_admission::{
 };
 use std::{cell::RefCell, path::Path};
 
+#[path = "member_carrier_client/presence_deadline.rs"]
+mod presence_deadline;
+use presence_deadline::PresenceDeadline;
+
 struct Carrier {
     line: SecureWebSocketClientLine,
-    sequence: u64,
-    renew_at: Instant,
-    lease_deadline: Instant,
-    owner_expiry: u64,
+    presence: PresenceDeadline,
     frames: usize,
     closed: bool,
 }
@@ -131,10 +132,7 @@ impl MemberRoute {
         current_member::resume(state, credential, actual, encounter, &mut line)?;
         let mut carrier = Carrier {
             line,
-            sequence: 0,
-            renew_at: anchor,
-            lease_deadline: anchor + Duration::from_secs(2),
-            owner_expiry: 0,
+            presence: PresenceDeadline::initial(anchor),
             frames: 0,
             closed: false,
         };
@@ -159,7 +157,7 @@ impl MemberRoute {
         let carrier = self.carrier.borrow();
         if carrier.closed
             || Instant::now() >= self.deadline
-            || Instant::now() >= carrier.lease_deadline
+            || Instant::now() >= carrier.presence.deadline
             || crate::durable_host::current_time_millis()? >= self.descriptor_expiry
         {
             return Err("current-member presentation encounter expired".into());
@@ -170,10 +168,11 @@ impl MemberRoute {
     pub(in crate::durable_host::presentation) fn poll_presence(&self) -> Result<(), String> {
         self.check()?;
         let mut carrier = self.carrier.borrow_mut();
-        if Instant::now() < carrier.renew_at {
+        if Instant::now() < carrier.presence.renew_at {
             return Ok(());
         }
         let sequence = carrier
+            .presence
             .sequence
             .checked_add(1)
             .ok_or("member sequence exhausted")?;
@@ -236,6 +235,7 @@ impl MemberRoute {
         let mut carrier = self.carrier.borrow_mut();
         let request = &self.request;
         let sequence = carrier
+            .presence
             .sequence
             .checked_add(1)
             .ok_or("member sequence exhausted")?;
@@ -262,7 +262,7 @@ impl MemberRoute {
 impl Carrier {
     fn bound(&self, overall: Instant) -> Result<(), String> {
         let left = overall
-            .min(self.lease_deadline)
+            .min(self.presence.deadline)
             .checked_duration_since(Instant::now())
             .ok_or("member carrier deadline expired")?;
         self.line
@@ -289,30 +289,12 @@ impl Carrier {
         anchor: Instant,
         overall: Instant,
     ) -> Result<(), String> {
-        match self.receive(overall)? {
-            Out::PresenceAccepted {
-                protocol: PROTOCOL,
-                sequence: actual,
-                renew_after_millis,
-                expires_at_millis,
-            } if actual == sequence
-                && renew_after_millis > 0
-                && renew_after_millis <= 500
-                && expires_at_millis > self.owner_expiry =>
-            {
-                let lease_deadline = anchor + Duration::from_secs(2);
-                if Instant::now() >= lease_deadline.min(overall) {
-                    return Err("member lease acknowledgment arrived too late".into());
-                }
-                self.sequence = sequence;
-                self.owner_expiry = expires_at_millis;
-                self.renew_at = anchor + Duration::from_millis(renew_after_millis);
-                self.lease_deadline = lease_deadline;
-                Ok(())
-            }
-            _ => Err("member lease acknowledgment scope, sequence or bounds differ".into()),
-        }
+        let frame = self.receive(overall)?;
+        self.presence
+            .accept(&frame, sequence, anchor, overall, Instant::now())
+            .map_err(String::from)
     }
+
     fn face(
         &mut self,
         request: &OwnerFaceSnapshotRequest,

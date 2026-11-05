@@ -4411,3 +4411,25 @@ The supported dispatcher entrance, `cargo +stable xtask ci pipeline evidence-ret
 passed. Raw captures remain ignored. The full journey, continuous Line/Face
 renewal, shared environmental feeds/history/graph and browser capacity retirement
 remain unfinished.
+
+### 2026-11-05: Capped presence receipts preserve their original deadline
+
+Source inspection explains the end-of-window refusal observed on Threebee: the
+current-member session is explicitly sixty seconds, and the owner may return an
+unchanged expiry as its final leases are capped. The client previously required
+each expiry to increase and treated a valid capped receipt as malformed.
+
+The client now advances the exact receipt sequence for equal capped expiries
+without extending its existing local deadline. Later owner-clock expiry advances
+can extend that deadline only by the corresponding delta, further bounded by
+the existing two-second receipt bound and overall session deadline. Validation,
+late-arrival and overflow refusals precede any timing-state update. This changes
+neither the wire protocol nor grants, frame budgets, session authorization or
+initial receipt timing assumptions; it provides no new clock-synchronization or
+continuing-session authority.
+
+Three deterministic cases cover repeated caps, small expiry advances, malformed
+receipts and expiration without mutation. The existing actual pinned-TLS
+signed-return/lost-reply regression also passes. Strict product binary/tests
+Clippy passes. This checkpoint is local source proof and has not replaced the
+physical Threebee release. Its previous native Show remains historical.
