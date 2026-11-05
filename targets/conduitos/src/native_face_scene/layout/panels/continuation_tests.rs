@@ -6,6 +6,39 @@ use super::{
 use alloc::{format, vec};
 
 #[test]
+fn heading_keeps_first_chunk_of_oversized_content() {
+    for preceding in 0..24 {
+        let mut items = (0..preceding)
+            .map(|index| item(&format!("Earlier reading {index}"), None))
+            .collect::<Vec<_>>();
+        let mut heading = item("Section heading", Some(0));
+        heading.role = GraphicsTextRole::Heading;
+        items.push(heading);
+        let text = "Long section content. ".repeat(150);
+        items.push(item(&text, Some(0)));
+        let rows =
+            admit_configured(items, screen(1024, 600), 12, 2, 100, SPACE_SM, Some([0, 1])).unwrap();
+        let heading = rows
+            .iter()
+            .position(|row| row.text == "Section heading")
+            .unwrap();
+        assert_eq!(
+            rows[heading].page,
+            rows[heading + 1].page,
+            "orphaned oversized content after {preceding} rows"
+        );
+        assert_eq!(
+            rows[heading + 1..]
+                .iter()
+                .map(|row| row.text.as_str())
+                .collect::<String>(),
+            text
+        );
+        assert_disjoint(&rows);
+    }
+}
+
+#[test]
 fn group_heading_stays_with_its_first_visible_content() {
     for scale in [100, 125] {
         for preceding in 0..24 {

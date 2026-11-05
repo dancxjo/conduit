@@ -4,6 +4,47 @@ use super::*;
 use alloc::{format, vec};
 
 #[test]
+fn checked_heading_keeps_first_chunk_of_oversized_content() {
+    let face = crate::native_face_scene::tests::face(7);
+    for layout in [wide(false), super::tests::narrow()] {
+        let profile = prepared(&face, vec![layout]);
+        for (width, height) in [(360, 480), (1024, 600), (1920, 1080)] {
+            for preceding in 0..24 {
+                let mut items = (0..preceding)
+                    .map(|index| {
+                        let mut value = item("Earlier reading", Some(0), false);
+                        value.subject_index = Some(index + 10);
+                        value
+                    })
+                    .collect::<Vec<_>>();
+                let mut heading = item("Section heading", Some(1), false);
+                heading.role = GraphicsTextRole::Heading;
+                heading.subject_index = Some(100);
+                items.push(heading);
+                let text = "Long section content. ".repeat(150);
+                let mut content = item(&text, Some(1), false);
+                content.subject_index = Some(100);
+                items.push(content);
+                let rows = run(items, width, height, &profile).unwrap();
+                assert_eq!(
+                    rows[preceding].page,
+                    rows[preceding + 1].page,
+                    "{width}x{height}, {preceding} preceding"
+                );
+                assert_eq!(
+                    rows[preceding + 1..]
+                        .iter()
+                        .map(|row| row.text.as_str())
+                        .collect::<String>(),
+                    text
+                );
+                assert_geometry(&rows, width, height);
+            }
+        }
+    }
+}
+
+#[test]
 fn checked_group_does_not_split_its_heading_from_first_content() {
     let face = crate::native_face_scene::tests::face(7);
     let profile = prepared(&face, vec![super::tests::narrow()]);

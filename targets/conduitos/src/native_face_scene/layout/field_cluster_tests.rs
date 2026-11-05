@@ -18,6 +18,53 @@ fn item(text: &str, subject: Option<usize>, control: Option<FaceControl>) -> doc
 }
 
 #[test]
+fn oversized_first_content_shares_heading_page_and_column() {
+    for (width, height) in [(360, 480), (1024, 600), (1920, 1080)] {
+        for scale in [100, 125] {
+            for columns in [1, 2] {
+                for preceding in 0..24 {
+                    let mut items = (0..preceding)
+                        .map(|_| item("Earlier reading", None, None))
+                        .collect::<Vec<_>>();
+                    let mut heading = item("Section heading", None, None);
+                    heading.role = GraphicsTextRole::Heading;
+                    items.push(heading);
+                    let text = "Long section content. ".repeat(150);
+                    items.push(item(&text, None, None));
+                    let rows = admit_with_expression(
+                        items,
+                        LayoutRect {
+                            x: 0,
+                            y: 0,
+                            width,
+                            height,
+                        },
+                        12,
+                        columns,
+                        scale,
+                        SPACE_SM,
+                    )
+                    .unwrap();
+                    let heading = &rows[preceding];
+                    let content = &rows[preceding + 1];
+                    assert_eq!(
+                        (heading.page, heading.bounds.x),
+                        (content.page, content.bounds.x)
+                    );
+                    assert_eq!(
+                        rows[preceding + 1..]
+                            .iter()
+                            .map(|row| row.text.as_str())
+                            .collect::<String>(),
+                        text
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn heading_and_first_content_share_a_generic_page_and_column() {
     for (width, height) in [(360, 480), (1024, 600), (1920, 1080)] {
         for scale in [100, 125] {

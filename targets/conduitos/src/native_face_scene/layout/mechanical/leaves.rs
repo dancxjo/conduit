@@ -76,7 +76,7 @@ fn arrange_content(
                 metrics(),
                 marker,
             )?;
-            cluster_atomic = demand.is_some();
+            cluster_atomic = demand.as_ref().is_some_and(|demand| demand.complete);
             control_atomic = None;
         } else if previous.is_none() {
             cluster_atomic = false;
@@ -149,14 +149,31 @@ fn arrange_content(
             if context.rows.get() == MAX_ROWS {
                 return Err(FaceSceneError::DocumentBound);
             }
-            let (end, measured) = measure_prefix(
-                remaining,
-                item.role,
-                text_width,
-                maximum_height,
-                context.scale,
-                context.typography,
-            )?;
+            let (end, measured) =
+                measure_prefix(
+                    remaining,
+                    item.role,
+                    text_width,
+                    if after_heading && chunk == 0 {
+                        maximum_height.min(height.saturating_sub(
+                            current.height + context.spacing.gap + insets.block * 2,
+                        ))
+                    } else {
+                        maximum_height
+                    },
+                    context.scale,
+                    context.typography,
+                )
+                .or_else(|_| {
+                    measure_prefix(
+                        remaining,
+                        item.role,
+                        text_width,
+                        maximum_height,
+                        context.scale,
+                        context.typography,
+                    )
+                })?;
             let box_height = context.spacing.box_height(item, measured, context.scale)?;
             if box_height > height {
                 return Err(FaceSceneError::InvalidExtent);
