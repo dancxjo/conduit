@@ -90,7 +90,7 @@ impl Membership {
                 Ok(owner) => owner,
                 Err(_) => return link.send(br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#).await,
             };
-            match crate::resident_preparation::prepare_workset_storage(
+            let response = match crate::resident_preparation::prepare_workset_storage(
                 &mut inventory,
                 Some(policy),
                 NativePreparationContext {
@@ -110,7 +110,8 @@ impl Membership {
                 Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Capacity {..})) => link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"capacity"}"#).await,
                 Err(crate::resident_preparation::ValidationRefusal::Unavailable) => link.send(br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#).await,
                 Err(_) => Err(()),
-            }
+            };
+            response
         })
         .await;
         input.fill(0);
