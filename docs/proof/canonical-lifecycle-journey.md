@@ -4275,7 +4275,8 @@ refused attachment during Play. After ordinary Lull it rendered the retained
 Body, and its acknowledged Wake action started another bounded Play and retired
 the owner terminal Mask. That Mask therefore does not operate the live editor.
 
-A single pinned Chromium context exercised the existing packaged browser Host.
+Each browser attempt used one pinned Chromium context to exercise the existing
+packaged browser Host.
 The first admission attempt failed; diagnostic attempts were kept separate,
 including an active-window refusal. A stable loopback origin was selected for
 future identity continuity. The owner log established the actual refusal:
