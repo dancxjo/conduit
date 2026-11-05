@@ -5120,3 +5120,56 @@ included proof modules. Offline standalone lock refreshes preserve package
 versions; the sole dependency-edge change is an existing Postcard test dependency.
 The policy PR #6772 is still in Candidate, with its quick gate passed and the
 remaining jobs active at the last observation; this checkpoint opens no new PR.
+
+
+### 2026-11-05 — The actual RP2040 Root gains bounded command ingress
+
+Source `779a5fa2d2` connects the shared preparation control request to the existing
+USB control loop. An absent installed policy or missing current-Boot receipt
+refuses before challenge issuance. Existing native reservations refuse without
+consuming the offered document or starting another attempt. A Root-owned,
+checked Boot counter plus hardware entropy supplies a fresh challenge nonce;
+failed attempts consume it. The maximum payload is narrowed to the actual
+existing 4 KiB receive slice, even if selected policy permits more.
+
+The existing stream decoder feeds CBD1 chunks directly into that exclusively
+borrowed slice. It creates neither another document allocation nor another
+transport. One original monotonic deadline covers challenge publication, all
+chunks, the signature and response. The Root checks the document digest,
+consumes the shared issued challenge, and rechecks installed Seed/member policy.
+Completed, refused and timed-out transactions clear the scratch. Cancelling the
+future drops the challenge and releases the exclusive borrow; this does not
+claim secure erasure on arbitrary future drop.
+
+The actual handler is exercised directly by five CPU tests with a signing peer
+and fake transport/time: valid attribution, bad signature/digest, interrupted or
+expired transfer, current membership, actual byte capacity, busy refusal,
+cancellation and replay with a repeating test RNG. Measured handler scopes
+allocate/reallocate zero times. Strict focused Clippy and formatting pass. This
+is component proof, not real USB interruption, clock timing or physical start.
+
+A shared worktree cache initially supplied older Core/Plot API variants. Targeted
+package-native cleanup of inactive development artifacts reclaimed 9.2 GiB before
+rebuilding against this checkout. Keep this cache exclusive to this delivery
+worktree; independent review worktrees must use separate target directories.
+Installed releases, source, credentials, Seeds and unique proof logs were kept.
+
+Ordinary Make from clean committed Source built the public application, IMAGE,
+manifest and checked artifact in ignored `target/rp2040-command-ingress-20261105`.
+UF2 SHA-256: `ed2aef9d0388a60f8690ca610ddcb6d3f5f321889f6f227e16d25ba162277cca`.
+ELF SHA-256: `4b48e7330ad07aad780b37322c2dcb080fe15aab47d6e4b873ef03a0e1850585`.
+Linked flash load ends at `0x100f1400` (988,160 bytes from flash base), below
+credential storage. Static RAM is 117,208 bytes, including the unchanged 49,152
+byte arena, below the unchanged 131,072-byte limit. The linker stack gap is
+153,128 bytes, above the 16 KiB minimum. These are linked extents, not measured
+peak execution or stack high-water. No grants were enlarged.
+
+The current reference Host Source selects no preparation delegation; this image
+therefore refuses the new request by default. The CPU fixture explicitly selects
+policy to exercise the full handler. A valid command currently reports only
+`attributed` and `unsupported-execution-profile`: the actual inventory/profile
+preparer, complete local reservation/start transaction, retirement/replay custody
+and physical IO handover are not installed here. This is deliberately not a
+Prepared, Reserved or Playing acknowledgement. It does not close #6770 or #6341,
+prove retained acknowledged input during native custody, or create a Body-made
+private membership Seed. No device or live service was changed or flashed.
