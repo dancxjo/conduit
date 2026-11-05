@@ -1,6 +1,6 @@
 use super::*;
 
-fn request(host: &HostAdvertisement, id: &str, units: u32) -> ResourceAdmissionRequest {
+pub(super) fn request(host: &HostAdvertisement, id: &str, units: u32) -> ResourceAdmissionRequest {
     ResourceAdmissionRequest {
         plan_id: format!("plan/{id}").into(),
         placement_id: format!("placement/{id}").into(),
