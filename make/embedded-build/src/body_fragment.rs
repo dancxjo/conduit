@@ -14,6 +14,65 @@ pub enum BodyFragmentGenerationRefusal {
     Generation(GenerationError),
     Document(BodyFragmentDocumentRefusal),
     Resources,
+    Scope,
+    Workset(conduit_body::BodyWorksetDocumentRefusal),
+}
+
+/// Canonical complete local workset derived from rich containment evidence.
+/// Possession is not signing authority, receiver admission or permission to run.
+pub struct GeneratedBodyWorksetDocument {
+    bytes: Vec<u8>,
+}
+impl GeneratedBodyWorksetDocument {
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+/// Derive the complete local set rather than accepting a caller-selected list.
+/// The resolver selects bounded resident implementations for each actual
+/// fragment. Current receiver identity must be independently supplied; this
+/// host-side projection never manufactures remote capabilities.
+pub fn generate_prepared_body_workset<'a>(
+    scope: PreparedBodyFragment<'a>,
+    actual: &conduit_core::HostAdvertisement,
+    maximum_document_bytes: u32,
+    mut resolve: impl FnMut(
+        PreparedBodyFragment<'a>,
+    ) -> Result<
+        (Vec<BoundResidentExpression>, BodyFragmentProjectionLimits),
+        BodyFragmentGenerationRefusal,
+    >,
+) -> Result<GeneratedBodyWorksetDocument, BodyFragmentGenerationRefusal> {
+    use BodyFragmentGenerationRefusal as E;
+    let count = scope.local_fragments().count();
+    if count == 0
+        || count > conduit_core::MAXIMUM_RESOURCE_ADMISSIONS
+        || maximum_document_bytes == 0
+    {
+        return Err(E::Workset(conduit_body::BodyWorksetDocumentRefusal::Bounds));
+    }
+    // Validate the complete selected identity set before invoking a resolver.
+    for local in scope.local_fragments() {
+        let local = local.map_err(|_| E::Scope)?;
+        let fragment = local.fragment();
+        if fragment.host_id != actual.host_id
+            || fragment.boot_id != actual.boot_id
+            || fragment.offer_generation != actual.offer_generation
+        {
+            return Err(E::Scope);
+        }
+    }
+    let mut documents = Vec::new();
+    for local in scope.local_fragments() {
+        let local = local.map_err(|_| E::Scope)?;
+        let (resident, limits) = resolve(local)?;
+        documents.push(generate_prepared_body_fragment(local, &resident, limits)?);
+    }
+    let fragments: Vec<_> = documents.iter().map(|document| document.bytes()).collect();
+    let bytes = conduit_body::encode_body_workset_document(&fragments, maximum_document_bytes)
+        .map_err(E::Workset)?;
+    Ok(GeneratedBodyWorksetDocument { bytes })
 }
 /// Only this exact factory constructs the sender's immutable document. It is
 /// still not a signature, receiver admission or permission to start a Play.

@@ -60,4 +60,44 @@ impl<'a> PreparedBodyFragment<'a> {
     pub fn fragment(&self) -> &'a PlanFragment {
         self.fragment
     }
+
+    /// All fragments assigned to this Host by the same validated Body Plan,
+    /// including selected Mask chains. This borrows the original containment
+    /// evidence; it neither creates another Play nor checks current offers.
+    pub fn local_fragments(
+        self,
+    ) -> impl Iterator<Item = Result<Self, BodyFragmentScopeRefusal>> + 'a {
+        self.plans().flat_map(move |plot_plan| {
+            plot_plan.fragments.iter().filter_map(move |fragment| {
+                if fragment.host_id != self.fragment.host_id {
+                    return None;
+                }
+                // Preserve prepare()'s unambiguous containment law for every
+                // sibling, not just the original anchor fragment.
+                let count = self
+                    .plans()
+                    .flat_map(|plan| &plan.fragments)
+                    .filter(|candidate| *candidate == fragment)
+                    .count();
+                Some(if count == 1 {
+                    Ok(Self {
+                        plan: self.plan,
+                        play: self.play,
+                        fragment,
+                        plot_plan,
+                    })
+                } else {
+                    Err(BodyFragmentScopeRefusal)
+                })
+            })
+        })
+    }
+    fn plans(self) -> impl Iterator<Item = &'a conduit_core::Plan> + 'a {
+        self.plan.plots.iter().map(|plot| &plot.plan).chain(
+            self.plan
+                .mask_topologies
+                .iter()
+                .flat_map(|topology| topology.chains.iter().map(|chain| &chain.plan)),
+        )
+    }
 }

@@ -21,6 +21,77 @@ pub fn run(
     let right = document(b, second);
     let bytes = encode_body_workset_document(&[left.bytes(), right.bytes()], 8192).unwrap();
     let receiver = Receiver::new(a);
+    let mut resolved = Vec::new();
+    let generated = b::generate_prepared_body_workset(a, &receiver.actual, 8192, |scope| {
+        resolved.push(scope.fragment().fragment_id.clone());
+        let assignment = if scope.fragment().fragment_id == a.fragment().fragment_id {
+            first
+        } else {
+            assert_eq!(scope.fragment().fragment_id, b.fragment().fragment_id);
+            second
+        };
+        Ok(selection(scope, assignment))
+    })
+    .unwrap();
+    assert_eq!(
+        resolved.len(),
+        2,
+        "Plot and selected Mask must both be derived"
+    );
+    assert_eq!(generated.bytes(), bytes);
+    let from_mask = b::generate_prepared_body_workset(b, &receiver.actual, 8192, |scope| {
+        Ok(selection(
+            scope,
+            if scope.fragment().fragment_id == a.fragment().fragment_id {
+                first
+            } else {
+                second
+            },
+        ))
+    })
+    .unwrap();
+    assert_eq!(
+        from_mask.bytes(),
+        generated.bytes(),
+        "anchor cannot omit the other fragment"
+    );
+    for change in 0..3 {
+        let mut stale = receiver.actual.clone();
+        match change {
+            0 => stale.host_id = "fixture/foreign-host".into(),
+            1 => stale.boot_id = "fixture/foreign-boot".into(),
+            _ => stale.offer_generation.0 += 1,
+        }
+        assert!(matches!(
+            b::generate_prepared_body_workset(a, &stale, 8192, |_| panic!(
+                "stale identity reached resolver"
+            )),
+            Err(b::BodyFragmentGenerationRefusal::Scope)
+        ));
+    }
+    assert!(matches!(
+        b::generate_prepared_body_workset(a, &receiver.actual, 0, |_| panic!(
+            "zero bound reached resolver"
+        )),
+        Err(b::BodyFragmentGenerationRefusal::Workset(
+            BodyWorksetDocumentRefusal::Bounds
+        ))
+    ));
+    assert!(matches!(
+        b::generate_prepared_body_workset(a, &receiver.actual, bytes.len() as u32 - 1, |scope| {
+            Ok(selection(
+                scope,
+                if scope.fragment().fragment_id == a.fragment().fragment_id {
+                    first
+                } else {
+                    second
+                },
+            ))
+        }),
+        Err(b::BodyFragmentGenerationRefusal::Workset(
+            BodyWorksetDocumentRefusal::Bounds
+        ))
+    ));
     let mut library = crate::library::Initialized::prepare().unwrap();
     let original = library.offers().map(|image| image.unwrap().as_ptr());
     let (result, cost) = crate::probe::observe(|| {

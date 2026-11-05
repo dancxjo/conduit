@@ -128,10 +128,13 @@ fn profile(a: &crate::support::Assignment) -> AssignedBodyPreparationProfile<'_>
     }
 }
 
-fn document(
+fn selection(
     scope: PreparedBodyFragment<'_>,
     a: &crate::support::Assignment,
-) -> b::GeneratedBodyFragmentDocument {
+) -> (
+    Vec<b::BoundResidentExpression>,
+    b::BodyFragmentProjectionLimits,
+) {
     let (doc, program, temporal) =
         crate::support::context_for(scope.fragment().placements[0].inputs[0].temporal);
     let image = b::PreparedResidentExpression::prepare(
@@ -149,9 +152,8 @@ fn document(
             &fragment.placements[0].placement_id,
         )
         .unwrap();
-    b::generate_prepared_body_fragment(
-        scope,
-        &[bound],
+    (
+        vec![bound],
         b::BodyFragmentProjectionLimits {
             image: b::EmbeddedImageBounds::HOST_TOOLING,
             computations: b::EmbeddedComputationBounds {
@@ -163,7 +165,13 @@ fn document(
             maximum_document_bytes: 8192,
         },
     )
-    .unwrap()
+}
+fn document(
+    scope: PreparedBodyFragment<'_>,
+    a: &crate::support::Assignment,
+) -> b::GeneratedBodyFragmentDocument {
+    let (resident, limits) = selection(scope, a);
+    b::generate_prepared_body_fragment(scope, &resident, limits).unwrap()
 }
 pub fn mask(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
     let doc = document(scope, a);

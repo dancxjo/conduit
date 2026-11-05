@@ -128,6 +128,9 @@ pub fn run() {
         PreparedBodyFragment::prepare(&mask_wake, &mask_plan, &mask_play, second_fragment).unwrap();
     assert_eq!(mask_scope.plot_plan().plan_id, second.model.plan_id);
     crate::delegated::mask(mask_scope, &second); // Containment, not a renderer claim.
+    let mask_plot_scope =
+        PreparedBodyFragment::prepare(&mask_wake, &mask_plan, &mask_play, first_fragment).unwrap();
+    crate::delegated::batch(mask_plot_scope, mask_scope, &first, &second);
     let duplicate = BodyPlan::seal_with_masks(
         &mask_wake,
         vec![BodyPlotPlan {
@@ -142,6 +145,28 @@ pub fn run() {
         PreparedBodyFragment::prepare(&mask_wake, &duplicate, &duplicate_play, first_fragment)
             .is_err()
     );
+    let ambiguous =
+        BodyPlan::seal_with_masks(&wake, plan.plots.clone(), vec![topology(&first.model)]).unwrap();
+    let ambiguous_play = BodyPlayIdentity::bind(&ambiguous, 3);
+    let unambiguous_anchor =
+        PreparedBodyFragment::prepare(&wake, &ambiguous, &ambiguous_play, second_fragment).unwrap();
+    let ((), iteration) = crate::probe::observe(|| {
+        assert_eq!(
+            unambiguous_anchor
+                .local_fragments()
+                .filter(Result::is_err)
+                .count(),
+            2
+        );
+        assert_eq!(
+            unambiguous_anchor
+                .local_fragments()
+                .filter(Result::is_ok)
+                .count(),
+            1
+        );
+    });
+    assert_eq!((iteration.allocations, iteration.reallocations), (0, 0));
     crate::delegated::run(a, &first);
     crate::delegated::batch(a, b, &first, &second);
     println!("two exact resident fragments bound to one checked Body Plan/Play; no child Play; zero scoped binding/retirement allocations; stale and substituted scope refused");

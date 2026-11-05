@@ -5825,3 +5825,39 @@ Host-command exchange. Signing a fixture or arbitrary wire bytes would bypass
 that missing integration and is deliberately not presented as progress toward
 an admitted Body Play. Receiver-local reservation/installation/Start and physical
 bus handover remain separately required under #6770/#6341.
+
+
+### Authoring-side complete workset derivation
+
+`PreparedBodyFragment::local_fragments` now borrows every fragment assigned to
+that Host from the same validated Body Plan/Play, including selected Mask
+chains. Each sibling retains the original unambiguous-containment law: an
+otherwise valid anchor cannot produce a witness for a sibling repeated in two
+containing plans. Iteration, including that refusal, allocates nothing.
+
+`generate_prepared_body_workset` derives that entire set instead of accepting a
+caller-selected fragment list. It preflights the existing finite count and
+independently supplied current Host/Boot/generation before calling an
+implementation resolver. Each fragment then goes through the existing exact
+canonical projection factory; the unchanged complete-set encoder verifies the
+aggregate document and byte ceiling. The returned immutable document has no
+public constructor or deserializer. It is still no signature, execution
+permission, resource reservation or evidence of remote capability possession.
+
+The emitted-code resident-offer test passes for both two ordinary Plots and a
+Plot plus selected Mask chain. Either anchor produces identical complete bytes.
+Foreign Host, Boot and generation refuse before the resolver, zero capacity
+refuses before resolution, and an undersized aggregate byte ceiling refuses.
+A separate ambiguous-sibling case retains one valid anchor and reports both
+ambiguous occurrences with zero scoped allocations. Existing Root validation,
+reservation, failure and retirement cases continue to pass within that same
+owning test. The two emitted-code top-level tests pass; strict Body and embedded
+build library/test Clippy passes, and authenticated-admission Body checks with
+no default features for thumbv6m-none-eabi. Logs are retained under
+/tmp/conduit-derived-workset-final2-{test,clippy}.log and
+/tmp/conduit-derived-workset-thumb.log.
+
+This is reusable authoring preparation, not installed owner delivery. The live
+owner still needs to invoke this factory with its real current Body Plan/Play,
+approve the exact resulting bytes and use the existing attributed exchange.
+The MCU firmware and its finite grants were not changed for this step.
