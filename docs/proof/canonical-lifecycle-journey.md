@@ -5523,7 +5523,7 @@ opaque approvals and two unbound kernels. The owning emitted-code test reserves
 two signed fragments, rejects missing/insufficient observations, injects refusal
 at all 25 reservation allocation boundaries, and cancels a pending attempt with
 no cleanup allocation or provider transfer. The former two payload allocations
-and all reservation state retire. Default/delegated resident tests and strict
+and all reservation state retire. Delegated resident tests and strict
 owning embedded-build library/test Clippy pass. These remain CPU source-level
 proofs. The native handler still reports resources not reserved: generating
 current local observation evidence, charging complete reservation bookkeeping,
