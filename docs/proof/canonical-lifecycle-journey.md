@@ -5793,3 +5793,35 @@ sampling/display Plays, or restart-persistent advancement of the new credential.
 Those remain next; diagnostic sensing/display is still explicitly distinct.
 Private bootstrap, current input and signed return receipt remain outside Git;
 raw physical status is retained under target/green-enabled-seed-20261105.
+
+
+### Physical preparation challenge and deadline recovery
+
+On the enabled, admitted Green Boot above, the existing bounded CDC framing
+carried `conduit.body/prepare-fragments@1`. The actual receiver returned a
+Host-command challenge for Hamm Creek House, its observed Host/Boot and enabled
+configuration, the pinned current owner Host/Boot/key, contract
+`conduit.body/prepared-workset@1`, maximum payload 4,096 bytes and exactly
+10,000 milliseconds of receiver-monotonic validity. Those fields were checked
+against independently retained live owner/member facts before proceeding.
+No command was signed or submitted.
+
+After the original deadline, a second physical request obtained a distinct
+nonce on the same Boot with issuance later than the first expiry. Thus an
+abandoned challenge does not permanently occupy the input workspace. Diagnostic
+IO continued to seven samples and 100 acknowledged frames with membership true
+and no sensor/display errors. This is physical challenge/deadline recovery,
+not proof of signature acceptance, resource preparation or retained payload.
+Public challenge/status captures are under target/green-enabled-seed-20261105.
+
+Tracing the next real handoff confirms that `generate_prepared_body_fragment`
+is the existing host-side factory: it consumes `PreparedBodyFragment` rich
+containment evidence and generates the canonical native projection. Neither
+the installed Linux owner nor its transport currently calls that factory or
+`encode_body_workset_document`. Their current callers are scoped CPU tests.
+The installed authoring path must next derive the complete exact local workset
+from its real Body Plan/Play, approve it and send it through the pinned current
+Host-command exchange. Signing a fixture or arbitrary wire bytes would bypass
+that missing integration and is deliberately not presented as progress toward
+an admitted Body Play. Receiver-local reservation/installation/Start and physical
+bus handover remain separately required under #6770/#6341.
