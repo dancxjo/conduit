@@ -32,9 +32,7 @@ pub(super) fn prepare_traced_runtime(
     ),
     String,
 > {
-    let thermostat = trace.run(Phase::RetainedScan, || {
-        retained_local_owner_scan(state_dir)
-    })?;
+    let thermostat = trace.run(Phase::RetainedScan, || retained_local_owner_scan(state_dir))?;
     prepare_runtime_with_composition(
         state_dir,
         None,
