@@ -4350,3 +4350,13 @@ current Face, screenshot or complete distributed Play is claimed here.
 The recovery extraction on current `dev` identified prerequisites still local to
 the integrated branch: the original joining-Seed verifier and public-key API.
 Its compile failure is retained; it is not a qualified independent PR yet.
+
+The explicit-SDK adapter subsequently sealed the complete graphical release,
+with no RPATH/RUNPATH, and ordinary installation preserved the selected graphical
+Host/Part/key. Actual startup then exposed a member/owner eligibility bug: the
+startup scan probe called the owner-only retained-Source loader on an already
+joined Host. The correction skips that local-owner probe for joined members;
+the owner-only loader still refuses their ownership. Nineteen custody/startup
+regressions and strict default product binary/tests Clippy pass. The failed
+restart loop was stopped; signed return and visible output remain unproved
+until the corrected startup is deployed and observed.
