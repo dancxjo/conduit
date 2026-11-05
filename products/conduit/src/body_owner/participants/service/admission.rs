@@ -180,6 +180,7 @@ impl Owner {
             let WindowState::Pending(pending) = &window.state else {
                 return Err("browser admission window has no pending challenge".into());
             };
+            self.retain_admission_capacity(root)?;
             let mut manager = self.admissions.clone().unwrap_or(
                 AdmissionManager::new(self.session.evidence().body_id.clone()).map_err(debug)?,
             );

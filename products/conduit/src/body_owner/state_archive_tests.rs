@@ -118,6 +118,7 @@ fn archive_transaction_replays_before_active_biography_and_refuses_corruption() 
             last_execution: None,
             execution_custody: None,
             admissions: None,
+            admission_custody: None,
             source: None,
             archives: segments.clone(),
         },

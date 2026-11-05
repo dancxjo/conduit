@@ -58,6 +58,7 @@ fn checked_source_and_biography_replay_as_one_owner_transaction() {
         last_execution: None,
         execution_custody: None,
         admissions: None,
+        admission_custody: None,
         source: Some(SOURCE.as_bytes().to_vec()),
         archives: Vec::new(),
     };
@@ -174,6 +175,7 @@ fn interrupted_publication_recovers_and_corruption_never_becomes_birth() {
             last_execution: None,
             execution_custody: None,
             admissions: Some(manager.clone()),
+            admission_custody: None,
             source: None,
             archives: Vec::new(),
         },

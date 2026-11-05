@@ -1110,3 +1110,6 @@ pub(crate) fn member_return_owner_fixture() -> (Owner, std::path::PathBuf) {
 
 #[path = "tests/member_carrier.rs"]
 mod member_carrier;
+
+#[path = "tests/admission_custody.rs"]
+mod admission_custody;
