@@ -33,7 +33,7 @@ pub(super) fn prepare_traced_runtime(
     String,
 > {
     let thermostat = trace.run(Phase::RetainedScan, || {
-        owner::retained_thermostat_scan(state_dir)
+        retained_local_owner_scan(state_dir)
     })?;
     prepare_runtime_with_composition(
         state_dir,
@@ -99,6 +99,20 @@ pub(super) fn prepare_presentation_runtime(
         StdHostComposition::minimal().with_text(),
         &Trace::disabled(),
     )
+}
+
+/// A joined Host has a remote Body, not a locally owned retained Plot.
+/// Keep owner-only state loading strict; it must not be a member Boot probe.
+fn retained_local_owner_scan(
+    state_dir: &Path,
+) -> Result<Option<(conduit_thermostat_plot::ThermostatState, u16)>, String> {
+    if read_installation(&state_dir.join("installation.json"))?
+        .joined_body_state
+        .is_some()
+    {
+        return Ok(None);
+    }
+    owner::retained_thermostat_scan(state_dir)
 }
 
 fn prepare_runtime_with_composition(
