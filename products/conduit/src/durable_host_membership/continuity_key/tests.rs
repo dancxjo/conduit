@@ -719,3 +719,6 @@ fn member_carrier_signer_uses_retained_key_without_replacing_membership() {
         installation
     );
 }
+
+#[path = "tests/recovery.rs"]
+mod recovery;

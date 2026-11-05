@@ -592,6 +592,9 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_return: bool,
     },
+    /// Restore private signing custody from the original Seed and admission evidence.
+    #[command(hide = true)]
+    RestoreMemberKey(crate::durable_host::MemberKeyRecoveryArgs),
     /// Retain the owner's exact admission receipt as this host's durable membership.
     #[command(hide = true)]
     CompleteJoin {

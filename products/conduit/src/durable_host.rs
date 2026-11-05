@@ -74,6 +74,7 @@ pub(crate) use usb_member_return::return_usb;
 #[path = "durable_host/membership_receipt_custody.rs"]
 mod membership_receipt_custody;
 pub(crate) use membership::leave_member_from_file;
+pub(crate) use membership::recovery::{run as restore_member_key, Args as MemberKeyRecoveryArgs};
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
 pub(crate) use routed_join::PreparedAdmissionRoute;
 pub(crate) use routed_join::{
