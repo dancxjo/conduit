@@ -24,11 +24,36 @@ pub fn prepared_expression_bounds(
     Ok((input, output))
 }
 
-pub struct PreparedExpressionBack {
-    evaluator: PreparedPortableExpressionEvaluator,
+mod resident;
+pub use resident::{StaticExpressionBackRefusal, StaticScalarExpressionBack};
+
+trait ExpressionEngine {
+    type Refusal;
+    fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Self::Refusal>;
+    fn output_bytes(&self) -> &[u8];
+    fn private_fuel(&self) -> u16 {
+        0
+    }
+}
+impl ExpressionEngine for PreparedPortableExpressionEvaluator {
+    type Refusal = conduit_plot::PortableExpressionEvaluationRefusal;
+    fn evaluate(
+        &mut self,
+        input: &[u8],
+    ) -> Result<&[u8], conduit_plot::PortableExpressionEvaluationRefusal> {
+        PreparedPortableExpressionEvaluator::evaluate(self, input)
+    }
+    fn output_bytes(&self) -> &[u8] {
+        PreparedPortableExpressionEvaluator::output_bytes(self)
+    }
+}
+
+pub struct PreparedExpressionBack<E = PreparedPortableExpressionEvaluator> {
+    evaluator: E,
     maximum_input_bytes: u32,
     maximum_output_bytes: u32,
     staged: bool,
+    closing: bool,
     complete: bool,
     flow: bool,
     cancelled: bool,
@@ -43,6 +68,7 @@ impl PreparedExpressionBack {
             maximum_input_bytes,
             maximum_output_bytes,
             staged: false,
+            closing: false,
             complete: false,
             flow: false,
             cancelled: false,
@@ -67,10 +93,11 @@ impl PreparedExpressionBack {
         self.evaluator.output_capacity()
     }
 }
-impl<const PORTS: usize> StepBack<PORTS> for PreparedExpressionBack {
+impl<const PORTS: usize, E: ExpressionEngine> StepBack<PORTS> for PreparedExpressionBack<E> {
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         // Discard only uncommitted intent on a retried transaction.
         self.staged = false;
+        self.closing = false;
         if self.complete {
             return StepOutcome::Complete;
         }
@@ -83,6 +110,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PreparedExpressionBack {
                     if io.consume_closed(PortId(0)).is_err() {
                         return fail(1641);
                     }
+                    self.closing = true;
                     StepOutcome::Complete
                 } else {
                     fail(1641)
@@ -101,6 +129,19 @@ impl<const PORTS: usize> StepBack<PORTS> for PreparedExpressionBack {
             || input.len() > self.maximum_input_bytes as usize
         {
             return fail(1643);
+        }
+        let private = self.evaluator.private_fuel();
+        if private > 0 {
+            let Some(complete) = private.checked_add(2) else {
+                return fail(1647);
+            };
+            if io.remaining_fuel() < complete {
+                let _ = io.consume_fuel(complete); // sticky fault, before work or IO intent
+                return StepOutcome::Yield;
+            }
+        }
+        if io.consume_fuel(private).is_err() {
+            return StepOutcome::Yield; // sticky kernel fuel fault rejects the whole Step
         }
         let Ok(output) = self.evaluator.evaluate(input) else {
             return fail(1644);
@@ -123,10 +164,12 @@ impl<const PORTS: usize> StepBack<PORTS> for PreparedExpressionBack {
         if self.staged && !self.flow {
             self.committed_values += 1;
         }
-        self.complete |= self.staged && !self.flow;
+        self.complete |= self.closing || (self.staged && !self.flow);
         self.staged = false;
+        self.closing = false;
     }
     fn cancel(&mut self) {
+        self.closing = false;
         self.cancelled = true;
         self.complete = true;
         self.staged = false;
@@ -140,8 +183,8 @@ fn fail(detail: u16) -> StepOutcome {
 }
 
 #[cfg(feature = "prepared-expression-session")]
-impl<const P: usize> conduit_kernel::scheduler::prepared_session::ReusableStepBack<P>
-    for PreparedExpressionBack
+impl<const P: usize, E: ExpressionEngine>
+    conduit_kernel::scheduler::prepared_session::ReusableStepBack<P> for PreparedExpressionBack<E>
 {
     type Next = ();
     fn preflight_next(&self, _: &(), _: &dyn conduit_kernel::ValueStorage) -> bool {
