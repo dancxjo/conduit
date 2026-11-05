@@ -192,7 +192,17 @@ fn ordinary_creche_play_prepares_one_same_body_seed_and_restores_original_host()
             Instant::now() < deadline,
             "real Crèche Play did not reach its live Face"
         );
-        assert!(!worker.progress(&mut owner, &fixture.root).unwrap());
+        let finished = worker.progress(&mut owner, &fixture.root).unwrap();
+        assert!(
+            !finished,
+            "Crèche worker stopped before its live Face; admission/terminal/failure/cleanup: {:?}",
+            owner.last_execution.as_ref().map(|receipt| [
+                &receipt["pre_play_refusal"],
+                &receipt["terminal"],
+                &receipt["failure"],
+                &receipt["cleanup_failure"],
+            ])
+        );
         if owner.current_play_id().is_some() {
             if let Some(face) = owner
                 .creche_live
