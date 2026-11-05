@@ -7,10 +7,17 @@ use conduit_core::{
     ResourceReleaseCause, SignId,
 };
 
+#[path = "../../plot/tests/common/allocation_probe.rs"]
+mod probe;
+#[global_allocator]
+static ALLOC: probe::Allocator = probe::Allocator;
+
 const CLASS: &str = "conduit.resource/compute/shared-lane@1";
 
 #[path = "resource_admission/batch.rs"]
 mod batch;
+#[path = "resource_admission/fallible.rs"]
+mod fallible;
 
 fn host() -> HostAdvertisement {
     HostAdvertisement {

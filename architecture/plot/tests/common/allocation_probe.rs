@@ -6,6 +6,8 @@ use std::{
 #[derive(Clone, Copy, Default, Debug)]
 pub struct Observation {
     pub allocations: usize,
+    pub allocation_attempts: usize,
+    pub refused_allocations: usize,
     pub reallocations: usize,
     pub deallocations: usize,
     pub peak_bytes: usize,
@@ -14,11 +16,15 @@ pub struct Observation {
 }
 thread_local! {
     static TRACKING: Cell<bool> = const { Cell::new(false) };
-    static OBSERVATION: Cell<Observation> = const { Cell::new(Observation { allocations: 0, reallocations: 0, deallocations: 0, peak_bytes: 0, requested_bytes: 0, live_bytes: 0 }) };
+    static REFUSE_AT: Cell<usize> = const { Cell::new(0) };
+    static OBSERVATION: Cell<Observation> = const { Cell::new(Observation { allocations: 0, allocation_attempts: 0, refused_allocations: 0, reallocations: 0, deallocations: 0, peak_bytes: 0, requested_bytes: 0, live_bytes: 0 }) };
 }
 pub struct Allocator;
 unsafe impl GlobalAlloc for Allocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        if refuse() {
+            return core::ptr::null_mut();
+        }
         let pointer = unsafe { System.alloc(layout) };
         if !pointer.is_null() {
             update(layout.size(), 0, false);
@@ -26,6 +32,9 @@ unsafe impl GlobalAlloc for Allocator {
         pointer
     }
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+        if refuse() {
+            return core::ptr::null_mut();
+        }
         let pointer = unsafe { System.alloc_zeroed(layout) };
         if !pointer.is_null() {
             update(layout.size(), 0, false);
@@ -39,12 +48,34 @@ unsafe impl GlobalAlloc for Allocator {
         }
     }
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, size: usize) -> *mut u8 {
+        if refuse() {
+            return core::ptr::null_mut();
+        }
         let next = unsafe { System.realloc(pointer, layout, size) };
         if !next.is_null() {
             update(size, layout.size(), true);
         }
         next
     }
+}
+// Only this test thread's explicitly scoped request is refused. Reallocation
+// refusal leaves the original pointer owned by its caller, as GlobalAlloc requires.
+fn refuse() -> bool {
+    TRACKING
+        .try_with(|tracking| {
+            if !tracking.get() {
+                return false;
+            }
+            OBSERVATION.with(|observation| {
+                let mut state = observation.get();
+                state.allocation_attempts += 1;
+                let refused = REFUSE_AT.with(|at| at.get() == state.allocation_attempts);
+                state.refused_allocations += usize::from(refused);
+                observation.set(state);
+                refused
+            })
+        })
+        .unwrap_or(false)
 }
 fn update(added: usize, removed: usize, reallocation: bool) {
     let _ = TRACKING.try_with(|tracking| {
@@ -70,14 +101,25 @@ fn update(added: usize, removed: usize, reallocation: bool) {
     });
 }
 pub fn observe<T>(work: impl FnOnce() -> T) -> (T, Observation) {
+    observe_with_refusal(0, work)
+}
+/// Refuse exactly the nth allocation/reallocation, without changing other threads.
+#[allow(dead_code)]
+pub fn observe_refusing<T>(nth: usize, work: impl FnOnce() -> T) -> (T, Observation) {
+    assert!(nth > 0);
+    observe_with_refusal(nth, work)
+}
+fn observe_with_refusal<T>(nth: usize, work: impl FnOnce() -> T) -> (T, Observation) {
     struct Guard;
     impl Drop for Guard {
         fn drop(&mut self) {
             TRACKING.with(|tracking| tracking.set(false));
+            REFUSE_AT.with(|at| at.set(0));
         }
     }
     TRACKING.with(|tracking| assert!(!tracking.replace(true)));
     OBSERVATION.with(|observation| observation.set(Observation::default()));
+    REFUSE_AT.with(|at| at.set(nth));
     let guard = Guard;
     let result = work();
     drop(guard);
