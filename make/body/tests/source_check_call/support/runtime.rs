@@ -3,8 +3,19 @@ pub fn definition(
     host: &HostAdvertisement,
     prepared: &PreparedSourceChecker,
 ) -> NativeSourceDefinition {
-    let kind = prepared.kind().clone();
-    let bounds = prepared.bounds();
+    definition_for(
+        host,
+        prepared.kind().clone(),
+        prepared.bounds(),
+        prepared.retained_bytes() as u64,
+    )
+}
+pub fn definition_for(
+    host: &HostAdvertisement,
+    kind: Kind,
+    bounds: SourceCheckPreparationBounds,
+    resource_bytes: u64,
+) -> NativeSourceDefinition {
     let offer = conduit_core::capability_offer_from_parts! {
         startup_parameters: vec![], shorthand: None,
         capability_id: "fixture/source-check".into(), kind_id: kind.kind_id.clone(),
@@ -50,7 +61,7 @@ pub fn definition(
         configuration: vec![],
         input_bytes: bounds.request_bytes,
         output_bytes: bounds.report_bytes,
-        resource_bytes: prepared.retained_bytes() as u64,
+        resource_bytes,
     }
 }
 pub fn plan(

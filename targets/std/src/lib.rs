@@ -16,8 +16,9 @@ use conduit_planner::{default_placements, parse_placements, plan, PlacementChoic
 use conduit_plot::CheckedPlot;
 use conduit_signal::{PULSE_KIND, SHOW_KIND};
 pub use selected_native_source::{
-    ImmediateNativeSource, NativeReadContext, NativeSourceDefinition, NativeSourceWorkerProvider,
-    NativeWorkerBudget, NativeWorkerInspection, RetiredNativeSource, WorkerBackingObservation,
+    ImmediateNativeSource, ImmediateSourcePreparationBudget, NativeReadContext, NativeSourceDefinition,
+    NativeSourceWorkerProvider, NativeWorkerBudget, NativeWorkerInspection, RetiredNativeSource,
+    WorkerBackingObservation,
     WorkerFailure, NATIVE_SOURCE_WORKER_PROFILE,
 };
 use std::fs;

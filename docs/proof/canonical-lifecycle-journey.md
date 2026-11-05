@@ -3784,3 +3784,39 @@ local CPU/library and actual-child proofs, not an installed Root or MCU proof.
 Root metadata/preparation backing, selected artifact/Source grant admission and
 product installation remain open. #6447 and the full lifecycle remain active;
 no device or live service changed.
+
+### 4 November: reserve reference preparation before factory effects
+
+The existing immediate native Source boundary gains staged preparation with
+independently configured temporary/retained backing. Registration and reservation
+complete before the factory runs; no offer is published on shortage or factory
+failure. On successful actual quiescence, the existing affine backing mechanism
+reduces the temporary reservation to the retained charge. That charge remains
+with the provider across child Plays. Explicit immediate retirement checks that
+child/custody use is quiescent, drops the actual provider and only then releases
+backing and withdraws its offer. The unsafe native-correspondence boundary still
+requires actual finite backing and quiescent/non-unwinding retirement; accounting
+is not an OS allocator or whole-process RSS guarantee.
+
+This uses the existing Root ledger rather than another resource tracker. Crucially,
+the checked IMAGE reconfiguration refusal is unchanged. This is reference-profile
+initialization, not an exception permitting attachment to a constructed Seed.
+Actual IMAGE construction/Make initialization remains required for installation.
+
+The actual compiler/Host Call integration test now declares a conservative 544 MiB
+preparation ceiling and 1 MiB retained charge on its independent reference pool.
+These are explicit test-owned accounting ceilings, not measured consumption or
+new IMAGE grants. Too-small capacity prevents the factory from running. Failure
+leaves the exact advertisement unchanged. Actual bounded compiler preparation
+then succeeds under reservation; the released temporary balance can be reserved,
+while the retained balance cannot. Extra custody prevents retirement. After its
+release, a real ordinary Source-check Play commits the direct-reference report;
+the retained charge still remains. Actual provider retirement withdraws the offer.
+Root metadata/schema/caller-owned Source construction has separate custody and is
+not silently included in this provider charge.
+
+All nine actual-product process/Host Call tests pass. Strict all-target std Host,
+Body Make and product Clippy passes. Logs remain under
+`target/source-check-{admitted-preparation-tests,preparation-custody-clippy}.log`.
+No live service or device changed. Complete #6447 installed acceptance and the
+full Crèche/Seed/distributed-Body journey remain open.

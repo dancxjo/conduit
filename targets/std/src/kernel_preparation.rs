@@ -29,7 +29,6 @@ pub use service::{
 mod worker;
 
 mod base_backing;
-#[cfg(all(target_os = "linux", feature = "linux-display"))]
 mod base_preparation;
 pub(crate) use base_backing::BaseBackingReservation;
 mod image_bounds;

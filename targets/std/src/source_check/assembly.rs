@@ -1,6 +1,48 @@
 //! Common immutable runtime construction for local and bounded-process analysis.
 use super::*;
 impl PreparedSourceChecker {
+    /// Semantic/byte-profile construction only, before initialized availability.
+    /// This creates no Source, provider, grant or resource reservation.
+    pub fn kind_for_bounds(
+        schema: &SourceCheckNativeSchema,
+        bounds: SourceCheckPreparationBounds,
+    ) -> Result<Kind, String> {
+        Self::validate_bounds(1, bounds)?;
+        let kind = Kind {
+            kind_id: SOURCE_CHECK_KIND.into(),
+            kind_contract_revision: SOURCE_CHECK_CALL.into(),
+            startup_parameters: vec![],
+            shorthand: None,
+            configuration: vec![],
+            semantic_laws: vec![],
+            inputs: vec![PortDescriptor {
+                port_id: "request".into(),
+                value_kind: schema
+                    .request_kind()
+                    .map_err(|e| format!("request Type: {e:?}"))?,
+                direction: PortDirection::Input,
+                temporal: PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: "reply".into(),
+                value_kind: schema
+                    .reply_kind()
+                    .map_err(|e| format!("report Type: {e:?}"))?,
+                direction: PortDirection::Output,
+                temporal: PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
+            }],
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: bounds.request_bytes.max(bounds.report_bytes),
+            },
+        };
+        kind.validate()
+            .map_err(|e| format!("Source-check Kind: {e:?}"))?;
+        Ok(kind)
+    }
     pub(super) fn assemble(
         schema: &SourceCheckNativeSchema,
         builder: requests::Builder,
@@ -55,39 +97,7 @@ impl PreparedSourceChecker {
         if retained_bytes > bounds.retained_bytes {
             return Err("Source-check retained backing exceeds admission".into());
         }
-        let kind = Kind {
-            kind_id: SOURCE_CHECK_KIND.into(),
-            kind_contract_revision: SOURCE_CHECK_CALL.into(),
-            startup_parameters: vec![],
-            shorthand: None,
-            configuration: vec![],
-            semantic_laws: vec![],
-            inputs: vec![PortDescriptor {
-                port_id: "request".into(),
-                value_kind: schema
-                    .request_kind()
-                    .map_err(|e| format!("request Type: {e:?}"))?,
-                direction: PortDirection::Input,
-                temporal: PortTemporal::Flow { closes: true },
-                abnormal_kind: None,
-            }],
-            outputs: vec![PortDescriptor {
-                port_id: "reply".into(),
-                value_kind: schema
-                    .reply_kind()
-                    .map_err(|e| format!("report Type: {e:?}"))?,
-                direction: PortDirection::Output,
-                temporal: PortTemporal::Flow { closes: true },
-                abnormal_kind: None,
-            }],
-            limits: CapabilityLimits {
-                max_active_instances: 1,
-                max_queue_items: 1,
-                max_queue_bytes: bounds.request_bytes.max(bounds.report_bytes),
-            },
-        };
-        kind.validate()
-            .map_err(|e| format!("Source-check Kind: {e:?}"))?;
+        let kind = Self::kind_for_bounds(schema, bounds)?;
         checkpoint()?;
         Ok(Self {
             kind,

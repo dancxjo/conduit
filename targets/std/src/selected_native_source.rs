@@ -5,7 +5,9 @@
 //! issued only for the current registry entry and the actual installed Play.
 mod definition;
 mod installation;
+mod preparation;
 use definition::validate_definition;
+pub use preparation::ImmediateSourcePreparationBudget;
 mod worker;
 use conduit_core::*;
 use conduit_kernel::NodeId;

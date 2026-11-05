@@ -19,7 +19,6 @@ pub(crate) struct BaseBackingReservation {
     pub(super) binding: ResourceBinding,
 }
 impl BaseBackingReservation {
-    #[cfg(all(target_os = "linux", feature = "linux-display"))]
     pub(crate) fn matches_ledger(&self, ledger: &KernelResourceLedger) -> bool {
         self.identity == ledger.identity
             && ledger.pools.iter().any(|pool| {

@@ -5,13 +5,13 @@ impl crate::StdHost {
     pub(super) fn stage_native_source(
         &self,
         definition: &NativeSourceDefinition,
-        worker_bytes: Option<u32>,
+        backing_bytes: Option<u32>,
     ) -> Result<(BaseRegistry, HostAdvertisement, KernelResourceLedger), String> {
         self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() || self.native_source.is_some() {
             return Err("native Source installation requires an idle empty slot".into());
         }
-        validate_definition(definition, &self.advertisement, worker_bytes)?;
+        validate_definition(definition, &self.advertisement, backing_bytes)?;
         let mut registry = self.base_registry.clone();
         if let Some(previous) = registry
             .entries()

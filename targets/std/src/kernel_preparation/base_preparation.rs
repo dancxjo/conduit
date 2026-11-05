@@ -1,11 +1,12 @@
 //! Conservative temporary custody of the remaining authored Base memory pool.
 //! This is accounting, not allocator containment or whole preparation-peak proof.
 use super::{BaseBackingReservation, KernelResourceLedger};
-use conduit_core::{
-    BaseInstanceId, BaseRegistry, HostAdvertisement, ResourceBinding, ResourcePoolId,
-};
+use conduit_core::ResourceBinding;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+use conduit_core::{BaseInstanceId, BaseRegistry, HostAdvertisement, ResourcePoolId};
 
 impl KernelResourceLedger {
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
     pub(crate) fn reserve_base_preparation_ceiling(
         &mut self,
         host: &HostAdvertisement,
