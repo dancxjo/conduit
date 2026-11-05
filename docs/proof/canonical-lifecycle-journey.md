@@ -6085,3 +6085,32 @@ PR #6784's exact-head Candidate 42100712059 completed successfully. Exact head
 bd156d9f93 was merged, and GitHub confirms merge
 `e7778b4221a727bcf7d0d0883c6a43d7826df11b`. This is the small prospective-identity
 prerequisite only; it does not deliver the branch-local owner/MCU integration.
+
+### Recovery-enabled Green image qualification
+
+Ordinary Make built the explicitly delegated Green profile from
+`9ed35eddc91b541e3a56e4f48aebb033ecbd718a`, including the retained-input
+build-bound recovery fix. The release build passed with six warnings. Independent
+ELF section accounting measures 1,064,932 flash-load bytes (+96) and 117,360
+static RAM bytes (-64), including the unchanged 49,152-byte heap arena. The
+152,976-byte linked stack gap is not measured stack high-water.
+
+The 2,129,920-byte application UF2 has SHA-256
+`c75cf69aac25a103ce68198dc8a8586bc4bf3eca7390d236f41f2db8fd940ee7`;
+the ELF has SHA-256
+`a0f2e94664c004841f6e632b0a551bce4cb0f1542599ce96b403d3811200f68e`.
+Both match Make's manifest. All 4,160 UF2 pages have valid framing, ordered
+indices and unique addresses, ending at 0x10104000 below the bootstrap sector.
+Configuration remains `sha256:9c159217718c0fc9acffe8452b67514048446c8652f7ed730609a9ccac385db4`;
+the new resolved IMAGE is
+`image:sha256:236ea5f29378a47ed2628d25c138042e63019a70064e5254e9f7e8b31feb522f`.
+Artifacts, qualification JSON and build log remain in ignored
+`target/rp2040-retained-recovery-9ed35eddc9`; the prior installed ELF was preserved
+before the cache output changed.
+
+This is compilation and artifact qualification, not physical recovery or Play
+proof. Green was not flashed and continues its existing diagnostic sensing and
+display. A matching ordinary Body-made Seed and current retained-member bootstrap
+are required before deployment. The recovery patch cannot yet be reviewed alone
+against dev: its receiving firmware and ingress harness are still delivery-branch
+prerequisites. No unrelated historical subtree was added to a PR.
