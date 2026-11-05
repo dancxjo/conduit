@@ -121,3 +121,6 @@ mod executable;
 mod parent;
 mod prepared;
 pub use parent::{SourceCheckProcessFailure, SourceCheckProcessOutput, SourceCheckProcessWorker};
+
+mod source;
+pub use source::{OwnedSourceCheckInput, SourceFileRefusal};

@@ -4139,3 +4139,40 @@ The Source checker continues to parse/check inside the admitted analysis boundar
 There is no new Body mutation, installed authoring action, device update or
 implicit Source authority. This removes an unnecessary preparation workspace so
 Root can bind a captured Source resource before invoking the compiler.
+
+
+### Capture selected Source through a real resource descriptor (5 November 2026)
+
+The std preparation boundary now consumes a preselected readable File and freezes
+its bounded UTF-8 bytes in `OwnedSourceCheckInput`. Its private payload has no
+path entrance, mutable byte access, deserializer or grant constructor. It derives
+content hashes from the actual captured bytes; owner/generation/context labels
+remain descriptive. Root still owns resource selection, generation policy, file
+IO admission, memory and Host authority. This is neither a Body-membership token
+nor an installed authoring action.
+
+Capture seeks the actual descriptor, checks a regular finite extent and uses one
+fixed byte buffer with an overflow sentinel. Changed extent, oversize, invalid
+UTF-8 and IO errors refuse distinctly without enlarging storage or hiding a
+retry loop. The existing bounded worker consumes the retained capture and still
+checks its selected executable and actual child context. No request label can
+cause another resource to be opened. Filesystem publication/atomicity and IO
+latency/cancellation remain the caller's selected resource obligations.
+
+Four acquisition tests cover an already unlinked real descriptor, empty and
+unfinished UTF-8 Source, invalid scope before reading/seeking, nonregular,
+oversized and malformed content, contrary extent evidence and interruption.
+The checked IMAGE test now captures both its valid and invalid Source from real
+selected descriptors inside the paid preparation factory, runs the actual child,
+compares direct canonical results, and executes the prepared replies through the
+same admitted Body kernel. Completion/cancellation keep their zero measured
+post-start allocation assertions. All 17 product process tests pass. Strict
+all-target Plot/product/std Host Clippy and the portable Plot component check
+pass as recorded above.
+
+This replaces manually assembled test input in that actual resource-to-compiler
+path; it does not finish ordinary installed Body Source-policy dispatch, an
+interactive authoring tool, Seed fabrication or device acceptance. No installed
+service or device changed. Before the build, 1,357,526,744 bytes of verified
+inactive generated stripped test executables were reclaimed; sources, private
+state, active caches and installed products were preserved.

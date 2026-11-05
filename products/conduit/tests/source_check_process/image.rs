@@ -149,6 +149,7 @@ fn run_image_case(source: &str) {
         .unwrap();
     profiles.insert_kind(kind).unwrap();
     let mut worker = conduit::source_check_worker::from_configuration(&checked).unwrap();
+    let selected_file = source_file(source);
     // SAFETY: Fixture owns this exact Source snapshot and explicit Host/Boot
     // grant; the actual bounded child is reaped before immutable provider return.
     // Caller-owned schema/Root metadata has separate preparation custody.
@@ -161,8 +162,23 @@ fn run_image_case(source: &str) {
             definition,
             budget(),
             move || {
+                let selected =
+                    conduit_std_host::source_check::process::OwnedSourceCheckInput::from_file(
+                        selected_file,
+                        bounds().request_bytes as usize,
+                        &input.owner,
+                        input.generation,
+                        &input.request.entry,
+                        input.request.context.clone(),
+                    )
+                    .map_err(|e| format!("selected Source capture: {e:?}"))?;
+                if selected.request() != &input.request {
+                    return Err(
+                        "selected Source capture differs from its retained reference".into(),
+                    );
+                }
                 let output = worker
-                    .prepare(&input, &RunControl::default())
+                    .prepare_selected_source(&selected, &RunControl::default())
                     .map_err(|e| format!("{e:?}"))?;
                 if output.canonical_bytes() != expected {
                     return Err("actual compiler differs from direct canonical reference".into());
@@ -419,4 +435,25 @@ impl conduit_std_host::body_execution::BodyForeOutputAdapter for BoundedBodyCapt
         self.calls += 1;
         Ok(())
     }
+}
+
+// A real selected resource, unlinked before preparation. No pathname survives
+// for the worker or packet labels to reopen or replace.
+fn source_file(source: &str) -> std::fs::File {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let path = std::env::temp_dir().join(format!(
+        "conduit-image-source-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
+    let mut file = std::fs::OpenOptions::new()
+        .create_new(true)
+        .read(true)
+        .write(true)
+        .open(&path)
+        .unwrap();
+    file.write_all(source.as_bytes()).unwrap();
+    std::fs::remove_file(path).unwrap();
+    file
 }
