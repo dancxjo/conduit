@@ -194,7 +194,7 @@ pub(super) fn retire(
         .prepare_receipt_retirement()
         .map_err(|e| format!("admission retirement: {e:?}"))?
     else {
-        return Err("admission receipt capacity has no superseded evidence".into());
+        return Err("admission-receipt-capacity-exhausted".into());
     };
     let installation = super::read_installation(&root.join("installation.json"))?;
     let (next, custody) = prepare(root, &installation.host_id, manager, &selection)?;

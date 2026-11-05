@@ -38,6 +38,8 @@ mod continuing;
 #[path = "execution_retention.rs"]
 mod execution_retention;
 pub(crate) use continuing::RunWorker;
+#[path = "admission_retirement.rs"]
+mod admission_retirement;
 mod birth;
 #[path = "clock_interval.rs"]
 mod clock_interval;
@@ -47,8 +49,6 @@ mod direct_spoken_route;
 mod member_leave;
 #[path = "member_return.rs"]
 mod member_return;
-#[path = "admission_retirement.rs"]
-mod admission_retirement;
 #[path = "planning.rs"]
 mod planning;
 pub(crate) use direct_spoken_route::DirectSpokenStart;
