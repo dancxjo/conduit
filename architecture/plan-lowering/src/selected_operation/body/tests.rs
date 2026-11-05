@@ -2,8 +2,13 @@ use super::*;
 use alloc::vec;
 use conduit_body::{Body, BodyPlotPlan, ResidentPlot};
 use conduit_core::*;
-#[path = "../../../../core/tests/common/sealed_state.rs"]
-mod common;
+mod common {
+    use alloc::{vec, vec::Vec};
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../core/tests/common/sealed_state.rs"
+    ));
+}
 fn fixture() -> (
     Wake,
     BodyPlan,
