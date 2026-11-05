@@ -1,4 +1,4 @@
-//! Exact planning for the installed owner's retained Source and live Host.
+//! Exact planning for retained Source and observed current member equipment.
 use super::{debug, Owner};
 use conduit_body::{BodyPlotPlan, BodyState, BodyWorkset, ResidentPlot};
 use conduit_core::{
@@ -89,7 +89,7 @@ impl Owner {
         if let Some(partition) = self.shipped_creche_partition(plot, resident)? {
             return Ok(partition);
         }
-        let hosts = [self.host.advertisement().clone()];
+        let hosts = self.planning_hosts();
         // Ordinary planning does not attach child Plans for scan/fold/make.
         // Refuse before sealing a deceptively runnable parent-only Body Plan.
         if !plot.expanded.activations.is_empty() {
@@ -97,7 +97,13 @@ impl Owner {
         }
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
-        let plan = conduit_planner::plan_expanded_authoring_with_options(
+        let limits = conduit_planner::default_expanded_connection_limits(
+            &plot.expanded,
+            &hosts,
+            &placements,
+        )
+        .map_err(debug)?;
+        let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
             plot,
             &hosts,
             &placements,
@@ -111,6 +117,7 @@ impl Owner {
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
+            &limits,
             &BTreeMap::new(),
         )
         .map_err(debug)?;

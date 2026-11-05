@@ -35,6 +35,20 @@ impl Owner {
         }
     }
 
+    /// Local offers keep the ordinary planner's first-choice position. Remote
+    /// equipment is evidence only; this creates no Lines or preparation rights.
+    pub(super) fn planning_hosts(&self) -> Vec<HostAdvertisement> {
+        let local = self.host.advertisement();
+        let mut hosts = vec![local.clone()];
+        hosts.extend(
+            self.current_host_offers
+                .current_hosts(self.session.evidence())
+                .filter(|host| host.host_id != local.host_id)
+                .cloned(),
+        );
+        hosts
+    }
+
     /// Bounded inspection avoids copying every member's complete catalog into
     /// each owner control response. These counts do not assert Play readiness.
     pub(super) fn current_offer_summary(&self) -> Vec<serde_json::Value> {

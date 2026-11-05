@@ -1101,6 +1101,8 @@ mod member_leave;
 #[path = "tests/member_presentation.rs"]
 mod member_presentation;
 
+#[path = "tests/member_planning.rs"]
+mod member_planning;
 #[path = "tests/member_return.rs"]
 mod member_return;
 

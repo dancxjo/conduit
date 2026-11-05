@@ -4742,3 +4742,54 @@ Strict installed CLI binary/test Clippy, formatting and the shared Body's
 `thumbv6m-none-eabi` no-default-features check pass. Process-aware package-native
 cleanup recovered 5.5 GiB from the inactive isolated review cache; active outputs,
 installed releases, source, Seeds, credentials and proof logs were preserved.
+
+
+### 2026-11-05: Plan with current member equipment and fit finite default queues
+
+The installed non-activation planner now considers the exact current member
+observations retained by the shared registry. The local Host keeps the first
+position in ordinary default selection. Each proposed fragment still passes
+Body membership checks. A foreign fragment cannot run through the local owner:
+`remote-fragment-preparation-unavailable` preserves the unstarted proposal.
+Neither membership nor this planning inventory creates a Line. A checked
+seventeen-operation chain exceeds the local Back's sixteen instances; without
+an actual Line, its cross-Host Cord refuses before a Wake is published.
+
+The owner previously supplied an unconditional four-item default queue to every
+Cord. A one-item Back therefore refused otherwise valid default work. The
+planner already derives defaults bounded by both selected Backs and checked
+value contracts. That calculation is now a reusable entrance consumed by the
+owner; explicit required capacities retain strict refusal. The positive case
+admits one item/eight bytes, while the explicit four-item requirement refuses.
+No Host pool or resource grant is enlarged.
+
+The vertical exposed two more installed-path omissions. The product Source
+loader now includes the existing value-primitive semantic catalog, without
+installing any provider. The shared Body scheduler now completes the existing
+clamp, scale and deadband Host Calls through their actual prepared Backs.
+Transforms are retained during preparation and checked against the exact Kind;
+both single-Plot and Body execution use those prepared values rather than
+reparsing Plan configuration during Play. No separate scheduler or runtime
+configuration cache was added.
+
+A bounded, acknowledging typed Fore receives the three numerical results under
+real CPU Body Plays with exact Body/Plan/Play identity. An unconnected value is
+not an implicit consumer: the admission-only queue case deliberately does not
+claim successful execution. Startup I64 scalar fields use raw microunits; the
+execution assertions use that existing contract rather than a new unit alias.
+This is installed planning and CPU execution evidence, not physical MCU Play,
+remote preparation, durable environmental recording or the shared graph. Live
+services and firmware remain unchanged while the review lanes are occupied.
+
+
+Qualification passes: fifteen installed planning tests, eleven Source-loader
+tests, three leave fixtures, sixteen existing math/Back tests, eight selected
+Body IMAGE-memory tests and two shared canonical planner tests. The five new
+member-planning tests also pass after explicit Body/Plan/Wake identity assertions.
+These filters overlap; their counts are not a distinct-case total. Strict CLI,
+Std Host and planner library/test Clippy plus formatting pass. The graphical
+construction baseline repair #6768 passed Candidate across all five ConduitOS
+targets and merged at `c95554726a3b`; its full Integration `42014241636` is still
+running at this checkpoint. The scalar review #6767 remains held for that gate.
+Process-aware cleanup recovered another 5.0 GiB of inactive review build outputs,
+preserving active build caches, releases, Seeds, credentials and proof logs.

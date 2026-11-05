@@ -250,6 +250,7 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_semantic_catalog::install_state_toggle_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profiles)?;

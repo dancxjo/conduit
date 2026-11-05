@@ -511,6 +511,15 @@ impl Owner {
         {
             return Err("installed Body Play has no activation ingress or egress".into());
         }
+        if proposed
+            .plan
+            .plots
+            .iter()
+            .flat_map(|plot| &plot.plan.fragments)
+            .any(|fragment| fragment.host_id != self.host.advertisement().host_id)
+        {
+            return Err("remote-fragment-preparation-unavailable".into());
+        }
         let control = RunControl::default();
         let mut timer = DeadlineTimer {
             until: Instant::now() + Duration::from_millis(maximum_millis),
