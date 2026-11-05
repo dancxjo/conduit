@@ -185,6 +185,12 @@ pub(super) fn serve(
             refreshes < MAX_FACE_REFRESHES,
         )? {
             show_ack::ShowGate::Accepted => {}
+            show_ack::ShowGate::Stale => {
+                // A stale acknowledgement consumes existing refresh capacity.
+                // It grants no action, replacement token or longer lifetime.
+                refreshes += 1;
+                continue;
+            }
             show_ack::ShowGate::Refreshed(next) => {
                 grant = *next;
                 refreshes += 1;
