@@ -4515,3 +4515,59 @@ unchanged. This checkpoint is local Linux proof. The Core prerequisite remains
 in #6765, with the owner follow-up retained on the delivery branch pending the
 review lane. Browser pressure, deployment and resumption of the live Crèche
 journey remain acceptance work; no full journey or shared graph is claimed.
+
+
+### 2026-11-05: Live custody recovery restores the browser-to-Seed journey
+
+The focused browser service test completes 33 genuine signed returns through the
+same owner custody path, preserving its Part/key and crossing the unchanged hot
+bound. The existing twelve browser service regressions and strict product
+Clippy pass. A supported release attempt exposed a missing native SDK-directory
+field in the dependency-light dispatcher; forwarding that ordinary option now
+passes seven focused tests and strict dispatcher Clippy. The checked x86_64
+release then built and sealed successfully at source `4e7a4205c5`.
+
+Package-native cleanup reclaimed 2.5 GiB of inactive Conduit outputs after a
+process-reference inventory found no active cache consumers. Installed releases,
+credentials, private history, source and evidence were preserved. The live
+Forebrain service was stopped, its non-release state archived privately, and the
+new verified bundle installed through `host service install --no-start` before
+normal systemd activation. Its Host, Hamm Body, checked configuration, control
+token, 16 Parts, 15 keys and all 32 receipts were preserved across that update.
+
+The original retained browser identity returned as its original Part. The
+ordinary owner transaction retained 13 superseded receipts (7106 encoded bytes),
+leaving 20 hot receipts after the new return, with all Parts and keys unchanged.
+The actual available browser Show reached the Crèche editor with no JavaScript
+errors. A second real owner Boot preserved the cold bytes exactly (SHA-256
+`f3bfe6d360b7eac344f5e0344a410f4f1c81009f878b05d04b306362be0da2c7`),
+all 20 current receipts and the keys. The subsequent browser return also worked.
+Private backups include both the pre-install and post-custody state.
+
+The owner and browser reported the same 23 Crèche actions. Check is reachable
+under the generic Mask's collapsed Body section; it was not missing from the
+Face. Two driver selector errors occurred before any Check dispatch. A new join
+attempt during the preceding finite Play correctly refused body-play-active;
+the final driver observed the at-rest boundary before opening a new window,
+used the visible disclosure and dispatched Check once through the actual Show.
+
+That GUI Check completed the admitted Crèche Play and presented Prepared Host
+artifact in the Body Face. Ordinary `body export-seed` exported and byte-verified
+a 1,976,798-byte private ZIP with host.uf2 and conduit-spore.json. Its Seed identity
+is `spore:sha256:d35701b296e592d491a46b2802dd47d2bbea5657a4394663f9480f549794269e`,
+IMAGE `image:sha256:34c76a499ead9662e3d2b85b11682ddf9ebf86a41350a01c0c349c658dfd3e66`,
+target `conduitos/thumbv6m/pico-w`, configuration pico-w-house-green, and the same
+Hamm Body. ZIP SHA-256 is
+`47b91a55a3079aa9b62995496f526ad47c08fe2a7461d7a877814c08939e6345`.
+Its reviewed firmware payload retains source `5b26290623f9581cecde56dacefef7b9eb69da5f`;
+the newly produced Body-bound Seed is not a claim of freshly rebuilt MCU code.
+The package's private invitations remain private.
+
+Actual editor, expanded controls and prepared-artifact screenshots, public Face
+reports and raw driver outcomes are retained under ignored target captures;
+release, export receipts, Seed and state archives remain in private custody.
+No MCU was flashed. Qualification against the connected Green UID, deployment,
+Boot, continuing local work and exact membership remain the next physical gate.
+The shared recorder/graph and full journey remain unfinished. PR #6762 passed
+Candidate, merged into dev, and was absorbed while preserving branch-local
+scanout/carrier work; #6765 remains under review.
