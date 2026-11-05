@@ -5861,3 +5861,53 @@ This is reusable authoring preparation, not installed owner delivery. The live
 owner still needs to invoke this factory with its real current Body Plan/Play,
 approve the exact resulting bytes and use the existing attributed exchange.
 The MCU firmware and its finite grants were not changed for this step.
+
+
+### Owner proposal custody reaches the workset generator
+
+The installed owner now has `prepare_remote_body_workset`, which invokes the
+complete-workset generator using its own retained lifecycle proposal. It first
+requires its original idle Host, an independently current admitted member offer,
+and an unstarted checked proposal. It chooses the containing fragment from that
+proposal, derives rich containment evidence, and returns the canonical document
+with its prospective Body Play identity. No approval bytes or replacement Plan
+are accepted from a caller. The selected implementation resolver remains an
+explicit input; an unavailable registry refuses instead of substituting a Back.
+
+The Host's existing prospective Body Play identity calculation is exposed as
+`prospective_body_play` and is shared by ordinary execution. It validates the
+same Wake/Plan and finite sequence without consuming it or issuing a grant.
+The focused existing complete-workset execution test now checks that repeated
+inspection consumes nothing and that the actual successful kernel report uses
+exactly that identity. This small three-file prerequisite is isolated on current
+dev in PR #6784, head bd156d9f93. The owner integration remains on the delivery
+branch; exact isolated-branch hosted qualification is still pending.
+
+A real owner/current-member planning fixture reaches the implementation resolver
+with the retained Plan, Source and prospective Play, then honestly refuses its
+missing native registry. Missing proposal, unobserved generation and withdrawn
+member refuse before resolution. Resolver refusal preserves the biography,
+proposal, sequence and absence of execution. This is CPU owner integration and
+refusal evidence, not successful native projection/delivery. Both focused tests,
+product binary checking and strict product binary Clippy pass on the combined
+delivery checkout. Logs remain /tmp/conduit-owner-workset-{check,test,clippy}.log
+and /tmp/conduit-owner-prospective-play-test.log. The evidence-retention checker
+passes when called directly; the cached xtask does not expose the documented
+`ci pipeline` entrance, so that unsupported command is not counted as proof.
+
+The new owner method is not yet dispatched by a Face/control operation. Current
+provider implementation resolution, exact command approval/signing, bounded USB
+carriage, receiver installation/Start and physical bus handover remain required.
+The live owner release and Green firmware were not changed in this step. Green
+continued through 44 samples and 654 acknowledged frames, membership true and
+sensor/display errors false.
+
+Environment inventory verified the merged #6782 review tree clean and published,
+with no process, descriptor or mapping using its separate cache. Cargo removed
+4.8 GiB of regenerable review build output; source and proof logs were retained.
+Three older inactive source-mapped executable generations recovered another
+740,326,600 bytes. The inactive selected-release cache lacked CACHEDIR.TAG, so
+Cargo clean refused it. After independent inventory/ownership checks, only 974
+compiler libraries/metadata/object files were removed (3,533,559,482 bytes);
+executables, build scripts, manifests, installed releases and reviewed Seed
+copies were preserved. Root headroom afterward was about 3.8 GiB.

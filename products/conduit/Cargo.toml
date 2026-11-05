@@ -24,6 +24,7 @@ conduit-ai = { path = "../../semantics/ai" }
 conduit-core = { path = "../../architecture/core" }
 conduit-body = { path = "../../architecture/body" }
 conduit-body-make = { path = "../../make/body" }
+conduit-embedded-build = { path = "../../make/embedded-build" }
 conduit-birth-plot = { path = "../../plots/birth" }
 conduit-chat = { path = "../../semantics/chat", features = ["plot-catalog"] }
 conduit-plot = { path = "../../architecture/plot" }

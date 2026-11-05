@@ -14,6 +14,24 @@ use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::io::Write;
 use std::path::Path;
 
+impl StdHost {
+    /// The next identity for this exact checked Body proposal. This neither
+    /// consumes the sequence nor reserves resources. A caller must retain
+    /// exclusive Host custody and recheck before admitting or starting work.
+    pub fn prospective_body_play(
+        &self,
+        wake: &Wake,
+        plan: &BodyPlan,
+    ) -> Result<BodyPlayIdentity, String> {
+        plan.validate_for(wake)
+            .map_err(|error| format!("Body Plan validation: {error:?}"))?;
+        self.next_kernel_play_sequence
+            .checked_add(1)
+            .ok_or("Body Play sequence exhausted")?;
+        Ok(BodyPlayIdentity::bind(plan, self.next_kernel_play_sequence))
+    }
+}
+
 mod parsec_instruction_observation;
 pub use parsec_instruction_observation::ParsecInputInstructionObservation;
 #[path = "body_execution/parsec_instruction_effect_observation.rs"]

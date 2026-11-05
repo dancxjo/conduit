@@ -81,10 +81,7 @@ impl StdHost {
             return Err("selected IMAGE owned-memory profile supports qualified finite local Backs only; keyboard/activation/BodyTime attachments unsupported".into());
         }
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
-        request
-            .plan
-            .validate_for(request.wake)
-            .map_err(|error| format!("Body Plan validation: {error:?}"))?;
+        let prospective_play = self.prospective_body_play(request.wake, request.plan)?;
         let admitted_clock_quality = if let Some(requirement) = &request.plan.body_time_requirement
         {
             let correlation = correlation.ok_or_else(|| {
@@ -123,7 +120,6 @@ impl StdHost {
         } else {
             self.kernel_resources.preflight_image_workset(fragments)?;
         }
-        let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
         let mut prepared_lifecycle = if selected_memory {
             Some(image::prepare_lifecycle(
                 &request,

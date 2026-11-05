@@ -67,6 +67,8 @@ mod member_offers;
 mod member_return;
 #[path = "planning.rs"]
 mod planning;
+#[path = "remote_preparation.rs"]
+mod remote_preparation;
 pub(crate) use direct_spoken_route::DirectSpokenStart;
 #[path = "llm_spoken_route.rs"]
 mod llm_spoken_route;

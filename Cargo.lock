@@ -1593,6 +1593,7 @@ dependencies = [
  "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-data",
+ "conduit-embedded-build",
  "conduit-face",
  "conduit-finance",
  "conduit-host-browser-make",

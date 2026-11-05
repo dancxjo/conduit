@@ -306,3 +306,77 @@ fn prepared_scalar_math_completes_one_body_play_through_an_acknowledged_fore() {
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+
+#[test]
+fn remote_projection_uses_retained_proposal_and_current_member_without_starting() {
+    use std::cell::Cell;
+    let (mut owner, root) = owner_fixture_with_host(minimal(StdHostComposition::minimal()));
+    let source = crate::plot_source::parse(SOURCE).unwrap();
+    let checked = source.expand_entry_for_authoring().unwrap();
+    let (credential, _, remote) = admit_with_key(&mut owner, &root, "host/remote-projection");
+    let called = Cell::new(false);
+    assert!(owner
+        .prepare_remote_body_workset(&remote, 4096, |_| {
+            called.set(true);
+            Err(conduit_embedded_build::BodyFragmentGenerationRefusal::Resources)
+        })
+        .is_err());
+    assert!(
+        !called.get(),
+        "no retained proposal must refuse before resolving"
+    );
+    owner.plan_with_source(&source, &checked).unwrap();
+    let before = owner.session.evidence().clone();
+    let proposal = owner.session.realization().unwrap().clone();
+    let prospective = owner
+        .host
+        .prospective_body_play(&proposal.wake, &proposal.plan)
+        .unwrap();
+    let refused = owner
+        .prepare_remote_body_workset(&remote, 4096, |scope| {
+            called.set(true);
+            assert_eq!(scope.plan(), &proposal.plan);
+            assert_eq!(scope.play(), &prospective);
+            assert_eq!(scope.fragment().host_id, remote.host_id);
+            assert_eq!(
+                scope.fragment().source_document_id,
+                checked.expanded.source_document_id
+            );
+            // This fixture has no selected native implementation registry. Refuse
+            // rather than turn the ordinary hosted Face provider into an MCU Back.
+            Err(conduit_embedded_build::BodyFragmentGenerationRefusal::Resources)
+        })
+        .err()
+        .unwrap();
+    assert!(called.get());
+    assert!(refused.contains("Resources"));
+    assert_eq!(owner.session.evidence(), &before);
+    assert_eq!(owner.session.realization(), Some(&proposal));
+    assert_eq!(
+        owner
+            .host
+            .prospective_body_play(&proposal.wake, &proposal.plan)
+            .unwrap(),
+        prospective
+    );
+    assert!(!owner.host.is_playing());
+    assert!(owner.last_execution.is_none());
+    called.set(false);
+    let mut stale = remote.clone();
+    stale.offer_generation.0 += 1;
+    assert!(owner
+        .prepare_remote_body_workset(&stale, 4096, |_| {
+            called.set(true);
+            panic!("unobserved member reached resolver")
+        })
+        .is_err());
+    assert!(!called.get());
+    owner.lull().unwrap();
+    owner.member_leave(&root, &credential).unwrap();
+    assert!(owner
+        .prepare_remote_body_workset(&remote, 4096, |_| {
+            panic!("withdrawn member reached resolver")
+        })
+        .is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}
