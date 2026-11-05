@@ -8,6 +8,7 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
     let mut configuration = None;
     let mut platform = None;
     let mut source_identity = None;
+    let mut native_library_directories = Vec::new();
     let mut json = false;
     let mut quiet = false;
     while let Some(argument) = values.next() {
@@ -15,6 +16,13 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
             "--locked" => {}
             "--json" => json = true,
             "--quiet" => quiet = true,
+            "--native-library-directory" => {
+                native_library_directories.push(PathBuf::from(
+                    values
+                        .next()
+                        .ok_or("missing --native-library-directory path")?,
+                ));
+            }
             "--configuration" => {
                 configuration = Some(PathBuf::from(
                     values.next().ok_or("missing --configuration path")?,
@@ -57,7 +65,11 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
         platform,
         &source_identity,
         configuration.as_deref(),
-        &host_release::ReleaseOptions { json, quiet },
+        &host_release::ReleaseOptions {
+            json,
+            quiet,
+            native_library_directories,
+        },
     )
     .map_err(|error| error.to_string())
 }
@@ -117,5 +129,14 @@ fn checked_configuration_is_accepted_before_output_validation() {
     assert_eq!(
         run_host_release(&["--configuration".into(), "pi.host.conduit".into()]).unwrap_err(),
         "host release requires --output"
+    );
+}
+
+#[cfg(test)]
+#[test]
+fn native_library_directory_requires_a_path() {
+    assert_eq!(
+        run_host_release(&["--native-library-directory".into()]).unwrap_err(),
+        "missing --native-library-directory path"
     );
 }
