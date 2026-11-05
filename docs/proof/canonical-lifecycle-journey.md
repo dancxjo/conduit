@@ -5529,3 +5529,64 @@ proofs. The native handler still reports resources not reserved: generating
 current local observation evidence, charging complete reservation bookkeeping,
 joining the scope to that handler, and retaining an authorized installed Play
 are next. No Root grant was enlarged and no device/service was changed.
+
+
+### Actual receiver: scoped reservation within the construction envelope
+
+Source `1f57ca20bd88c7c0ffdf3ca0c2de522ca4890104` joins the actual RP2040
+receiver to the existing Core reservation owner. After the original signed
+complete-set check and unbound kernel allocation, Root observes only its own
+initialized private computation pool under exclusive inventory custody. A
+Boot/attempt-scoped observation Sign is retained as the admission basis. No
+physical bus readiness, Base capability possession or execution is inferred.
+
+The Body bridge now computes a conservative requested-byte bound before any
+reservation request allocation. It sums all temporary request buffers, copied
+identities/Signs, Core staging and new owner table backing. Root charges that
+plus actual kernel payload and the local observation's owned strings to the
+existing 16,384-byte Source construction envelope. No installed grant is enlarged.
+Caller input, coroutine/stack storage, existing inventory and allocator overhead
+remain separate; this is not a complete runtime memory-capability grant.
+The CPU two-fragment case uses a 15,586-byte kernel/bookkeeping bound plus 133
+observation bytes. A one-byte-short envelope refuses before reservation. Each
+of five observation-copy and 25 reservation allocations is independently fault
+injected, in addition to the earlier two kernel-storage failure points.
+
+Successful preparation reports `reserved-workset`, `resources: attempt-reserved`
+and `start: not-installed`. The response holds the scope and unbound kernels;
+completion, failed delivery, original-deadline expiry and pending cancellation
+release only that unstarted attempt. The busy receiver still refuses before
+consuming another command; acknowledged busy-input retention and actual native
+retirement are not newly proved. No prepared receipt or Play is installed.
+
+Moving challenge issuance into the same deadline future ends its identity borrow
+before reservation without copying the advertisement. A first async observation
+version exceeded the unchanged 2 KiB mock ingress frame check. Synchronous
+observation/reservation preparation removes those temporaries before suspension;
+the check now passes. The separate actual-storage pending CPU case is 1,016
+bytes. Its 3,504-byte borrowed input and issuer/context remain separate. Six
+ingress tests, two construction-budget tests, delegated resident tests, strict
+owning embedded-build/RP2040 library/test Clippy and formatting pass. The ingress
+transport/validator is mocked; the separate emitted-code test uses the real Root
+constructor and actual Core reservations. Neither is physical execution proof.
+
+The current-source thumbv6m firmware links through the retained Make entrance:
+1,063,216 loadable flash bytes, 117,448 static RAM bytes including the unchanged
+49,152-byte heap arena, and a 152,888-byte linked stack gap (not stack high-water).
+The 2,126,848-byte UF2 has SHA-256
+`574fa3c76b3bf6c4a8815528167f98f3ca319e912702c7b2c1fde5ebda832b78`;
+ELF SHA-256 is
+`1fd0c7f44a9c8305c548e99fe00432aed076d4fd54b349151fec59126b29f240`.
+Six inspection/dead-code warnings remain; no strict firmware warning claim is
+made. The reference configuration retains policy None and records membership
+and local sampling Plan proof false. The artifact was not flashed.
+
+Exact output and checksummed raw logs are under ignored
+`target/rp2040-funded-reservation-1f57ca20bd` and
+`target/funded-reservation-proof-1f57ca20bd`. PR #6778's isolated Core prerequisite
+still awaits Candidate admission (run 42077017833 last observed in progress).
+The full #6770/#6341 obligations remain open: independent memory/authority
+admission, retained installation input, actual binding/Start, capability custody,
+late-operation retirement and physical bus handover. Green's unchanged running
+firmware reports 1,164 successful samples and 17,450 acknowledged frames without
+sensor/display faults; that remains diagnostic continuity, not a Body Play.
