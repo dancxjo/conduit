@@ -48,8 +48,8 @@ where
         drivers: [D; NODES],
         values: S,
         signs: E,
-    ) -> Result<alloc::boxed::Box<Self>, SchedulerError> {
-        match Self::prepare_boxed(
+    ) -> Result<alloc::boxed::Box<Self>, KernelPreparationError> {
+        Self::prepare_boxed(
             active_nodes,
             active_cords,
             node_specs,
@@ -59,13 +59,8 @@ where
             values,
             signs,
             usize::MAX,
-        ) {
-            Ok(prepared) => Ok(prepared.bind(drivers)),
-            Err(KernelPreparationError::Topology(error)) => Err(error),
-            Err(KernelPreparationError::Capacity { .. } | KernelPreparationError::Allocation) => {
-                alloc::alloc::handle_alloc_error(core::alloc::Layout::new::<Self>())
-            }
-        }
+        )
+        .map(|prepared| prepared.bind(drivers))
     }
 
     /// Validate topology and acquire physical storage before any Back transfer.

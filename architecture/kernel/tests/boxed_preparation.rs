@@ -104,3 +104,15 @@ fn binding_keeps_the_allocation_and_kernel_execution_retirement_releases_origina
         (1, 1, 1)
     );
 }
+
+#[test]
+fn allocating_entrance_propagates_allocation_refusal_and_cleans_its_owned_inputs() {
+    let drops = Rc::new(Drops::default());
+    let (result, cost) = allocation::observe(true, || bound(&drops));
+    assert_eq!(result.err(), Some(Error::Allocation));
+    assert_eq!((cost.requests, cost.allocations), (1, 0));
+    assert_eq!(
+        (drops.values.get(), drops.signs.get(), drops.drivers.get()),
+        (1, 1, 1)
+    );
+}

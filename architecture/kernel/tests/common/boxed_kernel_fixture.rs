@@ -135,3 +135,30 @@ pub fn prepare(
         ceiling,
     )
 }
+
+pub fn bound(drops: &Rc<Drops>) -> Result<Box<Kernel>, KernelPreparationError> {
+    let mut routes = FixedRoutes::<1, 0>::new(1);
+    routes.seal().unwrap();
+    let mut calls = FixedHostCallBindings::<0>::new(1);
+    calls.seal().unwrap();
+    Kernel::new_boxed_with_active_counts_and_host_calls(
+        1,
+        0,
+        [NodeSpec {
+            input_cords: [None],
+            maximum_step_fuel: 1,
+        }],
+        [CordSpec::inactive()],
+        routes,
+        calls,
+        [Driver(drops.clone())],
+        Values {
+            inner: FixedValueStore::new(1).unwrap(),
+            drops: drops.clone(),
+        },
+        Signs {
+            inner: FixedSignLog::new((16 * size_of::<KernelEvent>()) as u32).unwrap(),
+            drops: drops.clone(),
+        },
+    )
+}
