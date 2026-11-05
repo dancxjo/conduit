@@ -109,7 +109,19 @@ fn complete_source_workset_commits_reopens_and_replays_interrupted_publication()
         .unwrap();
     let replacement =
         WorksetSources::checked(&reduced, vec![(SOURCE.into(), "first".into())]).unwrap();
-    retain(&root, &reduced, &replacement).unwrap();
+    assert!(retain(&root, &reduced, &replacement)
+        .unwrap_err()
+        .contains("expected current revision"));
+    retain_inner(
+        &root,
+        &reduced,
+        None,
+        None.into(),
+        SourceUpdate::Revision(&replacement, &biography),
+        None,
+        &[],
+    )
+    .unwrap();
     let reopened = load(&root).unwrap().unwrap();
     assert_eq!(reopened.body_id, biography.body_id);
     assert_eq!(reopened.membership, biography.membership);
@@ -187,5 +199,97 @@ fn existing_complete_custody_cannot_be_silently_dropped_or_replaced_by_one_sourc
         .contains("conflicting"));
     transaction.source = None;
     assert!(validate_transaction(&root, &transaction).is_ok());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn stale_competing_or_foreign_revision_basis_cannot_replace_committed_state() {
+    let (root, biography, sources) = fixture();
+    retain(&root, &biography, &sources).unwrap();
+    let removed = crate::plot_source::parse(SOURCE)
+        .unwrap()
+        .expand_named_for_authoring("second")
+        .unwrap();
+    let removed = ResidentPlot::new(
+        removed.expanded.source_document_id,
+        removed.expanded.checked_plot_id,
+    );
+    let sign = conduit_core::SignId::from("remove-second");
+    let body = biography.body.remove_plot(&removed, sign.clone()).unwrap();
+    let mut next = biography.clone();
+    next.append_body_workload_events(body, &[(sign, 2)])
+        .unwrap();
+    let replacement =
+        WorksetSources::checked(&next, vec![(SOURCE.into(), "first".into())]).unwrap();
+    let before = fs::read(root.join("body/biography.json")).unwrap();
+    // A copied description changed outside the owner cannot substitute for its
+    // exact retained basis, even when Body/workset/revision labels still match.
+    let mut foreign = biography.clone();
+    foreign.friendly_name = "another retained owner view".into();
+    assert!(retain_inner(
+        &root,
+        &next,
+        None,
+        None.into(),
+        SourceUpdate::Revision(&replacement, &foreign),
+        None,
+        &[]
+    )
+    .unwrap_err()
+    .contains("stale owner"));
+    assert_eq!(fs::read(root.join("body/biography.json")).unwrap(), before);
+    retain_inner(
+        &root,
+        &next,
+        None,
+        None.into(),
+        SourceUpdate::Revision(&replacement, &biography),
+        None,
+        &[],
+    )
+    .unwrap();
+    let committed = fs::read(root.join("body/biography.json")).unwrap();
+    let committed_sources = fs::read(root.join(FILE)).unwrap();
+    // Another request approved against the original state has lost the CAS.
+    assert!(retain_inner(
+        &root,
+        &next,
+        None,
+        None.into(),
+        SourceUpdate::Revision(&replacement, &biography),
+        None,
+        &[]
+    )
+    .unwrap_err()
+    .contains("stale owner"));
+    // Unconditional complete publication also cannot rewind the new revision.
+    assert!(retain(&root, &biography, &sources)
+        .unwrap_err()
+        .contains("expected current revision"));
+    assert_eq!(
+        fs::read(root.join("body/biography.json")).unwrap(),
+        committed
+    );
+    assert_eq!(fs::read(root.join(FILE)).unwrap(), committed_sources);
+    assert!(!root.join("body/owner-transaction.json").exists());
+    // Once journaled, recovery completes the exact accepted write, rather than
+    // repeating the now-stale precondition after a partially installed commit.
+    let transaction = Transaction {
+        schema: "conduit.body/owner-transaction@1".into(),
+        biography: next.clone(),
+        installation: read_installation(&root.join("installation.json")).unwrap(),
+        last_execution: None,
+        execution_custody: None,
+        admissions: None,
+        admission_custody: None,
+        source: None,
+        workset_sources: Some(replacement),
+        archives: vec![],
+    };
+    write_json_atomic(&root.join("body/owner-transaction.json"), &transaction).unwrap();
+    fs::write(root.join(FILE), b"interrupted").unwrap();
+    recover(&root).unwrap();
+    assert_eq!(load(&root).unwrap().unwrap(), next);
+    assert_eq!(fs::read(root.join(FILE)).unwrap(), committed_sources);
     fs::remove_dir_all(root).unwrap();
 }

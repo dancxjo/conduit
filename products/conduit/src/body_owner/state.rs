@@ -19,6 +19,9 @@ use archive::{retain_archive_segments, validate_archive_segments, verify_retaine
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 pub(super) use workset_sources::checked as checked_workset_sources;
+#[allow(unused_imports)]
+// Source of CAS, not authorization; installed action remains separate.
+pub(super) use workset_sources::retain_revision as retain_workset_revision;
 #[allow(unused_imports)] // Owner revision action will select the complete transaction.
 pub(super) use workset_sources::retain_session as retain_session_with_workset_sources;
 use workset_sources::SourceUpdate;
@@ -269,6 +272,7 @@ fn retain_inner(
     archives: &[BodyBiographyArchiveSegment],
 ) -> Result<(), String> {
     recover(root)?;
+    source.validate_transition(root, biography)?;
     validate_archive_segments(root, biography, archives)?;
     source.validate(root, biography)?;
     if serde_json::to_vec(&last_execution)

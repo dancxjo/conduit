@@ -6216,3 +6216,30 @@ This is actual CPU service-worker/kernel evidence over fixture-established retai
 meaning, not capability-mediated adoption, a released installed product, physical
 MCU execution or live migration. No device or installed service changed. #6449's
 owner action/authority/CAS and #6770's receiver installation/Start remain next.
+
+### Expected-current workset CAS before journal publication
+
+The complete Source transaction now refuses an unconditional change or rewind of
+an already-retained workload. Its revision entrance borrows the exact prior
+biography, compares it with authoritative retained state after recovery and
+before preparing a new publication, and requires a changed, monotonically newer
+Lulled workset of the same Body. The caller must already hold the ordinary
+exclusive Body owner lock; this precondition does not provide cross-process
+locking, capability possession or authorization. The session entrance also
+refuses a current realization. Initial construction, unchanged-workset Source
+repair and ordinary metadata publication retain their existing paths.
+
+Twenty-one journal tests and two service-worker regressions pass; the final four
+Source-custody cases also pass after moving CAS ahead of archive preparation.
+Strict product binary/test Clippy passes. Tests establish that a matching staged
+revision commits, a competing or foreign prior snapshot refuses, unconditional
+rewind refuses without changing retained files, and interrupted publication
+replays the exact already-journaled update without trying to repeat its now-stale
+precondition. This is serialized owner-journal proof, not a multithreaded race
+or an installed authorized adoption demonstration. Logs remain in ignored
+`target/workset-revision-cas-20261105`.
+
+The guarded entrance is private Root machinery awaiting #6449's actual
+capability-mediated owner action, independent Source/catalog rechecks and selected
+Host/resource authority. A matching snapshot is not a grant. No Body, service or
+device was changed live; #6449 and MCU installation/Start remain unfinished.

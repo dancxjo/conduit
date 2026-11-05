@@ -94,6 +94,8 @@ pub(super) enum SourceUpdate<'a> {
     Single(Option<&'a [u8]>),
     #[allow(dead_code)] // Only the future authorized owner action may select this.
     Complete(&'a WorksetSources),
+    #[allow(dead_code)] // The installed owner action must supply current authority separately.
+    Revision(&'a WorksetSources, &'a BodyBiographyEvidence),
 }
 impl<'a> From<Option<&'a [u8]>> for SourceUpdate<'a> {
     fn from(value: Option<&'a [u8]>) -> Self {
@@ -104,13 +106,54 @@ impl SourceUpdate<'_> {
     pub(super) fn single(&self) -> Option<&[u8]> {
         match self {
             Self::Single(source) => *source,
-            Self::Complete(_) => None,
+            Self::Complete(_) | Self::Revision(_, _) => None,
         }
     }
     pub(super) fn workset(&self) -> Option<&WorksetSources> {
         match self {
             Self::Single(_) => None,
-            Self::Complete(sources) => Some(sources),
+            Self::Complete(sources) | Self::Revision(sources, _) => Some(sources),
+        }
+    }
+    /// Compare after journal recovery, before preparation or publication. The
+    /// foreground owner already holds its exclusive Body lock; this is a CAS
+    /// precondition, not a replacement for that lock or adoption authority.
+    pub(super) fn validate_transition(
+        &self,
+        root: &Path,
+        next: &BodyBiographyEvidence,
+    ) -> Result<(), String> {
+        match self {
+            Self::Single(_) => Ok(()),
+            Self::Complete(_) => {
+                if let Some(current) = load(root)? {
+                    if current.body.workset != next.body.workset
+                        || current.body.workload_revision != next.body.workload_revision
+                    {
+                        return Err(
+                            "complete Source replacement requires expected current revision".into(),
+                        );
+                    }
+                }
+                Ok(())
+            }
+            Self::Revision(_, expected) => {
+                let current = load(root)?.ok_or("workset revision requires a retained Body")?;
+                if &current != *expected {
+                    return Err("stale owner workset revision basis".into());
+                }
+                if next.body_id != current.body_id
+                    || next.body.state != conduit_body::BodyState::Lulled
+                    || current.body.state != conduit_body::BodyState::Lulled
+                    || next.body.workload_revision <= current.body.workload_revision
+                    || next.body.workset == current.body.workset
+                {
+                    return Err(
+                        "workset revision requires a new Lulled revision of the same Body".into(),
+                    );
+                }
+                Ok(())
+            }
         }
     }
     pub(super) fn validate(
@@ -174,6 +217,45 @@ pub(in super::super) fn retain_session(
     last_execution: Option<&serde_json::Value>,
     admissions: Option<&conduit_body::AdmissionManager>,
 ) -> Result<(), String> {
+    retain_selected_session(
+        root,
+        session,
+        SourceUpdate::Complete(sources),
+        last_execution,
+        admissions,
+    )
+}
+
+/// Exact-current journal transition only. Capability/Source/Plan authorization
+/// remains the owner action's responsibility; no request or copied ID grants it.
+#[allow(dead_code)]
+pub(in super::super) fn retain_revision(
+    root: &Path,
+    session: &mut BodyLifecycleSession,
+    expected: &BodyBiographyEvidence,
+    sources: &WorksetSources,
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+) -> Result<(), String> {
+    if session.realization().is_some() {
+        return Err("workset revision requires actual Play retirement".into());
+    }
+    retain_selected_session(
+        root,
+        session,
+        SourceUpdate::Revision(sources, expected),
+        last_execution,
+        admissions,
+    )
+}
+
+fn retain_selected_session(
+    root: &Path,
+    session: &mut BodyLifecycleSession,
+    source: SourceUpdate<'_>,
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+) -> Result<(), String> {
     let head = session
         .pending_archives()
         .last()
@@ -183,7 +265,7 @@ pub(in super::super) fn retain_session(
         session.evidence(),
         last_execution,
         admissions.into(),
-        SourceUpdate::Complete(sources),
+        source,
         None,
         session.pending_archives(),
     )?;
