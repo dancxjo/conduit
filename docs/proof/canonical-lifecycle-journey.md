@@ -4665,3 +4665,41 @@ Proactive process-aware cleanup recovered approximately 8.7 GiB from inactive
 isolated compiler caches. Active build outputs, installed releases, Seeds, keys,
 source and proof logs were preserved. Green continued diagnostic sampling and
 acknowledged redraw throughout the qualification and Threebee update.
+
+### 2026-11-05: Reuse resident backing across terminal kernel Plays
+
+The initialized resident library had an owned transfer entrance but no reusable
+execution loan. Moving a Back into a kernel also retains its vacant inline
+inventory slot. Shared Make output now lends the existing engine through a
+nominal, pointer-sized borrowed driver. Exact assignment checking still precedes
+the loan. Kernel retirement returns it; explicit finish clears stateless scratch
+and restores eligibility. Dropping a loan without finish leaves that entry
+unavailable. It does not publish a Host generation or release resource custody.
+
+The CPU proof executes 100 distinct active-Play identities against the same
+Plan and the same backing address: fifty close normally, fifty cancel with an
+accepted input pending. Live output and open input refuse kernel retirement;
+fresh loans refuse finish. Output values vary across Plays, catching stale
+complete/cancel/output state. Sign custody remains separate. The owned kernel
+is 14,480 bytes versus 10,904 with its borrowed driver; the 3,584-byte Back is
+represented in execution by one 8-byte CPU pointer, saving 3,576 bytes. Scoped
+execution/return allocations and reallocations are zero. These are CPU component
+extents, not a physical Root peak or resolution of the old 1,920-byte refusal.
+
+Twenty-one generator unit tests, two generated library/kernel tests, nine
+scalar/structured lifecycle tests, strict generator all-target Clippy and the
+Cortex-M0+ no_std semantic-catalog check pass. Closing Flow now records terminal
+state only on committed closure, permitting safe reuse after actual retirement.
+Ordinary checked Pico Make first failed on the host temporary-filesystem quota;
+removing an inactive 3.6 GiB cross-build cache allowed the same build to complete.
+Source `0673e805d3` links 983,712 flash bytes and 116,992 static RAM bytes, including
+the unchanged 49,152-byte heap, within the checked 131,072-byte static ceiling.
+No device was flashed. Unused loan methods in that linked firmware are not proof
+of physical execution, reserved bus handover or runtime peak memory.
+
+The resident scalar Back and its ordinary private-work resource/lowering
+prerequisite are being extracted onto current dev for an independent review.
+The broader library loan remains a qualified component on this delivery branch;
+MCU Root admission, authenticated preparation/activation, sensing/display Plays,
+continuing Lines, selected recording and the shared graph remain unfinished.
+PR #6766's Candidate has now passed; the full journey remains active.
