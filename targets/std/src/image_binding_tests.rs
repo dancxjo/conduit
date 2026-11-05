@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use conduit_core::{BootId, HostId, HostProfileId, OfferGeneration};
 use conduit_host_make::{
-    bind_runtime_offer, build_default_host_image, BuildInputs, HostImage, HostProfile,
-    RuntimeFacts, RuntimeOfferInputs,
+    bind_runtime_offer, build_default_host_image, check_host_configuration,
+    parse_host_configuration_conduit, BuildInputs, HostImage, RuntimeFacts, RuntimeOfferInputs,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
@@ -13,15 +13,35 @@ use conduit_plot::{
 use crate::{StdHost, TimerAdapter};
 
 fn bound_host(source: &str, boot: &str, extra_timer_slots: u32) -> (StdHost, HostImage) {
-    let mut profile: HostProfile =
-        serde_json::from_str(include_str!("../profiles/std-computer.profile.json")).unwrap();
+    // Construction includes a display, but this fixture initializes only its
+    // timer. Resolve the complete finite Mask prerequisites through the same
+    // checked Source entrance as ordinary Host construction.
+    let configuration_source = r#"host std-image-binding {
+  schema = 1
+  target = {architecture: "x86_64", machine: "computer", os: "linux"}
+  base = {kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}
+  base = {kind: "display/scanout", implementation: "display/linear-framebuffer@1"}
+  capability = {kind: "time/tick", pinned_implementation: "std/kernel-time-tick@2"}
+  need = {id: "timer/main", class: "conduit.resource/timer-slot@1", slots: 128, bytes: 8192}
+  need = {id: "display/main", class: "face/surface", slots: 8, bytes: 8388608}
+  need = {id: "display/memory", class: "conduit.resource/runtime-memory@1", slots: 1048576, bytes: 1048576}
+  need = {id: "display/show", class: "face.resource/show@1", slots: 1, bytes: 1}
+  limits = {static_memory_bytes: 16777216, heap_arena_bytes: 67108864, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}
+}"#;
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(configuration_source).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
+    let mut profile = checked.profile().clone();
     profile.bounds.timer_slots += extra_timer_slots;
     let inputs = BuildInputs {
         source_identity: source.into(),
         toolchain_available: true,
     };
-    let catalog = conduit_workspace_make::catalog();
-    let packages = conduit_workspace_make::package_set();
     let (image, bytes) = build_default_host_image(profile, &catalog, &packages, &inputs).unwrap();
     let binding = bind_runtime_offer(
         &image.manifest,
@@ -76,7 +96,16 @@ fn running_std_host_exposes_exact_image_identity_and_truthful_offer_subset() {
     assert_eq!(identity.build_id, image.manifest.build_id);
     assert_eq!(identity.image_id, image.manifest.image_id);
     assert_eq!(identity.boot_id.as_str(), "std/boot-exact");
+    assert!(image
+        .payload
+        .implementations
+        .iter()
+        .any(|implementation| { implementation == "face/renderer-conduitos-native@1" }));
     assert_eq!(host.advertisement().capabilities.len(), 1);
+    assert_eq!(
+        host.advertisement().capabilities[0].kind_id.as_str(),
+        "time/tick"
+    );
 }
 
 #[derive(Default)]
