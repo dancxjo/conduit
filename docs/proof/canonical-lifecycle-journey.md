@@ -4459,3 +4459,27 @@ source proof only; durable retirement and further browser return remain undone.
 Baseline fixture repair #6763 passed Candidate and merged into dev. Joined-host
 startup repair #6762 requires its formatting correction and fresh Candidate
 checks before merge. Neither merge is a live device deployment claim.
+
+
+### 2026-11-05: Admission custody selection, before owner publication
+
+The Core now prepares an exact superseded-receipt subset without releasing any
+capacity. For each Part its initial admission/replay fence and latest credential
+remain hot. A separate custody confirmation rechecks the exact selection before
+removing only those middle receipts. A retained issuance count makes future Part
+identity construction independent of hot-vector length; stale confirmations,
+repeated confirmations and sequence exhaustion refuse without mutation.
+
+A deterministic model exercises 100 genuine signed returns of the same Part/key,
+retains all selected evidence and membership event checkpoints in memory, reopens
+serialized managers, and stays within the unchanged 32-receipt bound. Additional
+cases cover a changed selection, foreign history, issuance exhaustion and the
+next newly admitted Part after retirement. Focused continuity tests and strict
+Core library/test Clippy pass both here and in a clean current-dev extraction;
+existing admission, admission-bounds and storage-compaction tests also pass there.
+
+This is not durable file custody, an installed repair, or proof of interrupted
+owner recovery. The next required change is to publish selected evidence and the
+resulting manager through the existing owner transaction, verify cold evidence
+on reopen, and only then resume browser/native returns on the physical Body.
+No live admission state, credentials or history were edited by this step.
