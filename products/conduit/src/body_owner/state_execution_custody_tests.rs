@@ -90,6 +90,7 @@ fn journal_replay_preserves_old_and_new_receipts_after_an_interrupted_archive_wr
         admissions: None,
         admission_custody: None,
         source: None,
+        workset_sources: None,
         archives: Vec::new(),
     };
     write_json_atomic(&root.join("body/owner-transaction.json"), &transaction).unwrap();
@@ -225,6 +226,7 @@ fn oversized_or_inconsistent_terminal_transaction_refuses_without_replacing_curr
             admissions: None,
             admission_custody: None,
             source: None,
+            workset_sources: None,
             archives: Vec::new(),
         },
     )

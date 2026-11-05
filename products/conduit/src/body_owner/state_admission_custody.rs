@@ -209,7 +209,7 @@ pub(super) fn retire(
             manager: Some(&next),
             custody: Some(custody),
         },
-        None,
+        None.into(),
         None,
         session.pending_archives(),
     )?;
