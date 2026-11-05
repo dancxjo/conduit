@@ -5652,3 +5652,54 @@ memory/authority admission, installation/Start and physical bus handover remain
 open. PR #6778's existing Candidate 42077017833 was last observed queued; the
 new generic attribution/custody extraction remains in this published delivery
 checkout until the overlapping review lanes clear.
+
+
+### Enabled-delegation image and focused public custody review
+
+PR #6778 passed exact-head Candidate 42077017833 and merged at
+`9b75353aa157b71dfaaa5d169680729de049388c`. The delivery tree absorbed it and
+accepted #6779's cold-custody pressure correction; neither is inferred merely
+from a prior queued check. The next isolated current-dev review is #6782 at
+`6c0e41d120ae642c44ba5ab3217e068b29898b4a`: original Host-command attribution plus
+bounded in-place input custody, with no Root/MCU integration or environmental
+code. Eight owning tests, strict Body library/test Clippy, formatting and
+no-default-features authenticated-admission checking for thumbv6m pass on that
+isolated branch. These are CPU/portable proofs, not physical acceptance.
+
+The new `pico-w-house-green-delegated.host.conduit` is an explicit alternative
+configuration for the same equipment, not a second admitted subject. Its
+preparation policy selects the Seed owner with maximum assignment 4,096 bytes
+and structural state 16,384 bytes. The checker test removes only that policy and
+obtains the exact default configuration; all physical settings, work units and
+construction limits remain unchanged. Default absence still refuses delegation.
+No execution authority or Base capability is granted by this selection.
+
+The full Make CLI was rebuilt from current source, replacing reliance on the old
+cached parser for this opt-in profile. The resulting firmware was made through
+that ordinary Make implementation at source
+`f9cca3715d6c6cb3763c2fa0eecfb04f662dec95`. Its generated host configuration was
+independently inspected: policy is actually Some with the selected bounds,
+heap remains 49,152 bytes, and preparation bookkeeping remains 16,384 bytes.
+Configuration identity is
+`sha256:9c159217718c0fc9acffe8452b67514048446c8652f7ed730609a9ccac385db4`.
+
+The enabled-delegation image links at 1,064,836 flash load bytes and 117,424
+static RAM bytes including that heap arena. The linked stack gap is 152,912
+bytes, not stack high-water. The 2,129,920-byte UF2 SHA-256 is
+`cd4973b5c722613afb0ff5f8cb8a969b3744c40eb927a6f8af3034006539cf85`;
+ELF SHA-256 is
+`3b62fd7fa5221b092711c0f7f4deae45a05f70f830ed293b24da6e9a4015273c`.
+Six inspection/dead-code warnings remain. This closes the prior default-only
+compilation/footprint gap, not actual preparation, membership or a sampling Play.
+It was not flashed. It still needs ordinary Body-made Seed material matching
+this IMAGE/configuration before deployment; an old bootstrap is not silently
+reused. No device/service changed, no grant was enlarged and no issue is closed.
+
+Artifacts and checksummed captures remain under ignored
+`target/rp2040-enabled-preparation-f9cca3715d` and
+`target/enabled-preparation-proof-f9cca3715d`. Building current Make consumed
+additional disposable compiler cache. Six source-mapped, inactive test ELFs
+were inventoried against /proc ownership then removed, recovering 823,706,704
+bytes; retained logs, active executables/libraries, private state and source were
+preserved. Disk headroom afterward is about 5.2 GiB and must be checked again
+before another large build.
