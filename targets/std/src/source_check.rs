@@ -8,10 +8,9 @@ use conduit_plot::{
     SourceCheckRefusal, SourceCheckReply, SourceCheckRequest, StartupCatalog,
 };
 
-pub const SOURCE_CHECK_KIND: &str = "language/source-check";
-pub const SOURCE_CHECK_CALL: &str = "language/source-check@1";
-pub const SOURCE_CHECK_AUTHORITY: &str = "language/source-check-authority@1";
-pub const SOURCE_CHECK_RESOURCE: &str = "language/prepared-source-check@1";
+pub use conduit_std_offers::{
+    SOURCE_CHECK_AUTHORITY, SOURCE_CHECK_CALL, SOURCE_CHECK_KIND, SOURCE_CHECK_RESOURCE,
+};
 pub const MAX_PREPARED_SOURCE_CHECKS: usize = 4;
 
 pub struct SourceCheckPreparation<'a> {

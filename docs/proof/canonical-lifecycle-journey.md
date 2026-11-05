@@ -3820,3 +3820,29 @@ Body Make and product Clippy passes. Logs remain under
 `target/source-check-{admitted-preparation-tests,preparation-custody-clippy}.log`.
 No live service or device changed. Complete #6447 installed acceptance and the
 full Crèche/Seed/distributed-Body journey remain open.
+
+### Checked compiler equipment intent (5 November 2026)
+
+The hosted Make package now accepts an explicit Linux x86_64
+`language/source-compiler` Base selecting `std/bounded-source-check@1`.
+Its required initialization describes the executable and SHA-256 binding,
+child address-space and CPU ceilings, parent deadline, finite startup/request/
+reply bytes, and preparation/retained backing. The package-specific checked
+selection rejects relative executable paths, malformed digests, preparation
+below child plus startup plus retained storage, and preparation exceeding the
+Host's declared heap envelope. These are necessary lower bounds, not complete
+Root workspace measurements or allocator containment.
+
+Six compiler-construction tests pass (31 hosted-package tests total), with
+strict all-target hosted Make/std Host Clippy clean: actual Conduitese checking and canonical round-trip,
+configuration identity changes, missing/unknown/duplicate and oversized fields,
+artifact and memory inconsistencies, non-Linux refusal, and Make IMAGE binding
+of the exact selected Base/configuration, and capability-intent resolution to
+the exact Host Call/resource/Base. IMAGE retains selection and checked
+configuration identity; it does not embed application Source or confer Source
+access. Shared std offer identities replace duplicated runtime strings.
+
+This is construction intent only. The deployed owner still refuses this Base
+without a supported IMAGE initializer. Executable verification, independently
+admitted Root preparation, actual provider installation, and the complete S2
+production journey remain required. No device or live service changed.
