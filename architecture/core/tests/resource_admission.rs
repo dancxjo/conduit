@@ -18,6 +18,8 @@ const CLASS: &str = "conduit.resource/compute/shared-lane@1";
 mod batch;
 #[path = "resource_admission/fallible.rs"]
 mod fallible;
+#[path = "resource_admission/scope.rs"]
+mod scope;
 
 fn host() -> HostAdvertisement {
     HostAdvertisement {
