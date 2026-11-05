@@ -3679,3 +3679,32 @@ Call remain required. No automatic Ready offer, Body mutation, candidate executi
 new scheduler or network transport is created by this entrance. Existing pure
 proposal PR #6754 now passed exact Candidate 41932258021 and is ready for review;
 base dev Integration 41931985706 remains live, so it has not been merged here.
+
+### 4 November: isolate the Native projection and deliver its custody prerequisite
+
+A clean isolated checkout of dev 6602c6378d exposed two actual failures in the
+Source Native projection: `Admission(MissingNativeMetadata)`. The larger delivery
+branch had already retained the private owner repair, hiding that dependency.
+Raw negative output is retained at the isolated checkout's
+`target/qualification/native-tests.log`; admission was not bypassed.
+
+Existing PR #6749 supplies the exact inline-owner/checked-import custody repair.
+Applying its unchanged accepted Candidate head 350bf7a745 to current dev makes
+all 13 Source/Native tests pass; its three inline-owner tests and both real
+I2C/HT16K33 import tests pass in the same isolated checkout. The PR was marked
+ready and merged normally as 09d75d027d0aff1a5ed23c25f24f4479fd2d59a6. #6748 stays
+open pending merged-source qualification; no physical or publication gate is
+inferred. The integration checkout absorbed this merge while retaining its
+later build-time immutable I2C schemas/source-catalog gating. Both conflict sides
+were inspected; this ancestry merge changes no Source relative to db2d0ea4d5.
+
+The independently qualified five-file Native projection is now draft PR #6756,
+head 6b0c5866cd, based on accepted dev 09d75d027d. It contains actual typed request,
+report/reply encoding and checked authoring-Type installation, without the std
+provider, Linux worker or hardware work. All 13 Source tests, three custody tests,
+two actual I2C tests and strict all-target Plot Clippy pass on its dedicated
+checkout/target. Its base ref was moved only after verifying that the temporary
+qualification merge and accepted dev had identical Git trees; working Source and
+index were preserved. Candidate for this exact head remains a separate gate.
+PR #6754's Candidate is green and it is ready for review; ongoing Integration is
+not treated as failure or restarted. The full journey and #6447 remain open.
