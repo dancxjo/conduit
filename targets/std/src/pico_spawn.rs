@@ -15,8 +15,13 @@ mod basis;
 pub use basis::PicoSpawnAdmissionBasis;
 mod member_return;
 mod offer_images;
+mod preparation;
 pub use member_return::{MemberReturnObservation, MemberReturnPresentation, PicoMemberReturnBasis};
 pub use offer_images::resolve_member_offer_images;
+pub use preparation::{
+    PreparationCommandBytes, PreparationExchange, PreparationTransportError,
+    ReportedPreparationInput,
+};
 
 #[derive(Debug)]
 pub enum PicoSpawnTransportError {

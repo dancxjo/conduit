@@ -5995,3 +5995,50 @@ supply, finite carriage, receiver admission/install/Start, retirement and native
 bus handover remain required. In particular, the occupied approval cannot yet
 be reused for successive Plays; that limitation is not hidden by clearing it.
 Live device/service binaries were unchanged.
+
+
+### Bounded CDC carriage for an independently approved command
+
+`PicoSpawnSocket::exchange_preparation` now uses the existing stream framing and
+bounded-document chunk format for the preparation request, original challenge,
+owner approval callback, exact bytes, signature and final report. One original
+sender deadline covers all stages, including approval work. A shorter receiver
+lifetime can only shorten that deadline; clock epochs are never compared.
+The complete payload remains bounded by the existing 4,096-byte receiver frame
+ceiling, chunks use 512-byte scratch and the unchanged 64-chunk limit. No new
+transport, retry scheduler, Source checker or execution engine was introduced.
+
+A receiver already reporting retained input returns Occupied without invoking
+the approval callback. A final input report must match the exact submitted
+SHA-256 and explicitly report RAM custody, resources released and Start not
+installed. The result is named a reported input, not a signed preparation,
+admission or Play receipt. Failures after submission begins, wrong/missing
+reports, and replies after the original deadline return OutcomeUnknown; they
+never imply rollback, safe replacement, resource release or execution.
+
+Six deterministic courier tests pass. They reassemble exact chunks with the
+existing borrowed receiver assembler, preserve the signature frame, check
+monotonically shrinking timeouts, and cover occupied input, finite challenge
+and payload bounds, refused/slow approval, zero deadline, shorter receiver
+lifetime, first-chunk failure and lost/wrong/late final reports. These tests use
+synthetic opaque bytes and claim only courier protocol behavior. Strict std
+library/test Clippy passes. Logs remain under
+/tmp/conduit-preparation-courier-{verified-tests,final-clippy}.log.
+
+This library entrance is not yet installed owner control/Face dispatch and has
+not submitted a workset to physical Green. Its approval callback must use the
+independent current-owner boundary; merely wrapping bytes grants nothing.
+The live retained Body still needs an authorized resident Source/workset for
+its intended MCU assignment, and #6449 remains the existing adoption owner.
+Retirement, native admission/Start and physical bus handover remain unfinished.
+No device or installed service binary changed.
+
+Before building, process-reference and source-mapping inventory permitted removal
+of 1,206 inactive ARM compiler library/metadata/object files, recovering
+3,430,331,879 bytes while preserving linked firmware, SDK inputs and private
+Seeds. The first broader lint ended with a verified disk-full failure. A second
+inventory removed 316 inactive old build-script inode groups (2,862,241,768
+bytes), retaining the newest generation per package and generated outputs.
+Resumed lint found one array-chunk style issue; it was fixed without suppressing
+the check, and terminal lint plus all six tests then passed. Root headroom was
+about 2.0 GiB afterward, so the next substantial build needs another inventory.
