@@ -4394,3 +4394,20 @@ a genuinely installed test member runtime while the owner-only Source loader
 continues to refuse that member. That regression and strict product binary/tests
 Clippy pass on the integrated delivery branch; standalone Candidate remains a
 separate gate. This checkpoint leaves the full lifecycle journey active.
+
+### 2026-11-05: Baseline admission repair before further integration
+
+The exact #6760 Candidate run completed with failure: two std IMAGE-binding tests
+still loaded a JSON specimen lacking the current graphical presenter's finite
+stores and implementation closure. PR #6763 resolves that fixture through checked
+Conduitese instead. Both affected tests now pass, explicitly confirming that a
+native renderer declared in the IMAGE is absent from the actual timer-only offer,
+and that a rebuilt Boot refuses the original Plan. Strict std Host library/tests
+Clippy passes. This is a test-construction repair, with no production grant or
+admission-check change. Land the baseline repair before the startup PR once
+required checks pass; neither is claimed merged here.
+
+The supported dispatcher entrance, `cargo +stable xtask ci pipeline evidence-retention`,
+passed. Raw captures remain ignored. The full journey, continuous Line/Face
+renewal, shared environmental feeds/history/graph and browser capacity retirement
+remain unfinished.
