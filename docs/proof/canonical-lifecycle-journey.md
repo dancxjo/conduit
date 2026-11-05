@@ -6114,3 +6114,43 @@ display. A matching ordinary Body-made Seed and current retained-member bootstra
 are required before deployment. The recovery patch cannot yet be reviewed alone
 against dev: its receiving firmware and ingress harness are still delivery-branch
 prerequisites. No unrelated historical subtree was added to a PR.
+
+### Body-made recovery Seed deployed and returned on Green
+
+The installed authorer selected new checked Crèche artifact paths through ordinary
+`host service configure`, after a private stopped-state backup. No Linux rebuild
+was needed: the existing provider supports this checked configuration change.
+Host identity, Hamm Creek House identity and 15 continuity keys were preserved.
+The selected authoring configuration is now
+`sha256:24bfa4ecd7677f584ae581749d91a6fe1c8646b956cad11e264878af90f4187d`.
+
+The original returning browser member used one pinned Chromium worker and ordinary
+visible Join/Wake/Check controls, with no page errors. The Body retained
+`spore:sha256:91529d0285912330cb671c185b85b78c0e1ead1a8e6a91f0cd7b3d21f171fc7d`.
+Ordinary export verified 2,140,096 package bytes with SHA-256
+`24830547fb29dc9cce84725492a617170d2fee7c58dcd835839721c0000d753b`.
+Actual Face screenshots are in ignored `target/green-recovery-seed-20261105`.
+
+Ordinary retained-member Seed preparation used the owner's latest committed Green
+credential, original member secret and authenticated current owner Boot pin.
+The package application digest matches the qualified image. Bootstrap and
+application UF2 pages were checked against their separate flash ranges before
+submission. Runtime UID e6639c758f40702c and ROM serial E0C9125B0D9B selected the
+physical target; the existing build-bound recovery entrance and restricted mount
+carrier submitted bootstrap then application. A transient absent CDC path was
+resolved by inspecting actual USB re-enumeration before continuing. No full-flash
+erase or byte-for-byte retained-sector claim is made.
+
+Ordinary `body return-usb` committed Green's original Part
+`86ae90b7ee731eb9645e8176a81c8eba24787f011d39f00e801d7a9703eb0a7d` on Boot
+`rp2040/boot/0ec100ff00c078708e71c6cccc8c7006`. The device reports new build
+`46fb0bbc789d286fc865d4af894f9fa29318c8828b4092108d77ec1d7258d5e2`,
+Body membership true and receipt digest
+`4c2617100efdc987d3830655e7a9466a33db8859f6fc0a2041de5af3f02d1025`,
+independently matched to the saved signed acknowledgment and owner's committed
+credential. Three subsequent readings and 34 acknowledged frames had no reported
+sensor/display errors; all five resident Backs initialized. Live Wi-Fi returned
+after startup. This proves deployment, return and diagnostic I/O on the new image,
+not an admitted sensing/display Play or occupied-input physical recovery. The
+latter still requires a lawful approved Body workset; no fixture was substituted.
+Private package, bootstrap, return material and backup remain outside Git.
