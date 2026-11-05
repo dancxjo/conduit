@@ -10,6 +10,7 @@ mod resident_back;
 mod resident_binding;
 mod resident_expression;
 mod resident_library;
+mod resident_library_borrow;
 mod resident_offer;
 pub use resident_expression::{
     BoundResidentExpression, PreparedResidentExpression, ResidentExpressionBounds,

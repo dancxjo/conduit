@@ -4803,3 +4803,48 @@ are retained alongside the accepted scalar tests, including retriable closing
 intent before commit. Scalar and structured resident conformance and formatting
 pass after resolution. Full combined Integration and stable publication retain
 their independent gates; neither merge is physical MCU execution evidence.
+
+
+### 2026-11-05: Prepare simultaneous loans from retained resident backing
+
+The next combined-preparation check exposed a Rust ownership constraint in the
+individual library loan entrance: retaining `borrow_entry_0` while requesting
+`borrow_entry_1` fails with E0499 because each method borrows the whole library.
+This was reproduced by compiling actual generated code, rather than inferred
+from an allocation failure or accepted as an MCU limitation.
+
+The generated library now also provides `borrow_selected`: a fixed-size array
+of optional exact assignments produces a tuple of loans into disjoint retained
+fields. Every selected assignment is checked before any availability changes.
+No selected entry is decoded twice, no Back moves or duplicates, and no runtime
+catalog, queue, grant or allocation is introduced. An unselected entry remains
+untouched. An abandoned loan remains unavailable; a successful loan becomes
+available again only through the existing explicit retirement/reset entrance.
+Root still owes complete-workset admission, actual reservation and execution
+authority before using these loans.
+
+The emitted-code CPU test prepares two independently selected checked protocol
+variants and retains both loans simultaneously for twenty cycles. It verifies
+stable distinct backing addresses, unchanged immutable offer images, zero
+scoped allocations/reallocations, and actual fixed-kernel cancellation and
+retirement for each loan. A wrong first or second selection, stale Play scope,
+and missing second owner refuse without withdrawing the other entry. The
+empty selection changes nothing. These are two fragment-scoped kernels, not a
+claim that a combined physical sensor/display Body Play has run. Generated
+code compiles as a `no_std` library. The existing hundred-Play completion and
+cancellation proof also continues to pass.
+
+The generator's twenty-one unit tests, both emitted-code tests, strict owning
+Make/lowering all-target Clippy, formatting and diff checks pass. The runtime
+math extraction is independently published as #6769, with sixteen math and
+forty-eight Body-kernel tests plus strict Std Host library/test Clippy passing.
+Its three authored Plots run in one CPU Body Play with typed Fore acknowledgments.
+Review admission and physical execution remain independent gates.
+
+The physical Green Host remains on its previously installed Seed: 372 accepted
+samples, 5,580 acknowledged display frames, unchanged 4,356-byte reported heap
+peak and no sensor/display error at this checkpoint. These diagnostic readings
+do not become evidence of admitted sampling/display Plays. No firmware, live
+owner or Threebee installation was changed by this preparation. Verified
+inactive native build outputs were reclaimed with package-native cleanup
+(2.5 GiB); source, installed releases, credentials and unique evidence remain.

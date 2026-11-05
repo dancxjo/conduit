@@ -8,6 +8,15 @@ pub fn context() -> (
     p::PortableExpressionProgram,
     c::PortTemporal,
 ) {
+    context_for(c::PortTemporal::Flow { closes: true })
+}
+pub fn context_for(
+    temporal: c::PortTemporal,
+) -> (
+    p::CheckedSyntaxDocument,
+    p::PortableExpressionProgram,
+    c::PortTemporal,
+) {
     let types = p::check_syntax_document(
         &p::parse_syntax_document(include_str!(
             "../../../../plots/device-protocols/i2c-types.conduit"
@@ -30,13 +39,13 @@ pub fn context() -> (
             .insert_checked_native_type_from_document(path, &types, identity)
             .unwrap();
     }
-    let doc = p::check_syntax_document(
-        &p::parse_syntax_document(include_str!(
-            "../../../../plots/device-protocols/ht16k33.conduit"
-        )),
-        &catalog,
-    )
-    .unwrap();
+    let source = include_str!("../../../../plots/device-protocols/ht16k33.conduit");
+    let source = if temporal == c::PortTemporal::Value {
+        source.replace("...|", "")
+    } else {
+        source.to_owned()
+    };
+    let doc = p::check_syntax_document(&p::parse_syntax_document(&source), &catalog).unwrap();
     let plot = p::expand_canonical_plot_for_authoring(
         &doc,
         "ht16k33-frame-request",
@@ -103,7 +112,7 @@ impl Assignment {
     }
 }
 pub fn exercise(offer: c::CapabilityOffer) -> Assignment {
-    let (doc, program, temporal) = context();
+    let (doc, program, temporal) = context_for(offer.inputs[0].temporal);
     let prepared =
         b::PreparedResidentExpression::prepare(&doc, &program, temporal, bounds(1000)).unwrap();
     assert_eq!(&offer.implementation.artifact_id, prepared.artifact_id());

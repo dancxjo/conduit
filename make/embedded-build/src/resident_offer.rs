@@ -69,8 +69,10 @@ pub fn available_offer_image(&self)->Option<&[u8]>{self.available.then_some(OFFE
 pub fn into_back(self)->Back{self.back}
 /// All checks precede the exclusive loan. No second engine is constructed.
 pub fn borrow_assigned(&mut self,selected:conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>)->Result<(u16,BorrowedBack<'_>),conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{
-let node=self.check_assigned(selected)?;self.available=false;Ok((node,BorrowedBack{owner:self}))
+let node=self.check_assigned(selected)?;Ok((node,self.borrow_prechecked()))
 }
+/// Library batch preflight has checked this exact owner under an exclusive borrow.
+pub(super) fn borrow_prechecked(&mut self)->BorrowedBack<'_>{self.available=false;BorrowedBack{owner:self}}
 }
 "#);
     crate::resident_binding::append(

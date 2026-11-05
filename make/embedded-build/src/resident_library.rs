@@ -75,6 +75,7 @@ self.entry_{index}.as_ref().filter(|owner|owner.available_offer_image().is_some(
 }}
 "#));
     }
+    crate::resident_library_borrow::append(&mut code, images.len());
     code.push_str("pub fn into_backs(self)->(\n");
     for index in 0..images.len() {
         code.push_str(&format!("Option<entry_{index}::Back>,\n"));

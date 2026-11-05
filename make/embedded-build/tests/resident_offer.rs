@@ -21,10 +21,12 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
         support::bounds(1),
     )
     .unwrap();
+    let (value_doc, value_program, value_temporal) =
+        support::context_for(conduit_core::PortTemporal::Value);
     let sibling = conduit_embedded_build::PreparedResidentExpression::prepare(
-        &doc,
-        &program,
-        conduit_core::PortTemporal::Value,
+        &value_doc,
+        &value_program,
+        value_temporal,
         support::bounds(1000),
     )
     .unwrap();
@@ -49,6 +51,7 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
 #[path={refusals:?}]mod refusals;
 #[path={library_helper:?}]mod library_checks;
 #[path={reuse:?}]mod reuse;
+#[path={combined:?}]mod combined;
 fn main(){{
     let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
@@ -66,12 +69,17 @@ fn main(){{
     assert_eq!(node,0);assert!(owner.is_none());
     assert!(matches!(image::Initialized::bind_assigned_retained(&mut owner,assignment.selected(&active)),Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)));
     assert!(back.required_step_fuel()<=assignment.tables.nodes[0].maximum_step_fuel);
+    combined::run(&assignment);
     reuse::run(&assignment);
     let library_back=library_checks::run(&assignment);
     support_kernel::run(library_back,assignment);
 
 }}
 "#,
+        combined = root
+            .join("tests/resident_offer/combined.rs")
+            .to_str()
+            .unwrap(),
         reuse = root.join("tests/resident_offer/reuse.rs").to_str().unwrap(),
         probe = probe.to_str().unwrap(),
         helper = helper.to_str().unwrap(),
