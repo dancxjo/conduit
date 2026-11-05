@@ -29,3 +29,9 @@ quiescent. Hard workspace/exhaustion acceptance remains incomplete. There is
 no automatic offer on browser, firmware or ordinary unconfigured native Hosts.
 The checked candidate is never played by this Plot. #6449 owns authorized Body
 workset adoption, independently of checking.
+
+The Linux process reference additionally constructs the actual product catalogue
+inside a memory/CPU-limited child. Its parent uses existing bounded process
+polling, Stop/deadline and reaping. This is not yet wired into an installed Root
+Back or charged against its parent/child backing pools. A completed process
+returns descriptive bytes, not a compiler owner or Source grant.

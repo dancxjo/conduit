@@ -3708,3 +3708,43 @@ qualification merge and accepted dev had identical Git trees; working Source and
 index were preserved. Candidate for this exact head remains a separate gate.
 PR #6754's Candidate is green and it is ready for review; ongoing Integration is
 not treated as failure or restarted. The full journey and #6447 remain open.
+
+### 4 November: parent-side bounded compiler preparation and retirement
+
+The Linux Source preparation parent now uses the existing hosted-process polling
+and retirement path. Its explicit larger startup entrance permits bounded Unix
+nonblocking writes; existing operations retain their original 256-byte entrance.
+Source and label lengths are checked before scanning/serialization. Startup JSON
+is written into a fixed-capacity caller-configured buffer, never grown past its
+configured byte profile. The configured program is trusted Host construction data,
+not a Plot argument; this helper itself creates no grant, reservation or Ready
+Back.
+
+The parent clears the environment, supplies only the fixed compiler-worker
+arguments, observes Stop/deadline, kills the owned process group and waits/reaps
+through the existing driver. Only successful bounded canonical output can become
+a result. Failed, malformed, oversized and cancelled work returns no result;
+a Stop observed before publication discards even completed output. The result
+is descriptive bytes, not a Native admission witness or executable candidate.
+
+All six actual-product process tests pass. New controls exercise startup larger
+than 256 bytes with direct-reference output equality, pre-cancelled/nonexistent
+program, startup/label pressure, real-child deadline and Stop after an actual
+child appears. The calling Linux thread's child list returns to its prior value,
+proving the exercised children were reaped before return. These tests do not
+substitute the compiler with a stand-in executable. Raw output is retained at
+`target/source-check-parent-tests.log`.
+
+This finishes a parent process-lifetime component, not S2's complete installed
+contract. Independently admitted parent/child backing, exact artifact/Source grant
+custody and assembly into the ordinary selected Host Call remain open. No Play
+quiescence receipt, durable recording acknowledgment or firmware change is
+inferred from process completion.
+
+Final qualification: all six product-process tests and nine existing shared
+process-driver regressions pass; strict all-target product/std Clippy and targeted
+formatting pass. The driver regressions retain the original input refusal,
+environment clearing, output-pressure, cancellation, descendant-pipe retirement
+and established terminal-cause behavior. Logs are
+`target/source-check-parent-driver-tests.log` and
+`target/source-check-parent-clippy.log`. No healthy CI process was restarted.
