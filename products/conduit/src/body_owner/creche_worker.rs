@@ -49,12 +49,12 @@ impl Owner {
         if source.expanded.name != "creche/main" {
             return Ok(None);
         }
-        let resident = self
-            .resident
-            .as_ref()
-            .ok_or("Crèche resident Source absent")?;
+        let resident = conduit_body::ResidentPlot::new(
+            source.expanded.source_document_id.clone(),
+            source.expanded.checked_plot_id.clone(),
+        );
         // Exact shipped Source and real installed offer must plan before invitation effects.
-        self.shipped_creche_partition(source, resident)?
+        self.shipped_creche_partition(source, &resident)?
             .ok_or("Crèche Source absent")?;
         if self.creche_factory.is_none() {
             return Err("Crèche has no retained initialized provider".into());

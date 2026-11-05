@@ -45,8 +45,10 @@ pub(crate) fn resume_service(
     state::recover(root)?;
     let retained = state::load(root)?.ok_or("installed Host has no retained Body")?;
     let mut owner = Owner::resume(host, retained)?;
-    if let Some(checked) = checked_retained_source(root)? {
-        owner.set_resident_plot_name(&checked)?;
+    if let Some(sources) = retained_source::workset(root)? {
+        for source in &sources {
+            owner.set_foreground_plot_name(&source.plot)?;
+        }
     }
     owner.restore_execution(root)?;
     #[cfg(target_os = "linux")]

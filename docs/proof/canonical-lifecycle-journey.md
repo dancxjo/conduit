@@ -6184,3 +6184,35 @@ source-check acceptance remains independent. No live device or service changed.
 Separately, the earlier borrowed containment extraction is reviewable in #6786
 at `c766c7fc85314420113463785c4b8c3c58e8865e`. Its Candidate 42114665595 was
 queued at the last observation; no merge or accepted-release claim is made.
+
+### Complete retained workset enters the ordinary service worker
+
+The delivery branch's retained Source loader now returns the captured canonical
+Source with each independently checked explicit entry, covering the complete
+workset before dispatch. Restart restores the foreground name from those exact
+identities without treating the foreground as the whole workset. Single-Plot
+operations still refuse multi-Plot input instead of narrowing it silently.
+
+Ordinary service start preflights every retained partition through the existing
+planner before publishing a Wake. Crèche binding uses the actual selected Source
+identity rather than assuming it is the foreground; its invitation effects remain
+after whole-workset planning preflight and before Wake. Production service planning
+now requires owned Source; the expanded-only helper is confined to tests. The
+existing worker/kernel, finite run deadline, durable Start acknowledgment and
+terminal retirement remain shared. Activation worksets require their actual
+installed adapter rather than acquiring unsupported service execution implicitly.
+
+A new deterministic service test retains two named entries, resumes on a new
+Host Boot, prepares one Body Plan with both Plots, starts one actual service
+worker, retains both real outputs, and retires to Lulled with the same Body and
+workset. Missing/changed custody and an incomplete single-document fallback
+refuse without a partial Wake or worker. Twenty-eight focused tests pass across
+service, clock, Crèche, planning and Source custody; one installed-process clock
+smoke test is explicitly ignored because no fresh product was deployed. Strict
+product binary/test Clippy, formatting and evidence checks pass. Logs remain in
+ignored `target/retained-workset-service-20261105`.
+
+This is actual CPU service-worker/kernel evidence over fixture-established retained
+meaning, not capability-mediated adoption, a released installed product, physical
+MCU execution or live migration. No device or installed service changed. #6449's
+owner action/authority/CAS and #6770's receiver installation/Start remain next.
