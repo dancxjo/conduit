@@ -17,6 +17,7 @@ mod identity;
 mod invariant;
 pub(crate) mod law_custody;
 mod use_contract;
+mod variant;
 use identity::{schema_identity, schema_identity_for_record, schema_identity_for_variant};
 pub(crate) use use_contract::{
     install_import_aliases, install_import_aliases_borrowed, validate_concrete_value,
@@ -178,7 +179,7 @@ fn expression_references<'a>(expression: &'a TypeExpressionSyntax, out: &mut Vec
 
 fn compile_definition(
     declaration: &TypeSyntax,
-    catalog: &StartupCatalog,
+    catalog: &mut StartupCatalog,
 ) -> Result<CheckedNativeType, SyntaxCheckDiagnostic> {
     if matches!(declaration.definition, TypeDefinitionSyntax::Quantity(_)) {
         let role = catalog
@@ -210,48 +211,7 @@ fn compile_definition(
             catalog,
             declaration.span,
         )?,
-        TypeDefinitionSyntax::Variant(cases) => {
-            let mut compiled_cases = Vec::with_capacity(cases.len());
-            let mut contracts = Vec::new();
-            for case in cases {
-                let payload = match &case.payload {
-                    TypeVariantPayloadSyntax::Empty => CompiledRepresentation {
-                        value_type: StructuredInfoType::leaf(kind_id("value/empty"))
-                            .map_err(|error| bounded(case.span, error))?,
-                        contracts: Vec::new(),
-                    },
-                    TypeVariantPayloadSyntax::Type(expression) => {
-                        compile_expression(expression, catalog)?
-                    }
-                    TypeVariantPayloadSyntax::Record(fields) => compile_record(
-                        &alloc::format!("{}/{}", semantic_name, case.tag.text),
-                        declaration.generic_context.as_deref(),
-                        fields,
-                        &[],
-                        catalog,
-                        case.span,
-                    )?,
-                };
-                contracts.extend(prefix_contracts(
-                    payload.contracts,
-                    &alloc::format!("|{}", case.tag.text),
-                ));
-                compiled_cases.push(
-                    StructuredVariantCase::new(case.tag.text.clone(), payload.value_type)
-                        .map_err(|error| bounded(case.span, error))?,
-                );
-            }
-            let identity = schema_identity_for_variant(
-                semantic_name,
-                declaration.generic_context.as_deref(),
-                &compiled_cases,
-            );
-            CompiledRepresentation {
-                value_type: StructuredInfoType::variant(identity, compiled_cases)
-                    .map_err(|error| bounded(declaration.span, error))?,
-                contracts,
-            }
-        }
+        TypeDefinitionSyntax::Variant(_) => variant::compile(declaration, semantic_name, catalog)?,
     };
     let value_type = match &declaration.definition {
         TypeDefinitionSyntax::Scalar(_) => {

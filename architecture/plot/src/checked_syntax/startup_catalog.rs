@@ -5,6 +5,7 @@ use refinement_diagnostic::NativeRefinementDiagnosticOwner;
 pub use refinement_diagnostic::{NativeRefinementDiagnosticCallback, NativeRefinementSource};
 mod stored_default;
 pub(crate) use stored_default::StoredStructuredDefault;
+mod native_closure;
 mod type_catalog;
 mod typed_literal;
 use super::{CheckedNativeType, KindSignature, NativeTypeSourceOrigin, NativeTypeValueContract};
@@ -40,6 +41,7 @@ pub struct StartupCatalog {
     structured_types: BTreeMap<String, conduit_core::StructuredInfoType>,
     structured_type_contracts: BTreeMap<String, Vec<NativeTypeValueContract>>,
     structured_type_invariants: BTreeMap<String, Vec<crate::PortableExpressionProgram>>,
+    retained_native_dependencies: BTreeMap<conduit_core::KindId, CheckedNativeType>,
     value_kind_aliases: BTreeMap<String, conduit_core::KindId>,
     pub(crate) native_type_sources: BTreeMap<String, NativeTypeSourceOrigin>,
     pub(crate) native_families: BTreeMap<String, crate::native_type::family::NativeTypeFamily>,
