@@ -2,7 +2,7 @@ use super::*;
 use conduit_body::{Body, BodyMembership};
 use serde_json::{json, Value};
 
-fn fixture() -> (std::path::PathBuf, BodyBiographyEvidence) {
+pub(super) fn fixture() -> (std::path::PathBuf, BodyBiographyEvidence) {
     let root = std::env::temp_dir().join(super::super::super::fresh_identity(
         "execution-custody",
         "test",
@@ -88,6 +88,7 @@ fn journal_replay_preserves_old_and_new_receipts_after_an_interrupted_archive_wr
         last_execution: Some(second.clone()),
         execution_custody: Some(prepared),
         admissions: None,
+        admission_custody: None,
         source: None,
         archives: Vec::new(),
     };
@@ -222,6 +223,7 @@ fn oversized_or_inconsistent_terminal_transaction_refuses_without_replacing_curr
             last_execution: Some(second),
             execution_custody: Some(prepared),
             admissions: None,
+            admission_custody: None,
             source: None,
             archives: Vec::new(),
         },

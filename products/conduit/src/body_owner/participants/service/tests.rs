@@ -357,3 +357,6 @@ fn aborted_challenge_is_not_retained_across_service_restart() {
 
 #[path = "capacity_refusal_tests.rs"]
 mod capacity_refusal_tests;
+
+#[path = "receipt_custody_tests.rs"]
+mod receipt_custody_tests;

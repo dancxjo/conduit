@@ -132,6 +132,11 @@ impl Owner {
         if pending.attempts >= conduit_body::MAX_ADMISSION_ATTEMPTS {
             return Err("member return proof attempts exhausted".into());
         }
+        self.retain_admission_capacity(root)?;
+        let pending = self
+            .pending_member_return
+            .as_ref()
+            .ok_or("member return pending custody lost")?;
         let mut manager = self
             .admissions
             .clone()

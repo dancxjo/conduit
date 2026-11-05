@@ -118,7 +118,7 @@ fn proof_refusal_frame(code: &str) -> Out {
         // Only an explicit public owner code crosses the Line. Other local
         // diagnostics stay in the owner log, never in a remote error field.
         code: match code {
-            "membership-part-capacity-exhausted" => code,
+            "membership-part-capacity-exhausted" | "admission-receipt-capacity-exhausted" => code,
             _ => "browser-proof-refused",
         }
         .into(),
@@ -134,6 +134,10 @@ mod refusal_tests {
             (
                 "membership-part-capacity-exhausted",
                 "membership-part-capacity-exhausted",
+            ),
+            (
+                "admission-receipt-capacity-exhausted",
+                "admission-receipt-capacity-exhausted",
             ),
             ("private control/diagnostic", "browser-proof-refused"),
         ] {
