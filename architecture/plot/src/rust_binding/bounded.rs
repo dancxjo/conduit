@@ -14,6 +14,36 @@ pub enum BoundedSequenceCapacityRefusal {
 }
 
 impl<T, const MAXIMUM: usize> BoundedSequence<T, MAXIMUM> {
+    /// Adopt prepared backing without copying, growing, or dropping its values.
+    /// Refusal returns the original allocation and every element to its owner.
+    /// Zero-sized elements have no backing allocation; Vec's sentinel capacity
+    /// does not replace the semantic element limit.
+    pub fn try_from_preallocated_vec(
+        values: alloc::vec::Vec<T>,
+    ) -> Result<Self, alloc::vec::Vec<T>> {
+        if values.len() > MAXIMUM || (core::mem::size_of::<T>() != 0 && values.capacity() > MAXIMUM)
+        {
+            return Err(values);
+        }
+        Ok(Self { values })
+    }
+
+    /// Append only into already owned backing. Neither semantic exhaustion nor
+    /// physical pressure consumes the pending value or grows the allocation.
+    pub fn push_preallocated(&mut self, value: T) -> Result<(), T> {
+        if self.values.len() >= MAXIMUM || self.values.len() == self.values.capacity() {
+            return Err(value);
+        }
+        self.values.push(value);
+        Ok(())
+    }
+
+    /// Actual Vec backing capacity, distinct from the semantic `capacity()`.
+    /// For zero-sized elements Vec reports its usual usize::MAX sentinel.
+    pub fn physical_capacity(&self) -> usize {
+        self.values.capacity()
+    }
+
     pub fn new() -> Self {
         Self {
             values: alloc::vec::Vec::new(),
