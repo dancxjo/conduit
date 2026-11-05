@@ -5300,3 +5300,12 @@ Complete execution-storage admission, atomic Root resource reservation coupled
 to that storage, retirement custody and actual kernel start remain unfinished.
 This checkpoint is component/CPU/compilation proof; no device or live service
 was updated and no physical Body execution is claimed.
+
+Ordinary Make links workset checkpoint `10bc877eae` for the checked Green
+reference profile. Its public UF2 is 2,033,664 bytes, SHA-256
+`985174e031d27320b186ca49fd090440b848c259fd9903c4bc298361b556fd6b`.
+ELF load extents occupy 1,016,776 flash bytes; static RAM remains 117,208 bytes
+including the unchanged 49,152-byte arena, with the same 153,128-byte link-time
+stack gap. These remain policy-absent reference-image link measurements, not
+selected-policy preparation/stack high-water or physical execution evidence.
+The artifact is public and was not flashed; it is not a joined private Seed.
