@@ -133,3 +133,6 @@ mod host_preparation_delegation;
 #[cfg(feature = "authenticated-admission")]
 pub use host_command_attribution::*;
 pub use host_preparation_delegation::*;
+
+mod prepared_fragment;
+pub use prepared_fragment::*;
