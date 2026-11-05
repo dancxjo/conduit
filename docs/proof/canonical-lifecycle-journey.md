@@ -5949,3 +5949,49 @@ the member's actual installation, then approve/sign and carry the exact document
 through the original receiver challenge. No preparation receipt, native Start,
 sampling Play or physical bus handover is claimed. PR #6784's exact-head
 Candidate 42100712059 remains in progress at this observation; it was not merged.
+
+
+### Original-challenge owner approval, with explicit Fore budgets
+
+A positive CPU owner/receiver test now follows ordinary checked Source through
+current-member planning, exact resident-image resolution, complete workset
+generation and the original Host-command attribution signature. Its small
+record-identity Plot uses no environmental device facts. The receiver's actually
+issued challenge authenticates the owner's resulting exact document. It is not
+a manually relabelled Plan or an arbitrary-byte signing oracle.
+
+`approve_remote_resident_workset` rechecks the retained current member credential
+and offer, receiver Host/Boot/profile/generation, current pinned issuer, payload
+contract, finite byte ceiling, nonzero nonce and bounded receiver-clock interval
+before projection/signing. It generates the document from the current retained
+proposal through the concrete resident resolver. One non-deserializable command
+is retained in the owner's existing carrier custody. A second approval refuses;
+neither Lull nor a timer/transport failure silently clears it. The retirement
+operation is deliberately absent until receiver retirement can be proven.
+There is no native reservation or execution permission in this retained value.
+
+The positive test exposed a real ordinary-owner planning gap: external Fores
+were passed an empty queue-limit map. The planner correctly refused. The owner
+now accepts explicit per-Plot boundary budgets through its existing whole-workset
+Source check and planner. It rejects budgets for an unretained Plot; the existing
+planner rejects missing/zero queues and capacities above the selected Back.
+No default byte guess, larger resource grant, new planner or environment policy
+was added. Crèche retains its installed adapter's existing boundary custody;
+activation-bearing Source retains the existing separate guarded path.
+
+The test checks fifteen challenge substitutions, three invalid boundary maps,
+exact signature acceptance, unchanged biography/proposal/sequence, and occupied
+approval refusal after Lull. Three existing workset/planning regressions and two
+membership-withdrawal tests pass. Product binary checking and strict product
+binary Clippy pass. The additional strict test-target Clippy is recorded
+separately when terminal. Logs are retained under
+/tmp/conduit-owner-command-{approval-final-test,planning-tests,member-tests,
+approval-check,approval-clippy,approval-test-clippy}.log.
+
+This is CPU command approval and original-slot signature acceptance. No command
+has been delivered to physical Green, no physical prepared receipt is claimed,
+and no Body Play was started. The installed control/Face dispatch, checked image
+supply, finite carriage, receiver admission/install/Start, retirement and native
+bus handover remain required. In particular, the occupied approval cannot yet
+be reused for successive Plays; that limitation is not hidden by clearing it.
+Live device/service binaries were unchanged.

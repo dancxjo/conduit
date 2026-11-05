@@ -51,13 +51,25 @@ pub(super) fn admit_with_key(
     SpawnInvitationSecret,
     conduit_core::HostAdvertisement,
 ) {
-    let invitation = owner.issue_invitation(root, 60, None).unwrap();
     let guest = StdHost::new_with_config(StdHostConfig {
         host_id: name.into(),
         boot_id: format!("boot/{name}/1").into(),
         offer_generation: OfferGeneration(1),
     });
-    let advertisement = guest.advertisement().clone();
+    admit_advertisement(owner, root, name, guest.advertisement().clone())
+}
+
+pub(super) fn admit_advertisement(
+    owner: &mut Owner,
+    root: &Path,
+    name: &str,
+    advertisement: conduit_core::HostAdvertisement,
+) -> (
+    MembershipCredential,
+    SpawnInvitationSecret,
+    conduit_core::HostAdvertisement,
+) {
+    let invitation = owner.issue_invitation(root, 60, None).unwrap();
     let key = SpawnInvitationSecret::from_csprng_bytes(invitation.secret).unwrap();
     let request = PortableSpawnAdmissionRequest {
         schema: SPAWN_ADMISSION_REQUEST_SCHEMA.into(),

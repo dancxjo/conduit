@@ -39,6 +39,22 @@ impl Owner {
             &conduit_plot::ExpandedAuthoringPlot,
         )],
     ) -> Result<(), String> {
+        self.plan_workset_with_source_boundaries(sources, &BTreeMap::new())
+    }
+
+    /// Boundary budgets belong to the selected external adapter. They cannot
+    /// adopt Source, add connectivity, or enlarge the selected Back's limits.
+    pub(super) fn plan_workset_with_source_boundaries(
+        &mut self,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        boundaries: &BTreeMap<
+            ResidentPlot,
+            BTreeMap<conduit_planner::ForeBoundaryKey, conduit_planner::ConnectionQueueLimits>,
+        >,
+    ) -> Result<(), String> {
         if self.session.evidence().body.state != BodyState::Lulled
             || self.session.realization().is_some()
         {
@@ -57,6 +73,9 @@ impl Owner {
         if supplied != self.session.evidence().body.workset {
             return Err("checked Sources must cover the exact retained Body workset".into());
         }
+        if boundaries.keys().any(|plot| !supplied.contains(plot)) {
+            return Err("Fore budget names a Plot outside the retained workset".into());
+        }
         let mut partitions = Vec::with_capacity(sources.len());
         for (source, expected) in sources {
             let checked = source.expand_entry_for_authoring()?;
@@ -67,12 +86,18 @@ impl Owner {
                 checked.expanded.source_document_id.clone(),
                 checked.expanded.checked_plot_id.clone(),
             );
-            partitions.push(self.plan_partition_with_source(
-                source,
-                &checked,
-                &resident,
-                self.host.advertisement(),
-            )?);
+            let partition = match boundaries.get(&resident) {
+                Some(boundary) => {
+                    self.plan_partition_with_boundaries(&checked, &resident, boundary)?
+                }
+                None => self.plan_partition_with_source(
+                    source,
+                    &checked,
+                    &resident,
+                    self.host.advertisement(),
+                )?,
+            };
+            partitions.push(partition);
         }
         let advertised = self.host.advertisement();
         self.session
@@ -86,7 +111,22 @@ impl Owner {
         plot: &conduit_plot::ExpandedAuthoringPlot,
         resident: &ResidentPlot,
     ) -> Result<BodyPlotPlan, String> {
+        self.plan_partition_with_boundaries(plot, resident, &BTreeMap::new())
+    }
+
+    fn plan_partition_with_boundaries(
+        &self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+        boundary: &BTreeMap<
+            conduit_planner::ForeBoundaryKey,
+            conduit_planner::ConnectionQueueLimits,
+        >,
+    ) -> Result<BodyPlotPlan, String> {
         if let Some(partition) = self.shipped_creche_partition(plot, resident)? {
+            if !boundary.is_empty() {
+                return Err("Crèche boundary budgets belong to its installed adapter".into());
+            }
             return Ok(partition);
         }
         let hosts = self.planning_hosts();
@@ -118,7 +158,7 @@ impl Owner {
                 line_offers: &[],
             },
             &limits,
-            &BTreeMap::new(),
+            boundary,
         )
         .map_err(debug)?;
         Ok(BodyPlotPlan {

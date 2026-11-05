@@ -1115,3 +1115,6 @@ mod member_carrier;
 
 #[path = "tests/admission_custody.rs"]
 mod admission_custody;
+
+#[path = "tests/remote_preparation.rs"]
+mod remote_preparation;

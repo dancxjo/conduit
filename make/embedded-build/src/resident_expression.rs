@@ -136,6 +136,11 @@ impl PreparedResidentExpression {
     pub fn kind_id(&self) -> &c::KindId {
         &self.kind
     }
+    /// Immutable preparation metadata, not evidence of an initialized, Ready or
+    /// authorized runtime provider. Current publication is independently checked.
+    pub fn offer_description(&self) -> &c::CapabilityOffer {
+        &self.offer
+    }
     pub fn source(&self) -> &str {
         &self.code
     }

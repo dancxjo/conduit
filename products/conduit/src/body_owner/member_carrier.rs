@@ -9,6 +9,9 @@ use conduit_body::{
 };
 use conduit_core::{HostAdvertisement, LineId, LineSecurity};
 use std::time::{Duration, Instant};
+#[allow(dead_code)]
+#[path = "member_carrier/preparation.rs"]
+mod preparation;
 #[path = "member_carrier/presentation.rs"]
 mod presentation;
 
@@ -17,6 +20,7 @@ pub(super) struct MemberCarrierCustody {
     key: Option<SpawnInvitationSecret>,
     pending: Option<Pending>,
     active: Option<Active>,
+    command: Option<preparation::PreparedRemoteBodyCommand>,
 }
 struct Pending {
     slot: CurrentMemberChallengeSlot,
