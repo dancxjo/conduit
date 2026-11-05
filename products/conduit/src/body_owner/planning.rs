@@ -92,6 +92,26 @@ impl Owner {
             BTreeMap<conduit_planner::ForeBoundaryKey, conduit_planner::ConnectionQueueLimits>,
         >,
     ) -> Result<Vec<BodyPlotPlan>, String> {
+        self.prepare_workset_partitions_for(
+            &self.session.evidence().body.workset,
+            sources,
+            boundaries,
+        )
+    }
+
+    pub(super) fn prepare_workset_partitions_for(
+        &self,
+        workset: &BodyWorkset,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        boundaries: &BTreeMap<
+            ResidentPlot,
+            BTreeMap<conduit_planner::ForeBoundaryKey, conduit_planner::ConnectionQueueLimits>,
+        >,
+    ) -> Result<Vec<BodyPlotPlan>, String> {
+        self.require_workset_recovered()?;
         if self.session.evidence().body.state != BodyState::Lulled
             || self.session.realization().is_some()
         {
@@ -107,7 +127,7 @@ impl Owner {
             )
         }))
         .map_err(debug)?;
-        if supplied != self.session.evidence().body.workset {
+        if &supplied != workset {
             return Err("checked Sources must cover the exact retained Body workset".into());
         }
         if boundaries.keys().any(|plot| !supplied.contains(plot)) {

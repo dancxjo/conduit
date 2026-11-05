@@ -6268,3 +6268,42 @@ allocated ELF sections were independently hashed before/after and unchanged;
 executables remain runnable. Source, proof logs, SDK inputs, active releases,
 firmware and private state were preserved. The receipt and Root diagnostic logs
 remain under ignored `target/source-custody-review-preparation-20261105`.
+
+
+### Shared authorized workset effect and interrupted-publication fencing
+
+The existing acknowledged clock-interval owner action now delegates its actual
+workset replacement to one private Root continuation. Its existing finite clock
+policy and protected Show/action return remain the authorization boundary; this
+adds no general adoption command or privilege for ordinary Plots. The shared
+continuation independently checks complete canonical Sources and current offers,
+requires a Lulled owner with retired execution, stages existing lifecycle
+remove/admit operations, and publishes through the expected-current journal CAS.
+Foreground selection follows the retained complete workset. The clock adapter
+reads that authoritative bundle rather than the historical single-Source file.
+
+An uncertain or partly published journal fences the old in-memory owner against
+persistence, planning, Start and Face effects until ordinary restart recovery.
+Four effect tests cover same-Body A+B→A→A+B, forged/unsupported candidates,
+interrupted Source publication and stale-owner CAS. The existing clock worker,
+acknowledged terminal return and two complete-service-workset tests also pass:
+eight focused cases total. Strict product binary/test Clippy passes. These are
+CPU/process-internal tests; per-partition preparation is not aggregate resource
+reservation, and this continuation is not S4's general capability-mediated
+proposal adoption. #6449 and physical MCU Start remain unfinished.
+
+A fresh executable built, but the temporary installed-service smoke refused its
+unoptimized artifact at the existing 64 MiB release-file limit before lifecycle
+execution (188 MiB with debug stripped; 118 MiB after all symbols were stripped).
+The limit was preserved. This is a packaging refusal, not successful installed
+replacement evidence; that proof needs a qualified optimized artifact. No live
+Body, device or service changed. Raw logs are in ignored
+`target/shared-workset-effect-20261105`.
+
+The first fresh-executable build exhausted disk; after verifying no process
+references, package-native cleanup removed the inactive Source-review compiler
+cache (Cargo reported 6.1 GiB) and the same build succeeded. Subsequent stewardship
+removed an inactive marked fragment compiler cache (697.2 MiB) and 1,516,003,816
+bytes of debug data from two inactive test binaries; allocated ELF sections were
+hashed before/after and unchanged. Source, private state, firmware, active
+releases and proof logs were preserved.

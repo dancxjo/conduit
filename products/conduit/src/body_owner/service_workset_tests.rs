@@ -5,9 +5,9 @@ use std::{
     fs,
     time::{Duration, Instant},
 };
-const SOURCE: &str = "plot alpha {\n show: face/text(\"Alpha\")\n \"first output\" >> show\n}\nplot beta {\n show: face/text(\"Beta\")\n \"second output\" >> show\n}.";
+pub(super) const SOURCE: &str = "plot alpha {\n show: face/text(\"Alpha\")\n \"first output\" >> show\n}\nplot beta {\n show: face/text(\"Beta\")\n \"second output\" >> show\n}.";
 
-fn fixture() -> (std::path::PathBuf, Owner) {
+pub(super) fn fixture() -> (std::path::PathBuf, Owner) {
     let root = std::env::temp_dir().join(super::super::super::fresh_identity(
         "service-workset",
         "resume",

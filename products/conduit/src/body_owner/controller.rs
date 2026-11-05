@@ -69,6 +69,8 @@ mod member_return;
 mod planning;
 #[path = "remote_preparation.rs"]
 mod remote_preparation;
+#[path = "workset_revision.rs"]
+mod workset_revision;
 pub(crate) use direct_spoken_route::DirectSpokenStart;
 #[path = "llm_spoken_route.rs"]
 mod llm_spoken_route;
@@ -220,6 +222,7 @@ pub(crate) struct Owner {
     clock_interval_ms: Option<u64>,
     last_execution: Option<serde_json::Value>,
     execution_persistence_pending: bool,
+    workset_recovery_required: bool,
     admissions: Option<conduit_body::AdmissionManager>,
     prepared_admission_route: Option<crate::durable_host::PreparedAdmissionRoute>,
     pending_browser: Option<participants::BrowserWindow>,
@@ -253,7 +256,9 @@ pub(crate) struct Owner {
 }
 impl Owner {
     pub(crate) fn selected_speech_host_is_idle(&self) -> bool {
-        !self.host.is_playing() && self.session.realization().is_none()
+        !self.workset_recovery_required
+            && !self.host.is_playing()
+            && self.session.realization().is_none()
     }
 
     pub(crate) fn open(
@@ -336,6 +341,7 @@ impl Owner {
             clock_interval_ms: None,
             last_execution: None,
             execution_persistence_pending: false,
+            workset_recovery_required: false,
             admissions: None,
             prepared_admission_route: None,
             pending_browser: None,
@@ -372,6 +378,7 @@ impl Owner {
             clock_interval_ms: None,
             last_execution: None,
             execution_persistence_pending: false,
+            workset_recovery_required: false,
             admissions: None,
             prepared_admission_route: None,
             pending_browser: None,
@@ -394,6 +401,7 @@ impl Owner {
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
+        self.require_workset_recovered()?;
         let result = state::retain_session(
             root,
             &mut self.session,
@@ -465,6 +473,7 @@ impl Owner {
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Face, String> {
+        self.require_workset_recovered()?;
         if let Some(live) = &self.creche_live {
             if let Some(face) = live.controller.face()? {
                 if face.basis.active_play_id.as_ref() == self.current_play_id()
