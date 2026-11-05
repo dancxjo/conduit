@@ -66,6 +66,7 @@ pub use generate_prepared_storage::{
 pub use prepared_decode::{
     check_prepared_decode_native, prepared_decode_primitive, prepared_decode_text,
     PreparedDecodeBounds, PreparedDecodeGate, PreparedDecodeProgress, PreparedDecodeRefusal,
+    PreparedDynamicDecodeGate,
 };
 pub use prepared_storage_profile::{
     discover_prepared_storage_schema, resolve_prepared_storage_profile, PreparedStorageBounds,
