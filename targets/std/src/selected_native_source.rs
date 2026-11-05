@@ -4,9 +4,11 @@
 //! The retained Base, native definition and grant precede planning; possession is
 //! issued only for the current registry entry and the actual installed Play.
 mod definition;
+mod image;
 mod installation;
 mod preparation;
 use definition::validate_definition;
+pub(crate) use image::InitialNativeSource;
 pub use preparation::ImmediateSourcePreparationBudget;
 mod worker;
 use conduit_core::*;
@@ -46,6 +48,7 @@ pub unsafe trait ImmediateNativeSource: Send {
 pub(crate) struct InitializedNativeSource {
     definition: NativeSourceDefinition,
     provider: NativeProvider,
+    _image_memory: Option<crate::kernel_preparation::ImageMemoryLease>,
     pub(super) backing: Option<crate::kernel_preparation::BaseBackingReservation>,
 }
 enum NativeProvider {
@@ -89,6 +92,7 @@ impl crate::StdHost {
                     definition,
                     provider: NativeProvider::Immediate(provider),
                     backing: None,
+                    _image_memory: None,
                 });
                 Ok(())
             }

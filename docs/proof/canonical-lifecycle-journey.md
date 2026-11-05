@@ -3881,3 +3881,47 @@ The pure S3 workset-proposal slice #6754 merged as
 `8e8239d4f1d621719c51e3af38974f0f222b6b5c`. S2 Native projection #6756 passed its
 exact Candidate and is ready for review; neither result completes the full
 journey or guarded workset adoption.
+
+### Initial IMAGE-bound immediate provider (5 November 2026)
+
+The existing native Source owner can now be initialized during checked IMAGE
+construction, alongside the built-in timer. The trusted native boundary consumes
+an independently authorized definition/grant and factory; configuration does
+not invent Source access. It checks the exact selected Base identity, mechanism,
+driver, pool identities, capacities and bytes against checked Source/IMAGE.
+An insufficient pool, mismatched equipment or missing shared IMAGE heap capacity
+refuses before invoking the factory. No provisional offer escapes construction.
+
+Preparation reserves both the actual Base pool and a lease against the shared
+IMAGE managed heap, including the charge owner's own backing. After synchronous
+factory success, both charges shrink to the retained envelope and remain owned
+by the initialized provider. Failure returns no Host. These are independently
+configured conservative native ceilings, not measured full Root/allocator/RSS
+containment; caller-owned compiler schema/metadata retains separate custody.
+Existing checked IMAGE reconfiguration remains forbidden.
+
+All 16 actual compiler-process tests pass, including four new IMAGE cases:
+wrong equipment/insufficient pool refuses before effects; initializer failure
+returns no Host; the charge owner's backing must fit before effects; and a real
+digest-verified compiler child matches the direct canonical reference before
+publishing its initialized provider. The resulting Host retains its IMAGE ID
+and exact Source/timer offers and keeps provider memory charged.
+
+The attempted ordinary Plot execution still correctly refuses with `selected
+IMAGE workset lacks complete ordinary managed-memory accounting; no Play
+admitted`. This is new evidence of the next S2 execution gate, not an execution
+success. The ordinary Body receipt currently admits only its closed tick profile;
+its Back and Fore/input owned-backing accounting must cover the Source path
+before that Play can execute. The refusal was preserved, not bypassed with a
+scalar fit or a copied receipt. #6447 already owns finite runtime/preparation
+admission; this creates no separate MCU memory epic and does not resolve #6341's
+physical setup-custody acceptance. No device or installed service changed.
+
+Strict all-target product/std Host Clippy passes. Native-value prerequisite
+#6756 merged as `0a6a46b4b0899aa75d4a79f9e6a28473edc5745e`; its custody prerequisite
+at `09d75d027d0aff1a5ed23c25f24f4479fd2d59a6` passed full Integration. These merged
+components do not close S2 or imply an installed compiler service is available.
+
+The five existing IMAGE timer-construction regressions also pass, including
+unsupported workset refusal and preservation of the reconfiguration and
+unaccounted-Play gates.

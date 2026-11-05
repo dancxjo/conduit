@@ -173,15 +173,13 @@ fn selected_artifact_identity_is_checked_before_source_delivery() {
     ));
     assert_eq!(children(), before);
 }
-#[test]
-#[cfg(target_arch = "x86_64")]
-fn checked_host_constructs_the_actual_digest_bound_worker() {
+pub(super) fn configuration_source() -> String {
     let path = artifact();
     let digest = executable_digest(path)
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect::<String>();
-    let source = format!(
+    format!(
         r#"host compiler {{
       schema = 1
       target = {{architecture: "x86_64", machine: "computer", os: "linux"}}
@@ -189,7 +187,12 @@ fn checked_host_constructs_the_actual_digest_bound_worker() {
       limits = {{static_memory_bytes: 16777216, heap_arena_bytes: 603979776, queue_items: 32, buffered_bytes: 1048576, active_instances: 16, operation_slots: 16, timer_slots: 16, line_sessions: 16, evidence_items: 16}}
     }}"#,
         serde_json::to_string(path.to_str().unwrap()).unwrap()
-    );
+    )
+}
+#[test]
+#[cfg(target_arch = "x86_64")]
+fn checked_host_constructs_the_actual_digest_bound_worker() {
+    let source = configuration_source();
     let checked = conduit_host_make::check_host_configuration(
         conduit_host_make::parse_host_configuration_conduit(&source).unwrap(),
         &conduit_workspace_make::catalog(),

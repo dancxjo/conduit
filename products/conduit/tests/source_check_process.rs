@@ -171,3 +171,7 @@ mod parent;
 
 #[path = "source_check_process/host_call.rs"]
 mod host_call;
+
+#[cfg(target_arch = "x86_64")]
+#[path = "source_check_process/image.rs"]
+mod image;

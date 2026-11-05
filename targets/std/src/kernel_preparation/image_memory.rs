@@ -59,7 +59,6 @@ impl Drop for ImageMemoryCharge {
 impl KernelResourceLedger {
     /// Reserve the independently computed fixed Base stores before allocation.
     /// This is not a complete Plan receipt, process RSS or preparation peak.
-    #[cfg(all(target_os = "linux", feature = "linux-display"))]
     pub(crate) fn reserve_managed_base_memory(
         &mut self,
         bytes: usize,

@@ -1,4 +1,4 @@
-//! Initial construction of the explicitly supported IMAGE-bound timer subset.
+//! Initial construction of explicitly supported IMAGE-bound timer/native owners.
 //! Serial and storage declarations remain uninitialized and publish no offers.
 //! Bounds are logical admission limits, never a claim about process RSS.
 use crate::{StdHost, StdHostConfig};
@@ -13,6 +13,7 @@ const MAXIMUM_TIMER_POOLS: usize = 16;
 
 #[derive(Default)]
 struct InitialBases {
+    source: Option<crate::selected_native_source::InitialNativeSource>,
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
     scanout: Option<crate::selected_scanout::SelectedScanoutBase>,
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
@@ -129,6 +130,27 @@ impl StdHost {
             InitialBases {
                 scanout: Some(scanout),
                 native_mask: Some(native_mask),
+                source: None,
+            },
+        )
+    }
+
+    pub(crate) fn from_selected_source_initial_bases(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        source: crate::selected_native_source::InitialNativeSource,
+    ) -> Result<Self, String> {
+        Self::from_selected_initial_bases(
+            config,
+            image,
+            catalog,
+            InitialBases {
+                source: Some(source),
+                #[cfg(all(target_os = "linux", feature = "linux-display"))]
+                scanout: None,
+                #[cfg(all(target_os = "linux", feature = "linux-display"))]
+                native_mask: None,
             },
         )
     }
@@ -170,6 +192,15 @@ impl StdHost {
         #[allow(unused_mut)]
         let mut expected_implementations =
             BTreeSet::from([conduit_std_offers::TICK_IMPLEMENTATION.to_owned()]);
+        if let Some(source) = &initial.source {
+            expected_implementations.insert(
+                source.definition.base.capabilities[0]
+                    .implementation
+                    .implementation_id
+                    .as_str()
+                    .to_owned(),
+            );
+        }
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         if initial.has_native_mask() {
             expected_implementations.extend(
@@ -188,7 +219,10 @@ impl StdHost {
                 .collect::<BTreeSet<_>>()
                 != expected_implementations
         {
-            return Err("selected IMAGE operation workset is unsupported: only explicit hosted time/tick is initialized".into());
+            return Err(
+                "selected IMAGE operation workset has no selected initialized timer/native owner"
+                    .into(),
+            );
         }
         let timer = manifest
             .base_selections
@@ -199,7 +233,11 @@ impl StdHost {
             .collect::<Vec<_>>();
         if timer.len() != 1
             || manifest.base_selections.iter().any(|base| {
-                !(initial.has_scanout()
+                !initial.source.as_ref().is_some_and(|source| {
+                    source.definition.base.base_id.as_str() == base.id
+                        && source.definition.base.mechanism_family.as_str() == base.kind
+                        && source.definition.base.implementation_id.as_str() == base.driver
+                }) && !(initial.has_scanout()
                     && base.kind == "display/scanout"
                     && base.driver == "display/linear-framebuffer@1")
                     && !matches!(
@@ -223,6 +261,10 @@ impl StdHost {
                 > MAXIMUM_TIMER_POOLS
                     + usize::from(initial.has_scanout())
                     + 2 * usize::from(initial.has_native_mask())
+                    + initial
+                        .source
+                        .as_ref()
+                        .map_or(0, |s| s.definition.base.resources.len())
         {
             return Err("selected timer requires 1..16 explicit timer pools".into());
         }
@@ -230,6 +272,13 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
+            if initial
+                .source
+                .as_ref()
+                .is_some_and(|source| source.owns_pool(&budget.id))
+            {
+                continue;
+            }
             if (initial.has_scanout() && budget.class == "face/surface")
                 || (initial.has_native_mask()
                     && matches!(
@@ -300,6 +349,21 @@ impl StdHost {
             initialized_base_kinds.insert("display/scanout".into());
             initialized_driver_kinds.insert("display/linear-framebuffer@1".into());
         }
+        if let Some(source) = &initial.source {
+            let entry = &source.definition.base;
+            registry
+                .register(entry.clone())
+                .map_err(|error| format!("selected Source registry: {error:?}"))?;
+            candidates.push(entry.clone());
+            ready_resource_classes.extend(
+                entry
+                    .resources
+                    .iter()
+                    .map(|r| r.class_id.as_str().to_owned()),
+            );
+            initialized_base_kinds.insert(entry.mechanism_family.as_str().into());
+            initialized_driver_kinds.insert(entry.implementation_id.as_str().into());
+        }
         #[allow(unused_mut)]
         let mut mask_capabilities = Vec::new();
         #[allow(unused_mut)]
@@ -324,7 +388,12 @@ impl StdHost {
             facilities.insert("compositor/native@1".into());
         }
         #[allow(unused_mut)]
-        let mut expected_capabilities = 1 + mask_capabilities.len();
+        let mut expected_capabilities = 1
+            + mask_capabilities.len()
+            + initial
+                .source
+                .as_ref()
+                .map_or(0, |s| s.definition.base.capabilities.len());
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         if let Some(mask) = &initial.native_mask {
             expected_capabilities += mask.provider.entry.capabilities.len();
@@ -357,7 +426,7 @@ impl StdHost {
                     initialized_base_kinds,
                     initialized_driver_kinds,
                     available_facilities: facilities,
-                    authority_ready: has_native_mask,
+                    authority_ready: has_native_mask || initial.source.is_some(),
                 },
             },
         )
@@ -375,6 +444,9 @@ impl StdHost {
             host.selected_scanout = initial.scanout;
         }
         host.kernel_resources.bind_image_bounds(&manifest.bounds)?;
+        if let Some(source) = initial.source {
+            source.initialize(&mut host)?;
+        }
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         if let Some(intent) = initial.native_mask {
             let mask = intent.initialize(&mut host)?;

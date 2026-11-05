@@ -5,17 +5,17 @@ use conduit_planner::*;
 use conduit_std_host::{source_check::*, *};
 use std::collections::BTreeMap;
 #[path = "../../../../make/body/tests/source_check_call/support/runtime.rs"]
-mod support;
-fn bounds() -> SourceCheckPreparationBounds {
+pub(super) mod support;
+pub(super) fn bounds() -> SourceCheckPreparationBounds {
     SourceCheckPreparationBounds {
         request_bytes: 16 * 1024,
         report_bytes: 64 * 1024,
         retained_bytes: 128 * 1024,
     }
 }
-struct Capture {
-    bytes: Vec<u8>,
-    calls: usize,
+pub(super) struct Capture {
+    pub(super) bytes: Vec<u8>,
+    pub(super) calls: usize,
 }
 impl ExternalForeOutputAdapter for Capture {
     fn deliver(&mut self, _: ExternalForeDelivery) -> Result<(), String> {
