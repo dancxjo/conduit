@@ -4884,3 +4884,41 @@ authenticated MCU start/reservation protocol, physical bus handover or live
 sensor/display Body Play. The compact native assigned-operation path still
 needs its corresponding Body scope; its old Plot-only check remains strict.
 No live firmware or services were replaced.
+
+
+### 2026-11-05: Preserve native capability possession under assigned Body scope
+
+The compact native-operation binder now uses the same explicit
+`AssignedPlayScope` as resident computation. Its assigned tables retain the
+inner Plot identity, while a Body-scoped capability claim names the actual
+containing Body Plan and Play. Both must match their respective checked scope;
+the independently issued Base table still checks the claim, resource
+generation, envelope, implementation and finite operation contract. The default
+Plot scope retains the canonical active-Play check. No compatibility path,
+serialized grant or implicit authority was added.
+
+The CPU I2C owner tests exercise ordinary Body construction, sealed Plot/Body
+Plans, checked containment and actual opaque local capability issuance. Both
+contiguous and borrowed records work, with and without typed local Fores. A
+copied Body claim paired with the old Plot capability refuses; a Plot scope
+cannot stand in for the Body scope. Stale resource generation and short
+parameters refuse while retaining the original controller. After successful
+transfer, forbidden addresses cause no provider effect, one allowed transaction
+causes exactly one effect, replay refuses, and revocation stops later effects.
+These are inert CPU provider tests, not physical electrical acceptance.
+
+Qualification passes: 16 I2C tests, 34 lowering tests, both emitted resident
+checks, strict lowering/I2C all-target Clippy, standalone monotonic-wait and
+TM1637 suites, and the environmental runtime's construction suite. Default
+Cortex-M0+ checks pass for lowering and I2C; formatting and diff checks pass.
+Standalone locks were refreshed offline for the existing resident-generator
+wire dependencies without upgrading registry package versions. A process check
+found no users of the isolated review cache; package-native cleanup recovered
+5.9 GiB while preserving source, proof logs, installed releases and Seeds.
+
+No live firmware or service changed. Green's diagnostic task still owns the
+single asynchronous I2C bus used by its sensor and display. Physical admission
+must authenticate and authorize a compact Body assignment, reserve the real
+pools, and transfer that one quiescent bus into the prepared native owner.
+The default MCU build does not validate a rich Body Plan; the portable trusted
+Root boundary for externally prepared Body scope remains to be connected.

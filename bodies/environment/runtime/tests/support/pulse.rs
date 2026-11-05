@@ -216,7 +216,7 @@ fn bind_mode(
                 requirements: projection.required(),
                 computations: projection.profile(),
                 fragment_id: &fragment.fragment_id,
-                active: &active,
+                scope: conduit_plan_lowering::assigned_play_scope::AssignedPlayScope::Plot(&active),
                 node,
             },
         )?

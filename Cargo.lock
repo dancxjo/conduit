@@ -2177,6 +2177,7 @@ dependencies = [
 name = "conduit-i2c-transaction"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-composite",
  "conduit-core",
  "conduit-embedded-build",

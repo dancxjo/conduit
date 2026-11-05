@@ -119,6 +119,17 @@ Actual Host preparation, resource admission, execution and retirement remain
 separate. The existing fragment-Play entrance and its canonical active-Play law
 remain intact. Body validation is an optional dependency, disabled by default.
 
+`PreparedBodyFragment` retains borrowed containment evidence after that full
+preparation. Both resident computation and native assigned-operation selection
+use `AssignedPlayScope` to distinguish a Plot Play from the containing Body Play.
+Assigned tables retain the inner Plot Plan and fragment identities. A native
+claim must name the outer Body Plan/Play and still match the independently
+issued local Base capability, resource generation and envelope. A copied claim
+or a descriptive assignment cannot issue that capability. The default small
+Host build includes only Plot scope; receiving attributed bytes does not add a
+Body preparation witness or authorize remote execution. Compact remote Body
+scope admission remains a separate Root obligation.
+
 
 ## Resident backing across Plays
 

@@ -173,7 +173,7 @@ fn generic_assigned_binding_checks_configuration_and_zero_result_shape_in_both_s
                     requirements: &[],
                 },
                 fragment_id: &fragment.fragment_id,
-                active,
+                scope: conduit_plan_lowering::assigned_play_scope::AssignedPlayScope::Plot(active),
                 node: lowered.nodes[0].node,
             };
 

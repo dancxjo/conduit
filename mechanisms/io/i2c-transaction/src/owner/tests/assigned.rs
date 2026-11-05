@@ -5,27 +5,40 @@ use alloc::{vec, vec::Vec};
 use conduit_core::*;
 use conduit_embedded_build as e;
 use conduit_kernel::HostCallId;
+use conduit_plan_lowering::assigned_play_scope::AssignedPlayScope;
+#[path = "assigned_body_scope.rs"]
+mod body_scope;
 use conduit_plan_lowering::selected_assigned_operation::{
     AssignedOperationInput, SelectedAssignedForeOperationPlan, SelectedAssignedOperationPlan,
 };
 
 #[test]
 fn contiguous_assignment_preserves_controller_and_executes_under_its_lease() {
-    exercise(false, false);
+    exercise(false, false, false);
 }
 #[test]
 fn borrowed_assignment_preserves_controller_and_executes_under_its_lease() {
-    exercise(true, false);
+    exercise(true, false, false);
 }
 #[test]
 fn local_fore_assignment_preserves_controller_and_executes_under_its_lease() {
-    exercise(false, true);
+    exercise(false, true, false);
 }
 #[test]
 fn borrowed_local_fore_preserves_controller_and_executes_under_its_lease() {
-    exercise(true, true);
+    exercise(true, true, false);
 }
-fn exercise(borrowed: bool, fore: bool) {
+#[test]
+fn body_assignment_retains_actual_authority_and_controller_custody() {
+    exercise(false, false, true);
+    exercise(true, false, true);
+}
+#[test]
+fn body_fore_assignment_retains_actual_authority_and_controller_custody() {
+    exercise(false, true, true);
+    exercise(true, true, true);
+}
+fn exercise(borrowed: bool, fore: bool, body: bool) {
     let contract = I2cContract::prepare().unwrap();
     let mut scope = fixture::scope();
     scope.capability_id = I2C_IMPLEMENTATION.into();
@@ -170,7 +183,13 @@ fn exercise(borrowed: bool, fore: bool) {
         .unwrap();
     let resources: Vec<_> = image.resources.iter().map(|r| r.resource).collect();
     let calls = [AssignedIdentity::from_text(I2C_CALL)];
-    let selected = |active| SelectedAssignedOperationPlan {
+    let context = body.then(|| body_scope::Context::new(&plan));
+    let valid_scope = context
+        .as_ref()
+        .map_or(AssignedPlayScope::Plot(&active), |context| {
+            context.scope(fragment)
+        });
+    let selected = |scope| SelectedAssignedOperationPlan {
         input: if borrowed {
             AssignedOperationInput::Records {
                 header: &bytes[..ASSIGNED_PLAN_HEADER_BYTES],
@@ -193,10 +212,10 @@ fn exercise(borrowed: bool, fore: bool) {
             requirements: &[],
         },
         fragment_id: &fragment.fragment_id,
-        active,
+        scope,
         node: lowered.nodes[0].node,
     };
-    let bind = |slot: &mut Option<ReadyI2cBase<Provider>>, table, handle, claim, active| {
+    let bind = |slot: &mut Option<ReadyI2cBase<Provider>>, table, handle, claim, scope| {
         if let Some(image) = &fore_image {
             ReadyI2cBase::bind_assigned_fore_retained(
                 slot,
@@ -205,7 +224,7 @@ fn exercise(borrowed: bool, fore: bool) {
                 claim,
                 &contract,
                 SelectedAssignedForeOperationPlan {
-                    operation: selected(active),
+                    operation: selected(scope),
                     fore: image.fore(),
                 },
             )
@@ -216,30 +235,65 @@ fn exercise(borrowed: bool, fore: bool) {
                 handle,
                 claim,
                 &contract,
-                selected(active),
+                selected(scope),
             )
         }
     };
-    let issue = || fixture::authorization(scope.clone(), fragment, &active);
+    let issue = || match &context {
+        Some(context) => {
+            fixture::authorization_for_play(scope.clone(), context.plan_id(), context.play_id())
+        }
+        None => fixture::authorization(scope.clone(), fragment, &active),
+    };
+    if let Some(context) = &context {
+        // A true Body scope cannot turn a copied claim into local possession.
+        let (table, handle, mut claim) = fixture::authorization(scope.clone(), fragment, &active);
+        claim.plan_id = context.plan_id().clone();
+        claim.active_play_id = context.play_id().clone();
+        assert!(matches!(
+            bind(&mut slot, table, handle, claim, valid_scope),
+            Err(I2cCallRefusal::WrongBinding)
+        ));
+        assert!(slot.is_some());
+        let (table, handle, claim) = issue();
+        assert!(matches!(
+            bind(
+                &mut slot,
+                table,
+                handle,
+                claim,
+                AssignedPlayScope::Plot(&active)
+            ),
+            Err(I2cCallRefusal::WrongBinding)
+        ));
+        assert!(slot.is_some());
+    }
     let mut wrong = active.clone();
     wrong.boot_id = "boot/stale".into();
     let (table, handle, claim) = issue();
-    assert!(bind(&mut slot, table, handle, claim, &wrong).is_err());
+    assert!(bind(
+        &mut slot,
+        table,
+        handle,
+        claim,
+        AssignedPlayScope::Plot(&wrong)
+    )
+    .is_err());
     assert!(slot.is_some());
     let (table, handle, mut claim) = issue();
     claim.resource_generation_id = ResourceGenerationId("resource/stale".into());
-    assert!(bind(&mut slot, table, handle, claim, &active).is_err());
+    assert!(bind(&mut slot, table, handle, claim, valid_scope).is_err());
     assert!(slot.is_some());
     let (table, handle, mut claim) = issue();
     claim.parameter_bytes -= 1;
-    assert!(bind(&mut slot, table, handle, claim, &active).is_err());
+    assert!(bind(&mut slot, table, handle, claim, valid_scope).is_err());
     assert!(slot.is_some());
     let (table, _, claim) = issue();
     let ready = slot.as_ref().unwrap();
     let checked = if let Some(image) = &fore_image {
         assert_eq!(image.fore().len(), 2);
         assert!(ready
-            .check_assigned(&table, &claim, &contract, selected(&active))
+            .check_assigned(&table, &claim, &contract, selected(valid_scope))
             .is_err());
         let mut wrong_abi = image.fore().to_vec();
         let first = wrong_abi[0];
@@ -259,7 +313,7 @@ fn exercise(borrowed: bool, fore: bool) {
                     &claim,
                     &contract,
                     SelectedAssignedForeOperationPlan {
-                        operation: selected(&active),
+                        operation: selected(valid_scope),
                         fore: pins
                     }
                 )
@@ -270,12 +324,12 @@ fn exercise(borrowed: bool, fore: bool) {
             &claim,
             &contract,
             SelectedAssignedForeOperationPlan {
-                operation: selected(&active),
+                operation: selected(valid_scope),
                 fore: image.fore(),
             },
         )
     } else {
-        ready.check_assigned(&table, &claim, &contract, selected(&active))
+        ready.check_assigned(&table, &claim, &contract, selected(valid_scope))
     };
     assert_eq!(checked.unwrap(), lowered.nodes[0].node);
     if let Some(image) = &fore_image {
@@ -287,7 +341,7 @@ fn exercise(borrowed: bool, fore: bool) {
             claim,
             &contract,
             SelectedAssignedForeOperationPlan {
-                operation: selected(&active),
+                operation: selected(valid_scope),
                 fore: &image.fore()[..1]
             }
         )
@@ -295,11 +349,11 @@ fn exercise(borrowed: bool, fore: bool) {
         assert!(slot.is_some());
     }
     let (table, handle, claim) = issue();
-    let mut owner = bind(&mut slot, table, handle, claim, &active).unwrap();
+    let mut owner = bind(&mut slot, table, handle, claim, valid_scope).unwrap();
     assert!(slot.is_none());
     assert_eq!(owner.provider.effects, 0);
     let (table, handle, claim) = issue();
-    assert!(bind(&mut slot, table, handle, claim, &active).is_err());
+    assert!(bind(&mut slot, table, handle, claim, valid_scope).is_err());
     drop(records);
     drop(bytes);
     let forbidden = request(&contract, 0x50, &[0xd0], 1);

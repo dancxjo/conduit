@@ -17,7 +17,7 @@ pub struct SelectedAssignedOperationPlan<'a> {
     pub requirements: c::AssignedPlanRequirements<'a>,
     pub computations: c::AssignedComputationProfile<'a>,
     pub fragment_id: &'a c::FragmentId,
-    pub active: &'a c::ActivePlayIdentity,
+    pub scope: crate::assigned_play_scope::AssignedPlayScope<'a>,
     pub node: NodeId,
 }
 /// Explicit opt-in pins for the local fore schema; this is not a Line.
@@ -126,16 +126,9 @@ fn bind_assigned_profile(
             admission.fore,
         )
         .map_err(|_| wrong())?;
-    let active = selected.active;
-    if view.plan != id(claim.plan_id.as_str())
-        || view.fragment != id(selected.fragment_id.as_str())
-        || view.host != id(claim.host_id.as_str())
-        || view.boot != id(claim.boot_id.as_str())
-        || active.plan_id != claim.plan_id
-        || active.host_id != claim.host_id
-        || active.boot_id != claim.boot_id
-        || active.active_play_id != claim.active_play_id
-        || !crate::active_scope::matches(active)
+    if view.fragment != id(selected.fragment_id.as_str())
+        || !selected.scope.matches(&view)
+        || !selected.scope.matches_claim(claim)
         || claim.subject_kind != definition.kind.kind_id
         || claim.operation_contract_id.as_str() != definition.call
     {

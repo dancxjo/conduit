@@ -79,7 +79,7 @@ pub(super) fn owner() -> I2cHostCall<Provider> {
 }
 
 pub(super) fn authorization(
-    mut scope: BaseCapabilityScope,
+    scope: BaseCapabilityScope,
     fragment: &PlanFragment,
     active: &ActivePlayIdentity,
 ) -> (
@@ -87,8 +87,20 @@ pub(super) fn authorization(
     BaseCapabilityHandle,
     BaseOperationClaim,
 ) {
-    scope.plan_id = fragment.plan_id.clone();
-    scope.active_play_id = active.active_play_id.clone();
+    authorization_for_play(scope, &fragment.plan_id, &active.active_play_id)
+}
+
+pub(super) fn authorization_for_play(
+    mut scope: BaseCapabilityScope,
+    plan: &PlanId,
+    play: &ActivePlayId,
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
+    scope.plan_id = plan.clone();
+    scope.active_play_id = play.clone();
     let authority = BaseCapabilityAuthority {
         grant: AuthorityGrant {
             grant_id: scope.authority_grant_id.clone(),

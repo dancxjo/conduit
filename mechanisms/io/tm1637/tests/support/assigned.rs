@@ -142,7 +142,7 @@ fn assigned_output_control(borrowed: bool, fore: bool) {
             requirements: &[],
         },
         fragment_id: &fragment.fragment_id,
-        active,
+        scope: conduit_plan_lowering::assigned_play_scope::AssignedPlayScope::Plot(active),
         node: lowered.nodes[0].node,
     };
     let contract = WriteContract::prepare().unwrap();

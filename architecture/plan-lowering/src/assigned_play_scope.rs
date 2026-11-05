@@ -10,6 +10,23 @@ pub enum AssignedPlayScope<'a> {
 }
 
 impl AssignedPlayScope<'_> {
+    pub(crate) fn matches_claim(&self, claim: &c::BaseOperationClaim) -> bool {
+        match self {
+            Self::Plot(active) => {
+                claim.plan_id == active.plan_id
+                    && claim.active_play_id == active.active_play_id
+                    && claim.host_id == active.host_id
+                    && claim.boot_id == active.boot_id
+            }
+            #[cfg(feature = "body-plan-binding")]
+            Self::Body(scope) => {
+                claim.plan_id == scope.plan().plan_id
+                    && claim.active_play_id == scope.play().active_play_id
+                    && claim.host_id == scope.fragment().host_id
+                    && claim.boot_id == scope.fragment().boot_id
+            }
+        }
+    }
     pub(crate) fn matches(&self, view: &c::AssignedPlanView) -> bool {
         let id = c::AssignedIdentity::from_text;
         match self {
