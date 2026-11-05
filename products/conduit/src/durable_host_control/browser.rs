@@ -132,11 +132,17 @@ pub(crate) fn begin(
     }
 }
 
+/// A semantic owner refusal is an outcome, distinct from a failed control Line.
+pub(crate) enum BrowserProofOutcome {
+    Admitted(Box<BrowserAdmittedSnapshot>),
+    Refused(String),
+}
+
 pub(crate) fn complete(
     state_dir: &Path,
     window_id: &str,
     frame: BrowserAdmissionIngress,
-) -> Result<BrowserAdmittedSnapshot, String> {
+) -> Result<BrowserProofOutcome, String> {
     match call(state_dir, |token| Request::BodyBrowserComplete {
         protocol: PROTOCOL,
         token,
@@ -146,8 +152,8 @@ pub(crate) fn complete(
         Response::BodyBrowserSnapshot {
             protocol: PROTOCOL,
             snapshot,
-        } => Ok(*snapshot),
-        Response::Refused { code, .. } => Err(format!("Body owner refused browser proof: {code}")),
+        } => Ok(BrowserProofOutcome::Admitted(snapshot)),
+        Response::Refused { code, .. } => Ok(BrowserProofOutcome::Refused(code)),
         _ => Err("Body owner returned the wrong browser proof response".into()),
     }
 }
