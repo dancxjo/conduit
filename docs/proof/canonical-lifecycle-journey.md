@@ -6331,3 +6331,30 @@ No live service/device changed. Green independently reported 177 successful
 samples and 2,644 acknowledged frames, no sensor/display errors and membership
 true on its existing build; those remain diagnostic IO. Raw logs and optimized
 artifact identity remain in ignored `target/shared-workset-effect-20261105`.
+
+
+### Complete service-workset dispatch isolated for delivery
+
+Reviewing the actual MCU entrance confirms it still releases unstarted feasibility
+reservations, retains authenticated input and reports Start not installed. The
+next owner prerequisite is delivering complete retained-workset dispatch: dev's
+service still selected one Plot despite complete Source custody. Focused PR
+#6791 isolates seven files on `dev=b53aa0fae0` (206 additions, 29 deletions),
+without the delivery branch's Crèche, carrier, policy or MCU code. Source/catalog
+ownership is dropped before the existing one worker receives the sealed Plan.
+There is no new worker, scheduler, proposal-adoption command or execution grant.
+
+The isolated checkout passes two complete service-workset tests and five
+retained-Source regressions, strict product binary/test Clippy and the evidence
+retention guard. Tests recover the same Body on a fresh Boot, execute both
+retained Plots through one worker, retain both outputs and terminal retirement,
+and refuse incomplete/modified Source custody before publishing Wake. This is
+CPU/service-worker proof, not an installed MCU Play or aggregate reservation.
+Raw logs remain in ignored `target/complete-workset-service-review-20261105`.
+The focused PR is open; Candidate and merge acceptance are not yet claimed.
+
+Before isolated builds, verified inactive package-native cleanup reclaimed
+2.9 GiB of ConduitOS and 4.0 GiB of language compiler outputs from the primary
+cache. No running executable, open file or mapped library referenced that cache;
+active review outputs, source, firmware, private state and evidence were retained.
+No live device or service changed in this step.
