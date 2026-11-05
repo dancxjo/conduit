@@ -306,6 +306,7 @@ impl PreparedNativeMaskPlay {
             show_bytes,
             read_only: fragment.placements.iter().any(|placement| placement.kind_id.as_str() == conduit_face::FACE_INTERACTION_KIND && matches!(placement.execution_profile_id.as_str(), conduit_conduitos_mask_offer::READ_ONLY_INTERACTION_PROFILE | conduit_conduitos_mask_offer::READ_ONLY_COLLECTION_INTERACTION_PROFILE)),
             available_show: Some(available_show),
+            retired: false,
             receipt: Some(NativeMaskPlayReceipt {
                 mask_plan_id: planned.plan.plan_id.clone(),
                 active_play_id: active.active_play_id,
