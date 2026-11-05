@@ -4246,3 +4246,16 @@ Reclaimed 3.5 GiB from the inactive, ignored qualification cache for merged
 #6758 after checking process executables, mappings, directories and descriptors.
 Source, raw result logs, private state, active caches and installed products
 were preserved. No live device or service was deployed in this checkpoint.
+
+#6760 merged at `9c6b5727ea` immediately when automatic merging was requested;
+Candidate 41965552338 was last observed queued, not successful. Local proof is
+not hosted acceptance. Do not reuse auto-merge as a check gate until repository
+enforcement is established. This checkout absorbed the merged policy with an
+unchanged tree after retaining its existing Source/scanout module declarations.
+The end-to-end goal remains active and no implementation issue is closed here.
+
+After the completed compiler tests, package-native `cargo clean -p conduit` in
+the private integration cache removed another reported 8.2 GiB of product build
+outputs. No process executable, mapped file, directory or descriptor referenced
+that cache. Shared dependency outputs, source, result logs, Seed/private state
+and installed products were preserved; filesystem headroom returned to 11 GiB.
