@@ -8,6 +8,9 @@ use conduit_core::{
 };
 use ed25519_dalek::{Signer, SigningKey};
 
+#[path = "continuity/receipt_capacity.rs"]
+mod receipt_capacity;
+
 fn advertisement(boot: &str, generation: u64) -> HostAdvertisement {
     HostAdvertisement {
         declared_name: None,

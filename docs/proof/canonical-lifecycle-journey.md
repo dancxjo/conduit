@@ -4433,3 +4433,29 @@ receipts and expiration without mutation. The existing actual pinned-TLS
 signed-return/lost-reply regression also passes. Strict product binary/tests
 Clippy passes. This checkpoint is local source proof and has not replaced the
 physical Threebee release. Its previous native Show remains historical.
+
+
+### 2026-11-05: Existing browser returns and bounded admission history
+
+The retained browser profile returned using its already admitted identity and
+Part. Through ordinary wardrobe Wear and Wake actions, it reached the live
+Crèche editor for the reviewed Green Host inputs. A proof driver subsequently
+waited for a Lull control in the wrong view; the captured editor is actual UI
+evidence, not a successful completion of that driver or a new Seed fabrication.
+
+A later return reached the owner's unchanged 32-receipt bound and refused with
+ReceiptCapacityExhausted. The saturated admission and biography state were
+preserved privately. Issue #6764 owns bounded durable retirement, including
+current credentials, initial replay fences and interrupted publication; no
+receipt was deleted and no capacity was increased.
+
+A Core regression now performs genuine signed returns under one Part and key,
+retains membership checkpoint prefixes and verifies atomic refusal at the
+receipt bound. The browser carrier maps this specific refusal to a public,
+bounded error while retaining the existing diagnostic privacy boundary. Focused
+Core and product tests and their strict Clippy checks pass. These changes are
+source proof only; durable retirement and further browser return remain undone.
+
+Baseline fixture repair #6763 passed Candidate and merged into dev. Joined-host
+startup repair #6762 requires its formatting correction and fresh Candidate
+checks before merge. Neither merge is a live device deployment claim.
