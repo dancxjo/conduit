@@ -4193,3 +4193,24 @@ strict all-target Plot Clippy, formatting/patch checks and thumbv6m-none-eabi
 checking. The extra Root-only incoming-reply law test remains in the larger
 checkpoint; no Source provider/IMAGE/descriptor implementation was folded into
 this PR. Hosted Candidate and normal acceptance of #6759 remain separate gates.
+
+### Bind retained Source acquisition to the installed Body (5 November 2026)
+
+The installed owner's boot/resume and retained-Play entrance now recover the
+verified installation/biography pair before accepting retained Source. The Root
+selects the actual descriptor and uses the same fixed-extent UTF-8 capture as
+compiler preparation. No request label selects a pathname, entry, or grant.
+An absent file remains explicitly absent. Oversize, malformed UTF-8, changed
+extent and IO failure refuse without growing the acquisition buffer or retrying.
+
+Parser-free canonical identity must first match a Source in the retained Body's
+workset. Only then does the ordinary product parser/checker expand that exact
+captured text. The resulting Source/checked-Plot pair must also be resident;
+matching a Source hash alone does not authorize another entry. This closes the
+path where unrelated retained bytes could reach parsing and scoped equipment
+selection before the owner checked their resident identity.
+
+This is installed Root acquisition policy, not a general Source grant service,
+a Ready compiler provider, or a new Play. Compiler workspace admission, installed
+provider construction and ordinary authoring dispatch remain required. No live
+service, device, Seed or Face was changed by this source checkpoint.

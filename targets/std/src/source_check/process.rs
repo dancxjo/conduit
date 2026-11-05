@@ -123,4 +123,5 @@ mod prepared;
 pub use parent::{SourceCheckProcessFailure, SourceCheckProcessOutput, SourceCheckProcessWorker};
 
 mod source;
-pub use source::{OwnedSourceCheckInput, SourceFileRefusal};
+pub use crate::source_file::SourceFileRefusal;
+pub use source::OwnedSourceCheckInput;

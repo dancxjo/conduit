@@ -1,7 +1,7 @@
 use super::*;
 use std::{
     fs::OpenOptions,
-    io::{Cursor, Write},
+    io::{Seek, SeekFrom, Write},
     sync::atomic::{AtomicU64, Ordering},
 };
 fn selected(bytes: &[u8]) -> File {
@@ -97,34 +97,4 @@ fn nonregular_oversized_and_non_utf8_sources_refuse_distinctly() {
         OwnedSourceCheckInput::from_file(selected(&[0xff]), 8, "owner", 1, "main", context()),
         Err(SourceFileRefusal::Utf8)
     ));
-}
-#[test]
-fn changed_extent_cannot_grow_storage_and_interruption_is_not_an_unbounded_retry() {
-    let mut growing = Cursor::new([1u8; 1024]);
-    assert!(matches!(
-        capture_extent(&mut growing, 2),
-        Err(SourceFileRefusal::ExtentChanged)
-    ));
-    assert_eq!(
-        growing.position(),
-        3,
-        "only the original extent plus sentinel is read"
-    );
-    assert!(matches!(
-        capture_extent(Cursor::new([1u8]), 2),
-        Err(SourceFileRefusal::ExtentChanged)
-    ));
-    struct Interrupted(usize);
-    impl Read for Interrupted {
-        fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
-            self.0 += 1;
-            Err(std::io::ErrorKind::Interrupted.into())
-        }
-    }
-    let mut interrupted = Interrupted(0);
-    assert!(matches!(
-        capture_extent(&mut interrupted, 2),
-        Err(SourceFileRefusal::Read(_))
-    ));
-    assert_eq!(interrupted.0, 1);
 }

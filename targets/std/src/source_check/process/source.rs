@@ -1,26 +1,13 @@
 //! Freeze bytes from an actual preselected file capability, never a pathname.
 use super::*;
+use crate::source_file::{CapturedSourceFile, SourceFileRefusal};
 use conduit_plot::{
     canonical_source_document_id, CheckContextRevision, SourceCheckLimits, SourceSnapshotRevision,
     MAXIMUM_PLOT_SOURCE_BYTES, MAX_CHECK_LABEL_BYTES,
 };
 use sha2::{Digest, Sha256};
-use std::{
-    fs::File,
-    io::{Seek, SeekFrom},
-};
+use std::fs::File;
 
-#[derive(Debug)]
-pub enum SourceFileRefusal {
-    Bounds,
-    Scope,
-    Metadata(std::io::Error),
-    NotRegular,
-    Bytes,
-    ExtentChanged,
-    Read(std::io::Error),
-    Utf8,
-}
 /// Immutable input acquired from an already selected readable File. There is no
 /// path entrance, deserializer or mutable byte access. Owner/generation/context
 /// labels describe this capture and never authorize access. The caller owns
@@ -35,7 +22,7 @@ impl OwnedSourceCheckInput {
     /// Root separately admits this buffer, the selected file IO and compiler
     /// workspace before invoking these effects.
     pub fn from_file(
-        mut file: File,
+        file: File,
         maximum_bytes: usize,
         owner: &str,
         generation: u64,
@@ -60,18 +47,8 @@ impl OwnedSourceCheckInput {
         {
             return Err(SourceFileRefusal::Scope);
         }
-        let metadata = file.metadata().map_err(SourceFileRefusal::Metadata)?;
-        if !metadata.is_file() {
-            return Err(SourceFileRefusal::NotRegular);
-        }
-        let extent = usize::try_from(metadata.len()).map_err(|_| SourceFileRefusal::Bytes)?;
-        if extent > maximum_bytes {
-            return Err(SourceFileRefusal::Bytes);
-        }
-        file.seek(SeekFrom::Start(0))
-            .map_err(SourceFileRefusal::Read)?;
-        let bytes = capture_extent(&mut file, extent)?;
-        let source = String::from_utf8(bytes).map_err(|_| SourceFileRefusal::Utf8)?;
+        let captured = CapturedSourceFile::from_file(file, maximum_bytes)?;
+        let source = captured.into_source();
         let snapshot = SourceSnapshotRevision {
             owner: owner.into(),
             generation,
@@ -98,27 +75,6 @@ impl OwnedSourceCheckInput {
     pub fn source(&self) -> &str {
         &self.input.source
     }
-}
-// One fixed extent plus an overflow sentinel. Contrary evidence never grows
-// storage, silently changes the admitted extent, or starts an unbounded retry.
-fn capture_extent(mut input: impl Read, extent: usize) -> Result<Vec<u8>, SourceFileRefusal> {
-    if extent > MAXIMUM_PLOT_SOURCE_BYTES {
-        return Err(SourceFileRefusal::Bounds);
-    }
-    let mut bytes = vec![0; extent + 1];
-    let mut used = 0;
-    while used < bytes.len() {
-        match input.read(&mut bytes[used..]) {
-            Ok(0) => break,
-            Ok(count) => used += count,
-            Err(error) => return Err(SourceFileRefusal::Read(error)),
-        }
-    }
-    if used != extent {
-        return Err(SourceFileRefusal::ExtentChanged);
-    }
-    bytes.truncate(used);
-    Ok(bytes)
 }
 impl SourceCheckProcessWorker {
     /// Uses the retained capture. Labels cannot reopen a resource or replace its

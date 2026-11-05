@@ -8,6 +8,7 @@ mod membership_receipt_document;
 pub(crate) use member_presentation::MemberPresentationBasis;
 pub(crate) use membership_receipt_document::MembershipReceiptDocument;
 mod native_observation;
+mod retained_source;
 mod state;
 use conduit_body::ResidentPlot;
 use conduit_plot::ActivationSyntax;
@@ -24,6 +25,7 @@ pub(crate) use controller::{
     LlmSpokenStart, NotebookWaitingWorker, Owner, RunWorker, ThermostatWorker, TodoWaitingWorker,
     CLOCK_RUN_MAXIMUM_MILLIS,
 };
+use retained_source::checked as checked_retained_source;
 use serde::Deserialize;
 use std::{
     io::{BufRead, Read, Write},
@@ -63,23 +65,6 @@ pub(crate) fn resume_service(
         owner.persist(root)?;
     }
     Ok(owner)
-}
-
-/// Recheck the retained source through the product's ordinary checked Plot
-/// entrance. An older or interrupted installation can lack these source bytes;
-/// its Face then retains the exact resident identity with a generic name.
-fn checked_retained_source(
-    root: &Path,
-) -> Result<Option<conduit_plot::ExpandedAuthoringPlot>, String> {
-    let path = root.join("body/source.conduit");
-    if !path.exists() {
-        return Ok(None);
-    }
-    let bytes = super::bounded_read(&path, MAXIMUM_SOURCE)?;
-    let source = std::str::from_utf8(&bytes).map_err(|error| error.to_string())?;
-    crate::plot_source::parse(source)?
-        .expand_entry_for_authoring()
-        .map(Some)
 }
 
 /// Only a checked, exact Todo scan can request the scoped production offer.
