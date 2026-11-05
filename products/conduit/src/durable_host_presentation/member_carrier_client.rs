@@ -41,22 +41,28 @@ impl MemberRoute {
         let prior = crate::durable_host::membership::load_joined_credential(state, &installation)?;
         let actual = runtime.truth().advertisement;
         let candidate = &encounter.candidate;
-        if encounter.schema != MEMBER_ROUTE_SCHEMA
-            || encounter.body_id != prior.body_id
-            || encounter.part_id != prior.part_id
-            || encounter.host_id != prior.host_id
-            || actual.host_id != prior.host_id
-            || actual.host_id.as_str() != status.host_id
-            || actual.boot_id.as_str() != status.boot_id
-            || candidate.line_family != conduit_body::RendezvousLineFamily::AuthenticatedTlsStream
-            || candidate.expires_at_millis <= crate::durable_host::current_time_millis()?
-            || !(1..=30_000).contains(&candidate.attempt_timeout_millis)
-            || !(1..=2).contains(&candidate.maximum_attempts)
-        {
-            return Err(
-                "member encounter differs from retained member, bounded TLS route or actual Boot"
-                    .into(),
-            );
+        let now = crate::durable_host::current_time_millis()?;
+        let checks = [
+            (encounter.schema == MEMBER_ROUTE_SCHEMA, "schema"),
+            (encounter.body_id == prior.body_id, "body"),
+            (encounter.part_id == prior.part_id, "part"),
+            (encounter.host_id == prior.host_id, "member-host"),
+            (actual.host_id == prior.host_id, "runtime-host"),
+            (actual.host_id.as_str() == status.host_id, "published-host"),
+            (actual.boot_id.as_str() == status.boot_id, "published-boot"),
+            (
+                candidate.line_family == conduit_body::RendezvousLineFamily::AuthenticatedTlsStream,
+                "line-family",
+            ),
+            (candidate.expires_at_millis > now, "expired"),
+            (
+                (1..=30_000).contains(&candidate.attempt_timeout_millis),
+                "timeout",
+            ),
+            ((1..=2).contains(&candidate.maximum_attempts), "attempts"),
+        ];
+        if let Some((_, boundary)) = checks.iter().find(|(valid, _)| !valid) {
+            return Err(format!("member-encounter-refused:{boundary}"));
         }
         let credential = if prior.boot_id != actual.boot_id {
             let (mut old_line, credential) =
