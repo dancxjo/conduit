@@ -194,3 +194,6 @@ fn checked_local_fore_projects_exactly_and_legacy_paths_refuse_it() {
     .is_err());
     assert!(!generated.layout_requirements(maxima).unwrap().is_empty());
 }
+
+#[path = "local_fore/bounded_tables.rs"]
+mod bounded_tables;

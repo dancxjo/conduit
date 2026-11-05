@@ -227,7 +227,12 @@ fn boxed_initialization_drops_affine_driver_once_on_success_and_refusal() {
                 .unwrap(),
         );
         if invalid {
-            assert_eq!(result.err(), Some(SchedulerError::InvalidActiveCapacity));
+            assert_eq!(
+                result.err(),
+                Some(super::KernelPreparationError::Topology(
+                    SchedulerError::InvalidActiveCapacity
+                ))
+            );
             assert_eq!(drops.get(), 1);
         } else {
             let scheduler = result.unwrap();

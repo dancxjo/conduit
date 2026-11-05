@@ -96,3 +96,35 @@ fn batch_admission_is_atomic_and_retains_exact_per_plan_reservations() {
         .unwrap();
     assert_eq!(owner, before);
 }
+
+#[test]
+fn batch_preparation_does_not_copy_unrelated_host_inventory() {
+    fn measured(extra_pools: usize) -> probe::Observation {
+        let mut host = host();
+        for index in 0..extra_pools {
+            host.resources.push(conduit_core::resource_offer(
+                &format!("pool/unrelated/{index}"),
+                "fixture/unrelated",
+                1,
+            ));
+        }
+        let observed = [observation(&host, 16, "sign/batch-cost")];
+        let mut owner = ResourceAdmissionOwner::new(host.clone());
+        let existing = request(&host, "existing", 4);
+        owner.admit(existing, &observed).unwrap();
+        let requests = vec![request(&host, "first", 4), request(&host, "second", 4)];
+        let ((), cost) = probe::observe(|| {
+            assert_eq!(owner.admit_batch(requests, &observed).unwrap().len(), 2);
+        });
+        assert_eq!(owner.admissions().len(), 3);
+        assert_eq!(owner.host(), &host);
+        cost
+    }
+    let small = measured(0);
+    let large = measured(128);
+    eprintln!("batch preparation: small {small:?}; 128 extra pools {large:?}");
+    assert_eq!(large.allocations, small.allocations);
+    assert_eq!(large.reallocations, small.reallocations);
+    assert_eq!(large.requested_bytes, small.requested_bytes);
+    assert_eq!(large.peak_bytes, small.peak_bytes);
+}
