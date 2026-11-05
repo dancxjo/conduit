@@ -8,6 +8,26 @@ use conduit_embedded_build::{
 };
 
 impl Owner {
+    /// Resolve the selected resident implementations from current member offers;
+    /// no arbitrary encoded projection crosses this owner preparation boundary.
+    #[allow(dead_code)]
+    pub(super) fn prepare_remote_resident_workset(
+        &self,
+        actual: &HostAdvertisement,
+        images: &[&conduit_embedded_build::PreparedResidentExpression],
+        limits: BodyFragmentProjectionLimits,
+    ) -> Result<(BodyPlayIdentity, GeneratedBodyWorksetDocument), String> {
+        self.prepare_remote_body_workset(actual, limits.maximum_document_bytes, |scope| {
+            let resident = conduit_embedded_build::bind_current_resident_expressions(
+                scope.plot_plan(),
+                &scope.fragment().fragment_id,
+                actual,
+                images,
+            )
+            .map_err(BodyFragmentGenerationRefusal::Resident)?;
+            Ok((resident, limits))
+        })
+    }
     // The installed remote dispatcher must call this before signing or sending.
     // It is not wired to Start while native receiver installation is absent.
     #[allow(dead_code)]

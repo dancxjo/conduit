@@ -350,6 +350,28 @@ fn remote_projection_uses_retained_proposal_and_current_member_without_starting(
         .unwrap();
     assert!(called.get());
     assert!(refused.contains("Resources"));
+    let unresolved = owner
+        .prepare_remote_resident_workset(
+            &remote,
+            &[],
+            conduit_embedded_build::BodyFragmentProjectionLimits {
+                image: conduit_embedded_build::EmbeddedImageBounds::HOST_TOOLING,
+                computations: conduit_embedded_build::EmbeddedComputationBounds {
+                    maximum_program_bytes: 512 * 1024,
+                    maximum_total_program_bytes: 1024 * 1024,
+                },
+                assigned: conduit_core::AssignedPlanMaxima {
+                    encoded_bytes: 4096,
+                    runtime_state_bytes: 16384,
+                    counts: [32; conduit_core::ASSIGNED_PLAN_COUNT_KINDS],
+                },
+                maximum_fore_ports: 2,
+                maximum_document_bytes: 4096,
+            },
+        )
+        .err()
+        .unwrap();
+    assert!(unresolved.contains("Resident(Selection)"));
     assert_eq!(owner.session.evidence(), &before);
     assert_eq!(owner.session.realization(), Some(&proposal));
     assert_eq!(

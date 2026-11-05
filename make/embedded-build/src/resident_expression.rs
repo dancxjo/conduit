@@ -247,3 +247,47 @@ impl BoundResidentExpression {
         self.pin
     }
 }
+
+/// Bind the exact resident images selected by this sealed fragment against an
+/// independently current offer observation. This neither initializes a Back
+/// nor proves resource possession. The receiving Root must admit it separately.
+pub fn bind_current_resident_expressions(
+    plan: &c::Plan,
+    fragment: &c::FragmentId,
+    actual: &c::HostAdvertisement,
+    images: &[&PreparedResidentExpression],
+) -> Result<Vec<BoundResidentExpression>, ResidentExpressionRefusal> {
+    use ResidentExpressionRefusal as R;
+    if !c::verify_plan(plan) {
+        return Err(R::Plan);
+    }
+    let selected = plan
+        .fragments
+        .iter()
+        .find(|f| &f.fragment_id == fragment)
+        .ok_or(R::Plan)?;
+    if selected.host_id != actual.host_id
+        || selected.boot_id != actual.boot_id
+        || selected.offer_generation != actual.offer_generation
+    {
+        return Err(R::Selection);
+    }
+    let mut bound = Vec::new();
+    for placement in &selected.placements {
+        let mut offers = actual
+            .capabilities
+            .iter()
+            .filter(|offer| offer.capability_id == placement.capability_id);
+        let offer = offers.next().ok_or(R::Selection)?;
+        if offers.next().is_some() {
+            return Err(R::Selection);
+        }
+        let mut candidates = images.iter().filter(|image| image.offer == *offer);
+        let image = candidates.next().ok_or(R::Selection)?;
+        if candidates.next().is_some() {
+            return Err(R::Selection);
+        }
+        bound.push(image.bind(plan, fragment, &placement.placement_id)?);
+    }
+    Ok(bound)
+}

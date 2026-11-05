@@ -75,6 +75,7 @@ pub fn bounds(private_work_units: u16) -> b::ResidentExpressionBounds {
 }
 pub type Tables = conduit_kernel::assigned::AssignedKernelTables<1, 2, 1, 1, 1, 0>;
 pub struct Assignment {
+    pub advertisement: c::HostAdvertisement,
     pub model: c::Plan,
     pub encoded: Vec<u8>,
     pub tables: Tables,
@@ -193,6 +194,7 @@ pub fn exercise(offer: c::CapabilityOffer) -> Assignment {
         )
     };
     let selected = plan(&host).unwrap();
+    let advertisement = host.clone();
     host.resources[0].capacity_units = 999;
     assert!(plan(&host).is_err());
     let fragment = &selected.fragments[0];
@@ -267,6 +269,7 @@ pub fn exercise(offer: c::CapabilityOffer) -> Assignment {
         c::AssignedIdentity::from_text(selected.plan_id.as_str())
     );
     Assignment {
+        advertisement,
         model: selected,
         encoded,
         tables,

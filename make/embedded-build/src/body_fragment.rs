@@ -2,6 +2,7 @@
 use crate::*;
 use conduit_body::{BodyFragmentDocumentRefusal, PreparedBodyFragment};
 
+#[derive(Clone, Copy)]
 pub struct BodyFragmentProjectionLimits {
     pub image: EmbeddedImageBounds,
     pub computations: EmbeddedComputationBounds,
@@ -16,6 +17,7 @@ pub enum BodyFragmentGenerationRefusal {
     Resources,
     Scope,
     Workset(conduit_body::BodyWorksetDocumentRefusal),
+    Resident(ResidentExpressionRefusal),
 }
 
 /// Canonical complete local workset derived from rich containment evidence.

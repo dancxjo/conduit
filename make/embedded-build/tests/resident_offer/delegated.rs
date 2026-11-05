@@ -145,15 +145,15 @@ fn selection(
     )
     .unwrap();
     let fragment = scope.fragment();
-    let bound = image
-        .bind(
-            &a.model,
-            &fragment.fragment_id,
-            &fragment.placements[0].placement_id,
-        )
-        .unwrap();
+    let bound = b::bind_current_resident_expressions(
+        &a.model,
+        &fragment.fragment_id,
+        &a.advertisement,
+        &[&image],
+    )
+    .unwrap();
     (
-        vec![bound],
+        bound,
         b::BodyFragmentProjectionLimits {
             image: b::EmbeddedImageBounds::HOST_TOOLING,
             computations: b::EmbeddedComputationBounds {
@@ -187,6 +187,7 @@ pub fn mask(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
     assert_eq!(prepared.metadata().body_plan, scope.plan().plan_id.as_str());
 }
 pub fn run(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
+    current_resolution::run(a);
     inventory_preparation::run(scope, a);
     resources::run(a);
     let document = document(scope, a);
@@ -343,3 +344,6 @@ mod inventory_preparation;
 
 #[path = "workset.rs"]
 mod preparation_workset;
+
+#[path = "current_resolution.rs"]
+mod current_resolution;

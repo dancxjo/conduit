@@ -5911,3 +5911,41 @@ Cargo clean refused it. After independent inventory/ownership checks, only 974
 compiler libraries/metadata/object files were removed (3,533,559,482 bytes);
 executables, build scripts, manifests, installed releases and reviewed Seed
 copies were preserved. Root headroom afterward was about 3.8 GiB.
+
+
+### Current resident implementation resolution
+
+The owner now has a concrete resident resolver entry alongside the earlier
+preparation hook. `prepare_remote_resident_workset` calls the existing complete
+workset generator and resolves every selected fragment with
+`bind_current_resident_expressions`. That function requires a verified sealed
+Plan, matching independently observed Host/Boot/generation, exactly one current
+offer for each selected capability, and exactly one prepared image matching the
+entire offer. The existing binder still checks Source, artifact, program,
+contract, work requirement and exact placement. No Source/authority guard was
+removed, and descriptive offers are not treated as local capability possession.
+
+Prepared images are borrowed from the authoring side; no second persistent offer
+catalog or firmware runtime was introduced. A missing image, changed offer or
+ambiguous selection refuses rather than selecting the first candidate. This is
+currently the resident-expression profile: it does not relabel an arbitrary
+hosted Face provider or bus effect as a resident implementation.
+
+The emitted-code resident-offer suite now resolves against the original current
+advertisement before producing every delegated document. Its ordinary Plot and
+Plot-plus-Mask cases continue through existing Root validation/reservation and
+typed kernel tests. New checks reject foreign Host/Boot/generation, withdrawn or
+duplicate offers, altered capacity, missing images and duplicate matching
+images. A later independently current bind succeeds without consuming the
+prepared image. Both top-level emitted-code tests pass. The owner test also
+exercises the concrete missing-registry refusal and verifies unchanged lifecycle
+proposal and sequence. Strict embedded-build and product binary Clippy passes.
+Logs are /tmp/conduit-current-resident-{resolution-test,resolution-clippy,
+owner-test,owner-clippy}.log.
+
+This is CPU implementation resolution, not successful live owner delivery. The
+live authoring provider still needs to supply the checked images associated with
+the member's actual installation, then approve/sign and carry the exact document
+through the original receiver challenge. No preparation receipt, native Start,
+sampling Play or physical bus handover is claimed. PR #6784's exact-head
+Candidate 42100712059 remains in progress at this observation; it was not merged.
