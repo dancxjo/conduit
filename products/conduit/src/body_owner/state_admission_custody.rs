@@ -8,6 +8,9 @@ use std::{fs, path::Path};
 const MAX_RECEIPTS: usize = 1024;
 const MAX_BYTES: u64 = super::MAXIMUM_STATE / 4;
 const SCHEMA: &str = "conduit.body/admission-custody@1";
+// Exhausting either finite custody bound prevents safe hot receipt retirement.
+// Keep the existing public pressure outcome through the browser's allowlist.
+const CAPACITY_EXHAUSTED: &str = "admission-receipt-capacity-exhausted";
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -61,7 +64,7 @@ fn validate(value: &Prepared, host: &str, manager: &AdmissionManager) -> Result<
 fn encoded(value: &Prepared) -> Result<Vec<u8>, String> {
     let bytes = serde_json::to_vec(value).map_err(|e| e.to_string())?;
     if bytes.len() as u64 > MAX_BYTES {
-        return Err("admission custody byte capacity exhausted".into());
+        return Err(CAPACITY_EXHAUSTED.into());
     }
     Ok(bytes)
 }
@@ -114,7 +117,7 @@ pub(super) fn prepare(
         sha256: String::new(),
     });
     if value.receipts.len() + retirement.receipts().len() > MAX_RECEIPTS {
-        return Err("admission custody record capacity exhausted".into());
+        return Err(CAPACITY_EXHAUSTED.into());
     }
     value.receipts.extend_from_slice(retirement.receipts());
     value.sha256 = checksum(&value)?;
@@ -194,7 +197,7 @@ pub(super) fn retire(
         .prepare_receipt_retirement()
         .map_err(|e| format!("admission retirement: {e:?}"))?
     else {
-        return Err("admission-receipt-capacity-exhausted".into());
+        return Err(CAPACITY_EXHAUSTED.into());
     };
     let installation = super::read_installation(&root.join("installation.json"))?;
     let (next, custody) = prepare(root, &installation.host_id, manager, &selection)?;
@@ -247,11 +250,59 @@ mod tests {
         let bytes = encoded(&cold).unwrap();
         write_bytes_atomic(&path(&root), &bytes).unwrap();
         let selection = manager.prepare_receipt_retirement().unwrap().unwrap();
-        assert!(prepare(&root, "custody-host", &manager, &selection)
-            .err()
-            .unwrap()
-            .contains("record capacity exhausted"));
+        assert_eq!(
+            prepare(&root, "custody-host", &manager, &selection)
+                .err()
+                .unwrap(),
+            "admission-receipt-capacity-exhausted"
+        );
         assert_eq!(fs::read(path(&root)).unwrap(), bytes);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn cold_byte_pressure_is_public_and_preserves_both_retained_files() {
+        let (root, _, manager) = super::super::admission_custody_tests::fixture();
+        let selection = manager.prepare_receipt_retirement().unwrap().unwrap();
+        let (_, mut cold) = prepare(&root, "custody-host", &manager, &selection).unwrap();
+        let template = serde_json::to_value(&cold.receipts[0]).unwrap();
+        cold.receipts.clear();
+        // Storage-only receipts with finite long Boot identities reach the byte
+        // limit before the count limit. They do not claim authentication proof.
+        for index in 0..MAX_RECEIPTS {
+            let mut row = template.clone();
+            row["admission_id"] = format!("cold/admission/{index}").into();
+            row["credential"]["credential_id"] = format!("cold/credential/{index}").into();
+            row["credential"]["boot_id"] = format!("boot/{index}/{}", "b".repeat(240)).into();
+            cold.receipts.push(serde_json::from_value(row).unwrap());
+            if serde_json::to_vec(&cold).unwrap().len() as u64 > MAX_BYTES {
+                cold.receipts.pop();
+                break;
+            }
+        }
+        assert!(cold.receipts.len() + selection.receipts().len() < MAX_RECEIPTS);
+        let mut value = serde_json::to_value(&manager).unwrap();
+        value["retired_receipt_count"] = (cold.receipts.len() as u64).into();
+        cold.sha256 = checksum(&cold).unwrap();
+        let manager: AdmissionManager = serde_json::from_value(value).unwrap();
+        validate(&cold, "custody-host", &manager).unwrap();
+        let bytes = encoded(&cold).unwrap();
+        write_bytes_atomic(&path(&root), &bytes).unwrap();
+        write_bytes_atomic(
+            &root.join("body/admission.json"),
+            &serde_json::to_vec(&manager).unwrap(),
+        )
+        .unwrap();
+        let hot = fs::read(root.join("body/admission.json")).unwrap();
+        let selection = manager.prepare_receipt_retirement().unwrap().unwrap();
+        assert_eq!(
+            prepare(&root, "custody-host", &manager, &selection)
+                .err()
+                .unwrap(),
+            "admission-receipt-capacity-exhausted"
+        );
+        assert_eq!(fs::read(path(&root)).unwrap(), bytes);
+        assert_eq!(fs::read(root.join("body/admission.json")).unwrap(), hot);
         fs::remove_dir_all(root).unwrap();
     }
 }
