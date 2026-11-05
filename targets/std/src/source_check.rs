@@ -29,6 +29,8 @@ pub struct SourceCheckPreparationBounds {
     /// context, catalogue and preparation workspace, which need separate custody.
     pub retained_bytes: usize,
 }
+#[cfg(target_os = "linux")]
+pub mod process;
 mod requests;
 use requests::Entry;
 /// One copy of each schema plus finite canonical value nodes. No compiler AST,

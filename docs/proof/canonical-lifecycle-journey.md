@@ -3635,3 +3635,47 @@ selected bounded compiler service rather than reconstituting private compiler
 custody from portable revision labels. The current Linux product already has an
 actual `standard_catalogs` construction owner; no competing context serializer,
 ambient catalogue lookup, extra execution kernel or deployed service was added.
+
+### 4 November: actual product compiler child with kernel-enforced limits
+
+The existing `conduit` executable now has a dedicated hidden preparation-worker
+entrance. It uses the same actual `standard_catalogs` construction code as the
+product Source entrance, retained through the existing product library. It does
+not import a serialized catalogue or select one from request revision strings.
+The std library supplies a Linux-only dedicated-process boundary: finite requested
+address-space/CPU limits and disabled core dumps are applied before reading the
+bounded bootstrap or constructing the checked context. Inherited limits can only
+be lowered. Ordinary executable/CLI bootstrap precedes this limit application.
+
+Input carries Source bytes plus their preselected owner/generation and exact S1
+request. It is private preparation startup data, not a semantic authority grant;
+unknown fields are denied, and the byte profile is finite. The actual canonical
+compiler and existing Native admission emit only a descriptive S1 reply. Checked
+context remains private to the child. The selected standard profile has no
+canonical Plot Back catalog; DSP's separate profile is not implicitly selected.
+
+Three Linux tests launch the actual product executable, not a stand-in worker:
+
+- Valid Hello, deliberately invalid Unicode Source, stale Source and unselected
+  context produce byte-identical replies to direct canonical Rust analysis with
+  the same actual product catalogue.
+- A supplied extra catalogue claim is refused with no reply. An 8 MiB address-space
+  ceiling produces an allocation-failure diagnostic and no reply, preserving the
+  difference between resource exhaustion and a Source check result.
+- Before any Source arrives, `/proc/<child>/limits` reports the actual hard/soft
+  512 MiB address-space, 10-second CPU and zero-core limits. The waiting child is
+  explicitly killed and reaped. This observes configured kernel CPU enforcement;
+  it is not a separate CPU-overrun termination experiment or an RSS measurement.
+
+`cargo +stable test -p conduit --test source_check_process --locked` passes all
+three; strict all-target Clippy passes Plot, std Host and the product. Logs remain
+under `target/source-check-process-{tests,clippy}.log`. Source/parser/checker code
+stays on the authoring Linux Host; no MCU firmware or live Body service changed.
+
+This is a real bounded child component, not complete S2 installed acceptance.
+Parent-side admitted process/backing custody, exact artifact/grant selection,
+wall-time cancellation/reaping and connection through the ordinary selected Host
+Call remain required. No automatic Ready offer, Body mutation, candidate execution,
+new scheduler or network transport is created by this entrance. Existing pure
+proposal PR #6754 now passed exact Candidate 41932258021 and is ready for review;
+base dev Integration 41931985706 remains live, so it has not been merged here.
