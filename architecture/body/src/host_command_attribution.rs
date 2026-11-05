@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 const DOMAIN: &[u8] = b"conduit.body/host-command-attribution@1";
+#[path = "host_command_retention.rs"]
+mod retention;
+pub use retention::{HostCommandInput, HostCommandRetentionRefusal, RetainedHostCommandStamp};
 
 /// Public challenge facts. Deserialization/duplication does not issue a slot.
 /// The sender must independently check the receiver and installed payload

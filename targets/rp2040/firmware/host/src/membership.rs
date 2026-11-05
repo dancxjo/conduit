@@ -43,6 +43,22 @@ pub fn append_status<const N: usize>(out: &mut heapless::String<N>) -> Result<()
 }
 
 pub struct Membership {
+    state: MembershipState,
+    input: conduit_body::HostCommandInput<LIMIT>,
+}
+impl Membership {
+    pub fn new(seed: Seed<'static>, host_id: String, boot_nonce: [u64; 2]) -> Self {
+        Self {
+            state: MembershipState::new(seed, host_id, boot_nonce),
+            input: conduit_body::HostCommandInput::new(),
+        }
+    }
+    pub async fn serve_once(&mut self, link: &mut Link) -> Result<(), ()> {
+        self.state.serve_once(link, &mut self.input).await
+    }
+}
+
+struct MembershipState {
     seed: Seed<'static>,
     // This existing Core owner retains the actual local pool and reservations.
     // The compact advertisement contains no decoded capability catalog.
@@ -51,7 +67,7 @@ pub struct Membership {
     freshness: u64,
     receipt: Option<conduit_body::MembershipCredential>,
 }
-impl Membership {
+impl MembershipState {
     pub fn new(seed: Seed<'static>, host_id: String, boot_nonce: [u64; 2]) -> Self {
         let key = SigningKey::from_bytes(seed.admission.secret());
         let ad = HostAdvertisement {
@@ -81,14 +97,30 @@ impl Membership {
             receipt: None,
         }
     }
-    pub async fn serve_once(&mut self, link: &mut Link) -> Result<(), ()> {
-        let mut input = [0; LIMIT];
-        let request = link.receive(&mut input).await?;
+    async fn serve_once(
+        &mut self,
+        link: &mut Link,
+        workspace: &mut conduit_body::HostCommandInput<LIMIT>,
+    ) -> Result<(), ()> {
+        if workspace.is_retained() {
+            // Only a small control frame is read while the original document
+            // stays sealed. No second document workspace or preparation begins.
+            let mut request = [0u8; 64];
+            link.receive(&mut request).await?;
+            return link
+                .send(
+                    br#"{"phase":"input-retained","resources":"released","start":"not-installed"}"#,
+                )
+                .await;
+        }
+        let request = link.receive(workspace.writable().map_err(|_| ())?).await?;
         if request == conduit_body::HOST_PREPARATION_REQUEST {
-            return self.serve_preparation(link, &mut input).await;
+            return self.serve_preparation(link, workspace).await;
         }
         if request == conduit_body::PICO_MEMBER_RETURN_IMAGES_REQUEST {
-            return self.serve_return(link, &mut input).await;
+            return self
+                .serve_return(link, workspace.writable().map_err(|_| ())?)
+                .await;
         }
         if request != PICO_SPAWN_REQUEST {
             return Err(());
@@ -99,6 +131,7 @@ impl Membership {
             return Err(());
         }
         self.freshness = self.freshness.checked_add(1).ok_or(())?;
+        let input = workspace.writable().map_err(|_| ())?;
         let mut output = [0; LIMIT];
         let arrival = PicoAdmissionAdvertisement {
             protocol: PICO_ADMISSION_PROTOCOL,
@@ -135,7 +168,7 @@ impl Membership {
         };
         let n = serde_json_core::to_slice(&proof, &mut output).map_err(|_| ())?;
         link.send(&output[..n]).await?;
-        let metadata_bytes = link.receive(&mut input).await?;
+        let metadata_bytes = link.receive(input).await?;
         let metadata_length = metadata_bytes.len();
         let (metadata, used) =
             serde_json_core::from_slice::<BorrowedAdmissionReceiptAttestation<'_>>(metadata_bytes)

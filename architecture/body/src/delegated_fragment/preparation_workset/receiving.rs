@@ -55,6 +55,13 @@ pub fn receive_delegated_body_workset<'context, 'payload, const N: usize>(
     Ok(DelegatedBodyWorkset { command, documents })
 }
 impl<'payload, const N: usize> DelegatedBodyWorkset<'_, 'payload, N> {
+    /// Retain only the original attribution after local checks. This consumes
+    /// the complete-set receiver; it issues no new child command or authority.
+    pub fn into_retained_stamp(
+        self,
+    ) -> Result<crate::RetainedHostCommandStamp, crate::HostCommandRetentionRefusal> {
+        self.command.into_retained_stamp()
+    }
     /// Declared structural bytes only, not total funded execution storage.
     pub fn declared_runtime_state_bytes(&self) -> u32 {
         self.documents.declared_runtime_state_bytes

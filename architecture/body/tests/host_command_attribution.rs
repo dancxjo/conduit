@@ -6,6 +6,8 @@ use ed25519_dalek::{Signer, SigningKey};
 mod probe;
 #[global_allocator]
 static ALLOC: probe::Allocator = probe::Allocator;
+#[path = "host_command_attribution/retention.rs"]
+mod retention;
 
 struct Fixture {
     member: MembershipCredential,

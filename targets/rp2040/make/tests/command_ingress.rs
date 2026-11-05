@@ -40,7 +40,20 @@ mod resident_preparation {
         #[allow(dead_code)]
         Storage(conduit_kernel::scheduler::KernelPreparationError),
     }
-    pub struct AttemptStorage<'a, 'o>(core::marker::PhantomData<(&'a (), &'o ())>);
+    pub struct AttemptStorage<'a, 'o> {
+        marker: core::marker::PhantomData<(&'a (), &'o ())>,
+        stamp: conduit_body::RetainedHostCommandStamp,
+    }
+    pub struct Reserved<'r> {
+        scope: conduit_core::ResourceAdmissionScope<'r>,
+        stamp: conduit_body::RetainedHostCommandStamp,
+    }
+    impl Reserved<'_> {
+        pub fn release_for_retention(self) -> conduit_body::RetainedHostCommandStamp {
+            drop(self.scope);
+            self.stamp
+        }
+    }
     pub use crate::resource_observation::observe_private_work;
     impl AttemptStorage<'_, '_> {
         pub fn reserve_observed<'r>(
@@ -50,8 +63,7 @@ mod resident_preparation {
             capacity: u32,
             sequence: u64,
             maximum_bytes: usize,
-        ) -> Result<conduit_core::ResourceAdmissionScope<'r>, conduit_body::DelegatedResourceRefusal>
-        {
+        ) -> Result<Reserved<'r>, conduit_body::DelegatedResourceRefusal> {
             let observed =
                 observe_private_work(&self, owner, pool, capacity, sequence, maximum_bytes)?;
             self.reserve(
@@ -65,8 +77,7 @@ mod resident_preparation {
             owner: &'r mut conduit_core::ResourceAdmissionOwner,
             observed: &[conduit_core::ResourceObservation],
             _: usize,
-        ) -> Result<conduit_core::ResourceAdmissionScope<'r>, conduit_body::DelegatedResourceRefusal>
-        {
+        ) -> Result<Reserved<'r>, conduit_body::DelegatedResourceRefusal> {
             let ad = owner.host();
             let request = conduit_core::ResourceAdmissionRequest {
                 plan_id: "fixture/plan".into(),
@@ -93,11 +104,11 @@ mod resident_preparation {
             scope
                 .admit_batch(vec![request], observed)
                 .map_err(conduit_body::DelegatedResourceRefusal::Admission)?;
-            Ok(scope)
+            Ok(Reserved {
+                scope,
+                stamp: self.stamp,
+            })
         }
-    }
-    impl Drop for AttemptStorage<'_, '_> {
-        fn drop(&mut self) {}
     }
     pub struct Inventory;
     impl Drop for Inventory {
@@ -115,7 +126,10 @@ mod resident_preparation {
         _: usize,
     ) -> Result<AttemptStorage<'static, 'static>, ValidationRefusal> {
         if command.payload().first() == Some(&0x52) {
-            Ok(AttemptStorage(core::marker::PhantomData))
+            Ok(AttemptStorage {
+                marker: core::marker::PhantomData,
+                stamp: command.into_retained_stamp().unwrap(),
+            })
         } else if command.payload().first() == Some(&0x46) {
             Err(ValidationRefusal::InvalidAssignment)
         } else {
@@ -173,7 +187,7 @@ pub mod clocks {
         }
     }
 }
-struct Membership {
+struct MembershipState {
     seed: MemberBootstrap<'static>,
     receipt: Option<MembershipCredential>,
     resources: c::ResourceAdmissionOwner,
@@ -313,7 +327,7 @@ impl Link {
         Ok(&bytes[..64])
     }
 }
-fn member() -> Membership {
+fn member() -> MembershipState {
     let actual = c::HostAdvertisement {
         declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
@@ -350,7 +364,7 @@ fn member() -> Membership {
             secret: [3; 32],
         },
     };
-    Membership {
+    MembershipState {
         seed,
         receipt: Some(receipt),
         resources: c::ResourceAdmissionOwner::new(actual),
@@ -379,7 +393,8 @@ fn actual_root_ingress_authenticates_without_another_document_allocation_or_star
         let mut member = member();
         let before = member.resources.clone();
         let mut link = Link::new(mode, 1000);
-        let mut workspace = [0x44; LIMIT];
+        let mut workspace = HostCommandInput::<LIMIT>::new();
+        workspace.writable().unwrap().fill(0x44);
         let future = member.serve_preparation(&mut link, &mut workspace);
         assert!(
             std::mem::size_of_val(&future) < 2048,
@@ -390,7 +405,7 @@ fn actual_root_ingress_authenticates_without_another_document_allocation_or_star
         assert_eq!(cost.allocations, 0);
         assert_eq!(cost.reallocations, 0);
         assert!(link.challenged);
-        assert!(workspace.iter().all(|b| *b == 0));
+        assert!(workspace.writable().unwrap().iter().all(|b| *b == 0));
         assert_eq!(member.resources, before);
         assert_eq!(result.is_ok(), mode == Mode::Valid);
         if mode == Mode::Valid {
@@ -408,7 +423,7 @@ fn current_membership_and_actual_receive_extent_are_required() {
     NOW.with(|n| n.set(100));
     let mut member = member();
     let mut link = Link::new(Mode::Valid, 1000);
-    let mut workspace = [0; LIMIT];
+    let mut workspace = HostCommandInput::<LIMIT>::new();
     member.receipt = None;
     assert!(run(member.serve_preparation(&mut link, &mut workspace)).is_ok());
     assert!(!link.challenged);
@@ -420,14 +435,14 @@ fn current_membership_and_actual_receive_extent_are_required() {
     let mut link = Link::new(Mode::Valid, LIMIT + 1);
     assert!(run(member.serve_preparation(&mut link, &mut workspace)).is_err());
     assert!(member.resources.admissions().is_empty());
-    assert!(workspace.iter().all(|b| *b == 0));
+    assert!(workspace.writable().unwrap().iter().all(|b| *b == 0));
 }
 #[test]
 fn cancellation_drops_the_challenge_and_returns_the_exclusive_workspace() {
     NOW.with(|n| n.set(100));
     let mut member = member();
     let mut link = Link::new(Mode::Pending, 1000);
-    let mut workspace = [0; LIMIT];
+    let mut workspace = HostCommandInput::<LIMIT>::new();
     let mut future = Box::pin(member.serve_preparation(&mut link, &mut workspace));
     let mut context = std::task::Context::from_waker(std::task::Waker::noop());
     assert!(future.as_mut().poll(&mut context).is_pending());
@@ -435,14 +450,14 @@ fn cancellation_drops_the_challenge_and_returns_the_exclusive_workspace() {
     // The borrow is released; no admission or active execution was created.
     assert!(member.resources.admissions().is_empty());
     assert!(link.challenged);
-    workspace.fill(0);
+    workspace.writable().unwrap().fill(0);
 }
 
 #[test]
 fn fresh_attempt_cannot_reuse_an_old_signature_even_if_the_rng_repeats() {
     NOW.with(|n| n.set(100));
     let mut member = member();
-    let mut workspace = [0; LIMIT];
+    let mut workspace = HostCommandInput::<LIMIT>::new();
     let mut first = Link::new(Mode::Valid, 1000);
     assert!(run(member.serve_preparation(&mut first, &mut workspace)).is_ok());
     let mut second = Link::new(Mode::Replay, 1000);
@@ -503,7 +518,7 @@ fn busy_root_does_not_consume_the_document_or_issue_another_attempt() {
         .unwrap();
     let before = member.resources.clone();
     let mut link = Link::new(Mode::Valid, 1000);
-    let mut workspace = [0; LIMIT];
+    let mut workspace = HostCommandInput::<LIMIT>::new();
     let (result, cost) =
         probe::observe(|| run(member.serve_preparation(&mut link, &mut workspace)));
     assert!(result.is_ok());
@@ -529,7 +544,7 @@ fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellati
         let mut member = member();
         let before = member.resources.clone();
         let mut link = Link::new(mode, 1000);
-        let mut workspace = [0; LIMIT];
+        let mut workspace = HostCommandInput::<LIMIT>::new();
         let mut future = Box::pin(member.serve_preparation(&mut link, &mut workspace));
         let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
         let result = future.as_mut().poll(&mut cx);
@@ -542,9 +557,21 @@ fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellati
         }
         drop(future);
         assert_eq!(member.resources, before);
+        assert_eq!(workspace.payload().unwrap(), link.payload);
+        assert_eq!(
+            workspace.writable().err(),
+            Some(HostCommandRetentionRefusal::Occupied)
+        );
+        let original_nonce_sequence = member.freshness;
+        let mut retry = Link::new(Mode::Valid, 1000);
+        assert!(run(member.serve_preparation(&mut retry, &mut workspace)).is_ok());
+        assert!(!retry.challenged);
+        assert_eq!(retry.reads, 0);
+        assert_eq!(member.freshness, original_nonce_sequence);
+        assert_eq!(workspace.payload().unwrap(), link.payload);
         assert!(std::str::from_utf8(&link.response[..link.response_len])
             .unwrap()
-            .contains("attempt-reserved"));
+            .contains("input-retained"));
         assert!(std::str::from_utf8(&link.response[..link.response_len])
             .unwrap()
             .contains("not-installed"));

@@ -42,7 +42,12 @@ pub fn prepare_workset_storage<'a, 'o>(
     maximum_storage_bytes: usize,
 ) -> Result<AttemptStorage<'a, 'o>, ValidationRefusal> {
     let checked = check_workset(owner, installed, context, command, maxima)?;
-    storage::prepare(owner, checked, maximum_storage_bytes)
+    storage::prepare(
+        owner,
+        checked.documents,
+        checked.stamp,
+        maximum_storage_bytes,
+    )
 }
 
 /// The original signed command must contain the complete local set before any
@@ -63,8 +68,7 @@ fn check_workset<'a>(
     context: NativePreparationContext<'_>,
     command: AttributedHostCommand<'_, 'a>,
     maxima: c::AssignedPlanMaxima,
-) -> Result<[Option<CheckedDocument<'a>>; crate::resident::generated::ENTRY_COUNT], ValidationRefusal>
-{
+) -> Result<CheckedWorkset<'a>, ValidationRefusal> {
     let workset = receive_delegated_body_workset::<{ crate::resident::generated::ENTRY_COUNT }>(
         installed, context, command,
     )
@@ -93,7 +97,18 @@ fn check_workset<'a>(
         }
         *output = Some(prepared);
     }
-    Ok(checked)
+    let stamp = workset
+        .into_retained_stamp()
+        .map_err(|_| ValidationRefusal::Workset)?;
+    Ok(CheckedWorkset {
+        documents: checked,
+        stamp,
+    })
+}
+
+struct CheckedWorkset<'a> {
+    documents: [Option<CheckedDocument<'a>>; crate::resident::generated::ENTRY_COUNT],
+    stamp: conduit_body::RetainedHostCommandStamp,
 }
 
 /// Check the complete fragment against actual initialized entries, without

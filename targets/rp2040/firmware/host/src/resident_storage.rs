@@ -44,6 +44,7 @@ pub struct AttemptStorage<'a, 'o> {
     _owner: &'o mut Initialized,
     fragments: [Option<Fragment<'a, 'o>>; ENTRY_COUNT],
     bytes: usize,
+    stamp: conduit_body::RetainedHostCommandStamp,
 }
 impl AttemptStorage<'_, '_> {
     pub fn storage_bytes(&self) -> usize {
@@ -59,6 +60,21 @@ pub struct ReservedAttempt<'a, 'o, 'r> {
     preparation_bytes: usize,
 }
 impl ReservedAttempt<'_, '_, '_> {
+    /// End this unstarted feasibility attempt before retaining its input. No
+    /// kernel or reservation is claimed installed after this transition.
+    pub fn release_for_retention(self) -> conduit_body::RetainedHostCommandStamp {
+        let Self {
+            _storage,
+            reservations,
+            ..
+        } = self;
+        let AttemptStorage {
+            fragments, stamp, ..
+        } = _storage;
+        drop(fragments);
+        drop(reservations);
+        stamp
+    }
     pub fn admissions(&self) -> &[conduit_core::ResourceAdmission] {
         self.reservations.admissions()
     }
@@ -137,6 +153,7 @@ impl<'a, 'o> AttemptStorage<'a, 'o> {
 pub(super) fn prepare<'a, 'o>(
     owner: &'o mut Initialized,
     checked: [Option<CheckedDocument<'a>>; ENTRY_COUNT],
+    stamp: conduit_body::RetainedHostCommandStamp,
     maximum_bytes: usize,
 ) -> Result<AttemptStorage<'a, 'o>, E> {
     let mut output = core::array::from_fn(|_| None);
@@ -182,6 +199,7 @@ pub(super) fn prepare<'a, 'o>(
         _owner: owner,
         fragments: output,
         bytes,
+        stamp,
     })
 }
 fn slot<'o, const N: usize, const C: usize, const V: usize>(

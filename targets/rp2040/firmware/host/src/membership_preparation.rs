@@ -10,12 +10,19 @@ use embassy_time::{with_deadline, Duration, Instant};
 const LIFETIME_MILLIS: u32 = 10_000;
 const MAXIMUM_CHUNKS: usize = 64;
 
-impl Membership {
+impl MembershipState {
     pub(super) async fn serve_preparation(
         &mut self,
         link: &mut Link,
-        input: &mut [u8; LIMIT],
+        workspace: &mut conduit_body::HostCommandInput<LIMIT>,
     ) -> Result<(), ()> {
+        if workspace.is_retained() {
+            return link
+                .send(
+                    br#"{"phase":"input-retained","resources":"released","start":"not-installed"}"#,
+                )
+                .await;
+        }
         // No signature, retained owner key or membership silently enables this.
         let Some(policy) = crate::config::PREPARATION_DELEGATION.as_ref() else {
             return link
@@ -28,9 +35,7 @@ impl Membership {
                 .send(br#"{"phase":"refused","reason":"membership-not-current"}"#)
                 .await;
         };
-        let ceiling = input
-            .len()
-            .min(usize::try_from(policy.maximum_assignment_bytes).map_err(|_| ())?);
+        let ceiling = LIMIT.min(usize::try_from(policy.maximum_assignment_bytes).map_err(|_| ())?);
         if !policy.has_finite_bounds()
             || ceiling as u64 > crate::config::DIAGNOSTIC_HTTP_BUFFER_LIMIT
         {
@@ -56,6 +61,8 @@ impl Membership {
         let deadline = now + Duration::from_millis(u64::from(LIFETIME_MILLIS));
         // One original deadline covers publication, all chunks and signature.
         let result = with_deadline(deadline, async {
+            let stamp = {
+            let input = workspace.writable().map_err(|_| ())?;
             let slot = IssuedHostCommandChallenge::issue(
                 member,
                 self.resources.host(),
@@ -107,21 +114,24 @@ impl Membership {
                     crate::config::RESIDENT_PREPARATION_STORAGE_BYTES,
                 ) {
                     Ok(reserved) => {
-                        let result = link.send(br#"{"phase":"reserved-workset","profile":"resident-structured","storage":"attempt-owned","resources":"attempt-reserved","start":"not-installed"}"#).await;
-                        drop(reserved);
-                        result
+                        reserved.release_for_retention()
                     },
-                    Err(refusal) => report_resource_refusal(link, refusal).await,
+                    Err(refusal) => return report_resource_refusal(link, refusal).await,
                 },
-                Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Allocation)) => link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"allocation"}"#).await,
-                Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Capacity {..})) => link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"capacity"}"#).await,
-                Err(crate::resident_preparation::ValidationRefusal::Unavailable) => link.send(br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#).await,
-                Err(_) => Err(()),
+                Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Allocation)) => return link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"allocation"}"#).await,
+                Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Capacity {..})) => return link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"capacity"}"#).await,
+                Err(crate::resident_preparation::ValidationRefusal::Unavailable) => return link.send(br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#).await,
+                Err(_) => return Err(()),
             };
             response
+            };
+            workspace.retain(stamp).map_err(|_| ())?;
+            link.send(br#"{"phase":"input-retained","resources":"released","start":"not-installed"}"#).await
         })
         .await;
-        input.fill(0);
+        if !workspace.is_retained() {
+            workspace.writable().map_err(|_| ())?.fill(0);
+        }
         result.map_err(|_| ())?
     }
 }

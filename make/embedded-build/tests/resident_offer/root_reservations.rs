@@ -87,6 +87,22 @@ pub fn run(
     assert_eq!((cleanup.allocations, cleanup.reallocations), (0, 0));
     assert_eq!(owner, before);
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    // The real constructor can retire its feasibility storage and hand only
+    // the original attribution to a longer-lived, independently owned buffer.
+    let mut pending = HostCommandInput::<4096>::new();
+    pending.writable().unwrap()[..bytes.len()].copy_from_slice(bytes);
+    let stamp = prepare!().reserve_observed(
+        &mut owner, binding.pool_id.as_str(), 5000, 3, 16384,
+    ).unwrap().release_for_retention();
+    assert_eq!(owner, before);
+    assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    let ((), retention) = crate::probe::observe(|| pending.retain(stamp).unwrap());
+    assert_eq!((retention.allocations, retention.reallocations), (0, 0));
+    let command = pending.reborrow(&receiver.member, &receiver.actual,
+        &receiver.bootstrap.owner, HOST_PREPARED_WORKSET_CONTRACT, 11).unwrap();
+    assert_eq!(command.payload(), bytes);
+    assert!(pending.reborrow(&receiver.member, &receiver.actual,
+        &receiver.bootstrap.owner, HOST_PREPARED_WORKSET_CONTRACT, 20).is_err());
     println!("actual Root attempt reserves both exact fragments through Core within {preparation_bytes} kernel/bookkeeping requested-byte bound plus {} observation bytes; missing/low observations, one-byte shortage and all {} reservation allocations refuse; {future_bytes}-byte CPU pending attempt; cancellation frees kernels and exact reservations without allocating or lending providers", evidence.owned_bytes, cost.allocations);
 }
 

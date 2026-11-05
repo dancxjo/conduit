@@ -13,7 +13,7 @@ struct Presentation<'a> {
     projection: &'a HostAdvertisementImageProjection,
     signature: &'a [u8],
 }
-impl Membership {
+impl MembershipState {
     pub(super) async fn serve_return(
         &mut self,
         link: &mut Link,
