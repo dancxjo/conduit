@@ -6243,3 +6243,28 @@ The guarded entrance is private Root machinery awaiting #6449's actual
 capability-mediated owner action, independent Source/catalog rechecks and selected
 Host/resource authority. A matching snapshot is not a grant. No Body, service or
 device was changed live; #6449 and MCU installation/Start remain unfinished.
+
+### Focused Source-custody extraction and containment merge
+
+PR #6786 passed exact-head Candidate 42114665595 and merged as
+`bf5d5be76be6e96d097baa99dd96b70e337417ef`. This delivers borrowed checked
+Body-fragment containment to dev, not an execution grant or physical Play.
+
+The next independent review is prepared on current dev in local branch
+`deliver/workset-source-custody-20261105`: complete bounded Source custody,
+explicit entry selection, journal replay and expected-current CAS. It excludes
+the delivery branch's MCU and service-dispatch changes. Its isolated product
+build passes 21 journal, five retained-Source and one diagnostic test, and strict
+product binary/test Clippy. Named-entry extraction was corrected to preserve
+canonical checker diagnostics before entry selection without checking twice.
+A small authoring module keeps the Source boundary below 500 lines; explicit
+module paths also cover integration tests that include that boundary directly.
+This is source/CPU proof; no installed product or device changed.
+
+A fresh isolated cache used debug-free internal validation builds. As disk
+headroom fell, three source-mapped inactive test executables were checked against
+/proc ownership and stripped of debug data, recovering 1,321,248,096 bytes. All
+allocated ELF sections were independently hashed before/after and unchanged;
+executables remain runnable. Source, proof logs, SDK inputs, active releases,
+firmware and private state were preserved. The receipt and Root diagnostic logs
+remain under ignored `target/source-custody-review-preparation-20261105`.
