@@ -97,6 +97,8 @@ pub mod syntax;
 mod syntax_check;
 mod syntax_format;
 pub use syntax_format::*;
+mod source_identity;
+pub use source_identity::canonical_source_document_id;
 mod syntax_highlight;
 mod syntax_identity;
 mod text_value;

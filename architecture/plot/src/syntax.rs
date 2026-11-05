@@ -48,10 +48,7 @@ pub(crate) struct SyntaxDefinitions {
 impl SyntaxDocument {
     /// Identity of exact authored bytes, independent of catalog resolution.
     pub fn source_document_id(&self) -> conduit_core::SourceDocumentId {
-        conduit_core::SourceDocumentId::from(crate::hash_string(&format!(
-            "canonical-source:{}",
-            self.source
-        )))
+        crate::canonical_source_document_id(&self.source)
     }
     pub fn round_trip(&self) -> &str {
         &self.source

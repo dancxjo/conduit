@@ -3,9 +3,8 @@
 mod contract;
 mod native;
 use crate::{
-    parse_syntax_document, source_span, CanonicalBackCatalog, DiagnosticSeverity,
-    PreparationCacheLimits, ProfileCatalog, SourcePreparationCache, StartupCatalog,
-    StructuredDiagnosticV1,
+    source_span, CanonicalBackCatalog, DiagnosticSeverity, PreparationCacheLimits, ProfileCatalog,
+    SourcePreparationCache, StartupCatalog, StructuredDiagnosticV1,
 };
 use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 pub use contract::*;
@@ -67,10 +66,7 @@ impl SourceCheckProjection {
                 owner: owner.into(),
                 generation,
                 sha256: format!("{:x}", Sha256::digest(source.as_bytes())),
-                source_document_id: parse_syntax_document(source)
-                    .source_document_id()
-                    .as_str()
-                    .into(),
+                source_document_id: crate::canonical_source_document_id(source).0,
             },
             context,
             cache: SourcePreparationCache::new(PreparationCacheLimits::default())
