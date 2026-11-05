@@ -116,3 +116,40 @@ fn missing_or_corrupt_cold_evidence_refuses_reopen_and_new_publication() {
     state::load(&root).unwrap();
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn full_nonretirable_hot_profile_reports_public_pressure_without_mutation() {
+    let (mut owner, root) = owner_fixture();
+    let (credential, _, _) = admit_with_key(&mut owner, &root, "host/pressure");
+    let manager = owner.admissions.as_mut().unwrap();
+    let template = manager.receipts[0].clone();
+    manager.receipts.clear();
+    for index in 0..conduit_body::MAX_ADMISSION_RECEIPTS {
+        // Storage-pressure fixture: two protected endpoints per Part.
+        // These synthesized rows do not prove member authentication.
+        let mut row = template.clone();
+        row.admission_id =
+            serde_json::from_value(format!("admission/pressure/{index}").into()).unwrap();
+        row.credential.credential_id =
+            serde_json::from_value(format!("credential/pressure/{index}").into()).unwrap();
+        row.credential.part_id = conduit_body::PartId::bind(
+            &credential.body_id,
+            &format!("host/pressure/{}", index / 2),
+            0,
+        )
+        .unwrap();
+        manager.receipts.push(row);
+    }
+    let before = owner.admissions.clone();
+    owner.persist(&root).unwrap();
+    let file = root.join("body/admission.json");
+    let bytes = std::fs::read(&file).unwrap();
+    assert_eq!(
+        owner.retain_admission_capacity(&root).unwrap_err(),
+        "admission-receipt-capacity-exhausted"
+    );
+    assert_eq!(owner.admissions, before);
+    assert_eq!(std::fs::read(&file).unwrap(), bytes);
+    assert!(!root.join("body/admission-custody.json").exists());
+    std::fs::remove_dir_all(root).unwrap();
+}

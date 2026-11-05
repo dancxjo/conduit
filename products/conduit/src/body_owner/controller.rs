@@ -43,6 +43,8 @@ mod continuing;
 #[path = "execution_retention.rs"]
 mod execution_retention;
 pub(crate) use continuing::RunWorker;
+#[path = "admission_retirement.rs"]
+mod admission_retirement;
 mod birth;
 #[path = "clock_interval.rs"]
 mod clock_interval;
