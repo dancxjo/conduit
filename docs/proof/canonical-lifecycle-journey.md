@@ -4629,3 +4629,39 @@ permitted relocating 1.7 GiB of regenerable cache to disk without sharing it wit
 another checkout. Removing seven inactive older duplicate test/tool executables
 reclaimed another 2.29 GiB while preserving the newest executable per crate,
 libraries, installed releases, source, credentials and unique evidence.
+
+### 2026-11-05: Updated Threebee uses the shared current-member native Mask
+
+Owner custody PR #6766 merged into dev before its Candidate finished: GitHub
+executed the requested auto-merge immediately. Local scoped proof passed, but
+hosted qualification remains a separate gate. The delivery branch absorbed it;
+a duplicate module registration found by the combined-tree build was removed.
+Three deadline tests, six custody tests, the 33-return browser test, strict
+product Clippy and formatting then passed. No runtime grants were enlarged.
+
+Checked source `c0aff3ddc9` produced the AArch64 graphical release and matching
+IMAGE `image:sha256:2a28bc2b757489afe369fcca71ce106ebdd83066821f633567a262509155dce9`.
+The bundle digest is `sha256:4b4df35f00c36f43e1c64ef60278fd3fb63d5dd57d8ae62a3570aace558bd904`.
+Ordinary installation preserved Threebee's selected configuration, Host, Part and
+key. The first start used systemd's cached old ExecStart despite the new installed
+bundle metadata. Actual executable inspection caught this; daemon-reload was
+required. Returning again also correctly refused while the stopped previous
+Boot still had a current attachment. Ordinary owner member-leave retired that
+exact stopped Boot before the new signed return; no state file was edited.
+
+The replacement process rendered four 1024x600 frames of Hamm's current Face,
+revision 300. Owner and remote credentials, Boot and original Part agree, with
+16 Parts and 15 keys unchanged; the actual executable hash matches the verified
+bundle. PID 13436 remained active with zero restarts after its finite encounter
+expired, retaining a historical Show. The earlier lease-ACK bounds error did not
+recur during this bounded encounter. Continuous authorized reconnect remains
+unfinished; this is not an overnight live graph or ordinary MCU sensor Play.
+The read-only fbdev capture showed historical console storage, while KMS named
+a distinct active AR24 surface. It is not a screenshot of the current native
+Show. Raw logs, public consistency receipt, captures, private state backups and
+verified releases remain outside Git. The ended route's temporary key was removed.
+
+Proactive process-aware cleanup recovered approximately 8.7 GiB from inactive
+isolated compiler caches. Active build outputs, installed releases, Seeds, keys,
+source and proof logs were preserved. Green continued diagnostic sampling and
+acknowledged redraw throughout the qualification and Threebee update.
