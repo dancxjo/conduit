@@ -4311,3 +4311,42 @@ cross-Host history. The full lifecycle goal remains active. No grant was enlarge
 no biography was manually edited, and no hardware deployment or issue closure
 is claimed in this checkpoint. #6760 Candidate 41965552338 was last observed
 in progress; no hosted acceptance is inferred from its earlier immediate merge.
+
+### 2026-11-05: Retained signing custody and the selected Threebee installation
+
+PR #6761 passed Candidate and merged into `dev`; the integrated branch's real
+full-membership signed-browser refusal regression also passed after that merge.
+The separate stopped-Host recovery change passed eighteen custody tests and
+strict product/std Clippy. An explicit private-evidence test verified the original
+Threebee Seed against its independently retained byte receipt, original signed
+request and receipt, and the live owner's public continuity-key record.
+
+A checked timer release and matching IMAGE were produced from clean source
+`d67539bce653e2c8e50b49de9309ffb74e75d7fb`. Installation into the older
+`~/.local/state/conduit` state preserved Host/Body/Part, and the supported recovery
+command restored its absent signing key with mode 0600. That is signing-custody
+recovery, not a successful member return or an updated HDMI display.
+
+Live systemd inspection corrected the previous checkpoint's selected-runtime
+claim: the user unit actually selects `conduit-graphical-seed-8278`, with Host
+`host/installed/cc57fbea73ca7dda2995fab12b47aaf806ee2279c538a46ec11d52e4f98aefad`
+and Part `b45f1ac25591ea54404c7f0a0d3a59bb5945c00b5776dffc4a7f2250996be098`
+in the same Hamm Creek House Body. This graphical state already retains its key.
+The timer-state return command reported `control-outcome-unknown`; it does not
+prove an accepted return. The earlier finite timer-member listener was closed.
+The selected graphical state was independently backed up before further work.
+
+Rebuilding that exact graphical Host Source exposed two construction failures:
+a per-user tmpfs quota, then the cross-linker's missing SDL search directories.
+Removing the inactive failed-review Cargo cache recovered approximately 3.9 GiB;
+source, unique evidence, private Seeds and installed state were preserved. The
+retained AArch64 SDK package and dependency hashes were verified again. A real
+small AArch64 SDL link succeeded using explicit link directories, without an ELF
+RPATH/RUNPATH or suppressed undefined symbols. Three shared Make command tests
+pass for exact selected features, release binding, literal SDK paths and refusal
+bounds. This remains toolchain/compilation evidence; no new graphical Boot,
+current Face, screenshot or complete distributed Play is claimed here.
+
+The recovery extraction on current `dev` identified prerequisites still local to
+the integrated branch: the original joining-Seed verifier and public-key API.
+Its compile failure is retained; it is not a qualified independent PR yet.

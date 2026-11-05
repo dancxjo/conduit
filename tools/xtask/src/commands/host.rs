@@ -276,6 +276,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             output,
             platform,
             configuration,
+            native_library_directories,
             source_identity,
         } => {
             let source_identity = source_identity
@@ -289,6 +290,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 &host_release::ReleaseOptions {
                     json: opts.json,
                     quiet: opts.quiet,
+                    native_library_directories,
                 },
             )
         }

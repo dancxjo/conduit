@@ -62,6 +62,7 @@ struct ReleaseFile {
 pub(crate) struct ReleaseOptions {
     pub(crate) json: bool,
     pub(crate) quiet: bool,
+    pub(crate) native_library_directories: Vec<PathBuf>,
 }
 
 pub(crate) fn run(
@@ -72,8 +73,16 @@ pub(crate) fn run(
     opts: &ReleaseOptions,
 ) -> Result<(), Box<dyn std::error::Error>> {
     if let Some(configuration) = configuration {
-        checked::build(output, source_identity, configuration)?;
+        checked::build(
+            output,
+            source_identity,
+            configuration,
+            &opts.native_library_directories,
+        )?;
     } else {
+        if !opts.native_library_directories.is_empty() {
+            return Err("native library directories require a checked Host configuration".into());
+        }
         match platform {
             ReleasePlatform::Browser => build_browser(output, source_identity)?,
             ReleasePlatform::Linux => linux::build_linux_set(output, source_identity)?,

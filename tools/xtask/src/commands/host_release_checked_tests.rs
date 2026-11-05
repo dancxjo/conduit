@@ -3,6 +3,43 @@ use super::*;
 use conduit_host_make::*;
 use std::io::Cursor;
 
+#[test]
+fn target_sdk_paths_are_literal_link_inputs_without_runtime_rpath() {
+    let (_, _, selection, _) = fixture();
+    let target = NativeTarget::select(
+        "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3",
+        &selection,
+    )
+    .unwrap();
+    let directory = std::env::temp_dir().join(format!(
+        "conduit SDK,{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    fs::create_dir(&directory).unwrap();
+    let path = fs::canonicalize(&directory).unwrap();
+    let args = target
+        .arguments_with_libraries(&selection.features, std::slice::from_ref(&directory))
+        .unwrap();
+    assert_eq!(args[1], "rustc");
+    assert!(args.contains(&format!("link-arg=-L{}", path.display())));
+    assert!(args.contains(&format!("link-arg={}", path.display())));
+    assert!(args.contains(&"link-arg=-rpath-link".into()));
+    assert!(!args
+        .iter()
+        .any(|arg| arg == "link-arg=-rpath" || arg.contains("--allow-shlib-undefined")));
+    assert!(target
+        .arguments_with_libraries(&selection.features, &vec![directory.clone(); 17])
+        .is_err());
+    fs::remove_dir(&directory).unwrap();
+    assert!(target
+        .arguments_with_libraries(&selection.features, &[directory])
+        .is_err());
+}
+
 fn configuration() -> CheckedHostConfiguration {
     let source = include_str!("../../../../targets/std/profiles/raspberry-pi-3-tick-workset.host.conduit")
         .replace("  capability =", "  base = {kind: \"display/scanout\", implementation: \"display/linear-framebuffer@1\", initialization: {backend: \"KMSDRM\", width: 640, height: 480}}\n  need = {id: \"display/main\", class: \"face/surface\", slots: 1, bytes: 1228800}\n  capability =");

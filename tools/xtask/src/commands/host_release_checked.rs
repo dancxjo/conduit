@@ -10,12 +10,14 @@ pub(super) fn build(
     output: &Path,
     source_identity: &str,
     configuration: &Path,
+    library_directories: &[PathBuf],
 ) -> Result<(), Box<dyn std::error::Error>> {
     let checked = configuration_load::load_configuration(configuration)?;
     let selection = conduit_workspace_make::package_set()
         .derive_build_selection(checked.profile(), &SporeOutputKind::NativeBundle)
         .map_err(|error| format!("native release Make closure: {error:?}"))?;
     let target = NativeTarget::select(&checked.profile().target.key(), &selection)?;
+    let arguments = target.arguments_with_libraries(&selection.features, library_directories)?;
     verify_source(source_identity)?;
     let (image, _) = build_host_image(
         checked.profile().clone(),
@@ -29,7 +31,7 @@ pub(super) fn build(
     )
     .map_err(|error| format!("checked native release IMAGE: {error:?}"))?;
     let mut command = Command::new("cargo");
-    command.args(target.arguments(&selection.features));
+    command.args(arguments);
     if target.cross {
         command.env(
             "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER",
@@ -107,6 +109,47 @@ struct NativeTarget {
     cxx: bool,
 }
 impl NativeTarget {
+    fn arguments_with_libraries(
+        &self,
+        features: &[String],
+        directories: &[PathBuf],
+    ) -> Result<Vec<String>, String> {
+        let mut args = self.arguments(features);
+        if directories.is_empty() {
+            return Ok(args);
+        }
+        if directories.len() > 16 {
+            return Err("native SDK exceeds sixteen library directories".into());
+        }
+        // Only the selected final executable gets these linker inputs. Changing
+        // SDK lookup does not recompile dependencies or add a runtime search path.
+        args[1] = "rustc".into();
+        args.extend(["--bin".into(), "conduit".into(), "--".into()]);
+        for directory in directories {
+            let path = fs::canonicalize(directory)
+                .map_err(|_| "native SDK library directory is unavailable")?;
+            if !path.is_dir() {
+                return Err("native SDK library input is not a directory".into());
+            }
+            let path = path.to_str().ok_or("native SDK path is not UTF-8")?;
+            // Separate linker arguments preserve spaces and commas as path bytes.
+            // rpath-link resolves shared-library dependencies only while linking.
+            args.extend([
+                "-C".into(),
+                format!("link-arg=-L{path}"),
+                "-C".into(),
+                "link-arg=-Xlinker".into(),
+                "-C".into(),
+                "link-arg=-rpath-link".into(),
+                "-C".into(),
+                "link-arg=-Xlinker".into(),
+                "-C".into(),
+                format!("link-arg={path}"),
+            ]);
+        }
+        Ok(args)
+    }
+
     fn select(target: &str, selection: &MakeBuildSelection) -> Result<Self, String> {
         if selection.features.iter().any(|feature| {
             !matches!(

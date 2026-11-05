@@ -84,6 +84,9 @@ pub(super) enum HostCommand {
         /// Canonical checked Host Source; derives exact native target and features.
         #[arg(long)]
         configuration: Option<PathBuf>,
+        /// Target SDK library directories for a checked native build; no runtime rpath.
+        #[arg(long = "native-library-directory")]
+        native_library_directories: Vec<PathBuf>,
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,
