@@ -29,6 +29,12 @@ pub enum ReceiptRetirementRefusal {
 }
 
 impl AdmissionManager {
+    /// Exact number of receipts transferred out of hot custody. The custodian
+    /// must verify this count against its retained evidence on reopen.
+    pub fn retired_receipt_count(&self) -> u64 {
+        self.retired_receipt_count
+    }
+
     // Keep issuance independent of hot-vector length after evidence retirement.
     // Old serialized managers have retired_count=0 and retain their old ordinal.
     pub(super) fn receipt_ordinal(&self) -> Result<u64, AdmissionRefusal> {
