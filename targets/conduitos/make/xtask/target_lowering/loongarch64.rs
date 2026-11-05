@@ -1,7 +1,7 @@
 //! Exact LoongArch64 serial plus optional firmware-framebuffer product closure.
 use super::{
     refusal, BuildManifest, ConduitosError, TargetBuildInputs, FRAMEBUFFER_DRIVER,
-    NATIVE_COMPOSITOR, NATIVE_PRESENTER, PRESENT_OPERATION, SCANOUT_BASE, SURFACE_CLASS,
+    NATIVE_COMPOSITOR, NATIVE_PRESENTER, SCANOUT_BASE,
 };
 const UART_DRIVER: &str = "conduitos/loongarch64-uart@1";
 const UART_BASE: &str = "conduitos/loongarch64-uart-text";
@@ -41,7 +41,6 @@ pub(crate) fn lower_loongarch64_virt(
             .collect::<Vec<_>>(),
     )?;
     exact("facility", &facilities, &manifest.facilities)?;
-    exact("host-call", &[PRESENT_OPERATION], &manifest.host_calls)?;
     if !manifest.profile_fragments.is_empty() {
         return Err(refusal(
             "loongarch64-product-closure-mismatch",
@@ -68,22 +67,8 @@ pub(crate) fn lower_loongarch64_virt(
             ));
         }
     }
-    let (surface_slots, surface_bytes) = match manifest.resource_budgets.as_slice() {
-        [] if !graphical => (0, 0),
-        [surface]
-            if graphical
-                && surface.class == SURFACE_CLASS
-                && surface.slots != 0
-                && surface.bytes != 0 =>
-        {
-            (surface.slots, surface.bytes)
-        }
-        _ => return Err(refusal(
-            "loongarch64-product-closure-mismatch",
-            "graphical LoongArch64 requires exactly one finite face/surface budget; serial selects none"
-                .into(),
-        )),
-    };
+    let (surface_slots, surface_bytes) =
+        super::graphical::lower(manifest, graphical, "loongarch64-product-closure-mismatch")?;
     let mut features = vec!["loongarch64-product"];
     if graphical {
         features.push("native-compositor-core");

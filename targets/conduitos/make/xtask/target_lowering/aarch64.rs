@@ -1,8 +1,8 @@
 //! Exact AArch64 serial plus optional firmware-framebuffer product closure.
 use super::{
     refusal, BuildManifest, ConduitosError, TargetBuildInputs, FRAMEBUFFER_DRIVER,
-    LINEAR_SERIAL_PRESENTER, NATIVE_COMPOSITOR, NATIVE_PRESENTER, PL011_DRIVER, PRESENT_OPERATION,
-    SCANOUT_BASE, SERIAL_TEXT_BASE, SURFACE_CLASS,
+    LINEAR_SERIAL_PRESENTER, NATIVE_COMPOSITOR, NATIVE_PRESENTER, PL011_DRIVER, SCANOUT_BASE,
+    SERIAL_TEXT_BASE,
 };
 
 pub(crate) fn lower_aarch64_virt(
@@ -39,7 +39,6 @@ pub(crate) fn lower_aarch64_virt(
             .collect::<Vec<_>>(),
     )?;
     exact("facility", &facilities, &manifest.facilities)?;
-    exact("host-call", &[PRESENT_OPERATION], &manifest.host_calls)?;
     if !manifest.profile_fragments.is_empty() {
         return Err(refusal(
             "aarch64-product-closure-mismatch",
@@ -66,13 +65,8 @@ pub(crate) fn lower_aarch64_virt(
             ));
         }
     }
-    let (surface_slots, surface_bytes) = match manifest.resource_budgets.as_slice() {
-        [] if !graphical => (0, 0),
-        [surface] if graphical && surface.class == SURFACE_CLASS
-            && surface.slots != 0 && surface.bytes != 0 => (surface.slots, surface.bytes),
-        _ => return Err(refusal("aarch64-product-closure-mismatch",
-            "graphical AArch64 requires exactly one finite face/surface budget; serial selects none".into())),
-    };
+    let (surface_slots, surface_bytes) =
+        super::graphical::lower(manifest, graphical, "aarch64-product-closure-mismatch")?;
     let mut features = vec!["aarch64-product"];
     if graphical {
         features.push("native-compositor-core");

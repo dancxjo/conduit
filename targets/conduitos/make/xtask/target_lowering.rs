@@ -4,6 +4,7 @@ use conduit_host_make::BuildManifest;
 
 use super::ConduitosError;
 
+mod graphical;
 mod ia32;
 pub(super) use ia32::lower_ia32_pc;
 mod aarch64;

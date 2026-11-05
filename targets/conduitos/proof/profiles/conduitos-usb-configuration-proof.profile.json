@@ -12,9 +12,36 @@
     "profile-fragment/conduitos-scripted-keyboard-proof@1",
     "profile-fragment/conduitos-usb-configuration-proof@1"
   ],
-  "capabilities": [],
+  "capabilities": [
+    {
+      "kind": "face/tee",
+      "contract_revision": "conduit.face/tee@1",
+      "implementation": "conduit.face/tee-kernel@1"
+    },
+    {
+      "kind": "face/show-resource-source",
+      "contract_revision": "conduit.face/show-resource-source@1",
+      "implementation": "face/conduitos-surface-source@1"
+    },
+    {
+      "kind": "face/resource-renderer",
+      "contract_revision": "conduit.face/resource-renderer@1",
+      "implementation": "face/renderer-conduitos-native@1"
+    },
+    {
+      "kind": "face/native-component-resource-mask",
+      "contract_revision": "conduit.face/native-component-resource-mask@2",
+      "implementation": "face/renderer-conduitos-component@1"
+    },
+    {
+      "kind": "face/interaction",
+      "contract_revision": "conduit.face/interaction@2",
+      "implementation": "face/conduitos-human-input@1"
+    }
+  ],
   "host_calls": [
-    "conduit.host/present@1"
+    "conduit.host/present@1",
+    "conduit.host/face-interaction@1"
   ],
   "resources": [
     {
@@ -22,6 +49,18 @@
       "class": "face/surface",
       "slots": 4,
       "bytes": 8388608
+    },
+    {
+      "id": "mask/memory",
+      "class": "conduit.resource/runtime-memory@1",
+      "slots": 1048576,
+      "bytes": 1048576
+    },
+    {
+      "id": "mask/show",
+      "class": "face.resource/show@1",
+      "slots": 1,
+      "bytes": 1
     }
   ],
   "bases": [
