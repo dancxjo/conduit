@@ -14,6 +14,7 @@ fn value(slot: u16) -> ValueRef {
 
 fn operation() -> MathScalarBack {
     MathScalarBack {
+        transform: None,
         pending: None,
         completed: false,
         input_bytes: SCALAR_ENCODED_LEN as u32,
@@ -22,9 +23,28 @@ fn operation() -> MathScalarBack {
 }
 
 #[test]
+fn scalar_host_completion_needs_a_prepared_transform_and_its_exact_kind() {
+    let kind = conduit_core::kind_id(conduit_semantic_catalog::MATH_CLAMP_KIND);
+    let input = Scalar::ONE.encode();
+    let unprepared = InstalledBack::MathScalar(operation());
+    assert!(transform_bytes(&unprepared, &kind, &input).is_err());
+    let mut prepared = operation();
+    prepared.transform = Some(MathTransform::Clamp {
+        minimum: Scalar::ZERO,
+        maximum: Scalar::ONE,
+    });
+    let prepared = InstalledBack::MathScalar(prepared);
+    let wrong = conduit_core::kind_id(conduit_semantic_catalog::MATH_SCALE_KIND);
+    assert!(transform_bytes(&prepared, &wrong, &input).is_err());
+    assert!(transform_bytes(&prepared, &kind, &input[..input.len() - 1]).is_err());
+    assert_eq!(transform_bytes(&prepared, &kind, &input).unwrap(), input);
+}
+
+#[test]
 fn quantity_completion_checks_output_bound_and_preserves_failure_detail() {
     use conduit_kernel::{Failure, FailureCode};
     let mut active = MathScalarBack {
+        transform: None,
         pending: None,
         completed: false,
         input_bytes: SCALAR_ENCODED_LEN as u32,
@@ -59,6 +79,7 @@ fn quantity_completion_checks_output_bound_and_preserves_failure_detail() {
     );
 
     let mut active = MathScalarBack {
+        transform: None,
         pending: None,
         completed: false,
         input_bytes: SCALAR_ENCODED_LEN as u32,
@@ -201,6 +222,7 @@ fn completion_waits_for_the_entire_value_without_consuming_or_poisoning_the_step
         failure: None,
     };
     let mut active = MathScalarBack {
+        transform: None,
         pending: Some(RequestId(0)),
         completed: false,
         input_bytes: SCALAR_ENCODED_LEN as u32,
