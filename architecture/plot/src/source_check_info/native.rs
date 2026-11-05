@@ -1,6 +1,7 @@
 //! Preparation-only projection into the existing checked S1 Native vocabulary.
 //! These bytes describe checking; they cannot restore compiler owners or grants.
 use super::*;
+use crate::parse_syntax_document;
 use crate::rust_binding::{PreparedNativeAdmission, PreparedNativeBounds, PreparedNativeProgress};
 use conduit_core::{
     StructuredFieldValue, StructuredInfoType as Type, StructuredInfoTypeShape as Shape,

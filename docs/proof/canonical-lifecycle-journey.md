@@ -4110,3 +4110,32 @@ library tests pass, and the optional thumbv6m-none-eabi component check passes.
 The repair is pushed as #6758 head 91f02d2e52; its new hosted Candidate remains
 separate acceptance. The same test-only repair is retained in this journey
 checkout. Runtime Source/IMAGE behavior and the saved CPU evidence are unchanged.
+
+
+### Identify immutable Source without constructing a parser (5 November 2026)
+
+Preparing a Source snapshot previously parsed its whole document solely to ask
+for its authored-byte identity. `canonical_source_document_id` now streams the
+existing `canonical-source:` byte domain directly into SHA-256 and allocates
+only the 64-byte returned identity. SyntaxDocument delegates to it; immutable
+Source-check snapshot construction uses it without a temporary lexer, token
+vector or AST. This changes no identity domain, normalization, grammar,
+checking result, Source grant or executable owner.
+
+Golden/legacy-domain tests include unfinished Source, UTF-8, BOM, CRLF and
+byte-significant whitespace. Identity allocation is exactly one 64-byte result
+for empty, 1 KiB and 1 MiB inputs. In the allocation-probed 1 MiB token-heavy
+fixture, the former parse-for-identity step peaked at 10,616,832 bytes across
+131,078 allocations and 17 reallocations. The new complete immutable snapshot
+constructor uses 1,048,737 newly allocated bytes in four allocations: the Source
+bytes plus 161 bytes of measured metadata. Context/catalogues already have their
+separate owner; these are CPU allocator observations, not MCU RAM or whole
+compiler/RSS measurements.
+
+Three identity/allocation tests and 14 existing Source/Native regressions pass.
+The actual 17-case compiler-process suite still passes. Strict all-target Plot,
+product and std Host Clippy passes; Plot also checks for thumbv6m-none-eabi.
+The Source checker continues to parse/check inside the admitted analysis boundary.
+There is no new Body mutation, installed authoring action, device update or
+implicit Source authority. This removes an unnecessary preparation workspace so
+Root can bind a captured Source resource before invoking the compiler.

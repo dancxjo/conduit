@@ -19,6 +19,13 @@ execution front door. The reference uses the canonical Rust parser, checker,
 | ExpandedPlotId | Requested entry's existing expanded identity, separately retained |
 | Plan / Play | Explicitly absent; this operation never invokes a planner or execution kernel |
 
+`canonical_source_document_id` hashes the existing `canonical-source:` byte
+domain directly, preserving parser identities without constructing a syntax
+document or a Source-sized formatting buffer. `SyntaxDocument` delegates to
+that same operation. Immutable snapshot construction captures the bytes and
+identity; parsing/checking occurs only when analysis is requested. Computing an
+identity is neither syntax validation nor Source access authorization.
+
 `SourceCheckContext` consumes owned catalog snapshots and makes them immutable.
 `SourceCheckProjection` retains that context, exact Source and generation. A
 request must match all Source facts and all context revisions. Wrong Source
