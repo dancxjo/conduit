@@ -145,7 +145,14 @@ impl MathHost {
                 .complete_host_call(request.node, request.request, outcome)
                 .map_err(|error| format!("complete quantity mapping: {error:?}"));
         }
-        let encoded = math_backs::transform_bytes(placement, input)?;
+        let encoded = math_backs::transform_bytes(
+            scheduler
+                .drivers()
+                .get(usize::from(request.node.0))
+                .ok_or("math request has no prepared Back")?,
+            &placement.kind_id,
+            input,
+        )?;
         let value = scheduler
             .store_host_value(&encoded)
             .map_err(|error| format!("store math scalar output: {error:?}"))?;
