@@ -35,6 +35,89 @@ fn selected(control: u16, panel: u16) -> conduit_face::AdmittedVisualLook {
 }
 
 #[test]
+fn missing_look_facets_keep_todo_linear_reading_and_control_traversal() {
+    use conduit_face::{
+        LookGenerativeFacetOption, LookInfo, LookSpokenFacetOption, LookVisualFacetOption,
+        admit_visual_look, render_linear_face,
+    };
+    let face = structured_source_tests::todo();
+    let structure = structured_source_tests::structure(
+        conduit_face::TODO_LAYOUT_MASK_SOURCE,
+        "todo-component-grouped",
+        &face,
+    );
+    let original = face.clone();
+    let reading = render_linear_face(&face).unwrap();
+    let absent = LookInfo::new(
+        LookGenerativeFacetOption::None,
+        "fixture/no-look-facets@1".into(),
+        LookSpokenFacetOption::None,
+        2,
+        LookVisualFacetOption::None,
+    )
+    .unwrap();
+    let mut traversal = None;
+    let mut expressions = Vec::new();
+    for author in [
+        conduit_face::phosphor_look().unwrap(),
+        conduit_face::editorial_look().unwrap(),
+        absent.clone(),
+    ] {
+        let look = admit_visual_look(
+            &author,
+            VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 100,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        assert_eq!(look.requested, author);
+        expressions.push(look.visual.expression.clone());
+        let mut scene =
+            NativeFaceScene::prepare_structured_look(&structure, 1024, 600, true, &look).unwrap();
+        assert_eq!(scene.face(), &original);
+        let current_reading = render_linear_face(scene.face()).unwrap();
+        assert_eq!(current_reading.face_id, reading.face_id);
+        assert_eq!(current_reading.revision, reading.revision);
+        assert_eq!(current_reading.lines, reading.lines);
+        for action in &original.actions {
+            assert!(
+                current_reading
+                    .lines
+                    .iter()
+                    .any(|line| line.contains(&action.identity))
+            );
+        }
+        let mut expected = Vec::new();
+        for row in &scene.primary {
+            if let Some(control) = row.control
+                && original.actions[control.action].availability.is_available()
+                && !expected.contains(&control)
+            {
+                expected.push(control);
+            }
+        }
+        assert!(!expected.is_empty());
+        let controls = (0..expected.len())
+            .map(|_| scene.focus_next(true).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(controls, expected);
+        assert_eq!(scene.focus_next(true), expected.first().copied());
+        if let Some(prior) = &traversal {
+            assert_eq!(&controls, prior);
+        } else {
+            traversal = Some(controls);
+        }
+    }
+    assert_ne!(expressions[0], expressions[1]);
+    assert_eq!(expressions[0], expressions[2]);
+    assert!(matches!(absent.visual(), LookVisualFacetOption::None));
+    assert_eq!(face, original);
+}
+
+#[test]
 fn checked_todo_heading_follows_preceding_face_context_without_an_orphan() {
     for preceding in 0..12 {
         let mut face = structured_source_tests::todo();
