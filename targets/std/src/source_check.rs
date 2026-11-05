@@ -29,6 +29,7 @@ pub struct SourceCheckPreparationBounds {
     /// context, catalogue and preparation workspace, which need separate custody.
     pub retained_bytes: usize,
 }
+mod assembly;
 #[cfg(target_os = "linux")]
 pub mod process;
 mod requests;
@@ -82,20 +83,10 @@ impl PreparedSourceChecker {
             }
         };
         checkpoint()?;
-        if inputs.is_empty()
-            || inputs.len() > MAX_PREPARED_SOURCE_CHECKS
-            || bounds.request_bytes == 0
-            || bounds.report_bytes == 0
-            || bounds.request_bytes as usize > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-            || bounds.report_bytes as usize > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-        {
-            return Err("Source-check preparation bounds refused".into());
-        }
+        Self::validate_bounds(inputs.len(), bounds)?;
         let schema = SourceCheckNativeSchema::prepare()
             .map_err(|e| format!("Source-check schema: {e:?}"))?;
-        let mut entries: Vec<Entry> = Vec::with_capacity(inputs.len());
-        let mut request_schema = None;
-        let mut reply_schema = None;
+        let mut builder = requests::Builder::new(inputs.len());
         for input in inputs {
             checkpoint()?;
             let request = schema
@@ -113,110 +104,21 @@ impl PreparedSourceChecker {
                     bounds.report_bytes as usize,
                 )
                 .map_err(|e| format!("Source-check report: {e:?}"))?;
-            let (entry, input_type, output_type) = Entry::prepare(&request, &report)?;
-            if entries.iter().any(|old| old.request == entry.request) {
-                return Err("duplicate immutable Source-check request".into());
-            }
-            if request_schema
-                .as_ref()
-                .is_some_and(|old| old != &input_type)
-                || reply_schema.as_ref().is_some_and(|old| old != &output_type)
-            {
-                return Err("prepared Source-check schemas disagree".into());
-            }
-            request_schema = Some(input_type);
-            reply_schema = Some(output_type);
-            entries.push(entry);
+            builder.push(&request, &report)?;
         }
-        let request_schema = request_schema.ok_or("Source-check request schema absent")?;
-        let reply_schema = reply_schema.ok_or("Source-check reply schema absent")?;
-        let refusal = |reason| -> Result<Box<[u8]>, String> {
-            checkpoint()?;
-            let bytes = schema
-                .encode_reply(reason, bounds.report_bytes as usize)
-                .map_err(|e| format!("Source-check refusal: {e:?}"))?;
-            let value = conduit_core::validate_canonical_structured_value(&bytes)
-                .map_err(|e| format!("refusal shape: {e:?}"))?;
-            if value.type_bytes() != reply_schema.as_ref() {
-                return Err("refusal schema differs".into());
-            }
-            Ok(value.value_node().into())
-        };
-        let refusals = [
-            refusal(SourceCheckReply::Refused(
-                SourceCheckRefusal::InvalidSnapshot,
-            ))?,
-            refusal(SourceCheckReply::Refused(SourceCheckRefusal::StaleSource))?,
-            refusal(SourceCheckReply::Refused(
-                SourceCheckRefusal::UnknownGrammar,
-            ))?,
-            refusal(SourceCheckReply::Refused(
-                SourceCheckRefusal::UnknownContext,
-            ))?,
-            refusal(SourceCheckReply::Refused(SourceCheckRefusal::EntryBytes))?,
-            refusal(SourceCheckReply::NotPrepared)?,
-        ];
-        let base = core::mem::size_of::<PreparedSourceCheckProvider>()
-            + entries.len() * core::mem::size_of::<Entry>()
-            + request_schema.len()
-            + reply_schema.len()
-            + refusals.iter().map(|node| node.len()).sum::<usize>();
-        let retained_bytes = entries
-            .iter()
-            .try_fold(base, |sum, entry| {
-                sum.checked_add(entry.request.len())?
-                    .checked_add(entry.report.len())
-            })
-            .ok_or("Source-check backing size overflow")?;
-        if retained_bytes > bounds.retained_bytes {
-            return Err("Source-check retained backing exceeds admission".into());
+        Self::assemble(&schema, builder, bounds, checkpoint)
+    }
+    fn validate_bounds(count: usize, bounds: SourceCheckPreparationBounds) -> Result<(), String> {
+        if count == 0
+            || count > MAX_PREPARED_SOURCE_CHECKS
+            || bounds.request_bytes == 0
+            || bounds.report_bytes == 0
+            || bounds.request_bytes as usize > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || bounds.report_bytes as usize > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+        {
+            return Err("Source-check preparation bounds refused".into());
         }
-        let kind = Kind {
-            kind_id: SOURCE_CHECK_KIND.into(),
-            kind_contract_revision: SOURCE_CHECK_CALL.into(),
-            startup_parameters: vec![],
-            shorthand: None,
-            configuration: vec![],
-            semantic_laws: vec![],
-            inputs: vec![PortDescriptor {
-                port_id: "request".into(),
-                value_kind: schema
-                    .request_kind()
-                    .map_err(|e| format!("request Type: {e:?}"))?,
-                direction: PortDirection::Input,
-                temporal: PortTemporal::Flow { closes: true },
-                abnormal_kind: None,
-            }],
-            outputs: vec![PortDescriptor {
-                port_id: "reply".into(),
-                value_kind: schema
-                    .reply_kind()
-                    .map_err(|e| format!("report Type: {e:?}"))?,
-                direction: PortDirection::Output,
-                temporal: PortTemporal::Flow { closes: true },
-                abnormal_kind: None,
-            }],
-            limits: CapabilityLimits {
-                max_active_instances: 1,
-                max_queue_items: 1,
-                max_queue_bytes: bounds.request_bytes.max(bounds.report_bytes),
-            },
-        };
-        kind.validate()
-            .map_err(|e| format!("Source-check Kind: {e:?}"))?;
-        checkpoint()?;
-        Ok(Self {
-            kind,
-            provider: PreparedSourceCheckProvider {
-                entries: entries.into_boxed_slice(),
-                request_schema,
-                reply_schema,
-                refusals,
-                maximum_request: bounds.request_bytes as usize,
-            },
-            retained_bytes,
-            bounds,
-        })
+        Ok(())
     }
     pub fn kind(&self) -> &Kind {
         &self.kind

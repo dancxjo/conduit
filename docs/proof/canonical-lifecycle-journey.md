@@ -3748,3 +3748,39 @@ environment clearing, output-pressure, cancellation, descendant-pipe retirement
 and established terminal-cause behavior. Logs are
 `target/source-check-parent-driver-tests.log` and
 `target/source-check-parent-clippy.log`. No healthy CI process was restarted.
+
+### 4 November: bounded compiler results reach the ordinary Host Call
+
+Completed process output now retains its exact sent S1 request. A new preparation
+entrance admits returned replies against the already prepared, independently
+retained S1 declaration, correlates snapshot/context/entry and constructs the same
+immutable provider as local Rust analysis. Both paths share request/schema backing
+and runtime assembly. No process, compiler Source or hidden worker is invoked by
+the immediate Play read.
+
+A refused process result cannot establish an actual prepared Source/context scope.
+Valid and invalid Source analyses both can: the outer `checked` reply means the
+analysis completed, while the report retains accepted/rejected and candidate
+outcomes. Runtime stale/context/unprepared requests retain their existing distinct
+replies. Native admission uses the pinned declaration's actual primitive laws;
+well-shaped Core data with schema_version 2 is refused, as is a request supplied
+where a reply is expected. These results restore no compiler owner or grant.
+
+The actual product integration now runs two real bounded compiler children,
+compares valid/invalid reports with the direct canonical reference, retires their
+packets, prepares the provider, checks the authored check-source Plot, plans with
+an independently installed current Base/grant and performs ordinary production
+kernel Plays. Outputs arrive with commit witnesses, actual HostCallRequested and
+HostCallCompleted signs and unchanged Value-store capacities. Missing offers or
+grants refuse placement. A real stale preparation response cannot create the
+provider. Shared harness code was factored to reuse the exact runtime definition
+without importing an unrelated unused catalogue builder; no lint was suppressed.
+
+Qualification passes 28 tests: eight product-process tests, six existing Source
+Call/lifetime/allocation controls and 14 Source/Native tests. Strict all-target
+Plot/std/Body Make/product Clippy, targeted formatting and whitespace checks pass.
+Raw logs are `target/source-check-bounded-provider-{tests,clippy}.log`. These are
+local CPU/library and actual-child proofs, not an installed Root or MCU proof.
+Root metadata/preparation backing, selected artifact/Source grant admission and
+product installation remain open. #6447 and the full lifecycle remain active;
+no device or live service changed.

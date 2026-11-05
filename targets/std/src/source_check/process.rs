@@ -118,4 +118,5 @@ fn analyze(
 }
 
 mod parent;
+mod prepared;
 pub use parent::{SourceCheckProcessFailure, SourceCheckProcessOutput, SourceCheckProcessWorker};

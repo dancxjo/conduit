@@ -21,8 +21,13 @@ pub enum SourceCheckProcessFailure {
 /// compiler owner, Source grant or resource-retirement capability.
 pub struct SourceCheckProcessOutput {
     bytes: Vec<u8>,
+    request: SourceCheckRequest,
 }
 impl SourceCheckProcessOutput {
+    /// The exact request sent to the selected child; descriptive, not a grant.
+    pub fn request(&self) -> &SourceCheckRequest {
+        &self.request
+    }
     pub fn canonical_bytes(&self) -> &[u8] {
         &self.bytes
     }
@@ -143,6 +148,7 @@ impl SourceCheckProcessWorker {
             .map_err(|_| SourceCheckProcessFailure::MalformedOutput)?;
         Ok(SourceCheckProcessOutput {
             bytes: report.stdout.retained,
+            request: input.request.clone(),
         })
     }
 }

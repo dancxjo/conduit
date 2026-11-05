@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
     time::{Duration, Instant},
 };
-fn worker(deadline: Duration, bytes: usize) -> SourceCheckProcessWorker {
+pub(super) fn worker(deadline: Duration, bytes: usize) -> SourceCheckProcessWorker {
     SourceCheckProcessWorker::new(
         PathBuf::from(env!("CARGO_BIN_EXE_conduit")),
         SourceCheckProcessLimits {

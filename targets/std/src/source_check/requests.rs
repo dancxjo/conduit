@@ -107,3 +107,40 @@ pub(super) fn select<'a>(provider: &'a PreparedSourceCheckProvider, input: &[u8]
         refused(CONTEXT)
     }
 }
+
+/// One shared schema pair for all finite prepared requests.
+pub(super) struct Builder {
+    pub entries: Vec<Entry>,
+    pub request_schema: Option<Box<[u8]>>,
+    pub reply_schema: Option<Box<[u8]>>,
+}
+impl Builder {
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            entries: Vec::with_capacity(capacity),
+            request_schema: None,
+            reply_schema: None,
+        }
+    }
+    pub fn push(&mut self, request: &[u8], report: &[u8]) -> Result<(), String> {
+        let (entry, input_type, output_type) = Entry::prepare(request, report)?;
+        if self.entries.iter().any(|old| old.request == entry.request) {
+            return Err("duplicate immutable Source-check request".into());
+        }
+        if self
+            .request_schema
+            .as_ref()
+            .is_some_and(|old| old != &input_type)
+            || self
+                .reply_schema
+                .as_ref()
+                .is_some_and(|old| old != &output_type)
+        {
+            return Err("prepared Source-check schemas disagree".into());
+        }
+        self.request_schema = Some(input_type);
+        self.reply_schema = Some(output_type);
+        self.entries.push(entry);
+        Ok(())
+    }
+}
