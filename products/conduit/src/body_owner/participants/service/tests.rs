@@ -360,3 +360,6 @@ mod key_pin_tests;
 
 #[path = "capacity_refusal_tests.rs"]
 mod capacity_refusal_tests;
+
+#[path = "receipt_custody_tests.rs"]
+mod receipt_custody_tests;
