@@ -5,6 +5,7 @@
 //! issued only for the current registry entry and the actual installed Play.
 mod definition;
 mod image;
+mod immediate;
 mod installation;
 mod preparation;
 mod selection;
@@ -135,6 +136,12 @@ impl PreparedNativeSource<'_> {
         request: conduit_kernel::scheduler::HostCallRequest,
         input: &[u8],
     ) -> Result<Option<&[u8]>, String> {
+        if matches!(self.provider, NativeProvider::Immediate(_)) {
+            return self
+                .read_immediate(request, input)
+                .map(Some)
+                .map_err(|error| format!("{error}"));
+        }
         if self.cancelled
             || self.pending.is_some()
             || request.node != self.node
@@ -153,22 +160,7 @@ impl PreparedNativeSource<'_> {
             .checked_add(1)
             .ok_or("native Source request sequence exhausted")?;
         match self.provider {
-            NativeProvider::Immediate(provider) => {
-                let result = provider.read(input, &mut self.output);
-                let bytes = result.as_ref().copied().unwrap_or(0);
-                let accepted = if bytes <= self.output.len() { bytes } else { 0 };
-                self.operation
-                    .complete(lease, accepted as u32)
-                    .map_err(|e| format!("native Source completion: {e:?}"))?;
-                if bytes > self.output.len() {
-                    self.operation
-                        .revoke()
-                        .map_err(|e| format!("native Source revoke: {e:?}"))?;
-                    return Err("native Source exceeded its fixed result slot".into());
-                }
-                result?;
-                Ok(Some(&self.output[..bytes]))
-            }
+            NativeProvider::Immediate(_) => unreachable!("immediate read dispatched above"),
             NativeProvider::Worker(worker) => match worker.submit(input) {
                 Ok(generation) => {
                     self.pending = Some(NativePending {

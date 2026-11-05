@@ -97,35 +97,56 @@ impl BodyKernel<'_> {
             .operations
             .iter()
             .find(|op| op.node == request.node && op.call == request.call)
-            .ok_or("Body native request has no exact Host Call")?
+            .ok_or_else(|| {
+                diagnostic::error(
+                    &mut self.error_diagnostic,
+                    format_args!("Body native request has no exact Host Call"),
+                )
+            })?
             .binding
             .maximum_output_bytes;
         let input = self
             .scheduler
             .host_value(request.input.value)
-            .map_err(|e| format!("Body native input: {e:?}"))?;
+            .map_err(|e| {
+                diagnostic::error(
+                    &mut self.error_diagnostic,
+                    format_args!("Body native input: {e:?}"),
+                )
+            })?;
         let bytes = native
             .source
-            .read(request, input)?
-            .ok_or("Body immediate Source returned pending IO")?;
-        let value = self
-            .scheduler
-            .store_host_value(bytes)
-            .map_err(|e| format!("Body native output: {e:?}"))?;
+            .read_immediate(request, input)
+            .map_err(|error| {
+                diagnostic::error(&mut self.error_diagnostic, format_args!("{error}"))
+            })?;
+        let value = self.scheduler.store_host_value(bytes).map_err(|e| {
+            diagnostic::error(
+                &mut self.error_diagnostic,
+                format_args!("Body native output: {e:?}"),
+            )
+        })?;
         self.scheduler
             .complete_host_call(
                 request.node,
                 request.request,
                 HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
-                    output: Some(
-                        BoundedValueRef::new(value, maximum)
-                            .map_err(|e| format!("Body native bound: {e:?}"))?,
-                    ),
+                    output: Some(BoundedValueRef::new(value, maximum).map_err(|e| {
+                        diagnostic::error(
+                            &mut self.error_diagnostic,
+                            format_args!("Body native bound: {e:?}"),
+                        )
+                    })?),
                     failure: None,
                 },
             )
-            .map_err(|e| format!("Body native completion: {e:?}"))?;
+            .map_err(|e| {
+                diagnostic::error(
+                    &mut self.error_diagnostic,
+                    format_args!("Body native completion: {e:?}"),
+                )
+            })?;
         Ok(true)
     }
     pub(super) fn cancel_native_source(
@@ -150,7 +171,12 @@ impl BodyKernel<'_> {
                     failure: None,
                 },
             )
-            .map_err(|e| format!("Body native cancellation: {e:?}"))?;
+            .map_err(|e| {
+                diagnostic::error(
+                    &mut self.error_diagnostic,
+                    format_args!("Body native cancellation: {e:?}"),
+                )
+            })?;
         Ok(true)
     }
 }

@@ -4021,3 +4021,29 @@ ordinary installed Source authorization, complete IMAGE Source admission,
 Crèche authoring-tool interaction, or physical execution. The IMAGE memory
 receipt remains closed to this Source profile until all owned route/Fore/kernel
 storage and execution failure paths are admitted. No device or service changed.
+
+
+### Bound the immediate native-call failure boundary (5 November 2026)
+
+The immediate Source call now returns typed request, sequence, possession,
+completion, result-envelope and provider failures without allocating formatted
+errors. An owned provider failure moves its already prepared String; the unsafe
+provider contract continues to prohibit allocation inside read. The Body route
+formats these failures, including scheduler refusals, through its existing
+admitted diagnostic slot when that slot is present. The reference fragment
+facade converts them to text outside this bounded entrance. Sequence exhaustion
+refuses before authorization, so it cannot leave a newly acquired lease in flight.
+
+Three allocator-probed tests exercise success, exhausted authority, wrong node,
+Stop, sequence exhaustion, oversized output and a prepared provider failure.
+All report zero boundary allocations; refused preconditions call no provider,
+oversized output revokes possession, and no tested failure strands a lease.
+The 17 actual compiler-process tests pass after this change, including the
+combined Body/timer journey. Strict all-target product/std Host Clippy passes.
+
+This establishes the immediate boundary, not allocation freedom of an entire
+Source Play or complete IMAGE admission. Complete owned kernel/Fore/result
+accounting and installed Source authority remain open. Core already has a
+borrowed canonical structured-value validator; subsequent admission work must
+reuse and qualify that existing mechanism rather than introduce a second Native
+validator. No installed service or physical device changed.
