@@ -23,6 +23,8 @@ mod active_capacity;
 #[cfg(feature = "alloc")]
 mod boxed_preparation;
 #[cfg(feature = "alloc")]
+pub use boxed_preparation::{KernelPreparationError, PreparedKernelStorage};
+#[cfg(feature = "alloc")]
 mod compact_f32;
 mod cord_prefix;
 mod debug_control;
