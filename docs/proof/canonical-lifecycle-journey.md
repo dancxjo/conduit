@@ -5309,3 +5309,48 @@ including the unchanged 49,152-byte arena, with the same 153,128-byte link-time
 stack gap. These remain policy-absent reference-image link measurements, not
 selected-policy preparation/stack high-water or physical execution evidence.
 The artifact is public and was not flashed; it is not a joined private Seed.
+
+### 2026-11-05 — Storage precedes reservations and Back transfer
+
+Accepted schema PR #6773 and bounded-table PR #6774 are merged into dev and
+absorbed by the delivery branch. Their physical/custody exclusions still apply.
+
+The existing boxed kernel now has an explicit two-phase preparation entrance.
+`prepare_boxed` checks topology and physically acquires its inline storage under
+a caller-provided byte ceiling, without receiving any Back. Initialized stores
+are retained directly in that allocation behind a three-word owner. One exhaustive
+field list performs initialization and cleanup of every field except the still
+uninitialized drivers. Private, invariant storage/driver pairing and the same
+allocation persist through allocation-free, infallible `bind`. Neither operation
+supplies Body approval, complete resource admission or start authority.
+
+The ordinary allocating entrance uses this same implementation and returns the
+new typed preparation error, including allocation failure, rather than aborting.
+Its error-type change is checked against std/composite callers. Five new kernel
+tests cover refusal before allocation, deterministic allocator failure through
+both entrances, late-set cleanup, exact-once drops, stable allocation identity,
+binding, execution and retirement. Current-dev review #6775 extracts this shared
+mechanism; 329 owning tests pass there with six ignored. The broader delivery
+branch passes 334 kernel tests with six ignored. Strict kernel Clippy and
+Cortex-M0+ no_std compilation with alloc also pass.
+
+A generated-code CPU transaction couples the mechanism to the existing exact
+signed local-set receiver, Core atomic reservation owner and actual emitted
+resident Backs. Both kernel allocations precede `admit_batch` and provider loans.
+Late storage or resource refusal frees new preparation storage, preserves prior
+ledger state and leaves original providers available. Successful binding,
+typed output, cancellation/retirement and exact original-scope releases make
+no execution-time allocation. Both original offer addresses return unchanged.
+
+That 64-bit CPU fixture retains 21,920 kernel payload bytes and observes 24,722
+requested heap payload bytes at preparation peak, under an independently fixed
+32 KiB fixture budget. This excludes preexisting fixture context/input and
+allocator overhead; it is not a grant change or a measured MCU Root footprint.
+The kernel payload ceiling also excludes any externally backed store allocation,
+which its owning Host must fund independently.
+
+The actual MCU wire handler still reports only validated-workset/not-installed.
+Installing this prepared storage/resource transaction into its retained Root
+lifecycle, acknowledged busy-input custody, native IO handover, exact old-worker
+retirement and physical start remain open. No device or live service was changed,
+and the observed physical 1,920-byte refusal is not declared repaired.

@@ -1,5 +1,7 @@
 //! Allocating preparation entrance for the unchanged fixed execution kernel.
 use super::*;
+mod storage;
+pub use storage::{KernelPreparationError, PreparedKernelStorage};
 
 impl<
         D,
@@ -46,7 +48,36 @@ where
         drivers: [D; NODES],
         values: S,
         signs: E,
-    ) -> Result<alloc::boxed::Box<Self>, SchedulerError> {
+    ) -> Result<alloc::boxed::Box<Self>, KernelPreparationError> {
+        Self::prepare_boxed(
+            active_nodes,
+            active_cords,
+            node_specs,
+            cord_specs,
+            routes,
+            host_bindings,
+            values,
+            signs,
+            usize::MAX,
+        )
+        .map(|prepared| prepared.bind(drivers))
+    }
+
+    /// Validate topology and acquire physical storage before any Back transfer.
+    /// The ceiling covers Self's inline payload; external backing and complete
+    /// workset resources remain independently admitted by the caller.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_boxed(
+        active_nodes: usize,
+        active_cords: usize,
+        node_specs: [NodeSpec<PORTS>; NODES],
+        cord_specs: [CordSpec; CORDS],
+        routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
+        host_bindings: FixedHostCallBindings<HOST_BINDING_SLOTS>,
+        values: S,
+        signs: E,
+        maximum_storage_bytes: usize,
+    ) -> Result<PreparedKernelStorage<D, Self, NODES>, KernelPreparationError> {
         validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
         if PORTS == 0
             || QUEUE_SLOTS == 0
@@ -54,7 +85,9 @@ where
             || PENDING_REQUESTS == 0
             || !host_bindings.is_sealed()
         {
-            return Err(SchedulerError::InvalidPlan);
+            return Err(KernelPreparationError::Topology(
+                SchedulerError::InvalidPlan,
+            ));
         }
         routes.validate_active_prefix(active_nodes, active_cords)?;
         host_bindings.validate_active_nodes(active_nodes)?;
@@ -71,14 +104,14 @@ where
         let quiescence_cord_end = quiescence::quiescence_cord_end(&cord_specs[..active_cords]);
         #[cfg(test)]
         let scan_counts = core::cell::Cell::new(scan_characterization::ScanCounts::default());
-        let mut storage = alloc::boxed::Box::<Self>::new_uninit();
+        let mut storage = storage::allocate::<Self>(maximum_storage_bytes)?;
         let pointer = storage.as_mut_ptr();
         macro_rules! initialize {
-            ($( $(#[$attribute:meta])* $field:ident : $value:expr ),* $(,)?) => {
+            ($( $(#[$attribute:meta])* $field:ident : $value:expr ),* $(,)?) => {{
                 // This never-called exhaustive pattern makes adding a field
                 // without initializing it a compile error. It reads no storage.
                 let _check_fields = |value: &Self| {
-                    let Self { $( $(#[$attribute])* $field: _, )* } = value;
+                    let Self { drivers: _, $( $(#[$attribute])* $field: _, )* } = value;
                 };
                 $(
                     $(#[$attribute])*
@@ -87,9 +120,20 @@ where
                     // field is written once without reading or dropping it.
                     unsafe { core::ptr::addr_of_mut!((*pointer).$field).write($value); }
                 )*
-            };
+                // The same exhaustive field list defines cleanup of every
+                // initialized owner. Drivers remain uninitialized until bind.
+                let drop_initialized: unsafe fn(*mut Self) = |pointer| {
+                    $(
+                        $(#[$attribute])*
+                        // SAFETY: this closure is installed only after all
+                        // listed fields have been initialized exactly once.
+                        unsafe { core::ptr::drop_in_place(core::ptr::addr_of_mut!((*pointer).$field)); }
+                    )*
+                };
+                drop_initialized
+            }};
         }
-        initialize! {
+        let drop_initialized = initialize! {
             node_specs: node_specs,
             terminal_transductions: [[None; PORTS]; NODES],
             terminal_inputs_consumed: [[false; PORTS]; NODES],
@@ -112,7 +156,6 @@ where
             undispatched_host_count: 0,
             undispatched_cancellation_count: 0,
             pending_host_slots: [None; NODES],
-            drivers: drivers,
             values: values,
             signs: signs,
             cords: [CordState::EMPTY; CORDS],
@@ -132,8 +175,14 @@ where
             debug_control: debug_control,
             #[cfg(test)]
             scan_counts: scan_counts,
-        }
-        // SAFETY: every field is initialized, including cfg-specific fields.
-        Ok(unsafe { storage.assume_init() })
+        };
+        let bind: unsafe fn(*mut Self, [D; NODES]) = |pointer, drivers| {
+            // SAFETY: drivers is the one remaining uninitialized field in
+            // uniquely owned exact-layout storage. No Self reference is formed.
+            unsafe {
+                core::ptr::addr_of_mut!((*pointer).drivers).write(drivers);
+            }
+        };
+        Ok(PreparedKernelStorage::new(storage, drop_initialized, bind))
     }
 }

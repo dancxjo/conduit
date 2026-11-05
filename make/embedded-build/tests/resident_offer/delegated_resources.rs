@@ -241,6 +241,7 @@ pub fn batch(
     first: &crate::support::Assignment,
     second: &crate::support::Assignment,
 ) {
+    prepared_storage::run(a, b, first, second);
     let docs = [document(a, first), document(b, second)];
     let bindings = [
         a.fragment().placements[0].resources[0].clone(),
@@ -382,3 +383,6 @@ pub fn batch(
     assert!(library.offers().iter().all(Option::is_some));
     println!("two exact Body fragments reserve atomically: late shortage preserves prior reservation; both typed kernels retire and release only their original scopes; preparation heap peak {} bytes ({} allocations)", preparation.peak_bytes, preparation.allocations);
 }
+
+#[path = "prepared_storage.rs"]
+mod prepared_storage;
