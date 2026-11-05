@@ -58,6 +58,34 @@ fn absent_delegation_is_exact_and_selected_policy_changes_artifact_identity() {
     verify_configuration_image(&selected, &image, &catalog).unwrap();
     assert!(verify_configuration_image(&absent, &image, &catalog).is_err());
     assert!(verify_configuration_image(&changed, &image, &catalog).is_err());
+    assert_eq!(
+        image.manifest.source_configuration_id.as_deref(),
+        Some(selected.configuration_id())
+    );
+    assert_eq!(
+        image.payload.source_configuration_id,
+        image.manifest.source_configuration_id
+    );
+    for other in [&absent, &changed] {
+        assert_ne!(
+            Some(other.configuration_id()),
+            image.manifest.source_configuration_id.as_deref()
+        );
+        let (other_image, _) = test_build_host_image(
+            other.profile().clone(),
+            &catalog,
+            &BuildInputs {
+                source_identity: "fixture/delegation".into(),
+                toolchain_available: true,
+            },
+        )
+        .unwrap();
+        assert_ne!(other_image.manifest.build_id, image.manifest.build_id);
+        assert_eq!(
+            other_image.manifest.source_configuration_id.as_deref(),
+            Some(other.configuration_id())
+        );
+    }
 }
 
 #[test]
