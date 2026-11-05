@@ -158,3 +158,56 @@ fn byte_only_references_keep_exact_identity_version_and_byte_bounds_without_inve
         Err(ResourceContentRefusal::ReferenceMismatch)
     );
 }
+
+#[test]
+fn reader_access_preserves_every_other_content_obligation() {
+    let mut required = resource_requirement("frame", 1);
+    let mut reader = contract();
+    reader.access = ResourceAccessMode::ReadPublished;
+    reader.publication_slots = 0;
+    required.content = Some(reader);
+    let mut offered = resource_offer("frames", "frame", 1);
+    offered.content = Some(offer());
+    let host = HostId::from("host/frame");
+    let boot = BootId::from("boot/1");
+    let bound = bind_resource_content(&required, &offered, &host, &boot)
+        .unwrap()
+        .unwrap();
+    assert_eq!(bound.contract, *required.content.as_ref().unwrap());
+    assert_eq!(
+        offered.content.as_ref().unwrap().contract.access,
+        ResourceAccessMode::WriteCandidatePublish
+    );
+    for change in [
+        |c: &mut ResourceContentRequirement| {
+            c.identity = ResourceSemanticIdentity::from_digest([7; 32])
+        },
+        |c: &mut ResourceContentRequirement| {
+            c.version = ResourceVersionIdentity::from_digest([7; 32])
+        },
+        |c: &mut ResourceContentRequirement| c.content_profile = kind_id("other/frame@1"),
+        |c: &mut ResourceContentRequirement| c.maximum_bytes -= 1,
+        |c: &mut ResourceContentRequirement| c.maximum_items -= 1,
+        |c: &mut ResourceContentRequirement| c.retention = ResourceRetention::Boot,
+        |c: &mut ResourceContentRequirement| c.sharing = ResourceSharing::ImmutableReadMany,
+        |c: &mut ResourceContentRequirement| c.generation_slots += 1,
+        |c: &mut ResourceContentRequirement| c.reader_leases += 1,
+        |c: &mut ResourceContentRequirement| c.sensitive = true,
+    ] {
+        let mut different = required.clone();
+        change(different.content.as_mut().unwrap());
+        assert_eq!(
+            bind_resource_content(&different, &offered, &host, &boot),
+            Err(ResourceContentRefusal::ContractMismatch)
+        );
+    }
+    let mut writer = required.clone();
+    writer.content = Some(contract());
+    let offered_contract = &mut offered.content.as_mut().unwrap().contract;
+    offered_contract.access = ResourceAccessMode::ReadPublished;
+    offered_contract.publication_slots = 0;
+    assert_eq!(
+        bind_resource_content(&writer, &offered, &host, &boot),
+        Err(ResourceContentRefusal::ContractMismatch)
+    );
+}
