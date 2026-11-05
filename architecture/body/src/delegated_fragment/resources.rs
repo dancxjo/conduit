@@ -70,3 +70,7 @@ mod admission;
 pub use admission::{
     admit_delegated_plain_resources, reserve_delegated_plain_resources, DelegatedResourceRefusal,
 };
+#[cfg(feature = "authenticated-admission")]
+mod preparation_bound;
+#[cfg(feature = "authenticated-admission")]
+pub use preparation_bound::delegated_plain_resource_preparation_bytes;

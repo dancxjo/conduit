@@ -7,6 +7,7 @@ pub enum DelegatedResourceRefusal {
     Allocation,
     Projection,
     UnsupportedPool,
+    PreparationCapacity,
     Admission(c::ResourceAdmissionRefusal),
 }
 

@@ -1,4 +1,5 @@
 //! Actual Root handler, with fake time/radio and an owner signing its challenge.
+extern crate alloc;
 extern crate self as embassy_rp;
 extern crate self as embassy_time;
 use conduit_body::*;
@@ -13,6 +14,8 @@ mod probe;
 static ALLOC: probe::Allocator = probe::Allocator;
 const LIMIT: usize = 4096;
 mod config {
+    pub const RESIDENT_WORK_POOL: &str = "fixture/work";
+    pub const RESIDENT_WORK_UNITS: u32 = 1;
     pub const RESIDENT_PREPARATION_STORAGE_BYTES: usize = 16384;
     pub const RESIDENT_PREPARATION_MAXIMA: conduit_core::AssignedPlanMaxima =
         conduit_core::AssignedPlanMaxima {
@@ -37,8 +40,63 @@ mod resident_preparation {
         #[allow(dead_code)]
         Storage(conduit_kernel::scheduler::KernelPreparationError),
     }
-    pub struct AttemptStorage;
-    impl Drop for AttemptStorage {
+    pub struct AttemptStorage<'a, 'o>(core::marker::PhantomData<(&'a (), &'o ())>);
+    pub use crate::resource_observation::observe_private_work;
+    impl AttemptStorage<'_, '_> {
+        pub fn reserve_observed<'r>(
+            self,
+            owner: &'r mut conduit_core::ResourceAdmissionOwner,
+            pool: &str,
+            capacity: u32,
+            sequence: u64,
+            maximum_bytes: usize,
+        ) -> Result<conduit_core::ResourceAdmissionScope<'r>, conduit_body::DelegatedResourceRefusal>
+        {
+            let observed =
+                observe_private_work(&self, owner, pool, capacity, sequence, maximum_bytes)?;
+            self.reserve(
+                owner,
+                core::slice::from_ref(&observed.value),
+                maximum_bytes - observed.owned_bytes,
+            )
+        }
+        pub fn reserve<'r>(
+            self,
+            owner: &'r mut conduit_core::ResourceAdmissionOwner,
+            observed: &[conduit_core::ResourceObservation],
+            _: usize,
+        ) -> Result<conduit_core::ResourceAdmissionScope<'r>, conduit_body::DelegatedResourceRefusal>
+        {
+            let ad = owner.host();
+            let request = conduit_core::ResourceAdmissionRequest {
+                plan_id: "fixture/plan".into(),
+                placement_id: "fixture/placement".into(),
+                host_id: ad.host_id.clone(),
+                boot_id: ad.boot_id.clone(),
+                offer_generation: ad.offer_generation,
+                items: vec![conduit_core::ResourceAdmissionItem {
+                    requirement: conduit_core::resource_requirement(
+                        conduit_core::COOPERATIVE_STEP_WORK_CLASS_ID,
+                        1,
+                    ),
+                    binding: conduit_core::ResourceBinding {
+                        pool_id: ad.resources[0].pool_id.clone(),
+                        class_id: ad.resources[0].class_id.clone(),
+                        units: 1,
+                        protected: None,
+                        compute: None,
+                        content: None,
+                    },
+                }],
+            };
+            let mut scope = owner.preparation_scope();
+            scope
+                .admit_batch(vec![request], observed)
+                .map_err(conduit_body::DelegatedResourceRefusal::Admission)?;
+            Ok(scope)
+        }
+    }
+    impl Drop for AttemptStorage<'_, '_> {
         fn drop(&mut self) {}
     }
     pub struct Inventory;
@@ -55,14 +113,19 @@ mod resident_preparation {
         command: conduit_body::AttributedHostCommand<'_, '_>,
         _: conduit_core::AssignedPlanMaxima,
         _: usize,
-    ) -> Result<AttemptStorage, ValidationRefusal> {
-        if command.payload().first() == Some(&0x46) {
+    ) -> Result<AttemptStorage<'static, 'static>, ValidationRefusal> {
+        if command.payload().first() == Some(&0x52) {
+            Ok(AttemptStorage(core::marker::PhantomData))
+        } else if command.payload().first() == Some(&0x46) {
             Err(ValidationRefusal::InvalidAssignment)
         } else {
             Err(ValidationRefusal::Unavailable)
         }
     }
 }
+use resident_preparation::AttemptStorage;
+#[path = "../../firmware/host/src/resident_resources.rs"]
+mod resource_observation;
 thread_local! { static NOW: Cell<u64> = const { Cell::new(100) }; }
 #[derive(Clone, Copy)]
 pub struct Instant(u64);
@@ -128,6 +191,10 @@ enum Mode {
     Interrupted,
     Deadline,
     Pending,
+    Reserved,
+    ReservedPending,
+    ReservedLostResponse,
+    ReservedDeadline,
 }
 struct Link {
     mode: Mode,
@@ -143,7 +210,15 @@ struct Link {
 impl Link {
     fn new(mode: Mode, length: usize) -> Self {
         let payload = vec![
-            if mode == Mode::InvalidAssignment {
+            if matches!(
+                mode,
+                Mode::Reserved
+                    | Mode::ReservedPending
+                    | Mode::ReservedLostResponse
+                    | Mode::ReservedDeadline
+            ) {
+                0x52
+            } else if mode == Mode::InvalidAssignment {
                 0x46
             } else {
                 0x45
@@ -197,6 +272,16 @@ impl Link {
         } else {
             self.response[..bytes.len()].copy_from_slice(bytes);
             self.response_len = bytes.len();
+            if self.mode == Mode::ReservedDeadline {
+                NOW.with(|n| n.set(10100));
+                core::future::pending::<()>().await;
+            }
+            if self.mode == Mode::ReservedPending {
+                core::future::pending::<()>().await;
+            }
+            if self.mode == Mode::ReservedLostResponse {
+                return Err(());
+            }
         }
         Ok(())
     }
@@ -296,7 +381,11 @@ fn actual_root_ingress_authenticates_without_another_document_allocation_or_star
         let mut link = Link::new(mode, 1000);
         let mut workspace = [0x44; LIMIT];
         let future = member.serve_preparation(&mut link, &mut workspace);
-        assert!(std::mem::size_of_val(&future) < 2048);
+        assert!(
+            std::mem::size_of_val(&future) < 2048,
+            "ingress frame {} bytes",
+            std::mem::size_of_val(&future)
+        );
         let (result, cost) = probe::observe(|| run(future));
         assert_eq!(cost.allocations, 0);
         assert_eq!(cost.reallocations, 0);
@@ -426,4 +515,38 @@ fn busy_root_does_not_consume_the_document_or_issue_another_attempt() {
     assert!(std::str::from_utf8(&link.response[..link.response_len])
         .unwrap()
         .contains("awaiting-native-retirement"));
+}
+
+#[test]
+fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellation() {
+    for mode in [
+        Mode::Reserved,
+        Mode::ReservedLostResponse,
+        Mode::ReservedPending,
+        Mode::ReservedDeadline,
+    ] {
+        NOW.with(|n| n.set(100));
+        let mut member = member();
+        let before = member.resources.clone();
+        let mut link = Link::new(mode, 1000);
+        let mut workspace = [0; LIMIT];
+        let mut future = Box::pin(member.serve_preparation(&mut link, &mut workspace));
+        let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
+        let result = future.as_mut().poll(&mut cx);
+        assert_eq!(result.is_pending(), mode == Mode::ReservedPending);
+        if mode == Mode::Reserved {
+            assert!(matches!(result, Poll::Ready(Ok(()))));
+        }
+        if matches!(mode, Mode::ReservedLostResponse | Mode::ReservedDeadline) {
+            assert!(matches!(result, Poll::Ready(Err(()))));
+        }
+        drop(future);
+        assert_eq!(member.resources, before);
+        assert!(std::str::from_utf8(&link.response[..link.response_len])
+            .unwrap()
+            .contains("attempt-reserved"));
+        assert!(std::str::from_utf8(&link.response[..link.response_len])
+            .unwrap()
+            .contains("not-installed"));
+    }
 }

@@ -1,4 +1,6 @@
 //! Root composition over real initialized Backs; no catalog decode or transfer.
+#[path = "resident_resources.rs"]
+mod resources;
 #[path = "resident_storage.rs"]
 mod storage;
 use conduit_body::{
@@ -13,6 +15,7 @@ use conduit_plan_lowering::{
     selected_assigned_expression::SelectedAssignedExpressionPlan,
     selected_assigned_operation::AssignedOperationInput,
 };
+pub use resources::observe_private_work;
 pub use storage::AttemptStorage;
 
 #[derive(Debug, PartialEq, Eq)]

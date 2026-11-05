@@ -64,6 +64,7 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
     };
     let exercise = format!(
         r#"
+extern crate alloc;
 #[path={probe:?}]mod probe;
 #[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;
 #[path={helper:?}]mod support;
@@ -174,6 +175,7 @@ fn library_refuses_duplicate_inventory_bounds_and_partial_initialization() {
         .join("../../architecture/plot/tests/common/allocation_probe.rs");
     let exercise = format!(
         r#"
+extern crate alloc;
 #[path={probe:?}]mod probe;
 #[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;
 fn main(){{

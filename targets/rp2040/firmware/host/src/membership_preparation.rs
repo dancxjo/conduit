@@ -53,23 +53,23 @@ impl Membership {
             chunk.copy_from_slice(&rng.next_u64().to_le_bytes());
         }
         let now = Instant::now();
-        let slot = IssuedHostCommandChallenge::issue(
-            member,
-            self.resources.host(),
-            &self.seed.owner,
-            HostCommandReceiveBounds {
-                payload_contract: HOST_PREPARED_WORKSET_CONTRACT,
-                maximum_payload_bytes: ceiling as u32,
-                lifetime_millis: LIFETIME_MILLIS,
-            },
-            nonce,
-            now.as_millis(),
-        )
-        .map_err(|_| ())?;
-        let n = serde_json_core::to_slice(slot.challenge(), input).map_err(|_| ())?;
         let deadline = now + Duration::from_millis(u64::from(LIFETIME_MILLIS));
         // One original deadline covers publication, all chunks and signature.
         let result = with_deadline(deadline, async {
+            let slot = IssuedHostCommandChallenge::issue(
+                member,
+                self.resources.host(),
+                &self.seed.owner,
+                HostCommandReceiveBounds {
+                    payload_contract: HOST_PREPARED_WORKSET_CONTRACT,
+                    maximum_payload_bytes: ceiling as u32,
+                    lifetime_millis: LIFETIME_MILLIS,
+                },
+                nonce,
+                now.as_millis(),
+            )
+            .map_err(|_| ())?;
+            let n = serde_json_core::to_slice(slot.challenge(), input).map_err(|_| ())?;
             link.send(&input[..n]).await?;
             let mut document =
                 BorrowedBoundedDocumentAssembly::new(&mut input[..ceiling], MAXIMUM_CHUNKS);
@@ -101,10 +101,17 @@ impl Membership {
                 crate::config::RESIDENT_PREPARATION_MAXIMA,
                 crate::config::RESIDENT_PREPARATION_STORAGE_BYTES,
             ) {
-                Ok(stored) => {
-                    let result = link.send(br#"{"phase":"validated-workset","profile":"resident-structured","storage":"attempt-owned","resources":"not-reserved","start":"not-installed"}"#).await;
-                    drop(stored);
-                    result
+                Ok(stored) => match stored.reserve_observed(
+                    &mut self.resources, crate::config::RESIDENT_WORK_POOL,
+                    crate::config::RESIDENT_WORK_UNITS, self.freshness,
+                    crate::config::RESIDENT_PREPARATION_STORAGE_BYTES,
+                ) {
+                    Ok(reserved) => {
+                        let result = link.send(br#"{"phase":"reserved-workset","profile":"resident-structured","storage":"attempt-owned","resources":"attempt-reserved","start":"not-installed"}"#).await;
+                        drop(reserved);
+                        result
+                    },
+                    Err(refusal) => report_resource_refusal(link, refusal).await,
                 },
                 Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Allocation)) => link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"allocation"}"#).await,
                 Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Capacity {..})) => link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"capacity"}"#).await,
@@ -117,4 +124,21 @@ impl Membership {
         input.fill(0);
         result.map_err(|_| ())?
     }
+}
+
+async fn report_resource_refusal(
+    link: &mut Link,
+    refusal: conduit_body::DelegatedResourceRefusal,
+) -> Result<(), ()> {
+    use conduit_body::DelegatedResourceRefusal as E;
+    use conduit_core::ResourceAdmissionRefusal as R;
+    let response: &[u8] = match refusal {
+        E::PreparationCapacity => br#"{"phase":"validated-workset","resources":"refused","reason":"preparation-capacity"}"#,
+        E::Allocation | E::Admission(R::Allocation) => br#"{"phase":"validated-workset","resources":"refused","reason":"allocation"}"#,
+        E::Admission(R::Overcommitted) => br#"{"phase":"validated-workset","resources":"refused","reason":"overcommitted"}"#,
+        E::Admission(R::Unavailable) => br#"{"phase":"validated-workset","resources":"refused","reason":"unavailable"}"#,
+        E::Scope | E::Admission(R::StaleOffer | R::StaleObservation | R::ForeignHost) => br#"{"phase":"validated-workset","resources":"refused","reason":"scope"}"#,
+        _ => br#"{"phase":"validated-workset","resources":"refused","reason":"unsupported-binding"}"#,
+    };
+    link.send(response).await
 }

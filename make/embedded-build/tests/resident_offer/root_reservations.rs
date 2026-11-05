@@ -8,12 +8,6 @@ pub fn run(
     let binding = &assignment.model.fragments[0].placements[0].resources[0];
     let mut actual = receiver.actual.clone();
     actual.resources.push(c::resource_offer(binding.pool_id.as_str(), binding.class_id.as_str(), 5000));
-    let observed = c::ResourceObservation {
-        host_id: actual.host_id.clone(), boot_id: actual.boot_id.clone(),
-        offer_generation: actual.offer_generation, pool_id: binding.pool_id.clone(),
-        class_id: binding.class_id.clone(), health: c::ResourceHealth::Ready,
-        unreserved_units: 5000, utilized_units: 0, sign_id: "fixture/root-ready".into(),
-    };
     let mut owner = c::ResourceAdmissionOwner::new(actual);
     let before = owner.clone();
     let original = library.offers().map(|o| o.unwrap().as_ptr());
@@ -22,42 +16,70 @@ pub fn run(
         receiver.command_with_contract(bytes, HOST_PREPARED_WORKSET_CONTRACT),
         assignment.maxima, 16384,
     ).unwrap() }; }
+    let stored = prepare!();
+    let observe = |maximum| crate::root_preparer::observe_private_work(
+        &stored, &owner, binding.pool_id.as_str(), 5000, 1, maximum,
+    );
+    let (evidence, observation_cost) = crate::probe::observe(|| observe(1024));
+    let evidence = evidence.unwrap();
+    assert!(observation_cost.requested_bytes <= evidence.owned_bytes);
+    assert_eq!(observation_cost.allocations, 5);
+    for nth in 1..=observation_cost.allocations {
+        let (refused, cost) = crate::probe::observe_refusing(nth, || observe(1024));
+        assert!(matches!(refused, Err(DelegatedResourceRefusal::Allocation)));
+        assert_eq!(cost.refused_allocations, 1);
+        assert_eq!(cost.allocations, cost.deallocations);
+    }
+    assert!(matches!(observe(evidence.owned_bytes - 1),
+        Err(DelegatedResourceRefusal::PreparationCapacity)));
+    drop(stored);
+    let budget = 16384 - evidence.owned_bytes;
+    let observed = evidence.value;
     // Missing and insufficient observations drop the already acquired kernels.
-    assert!(matches!(prepare!().reserve(&mut owner, &[]), Err(DelegatedResourceRefusal::Admission(
+    assert!(matches!(prepare!().reserve(&mut owner, &[], budget), Err(DelegatedResourceRefusal::Admission(
         c::ResourceAdmissionRefusal::MissingObservation,
     ))));
     assert_eq!(owner, before);
     let mut low = observed.clone();
     low.unreserved_units = 0;
-    assert!(matches!(prepare!().reserve(&mut owner, &[low]), Err(DelegatedResourceRefusal::Admission(
+    assert!(matches!(prepare!().reserve(&mut owner, &[low], budget), Err(DelegatedResourceRefusal::Admission(
         c::ResourceAdmissionRefusal::Overcommitted,
     ))));
     assert_eq!(owner, before);
     let stored = prepare!();
     let (reserved, cost) = crate::probe::observe(||
-        stored.reserve(&mut owner, core::slice::from_ref(&observed)));
+        stored.reserve(&mut owner, core::slice::from_ref(&observed), budget));
     assert_eq!(reserved.as_ref().unwrap().admissions().len(), 2);
+    let preparation_bytes = reserved.as_ref().unwrap().preparation_bytes();
+    assert!(cost.peak_bytes + 12432 <= preparation_bytes);
     drop(reserved);
     assert_eq!(owner, before);
     for nth in 1..=cost.allocations {
         let mut owner = before.clone();
         let stored = prepare!();
         let (result, failure) = crate::probe::observe_refusing(nth, ||
-            stored.reserve(&mut owner, core::slice::from_ref(&observed)));
+            stored.reserve(&mut owner, core::slice::from_ref(&observed), budget));
         assert!(matches!(result, Err(DelegatedResourceRefusal::Allocation |
             DelegatedResourceRefusal::Admission(c::ResourceAdmissionRefusal::Allocation))));
         assert_eq!(failure.refused_allocations, 1);
         drop(result);
         assert_eq!(owner, before);
     }
-    let mut future = Box::pin(async {
-        let reserved = prepare!().reserve(&mut owner, core::slice::from_ref(&observed)).unwrap();
+    assert!(matches!(prepare!().reserve(&mut owner,
+        core::slice::from_ref(&observed), preparation_bytes - 1),
+        Err(DelegatedResourceRefusal::PreparationCapacity)));
+    assert_eq!(owner, before);
+    let future = async {
+        let reserved = prepare!().reserve_observed(&mut owner, binding.pool_id.as_str(), 5000, 2, 16384).unwrap();
         assert_eq!(reserved.admissions().len(), 2);
         assert!(reserved.admissions().iter().all(|r| r.plan_id.as_str() ==
             assignment_body_plan(bytes)));
         core::future::pending::<()>().await;
         drop(reserved);
-    });
+    };
+    let future_bytes = core::mem::size_of_val(&future);
+    assert!(future_bytes < 2048);
+    let mut future = Box::pin(future);
     use core::future::Future;
     let mut cx = core::task::Context::from_waker(core::task::Waker::noop());
     assert!(future.as_mut().poll(&mut cx).is_pending());
@@ -65,7 +87,7 @@ pub fn run(
     assert_eq!((cleanup.allocations, cleanup.reallocations), (0, 0));
     assert_eq!(owner, before);
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
-    println!("actual Root attempt reserves both exact fragments through Core; missing/low observations and all {} reservation allocations refuse; pending cancellation frees kernels and exact reservations without allocating or lending providers", cost.allocations);
+    println!("actual Root attempt reserves both exact fragments through Core within {preparation_bytes} kernel/bookkeeping requested-byte bound plus {} observation bytes; missing/low observations, one-byte shortage and all {} reservation allocations refuse; {future_bytes}-byte CPU pending attempt; cancellation frees kernels and exact reservations without allocating or lending providers", evidence.owned_bytes, cost.allocations);
 }
 
 fn assignment_body_plan(bytes: &[u8]) -> &str {

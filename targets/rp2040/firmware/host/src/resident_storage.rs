@@ -56,17 +56,49 @@ impl AttemptStorage<'_, '_> {
 pub struct ReservedAttempt<'a, 'o, 'r> {
     _storage: AttemptStorage<'a, 'o>,
     reservations: conduit_core::ResourceAdmissionScope<'r>,
+    preparation_bytes: usize,
 }
 impl ReservedAttempt<'_, '_, '_> {
     pub fn admissions(&self) -> &[conduit_core::ResourceAdmission] {
         self.reservations.admissions()
     }
+    pub fn preparation_bytes(&self) -> usize {
+        self.preparation_bytes
+    }
 }
 impl<'a, 'o> AttemptStorage<'a, 'o> {
+    /// Complete the synchronous observation/reservation transition before an
+    /// async response can suspend. Snapshot and temporary tables do not become
+    /// retained coroutine state; their requested bytes remain funded at peak.
+    pub fn reserve_observed<'r>(
+        self,
+        owner: &'r mut conduit_core::ResourceAdmissionOwner,
+        pool_id: &str,
+        capacity: u32,
+        sequence: u64,
+        maximum_bytes: usize,
+    ) -> Result<ReservedAttempt<'a, 'o, 'r>, conduit_body::DelegatedResourceRefusal> {
+        let observed = super::resources::observe_private_work(
+            &self,
+            owner,
+            pool_id,
+            capacity,
+            sequence,
+            maximum_bytes
+                .checked_sub(self.bytes)
+                .ok_or(conduit_body::DelegatedResourceRefusal::PreparationCapacity)?,
+        )?;
+        let budget = maximum_bytes
+            .checked_sub(observed.owned_bytes)
+            .ok_or(conduit_body::DelegatedResourceRefusal::PreparationCapacity)?;
+        self.reserve(owner, core::slice::from_ref(&observed.value), budget)
+    }
+
     pub fn reserve<'r>(
         self,
         owner: &'r mut conduit_core::ResourceAdmissionOwner,
         observations: &[conduit_core::ResourceObservation],
+        maximum_preparation_bytes: usize,
     ) -> Result<ReservedAttempt<'a, 'o, 'r>, conduit_body::DelegatedResourceRefusal> {
         let first = self
             .fragments
@@ -79,6 +111,16 @@ impl<'a, 'o> AttemptStorage<'a, 'o> {
             fragments[count] = &fragment.approved;
             count += 1;
         }
+        let reservation_bytes = conduit_body::delegated_plain_resource_preparation_bytes(
+            &fragments[..count],
+            owner,
+            observations,
+        )?;
+        let preparation_bytes = self
+            .bytes
+            .checked_add(reservation_bytes)
+            .filter(|bytes| *bytes <= maximum_preparation_bytes)
+            .ok_or(conduit_body::DelegatedResourceRefusal::PreparationCapacity)?;
         let reservations = conduit_body::reserve_delegated_plain_resources(
             &fragments[..count],
             owner,
@@ -87,6 +129,7 @@ impl<'a, 'o> AttemptStorage<'a, 'o> {
         Ok(ReservedAttempt {
             _storage: self,
             reservations,
+            preparation_bytes,
         })
     }
 }
