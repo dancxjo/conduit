@@ -5210,3 +5210,14 @@ exclusive workspace custody, kernel installation/start, retired-approval replay
 and physical bus handover remain unfinished under #6770/#6341 and their existing
 owners. This entry records component/compilation proof, not a flashed image or
 physical Body Play. No live Host, membership or service was changed.
+
+Ordinary `make host build` now also links this checkpoint for the checked Green
+reference profile, at source `726c56ea3d`. Its checked public UF2 is 2,021,376 bytes,
+SHA-256 `0874fd23042e9d71d208e6bc5b2ba2fb8a05d9800e908f90a475db328719a339`.
+ELF load extents occupy 1,010,560 flash bytes; static RAM remains 117,208 bytes,
+including the existing 49,152-byte arena. The link-time stack gap is 153,128 bytes,
+not measured stack high-water. These are default-policy reference-image numbers,
+not selected-delegation runtime preparation costs. The public artifact contains
+no private membership Seed and was not flashed. Green's existing diagnostic path
+still reported 788/788 samples and 11,819/11,819 display ACKs with no errors;
+those counters do not establish admitted Body sampling/display execution.
