@@ -1,5 +1,46 @@
 # Bounded fixed scalar tape
 
+## Resident instruction images (development)
+
+`generate_static_scalar_expression` performs the existing checked fixed-scalar
+preparation on the authoring Host and emits Rust static data. The generated
+module retains one instruction array, deduplicated literal slices and the exact
+canonical program's SHA-256. Its constructor creates a `StaticScalarExpression`
+that borrows those instructions; it neither decodes a Source program nor
+allocates instruction or result buffers. Evaluation uses the same scalar tape
+loop and checked arithmetic as the owned evaluator, writing into caller-owned
+bounded output. The digest correlates code with its program; it grants no
+execution authority and is not a Source-document identity.
+
+Before execution, the resident profile checks fixed integer/Bool Types, literal
+geometry, operand/destination bounds, forward-only control flow, definite slot
+initialization on every path and consumption by Move. Unretained proof hints
+are refused. The maximum remains 128 instructions. Initialization uses a
+129-byte forward-state array and at most quadratic bounded analysis; execution
+uses the existing 4/8/32/128-slot scratch profiles. Root must admit preparation
+work, complete stack use and caller output independently of this API.
+
+CPU tests compile emitted programs both as a native executable and as a
+`no_std` Rust library and compare checked Source byte/refusal outcomes. They
+also verify allocation-free resident construction/evaluation and refusal of
+invalid code before execution. Static lifetime does not prove physical flash
+placement. Ordinary Make selection, full structured protocol images, kernel
+Back installation and physical MCU admission remain unfinished; this is not a
+new installed Back, scheduler or execution grant. Native-law/quantity profiles
+without a retained validation witness remain unsupported. Fixed-integer boundary contracts retain their
+byte ceiling and range endpoints in immutable `FixedIntegerContractSpec` data.
+The resident view is one pointer; identical input/output guards share one spec.
+Owned and borrowed checks use the same range definition and validation laws.
+Other boundary profiles continue to refuse instead of dropping predicates.
+
+`computation_work()` includes the bounded predicate checks as well as tape
+instructions. The installing Host must admit and spend that complete private
+work plus kernel IO. Canonical input validation precedes semantic predicates;
+a refused output predicate leaves caller output unchanged. No Source or
+contract decoder runs during resident execution.
+
+## Owned tape profile
+
 Issue #5540 adds an explicitly selected std scalar specialization with Value Fore contracts within the existing checked pure-expression Kind, ordinary Back offer, Plan and kernel Host Call mechanism. The new profile/implementation/artifact identities are distinct from the reference evaluator. Text, records, mathematical-value/quantity/floating profiles, Flow contracts and oversized tapes refuse preparation; the existing interpreter remains independently available. No candidate switches execution form halfway through Play.
 
 The pre-Play lowering owns a maximum 128-instruction linear tape and a fixed 128-slot stack scratch bound, exposed together with the existing output capacity. It drops the evaluator's AST execution form. Runtime steps use prebound operand slots and the existing checked fixed-integer/boolean arithmetic routines. Conditional jumps are forward-only and retain lazy selected-branch semantics. This removes recursive AST traversal, not every primitive decode; it is neither generated machine code nor a second scheduler.

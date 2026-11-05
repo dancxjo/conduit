@@ -32,6 +32,7 @@ mod fore_route;
 mod parsec_acknowledged_map;
 mod parsec_sources;
 mod parsec_terminal_owner;
+mod scalar_math;
 pub(crate) use parsec_terminal_owner::QualifiedParsecInstruction;
 mod each_route;
 mod scan_route;
@@ -338,7 +339,8 @@ impl<'a> BodyKernel<'a> {
                 if !has_keyboard {
                     return Err("Body keyboard has no admitted adapter".into());
                 }
-            } else if !timer(&operation.contract_id)
+            } else if !scalar_math::supports(operation)
+                && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
                 && !text_state(&operation.contract_id)
@@ -931,6 +933,9 @@ impl<'a> BodyKernel<'a> {
                         == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
                     {
                         self.begin_creche(request, creche.as_deref_mut())?;
+                        continue;
+                    }
+                    if scalar_math::complete(operation, request, &mut self.scheduler)? {
                         continue;
                     }
                     let input = self

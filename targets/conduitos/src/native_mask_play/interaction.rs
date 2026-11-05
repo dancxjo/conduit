@@ -38,6 +38,9 @@ impl NativeMaskInteractionSession {
         mut self,
         interaction: FaceInteraction,
     ) -> Result<MaskInteractionCorrelation, NativeMaskPlayError> {
+        if self.play.read_only {
+            return Err(NativeMaskPlayError::Shape);
+        }
         self.validate_interaction(&interaction)?;
         let bytes = interaction.encode();
         if bytes.len() > self.play.interaction_fore.byte_capacity as usize

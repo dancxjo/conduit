@@ -37,7 +37,18 @@ pub(super) fn presenter_offer(
 
 pub(super) fn native_facts(ready: bool) -> RuntimeFacts {
     RuntimeFacts {
-        ready_resource_classes: ready.then(|| "face/surface".into()).into_iter().collect(),
+        ready_resource_classes: if ready {
+            [
+                "face/surface",
+                "face.resource/show@1",
+                "conduit.resource/runtime-memory@1",
+            ]
+            .into_iter()
+            .map(Into::into)
+            .collect()
+        } else {
+            Default::default()
+        },
         initialized_base_kinds: ready
             .then(|| "display/scanout".into())
             .into_iter()

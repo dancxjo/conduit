@@ -2,7 +2,7 @@
 use super::{
     refusal, BuildManifest, ConduitosError, TargetBuildInputs, FRAMEBUFFER_DRIVER,
     IA32_DEBUGCON_BASE, IA32_DEBUGCON_DRIVER, IA32_LINEAR_PRESENTER, NATIVE_COMPOSITOR,
-    NATIVE_PRESENTER, PRESENT_OPERATION, SCANOUT_BASE, SURFACE_CLASS,
+    NATIVE_PRESENTER, SCANOUT_BASE,
 };
 
 pub(crate) fn lower_ia32_pc(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
@@ -37,7 +37,6 @@ pub(crate) fn lower_ia32_pc(manifest: &BuildManifest) -> Result<TargetBuildInput
             .collect::<Vec<_>>(),
     )?;
     exact("facility", &facilities, &manifest.facilities)?;
-    exact("host-call", &[PRESENT_OPERATION], &manifest.host_calls)?;
     if !manifest.profile_fragments.is_empty() {
         return Err(refusal(
             "ia32-product-closure-mismatch",
@@ -64,22 +63,8 @@ pub(crate) fn lower_ia32_pc(manifest: &BuildManifest) -> Result<TargetBuildInput
             ));
         }
     }
-    let (surface_slots, surface_bytes) = match manifest.resource_budgets.as_slice() {
-        [] if !graphical => (0, 0),
-        [surface]
-            if graphical
-                && surface.class == SURFACE_CLASS
-                && surface.slots != 0
-                && surface.bytes != 0 =>
-        {
-            (surface.slots, surface.bytes)
-        }
-        _ => return Err(refusal(
-            "ia32-product-closure-mismatch",
-            "graphical IA-32 requires exactly one finite face/surface budget; serial selects none"
-                .into(),
-        )),
-    };
+    let (surface_slots, surface_bytes) =
+        super::graphical::lower(manifest, graphical, "ia32-product-closure-mismatch")?;
     let mut features = vec!["ia32-product"];
     if graphical {
         features.push("native-compositor-core");

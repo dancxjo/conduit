@@ -70,7 +70,15 @@ fn serve(
             )?;
             socket.send(&challenge)?;
             let (proof, _) = socket.receive(remaining(deadline)?.min(Duration::from_secs(2)))?;
-            let snapshot = browser::complete(state_dir, window_id, proof)?;
+            let snapshot = match browser::complete(state_dir, window_id, proof)? {
+                browser::BrowserProofOutcome::Admitted(snapshot) => snapshot,
+                browser::BrowserProofOutcome::Refused(code) => {
+                    // One bounded terminal response, then ordinary challenge
+                    // cancellation/close. Delivery is not an admission ACK.
+                    let _ = socket.send(&proof_refusal_frame(&code));
+                    return Err(format!("Body owner refused browser proof: {code}"));
+                }
+            };
             active = Some(snapshot.credential.clone());
             let presence_clock = Instant::now();
             serve_presence(
@@ -102,4 +110,47 @@ fn serve(
         }
     }
     Ok(())
+}
+
+fn proof_refusal_frame(code: &str) -> Out {
+    Out::Refused {
+        protocol: PROTOCOL,
+        // Only an explicit public owner code crosses the Line. Other local
+        // diagnostics stay in the owner log, never in a remote error field.
+        code: match code {
+            "membership-part-capacity-exhausted" | "admission-receipt-capacity-exhausted" => code,
+            _ => "browser-proof-refused",
+        }
+        .into(),
+    }
+}
+
+#[cfg(test)]
+mod refusal_tests {
+    use super::*;
+    #[test]
+    fn capacity_refusal_is_bounded_and_private_diagnostics_are_not_forwarded() {
+        for (local, public) in [
+            (
+                "membership-part-capacity-exhausted",
+                "membership-part-capacity-exhausted",
+            ),
+            (
+                "admission-receipt-capacity-exhausted",
+                "admission-receipt-capacity-exhausted",
+            ),
+            ("private control/diagnostic", "browser-proof-refused"),
+        ] {
+            let frame = proof_refusal_frame(local);
+            assert!(matches!(&frame, Out::Refused { protocol: PROTOCOL, code } if code == public));
+            let mut wire = [0u8; 256];
+            let used = conduit_std_host::browser_admission::encode_browser_admission_frame(
+                &frame, &mut wire,
+            )
+            .unwrap();
+            assert!(!std::str::from_utf8(&wire[..used])
+                .unwrap()
+                .contains("private control"));
+        }
+    }
 }

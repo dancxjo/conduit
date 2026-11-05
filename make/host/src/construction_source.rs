@@ -1,3 +1,5 @@
+mod render;
+pub use render::canonical_host_configuration_conduit;
 use std::collections::BTreeMap;
 
 use conduit_plot::{
@@ -6,7 +8,6 @@ use conduit_plot::{
 };
 use serde::de::DeserializeOwned;
 use serde_json::{Map, Number, Value};
-use std::fmt::Write as _;
 
 use crate::{
     ConfigurationBase, ConfigurationDiagnostic, ConfigurationTarget, HostBounds, HostConfiguration,
@@ -31,9 +32,24 @@ pub fn parse_host_configuration_conduit(
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     let resources = repeated::<ResourceBudget>(&declarations, "need")
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
+    let preparation = match declarations.get("preparation") {
+        None => None,
+        Some(_) => Some(
+            one_required::<conduit_body::HostPreparationDelegation>(&declarations, "preparation")
+                .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?,
+        ),
+    };
     reject_unknown(
         &declarations,
-        &["schema", "target", "limits", "base", "need", "capability"],
+        &[
+            "schema",
+            "target",
+            "limits",
+            "base",
+            "need",
+            "capability",
+            "preparation",
+        ],
     )
     .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     Ok(HostConfiguration {
@@ -43,163 +59,9 @@ pub fn parse_host_configuration_conduit(
         bases,
         resources,
         capabilities,
+        preparation,
         limits,
     })
-}
-
-pub fn canonical_host_configuration_conduit(
-    configuration: &HostConfiguration,
-) -> Result<String, ConfigurationDiagnostic> {
-    let mut canonical = configuration.clone();
-    canonical
-        .bases
-        .sort_by(|left, right| left.kind.cmp(&right.kind));
-    canonical
-        .resources
-        .sort_by(|left, right| left.id.cmp(&right.id));
-    canonical.capabilities.sort_by(|a, b| a.kind.cmp(&b.kind));
-    let mut source = String::new();
-    writeln!(&mut source, "host {} {{", canonical.name).map_err(|error| {
-        ConfigurationDiagnostic::Encode {
-            detail: error.to_string(),
-        }
-    })?;
-    writeln!(&mut source, "  schema = {}", canonical.schema).map_err(|error| {
-        ConfigurationDiagnostic::Encode {
-            detail: error.to_string(),
-        }
-    })?;
-    write!(
-        &mut source,
-        "  target = {{architecture: {}, machine: {}",
-        string(&canonical.target.architecture)?,
-        string(&canonical.target.machine)?
-    )
-    .map_err(|error| ConfigurationDiagnostic::Encode {
-        detail: error.to_string(),
-    })?;
-    if let Some(board) = &canonical.target.board {
-        write!(&mut source, ", board: {}", string(board)?).map_err(|error| {
-            ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            }
-        })?;
-    }
-    if let Some(os) = &canonical.target.os {
-        write!(&mut source, ", os: {}", string(os)?).map_err(|error| {
-            ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            }
-        })?;
-    }
-    if let Some(descriptor) = &canonical.target.make_descriptor {
-        write!(&mut source, ", make_descriptor: {}", string(descriptor)?).map_err(|error| {
-            ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            }
-        })?;
-    }
-    source.push_str("}\n");
-    for base in &canonical.bases {
-        write!(&mut source, "  base = {{kind: {}", string(&base.kind)?).map_err(|error| {
-            ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            }
-        })?;
-        if let Some(implementation) = &base.implementation {
-            write!(&mut source, ", implementation: {}", string(implementation)?).map_err(
-                |error| ConfigurationDiagnostic::Encode {
-                    detail: error.to_string(),
-                },
-            )?;
-        }
-        if !base.implementations.is_empty() {
-            let implementations = base
-                .implementations
-                .iter()
-                .map(|item| string(item))
-                .collect::<Result<Vec<_>, _>>()?
-                .join(", ");
-            write!(&mut source, ", implementations: [{implementations}]").map_err(|error| {
-                ConfigurationDiagnostic::Encode {
-                    detail: error.to_string(),
-                }
-            })?;
-        }
-        if let Some(initialization) = &base.initialization {
-            initialization
-                .validate_source()
-                .map_err(|detail| ConfigurationDiagnostic::Encode { detail })?;
-            write!(&mut source, ", initialization: {{").map_err(|error| {
-                ConfigurationDiagnostic::Encode {
-                    detail: error.to_string(),
-                }
-            })?;
-            for (index, (key, value)) in initialization.values.iter().enumerate() {
-                if index != 0 {
-                    source.push_str(", ");
-                }
-                write!(&mut source, "{}: {}", key, value).map_err(|error| {
-                    ConfigurationDiagnostic::Encode {
-                        detail: error.to_string(),
-                    }
-                })?;
-            }
-            source.push('}');
-        }
-        source.push_str("}\n");
-    }
-    for capability in &canonical.capabilities {
-        write!(
-            &mut source,
-            "  capability = {{kind: {}",
-            string(&capability.kind)?
-        )
-        .map_err(|error| ConfigurationDiagnostic::Encode {
-            detail: error.to_string(),
-        })?;
-        if let Some(implementation) = &capability.pinned_implementation {
-            write!(
-                &mut source,
-                ", pinned_implementation: {}",
-                string(implementation)?
-            )
-            .map_err(|error| ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            })?;
-        }
-        source.push_str("}\n");
-    }
-    for need in &canonical.resources {
-        writeln!(
-            &mut source,
-            "  need = {{id: {}, class: {}, slots: {}, bytes: {}}}",
-            string(&need.id)?,
-            string(&need.class)?,
-            need.slots,
-            need.bytes
-        )
-        .map_err(|error| ConfigurationDiagnostic::Encode {
-            detail: error.to_string(),
-        })?;
-    }
-    let limits = &canonical.limits;
-    writeln!(
-        &mut source,
-        "  limits = {{static_memory_bytes: {}, heap_arena_bytes: {}, queue_items: {}, buffered_bytes: {}, active_instances: {}, operation_slots: {}, timer_slots: {}, line_sessions: {}, evidence_items: {}}}",
-        limits.static_memory_bytes,
-        limits.heap_arena_bytes,
-        limits.queue_items,
-        limits.buffered_bytes,
-        limits.active_instances,
-        limits.operation_slots,
-        limits.timer_slots,
-        limits.line_sessions,
-        limits.evidence_items
-    )
-    .map_err(|error| ConfigurationDiagnostic::Encode { detail: error.to_string() })?;
-    source.push_str("}\n");
-    Ok(source)
 }
 
 fn one_host_construction(source: &str) -> Result<ConstructionSyntax, String> {
@@ -376,6 +238,51 @@ mod tests {
             assert_eq!(round_trip.configuration(), canonical.configuration());
             assert_eq!(round_trip.configuration_id(), canonical.configuration_id());
         }
+    }
+
+    #[test]
+    fn formatting_normalizes_declaration_sets_without_changing_checked_meaning() {
+        let mut configuration = parse_host_configuration_conduit(include_str!(
+            "../../../targets/std/profiles/linux-computer.host.conduit"
+        ))
+        .unwrap();
+        configuration.bases.reverse();
+        configuration.resources = ["z/store", "a/store"]
+            .into_iter()
+            .map(|id| ResourceBudget {
+                id: id.into(),
+                class: "conduit.resource/runtime-memory@1".into(),
+                slots: 1,
+                bytes: 1,
+            })
+            .collect();
+        // Formatter proof does not assert these synthetic capability names are
+        // installed. Their declared ordering must survive serialization too.
+        configuration.capabilities = ["z/operation", "a/operation"]
+            .into_iter()
+            .map(|kind| crate::CapabilityIntent {
+                kind: kind.into(),
+                pinned_implementation: None,
+            })
+            .collect();
+        let rendered = canonical_host_configuration_conduit(&configuration).unwrap();
+        let decoded = parse_host_configuration_conduit(&rendered).unwrap();
+        configuration.normalize_declarations();
+        assert_eq!(decoded, configuration);
+        assert_eq!(
+            canonical_host_configuration_conduit(&decoded).unwrap(),
+            rendered
+        );
+        configuration.capabilities.clear();
+        let packages = crate::test_packages::test_package_set();
+        let catalog = MakeCatalog::canonical().with_packages(&packages);
+        let checked = check_host_configuration(configuration.clone(), &catalog, &packages).unwrap();
+        configuration.bases.reverse();
+        configuration.resources.reverse();
+        let reordered = check_host_configuration(configuration, &catalog, &packages).unwrap();
+        assert_eq!(reordered.configuration(), checked.configuration());
+        assert_eq!(reordered.configuration_id(), checked.configuration_id());
+        assert_eq!(reordered.profile(), checked.profile());
     }
 
     #[test]

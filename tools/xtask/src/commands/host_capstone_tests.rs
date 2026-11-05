@@ -1,6 +1,47 @@
 use super::*;
 
 #[test]
+fn native_presenter_is_unavailable_when_any_selected_store_is_not_ready() {
+    let catalog = conduit_workspace_make::catalog();
+    let built = build_profile(
+        "conduitos-native",
+        NATIVE_PROFILE,
+        &catalog,
+        &BuildInputs {
+            source_identity: "store-readiness-test".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    let offer = presenter_offer(
+        "presenter/native",
+        "conduitos/native@1",
+        "presenter/native-graphical@1",
+        &built.image.manifest.image_id,
+        "face/base/native-compositor@1",
+    );
+    for missing in [
+        "face/surface",
+        "face.resource/show@1",
+        "conduit.resource/runtime-memory@1",
+    ] {
+        let mut facts = native_facts(true);
+        assert!(facts.ready_resource_classes.remove(missing));
+        let bound = bind_profile(
+            &built,
+            &catalog,
+            "host/native",
+            "boot/native/1",
+            1,
+            Some(offer.clone()),
+            facts,
+        )
+        .unwrap();
+        assert!(bound.advertisement().capabilities.is_empty(), "{missing}");
+    }
+}
+
+#[test]
 fn capstone_retains_exact_cross_profile_body_and_refusal_evidence() {
     let receipt = prove("git:test-head").unwrap();
     assert_eq!(receipt.images.len(), 3);

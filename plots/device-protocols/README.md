@@ -55,6 +55,25 @@ Imported checked Types retain their refinement metadata. Construction may
 forward an identical field contract or use a valid constant; it cannot silently
 discard a law or justify arithmetic changes from shape alone.
 
+`ht16k33.conduit` owns display-controller initialization and RAM-write protocol
+meaning over those same finite I2C Types. Its five-command initialization waits
+for an empty successful write result after each command, clears RAM while the
+display is disabled, and enables it last. Short, malformed and refused results
+remain terminal. A redraw is one pointer-plus-16-octet request; it does not clear
+or disable the display. Address, brightness and blink settings are explicit;
+glyph mapping, observations, timing and selected controller possession are not
+part of this protocol. Acknowledged means bus acknowledgement, not optical
+verification. CPU conformance checks command order, error propagation and
+allocation-free prepared evaluation. Installed MCU execution is still pending.
+
+`ht16k33-feedback.conduit` composes those expressions with the ordinary selected
+I2C Back. `ht16k33-initialize-display` uses the generic terminal state cell and
+feedback zip to advance from each bus result, publishing acknowledgement or
+the original failure before closing. `ht16k33-write-display` routes one mapped
+RAM frame through the same transaction Kind. Neither Plot selects an attachment
+or makes a controller Ready; Root must retain that physical owner and admit the
+complete exact Plan before either Plot can Play.
+
 `bme280-lifecycle.conduit` now checks and expands a staged probe/reset,
 initialization, deadline and bounded polling policy, with calibration and sample
 capture. Each event is handled once. The staged topology stays within the

@@ -67,6 +67,7 @@ test("a Workspace Body continues through the browser SDK without a Patchbay page
 });
 
 test("Rosehip measurement processing and bounded history continue through the SDK", async ({ page }) => {
+  test.setTimeout(BROWSER_COLD_PREPARATION_MS + 30_000);
   const journey = await openExternalBody(page, {
     friendlyName: "Rosehip House",
     titles: ["Button Across the Room", "Little Seismograph"],

@@ -207,10 +207,10 @@ impl PreparedStructuredExpression {
             PreparedShape::Input => return append(output, input),
             PreparedShape::Constant(bytes) => return append(output, bytes),
             PreparedShape::SequenceSelected(selection) => {
-                return append(output, selection.evaluate(input)?);
+                return selection.evaluate_into(input, output);
             }
             PreparedShape::Selected(selection) => {
-                return append(output, selection.evaluate(input)?);
+                return selection.evaluate_into(input, output);
             }
             _ => (),
         }
@@ -380,7 +380,7 @@ fn push(output: &mut Vec<u8>, value: u8) -> Result<(), Refusal> {
     Ok(())
 }
 
-fn append(output: &mut Vec<u8>, value: &[u8]) -> Result<(), Refusal> {
+pub(super) fn append(output: &mut Vec<u8>, value: &[u8]) -> Result<(), Refusal> {
     if output
         .len()
         .checked_add(value.len())

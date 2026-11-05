@@ -9,7 +9,9 @@ use super::{
 use sha2::{Digest, Sha256};
 
 mod leaf_sequence;
+mod prepared;
 mod projection;
+pub use prepared::BorrowedStructuredValueValidator;
 mod record;
 mod shape_observation;
 

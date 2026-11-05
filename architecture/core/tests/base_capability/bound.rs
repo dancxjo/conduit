@@ -160,3 +160,22 @@ fn revoked_bound_owner_rejects_late_leases_without_reviving_retired_work() {
     replacement.complete(next, 16).unwrap();
     assert_eq!(actual.inspection(), &retired);
 }
+
+#[test]
+fn bound_backing_matches_actual_retirement_without_mutating_possession() {
+    let mut owner = ready();
+    let before = owner.inspection().clone();
+    let bytes = owner.retained_backing_bytes().unwrap();
+    assert!(bytes > 0);
+    allocation::without_allocations(|| {
+        assert_eq!(owner.retained_backing_bytes(), Some(bytes));
+        assert_eq!(owner.inspection(), &before);
+        let lease = owner.authorize().unwrap();
+        assert_eq!(owner.retained_backing_bytes(), Some(bytes));
+        owner.complete(lease, 16).unwrap();
+        assert_eq!(owner.retained_backing_bytes(), Some(bytes));
+    });
+    assert_eq!(owner.inspection().completed_operations, 1);
+    let (_, released) = allocation::released_bytes(|| drop(owner));
+    assert_eq!(bytes, released);
+}

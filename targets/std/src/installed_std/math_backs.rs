@@ -129,6 +129,7 @@ impl MathTransform {
 }
 
 pub(super) struct MathScalarBack {
+    transform: Option<MathTransform>,
     pending: Option<RequestId>,
     completed: bool,
     input_bytes: u32,
@@ -163,12 +164,27 @@ pub(super) fn transform_for(placement: &PlannedGear) -> Result<MathTransform, St
 }
 
 pub(super) fn transform_bytes(
-    placement: &PlannedGear,
+    back: &InstalledBack,
+    kind: &conduit_core::KindId,
     input: &[u8],
 ) -> Result<[u8; SCALAR_ENCODED_LEN], String> {
+    let InstalledBack::MathScalar(back) = back else {
+        return Err("scalar call has no prepared math Back".into());
+    };
+    let transform = back
+        .transform
+        .ok_or("scalar call has no prepared transform")?;
+    let expected = match transform {
+        MathTransform::Clamp { .. } => conduit_semantic_catalog::MATH_CLAMP_KIND,
+        MathTransform::Scale { .. } => conduit_semantic_catalog::MATH_SCALE_KIND,
+        MathTransform::Deadband { .. } => conduit_semantic_catalog::MATH_DEADBAND_KIND,
+    };
+    if kind.as_str() != expected {
+        return Err("scalar call differs from its prepared transform".into());
+    }
     let input = Scalar::decode(input)
         .map_err(|error| format!("math input is not canonical value/scalar: {error:?}"))?;
-    transform_for(placement)?
+    transform
         .apply(input)
         .map(Scalar::encode)
         .map_err(|error| format!("math scalar transform failed: {error:?}"))
@@ -220,7 +236,7 @@ fn prepare_clamp(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     clamp_budget(placement)?;
-    Ok(operation())
+    Ok(operation(transform_for(placement)?))
 }
 
 fn prepare_scale(
@@ -228,7 +244,7 @@ fn prepare_scale(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     scale_budget(placement)?;
-    Ok(operation())
+    Ok(operation(transform_for(placement)?))
 }
 
 fn prepare_deadband(
@@ -236,11 +252,12 @@ fn prepare_deadband(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     deadband_budget(placement)?;
-    Ok(operation())
+    Ok(operation(transform_for(placement)?))
 }
 
-fn operation() -> InstalledBack {
+fn operation(transform: MathTransform) -> InstalledBack {
     InstalledBack::MathScalar(MathScalarBack {
+        transform: Some(transform),
         pending: None,
         completed: false,
         input_bytes: SCALAR_ENCODED_LEN as u32,
@@ -264,6 +281,7 @@ fn prepare_quantity(
 ) -> Result<InstalledBack, String> {
     quantity_budget(placement)?;
     Ok(InstalledBack::MathScalar(MathScalarBack {
+        transform: None,
         pending: None,
         completed: false,
         input_bytes: SCALAR_ENCODED_LEN as u32,
@@ -286,6 +304,7 @@ fn prepare_quantity_info(
 ) -> Result<InstalledBack, String> {
     quantity_info_budget(placement)?;
     Ok(InstalledBack::MathScalar(MathScalarBack {
+        transform: None,
         pending: None,
         completed: false,
         input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,

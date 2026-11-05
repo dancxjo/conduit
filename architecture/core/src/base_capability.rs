@@ -6,6 +6,7 @@
 
 mod bound;
 mod capacity;
+mod retained_backing;
 pub use bound::BoundBaseOperation;
 
 use crate::{

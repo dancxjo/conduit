@@ -5,6 +5,7 @@ import { prepareHostedStorage } from '../../tools/ci/pipeline/runner-storage.mjs
 const hosted = { GITHUB_ACTIONS: 'true', RUNNER_ENVIRONMENT: 'github-hosted' };
 const android = '/usr/local/lib/android';
 const dotnet = '/usr/share/dotnet';
+const imageSdks = [android, dotnet, '/usr/share/swift', '/usr/local/.ghcup', '/usr/local/share/powershell'];
 const directory = { isDirectory: () => true, isSymbolicLink: () => false };
 
 function fixture(overrides = {}) {
@@ -42,14 +43,14 @@ test('local, self-hosted and non-Linux calls perform no inspection or cleanup', 
   }
 });
 
-test('hosted cleanup admits only the two fixed image SDK roots and records capacity', () => {
+test('hosted cleanup admits only the fixed unused image SDK roots and records capacity', () => {
   const { options, calls } = fixture();
   const result = prepareHostedStorage(options);
   assert.deepEqual(calls, [{ program: 'sudo', args: [
-    'rm', '--recursive', '--force', '--one-file-system', '--', android, dotnet,
+    'rm', '--recursive', '--force', '--one-file-system', '--', ...imageSdks,
   ] }]);
   assert.deepEqual(result, { skipped: false, beforeBytes: 409600, afterBytes: 819200,
-    removed: [android, dotnet], preserved: [] });
+    removed: imageSdks, preserved: [] });
 });
 
 test('missing SDKs require no privileged operation', () => {
@@ -67,7 +68,7 @@ test('files, symlinks and redirected parents are preserved', () => {
     { canonicalPath: () => '/home/runner/work/source' },
   ]) {
     const { options, calls } = fixture(overrides);
-    assert.deepEqual(prepareHostedStorage(options).preserved, [android, dotnet]);
+    assert.deepEqual(prepareHostedStorage(options).preserved, imageSdks);
     assert.deepEqual(calls, []);
   }
 });
@@ -79,4 +80,14 @@ test('inspection and cleanup failures cannot become successful capacity proof', 
   assert.deepEqual(inspection.calls, []);
   const removal = fixture({ run: () => { throw failure; } });
   assert.throws(() => prepareHostedStorage(removal.options), error => error === failure);
+});
+
+test('one redirected SDK is preserved without broadening the other cleanup roots', () => {
+  for (const preserved of imageSdks) {
+    const {options,calls}=fixture({canonicalPath: value => value === preserved ? '/home/runner/work/source' : value});
+    const result=prepareHostedStorage(options);
+    assert.deepEqual(result.preserved,[preserved]);
+    assert.deepEqual(result.removed,imageSdks.filter(p => p !== preserved));
+    assert.deepEqual(calls,[{program:'sudo',args:['rm','--recursive','--force','--one-file-system','--',...result.removed]}]);
+  }
 });

@@ -1,10 +1,12 @@
 //! Complete contribution comparison using the same emitter in finite chunks.
+mod index;
 use super::{graph_face, PatchbayApplicationPort};
 use alloc::{format, vec::Vec};
 use conduit_body::BodyId;
 use conduit_face::{
     Face, FaceContributionBasis, FaceFragment, FaceFragmentError, FaceRelationshipKind,
 };
+use index::ContentIndex;
 
 impl PatchbayApplicationPort {
     /// Compare authoritative projection without retaining a second whole graph.
@@ -40,6 +42,13 @@ impl PatchbayApplicationPort {
         let Some(index) = self.selected_plot else {
             return Ok(true);
         };
+        // Reject mismatched base contributions before preparing graph lookup.
+        // Fixed comparison scratch belongs to this call's stack; it retains no
+        // graph or heap index. Complete Face/Show validation stays independent.
+        let indexed = face
+            .map(ContentIndex::new)
+            .transpose()
+            .map_err(super::PatchbayFaceProjectionError::InvalidFragment)?;
         let mut counts = [
             base.relationships.len(),
             base.properties.len(),
@@ -147,16 +156,18 @@ impl PatchbayApplicationPort {
                     return false;
                 }
                 let new_subjects = &content.subjects[checked_subjects..];
-                let matches = face.is_none_or(|face| {
-                    new_subjects.iter().all(|item| face.subjects.contains(item))
+                let matches = face.zip(indexed.as_ref()).is_none_or(|(face, indexed)| {
+                    new_subjects
+                        .iter()
+                        .all(|item| indexed.subjects.contains(item))
                         && content
                             .relationships
                             .iter()
-                            .all(|item| face.relationships.contains(item))
+                            .all(|item| indexed.relationships.contains(item))
                         && content
                             .properties
                             .iter()
-                            .all(|item| face.properties.contains(item))
+                            .all(|item| indexed.properties.contains(item))
                         && content.texts.iter().all(|item| face.text.contains(item))
                         && content
                             .disclosures

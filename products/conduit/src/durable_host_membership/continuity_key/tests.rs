@@ -531,3 +531,6 @@ fn returned_credential_substitution_refuses_without_touching_retained_binding() 
         );
     }
 }
+
+#[path = "tests/joined_boot.rs"]
+mod joined_boot;

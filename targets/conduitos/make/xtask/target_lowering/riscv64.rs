@@ -1,8 +1,8 @@
 //! Exact RISC-V64 serial plus optional firmware-framebuffer product closure.
 use super::{
     refusal, BuildManifest, ConduitosError, TargetBuildInputs, FRAMEBUFFER_DRIVER,
-    NATIVE_COMPOSITOR, NATIVE_PRESENTER, PRESENT_OPERATION, RISCV64_LINEAR_PRESENTER,
-    RISCV64_SBI_BASE, RISCV64_SBI_DRIVER, SCANOUT_BASE, SURFACE_CLASS,
+    NATIVE_COMPOSITOR, NATIVE_PRESENTER, RISCV64_LINEAR_PRESENTER, RISCV64_SBI_BASE,
+    RISCV64_SBI_DRIVER, SCANOUT_BASE,
 };
 
 pub(crate) fn lower_riscv64_virt(
@@ -39,7 +39,6 @@ pub(crate) fn lower_riscv64_virt(
             .collect::<Vec<_>>(),
     )?;
     exact("facility", &facilities, &manifest.facilities)?;
-    exact("host-call", &[PRESENT_OPERATION], &manifest.host_calls)?;
     if !manifest.profile_fragments.is_empty() {
         return Err(refusal(
             "riscv64-product-closure-mismatch",
@@ -66,22 +65,8 @@ pub(crate) fn lower_riscv64_virt(
             ));
         }
     }
-    let (surface_slots, surface_bytes) = match manifest.resource_budgets.as_slice() {
-        [] if !graphical => (0, 0),
-        [surface]
-            if graphical
-                && surface.class == SURFACE_CLASS
-                && surface.slots != 0
-                && surface.bytes != 0 =>
-        {
-            (surface.slots, surface.bytes)
-        }
-        _ => return Err(refusal(
-            "riscv64-product-closure-mismatch",
-            "graphical RISC-V64 requires exactly one finite face/surface budget; serial selects none"
-                .into(),
-        )),
-    };
+    let (surface_slots, surface_bytes) =
+        super::graphical::lower(manifest, graphical, "riscv64-product-closure-mismatch")?;
     let mut features = vec!["riscv64-product"];
     if graphical {
         features.push("native-compositor-core");

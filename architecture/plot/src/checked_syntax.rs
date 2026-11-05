@@ -8,6 +8,7 @@ pub use connection_provenance::{ExpandedConnectionOrigin, ExpandedConnectionProv
 mod expanded_provenance;
 pub(crate) use expanded_provenance::provenance_digest;
 pub use expanded_provenance::ExpandedGearProvenance;
+mod retained_native;
 mod startup_catalog;
 pub use crate::native_type::family::source::NativeTypeSourceOrigin;
 pub use crate::native_type::law_custody::{
@@ -18,6 +19,7 @@ use crate::prelude::*;
 use crate::{PlotCompletionPolicy, RuntimePort, Span};
 use alloc::collections::BTreeMap;
 use conduit_core::{CheckedFront, CheckedPlotId, ExpandedPlotId, SourceDocumentId};
+pub(crate) use retained_native::NativeOwnerRefusal;
 pub(crate) use startup_catalog::StoredStructuredDefault;
 pub use startup_catalog::*;
 

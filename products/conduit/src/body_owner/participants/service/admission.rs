@@ -171,6 +171,7 @@ impl Owner {
             let WindowState::Pending(pending) = &window.state else {
                 return Err("browser admission window has no pending challenge".into());
             };
+            self.retain_admission_capacity(root)?;
             let mut manager = self.admissions.clone().unwrap_or(
                 AdmissionManager::new(self.session.evidence().body_id.clone()).map_err(debug)?,
             );
@@ -227,7 +228,7 @@ impl Owner {
                             &authority.host_id,
                             &authority.boot_id,
                         )
-                        .map_err(debug)?
+                        .map_err(proof_admission_refusal)?
                 }
                 (
                     PendingKind::Returning {
@@ -280,7 +281,7 @@ impl Owner {
                             &authority.host_id,
                             &authority.boot_id,
                         )
-                        .map_err(debug)?
+                        .map_err(proof_admission_refusal)?
                 }
                 _ => return Err("browser proof differs from current challenge".into()),
             };
@@ -326,5 +327,19 @@ impl Owner {
         })();
         self.pending_browser = Some(window);
         result
+    }
+}
+
+// Project the actual canonical capacity refusal, never infer it from prose.
+fn proof_admission_refusal(error: conduit_body::BodyLifecycleSessionError) -> String {
+    use conduit_body::{AdmissionRefusal, BodyLifecycleSessionError as Session, MembershipRefusal};
+    match error {
+        Session::Admission(AdmissionRefusal::Membership(
+            MembershipRefusal::PartCapacityExhausted,
+        )) => "membership-part-capacity-exhausted".into(),
+        Session::Admission(AdmissionRefusal::ReceiptCapacityExhausted) => {
+            "admission-receipt-capacity-exhausted".into()
+        }
+        other => debug(other),
     }
 }

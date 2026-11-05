@@ -22,6 +22,7 @@ use conduit_signal_conformance::{
 };
 use std::collections::BTreeMap;
 
+mod cooperative_step_work;
 mod protected_resource_tests;
 mod quantity_connection_limits;
 

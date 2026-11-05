@@ -65,33 +65,13 @@ impl ValueConstraint {
                 maximum,
                 minimum_endpoint,
                 maximum_endpoint,
-            } => {
-                let kind = crate::primitive_info_kind(value_kind)
-                    .ok_or(ConstraintDefinitionError::WrongConstraintKind)?;
-                let minimum = minimum
-                    .as_ref()
-                    .map(|value| crate::FixedInteger::decode(kind, value))
-                    .transpose()
-                    .map_err(|_| ConstraintDefinitionError::WrongConstraintKind)?;
-                let maximum = maximum
-                    .as_ref()
-                    .map(|value| crate::FixedInteger::decode(kind, value))
-                    .transpose()
-                    .map_err(|_| ConstraintDefinitionError::WrongConstraintKind)?;
-                if open_interval_is_invalid(
-                    minimum.as_ref(),
-                    maximum.as_ref(),
-                    *minimum_endpoint,
-                    *maximum_endpoint,
-                    |left, right| {
-                        fixed_integer_cmp(*left, *right).unwrap_or(core::cmp::Ordering::Equal)
-                    },
-                ) {
-                    Err(ConstraintDefinitionError::InvalidFixedIntegerRange)
-                } else {
-                    Ok(())
-                }
+            } => FixedIntegerRange {
+                minimum: minimum.as_deref(),
+                maximum: maximum.as_deref(),
+                minimum_endpoint: *minimum_endpoint,
+                maximum_endpoint: *maximum_endpoint,
             }
+            .validate_definition(value_kind),
             Self::QuantityRange {
                 minimum,
                 maximum,
@@ -192,7 +172,7 @@ impl ValueConstraint {
     }
 }
 
-fn open_interval_is_invalid<T>(
+pub(super) fn open_interval_is_invalid<T>(
     minimum: Option<&T>,
     maximum: Option<&T>,
     minimum_endpoint: IntervalEndpoint,

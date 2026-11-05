@@ -32,6 +32,12 @@ pub struct BoundBaseOperation {
     work_units: u64,
 }
 impl BoundBaseOperation {
+    /// Owned heap payload of the retained table, excluding inline Self and
+    /// allocator overhead. Observation neither authorizes nor retires work.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.table.retained_backing_bytes()
+    }
+
     /// Read-only full claim/bearer preflight; starts no operation and reserves
     /// no work. Useful before an independent physical owner is moved.
     pub fn check(
