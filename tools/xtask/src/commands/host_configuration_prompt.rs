@@ -46,6 +46,7 @@ pub(crate) fn prompt(
     let descriptor = &descriptors[target_index];
     let same_target =
         existing.is_some_and(|configuration| descriptor_matches(descriptor, &configuration.target));
+    let preparation = preparation_for_target(existing, same_target)?;
     let choices = compatible_base_implementations(descriptor, &packages);
     let selected_kinds = if choices.is_empty() {
         cliclack::note(
@@ -126,6 +127,7 @@ pub(crate) fn prompt(
             make_descriptor: exact_single_descriptor(descriptor),
         },
         bases,
+        preparation,
         capabilities: existing
             .map(|configuration| configuration.capabilities.clone())
             .unwrap_or_default(),
@@ -140,6 +142,17 @@ pub(crate) fn prompt(
     let prompted = prepare(configuration)?;
     cliclack::note("Host recipe", summary(&prompted.checked))?;
     Ok(prompted)
+}
+
+fn preparation_for_target(
+    existing: Option<&HostConfiguration>,
+    same_target: bool,
+) -> Result<Option<conduit_host_make::HostPreparationDelegation>, &'static str> {
+    let preparation = existing.and_then(|c| c.preparation);
+    if preparation.is_some() && !same_target {
+        return Err("Target change requires explicit review of retained preparation delegation; source preserved");
+    }
+    Ok(preparation)
 }
 
 pub(crate) fn prepare(
@@ -259,11 +272,24 @@ mod tests {
                 initialization: None,
             }],
             capabilities: Vec::new(),
+            preparation: None,
             resources: Vec::new(),
             limits: descriptor.maxima.clone(),
         })
         .unwrap();
         assert_eq!(prompted.checked.resolved_bases()[0].1, implementations[0]);
         assert!(prompted.source.starts_with("host shared-host {"));
+        let mut retained = prompted.checked.configuration().clone();
+        retained.preparation = Some(conduit_host_make::HostPreparationDelegation {
+            authorizer: conduit_host_make::HostPreparationAuthorizer::SeedOwner,
+            maximum_assignment_bytes: 1,
+            maximum_runtime_state_bytes: 1,
+        });
+        assert_eq!(
+            preparation_for_target(Some(&retained), true).unwrap(),
+            retained.preparation
+        );
+        assert!(preparation_for_target(Some(&retained), false).is_err());
+        assert!(preparation_for_target(None, false).unwrap().is_none());
     }
 }

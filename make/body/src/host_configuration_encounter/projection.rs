@@ -253,6 +253,16 @@ pub(super) fn project(
                     .target_descriptor(&key)
                     .ok_or("Unknown Host target")?;
                 p.text(format!("Target: {key}"));
+                if let Some(policy) = c.preparation {
+                    p.text(format!("Preparation delegated to {}: assignment ceiling {} bytes; runtime state ceiling {} bytes. Local admission remains required.", policy.authorizer.as_str(), policy.maximum_assignment_bytes, policy.maximum_runtime_state_bytes));
+                    p.properties.push(FaceProperty {
+                        subject: "host-config".into(),
+                        name: "preparation-authorizer".into(),
+                        value: FacePropertyValue::Identity(policy.authorizer.as_str().into()),
+                    });
+                } else {
+                    p.text("External preparation is not delegated.".into());
+                }
                 if !t.make_descriptors.is_empty() {
                     p.field(
                         "host-config/descriptor",

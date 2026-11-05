@@ -65,3 +65,9 @@ mod native_presenter_tests;
 mod runtime_base_tests;
 #[cfg(test)]
 mod tests;
+
+pub use conduit_body::{HostPreparationAuthorizer, HostPreparationDelegation};
+mod preparation_delegation_rust;
+#[cfg(test)]
+mod preparation_delegation_tests;
+pub use preparation_delegation_rust::rust_preparation_delegation;
