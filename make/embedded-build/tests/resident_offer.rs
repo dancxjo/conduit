@@ -52,6 +52,16 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
     } else {
         "mod delegated{pub fn run(_:conduit_body::PreparedBodyFragment<'_>,_:&crate::support::Assignment){}pub fn mask(_:conduit_body::PreparedBodyFragment<'_>,_:&crate::support::Assignment){}pub fn batch(_:conduit_body::PreparedBodyFragment<'_>,_:conduit_body::PreparedBodyFragment<'_>,_:&crate::support::Assignment,_:&crate::support::Assignment){}}".into()
     };
+    let root_preparer = if cfg!(feature = "delegated-preparation") {
+        format!(
+            "#[allow(dead_code)]#[path={:?}]mod root_preparer;",
+            root.join("../../targets/rp2040/firmware/host/src/resident_preparation.rs")
+                .to_str()
+                .unwrap()
+        )
+    } else {
+        "mod root_preparer{}".into()
+    };
     let exercise = format!(
         r#"
 #[path={probe:?}]mod probe;
@@ -64,6 +74,12 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
 #[path={combined:?}]mod combined;
 #[path={body_scope:?}]mod body_scope;
 {delegated}
+mod resident {{
+ pub mod generated {{pub use crate::library::Initialized;}}
+ pub fn inventory()->Result<&'static generated::Initialized,()> {{Err(())}}
+}}
+mod config {{pub const RESIDENT_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima=conduit_core::AssignedPlanMaxima{{encoded_bytes:8192,runtime_state_bytes:8192,counts:[32;conduit_core::ASSIGNED_PLAN_COUNT_KINDS]}};}}
+{root_preparer}
 fn main(){{
     let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);

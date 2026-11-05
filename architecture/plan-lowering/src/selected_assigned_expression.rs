@@ -24,7 +24,9 @@ pub struct SelectedAssignedExpressionPlan<'a> {
     pub requirements: c::AssignedPlanRequirements<'a>,
     pub computations: c::AssignedComputationProfile<'a>,
     pub fore: Option<&'a [c::AssignedForeRequirement]>,
-    pub fragment_id: &'a c::FragmentId,
+    /// Borrowed fragment identity text, checked against the exact fragment field.
+    /// Its spelling is not authority; the opaque Body scope must also match.
+    pub fragment_id: &'a str,
     pub scope: crate::assigned_play_scope::AssignedPlayScope<'a>,
     pub node: NodeId,
     pub work_resource: u16,
@@ -64,7 +66,7 @@ pub fn check_selected_resident_expression(
             selected.fore,
         )
         .map_err(E::Assignment)?;
-    if view.fragment != c::AssignedIdentity::from_text(selected.fragment_id.as_str())
+    if view.fragment != c::AssignedIdentity::from_text(selected.fragment_id)
         || !selected.scope.matches(&view, selected.input.header())
     {
         return Err(E::Scope);

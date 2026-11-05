@@ -172,6 +172,7 @@ pub fn mask(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
     assert_eq!(prepared.metadata().body_plan, scope.plan().plan_id.as_str());
 }
 pub fn run(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
+    inventory_preparation::run(scope, a);
     resources::run(a);
     let document = document(scope, a);
     let (_, program, _) = crate::support::context();
@@ -320,3 +321,6 @@ pub fn batch(
 ) {
     resources::batch(a, b, first, second);
 }
+
+#[path = "inventory_preparation.rs"]
+mod inventory_preparation;

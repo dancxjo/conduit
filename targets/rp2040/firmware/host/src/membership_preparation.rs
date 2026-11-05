@@ -96,11 +96,18 @@ impl Membership {
                 &command,
             )
             .map_err(|_| ())?;
-            // This control ingress deliberately reports only the boundary it
-            // crossed. The actual inventory/profile dispatcher is still absent;
-            // attribution cannot reserve resources, lend providers or start Play.
-            link.send(br#"{"phase":"attributed","preparation":"unsupported-execution-profile"}"#)
-                .await
+            match crate::resident_preparation::validate(
+                Some(policy),
+                NativePreparationContext {
+                    bootstrap: &self.seed, member, actual: self.resources.host(),
+                    image_id: crate::config::IMAGE_ID, configuration_id: crate::config::CONFIGURATION_ID,
+                    now_millis: Instant::now().as_millis(),
+                }, command,
+            ) {
+                Ok(()) => link.send(br#"{"phase":"validated-fragment","profile":"resident-structured","start":"not-installed"}"#).await,
+                Err(crate::resident_preparation::ValidationRefusal::Unavailable) => link.send(br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#).await,
+                Err(_) => Err(()),
+            }
         })
         .await;
         input.fill(0);

@@ -8,6 +8,7 @@ pub const HOST_PREPARED_FRAGMENT_CONTRACT: &str = "conduit.body/prepared-fragmen
 /// Independently retained current Root facts, never supplied by the command.
 /// Root must already have verified membership and installed the exact policy
 /// from the checked configuration identified by its compiled image/config IDs.
+#[derive(Clone, Copy)]
 pub struct NativePreparationContext<'a> {
     pub bootstrap: &'a MemberBootstrap<'a>,
     pub member: &'a MembershipCredential,

@@ -20,6 +20,7 @@ mod heap;
 mod membership;
 mod radio;
 mod resident;
+mod resident_preparation;
 mod seed;
 mod transport;
 mod usb_identity;

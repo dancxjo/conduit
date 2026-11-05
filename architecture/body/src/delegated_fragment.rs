@@ -28,6 +28,8 @@ pub struct BodyFragmentApprovalMetadata<'a> {
     pub local_fragment_digest: [u8; 32],
     #[serde(borrow)]
     pub resource_bindings: &'a [u8],
+    #[serde(borrow)]
+    pub fore_ports: &'a [u8],
     pub projection_length: u32,
     pub projection_digest: [u8; 32],
 }
@@ -45,13 +47,14 @@ impl<'a> BodyFragmentApprovalMetadata<'a> {
         scope: PreparedBodyFragment<'a>,
         projection: &[u8],
         resource_bindings: &'a [u8],
+        fore_ports: &'a [u8],
     ) -> Result<Self, BodyFragmentDocumentRefusal> {
         let plan = scope.plan();
         let play = scope.play();
         let f = scope.fragment();
         let (local_fragment_count, local_fragment_digest) = workset::local_fragment_scope(scope)?;
         let metadata = Self {
-            schema: 2,
+            schema: 3,
             body: plan.body_id.as_str(),
             wake: plan.wake_id.as_str(),
             body_plan: plan.plan_id.as_str(),
@@ -69,6 +72,7 @@ impl<'a> BodyFragmentApprovalMetadata<'a> {
             local_fragment_count,
             local_fragment_digest,
             resource_bindings,
+            fore_ports,
             projection_length: u32::try_from(projection.len())
                 .map_err(|_| BodyFragmentDocumentRefusal::Bounds)?,
             projection_digest: Sha256::digest(projection).into(),
@@ -77,7 +81,7 @@ impl<'a> BodyFragmentApprovalMetadata<'a> {
         Ok(metadata)
     }
     pub(super) fn check(&self) -> Result<(), BodyFragmentDocumentRefusal> {
-        if self.schema != 2
+        if self.schema != 3
             || self.offer_generation == 0
             || self.local_fragment_count == 0
             || self.projection_length == 0
@@ -145,3 +149,24 @@ mod resources;
 pub use resources::*;
 
 mod workset;
+
+/// Parse public document data, not an approval, reservation or execution right.
+/// A receiving Root must separately authenticate and apply installed delegation.
+pub fn decode_body_fragment_document(
+    bytes: &[u8],
+) -> Result<(BodyFragmentApprovalMetadata<'_>, &[u8]), BodyFragmentDocumentRefusal> {
+    let (metadata, projection): (BodyFragmentApprovalMetadata<'_>, _) =
+        postcard::take_from_bytes(bytes).map_err(|_| BodyFragmentDocumentRefusal::Metadata)?;
+    metadata.check()?;
+    if projection.len() as u64 != u64::from(metadata.projection_length)
+        || Sha256::digest(projection).as_slice() != metadata.projection_digest
+    {
+        return Err(BodyFragmentDocumentRefusal::Projection);
+    }
+    Ok((metadata, projection))
+}
+
+#[cfg(feature = "authenticated-admission")]
+mod approved_fore;
+#[cfg(feature = "authenticated-admission")]
+pub use approved_fore::*;

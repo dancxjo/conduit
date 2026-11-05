@@ -48,9 +48,18 @@ pub fn generate_prepared_body_fragment(
     }
     .map_err(E::Generation)?;
     let resources = plain_resources(fragment, generated.kernel()).ok_or(E::Resources)?;
-    let metadata =
-        conduit_body::BodyFragmentApprovalMetadata::from_prepared(scope, &projection, &resources)
-            .map_err(E::Document)?;
+    let fore: Vec<_> = generated
+        .fore()
+        .iter()
+        .flat_map(|p| p.payload().iter().copied())
+        .collect();
+    let metadata = conduit_body::BodyFragmentApprovalMetadata::from_prepared(
+        scope,
+        &projection,
+        &resources,
+        &fore,
+    )
+    .map_err(E::Document)?;
     let bytes = conduit_body::encode_body_fragment_document(
         &metadata,
         &projection,

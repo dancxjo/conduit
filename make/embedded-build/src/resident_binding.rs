@@ -24,7 +24,7 @@ pub(crate) fn append(
     };
     let key = format!("conduit_core::AssignedIdentity({:?})", pin.key.0);
     code.push_str(&format!(r#"
-const BINDING:conduit_plan_lowering::selected_assigned_expression::ResidentExpressionIdentity=
+static BINDING:conduit_plan_lowering::selected_assigned_expression::ResidentExpressionIdentity=
 conduit_plan_lowering::selected_assigned_expression::ResidentExpressionIdentity{{
 kind:{kind},implementation:{implementation},artifact:{artifact},
 input_port:{input_port},input_kind:{input_kind},output_port:{output_port},output_kind:{output_kind},
@@ -32,6 +32,8 @@ computation:conduit_core::AssignedComputationRequirement{{node:0,key:{key},text_
 private_work_units:{private_work},
 }};
 impl Initialized{{
+/// Immutable installed facts remain in flash; availability is checked here.
+pub fn available_identity(&self)->Option<&'static conduit_plan_lowering::selected_assigned_expression::ResidentExpressionIdentity>{{self.available.then_some(&BINDING)}}
 /// A local inventory pin; the node index still comes from Root's selected assignment.
 pub fn computation_requirement(&self,node:u16)->conduit_core::AssignedComputationRequirement{{
 conduit_core::AssignedComputationRequirement{{node,..BINDING.computation}}

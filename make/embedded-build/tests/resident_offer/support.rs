@@ -111,7 +111,7 @@ impl Assignment {
                 requirements: &self.pins,
             },
             fore: Some(&self.fore),
-            fragment_id: &self.model.fragments[0].fragment_id,
+            fragment_id: self.model.fragments[0].fragment_id.as_str(),
             scope, node: conduit_kernel::NodeId(0), work_resource: 0,
         }
     }

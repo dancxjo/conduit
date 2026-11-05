@@ -1,5 +1,6 @@
 //! Exact plain resource bindings, borrowed until the existing owner admits them.
 use super::*;
+#[cfg(feature = "authenticated-admission")]
 use conduit_core as c;
 
 /// Public projection data only. Protected, compute-lane and content bindings

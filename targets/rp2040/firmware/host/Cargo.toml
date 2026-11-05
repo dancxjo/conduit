@@ -18,7 +18,7 @@ conduit-ht16k33 = { path = "../../../../mechanisms/io/ht16k33" }
 conduit-face = { path = "../../../../semantics/face", default-features = false }
 conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
 conduit-plot = { path = "../../../../architecture/plot", default-features = false }
-conduit-plan-lowering = { path = "../../../../architecture/plan-lowering" }
+conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", features = ["delegated-preparation"] }
 conduit-semantic-catalog = { path = "../../../../semantics/catalog", default-features = false, features = ["kernel-step"] }
 ed25519-dalek = { version = "2.2", default-features = false }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }

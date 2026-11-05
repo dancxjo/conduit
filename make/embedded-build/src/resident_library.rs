@@ -59,6 +59,14 @@ pub fn generate_resident_library(
         ));
     }
     code.push_str("]}\n");
+    code.push_str("pub fn available_identity(&self,index:usize)->Option<&'static conduit_plan_lowering::selected_assigned_expression::ResidentExpressionIdentity>{match index{\n");
+    for index in 0..images.len() {
+        code.push_str(&format!(
+            "{index}=>self.entry_{index}.as_ref().and_then(|owner|owner.available_identity()),\n"
+        ));
+    }
+    code.push_str("_=>None,}}\n");
+    code.push_str(&format!("pub fn identify_assignments(&self,bytes:&[u8])->Result<conduit_plan_lowering::resident_inventory::ResidentInventorySelection<{}>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{conduit_plan_lowering::resident_inventory::select_resident_inventory(bytes,|index|self.available_identity(index))}}\n",images.len()));
     for index in 0..images.len() {
         code.push_str(&format!(r#"
 /// Transfer only this selected owner, after all exact assignment checks succeed.
@@ -75,6 +83,11 @@ self.entry_{index}.as_ref().filter(|owner|owner.available_offer_image().is_some(
 }}
 "#));
     }
+    code.push_str("pub fn check_entry(&self,index:usize,selected:conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>)->Result<u16,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{match index{\n");
+    for index in 0..images.len() {
+        code.push_str(&format!("{index}=>self.entry_{index}.as_ref().ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)?.check_assigned(selected),\n"));
+    }
+    code.push_str("_=>Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::Selection),}}\n");
     crate::resident_library_borrow::append(&mut code, images.len());
     code.push_str("pub fn into_backs(self)->(\n");
     for index in 0..images.len() {

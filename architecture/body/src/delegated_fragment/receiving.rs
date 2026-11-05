@@ -20,6 +20,7 @@ pub enum DelegatedFragmentRefusal {
     Scope,
     Assignment(c::AssignedPlanRefusal),
     Resources(DelegatedResourceRefusal),
+    ForeApproval,
 }
 
 /// A checked delegated preparation, not a reservation, native capability or Play.
@@ -56,17 +57,27 @@ pub fn receive_delegated_body_fragment<'a>(
     installed: Option<&HostPreparationDelegation>,
     context: NativePreparationContext<'_>,
     command: AttributedHostCommand<'_, 'a>,
-    mut profile: AssignedBodyPreparationProfile<'_>,
+    profile: AssignedBodyPreparationProfile<'_>,
 ) -> Result<DelegatedBodyFragment<'a>, DelegatedFragmentRefusal> {
     use DelegatedFragmentRefusal as E;
     let actual = context.actual;
     let member = context.member;
     check_host_preparation_delegation(installed, context, &command).map_err(E::Policy)?;
     let policy = installed.expect("checked installed delegation");
-    let (metadata, projection): (BodyFragmentApprovalMetadata<'a>, _) =
-        postcard::take_from_bytes(command.payload())
-            .map_err(|_| E::Document(BodyFragmentDocumentRefusal::Metadata))?;
-    metadata.check().map_err(E::Document)?;
+    let (metadata, projection) =
+        decode_body_fragment_document(command.payload()).map_err(E::Document)?;
+    finish_receive(metadata, projection, actual, member, policy, profile)
+}
+
+pub(super) fn finish_receive<'a>(
+    metadata: BodyFragmentApprovalMetadata<'a>,
+    projection: &'a [u8],
+    actual: &c::HostAdvertisement,
+    member: &crate::MembershipCredential,
+    policy: &HostPreparationDelegation,
+    mut profile: AssignedBodyPreparationProfile<'_>,
+) -> Result<DelegatedBodyFragment<'a>, DelegatedFragmentRefusal> {
+    use DelegatedFragmentRefusal as E;
     if metadata.body != member.body_id.as_str()
         || metadata.host != actual.host_id.as_str()
         || metadata.boot != actual.boot_id.as_str()
@@ -74,10 +85,22 @@ pub fn receive_delegated_body_fragment<'a>(
     {
         return Err(E::Scope);
     }
-    if projection.len() as u64 != u64::from(metadata.projection_length)
-        || Sha256::digest(projection).as_slice() != metadata.projection_digest
-    {
-        return Err(E::Document(BodyFragmentDocumentRefusal::Projection));
+    let (fore_records, tail) = metadata
+        .fore_ports
+        .as_chunks::<{ c::ASSIGNED_LOCAL_FORE_BYTES }>();
+    let fore_matches = tail.is_empty()
+        && match profile.fore {
+            None => fore_records.is_empty(),
+            Some(fore) => {
+                fore.len() == fore_records.len()
+                    && fore
+                        .iter()
+                        .zip(fore_records)
+                        .all(|(pin, bytes)| pin.payload() == bytes)
+            }
+        };
+    if !fore_matches {
+        return Err(E::ForeApproval);
     }
     // Policy may narrow an actual profile, never silently enlarge its grants.
     profile.maxima.encoded_bytes =

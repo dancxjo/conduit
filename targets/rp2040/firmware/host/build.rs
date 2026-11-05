@@ -45,6 +45,11 @@ pub const HEAP_BYTES:usize={heap};
 pub const PREPARATION_DELEGATION:Option<conduit_body::HostPreparationDelegation>={preparation};
 pub const RESIDENT_WORK_POOL:&str={work_pool:?};
 pub const RESIDENT_WORK_UNITS:u32={work_units};
+// Representation ceilings from checked construction, not new execution grants.
+pub const RESIDENT_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima=conduit_core::AssignedPlanMaxima{{
+ encoded_bytes:{encoded},runtime_state_bytes:{runtime},
+ counts:[{nodes},{ports},{nodes},{queues},{nodes},{queues},0,{nodes},{signs},{ports},{nodes},{nodes},0],
+}};
 pub const ROLE:&str="conduit.rp2040-host@1";
 pub const FREQUENCY:u32={frequency};
 pub const MAXIMUM_I2C_POLLS:core::num::NonZeroU32=core::num::NonZeroU32::new({polls}).expect("checked nonzero I2C work bound");
@@ -69,7 +74,22 @@ pub(crate) use start_local_io;
         brightness = selected.brightness,
         buffers = checked.configuration().limits.buffered_bytes,
         work_pool = work.id,
-        work_units = work.capacity_units
+        work_units = work.capacity_units,
+        encoded = checked
+            .configuration()
+            .limits
+            .buffered_bytes
+            .min(u64::from(u16::MAX)),
+        runtime = work.bookkeeping_bytes.min(u64::from(u16::MAX)),
+        nodes = checked.configuration().limits.active_instances.min(32),
+        ports = (checked
+            .configuration()
+            .limits
+            .active_instances
+            .saturating_mul(2))
+        .min(16),
+        queues = checked.configuration().limits.queue_items.min(255),
+        signs = checked.configuration().limits.evidence_items.min(255)
     );
     fs::write(out.join("host.rs"), generated).unwrap();
     fs::write(

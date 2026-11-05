@@ -23,6 +23,23 @@ mod config {
             maximum_runtime_state_bytes: 8192,
         });
 }
+mod resident_preparation {
+    pub enum ValidationRefusal {
+        Unavailable,
+        InvalidAssignment,
+    }
+    pub fn validate(
+        _: Option<&conduit_body::HostPreparationDelegation>,
+        _: conduit_body::NativePreparationContext<'_>,
+        command: conduit_body::AttributedHostCommand<'_, '_>,
+    ) -> Result<(), ValidationRefusal> {
+        if command.payload().first() == Some(&0x46) {
+            Err(ValidationRefusal::InvalidAssignment)
+        } else {
+            Err(ValidationRefusal::Unavailable)
+        }
+    }
+}
 thread_local! { static NOW: Cell<u64> = const { Cell::new(100) }; }
 #[derive(Clone, Copy)]
 pub struct Instant(u64);
@@ -81,6 +98,7 @@ mod preparation;
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Mode {
     Valid,
+    InvalidAssignment,
     BadSignature,
     Replay,
     BadDigest,
@@ -101,7 +119,14 @@ struct Link {
 }
 impl Link {
     fn new(mode: Mode, length: usize) -> Self {
-        let payload = vec![0x45; length];
+        let payload = vec![
+            if mode == Mode::InvalidAssignment {
+                0x46
+            } else {
+                0x45
+            };
+            length
+        ];
         let digest: [u8; 32] = Sha256::digest(&payload).into();
         let mut frames = Vec::new();
         let mut offset = 0;
@@ -236,6 +261,7 @@ fn run<F: Future>(future: F) -> F::Output {
 fn actual_root_ingress_authenticates_without_another_document_allocation_or_start() {
     for mode in [
         Mode::Valid,
+        Mode::InvalidAssignment,
         Mode::BadSignature,
         Mode::BadDigest,
         Mode::Interrupted,
@@ -258,7 +284,7 @@ fn actual_root_ingress_authenticates_without_another_document_allocation_or_star
         if mode == Mode::Valid {
             assert_eq!(
                 &link.response[..link.response_len],
-                br#"{"phase":"attributed","preparation":"unsupported-execution-profile"}"#
+                br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#
             );
         } else {
             assert_eq!(link.response_len, 0);

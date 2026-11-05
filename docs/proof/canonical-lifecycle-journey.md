@@ -5173,3 +5173,40 @@ and physical IO handover are not installed here. This is deliberately not a
 Prepared, Reserved or Playing acknowledgement. It does not close #6770 or #6341,
 prove retained acknowledged input during native custody, or create a Body-made
 private membership Seed. No device or live service was changed or flashed.
+
+### 2026-11-05 — Root validates a fragment against its initialized inventory
+
+After merging accepted Host-policy PR #6772 and synchronizing the delivery
+branch, the actual RP2040 control handler now invokes a read-only resident
+fragment validator. Make emits immutable implementation/artifact/computation
+pins once as static data. The selector considers only currently available,
+initialized Backs; it decodes no capability catalog, reserves nothing and
+transfers no provider. Missing, ambiguous, duplicated or unavailable entries
+refuse. The shared Core decoder and each initialized Back still independently
+validate the complete assigned tables and their exact opaque Body scope.
+
+Preparation document schema 3 carries the authoring checker's exact Fore ABI.
+The ordinary caller-pinned receiver requires an exact match. A separate explicit
+entrance accepts those ABI pins only under the installed bounded preparation
+delegation, with fixed local port storage and local maxima. It cannot override
+caller-pinned contracts or supply ingress, Lines, native IO possession or start
+authority. No general parser or planner is added to the constrained Root.
+
+The generated-code CPU proof executes the actual Root validator against emitted
+initialized owners, measuring zero allocations/reallocations and retaining their
+original offer/identity addresses. Re-signed artifact, fuel, node and Fore
+substitutions, absent policy, insufficient runtime limits and an unavailable
+loaned owner refuse. Both emitted-code tests also pass without the opt-in.
+The five actual-ingress tests pass, including the separate assignment-rejection
+handler outcome. Strict library/test Clippy passes for Body, lowerer, embedded
+Make and RP2040 Make. Body/lowerer compile for Cortex-M0+ without default features,
+both with and without delegated preparation. Formatting and diff checks pass.
+The standalone firmware lock refresh changes only the existing lowerer-to-Body
+edge and preserves package versions.
+
+A successful handler now says `validated-fragment` and `start: not-installed`.
+It does not say Prepared, Reserved or Playing. Complete workset admission,
+exclusive workspace custody, kernel installation/start, retired-approval replay
+and physical bus handover remain unfinished under #6770/#6341 and their existing
+owners. This entry records component/compilation proof, not a flashed image or
+physical Body Play. No live Host, membership or service was changed.

@@ -397,6 +397,7 @@ version = "0.1.0"
 name = "conduit-plan-lowering"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-kernel",
 ]
