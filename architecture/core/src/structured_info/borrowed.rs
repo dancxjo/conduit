@@ -57,7 +57,7 @@ pub fn validate_canonical_structured_value(
     })
 }
 
-fn split_type<'a>(
+pub(super) fn split_type<'a>(
     input: &'a [u8],
     depth: usize,
     nodes: &mut usize,
