@@ -8470,3 +8470,40 @@ The first integration build picked a stale shared-cache Plot artifact lacking
 exports present in current source; invalidating that artifact through the source
 mtime caused the canonical Plot crate to rebuild. Preserve the failed build log
 rather than interpreting it as a completed test run.
+
+Next installed acceptance, bounded by existing S2/S4 ownership: select one reviewed
+Source through a current owner Face, retain its actual descriptor and exact
+entry/context, and feed it through fresh installed Host construction. The current
+Crèche draft edits Host configuration, not arbitrary Plot Source; the Birth door's
+private reviewed inventory is a selection model, not permission to open arbitrary
+later paths. The existing initializer constructs the Host: invoking it inside an
+action must not create a second owner/Boot behind the current Body. Schema,
+configuration, catalogs, context and retained review metadata need independent
+caller workspace custody before construction, beyond the provider's funded peak.
+Checking must return the exact bounded result without adopting or replacing
+`creche/main`. The existing current-Show action checks and guarded workset
+continuation remain the reusable authority/effect seams. This audit identifies a
+missing installed selection/construction handoff, not a new compiler or scheduler.
+
+After a second shared-cache failure showed missing kernel/core APIs also present
+in current source, all tracked local Rust/manifests had timestamps invalidated
+once. Full current-source qualification is running with log
+`/tmp/conduit-creche-source-process-current-source-tests-20261106.log`.
+The review lane's Candidate run is `42266717202`, exact head
+`4733ad47e68f4ebbf512ad601b3913336375400c`; its last observed state is in progress.
+
+Current-source combined qualification now passes all seven `image::` integration
+cases (`source_check_process`): actual valid/invalid Source compilation, combined
+Crèche/Source IMAGE construction, finite definition/grant correspondence and
+execution admission, cancellation, retained backing and exact bounded result
+behavior. This includes the existing zero-allocation-after-admitted-start checks.
+The Crèche side in the combined case is an explicitly supplied resource fixture,
+not a claimed Make execution or installed Source-selection authority. The separate
+two initial-construction tests cover positive Crèche composition and malformed,
+duplicate and colliding equipment/resources. Formatting and diff checks pass;
+production Clippy is running. No live installation was changed by this testing.
+
+Strict product production Clippy (`-p conduit --bin conduit --no-deps -- -D
+warnings`) passed after the current-source rebuild. The std Host's own Clippy
+and a repeat of its two construction tests against the rebuilt dependency set
+are running separately, because that package has a different feature closure.
