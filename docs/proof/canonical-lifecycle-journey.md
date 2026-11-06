@@ -6990,3 +6990,34 @@ that unflashed artifact is superseded. The supervisor now reports Prepared until
 the actual first tick, reborrows the original attribution at that tick and
 records typed Start refusal before FailedStart retirement if context/time no
 longer matches. The fixed checkpoint requires its own rebuilt image.
+
+
+### 5 November 2026 — Full receiver image fits unchanged construction bounds
+
+Ordinary Make built the corrected execution-selected RP2040 profile from
+`3a87156d5db9a46048846e39e3df43776433260b`. The receiver retains the checked
+membership reference throughout local Start, so no fallible membership lookup
+can return out of a committed workset. Preparation reports Prepared until the
+first decision's original-attribution recheck; failed Start and runtime failure
+retain distinct inspection evidence. Fixed terminal Sign inspection keeps the
+actual evidence observable without treating a diagnostic read as a durable ACK.
+
+The complete no_std Cortex-M0+ application links at 1,266,028 flash load bytes
+and 121,560 static RAM bytes including its unchanged 49,152-byte heap. Static
+RAM remains below the unchanged 131,072-byte construction limit by 9,512 bytes;
+the supervisor costs 4,112 additional static bytes versus the earlier image.
+The linked stack gap is 148,776 bytes, not a measured high-water result. There
+are 28 firmware warnings; this is not a warning-free firmware claim.
+
+ELF/UF2 digests match the Make manifest. All 4,946 UF2 pages have the RP2040
+family, exact block/count framing, unique aligned 256-byte application payloads,
+and valid magic. Their extent is `0x10000000..0x10135200`, below the first
+reserved private sector at `0x101fd000`. The artifact, ELF, manifest, build log
+and qualification JSON are retained locally in
+`target/rp2040-resident-supervisor-member-20261105/`.
+
+Nothing was flashed and no live Body/service changed. The image proves full
+receiver compilation and static funding, not dynamic peak, real interruption
+recovery, installed Lines, native workset admission or sensing/display through
+admitted Plays. Those remain the next physical and composition gates of the
+full journey. Existing diagnostic sensing/display continues on the older Seed.
