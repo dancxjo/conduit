@@ -6782,3 +6782,28 @@ PR #6796 passed its Candidate checks (run 42150396116) and merged into dev as
 change because the identical schema-capacity implementation was already present.
 No additional test run or image qualification is claimed from that history-only
 merge. The retained-admission checkpoint remains uninstalled on devices.
+
+
+### 5 November 2026 — Retained input re-enters actual Root preparation
+
+The constrained Root now has `prepare_retained_workset_storage`, which borrows
+its original sealed receive workspace and actual initialized inventory. It
+reconstructs attribution only under independently retained current membership,
+Host/Boot/profile/generation, pinned issuer and original deadline, then uses the
+same complete-workset policy/profile/storage checker. It creates neither a new
+receive document nor a renewed approval, execution grant or alternate kernel.
+
+The generated resident-library CPU proof now admits its successful committed
+workset through this retained-input entrance. Expiry and changed Boot return
+typed retention refusals with zero allocations, unchanged provider addresses and
+unchanged resource ledger; absence of installed delegation also refuses. The
+existing actual-kernel execution/terminal retirement/exact release checks still
+pass with zero execution allocations. Both resident-offer tests pass; raw output
+is retained locally under `target/root-retained-reprepare-20261105/tests.log`.
+
+This is CPU qualification of the production preparation code, not physical
+Start or network-interruption acceptance. The MCU dispatcher still reports
+input-retained / resources-released / start-not-installed. Installing a retained
+supervisor and explicit execution authority remains necessary; Green's existing
+measurement/display tasks and all device state were left untouched. Full
+canonical journey acceptance remains open under #6770/#6295 and related owners.

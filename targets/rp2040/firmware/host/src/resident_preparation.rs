@@ -28,10 +28,42 @@ pub enum ValidationRefusal {
     Kernel,
     Assignment,
     Workset,
+    Retention(conduit_body::HostCommandRetentionRefusal),
     Storage(conduit_kernel::scheduler::KernelPreparationError),
 }
 
 pub use crate::resident::inventory;
+
+/// Prepare the original sealed input after its delivery future has ended.
+/// Recheck current membership, Boot, issuer and deadline before decoding; RAM
+/// custody never renews attribution or grants permission to Start. The returned
+/// storage borrows this same immutable workspace and the actual initialized Backs.
+pub fn prepare_retained_workset_storage<'a, 'o, const N: usize>(
+    owner: &'o mut crate::resident::generated::Initialized,
+    installed: Option<&HostPreparationDelegation>,
+    context: NativePreparationContext<'_>,
+    workspace: &'a conduit_body::HostCommandInput<N>,
+    maxima: c::AssignedPlanMaxima,
+    maximum_storage_bytes: usize,
+) -> Result<AttemptStorage<'a, 'o>, ValidationRefusal> {
+    let command = workspace
+        .reborrow(
+            context.member,
+            context.actual,
+            &context.bootstrap.owner,
+            conduit_body::HOST_PREPARED_WORKSET_CONTRACT,
+            context.now_millis,
+        )
+        .map_err(ValidationRefusal::Retention)?;
+    prepare_workset_storage(
+        owner,
+        installed,
+        context,
+        command,
+        maxima,
+        maximum_storage_bytes,
+    )
+}
 
 pub fn prepare_workset_storage<'a, 'o>(
     owner: &'o mut crate::resident::generated::Initialized,

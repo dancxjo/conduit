@@ -29,11 +29,64 @@ pub fn run(
     drop(refused);
     assert_eq!(owner, &before);
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
-    let workset = crate::root_preparer::prepare_workset_storage(
+    let mut retained = HostCommandInput::<4096>::new();
+    retained.writable().unwrap()[..bytes.len()].copy_from_slice(bytes);
+    retained
+        .retain(
+            receiver
+                .command_with_contract(bytes, HOST_PREPARED_WORKSET_CONTRACT)
+                .into_retained_stamp()
+                .unwrap(),
+        )
+        .unwrap();
+    // Delivery has ended. Reuse the original bytes, but never its expired or
+    // changed context. Refusal must precede kernel allocation/provider lending.
+    let mut expired = receiver.context();
+    expired.now_millis = 20;
+    let mut changed_host = receiver.actual.clone();
+    changed_host.boot_id = c::BootId::from("another-boot");
+    let mut changed = receiver.context();
+    changed.actual = &changed_host;
+    for (context, expected) in [
+        (expired, conduit_body::HostCommandRetentionRefusal::Clock),
+        (changed, conduit_body::HostCommandRetentionRefusal::Context),
+    ] {
+        let (result, cost) = crate::probe::observe(|| {
+            crate::root_preparer::prepare_retained_workset_storage(
+                library,
+                Some(&policy()),
+                context,
+                &retained,
+                assignment.maxima,
+                16384,
+            )
+            .map(|_| ())
+        });
+        assert_eq!(
+            result,
+            Err(crate::root_preparer::ValidationRefusal::Retention(expected))
+        );
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        assert_eq!(owner, &before);
+        assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+        assert_eq!(retained.payload(), Some(bytes));
+    }
+    assert!(matches!(
+        crate::root_preparer::prepare_retained_workset_storage(
+            library,
+            None,
+            receiver.context(),
+            &retained,
+            assignment.maxima,
+            16384,
+        ),
+        Err(crate::root_preparer::ValidationRefusal::Workset)
+    ));
+    let workset = crate::root_preparer::prepare_retained_workset_storage(
         library,
         Some(&policy()),
         receiver.context(),
-        receiver.command_with_contract(bytes, HOST_PREPARED_WORKSET_CONTRACT),
+        &retained,
         assignment.maxima,
         16384,
     )
