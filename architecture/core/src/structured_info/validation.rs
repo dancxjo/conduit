@@ -16,6 +16,13 @@ pub struct PreparedStructuredValueValidator {
 }
 
 impl PreparedStructuredValueValidator {
+    /// Owned schema and prefix capacities; excludes inline Self and allocator overhead.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.value_type
+            .retained_backing_bytes()?
+            .checked_add(self.prefix.capacity())
+    }
+
     /// Allocates only during preparation, before Play start.
     pub fn new(value_type: &StructuredInfoType, maximum_bytes: usize) -> Result<Self, Refusal> {
         if maximum_bytes == 0 || maximum_bytes > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
