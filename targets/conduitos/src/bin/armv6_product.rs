@@ -162,9 +162,7 @@ pub extern "C" fn conduitos_armv6_product_start() -> ! {
     }
     #[cfg(feature = "native-startup-chime")]
     drop(startup);
-    let graphic = product::prepare_graphics(&ids, &offer);
-    arch::present(b"CONDUIT_BOOT_STAGE armv6-product-ready\n");
-    product::run_input(&ids, graphic)
+    product::run_product(&ids, &offer)
 }
 
 fn boot_record(nonce: u64) -> Result<boot::BootRecord, boot::BootError> {
