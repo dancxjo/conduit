@@ -1,8 +1,5 @@
 //! Exact implementation offers owned by the hosted std Host.
 
-mod source_check;
-pub use source_check::*;
-
 mod value_pair;
 pub use value_pair::*;
 
