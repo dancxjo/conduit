@@ -395,19 +395,28 @@ pub fn run(
             .kernel
             .remote_egress_delivered(egress, outgoing, offer.sequence)
             .unwrap();
-        bound.kernel.cancel().unwrap();
-        let retired = (*bound.kernel)
-            .try_retire()
+        let retired = bound
+            .cancel_and_retire()
             .unwrap_or_else(|_| panic!("mixed admission fixture not drained"));
+        assert!(retired.residents_returned);
         assert!(retired
             .signs
             .events()
             .any(|e| e.kind == KernelEventKind::RunCancelled));
-        for back in retired.drivers {
-            if let MixedBack::Resident(back) = back {
-                assert!(back.finish_retired().is_ok())
-            }
-        }
+        let mut call = Some(retired.call);
+        assert!(matches!(
+            conduit_i2c_transaction::owner::I2cHostCall::retire_retained(&mut call),
+            Err(conduit_i2c_transaction::owner::I2cRetirementRefusal::NotRevoked)
+        ));
+        call.as_mut()
+            .unwrap()
+            .revoke(retired.native_node, conduit_kernel::HostCallId(0))
+            .unwrap();
+        let (provider, _) =
+            conduit_i2c_transaction::owner::I2cHostCall::retire_retained(&mut call).unwrap();
+        assert!(core::ptr::eq(provider.0, &effects));
+        assert!(provider.1);
+        assert!(call.is_none());
     });
     assert_eq!((cost.allocations, cost.reallocations), (0, 0));
     assert_eq!(effects.get(), 1);

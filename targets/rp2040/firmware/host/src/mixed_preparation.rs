@@ -20,6 +20,9 @@ use conduit_plan_lowering::{
 };
 
 const SIGNS: usize = 16;
+#[path = "mixed_retirement.rs"]
+mod retirement;
+pub use retirement::RetiredMixedKernel;
 pub enum MixedBack<'a> {
     Resident(generated::BorrowedBack<'a>),
     Native(HostCallBack),

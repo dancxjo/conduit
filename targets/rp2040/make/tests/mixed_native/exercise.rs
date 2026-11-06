@@ -1,8 +1,5 @@
 //! CPU fixture: exact Body scope, inert controller and actual generated resident.
-use crate::{
-    mixed_preparation::{MixedBack, PreparedMixedKernel},
-    native_preparation::NativePossession,
-};
+use crate::{mixed_preparation::PreparedMixedKernel, native_preparation::NativePossession};
 use conduit_core::*;
 use conduit_i2c_transaction::{
     contract::*, installation::*, I2cDisposition, I2cProvider, I2cTransaction,
@@ -12,18 +9,23 @@ use conduit_plan_lowering::assigned_play_scope::AssignedPlayScope;
 use conduit_plan_lowering::selected_assigned_operation::*;
 #[path = "../../../../../mechanisms/io/i2c-transaction/src/owner/tests/assigned_body_scope.rs"]
 mod body_scope;
-struct Provider<'a>(&'a core::cell::Cell<usize>);
+struct Provider<'a>(&'a core::cell::Cell<usize>, bool);
 impl I2cProvider for Provider<'_> {
     fn transact(
         &mut self,
         _: &I2cTransaction<'_>,
         input: &mut [u8],
     ) -> Result<usize, I2cDisposition> {
+        if self.1 {
+            return Err(I2cDisposition::ProviderLost);
+        }
         self.0.set(self.0.get() + 1);
         input.fill(0x60);
         Ok(input.len())
     }
-    fn revoke(&mut self) {}
+    fn revoke(&mut self) {
+        self.1 = true;
+    }
 }
 #[path = "admission.rs"]
 mod admission;
@@ -339,16 +341,25 @@ fn run(reverse: bool) {
                 offer.sequence,
             )
             .unwrap();
-        bound.kernel.cancel().unwrap();
-        let retired = (*bound.kernel)
-            .try_retire()
+        let retired = bound
+            .cancel_and_retire()
             .unwrap_or_else(|_| panic!("mixed kernel not drained"));
-        assert_eq!(retired.values.used_items(), 0);
-        for back in retired.drivers {
-            if let MixedBack::Resident(back) = back {
-                assert!(back.finish_retired().is_ok())
-            }
-        }
+        assert!(retired.residents_returned);
+        let mut call = Some(retired.call);
+        assert!(matches!(
+            conduit_i2c_transaction::owner::I2cHostCall::retire_retained(&mut call),
+            Err(conduit_i2c_transaction::owner::I2cRetirementRefusal::NotRevoked)
+        ));
+        call.as_mut()
+            .unwrap()
+            .revoke(retired.native_node, conduit_kernel::HostCallId(0))
+            .unwrap();
+        let (provider, attachment) =
+            conduit_i2c_transaction::owner::I2cHostCall::retire_retained(&mut call).unwrap();
+        assert!(call.is_none());
+        assert_eq!(attachment.minimum_address, 0x70);
+        assert!(core::ptr::eq(provider.0, &effects));
+        assert!(provider.1); // Quarantined custody is not a Ready provider.
         retired.signs
     });
     assert_eq!((cost.allocations, cost.reallocations), (0, 0));
@@ -392,7 +403,7 @@ fn ready_slot<'a>(
                 maximum_address: 0x77,
                 resource_bytes: 4096,
             },
-            Provider(effects),
+            Provider(effects, false),
         )
         .unwrap()
     })
