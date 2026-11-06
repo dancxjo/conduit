@@ -54,6 +54,38 @@ impl StdHost {
             started,
         )
     }
+    /// Execute one explicitly selected, already retained finite input without
+    /// copying its payload or detaching its original IMAGE memory charge.
+    /// The caller still owns Source authority, exact planned Fore selection,
+    /// output custody and preparation; shared backing alone grants none of them.
+    #[allow(clippy::too_many_arguments)] // Preserve the ordinary execution boundary.
+    pub fn run_selected_image_body_plan_with_retained_input_to_with_start<
+        W: Write,
+        T: TimerAdapter,
+        F,
+    >(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        input: &ImageForeInput,
+        output: &mut W,
+        timer: &mut T,
+        fore: &mut dyn BodyForeOutputAdapter,
+        started: F,
+    ) -> Result<ImageBodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.verify_selected_image_fore_input(input)?;
+        self.run_selected_image_body_plan_with_fore_to_with_start(
+            request,
+            std::slice::from_ref(input.input()),
+            output,
+            timer,
+            Some(fore),
+            started,
+        )
+    }
+
     /// Finite local ingress borrows caller-owned immutable bytes for this call.
     /// Their storage, output adapter and preparation effects retain independent
     /// custody. Streaming, Lines and unqualified providers remain refused.

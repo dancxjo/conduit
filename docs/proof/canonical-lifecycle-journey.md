@@ -8721,3 +8721,47 @@ same firmware/configuration and receipt, with 216 successful samples from 216
 attempts, 3,240 acknowledged frames from 3,240, and no reported sensor/display
 fault. These are still diagnostic sampling/display tasks, not environmental
 Body Plays. No live service or device was modified during this audit.
+
+
+### 6 November 2026 — one selected finite IMAGE ingress through the owner
+
+The ordinary owner planning, guarded adoption-preflight and service/foreground
+worker paths now share one exact finite ingress selection. It holds the resident
+Source/checked-Plot pair, the original `ImageForeInput`, and one explicit queue
+budget. Unknown worksets, wrong ports/tracks, additional inputs, zero/oversized
+byte budgets and non-single-item queues refuse. The existing Crèche encounter
+adapter remains exclusive; this does not pretend to compose two adapters.
+
+The std execution entrance validates the original IMAGE counter identity by
+`Arc::ptr_eq` before beginning admission. Identical serialized Host/Boot labels
+from another independently constructed Host cannot pay for this Host's input.
+The actual compiler integration now borrows the charged wrapper through this
+entrance, preserving payload identity and its original charge. Source access,
+provider grants and exact typed Plan validation are still independent.
+
+One selected input moves into the existing owner worker, returns only after the
+worker joins, and then drops. No payload clone, second execution kernel, new
+Host/Boot, automatic input replay or durable-ack claim was introduced. The
+OwnerHost wrapper refuses safely if a worker currently owns its Host, rather
+than dereferencing an absent idle Host.
+
+Qualification: 42 std IMAGE tests and nine actual compiler/IMAGE integration
+tests pass. Five focused continuing-owner tests pass, including finite boundary
+selection and safe active-worker refusal. The broader owner run passed 174
+cases, skipped three explicit installed/retained-DOM gates, and found one stale
+notebook test assertion forbidding every idle remote action. Production already
+supports ordinary lifecycle actions there; the assertion now specifically
+forbids available notebook edit/save actions, preserving its subsequent stale
+Show/edit/commit checks. That exact corrected test passes. Strict production
+Clippy, formatting and diff checks pass. Raw logs are retained under
+`target/selected-image-ingress-20261106/`.
+
+This is a callable generic owner adapter, not installed Source-adoption policy:
+the current UI still supplies no reviewed Source proposal or original compiler
+grant. The live owner and MCU software remain unchanged.
+
+Delivery: #6828 passed exact-head Candidate 42273008182 and merged into dev at
+`88c6b1e8ef1ccfec3114d3131285c6328c3c6b43`. The next isolated review extraction
+contains only the five retained-Source acquisition/expansion files, based on that
+accepted dev. The new ingress work remains in the integrated checkpoint until
+its independent prerequisites can be delivered.

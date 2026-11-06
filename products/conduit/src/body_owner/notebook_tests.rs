@@ -215,7 +215,12 @@ fn notebook_waiting_face_refuses_an_old_show_before_admitting_another_edit() {
             let body = owner.notebook_body_id().clone();
             let idle_face = owner.local_face_snapshot().unwrap();
             assert!(crate::durable_host_control::has_native_return_route_intent(&idle_face));
-            assert!(!crate::durable_host_control::has_remote_mask_action(&idle_face));
+            // Ordinary lifecycle actions may have a return route while the
+            // notebook encounter is idle. Its edit/save actions still must not.
+            assert!(!idle_face.actions.iter().any(|action| {
+                matches!(action.intent.as_str(), "notebook/replace@1" | "notebook/save@1")
+                    && action.availability.is_available()
+            }));
             assert!(matches!(idle_face.resolve_action(idle_face.revision, "notebook.replace"),
                 Err(conduit_face::FaceActionRefusal::Unavailable { reason_code })
                     if reason_code == "notebook-edit-encounter-idle"));

@@ -186,6 +186,16 @@ impl OwnerHost {
         Ok(())
     }
 
+    pub(crate) fn verify_selected_image_fore_input(
+        &self,
+        input: &conduit_std_host::body_execution::ImageForeInput,
+    ) -> Result<(), String> {
+        self.current
+            .as_ref()
+            .ok_or("selected IMAGE ingress requires an idle owner Host")?
+            .verify_selected_image_fore_input(input)
+    }
+
     pub(crate) fn current(&self) -> &StdHost {
         self.current
             .as_ref()

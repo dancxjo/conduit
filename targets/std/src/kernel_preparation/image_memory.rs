@@ -142,6 +142,22 @@ fn reserve_image_memory(
 }
 
 impl KernelResourceLedger {
+    pub(crate) fn require_input_memory_owner(
+        &self,
+        lease: &ImageMemoryLease,
+    ) -> Result<(), String> {
+        self.require_available()?;
+        if self
+            .image_memory
+            .as_ref()
+            .is_some_and(|used| Arc::ptr_eq(used, &lease.inner.used))
+        {
+            Ok(())
+        } else {
+            Err("IMAGE input backing belongs to another memory owner".into())
+        }
+    }
+
     /// Reserve the independently computed fixed Base stores before allocation.
     /// This is not a complete Plan receipt, process RSS or preparation peak.
     pub(crate) fn reserve_managed_base_memory(

@@ -5,7 +5,7 @@ use conduit_host_make::*;
 use conduit_std_host::StdHostConfig;
 
 const SOURCE: &str = "plot ticks (\n ticks: Tick...| >>\n) {\n clock: time/tick(count = 1, period-ms = 0)\n clock.tick >> ticks\n}\n";
-fn host(heap: u64) -> StdHost {
+pub(super) fn host(heap: u64) -> StdHost {
     let source = include_str!("../../../../../targets/std/profiles/linux-computer.host.conduit")
         .replace("\"clock/monotonic\"", "\"timer/monotonic\"")
         .replace(
@@ -151,4 +151,24 @@ fn ordinary_owner_worker_uses_image_receipt_or_refuses_before_start() {
         assert_eq!(state::execution(&root).unwrap().as_ref(), Some(receipt));
         std::fs::remove_dir_all(root).unwrap();
     }
+}
+
+#[test]
+fn ingress_verification_refuses_while_worker_owns_host_without_panicking() {
+    let mut host = super::super::OwnerHost::new(host(64 * 1024 * 1024));
+    let input = host
+        .retain_selected_image_fore_input(conduit_std_host::ExternalForeInput {
+            front_port_id: "request".into(),
+            track: conduit_core::ConnectionTrack::Payload,
+            bytes: vec![1],
+        })
+        .unwrap();
+    host.verify_selected_image_fore_input(&input).unwrap();
+    let moved = host.take_for_play().unwrap();
+    assert!(host
+        .verify_selected_image_fore_input(&input)
+        .unwrap_err()
+        .contains("idle owner Host"));
+    host.restore_after_play(moved).unwrap();
+    host.verify_selected_image_fore_input(&input).unwrap();
 }

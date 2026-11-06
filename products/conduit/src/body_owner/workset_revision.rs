@@ -26,12 +26,30 @@ impl Owner {
             &conduit_plot::ExpandedAuthoringPlot,
         )],
     ) -> Result<(), String> {
-        self.commit_admitted_workset_revision_with_boundaries(
-            root,
-            expected,
-            sources,
-            &Default::default(),
-        )
+        self.commit_admitted_workset_revision_with_ingress(root, expected, sources, None)
+    }
+
+    /// The same exact finite adapter used by subsequent Plan/Play participates
+    /// in adoption preflight. Root must already authorize the actual Sources;
+    /// neither the adapter nor its custody verifies an adoption proposal.
+    pub(super) fn commit_admitted_workset_revision_with_ingress(
+        &mut self,
+        root: &Path,
+        expected: &BodyBiographyEvidence,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        ingress: Option<&super::continuing::ImageIngress>,
+    ) -> Result<(), String> {
+        if let Some(ingress) = ingress {
+            self.host.verify_selected_image_fore_input(&ingress.input)?;
+        }
+        let boundaries = super::continuing::boundaries_for_plots(
+            sources.iter().map(|(_, plot)| *plot),
+            ingress,
+        )?;
+        self.commit_admitted_workset_revision_with_boundaries(root, expected, sources, &boundaries)
     }
 
     /// Existing independently selected adapter bounds participate in revision

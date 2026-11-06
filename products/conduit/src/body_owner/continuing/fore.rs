@@ -52,23 +52,71 @@ impl BodyForeOutputAdapter for ReceiptFore {
     }
 }
 
+/// One finite Root-selected ingress. Construction requires original IMAGE input
+/// custody; labels and queue limits grant no Source or operation authority.
+pub(crate) struct ImageIngress {
+    pub(crate) plot: ResidentPlot,
+    pub(crate) input: conduit_std_host::body_execution::ImageForeInput,
+    pub(crate) limits: ConnectionQueueLimits,
+}
+
+#[cfg(test)]
 pub(super) fn boundaries(
     sources: &[super::super::super::retained_source::RetainedPlotSource],
 ) -> Result<Boundaries, String> {
+    boundaries_with_ingress(sources, None)
+}
+
+pub(super) fn boundaries_with_ingress(
+    sources: &[super::super::super::retained_source::RetainedPlotSource],
+    ingress: Option<&ImageIngress>,
+) -> Result<Boundaries, String> {
+    boundaries_for_plots(sources.iter().map(|source| &source.plot), ingress)
+}
+
+pub(in super::super) fn boundaries_for_plots<'a>(
+    plots: impl IntoIterator<Item = &'a conduit_plot::ExpandedAuthoringPlot>,
+    ingress: Option<&ImageIngress>,
+) -> Result<Boundaries, String> {
+    let mut selected = false;
     let mut result = BTreeMap::new();
     let mut names = BTreeSet::<(String, ConnectionTrack)>::new();
-    for source in sources {
+    for plot in plots {
         // The existing Crèche adapter owns its own exact boundary budgets.
-        if source.plot.expanded.name == "creche/main" {
+        if plot.expanded.name == "creche/main" {
             continue;
         }
-        if !source.plot.input_bindings.is_empty() {
-            return Err(
-                "service Fore ingress requires an explicitly selected input adapter".into(),
-            );
-        }
         let mut ports = BTreeMap::new();
-        for output in &source.plot.output_bindings {
+        if !plot.input_bindings.is_empty() {
+            let resident = ResidentPlot::new(
+                plot.expanded.source_document_id.clone(),
+                plot.expanded.checked_plot_id.clone(),
+            );
+            let selected_input = ingress
+                .filter(|input| input.plot == resident)
+                .ok_or("service Fore ingress requires an explicitly selected input adapter")?;
+            let input = selected_input.input.input();
+            if selected
+                || plot.input_bindings.len() != 1
+                || plot.input_bindings[0].front_port_id != input.front_port_id
+                || plot.input_bindings[0].track != input.track
+                || selected_input.limits.item_capacity != 1
+                || selected_input.limits.byte_capacity == 0
+                || input.bytes.len() > selected_input.limits.byte_capacity as usize
+            {
+                return Err("selected IMAGE ingress differs from exact finite Fore".into());
+            }
+            ports.insert(
+                ForeBoundaryKey {
+                    direction: PortDirection::Input,
+                    front_port_id: input.front_port_id.clone(),
+                    track: input.track,
+                },
+                selected_input.limits,
+            );
+            selected = true;
+        }
+        for output in &plot.output_bindings {
             if !names.insert((output.front_port_id.as_str().to_owned(), output.track)) {
                 return Err(
                     "owner receipt Fore outputs require unique port/track identities".into(),
@@ -89,12 +137,15 @@ pub(super) fn boundaries(
         if !ports.is_empty() {
             result.insert(
                 ResidentPlot::new(
-                    source.plot.expanded.source_document_id.clone(),
-                    source.plot.expanded.checked_plot_id.clone(),
+                    plot.expanded.source_document_id.clone(),
+                    plot.expanded.checked_plot_id.clone(),
                 ),
                 ports,
             );
         }
+    }
+    if ingress.is_some() && !selected {
+        return Err("selected IMAGE ingress is absent from complete workset".into());
     }
     Ok(result)
 }
@@ -147,5 +198,47 @@ mod tests {
         assert!(boundaries(&sources)
             .unwrap_err()
             .contains("unique port/track"));
+    }
+    #[test]
+    fn explicit_ingress_requires_exact_resident_port_and_finite_capacity() {
+        use conduit_core::{ConnectionTrack, DEFAULT_CONNECTION_BYTE_CAPACITY};
+        let source = source(include_str!(
+            "../../../../../make/body/tests/source_check_call/check.conduit"
+        ));
+        let resident = ResidentPlot::new(
+            source.plot.expanded.source_document_id.clone(),
+            source.plot.expanded.checked_plot_id.clone(),
+        );
+        let mut host = super::super::image_tests::host(64 * 1024 * 1024);
+        let input = host
+            .retain_selected_image_fore_input(conduit_std_host::ExternalForeInput {
+                front_port_id: "request".into(),
+                track: ConnectionTrack::Payload,
+                bytes: vec![0; 16],
+            })
+            .unwrap();
+        let mut ingress = ImageIngress {
+            plot: resident.clone(),
+            input,
+            limits: ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY,
+            },
+        };
+        let sources = [source];
+        assert!(boundaries(&sources).is_err());
+        let selected = boundaries_with_ingress(&sources, Some(&ingress)).unwrap();
+        assert_eq!(selected[&resident].len(), 2);
+        ingress.limits.byte_capacity = 15;
+        assert!(boundaries_with_ingress(&sources, Some(&ingress)).is_err());
+        ingress.limits.byte_capacity = DEFAULT_CONNECTION_BYTE_CAPACITY;
+        ingress.limits.item_capacity = 2;
+        assert!(boundaries_with_ingress(&sources, Some(&ingress)).is_err());
+        ingress.limits.item_capacity = 1;
+        ingress.plot.source_document_id = "foreign/source".into();
+        assert!(boundaries_with_ingress(&sources, Some(&ingress)).is_err());
+        assert!(boundaries_with_ingress(&[], Some(&ingress)).is_err());
+        host.verify_selected_image_fore_input(&ingress.input)
+            .unwrap();
     }
 }

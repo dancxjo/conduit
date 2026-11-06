@@ -10,6 +10,8 @@ use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
 use report::RunReport;
 #[path = "continuing/fore.rs"]
 mod fore;
+pub(super) use fore::boundaries_for_plots;
+pub(crate) use fore::ImageIngress;
 use fore::ReceiptFore;
 use std::{
     path::Path,
@@ -28,6 +30,7 @@ type WorkerOutcome = (
     Vec<u8>,
     ReceiptFore,
     Option<conduit::creche_encounter::CrecheEncounterFactory>,
+    Option<ImageIngress>,
 );
 
 pub(crate) struct RunWorker {
@@ -50,10 +53,21 @@ impl Owner {
     /// Plan the complete retained workset for the owner's existing finite
     /// receipt adapter. Output budgets confer no input or Host Call authority.
     pub(crate) fn plan_retained(&mut self, root: &Path) -> Result<(), String> {
+        self.plan_retained_with_ingress(root, None)
+    }
+
+    pub(crate) fn plan_retained_with_ingress(
+        &mut self,
+        root: &Path,
+        ingress: Option<&ImageIngress>,
+    ) -> Result<(), String> {
         self.ensure_execution_retained(root)?;
+        if let Some(ingress) = ingress {
+            self.host.verify_selected_image_fore_input(&ingress.input)?;
+        }
         let sources = super::super::retained_source::workset(root)?
             .ok_or("retained Source workset is unavailable for Body Plan")?;
-        let boundaries = fore::boundaries(&sources)?;
+        let boundaries = fore::boundaries_with_ingress(&sources, ingress)?;
         let borrowed: Vec<_> = sources
             .iter()
             .map(|source| (&source.source, &source.plot))
@@ -68,6 +82,18 @@ impl Owner {
         root: &Path,
         maximum_millis: u64,
     ) -> Result<(), String> {
+        self.execute_prepared_with_ingress(root, maximum_millis, None)
+    }
+
+    pub(crate) fn execute_prepared_with_ingress(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        ingress: Option<ImageIngress>,
+    ) -> Result<(), String> {
+        if let Some(ingress) = &ingress {
+            self.host.verify_selected_image_fore_input(&ingress.input)?;
+        }
         if !(1..=60_000).contains(&maximum_millis) {
             return Err("run duration must be 1..60000 milliseconds".into());
         }
@@ -112,9 +138,10 @@ impl Owner {
         if supplied != planned || supplied != self.session.evidence().body.workset {
             return Err("prepared Plan differs from retained Source workset".into());
         }
-        let has_fore = !fore::boundaries(&sources)?.is_empty();
+        let has_fore = !fore::boundaries_with_ingress(&sources, ingress.as_ref())?.is_empty();
         drop(sources);
-        let mut worker = self.spawn_prepared_worker(root, maximum_millis, has_fore, None)?;
+        let mut worker =
+            self.spawn_prepared_worker(root, maximum_millis, has_fore, None, ingress)?;
         while !worker.progress(self, root)? {
             thread::sleep(Duration::from_millis(2));
         }
@@ -134,6 +161,18 @@ impl Owner {
         root: &Path,
         maximum_millis: u64,
     ) -> Result<RunWorker, String> {
+        self.start_service_run_with_ingress(root, maximum_millis, None)
+    }
+
+    pub(crate) fn start_service_run_with_ingress(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        ingress: Option<ImageIngress>,
+    ) -> Result<RunWorker, String> {
+        if let Some(ingress) = &ingress {
+            self.host.verify_selected_image_fore_input(&ingress.input)?;
+        }
         if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
             return Err("service run duration must be 1..900000 milliseconds".into());
         }
@@ -153,7 +192,7 @@ impl Owner {
             .iter()
             .map(|source| (&source.source, &source.plot))
             .collect();
-        let boundaries = fore::boundaries(&sources)?;
+        let boundaries = fore::boundaries_with_ingress(&sources, ingress.as_ref())?;
         let has_fore = !boundaries.is_empty();
         let partitions = self.prepare_workset_partitions(&borrowed, &boundaries)?;
         drop(boundaries);
@@ -179,7 +218,7 @@ impl Owner {
         self.session
             .propose(partitions, &ad.host_id, &ad.boot_id)
             .map_err(debug)?;
-        self.spawn_prepared_worker(root, maximum_millis, has_fore, creche_binding)
+        self.spawn_prepared_worker(root, maximum_millis, has_fore, creche_binding, ingress)
     }
 
     fn spawn_prepared_worker(
@@ -188,6 +227,7 @@ impl Owner {
         maximum_millis: u64,
         has_fore: bool,
         creche_binding: Option<conduit::creche_encounter::CrecheBodyBinding>,
+        ingress: Option<ImageIngress>,
     ) -> Result<RunWorker, String> {
         self.persist(root)?;
         state::require_execution_capacity(root)?;
@@ -254,6 +294,11 @@ impl Owner {
                                 started,
                             )
                             .map(RunReport::Reference),
+                        None if ingress.is_some() => host
+                            .run_selected_image_body_plan_with_retained_input_to_with_start(
+                                request, &ingress.as_ref().expect("selected ingress").input,
+                                &mut output, &mut timer, &mut fore, started,
+                            ).map(RunReport::Image),
                         None if host.image_identity().is_some() => host
                             .run_selected_image_body_plan_with_output_to_with_start(
                                 request,
@@ -273,7 +318,7 @@ impl Owner {
                     let _ = finished.send(());
                     result
                 });
-                (host, result, output.0, fore, creche.map(|run| run.factory))
+                (host, result, output.0, fore, creche.map(|run| run.factory), ingress)
             })
             .expect("failure to launch the only Body Play worker stops the owner service");
         Ok(RunWorker {
@@ -397,7 +442,7 @@ impl RunWorker {
         if !self.thread.as_ref().is_some_and(JoinHandle::is_finished) {
             return Ok(false);
         }
-        let (host, result, output, fore, factory) = self
+        let (host, result, output, fore, factory, _ingress) = self
             .thread
             .take()
             .expect("finished worker has a join handle")

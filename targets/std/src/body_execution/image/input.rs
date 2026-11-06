@@ -14,6 +14,13 @@ impl ImageForeInput {
     }
 }
 impl StdHost {
+    /// Verify original cooperative backing custody without trusting copied
+    /// Host/Boot/IMAGE labels. This grants no input, Source or execution authority.
+    pub fn verify_selected_image_fore_input(&self, input: &ImageForeInput) -> Result<(), String> {
+        self.kernel_resources
+            .require_input_memory_owner(&input._memory)
+    }
+
     /// Admit retention of an already prepared finite input against the existing
     /// selected IMAGE heap. Counts allocated capacities, including spare payload
     /// space, rather than only the visible length. Refusal drops the input.

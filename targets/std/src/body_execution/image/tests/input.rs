@@ -157,3 +157,39 @@ fn input_preparation_refusal_and_failure_release_custody_without_publication() {
     assert_eq!(observer.load(Ordering::Acquire), before);
     assert!(host.kernel_resources.is_idle());
 }
+
+#[test]
+fn retained_input_rejects_another_ledger_even_with_identical_host_labels() {
+    let (mut owner, wake, plan) = fixture(64 * 1024 * 1024);
+    let (mut other, _, _) = fixture(64 * 1024 * 1024);
+    assert_eq!(owner.advertisement().host_id, other.advertisement().host_id);
+    assert_eq!(owner.advertisement().boot_id, other.advertisement().boot_id);
+    let retained = other.retain_selected_image_fore_input(input(64)).unwrap();
+    other.verify_selected_image_fore_input(&retained).unwrap();
+    assert!(owner.verify_selected_image_fore_input(&retained).is_err());
+    let control = RunControl::default();
+    let mut started = false;
+    let error = owner
+        .run_selected_image_body_plan_with_retained_input_to_with_start(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &plan,
+                control: &control,
+                keyboard: None,
+            },
+            &retained,
+            &mut Vec::new(),
+            &mut crate::ThreadTimer,
+            &mut AcceptOutput,
+            |_, _| {
+                started = true;
+                Ok(())
+            },
+        )
+        .err()
+        .expect("foreign backing cannot fund this IMAGE");
+    assert!(error.contains("another memory owner"));
+    assert!(!started);
+    drop(owner);
+    other.verify_selected_image_fore_input(&retained).unwrap();
+}

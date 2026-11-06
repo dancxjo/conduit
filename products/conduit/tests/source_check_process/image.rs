@@ -336,23 +336,22 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
     let body_plan =
         conduit_body::BodyPlan::seal(&wake, vec![conduit_body::BodyPlotPlan { plot, plan }])
             .unwrap();
-    let inputs = std::slice::from_ref(initialized.request.input());
     let mut capture = BoundedBodyCapture {
         bytes: Vec::with_capacity(expected_body_reply.len()),
         calls: 0,
     };
     let mut probe = None;
-    let result = host.run_selected_image_body_plan_with_fore_to_with_start(
+    let result = host.run_selected_image_body_plan_with_retained_input_to_with_start(
         conduit_std_host::body_execution::BodyRunRequest {
             wake: &wake,
             plan: &body_plan,
             control: &RunControl::default(),
             keyboard: None,
         },
-        inputs,
+        &initialized.request,
         &mut Vec::new(),
         &mut ThreadTimer,
-        Some(&mut capture),
+        &mut capture,
         |_, _| {
             probe = Some(crate::allocation_probe::begin());
             Ok(())
@@ -392,17 +391,17 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
     capture.bytes.clear();
     capture.calls = 0;
     let mut probe = None;
-    let cancelled = host.run_selected_image_body_plan_with_fore_to_with_start(
+    let cancelled = host.run_selected_image_body_plan_with_retained_input_to_with_start(
         conduit_std_host::body_execution::BodyRunRequest {
             wake: &wake,
             plan: &body_plan,
             control: &control,
             keyboard: None,
         },
-        inputs,
+        &initialized.request,
         &mut Vec::new(),
         &mut ThreadTimer,
-        Some(&mut capture),
+        &mut capture,
         |_, _| {
             probe = Some(crate::allocation_probe::begin());
             Ok(())
