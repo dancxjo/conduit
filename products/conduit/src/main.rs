@@ -1,4 +1,8 @@
 #[cfg(test)]
+#[path = "../../../targets/std/src/allocation_probe.rs"]
+mod allocation_probe;
+
+#[cfg(test)]
 #[path = "../../../make/body/tests/common/joining_host_package.rs"]
 mod joining_host_package_test_common;
 
