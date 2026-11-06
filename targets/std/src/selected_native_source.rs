@@ -58,6 +58,16 @@ enum NativeProvider {
 }
 
 impl crate::StdHost {
+    /// Borrow the original grant retained by independently authorized Root
+    /// construction. An advertisement, checked Source or received Plan cannot
+    /// supply this private native owner. Retirement removes this grant too.
+    /// This is a planner input, not proof of current execution possession.
+    pub fn native_source_authority_grant(&self) -> Option<&AuthorityGrant> {
+        self.native_source
+            .as_ref()
+            .map(|source| &source.definition.grant)
+    }
+
     /// Install only while the actual finite resource ledger is idle. Refusal
     /// returns the affine native owner unchanged; replacing an existing session
     /// requires its separately implemented quiescent retirement path.

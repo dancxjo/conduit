@@ -206,7 +206,13 @@ impl Owner {
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
                 connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
-                authority_grants: &[],
+                // This is the original independently authorized native owner,
+                // never a grant synthesized from its advertised requirements.
+                authority_grants: self
+                    .host
+                    .native_source_authority_grant()
+                    .map(std::slice::from_ref)
+                    .unwrap_or(&[]),
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
@@ -317,3 +323,7 @@ impl Owner {
 #[cfg(test)]
 #[path = "planning_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "planning_source_authority_tests.rs"]
+mod source_authority_tests;

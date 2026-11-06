@@ -8261,3 +8261,28 @@ were retained. Root headroom returned to approximately 1.7 GiB before the final
 check. Inventory: target/owner-prepared-run-20261106/inactive-arm-archive-cleanup.json.
 
 A fresh read-only Green status reports 2122 successful samples / 2122 attempts and 31827 ACKs / 31827 frames, with sensor_error=False and display_error=False. Build remains 46fb0bbc789d286fc865d4af894f9fa29318c8828b4092108d77ec1d7258d5e2. The reported 4,924-byte diagnostic heap peak and Body membership flag do not prove an admitted sensing/display Play or native preparation fit. No firmware or live service was changed.
+
+### 6 November 2026 — planning borrows the original native Source grant
+
+The owner planner now borrows the exact grant already held by its independently
+installed native Source owner. Advertisements, checked Source and received Plans
+cannot create that private owner or grant. This removes the empty-authority
+planning dead end without manufacturing authority from capability metadata.
+Execution still separately checks the selected owner and Plan/Play possession.
+
+Four focused planning tests pass. The new two-Plot reference fixture proves
+absence and foreign-Boot refusal, exact original grant binding for the Source
+operation, no binding on the unrelated Plot, and refusal after quiescent provider
+retirement. It creates no Play and is not an installed Source acquisition,
+adoption or complete IMAGE-workspace proof. Product binary/test strict Clippy,
+formatting and diff checks pass. Combined std/product production Clippy exhausted
+root disk while compiling an audio dependency; that broader check is not claimed
+passing. Logs are retained under target/owner-source-authority-20261106.
+
+Maintenance found no active Cargo/rustc processes and checked process mappings
+and open descriptors before removing 2,159 inactive compiler archive/metadata
+files older than 48 hours from this task's build cache (3,129,053,844 unique-inode
+bytes). Root headroom recovered to 2.9 GiB. Source, firmware images, generated
+Source, credentials, history and evidence were preserved. No device or service
+was changed. Candidate run 42237917142 for #6822 remains in admission; #6823
+stays draft and no third review lane was opened.
