@@ -5,6 +5,21 @@ use core::{
     sync::atomic::{AtomicBool, Ordering, compiler_fence},
 };
 
+#[cfg(all(feature = "armv6-product", feature = "native-startup-chime"))]
+mod audio;
+#[cfg(feature = "armv6-product")]
+mod entropy;
+#[cfg(all(feature = "armv6-product", feature = "native-startup-chime"))]
+pub use audio::PwmAudio;
+#[cfg(feature = "armv6-product")]
+mod framebuffer;
+#[cfg(feature = "armv6-product")]
+mod mailbox;
+mod memory;
+#[cfg(feature = "armv6-product")]
+pub use entropy::HardwareEntropy;
+#[cfg(feature = "armv6-product")]
+pub use framebuffer::FirmwareScanout;
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
 
@@ -41,6 +56,8 @@ pub fn initialize_machine() {
     disable_interrupts();
     initialize_pl011();
     install_vectors();
+    // Exclusive accesses used by Rust atomics require Normal RAM attributes.
+    memory::initialize();
     unsafe {
         write32(INTERRUPT_BASE + 0x21c, u32::MAX);
         write32(INTERRUPT_BASE + 0x220, u32::MAX);
@@ -260,12 +277,25 @@ conduitos_armv6_unexpected_entry:
 "#
 );
 
+// BCM2835 AXI can return reads from different peripherals out of order.
+// Fence these shared leaves because timer, PWM, mailbox and UART callers mix
+// peripherals. See BCM2835 ARM Peripherals section 1.3.
 unsafe fn read32(address: usize) -> u32 {
-    unsafe { core::ptr::read_volatile(address as *const u32) }
+    let value = unsafe { core::ptr::read_volatile(address as *const u32) };
+    peripheral_barrier();
+    value
 }
 
 unsafe fn write32(address: usize, value: u32) {
+    peripheral_barrier();
     unsafe { core::ptr::write_volatile(address as *mut u32, value) };
+}
+
+fn peripheral_barrier() {
+    unsafe {
+        core::arch::asm!("mcr p15, 0, {0}, c7, c10, 5", in(reg) 0_u32,
+            options(nostack, preserves_flags));
+    }
 }
 
 unsafe fn delay(iterations: usize) {

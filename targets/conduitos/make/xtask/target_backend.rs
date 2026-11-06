@@ -23,6 +23,20 @@ pub(crate) struct TargetBackend {
 
 const BACKENDS: &[TargetBackend] = &[
     TargetBackend {
+        target: "conduitos/armv6/raspberry-pi-model-b-plus-v1.2",
+        arch: ConduitosArch::Armv6,
+        kernel_file: "conduitos",
+        kernel_role: "freestanding-kernel",
+        image_file: "conduitos-rpi-b-plus.img",
+        image_role: "final-bootable-image",
+        architecture: "armv6",
+        machine: "BCM2835/ARM1176JZF-S",
+        firmware: "Raspberry Pi VideoCore",
+        boot_entry: "kernel.img",
+        machine_boot_proof: false,
+        lower: target_lowering::lower_armv6_bplus,
+    },
+    TargetBackend {
         target: "conduitos/loongarch64/virt",
         arch: ConduitosArch::Loongarch64,
         kernel_file: "conduitos-kernel.elf",

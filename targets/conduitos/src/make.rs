@@ -22,7 +22,10 @@ pub const IMPL_MONOTONIC_DEADLINE: u16 = 1 << 13;
 /// Compiled class-neutral USB control and endpoint-read transport machinery.
 /// This inventory does not establish class, isochronous or physical acceptance.
 pub const IMPL_USB_TRANSPORT: u16 = 1 << 14;
-pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 15) - 1;
+pub const IMPL_STARTUP_CHIME: u16 = 1 << 15;
+pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = u16::MAX;
+pub const BASE_PCM_AUDIO: u16 = 1 << 3;
+pub const DRIVER_PWM_AUDIO: u16 = 1 << 8;
 pub const FACILITY_NATIVE_COMPOSITOR: u16 = 1;
 pub const FACILITY_HTTP_CLIENT: u16 = 1 << 1;
 pub const RESOURCE_FACE_SURFACE: u16 = 1;
@@ -146,18 +149,20 @@ impl MakeRecord {
                 | "conduitos/loongarch64/virt"
                 | "conduitos/aarch64/orange-pi-5-rk3588s"
                 | "conduitos/aarch64/jetson-nano-tegra210"
+                | "conduitos/armv6/raspberry-pi-model-b-plus-v1.2"
         ) {
             return Err(MakeError::WrongTarget);
         }
         if self.implementations == 0
-            || self.implementations & !ALL_KNOWN_IMPLEMENTATIONS != 0
             || (!matches!(
                 self.target,
                 "conduitos/x86_64/pc" | "conduitos/aarch64/virt"
             ) && self.includes(IMPL_USB_TRANSPORT))
             || self.facilities & !(FACILITY_NATIVE_COMPOSITOR | FACILITY_HTTP_CLIENT) != 0
             || self.resources & !(RESOURCE_FACE_SURFACE | RESOURCE_HTTP_CLIENT) != 0
-            || self.bases & !(BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT | BASE_HTTP_NETWORK) != 0
+            || self.bases
+                & !(BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT | BASE_HTTP_NETWORK | BASE_PCM_AUDIO)
+                != 0
             || self.drivers
                 & !(DRIVER_LINEAR_FRAMEBUFFER
                     | DRIVER_PL011_SERIAL
@@ -166,7 +171,8 @@ impl MakeRecord {
                     | DRIVER_TEGRA210_UART
                     | DRIVER_IA32_DEBUGCON_SERIAL
                     | DRIVER_RISCV64_SBI_CONSOLE
-                    | DRIVER_LOONGARCH64_UART)
+                    | DRIVER_LOONGARCH64_UART
+                    | DRIVER_PWM_AUDIO)
                 != 0
             || self.presenters & !(PRESENTER_NATIVE_GRAPHICAL | PRESENTER_LINEAR_SERIAL) != 0
             || self.proof_instrumentation & !ALL_KNOWN_PROOF_INSTRUMENTATION != 0
@@ -215,6 +221,12 @@ impl MakeRecord {
                     | "conduitos/loongarch64/virt"
             ) && !linear)
             || (self.target == "conduitos/x86_64/pc" && linear)
+        {
+            return Err(MakeError::UnknownInventory);
+        }
+        let audio = self.includes(IMPL_STARTUP_CHIME);
+        if (self.bases & BASE_PCM_AUDIO != 0) != audio
+            || (self.drivers & DRIVER_PWM_AUDIO != 0) != audio
         {
             return Err(MakeError::UnknownInventory);
         }
@@ -269,7 +281,10 @@ mod tests {
             build_id: "build:sha256:build",
             image_binding: "image:sha256:binding",
             target: "conduitos/x86_64/pc",
-            implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT,
+            implementations: ALL_KNOWN_IMPLEMENTATIONS
+                & !IMPL_LINEAR_PRESENTER
+                & !IMPL_HTTP_CLIENT
+                & !IMPL_STARTUP_CHIME,
             facilities: FACILITY_NATIVE_COMPOSITOR,
             resources: RESOURCE_FACE_SURFACE,
             bases: BASE_DISPLAY_SCANOUT,
@@ -300,6 +315,41 @@ mod tests {
     }
 
     #[test]
+    fn startup_chime_requires_the_selected_audio_base_and_driver() {
+        let record = MakeRecord {
+            target: "conduitos/armv6/raspberry-pi-model-b-plus-v1.2",
+            implementations: IMPL_TIME_TICK
+                | IMPL_NATIVE_PRESENTER
+                | IMPL_LINEAR_PRESENTER
+                | IMPL_STARTUP_CHIME,
+            bases: BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT | BASE_PCM_AUDIO,
+            drivers: DRIVER_LINEAR_FRAMEBUFFER | DRIVER_PL011_SERIAL | DRIVER_PWM_AUDIO,
+            presenters: PRESENTER_NATIVE_GRAPHICAL | PRESENTER_LINEAR_SERIAL,
+            ..record()
+        };
+        assert_eq!(record.validate(4 * 1024 * 1024), Ok(()));
+        for changed in [
+            MakeRecord {
+                bases: record.bases & !BASE_PCM_AUDIO,
+                ..record
+            },
+            MakeRecord {
+                drivers: record.drivers & !DRIVER_PWM_AUDIO,
+                ..record
+            },
+            MakeRecord {
+                implementations: record.implementations & !IMPL_STARTUP_CHIME,
+                ..record
+            },
+        ] {
+            assert_eq!(
+                changed.validate(4 * 1024 * 1024),
+                Err(MakeError::UnknownInventory)
+            );
+        }
+    }
+
+    #[test]
     fn schema_identity_inventory_and_runtime_ceiling_fail_separately() {
         let record = record();
         assert_eq!(
@@ -320,7 +370,7 @@ mod tests {
         );
         assert_eq!(
             MakeRecord {
-                implementations: 1 << 15,
+                implementations: 0,
                 ..record
             }
             .validate(1),

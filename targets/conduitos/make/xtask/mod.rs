@@ -4,6 +4,10 @@ mod aarch64_domain_proof;
 mod acceptance;
 mod active_rescue_proof;
 mod architecture_matrix;
+#[path = "../../../raspberry-pi/make/xtask/armv6_product.rs"]
+mod armv6_product;
+#[path = "../../../raspberry-pi/make/xtask/armv6_product_physical.rs"]
+mod armv6_product_physical;
 #[path = "../../../raspberry-pi/make/xtask/armv6_rpi_b_plus_a0.rs"]
 mod armv6_rpi_b_plus_a0;
 #[path = "../../../raspberry-pi/make/xtask/armv6_rpi_b_plus_image.rs"]
@@ -188,6 +192,10 @@ struct FlashArgs {
 
 #[derive(Args, Debug, Clone)]
 struct RpiPhysicalProofArgs {
+    /// Verify the normal product framebuffer and startup workload instead of A3.
+    #[arg(long)]
+    product: bool,
+
     /// Exact BCM2835 board expected on the UART attachment.
     #[arg(long, value_enum)]
     board: armv6_rpi_board::Armv6RpiBoard,
@@ -197,7 +205,7 @@ struct RpiPhysicalProofArgs {
     serial_device: PathBuf,
 
     /// Finite capture deadline in seconds.
-    #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=120))]
+    #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=600))]
     timeout_seconds: u64,
 }
 
@@ -518,12 +526,23 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 )),
             }
         }
-        ConduitosCommand::RpiPhysicalProof(proof) => armv6_rpi_physical::execute(
-            proof.board,
-            &proof.serial_device,
-            proof.timeout_seconds,
-            opts,
-        ),
+        ConduitosCommand::RpiPhysicalProof(proof) => {
+            if proof.product {
+                armv6_product_physical::execute(
+                    proof.board,
+                    &proof.serial_device,
+                    proof.timeout_seconds,
+                    opts,
+                )
+            } else {
+                armv6_rpi_physical::execute(
+                    proof.board,
+                    &proof.serial_device,
+                    proof.timeout_seconds,
+                    opts,
+                )
+            }
+        }
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
         ConduitosCommand::JourneyProof(args) => {

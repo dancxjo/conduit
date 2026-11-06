@@ -3,6 +3,8 @@ use conduit_host_make::{
     PostBuildAction, SporeOutputKind, TargetDescriptor,
 };
 
+pub const MAKE_PACKAGE_REVISION: u32 = 5;
+
 pub const B_PLUS_TARGET: &str = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
 pub const B_PLUS_LINUX_TARGET: &str = "std/armv6/raspberry-pi-model-b-plus-v1.2";
 pub const PI3_AARCH64_TARGET: &str = "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3";
@@ -25,8 +27,21 @@ fn bare_metal_target(label: &str, machine: &str) -> TargetDescriptor {
         board: Some(machine.into()),
         os: None,
         host_core: "host-core/conduitos@1".into(),
-        presenter: None,
-        host_calls: Vec::new(),
+        presenter: (machine == "raspberry-pi-model-b-plus-v1.2").then(|| {
+            conduit_host_make::TargetPresenter {
+                id: "presenter/main".into(),
+                implementation_id: "presenter/linear-serial@1".into(),
+                interactive: false,
+            }
+        }),
+        host_calls: if machine == "raspberry-pi-model-b-plus-v1.2" {
+            vec![
+                "conduit.host/present@1".into(),
+                "conduit.host/native-startup-chime@1".into(),
+            ]
+        } else {
+            Vec::new()
+        },
         toolchain_identity: "rustc:stable+armv6-none-eabi+rust-lld".into(),
         builder_adapter: "conduit-host-raspberry-pi/build-sd-image@1".into(),
         strategy: conduit_host_make::MakeStrategy::DeterministicSpecializedBuild,
@@ -127,7 +142,7 @@ impl HostMakePackage for RaspberryPiMakePackage {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Anchor(MakeAnchor {
             package_id: "conduit-host-raspberry-pi@1".into(),
-            package_revision: 4,
+            package_revision: MAKE_PACKAGE_REVISION,
             catalog: Default::default(),
             targets: vec![
                 b_plus_linux_target(),
@@ -163,6 +178,14 @@ impl HostMakePackage for RaspberryPiMakePackage {
                 bare_metal_target("Raspberry Pi Zero WH v1.1", "raspberry-pi-zero-wh-v1.1"),
             ],
             offers: vec![
+                ImplementationOffer {
+                    base_kind: "audio/pcm-output".into(),
+                    implementation_id: "raspberry-pi/pwm-jack@1".into(),
+                    implementation_revision: 1,
+                    target_patterns: vec![B_PLUS_TARGET.into()],
+                    prerequisites: Vec::new(),
+                    build_feature: Some("base-pwm-audio".into()),
+                },
                 ImplementationOffer {
                     base_kind: "serial/text".into(),
                     implementation_id: "raspberry-pi/pl011@1".into(),

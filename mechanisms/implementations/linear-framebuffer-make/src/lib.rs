@@ -12,6 +12,7 @@ fn package_catalog() -> PackageCatalogContribution {
         "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
         "conduitos/x86_64/pc".into(),
         "conduitos/aarch64/virt".into(),
+        "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
         "conduitos/ia32/pc".into(),
         "conduitos/riscv64/virt".into(),
         "conduitos/loongarch64/virt".into(),
@@ -69,6 +70,7 @@ fn package_catalog() -> PackageCatalogContribution {
                     "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
                     "conduitos/x86_64/pc".into(),
                     "conduitos/aarch64/virt".into(),
+                    "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
                     "conduitos/ia32/pc".into(),
                     "conduitos/riscv64/virt".into(),
                     "conduitos/loongarch64/virt".into(),
@@ -104,12 +106,13 @@ impl HostMakePackage for LinearFramebufferMakeExtension {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Extension(MakeExtension {
             package_id: "conduit-linear-framebuffer@1".into(),
-            package_revision: 1,
+            package_revision: 2,
             catalog: package_catalog(),
             compatible_target_patterns: vec![
                 "std/*/*".into(),
                 "conduitos/x86_64/pc".into(),
                 "conduitos/aarch64/virt".into(),
+                "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
                 "conduitos/ia32/pc".into(),
                 "conduitos/riscv64/virt".into(),
                 "conduitos/loongarch64/virt".into(),
@@ -123,6 +126,7 @@ impl HostMakePackage for LinearFramebufferMakeExtension {
                     "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
                     "conduitos/x86_64/pc".into(),
                     "conduitos/aarch64/virt".into(),
+                    "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
                     "conduitos/ia32/pc".into(),
                     "conduitos/riscv64/virt".into(),
                     "conduitos/loongarch64/virt".into(),

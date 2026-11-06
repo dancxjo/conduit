@@ -148,7 +148,7 @@ pub fn execute(
     Ok(())
 }
 
-fn inspect_serial(path: &Path) -> Result<(), ConduitosError> {
+pub(super) fn inspect_serial(path: &Path) -> Result<(), ConduitosError> {
     let metadata =
         fs::metadata(path).map_err(|error| refusal("serial-device-unavailable", error))?;
     if !metadata.file_type().is_char_device() {
@@ -160,7 +160,7 @@ fn inspect_serial(path: &Path) -> Result<(), ConduitosError> {
     Ok(())
 }
 
-fn configure_serial(path: &Path) -> Result<(), ConduitosError> {
+pub(super) fn configure_serial(path: &Path) -> Result<(), ConduitosError> {
     let status = Command::new("stty")
         .args(["-F"])
         .arg(path)

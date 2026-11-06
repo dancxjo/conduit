@@ -121,8 +121,8 @@ mod tests {
     use super::*;
     use crate::make::{
         ALL_KNOWN_IMPLEMENTATIONS, BASE_DISPLAY_SCANOUT, DRIVER_LINEAR_FRAMEBUFFER,
-        FACILITY_NATIVE_COMPOSITOR, IMPL_HTTP_CLIENT, IMPL_LINEAR_PRESENTER, MAKE_SCHEMA,
-        PRESENTER_NATIVE_GRAPHICAL, RESOURCE_FACE_SURFACE,
+        FACILITY_NATIVE_COMPOSITOR, IMPL_HTTP_CLIENT, IMPL_LINEAR_PRESENTER, IMPL_STARTUP_CHIME,
+        MAKE_SCHEMA, PRESENTER_NATIVE_GRAPHICAL, RESOURCE_FACE_SURFACE,
     };
 
     fn make() -> MakeRecord {
@@ -132,7 +132,10 @@ mod tests {
             build_id: "build:sha256:test",
             image_binding: "image:sha256:test",
             target: "conduitos/x86_64/pc",
-            implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT,
+            implementations: ALL_KNOWN_IMPLEMENTATIONS
+                & !IMPL_LINEAR_PRESENTER
+                & !IMPL_HTTP_CLIENT
+                & !IMPL_STARTUP_CHIME,
             facilities: FACILITY_NATIVE_COMPOSITOR,
             resources: RESOURCE_FACE_SURFACE,
             bases: BASE_DISPLAY_SCANOUT,
