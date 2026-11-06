@@ -52,3 +52,8 @@ pub mod isochronous;
 
 #[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
 pub(crate) mod dwc2_control;
+
+#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+pub(crate) mod dwc2_endpoint_read;
+
+pub mod control_source_plan;

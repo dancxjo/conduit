@@ -40,6 +40,8 @@ pub(crate) struct EndpointReadAttachment {
     pub slot: u8,
     pub generation: u64,
     pub endpoint_generation: u64,
+    /// Internal IN endpoint key, `2 * endpoint_number + 1`. This matches xHCI
+    /// DCI numbering but grants no controller configuration or authority.
     pub endpoint_dci: u8,
     pub maximum_data_bytes: u16,
     pub resource_bytes: u64,
@@ -76,6 +78,10 @@ pub struct EndpointReadCallOwner {
 }
 
 impl EndpointReadCallOwner {
+    pub(crate) fn native_attachment(&self) -> EndpointReadAttachment {
+        self.attachment
+    }
+
     /// Inspect the original lease; revoking its table is not retirement.
     pub(crate) fn has_pending_lease(&self) -> bool {
         self.pending.is_some()
@@ -84,10 +90,12 @@ impl EndpointReadCallOwner {
     /// Bind existing possession and an actual native attachment before Play.
     ///
     /// # Safety
-    /// The native composition root must own this exact controller/slot, inbound interrupt or bulk endpoint and DMA
-    /// storage under the claim's resource generation/envelope. No request may
-    /// choose another slot, endpoint, generation or buffer. The physical owner must retain DMA/rings
-    /// until acknowledged hardware quiescence, including on software revocation,
+    /// The native composition root must own this exact controller/slot, inbound
+    /// interrupt or bulk endpoint, and native transfer storage under the claim's
+    /// resource generation/envelope. No request may choose another slot, endpoint,
+    /// generation or buffer. The physical owner must retain transfer storage
+    /// (including DMA/rings when used) until acknowledged hardware quiescence,
+    /// including on software revocation,
     /// provider loss and timeout. This constructor grants no resource authority
     /// and does not provide hostile-code containment in a shared address space.
     #[allow(dead_code)] // native composition installation remains a separate step

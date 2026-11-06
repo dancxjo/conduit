@@ -11,6 +11,7 @@ fn route() -> RootControlRoute {
         generation: 7,
         address: 0,
         maximum_packet: 8,
+        translator: None,
     }
 }
 fn completed(bytes: Option<&[u8]>) -> (u32, Vec<u32>, Vec<u32>) {

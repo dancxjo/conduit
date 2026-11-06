@@ -179,3 +179,16 @@ fn overcurrent_removes_power_and_fences_further_packets() {
         Err(PacketError::NotPrepared)
     );
 }
+
+#[test]
+fn pio_transfer_complete_is_followed_by_explicit_channel_halt() {
+    let mut c = controller();
+    c.io.finish = 1;
+    assert_eq!(c.root_packet(packet(false), &mut [7; 4]), Ok(4));
+    assert!(
+        c.io.writes
+            .iter()
+            .any(|(offset, bits)| *offset == CHARACTER && bits & HALT != 0)
+    );
+    assert!(c.is_quiescent());
+}

@@ -77,6 +77,21 @@ pointer seam without interpreting reports. Expression and conversion allocation
 checks pass. Ordinary two-capture device installation remains pending; these
 fixtures establish Source/kernel behavior, not native endpoint execution.
 
+The unsigned absolute-contact profile shares this pointer contract. Its
+`hid-absolute-layout` package scans at most 32 descriptor items through one
+existing seeded state cell; it admits one Tip Switch and byte-aligned unsigned
+X/Y fields, with ranges and offsets learned from usages. It refuses unsupported
+report layouts rather than treating this prefix as full descriptor validation.
+`hid-absolute-report.conduit` preserves short/malformed/other-report observations,
+then delegates position and button history to the existing mouse pointer output.
+`hid-input-profile.conduit` selects a full-speed/low-speed interrupt IN endpoint
+from the existing checked configuration topology, with four interface and eight
+endpoint slots. High-speed polling is explicitly outside that selection profile.
+CPU conformance covers bounded kernel scanning, layout/range changes, press and
+release, selected endpoint geometry, current native admission, and zero
+allocations during Play. B+ product installation and physical touchscreen proof
+remain pending; these checks do not establish either.
+
 Existing report conformance covers every key-slot permutation and motion octet.
 Both class topologies also execute 64 frames through the production kernel with
 normal closure and zero allocations during Play. Held output acknowledgements

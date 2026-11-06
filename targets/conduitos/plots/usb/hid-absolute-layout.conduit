@@ -1,0 +1,95 @@
+# Status: 0 scanning, 1 ready, 2 short, 3 malformed, 4 unsupported, 5 pressure.
+type UsbAbsoluteHidLayoutState = {
+    wire: sequence U8 <= 256
+    actual: U64
+    cursor: U64
+    records: U64
+    status: U8
+    page: U64
+    usage: U64
+    usage-range: Boolean
+    minimum-zero: Boolean
+    maximum: U16
+    maximum-valid: Boolean
+    size: U64
+    count: U64
+    report: U8
+    bits: U64
+    depth: U64
+    touch-depth: U64
+    tip-depth: U64
+    have-tip: Boolean
+    have-x: Boolean
+    have-y: Boolean
+    layout-report: U8
+    tip-byte: U64
+    tip-mask: U8
+    x-byte: U64
+    y-byte: U64
+    x-width: U8
+    y-width: U8
+    maximum-x: U16
+    maximum-y: U16
+    terminal: Boolean
+}
+type UsbAbsoluteHidItem = {
+    header: U8
+    length: U64
+    value: U64
+    low: U8
+    high: U8
+    end: Boolean
+    truncated: Boolean
+}
+type UsbAbsoluteHidStepInput = {
+    state: UsbAbsoluteHidLayoutState
+    item: UsbAbsoluteHidItem
+}
+type UsbAbsoluteHidClassified = {
+    phase: U8
+    state: UsbAbsoluteHidLayoutState
+    item: UsbAbsoluteHidItem
+    tip: Boolean
+    x: Boolean
+    y: Boolean
+    tip-candidate: Boolean
+    x-candidate: Boolean
+    y-candidate: Boolean
+    malformed: Boolean
+    unsupported: Boolean
+}
+plot usb-hid-absolute-layout-start (
+    input: UsbHidDescriptorTransfer...| >> result: UsbAbsoluteHidLayoutState...|
+) = ({ wire: .wire, actual: .actual, cursor: 0, records: 0, status: (.actual > 256 || .actual != sequence/length(.wire)) ? 3 : 0, page: 0, usage: 0, usage-range: false, minimum-zero: false, maximum: 0, maximum-valid: false, size: 0, count: 0, report: 0, bits: 0, depth: 0, touch-depth: 0, tip-depth: 0, have-tip: false, have-x: false, have-y: false, layout-report: 0, tip-byte: 0, tip-mask: 0, x-byte: 0, y-byte: 0, x-width: 0, y-width: 0, maximum-x: 0, maximum-y: 0, terminal: (.actual > 256 || .actual != sequence/length(.wire)) })
+plot usb-hid-absolute-layout-load (
+    input: UsbAbsoluteHidLayoutState...| >> result: UsbAbsoluteHidStepInput...|
+) = ({ state: ., item: (.status != 0 || .cursor >= .actual) ? { header: 0, length: 0, value: 0, low: 0, high: 0, end: .cursor >= .actual, truncated: false } : { header: sequence/at(.wire, .cursor), length: value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)), value: (.cursor + 1 + value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)) <= .actual) ? ((value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)) > 0 ? value/u64(sequence/at(.wire, .cursor + 1)) * 1 : 0) + (value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)) > 1 ? value/u64(sequence/at(.wire, .cursor + 2)) * 256 : 0) + (value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)) > 2 ? value/u64(sequence/at(.wire, .cursor + 3)) * 65536 : 0) + (value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)) > 3 ? value/u64(sequence/at(.wire, .cursor + 4)) * 16777216 : 0)) : 0, low: (.cursor + 1 + value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)) <= .actual) && value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)) > 0 ? sequence/at(.wire, .cursor + 1) : 0, high: (.cursor + 1 + value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)) <= .actual) && value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)) > 1 ? sequence/at(.wire, .cursor + 2) : 0, end: false, truncated: .cursor + 1 + value/u64((sequence/at(.wire, .cursor) & 3) == 3 ? (sequence/at(.wire, .cursor) & 0) + 4 : (sequence/at(.wire, .cursor) & 3)) > .actual } })
+plot usb-hid-absolute-layout-classify (
+    input: UsbAbsoluteHidStepInput...| >> result: UsbAbsoluteHidClassified...|
+) = ({ phase: .state.status != 0 ? .state.status : .state.records >= 32 ? 5 : .item.end ? 4 : .item.truncated ? 2 : 0, state: .state, item: .item, tip: (((((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 8) && (.state.touch-depth > 0 && .state.depth >= .state.touch-depth)) && (!.state.have-tip && (.state.page == 13 && .state.usage == 66))) && (((.item.value & 7) == 2 && !.state.usage-range) && (.state.minimum-zero && .state.maximum-valid))) && (.state.size == 1 && (.state.count == 1 && .state.maximum == 1))), x: (((((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 8) && (((.state.touch-depth > 0 && .state.depth >= .state.touch-depth) && .state.have-tip) && (.state.depth >= .state.tip-depth && .state.report == .state.layout-report))) && (.state.page == 1 && .state.usage == 48)) && (!.state.have-x && (((.item.value & 7) == 2 && !.state.usage-range) && (.state.minimum-zero && .state.maximum-valid)))) && ((.state.size == 8 || .state.size == 16) && (.state.count == 1 && .state.bits % 8 == 0))), y: (((((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 8) && (((.state.touch-depth > 0 && .state.depth >= .state.touch-depth) && .state.have-tip) && (.state.depth >= .state.tip-depth && .state.report == .state.layout-report))) && (.state.page == 1 && .state.usage == 49)) && (!.state.have-y && (((.item.value & 7) == 2 && !.state.usage-range) && (.state.minimum-zero && .state.maximum-valid)))) && ((.state.size == 8 || .state.size == 16) && (.state.count == 1 && .state.bits % 8 == 0))), tip-candidate: (((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 8) && (.state.touch-depth > 0 && .state.depth >= .state.touch-depth)) && (!.state.have-tip && (.state.page == 13 && .state.usage == 66))), x-candidate: ((((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 8) && (((.state.touch-depth > 0 && .state.depth >= .state.touch-depth) && .state.have-tip) && (.state.depth >= .state.tip-depth && .state.report == .state.layout-report))) && (.state.page == 1 && .state.usage == 48)) && !.state.have-x), y-candidate: ((((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 8) && (((.state.touch-depth > 0 && .state.depth >= .state.touch-depth) && .state.have-tip) && (.state.depth >= .state.tip-depth && .state.report == .state.layout-report))) && (.state.page == 1 && .state.usage == 49)) && !.state.have-y), malformed: (((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 12) && .state.depth == 0) || ((((.item.header / 4) & 3) == 1 && (.item.header / 16) == 8) && (.item.value == 0 || .item.value > 255))), unsupported: ((((((.item.header / 4) & 3) == 1 && (.item.header / 16) == 10) || (((.item.header / 4) & 3) == 1 && (.item.header / 16) == 11)) || ((((.item.header / 4) & 3) == 2 && (.item.header / 16) == 10) || (((((.item.header / 4) & 3) == 2 && (.item.header / 16) == 0) && .item.value > 65535) || ((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 8) && ((.state.size == 0 || .state.size > 32) || (.state.count == 0 || (.state.count > 512 || .state.bits + .state.size * .state.count + (.state.report == 0 ? 0 : 8) > 512))))))) || ((((((.item.header / 4) & 3) == 1 && (.item.header / 16) == 8) && (.state.have-tip && .item.value != value/u64(.state.report))) || ((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 12) && (.state.have-tip && .state.depth <= .state.tip-depth))) || (((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 10) && .state.depth >= 8) || (((.item.header / 4) & 3) == 3 || .item.header == 254)))) })
+plot usb-hid-absolute-layout-step (
+    input: UsbAbsoluteHidClassified...| >> result: UsbAbsoluteHidLayoutState...|
+) = (.phase != 0 ? { wire: .state.wire, actual: .state.actual, cursor: .state.cursor, records: .state.records, status: .phase, page: .state.page, usage: .state.usage, usage-range: .state.usage-range, minimum-zero: .state.minimum-zero, maximum: .state.maximum, maximum-valid: .state.maximum-valid, size: .state.size, count: .state.count, report: .state.report, bits: .state.bits, depth: .state.depth, touch-depth: .state.touch-depth, tip-depth: .state.tip-depth, have-tip: .state.have-tip, have-x: .state.have-x, have-y: .state.have-y, layout-report: .state.layout-report, tip-byte: .state.tip-byte, tip-mask: .state.tip-mask, x-byte: .state.x-byte, y-byte: .state.y-byte, x-width: .state.x-width, y-width: .state.y-width, maximum-x: .state.maximum-x, maximum-y: .state.maximum-y, terminal: true } : .malformed ? { wire: .state.wire, actual: .state.actual, cursor: .state.cursor, records: .state.records, status: 3, page: .state.page, usage: .state.usage, usage-range: .state.usage-range, minimum-zero: .state.minimum-zero, maximum: .state.maximum, maximum-valid: .state.maximum-valid, size: .state.size, count: .state.count, report: .state.report, bits: .state.bits, depth: .state.depth, touch-depth: .state.touch-depth, tip-depth: .state.tip-depth, have-tip: .state.have-tip, have-x: .state.have-x, have-y: .state.have-y, layout-report: .state.layout-report, tip-byte: .state.tip-byte, tip-mask: .state.tip-mask, x-byte: .state.x-byte, y-byte: .state.y-byte, x-width: .state.x-width, y-width: .state.y-width, maximum-x: .state.maximum-x, maximum-y: .state.maximum-y, terminal: true } : (.unsupported || (.tip-candidate && !.tip) || (.x-candidate && !.x) || (.y-candidate && !.y)) ? { wire: .state.wire, actual: .state.actual, cursor: .state.cursor, records: .state.records, status: 4, page: .state.page, usage: .state.usage, usage-range: .state.usage-range, minimum-zero: .state.minimum-zero, maximum: .state.maximum, maximum-valid: .state.maximum-valid, size: .state.size, count: .state.count, report: .state.report, bits: .state.bits, depth: .state.depth, touch-depth: .state.touch-depth, tip-depth: .state.tip-depth, have-tip: .state.have-tip, have-x: .state.have-x, have-y: .state.have-y, layout-report: .state.layout-report, tip-byte: .state.tip-byte, tip-mask: .state.tip-mask, x-byte: .state.x-byte, y-byte: .state.y-byte, x-width: .state.x-width, y-width: .state.y-width, maximum-x: .state.maximum-x, maximum-y: .state.maximum-y, terminal: true } : { wire: .state.wire, actual: .state.actual, cursor: .state.cursor + 1 + .item.length, records: .state.records + 1, status: ((.state.have-tip || .tip) && (.state.have-x || .x) && (.state.have-y || .y)) ? 1 : 0, page: (((.item.header / 4) & 3) == 1 && (.item.header / 16) == 0) ? .item.value : .state.page, usage: (((.item.header / 4) & 3) == 0) ? 0 : (((.item.header / 4) & 3) == 2 && (.item.header / 16) == 0) ? .item.value : .state.usage, usage-range: (((.item.header / 4) & 3) == 0) ? false : ((((.item.header / 4) & 3) == 2 && (.item.header / 16) == 1) || (((.item.header / 4) & 3) == 2 && (.item.header / 16) == 2)) ? true : .state.usage-range, minimum-zero: (((.item.header / 4) & 3) == 1 && (.item.header / 16) == 1) ? .item.value == 0 : .state.minimum-zero, maximum: (((.item.header / 4) & 3) == 1 && (.item.header / 16) == 2) ? value/u16(.item.low) + value/u16(.item.high) * 256 : .state.maximum, maximum-valid: (((.item.header / 4) & 3) == 1 && (.item.header / 16) == 2) ? (.item.value > 0 && .item.value <= 65535) : .state.maximum-valid, size: (((.item.header / 4) & 3) == 1 && (.item.header / 16) == 7) ? .item.value : .state.size, count: (((.item.header / 4) & 3) == 1 && (.item.header / 16) == 9) ? .item.value : .state.count, report: (((.item.header / 4) & 3) == 1 && (.item.header / 16) == 8) ? .item.low : .state.report, bits: (((.item.header / 4) & 3) == 1 && (.item.header / 16) == 8) && .item.value != value/u64(.state.report) ? 0 : (((.item.header / 4) & 3) == 0 && (.item.header / 16) == 8) ? .state.bits + .state.size * .state.count : .state.bits, depth: (((.item.header / 4) & 3) == 0 && (.item.header / 16) == 10) ? .state.depth + 1 : (((.item.header / 4) & 3) == 0 && (.item.header / 16) == 12) ? .state.depth - 1 : .state.depth, touch-depth: ((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 10) && .item.value == 1 && .state.page == 13 && (.state.usage == 4 || .state.usage == 5)) ? .state.depth + 1 : ((((.item.header / 4) & 3) == 0 && (.item.header / 16) == 12) && .state.depth == .state.touch-depth) ? 0 : .state.touch-depth, tip-depth: .tip ? .state.depth : .state.tip-depth, have-tip: .state.have-tip || .tip, have-x: .state.have-x || .x, have-y: .state.have-y || .y, layout-report: .tip ? .state.report : .state.layout-report, tip-byte: .tip ? .state.bits / 8 + (.state.report == 0 ? 0 : 1) : .state.tip-byte, tip-mask: .tip ? ((.state.bits % 8 < 4 ? (.state.bits % 8 < 2 ? (.state.bits % 8 < 1 ? 1 : 2) : (.state.bits % 8 < 3 ? 4 : 8)) : (.state.bits % 8 < 6 ? (.state.bits % 8 < 5 ? 16 : 32) : (.state.bits % 8 < 7 ? 64 : 128)))) : .state.tip-mask, x-byte: .x ? .state.bits / 8 + (.state.report == 0 ? 0 : 1) : .state.x-byte, y-byte: .y ? .state.bits / 8 + (.state.report == 0 ? 0 : 1) : .state.y-byte, x-width: .x ? (.state.size == 8 ? 1 : 2) : .state.x-width, y-width: .y ? (.state.size == 8 ? 1 : 2) : .state.y-width, maximum-x: .x ? .state.maximum : .state.maximum-x, maximum-y: .y ? .state.maximum : .state.maximum-y, terminal: ((.state.have-tip || .tip) && (.state.have-x || .x) && (.state.have-y || .y)) || .state.records + 1 >= 32 })
+plot usb-hid-absolute-layout-finish (
+    input: UsbAbsoluteHidLayoutState...| >> result: UsbAbsoluteHidLayoutResult...|
+) = (.status == 1 ? layout({ report-id: .layout-report, tip-byte: .tip-byte, tip-mask: .tip-mask, x-byte: .x-byte, y-byte: .y-byte, x-width: .x-width, y-width: .y-width, maximum-x: .maximum-x, maximum-y: .maximum-y }) : .status == 2 ? short(empty) : .status == 3 ? malformed(empty) : .status == 4 ? unsupported(empty) : pressure(empty))
+
+type UsbAbsoluteHidScanRoute =
+    scanning UsbAbsoluteHidLayoutState
+    | finished UsbAbsoluteHidLayoutState
+plot usb-hid-absolute-layout-route (
+    state: UsbAbsoluteHidLayoutState...| >> route: UsbAbsoluteHidScanRoute...|
+) = (.terminal ? finished(.) : scanning(.))
+
+# The existing seeded state operation reuses the bounded stages. It does not
+# instantiate a separate set of programs for each descriptor item.
+plot usb-hid-absolute-layout (
+    input: UsbHidDescriptorTransfer...| >> result: UsbAbsoluteHidLayoutResult...|
+) {
+    cell: state/seeded/flow/until
+    route: usb-hid-absolute-layout-route()
+    input >> usb-hid-absolute-layout-start() >> cell.seed
+    cell.current >> route
+    route >> select(UsbAbsoluteHidScanRoute.scanning, unmatched=drop) >> usb-hid-absolute-layout-load() >> usb-hid-absolute-layout-classify() >> usb-hid-absolute-layout-step() >> cell.next
+    route >> select(UsbAbsoluteHidScanRoute.finished, unmatched=drop) >> usb-hid-absolute-layout-finish() >> result
+}

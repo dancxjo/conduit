@@ -1,6 +1,6 @@
 //! One polling/PIO packet on the directly attached high-speed device.
 //! No descriptors, requests, address allocation, retries or class policy.
-use super::{Controller, POLL_LIMIT, RegisterIo, registers::*};
+use super::{Controller, EndpointRoute, POLL_LIMIT, RegisterIo, TransferType, registers::*};
 pub(super) const CHARACTER: usize = 0x500;
 const SPLIT: usize = 0x504;
 pub(super) const STATUS: usize = 0x508;
@@ -29,6 +29,7 @@ impl PacketPid {
 }
 /// Root-selected routing geometry, never constructed from a serialized claim.
 /// Split transactions and periodic scheduling are deliberately separate work.
+#[cfg(test)]
 #[derive(Clone, Copy, Debug)]
 pub struct RootPacket {
     pub address: u8,
@@ -52,24 +53,48 @@ pub enum PacketError {
     WorkPressure,
     Retirement,
 }
+#[derive(Clone, Copy)]
+pub(super) struct WirePacket {
+    pub route: EndpointRoute,
+    pub pid: PacketPid,
+    pub input: bool,
+    pub split: u32,
+    pub start_split: bool,
+}
 impl<I: RegisterIo> Controller<I> {
     /// Synchronously transfers one EP0 packet, at most 64 bytes. Channel zero
     /// is held exclusively through acknowledged halt. No DMA or allocation.
     /// A refusal never silently resubmits a packet or changes its DATA PID.
+    #[cfg(test)]
     pub fn root_packet(
         &mut self,
         packet: RootPacket,
         bytes: &mut [u8],
     ) -> Result<usize, PacketError> {
+        self.packet_on(
+            EndpointRoute::control(packet.address, packet.maximum_packet),
+            packet.pid,
+            packet.input,
+            bytes,
+        )
+    }
+    pub(super) fn wire_packet(
+        &mut self,
+        packet: WirePacket,
+        bytes: &mut [u8],
+    ) -> Result<usize, PacketError> {
         if !self.prepared {
             return Err(PacketError::NotPrepared);
         }
-        if packet.address > 127
-            || packet.maximum_packet == 0
-            || packet.maximum_packet > 64
-            || bytes.len() > usize::from(packet.maximum_packet)
-            || (packet.input && bytes.len() != usize::from(packet.maximum_packet))
-            || (packet.pid == PacketPid::Setup && (packet.input || bytes.len() != 8))
+        if packet.route.address > 127
+            || packet.route.maximum_packet == 0
+            || packet.route.maximum_packet > 64
+            || bytes.len() > usize::from(packet.route.maximum_packet)
+            || (packet.input && bytes.len() != usize::from(packet.route.maximum_packet))
+            || (packet.pid == PacketPid::Setup
+                && (packet.input
+                    || packet.route.transfer_type != TransferType::Control
+                    || (bytes.len() != 8 && !(packet.split & (1 << 16) != 0 && bytes.is_empty()))))
         {
             return Err(PacketError::Geometry);
         }
@@ -91,22 +116,31 @@ impl<I: RegisterIo> Controller<I> {
             self.prepared = false;
             return Err(PacketError::Retirement);
         }
-        if !packet.input {
-            let space = self.io.read(TX_SPACE);
-            if space & 0xffff < bytes.len().div_ceil(4) as u32 || (space >> 16) & 0xff == 0 {
-                return Err(PacketError::WorkPressure);
-            }
+        let periodic = packet.route.transfer_type == TransferType::Interrupt;
+        let space = self.io.read(if periodic { 0x410 } else { TX_SPACE });
+        if (space >> 16) & 0xff == 0
+            || (!packet.input && space & 0xffff < bytes.len().div_ceil(4) as u32)
+        {
+            return Err(PacketError::WorkPressure);
         }
         self.io.write(STATUS, 0x7ff);
-        self.io.write(SPLIT, 0);
+        self.io.write(SPLIT, packet.split);
         self.io.write(
             SIZE,
             (packet.pid.bits() << 29) | (1 << 19) | bytes.len() as u32,
         );
         let characteristic = (1 << 20)
-            | u32::from(packet.maximum_packet)
+            | u32::from(packet.route.maximum_packet)
             | (u32::from(packet.input) << 15)
-            | (u32::from(packet.address) << 22);
+            | (u32::from(packet.route.address) << 22)
+            | (u32::from(packet.route.endpoint) << 11)
+            | (packet.route.transfer_type.bits() << 18)
+            | (u32::from(packet.route.translator.is_some_and(|tt| tt.low_speed)) << 17)
+            | if periodic {
+                ((self.io.read(0x408) + 1) & 1) << 29
+            } else {
+                0
+            };
         self.quiescent = false;
         self.io.write(CHARACTER, characteristic | ENABLE);
         if !packet.input {
@@ -116,17 +150,17 @@ impl<I: RegisterIo> Controller<I> {
                 self.io.write(FIFO, u32::from_le_bytes(word));
             }
         }
-        let result = self.poll_packet(packet.input, bytes);
+        let result = self.poll_packet(
+            packet.input && !packet.start_split,
+            packet.start_split,
+            bytes,
+        );
         // Even timeout, removal and malformed FIFO observations must retire the
         // hardware channel before another caller can reuse it. Otherwise fence
         // this controller until a fresh machine-level reset/ownership epoch.
         let halted = self.io.read(STATUS) & HALTED != 0;
         let active = self.io.read(CHARACTER) & ENABLE != 0;
-        if !halted && !active {
-            self.prepared = false;
-            return Err(PacketError::Retirement);
-        }
-        if active {
+        if !halted || active {
             self.io.write(CHARACTER, characteristic | ENABLE | HALT);
             if self.wait(STATUS, HALTED, HALTED, 100_000).is_err()
                 || self.io.read(CHARACTER) & ENABLE != 0
@@ -150,7 +184,12 @@ impl<I: RegisterIo> Controller<I> {
         self.io.write(STATUS, 0x7ff);
         result
     }
-    fn poll_packet(&mut self, input: bool, bytes: &mut [u8]) -> Result<usize, PacketError> {
+    fn poll_packet(
+        &mut self,
+        input: bool,
+        start_split: bool,
+        bytes: &mut [u8],
+    ) -> Result<usize, PacketError> {
         let start = self.io.now_us();
         let mut received = None;
         for _ in 0..POLL_LIMIT {
@@ -201,8 +240,11 @@ impl<I: RegisterIo> Controller<I> {
             if status & 0x784 != 0 {
                 return Err(PacketError::Transaction);
             }
-            if status & HALTED != 0 {
-                if status & 1 == 0 || (!input && self.io.read(SIZE) & 0x7ffff != 0) {
+            if start_split && status & (1 << 5) != 0 {
+                return Ok(0);
+            }
+            if status & 1 != 0 {
+                if !input && self.io.read(SIZE) & 0x7ffff != 0 {
                     return Err(PacketError::Transaction);
                 }
                 return if input {
@@ -210,6 +252,9 @@ impl<I: RegisterIo> Controller<I> {
                 } else {
                     Ok(bytes.len())
                 };
+            }
+            if status & HALTED != 0 {
+                return Err(PacketError::Transaction);
             }
         }
         Err(PacketError::WorkPressure)

@@ -14,6 +14,7 @@ pub enum HidSourceRole {
     /// Eight calls and ordered class state; Root supplies the admitted window.
     KeyboardCapture,
     Mouse,
+    AbsoluteMouse,
 }
 
 impl HidSourceRole {
@@ -22,13 +23,14 @@ impl HidSourceRole {
             Self::KeyboardCapture => "usb-hid-keyboard-capture-window",
             Self::Keyboard => "usb-hid-keyboard-batch-endpoint",
             Self::Mouse => "usb-hid-mouse-endpoint",
+            Self::AbsoluteMouse => "usb-hid-absolute-endpoint",
         }
     }
 }
 
 /// The caller supplies the current initialized endpoint Back and its explicit
 /// authority grants. A checked Plan is not executable possession: the native
-/// Root must separately bind its actual retained DMA and issued Base handle.
+/// Root must separately bind its actual retained controller resources and issued Base handle.
 pub fn prepare(
     role: HidSourceRole,
     host: &HostAdvertisement,
@@ -36,6 +38,7 @@ pub fn prepare(
 ) -> Result<PreparedProtocolArtifact, String> {
     let package = match role {
         HidSourceRole::KeyboardCapture => usb_hid_keyboard_order_package(),
+        HidSourceRole::AbsoluteMouse => crate::protocol_source::usb_hid_absolute_package(),
         _ => usb_hid_endpoint_package(),
     }
     .map_err(|_| "usb-hid-source-package")?;

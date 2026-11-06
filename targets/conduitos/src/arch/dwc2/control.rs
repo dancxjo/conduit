@@ -1,6 +1,6 @@
 //! Finite USB control-transfer mechanics; setup bytes remain opaque protocol.
 //! Source constructs requests and interprets replies through the existing owner.
-use super::{Controller, PacketError, PacketPid, RegisterIo, RootPacket};
+use super::{Controller, EndpointRoute, PacketError, PacketPid, RegisterIo};
 
 impl<I: RegisterIo> Controller<I> {
     /// Selected EP0 routing comes from the native attachment owner. It is not
@@ -11,13 +11,31 @@ impl<I: RegisterIo> Controller<I> {
         &mut self,
         address: u8,
         maximum_packet: u8,
+        setup: [u8; 8],
+        output: &[u8],
+        input: &mut [u8],
+    ) -> Result<usize, PacketError> {
+        self.control_on(
+            EndpointRoute::control(address, maximum_packet),
+            setup,
+            output,
+            input,
+        )
+    }
+    pub fn control_on(
+        &mut self,
+        route: EndpointRoute,
         mut setup: [u8; 8],
         output: &[u8],
         input: &mut [u8],
     ) -> Result<usize, PacketError> {
+        let address = route.address;
+        let maximum_packet = route.maximum_packet;
         let length = usize::from(u16::from_le_bytes([setup[6], setup[7]]));
         let incoming = setup[0] & 0x80 != 0;
-        if address > 127
+        if !route.valid()
+            || route.transfer_type != super::TransferType::Control
+            || address > 127
             || !matches!(maximum_packet, 8 | 16 | 32 | 64)
             || length > 256
             || (incoming && (!output.is_empty() || input.len() < length))
@@ -25,13 +43,12 @@ impl<I: RegisterIo> Controller<I> {
         {
             return Err(PacketError::Geometry);
         }
-        let route = RootPacket {
+        let endpoint = EndpointRoute {
             address,
             maximum_packet,
-            pid: PacketPid::Setup,
-            input: false,
+            ..route
         };
-        self.root_packet(route, &mut setup)?;
+        self.packet_on(endpoint, PacketPid::Setup, false, &mut setup)?;
         let mut actual = 0;
         let mut pid = PacketPid::Data1;
         // At most 32 data packets for the admitted 256-byte / 8-byte envelope.
@@ -40,12 +57,10 @@ impl<I: RegisterIo> Controller<I> {
             let mut bytes = [0; 64];
             let count = remaining.min(usize::from(maximum_packet));
             let transferred = if incoming {
-                let received = self.root_packet(
-                    RootPacket {
-                        pid,
-                        input: true,
-                        ..route
-                    },
+                let received = self.packet_on(
+                    endpoint,
+                    pid,
+                    true,
                     &mut bytes[..usize::from(maximum_packet)],
                 )?;
                 if received > count {
@@ -55,7 +70,7 @@ impl<I: RegisterIo> Controller<I> {
                 received
             } else {
                 bytes[..count].copy_from_slice(&output[actual..actual + count]);
-                self.root_packet(RootPacket { pid, ..route }, &mut bytes[..count])?
+                self.packet_on(endpoint, pid, false, &mut bytes[..count])?
             };
             actual += transferred;
             if incoming && transferred < usize::from(maximum_packet) {
@@ -75,12 +90,10 @@ impl<I: RegisterIo> Controller<I> {
         } else {
             0
         };
-        if self.root_packet(
-            RootPacket {
-                input: status_in,
-                pid: PacketPid::Data1,
-                ..route
-            },
+        if self.packet_on(
+            endpoint,
+            PacketPid::Data1,
+            status_in,
             &mut status[..status_length],
         )? != 0
         {

@@ -1,0 +1,52 @@
+with machine/usb/endpoint-read/request as UsbEndpointReadRequest
+with machine/usb/endpoint-read/result as UsbEndpointReadResult
+with flow/zip/finite/paired as UsbAbsoluteReadPair
+
+# The selected Back owns endpoint identity and ordering. This context carries
+# only descriptor meaning, pointer history and the admitted report extent.
+type UsbAbsoluteReadContext = {
+    layout: UsbAbsoluteHidLayout
+    state: UsbMousePointerState
+    length: U64
+    queue-capacity: U64
+}
+type UsbAbsoluteReadObservation =
+    report UsbAbsoluteReportInput
+    | idle
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+
+plot usb-hid-absolute-endpoint-request (
+    context: UsbAbsoluteReadContext...| <= 4096B >> request: UsbEndpointReadRequest...| <= 4096B
+) = ({ length: .length })
+
+# Retain the exact native result contract at the generic typed join boundary.
+plot usb-hid-absolute-endpoint-completion (
+    native: UsbEndpointReadResult...| <= 4096B >> result: UsbEndpointReadResult...| <= 4096B
+) = (.)
+
+plot usb-hid-absolute-endpoint-observe (
+    pair: UsbAbsoluteReadPair...| >> observation: UsbAbsoluteReadObservation...|
+) = (.1 is completed ? ((.0.length == 0 || .0.length > 64 || .1.completed.actual > .0.length || .1.completed.actual != bytes/length(.1.completed.wire) || (.1.completed.actual < .0.length) != .1.completed.short) ? malformed(empty) : report({ layout: .0.layout, frame: { wire: .1.completed.wire, actual: .1.completed.actual }, state: .0.state, ordinal: .1.completed.ordinal, queue-capacity: .0.queue-capacity })) : .1 is timeout ? idle(empty) : .1 is stalled ? stalled(empty) : .1 is provider-lost ? provider-lost(empty) : unsupported(empty))
+
+plot usb-hid-absolute-endpoint (
+    >> read: UsbAbsoluteReadContext...| <= 4096B
+    received: UsbAbsoluteReadObservation...| >>
+    decoded: UsbAbsoluteReportPreparation...| >>
+    update: UsbMousePointerUpdate...| >>
+) {
+    transfer: machine/usb/endpoint-read
+    join: flow/zip/finite
+    observe: usb-hid-absolute-endpoint-observe()
+    pointer: usb-hid-absolute-report-pointer
+    read >> usb-hid-absolute-endpoint-request() >> transfer.request
+    read >> join.left
+    transfer.result >> usb-hid-absolute-endpoint-completion() >> join.right
+    join.paired >> observe
+    observe >> received
+    observe >> select(UsbAbsoluteReadObservation.report, unmatched=drop) >> pointer.input
+    pointer.observed >> decoded
+    pointer.update >> update
+}

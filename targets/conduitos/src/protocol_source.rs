@@ -378,8 +378,11 @@ mod tests;
 
 mod storage_catalog;
 mod usb_catalog;
+mod usb_enumeration;
+pub use usb_enumeration::usb_enumeration_package;
 mod usb_hid;
 pub use usb_hid::{
+    usb_hid_absolute_descriptor_package, usb_hid_absolute_package, usb_hid_configuration_package,
     usb_hid_endpoint_package, usb_hid_keyboard_order_package, usb_hid_mouse_order_package,
 };
 
