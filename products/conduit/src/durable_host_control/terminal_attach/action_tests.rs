@@ -92,9 +92,14 @@ fn attached_action_replaces_lulled_workset_and_cannot_replay_after_new_show() {
         .attached_terminal_interaction(&replacement, &next_show, interaction)
         .is_err());
     assert!(runtime.terminal_route.is_none());
-    assert!(fs::read_to_string(state.join("body/source.conduit"))
-        .unwrap()
-        .contains("500ms"));
+    let retained: serde_json::Value =
+        serde_json::from_slice(&fs::read(state.join("body/workset-sources.json")).unwrap())
+            .unwrap();
+    assert_eq!(retained["schema"], "conduit.body/workset-sources@1");
+    let entries = retained["entries"].as_array().unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0]["entry"], "clock-demo");
+    assert!(entries[0]["source"].as_str().unwrap().contains("500ms"));
     drop(client);
     retire_closed_attachment(&state, &mut runtime).unwrap();
     fs::remove_dir_all(state).unwrap();
