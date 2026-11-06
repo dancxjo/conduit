@@ -7110,3 +7110,39 @@ Source checkpoints: `d51623b129` (generic store preparation) and `4efb856374`
 (selected-entry consumer and CPU evidence). Native grant issuance, ordinary
 receiver installation/Start/ingress, terminal custody and diagnostic bus turnover
 remain required before the live lifecycle can use this path.
+
+### 2026-11-05 — Explicit mixed-kernel and I2C custody retirement
+
+The shared I2C adapter now follows the existing timer/display retirement
+contract. `I2cHostCall::retire_retained` returns the exact provider and attachment
+once only after explicit capability revocation and zero in-flight operations.
+Unavailable, still-issued, exhausted-but-not-revoked and in-flight states refuse
+without consuming custody. The returned provider retains its quarantine state;
+retirement neither resets hardware nor asserts readiness for another Play.
+This closes a missing adapter operation without adding a scheduler or authority.
+
+Root's bounded mixed-kernel composition now has `cancel_and_retire`. Cancellation
+refusal returns its original boxed kernel and owners. Successful cancellation
+drains the production kernel, retains terminal Signs, returns resident loans,
+and leaves the exact native call in Root's custody for explicit revocation and
+retirement. Resource reservations remain in the original Core ledger throughout.
+Root must not release them based only on transport loss or kernel destruction.
+
+Both CPU mixed fixtures, including the actual five-entry emitted library and
+both node orderings, now exercise that terminal path. They reject native return
+before revocation, explicitly revoke, recover the same inert provider and its
+attachment, preserve quarantine, return all resident identities, and perform no
+binding/execution/retirement allocation. Requested preparation measurements remain
+unchanged (14,548 bytes total for the actual-library fixture). The public firmware
+receiver still installs resident-only execution: this is not a claim that the
+mixed receiver, native authority issuer, authorized Start or physical IO path has
+been installed. Green's live firmware remains unchanged.
+
+Internal qualification: I2C library 20 tests passed (including three retirement
+contracts), strict I2C lib/tests Clippy passed, no-default-features thumbv6m library
+check passed, mixed-native 2 tests passed and owning strict Clippy passed. The
+native-only Root fixture imports mixed-only symbols but does not execute them;
+its module now explicitly scopes unused/dead-code allowances to that CPU fixture.
+Raw logs are retained in ignored `target/mixed-retirement-20261105`.
+Source checkpoints: `463e8f4ea6` (shared adapter) and `ba2950ea11` (Root terminal
+composition and CPU evidence). No device, service or retained credential changed.
