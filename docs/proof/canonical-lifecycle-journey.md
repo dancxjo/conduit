@@ -7397,3 +7397,41 @@ Mixed worker selection/supervision, compact native offer publication, installed
 issuer custody, actual setup funding and authorized input/output still remain.
 This is a necessary delivery-boundary correction, not a claim of an autonomous
 Body instrument or a newly deployed Seed.
+
+### 6 November 2026 — one persistent Root supervision loop
+
+Extracted the installed resident timer/carrier loop into `execution_supervisor`.
+Resident and mixed ownership adapters now use the same lifecycle hooks over the
+existing production kernels. This introduces neither a second scheduler nor
+network lifetime authority. The resident receiver selects this loop in source;
+selection and construction of the mixed profile on that receiver remain open.
+
+The mixed CPU qualification drives the actual shared loop and kernel with
+platform-leaf clock/carrier substitutes: initially disconnected, then connected,
+then disconnected again after the original attribution deadline. Typed output
+matches the portable evaluator; carrier loss preserves both original Core
+reservations. Explicit Root cancellation returns the native and resident owners,
+releases the original reservation scopes, and retains terminal Signs. Execution
+and retirement allocate/reallocate zero times. Already-started handoff does not
+turn attribution expiry into a Play lease or create a second Start.
+
+Both actual resident preparation/supervision and mixed supervision compile in the
+generated no_std CPU crate. Three mixed-native tests and the separate resident
+inventory cancellation test pass. Strict owning Clippy and whole-workspace
+formatting pass. Raw outputs: `target/shared-supervisor-20261106` (ignored).
+The five-entry mixed retained-preparation measurement remains 14,793 bytes;
+this does not measure the complete Root setup or physical heap/stack high-water.
+The separate inventory test reports 21,672 bytes for its generated checked
+library, an 8-byte lease and 16-byte cancelled future; these CPU measurements do
+not replace the installed Green inventory measurement.
+
+No firmware was flashed, no live workset was installed, and no diagnostic
+sensor/display behavior was promoted to admitted Play. Remaining: actual mixed
+receiver selection, initialized native offer publication, Boot-retained issuer
+custody, complete setup funding, authorized stream ingress/egress and physical
+instrument execution through the Body's ordinary authoring/adoption path.
+
+Environment stewardship: after auditing process command/map/environment/file
+references, package-native cleanup removed 327 inactive language build artifacts
+(5.3 GiB), increasing root headroom from 3.9 to 9.1 GiB before qualification.
+Source, private state, evidence and deployed service executables were preserved.

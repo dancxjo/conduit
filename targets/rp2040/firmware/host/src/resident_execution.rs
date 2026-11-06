@@ -54,38 +54,6 @@ pub fn retire_workset<'a, 'o>(
     {
         return false;
     }
-    // Validate the entire release set before modifying the existing ledger.
-    for fragment in terminal.iter().flatten() {
-        let m = fragment.approved.metadata();
-        for resource in conduit_body::PlainFragmentResources::new(m.resource_bindings) {
-            let Ok(resource) = resource else {
-                return false;
-            };
-            if !owner.admissions().iter().any(|a| {
-                a.plan_id.as_str() == m.body_plan && a.placement_id.as_str() == resource.placement
-            }) {
-                return false;
-            }
-        }
-    }
-    for fragment in terminal.iter().flatten() {
-        let m = fragment.approved.metadata();
-        let entries = || conduit_body::PlainFragmentResources::new(m.resource_bindings);
-        for (index, resource) in entries().enumerate() {
-            let resource = resource.expect("preflight checked immutable resource keys");
-            if entries()
-                .take(index)
-                .any(|prior| prior.is_ok_and(|p| p.placement == resource.placement))
-            {
-                continue;
-            }
-            if owner
-                .release_borrowed(m.body_plan, resource.placement, cause)
-                .is_err()
-            {
-                return false;
-            }
-        }
-    }
-    true
+    let fragments = terminal.each_ref().map(|f| f.as_ref().map(|f| &f.approved));
+    crate::retired_resources::release(&fragments, owner, cause)
 }

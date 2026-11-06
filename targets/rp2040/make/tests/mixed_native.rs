@@ -37,10 +37,24 @@ fn disabled_native_issuance_refuses_an_otherwise_approved_workset() {
 }
 fn qualify(library: String, operation_ceiling: u32) {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let resident = include_str!("../../firmware/host/src/resident.rs").replace(
+        "include!(concat!(env!(\"OUT_DIR\"), \"/resident.rs\"));",
+        &library,
+    );
     let generated = format!(
         r#"
 extern crate alloc;
-mod resident{{pub mod generated{{{library}}}}}
+extern crate self as embassy_time;
+#[allow(dead_code)]#[path={platform:?}]pub mod supervisor_platform;
+pub use supervisor_platform::{{Instant,Duration,Timer}};
+mod bootsel{{pub const CONTROL_FRAME_BYTES:usize=128;}}
+mod transport{{pub const LIMIT:usize=4096;pub type Link=crate::supervisor_platform::Link;}}
+#[allow(dead_code)]#[path={supervisor:?}]mod execution_supervisor;
+#[allow(dead_code)]#[path={mixed_supervisor:?}]mod mixed_supervision;
+#[allow(dead_code)]#[path={release:?}]mod retired_resources;
+mod resident{{{resident}}}
+#[allow(dead_code)]#[path={resident_preparation:?}]mod resident_preparation;
+#[allow(dead_code)]#[path={resident_supervisor:?}]mod resident_supervision;
 mod config{{pub const CONFIGURATION_ID:&str="fixture/config";pub const IMAGE_ID:&str="fixture/image";
 pub const I2C_CONTROLLER:u8=1;pub const I2C_CALL_ADDRESS_RANGE:Option<(u8,u8)>=Some((112,119));pub const I2C_CALL_MAXIMUM_OPERATIONS:u32={operation_ceiling};}}
 #[allow(dead_code)]#[path={issuance:?}]mod i2c_issuance;
@@ -48,6 +62,12 @@ pub const I2C_CONTROLLER:u8=1;pub const I2C_CALL_ADDRESS_RANGE:Option<(u8,u8)>=S
 #[allow(dead_code)]#[path={mixed:?}]mod mixed_preparation;
 #[allow(dead_code)]#[path={workset:?}]mod mixed_workset;
 "#,
+        resident_preparation = root.join("../firmware/host/src/resident_preparation.rs"),
+        resident_supervisor = root.join("../firmware/host/src/resident_supervision.rs"),
+        platform = root.join("tests/mixed_native/supervisor_platform.rs"),
+        supervisor = root.join("../firmware/host/src/execution_supervisor.rs"),
+        mixed_supervisor = root.join("../firmware/host/src/mixed_supervision.rs"),
+        release = root.join("../firmware/host/src/retired_resources.rs"),
         issuance = root.join("../firmware/host/src/i2c_issuance.rs"),
         native = root.join("../firmware/host/src/native_preparation.rs"),
         mixed = root.join("../firmware/host/src/mixed_preparation.rs"),
@@ -83,6 +103,11 @@ fn main(){{prepared_values::run();exercise::exercise();}}
             "ed25519_dalek",
             "serde_json",
             "sha2",
+            "serde",
+            "serde_json_core",
+            "heapless",
+            "critical_section",
+            "static_cell",
         ],
     );
 }

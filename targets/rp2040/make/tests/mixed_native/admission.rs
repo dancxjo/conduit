@@ -10,6 +10,8 @@ mod observations;
 mod receiver;
 #[path = "start.rs"]
 mod start;
+#[path = "supervision.rs"]
+mod supervision;
 
 pub fn run(
     context: &body_scope::Context,
@@ -416,7 +418,7 @@ pub fn run(
     };
     let (ingress, incoming) = port(0);
     let (egress, outgoing) = port(1);
-    let mut started = start::check(
+    let started = start::check(
         committed,
         &receiver,
         &retained,
@@ -424,90 +426,23 @@ pub fn run(
         &owner,
         &observations,
     );
-    let ((), cost) = crate::probe::observe(|| {
-        // Once started, later attribution expiry is not an execution lease.
-        let current = receiver.context();
-        assert!(retained
-            .reborrow(
-                current.member,
-                current.actual,
-                &current.bootstrap.owner,
-                b::HOST_PREPARED_WORKSET_CONTRACT,
-                20
-            )
-            .is_err());
-        assert_eq!(owner.admissions().len(), 2);
-        started
-            .bound_mut()
-            .kernel
-            .admit_remote_input(ingress, incoming, 0, values.0)
-            .unwrap();
-        for _ in 0..8 {
-            let decision = started.step().unwrap();
-            assert!(!matches!(
-                decision.dispatch,
-                crate::native_preparation::NativeDispatch::Refused(_)
-            ));
-            if started
-                .bound_mut()
-                .kernel
-                .remote_egress_offer(egress, outgoing)
-                .unwrap()
-                .is_some()
-            {
-                break;
-            }
-        }
-        let offer = started
-            .bound_mut()
-            .kernel
-            .remote_egress_offer(egress, outgoing)
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            started.bound_mut().kernel.host_value(offer.value).unwrap(),
-            values.1
-        );
-        assert_eq!(effects.get(), 1);
-        started
-            .bound_mut()
-            .kernel
-            .remote_egress_accept(egress, outgoing, offer.sequence)
-            .unwrap();
-        started
-            .bound_mut()
-            .kernel
-            .remote_egress_delivered(egress, outgoing, offer.sequence)
-            .unwrap();
-        let retired = started
-            .cancel_and_retire()
-            .unwrap_or_else(|_| panic!("mixed admission fixture not drained"));
-        assert_eq!(
-            retired.approved.metadata().body_play,
-            context.play_id().as_str()
-        );
-        let retired = retired.terminal;
-        assert!(retired.residents_returned);
-        assert!(retired
-            .signs
-            .events()
-            .any(|e| e.kind == KernelEventKind::RunCancelled));
-        let mut call = Some(retired.call);
-        assert!(matches!(
-            conduit_i2c_transaction::owner::I2cHostCall::retire_retained(&mut call),
-            Err(conduit_i2c_transaction::owner::I2cRetirementRefusal::NotRevoked)
-        ));
-        let (provider, _) =
-            conduit_i2c_transaction::owner::I2cHostCall::finish_retained(&mut call).unwrap();
-        assert!(core::ptr::eq(provider.0, &effects));
-        assert!(!provider.1); // Clean retirement preserves usable physical custody.
-        assert!(call.is_none());
-    });
-    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    supervision::exercise(
+        started,
+        policy,
+        receiver.context(),
+        &retained,
+        &mut owner,
+        supervision::Flow {
+            ingress: (ingress, incoming),
+            egress: (egress, outgoing),
+            input: values.0,
+            expected: values.1,
+        },
+    );
+
     assert_eq!(effects.get(), 1);
-    // Reservations are permanent ledger custody, not a scope that drops with a
-    // carrier/kernel. Release remains Root's separate terminal/provider decision.
-    assert_eq!(owner.admissions().len(), 2);
+    // Only explicit Root retirement released the original ledger scope.
+    assert!(owner.admissions().is_empty());
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
     println!("complete signed mixed workset: {} bytes; {kernel_bytes} kernel/native backing plus Core bridge base {total}, with owned observations within {observed_total} requested-byte bound; missing/low evidence and one-byte shortage preserve both owners; original Body Plan/Play reservations survive typed CPU execution and kernel retirement; no physical Start",document.bytes().len());
 }

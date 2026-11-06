@@ -16,6 +16,7 @@ mod credential_source;
 mod environment;
 mod environment_http;
 mod environment_show;
+mod execution_supervisor;
 mod heap;
 mod i2c_installation;
 #[allow(dead_code)] // Qualified local issuance; receiver installation remains separate.
@@ -26,10 +27,13 @@ mod membership;
 mod mixed_preparation;
 #[allow(dead_code)] // Complete mixed admission is qualified before receiver installation.
 mod mixed_workset;
+#[allow(dead_code)] // Qualified profile; receiver selection remains separate.
+mod mixed_supervision;
 mod native_preparation;
 mod radio;
 mod resident;
 mod resident_preparation;
+mod retired_resources;
 mod seed;
 mod transport;
 mod usb_identity;
