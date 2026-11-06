@@ -13,7 +13,7 @@ pub(super) fn start(
         plan.source_document_id.clone(),
         plan.checked_plot_id.clone(),
     );
-    let sequence = u64::from_le_bytes(sha2_prefix(boot.as_str())) >> 1;
+    let sequence = u64::from_le_bytes(digest_prefix(boot.as_str())) >> 1;
     let body = Body::born_with_plots(
         BodyWorkset::one(resident.clone()).map_err(|_| "startup-workset")?,
         sequence,
@@ -86,7 +86,7 @@ pub(super) fn start(
         .map_err(|_| "startup-start")?;
     Ok(session)
 }
-fn sha2_prefix(value: &str) -> [u8; 8] {
+fn digest_prefix(value: &str) -> [u8; 8] {
     use sha2::{Digest, Sha256};
     let digest = Sha256::digest(value.as_bytes());
     digest[..8].try_into().expect("SHA256 prefix")
