@@ -29,6 +29,7 @@ impl MembershipState {
         policy: &conduit_body::HostExecutionDelegation,
     ) -> Result<(), ()> {
         let digest = workspace.payload_digest().ok_or(())?;
+        let member = self.receipt.as_ref().ok_or(())?;
         if !self.resources.admissions().is_empty() {
             return Err(());
         }
@@ -42,7 +43,7 @@ impl MembershipState {
             },
             conduit_body::NativePreparationContext {
                 bootstrap: &self.seed,
-                member: self.receipt.as_ref().ok_or(())?,
+                member,
                 actual: self.resources.host(),
                 image_id: crate::config::IMAGE_ID,
                 configuration_id: crate::config::CONFIGURATION_ID,
@@ -108,7 +109,7 @@ impl MembershipState {
                         // Recheck at the actual first decision, not before an
                         // await that might carry preparation past its deadline.
                         let check = workspace.reborrow(
-                            self.receipt.as_ref().ok_or(())?,
+                            member,
                             self.resources.host(),
                             &self.seed.owner,
                             conduit_body::HOST_PREPARED_WORKSET_CONTRACT,
