@@ -6979,3 +6979,14 @@ The updated Make tool builds. Full Cortex-M0+ compilation and image funding are
 the next gate; no firmware was flashed and no physical Start is claimed.
 Line ingress, native workset admission and actual sampler/display Plays remain
 unfinished; `ingress: not-installed` is explicit in supervision status.
+
+
+The first full Cortex-M0+ image links with execution selected: 1,265,236 flash
+load bytes and 121,560 static RAM bytes including the unchanged 49,152-byte heap,
+within the existing 131,072-byte static bound. It adds 4,112 static bytes versus
+the earlier preparation-only image. It was not flashed. Review then caught an
+await between the post-admission deadline check and first scheduler decision;
+that unflashed artifact is superseded. The supervisor now reports Prepared until
+the actual first tick, reborrows the original attribution at that tick and
+records typed Start refusal before FailedStart retirement if context/time no
+longer matches. The fixed checkpoint requires its own rebuilt image.

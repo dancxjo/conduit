@@ -15,6 +15,7 @@ type Terminal<'a> =
 
 #[derive(Clone, Copy)]
 enum Phase {
+    Prepared,
     Started,
     Retired,
     Fenced,
@@ -66,35 +67,24 @@ impl MembershipState {
         // Fixed inline Root storage; the checked image must fund this frame
         // separately from its heap preparation arena. No runtime growth.
         let terminal = RefCell::new(core::array::from_fn(|_| None));
-        let phase = Cell::new(Phase::Started);
+        let phase = Cell::new(Phase::Prepared);
         let fault = Cell::new(None);
         let mut running = true;
-        // Admission may have taken time. Expiry before first decision refuses
-        // Start; expiry after Start is not a lease that cancels an ongoing Play.
-        if workspace
-            .expires_at_millis()
-            .is_none_or(|at| Instant::now().as_millis() >= at)
-        {
-            running = false;
-            phase.set(
-                if resident::retire_workset(
-                    &mut fragments,
-                    &mut terminal.borrow_mut(),
-                    &mut self.resources,
-                    conduit_core::ResourceReleaseCause::FailedStart,
-                ) {
-                    Phase::Retired
-                } else {
-                    Phase::Fenced
-                },
-            );
-        }
+        let mut started = false;
+        let start_refusal = Cell::new(None);
         let mut next_tick = Instant::now() + embassy_time::Duration::from_millis(10);
         loop {
             {
                 // This IO future survives ticks, including partial USB frames.
                 // Its failure drops only carrier state, never the workset.
-                let mut io = pin!(serve_status(link, &phase, &fault, digest, &terminal));
+                let mut io = pin!(serve_status(
+                    link,
+                    &phase,
+                    &fault,
+                    &start_refusal,
+                    digest,
+                    &terminal
+                ));
                 loop {
                     let mut tick = pin!(Timer::at(next_tick));
                     let connected = poll_fn(|cx| {
@@ -113,6 +103,38 @@ impl MembershipState {
                     next_tick = Instant::now() + embassy_time::Duration::from_millis(10);
                     if !running {
                         continue;
+                    }
+                    if !started {
+                        // Recheck at the actual first decision, not before an
+                        // await that might carry preparation past its deadline.
+                        let check = workspace.reborrow(
+                            self.receipt.as_ref().ok_or(())?,
+                            self.resources.host(),
+                            &self.seed.owner,
+                            conduit_body::HOST_PREPARED_WORKSET_CONTRACT,
+                            Instant::now().as_millis(),
+                        );
+                        if let Err(reason) = check {
+                            start_refusal.set(Some(reason));
+                            running = false;
+                            phase.set(
+                                if resident::retire_workset(
+                                    &mut fragments,
+                                    &mut terminal.borrow_mut(),
+                                    &mut self.resources,
+                                    conduit_core::ResourceReleaseCause::FailedStart,
+                                ) {
+                                    Phase::Retired
+                                } else {
+                                    Phase::Fenced
+                                },
+                            );
+                            continue;
+                        }
+                        // This is one synchronous Root Start transition. Later
+                        // attribution expiry does not become a Play lease.
+                        started = true;
+                        phase.set(Phase::Started);
                     }
                     let decision = resident::step_workset(&mut fragments);
                     if matches!(decision, Ok(false)) {
@@ -144,6 +166,7 @@ async fn serve_status(
     link: &mut Link,
     phase: &Cell<Phase>,
     fault: &Cell<Option<SchedulerError>>,
+    start_refusal: &Cell<Option<conduit_body::HostCommandRetentionRefusal>>,
     digest: &[u8; 32],
     terminal: &RefCell<Terminal<'_>>,
 ) -> Result<(), ()> {
@@ -175,6 +198,10 @@ async fn serve_status(
         if let Some(error) = fault.get() {
             write!(&mut reason, "{error:?}").map_err(|_| ())?;
         }
+        let mut refused_start = heapless::String::<64>::new();
+        if let Some(reason) = start_refusal.get() {
+            write!(&mut refused_start, "{reason:?}").map_err(|_| ())?;
+        }
         #[derive(serde::Serialize)]
         struct Status<'a> {
             phase: &'a str,
@@ -182,10 +209,12 @@ async fn serve_status(
             resources: &'a str,
             ingress: &'a str,
             fault: &'a str,
+            start_refusal: &'a str,
             terminal_fragments: usize,
             terminal_event: &'a str,
         }
         let (phase, resources) = match phase.get() {
+            Phase::Prepared => ("prepared-awaiting-local-start", "admitted"),
             Phase::Started => ("local-kernels-started", "admitted"),
             Phase::Retired => ("terminal-evidence-retained", "released"),
             Phase::Fenced => ("retirement-fenced", "admitted"),
@@ -203,6 +232,7 @@ async fn serve_status(
                 resources,
                 ingress: "not-installed",
                 fault: reason.as_str(),
+                start_refusal: refused_start.as_str(),
                 terminal_fragments: retired_fragments,
                 terminal_event: event.as_str(),
             },
