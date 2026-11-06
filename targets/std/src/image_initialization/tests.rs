@@ -198,3 +198,113 @@ fn actual_profile_boot_preserves_zero_unused_line_capacity() {
     assert_eq!(initialized.advertisement.capabilities.len(), 1);
     assert!(initialized.kernel_resources.is_idle());
 }
+
+fn creche_image() -> HostImage {
+    image(
+        r#"host prepared-authoring {
+      schema = 1
+      target = {architecture: "x86_64", machine: "computer", os: "linux"}
+      base = {kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}
+      base = {kind: "creche/encounter", implementation: "std/kernel-creche-prepare@1"}
+      capability = {kind: "time/tick", pinned_implementation: "std/kernel-time-tick@2"}
+      capability = {kind: "creche/prepare", pinned_implementation: "std/kernel-creche-prepare@1"}
+      need = {id: "timer/main", class: "conduit.resource/timer-slot@1", slots: 1, bytes: 512}
+      need = {id: "authoring/creche", class: "conduit.resource/admitted-creche-encounter@1", slots: 1, bytes: 4096}
+      limits = {static_memory_bytes: 16777216, heap_arena_bytes: 67108864, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}
+    }"#,
+    )
+}
+#[test]
+fn selected_initial_creche_retains_exact_offer_and_resource_without_authority() {
+    let image = creche_image();
+    let slot = resource_offer("authoring/creche", CRECHE_RESOURCE, 1);
+    let composed = StdHost::from_selected_timer_and_creche_image(
+        StdHostConfig {
+            host_id: "fixture/authoring".into(),
+            boot_id: "boot/current".into(),
+            offer_generation: OfferGeneration(1),
+        },
+        &image,
+        &conduit_workspace_make::catalog(),
+        slot.clone(),
+    )
+    .unwrap();
+    assert!(composed
+        .advertisement
+        .capabilities
+        .contains(&creche_std_offer()));
+    assert!(composed.advertisement.resources.contains(&slot));
+    assert_eq!(composed.advertisement.capabilities.len(), 2);
+    assert_eq!(composed.base_registry.entries().len(), 2);
+    assert!(composed.kernel_resources.is_idle());
+    assert!(host(&image, "boot/no-prepared-encounter").is_err());
+}
+#[test]
+fn selected_initial_creche_refuses_mismatched_resource_or_image_before_publication() {
+    let selected = creche_image();
+    for change in 0..7 {
+        let mut image = selected.clone();
+        let mut resource = resource_offer("authoring/creche", CRECHE_RESOURCE, 1);
+        match change {
+            0 => resource.pool_id = "unselected/pool".into(),
+            1 => resource.capacity_units = 2,
+            2 => resource.class_id = "unselected/class".into(),
+            3 => {
+                let base = image
+                    .manifest
+                    .base_selections
+                    .iter_mut()
+                    .find(|b| b.kind == "creche/encounter")
+                    .unwrap();
+                base.driver = "unselected/driver".into();
+                image.payload.base_selections = image.manifest.base_selections.clone();
+            }
+            4 => {
+                let budget = image
+                    .manifest
+                    .resource_budgets
+                    .iter()
+                    .find(|b| b.class == CRECHE_RESOURCE)
+                    .unwrap()
+                    .clone();
+                image.manifest.resource_budgets.push(budget);
+                image.payload.resource_budgets = image.manifest.resource_budgets.clone();
+            }
+            5 => {
+                let base = image
+                    .manifest
+                    .base_selections
+                    .iter()
+                    .find(|b| b.kind == "creche/encounter")
+                    .unwrap()
+                    .clone();
+                image.manifest.base_selections.push(base);
+                image.payload.base_selections = image.manifest.base_selections.clone();
+            }
+            _ => {
+                image
+                    .manifest
+                    .resource_budgets
+                    .iter_mut()
+                    .find(|b| b.class == TIMER_RESOURCE_CLASS)
+                    .unwrap()
+                    .id = "authoring/creche".into();
+                image.payload.resource_budgets = image.manifest.resource_budgets.clone();
+            }
+        }
+        assert!(
+            StdHost::from_selected_timer_and_creche_image(
+                StdHostConfig {
+                    host_id: "fixture/authoring".into(),
+                    boot_id: "boot/current".into(),
+                    offer_generation: OfferGeneration(1)
+                },
+                &image,
+                &conduit_workspace_make::catalog(),
+                resource,
+            )
+            .is_err(),
+            "mutation {change}"
+        );
+    }
+}

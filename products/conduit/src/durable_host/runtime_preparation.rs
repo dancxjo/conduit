@@ -227,16 +227,12 @@ fn prepare_runtime_with_composition(
     })?;
     // Keep the actual initialized provider alive before constructing its slot.
     // A checked Base alone cannot publish this offer.
-    let creche_factory = if selected_image.is_some() {
-        None
-    } else {
-        installation
-            .selected_host_configuration
-            .as_ref()
-            .map(|selection| selection.prepare_creche())
-            .transpose()?
-            .flatten()
-    };
+    let creche_factory = installation
+        .selected_host_configuration
+        .as_ref()
+        .map(|selection| selection.prepare_creche())
+        .transpose()?
+        .flatten();
     if creche_factory.is_some()
         && (todo.is_some()
             || thermostat.is_some()
@@ -267,7 +263,20 @@ fn prepare_runtime_with_composition(
                     output,
                 );
             }
-            StdHost::from_selected_timer_image(config, image, &conduit_workspace_make::catalog())?
+            if let Some(factory) = &creche_factory {
+                StdHost::from_selected_timer_and_creche_image(
+                    config,
+                    image,
+                    &conduit_workspace_make::catalog(),
+                    factory.resource_offer(),
+                )?
+            } else {
+                StdHost::from_selected_timer_image(
+                    config,
+                    image,
+                    &conduit_workspace_make::catalog(),
+                )?
+            }
         } else if let Some(factory) = &creche_factory {
             StdHost::new_with_creche_encounter(config, composition, factory.resource_offer())?
         } else if let Some((initial, maximum_items)) = todo {

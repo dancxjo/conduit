@@ -2,6 +2,9 @@
 //! Serial and storage declarations remain uninitialized and publish no offers.
 //! Bounds are logical admission limits, never a claim about process RSS.
 use crate::{StdHost, StdHostConfig};
+use conduit_body_make::deployment_runtime_catalog::{
+    creche_std_offer, CRECHE_IMPLEMENTATION, CRECHE_RESOURCE,
+};
 use conduit_core::*;
 use conduit_host_make::{
     bind_runtime_offer, HostImage, MakeCatalog, RuntimeFacts, RuntimeOfferInputs,
@@ -13,6 +16,7 @@ const MAXIMUM_TIMER_POOLS: usize = 16;
 
 #[derive(Default)]
 struct InitialBases<'a> {
+    creche: Option<ResourceOffer>,
     source: Option<crate::selected_native_source::InitialNativeSource<'a>>,
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
     scanout: Option<crate::selected_scanout::SelectedScanoutBase>,
@@ -52,6 +56,26 @@ impl StdHost {
         catalog: &MakeCatalog,
     ) -> Result<Self, String> {
         Self::from_selected_initial_bases(config, image, catalog, InitialBases::default())
+    }
+
+    /// Compose one independently prepared encounter resource before constructing
+    /// the final IMAGE registry/ledger. The caller retains its original provider;
+    /// this resource grants no Source, Make-input, toolchain or device authority.
+    pub fn from_selected_timer_and_creche_image(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        resource: ResourceOffer,
+    ) -> Result<Self, String> {
+        Self::from_selected_initial_bases(
+            config,
+            image,
+            catalog,
+            InitialBases {
+                creche: Some(resource),
+                ..InitialBases::default()
+            },
+        )
     }
 
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
@@ -131,6 +155,7 @@ impl StdHost {
                 scanout: Some(scanout),
                 native_mask: Some(native_mask),
                 source: None,
+                creche: None,
             },
         )
     }
@@ -140,6 +165,7 @@ impl StdHost {
         image: &HostImage,
         catalog: &MakeCatalog,
         source: crate::selected_native_source::InitialNativeSource<'_>,
+        creche: Option<ResourceOffer>,
     ) -> Result<Self, String> {
         Self::from_selected_initial_bases(
             config,
@@ -147,6 +173,7 @@ impl StdHost {
             catalog,
             InitialBases {
                 source: Some(source),
+                creche,
                 #[cfg(all(target_os = "linux", feature = "linux-display"))]
                 scanout: None,
                 #[cfg(all(target_os = "linux", feature = "linux-display"))]
@@ -189,9 +216,17 @@ impl StdHost {
         if config.offer_generation.0 == 0 {
             return Err("selected timer requires a positive Boot offer generation".into());
         }
+        let creche_entry = initial
+            .creche
+            .as_ref()
+            .map(|resource| prepare_creche_entry(&config, image, resource))
+            .transpose()?;
         #[allow(unused_mut)]
         let mut expected_implementations =
             BTreeSet::from([conduit_std_offers::TICK_IMPLEMENTATION.to_owned()]);
+        if initial.creche.is_some() {
+            expected_implementations.insert(CRECHE_IMPLEMENTATION.into());
+        }
         if let Some(source) = &initial.source {
             expected_implementations.insert(
                 source.definition.base.capabilities[0]
@@ -233,7 +268,11 @@ impl StdHost {
             .collect::<Vec<_>>();
         if timer.len() != 1
             || manifest.base_selections.iter().any(|base| {
-                !initial.source.as_ref().is_some_and(|source| {
+                !creche_entry.as_ref().is_some_and(|entry| {
+                    entry.base_id.as_str() == base.id
+                        && entry.mechanism_family.as_str() == base.kind
+                        && entry.implementation_id.as_str() == base.driver
+                }) && !initial.source.as_ref().is_some_and(|source| {
                     source.definition.base.base_id.as_str() == base.id
                         && source.definition.base.mechanism_family.as_str() == base.kind
                         && source.definition.base.implementation_id.as_str() == base.driver
@@ -259,6 +298,7 @@ impl StdHost {
         if budgets.is_empty()
             || budgets.len()
                 > MAXIMUM_TIMER_POOLS
+                    + usize::from(initial.creche.is_some())
                     + usize::from(initial.has_scanout())
                     + 2 * usize::from(initial.has_native_mask())
                     + initial
@@ -272,6 +312,13 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
+            if initial
+                .creche
+                .as_ref()
+                .is_some_and(|resource| resource.pool_id.as_str() == budget.id)
+            {
+                continue;
+            }
             if initial
                 .source
                 .as_ref()
@@ -364,6 +411,15 @@ impl StdHost {
             initialized_base_kinds.insert(entry.mechanism_family.as_str().into());
             initialized_driver_kinds.insert(entry.implementation_id.as_str().into());
         }
+        if let Some(entry) = creche_entry {
+            registry
+                .register(entry.clone())
+                .map_err(|error| format!("selected Creche registry: {error:?}"))?;
+            ready_resource_classes.insert(CRECHE_RESOURCE.into());
+            initialized_base_kinds.insert(entry.mechanism_family.as_str().into());
+            initialized_driver_kinds.insert(CRECHE_IMPLEMENTATION.into());
+            candidates.push(entry);
+        }
         #[allow(unused_mut)]
         let mut mask_capabilities = Vec::new();
         #[allow(unused_mut)]
@@ -389,6 +445,7 @@ impl StdHost {
         }
         #[allow(unused_mut)]
         let mut expected_capabilities = 1
+            + usize::from(initial.creche.is_some())
             + mask_capabilities.len()
             + initial
                 .source
@@ -457,6 +514,66 @@ impl StdHost {
         }
         Ok(host)
     }
+}
+
+fn prepare_creche_entry(
+    config: &StdHostConfig,
+    image: &HostImage,
+    resource: &ResourceOffer,
+) -> Result<BaseProviderEntry, String> {
+    let mut bases = image
+        .manifest
+        .base_selections
+        .iter()
+        .filter(|b| b.kind == "creche/encounter");
+    let base = bases
+        .next()
+        .ok_or("selected IMAGE lacks Creche encounter Base")?;
+    let mut budgets = image
+        .manifest
+        .resource_budgets
+        .iter()
+        .filter(|b| b.class == CRECHE_RESOURCE);
+    let budget = budgets
+        .next()
+        .ok_or("selected IMAGE lacks Creche encounter budget")?;
+    if bases.next().is_some()
+        || base.driver != CRECHE_IMPLEMENTATION
+        || budgets.next().is_some()
+        || budget.bytes == 0
+        || budget.slots != 1
+        || resource.class_id.as_str() != CRECHE_RESOURCE
+        || resource.pool_id.as_str().trim().is_empty()
+        || resource.pool_id.as_str() != budget.id
+        || resource.capacity_units != 1
+        || resource.compute.is_some()
+        || resource.content.is_some()
+        || image
+            .manifest
+            .resource_budgets
+            .iter()
+            .filter(|b| b.id == budget.id)
+            .count()
+            != 1
+    {
+        return Err("selected IMAGE requires one exact prepared Creche encounter resource".into());
+    }
+    Ok(BaseProviderEntry {
+        base_id: base.id.as_str().into(),
+        provider_instance_id: format!(
+            "{}/{}/creche",
+            config.host_id.as_str(),
+            config.boot_id.as_str()
+        )
+        .into(),
+        provider_generation: config.offer_generation.0,
+        implementation_id: CRECHE_IMPLEMENTATION.into(),
+        mechanism_family: "creche/encounter".into(),
+        enforcement_class: BaseEnforcementClass::Cooperative,
+        lifecycle: BaseLifecycle::Ready,
+        capabilities: vec![creche_std_offer()],
+        resources: vec![resource.clone()],
+    })
 }
 
 struct ImageBytes(Vec<u8>);

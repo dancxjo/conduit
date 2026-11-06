@@ -80,5 +80,6 @@ pub fn from_configuration(
 mod installation;
 #[cfg(target_os = "linux")]
 pub use installation::{
-    initialize_image, InitializedSourceCheckImage, SourceCheckImageInstallation,
+    initialize_image, initialize_image_with_prepared_creche, InitializedSourceCheckImage,
+    SourceCheckImageInstallation,
 };

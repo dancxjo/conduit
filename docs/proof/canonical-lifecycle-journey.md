@@ -8431,3 +8431,42 @@ The next lifecycle audit confirms the existing clock Face action already validat
 One concrete composition gap is repaired: the guarded revision continuation can now accept the existing selected adapter's complete per-Plot Fore-bound map and uses it in ordinary independent whole-workset preparation. Its original production clock caller still supplies empty/default bounds. No new scheduler, lifecycle, authorization or boundary format is introduced; successful revision remains Lulled and cannot itself Wake a Play. The adapter remains responsible for its own authority, backing and subsequent routing/bounds lifetime.
 
 Five revision tests pass: exact one-item/64-byte input bounds survive preflight into the subsequent independently prepared Plan; zero capacity and budgets outside the desired workset refuse without publication. Existing forged/unavailable Source, stale retained writer, WAL/partial-publication recovery and complete add/remove tests pass. An initial fixture syntax error refused and was corrected to canonical multiline Fore syntax. Strict product production Clippy, workspace formatting and whitespace checks pass. Raw logs: `target/workset-revision-boundaries-20261106/` (ignored). No live service or device changed. The installed Body still retains creche/main; physical native grant carriage does not establish adopted environmental work or admitted sensor/display execution.
+
+### 2026-11-06 — installed guarded revision qualified for review
+
+The bounded review extraction is PR #6828, based on accepted dev. The optimized
+product built from `69afc303d5dddeb46319ff0a3050a5d85d99174b` is 64,243,128
+bytes (SHA-256 `e61c103d101009685e9d16e249e7f37d0cccc24aead9d8af5fa5959b1c5918d7`),
+within the unchanged 64 MiB installer file ceiling. The explicitly selected,
+otherwise ignored `installed_service_start_inspect_lull_and_restart_clock` test
+passed: isolated installation, real clock execution and Lull, authorized interval
+revision through the current terminal Face, replacement Plan/Play, and restart.
+The first explicit run exposed stale test navigation: its first control was Wake,
+not the pace argument. Selecting the next control corrected the test without
+changing the production executable. That correction is pushed as `4733ad47e6`;
+the PR is ready and Candidate is queued. Local unit, production Clippy and format
+qualification were recorded in the review lane. This is installed Linux clock
+proof, not arbitrary Source adoption, MCU Play proof, or a live owner deployment.
+Raw logs: `/tmp/conduit-review-installed-clock-explicit-20261106.log` (initial
+failure) and `/tmp/conduit-review-installed-clock-corrected-20261106.log` (pass).
+
+The next actual construction gate is composing the existing Crèche encounter
+and selected Source checker in one IMAGE-backed Host. The existing initial
+constructor rejects the extra Base/pool, and attaching after construction would
+bypass final ledger custody. Work therefore extends initial construction; it
+must preserve independent Source authorization, complete preparation admission,
+and the original caller-retained Crèche execution factory. Merely advertising
+both offers does not establish installed candidate review or adoption.
+
+Initial composition implementation checkpoint: the two
+`selected_initial_creche_*` std Host tests pass, including exact one-slot
+composition and mismatch/duplicate/collision refusals. The product now prepares
+its selected Crèche factory before IMAGE construction and retains its existing
+post-construction correspondence check. The Source initializer has a composition
+entrance; caller-owned Source authority, descriptor and complete workspace
+obligations remain unchanged. A combined actual-compiler integration case is
+added but qualification is still running; this checkpoint is not deployed.
+The first integration build picked a stale shared-cache Plot artifact lacking
+exports present in current source; invalidating that artifact through the source
+mtime caused the canonical Plot crate to rebuild. Preserve the failed build log
+rather than interpreting it as a completed test run.

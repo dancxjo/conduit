@@ -7,6 +7,9 @@ use conduit_std_host::{source_check::*, *};
 use std::{cell::Cell, rc::Rc};
 
 fn configuration() -> CheckedHostConfiguration {
+    configuration_with_creche(false)
+}
+fn configuration_with_creche(creche: bool) -> CheckedHostConfiguration {
     let source = parent::configuration_source().replace("      limits =", r#"
       base = {kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}
       capability = {kind: "time/tick", pinned_implementation: "std/kernel-time-tick@2"}
@@ -15,6 +18,15 @@ fn configuration() -> CheckedHostConfiguration {
       need = {id: "source/results", class: "language/prepared-source-check@1", slots: 1, bytes: 1048576}
       need = {id: "source/memory", class: "conduit.resource/runtime-memory@1", slots: 570425344, bytes: 570425344}
       limits ="#);
+    let source = if creche {
+        source.replace("      limits =", r#"
+      base = {kind: "creche/encounter", implementation: "std/kernel-creche-prepare@1"}
+      capability = {kind: "creche/prepare", pinned_implementation: "std/kernel-creche-prepare@1"}
+      need = {id: "creche/slot", class: "conduit.resource/admitted-creche-encounter@1", slots: 1, bytes: 4096}
+      limits ="#)
+    } else {
+        source
+    };
     check_host_configuration(
         parse_host_configuration_conduit(&source).unwrap(),
         &conduit_workspace_make::catalog(),
@@ -189,8 +201,15 @@ fn actual_compiler_initializes_inside_image_and_preserves_execution_admission() 
         run_image_case(source);
     }
 }
+#[test]
+fn actual_compiler_and_creche_share_initial_image_without_widening_source_authority() {
+    run_image_case_with_creche(include_str!("../../../../plots/hello/main.conduit"), true);
+}
 fn run_image_case(source: &str) {
-    let checked = configuration();
+    run_image_case_with_creche(source, false);
+}
+fn run_image_case_with_creche(source: &str, creche: bool) {
+    let checked = configuration_with_creche(creche);
     let image = image(&checked);
     let schema = SourceCheckNativeSchema::prepare().unwrap();
     let kind = PreparedSourceChecker::kind_for_bounds(&schema, bounds()).unwrap();
@@ -226,7 +245,7 @@ fn run_image_case(source: &str) {
     // SAFETY: Fixture owns this selected File, exact Source scope and independent
     // Host/Boot grant. Its caller metadata has separate preparation custody.
     let initialized = unsafe {
-        conduit::source_check_worker::initialize_image(
+        conduit::source_check_worker::initialize_image_with_prepared_creche(
             conduit::source_check_worker::SourceCheckImageInstallation {
                 config,
                 image: &image,
@@ -247,6 +266,13 @@ fn run_image_case(source: &str) {
                 context: input.request.context.clone(),
                 control: &control,
             },
+            creche.then(|| {
+                resource_offer(
+                    "creche/slot",
+                    conduit_body_make::deployment_runtime_catalog::CRECHE_RESOURCE,
+                    1,
+                )
+            }),
         )
     }
     .unwrap();
@@ -256,7 +282,16 @@ fn run_image_case(source: &str) {
         host.image_identity().unwrap().image_id,
         image.manifest.image_id
     );
-    assert_eq!(host.advertisement().capabilities.len(), 2);
+    assert_eq!(
+        host.advertisement().capabilities.len(),
+        2 + usize::from(creche)
+    );
+    if creche {
+        assert!(host
+            .advertisement()
+            .capabilities
+            .contains(&conduit_body_make::deployment_runtime_catalog::creche_std_offer()));
+    }
     let syntax = check_syntax_document(
         &parse_syntax_document(include_str!(
             "../../../../make/body/tests/source_check_call/check.conduit"

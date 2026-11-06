@@ -55,6 +55,22 @@ pub struct InitializedSourceCheckImage {
 pub unsafe fn initialize_image(
     request: SourceCheckImageInstallation<'_>,
 ) -> Result<InitializedSourceCheckImage, String> {
+    // SAFETY: this preserves the caller's exact independent obligations.
+    unsafe { initialize_image_with_prepared_creche(request, None) }
+}
+
+/// Compose an already prepared Crèche encounter slot in the initial IMAGE
+/// ledger alongside the bounded Source checker. The caller must retain the
+/// matching actual Crèche factory for the lifetime of this Host; a resource
+/// description alone does not supply an execution adapter or Source authority.
+///
+/// # Safety
+/// All obligations of [`initialize_image`] apply, in addition to the actual
+/// prepared Crèche factory's custody and exact resource correspondence.
+pub unsafe fn initialize_image_with_prepared_creche(
+    request: SourceCheckImageInstallation<'_>,
+    creche_resource: Option<conduit_core::ResourceOffer>,
+) -> Result<InitializedSourceCheckImage, String> {
     let selected = conduit_workspace_make::CheckedSourceCheckInitialization::from_configuration(
         request.checked,
     )?;
@@ -95,13 +111,14 @@ pub unsafe fn initialize_image(
     // SAFETY: caller retains the independent authority/workspace obligations;
     // this factory supplies the actual selected, bounded process implementation.
     let mut host = unsafe {
-        StdHost::from_selected_timer_and_immediate_source_image(
+        StdHost::from_selected_timer_and_immediate_source_and_creche_image(
             request.config,
             request.image,
             request.catalog,
             request.checked,
             definition,
             budget,
+            creche_resource,
             || {
                 if request.control.stop_requested() {
                     return Err("Source-check preparation cancelled".into());

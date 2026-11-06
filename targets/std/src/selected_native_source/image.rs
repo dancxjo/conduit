@@ -143,6 +143,32 @@ impl StdHost {
         budget: ImmediateSourcePreparationBudget,
         prepare: impl FnOnce() -> Result<Box<dyn ImmediateNativeSource>, String> + 'a,
     ) -> Result<Self, String> {
+        // SAFETY: the caller supplies the same independent native obligations.
+        unsafe {
+            Self::from_selected_timer_and_immediate_source_and_creche_image(
+                config, image, catalog, checked, definition, budget, None, prepare,
+            )
+        }
+    }
+
+    /// Initial Source composition with an independently prepared encounter slot.
+    /// The original encounter provider remains caller-owned.
+    ///
+    /// # Safety
+    /// The same current Host/Source authorization, complete preparation ceiling,
+    /// quiescence and immediate-provider retirement obligations as
+    /// `from_selected_timer_and_immediate_source_image` apply. Encounter intent
+    /// grants no authority and does not construct or replace its provider.
+    pub unsafe fn from_selected_timer_and_immediate_source_and_creche_image<'a>(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        checked: &CheckedHostConfiguration,
+        definition: NativeSourceDefinition,
+        budget: ImmediateSourcePreparationBudget,
+        creche_resource: Option<ResourceOffer>,
+        prepare: impl FnOnce() -> Result<Box<dyn ImmediateNativeSource>, String> + 'a,
+    ) -> Result<Self, String> {
         conduit_host_make::verify_configuration_image(checked, image, catalog)?;
         let source = InitialNativeSource {
             definition,
@@ -150,6 +176,6 @@ impl StdHost {
             prepare: Box::new(prepare),
         };
         source.validate_image(image)?;
-        Self::from_selected_source_initial_bases(config, image, catalog, source)
+        Self::from_selected_source_initial_bases(config, image, catalog, source, creche_resource)
     }
 }
