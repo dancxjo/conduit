@@ -4,6 +4,7 @@ use super::*;
 #[path = "../../tests/common/creche_bundle.rs"]
 mod bundle_common;
 mod bundle_fixture;
+mod face_custody;
 mod image_custody;
 mod native_binding;
 mod retirement_faults;

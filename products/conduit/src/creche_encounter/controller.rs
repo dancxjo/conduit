@@ -1,15 +1,34 @@
 use super::*;
 use std::sync::atomic::Ordering;
 
+/// Immutable semantic view with its producing encounter's retained custody.
+/// Keeping this view does not keep an action current or authorize another Play.
+/// Owned Face copies require independent caller workspace; no raw Arc escapes.
+#[derive(Clone)]
+pub struct CrecheFace {
+    // Free this exported Face reference before the last owning encounter drops.
+    face: Arc<Face>,
+    _owner: Arc<Channel>,
+}
+impl core::ops::Deref for CrecheFace {
+    type Target = Face;
+    fn deref(&self) -> &Face {
+        &self.face
+    }
+}
+
 #[derive(Clone)]
 pub struct CrecheEncounterController {
     pub(super) channel: Arc<Channel>,
 }
 impl CrecheEncounterController {
-    pub fn face(&self) -> Result<Option<Arc<Face>>, String> {
+    pub fn face(&self) -> Result<Option<CrecheFace>, String> {
         let state = self.channel.lock()?;
         Ok(if state.active {
-            state.face.clone()
+            state.face.as_ref().map(|face| CrecheFace {
+                face: face.clone(),
+                _owner: self.channel.clone(),
+            })
         } else {
             None
         })

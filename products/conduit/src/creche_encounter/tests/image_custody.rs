@@ -20,7 +20,7 @@ fn configuration() -> StdHostConfig {
     }
 }
 
-fn with_verified_root(operation: impl FnOnce(&ImageRootPreparation<'_>)) -> StdHost {
+pub(super) fn with_verified_root(operation: impl FnOnce(&ImageRootPreparation<'_>)) -> StdHost {
     let catalog = conduit_workspace_make::catalog();
     let packages = conduit_workspace_make::package_set();
     let source = include_str!(

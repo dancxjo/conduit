@@ -26,7 +26,7 @@ mod controller;
 mod factory;
 mod hosted;
 pub use bundle::CrecheReviewedBundle;
-pub use controller::CrecheEncounterController;
+pub use controller::{CrecheEncounterController, CrecheFace};
 
 /// Supplied by the service's actual selected Mask route, never a structural ACK
 /// or a default renderer. Calls except retirement must be bounded/nonblocking.
