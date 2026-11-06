@@ -5,6 +5,8 @@ edition = "2021"
 description = "RP2040/Pico W Host make anchor package"
 
 [dependencies]
+conduit-i2c-transaction = { path = "../../../mechanisms/io/i2c-transaction", default-features = false }
+conduit-core = { path = "../../../architecture/core", default-features = false }
 conduit-host-make = { path = "../../../make/host" }
 conduit-body = { path = "../../../architecture/body" }
 serde = { version = "1", features = ["derive"] }
@@ -14,7 +16,6 @@ conduit-embedded-build = { path = "../../../make/embedded-build" }
 conduit-plot = { path = "../../../architecture/plot" }
 
 [dev-dependencies]
-conduit-i2c-transaction = { path = "../../../mechanisms/io/i2c-transaction", default-features = false }
 heapless = "0.8"
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 ed25519-dalek = { version = "2.2", default-features = false }
@@ -23,6 +24,5 @@ static_cell = "2"
 conduit-wire = { path = "../../../architecture/wire", features = ["offer-images"] }
 sha2 = "0.10"
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", features = ["body-plan-binding", "delegated-preparation"] }
-conduit-core = { path = "../../../architecture/core", default-features = false }
 serde-json-core = "0.6"
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["kernel-step"] }

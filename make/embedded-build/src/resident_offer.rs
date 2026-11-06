@@ -47,15 +47,8 @@ pub(crate) fn append(
         .narrow_capacity(limits)
         .map_err(|_| R::Contract)?
         .build();
-    let json = serde_json::to_vec(&offer).map_err(|_| R::GenerationMetadata)?;
-    let compressed = miniz_oxide::deflate::compress_to_vec_zlib(&json, 6);
-    let document = conduit_wire::DeflatedDocument::from_parts(&compressed, json.len())
+    let image = crate::generate_capability_offer_image(&offer, usize::MAX)
         .map_err(|_| R::GenerationMetadata)?;
-    let mut image = vec![0; conduit_wire::DEFLATED_DOCUMENT_HEADER_BYTES];
-    document
-        .write_header(&mut image)
-        .map_err(|_| R::GenerationMetadata)?;
-    image.extend_from_slice(&compressed);
     // Keep only the lossless image, never a second raw catalog in firmware.
     code.push_str(&format!("static OFFER_IMAGE:&[u8]=&{image:?};\n"));
     code.push_str(r#"

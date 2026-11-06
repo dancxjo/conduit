@@ -6,12 +6,14 @@
 //! or trigger. The opt-in computation profile validates canonical program metadata
 //! under explicit artifact ceilings. Unsupported facts fail closed.
 
+mod offer_image;
 mod resident_back;
 mod resident_binding;
 mod resident_expression;
 mod resident_library;
 mod resident_library_borrow;
 mod resident_offer;
+pub use offer_image::{generate_capability_offer_image, CapabilityOfferImageError};
 pub use resident_expression::{
     bind_current_resident_expressions, BoundResidentExpression, PreparedResidentExpression,
     ResidentExpressionBounds, ResidentExpressionRefusal, RESIDENT_EXPRESSION_IMPLEMENTATION,

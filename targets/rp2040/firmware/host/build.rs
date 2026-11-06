@@ -31,6 +31,13 @@ fn main() {
     let resident = conduit_host_rp2040::checked_ht16k33_resident_library(&checked)
         .expect("checked resident protocol closure");
     fs::write(out.join("resident.rs"), resident).unwrap();
+    let native = conduit_host_rp2040::checked_i2c_offer_image(&checked, &image_id, 24 * 1024)
+        .expect("checked native definition, not runtime readiness");
+    let native_source = match native {
+        Some(bytes) => format!("pub static I2C_OFFER_IMAGE:Option<&[u8]>=Some(&{bytes:?});"),
+        None => "pub static I2C_OFFER_IMAGE:Option<&[u8]>=None;".into(),
+    };
+    fs::write(out.join("native_offer.rs"), native_source).unwrap();
     let c = selected.bus.controller;
     let sda = selected.bus.sda_gpio;
     let scl = selected.bus.scl_gpio;
@@ -40,6 +47,7 @@ fn main() {
     assert!((32768..=98304).contains(&heap), "finite preparation arena");
     let generated = format!(
         r#"
+include!(concat!(env!("OUT_DIR"), "/native_offer.rs"));
 pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image_id:?};
 pub const HEAP_BYTES:usize={heap};

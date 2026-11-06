@@ -320,8 +320,10 @@ name = "conduit-host-rp2040"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-core",
  "conduit-embedded-build",
  "conduit-host-make",
+ "conduit-i2c-transaction",
  "conduit-plot",
  "conduit-rp2040-flash-layout",
  "serde",
