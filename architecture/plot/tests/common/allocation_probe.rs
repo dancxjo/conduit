@@ -103,6 +103,41 @@ fn update(added: usize, removed: usize, reallocation: bool) {
 pub fn observe<T>(work: impl FnOnce() -> T) -> (T, Observation) {
     observe_with_refusal(0, work)
 }
+/// Keep a callback-delimited phase observable without counting its preparation.
+/// The marker prevents ending another thread's interval; unwinding also stops it.
+#[allow(dead_code)]
+pub struct ObservationInterval {
+    active: bool,
+    thread: core::marker::PhantomData<std::rc::Rc<()>>,
+}
+#[allow(dead_code)]
+impl ObservationInterval {
+    pub fn begin() -> Self {
+        TRACKING.with(|tracking| assert!(!tracking.replace(true)));
+        OBSERVATION.with(|observation| observation.set(Observation::default()));
+        REFUSE_AT.with(|at| at.set(0));
+        Self {
+            active: true,
+            thread: core::marker::PhantomData,
+        }
+    }
+    pub fn finish(mut self) -> Observation {
+        self.stop();
+        OBSERVATION.with(Cell::get)
+    }
+    fn stop(&mut self) {
+        if self.active {
+            TRACKING.with(|tracking| tracking.set(false));
+            REFUSE_AT.with(|at| at.set(0));
+            self.active = false;
+        }
+    }
+}
+impl Drop for ObservationInterval {
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
 /// Refuse exactly the nth allocation/reallocation, without changing other threads.
 #[allow(dead_code)]
 pub fn observe_refusing<T>(nth: usize, work: impl FnOnce() -> T) -> (T, Observation) {
