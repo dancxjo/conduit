@@ -182,3 +182,154 @@ fn image_pressure_refuses_before_factory_and_existing_alias_refuses_transfer() {
         "encounter/test"
     );
 }
+
+fn creche_image_fixture() -> (conduit_host_make::CheckedHostConfiguration, HostImage) {
+    // Crèche is installed on the x86 Linux authoring Host, not the Pi target
+    // whose Seed it makes. Keep the existing 64 MiB declared heap unchanged.
+    let source = source().replace("clock/monotonic", "timer/monotonic").replace("  limits =", r#"
+  capability = {kind: "time/tick", pinned_implementation: "std/kernel-time-tick@2"}
+  need = {id: "timer/main", class: "conduit.resource/timer-slot@1", slots: 1, bytes: 512}
+  base = {kind: "creche/encounter", implementation: "std/kernel-creche-prepare@1"}
+  capability = {kind: "creche/prepare", pinned_implementation: "std/kernel-creche-prepare@1"}
+  need = {id: "pool/creche", class: "conduit.resource/admitted-creche-encounter@1", slots: 1, bytes: 4096}
+  limits ="#);
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
+    let checked = conduit_host_make::check_host_configuration(
+        conduit_host_make::parse_host_configuration_conduit(&source).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
+    let image = conduit_host_make::build_default_host_image(
+        checked.profile().clone(),
+        &catalog,
+        &packages,
+        &BuildInputs {
+            source_identity: "fixture/initial-funded-creche".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap()
+    .0;
+    (checked, image)
+}
+
+#[test]
+fn actual_funded_factory_binds_to_initial_host_without_a_source_checker() {
+    let (checked, image) = creche_image_fixture();
+    let mut directory = None;
+    // SAFETY: fixed metadata and immutable reviewed fixture inputs fit their
+    // separate envelopes. Preparation starts no worker. The exact resource is
+    // obtained from the actual initialized factory, not inferred from IMAGE.
+    let (host, prepared) = unsafe {
+        StdHost::from_selected_timer_and_creche_factory_image(
+            configuration(),
+            &image,
+            &conduit_workspace_make::catalog(),
+            &checked,
+            4 * 1024 * 1024,
+            2 * 1024 * 1024,
+            |root| {
+                let provider = root.prepare_value(4096, 512, || {
+                    CrecheEncounterFactory::prepare_in_image(
+                        root,
+                        4 * 1024 * 1024,
+                        2 * 1024 * 1024,
+                        || {
+                            let (factory, files) = factory();
+                            directory = Some(files);
+                            Ok(factory)
+                        },
+                    )
+                    .map(std::cell::RefCell::new)
+                })?;
+                let resource = provider.value().borrow().resource_offer();
+                Ok((resource, provider))
+            },
+        )
+    }
+    .unwrap();
+    host.verify_selected_image_prepared_value(&prepared)
+        .unwrap();
+    prepared
+        .value()
+        .borrow_mut()
+        .verify_image_custody(&host)
+        .unwrap();
+    assert!(host
+        .advertisement()
+        .resources
+        .contains(&prepared.value().borrow().resource_offer()));
+    assert!(host
+        .advertisement()
+        .capabilities
+        .contains(&conduit_body_make::deployment_runtime_catalog::creche_std_offer()));
+    assert_eq!(host.advertisement().capabilities.len(), 2); // timer and Crèche only
+    drop(host);
+    assert_eq!(
+        prepared.value().borrow().limits().maximum_evidence_bytes,
+        65536
+    );
+    drop(prepared);
+    drop(directory);
+}
+
+#[test]
+fn initial_creche_metadata_pressure_refuses_before_actual_factory() {
+    let (checked, image) = creche_image_fixture();
+    let mut called = false;
+    // SAFETY: metadata exceeds the checked 64 MiB heap, so the callback must
+    // never run. No provider, File or Source authority is supplied or exercised.
+    let result = unsafe {
+        StdHost::from_selected_timer_and_creche_factory_image::<()>(
+            configuration(),
+            &image,
+            &conduit_workspace_make::catalog(),
+            &checked,
+            65 * 1024 * 1024,
+            2 * 1024 * 1024,
+            |_| {
+                called = true;
+                Err("unadmitted Crèche factory".into())
+            },
+        )
+    };
+    assert!(!called);
+    assert!(result.err().unwrap().contains("backing capacity"));
+}
+
+#[test]
+fn initial_creche_metadata_and_provider_peaks_compete_before_file_effects() {
+    let (checked, image) = creche_image_fixture();
+    let mut called = false;
+    // SAFETY: fixed metadata has a conservative declared peak. Its live frame
+    // plus provider preparation cannot fit the same 64 MiB IMAGE; the provider
+    // callback must not reach any fixture file or other native effect.
+    let result = unsafe {
+        StdHost::from_selected_timer_and_creche_factory_image::<()>(
+            configuration(),
+            &image,
+            &conduit_workspace_make::catalog(),
+            &checked,
+            62 * 1024 * 1024,
+            2 * 1024 * 1024,
+            |root| {
+                let provider = root.prepare_value(4 * 1024 * 1024, 512, || {
+                    called = true;
+                    Ok(())
+                })?;
+                Ok((
+                    conduit_core::resource_offer(
+                        "pool/creche",
+                        conduit_body_make::deployment_runtime_catalog::CRECHE_RESOURCE,
+                        1,
+                    ),
+                    provider,
+                ))
+            },
+        )
+    };
+    assert!(!called);
+    assert!(result.err().unwrap().contains("backing capacity"));
+}

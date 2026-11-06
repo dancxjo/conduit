@@ -9079,3 +9079,50 @@ as an independent dev-based patch without first delivering that provider. It
 stays with the existing lifecycle implementation rather than opening a separate
 runtime lane. Shared-type #6834 remains at exact head `fee210a190`; its known
 Candidate run `42306149469` is still in admission, with no acceptance claimed.
+
+### 2026-11-06 — Initial funded Crèche construction no longer requires Source checking
+
+The original staged Root entry was tied to a native Source-check provider.
+Crèche bootstrap needs the same budget owner before that checker is installed.
+`StdHost::from_selected_timer_and_creche_factory_image` now verifies the selected
+IMAGE, reserves the metadata factory, accepts an independently charged actual
+provider and its exact resource, and transfers the original counter into the
+final Host. Its returned affine provider wrapper is checked against that counter.
+No compiler, Source grant or checked-candidate adoption is introduced.
+
+The positive product test constructs the actual reviewed Crèche factory through
+this scope on the x86 Linux authoring profile. Both its shared input owner and
+its retained provider wrapper verify against the final Host. The declaration's
+64 MiB heap remains unchanged. The Host offers only timer and Crèche, and the
+provider remains usable after Host-first destruction. A bounded RefCell retains
+exclusive mutable provider access without extracting its original charge.
+Metadata pressure refuses before the callback; overlapping 62 MiB metadata and
+4 MiB provider preparation also refuse before any provider file/effect callback.
+The initial test correctly refused an unsupported Pi Crèche Base; the positive
+fixture now uses the authoring target rather than treating destination support
+as authoring support.
+
+Twenty-one product Crèche tests passed. Forty-nine std IMAGE tests passed, and
+strict combined std/product library/test Clippy passed. The constructors and
+matching Crèche registry validation were extracted into the coherent private
+`image_initialization/creche.rs` module, preserving public StdHost paths and
+reducing the existing initializer rather than growing it. One inherited test
+import was made explicit after the split. Logs:
+`/tmp/conduit-initial-funded-creche-split-20261106.log`,
+`/tmp/conduit-initial-creche-std-image-20261106.log`, and
+`/tmp/conduit-initial-funded-creche-clippy-complete-20261106.log`.
+
+This establishes initial provider/counter correspondence in software. It does
+not qualify mutable per-Play state, exported Face aliases, request serialization,
+worker heap/stack or installed Crèche IMAGE execution. Those execution guards
+remain. No installed service or physical device was changed.
+
+Shared immutable compound-type storage #6834 passed Candidate 42306149469 at
+exact source fee210a190 and merged into dev as 076a7d5940. Scalar leaves remain
+inline; non-atomic targets retain their prior representation. This is accepted
+development source, not a new physical MCU or stable-publication proof. The
+existing Root copy of the five implementation files is identical to that dev
+result; the review adds its independent requested-allocation integration test.
+
+The supported `cargo xtask ci pipeline evidence-retention` guard passed for this
+checkpoint. Raw captures remain outside tracked source.
