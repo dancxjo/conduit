@@ -8110,3 +8110,45 @@ regenerable archive/metadata artifacts (1,369,108,094 bytes). Root headroom rose
 from 2.2 to 3.5 GiB. Inventory: target/source-definition-maintenance-20261106.json.
 PR #6819 remains at 5dcca882f6, quick green with admission confirmed running;
 no CI retry, restart, cancellation or merge was requested.
+
+
+### 6 November 2026 — foreground owner uses the admitted execution worker
+
+The installed foreground JSON Run entrance previously called the reference-only
+Host execution method, which rejects IMAGE-backed Hosts and reported Start only
+after completion. It now consumes the exact already proposed Plan through the
+same admitted worker used by the continuing owner. Start must be durably
+acknowledged before execution advances; IMAGE report backing remains charged
+until the result is retained, and the exact Host is restored after retirement.
+Retained Source must still match both the proposed Plan and Body workset. This
+change neither replans nor infers authority, input adapters or larger grants.
+The previous reference entrance is confined to explicitly named cfg(test)
+lifecycle fixtures.
+
+The focused continuing-owner tests cover service and foreground execution with
+adequate IMAGE heap, insufficient backing refusal before Start, exact Plan
+identity, changed retained Source rejection, Host restoration and durable
+receipt reread. The original three-test run passed before the foreground cases were added.
+A broader controller run exposed a fixture omission: the external result Fore
+requires the selected receipt adapter's exact queue budget during planning.
+The corrected fixture uses that existing bounded adapter; no grant or runtime
+capacity was enlarged. That broader run also failed an unrelated Notebook idle
+Face assertion and was stopped during a slow native-route test; it is not a
+passing package-wide proof. The product binary builds. Installed executable qualification remains unproved:
+the unoptimized binary (180 MiB), and even a stripped copy (110 MiB), exceed
+the installer's existing 64 MiB release-file limit. Both attempts correctly
+refused during installation before reaching Run; the bound was not changed.
+A size-qualified release build is needed for that smoke test. These controller
+tests do not prove a live deployed owner, a Source-check action or MCU operation.
+
+Maintenance found no process referencing the inactive authoring-selected-release
+cache, moved its approximately 996 MiB of regenerable artifacts to tmpfs and
+retained its original path via symlink. Source, release evidence, credentials
+and active compiler outputs were preserved. This increases root headroom, not
+total disk-plus-memory capacity.
+
+Final corrected focused run: three tests pass, including all four IMAGE
+service/foreground sufficient/insufficient-memory cases and Source tampering.
+Formatting and diff checks pass. Raw qualification logs are retained under
+ignored target/owner-prepared-run-20261106. The foreground installed executable
+smoke remains blocked at package-size validation, not claimed successful.

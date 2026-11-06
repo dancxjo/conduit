@@ -47,6 +47,74 @@ impl Owner {
             .map(|play| &play.active_play_id)
     }
 
+    /// Foreground Run consumes its already proposed exact Plan, using the same
+    /// admitted execution and durable Start acknowledgment as the service.
+    pub(crate) fn execute_prepared(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+    ) -> Result<(), String> {
+        if !(1..=60_000).contains(&maximum_millis) {
+            return Err("run duration must be 1..60000 milliseconds".into());
+        }
+        self.ensure_execution_retained(root)?;
+        let proposed = self
+            .session
+            .realization()
+            .ok_or("plan required before run")?;
+        if self.host.is_playing() || proposed.play.is_some() {
+            return Err("Body already has a current Play".into());
+        }
+        if proposed
+            .plan
+            .plots
+            .iter()
+            .any(|plot| !plot.plan.activations.is_empty())
+        {
+            return Err("installed Body Play has no activation ingress or egress".into());
+        }
+        if proposed
+            .plan
+            .plots
+            .iter()
+            .flat_map(|plot| &plot.plan.fragments)
+            .any(|fragment| fragment.host_id != self.host.advertisement().host_id)
+        {
+            return Err("remote-fragment-preparation-unavailable".into());
+        }
+        let sources = super::super::retained_source::workset(root)?
+            .ok_or("retained Source workset is unavailable for Body Play")?;
+        let supplied = conduit_body::BodyWorkset::from_plots(sources.iter().map(|source| {
+            conduit_body::ResidentPlot::new(
+                source.plot.expanded.source_document_id.clone(),
+                source.plot.expanded.checked_plot_id.clone(),
+            )
+        }))
+        .map_err(debug)?;
+        let planned = conduit_body::BodyWorkset::from_plots(
+            proposed.plan.plots.iter().map(|plot| plot.plot.clone()),
+        )
+        .map_err(debug)?;
+        if supplied != planned || supplied != self.session.evidence().body.workset {
+            return Err("prepared Plan differs from retained Source workset".into());
+        }
+        let has_fore = !fore::boundaries(&sources)?.is_empty();
+        drop(sources);
+        let mut worker = self.spawn_prepared_worker(root, maximum_millis, has_fore, None)?;
+        while !worker.progress(self, root)? {
+            thread::sleep(Duration::from_millis(2));
+        }
+        if let Some(error) = self
+            .last_execution
+            .as_ref()
+            .and_then(|receipt| receipt.get("pre_play_refusal"))
+            .and_then(|value| value.as_str())
+        {
+            return Err(error.to_owned());
+        }
+        Ok(())
+    }
+
     pub(crate) fn start_service_run(
         &mut self,
         root: &Path,
@@ -97,6 +165,16 @@ impl Owner {
         self.session
             .propose(partitions, &ad.host_id, &ad.boot_id)
             .map_err(debug)?;
+        self.spawn_prepared_worker(root, maximum_millis, has_fore, creche_binding)
+    }
+
+    fn spawn_prepared_worker(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        has_fore: bool,
+        creche_binding: Option<conduit::creche_encounter::CrecheBodyBinding>,
+    ) -> Result<RunWorker, String> {
         self.persist(root)?;
         state::require_execution_capacity(root)?;
         let proposed = self

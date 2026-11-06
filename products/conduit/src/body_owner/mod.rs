@@ -299,7 +299,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                         Request::Run { maximum_millis } => {
                             owner.persist(&root)?;
                             state::require_execution_capacity(&root)?;
-                            owner.execute(maximum_millis)?;
+                            owner.execute_prepared(&root, maximum_millis)?;
                         }
                         Request::Lull => owner.lull()?,
                         Request::Close => {

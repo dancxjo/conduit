@@ -44,7 +44,7 @@ fn authenticated_remote_offers_can_supply_an_exact_unstarted_body_plan() {
     }));
     assert!(proposal.play.is_none());
     assert_eq!(
-        owner.execute(1000).unwrap_err(),
+        owner.execute_reference_fixture(1000).unwrap_err(),
         "remote-fragment-preparation-unavailable"
     );
     assert_eq!(owner.session.realization(), Some(&proposal));
@@ -74,7 +74,7 @@ fn observed_members_preserve_local_selection_and_actual_local_execution() {
         .iter()
         .flat_map(|plot| &plot.plan.fragments)
         .all(|fragment| fragment.host_id == owner.host.advertisement().host_id));
-    owner.execute(1000).unwrap();
+    owner.execute_reference_fixture(1000).unwrap();
     assert!(owner.last_execution.as_ref().unwrap()["output_utf8"]
         .as_str()
         .unwrap()

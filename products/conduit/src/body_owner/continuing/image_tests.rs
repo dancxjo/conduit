@@ -45,7 +45,12 @@ fn host(heap: u64) -> StdHost {
 #[test]
 fn ordinary_owner_worker_uses_image_receipt_or_refuses_before_start() {
     use crate::durable_host::{fresh_identity, write_json_atomic, Installation, INSTALL_SCHEMA};
-    for (heap, accepts) in [(64 * 1024 * 1024, true), (1, false)] {
+    for (heap, accepts, prepared) in [
+        (64 * 1024 * 1024, true, false),
+        (1, false, false),
+        (64 * 1024 * 1024, true, true),
+        (1, false, true),
+    ] {
         let root = std::env::temp_dir().join(fresh_identity("owner-image-worker", "receipt"));
         std::fs::create_dir_all(&root).unwrap();
         let installation = Installation {
@@ -75,15 +80,55 @@ fn ordinary_owner_worker_uses_image_receipt_or_refuses_before_start() {
         owner.set_resident_plot_name(&plot).unwrap();
         owner.persist(&root).unwrap();
         std::fs::write(root.join("body/source.conduit"), SOURCE).unwrap();
-        let mut worker = owner.start_service_run(&root, 5_000).unwrap();
-        let deadline = Instant::now() + Duration::from_secs(5);
-        while !worker.progress(&mut owner, &root).unwrap() {
-            assert!(Instant::now() < deadline, "owner worker failed to retire");
-            std::thread::sleep(Duration::from_millis(2));
-        }
+        let expected_plan = if prepared {
+            let sources = super::super::super::retained_source::workset(&root)
+                .unwrap()
+                .unwrap();
+            let boundaries = super::fore::boundaries(&sources).unwrap();
+            let borrowed: Vec<_> = sources
+                .iter()
+                .map(|source| (&source.source, &source.plot))
+                .collect();
+            owner
+                .plan_workset_with_source_boundaries(&borrowed, &boundaries)
+                .unwrap();
+            drop(borrowed);
+            drop(sources);
+            let plan = owner.session.realization().unwrap().plan.plan_id.clone();
+            std::fs::write(
+                root.join("body/source.conduit"),
+                SOURCE.replace("count = 1", "count = 2"),
+            )
+            .unwrap();
+            assert!(owner.execute_prepared(&root, 5_000).is_err());
+            assert!(!owner.host.is_playing());
+            assert!(owner.current_play_id().is_none());
+            assert_eq!(owner.session.realization().unwrap().plan.plan_id, plan);
+            std::fs::write(root.join("body/source.conduit"), SOURCE).unwrap();
+            let result = owner.execute_prepared(&root, 5_000);
+            if accepts {
+                result.unwrap();
+            } else {
+                assert!(result
+                    .unwrap_err()
+                    .contains("managed heap backing capacity"));
+            }
+            Some(plan)
+        } else {
+            let mut worker = owner.start_service_run(&root, 5_000).unwrap();
+            let deadline = Instant::now() + Duration::from_secs(5);
+            while !worker.progress(&mut owner, &root).unwrap() {
+                assert!(Instant::now() < deadline, "owner worker failed to retire");
+                std::thread::sleep(Duration::from_millis(2));
+            }
+            None
+        };
         assert!(!owner.host.is_playing());
         assert_eq!(owner.host.advertisement(), &advertisement);
         let receipt = owner.last_execution.as_ref().unwrap();
+        if let Some(plan) = expected_plan {
+            assert_eq!(receipt["plan_id"], serde_json::json!(plan));
+        }
         if accepts {
             assert!(!receipt["play"].is_null(), "{receipt}");
             assert_eq!(
