@@ -8830,3 +8830,11 @@ under `target/review-affine-source-approval-20261106/`.
 existing review/concurrency limit. Both are preparation slices of #6449/#6447,
 not delivery of general Source permission, an installed checking Plot or an
 admitted environmental Play. The live devices and owner remain unchanged.
+
+### 2026-11-06 — Retained Root preparation shares IMAGE custody
+
+Generalized the existing finite-input preparation owner into `ImagePreparedValue<T>`: reserve the qualified synchronous peak before the factory, retain the qualified owned result until its actual destruction, and verify the original IMAGE counter rather than copied identity labels. The existing Fore input path now uses this mechanism. Value destruction precedes charge release; failed preparation and unwind release the reservation. Corrected lease backing accounting to include both Arc reference counts.
+
+Qualification: 44 std IMAGE tests, 9 actual Source compiler/Crèche integration tests and 5 continuing-owner tests passed. Strict production Clippy for conduit and conduit-std-host passed. Logs: `/tmp/conduit-root-prepared-values-20261106.log`, `/tmp/conduit-root-value-source-integration-20261106.log`, `/tmp/conduit-root-value-owner-integration-20261106.log`, `/tmp/conduit-root-value-clippy-20261106.log`.
+
+This is cooperative memory custody, not allocator containment or Source/adoption authority. The installed proposal path still needs an independently qualified complete compiler/Root envelope and an authorized Source-selection policy; no device or live owner was changed. The complete lifecycle remains unfinished.

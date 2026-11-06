@@ -47,7 +47,8 @@ impl ImageMemoryLease {
             .fetch_sub(admitted - bytes, Ordering::AcqRel);
     }
     pub(crate) fn owned_backing_bytes() -> usize {
-        core::mem::size_of::<ImageMemoryCharge>()
+        // Qualified std Arc layout: data plus strong/weak reference counts.
+        core::mem::size_of::<ImageMemoryCharge>() + 2 * core::mem::size_of::<usize>()
     }
 }
 impl Drop for ImageMemoryCharge {

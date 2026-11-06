@@ -4,21 +4,17 @@ use super::*;
 /// Already prepared ingress, with its owned backing charged until actual drop.
 /// Borrowing this input neither authorizes its content nor acknowledges delivery.
 /// There is no conversion that separates its bytes from their memory custody.
-pub struct ImageForeInput {
-    input: ExternalForeInput,
-    _memory: ImageMemoryLease,
-}
-impl ImageForeInput {
+pub type ImageForeInput = ImagePreparedValue<ExternalForeInput>;
+impl ImagePreparedValue<ExternalForeInput> {
     pub fn input(&self) -> &ExternalForeInput {
-        &self.input
+        self.value()
     }
 }
 impl StdHost {
     /// Verify original cooperative backing custody without trusting copied
     /// Host/Boot/IMAGE labels. This grants no input, Source or execution authority.
     pub fn verify_selected_image_fore_input(&self, input: &ImageForeInput) -> Result<(), String> {
-        self.kernel_resources
-            .require_input_memory_owner(&input._memory)
+        self.verify_selected_image_prepared_value(input)
     }
 
     /// Admit retention of an already prepared finite input against the existing
@@ -55,29 +51,17 @@ impl StdHost {
         preparation_bytes: usize,
         prepare: impl FnOnce() -> Result<ExternalForeInput, String>,
     ) -> Result<ImageForeInput, String> {
-        if preparation_bytes == 0 {
-            return Err("IMAGE input preparation envelope is empty".into());
-        }
-        let admitted = preparation_bytes
-            .checked_add(ImageMemoryLease::owned_backing_bytes())
-            .ok_or("IMAGE input preparation size overflow")?;
-        let mut memory = self
-            .kernel_resources
-            .reserve_managed_base_memory(admitted)?;
-        let input = prepare()?;
-        let retained = input_backing_bytes(&input)?;
+        // SAFETY: the caller qualifies complete input preparation; this keeps
+        // that entire envelope charged until actual capacities are checked.
+        let mut input = unsafe {
+            self.prepare_selected_image_value(preparation_bytes, preparation_bytes, prepare)
+        }?;
+        let retained = input_backing_bytes(input.input())?;
         if retained > preparation_bytes {
             return Err("IMAGE input backing exceeds admitted preparation envelope".into());
         }
-        memory.retain_result(
-            retained
-                .checked_add(ImageMemoryLease::owned_backing_bytes())
-                .ok_or("IMAGE input retention size overflow")?,
-        );
-        Ok(ImageForeInput {
-            input,
-            _memory: memory,
-        })
+        input.shrink_qualified_retention(retained);
+        Ok(input)
     }
 }
 fn input_backing_bytes(input: &ExternalForeInput) -> Result<usize, String> {

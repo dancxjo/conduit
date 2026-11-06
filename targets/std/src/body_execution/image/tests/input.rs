@@ -193,3 +193,87 @@ fn retained_input_rejects_another_ledger_even_with_identical_host_labels() {
     drop(owner);
     other.verify_selected_image_fore_input(&retained).unwrap();
 }
+
+#[test]
+fn prepared_root_value_keeps_custody_through_review_and_destructor() {
+    struct Proposal {
+        text: Vec<u8>,
+        counter: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+        minimum: usize,
+    }
+    impl Drop for Proposal {
+        fn drop(&mut self) {
+            assert!(
+                self.counter.load(Ordering::Acquire) >= self.minimum,
+                "proposal must retire before its backing charge"
+            );
+        }
+    }
+    let (mut host, _, _) = fixture(1_048_576);
+    let (other, _, _) = fixture(1_048_576);
+    let counter = host.kernel_resources.image_memory_observer();
+    let before = counter.load(Ordering::Acquire);
+    let metadata = ImageMemoryLease::owned_backing_bytes();
+    // SAFETY: a bounded Vec and fixed-size metadata fit these independently
+    // qualified fixture envelopes; shared counter backing already has custody.
+    let prepared = unsafe {
+        host.prepare_selected_image_value(4096, 512, || {
+            assert_eq!(counter.load(Ordering::Acquire), before + 4096 + metadata);
+            Ok(Proposal {
+                text: Vec::with_capacity(128),
+                counter: counter.clone(),
+                minimum: 512 + metadata,
+            })
+        })
+    }
+    .unwrap();
+    assert_eq!(prepared.value().text.capacity(), 128);
+    assert_eq!(counter.load(Ordering::Acquire), before + 512 + metadata);
+    host.verify_selected_image_prepared_value(&prepared)
+        .unwrap();
+    assert!(other
+        .verify_selected_image_prepared_value(&prepared)
+        .is_err());
+    drop(host);
+    assert_eq!(counter.load(Ordering::Acquire), 512 + metadata);
+    drop(prepared);
+    assert_eq!(counter.load(Ordering::Acquire), 0);
+}
+
+#[test]
+fn generic_preparation_refuses_before_effects_and_releases_failed_workspace() {
+    let (mut host, _, _) = fixture(1_048_576);
+    let counter = host.kernel_resources.image_memory_observer();
+    let before = counter.load(Ordering::Acquire);
+    for (peak, retained) in [
+        (0, 0),
+        (128, 129),
+        (16, 1),
+        (usize::MAX, 128),
+        (1_048_576, 128),
+    ] {
+        // SAFETY: all invalid/pressured envelopes must refuse before effects.
+        let result = unsafe {
+            host.prepare_selected_image_value::<Vec<u8>>(peak, retained, || {
+                panic!("unadmitted proposal preparation")
+            })
+        };
+        assert!(result.is_err());
+        assert_eq!(counter.load(Ordering::Acquire), before);
+    }
+    // SAFETY: these factories have no outstanding effects or workers.
+    let refused = unsafe {
+        host.prepare_selected_image_value::<Vec<u8>>(4096, 128, || {
+            Err("selected Source refused".into())
+        })
+    };
+    assert_eq!(refused.err().unwrap(), "selected Source refused");
+    assert_eq!(counter.load(Ordering::Acquire), before);
+    let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| unsafe {
+        host.prepare_selected_image_value::<Vec<u8>>(4096, 128, || {
+            panic!("quiescent preparation panic")
+        })
+    }));
+    assert!(panic.is_err());
+    assert_eq!(counter.load(Ordering::Acquire), before);
+}

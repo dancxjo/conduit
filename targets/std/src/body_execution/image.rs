@@ -2,6 +2,8 @@
 //! the shared byte charge; borrowing cannot move other report backing.
 use super::*;
 use crate::kernel_preparation::ImageMemoryLease;
+mod prepared;
+pub use prepared::ImagePreparedValue;
 mod input;
 pub use input::ImageForeInput;
 
