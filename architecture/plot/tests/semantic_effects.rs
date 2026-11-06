@@ -339,6 +339,10 @@ fn checked_keep_state_is_known_without_inventing_other_laws() {
             .unwrap();
         let leaf = &report.leaves()[0];
         assert_eq!(leaf.temporal_state(), Ok(TemporalStateBehavior::Retained));
+        assert_eq!(
+            leaf.knowledge().temporal_state,
+            Ok(TemporalStateBehavior::Retained)
+        );
         let declaration = checked.plots[0].gears[0].retained.as_deref().unwrap();
         assert!(core::ptr::eq(
             leaf.retained_declaration().unwrap(),
@@ -384,6 +388,10 @@ fn repeated_keep_instances_share_declaration_but_keep_distinct_gear_identity() {
     ));
     for leaf in report.leaves() {
         assert_eq!(leaf.temporal_state(), Ok(TemporalStateBehavior::Retained));
+        assert_eq!(
+            leaf.knowledge().temporal_state,
+            Ok(TemporalStateBehavior::Retained)
+        );
     }
 }
 
@@ -427,8 +435,54 @@ fn same_kind_name_does_not_manufacture_a_checked_keep_declaration() {
     assert!(matches!(
         leaf.temporal_state(),
         Err(EffectInferenceRefusal::SemanticFact {
-            refusal: PureExpressionRefusal::MissingFact(PureExpressionFact::ExternalEffects),
+            refusal: PureExpressionRefusal::MissingFact(PureExpressionFact::TemporalState),
             ..
         })
     ));
+}
+
+#[test]
+fn partial_nested_contract_exposes_known_axes_with_source_custody() {
+    let (graph, checked, profile) = expanded(vec![
+        KindSemanticLaw::TemporalState(TemporalStateBehavior::Retained),
+        KindSemanticLaw::RandomDependence(SemanticDependence::Ambient),
+        KindSemanticLaw::Replay(ReplayBehavior::Transactional {
+            transaction_contract: kind_id("fixture/transaction@1"),
+        }),
+    ]);
+    let inferred = graph
+        .infer_semantic_effects(&checked, &profile, 64)
+        .unwrap();
+    let leaf = inferred
+        .leaves()
+        .iter()
+        .find(|leaf| leaf.origin().source_plot == "inner")
+        .unwrap();
+    assert_eq!(
+        leaf.temporal_state().unwrap(),
+        TemporalStateBehavior::Retained
+    );
+    assert_eq!(
+        leaf.knowledge().random_dependence,
+        Ok(SemanticDependence::Ambient)
+    );
+    assert_eq!(
+        leaf.knowledge().replay,
+        Ok(ReplayBehavior::Transactional {
+            transaction_contract: kind_id("fixture/transaction@1"),
+        })
+    );
+    assert_eq!(
+        leaf.knowledge().external_effects,
+        Err(PureExpressionRefusal::MissingFact(
+            PureExpressionFact::ExternalEffects
+        ))
+    );
+    assert!(
+        SOURCE[leaf.origin().source_span.start..leaf.origin().source_span.end]
+            .contains("fixture/changed")
+    );
+    assert!(leaf.facts().is_err());
+    assert!(inferred.summary().is_err());
+    assert!(inferred.require_pure_expression().is_err());
 }
