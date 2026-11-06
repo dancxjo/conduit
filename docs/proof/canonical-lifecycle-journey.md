@@ -7187,3 +7187,57 @@ construction) and `211460d6e4` (approval-before-issuance boundary). Logs remain 
 ignored `target/approved-native-issuer-20261105`. The installed Root issuer,
 wire mixed receiver/Start/ingress, physical peak and safe bus turnover remain
 unfinished; no device was flashed and no installed authority was changed.
+
+### 2026-11-05 — Actual local I2C issuer in the CPU admission path
+
+The CPU mixed-workset path now uses Root's actual local issuer rather than its
+fixture authorization constructor. The issuer requires the compiled operation
+ceiling and address attachment, exact installed image/configuration, current
+membership/Host/Boot/profile/generation, and the opaque approved Body fragment.
+Plan and Play come from that approval; provider/resource facts come from the
+retained native owner. Root constructs the exact Core authority/table/claim
+locally. Incoming grant labels do not create possession. The private membership
+secret supplies domain-separated bearer-key material, not permission; installed
+policy and complete approval remain independently mandatory.
+
+The issuer's monotonic attempt counter distinguishes replacement-table bearer
+keys, including after preparation failure. Root must retain that issuer state
+across carrier changes. This counter does not replace workset replay fences,
+finite operation accounting, or retirement. No automatic quota renewal is added.
+The local planning-visible grant identity is Boot-scoped with the configured I2C
+controller; every native selected-operation binder still checks it afterward.
+
+All identity strings are copied fallibly under requested-backing funding. Core
+now exposes read-only table/first-issuance geometry, without creating authority.
+CPU injection observes 43 allocations, 1,529 requested bytes and a 1,529-byte
+issuance-component peak. Every allocation failure releases partial storage;
+a one-byte-short ceiling refuses with zero allocations. A replacement table
+rejects the earlier opaque handle while the original table still accepts it.
+Wrong image scope refuses without allocation. The complete signed workset path
+now uses this actual issuer in both node orderings, then ordinary atomic Core
+admission, typed execution and explicit retirement. A separate zero-ceiling
+build refuses an otherwise approved workset without allocations, reservations,
+provider transfer or effects. Hardware remains inert in all these tests.
+
+With the Boot-scoped grant label, actual five-entry retained preparation is
+14,563 bytes including conservative Core bridge backing (11,718 kernel/native
+backing), versus 17,542 bytes at the unrelated global value maximum. The caller
+ceiling remains 16,384 bytes and 2,979 bytes are still avoided. These retained
+figures and the isolated issuer peak are not an aggregate Root/MCU heap peak;
+allocator overhead, inline Root ownership and the installed inventory remain
+separate charges. No physical fit claim follows.
+
+Internal qualification: mixed-native 3 tests (including disabled issuance),
+Core capability library subset 3 tests, strict Core library and owning mixed-test
+Clippy, shared I2C no-default-features thumbv6m library check, generated Root
+no_std CPU compilation and whole-checkout formatting passed. Raw evidence is in
+ignored `target/local-native-issuer-20261105`. Source `46e81cb453` contains Core
+geometry; `3eee984331` contains the actual issuer and CPU integration.
+
+The issuer module is qualified but not called by the installed wire receiver.
+Mixed receiver/Start/ingress supervision, actual Root issuer-state custody,
+physical peak measurement and safe diagnostic/native bus turnover remain
+unfinished. No device was flashed or service changed. Fresh Green status still
+reports installed build `46fb0bbc...`, 1,205/1,205 samples, 18,068/18,068 display
+ACKs, five initialized Backs and no sensor/display errors; these are its existing
+diagnostic tasks, not evidence that the newly qualified path is Playing.
