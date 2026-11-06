@@ -8176,3 +8176,52 @@ installed executable smoke is claimed. Complete release qualification remains
 necessary. The two failed-smoke bundle binaries and their stripped duplicate
 were unmapped and removed (418,678,288 bytes); manifests, raw results and SHA256
 inventory remain in the review worktree's ignored target directory.
+
+
+### 6 November 2026 — supervised compiler preparation delivery
+
+PR #6823, exact head 7b3a942bee, is a draft stacked on #6822 rather than a
+second ready shared-core lane. Six files extend the existing process driver
+with an explicitly bounded larger startup input; its ordinary 256-byte
+entrance remains fixed. Parent preparation serializes into a fixed store,
+deducts preparation time from its deadline, stops/reaps the child on
+cancellation or deadline, and publishes only successful bounded canonical
+output. This is descriptive result custody, not a Source grant or Ready Back.
+
+All seven actual compiler-child/parent tests pass on the extracted stack.
+All ten shared process-driver tests pass, including the new 256-KiB startup
+case whose child never reads its pipe: both cancellation and deadline return
+with the child reaped. The identical driver implementation is retained here,
+and the new regression is absorbed. Strict checks remain running at this
+checkpoint; no installed action or physical product is claimed.
+
+Three attempted std test builds exhausted the per-user tmpfs quota despite
+filesystem headroom. Inventory and /proc ownership checks preceded removal of
+three inactive generated fixture executables (762,678,232 bytes), six inactive
+Threebee language archives/metadata (1,189,737,474 bytes), then remaining inactive
+Threebee archives and build-script executables (1,791,536,607 unique-inode
+bytes). Product executables, generated Source, credentials, evidence and current
+build outputs were preserved. The complete rerun then passed all ten tests.
+Inventories and raw failed/successful logs remain under the review worktree's
+ignored target/source-parent-delivery-20261106 directory.
+
+Final qualification: all seven compiler-process tests and ten shared-driver
+tests pass. Strict Clippy passes for the std/product production libraries and
+executable together; formatting/diff checks pass. Broader test-target Clippy
+attempts stopped on tmpfs quota, not compiler diagnostics, and are not claimed
+passing. The local default pipe is 65,536 bytes, smaller than the tested
+262,144-byte startup. PR #6823 remains draft behind #6822's acceptance.
+
+Further maintenance removed 789,875,312 unique-inode bytes of inactive
+build-script executables and 1,162,506,608 bytes of older root language
+archives/metadata. Three current cache archives were preserved on root
+(980,065,838 bytes), retaining their original paths through symlinks. Two whole
+inactive qualification caches were then preserved as verified gzip archives
+(121,851,195 and 211,901,184 bytes; gzip integrity checks passed) before their
+regenerable uncompressed trees were retired. Those archives retain the old
+firmware/release programs and generated Source. Three older unmapped root
+product/test binaries were removed (472,831,192 bytes), retaining the newest
+production and test executables. Final root headroom is about 1.3 GiB; tmpfs
+headroom is about 7.8 GiB, with its separate per-user quota still applicable.
+Inventories and archive SHA256 identities are retained; no device, live service,
+credential, journal or authored Source was changed.
