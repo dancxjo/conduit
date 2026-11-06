@@ -7602,3 +7602,47 @@ No firmware was flashed and no physical native Start or local measurement
 continuity under the new assignment has been demonstrated. Complete setup
 funding/failure handling, authorized stream input/output, ordinary Body Source
 adoption and Seed deployment remain before claiming a working instrument Play.
+
+### 6 November 2026 — codecs borrow checked schemas instead of owning Types
+
+Core checkpoint `2bddff08eb` prepares the existing structured composer directly
+from immutable canonical schema bytes, reusing Core's borrowed validator rather
+than adding another Type model. Only bounded field-span tables and complete
+mutable output buffers are reserved. A one-byte backing shortage refuses before
+allocation; every injected preparation allocation failure reclaims storage.
+Primitive collections use that same composer without allocating child values;
+changed iterator replay is bounded and cannot grow its prepared buffer.
+
+Native consumer `bb7ba175b7` borrows request schemas with zero preparation
+allocation and moves result, payload, octet sequence and unit schemas into
+fabricated immutable bytes. Result preparation now has seven fallible
+allocations, 1,916 requested/peak CPU component bytes, with all injected failures
+reclaimed. Twenty-one I2C library tests, its storage/failure test, three Core
+composition tests and three real mixed-kernel tests pass. Runtime codec and
+mixed execution allocation remains zero. Strict Core/native Clippy and workspace
+formatting pass. These are CPU component measurements, not whole-Root peak.
+
+The five-entry mixed retained preparation decreases from 14,793 to 13,951 bytes
+(842 bytes), while the unselected-entry saving remains independently 2,979 bytes.
+The temporary rich I2cContract used for binding is still constructed and remains
+a separate preparation/failure boundary; do not interpret these changes as
+complete Root workspace admission or physical environmental execution.
+Logs: `target/static-native-codecs-cpu-20261106` (ignored).
+
+Ordinary Make links the exact consumer checkpoint: 1,375,636 flash bytes and
+121,632 static RAM bytes including the unchanged 49,152-byte heap. The static
+headroom remains 9,440 bytes; linked stack gap is not high-water. There are 21
+warnings. ELF/UF2 digests and reserved-sector boundaries verify, and the linked
+639-byte native offer image retains the exact manifest IMAGE artifact identity.
+Artifacts: `target/rp2040-static-codecs-20261106` (ignored). No flash or live
+service change occurred.
+
+Focused PR #6813 contains only the reusable Core change, isolated on current dev
+at head `c6873d809f`; its three tests, strict Clippy, no-default-features
+thumbv6m-none-eabi library check and formatting pass. Hosted Candidate is a
+separate pending gate. The firmware consumer stays in the delivery lane.
+
+Stewardship: after checking active cache references, package-native cleanup
+removed 1,123 inactive Std-host artifacts (145.3 MiB) and 389 inactive CLI outputs
+(1.8 GiB). Root headroom rose from 3.7 to 5.5 GiB before the firmware build;
+source, evidence, credentials and deployed service executables were preserved.
