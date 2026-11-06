@@ -1,3 +1,6 @@
+#[path = "kind_effects/independent_knowledge.rs"]
+mod independent_knowledge;
+
 use conduit_core::{
     bind_active_play, bind_sign, kind_id, ArtifactId, AuthorityContractId, AuthorityRequirement,
     Back, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, ExternalEffectBehavior,

@@ -13,6 +13,15 @@ read-only receipt borrows the exact graph and retains each primitive Gear's
 original nested Plot path, source span, Kind identity and independent facts.
 Core's existing fact parser supplies the laws; there is no second effect engine.
 
+Each leaf's `knowledge` retains a separate known, missing or duplicate result
+for every axis. For example, an unknown external-effect law does not erase a
+known retained-state or ambient-randomness law, and replay contracts retain
+their exact keys. Core's `semantic_work_knowledge` and checked contract
+`work_knowledge` use that same parser. The existing complete-fact, purity and
+transformation APIs still require every law exactly once; partial knowledge
+cannot admit an otherwise unknown computation. Duplicate laws remain unknown
+even if a later third law repeats the original value.
+
 `summary` retains the distinct observed values of each axis. It does not order
 transactional, idempotent or compensatable replay contracts, discard their keys,
 or convert them to exact replay. `require_pure_expression` checks every leaf
