@@ -7859,3 +7859,47 @@ and diff checks pass. Logs: ignored `target/source-capture-request-20261106`.
 Owner action routing, complete workspace custody and the full lifecycle remain
 open. No device or running service changed. PR #6815's exact head was still
 queued at the initial bounded observation; no accepted or merged claim is made.
+
+### 6 November 2026 — ordinary owner worker executes qualified IMAGE work
+
+The service worker previously always chose the unaccounted Body entrance, even
+for its actual IMAGE-bound Host. It now selects the existing receipt-bearing
+runner for IMAGE Hosts. A private result wrapper preserves ImageBodyRunReport
+custody through thread handoff and durable execution-receipt publication; the
+owner borrows the report instead of extracting an uncharged raw result. The
+existing reference and Crèche paths keep their own qualifications and refusals.
+
+A producer-only test initially reached Start but correctly failed for lack of
+an admitted receiver. The service now prepares a finite receipt Fore adapter
+for explicitly exposed outputs, using the existing four-item / 64-byte defaults.
+Its fixed inline slots accept shared immutable values without copying payloads;
+IMAGE payload clones keep their original charge. Typed port/track/kind/sequence
+and exact bytes are retained in the execution receipt, along with machine-readable
+kernel failure code/detail when available. This is finite local result capture,
+not a durable observation recorder or a peer recording acknowledgment.
+
+Boundary budgets prepare before Wake and are discarded before execution.
+Implicit ingress, ambiguous output port/track identities and a combined Crèche
+plus receipt-Fore adapter refuse instead of inventing routing or permission.
+Larger/streaming results require their own explicitly selected adapter; no Host
+grant or arena is enlarged. Complete Root/caller-workspace custody remains open.
+
+Six CPU component tests pass: three new worker/Fore cases, the existing durable
+clock Start/Lull case, and two complete-workset regressions. The IMAGE case
+checks actual ordinary Source planning and worker execution, captures a real
+Tick, durably publishes and rereads its result, and restores the identical Host.
+A one-byte arena refuses before Start with no reported Play. Separate cases
+check sharing/pressure without mutation and reject implicit inputs/ambiguous
+exports. Strict product binary/test Clippy, formatting and diff checks pass.
+Early test attempts corrected fixture syntax and a terminal-type module path;
+the final runs require real completion and retained output, not merely Start.
+Logs: ignored `target/owner-image-service-20261106`.
+
+The first broad lint run exhausted root disk after the runtime tests passed.
+After confirming terminal compilers and no mapped language artifacts, package-
+native cleanup removed 497 regenerable language build artifacts (8.2 GiB).
+The retry passed; final root headroom is 6.8 GiB. Source, live releases, private
+state, qualified firmware and test evidence were preserved. No device or service
+was redeployed. Source-checking ingress/action selection, MCU autonomous Plays
+and the remaining lifecycle journey are still incomplete. #6815 remains at exact
+head e4f1a439ba with quick green and admission in progress at the final observation.

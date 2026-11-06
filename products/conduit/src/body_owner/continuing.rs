@@ -3,8 +3,14 @@
 //! to the worker. Start is acknowledged after durable lifecycle publication.
 use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
 use conduit_body::{BodyPlayIdentity, Wake};
-use conduit_std_host::body_execution::{BodyRunReport, BodyRunRequest};
+use conduit_std_host::body_execution::BodyRunRequest;
+#[path = "continuing/report.rs"]
+mod report;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
+use report::RunReport;
+#[path = "continuing/fore.rs"]
+mod fore;
+use fore::ReceiptFore;
 use std::{
     path::Path,
     sync::mpsc::{self, Receiver, SyncSender, TryRecvError},
@@ -18,8 +24,9 @@ pub(crate) const MAXIMUM_SERVICE_RUN_MILLIS: u64 = 900_000;
 const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
 type WorkerOutcome = (
     StdHost,
-    Result<BodyRunReport, String>,
+    Result<RunReport, String>,
     Vec<u8>,
+    ReceiptFore,
     Option<conduit::creche_encounter::CrecheEncounterFactory>,
 );
 
@@ -64,10 +71,18 @@ impl Owner {
             .iter()
             .map(|source| (&source.source, &source.plot))
             .collect();
-        let partitions = self.prepare_workset_partitions(&borrowed, &Default::default())?;
+        let boundaries = fore::boundaries(&sources)?;
+        let has_fore = !boundaries.is_empty();
+        let partitions = self.prepare_workset_partitions(&borrowed, &boundaries)?;
+        drop(boundaries);
         let mut creche_binding = None;
         for source in &sources {
             if source.plot.expanded.name == "creche/main" {
+                if has_fore {
+                    return Err(
+                        "service receipt Fore cannot share the Crèche's selected adapter".into(),
+                    );
+                }
                 if creche_binding.is_some() {
                     return Err("workset has multiple Crèche adapters".into());
                 }
@@ -103,6 +118,7 @@ impl Owner {
             .spawn(move || {
                 let mut host = host;
                 let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
+                let mut fore = ReceiptFore::new();
                 let mut timer = DeadlineTimer {
                     until: Instant::now() + Duration::from_millis(maximum_millis),
                     control: worker_control.clone(),
@@ -136,25 +152,36 @@ impl Owner {
                             .map_err(|_| "Body owner start acknowledgement lost".to_string())?
                     };
                     let result = match creche.as_mut() {
-                        Some(run) => run.run(
-                            &mut host,
-                            request,
-                            &mut output,
-                            &mut timer,
-                            &creche_tx,
-                            started,
-                        ),
-                        None => host.run_body_plan_to_with_start(
-                            request,
-                            &mut output,
-                            &mut timer,
-                            started,
-                        ),
+                        Some(run) => run
+                            .run(
+                                &mut host,
+                                request,
+                                &mut output,
+                                &mut timer,
+                                &creche_tx,
+                                started,
+                            )
+                            .map(RunReport::Reference),
+                        None if host.image_identity().is_some() => host
+                            .run_selected_image_body_plan_with_output_to_with_start(
+                                request,
+                                &mut output,
+                                &mut timer,
+                                has_fore.then_some(&mut fore as &mut dyn conduit_std_host::body_execution::BodyForeOutputAdapter),
+                                started,
+                            )
+                            .map(RunReport::Image),
+                        None if has_fore => host.run_body_plan_with_fore_to_with_start(
+                            request, &[], false, &mut fore, &mut output, &mut timer, started,
+                        ).map(RunReport::Reference),
+                        None => host
+                            .run_body_plan_to_with_start(request, &mut output, &mut timer, started)
+                            .map(RunReport::Reference),
                     };
                     let _ = finished.send(());
                     result
                 });
-                (host, result, output.0, creche.map(|run| run.factory))
+                (host, result, output.0, fore, creche.map(|run| run.factory))
             })
             .expect("failure to launch the only Body Play worker stops the owner service");
         Ok(RunWorker {
@@ -192,8 +219,9 @@ impl Owner {
     fn retain_finished(
         &mut self,
         root: &Path,
-        result: Result<BodyRunReport, String>,
+        result: Result<RunReport, String>,
         output: Vec<u8>,
+        fore: ReceiptFore,
     ) -> Result<(), String> {
         let authority = self.host.advertisement();
         let proposed = self
@@ -202,8 +230,9 @@ impl Owner {
             .ok_or("Body proposal vanished while its Host was executing")?
             .clone();
         let mut next = self.session.clone();
-        let receipt = match result {
+        let mut receipt = match &result {
             Ok(report) => {
+                let report = report.report();
                 if proposed.play.as_ref() != Some(&report.play) {
                     return Err("Body worker returned a different Play".into());
                 }
@@ -214,7 +243,10 @@ impl Owner {
                     "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id,
                     "wake_id":proposed.wake.wake_id, "play":report.play,
                     "wake_at_start":report.wake_at_start, "terminal":report.terminal,
-                    "failure":report.failure, "cleanup_failure":report.cleanup_failure,
+                    "failure":report.failure, "kernel_failure":report.kernel_failure.map(|failure| serde_json::json!({
+                        "code":failure.code.as_str(), "detail":failure.detail,
+                    })),
+                    "cleanup_failure":report.cleanup_failure,
                     "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
                     "terminal_sign":report.terminal_sign,
                     "output_utf8":String::from_utf8_lossy(&output),
@@ -234,6 +266,7 @@ impl Owner {
                 })
             }
         };
+        receipt["fore_outputs"] = fore.snapshot();
         self.retain_execution(root, next, receipt)?;
         Ok(())
     }
@@ -272,7 +305,7 @@ impl RunWorker {
         if !self.thread.as_ref().is_some_and(JoinHandle::is_finished) {
             return Ok(false);
         }
-        let (host, result, output, factory) = self
+        let (host, result, output, fore, factory) = self
             .thread
             .take()
             .expect("finished worker has a join handle")
@@ -287,7 +320,7 @@ impl RunWorker {
                 owner.creche_products = Some(products);
             }
         }
-        owner.retain_finished(root, result, output)?;
+        owner.retain_finished(root, result, output, fore)?;
         Ok(true)
     }
 
@@ -297,3 +330,7 @@ impl RunWorker {
             .map_err(|_| "Body Play already has a stop request".into())
     }
 }
+
+#[cfg(test)]
+#[path = "continuing/image_tests.rs"]
+mod image_tests;
