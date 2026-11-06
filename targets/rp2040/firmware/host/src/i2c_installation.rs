@@ -28,6 +28,9 @@ pub fn prepare(
     actual: &HostAdvertisement,
     maximum_bytes: usize,
 ) -> Result<(ReadyI2cBase<NativeBusLease>, usize), Refusal> {
+    if config::I2C_CALL_MAXIMUM_OPERATIONS == 0 {
+        return Err(Refusal::Unselected);
+    }
     let (minimum_address, maximum_address) =
         config::I2C_CALL_ADDRESS_RANGE.ok_or(Refusal::Unselected)?;
     if actual.protocol_version != PROTOCOL_VERSION
