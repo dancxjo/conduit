@@ -3,6 +3,10 @@
 //! Shared ConduitOS code depends on this surface. Architecture facts never flow
 //! upward into authored meaning or semantic implementation identity.
 
+#[cfg(all(target_arch = "arm", feature = "armv6-product"))]
+#[allow(dead_code)] // Mechanism preparation alone does not offer a USB Base.
+pub(crate) mod dwc2;
+
 // Native controller mechanism compilation does not advertise a USB Host offer.
 #[cfg(any(
     target_arch = "x86_64",

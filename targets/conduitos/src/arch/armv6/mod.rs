@@ -17,6 +17,9 @@ mod framebuffer;
 mod mailbox;
 mod memory;
 #[cfg(feature = "armv6-product")]
+#[allow(dead_code)] // Installed only after normal USB Base admission is wired.
+mod usb;
+#[cfg(feature = "armv6-product")]
 pub use entropy::HardwareEntropy;
 #[cfg(feature = "armv6-product")]
 pub use framebuffer::FirmwareScanout;

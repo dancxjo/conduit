@@ -21,10 +21,11 @@ pub fn usb_hid_mouse_order_package() -> Result<ProtocolSourcePackage, ProtocolSo
     };
     ProtocolSourcePackage::compile(
         format!(
-            "{header}\n{}\n{}\n{}\n{body}",
+            "{header}\n{}\n{}\n{}\n{}\n{body}",
             include_str!("../../plots/usb/hid-reports.conduit"),
             include_str!("../../plots/usb/hid-mouse-order.conduit"),
             include_str!("../../plots/usb/hid-mouse-pointer.conduit"),
+            include_str!("../../plots/usb/hid-absolute-pointer.conduit"),
         ),
         &[
             ProtocolSpecializationRequest::SeededUntil {
