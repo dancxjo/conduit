@@ -9,7 +9,7 @@ use super::{
 };
 
 pub(super) fn type_extent(value: &StructuredInfoType) -> (usize, usize) {
-    match &value.0 {
+    match value.node() {
         StructuredInfoTypeNode::Leaf(_) => (1, 1),
         StructuredInfoTypeNode::Nominal { representation, .. } => {
             let (depth, nodes) = type_extent(representation);
@@ -65,7 +65,7 @@ fn aggregate_value_extent<'a>(
 }
 
 pub(super) fn encode_type(value: &StructuredInfoType, out: &mut Vec<u8>) {
-    match &value.0 {
+    match value.node() {
         StructuredInfoTypeNode::Leaf(kind) => {
             out.push(0);
             encode_text(kind.as_str(), out);

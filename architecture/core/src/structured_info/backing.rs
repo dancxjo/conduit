@@ -1,11 +1,14 @@
-//! Actual owned schema backing, excluding inline values and allocator overhead.
+//! Conservative reachable schema backing, excluding inline values and allocator overhead.
 use super::*;
 use core::mem::size_of;
 impl StructuredInfoType {
-    /// Actual owned capacities, including nested boxes; excludes inline Self.
+    /// Reachable capacities, including nested boxes and atomic ownership headers.
+    /// Shared aliases are charged in full, so separate owners never undercharge
+    /// shared backing. This is conservative rather than exclusive ownership.
+    /// Excludes inline Self and allocator overhead.
     pub fn retained_backing_bytes(&self) -> Option<usize> {
         use StructuredInfoTypeNode::*;
-        match &self.0 {
+        let contents = match self.node() {
             Leaf(kind) => Some(kind.0.capacity()),
             Nominal {
                 schema,
@@ -44,6 +47,18 @@ impl StructuredInfoType {
                 }
                 Some(bytes)
             }
+        }?;
+        contents.checked_add(Self::node_backing_bytes())
+    }
+
+    fn node_backing_bytes() -> usize {
+        #[cfg(target_has_atomic = "ptr")]
+        {
+            size_of::<StructuredInfoTypeNode>() + 2 * size_of::<usize>()
+        }
+        #[cfg(not(target_has_atomic = "ptr"))]
+        {
+            0
         }
     }
 }
@@ -55,25 +70,48 @@ mod tests {
         v.push_str(s);
         v
     }
+    #[cfg(target_has_atomic = "ptr")]
+    #[test]
+    fn immutable_schema_clones_share_storage_but_keep_conservative_custody() {
+        let original = StructuredInfoType::collection(
+            StructuredInfoType::leaf(crate::kind_id("value/u8")).unwrap(),
+            Some(4),
+        )
+        .unwrap();
+        let cloned = original.clone();
+        assert!(alloc::sync::Arc::ptr_eq(&original.0, &cloned.0));
+        assert_eq!(original.canonical_bytes(), cloned.canonical_bytes());
+        assert_eq!(
+            original.retained_backing_bytes(),
+            cloned.retained_backing_bytes()
+        );
+        drop(original);
+        assert!(cloned.profile().is_ok());
+    }
+
     #[test]
     fn schema_backing_counts_nested_boxes_and_spare_vector_and_text_capacity() {
         let leaf = text("value/u8", 97);
-        let mut expected = leaf.capacity();
+        let mut expected = leaf.capacity() + StructuredInfoType::node_backing_bytes();
         let mut ty = StructuredInfoType::leaf(KindId(leaf)).unwrap();
         assert_eq!(ty.retained_backing_bytes(), Some(expected));
         ty = StructuredInfoType::collection(ty, Some(2)).unwrap();
-        expected += size_of::<StructuredInfoType>();
+        expected += size_of::<StructuredInfoType>() + StructuredInfoType::node_backing_bytes();
         ty = StructuredInfoType::sequence(ty, 3).unwrap();
-        expected += size_of::<StructuredInfoType>();
+        expected += size_of::<StructuredInfoType>() + StructuredInfoType::node_backing_bytes();
         let schema = text("fixture/nominal", 83);
-        expected += schema.capacity() + size_of::<StructuredInfoType>();
+        expected += schema.capacity()
+            + size_of::<StructuredInfoType>()
+            + StructuredInfoType::node_backing_bytes();
         ty = StructuredInfoType::nominal(KindId(schema), ty).unwrap();
         let name = text("input", 71);
         expected += name.capacity();
         let mut fields = Vec::with_capacity(7);
         fields.push(StructuredFieldType::new(name, ty).unwrap());
         let schema = text("fixture/record", 67);
-        expected += schema.capacity() + fields.capacity() * size_of::<StructuredFieldType>();
+        expected += schema.capacity()
+            + fields.capacity() * size_of::<StructuredFieldType>()
+            + StructuredInfoType::node_backing_bytes();
         ty = StructuredInfoType::record(KindId(schema), fields).unwrap();
         assert_eq!(ty.retained_backing_bytes(), Some(expected));
         let tag = text("complete", 61);
@@ -81,7 +119,9 @@ mod tests {
         let mut cases = Vec::with_capacity(5);
         cases.push(StructuredVariantCase::new(tag, ty).unwrap());
         let schema = text("fixture/variant", 59);
-        expected += schema.capacity() + cases.capacity() * size_of::<StructuredVariantCase>();
+        expected += schema.capacity()
+            + cases.capacity() * size_of::<StructuredVariantCase>()
+            + StructuredInfoType::node_backing_bytes();
         ty = StructuredInfoType::variant(KindId(schema), cases).unwrap();
         assert_eq!(ty.retained_backing_bytes(), Some(expected));
     }

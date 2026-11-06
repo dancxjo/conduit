@@ -10,7 +10,7 @@ pub(super) fn encoded_length(value: &StructuredInfoType) -> Result<usize, Struct
             .filter(|total| *total <= MAXIMUM_STRUCTURED_CANONICAL_BYTES)
             .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)
     };
-    match &value.0 {
+    match value.node() {
         StructuredInfoTypeNode::Leaf(kind) => add(5, kind.as_str().len()),
         StructuredInfoTypeNode::Nominal {
             schema,
@@ -53,27 +53,27 @@ mod tests {
         // of the length check used by their reviewed constructors.
         let values = vec![
             leaf.clone(),
-            StructuredInfoType(StructuredInfoTypeNode::Nominal {
+            StructuredInfoType::from_node(StructuredInfoTypeNode::Nominal {
                 schema: kind_id("nominal"),
                 representation: alloc::boxed::Box::new(leaf.clone()),
             }),
-            StructuredInfoType(StructuredInfoTypeNode::Collection {
+            StructuredInfoType::from_node(StructuredInfoTypeNode::Collection {
                 element: alloc::boxed::Box::new(leaf.clone()),
                 length: 3,
             }),
-            StructuredInfoType(StructuredInfoTypeNode::Sequence {
+            StructuredInfoType::from_node(StructuredInfoTypeNode::Sequence {
                 element: alloc::boxed::Box::new(leaf.clone()),
                 minimum_items: 0,
                 maximum_items: 3,
             }),
-            StructuredInfoType(StructuredInfoTypeNode::Record {
+            StructuredInfoType::from_node(StructuredInfoTypeNode::Record {
                 schema: kind_id("record"),
                 fields: vec![StructuredFieldType {
                     name: String::from("é"),
                     value_type: leaf.clone(),
                 }],
             }),
-            StructuredInfoType(StructuredInfoTypeNode::Variant {
+            StructuredInfoType::from_node(StructuredInfoTypeNode::Variant {
                 schema: kind_id("variant"),
                 cases: vec![StructuredVariantCase {
                     tag: String::from("some"),
@@ -91,7 +91,7 @@ mod tests {
 
     #[test]
     fn oversized_type_refuses_before_serialization() {
-        let value = StructuredInfoType(StructuredInfoTypeNode::Leaf(kind_id(
+        let value = StructuredInfoType::from_node(StructuredInfoTypeNode::Leaf(kind_id(
             &"x".repeat(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
         )));
         assert_eq!(

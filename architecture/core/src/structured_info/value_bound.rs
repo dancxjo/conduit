@@ -31,7 +31,7 @@ fn node_bound(
     value: &StructuredInfoType,
     leaf: &mut impl FnMut(&KindId) -> Option<usize>,
 ) -> Option<usize> {
-    match &value.0 {
+    match value.node() {
         Node::Leaf(kind) => add(5, leaf(kind)?),
         // A nominal value reuses its representation's value node; only the
         // Type prefix carries nominal identity.
