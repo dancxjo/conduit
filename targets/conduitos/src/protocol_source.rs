@@ -58,6 +58,7 @@ pub enum ProtocolSourceRefusal {
     Encoding,
     UnsupportedSchema,
     Contract(conduit_core::StructuredInfoRefusal),
+    I2cPreparation(crate::i2c_base::contract::I2cContractPreparationRefusal),
     Specialization(&'static str),
     Catalog(String),
     Source(conduit_plot::SyntaxCheckDiagnostic),
@@ -113,7 +114,8 @@ impl PreparedProtocolSource {
     ) -> Result<Self, ProtocolSourceRefusal> {
         use ProtocolSourceRefusal as Error;
         package.validate_bounds()?;
-        let i2c = crate::i2c_base::contract::I2cContract::prepare().map_err(Error::Contract)?;
+        let i2c =
+            crate::i2c_base::contract::I2cContract::prepare().map_err(Error::I2cPreparation)?;
         let (mut startup, mut profile) = i2c.catalogs();
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;

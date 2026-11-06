@@ -32,6 +32,27 @@ workset adoption, independently of checking.
 
 The Linux process reference additionally constructs the actual product catalogue
 inside a memory/CPU-limited child. Its parent uses existing bounded process
-polling, Stop/deadline and reaping. This is not yet wired into an installed Root
-Back or charged against its parent/child backing pools. A completed process
-returns descriptive bytes, not a compiler owner or Source grant.
+polling, Stop/deadline and reaping. A completed process returns descriptive
+bytes, not a compiler owner or Source grant.
+
+The selected-IMAGE integration is exercised in
+`products/conduit/tests/source_check_process/image.rs`: initialization reserves
+the declared provider preparation/backing before invoking the actual compiler;
+the selected Body execution entrance then reserves a managed-memory receipt
+before Start. Valid and invalid candidate Sources return the same typed result
+as the direct canonical reference, through real Host Call events. Execution and
+cancellation allocate nothing after Start. The unaccounted execution entrance
+continues to refuse; it must not be enabled by removing its guard.
+
+`targets/std/src/body_execution/image/tests/native_source.rs` separately checks
+one-byte-short refusal before Start, exact-budget acceptance, retained result
+custody after the run report is dropped, and refusal of an independently
+uncharged reference provider. This uses an immediate fixture provider, not the
+compiler process, and does not prove full Root preparation high-water.
+
+These are integration fixtures, not an installed authoring feature. The product's
+`durable_host/runtime_preparation.rs` still constructs selected timer/native-Mask
+Hosts without a Source-check provider. Ordinary owner selection of authorized
+Source, compiler initialization, typed request/result routing, and the complete
+Root preparation bound remain acceptance gates for #6447. Keep those gaps
+distinct from the managed Body execution receipt that already exists.

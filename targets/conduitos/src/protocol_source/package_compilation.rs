@@ -65,7 +65,7 @@ impl ProtocolSourcePackage {
             return Err(Error::Bounds);
         }
         let (mut startup, mut profile) = crate::i2c_base::contract::I2cContract::prepare()
-            .map_err(Error::Contract)?
+            .map_err(Error::I2cPreparation)?
             .catalogs();
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;

@@ -7691,3 +7691,35 @@ This native interface reduction does not close that Source gate or #6449 adoptio
 and no hand-built Rust Plan will be substituted for the ordinary Body journey.
 PR #6813's exact head has passed quick checks; admission was still in progress
 at the last bounded observation. The consumer remains on the delivery branch.
+
+### 6 November 2026 — Source admission audit and cross-target repair
+
+Merged exact green Core PR #6813 (`c6873d809f`) as `334600a4e2` and
+synchronized the delivery branch with dev (`4ee70eed0e`, no tree changes).
+
+Tracing #6447 distinguishes existing selected-IMAGE memory receipts from the
+missing installed authoring integration. The real compiler-process fixture in
+`products/conduit/tests/source_check_process/image.rs` already reserves provider
+preparation before effects and executes valid/invalid Source through a charged
+Body Play. This turn inspected that path; it did not rerun the process suite.
+The installed `durable_host/runtime_preparation.rs` still selects timer/native
+Mask providers without a Source-check provider. Source authorization, bounded
+compiler installation, typed owner routing and complete Root preparation custody
+remain the next product gate; checking does not adopt candidate work (#6449).
+The package README now records these distinct boundaries instead of claiming
+all process preparation remains uncharged.
+
+A fresh focused std run exposed three ConduitOS callers still expecting the old
+I2C interface preparation error and a missing composer-preparation Host Call
+mapping. Those callers now preserve the actual typed preparation refusal.
+Capacity/allocation failures report StorageExhausted (detail 1035), while a
+canonical-schema error remains HostCallFailed (1034). The two selected Source
+receipt tests pass: shortage refuses before Start, exact funding retains output
+custody, and descriptive IMAGE bounds cannot fund an uncharged provider.
+Raw initial failure and repaired logs are under ignored
+`target/source-image-recheck-20261106`. No device or live service changed.
+The focused ConduitOS shortage-report test also passes (one test); workspace
+formatting and diff checks pass. Its first test attempt used the interface error
+instead of the composer's error and was corrected before the final run. The
+ConduitOS test build reports an existing unused native-mask re-export warning;
+this is not a warning-free whole-target qualification.
