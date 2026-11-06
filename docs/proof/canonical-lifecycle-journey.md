@@ -6712,3 +6712,34 @@ must be funded separately. Codec preparation is still not wholly fallible.
 The receiver has not consumed this path; complete local workset admission,
 authorized Start, lifetime/terminal custody and physical sensor/display handover
 remain required. No live owner service, device or retained Body state changed.
+
+
+### Accepted dev synchronization and unflashed ARM qualification
+
+PR #6794 passed Candidate run 42140687460 and merged as `659913cdd6`.
+The delivery branch absorbed that dev tip, including #6792 finite Native sequence
+profiles and the accepted Face/Look fixes. Its single conflict retained both the
+accepted codec feature/build dependencies and the existing Body binding test
+closure. All fourteen native library tests pass on merged source `512a84d2f1`,
+including the same 14,360-byte actual Root native-kernel CPU transaction.
+
+Ordinary Make also qualified source `d7a0c4950d` before this dev merge: 1,067,300
+flash payload bytes and 117,448 static RAM bytes, including the unchanged
+49,152-byte heap. Its 152,888-byte linked stack gap is not a high-water measurement.
+ELF and UF2 digests match Make; all 4,170 application pages stay below retained
+sectors. Evidence and artifacts are retained at
+`target/rp2040-native-kernel-d7a0c4950d/`. The firmware reports 32 warnings and
+still does not call the native composition from its receiver. It was not flashed;
+this is neither post-merge image qualification nor a physical admitted Play.
+
+The generic schema-capacity extraction is reviewable independently in PR #6796
+(`3e362c4a12`): three Core files, focused nested/spare-capacity test, strict Core
+library Clippy and ARMv6-M check passing. It remains an inspection prerequisite,
+not a claim that #6341's physical workspace failure has been resolved.
+
+Maintenance reclaimed 787,256,633 bytes of verified inactive language compiler
+archives/metadata from the earlier Linux release cache after checking active
+process references. Cargo declined package cleanup because its cache marker was
+absent, so only the four specifically inventoried compiler files were removed.
+The qualified executable's SHA-256 was unchanged; source, manifests, firmware,
+Body state and unique evidence were preserved.
