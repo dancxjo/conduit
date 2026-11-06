@@ -128,6 +128,7 @@ pub(crate) fn prompt(
         },
         bases,
         preparation,
+        execution: existing.and_then(|configuration| configuration.execution),
         capabilities: existing
             .map(|configuration| configuration.capabilities.clone())
             .unwrap_or_default(),
@@ -273,6 +274,7 @@ mod tests {
             }],
             capabilities: Vec::new(),
             preparation: None,
+            execution: None,
             resources: Vec::new(),
             limits: descriptor.maxima.clone(),
         })

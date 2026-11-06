@@ -10,8 +10,77 @@ host delegated {
 }
 "#;
 const POLICY: &str = "preparation = {authorizer: \"seed-owner\", maximum_assignment_bytes: 8192, maximum_runtime_state_bytes: 8192}\n";
+const EXECUTION: &str = "execution = {authorizer: \"seed-owner\", maximum_active_worksets: 1}\n";
 fn source() -> String {
     SOURCE.replacen(" schema = 1", &format!(" {POLICY} schema = 1"), 1)
+}
+
+#[test]
+fn execution_is_independent_checked_identity_bound_and_parser_free() {
+    let preparation_only = check(&source()).unwrap();
+    assert!(preparation_only.configuration().execution.is_none());
+    assert_eq!(rust_execution_delegation(&preparation_only), "None");
+    let selected_source = source().replacen(" schema = 1", &format!(" {EXECUTION} schema = 1"), 1);
+    let selected = check(&selected_source).unwrap();
+    assert_ne!(
+        selected.configuration_id(),
+        preparation_only.configuration_id()
+    );
+    let canonical = canonical_host_configuration_conduit(selected.configuration()).unwrap();
+    assert!(canonical.contains(EXECUTION.trim()));
+    let reopened = check(&canonical).unwrap();
+    assert_eq!(selected.configuration_id(), reopened.configuration_id());
+    assert_eq!(selected.configuration(), reopened.configuration());
+    let packages = test_package_set();
+    let catalog = MakeCatalog::canonical().with_packages(&packages);
+    let (image, _) = test_build_host_image(
+        selected.profile().clone(),
+        &catalog,
+        &BuildInputs {
+            source_identity: "fixture/execution".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    verify_configuration_image(&selected, &image, &catalog).unwrap();
+    assert!(verify_configuration_image(&preparation_only, &image, &catalog).is_err());
+    for (checked, enabled) in [(&preparation_only, false), (&selected, true)] {
+        compiled_rust::verify_with_libraries(
+            &format!("const EXECUTION:Option<conduit_body::HostExecutionDelegation>={};", rust_execution_delegation(checked)),
+            &format!("fn main(){{assert_eq!(EXECUTION.is_some(),{enabled});if let Some(policy)=EXECUTION{{assert_eq!(policy.authorizer.as_str(),\"seed-owner\");assert_eq!(policy.maximum_active_worksets,1);}}}}"),
+            "checked-execution-policy", &["conduit_body"],
+        );
+    }
+}
+
+#[test]
+fn execution_without_preparation_or_finite_capacity_refuses() {
+    let selected = source().replacen(" schema = 1", &format!(" {EXECUTION} schema = 1"), 1);
+    for invalid in [
+        selected.replace(POLICY, ""),
+        selected.replace("maximum_active_worksets: 1", "maximum_active_worksets: 0"),
+        selected.replace("maximum_active_worksets: 1", "maximum_active_worksets: 9"),
+        selected.replace(
+            "maximum_runtime_state_bytes: 8192",
+            "maximum_runtime_state_bytes: 0",
+        ),
+    ] {
+        assert!(check(&invalid).is_err(), "accepted {invalid}");
+    }
+    for invalid in [
+        selected.replace(EXECUTION, &format!("{EXECUTION}{EXECUTION}")),
+        selected.replace(
+            EXECUTION,
+            "execution = {authorizer: \"any-member\", maximum_active_worksets: 1}\n",
+        ),
+        selected.replace(EXECUTION, "execution = {maximum_active_worksets: 1}\n"),
+        selected.replace(
+            EXECUTION,
+            "execution = {authorizer: \"seed-owner\", maximum_active_worksets: 1, ambient: true}\n",
+        ),
+    ] {
+        assert!(parse_host_configuration_conduit(&invalid).is_err());
+    }
 }
 fn check(source: &str) -> Result<CheckedHostConfiguration, Vec<ConfigurationDiagnostic>> {
     let packages = test_package_set();

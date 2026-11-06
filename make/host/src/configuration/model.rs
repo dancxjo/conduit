@@ -16,6 +16,8 @@ pub struct HostConfiguration {
     pub capabilities: Vec<crate::CapabilityIntent>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub preparation: Option<conduit_body::HostPreparationDelegation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub execution: Option<conduit_body::HostExecutionDelegation>,
     pub limits: HostBounds,
 }
 
