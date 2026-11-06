@@ -7435,3 +7435,30 @@ Environment stewardship: after auditing process command/map/environment/file
 references, package-native cleanup removed 327 inactive language build artifacts
 (5.3 GiB), increasing root headroom from 3.9 to 9.1 GiB before qualification.
 Source, private state, evidence and deployed service executables were preserved.
+
+### 6 November 2026 — actual ARM link of shared supervision
+
+Ordinary Make built the delegated Green Host from clean committed source
+`de414b78203a7936f0b98f33e5780ad1a6dd5954`. Its application ELF and UF2
+match their build-manifest digests. Every UF2 page remains below the first
+reserved sector at `0x101fd000`. Linked flash load is 1,263,744 bytes;
+static RAM remains 121,560 bytes including the unchanged 49,152-byte heap,
+leaving 9,512 bytes below the unchanged 131,072-byte static limit. The linked
+148,776-byte stack gap is not a measured high-water. There are 26 compiler
+warnings; this is not warning-free qualification. Evidence and artifacts:
+`target/rp2040-shared-supervisor-20261106` (ignored).
+
+The shared receiver and both execution adapters typecheck on the actual ARM
+firmware target. Mixed profile selection and authorized Line input/output are
+still uninstalled; unused code's link success is not mixed execution or
+whole-device peak proof. No firmware was flashed and no device state changed.
+
+This checkpoint also refuses native installation before borrowing the bus when
+Source selects zero I2C operations. The actual controller-custody test passes,
+as do its strict owning Clippy and workspace formatting. This closes a mismatch
+between readiness construction and the already-refusing issuer, without
+creating authority or changing any configured bound.
+
+Issue #6770's latest comment corrects a stale board statement: #6808's final
+merged head passed Candidate 42179679659, superseding its earlier formatting
+failure. This does not claim merged-head Integration or physical execution.
