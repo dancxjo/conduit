@@ -6834,3 +6834,7 @@ fault. Its build remains `46fb0bbc…`, with diagnostic measurement/display rath
 than admitted Plays. No firmware, grants, services or retained device state were
 changed. Complete-workset native resource admission, explicit execution policy,
 receiver supervision and physical Start remain open under the existing owners.
+
+Strict all-feature/all-target I2C Clippy passed. Accepted dev PR #6798
+(`ecf2725044`) was then merged; all 14 parser-free I2C tests passed again
+with its updated shared allocation probe. No MCU grants or capacities changed.
