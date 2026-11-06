@@ -2,6 +2,8 @@
 //! the shared byte charge; borrowing cannot move other report backing.
 use super::*;
 use crate::kernel_preparation::ImageMemoryLease;
+mod input;
+pub use input::ImageForeInput;
 
 pub struct ImageBodyRunReport {
     report: BodyRunReport,

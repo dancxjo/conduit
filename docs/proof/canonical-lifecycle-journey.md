@@ -8305,3 +8305,36 @@ Source checking and subsequent adoption remain separate. The coordination
 checkpoint is https://github.com/dancxjo/conduit/issues/6447#issuecomment-6688968535.
 This is not ordinary installed S2 acceptance or a new review lane. Green's fresh
 status is retained beside the logs; no firmware or live service changed.
+
+### 6 November 2026 — captured request storage retains IMAGE memory custody
+
+The selected Source initializer now encodes its exact captured request inside
+funded provider preparation, drops the typed capture there, and admits retention
+of the encoded input before returning the Host. It returns a borrowed-only
+`ImageForeInput`, whose private lease stays with the actual input until drop,
+even if the Host drops first. No bare conversion or implicit Clone separates
+this input from its charge. Other explicit copies still require their own custody.
+
+The reusable std entrance charges owned buffer/name capacities and fixed owner
+backing against the existing IMAGE managed heap. It admits retention of already
+prepared inputs, not their earlier allocation/preparation effects, authority or
+routing. It does not increase any IMAGE grant or sealed queue. All other caller
+schema/configuration/workspace and installed input-selection obligations remain.
+
+Three std custody tests pass: original storage is borrowed without copying and
+stays charged after Host drop; spare-capacity pressure refuses without leaking
+charge; retained input makes an otherwise exact-budget Body Play refuse before
+Start, and dropping it lets the same work complete. Six actual-product IMAGE
+Source tests pass, including valid/invalid canonical checks, Host Call signs,
+zero scoped post-Start allocations, cancellation and pre-capture refusal.
+Strict std production-library and product binary/process-test Clippy pass.
+Logs: target/image-input-custody-20261106. No live service or firmware changed.
+
+Candidate 42237917142 passed and #6822 merged into dev at 5e6b09c650.
+#6823's unchanged qualified head 7b3a942bee already targets dev and is now ready
+for review, replacing its draft status; no extra implementation PR was opened.
+Maintenance removed 198 inactive ARM host build-script executable copies after
+checking process command lines, working directories, mappings and descriptors,
+recovering 405,133,369 unique-inode bytes while preserving generated Source,
+firmware, credentials and evidence. Root headroom after qualification: 753 MiB;
+do not launch another large build without reclaiming further verified caches.

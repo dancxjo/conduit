@@ -250,7 +250,7 @@ fn run_image_case(source: &str) {
         )
     }
     .unwrap();
-    assert_eq!(initialized.request, input.request);
+    assert_eq!(initialized.request.input().bytes, request);
     let mut host = initialized.host;
     assert_eq!(
         host.image_identity().unwrap().image_id,
@@ -303,11 +303,7 @@ fn run_image_case(source: &str) {
     let body_plan =
         conduit_body::BodyPlan::seal(&wake, vec![conduit_body::BodyPlotPlan { plot, plan }])
             .unwrap();
-    let inputs = [ExternalForeInput {
-        front_port_id: "request".into(),
-        track: ConnectionTrack::Payload,
-        bytes: request,
-    }];
+    let inputs = std::slice::from_ref(initialized.request.input());
     let mut capture = BoundedBodyCapture {
         bytes: Vec::with_capacity(expected_body_reply.len()),
         calls: 0,
@@ -320,7 +316,7 @@ fn run_image_case(source: &str) {
             control: &RunControl::default(),
             keyboard: None,
         },
-        &inputs,
+        inputs,
         &mut Vec::new(),
         &mut ThreadTimer,
         Some(&mut capture),
@@ -370,7 +366,7 @@ fn run_image_case(source: &str) {
             control: &control,
             keyboard: None,
         },
-        &inputs,
+        inputs,
         &mut Vec::new(),
         &mut ThreadTimer,
         Some(&mut capture),
