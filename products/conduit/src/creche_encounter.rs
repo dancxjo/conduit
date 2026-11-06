@@ -84,11 +84,28 @@ struct Inputs {
     admission_digest: [u8; 32],
 }
 
+// IMAGE custody follows every input alias, including a controller that outlives
+// the encounter adapter and its original factory.
+#[derive(Clone)]
+enum InputsCustody {
+    Reference(Arc<Inputs>),
+    Image(Arc<conduit_std_host::body_execution::ImagePreparedValue<Arc<Inputs>>>),
+}
+impl core::ops::Deref for InputsCustody {
+    type Target = Inputs;
+    fn deref(&self) -> &Inputs {
+        match self {
+            Self::Reference(inputs) => inputs,
+            Self::Image(inputs) => inputs.value(),
+        }
+    }
+}
+
 /// Retained and validated before its exact resource is advertised. Creating a
 /// per-Play adapter borrows this factory, so no second concurrent encounter can
 /// spend the same single slot through this owner.
 pub struct CrecheEncounterFactory {
-    inputs: Arc<Inputs>,
+    inputs: InputsCustody,
 }
 
 struct Command {
@@ -113,7 +130,7 @@ struct State {
 struct Channel {
     state: Mutex<State>,
     custody: Mutex<Box<dyn CrecheMaskShowCustody>>,
-    inputs: Arc<Inputs>,
+    inputs: InputsCustody,
     binding: CrecheBodyBinding,
 }
 impl Channel {

@@ -4,6 +4,7 @@ use super::*;
 #[path = "../../tests/common/creche_bundle.rs"]
 mod bundle_common;
 mod bundle_fixture;
+mod image_custody;
 mod native_binding;
 use bundle_fixture::factory;
 use conduit_body::{AdmissionManager, Body, BodyMembership, SpawnInvitationSecret};
@@ -252,7 +253,10 @@ fn retirement_prevents_delayed_production_and_repeated_begin() {
 #[test]
 fn factory_refuses_missing_bundle_proof_and_empty_inventory_before_advertisement() {
     let (prepared, _directory) = factory();
-    let inputs = Arc::try_unwrap(prepared.inputs).ok().unwrap();
+    let InputsCustody::Reference(inputs) = prepared.inputs else {
+        panic!("reference factory fixture expected");
+    };
+    let inputs = Arc::try_unwrap(inputs).ok().unwrap();
     let mut artifacts = inputs.artifacts;
     artifacts[0].bundle = None;
     assert!(CrecheEncounterFactory::new(
@@ -263,7 +267,10 @@ fn factory_refuses_missing_bundle_proof_and_empty_inventory_before_advertisement
     )
     .is_err());
     let (prepared, _directory) = factory();
-    let inputs = Arc::try_unwrap(prepared.inputs).ok().unwrap();
+    let InputsCustody::Reference(inputs) = prepared.inputs else {
+        panic!("reference factory fixture expected");
+    };
+    let inputs = Arc::try_unwrap(inputs).ok().unwrap();
     assert!(CrecheEncounterFactory::new(
         inputs.catalog,
         inputs.packages,

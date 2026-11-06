@@ -8991,3 +8991,54 @@ The independent shared-type review #6834 also received `fee210a190`: its
 Candidate admission found a test-only `let_and_return` Clippy error. The direct
 return fix passed all-target core Clippy and the independent allocation test
 before push. Its new Candidate result is not yet claimed.
+
+### 2026-11-06 — Crèche factory input charges survive controller lifetime
+
+The previous context checkpoint `0465ac6bff` passed strict std library Clippy.
+The next actual retention gap was the factory's shared `Inputs`: an encounter
+controller can keep those inputs alive after the adapter and factory disappear.
+Charging only the factory object would release its budget prematurely.
+
+`CrecheEncounterFactory::prepare_in_image` now constructs through the existing
+verified Root preparation scope. Its original affine charge is retained inside
+the shared input owner and follows every encounter/controller alias. Preparation
+accepts only uniquely owned reference inputs; an already shared or funded input
+owner cannot be relabelled or transferred. Its envelope explicitly includes both
+shared wrappers and all retained input backing. `verify_image_custody` delegates
+to the original-counter check; copied Host/Boot/IMAGE identities do not suffice.
+Reference preparation remains explicitly separate and cannot pass that check.
+
+All 15 product Crèche tests passed. The new actual factory test uses the Pi
+profile's unchanged 64 MiB heap: a 4 MiB preparation / 2 MiB retention fixture
+competes with the original Root metadata counter. A subsequent 60 MiB probe
+refuses. The factory remains charged after initial Host construction deliberately
+refuses before any native definition, grant or provider is supplied. Its adapter
+then drops, followed by its factory; a remaining controller still retains the
+original charged input owner. Only its final drop releases that shared owner.
+A separate Host with the same declared identities and IMAGE fails the exact
+memory-owner check. Pressure refuses before the factory callback, and a prior
+input alias refuses transfer without destroying that independently owned alias.
+
+Independent current-thread requested-allocation diagnostics for this fixed
+factory fixture: 14,798,835 bytes cumulative, 471,725 bytes peak, 189,178 bytes
+retained. These exclude allocator overhead, pre-existing stores, stacks, other
+threads/processes and global lifetime qualification; they are not process RSS
+or an installed Root admission envelope. Logs:
+`/tmp/conduit-funded-creche-factory-tight-20261106.log` and
+`/tmp/conduit-funded-creche-factory-clippy-final-20261106.log`.
+
+Strict product library/test Clippy passed. Its first broader run exposed a
+previous Source diagnostic imported into the numerical integration test, whose
+allocator is deliberately different. Commit `56349390e8` moves that diagnostic
+to the allocator-owning library/binary roots rather than adding a second global
+allocator. Its actual relocated diagnostic passed; the numerical target now
+compiles in the same strict check. The same commit removes one unnecessary
+member-return fixture clone. Source semantics and numerical measurement policy
+are unchanged.
+
+This proves shared factory input custody, not funded mutable encounter state,
+Face/edit/request serialization workspace, worker memory, installed Source
+adoption, ordinary Crèche IMAGE execution, or physical device acceptance. All
+existing execution refusals remain. The next integration must fund and bound
+those per-Play effects before enabling the ordinary installed route. No firmware
+or installed service changed during this checkpoint.

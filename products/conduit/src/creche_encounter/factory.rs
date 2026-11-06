@@ -84,16 +84,70 @@ impl CrecheEncounterFactory {
             1,
         );
         Ok(Self {
-            inputs: Arc::new(Inputs {
+            inputs: InputsCustody::Reference(Arc::new(Inputs {
                 catalog,
                 packages,
                 installation,
                 artifacts,
                 resource,
                 admission_digest: Sha256::digest(admission).into(),
-            }),
+            })),
         })
     }
+    /// Construct under an independently qualified Root IMAGE envelope. The
+    /// original charge follows shared inputs into every encounter/controller.
+    /// This does not advertise a provider or admit its per-Play effects.
+    ///
+    /// # Safety
+    /// Root must own and authorize all selected files and inputs. The peak must
+    /// cover complete synchronous preparation; retention must include all input
+    /// backing/capacities and the shared IMAGE wrapper allocation. Shared stores
+    /// require independent lifetime custody. The callback must leave no worker
+    /// or platform effect live on error/unwind, and must not export unfunded
+    /// input aliases.
+    /// These cooperative bounds confer no Source, Make or device authority.
+    pub unsafe fn prepare_in_image(
+        root: &conduit_std_host::body_execution::ImageRootPreparation<'_>,
+        preparation_bytes: usize,
+        retained_bytes: usize,
+        prepare: impl FnOnce() -> Result<Self, String>,
+    ) -> Result<Self, String> {
+        use conduit_std_host::body_execution::ImagePreparedValue;
+        // The original Inputs Arc is retained as the value; this additional Arc
+        // owns the value and its affine charge. Both headers/backing are covered
+        // by Root's retained envelope, never an implicit enlarged grant.
+        let minimum = core::mem::size_of::<ImagePreparedValue<Arc<Inputs>>>()
+            + 2 * core::mem::size_of::<usize>();
+        if retained_bytes < minimum {
+            return Err("Crèche IMAGE retention cannot own its shared custody wrapper".into());
+        }
+        // SAFETY: caller qualifies the complete factory and retained shared
+        // stores. The outer Arc is allocated only after its retained charge is
+        // established, and that charge stays inside the Arc until its last drop.
+        let prepared = unsafe {
+            root.prepare_value(preparation_bytes, retained_bytes, || {
+                match prepare()?.inputs {
+                    InputsCustody::Reference(inputs) if Arc::strong_count(&inputs) == 1 => {
+                        Ok(inputs)
+                    }
+                    _ => Err("Crèche IMAGE preparation requires unique unfunded inputs".into()),
+                }
+            })
+        }?;
+        Ok(Self {
+            inputs: InputsCustody::Image(Arc::new(prepared)),
+        })
+    }
+
+    /// Verify the original selected Host counter, never copied Host/IMAGE IDs.
+    /// This checks input memory custody only, not provider or execution rights.
+    pub fn verify_image_custody(&self, host: &conduit_std_host::StdHost) -> Result<(), String> {
+        match &self.inputs {
+            InputsCustody::Image(inputs) => host.verify_selected_image_prepared_value(inputs),
+            InputsCustody::Reference(_) => Err("Crèche factory has no IMAGE input custody".into()),
+        }
+    }
+
     pub fn resource_offer(&self) -> ResourceOffer {
         self.inputs.resource.clone()
     }
