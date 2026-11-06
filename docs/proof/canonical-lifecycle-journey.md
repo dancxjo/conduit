@@ -8553,3 +8553,29 @@ installed Source-review action, admitted caller workspace or compiler result.
 The required remaining boundary is recorded on #6447 comment
 https://github.com/dancxjo/conduit/issues/6447#issuecomment-6692316011
 and remains coupled to existing #6341 preparation custody.
+
+### 2026-11-06 — admit finite input preparation before effects
+
+The existing IMAGE input owner now has a trusted preparation entrance,
+`prepare_selected_image_fore_input`. It reserves a qualified complete callback
+peak against the same managed heap before invoking Root's synchronous factory,
+checks the resulting input's actual allocated capacities, and retains only that
+backing charge until the input drops. Existing already-prepared input retention
+uses this same path with a transfer-only factory; no new allocator, resource
+ledger or competing workspace framework was introduced.
+
+The callback is an unsafe Root obligation: its complete peak and quiescence
+(including failure/unwind) must be qualified independently. Captured values,
+metadata, diagnostic retention and other effects outside that callback require
+their own custody. This is cooperative admission, not allocator containment,
+Source access authority, worker retirement or complete #6341 acceptance. It
+provides the missing before-capture reservation seam for finite Source-request
+preparation without claiming that the installed selection action already exists.
+
+All five input-custody tests pass: before-factory charge observation, refusal
+without factory invocation, result-capacity check, failure/unwind release,
+Host-independent retained lifetime and execution/input competition. All eight
+actual compiler/IMAGE integration tests continue to pass through the updated
+retention path. Strict production Clippy on both changed packages and formatting/
+diff checks pass. No owner, firmware or display deployment changed.
+Logs retained under `target/image-input-preparation-20261106`.
