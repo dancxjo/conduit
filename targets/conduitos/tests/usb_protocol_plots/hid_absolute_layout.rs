@@ -215,3 +215,6 @@ fn complete_absolute_layout_plot_uses_bounded_source_steps() {
 
 #[path = "hid_absolute_layout/execution.rs"]
 mod execution;
+
+#[path = "hid_absolute_layout/reusable_execution.rs"]
+mod reusable_execution;

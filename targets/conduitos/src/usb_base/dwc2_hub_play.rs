@@ -34,7 +34,8 @@ pub(crate) struct Dwc2HubPlay<I, P> {
     run: PreparedUsbSourceKernel,
     control: Option<Dwc2ControlPlay<I>>,
     clock: ClockPlay<P>,
-    pipes: [PreparedPureProtocolPipe; 3],
+    configuration: PreparedPureProtocolPipe,
+    descriptor: PreparedHidDescriptorPipe,
     route: RootControlRoute,
     begin: PortId,
     received: PortId,
@@ -68,29 +69,15 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
         first_child_address: u8,
     ) -> Result<Self, HubPlayRefusal> {
         use HubPlayRefusal as E;
-        let pipes = [
-            PreparedPureProtocolPipe::prepare(
-                usb_configuration_decode_package().map_err(E::Source)?,
-                "usb-configuration-decode",
-                host_id.clone(),
-                boot_id.clone(),
-            )
-            .map_err(E::Pipe)?,
-            PreparedPureProtocolPipe::prepare(
-                usb_hid_absolute_descriptor_stages_package().map_err(E::Source)?,
-                "usb-hid-absolute-layout-stage-0",
-                host_id.clone(),
-                boot_id.clone(),
-            )
-            .map_err(E::Pipe)?,
-            PreparedPureProtocolPipe::prepare(
-                usb_hid_absolute_descriptor_stages_package().map_err(E::Source)?,
-                "usb-hid-absolute-layout-stage-1",
-                host_id.clone(),
-                boot_id.clone(),
-            )
-            .map_err(E::Pipe)?,
-        ];
+        let configuration = PreparedPureProtocolPipe::prepare(
+            usb_configuration_decode_package().map_err(E::Source)?,
+            "usb-configuration-decode",
+            host_id.clone(),
+            boot_id.clone(),
+        )
+        .map_err(E::Pipe)?;
+        let descriptor = PreparedHidDescriptorPipe::prepare(host_id.clone(), boot_id.clone())
+            .map_err(E::Pipe)?;
         let package = usb_hub_input_package().map_err(E::Source)?;
         let bytes = serde_json::to_vec(&package).map_err(|_| E::Binding)?;
         let entry = PreparedProtocolEntry::prepare(&bytes, "usb-hub-input").map_err(E::Source)?;
@@ -188,7 +175,8 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
             run,
             control: Some(control),
             clock,
-            pipes,
+            configuration,
+            descriptor,
             route,
             begin: begin.port_id,
             received: received.port_id,
@@ -224,9 +212,8 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
             .start()
             .map_err(E::Control)?;
         self.clock.start().map_err(E::Clock)?;
-        for pipe in &mut self.pipes {
-            pipe.start().map_err(E::Pipe)?;
-        }
+        self.configuration.start().map_err(E::Pipe)?;
+        self.descriptor.start().map_err(E::Pipe)?;
         self.run
             .kernel_mut()
             .start()
@@ -246,34 +233,29 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
     /// observation on the independently admitted clock's exact calibrated basis.
     pub(crate) fn step(&mut self, now_ms: u64) -> Result<bool, HubPlayRefusal> {
         use HubPlayRefusal as E;
-        for pipe in &mut self.pipes {
-            if !pipe.complete() {
-                pipe.step().map_err(E::Pipe)?;
-            }
+        if !self.configuration.complete() {
+            self.configuration.step().map_err(E::Pipe)?;
         }
-        if let Some(value) = self.pipes[0].result() {
+        if !self.descriptor.complete() {
+            self.descriptor.step().map_err(E::Pipe)?;
+        }
+        if let Some(value) = self.configuration.result() {
             accepted(self.run.kernel_mut().admit_input(
                 &self.topology,
                 self.topology_sequence,
                 value,
             ))?;
             self.topology_sequence = self.topology_sequence.checked_add(1).ok_or(E::Binding)?;
-            self.pipes[0].acknowledge();
+            self.configuration.acknowledge();
         }
-        let (_, tail) = self.pipes.split_at_mut(1);
-        let (left, right) = tail.split_at_mut(1);
-        if let Some(value) = left[0].result() {
-            right[0].submit(value).map_err(E::Pipe)?;
-            left[0].acknowledge();
-        }
-        if let Some(value) = self.pipes[2].result() {
+        if let Some(value) = self.descriptor.result() {
             accepted(
                 self.run
                     .kernel_mut()
                     .admit_input(&self.layout, self.layout_sequence, value),
             )?;
             self.layout_sequence = self.layout_sequence.checked_add(1).ok_or(E::Binding)?;
-            self.pipes[2].acknowledge();
+            self.descriptor.acknowledge();
         }
         let control = self.control.as_mut().ok_or(E::Binding)?;
         control.step().map_err(E::Control)?;
@@ -348,8 +330,10 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
                     let encoded = self.request.record(&fields).map_err(E::Value)?;
                     control.submit(route, encoded).map_err(E::Control)?;
                 }
-                "configuration-decode" => self.pipes[0].submit(&output.value).map_err(E::Pipe)?,
-                "descriptor-decode" => self.pipes[1].submit(&output.value).map_err(E::Pipe)?,
+                "configuration-decode" => {
+                    self.configuration.submit(&output.value).map_err(E::Pipe)?
+                }
+                "descriptor-decode" => self.descriptor.submit(&output.value).map_err(E::Pipe)?,
                 "wait" => {
                     if self.waiting {
                         return Err(E::Binding);
@@ -389,9 +373,8 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
                         .kernel_mut()
                         .close_input(&self.layout)
                         .map_err(|e| E::Call(ProtocolCallRefusal::Kernel(e)))?;
-                    for pipe in &mut self.pipes {
-                        pipe.close().map_err(E::Pipe)?;
-                    }
+                    self.configuration.close().map_err(E::Pipe)?;
+                    self.descriptor.close().map_err(E::Pipe)?;
                 }
                 _ => return Err(E::Binding),
             }
@@ -402,7 +385,8 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
         }
         self.complete = self.finished
             && status == conduit_composite::KernelCompositeStatus::Complete
-            && self.pipes.iter().all(|p| p.complete());
+            && self.configuration.complete()
+            && self.descriptor.complete();
         Ok(self.complete)
     }
     pub(crate) fn waiting_for_clock(&self) -> bool {

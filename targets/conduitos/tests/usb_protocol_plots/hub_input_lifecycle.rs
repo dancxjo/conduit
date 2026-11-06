@@ -126,29 +126,18 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
             },
         )
         .unwrap();
-    let mut pipes = [
-        PreparedPureProtocolPipe::prepare(
-            usb_configuration_decode_package().unwrap(),
-            "usb-configuration-decode",
-            "fixture/hub-policy-host".into(),
-            "fixture/hub-policy-boot".into(),
-        )
-        .unwrap(),
-        PreparedPureProtocolPipe::prepare(
-            usb_hid_absolute_descriptor_stages_package().unwrap(),
-            "usb-hid-absolute-layout-stage-0",
-            "fixture/hub-policy-host".into(),
-            "fixture/hub-policy-boot".into(),
-        )
-        .unwrap(),
-        PreparedPureProtocolPipe::prepare(
-            usb_hid_absolute_descriptor_stages_package().unwrap(),
-            "usb-hid-absolute-layout-stage-1",
-            "fixture/hub-policy-host".into(),
-            "fixture/hub-policy-boot".into(),
-        )
-        .unwrap(),
-    ];
+    let mut configuration = PreparedPureProtocolPipe::prepare(
+        usb_configuration_decode_package().unwrap(),
+        "usb-configuration-decode",
+        "fixture/hub-policy-host".into(),
+        "fixture/hub-policy-boot".into(),
+    )
+    .unwrap();
+    let mut descriptor = PreparedHidDescriptorPipe::prepare(
+        "fixture/hub-policy-host".into(),
+        "fixture/hub-policy-boot".into(),
+    )
+    .unwrap();
     let mut run = PreparedUsbSourceKernel::prepare_pure(
         artifact,
         conduit_composite::KernelCompositeSignStorage::default(),
@@ -221,21 +210,21 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
     let mut result = false;
     let mut complete = false;
     let allocations = super::allocation::allocations(|| {
-        for pipe in &mut pipes {
-            pipe.start().unwrap();
-        }
+        configuration.start().unwrap();
+        descriptor.start().unwrap();
         run.kernel_mut().start().unwrap();
         run.kernel_mut()
             .admit_input(&begin.port_id, 0, &seed)
             .unwrap();
         run.kernel_mut().close_input(&begin.port_id).unwrap();
         for _ in 0..40_000 {
-            for pipe in &mut pipes {
-                if !pipe.complete() {
-                    pipe.step().unwrap();
-                }
+            if !configuration.complete() {
+                configuration.step().unwrap();
             }
-            if let Some(value) = pipes[0].result() {
+            if !descriptor.complete() {
+                descriptor.step().unwrap();
+            }
+            if let Some(value) = configuration.result() {
                 assert!(matches!(
                     run.kernel_mut()
                         .admit_input(&topology.port_id, topology_sequence, value)
@@ -243,15 +232,9 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
                     conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. }
                 ));
                 topology_sequence += 1;
-                pipes[0].acknowledge();
+                configuration.acknowledge();
             }
-            let (_, tail) = pipes.split_at_mut(1);
-            let (left, right) = tail.split_at_mut(1);
-            if let Some(value) = left[0].result() {
-                right[0].submit(value).unwrap();
-                left[0].acknowledge();
-            }
-            if let Some(value) = pipes[2].result() {
+            if let Some(value) = descriptor.result() {
                 assert!(matches!(
                     run.kernel_mut()
                         .admit_input(&layout_input.port_id, layout_sequence, value)
@@ -259,7 +242,7 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
                     conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. }
                 ));
                 layout_sequence += 1;
-                pipes[2].acknowledge();
+                descriptor.acknowledge();
             }
             let status = run.kernel_mut().step().unwrap();
             if let Some(request) = run.kernel_mut().next_host_request() {
@@ -319,8 +302,8 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
                                 .unwrap();
                             call += 1;
                         }
-                        "configuration-decode" => pipes[0].submit(&output[index]).unwrap(),
-                        "descriptor-decode" => pipes[1].submit(&output[index]).unwrap(),
+                        "configuration-decode" => configuration.submit(&output[index]).unwrap(),
+                        "descriptor-decode" => descriptor.submit(&output[index]).unwrap(),
                         "wait" => {
                             assert_eq!(
                                 output[index].encoded.as_slice(),
@@ -366,9 +349,8 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
                             run.kernel_mut().close_input(&woke.port_id).unwrap();
                             run.kernel_mut().close_input(&topology.port_id).unwrap();
                             run.kernel_mut().close_input(&layout_input.port_id).unwrap();
-                            for pipe in &mut pipes {
-                                pipe.close().unwrap();
-                            }
+                            configuration.close().unwrap();
+                            descriptor.close().unwrap();
                         }
                         _ => panic!("unexpected public Fore"),
                     }
@@ -378,7 +360,8 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
                 }
             }
             if status == conduit_composite::KernelCompositeStatus::Complete
-                && pipes.iter().all(|p| p.complete())
+                && configuration.complete()
+                && descriptor.complete()
             {
                 complete = true;
                 break;

@@ -32,40 +32,17 @@ impl PreparedPureProtocolPipe {
         host_id: HostId,
         boot_id: BootId,
     ) -> Result<Self, PurePipeRefusal> {
+        Self::prepare_with_storage(package, entry_name, host_id, boot_id, Default::default())
+    }
+    pub(super) fn prepare_with_storage(
+        package: ProtocolSourcePackage,
+        entry_name: &str,
+        host_id: HostId,
+        boot_id: BootId,
+        storage: conduit_composite::KernelCompositeSignStorage,
+    ) -> Result<Self, PurePipeRefusal> {
         use PurePipeRefusal as E;
-        let bytes = serde_json::to_vec(&package).map_err(|_| E::Binding)?;
-        let entry = PreparedProtocolEntry::prepare(&bytes, entry_name).map_err(E::Source)?;
-        let mut host = HostAdvertisement {
-            declared_name: None,
-            protocol_version: PROTOCOL_VERSION,
-            host_id,
-            boot_id,
-            offer_generation: OfferGeneration(1),
-            profile: "conduitos/pure-source-pipe@1".into(),
-            bases: vec![],
-            resources: vec![],
-            capabilities: vec![],
-            planner_capabilities: vec![],
-        };
-        entry.publish_pure_backs(&mut host).map_err(E::Source)?;
-        let hosts = [host];
-        let placements = entry.placements(&hosts).map_err(E::Source)?;
-        let artifact = entry
-            .plan(
-                &hosts,
-                &placements,
-                &["conduit.base/local@1".into()],
-                conduit_planner::PlanningOptions {
-                    connection_bases: &BTreeMap::new(),
-                    line_candidates: &BTreeMap::new(),
-                    connection_item_capacity: 1,
-                    connection_byte_capacity: 4096,
-                    authority_grants: &[],
-                    protected_resource_grants: &[],
-                    line_offers: &[],
-                },
-            )
-            .map_err(E::Source)?;
+        let artifact = prepare_stage(package, entry_name, host_id, boot_id)?;
         let boundary = &artifact.artifact().definition().boundary;
         let ([input], [output]) = (
             boundary.input_fronts.as_slice(),
@@ -75,7 +52,7 @@ impl PreparedPureProtocolPipe {
         };
         let input = input.external_port.clone();
         let output = output.external_port.clone();
-        let play = artifact.prepare_pure(Default::default()).map_err(E::Call)?;
+        let play = artifact.prepare_pure(storage).map_err(E::Call)?;
         Ok(Self {
             play,
             input: input.port_id,
@@ -167,4 +144,48 @@ impl PreparedPureProtocolPipe {
     pub fn complete(&self) -> bool {
         self.complete
     }
+}
+
+/// Prepare exact Source boundaries without adding interpretation or authority.
+pub(super) fn prepare_stage(
+    package: ProtocolSourcePackage,
+    entry_name: &str,
+    host_id: HostId,
+    boot_id: BootId,
+) -> Result<PreparedProtocolArtifact, PurePipeRefusal> {
+    use PurePipeRefusal as E;
+    let bytes = serde_json::to_vec(&package).map_err(|_| E::Binding)?;
+    let entry = PreparedProtocolEntry::prepare(&bytes, entry_name).map_err(E::Source)?;
+    let mut host = HostAdvertisement {
+        declared_name: None,
+        protocol_version: PROTOCOL_VERSION,
+        host_id,
+        boot_id,
+        offer_generation: OfferGeneration(1),
+        profile: "conduitos/pure-source-pipe@1".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    entry.publish_pure_backs(&mut host).map_err(E::Source)?;
+    let hosts = [host];
+    let placements = entry.placements(&hosts).map_err(E::Source)?;
+    let artifact = entry
+        .plan(
+            &hosts,
+            &placements,
+            &["conduit.base/local@1".into()],
+            conduit_planner::PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: 4096,
+                authority_grants: &[],
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+        )
+        .map_err(E::Source)?;
+    Ok(artifact)
 }

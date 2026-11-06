@@ -507,3 +507,6 @@ pub(crate) use native_usb_isochronous_preparation::prepare_native_usb_isochronou
 
 mod pure_pipe;
 pub use pure_pipe::{PreparedPureProtocolPipe, PurePipeRefusal};
+
+mod hid_descriptor_pipe;
+pub use hid_descriptor_pipe::PreparedHidDescriptorPipe;
