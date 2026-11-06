@@ -156,3 +156,4 @@ fn matching_identifiers_cannot_replace_lowered_call_or_active_play() {
 }
 
 mod assigned;
+mod retirement;

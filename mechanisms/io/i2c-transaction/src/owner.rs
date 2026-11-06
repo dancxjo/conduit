@@ -14,6 +14,8 @@ use conduit_plan_lowering::lowering::LoweredPlanFragment;
 use conduit_plan_lowering::selected_operation::{
     bind_selected_operation, SelectedCallRefusal, SelectedOperationContract, SelectedOperationPlan,
 };
+mod retirement;
+pub use retirement::I2cRetirementRefusal;
 
 /// Native attachment truth supplied independently of an authored request.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
