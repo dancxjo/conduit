@@ -148,48 +148,26 @@ fn run_image_case(source: &str) {
         .insert_fore(SOURCE_CHECK_KIND, kind.checked_front())
         .unwrap();
     profiles.insert_kind(kind).unwrap();
-    let mut worker = conduit::source_check_worker::from_configuration(&checked).unwrap();
-    let selected_file = source_file(source);
-    // SAFETY: Fixture owns this exact Source snapshot and explicit Host/Boot
-    // grant; the actual bounded child is reaped before immutable provider return.
-    // Caller-owned schema/Root metadata has separate preparation custody.
+    let control = RunControl::default();
+    let catalog = conduit_workspace_make::catalog();
+    // SAFETY: Fixture owns this selected File, exact Source scope and independent
+    // Host/Boot grant. Its caller metadata has separate preparation custody.
     let mut host = unsafe {
-        StdHost::from_selected_timer_and_immediate_source_image(
-            config,
-            &image,
-            &conduit_workspace_make::catalog(),
-            &checked,
-            definition,
-            budget(),
-            move || {
-                let selected =
-                    conduit_std_host::source_check::process::OwnedSourceCheckInput::from_file(
-                        selected_file,
-                        bounds().request_bytes as usize,
-                        &input.owner,
-                        input.generation,
-                        &input.request.entry,
-                        input.request.context.clone(),
-                    )
-                    .map_err(|e| format!("selected Source capture: {e:?}"))?;
-                if selected.request() != &input.request {
-                    return Err(
-                        "selected Source capture differs from its retained reference".into(),
-                    );
-                }
-                let output = worker
-                    .prepare_selected_source(&selected, &RunControl::default())
-                    .map_err(|e| format!("{e:?}"))?;
-                if output.canonical_bytes() != expected {
-                    return Err("actual compiler differs from direct canonical reference".into());
-                }
-                let prepared = PreparedSourceChecker::from_process_outputs(
-                    &schema,
-                    &[output],
-                    bounds(),
-                    &RunControl::default(),
-                )?;
-                Ok(Box::new(prepared.into_provider()))
+        conduit::source_check_worker::initialize_image(
+            conduit::source_check_worker::SourceCheckImageInstallation {
+                config,
+                image: &image,
+                checked: &checked,
+                catalog: &catalog,
+                definition,
+                schema: &schema,
+                file: source_file(source),
+                maximum_source_bytes: bounds().request_bytes as usize,
+                owner: &input.owner,
+                generation: input.generation,
+                entry: &input.request.entry,
+                context: input.request.context.clone(),
+                control: &control,
             },
         )
     }
@@ -456,4 +434,60 @@ fn source_file(source: &str) -> std::fs::File {
     file.write_all(source.as_bytes()).unwrap();
     std::fs::remove_file(path).unwrap();
     file
+}
+
+#[test]
+fn product_installation_refuses_envelope_drift_and_stop_before_source_capture() {
+    use std::io::Seek;
+    for stopped in [false, true] {
+        let checked = configuration();
+        let image = image(&checked);
+        let schema = SourceCheckNativeSchema::prepare().unwrap();
+        let kind = PreparedSourceChecker::kind_for_bounds(&schema, bounds()).unwrap();
+        let (config, mut definition) = definition(&image, kind);
+        let source = include_str!("../../../../plots/hello/main.conduit");
+        let (input, _) = input(source);
+        let file = source_file(source);
+        let mut probe = file.try_clone().unwrap();
+        probe.rewind().unwrap();
+        let control = RunControl::default();
+        if stopped {
+            control
+                .request_stop(RunControlRequestId::new("before-source-capture").unwrap())
+                .unwrap();
+        } else {
+            definition.output_bytes += 1;
+        }
+        let catalog = conduit_workspace_make::catalog();
+        // SAFETY: Independent fixture File/scope/grant; refusal must precede
+        // Source capture and publish no initialized Host or provider.
+        let result = unsafe {
+            conduit::source_check_worker::initialize_image(
+                conduit::source_check_worker::SourceCheckImageInstallation {
+                    config,
+                    image: &image,
+                    checked: &checked,
+                    catalog: &catalog,
+                    definition,
+                    schema: &schema,
+                    file,
+                    maximum_source_bytes: bounds().request_bytes as usize,
+                    owner: &input.owner,
+                    generation: input.generation,
+                    entry: &input.request.entry,
+                    context: input.request.context,
+                    control: &control,
+                },
+            )
+        };
+        let error = result
+            .err()
+            .expect("no Host may escape failed installation");
+        assert!(error.contains(if stopped {
+            "preparation cancelled"
+        } else {
+            "checked compiler envelopes"
+        }));
+        assert_eq!(probe.stream_position().unwrap(), 0);
+    }
 }

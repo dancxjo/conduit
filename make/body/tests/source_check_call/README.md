@@ -64,3 +64,16 @@ prepared checker and installs no provider, resource or grant. The product test
 in `plot_source/source_check_catalog.rs` checks and expands this Source through
 the ordinary loader, then verifies that placement on an unconfigured Host still
 refuses. This makes the operation authorable; it does not complete installation.
+
+The product's Linux `source_check_worker::initialize_image` now owns the actual
+initialization sequence previously assembled in the process fixture. Root
+supplies its selected File, explicit Source scope, current native definition and
+independently held grant. Preparation/retention and request/reply envelopes come
+from the checked Host configuration. Source capture and compilation happen
+inside the existing funded initializer; the configuration, catalogue, schema
+and stop control are borrowed and cannot escape into the returned Host.
+Envelope drift and a preexisting stop refuse before Source capture. This is an
+explicit unsafe Root correspondence boundary, not a new authority constructor
+or an installed owner action. The process IMAGE integration test uses this
+product routine and still compares the resulting Body Play's typed bytes with
+the direct canonical reference.

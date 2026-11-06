@@ -73,3 +73,8 @@ pub fn from_configuration(
     .and_then(|worker| worker.with_reply_bound(selected.reply_bytes as usize))
     .map_err(|error| format!("selected Source compiler: {error:?}"))
 }
+
+#[cfg(target_os = "linux")]
+mod installation;
+#[cfg(target_os = "linux")]
+pub use installation::{initialize_image, SourceCheckImageInstallation};

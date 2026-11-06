@@ -7756,3 +7756,46 @@ reclaiming 905,099,837 bytes. The deletion inventory is retained at ignored
 `target/inactive-arm-language-cleanup-20261106.json`. Linked firmware, UF2/ELF
 qualification evidence, live releases, source and private state were preserved.
 Final headroom is approximately 1.5 GiB; further large builds require cleanup.
+
+### 6 November 2026 — actual compiler initialization enters product code
+
+The Linux product now provides `source_check_worker::initialize_image`, replacing
+the compiler IMAGE test's handwritten preparation closure with a reusable Root
+initialization routine. Root supplies an already-selected File, exact Source
+scope, native definition/current independent grant, and its checked Host IMAGE.
+The routine derives preparation/retention and packet envelopes from the checked
+compiler equipment, rejects definition drift, and acquires Source bytes only
+inside the existing funded initializer. It uses the existing verified executable,
+bounded child, canonical output correlation and immediate provider. A failed
+factory returns no Host; checking neither adopts nor executes the candidate.
+
+The existing initial-Base construction now accepts transient borrowed callbacks.
+No callback survives construction, and the returned provider retains only its
+owned immutable packets. Product startup can consequently borrow its existing
+catalogue, configuration, schema and RunControl instead of cloning them merely
+to satisfy an unnecessary 'static callback bound. This changes no Root grants,
+IMAGE bounds, reconfiguration permissions or MCU firmware.
+
+All 18 actual product compiler-process tests pass. Valid/invalid Source flows
+through this product initializer into the same exact Body Play/Host Call and
+matches direct canonical bytes; the existing allocation-free post-Start and
+cancellation checks remain. A new test rejects envelope drift and an already
+requested stop before the selected file's shared cursor moves. Its first attempt
+incorrectly assumed a newly written file's cursor started at zero; the fixture
+now explicitly rewinds the shared descriptor before invoking initialization.
+Other cases retain actual child cancellation/reaping, artifact identity,
+startup/reply limits, memory pressure, failed initialization and finite backing
+coverage. Logs: ignored `target/product-source-installation-20261106`.
+
+This is product initialization code exercised by integration tests, not a live
+owner action or completed #6447. The installed owner still needs ordinary
+selection of authorized Source and typed request/result routing through this
+routine; complete Root preparation custody remains independently unproved. No
+running service or device changed. The whole lifecycle objective remains active.
+
+Stewardship: before the final process run, an inventory distinguished the current
+public xtask and its hard link from three obsolete dependency executables. No
+live executable/mapping referenced those three; deleting these regenerable build
+outputs reclaimed 1,344,428,392 bytes. The inventory remains under ignored
+`target/inactive-xtask-cleanup-20261106.json`. Current xtask, firmware evidence,
+private state and live releases remain. Root headroom is approximately 2.0 GiB.

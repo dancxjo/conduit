@@ -4,13 +4,13 @@ use super::*;
 use crate::{StdHost, StdHostConfig};
 use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
 
-type Factory = Box<dyn FnOnce() -> Result<Box<dyn ImmediateNativeSource>, String>>;
-pub(crate) struct InitialNativeSource {
+type Factory<'a> = Box<dyn FnOnce() -> Result<Box<dyn ImmediateNativeSource>, String> + 'a>;
+pub(crate) struct InitialNativeSource<'a> {
     pub definition: NativeSourceDefinition,
     pub budget: ImmediateSourcePreparationBudget,
-    prepare: Factory,
+    prepare: Factory<'a>,
 }
-impl InitialNativeSource {
+impl InitialNativeSource<'_> {
     pub(crate) fn validate_image(&self, image: &HostImage) -> Result<(), String> {
         let d = &self.definition;
         let selected = image
@@ -134,14 +134,14 @@ impl StdHost {
     /// return only after temporary work quiesces, and satisfy the existing
     /// ImmediateNativeSource and finite non-unwinding retirement contracts.
     /// IMAGE intent alone supplies none of those native or authority facts.
-    pub unsafe fn from_selected_timer_and_immediate_source_image(
+    pub unsafe fn from_selected_timer_and_immediate_source_image<'a>(
         config: StdHostConfig,
         image: &HostImage,
         catalog: &MakeCatalog,
         checked: &CheckedHostConfiguration,
         definition: NativeSourceDefinition,
         budget: ImmediateSourcePreparationBudget,
-        prepare: impl FnOnce() -> Result<Box<dyn ImmediateNativeSource>, String> + 'static,
+        prepare: impl FnOnce() -> Result<Box<dyn ImmediateNativeSource>, String> + 'a,
     ) -> Result<Self, String> {
         conduit_host_make::verify_configuration_image(checked, image, catalog)?;
         let source = InitialNativeSource {

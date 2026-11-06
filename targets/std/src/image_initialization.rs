@@ -12,14 +12,14 @@ const MAXIMUM_IMAGE_BYTES: usize = 64 * 1024;
 const MAXIMUM_TIMER_POOLS: usize = 16;
 
 #[derive(Default)]
-struct InitialBases {
-    source: Option<crate::selected_native_source::InitialNativeSource>,
+struct InitialBases<'a> {
+    source: Option<crate::selected_native_source::InitialNativeSource<'a>>,
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
     scanout: Option<crate::selected_scanout::SelectedScanoutBase>,
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
     native_mask: Option<crate::selected_native_mask::InitialNativeMask>,
 }
-impl InitialBases {
+impl InitialBases<'_> {
     fn has_native_mask(&self) -> bool {
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         {
@@ -139,7 +139,7 @@ impl StdHost {
         config: StdHostConfig,
         image: &HostImage,
         catalog: &MakeCatalog,
-        source: crate::selected_native_source::InitialNativeSource,
+        source: crate::selected_native_source::InitialNativeSource<'_>,
     ) -> Result<Self, String> {
         Self::from_selected_initial_bases(
             config,
@@ -159,7 +159,7 @@ impl StdHost {
         config: StdHostConfig,
         image: &HostImage,
         catalog: &MakeCatalog,
-        initial: InitialBases,
+        initial: InitialBases<'_>,
     ) -> Result<Self, String> {
         let manifest = &image.manifest;
         macro_rules! same {
