@@ -298,7 +298,13 @@ impl PreparedProtocolSource {
 }
 
 fn preparation_stage(stage: &str) {
-    #[cfg(all(target_os = "none", target_arch = "x86_64"))]
+    #[cfg(all(
+        target_os = "none",
+        any(
+            target_arch = "x86_64",
+            all(target_arch = "arm", feature = "armv6-product")
+        )
+    ))]
     {
         use core::fmt::Write;
         let mut text = crate::sign_format::FixedText::new();
@@ -308,9 +314,18 @@ fn preparation_stage(stage: &str) {
             crate::allocation::BOOT_ARENA.live_bytes(),
             crate::allocation::BOOT_ARENA.used()
         );
+        #[cfg(target_arch = "x86_64")]
         crate::arch::early_write(text.as_bytes());
+        #[cfg(target_arch = "arm")]
+        crate::arch::present(text.as_bytes());
     }
-    #[cfg(not(all(target_os = "none", target_arch = "x86_64")))]
+    #[cfg(not(all(
+        target_os = "none",
+        any(
+            target_arch = "x86_64",
+            all(target_arch = "arm", feature = "armv6-product")
+        )
+    )))]
     let _ = stage;
 }
 
