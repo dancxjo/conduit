@@ -7462,3 +7462,24 @@ creating authority or changing any configured bound.
 Issue #6770's latest comment corrects a stale board statement: #6808's final
 merged head passed Candidate 42179679659, superseding its earlier formatting
 failure. This does not claim merged-head Integration or physical execution.
+
+### 6 November 2026 — immutable native offer definition without fake readiness
+
+Focused draft PR #6812 starts from current dev and extracts the existing I2C
+implementation's offer-definition constructor from Ready publication. Fabrication
+can construct the ordinary metadata with an exact artifact identity without
+creating a dummy controller or asserting Host/Boot, provider or resource
+readiness. Existing Ready publication reuses that same constructor and retains
+its current identity checks and BaseRegistry boundary. Empty artifact identity
+refuses. No new transport, authority, parser or scheduler is introduced.
+
+Isolated review head `54c9096b46` passes nine no-default-features library tests,
+strict owning library/test Clippy, a thumbv6m-none-eabi no-default-features library
+check and workspace formatting. Delivery cherry-pick `6de9dd8914` also passes all
+three actual mixed-kernel CPU tests. Raw qualification logs are retained in
+`target/i2c-offer-definition-20261106` (ignored).
+
+This constructor alone does not reduce the installed device's memory or publish
+a native offer. Next use is fabrication of immutable native offer bytes, followed
+by publication backed by current actual controller evidence; the Root must still
+own and admit the native execution at assignment time. No device was flashed.
