@@ -67,6 +67,7 @@ pub fn generate_resident_library(
     }
     code.push_str("_=>None,}}\n");
     code.push_str(&format!("pub fn identify_assignments(&self,bytes:&[u8])->Result<conduit_plan_lowering::resident_inventory::ResidentInventorySelection<{}>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{conduit_plan_lowering::resident_inventory::select_resident_inventory(bytes,|index|self.available_identity(index))}}\n",images.len()));
+    code.push_str(&format!("/// Independent local non-resident identities skip computation lookup only. Native binding remains mandatory.\npub fn identify_mixed_assignments(&self,bytes:&[u8],other:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<conduit_plan_lowering::resident_inventory::ResidentInventorySelection<{}>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{conduit_plan_lowering::resident_inventory::select_resident_inventory_with_other_nodes(bytes,other,|index|self.available_identity(index))}}\n",images.len()));
     for index in 0..images.len() {
         code.push_str(&format!(r#"
 /// Transfer only this selected owner, after all exact assignment checks succeed.

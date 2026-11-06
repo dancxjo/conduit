@@ -6621,3 +6621,37 @@ checkout passes 13 all-feature tests, 9 parser-free tests, strict all-target /
 all-feature Clippy, and the ARMv6-M no-default-feature check. Fabricated buffer
 bounds are also checked against the unchanged 4,096-byte Host Call ceiling.
 The PR is reviewable source, not merged acceptance or device deployment.
+
+
+### Mixed node identity selection no longer assumes every Back is computation
+
+The resident inventory selector formerly required every node to identify a
+resident expression. This made a fragment containing protocol computation and a
+native Host Call unrepresentable at preflight. The shared selector now supports
+an explicitly pinned non-resident subset: each such node must match an
+independently supplied local kind/implementation/artifact identity. Computation
+pins retain their actual sparse node ordinals. Whole node numbering must remain
+dense and unique, all supplied non-resident hints must occur, and ambiguous or
+reused resident owners refuse. The original strict entrance uses an empty subset
+and retains its refusal behavior. Selection allocates nothing.
+
+Generated initialized libraries expose the same mixed inspection. The actual
+native I2C owner can supply its identity hint directly from retained local
+ownership without decoding or copying advertisements. Actual Root constructor
+qualification verifies the hint uses the compiled image, costs no allocation and
+causes no bus traffic. These hints are not capabilities, approved assignments,
+resource reservations or electrical readiness of a remote subject.
+
+Three focused selector tests pass, including the full 32-node bitmap boundary,
+wrong identities, missing owners, duplicates and gaps. Both generated-library /
+actual Root regression tests pass; their mixed identity envelope is explicitly
+synthetic and cannot execute. The actual firmware controller-custody CPU test
+passes, and strict selector/test Clippy passes. Raw evidence is retained in
+`target/mixed-resident-selection-20261105/`.
+
+The wire receiver still uses strict computation-only preparation. Before enabling
+mixed input, Root must validate the exact native assignment with its local
+capability possession, fund Host Call/codec storage, bind the same kernel's mixed
+Backs, reserve the complete workset, and install authorized Start/retirement.
+No live firmware, Body state or execution authority changed at this checkpoint.
+PR #6794 Candidate run 42140687460 remains in progress at the last observation.

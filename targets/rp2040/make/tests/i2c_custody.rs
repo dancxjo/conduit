@@ -111,6 +111,22 @@ fn one_controller_lease_survives_cancellation_and_invalidates_cache_only_on_nati
     println!("CPU native I2C identity: {retained_bytes} retained heap bytes in {allocation_count} fallible allocations; no bus effect or authority grant");
 
     assert!(owner::try_lease().is_none());
+    let (hint, cost) = probe::observe(|| ready.assigned_node_identity(1));
+    assert_eq!(cost.allocations, 0);
+    assert_eq!(cost.reallocations, 0);
+    assert_eq!(hint.node, 1);
+    assert_eq!(
+        hint.kind,
+        conduit_core::AssignedIdentity::from_text("machine/i2c/transact")
+    );
+    assert_eq!(
+        hint.implementation,
+        conduit_core::AssignedIdentity::from_text("conduitos/i2c-transaction@1")
+    );
+    assert_eq!(
+        hint.artifact,
+        conduit_core::AssignedIdentity::from_text(config::IMAGE_ID)
+    );
     let contract = conduit_i2c_transaction::contract::I2cContract::prepare().unwrap();
     ready
         .append_to_advertisement(&mut actual, &contract)

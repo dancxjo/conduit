@@ -38,6 +38,21 @@ pub enum I2cInstallationRefusal {
     Advertisement,
 }
 impl<P: I2cProvider> ReadyI2cBase<P> {
+    /// Local ownership supplies a mixed-inventory identity hint without decoding
+    /// an advertisement. This grants no capability and does not check a Plan;
+    /// the exact assigned operation binder remains mandatory before transfer.
+    pub fn assigned_node_identity(
+        &self,
+        node: u16,
+    ) -> conduit_plan_lowering::resident_inventory::OtherNodeIdentity {
+        conduit_plan_lowering::resident_inventory::OtherNodeIdentity {
+            node,
+            kind: AssignedIdentity::from_text(super::contract::I2C_KIND),
+            implementation: AssignedIdentity::from_text(I2C_IMPLEMENTATION),
+            artifact: AssignedIdentity::from_text(self.identity.artifact_id.as_str()),
+        }
+    }
+
     /// Retain an exclusively owned, configured native controller before planning.
     ///
     /// # Safety

@@ -35,6 +35,7 @@ pub fn run(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
         ]
     );
     assert_eq!(selected.computations(), a.pins);
+    mixed_inventory(&library, a);
     let mut no_fore = profile(a);
     no_fore.fore = None;
     let ((fragment, fore), cost) = crate::probe::observe(|| {
@@ -166,3 +167,33 @@ pub fn run(scope: PreparedBodyFragment<'_>, a: &crate::support::Assignment) {
 
 #[path = "bounded_tables.rs"]
 mod bounded_tables;
+
+
+fn mixed_inventory(library: &crate::library::Initialized, a: &crate::support::Assignment) {
+    use conduit_plan_lowering::resident_inventory::OtherNodeIdentity;
+    let pin = OtherNodeIdentity {
+        node: 1,
+        kind: c::AssignedIdentity::from_text("fixture/native-kind"),
+        implementation: c::AssignedIdentity::from_text("fixture/native-implementation"),
+        artifact: c::AssignedIdentity::from_text("fixture/native-artifact"),
+    };
+    // Deliberately only a node-identity inspection envelope. The synthetic
+    // native node has no Host Call, resource or authority and cannot execute.
+    let mut bytes = a.encoded.clone();
+    bytes.push(c::ASSIGNED_NODE);
+    bytes.extend_from_slice(&52u16.to_le_bytes());
+    bytes.extend_from_slice(&pin.node.to_le_bytes());
+    bytes.extend_from_slice(&[0; 2]);
+    bytes.extend_from_slice(&pin.kind.0);
+    bytes.extend_from_slice(&pin.implementation.0);
+    bytes.extend_from_slice(&pin.artifact.0);
+    let length = bytes.len() as u16;
+    bytes[10..12].copy_from_slice(&length.to_le_bytes());
+    assert!(library.identify_assignments(&bytes).is_err());
+    let (selected, cost) = crate::probe::observe(|| library.identify_mixed_assignments(&bytes, &[pin]).unwrap());
+    assert_eq!(cost.allocations, 0);
+    assert_eq!(cost.reallocations, 0);
+    assert_eq!(selected.computations(), a.pins);
+    assert_eq!(selected.nodes().next().unwrap().entry, 0);
+    assert!(library.offers().iter().all(Option::is_some));
+}
