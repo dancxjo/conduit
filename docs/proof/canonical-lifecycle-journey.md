@@ -8507,3 +8507,28 @@ Strict product production Clippy (`-p conduit --bin conduit --no-deps -- -D
 warnings`) passed after the current-source rebuild. The std Host's own Clippy
 and a repeat of its two construction tests against the rebuilt dependency set
 are running separately, because that package has a different feature closure.
+
+### 2026-11-06 — pin reviewed Source through selected capture
+
+The selected initialization request now carries the existing exact
+`SourceSnapshotRevision` instead of unrelated owner/generation labels. Under the
+same funded capture, the initializer compares the actual immutable captured
+snapshot with that independently reviewed revision before even constructing the
+compiler worker. A descriptor whose same-length content changed, a changed digest,
+or a changed Source document identity refuses with no initialized Host. The
+snapshot is evidence to compare, not authority to read a descriptor or adopt work.
+Actual descriptor ownership and the original Host/Boot/operation grant remain
+independent Root obligations. This closes one concrete review-to-preparation gap;
+it does not create the still-missing installed Source-selection Face operation.
+
+Qualification: all eight IMAGE/compiler integration tests pass, including the
+three drift cases, and the two Crèche initial-construction tests pass against the
+rebuilt current dependency set. Combined strict production Clippy on both
+`conduit` and `conduit-std-host` passes. The new constructor retains explicit
+configuration, grant-bearing definition and preparation arguments, with a local
+argument-count exception rather than a competing construction wrapper.
+The earlier standalone std Clippy failure is retained as evidence and superseded
+by `/tmp/conduit-selected-source-snapshot-clippy-20261106.log`.
+All source remains formatted and `git diff --check` passes. Logs retained under
+`target/creche-source-composition-20261106`; these are local process/construction
+proofs, not a live owner/MCU deployment or candidate adoption.

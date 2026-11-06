@@ -159,6 +159,9 @@ impl StdHost {
     /// quiescence and immediate-provider retirement obligations as
     /// `from_selected_timer_and_immediate_source_image` apply. Encounter intent
     /// grants no authority and does not construct or replace its provider.
+    // Keep the independent checked configuration, grant-bearing definition and
+    // preparation budget explicit at this trusted construction boundary.
+    #[allow(clippy::too_many_arguments)]
     pub unsafe fn from_selected_timer_and_immediate_source_and_creche_image<'a>(
         config: StdHostConfig,
         image: &HostImage,

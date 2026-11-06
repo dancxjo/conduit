@@ -260,8 +260,7 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
                 schema: &schema,
                 file: source_file(source),
                 maximum_source_bytes: bounds().request_bytes as usize,
-                owner: &input.owner,
-                generation: input.generation,
+                snapshot: &input.request.snapshot,
                 entry: &input.request.entry,
                 context: input.request.context.clone(),
                 control: &control,
@@ -583,8 +582,7 @@ fn product_installation_refuses_grant_drift_and_stop_before_source_capture() {
                     schema: &schema,
                     file,
                     maximum_source_bytes: bounds().request_bytes as usize,
-                    owner: &input.owner,
-                    generation: input.generation,
+                    snapshot: &input.request.snapshot,
                     entry: &input.request.entry,
                     context: input.request.context,
                     control: &control,
@@ -600,5 +598,62 @@ fn product_installation_refuses_grant_drift_and_stop_before_source_capture() {
             "independent current provider and grant"
         }));
         assert_eq!(probe.stream_position().unwrap(), 0);
+    }
+}
+
+#[test]
+fn selected_source_snapshot_drift_refuses_before_compiler_preparation() {
+    for changed in 0..3 {
+        let checked = configuration();
+        let image = image(&checked);
+        let schema = SourceCheckNativeSchema::prepare().unwrap();
+        let (config, definition) = definition(&checked, &image);
+        let original = include_str!("../../../../plots/hello/main.conduit");
+        let (input, _) = input(original);
+        let mut snapshot = input.request.snapshot.clone();
+        let file = if changed == 0 {
+            let replacement = original.replace("hello", "jello");
+            assert_ne!(replacement, original);
+            assert_eq!(replacement.len(), original.len());
+            source_file(&replacement)
+        } else {
+            if changed == 1 {
+                snapshot.sha256 = "0".repeat(64);
+            } else {
+                snapshot.source_document_id = "different/reviewed-source".into();
+            }
+            source_file(original)
+        };
+        let catalog = conduit_workspace_make::catalog();
+        let control = RunControl::default();
+        // SAFETY: This fixture owns the descriptor and original scoped grant.
+        // Contrary snapshot evidence must refuse, never authorize new bytes.
+        let result = unsafe {
+            conduit::source_check_worker::initialize_image(
+                conduit::source_check_worker::SourceCheckImageInstallation {
+                    config,
+                    image: &image,
+                    checked: &checked,
+                    catalog: &catalog,
+                    grant: definition.grant,
+                    provider: conduit::source_check_worker::SourceCheckProviderIdentity {
+                        instance: definition.base.provider_instance_id,
+                        generation: definition.base.provider_generation,
+                        resource_generation: definition.resource_generation,
+                    },
+                    schema: &schema,
+                    file,
+                    maximum_source_bytes: bounds().request_bytes as usize,
+                    snapshot: &snapshot,
+                    entry: &input.request.entry,
+                    context: input.request.context,
+                    control: &control,
+                },
+            )
+        };
+        assert!(result
+            .err()
+            .expect("snapshot drift must not publish an initialized Host")
+            .contains("selected Source changed since owner review"));
     }
 }

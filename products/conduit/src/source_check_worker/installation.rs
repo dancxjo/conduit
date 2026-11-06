@@ -2,7 +2,7 @@
 use super::{derive_image_definition, SourceCheckProviderIdentity};
 use conduit_core::AuthorityGrant;
 use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
-use conduit_plot::{CheckContextRevision, SourceCheckNativeSchema};
+use conduit_plot::{CheckContextRevision, SourceCheckNativeSchema, SourceSnapshotRevision};
 use conduit_std_host::{
     body_execution::ImageForeInput,
     source_check::{
@@ -25,8 +25,8 @@ pub struct SourceCheckImageInstallation<'a> {
     pub schema: &'a SourceCheckNativeSchema,
     pub file: File,
     pub maximum_source_bytes: usize,
-    pub owner: &'a str,
-    pub generation: u64,
+    /// Exact independently reviewed snapshot; these labels confer no read authority.
+    pub snapshot: &'a SourceSnapshotRevision,
     pub entry: &'a str,
     pub context: CheckContextRevision,
     pub control: &'a RunControl,
@@ -123,16 +123,19 @@ pub unsafe fn initialize_image_with_prepared_creche(
                 if request.control.stop_requested() {
                     return Err("Source-check preparation cancelled".into());
                 }
-                let mut worker = super::from_configuration(request.checked)?;
                 let source = OwnedSourceCheckInput::from_file(
                     request.file,
                     request.maximum_source_bytes,
-                    request.owner,
-                    request.generation,
+                    &request.snapshot.owner,
+                    request.snapshot.generation,
                     request.entry,
                     request.context,
                 )
                 .map_err(|e| format!("selected Source capture: {e:?}"))?;
+                if &source.request().snapshot != request.snapshot {
+                    return Err("selected Source changed since owner review".into());
+                }
+                let mut worker = super::from_configuration(request.checked)?;
                 let output = worker
                     .prepare_selected_source(&source, request.control)
                     .map_err(|e| format!("selected Source compiler: {e:?}"))?;
