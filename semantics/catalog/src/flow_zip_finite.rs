@@ -190,3 +190,69 @@ mod tests {
         );
     }
 }
+
+pub const FLOW_ZIP_EXACT_KIND: &str = "flow/zip/exact";
+
+/// Pair FIFO values across independently closing finite inputs. Wait for both
+/// closes and all committed pairs; unequal lengths refuse instead of discarding
+/// an unmatched value. This grants no request origin or execution authority.
+pub fn flow_zip_exact_semantic_contract(
+    left: &CheckedValueContract,
+    left_type: &StructuredInfoType,
+    right: &CheckedValueContract,
+    right_type: &StructuredInfoType,
+) -> Result<Kind, &'static str> {
+    let mut kind = flow_zip_finite_semantic_contract(left, left_type, right, right_type)?;
+    kind.kind_id = kind_id(FLOW_ZIP_EXACT_KIND);
+    kind.kind_contract_revision = KindIdentity::from("conduit.flow/zip-exact@1");
+    for law in &mut kind.semantic_laws {
+        if let KindSemanticLaw::TerminalTransduction(profile) = law {
+            let NormalCloseTransduction::FlushThenPropagate(bound) = profile.normal_close else {
+                return Err("finite pair flush contract is absent");
+            };
+            profile.normal_close = NormalCloseTransduction::FlushThenPropagateWhenAllClose(bound);
+        }
+    }
+    Ok(kind)
+}
+
+#[cfg(feature = "plot-catalog")]
+pub fn install_flow_zip_exact_kind(
+    left: &CheckedValueContract,
+    left_type: &StructuredInfoType,
+    right: &CheckedValueContract,
+    right_type: &StructuredInfoType,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    let kind = flow_zip_exact_semantic_contract(left, left_type, right, right_type)
+        .map_err(alloc::string::String::from)?;
+    install_pair_kind(kind, left, left_type, right, right_type, startup, profile)
+}
+
+#[cfg(test)]
+mod exact_contract_tests {
+    use super::*;
+    #[test]
+    fn exact_pairing_has_its_own_identity_and_all_inputs_close_law() {
+        let ty = StructuredInfoType::leaf(kind_id("value/u64")).unwrap();
+        let value = CheckedValueContract::new(kind_id("value/u64"), 8, alloc::vec![]).unwrap();
+        let exact = flow_zip_exact_semantic_contract(&value, &ty, &value, &ty).unwrap();
+        exact.validate().unwrap();
+        assert_eq!(exact.kind_id.as_str(), FLOW_ZIP_EXACT_KIND);
+        assert_eq!(exact.terminal_transductions().count(), 2);
+        for terminal in exact.terminal_transductions() {
+            assert!(matches!(
+                terminal.normal_close,
+                NormalCloseTransduction::FlushThenPropagateWhenAllClose(FiniteTerminalEmission {
+                    maximum_items: 1,
+                    ..
+                })
+            ));
+            assert_eq!(terminal.abnormal, AbnormalTerminalTransduction::NotAccepted);
+        }
+        let finite = flow_zip_finite_semantic_contract(&value, &ty, &value, &ty).unwrap();
+        assert_ne!(exact.kind_contract_revision, finite.kind_contract_revision);
+        assert_ne!(exact.kind_id, finite.kind_id);
+    }
+}

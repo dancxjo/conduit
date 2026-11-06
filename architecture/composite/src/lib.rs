@@ -48,7 +48,7 @@ pub use current_sample::CurrentSampleBack;
 pub use definition::*;
 pub use flow_merge_finite::FlowMergeFiniteBack;
 pub use flow_select::*;
-pub use flow_zip::FlowZipBack;
+pub use flow_zip::{FlowZipBack, FlowZipExactBack};
 pub use kernel_executor::*;
 pub use operation::*;
 pub use planned_activation::*;
