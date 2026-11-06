@@ -25,6 +25,39 @@ impl MembershipState {
             .as_ref()
             .or_else(|| self.seed.admission.credential())
             .ok_or(())?;
+        // Readiness alone does not authorize the advertised operation. Root
+        // independently selects explicit Seed policy while holding the actual
+        // initialized Base; the fresh return will attribute its original grant.
+        if self.native_offer.is_some()
+            && crate::config::PREPARATION_DELEGATION.is_some()
+            && crate::config::EXECUTION_DELEGATION.is_some()
+        {
+            let available = crate::config::HEAP_BYTES
+                .checked_sub(crate::heap::usage().0)
+                .ok_or(())?;
+            let (native, _) = crate::i2c_installation::prepare(self.resources.host(), available)
+                .map_err(|_| ())?;
+            let available = crate::config::HEAP_BYTES
+                .checked_sub(crate::heap::usage().0)
+                .ok_or(())?;
+            self.native_issuer
+                .authorize(
+                    conduit_body::NativePreparationContext {
+                        bootstrap: &self.seed,
+                        member: retained,
+                        actual: self.resources.host(),
+                        image_id: crate::config::IMAGE_ID,
+                        configuration_id: crate::config::CONFIGURATION_ID,
+                        now_millis: embassy_time::Instant::now().as_millis(),
+                    },
+                    &native,
+                    available,
+                )
+                .map_err(|_| ())?;
+            drop(native);
+        } else {
+            self.native_issuer.withdraw_authorization();
+        }
         let owner = crate::resident::inventory().map_err(|_| ())?;
         let images = owner.offers();
         let images = images.into_iter().flatten().chain(self.native_offer);
@@ -38,6 +71,14 @@ impl MembershipState {
             hashes.push(Sha256::digest(bytes).into());
         }
         let projection = HostAdvertisementImageProjection {
+            authority_grants: self
+                .native_issuer
+                .copy_grants_for_return(
+                    crate::config::HEAP_BYTES
+                        .checked_sub(crate::heap::usage().0)
+                        .ok_or(())?,
+                )
+                .map_err(|_| ())?,
             context: self.resources.host().clone(),
             capability_images: hashes,
         };
@@ -140,6 +181,7 @@ impl MembershipState {
                 .map_err(|_| ())?;
         // The idle fence above forbids dropping any original reservation/lane.
         // Context preparation is fallible and leaves the old owner unchanged.
+        self.native_issuer.withdraw_authorization();
         self.resources = conduit_core::ResourceAdmissionOwner::new(context);
         self.native_offer = if available {
             crate::config::I2C_OFFER_IMAGE

@@ -37,6 +37,7 @@ fn fixture() -> (
 fn presentation_never_substitutes_part_profile_or_retained_credential() {
     let (basis, ad, key) = fixture();
     let projection = conduit_body::HostAdvertisementImageProjection {
+        authority_grants: vec![],
         context: ad,
         capability_images: vec![],
     };

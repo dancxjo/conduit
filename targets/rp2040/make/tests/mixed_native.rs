@@ -35,7 +35,16 @@ fn disabled_native_issuance_refuses_an_otherwise_approved_workset() {
     let library = conduit_embedded_build::generate_resident_library(&[image], 1024 * 1024).unwrap();
     qualify(library, 0);
 }
+#[test]
+fn absent_execution_policy_cannot_authorize_native_grants_from_ready_equipment() {
+    let (_, _, image) = support::context();
+    let library = conduit_embedded_build::generate_resident_library(&[image], 1024 * 1024).unwrap();
+    qualify_policy(library, 1024, false);
+}
 fn qualify(library: String, operation_ceiling: u32) {
+    qualify_policy(library, operation_ceiling, true);
+}
+fn qualify_policy(library: String, operation_ceiling: u32, delegated: bool) {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let resident = include_str!("../../firmware/host/src/resident.rs").replace(
         "include!(concat!(env!(\"OUT_DIR\"), \"/resident.rs\"));",
@@ -57,6 +66,8 @@ mod resident{{{resident}}}
 #[allow(dead_code)]#[path={resident_preparation:?}]mod resident_preparation;
 #[allow(dead_code)]#[path={resident_supervisor:?}]mod resident_supervision;
 mod config{{pub const CONFIGURATION_ID:&str="fixture/config";pub const IMAGE_ID:&str="fixture/image";
+pub const PREPARATION_DELEGATION:Option<conduit_body::HostPreparationDelegation>=Some(conduit_body::HostPreparationDelegation{{authorizer:conduit_body::HostPreparationAuthorizer::SeedOwner,maximum_assignment_bytes:4096,maximum_runtime_state_bytes:16384}});
+pub const EXECUTION_DELEGATION:Option<conduit_body::HostExecutionDelegation>=if {delegated} {{Some(conduit_body::HostExecutionDelegation{{authorizer:conduit_body::HostExecutionAuthorizer::SeedOwner,maximum_active_worksets:1}})}} else {{None}};
 pub const I2C_CONTROLLER:u8=1;pub const I2C_CALL_ADDRESS_RANGE:Option<(u8,u8)>=Some((112,119));pub const I2C_CALL_MAXIMUM_OPERATIONS:u32={operation_ceiling};}}
 #[allow(dead_code)]#[path={issuance:?}]mod i2c_issuance;
 #[allow(dead_code)]#[path={native:?}]mod native_preparation;

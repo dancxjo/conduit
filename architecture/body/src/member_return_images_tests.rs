@@ -27,6 +27,7 @@ fn fixture() -> (
         planner_capabilities: vec![],
     };
     let projection = HostAdvertisementImageProjection {
+        authority_grants: vec![],
         context,
         capability_images: (0..16).map(|i| [i; 32]).collect(),
     };
@@ -133,4 +134,85 @@ fn duplicate_excessive_or_invalid_return_basis_cannot_be_attested() {
     assert!(
         attest_member_return_image_acknowledgement(&ack, owner, [9; 32], |t| key.sign(t)).is_err()
     );
+}
+
+fn grant(projection: &HostAdvertisementImageProjection) -> AuthorityGrant {
+    AuthorityGrant {
+        grant_id: "grant/independent".into(),
+        contract_id: "authority/i2c".into(),
+        host_call_contract_id: "call/i2c".into(),
+        subject_kind: "kind/i2c".into(),
+        host_id: projection.context.host_id.clone(),
+        boot_id: projection.context.boot_id.clone(),
+        capability_id: "capability/i2c".into(),
+    }
+}
+
+#[test]
+fn attributed_original_grants_are_signed_and_acknowledged_exactly() {
+    let (retained, mut projection, _, key) = fixture();
+    assert!(projection.authority_grants.is_empty());
+    projection.validate().unwrap(); // No inferred authority, despite sixteen images.
+    let empty = member_return_image_transcript(&retained, &projection).unwrap();
+    projection.authority_grants.push(grant(&projection));
+    let transcript = member_return_image_transcript(&retained, &projection).unwrap();
+    assert_ne!(empty, transcript);
+    let presentation = MemberReturnImagePresentation {
+        kind: "Advertise".into(),
+        schema: MEMBER_RETURN_IMAGES_SCHEMA.into(),
+        credential: retained.clone(),
+        projection: projection.clone(),
+        signature: key.sign(&transcript).into(),
+    };
+    presentation.verify(&key.verifying_key()).unwrap();
+    for change in 0..3 {
+        let mut changed = presentation.clone();
+        match change {
+            0 => changed.projection.authority_grants.clear(),
+            1 => changed.projection.authority_grants[0].grant_id = "grant/substitute".into(),
+            _ => changed.projection.authority_grants[0].subject_kind = "kind/substitute".into(),
+        }
+        assert!(changed.verify(&key.verifying_key()).is_err());
+    }
+    let mut current = retained.clone();
+    current.boot_id = projection.context.boot_id.clone();
+    let ack = MemberReturnImageAcknowledgement::new(current, projection.clone());
+    ack.validate_for(&retained, &projection).unwrap();
+    projection.authority_grants.clear();
+    assert!(ack.validate_for(&retained, &projection).is_err());
+}
+
+#[test]
+fn grant_scope_duplicates_and_finite_identifier_limits_refuse() {
+    let (_, projection, _, _) = fixture();
+    let valid = grant(&projection);
+    for change in 0..7 {
+        let mut changed = projection.clone();
+        let mut grant = valid.clone();
+        match change {
+            0 => grant.host_id = "host/other".into(),
+            1 => grant.boot_id = "boot/other".into(),
+            2 => grant.grant_id = "".into(),
+            3 => grant.subject_kind = "x".repeat(MAX_LIFECYCLE_ID_BYTES + 1).into(),
+            4 => changed.authority_grants = vec![valid.clone(); MAX_MEMBER_RETURN_IMAGE_GRANTS],
+            5 => changed.authority_grants.push(valid.clone()),
+            _ => {
+                changed.authority_grants.push(valid.clone());
+                grant.grant_id = "grant/other-id-same-scope".into();
+            }
+        }
+        changed.authority_grants.push(grant);
+        assert!(changed.validate().is_err(), "mutation {change}");
+    }
+    let mut excessive = projection;
+    for i in 0..5 {
+        let mut grant = valid.clone();
+        grant.grant_id = alloc::format!("{i}{}", "g".repeat(255)).into();
+        grant.contract_id = "c".repeat(256).into();
+        grant.host_call_contract_id = "h".repeat(256).into();
+        grant.subject_kind = "s".repeat(256).into();
+        grant.capability_id = alloc::format!("{i}{}", "p".repeat(255)).into();
+        excessive.authority_grants.push(grant);
+    }
+    assert!(excessive.validate().is_err());
 }

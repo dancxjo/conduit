@@ -8380,3 +8380,9 @@ builds or mapped/open candidate artifacts were active, then removed 11 inactive
 test/tool executables (1,333,679,696 B) and six older language-library variants
 (1,960,130,864 B), keeping the newest three variants. Source, firmware, private
 state and evidence remain; root headroom after qualification is 2.6 GiB.
+
+### 2026-11-06 — Original native authorization before planning
+
+RP2040 Root now retains its original descriptive I²C authority under explicit preparation and execution delegation before planning; opaque possession still requires approved assignment. The signed member-return image protocol is versioned to @2 and carries bounded descriptions, never bearer handles. It rejects foreign Host/Boot, duplicates and identifier bounds; fresh owner transaction acceptance remains unfinished. Authorization checks the actual member Body/Host and offer generation; replacing the fenced native offer withdraws the old authorization.
+
+Qualification: five Body projection tests, four actual-source mixed Root tests and two wire-codec tests passed. Strict Body and RP2040 Make lib/tests Clippy, workspace formatting and Cortex-M0+ Body library check passed. Original descriptor strings used seven fallible allocations and 151 requested bytes in the CPU fixture; this excludes inline ownership and allocator overhead. A six-image/one-grant @2 codec fixture occupies 1532 bytes of the unchanged 4096-byte frame. Logs: `target/original-native-authority-20261106/` (ignored). These checks do not prove full firmware linking, physical memory fit, deployment, or owner planner acceptance. Live devices remain unchanged.

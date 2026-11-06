@@ -168,8 +168,20 @@ pub fn run(
             native.native_identity().resource_pool_id,
             authority.resource_pool_id
         );
-        if crate::config::I2C_CALL_MAXIMUM_OPERATIONS != 0 && !issuer_checked.replace(true) {
+        if crate::config::I2C_CALL_MAXIMUM_OPERATIONS != 0
+            && crate::config::EXECUTION_DELEGATION.is_some()
+            && !issuer_checked.replace(true)
+        {
             issuance::check(receiver.context(), approved, native);
+        }
+        if crate::config::I2C_CALL_MAXIMUM_OPERATIONS != 0
+            && crate::config::EXECUTION_DELEGATION.is_some()
+        {
+            issuer.borrow_mut().authorize(
+                receiver.context(),
+                native,
+                policy.maximum_storage_bytes,
+            )?;
         }
         issuer.borrow_mut().issue(
             receiver.context(),
@@ -315,7 +327,9 @@ pub fn run(
     assert!(slot.is_some());
     assert_eq!(owner, before);
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
-    if crate::config::I2C_CALL_MAXIMUM_OPERATIONS == 0 {
+    if crate::config::I2C_CALL_MAXIMUM_OPERATIONS == 0
+        || crate::config::EXECUTION_DELEGATION.is_none()
+    {
         let before_issued = issued.get();
         let (result, cost) = crate::probe::observe(|| prepare!(policy, receiver.context()));
         assert!(matches!(

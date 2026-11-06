@@ -78,7 +78,7 @@ pub fn issue(
     mut b: Budget,
     id: &I2cNativeIdentity,
     m: &Metadata<'_>,
-    suffix: &str,
+    grant: &c::AuthorityGrant,
     key: [u8; 32],
 ) -> Result<Issued, E> {
     macro_rules! copy {
@@ -93,7 +93,7 @@ pub fn issue(
         base_provider_generation: id.provider_generation,
         plan_id: copy!(m.body_plan),
         active_play_id: copy!(m.body_play),
-        authority_grant_id: b.copy(&[id.boot_id.as_str(), suffix])?.into(),
+        authority_grant_id: copy!(grant.grant_id.as_str()),
         authority_contract_id: copy!(I2C_AUTHORITY),
         capability_id: copy!(I2C_IMPLEMENTATION),
         implementation_id: copy!(I2C_IMPLEMENTATION),
@@ -110,13 +110,13 @@ pub fn issue(
     };
     let authority = c::BaseCapabilityAuthority {
         grant: c::AuthorityGrant {
-            grant_id: b.copy(&[id.boot_id.as_str(), suffix])?.into(),
-            contract_id: copy!(I2C_AUTHORITY),
-            host_call_contract_id: copy!(I2C_CALL),
-            subject_kind: copy!(I2C_KIND),
-            host_id: copy!(id.host_id.as_str()),
-            boot_id: copy!(id.boot_id.as_str()),
-            capability_id: copy!(I2C_IMPLEMENTATION),
+            grant_id: copy!(grant.grant_id.as_str()),
+            contract_id: copy!(grant.contract_id.as_str()),
+            host_call_contract_id: copy!(grant.host_call_contract_id.as_str()),
+            subject_kind: copy!(grant.subject_kind.as_str()),
+            host_id: copy!(grant.host_id.as_str()),
+            boot_id: copy!(grant.boot_id.as_str()),
+            capability_id: copy!(grant.capability_id.as_str()),
         },
         base_instance_id: copy!(id.provider_instance_id.as_str()),
         base_provider_generation: id.provider_generation,

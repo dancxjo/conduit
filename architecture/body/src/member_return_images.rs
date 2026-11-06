@@ -2,18 +2,22 @@
 //! This projection is not a HostAdvertisement until its images are resolved.
 use crate::{
     AdmissionReceiptAttestationRefusal as R, FederationPeer, MemberReturnAcknowledgement,
-    MembershipCredential, SignedPortableAdmissionReceipt, MAX_CANDIDATE_PLANNER_CAPABILITIES,
-    MAX_CANDIDATE_RESOURCES,
+    MembershipCredential, SignedPortableAdmissionReceipt, MAX_CANDIDATE_CAPABILITIES,
+    MAX_CANDIDATE_PLANNER_CAPABILITIES, MAX_CANDIDATE_RESOURCES, MAX_LIFECYCLE_ID_BYTES,
 };
 use alloc::{string::String, vec::Vec};
-use conduit_core::HostAdvertisement;
+use conduit_core::{AuthorityGrant, HostAdvertisement};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-pub const MEMBER_RETURN_IMAGES_SCHEMA: &str = "conduit.body/member-return-images@1";
-pub const PICO_MEMBER_RETURN_IMAGES_REQUEST: &[u8] = b"CONDUIT_MEMBER_RETURN_IMAGES@1";
+pub const MEMBER_RETURN_IMAGES_SCHEMA: &str = "conduit.body/member-return-images@2";
+pub const PICO_MEMBER_RETURN_IMAGES_REQUEST: &[u8] = b"CONDUIT_MEMBER_RETURN_IMAGES@2";
 /// This carriage profile is deliberately smaller than general Host catalogs.
 pub const MAX_MEMBER_RETURN_IMAGES: usize = 16;
+/// At most one descriptive grant per general candidate capability. The smaller
+/// aggregate text ceiling independently bounds this compact carriage profile.
+pub const MAX_MEMBER_RETURN_IMAGE_GRANTS: usize = MAX_CANDIDATE_CAPABILITIES;
+pub const MAX_MEMBER_RETURN_IMAGE_GRANT_ID_BYTES: usize = 4096;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -22,6 +26,9 @@ pub struct HostAdvertisementImageProjection {
     /// represented only by the ordered image references below.
     pub context: HostAdvertisement,
     pub capability_images: Vec<[u8; 32]>,
+    /// Original independently issued grants, not inferred from resolved images.
+    /// Attribution does not establish freshness or opaque native possession.
+    pub authority_grants: Vec<AuthorityGrant>,
 }
 impl HostAdvertisementImageProjection {
     pub fn validate(&self) -> Result<(), R> {
@@ -36,6 +43,41 @@ impl HostAdvertisementImageProjection {
                 .any(|(i, hash)| self.capability_images[..i].contains(hash))
         {
             return Err(R::ReceiptBasis);
+        }
+        if self.authority_grants.len() > MAX_MEMBER_RETURN_IMAGE_GRANTS {
+            return Err(R::ReceiptBasis);
+        }
+        let mut total = 0usize;
+        for (index, grant) in self.authority_grants.iter().enumerate() {
+            if grant.host_id != self.context.host_id
+                || grant.boot_id != self.context.boot_id
+                || self.authority_grants[..index].iter().any(|prior| {
+                    prior.grant_id == grant.grant_id
+                        || (prior.capability_id == grant.capability_id
+                            && prior.contract_id == grant.contract_id
+                            && prior.host_call_contract_id == grant.host_call_contract_id
+                            && prior.subject_kind == grant.subject_kind)
+                })
+            {
+                return Err(R::ReceiptBasis);
+            }
+            for id in [
+                grant.grant_id.as_str(),
+                grant.contract_id.as_str(),
+                grant.host_call_contract_id.as_str(),
+                grant.subject_kind.as_str(),
+                grant.host_id.as_str(),
+                grant.boot_id.as_str(),
+                grant.capability_id.as_str(),
+            ] {
+                if id.is_empty() || id.len() > MAX_LIFECYCLE_ID_BYTES {
+                    return Err(R::ReceiptBasis);
+                }
+                total = total.checked_add(id.len()).ok_or(R::ReceiptBasis)?;
+                if total > MAX_MEMBER_RETURN_IMAGE_GRANT_ID_BYTES {
+                    return Err(R::ReceiptBasis);
+                }
+            }
         }
         Ok(())
     }
@@ -60,7 +102,7 @@ pub fn member_return_image_transcript(
     projection.validate()?;
     let encoded = serde_json::to_vec(&(credential, projection)).map_err(|_| R::Encoding)?;
     let mut hash = Sha256::new();
-    hash.update(b"conduit.body/member-return-image-presentation@1");
+    hash.update(b"conduit.body/member-return-image-presentation@2");
     hash.update(encoded);
     Ok(hash.finalize().into())
 }

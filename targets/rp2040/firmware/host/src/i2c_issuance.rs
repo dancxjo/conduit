@@ -12,6 +12,8 @@ use sha2::{Digest, Sha256};
 #[path = "i2c_issuance/construction.rs"]
 mod construction;
 use construction::Budget;
+#[path = "i2c_issuance/authorization.rs"]
+mod authorization;
 
 pub type Issued = (
     c::BaseCapabilityTable,
@@ -23,10 +25,14 @@ pub type Issued = (
 /// Consumed attempt numbers never roll back, including allocation refusals.
 pub struct Issuer {
     next: u64,
+    authorization: Option<authorization::OriginalAuthority>,
 }
 impl Issuer {
     pub const fn new() -> Self {
-        Self { next: 1 }
+        Self {
+            next: 1,
+            authorization: None,
+        }
     }
     pub fn issue<P: I2cProvider>(
         &mut self,
@@ -72,6 +78,10 @@ impl Issuer {
             1 => "/i2c/1/authority",
             _ => return Err(E::Scope),
         };
+        let authorization = self.authorization.as_ref().ok_or(E::Scope)?;
+        if !authorization.matches(context, native) {
+            return Err(E::Scope);
+        }
         let sequence = self.next;
         self.next = sequence.checked_add(1).ok_or(E::Bounds)?;
         // Domain-separated local bearer key; never exported or serialized. The
@@ -83,6 +93,6 @@ impl Issuer {
         hash.update(context.actual.boot_id.as_str().as_bytes());
         let key = hash.finalize().into();
         let budget = Budget::prepare(id, m, suffix, maximum_bytes)?;
-        construction::issue(budget, id, m, suffix, key)
+        construction::issue(budget, id, m, &authorization.grant, key)
     }
 }

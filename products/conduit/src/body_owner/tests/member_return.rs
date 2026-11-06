@@ -239,6 +239,7 @@ fn image_return_attestation_resolves_exact_committed_offers_inside_owner() {
     let projection = Projection {
         context,
         capability_images: vec![Sha256::digest(&bytes).into()],
+        authority_grants: vec![],
     };
     let peer = owner.prepare_current_member_carrier_receiver().unwrap();
     let challenge = owner.begin_member_return(&prior, &ad).unwrap();
