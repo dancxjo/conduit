@@ -113,6 +113,29 @@ fn actual_product_child_refuses_extra_context_and_memory_pressure_without_reply(
 }
 
 #[test]
+fn actual_product_child_rejects_unknown_nested_fields_and_oversized_startup() {
+    let (input, _) = input(include_str!("../../../plots/hello/main.conduit"));
+    for path in ["", "/snapshot", "/context", "/limits"] {
+        let mut extra = serde_json::to_value(&input).unwrap();
+        let target = if path.is_empty() {
+            &mut extra["request"]
+        } else {
+            extra["request"].pointer_mut(path).unwrap()
+        };
+        target["unselected_authority"] = serde_json::json!(true);
+        let output = child(&serde_json::to_vec(&extra).unwrap(), 512 * 1024 * 1024);
+        assert!(!output.status.success(), "accepted unknown field at {path}");
+        assert!(output.stdout.is_empty());
+        assert!(String::from_utf8_lossy(&output.stderr).contains("unknown field"));
+    }
+    let oversized = vec![b' '; 6 * MAXIMUM_PLOT_SOURCE_BYTES + 16 * 1024 + 1];
+    let output = child(&oversized, 512 * 1024 * 1024);
+    assert!(!output.status.success());
+    assert!(output.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("exceeds fixed byte profile"));
+}
+
+#[test]
 fn kernel_reports_child_address_space_cpu_and_core_limits_before_source_arrives() {
     use std::time::{Duration, Instant};
     let bytes = 512 * 1024 * 1024;

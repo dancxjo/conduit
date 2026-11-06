@@ -8152,3 +8152,27 @@ service/foreground sufficient/insufficient-memory cases and Source tampering.
 Formatting and diff checks pass. Raw qualification logs are retained under
 ignored target/owner-prepared-run-20261106. The foreground installed executable
 smoke remains blocked at package-size validation, not claimed successful.
+
+
+### 6 November 2026 — finite pairing delivered; bounded compiler child in review
+
+PR #6819 completed Candidate on exact head 5dcca882f6 and merged as
+d32160b0a3. This branch absorbed current dev without a source delta.
+The finite exact-pair Back is now delivered on dev; shared physical I2C
+operation and the complete MCU sampling/display workset remain unproved.
+
+The next extracted review slice is PR #6822, head 873e4eb428, based directly
+on dev d32160b0a3. Eight files add the dedicated Linux compiler child and
+strict bounded request decoding, without a new Ready offer or owner authority.
+Four clean-dev actual-process tests pass: canonical valid/invalid/stale
+correspondence, memory pressure with no reply, observed kernel limits before
+Source arrives, and unknown nested fields / oversized startup refusal.
+The new decoding case is also absorbed here. Strict Clippy is running at this
+checkpoint; the PR remains draft until it finishes.
+
+An internal foreground-only size-optimized build still measures about 99 MiB,
+above the existing 64 MiB release-file limit. No limit was changed and no
+installed executable smoke is claimed. Complete release qualification remains
+necessary. The two failed-smoke bundle binaries and their stripped duplicate
+were unmapped and removed (418,678,288 bytes); manifests, raw results and SHA256
+inventory remain in the review worktree's ignored target directory.
