@@ -71,6 +71,24 @@ still implement those boundaries, including exact current Body/Host/Boot scope,
 finite local admission, cancellation and retirement. This is a prerequisite of
 [#6770](https://github.com/dancxjo/conduit/issues/6770), not its physical acceptance.
 
+## Selecting external execution in Host construction
+
+External execution is a separate optional construction selection:
+
+```conduit
+execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
+```
+
+It requires selected bounded preparation. Its positive active-workset ceiling
+must fit the Host's active-instance limit; it does not enlarge that limit or
+any memory, work or native capability grant. Canonical Source, configuration
+identity, IMAGE correspondence and generated typed policy retain this choice.
+Absence delegates no execution, including when preparation is selected.
+The configuration Face exposes the choice and preserves it on ordinary edits.
+This declaration alone does not authorize a received assignment or start a
+kernel: Root must still bind the pinned issuer to the exact current approved
+Body workset, admit its full resources and obtain actual local possessions.
+
 ## One kernel, explicit effects
 
 [plan lowering](plan-kernel-lowering.md) turns rich identities into finite

@@ -138,6 +138,17 @@ pub fn canonical_host_configuration_conduit(
             string(policy.authorizer.as_str())?, policy.maximum_assignment_bytes, policy.maximum_runtime_state_bytes)
             .map_err(|error| ConfigurationDiagnostic::Encode { detail: error.to_string() })?;
     }
+    if let Some(policy) = canonical.execution {
+        writeln!(
+            &mut source,
+            "  execution = {{authorizer: {}, maximum_active_worksets: {}}}",
+            string(policy.authorizer.as_str())?,
+            policy.maximum_active_worksets
+        )
+        .map_err(|error| ConfigurationDiagnostic::Encode {
+            detail: error.to_string(),
+        })?;
+    }
     let limits = &canonical.limits;
     writeln!(
         &mut source,

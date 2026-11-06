@@ -79,4 +79,4 @@ pub use conduit_body::{HostPreparationAuthorizer, HostPreparationDelegation};
 mod preparation_delegation_tests;
 
 mod preparation_delegation_rust;
-pub use preparation_delegation_rust::rust_preparation_delegation;
+pub use preparation_delegation_rust::{rust_execution_delegation, rust_preparation_delegation};

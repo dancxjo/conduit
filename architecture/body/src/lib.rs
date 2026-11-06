@@ -77,6 +77,7 @@ mod federation;
 mod hold;
 #[cfg(feature = "authenticated-admission")]
 mod host_command_attribution;
+mod host_execution_delegation;
 mod host_preparation_delegation;
 mod identity;
 mod legacy;
@@ -124,6 +125,7 @@ pub use federation::*;
 pub use hold::*;
 #[cfg(feature = "authenticated-admission")]
 pub use host_command_attribution::*;
+pub use host_execution_delegation::*;
 pub use host_preparation_delegation::*;
 #[cfg(feature = "authenticated-admission")]
 pub use identity::{AdmissionId, MembershipCredentialId, SpawnInvitationId};
