@@ -195,14 +195,18 @@ impl StdHost {
     /// Admit native-definition construction before its metadata factory runs.
     /// The verified IMAGE counter is transferred into the final Host unchanged;
     /// metadata retention and provider preparation share its one finite ceiling.
+    /// The callback's borrowed Root scope can retain separately qualified values
+    /// on that same counter before the Host exists; it confers no native rights.
     ///
     /// # Safety
     /// The original Source/Host grant obligations of the immediate constructor
     /// apply. Root must qualify both factory peaks and retained backing. The
     /// metadata envelope includes the cloned construction configuration, native
-    /// definition and the returned provider factory's owned captures. Borrowed
-    /// configuration/catalog/schema and other caller stores remain independently
-    /// funded. Each factory must return only after its temporary effects quiesce.
+    /// definition and unfunded backing in the returned factory's captures.
+    /// Separately charged nested values retain their own custody; their backing
+    /// need not be charged twice. Borrowed configuration/catalog/schema and
+    /// other caller stores remain independently funded. Each factory must return
+    /// only after its temporary effects quiesce, including errors and unwinding.
     #[allow(clippy::too_many_arguments)]
     pub unsafe fn from_selected_timer_and_source_factory_image<'a, F, G>(
         config: StdHostConfig,
@@ -216,28 +220,34 @@ impl StdHost {
     where
         F: FnOnce(
             &StdHostConfig,
+            &crate::body_execution::ImageRootPreparation<'_>,
         )
             -> Result<(NativeSourceDefinition, ImmediateSourcePreparationBudget, G), String>,
         G: FnOnce() -> Result<Box<dyn ImmediateNativeSource>, String> + 'a,
     {
-        use crate::kernel_preparation::{ImageMemoryLease, StagedImageMemory};
+        use crate::body_execution::ImageRootPreparation;
+        use crate::kernel_preparation::StagedImageMemory;
         if metadata_budget.retained_bytes == 0
             || metadata_budget.retained_bytes > metadata_budget.preparation_bytes
         {
             return Err("initial Source metadata has an invalid finite budget".into());
         }
-        let mut memory = StagedImageMemory::verified(&config, image, checked, catalog)?;
-        let overhead = ImageMemoryLease::owned_backing_bytes();
-        let peak = (metadata_budget.preparation_bytes as usize)
-            .checked_add(overhead)
-            .ok_or("initial Source metadata preparation overflow")?;
-        let retained = (metadata_budget.retained_bytes as usize)
-            .checked_add(overhead)
-            .ok_or("initial Source metadata retention overflow")?;
-        let mut metadata_memory = memory.reserve(peak)?;
-        let final_config = config.clone();
-        let (definition, budget, prepare) = metadata(&config)?;
-        metadata_memory.retain_result(retained);
+        let memory = StagedImageMemory::verified(&config, image, checked, catalog)?;
+        let prepared = {
+            let mut reserve = |bytes| memory.reserve(bytes);
+            let scope = ImageRootPreparation::new(&mut reserve);
+            // SAFETY: caller qualifies all metadata, returned captures and
+            // destruction; nested Root values keep their own original charges.
+            unsafe {
+                scope.prepare_value(
+                    metadata_budget.preparation_bytes as usize,
+                    metadata_budget.retained_bytes as usize,
+                    || Ok((config.clone(), metadata(&config, &scope)?)),
+                )
+            }?
+        };
+        let ((final_config, (definition, budget, prepare)), metadata_memory) =
+            prepared.into_parts();
         let source = InitialNativeSource {
             definition,
             budget,

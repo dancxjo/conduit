@@ -674,7 +674,7 @@ fn metadata_and_provider_preparation_compete_in_one_image_heap() {
                 retained_bytes: 50 * 1024 * 1024,
             },
             None,
-            move |_| {
+            move |_, _root| {
                 Ok((
                     definition,
                     provider_budget,
@@ -688,4 +688,47 @@ fn metadata_and_provider_preparation_compete_in_one_image_heap() {
     };
     assert!(!provider_ran.get());
     assert!(result.err().unwrap().contains("backing capacity"));
+}
+
+#[test]
+fn retained_root_preparation_refuses_native_start_without_losing_its_value() {
+    let checked = configuration();
+    let image = image(&checked);
+    let (config, definition) = definition(&checked, &image);
+    let provider_ran = Rc::new(Cell::new(false));
+    let probe = provider_ran.clone();
+    let provider_budget = budget();
+    let mut retained = None;
+    // SAFETY: fixed fixture metadata and immutable bytes fit these conservative
+    // envelopes. Their independent retained charges must deny provider start.
+    let result = unsafe {
+        StdHost::from_selected_timer_and_source_factory_image(
+            config,
+            &image,
+            &conduit_workspace_make::catalog(),
+            &checked,
+            ImmediateSourcePreparationBudget {
+                preparation_bytes: 2 * 1024 * 1024,
+                retained_bytes: 2 * 1024 * 1024,
+            },
+            None,
+            |_, root| {
+                retained = Some(
+                    root.prepare_value(48 * 1024 * 1024, 48 * 1024 * 1024, || Ok(vec![7u8; 64]))?,
+                );
+                Ok((
+                    definition,
+                    provider_budget,
+                    move || -> Result<Box<dyn ImmediateNativeSource>, String> {
+                        probe.set(true);
+                        Err("unadmitted provider must not run".into())
+                    },
+                ))
+            },
+        )
+    };
+    assert!(!provider_ran.get());
+    assert!(result.err().unwrap().contains("backing capacity"));
+    assert_eq!(retained.as_ref().unwrap().value().as_slice(), &[7u8; 64]);
+    drop(retained);
 }

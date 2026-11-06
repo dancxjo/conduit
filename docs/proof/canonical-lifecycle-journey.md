@@ -8924,3 +8924,31 @@ Candidate 42289941856 passed exact #6832 head `e43e8313ac6bb5c27210c128c18bf5e71
 Draft PR #6834, isolated head `f414b5357f`, contains exactly six core files on that accepted dev. The fresh isolated checkout independently passed 123 core unit tests plus the requested-allocation storage test, no_std Cortex-M0 compilation, core strict production Clippy, formatting and diff checks. Logs `/tmp/conduit-review-shared-types-{tests,nonatomic,clippy}-20261106.log`. The integration branch's separate counts are 124 core tests and 44 IMAGE tests. Distinguish both proof scopes; no CI success, MCU deployment or full workspace qualification is claimed for #6834. Recovered 7,929,460,381 bytes of inactive integration-build incremental state before the fresh isolation build; inventory `/tmp/conduit-type-isolation-headroom-20261106.json`.
 
 This removes a concrete general metadata-copy cost, without adding a second runtime or requiring atomic support on non-atomic targets. The next lifecycle work remains original-counter custody for installed Root preparation, authorized Source selection/adoption and the existing Crèche/Source Fore-adapter composition gap. Do not replace that installed journey with these measurements or another diagnostic application.
+
+### 2026-11-06 — Root preparation can retain independently funded values before Host construction
+
+The selected IMAGE constructor now supplies a borrowed `ImageRootPreparation`
+inside its existing metadata factory. Root can reserve the complete synchronous
+preparation envelope before constructing additional retained objects and return
+an affine `ImagePreparedValue<T>`. Nested preparations use the same original
+verified IMAGE counter; final Host construction adopts that counter rather than
+resetting or duplicating its charges. The existing post-construction preparation
+entry uses the same implementation. This supplies memory custody, not Source,
+provider, adoption or execution authority.
+
+The std IMAGE qualification passed 46 tests. Ten actual compiler-process IMAGE
+integration tests passed, including a new public-constructor case where an
+independent retained Root value exhausts the remaining provider budget: provider
+preparation never starts and the retained bytes remain usable after construction
+refuses. Nested-value tests cover final-counter binding, foreign-counter refusal,
+Host-first destruction, bounded errors and unwinding. The first process retry
+failed while `strip` prepared its executable due to disk exhaustion; after
+removing inactive incremental caches, the unchanged tests passed. Logs:
+`/tmp/conduit-staged-root-scope-image-final-20261106.log` and
+`/tmp/conduit-staged-root-scope-compiler-final-20261106.log`.
+
+This does not yet qualify Crèche IMAGE execution, fund process-global compiler
+caches, install arbitrary Source authoring, or demonstrate a new physical Play.
+The next integration remains actual retained Root/Crèche factory and context
+custody, followed by the authorized complete-workset transition. Existing IMAGE
+refusal guards remain in place.

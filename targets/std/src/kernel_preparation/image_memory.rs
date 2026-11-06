@@ -97,7 +97,7 @@ impl<'a> StagedImageMemory<'a> {
     pub(crate) fn counter_backing_bytes() -> usize {
         core::mem::size_of::<AtomicUsize>() + 2 * core::mem::size_of::<usize>()
     }
-    pub(crate) fn reserve(&mut self, bytes: usize) -> Result<ImageMemoryLease, String> {
+    pub(crate) fn reserve(&self, bytes: usize) -> Result<ImageMemoryLease, String> {
         reserve_image_memory(&self.used, self.limit, bytes)
     }
     /// Initial ledger construction only. Existing leases keep exactly the same

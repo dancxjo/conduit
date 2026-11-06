@@ -110,7 +110,7 @@ pub unsafe fn initialize_image_with_prepared_creche(
             request.checked,
             budget,
             creche_resource,
-            |config| {
+            |config, _root| {
                 let schema = SourceCheckNativeSchema::prepare()
                     .map_err(|error| format!("selected Source schema: {error:?}"))?;
                 let definition = derive_image_definition(

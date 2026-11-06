@@ -8,7 +8,62 @@ pub struct ImagePreparedValue<T> {
     value: T,
     memory: ImageMemoryLease,
 }
+/// Synchronous Root preparation against an already verified IMAGE counter.
+/// Only the constructor can create this borrowed scope. It supplies memory
+/// custody, never Source, provider, adoption or execution authority.
+pub struct ImageRootPreparation<'a> {
+    reserve: std::cell::RefCell<&'a mut dyn FnMut(usize) -> Result<ImageMemoryLease, String>>,
+}
+impl<'a> ImageRootPreparation<'a> {
+    pub(crate) fn new(
+        reserve: &'a mut dyn FnMut(usize) -> Result<ImageMemoryLease, String>,
+    ) -> Self {
+        Self {
+            reserve: std::cell::RefCell::new(reserve),
+        }
+    }
+
+    /// Reserve before effects and retain the result on the original counter.
+    ///
+    /// # Safety
+    /// Root must independently qualify the complete synchronous factory peak,
+    /// all retained backing/capacity and bounded destruction for the entire
+    /// result lifetime. Shared stores/captures require independent custody;
+    /// mutation must stay within the envelope, and effects/workers must quiesce
+    /// before return, refusal or unwind. This is cooperative admission rather
+    /// than allocator containment or permission to perform those effects.
+    pub unsafe fn prepare_value<T>(
+        &self,
+        preparation_bytes: usize,
+        retained_bytes: usize,
+        prepare: impl FnOnce() -> Result<T, String>,
+    ) -> Result<ImagePreparedValue<T>, String> {
+        if preparation_bytes == 0
+            || retained_bytes > preparation_bytes
+            || retained_bytes < core::mem::size_of::<T>()
+        {
+            return Err("IMAGE preparation/retention envelope is invalid".into());
+        }
+        let metadata = ImageMemoryLease::owned_backing_bytes();
+        let admitted = preparation_bytes
+            .checked_add(metadata)
+            .ok_or("IMAGE preparation size overflow")?;
+        let mut memory = {
+            let mut reserve = self.reserve.borrow_mut();
+            (*reserve)(admitted)?
+        };
+        let value = prepare()?;
+        memory.retain_result(retained_bytes + metadata);
+        Ok(ImagePreparedValue { value, memory })
+    }
+}
+
 impl<T> ImagePreparedValue<T> {
+    // Trusted internal transfer keeps the value and its charge together.
+    pub(crate) fn into_parts(self) -> (T, ImageMemoryLease) {
+        (self.value, self.memory)
+    }
+
     pub fn value(&self) -> &T {
         &self.value
     }
@@ -51,23 +106,9 @@ impl StdHost {
         retained_bytes: usize,
         prepare: impl FnOnce() -> Result<T, String>,
     ) -> Result<ImagePreparedValue<T>, String> {
-        if preparation_bytes == 0
-            || retained_bytes > preparation_bytes
-            || retained_bytes < core::mem::size_of::<T>()
-        {
-            return Err("IMAGE preparation/retention envelope is invalid".into());
-        }
-        let metadata = ImageMemoryLease::owned_backing_bytes();
-        let admitted = preparation_bytes
-            .checked_add(metadata)
-            .ok_or("IMAGE preparation size overflow")?;
-        let mut memory = self
-            .kernel_resources
-            .reserve_managed_base_memory(admitted)?;
-        let value = prepare()?;
-        // Retained <= preparation, so its already admitted metadata addition
-        // cannot overflow. The value drops before this lease on every exit.
-        memory.retain_result(retained_bytes + metadata);
-        Ok(ImagePreparedValue { value, memory })
+        let mut reserve = |bytes| self.kernel_resources.reserve_managed_base_memory(bytes);
+        let scope = ImageRootPreparation::new(&mut reserve);
+        // SAFETY: preserve the caller's complete preparation/lifetime contract.
+        unsafe { scope.prepare_value(preparation_bytes, retained_bytes, prepare) }
     }
 }
