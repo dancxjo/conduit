@@ -74,7 +74,11 @@ fn subject_name_stays_primary_when_boolean_association_is_absent() {
     let original_basis = completion.basis.clone();
     let completion = completion.with_basis(original_basis).unwrap();
     let (distinct, _) = document::prepare(&completion, true).unwrap();
-    assert!(distinct.iter().any(|row| row.text == format!("[x] {name}")));
+    assert!(
+        distinct
+            .iter()
+            .any(|row| row.text == format!("Complete · {name}"))
+    );
     assert!(
         distinct
             .iter()
