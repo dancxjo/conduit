@@ -38,6 +38,11 @@ pub enum I2cInstallationRefusal {
     Advertisement,
 }
 impl<P: I2cProvider> ReadyI2cBase<P> {
+    /// Descriptive facts of the retained local owner, never a capability handle.
+    pub fn native_identity(&self) -> &I2cNativeIdentity {
+        &self.identity
+    }
+
     /// Local ownership supplies a mixed-inventory identity hint without decoding
     /// an advertisement. This grants no capability and does not check a Plan;
     /// the exact assigned operation binder remains mandatory before transfer.

@@ -108,25 +108,31 @@ pub fn run(
     let mut slot = ready_slot(authority, &effects);
     let mut library = crate::resident::generated::Initialized::prepare().unwrap();
     let original = library.offers().map(|o| o.unwrap().as_ptr());
+    let issued = core::cell::Cell::new(0);
+    let issue = |approved: &b::DelegatedBodyFragment<'_>, native: &ReadyI2cBase<Provider<'_>>| {
+        issued.set(issued.get() + 1);
+        assert_eq!(approved.metadata().body_plan, context.plan_id().as_str());
+        assert_eq!(approved.metadata().body_play, context.play_id().as_str());
+        assert_eq!(
+            native.native_identity().resource_pool_id,
+            authority.resource_pool_id
+        );
+        Ok(crate::support::authority::authorization_for_play(
+            authority.clone(),
+            context.plan_id(),
+            context.play_id(),
+        ))
+    };
     macro_rules! prepare {
         ($policy:expr,$context:expr) => {{
-            let (table, handle, claim) = crate::support::authority::authorization_for_play(
-                authority.clone(),
-                context.plan_id(),
-                context.play_id(),
-            );
-            mixed_workset::prepare_retained(
+            mixed_workset::prepare_retained_with_issuer(
                 &mut library,
-                NativePossession {
-                    slot: &mut slot,
-                    table,
-                    handle,
-                    claim,
-                },
+                &mut slot,
                 contract,
                 $policy,
                 $context,
                 &retained,
+                issue,
             )
         }};
     }
@@ -149,26 +155,19 @@ pub fn run(
         ),
         (policy, expired),
     ] {
-        let (table, handle, claim) = crate::support::authority::authorization_for_play(
-            authority.clone(),
-            context.plan_id(),
-            context.play_id(),
-        );
+        let issued_before = issued.get();
         let (result, cost) = crate::probe::observe(|| {
-            mixed_workset::prepare_retained(
+            mixed_workset::prepare_retained_with_issuer(
                 &mut library,
-                NativePossession {
-                    slot: &mut slot,
-                    table,
-                    handle,
-                    claim,
-                },
+                &mut slot,
                 contract,
                 policy,
                 current,
                 &retained,
+                issue,
             )
         });
+        assert_eq!(issued.get(), issued_before);
         assert!(result.is_err());
         drop(result);
         assert_eq!((cost.allocations, cost.reallocations), (0, 0));
@@ -213,26 +212,19 @@ pub fn run(
                     .unwrap(),
             )
             .unwrap();
-        let (table, handle, claim) = crate::support::authority::authorization_for_play(
-            authority.clone(),
-            context.plan_id(),
-            context.play_id(),
-        );
+        let issued_before = issued.get();
         let (result, cost) = crate::probe::observe(|| {
-            mixed_workset::prepare_retained(
+            mixed_workset::prepare_retained_with_issuer(
                 &mut library,
-                NativePossession {
-                    slot: &mut slot,
-                    table,
-                    handle,
-                    claim,
-                },
+                &mut slot,
                 contract,
                 policy,
                 receiver.context(),
                 &input,
+                issue,
             )
         });
+        assert_eq!(issued.get(), issued_before);
         assert!(matches!(
             result,
             Err(mixed_workset::Refusal::Resources(
@@ -246,6 +238,28 @@ pub fn run(
         assert_eq!(effects.get(), 0);
         assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
     }
+    let (refused, cost) = crate::probe::observe(|| {
+        mixed_workset::prepare_retained_with_issuer(
+            &mut library,
+            &mut slot,
+            contract,
+            policy,
+            receiver.context(),
+            &retained,
+            |_, _| Err(crate::native_preparation::Refusal::Scope),
+        )
+    });
+    assert!(matches!(
+        refused,
+        Err(mixed_workset::Refusal::Native(
+            crate::native_preparation::Refusal::Scope
+        ))
+    ));
+    drop(refused);
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    assert!(slot.is_some());
+    assert_eq!(owner, before);
+    assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
     let prepared = prepare!(policy, receiver.context()).unwrap();
     let kernel_bytes = prepared.kernel_storage_bytes();
     let total = prepared.preparation_bytes(&owner, &observations).unwrap();

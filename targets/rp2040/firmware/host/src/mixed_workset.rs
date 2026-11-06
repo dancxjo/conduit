@@ -103,6 +103,41 @@ pub fn prepare_retained<'w, 'n, 'o, P: I2cProvider, const N: usize>(
     context: b::NativePreparationContext<'_>,
     workspace: &'w b::HostCommandInput<N>,
 ) -> Result<PreparedMixedWorkset<'w, 'n, 'o, P>, Refusal> {
+    let NativePossession {
+        slot,
+        table,
+        handle,
+        claim,
+    } = possession;
+    prepare_retained_with_issuer(owner, slot, contract, policy, context, workspace, |_, _| {
+        Ok((table, handle, claim))
+    })
+}
+
+/// Root's local issuer is called only after complete attributed workset and
+/// execution-policy approval, initialized selection and exact resource pins.
+/// The issuer must independently enforce installed native authority and funding;
+/// the approved document itself never grants possession. Refusal retains both
+/// providers and performs no Core admission, transfer, Start or bus operation.
+pub fn prepare_retained_with_issuer<'w, 'n, 'o, P: I2cProvider, const N: usize>(
+    owner: &'o mut generated::Initialized,
+    slot: &'n mut Option<conduit_i2c_transaction::installation::ReadyI2cBase<P>>,
+    contract: &I2cContract,
+    policy: Policy<'_>,
+    context: b::NativePreparationContext<'_>,
+    workspace: &'w b::HostCommandInput<N>,
+    issue: impl FnOnce(
+        &b::DelegatedBodyFragment<'w>,
+        &conduit_i2c_transaction::installation::ReadyI2cBase<P>,
+    ) -> Result<
+        (
+            c::BaseCapabilityTable,
+            c::BaseCapabilityHandle,
+            c::BaseOperationClaim,
+        ),
+        NativeRefusal,
+    >,
+) -> Result<PreparedMixedWorkset<'w, 'n, 'o, P>, Refusal> {
     let command = workspace
         .reborrow(
             context.member,
@@ -130,8 +165,7 @@ pub fn prepare_retained<'w, 'n, 'o, P: I2cProvider, const N: usize>(
     let document = workset.document(0).ok_or(Refusal::Document)?;
     let (_, projection) =
         b::decode_body_fragment_document(document).map_err(|_| Refusal::Document)?;
-    let native = possession
-        .slot
+    let native = slot
         .as_ref()
         .ok_or(Refusal::Native(NativeRefusal::Assignment))?;
     // Both bounded positions are tried against the same independently retained
@@ -202,7 +236,7 @@ pub fn prepare_retained<'w, 'n, 'o, P: I2cProvider, const N: usize>(
         let valid = if entry.node == node {
             seen[0] += 1;
             entry.resource == 0
-                && entry.pool == possession.claim.resource_pool_id.as_str()
+                && entry.pool == native.native_identity().resource_pool_id.as_str()
                 && entry.class == conduit_i2c_transaction::installation::I2C_ATTACHMENT_CLASS
                 && entry.units == 1
         } else if entry.node == resident.node {
@@ -221,9 +255,15 @@ pub fn prepare_retained<'w, 'n, 'o, P: I2cProvider, const N: usize>(
     if seen != [1, 1] {
         return Err(Refusal::Resources(b::DelegatedResourceRefusal::Scope));
     }
+    let (table, handle, claim) = issue(&approved, native).map_err(Refusal::Native)?;
     let kernel = PreparedMixedKernel::prepare(
         owner,
-        possession,
+        NativePossession {
+            slot,
+            table,
+            handle,
+            claim,
+        },
         contract,
         SelectedAssignedForeOperationPlan {
             operation: SelectedAssignedOperationPlan {
