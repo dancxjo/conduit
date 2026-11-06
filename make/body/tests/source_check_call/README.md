@@ -77,3 +77,11 @@ explicit unsafe Root correspondence boundary, not a new authority constructor
 or an installed owner action. The process IMAGE integration test uses this
 product routine and still compares the resulting Body Play's typed bytes with
 the direct canonical reference.
+
+Successful product initialization returns the Host together with the exact typed
+request derived from that same capture. A caller need not reread Source or
+reconstruct its snapshot to query the prepared provider. Extraction moves the
+request and releases the captured Source bytes without allocating. The returned
+request is descriptive metadata whose retention/copying/routing Root must
+independently admit; it grants no Source access or candidate adoption. Failed
+initialization returns neither a Host nor partial selection metadata.

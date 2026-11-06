@@ -77,4 +77,6 @@ pub fn from_configuration(
 #[cfg(target_os = "linux")]
 mod installation;
 #[cfg(target_os = "linux")]
-pub use installation::{initialize_image, SourceCheckImageInstallation};
+pub use installation::{
+    initialize_image, InitializedSourceCheckImage, SourceCheckImageInstallation,
+};

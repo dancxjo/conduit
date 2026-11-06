@@ -1,6 +1,6 @@
 //! Selected compiler installation, with Source acquisition inside funded preparation.
 use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
-use conduit_plot::{CheckContextRevision, SourceCheckNativeSchema};
+use conduit_plot::{CheckContextRevision, SourceCheckNativeSchema, SourceCheckRequest};
 use conduit_std_host::{
     source_check::{
         process::OwnedSourceCheckInput, PreparedSourceChecker, SourceCheckPreparationBounds,
@@ -28,6 +28,15 @@ pub struct SourceCheckImageInstallation<'a> {
     pub control: &'a RunControl,
 }
 
+/// Successful initialization and the exact request derived from its one File
+/// capture. This request is descriptive metadata, not a Source grant. Root must
+/// independently admit its retention, copying and routing, like its other
+/// caller-owned authoring metadata.
+pub struct InitializedSourceCheckImage {
+    pub host: StdHost,
+    pub request: SourceCheckRequest,
+}
+
 /// Construct a Host only after selected Source capture and the actual bounded
 /// compiler succeed. IMAGE/grant/provider correspondence and memory admission
 /// use the existing Root constructor; failed preparation publishes no Host.
@@ -41,7 +50,7 @@ pub struct SourceCheckImageInstallation<'a> {
 /// existing immediate-provider contract. Names and IMAGE intent grant nothing.
 pub unsafe fn initialize_image(
     request: SourceCheckImageInstallation<'_>,
-) -> Result<StdHost, String> {
+) -> Result<InitializedSourceCheckImage, String> {
     let selected = conduit_workspace_make::CheckedSourceCheckInitialization::from_configuration(
         request.checked,
     )?;
@@ -77,9 +86,10 @@ pub unsafe fn initialize_image(
             .try_into()
             .map_err(|_| "retained bound overflow")?,
     };
+    let mut captured_request = None;
     // SAFETY: caller retains the independent authority/workspace obligations;
     // this factory supplies the actual selected, bounded process implementation.
-    unsafe {
+    let host = unsafe {
         StdHost::from_selected_timer_and_immediate_source_image(
             request.config,
             request.image,
@@ -110,8 +120,13 @@ pub unsafe fn initialize_image(
                     bounds,
                     request.control,
                 )?;
+                captured_request = Some(source.into_request());
                 Ok(Box::new(prepared.into_provider()))
             },
         )
-    }
+    }?;
+    // The constructor invokes the successful factory exactly once. Neither a
+    // failed Host nor partial selection metadata escapes an earlier refusal.
+    let request = captured_request.ok_or("initialized Source checker lacks its capture")?;
+    Ok(InitializedSourceCheckImage { host, request })
 }

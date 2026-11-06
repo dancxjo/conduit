@@ -7832,3 +7832,30 @@ were retained. Source, credentials, actual firmware artifacts, live releases and
 the active validation cache were preserved. Root remains tight at 1.7 GiB;
 /tmp has approximately 9.0 GiB filesystem headroom, with its user quota tracked
 separately. No worktree was removed.
+
+### 6 November 2026 — initialized checker retains its exact request handoff
+
+Tracing the installed-owner boundary found a concrete missing handoff: product
+initialization captured and checked its selected File but discarded the exact
+request needed to query the prepared provider. A real caller would otherwise
+have to recapture Source or reconstruct its snapshot outside preparation.
+
+`initialize_image` now returns `InitializedSourceCheckImage { host, request }`
+only after successful initialization. The request comes from the very same
+owned capture used by the actual compiler and provider; `into_request` moves
+that metadata and releases the Source bytes without a second read, parser or
+Source copy. Failure returns neither Host nor partial selection metadata.
+This changes the new product entrance directly; no parallel compatibility
+entrance or authority constructor is added. Root must independently admit the
+returned descriptive metadata's retention, cloning and routing. Full Root
+workspace admission remains unproved.
+
+All 18 actual compiler-process tests pass with the product case now comparing
+its returned request against the canonical reference before executing its Body
+Play. Three selected-capture tests also pass. The updated immutable-capture case
+mutates the original unlinked file after capture, then proves request extraction
+allocates nothing and retains the original snapshot/entry/context. Formatting
+and diff checks pass. Logs: ignored `target/source-capture-request-20261106`.
+Owner action routing, complete workspace custody and the full lifecycle remain
+open. No device or running service changed. PR #6815's exact head was still
+queued at the initial bounded observation; no accepted or merged claim is made.

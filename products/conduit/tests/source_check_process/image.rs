@@ -152,7 +152,7 @@ fn run_image_case(source: &str) {
     let catalog = conduit_workspace_make::catalog();
     // SAFETY: Fixture owns this selected File, exact Source scope and independent
     // Host/Boot grant. Its caller metadata has separate preparation custody.
-    let mut host = unsafe {
+    let initialized = unsafe {
         conduit::source_check_worker::initialize_image(
             conduit::source_check_worker::SourceCheckImageInstallation {
                 config,
@@ -172,6 +172,8 @@ fn run_image_case(source: &str) {
         )
     }
     .unwrap();
+    assert_eq!(initialized.request, input.request);
+    let mut host = initialized.host;
     assert_eq!(
         host.image_identity().unwrap().image_id,
         image.manifest.image_id

@@ -33,15 +33,11 @@ fn context() -> CheckContextRevision {
 #[test]
 fn immutable_source_comes_from_the_actual_unlinked_descriptor_without_parsing() {
     let source = "# α 🦀\nunfinished {";
-    let captured = OwnedSourceCheckInput::from_file(
-        selected(source.as_bytes()),
-        4096,
-        "owner/from-root",
-        7,
-        "main",
-        context(),
-    )
-    .unwrap();
+    let file = selected(source.as_bytes());
+    let mut alias = file.try_clone().unwrap();
+    let captured =
+        OwnedSourceCheckInput::from_file(file, 4096, "owner/from-root", 7, "main", context())
+            .unwrap();
     assert_eq!(captured.source(), source);
     assert_eq!(
         captured.request().snapshot.source_document_id,
@@ -54,6 +50,15 @@ fn immutable_source_comes_from_the_actual_unlinked_descriptor_without_parsing() 
     assert_eq!(captured.request().snapshot.owner, "owner/from-root");
     assert_eq!(captured.request().snapshot.generation, 7);
     assert_eq!(captured.request().entry, "main");
+    let expected = captured.request().clone();
+    alias.rewind().unwrap();
+    alias.set_len(0).unwrap();
+    alias.write_all(b"different bytes after capture").unwrap();
+    assert_eq!(captured.source(), source);
+    let probe = crate::allocation_probe::begin();
+    let request = captured.into_request();
+    assert_eq!(probe.finish(), 0);
+    assert_eq!(request, expected);
     let empty =
         OwnedSourceCheckInput::from_file(selected(&[]), 1, "owner", 1, "main", context()).unwrap();
     assert!(empty.source().is_empty());

@@ -72,6 +72,12 @@ impl OwnedSourceCheckInput {
     pub fn request(&self) -> &SourceCheckRequest {
         &self.input.request
     }
+    /// Retain this capture's exact descriptive request without rereading the
+    /// resource or copying its Source bytes. The caller independently admits
+    /// retained metadata; the request grants no access or execution authority.
+    pub fn into_request(self) -> SourceCheckRequest {
+        self.input.request
+    }
     pub fn source(&self) -> &str {
         &self.input.source
     }
