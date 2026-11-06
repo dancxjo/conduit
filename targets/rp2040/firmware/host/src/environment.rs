@@ -1,6 +1,6 @@
 //! Autonomous diagnostic quantities/Face/Look; no installed Body or Plan claim.
 use crate::config;
-use conduit_bosch_env::{Address, Humidity, Reading, Sensor};
+use conduit_bosch_env::{Address, Humidity, Reading, Sensor, SensorState};
 use core::{cell::RefCell, fmt::Write};
 use critical_section::Mutex;
 use embassy_rp::{
@@ -78,13 +78,12 @@ pub async fn run(
     } else {
         Address::Secondary
     };
-    let mut sensor = Sensor::new(
-        conduit_rp2040_i2c::Rp2040I2c::new(
-            I2c::new_async(bus, scl, sda, config::SensorIrqs, bus_config),
-            config::MAXIMUM_I2C_POLLS,
-        ),
-        address,
-    );
+    crate::i2c_owner::initialize(conduit_rp2040_i2c::Rp2040I2c::new(
+        I2c::new_async(bus, scl, sda, config::SensorIrqs, bus_config),
+        config::MAXIMUM_I2C_POLLS,
+    ));
+    let mut sensor_state = SensorState::new(address);
+    let mut protocol_revision = crate::i2c_owner::protocol_revision();
     let display = conduit_ht16k33::Address::new(config::DISPLAY_ADDRESS).unwrap();
     let display_config = conduit_ht16k33::Configuration {
         brightness: conduit_ht16k33::Brightness::new(config::BRIGHTNESS).unwrap(),
@@ -96,6 +95,18 @@ pub async fn run(
     let mut prepared = None;
     let mut delay = Delay;
     loop {
+        let Some(mut bus) = crate::i2c_owner::try_lease() else {
+            Timer::after_millis(40).await;
+            continue;
+        };
+        let current_revision = crate::i2c_owner::protocol_revision();
+        if current_revision != protocol_revision {
+            sensor_state.invalidate();
+            initialized = false;
+            last_sample = None;
+            protocol_revision = current_revision;
+        }
+        let mut sensor = Sensor::from_parts(&mut *bus, sensor_state);
         if last_sample.is_none_or(|at: Instant| at.elapsed() >= Duration::from_secs(30)) {
             update(|s| s.attempts = s.attempts.saturating_add(1));
             let ready = if sensor.chip().is_none() {
@@ -177,6 +188,9 @@ pub async fn run(
         if !ack {
             initialized = false;
         }
+        let (_, retained) = sensor.into_parts();
+        sensor_state = retained;
+        drop(bus);
         Timer::after(Duration::from_secs(2)).await;
     }
 }

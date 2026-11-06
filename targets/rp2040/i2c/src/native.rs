@@ -24,6 +24,11 @@ impl<'d, T: Instance> Rp2040I2c<'d, T> {
             revoked: false,
         }
     }
+    /// Local quarantine state only; this does not prove a device is present or
+    /// grant a caller authority to use the configured controller.
+    pub fn is_revoked(&self) -> bool {
+        self.revoked
+    }
     fn execute(
         &mut self,
         request: &I2cTransaction<'_>,

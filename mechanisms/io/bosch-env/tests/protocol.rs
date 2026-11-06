@@ -306,3 +306,40 @@ fn exclusive_shared_bus_borrow_preserves_initialized_calibration_and_next_read()
     run(sensor.measure(&mut delay)).unwrap();
     assert!(remaining.borrow().is_empty());
 }
+
+#[test]
+fn transport_loans_preserve_calibration_and_explicit_invalidation_requires_reinitialization() {
+    for chip in [Chip::Bme280, Chip::Bmp280] {
+        let mut script = initialize(chip);
+        script.extend(measure(chip));
+        script.extend(measure(chip));
+        script.extend(initialize(chip));
+        script.extend(measure(chip));
+        let (mut bus, steps, _) = make_bus(script, 0x76);
+        let mut delay = Delay::default();
+        let mut sensor = Sensor::from_parts(&mut bus, SensorState::new(Address::Primary));
+        run(sensor.initialize(&mut delay)).unwrap();
+        let first = run(sensor.measure(&mut delay)).unwrap();
+        let (_, state) = sensor.into_parts();
+        let ((mut state, second), cost) = allocation_probe::observe(|| {
+            let mut sensor = Sensor::from_parts(&mut bus, state);
+            assert_eq!(sensor.chip(), Some(chip));
+            let second = run(sensor.measure(&mut delay)).unwrap();
+            let (_, state) = sensor.into_parts();
+            (state, second)
+        });
+        assert_eq!(first, second);
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        let (third, cost) = allocation_probe::observe(|| {
+            state.invalidate();
+            let mut sensor = Sensor::from_parts(&mut bus, state);
+            assert_eq!(sensor.chip(), None);
+            assert_eq!(run(sensor.measure(&mut delay)), Err(Error::NotInitialized));
+            run(sensor.initialize(&mut delay)).unwrap();
+            run(sensor.measure(&mut delay)).unwrap()
+        });
+        assert_eq!(first, third);
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        assert!(steps.borrow().is_empty());
+    }
+}

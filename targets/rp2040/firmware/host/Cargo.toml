@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [dependencies]
+conduit-i2c-transaction = { path = "../../../../mechanisms/io/i2c-transaction", default-features = false }
 conduit-rp2040-i2c = { path = "../../i2c", features = ["rp2040"] }
 conduit-body = { path = "../../../../architecture/body" }
 conduit-core = { path = "../../../../architecture/core", default-features = false }

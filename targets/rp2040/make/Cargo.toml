@@ -14,6 +14,7 @@ conduit-embedded-build = { path = "../../../make/embedded-build" }
 conduit-plot = { path = "../../../architecture/plot" }
 
 [dev-dependencies]
+conduit-i2c-transaction = { path = "../../../mechanisms/io/i2c-transaction", default-features = false }
 heapless = "0.8"
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 ed25519-dalek = { version = "2.2", default-features = false }

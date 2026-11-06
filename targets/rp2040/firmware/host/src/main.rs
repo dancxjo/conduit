@@ -17,6 +17,7 @@ mod environment;
 mod environment_http;
 mod environment_show;
 mod heap;
+mod i2c_owner;
 mod membership;
 mod radio;
 mod resident;

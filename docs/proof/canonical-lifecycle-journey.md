@@ -6454,3 +6454,33 @@ As disk headroom approached 2 GiB, package-native cleanup removed the verified
 inactive isolated service-review compiler cache (Cargo reported 6.1 GiB). Its
 source/commit, PR and proof logs remained retained; no process, mapped library or
 open file referenced the cache, and no firmware image was present there.
+
+
+### One configured I2C controller can leave diagnostic custody
+
+Green's diagnostic Sensor previously owned its physical controller for the entire
+task lifetime. The portable Bosch driver now separates opaque calibration/state
+from transport ownership, allowing temporary loans of the same bus without
+re-reading calibration. Explicit invalidation is required after foreign use or a
+changed physical device. No transport loan or cached calibration becomes a Body
+offer, readiness claim or authority.
+
+The RP2040 Root now retains one configured controller and lends it exclusively.
+Diagnostic sampling/display releases its pointer lease between cycles. The native
+lease implements the existing I2C provider boundary, so it can be consumed by the
+existing Host Call installation; it grants no capability or reservation. Its
+first actual native use invalidates diagnostic protocol caches. Unused native
+preparation leaves them alone; dropped/cancelled leases return the same controller.
+Revocation preserves quarantine and blocks another native lease, with no hidden
+reset/retry. After native use, diagnostics reinitialize before measuring again.
+This is target hardware custody, not another Body scheduler or application relay.
+
+The actual Root lease module passes its fake-physical-leaf CPU custody test with
+zero scoped allocations, same owner address, exclusive access, first-use cache
+invalidation, cancellation and quarantine. All four Bosch calibration and six
+protocol tests pass; the new case covers detached/reborrowed state and explicit
+invalidation for BME280 and BMP280. Both CPU packages pass strict Clippy. These
+11 tests do not prove firmware compilation, physical handoff or native Play.
+Firmware construction/build qualification is the next check. No live device or
+service changed. Raw evidence remains in ignored
+`target/i2c-controller-custody-20261105`.

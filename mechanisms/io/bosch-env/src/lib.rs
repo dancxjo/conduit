@@ -57,22 +57,44 @@ pub enum Error<E> {
 /// configuration. No execution authority is created by either operation.
 pub struct Sensor<I> {
     bus: I,
+    state: SensorState,
+}
+/// Cached protocol state without a transport owner. This is not a readiness
+/// offer or authority. Invalidate it after another user may have changed the
+/// device, or before attaching it to a different physical device/generation.
+pub struct SensorState {
     address: Address,
     ready: Option<(Chip, Calibration)>,
 }
-impl<I: I2c> Sensor<I> {
-    pub fn new(bus: I, address: Address) -> Self {
+impl SensorState {
+    pub fn new(address: Address) -> Self {
         Self {
-            bus,
             address,
             ready: None,
         }
     }
+    pub fn invalidate(&mut self) {
+        self.ready = None;
+    }
+}
+impl<I: I2c> Sensor<I> {
+    pub fn new(bus: I, address: Address) -> Self {
+        Self::from_parts(bus, SensorState::new(address))
+    }
+    /// Reattach cached state only to its same device. The caller must invalidate
+    /// after foreign controller use or a changed physical attachment.
+    pub fn from_parts(bus: I, state: SensorState) -> Self {
+        Self { bus, state }
+    }
+    /// Release the exclusive transport without copying calibration or State.
+    pub fn into_parts(self) -> (I, SensorState) {
+        (self.bus, self.state)
+    }
     pub fn chip(&self) -> Option<Chip> {
-        self.ready.as_ref().map(|v| v.0)
+        self.state.ready.as_ref().map(|v| v.0)
     }
     pub fn address(&self) -> Address {
-        self.address
+        self.state.address
     }
     /// Exclusively borrow the same initialized bus for another addressed device.
     /// Calibration/readiness stay retained; no second peripheral owner is made.
@@ -83,7 +105,7 @@ impl<I: I2c> Sensor<I> {
         self.bus
     }
     pub async fn initialize(&mut self, delay: &mut impl DelayNs) -> Result<Chip, Error<I::Error>> {
-        self.ready = None;
+        self.state.ready = None;
         let mut id = [0];
         self.read(0xd0, &mut id).await?;
         let chip = match id[0] {
@@ -107,12 +129,12 @@ impl<I: I2c> Sensor<I> {
             self.write(0xf2, 1).await?;
         }
         self.write(0xf4, 0x24).await?; // x1 temperature/pressure, sleep; latch humidity
-        self.ready = Some((chip, calibration));
+        self.state.ready = Some((chip, calibration));
         Ok(chip)
     }
     pub async fn measure(&mut self, delay: &mut impl DelayNs) -> Result<Reading, Error<I::Error>> {
         // Taking readiness before the first await makes cancellation fail closed.
-        let (chip, calibration) = self.ready.take().ok_or(Error::NotInitialized)?;
+        let (chip, calibration) = self.state.ready.take().ok_or(Error::NotInitialized)?;
         if chip == Chip::Bme280 {
             self.write(0xf2, 1).await?;
         }
@@ -123,18 +145,18 @@ impl<I: I2c> Sensor<I> {
         let len = if chip == Chip::Bme280 { 8 } else { 6 };
         self.read(0xf7, &mut raw[..len]).await?;
         let reading = calibration.compensate(chip, &raw).map_err(Error::Data)?;
-        self.ready = Some((chip, calibration));
+        self.state.ready = Some((chip, calibration));
         Ok(reading)
     }
     async fn read(&mut self, register: u8, out: &mut [u8]) -> Result<(), Error<I::Error>> {
         self.bus
-            .write_read(self.address as u8, &[register], out)
+            .write_read(self.state.address as u8, &[register], out)
             .await
             .map_err(Error::Bus)
     }
     async fn write(&mut self, register: u8, value: u8) -> Result<(), Error<I::Error>> {
         self.bus
-            .write(self.address as u8, &[register, value])
+            .write(self.state.address as u8, &[register, value])
             .await
             .map_err(Error::Bus)
     }
