@@ -7069,3 +7069,44 @@ PR #6804 passed exact Candidate 42167897922 and was already merged at bc847dd8bc
 After cross-provider test caches grew, process command/map/fd (and where applicable environment) audits found the selected cleanup targets inactive. Package-native cleanup removed 214 files/350.6 MiB from an old authoring release cache, 43 files/824.1 MiB from the old ARM compiler cache, and 382 files/6.6 GiB of accumulated language compiler outputs from the inactive shared native cache. Qualified executables/images, dirty Source, keys, history and active test processes were preserved. Subsequent checks regenerated required outputs; gross removal is not net free space. Green's independent diagnostic check reached 1,051 samples and 15,759 acknowledged frames without reported I/O faults. It remains on the prior diagnostic firmware; no device or live service changed.
 
 Remaining device gates include proper installed native capability issuance, receiver installation of complete mixed admission, selected-workset storage fit against the actual five-entry library, current Start/ingress, native terminal custody and diagnostic bus turnover. The existing alloc-only preprepared value-store profile may supply selected-program storage without charging the library-wide largest Type, but its fallible preparation and custody must be qualified before reuse; no new storage runtime or fit claim is introduced here.
+
+### 2026-11-05 — Selected resident storage under the existing preparation grant
+
+Kernel result-capacity preflight PR #6807 passed Candidate run 42174355729
+and merged as `2b76a9ce74ac38fd48e959b222edf7c42b750c25`.
+The delivery branch now reuses the existing alloc-only, no_std canonical
+`HostedValueStore` with fallible preparation and read-only canonical publication
+preflight. Metadata and payload allocations are funded before execution; failed
+partial preparation releases its allocations. Inline owners and allocator overhead
+remain separate Host charges. No runtime growth or new scheduler is introduced.
+
+Make emits immutable per-entry value envelopes only for initialized, available
+resident implementations. The actual five-entry HT16K33 library has envelopes
+`[1594, 1594, 2574, 1581, 1581]`. A mixed kernel selecting the real write-outcome
+implementation now funds that entry and its native I2C boundary instead of the
+widest unrelated library entry. All five implementations remain initialized.
+
+CPU qualification of both node orderings reports 11,703 bytes of kernel/native/store
+backing and 14,548 bytes including conservative Core bridge preparation. Charging
+this same profile for the unrelated widest entry would require 17,527 bytes:
+2,979 bytes avoided, crossing refusal to fit under the unchanged 16,384-byte
+caller ceiling. The signed complete-workset input is 2,256 bytes within the
+unchanged 4,096-byte input limit. The one-entry fixture uses 9,467/12,312 bytes;
+its allocated-store metadata costs more than its previous fixed representation.
+These figures describe requested CPU preparation backing, not MCU heap peaks.
+
+The CPU fixture checks real emitted write-outcome code after an inert native I2C
+completion, complete signed Core admission, both node orderings, zero execution
+allocation, four injected preparation allocation failures, and 1,000 stable
+store/preflight/release cycles. This is neither optical display proof nor a live
+receiver, Start, whole-instrument workset, or physical MCU execution claim.
+Green's installed sensing/display firmware was not changed.
+
+Internal qualification: mixed-native 2 tests and resident-protocol 1 test passed;
+Kernel alloc suite 235 passed, 3 ignored; strict Kernel lib/tests and owning
+mixed-native/resident-protocol Clippy passed; alloc Kernel thumbv6m-none-eabi
+check passed. Raw logs remain outside tracked source under target evidence.
+Source checkpoints: `d51623b129` (generic store preparation) and `4efb856374`
+(selected-entry consumer and CPU evidence). Native grant issuance, ordinary
+receiver installation/Start/ingress, terminal custody and diagnostic bus turnover
+remain required before the live lifecycle can use this path.
