@@ -39,6 +39,13 @@ pub fn parse_host_configuration_conduit(
                 .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?,
         ),
     };
+    let execution = match declarations.get("execution") {
+        None => None,
+        Some(_) => Some(
+            one_required::<conduit_body::HostExecutionDelegation>(&declarations, "execution")
+                .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?,
+        ),
+    };
     reject_unknown(
         &declarations,
         &[
@@ -49,6 +56,7 @@ pub fn parse_host_configuration_conduit(
             "need",
             "capability",
             "preparation",
+            "execution",
         ],
     )
     .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
@@ -60,6 +68,7 @@ pub fn parse_host_configuration_conduit(
         resources,
         capabilities,
         preparation,
+        execution,
         limits,
     })
 }

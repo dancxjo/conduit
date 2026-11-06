@@ -263,6 +263,16 @@ pub(super) fn project(
                 } else {
                     p.text("External preparation is not delegated.".into());
                 }
+                if let Some(policy) = c.execution {
+                    p.text(format!("Execution delegated to {}: at most {} active worksets. Exact local admission and native possession remain required.", policy.authorizer.as_str(), policy.maximum_active_worksets));
+                    p.properties.push(FaceProperty {
+                        subject: "host-config".into(),
+                        name: "execution-authorizer".into(),
+                        value: FacePropertyValue::Identity(policy.authorizer.as_str().into()),
+                    });
+                } else {
+                    p.text("External execution is not delegated.".into());
+                }
                 if !t.make_descriptors.is_empty() {
                     p.field(
                         "host-config/descriptor",
