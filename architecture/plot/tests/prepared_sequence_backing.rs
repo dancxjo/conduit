@@ -13,8 +13,7 @@ fn quiet(o: allocation_probe::Observation) {
 
 #[test]
 fn adoption_and_physical_pressure_retain_all_backing_and_pending_ownership() {
-    let mut values = Vec::with_capacity(1);
-    values.push(String::from("active"));
+    let values = vec![String::from("active")];
     let pointer = values.as_ptr();
     let (adopted, counts) = allocation_probe::observe(|| {
         BoundedSequence::<String, 4>::try_from_preallocated_vec(values)
