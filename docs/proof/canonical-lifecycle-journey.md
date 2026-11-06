@@ -6560,3 +6560,30 @@ updated firmware compilation nor device deployment is claimed for this change;
 the previous `f32185f729` qualification predates the new construction fields.
 No live service/device changed. Raw logs remain in ignored
 `target/native-i2c-installation-20261105`.
+
+
+### Checked native address scope reaches the ARM build
+
+Rebuilt the ordinary Make entrance from current source after the previous cached
+checker refused the newly required address-scope fields. Make accepted
+`targets/rp2040/profiles/pico-w-house-green-delegated.host.conduit` and compiled
+source `fcdafe65c04b568749b351f9bb5c95a36555730c` for the actual RP2040 target.
+The linked image has 1,067,076 flash payload bytes and 117,448 static RAM bytes,
+including the unchanged 49,152-byte heap. The 152,888-byte linked stack gap is
+not a measured high-water mark. The public profile selects a new configuration
+identity; this is not the earlier private recovery Seed.
+
+Retained ignored evidence is in `target/rp2040-native-readiness-fcdafe65c0/`:
+ELF, UF2, Make manifests, build log and qualification. Both artifact digests match
+Make; all 4,169 UF2 pages have the expected family, ordering, alignment and
+application-only address range below `0x101fd000`. No artifact was flashed.
+The build reports 24 warnings, including unused native preparation functions;
+compilation does not imply the new factory is called or that authority is issued.
+
+Green remained on its earlier working image: the live diagnostic report showed
+384 readings and 5,757 acknowledged frames, current membership, and no reported
+sensor/display errors. The branch contains the fetched dev tip. The next required
+integration is the existing exact assigned I2C Host Call binding alongside
+resident computations, with independently funded storage, actual local capability
+possession and whole-workset admission before Start. The receiver still reports
+Start uninstalled; no meaningful admitted physical Play is claimed.
