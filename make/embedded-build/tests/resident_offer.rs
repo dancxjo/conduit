@@ -30,6 +30,15 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
         support::bounds(1000),
     )
     .unwrap();
+    let value_slot_bytes = image
+        .maximum_input_bytes()
+        .max(image.maximum_output_bytes())
+        .max(sibling.maximum_input_bytes())
+        .max(sibling.maximum_output_bytes());
+    assert_eq!(
+        image.maximum_output_bytes(),
+        program.maximum_prepared_output_bytes().unwrap()
+    );
     let image_source = image.source().to_owned();
     let library =
         conduit_embedded_build::generate_resident_library(&[image, sibling], 2 * 1024 * 1024)
@@ -76,12 +85,14 @@ extern crate alloc;
 #[path={body_scope:?}]mod body_scope;
 {delegated}
 mod resident {{
- pub mod generated {{pub use crate::library::{{Initialized,BorrowedBack,PreparedResidentLoans,ENTRY_COUNT}};}}
+ pub mod generated {{pub use crate::library::{{Initialized,BorrowedBack,PreparedResidentLoans,ENTRY_COUNT,VALUE_SLOT_BYTES}};}}
  pub fn inventory()->Result<&'static mut generated::Initialized,()> {{Err(())}}
 }}
 mod config {{pub const RESIDENT_PREPARATION_STORAGE_BYTES:usize=16384;pub const RESIDENT_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima=conduit_core::AssignedPlanMaxima{{encoded_bytes:8192,runtime_state_bytes:8192,counts:[32;conduit_core::ASSIGNED_PLAN_COUNT_KINDS]}};}}
 {root_preparer}
 fn main(){{
+    assert_eq!(library::VALUE_SLOT_BYTES,{value_slot_bytes}usize);
+    println!("prepared resident value slot: {{}} canonical bytes",library::VALUE_SLOT_BYTES);
     let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
     let((),cost)=probe::observe(||{{assert!(!owner.offer_image().is_empty());

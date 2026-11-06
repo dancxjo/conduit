@@ -8,7 +8,17 @@ use conduit_kernel::{scheduler::*, *};
 
 // Explicit supported local representation. Larger signed envelopes refuse;
 // construction and policy byte ceilings never grow to accommodate an assignment.
-const VALUE_BYTES: usize = 2048;
+// Keep the installed logical Cord ceiling separate from physical Type storage.
+const MAXIMUM_CORD_VALUE_BYTES: u32 = 2048;
+const VALUE_BYTES: usize = {
+    let prepared = crate::resident::generated::VALUE_SLOT_BYTES;
+    let installed = MAXIMUM_CORD_VALUE_BYTES as usize;
+    if prepared < installed {
+        prepared
+    } else {
+        installed
+    }
+};
 const SIGN_ITEMS: usize = 16;
 type Kernel<'a, const N: usize, const C: usize, const V: usize> = FixedScheduler<
     BorrowedBack<'a>,
@@ -312,7 +322,7 @@ fn slot<'o, const N: usize, const C: usize, const V: usize>(
         || checked.selected.nodes().count() != N
         || tables.cords[..cords]
             .iter()
-            .any(|c| c.maximum_value_bytes > VALUE_BYTES as u32)
+            .any(|c| c.maximum_value_bytes > MAXIMUM_CORD_VALUE_BYTES)
         || tables.cords[..cords]
             .iter()
             .map(|c| usize::from(c.item_capacity))

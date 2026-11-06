@@ -11,6 +11,16 @@ pub fn generate_resident_library(
         return Err(R::Bounds);
     }
     let mut code = format!("pub const ENTRY_COUNT:usize={};\n", images.len());
+    let maximum_value_bytes = images
+        .iter()
+        .map(|image| {
+            image
+                .maximum_input_bytes()
+                .max(image.maximum_output_bytes())
+        })
+        .max()
+        .ok_or(R::Bounds)?;
+    code.push_str(&format!("/// Canonical extent of the selected prepared programs; not a queue grant.\npub const VALUE_SLOT_BYTES:usize={maximum_value_bytes};\n"));
     for (index, image) in images.iter().enumerate() {
         if images[..index]
             .iter()

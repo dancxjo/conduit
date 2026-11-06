@@ -36,6 +36,7 @@ pub enum ResidentExpressionRefusal {
 pub struct PreparedResidentExpression {
     source_document: c::SourceDocumentId,
     maximum_input: u32,
+    maximum_output: u32,
     maximum_generated_bytes: u32,
     text: String,
     temporal: c::PortTemporal,
@@ -119,6 +120,7 @@ impl PreparedResidentExpression {
         Ok(Self {
             source_document: document.source_document_id.clone(),
             maximum_input,
+            maximum_output: output,
             maximum_generated_bytes: bounds.maximum_generated_bytes,
             text: program.canonical_hex().map_err(|_| R::Program)?,
             temporal,
@@ -239,6 +241,10 @@ impl PreparedResidentExpression {
             step_fuel: node.maximum_step_fuel,
             code,
         })
+    }
+    /// Canonical envelope of this prepared program, not a resource grant.
+    pub fn maximum_output_bytes(&self) -> u32 {
+        self.maximum_output
     }
     pub fn maximum_input_bytes(&self) -> u32 {
         self.maximum_input

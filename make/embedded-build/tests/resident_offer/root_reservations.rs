@@ -50,11 +50,12 @@ pub fn run(
     ))));
     assert_eq!(owner, before);
     let stored = prepare!();
+    let storage_bytes = stored.storage_bytes();
     let (reserved, cost) = crate::probe::observe(||
         stored.reserve(&mut owner, core::slice::from_ref(&observed), budget));
     assert_eq!(reserved.as_ref().unwrap().admissions().len(), 2);
     let preparation_bytes = reserved.as_ref().unwrap().preparation_bytes();
-    assert!(cost.peak_bytes + 12432 <= preparation_bytes);
+    assert!(cost.peak_bytes + storage_bytes <= preparation_bytes);
     drop(reserved);
     assert_eq!(owner, before);
     for nth in 1..=cost.allocations {
