@@ -5,6 +5,7 @@ use std::path::Path;
 
 impl Owner {
     pub(super) fn ensure_execution_retained(&mut self, root: &Path) -> Result<(), String> {
+        self.require_workset_recovered()?;
         if self.execution_persistence_pending {
             self.persist(root)?;
         }
