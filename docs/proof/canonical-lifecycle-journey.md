@@ -8838,3 +8838,19 @@ Generalized the existing finite-input preparation owner into `ImagePreparedValue
 Qualification: 44 std IMAGE tests, 9 actual Source compiler/Crèche integration tests and 5 continuing-owner tests passed. Strict production Clippy for conduit and conduit-std-host passed. Logs: `/tmp/conduit-root-prepared-values-20261106.log`, `/tmp/conduit-root-value-source-integration-20261106.log`, `/tmp/conduit-root-value-owner-integration-20261106.log`, `/tmp/conduit-root-value-clippy-20261106.log`.
 
 This is cooperative memory custody, not allocator containment or Source/adoption authority. The installed proposal path still needs an independently qualified complete compiler/Root envelope and an authorized Source-selection policy; no device or live owner was changed. The complete lifecycle remains unfinished.
+
+### 2026-11-06 — Exact Source capture moves into Root checking
+
+`OwnedSourceCheckInput::into_source_and_request` transfers the captured String and descriptive request without reopening a resource or allocating another Source buffer. Its pointer/allocation regression passed (`/tmp/conduit-root-capture-handoff-20261106.log`); committed as `d0e17c6fea`.
+
+The product parser now accepts owned Source. Production file loading and both single/complete retained-workset capture consume their original buffers into canonical parsing; complete-workset acquisition bounds and independent checked identity validation remain in place. Borrowed inventory validation remains available when journal callers retain the original inventory. This removes a simultaneous duplicate of each consumed Source text; syntax and catalog backing still require their own qualification.
+
+Qualification: eight retained-Source/owner regressions, six complete-workset journal/recovery regressions and one product pointer-preservation/checked-expansion test passed. Logs: `/tmp/conduit-owned-retained-source-final-20261106.log`, `/tmp/conduit-owned-workset-retry-20261106.log`, `/tmp/conduit-owned-parse-retry-20261106.log`. Initial product allocation test used an incomplete clock Plot; corrected to the ordinary checked repository clock Source. An earlier workset filter matched zero tests and is superseded by the six-test run. Formatting and diff checks passed.
+
+Build attempts initially exhausted disk while regenerating removed dependencies. Investigation found the actual commands used the worktree-local target, not the separately inspected shared target. Removed 16,270,280,751 bytes of inactive local incremental data after the failed build terminated; inventory is in task outputs/cleanup-inactive-actual-root-incremental-20261106.json. No credential, Source, device history or live runtime was removed.
+
+This does not install a Source proposal action or qualify the combined parent/compiler/parser/planner envelope. Full lifecycle and physical admitted environmental Plays remain unfinished.
+
+Strict production Clippy (`cargo +stable clippy -j 2 -p conduit --lib --bin conduit -- -D warnings`) passed; log `/tmp/conduit-owned-source-clippy-20261106.log`.
+
+Diagnostic measurement of the already-built product library test executable: the single checked clock Source allocation-preservation test peaked at 253,612 KiB process RSS (3.90 s wall), while listing tests peaked at 9,356 KiB. `/usr/bin/time -v` logs: `/tmp/conduit-owned-source-runtime-measurement-20261106.log` and `/tmp/conduit-owned-source-runtime-baseline-20261106.log`. This is a debug test-process observation, not an IMAGE heap receipt, a retained-backing bound, an optimized installed measurement, or qualification of a complete proposal/adoption envelope. It reinforces that the current 64 MiB selection must not be presumed adequate. Next qualification must include actual parent/child overlap, retained catalog/AST backing and complete-workset planner/journal scratch before choosing an explicit authoring Seed.

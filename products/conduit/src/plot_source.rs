@@ -26,14 +26,20 @@ pub(crate) fn load(path: &Path) -> Result<CanonicalSource, String> {
         ));
     }
     let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    parse(&source)
+    parse_owned(source)
 }
 
 // Used by the library entrance; the binary compiles this module independently.
 #[allow(dead_code)]
 pub(crate) fn parse(source: &str) -> Result<CanonicalSource, String> {
+    parse_owned(source.into())
+}
+
+/// Take immutable capture ownership; callers separately fund checking and retention.
+/// The bytes and descriptive identity never grant adoption or execution authority.
+pub(crate) fn parse_owned(source: String) -> Result<CanonicalSource, String> {
     let (mut startup, mut profiles) = standard_catalogs()?;
-    let mut syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
+    let mut syntax = conduit_plot::parse_syntax_document_with_glyph_notations(&source, &startup);
     // Canonical paths remain present in direct invocations, Type references or
     // explicit `with` declarations. Kind aliases resolve only to exact installed
     // paths, so their declarations retain the dependency. Quoted text and
@@ -43,10 +49,10 @@ pub(crate) fn parse(source: &str) -> Result<CanonicalSource, String> {
             && (token.text == "audio/dsp" || token.text.starts_with("audio/dsp/"))
     }) {
         (startup, profiles) = dsp_catalogs()?;
-        syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
+        syntax = conduit_plot::parse_syntax_document_with_glyph_notations(&source, &startup);
     }
     Ok(CanonicalSource {
-        source: source.into(),
+        source,
         syntax,
         startup,
         profiles,

@@ -46,6 +46,15 @@ impl CanonicalSource {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn owned_capture_keeps_its_original_source_allocation() {
+        let captured = String::from(include_str!("../../../../plots/clock/main.conduit"));
+        let original = captured.as_ptr();
+        let source = super::super::parse_owned(captured).unwrap();
+        assert_eq!(source.source.as_ptr(), original);
+        assert!(source.expand_entry_for_authoring().is_ok());
+    }
+
+    #[test]
     fn ordinary_i2c_source_checks_without_inventing_a_local_controller() {
         let source = super::super::parse(include_str!(
             "../../../../plots/device-protocols/i2c.conduit"
