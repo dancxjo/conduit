@@ -108,6 +108,7 @@ impl Owner {
             clock_interval_ms: None,
             last_execution: None,
             execution_persistence_pending: false,
+            workset_recovery_required: false,
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,

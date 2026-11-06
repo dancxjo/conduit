@@ -1,7 +1,7 @@
 //! Checked Face controls for the installed owner's interval ticker.
 //! An interval change replaces the Body workset only while lulled; a start
 //! seals a new Plan and Play, and a stop requests a real terminal receipt.
-use super::{debug, state, Owner};
+use super::{debug, Owner};
 use conduit_body::{BodyState, ResidentPlot};
 use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
 use conduit_face::{
@@ -37,6 +37,7 @@ pub(super) fn source_for(interval_ms: u64) -> String {
     )
 }
 
+#[cfg(test)]
 fn supported_interval(source: &str) -> Option<u64> {
     if source == INITIAL_SOURCE {
         return Some(1_000);
@@ -333,67 +334,26 @@ impl Owner {
         if self.session.evidence().body.workset.len() != 1 {
             return Err("reviewed clock interval change requires the single-clock workset".into());
         }
-        let old_bytes = super::super::super::bounded_read(
-            &root.join("body/source.conduit"),
-            super::super::MAXIMUM_SOURCE,
-        )?;
-        let old_source = std::str::from_utf8(&old_bytes)
-            .map_err(|_| "retained clock source is not UTF-8".to_string())?;
-        let old_interval = supported_interval(old_source)
-            .ok_or("retained Plot is not the reviewed clock source")?;
-        if old_interval == interval_ms {
-            return Err("clock already has that interval".into());
-        }
-        let old_checked = crate::plot_source::parse(old_source)?.expand_entry_for_authoring()?;
+        self.ensure_execution_retained(root)?;
+        let old_checked = super::super::checked_retained_source(root)?
+            .ok_or("retained clock Source is unavailable")?;
         let old_resident = ResidentPlot::new(
             old_checked.expanded.source_document_id,
             old_checked.expanded.checked_plot_id,
         );
+        let old_interval = recognized_interval(&old_resident)
+            .ok_or("retained Plot is not the reviewed clock source")?;
+        if old_interval == interval_ms {
+            return Err("clock already has that interval".into());
+        }
         if self.resident.as_ref() != Some(&old_resident) {
             return Err("retained clock source differs from the Body workset".into());
         }
         let next_source = source_for(interval_ms);
-        let next_checked = crate::plot_source::parse(&next_source)?.expand_entry_for_authoring()?;
-        let next_resident = ResidentPlot::new(
-            next_checked.expanded.source_document_id.clone(),
-            next_checked.expanded.checked_plot_id.clone(),
-        );
-        // Exact current offers must be capable of planning the replacement
-        // before any retained workset change. This is preparation, not an
-        // admitted new Plan or an implicit retry on later host change.
-        self.plan_partition(&next_checked, &next_resident)?;
-        let advertised = self.host.advertisement();
-        let mut staged = self.session.clone();
-        let revision = staged.evidence().body.workload_revision;
-        staged
-            .remove_plot(
-                revision,
-                &old_resident,
-                &advertised.host_id,
-                &advertised.boot_id,
-            )
-            .map_err(debug)?;
-        staged
-            .admit_plot(
-                revision
-                    .checked_add(1)
-                    .ok_or("clock workload revision exhausted")?,
-                next_resident.clone(),
-                &advertised.host_id,
-                &advertised.boot_id,
-            )
-            .map_err(debug)?;
-        state::retain_session(
-            root,
-            &mut staged,
-            self.last_execution.as_ref(),
-            self.admissions.as_ref(),
-            Some(next_source.as_bytes()),
-            None,
-        )?;
-        self.session = staged;
-        self.resident = Some(next_resident);
-        self.resident_name = Some(next_checked.expanded.name);
+        let canonical = crate::plot_source::parse(&next_source)?;
+        let next_checked = canonical.expand_entry_for_authoring()?;
+        let expected = self.session.evidence().clone();
+        self.commit_admitted_workset_revision(root, &expected, &[(&canonical, &next_checked)])?;
         self.clock_interval_ms = Some(interval_ms);
         Ok(())
     }
