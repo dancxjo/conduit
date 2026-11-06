@@ -312,3 +312,20 @@ fn captured_inventory_does_not_promote_entry_labels_to_checked_source() {
     assert!(super::captured(&root, &biography).is_err());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn retained_complete_capture_expands_original_bytes_after_file_replacement() {
+    let (root, biography, sources) = fixture();
+    retain(&root, &biography, &sources).unwrap();
+    let captured = super::super::super::retained_source::capture(&root)
+        .unwrap()
+        .unwrap();
+    fs::write(root.join(FILE), b"interrupted replacement").unwrap();
+    let plots = captured.expand().unwrap();
+    assert_eq!(plots.len(), 2);
+    assert_eq!(plots[0].plot.expanded.name, "first");
+    assert_eq!(plots[1].plot.expanded.name, "second");
+    assert!(super::super::super::retained_source::capture(&root).is_err());
+    assert_eq!(load(&root).unwrap().unwrap(), biography);
+    fs::remove_dir_all(root).unwrap();
+}

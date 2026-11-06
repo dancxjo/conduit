@@ -71,7 +71,10 @@ impl WorksetSources {
         }
         Ok(())
     }
-    fn expand(&self, biography: &BodyBiographyEvidence) -> Result<Vec<RetainedPlotSource>, String> {
+    pub(in super::super) fn expand(
+        &self,
+        biography: &BodyBiographyEvidence,
+    ) -> Result<Vec<RetainedPlotSource>, String> {
         self.validate_captured_bytes(biography)?;
         let plots = self
             .entries
@@ -200,7 +203,7 @@ pub(in super::super) fn checked(
 /// Own the bounded retained inventory before invoking a compiler. These checks
 /// establish byte/Source correspondence only, not checked entry identities or
 /// authorization of a new Source. The caller must fund capture/JSON workspace.
-fn captured(
+pub(in super::super) fn captured(
     root: &Path,
     biography: &BodyBiographyEvidence,
 ) -> Result<Option<WorksetSources>, String> {

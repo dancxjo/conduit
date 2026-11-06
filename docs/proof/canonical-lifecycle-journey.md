@@ -8650,3 +8650,28 @@ runs. An initial obsolete error-string assertion was aligned with the shared
 managed-heap refusal; its before-effect law remains unchanged. Logs retained in
 `target/staged-image-memory-20261106`. No device or live owner was updated.
 A fetch confirms accepted `dev` remains `816efef7f5`.
+
+### 6 November 2026 — installed retained Source capture precedes compilation
+
+The installed owner's production `retained_source::workset` path now explicitly
+captures its bounded, Root-owned inventory before expanding any entry. Both the
+complete recoverable workset journal and the single retained Source use one
+private `CapturedRetainedWorkset`; expansion consumes that capture and never
+reopens the Source path. The captured biography is the comparison baseline,
+not new authority or a substitute for a current action's lifecycle/CAS checks.
+
+This extends the earlier complete-journal acquisition split to the actual owner
+reader. It creates an explicit boundary at which compiler preparation can be
+funded independently of acquisition. It does **not** claim that acquisition/JSON
+workspace is funded, install a Source grant, publish a compiler offer, or expose
+the Source-check action in the current Face. Existing callers still compile
+synchronously through the same canonical product checker.
+
+Qualification covers immutable single/complete capture after file replacement,
+rejection on a new read of replaced bytes, and refusal of a captured Source whose
+checked identity differs from the resident workset. Live services and firmware
+remain unchanged.
+
+Qualification: eight retained-Source/owner tests and six complete-workset custody
+tests pass; strict production Clippy (`-D warnings`), formatting and diff checks
+pass. Logs are retained under `target/retained-source-capture-20261106/`.

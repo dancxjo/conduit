@@ -135,3 +135,27 @@ fn corrupt_authority_and_oversized_source_do_not_enter_the_checker() {
         "retained body biography identity is invalid or stale"
     );
 }
+
+#[test]
+fn captured_source_is_immutable_and_does_not_promote_checked_identity() {
+    let installed = Installed::new(SOURCE);
+    let before = fs::read(installed.0.join("body/biography.json")).unwrap();
+    let captured = capture(&installed.0).unwrap().unwrap();
+    fs::write(installed.0.join("body/source.conduit"), OTHER).unwrap();
+    let expanded = captured.expand().unwrap();
+    assert_eq!(expanded[0].plot.expanded.name, "retained-clock");
+    assert_eq!(
+        fs::read(installed.0.join("body/biography.json")).unwrap(),
+        before
+    );
+    assert!(capture(&installed.0).is_err());
+
+    let mismatched = Installed::new(OTHER);
+    // Matching Source bytes can be acquired without compiling. They cannot
+    // replace the independently retained checked entry identity.
+    let captured = capture(&mismatched.0).unwrap().unwrap();
+    assert_eq!(
+        captured.expand().err().unwrap(),
+        "retained checked Plot differs from the installed Body workset"
+    );
+}
