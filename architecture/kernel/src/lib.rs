@@ -536,7 +536,7 @@ pub use owned_compact_output::{PendingCompactF32Publication, PreparedCompactF32O
 mod hosted;
 
 #[cfg(feature = "alloc")]
-pub use hosted::Store as HostedValueStore;
+pub use hosted::{Store as HostedValueStore, ValueStorePreparationError};
 
 mod remote_sign;
 use remote_sign::RemoteLifecycleSign;
