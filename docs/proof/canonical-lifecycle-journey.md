@@ -8765,3 +8765,27 @@ Delivery: #6828 passed exact-head Candidate 42273008182 and merged into dev at
 contains only the five retained-Source acquisition/expansion files, based on that
 accepted dev. The new ingress work remains in the integrated checkpoint until
 its independent prerequisites can be delivered.
+
+
+### 6 November 2026 — retained-Source extraction qualified independently
+
+PR #6830, exact head `1ed8161f1690cf4369c2412b98ca2f56a2991a9f`, contains
+only the five retained-Source acquisition/expansion files on accepted
+`dev=88c6b1e8ef`. Its isolated x86_64 release-target qualification passed eight
+retained-Source/owner tests, six complete-workset journal tests, strict production
+Clippy (`--no-deps -- -D warnings`), formatting and diff checks. This independently
+qualifies the extraction rather than borrowing proof from the larger integration
+branch. It is ready for review; Candidate 42280338062 was queued at its first
+observation, and no CI success or merge is claimed here.
+
+Both the initial release build and initial strict check hit the existing `/tmp`
+per-user quota. They terminated before being retried. Inventoried cleanup of
+inactive regenerable Rust archives and their cache links reclaimed a further
+2,028,019,712 bytes during this continuation; current binaries, firmware, Source,
+credentials and retained evidence were preserved. The final commands completed
+successfully without weakening limits, checks or tests. Logs are retained under
+`target/review-retained-source-capture-20261106/`, and cleanup inventories remain
+in the task's `outputs/` directory.
+
+This is preparation for the remaining installed S4 authorization and S2 execution
+journey. No live service, Body workset or MCU was changed during qualification.
