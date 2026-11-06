@@ -13,11 +13,44 @@ impl Owner {
         }
     }
 
+    /// Consume original finite-policy Source custody. Copied IDs and public
+    /// proposal Info cannot construct this approval or reach the shared effect.
+    pub(super) fn commit_authorized_clock_revision(
+        &mut self,
+        root: &Path,
+        authorization: super::clock_interval::AuthorizedClockRevision,
+    ) -> Result<(), String> {
+        let (expected, (host, boot, generation), source, checked) = authorization.into_parts();
+        let advertised = self.host.advertisement();
+        if advertised.host_id != host
+            || advertised.boot_id != boot
+            || advertised.offer_generation != generation
+        {
+            return Err("workset approval belongs to another Host/Boot or offer generation".into());
+        }
+        self.commit_reviewed_workset_revision(root, &expected, &[(&source, &checked)])
+    }
+
+    /// Trusted reference-fixture entrance; borrowed metadata is not production
+    /// adoption authority. Installed actions must consume policy-owned approval.
+    #[cfg(test)]
+    pub(super) fn commit_admitted_workset_revision(
+        &mut self,
+        root: &Path,
+        expected: &BodyBiographyEvidence,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+    ) -> Result<(), String> {
+        self.commit_reviewed_workset_revision(root, expected, sources)
+    }
+
     /// Only an already-authorized Root action may invoke this continuation. Its
     /// semantic policy must constrain these actual owned Sources (as the clock
     /// action does), not merely approve a caller-supplied digest or description.
     /// No public command or ordinary Plot receives this privilege here.
-    pub(super) fn commit_admitted_workset_revision(
+    fn commit_reviewed_workset_revision(
         &mut self,
         root: &Path,
         expected: &BodyBiographyEvidence,
