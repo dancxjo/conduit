@@ -9042,3 +9042,40 @@ adoption, ordinary Crèche IMAGE execution, or physical device acceptance. All
 existing execution refusals remain. The next integration must fund and bound
 those per-Play effects before enabling the ordinary installed route. No firmware
 or installed service changed during this checkpoint.
+
+### 2026-11-06 — Failed Crèche cleanup still joins workers and drains the Mask
+
+Tracing the remaining per-Play memory owners exposed a prerequisite lifetime
+failure: cancellation used the ordinary poison-refusing mailbox lock before
+extracting its worker, and returned immediately on a failed worker join before
+attempting independent Mask retirement. A poisoned mailbox could therefore
+leave a worker running; a panicked worker could skip presentation cleanup.
+
+Cancellation now recovers poisoned state only to deactivate the encounter,
+request cancellation and take its actual worker handle. It never clears poison
+or reopens ordinary operation. Joining that worker and draining selected Mask
+custody are both attempted, and their failures are retained together. Any fault
+still returns an error without reporting successful retirement or publishing a
+successful terminal receipt. The existing explicit retry can complete clean
+retirement after a consumed failed join when no poison or Mask failure remains.
+
+All 18 product Crèche tests passed, including three new actual-thread/poison
+fixtures. They prove mailbox poison does not skip cancellation/join/Mask drain,
+a worker panic does not skip independent Mask drain, and combined worker/Mask
+failures both remain observable. Existing uncertain presentation retirement,
+shared IMAGE input custody and Seed/bundle tests remain passing. Strict product
+library/test Clippy passed. Logs:
+`/tmp/conduit-creche-retirement-faults-final-20261106.log` and
+`/tmp/conduit-creche-retirement-clippy-20261106.log`.
+
+These are software cleanup tests, not qualification of production worker stack,
+heap highwater, filesystem effects or installed IMAGE execution. They are needed
+before those effects can safely relinquish their eventual memory reservation.
+No execution refusal guard was removed and no device/service was changed.
+
+Remote `dev` was refreshed and remains `5363818509`, already contained here.
+The Crèche provider itself is not yet in dev, so this repair cannot be extracted
+as an independent dev-based patch without first delivering that provider. It
+stays with the existing lifecycle implementation rather than opening a separate
+runtime lane. Shared-type #6834 remains at exact head `fee210a190`; its known
+Candidate run `42306149469` is still in admission, with no acceptance claimed.

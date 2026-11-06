@@ -6,6 +6,7 @@ mod bundle_common;
 mod bundle_fixture;
 mod image_custody;
 mod native_binding;
+mod retirement_faults;
 use bundle_fixture::factory;
 use conduit_body::{AdmissionManager, Body, BodyMembership, SpawnInvitationSecret};
 use conduit_host_make::{build_host_image, BuildInputs};

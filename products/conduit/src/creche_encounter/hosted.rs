@@ -182,8 +182,18 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
         if self.retired {
             return Ok(());
         }
+        let mut failures = Vec::new();
         let handle = {
-            let mut state = self.channel.lock()?;
+            // Poison forbids ordinary operation, but must not detach a live
+            // worker during cleanup. Recover only to cancel and take its handle;
+            // never clear poison or resume the encounter.
+            let mut state = match self.channel.state.lock() {
+                Ok(state) => state,
+                Err(poisoned) => {
+                    failures.push("Crèche mailbox poisoned".to_owned());
+                    poisoned.into_inner()
+                }
+            };
             state.active = false;
             state.command = None;
             state.acknowledged = None;
@@ -191,15 +201,29 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
             state.worker.take()
         };
         if let Some(handle) = handle {
-            handle
-                .join()
-                .map_err(|_| "Crèche worker panicked while draining")?;
+            if handle.join().is_err() {
+                failures.push("Crèche worker panicked while draining".to_owned());
+            }
         }
-        self.channel
-            .custody
-            .lock()
-            .map_err(|_| "Crèche Mask custody poisoned")?
-            .retire_and_drain()?;
+        {
+            // A failed worker join must not skip independent Mask retirement.
+            // Likewise, poisoned Mask custody remains faulted after its drain.
+            let mut custody = match self.channel.custody.lock() {
+                Ok(custody) => custody,
+                Err(poisoned) => {
+                    failures.push("Crèche Mask custody poisoned".to_owned());
+                    poisoned.into_inner()
+                }
+            };
+            if let Err(error) = custody.retire_and_drain() {
+                failures.push(format!("Crèche Mask drain: {error}"));
+            }
+        }
+        if !failures.is_empty() {
+            // Preserve the fault and retryable retirement. Neither a terminal
+            // receipt nor successful retirement may hide incomplete cleanup.
+            return Err(failures.join("; "));
+        }
         if self.request.is_some() && self.outcome.is_none() {
             self.terminal(CrecheDisposition::Cancelled, "cancelled")?;
         }
