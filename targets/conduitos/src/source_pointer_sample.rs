@@ -8,6 +8,7 @@ use conduit_semantic_catalog::NormalizedPointerSample;
 
 pub struct SourcePointerSampleDecoder {
     validator: PreparedStructuredValueValidator,
+    schema_prefix: alloc::vec::Vec<u8>,
 }
 
 impl SourcePointerSampleDecoder {
@@ -15,12 +16,23 @@ impl SourcePointerSampleDecoder {
     pub fn prepare(schema: &StructuredInfoType) -> Result<Self, StructuredInfoRefusal> {
         Ok(Self {
             validator: PreparedStructuredValueValidator::new(schema, 4096)?,
+            schema_prefix: schema.canonical_bytes()?,
         })
     }
 
     pub fn decode(&self, bytes: &[u8]) -> Result<NormalizedPointerSample, StructuredInfoRefusal> {
         self.validator.validate(bytes)?;
-        let value = validate_canonical_structured_value(bytes)?;
+        self.decode_validated(validate_canonical_structured_value(bytes)?)
+    }
+    /// A selected Source output may carry the sample as a validated child.
+    /// Preserve its exact prepared schema without allocating a copied envelope.
+    pub fn decode_validated(
+        &self,
+        value: conduit_core::ValidatedCanonicalStructuredValue<'_>,
+    ) -> Result<NormalizedPointerSample, StructuredInfoRefusal> {
+        if value.type_bytes() != self.schema_prefix {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
         let integer = |name, kind| -> Result<[u8; 8], StructuredInfoRefusal> {
             value
                 .record_field(name)?

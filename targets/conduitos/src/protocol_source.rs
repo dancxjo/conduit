@@ -381,10 +381,14 @@ mod usb_catalog;
 mod usb_enumeration;
 pub use usb_enumeration::usb_enumeration_package;
 mod usb_hid;
+mod usb_hub_input;
 pub use usb_hid::{
-    usb_hid_absolute_descriptor_package, usb_hid_absolute_package, usb_hid_configuration_package,
-    usb_hid_endpoint_package, usb_hid_keyboard_order_package, usb_hid_mouse_order_package,
+    usb_configuration_decode_package, usb_hid_absolute_descriptor_package,
+    usb_hid_absolute_descriptor_stages_package, usb_hid_absolute_package,
+    usb_hid_configuration_package, usb_hid_endpoint_package, usb_hid_keyboard_order_package,
+    usb_hid_mouse_order_package,
 };
+pub use usb_hub_input::usb_hub_input_package;
 
 mod planning;
 pub use planning::ProtocolQueueLimits;
@@ -485,3 +489,6 @@ mod native_usb_isochronous_preparation;
     all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub(crate) use native_usb_isochronous_preparation::prepare_native_usb_isochronous_protocol;
+
+mod pure_pipe;
+pub use pure_pipe::{PreparedPureProtocolPipe, PurePipeRefusal};

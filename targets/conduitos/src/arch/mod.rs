@@ -346,3 +346,6 @@ compile_error!("select exactly one AArch64 board feature");
     not(any(feature = "aarch64-orange-pi-5", feature = "aarch64-jetson-nano"))
 ))]
 compile_error!("aarch64-board is an internal feature; select an exact board");
+
+#[cfg(all(target_arch = "arm", feature = "armv6-product"))]
+pub(crate) use armv6::usb::{Registers as BcmUsbRegisters, UsbHost as BcmUsbHost};

@@ -26,6 +26,8 @@ pub const IMPL_STARTUP_CHIME: u16 = 1 << 15;
 pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = u16::MAX;
 pub const BASE_PCM_AUDIO: u16 = 1 << 3;
 pub const DRIVER_PWM_AUDIO: u16 = 1 << 8;
+pub const BASE_USB_CONTROLLER: u16 = 1 << 4;
+pub const DRIVER_DWC2_USB: u16 = 1 << 9;
 pub const FACILITY_NATIVE_COMPOSITOR: u16 = 1;
 pub const FACILITY_HTTP_CLIENT: u16 = 1 << 1;
 pub const RESOURCE_FACE_SURFACE: u16 = 1;
@@ -156,12 +158,18 @@ impl MakeRecord {
         if self.implementations == 0
             || (!matches!(
                 self.target,
-                "conduitos/x86_64/pc" | "conduitos/aarch64/virt"
+                "conduitos/x86_64/pc"
+                    | "conduitos/aarch64/virt"
+                    | "conduitos/armv6/raspberry-pi-model-b-plus-v1.2"
             ) && self.includes(IMPL_USB_TRANSPORT))
             || self.facilities & !(FACILITY_NATIVE_COMPOSITOR | FACILITY_HTTP_CLIENT) != 0
             || self.resources & !(RESOURCE_FACE_SURFACE | RESOURCE_HTTP_CLIENT) != 0
             || self.bases
-                & !(BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT | BASE_HTTP_NETWORK | BASE_PCM_AUDIO)
+                & !(BASE_DISPLAY_SCANOUT
+                    | BASE_SERIAL_TEXT
+                    | BASE_HTTP_NETWORK
+                    | BASE_PCM_AUDIO
+                    | BASE_USB_CONTROLLER)
                 != 0
             || self.drivers
                 & !(DRIVER_LINEAR_FRAMEBUFFER
@@ -172,7 +180,8 @@ impl MakeRecord {
                     | DRIVER_IA32_DEBUGCON_SERIAL
                     | DRIVER_RISCV64_SBI_CONSOLE
                     | DRIVER_LOONGARCH64_UART
-                    | DRIVER_PWM_AUDIO)
+                    | DRIVER_PWM_AUDIO
+                    | DRIVER_DWC2_USB)
                 != 0
             || self.presenters & !(PRESENTER_NATIVE_GRAPHICAL | PRESENTER_LINEAR_SERIAL) != 0
             || self.proof_instrumentation & !ALL_KNOWN_PROOF_INSTRUMENTATION != 0
@@ -221,6 +230,16 @@ impl MakeRecord {
                     | "conduitos/loongarch64/virt"
             ) && !linear)
             || (self.target == "conduitos/x86_64/pc" && linear)
+        {
+            return Err(MakeError::UnknownInventory);
+        }
+        let bplus = self.target == "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
+        let usb = self.includes(IMPL_USB_TRANSPORT);
+        if (bplus
+            && ((self.bases & BASE_USB_CONTROLLER != 0) != usb
+                || (self.drivers & DRIVER_DWC2_USB != 0) != usb))
+            || (!bplus
+                && (self.bases & BASE_USB_CONTROLLER != 0 || self.drivers & DRIVER_DWC2_USB != 0))
         {
             return Err(MakeError::UnknownInventory);
         }
@@ -340,6 +359,40 @@ mod tests {
             MakeRecord {
                 implementations: record.implementations & !IMPL_STARTUP_CHIME,
                 ..record
+            },
+        ] {
+            assert_eq!(
+                changed.validate(4 * 1024 * 1024),
+                Err(MakeError::UnknownInventory)
+            );
+        }
+    }
+
+    #[test]
+    fn bplus_usb_inventory_requires_its_actual_base_and_driver_pair() {
+        let mut value = record();
+        value.target = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
+        value.implementations = IMPL_TIME_TICK | IMPL_LINEAR_PRESENTER | IMPL_USB_TRANSPORT;
+        value.facilities = 0;
+        value.resources = 0;
+        value.bases = BASE_SERIAL_TEXT | BASE_USB_CONTROLLER;
+        value.drivers = DRIVER_PL011_SERIAL | DRIVER_DWC2_USB;
+        value.presenters = PRESENTER_LINEAR_SERIAL;
+        value.face_surface_slots = 0;
+        value.face_surface_bytes = 0;
+        assert_eq!(value.validate(4 * 1024 * 1024), Ok(()));
+        for changed in [
+            MakeRecord {
+                bases: value.bases & !BASE_USB_CONTROLLER,
+                ..value
+            },
+            MakeRecord {
+                drivers: value.drivers & !DRIVER_DWC2_USB,
+                ..value
+            },
+            MakeRecord {
+                implementations: value.implementations & !IMPL_USB_TRANSPORT,
+                ..value
             },
         ] {
             assert_eq!(

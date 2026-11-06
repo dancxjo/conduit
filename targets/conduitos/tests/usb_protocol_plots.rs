@@ -306,3 +306,9 @@ mod enumeration;
 
 #[path = "usb_protocol_plots/hid_input_profile.rs"]
 mod hid_input_profile;
+
+#[path = "usb_protocol_plots/hub_input_lifecycle.rs"]
+mod hub_input_lifecycle;
+
+#[path = "usb_protocol_plots/pure_filter.rs"]
+mod pure_filter;

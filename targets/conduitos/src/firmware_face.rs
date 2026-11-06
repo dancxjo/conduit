@@ -31,6 +31,8 @@ pub struct FirmwareFace<D> {
     _bases: NativeProductBases,
     basis: conduit_observatory::FramebufferBasis,
     evidence: Vec<u8>,
+    pointer: Option<crate::pointer_state::PointerState>,
+    pointer_sequence: u64,
 }
 
 impl<D: PixelTarget> FirmwareFace<D> {
@@ -171,7 +173,79 @@ impl<D: PixelTarget> FirmwareFace<D> {
             _bases: bases,
             basis,
             evidence,
+            pointer: None,
+            pointer_sequence: 1,
         })
+    }
+    /// Admit physical pointer delivery while retaining this target's existing
+    /// read-only owner Face. This does not invent a semantic interaction route.
+    ///
+    /// # Safety
+    /// Root independently owns the live selected pointer provider and must keep
+    /// its original native owner retained, including on loss/retirement paths.
+    pub unsafe fn admit_pointer(&mut self) -> Result<(), &'static str> {
+        if self.pointer.is_some() {
+            return Err("firmware-pointer-already-admitted");
+        }
+        self._mask.suspend().map_err(|e| e.as_str())?;
+        unsafe { self._mask.admit_local_pointer_for_root() }.map_err(|e| e.as_str())?;
+        self.pointer = Some(crate::pointer_state::PointerState::new());
+        self.present_pointer_basis()
+    }
+    pub fn observe_pointer(
+        &mut self,
+        sample: conduit_semantic_catalog::NormalizedPointerSample,
+    ) -> Result<(), &'static str> {
+        let pointer = self
+            .pointer
+            .as_mut()
+            .ok_or("firmware-pointer-not-admitted")?;
+        let press = pointer.observe(sample)?;
+        let (x, y) = pointer.position(&self._display)?;
+        self._mask
+            .pointer_motion(x, y, &mut self._display)
+            .map_err(|e| e.as_str())?;
+        if press {
+            let sequence = self
+                .pointer_sequence
+                .checked_add(1)
+                .ok_or("firmware-pointer-sequence")?;
+            self.pointer_sequence = sequence;
+            let input = match self._mask.pointer(x, y, sequence, &mut self._display) {
+                Ok(input) => input,
+                Err(_) if self._mask.acknowledged_input_refusal().is_some() => return Ok(()),
+                Err(error) => return Err(error.as_str()),
+            };
+            match input {
+                crate::native_face_mask::NativeFaceMaskInput::Unchanged
+                | crate::native_face_mask::NativeFaceMaskInput::Redrawn(_) => {}
+                crate::native_face_mask::NativeFaceMaskInput::Submitted { .. } => {
+                    return Err("firmware-read-only-face-admitted-semantic-action");
+                }
+            }
+        }
+        Ok(())
+    }
+    pub fn retire_pointer(&mut self) -> Result<(), &'static str> {
+        if let Some(pointer) = self.pointer.as_mut() {
+            pointer.retire();
+        }
+        self._mask.suspend().map_err(|e| e.as_str())?;
+        self._mask.retire_local_pointer_for_root();
+        self.present_pointer_basis()
+    }
+    fn present_pointer_basis(&mut self) -> Result<(), &'static str> {
+        let sequence = self
+            .pointer_sequence
+            .checked_add(1)
+            .ok_or("firmware-pointer-sequence")?;
+        self.pointer_sequence = sequence;
+        let basis = self._mask.birth_basis("conduitos/creche/current");
+        let face = self._door.creche_face(&basis).map_err(|e| e.as_str())?;
+        self._mask
+            .present_read_only(face, sequence, sequence, &mut self._display)
+            .map_err(|e| e.as_str())?;
+        Ok(())
     }
     /// Root may inspect its retained scanout provider without transferring
     /// write ownership or granting a second presenter.

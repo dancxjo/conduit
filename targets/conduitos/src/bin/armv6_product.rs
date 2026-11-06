@@ -160,13 +160,11 @@ pub extern "C" fn conduitos_armv6_product_start() -> ! {
         arch::present(&evidence);
         arch::present(b"\n");
     }
-    let _graphic = product::prepare_graphics(&ids, &offer);
+    #[cfg(feature = "native-startup-chime")]
+    drop(startup);
+    let graphic = product::prepare_graphics(&ids, &offer);
     arch::present(b"CONDUIT_BOOT_STAGE armv6-product-ready\n");
-    loop {
-        unsafe {
-            core::arch::asm!("wfi", options(nomem, nostack));
-        }
-    }
+    product::run_input(&ids, graphic)
 }
 
 fn boot_record(nonce: u64) -> Result<boot::BootRecord, boot::BootError> {

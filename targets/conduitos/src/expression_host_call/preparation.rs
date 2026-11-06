@@ -40,6 +40,19 @@ impl<'a> ExpressionPreparation<'a> {
         &self,
         placement: &PlacementId,
     ) -> Result<ExpressionHostCall, ExpressionCallRefusal> {
+        self.prepare_mode(placement, false)
+    }
+    pub(crate) fn prepare_filter(
+        &self,
+        placement: &PlacementId,
+    ) -> Result<ExpressionHostCall, ExpressionCallRefusal> {
+        self.prepare_mode(placement, true)
+    }
+    fn prepare_mode(
+        &self,
+        placement: &PlacementId,
+        filter: bool,
+    ) -> Result<ExpressionHostCall, ExpressionCallRefusal> {
         use ExpressionCallRefusal as Refusal;
         let fragment = self.fragment;
         let lowered = self.lowered;
@@ -54,7 +67,7 @@ impl<'a> ExpressionPreparation<'a> {
         if gear.host_id != fragment.host_id || gear.boot_id != fragment.boot_id {
             return Err(Refusal::WrongBinding);
         }
-        let program = prepared_program(gear)?;
+        let program = prepared_program_mode(gear, filter)?;
         let mut nodes = lowered
             .identity
             .placements

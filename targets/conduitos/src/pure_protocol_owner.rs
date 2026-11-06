@@ -25,7 +25,12 @@ impl<'a> PureProtocolPreparation<'a> {
         let expressions = fragment
             .placements
             .iter()
-            .any(|gear| gear.implementation_id.as_str() == expression_host_call::IMPLEMENTATION)
+            .any(|gear| {
+                matches!(
+                    gear.implementation_id.as_str(),
+                    expression_host_call::IMPLEMENTATION | crate::filter_host_call::IMPLEMENTATION
+                )
+            })
             .then(|| ExpressionPreparation::new(fragment, lowered, active))
             .transpose()
             .map_err(ProtocolCallRefusal::Expression)?;
@@ -68,6 +73,15 @@ impl<'a> PureProtocolPreparation<'a> {
                 .map_err(ProtocolCallRefusal::Expression)?;
                 Some(PureProtocolOwner::Expression(Box::new(owner)))
             }
+            crate::filter_host_call::IMPLEMENTATION => Some(PureProtocolOwner::Filter(Box::new(
+                crate::filter_host_call::FilterHostCall::prepare(
+                    self.expressions
+                        .as_ref()
+                        .ok_or(ProtocolCallRefusal::InvalidPlan)?,
+                    &gear.placement_id,
+                )
+                .map_err(ProtocolCallRefusal::Expression)?,
+            ))),
             structured_selector_host_call::IMPLEMENTATION => {
                 Some(PureProtocolOwner::Selector(Box::new(
                     SelectorHostCall::prepare(
@@ -86,6 +100,7 @@ impl<'a> PureProtocolPreparation<'a> {
 
 pub(crate) enum PureProtocolOwner {
     Expression(Box<ExpressionHostCall>),
+    Filter(Box<crate::filter_host_call::FilterHostCall>),
     Selector(Box<SelectorHostCall>),
 }
 impl PureProtocolOwner {
@@ -103,6 +118,7 @@ impl PureProtocolOwner {
         match self {
             Self::Expression(_) => expression_host_call::CALL,
             Self::Selector(_) => structured_selector_host_call::CALL,
+            Self::Filter(_) => crate::filter_host_call::CALL,
         }
     }
 
@@ -118,6 +134,9 @@ impl PureProtocolOwner {
                 .invoke(node, call, request, input)
                 .map(Some)
                 .map_err(ProtocolCallRefusal::Expression),
+            Self::Filter(owner) => owner
+                .invoke(node, call, request, input)
+                .map_err(ProtocolCallRefusal::Expression),
             Self::Selector(owner) => owner
                 .invoke(node, call, request, input)
                 .map_err(ProtocolCallRefusal::Selector),
@@ -131,6 +150,9 @@ impl PureProtocolOwner {
     ) -> Result<(), ProtocolCallRefusal> {
         match self {
             Self::Expression(owner) => owner
+                .cancel(node, call)
+                .map_err(ProtocolCallRefusal::Expression),
+            Self::Filter(owner) => owner
                 .cancel(node, call)
                 .map_err(ProtocolCallRefusal::Expression),
             Self::Selector(owner) => owner

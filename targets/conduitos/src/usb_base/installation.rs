@@ -45,6 +45,34 @@ impl UsbNativeIdentity {
         advertisement: &mut HostAdvertisement,
         contract: &ControlContract,
     ) -> Result<(), UsbInstallationRefusal> {
+        self.append_offer(
+            advertisement,
+            control_offer::offer(contract, self.artifact_id.clone()),
+            CONTROL_BASE,
+            CONTROL_ATTACHMENT,
+        )
+    }
+
+    #[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+    pub(crate) fn append_endpoint_to_advertisement(
+        &self,
+        advertisement: &mut HostAdvertisement,
+        contract: &super::endpoint_read_contract::EndpointReadContract,
+    ) -> Result<(), UsbInstallationRefusal> {
+        self.append_offer(
+            advertisement,
+            super::endpoint_read_offer::offer(contract, self.artifact_id.clone()),
+            super::endpoint_read_factory::ENDPOINT_READ_BASE,
+            super::endpoint_read_factory::ENDPOINT_READ_ATTACHMENT,
+        )
+    }
+    fn append_offer(
+        &self,
+        advertisement: &mut HostAdvertisement,
+        offer: CapabilityOffer,
+        base: &str,
+        resource_class: &str,
+    ) -> Result<(), UsbInstallationRefusal> {
         self.validate()?;
         if advertisement.host_id != self.host_id || advertisement.boot_id != self.boot_id {
             return Err(UsbInstallationRefusal::WrongBoot);
@@ -54,7 +82,7 @@ impl UsbNativeIdentity {
         }) || advertisement
             .capabilities
             .iter()
-            .any(|offer| offer.capability_id.as_str() == CONTROL_IMPLEMENTATION)
+            .any(|candidate| candidate.capability_id == offer.capability_id)
             || advertisement
                 .resources
                 .iter()
@@ -79,14 +107,14 @@ impl UsbNativeIdentity {
                 base_id: self.base_id.clone(),
                 provider_instance_id: self.provider_instance_id.clone(),
                 provider_generation: self.provider_generation,
-                implementation_id: CONTROL_BASE.into(),
-                mechanism_family: CONTROL_ATTACHMENT.into(),
+                implementation_id: base.into(),
+                mechanism_family: resource_class.into(),
                 enforcement_class: BaseEnforcementClass::Cooperative,
                 lifecycle: BaseLifecycle::Ready,
-                capabilities: vec![control_offer::offer(contract, self.artifact_id.clone())],
+                capabilities: vec![offer],
                 resources: vec![resource_offer(
                     self.resource_pool_id.as_str(),
-                    CONTROL_ATTACHMENT,
+                    resource_class,
                     1,
                 )],
             })

@@ -1,0 +1,34 @@
+# Initialize through the existing mouse history plot. Root carries checked
+# context and updated history between reads without interpreting HID meaning.
+type UsbAbsoluteDeviceParameters = {
+    layout: UsbAbsoluteHidLayout
+    length: U64
+    queue-capacity: U64
+}
+plot usb-hid-absolute-device-begin (
+    parameters: UsbAbsoluteDeviceParameters...| <= 4096B >> begin: Empty...|
+) = (empty)
+plot usb-hid-absolute-device-context (
+    pair: UsbAbsoluteInitialPair...| >> context: UsbAbsoluteReadContext...| <= 4096B
+) = ({ layout: .0.layout, length: .0.length, queue-capacity: .0.queue-capacity, state: .1 })
+plot usb-hid-absolute-device-context-output (
+    input: UsbAbsoluteReadContext...| <= 4096B >> output: UsbAbsoluteReadContext...| <= 4096B
+) = (.)
+plot usb-hid-absolute-device (
+    >> initialize: UsbAbsoluteDeviceParameters...| <= 4096B
+    >> read: UsbAbsoluteReadContext...| <= 4096B
+    context: UsbAbsoluteReadContext...| <= 4096B >>
+    received: UsbAbsoluteReadObservation...| >>
+    decoded: UsbAbsoluteReportPreparation...| >>
+    update: UsbMousePointerUpdate...| >>
+) {
+    initial: UsbAbsoluteInitialJoin
+    device: usb-hid-absolute-endpoint
+    initialize >> initial.left
+    initialize >> usb-hid-absolute-device-begin() >> usb-hid-mouse-pointer-initialize() >> initial.right
+    initial.paired >> usb-hid-absolute-device-context() >> usb-hid-absolute-device-context-output() >> context
+    read >> device.read
+    device.received >> received
+    device.decoded >> decoded
+    device.update >> update
+}

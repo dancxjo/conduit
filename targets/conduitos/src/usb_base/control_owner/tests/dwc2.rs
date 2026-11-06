@@ -184,3 +184,54 @@ fn dwc2_provider_loss_cannot_implicitly_rebind_a_returning_device() {
         Err(Dwc2ControlRefusal::Native(PacketError::ProviderLost))
     );
 }
+
+#[test]
+fn dwc2_bus_routing_requires_native_reservation_and_preserves_original_lease() {
+    use crate::usb_base::dwc2_bus_route::BusControlReservation;
+    let changed = RootControlRoute {
+        address: 3,
+        maximum_packet: 64,
+        ..route()
+    };
+    let mut device =
+        unsafe { Dwc2ControlHost::bind_owned(test_io::prepared(), fixture::owner(7), route()) }
+            .unwrap();
+    assert_eq!(
+        device.select_reserved_route(changed),
+        Err(Dwc2ControlRefusal::Binding)
+    );
+    // Explicit model-root authority, not a claim that fixture metadata is real hardware.
+    let reservation = unsafe { BusControlReservation::admit_owned_bus(1, 2, 7) }.unwrap();
+    let owner = fixture::owner(7);
+    let node = owner.node;
+    let mut controller = test_io::prepared();
+    test_io::registers(&mut controller).finish = 2 | (1 << 4);
+    let mut bus =
+        unsafe { Dwc2ControlHost::bind_owned_bus(controller, owner, route(), reservation) }
+            .unwrap();
+    bus.select_reserved_route(changed).unwrap();
+    for bad in [
+        RootControlRoute {
+            address: 9,
+            ..changed
+        },
+        RootControlRoute {
+            generation: 8,
+            ..changed
+        },
+    ] {
+        assert_eq!(
+            bus.select_reserved_route(bad),
+            Err(Dwc2ControlRefusal::Binding)
+        );
+    }
+    assert_eq!(
+        bus.execute(node, HostCallId(0), RequestId(0), &fixture::input()),
+        Err(Dwc2ControlRefusal::Native(PacketError::Nak))
+    );
+    assert_eq!(
+        bus.select_reserved_route(route()),
+        Err(Dwc2ControlRefusal::Native(PacketError::Retirement))
+    );
+    assert!(bus.retains_submission());
+}
