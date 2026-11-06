@@ -6484,3 +6484,42 @@ invalidation for BME280 and BMP280. Both CPU packages pass strict Clippy. These
 Firmware construction/build qualification is the next check. No live device or
 service changed. Raw evidence remains in ignored
 `target/i2c-controller-custody-20261105`.
+
+
+### I2C custody firmware qualification and service dispatch merged
+
+Ordinary Make built the unchanged explicitly delegated Green configuration from
+`f32185f729cfd1c1ec3d09e008ca4316b8475e5b` with the new controller custody.
+The actual ARM build accepts the diagnostic transport-loan lifetimes. It reports
+22 warnings, mostly unused execution/preparation surfaces pending actual receiver
+installation; no strict firmware-warning qualification is claimed.
+
+Independent program-header accounting matches the prior image's accounting and
+measures 1,066,932 flash-load bytes and 117,448 static RAM bytes, including the
+unchanged 49,152-byte heap. Compared with the last qualified `9ed35eddc9` image,
+the combined intervening changes add 2,000 flash bytes and 88 static RAM bytes.
+The linked stack gap is 152,888 bytes, not measured stack high-water. No memory
+or queue grant was enlarged.
+
+The 2,134,016-byte application UF2 has SHA-256
+`224ffaf4b7bfd3fd6582e370e3c18dbc3d99ab414a877ae83f2603c1d55b10d1`;
+ELF SHA-256 is
+`59e3f7a7ab2b9426f81784218954020e90ed9f00f5a0299287b065d4654a2f6f`.
+Both match Make's manifest. All 4,168 UF2 blocks have exact framing, family,
+indices, unique aligned pages and firmware-only addresses, ending at 0x10104800
+before the first reserved region at 0x101fd000. Configuration remains
+`sha256:9c159217718c0fc9acffe8452b67514048446c8652f7ed730609a9ccac385db4`;
+resolved IMAGE is
+`image:sha256:81c22aaf6b6824fbf5ef49f92e483f34547557c062d3991652a32557aec3ca3d`.
+Artifacts, ELF, build log and qualification JSON remain in ignored
+`target/rp2040-i2c-custody-f32185f729`. This image is unflashed; a Body-made Seed
+and retained-member deployment still precede any device claim.
+
+PR #6791 passed exact-head Candidate 42128506875 and merged as
+`560afaaacff88f42039ff9a3b266b80c81017b0d`. The delivery checkout absorbed it,
+retaining its Crèche adapter and ending Source/catalog custody before Wake. Both
+complete-workset service tests and all three Crèche worker/remote-route regressions
+pass after that integration. This delivers the std dispatcher, not S4 authority
+or MCU Start. Green independently remains on build `46fb0bbc...`, reporting 308
+samples and 4,615 acknowledged frames without sensor/display errors and membership
+true. Neither its firmware nor the live Linux service changed in this step.
