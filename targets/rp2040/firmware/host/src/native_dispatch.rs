@@ -29,14 +29,8 @@ impl<P: I2cProvider> BoundNativeKernel<P> {
     }
 }
 
-type DispatchKernel<
-    D,
-    const N: usize,
-    const C: usize,
-    const V: usize,
-    const B: usize,
-    const H: usize,
-> = FixedScheduler<D, FixedValueStore<V, B>, FixedSignLog<SIGNS>, N, C, 1, 16, N, C, H, 1>;
+type DispatchKernel<D, const N: usize, const C: usize, S, const H: usize> =
+    FixedScheduler<D, S, FixedSignLog<SIGNS>, N, C, 1, 16, N, C, H, 1>;
 
 /// One synchronous adapter transaction on the same production kernel profile.
 pub(crate) fn dispatch_one<
@@ -44,11 +38,10 @@ pub(crate) fn dispatch_one<
     D: StepBack<1>,
     const N: usize,
     const C: usize,
-    const V: usize,
-    const B: usize,
+    S: ValueStorage,
     const H: usize,
 >(
-    kernel: &mut DispatchKernel<D, N, C, V, B, H>,
+    kernel: &mut DispatchKernel<D, N, C, S, H>,
     call: &mut I2cHostCall<P>,
 ) -> Result<NativeDispatch, SchedulerError> {
     let room = kernel.preflight_host_result_storage(

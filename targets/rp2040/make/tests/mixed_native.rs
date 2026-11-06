@@ -8,6 +8,25 @@ mod support;
 fn same_kernel_retains_both_preparations_and_runs_the_selected_native_node() {
     let (_, _, image) = support::context();
     let library = conduit_embedded_build::generate_resident_library(&[image], 1024 * 1024).unwrap();
+    qualify(library);
+}
+#[test]
+fn actual_five_entry_library_admits_only_the_selected_program_storage() {
+    use conduit_host_make::*;
+    let packages = MakePackageSet::compose(&[&conduit_host_rp2040::Rp2040MakePackage]).unwrap();
+    let configuration = parse_host_configuration_conduit(include_str!(
+        "../../profiles/pico-w-house-green.host.conduit"
+    ))
+    .unwrap();
+    let checked = check_host_configuration(
+        configuration,
+        &MakeCatalog::canonical().with_packages(&packages),
+        &packages,
+    )
+    .unwrap();
+    qualify(conduit_host_rp2040::checked_ht16k33_resident_library(&checked).unwrap());
+}
+fn qualify(library: String) {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let generated = format!(
         r#"
@@ -27,8 +46,10 @@ mod resident{{pub mod generated{{{library}}}}}
 #[path={probe:?}]mod probe;
 #[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;
 #[path={exercise:?}]mod exercise;
-fn main(){{exercise::exercise();}}
+#[path={prepared_values:?}]mod prepared_values;
+fn main(){{prepared_values::run();exercise::exercise();}}
 "#,
+        prepared_values = root.join("tests/mixed_native/prepared_values.rs"),
         exercise = root.join("tests/mixed_native/exercise.rs"),
         support = root.join("tests/mixed_native/support.rs"),
         probe = root.join("../../../architecture/plot/tests/common/allocation_probe.rs")

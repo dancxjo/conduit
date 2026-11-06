@@ -8,7 +8,9 @@ pub(crate) mod authority;
 #[path = "../../../../../mechanisms/io/i2c-transaction/src/test_support.rs"]
 mod selected_fixture;
 
-pub fn context() -> (
+pub fn context_for(
+    outcome: bool,
+) -> (
     p::CheckedSyntaxDocument,
     p::PortableExpressionProgram,
     e::PreparedResidentExpression,
@@ -21,26 +23,34 @@ pub fn context() -> (
     )
     .unwrap();
     let mut catalog = p::StartupCatalog::new();
-    let ty = types
-        .native_types
-        .iter()
-        .find(|t| t.name == "I2cTransaction")
-        .unwrap();
-    catalog
-        .insert_checked_native_type_from_document(
-            "machine/i2c/transact/request",
-            &types,
-            &ty.identity,
-        )
-        .unwrap();
+    for (name, path) in [
+        ("I2cTransaction", "machine/i2c/transact/request"),
+        ("I2cResult", "machine/i2c/transact/result"),
+    ] {
+        let ty = types.native_types.iter().find(|t| t.name == name).unwrap();
+        catalog
+            .insert_checked_native_type_from_document(path, &types, &ty.identity)
+            .unwrap();
+    }
     let document = p::check_syntax_document(
-        &p::parse_syntax_document(include_str!("request.conduit")),
+        &p::parse_syntax_document(if outcome {
+            include_str!("../../../../../plots/device-protocols/ht16k33.conduit")
+        } else {
+            include_str!("request.conduit")
+        }),
         &catalog,
     )
     .unwrap();
-    let expanded =
-        p::expand_canonical_plot_for_authoring(&document, "request", &p::ProfileCatalog::new())
-            .unwrap();
+    let expanded = p::expand_canonical_plot_for_authoring(
+        &document,
+        if outcome {
+            "ht16k33-write-outcome"
+        } else {
+            "request"
+        },
+        &p::ProfileCatalog::new(),
+    )
+    .unwrap();
     let ConfigurationValue::Text(text) = &expanded.expanded.gears[0].configuration[0].value else {
         panic!("program")
     };
@@ -115,13 +125,19 @@ pub fn model(
         compute: None,
         content: None,
     }];
+    let native_first = resident.inputs[0].value_kind == f.placements[0].outputs[0].value_kind;
+    let (first, last) = if native_first {
+        (&f.placements[0], &resident)
+    } else {
+        (&resident, &f.placements[0])
+    };
     f.connections = vec![PlannedConnection {
         connection_id: "connection/request".into(),
-        source_placement_id: resident.placement_id.clone(),
-        source_port_id: resident.outputs[0].port_id.clone(),
-        sink_placement_id: f.placements[0].placement_id.clone(),
-        sink_port_id: f.placements[0].inputs[0].port_id.clone(),
-        value_kind: resident.outputs[0].value_kind.clone(),
+        source_placement_id: first.placement_id.clone(),
+        source_port_id: first.outputs[0].port_id.clone(),
+        sink_placement_id: last.placement_id.clone(),
+        sink_port_id: last.inputs[0].port_id.clone(),
+        value_kind: first.outputs[0].value_kind.clone(),
         resource: None,
         abnormal_kind: None,
         track: ConnectionTrack::Payload,
@@ -133,12 +149,8 @@ pub fn model(
         byte_capacity: I2C_MAXIMUM_BYTES,
     }];
     for (direction, gear, port) in [
-        (PortDirection::Input, &resident, &resident.inputs[0]),
-        (
-            PortDirection::Output,
-            &f.placements[0],
-            &f.placements[0].outputs[0],
-        ),
+        (PortDirection::Input, first, &first.inputs[0]),
+        (PortDirection::Output, last, &last.outputs[0]),
     ] {
         f.fore_ports.push(PlannedForePort {
             front_port_id: port.port_id.clone(),
@@ -162,7 +174,11 @@ pub fn model(
             selected_line: None,
         });
     }
-    f.startup_order.insert(0, resident.placement_id.clone());
+    if native_first {
+        f.startup_order.push(resident.placement_id.clone());
+    } else {
+        f.startup_order.insert(0, resident.placement_id.clone());
+    }
     f.expected_sign.push(ExpectedSign::PlacementPrepared(
         resident.placement_id.clone(),
     ));
@@ -185,4 +201,12 @@ pub fn model(
         },
         vec![f],
     )
+}
+
+pub fn context() -> (
+    p::CheckedSyntaxDocument,
+    p::PortableExpressionProgram,
+    e::PreparedResidentExpression,
+) {
+    context_for(false)
 }

@@ -32,7 +32,8 @@ pub fn exercise() {
     run(true);
 }
 fn run(reverse: bool) {
-    let (document, program, image) = crate::support::context();
+    let outcome = crate::resident::generated::ENTRY_COUNT == 5;
+    let (document, program, image) = crate::support::context_for(outcome);
     let contract = I2cContract::prepare().unwrap();
     let mut authority = crate::support::authority::scope();
     authority.capability_id = I2C_IMPLEMENTATION.into();
@@ -122,6 +123,13 @@ fn run(reverse: bool) {
     let mut slot = ready_slot(&authority, &effects);
     let mut library = crate::resident::generated::Initialized::prepare().unwrap();
     let original = library.offers().map(|o| o.unwrap().as_ptr());
+    if outcome {
+        assert!(
+            crate::resident::generated::VALUE_SLOT_BYTES
+                > library.available_value_slot_bytes(4).unwrap()
+        );
+    }
+
     let issue = || {
         crate::support::authority::authorization_for_play(
             authority.clone(),
@@ -225,17 +233,30 @@ fn run(reverse: bool) {
         vec![
             StructuredFieldValue::new(
                 "address",
-                StructuredInfoValue::leaf(ty("address"), vec![0x76]).unwrap(),
+                StructuredInfoValue::leaf(ty("address"), vec![if outcome { 0x70 } else { 0x76 }])
+                    .unwrap(),
             )
             .unwrap(),
             StructuredFieldValue::new(
                 "read",
-                StructuredInfoValue::leaf(ty("read"), vec![1]).unwrap(),
+                StructuredInfoValue::leaf(ty("read"), vec![u8::from(!outcome)]).unwrap(),
             )
             .unwrap(),
             StructuredFieldValue::new(
                 "write",
-                StructuredInfoValue::sequence(ty("write"), vec![]).unwrap(),
+                StructuredInfoValue::sequence(
+                    ty("write"),
+                    if outcome {
+                        vec![StructuredInfoValue::leaf(
+                            StructuredInfoType::leaf(kind_id("value/u8")).unwrap(),
+                            vec![0],
+                        )
+                        .unwrap()]
+                    } else {
+                        vec![]
+                    },
+                )
+                .unwrap(),
             )
             .unwrap(),
         ],
@@ -245,7 +266,18 @@ fn run(reverse: bool) {
     .unwrap();
     let mut encoder =
         conduit_i2c_transaction::result::PreparedI2cResultEncoder::new(&contract).unwrap();
-    let expected = encoder.completed(1, &[0x60]).unwrap().to_vec();
+    let expected_native = if outcome {
+        encoder.completed(0, &[])
+    } else {
+        encoder.completed(1, &[0x60])
+    }
+    .unwrap()
+    .to_vec();
+    let expected = if outcome {
+        program.evaluate(&expected_native).unwrap()
+    } else {
+        expected_native
+    };
     let incoming = generated
         .fore()
         .iter()
@@ -333,7 +365,7 @@ fn run(reverse: bool) {
         maxima,
         (&input, &expected),
     );
-    println!("actual mixed Root kernel: {charge} retained bytes; real resident to native Host Call to typed egress; zero binding/execution allocation; standalone CPU execution component; signed-set admission tested separately, no physical Start claim");
+    println!("actual mixed Root kernel: {charge} retained bytes; mixed resident/native Host Call and typed egress; zero binding/execution allocation; standalone CPU execution component; signed-set admission tested separately, no physical Start claim");
 }
 
 fn ready_slot<'a>(
@@ -356,7 +388,7 @@ fn ready_slot<'a>(
             },
             conduit_i2c_transaction::owner::I2cAttachment {
                 generation: 7,
-                minimum_address: 0x76,
+                minimum_address: 0x70,
                 maximum_address: 0x77,
                 resource_bytes: 4096,
             },

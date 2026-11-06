@@ -20,14 +20,6 @@ use conduit_plan_lowering::{
 };
 
 const SIGNS: usize = 16;
-const VALUE_BYTES: usize = {
-    let resident = generated::VALUE_SLOT_BYTES;
-    if resident > I2C_VALUE_SLOT_BYTES {
-        resident
-    } else {
-        I2C_VALUE_SLOT_BYTES
-    }
-};
 pub enum MixedBack<'a> {
     Resident(generated::BorrowedBack<'a>),
     Native(HostCallBack),
@@ -58,19 +50,8 @@ impl<const P: usize> StepBack<P> for MixedBack<'_> {
         }
     }
 }
-pub type MixedKernel<'a> = FixedScheduler<
-    MixedBack<'a>,
-    FixedValueStore<3, VALUE_BYTES>,
-    FixedSignLog<SIGNS>,
-    2,
-    3,
-    1,
-    16,
-    2,
-    3,
-    2,
-    1,
->;
+pub type MixedKernel<'a> =
+    FixedScheduler<MixedBack<'a>, HostedValueStore, FixedSignLog<SIGNS>, 2, 3, 1, 16, 2, 3, 2, 1>;
 type Storage<'a> = PreparedKernelStorage<MixedBack<'a>, MixedKernel<'a>, 2>;
 pub struct PreparedMixedKernel<'a, 'o, P: I2cProvider> {
     storage: Storage<'o>,
@@ -121,6 +102,12 @@ impl<'a, 'o, P: I2cProvider> PreparedMixedKernel<'a, 'o, P> {
         if residents.nodes().count() != 1 {
             return Err(Refusal::Bounds);
         }
+        let entry = residents.nodes().next().ok_or(Refusal::Bounds)?.entry;
+        let value_bytes = owner
+            .available_value_slot_bytes(entry)
+            .ok_or(Refusal::Bounds)?
+            .max(I2C_VALUE_SLOT_BYTES);
+        let value_bytes = u32::try_from(value_bytes).map_err(|_| Refusal::Bounds)?;
         let computations = c::AssignedComputationProfile {
             maximum_text_bytes: residents
                 .computations()
@@ -214,6 +201,19 @@ impl<'a, 'o, P: I2cProvider> PreparedMixedKernel<'a, 'o, P> {
         let backing = prepared_native
             .retained_backing_bytes()
             .ok_or(Refusal::Bounds)?;
+        let remaining = maximum_bytes
+            .checked_sub(backing)
+            .and_then(|n| n.checked_sub(core::mem::size_of::<MixedKernel<'o>>()))
+            .ok_or(Refusal::Bounds)?;
+        let values = HostedValueStore::try_new_with_slot_capacities(
+            &[value_bytes; 3],
+            value_bytes.checked_mul(3).ok_or(Refusal::Bounds)?,
+            remaining,
+        )
+        .map_err(Refusal::Values)?;
+        let backing = backing
+            .checked_add(values.reserved_storage_bytes())
+            .ok_or(Refusal::Bounds)?;
         let storage = MixedKernel::prepare_boxed(
             2,
             cords,
@@ -221,7 +221,7 @@ impl<'a, 'o, P: I2cProvider> PreparedMixedKernel<'a, 'o, P> {
             tables.cords,
             tables.routes,
             tables.calls,
-            FixedValueStore::new((3 * VALUE_BYTES) as u32).map_err(|_| Refusal::Bounds)?,
+            values,
             FixedSignLog::new_with_remote_storage(
                 (SIGNS * core::mem::size_of::<KernelEvent>()) as u32,
                 SIGNS as u16,

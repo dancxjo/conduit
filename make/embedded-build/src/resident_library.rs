@@ -76,6 +76,14 @@ pub fn generate_resident_library(
         ));
     }
     code.push_str("_=>None,}}\n");
+    code.push_str("/// Actual available entry's prepared canonical envelope, not a grant.\npub fn available_value_slot_bytes(&self,index:usize)->Option<usize>{match index{\n");
+    for (index, image) in images.iter().enumerate() {
+        let bytes = image
+            .maximum_input_bytes()
+            .max(image.maximum_output_bytes());
+        code.push_str(&format!("{index}=>self.entry_{index}.as_ref().and_then(|owner|owner.available_identity()).map(|_|{bytes}),\n"));
+    }
+    code.push_str("_=>None,}}\n");
     code.push_str(&format!("pub fn identify_assignments(&self,bytes:&[u8])->Result<conduit_plan_lowering::resident_inventory::ResidentInventorySelection<{}>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{conduit_plan_lowering::resident_inventory::select_resident_inventory(bytes,|index|self.available_identity(index))}}\n",images.len()));
     code.push_str(&format!("/// Independent local non-resident identities skip computation lookup only. Native binding remains mandatory.\npub fn identify_mixed_assignments(&self,bytes:&[u8],other:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<conduit_plan_lowering::resident_inventory::ResidentInventorySelection<{}>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{conduit_plan_lowering::resident_inventory::select_resident_inventory_with_other_nodes(bytes,other,|index|self.available_identity(index))}}\n",images.len()));
     for index in 0..images.len() {

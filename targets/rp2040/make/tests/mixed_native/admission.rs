@@ -250,6 +250,19 @@ pub fn run(
     let kernel_bytes = prepared.kernel_storage_bytes();
     let total = prepared.preparation_bytes(&owner, &observations).unwrap();
     assert!(total <= policy.maximum_storage_bytes);
+    if crate::resident::generated::ENTRY_COUNT == 5 {
+        let selected = image
+            .maximum_input_bytes()
+            .max(image.maximum_output_bytes())
+            .max(conduit_i2c_transaction::contract::I2C_VALUE_SLOT_BYTES as u32);
+        let global = crate::resident::generated::VALUE_SLOT_BYTES as u32;
+        let selected_bytes = HostedValueStore::canonical_storage_bytes([selected; 3]).unwrap();
+        let global_bytes = HostedValueStore::canonical_storage_bytes([global; 3]).unwrap();
+        let unselected_extra = global_bytes - selected_bytes;
+        assert!(total + unselected_extra > policy.maximum_storage_bytes);
+        println!("actual five-entry library: {total} B selected preparation versus {} B if unrelated widest entry were charged; {unselected_extra} B avoided",total+unselected_extra);
+    }
+
     assert!(matches!(
         prepared.admit_and_bind(&mut owner, &[]),
         Err(mixed_workset::Refusal::Resources(

@@ -43,6 +43,7 @@ pub enum Refusal {
     Resident(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal),
     Native(I2cCallRefusal),
     Storage(KernelPreparationError),
+    Values(ValueStorePreparationError),
 }
 /// Already-issued local possession, never reconstructed from assignment labels.
 pub struct NativePossession<'a, P: I2cProvider> {

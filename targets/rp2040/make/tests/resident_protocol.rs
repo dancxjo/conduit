@@ -30,6 +30,10 @@ fn main(){{
  let(offers,cost)=probe::observe(||owner.offers());
  assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
  assert_eq!(offers.len(),5);
+ let envelopes:[usize;5]=core::array::from_fn(|i|image::Initialized::available_value_slot_bytes(&owner,i).unwrap());
+ assert_eq!(envelopes.into_iter().max(),Some(image::VALUE_SLOT_BYTES));
+ assert_eq!(owner.available_value_slot_bytes(5),None);
+ println!("actual five-entry prepared value envelopes: {{envelopes:?}}");
  let images:Vec<_>=offers.iter().map(|bytes|{{let bytes=bytes.unwrap();
    conduit_wire::CapabilityOfferImage{{sha256:Sha256::digest(bytes).into(),bytes}}
  }}).collect();
