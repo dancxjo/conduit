@@ -1,4 +1,5 @@
 //! Actual firmware controller lease, using a fake configured physical leaf.
+extern crate alloc;
 extern crate self as conduit_rp2040_i2c;
 use conduit_i2c_transaction::{I2cDisposition, I2cProvider, I2cTransaction};
 use std::{
@@ -15,6 +16,10 @@ mod probe;
 static ALLOC: probe::Allocator = probe::Allocator;
 mod config {
     pub type Bus = ();
+    pub const I2C_CONTROLLER: u8 = 1;
+    pub const I2C_CALL_ADDRESS_RANGE: Option<(u8, u8)> = Some((112, 118));
+    pub const CONFIGURATION_ID: &str = "fixture/config";
+    pub const IMAGE_ID: &str = "fixture/image";
 }
 pub struct Rp2040I2c<'a, T> {
     calls: Arc<AtomicUsize>,
@@ -46,6 +51,9 @@ impl<T> I2cProvider for Rp2040I2c<'_, T> {
 }
 #[path = "../../firmware/host/src/i2c_owner.rs"]
 mod owner;
+use owner as i2c_owner;
+#[path = "../../firmware/host/src/i2c_installation.rs"]
+mod installation;
 
 #[test]
 fn one_controller_lease_survives_cancellation_and_invalidates_cache_only_on_native_use() {
@@ -69,6 +77,67 @@ fn one_controller_lease_survives_cancellation_and_invalidates_cache_only_on_nati
     assert_eq!((cost.allocations, cost.reallocations), (0, 0));
     assert_eq!(owner::protocol_revision(), 0);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let mut actual = conduit_core::HostAdvertisement {
+        declared_name: None,
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: "fixture/host".into(),
+        boot_id: "fixture/boot".into(),
+        offer_generation: conduit_core::OfferGeneration(1),
+        profile: config::CONFIGURATION_ID.into(),
+        bases: vec![],
+        resources: vec![conduit_core::resource_offer(
+            "fixture/work",
+            conduit_core::COOPERATIVE_STEP_WORK_CLASS_ID,
+            5000,
+        )],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    let mut wrong = actual.clone();
+    wrong.profile = "foreign/config".into();
+    assert!(matches!(
+        installation::prepare(&wrong, 1024),
+        Err(installation::Refusal::Context)
+    ));
+    assert!(matches!(
+        installation::prepare(&actual, 0),
+        Err(installation::Refusal::Capacity)
+    ));
+    let (prepared, allocation) = probe::observe(|| installation::prepare(&actual, 1024));
+    let (ready, retained_bytes) = prepared.unwrap();
+    assert_eq!(allocation.requested_bytes, retained_bytes);
+    assert_eq!(allocation.reallocations, 0);
+    let allocation_count = allocation.allocations;
+    println!("CPU native I2C identity: {retained_bytes} retained heap bytes in {allocation_count} fallible allocations; no bus effect or authority grant");
+
+    assert!(owner::try_lease().is_none());
+    let contract = conduit_i2c_transaction::contract::I2cContract::prepare().unwrap();
+    ready
+        .append_to_advertisement(&mut actual, &contract)
+        .unwrap();
+    assert_eq!(actual.capabilities.len(), 1);
+    assert_eq!(
+        actual.capabilities[0].kind_id.as_str(),
+        "machine/i2c/transact"
+    );
+    assert_eq!(actual.resources.len(), 2);
+    assert_eq!(actual.bases.len(), 1);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    drop(ready);
+    assert_eq!(owner::protocol_revision(), 0);
+    assert!(matches!(
+        installation::prepare(&actual, retained_bytes - 1),
+        Err(installation::Refusal::Capacity)
+    ));
+    for nth in 1..=allocation_count {
+        let (result, cost) = probe::observe_refusing(nth, || installation::prepare(&actual, 1024));
+        assert!(matches!(result, Err(installation::Refusal::Allocation)));
+        assert_eq!(cost.refused_allocations, 1);
+        assert_eq!(cost.allocations, cost.deallocations);
+        assert_eq!(owner::protocol_revision(), 0);
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        assert!(owner::try_native_lease().is_some());
+    }
     let request = I2cTransaction::new(112, &[0], 1).unwrap();
     let ((), cost) = probe::observe(|| {
         let mut native = owner::try_native_lease().unwrap();

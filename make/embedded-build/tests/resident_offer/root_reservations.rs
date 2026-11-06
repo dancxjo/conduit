@@ -8,6 +8,9 @@ pub fn run(
     let binding = &assignment.model.fragments[0].placements[0].resources[0];
     let mut actual = receiver.actual.clone();
     actual.resources.push(c::resource_offer(binding.pool_id.as_str(), binding.class_id.as_str(), 5000));
+    // Private computation readiness is independent of other declared pools;
+    // their presence alone supplies no readiness evidence for native IO.
+    actual.resources.push(c::resource_offer("fixture/other", "fixture/other-class", 1));
     let mut owner = c::ResourceAdmissionOwner::new(actual);
     let before = owner.clone();
     let original = library.offers().map(|o| o.unwrap().as_ptr());

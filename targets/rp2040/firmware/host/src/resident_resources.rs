@@ -21,9 +21,14 @@ pub fn observe_private_work(
     maximum_bytes: usize,
 ) -> Result<WorkObservation, E> {
     let actual = owner.host();
-    let [pool] = actual.resources.as_slice() else {
+    let mut matching = actual
+        .resources
+        .iter()
+        .filter(|pool| pool.pool_id.as_str() == pool_id);
+    let pool = matching.next().ok_or(E::UnsupportedPool)?;
+    if matching.next().is_some() {
         return Err(E::UnsupportedPool);
-    };
+    }
     if !owner.admissions().is_empty() || sequence == 0 {
         return Err(E::Scope);
     }

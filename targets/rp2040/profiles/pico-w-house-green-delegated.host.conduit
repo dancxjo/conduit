@@ -7,7 +7,7 @@ host pico-w-house-green {
   preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 4096, maximum_runtime_state_bytes: 16384}
   target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
   base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
-  base = {kind: "bus/i2c", implementation: "rp2040/i2c@1", initialization: {controller: 1, sda_gpio: 6, scl_gpio: 7, frequency_hz: 100000, maximum_transaction_polls: 100000}}
+  base = {kind: "bus/i2c", implementation: "rp2040/i2c@1", initialization: {controller: 1, sda_gpio: 6, scl_gpio: 7, frequency_hz: 100000, maximum_transaction_polls: 100000, minimum_call_address: 112, maximum_call_address: 118}}
   base = {kind: "sensor/environment", implementation: "rp2040/bosch-environment@1", initialization: {controller: 1, address: 118}}
   base = {kind: "display/segmented", implementation: "rp2040/ht16k33@1", initialization: {controller: 1, address: 112, brightness: 3, layout: "adafruit-alpha4"}}
   base = {kind: "network/wifi", implementation: "rp2040/cyw43-retained@1", initialization: {credential_source: "private-flash-network-journal", maximum_sockets: 4}}

@@ -6523,3 +6523,40 @@ pass after that integration. This delivers the std dispatcher, not S4 authority
 or MCU Start. Green independently remains on build `46fb0bbc...`, reporting 308
 samples and 4,615 acknowledged frames without sensor/display errors and membership
 true. Neither its firmware nor the live Linux service changed in this step.
+
+
+### Native I2C readiness follows explicit local Host construction
+
+The existing checked RP2040 I2C initialization now declares
+`minimum_call_address` / `maximum_call_address`. An explicit zero/zero leaves
+native Body calls unselected; a selected interval must be ordered and within
+8..119. The checked Green examples declare 112..118. These are local attachment
+policy, not a per-Play capability or a claim that every address responds. As with
+other initialization fields, missing fields refuse rather than imply authority.
+Make emits the checked selection into the MCU configuration.
+
+The Root's native I2C factory now consumes the actual configured controller lease
+into the existing `ReadyI2cBase`, using current Root Host/Boot/profile facts and
+its compiled IMAGE identity. It requires the selected local interval, rejects a
+foreign profile and busy/quarantined controller, and performs no bus transaction.
+Identity backing has an explicit remaining-byte ceiling and fallible acquisition;
+all eight allocation failures preserve the original untouched controller. The CPU
+fixture retains 128 identity payload bytes in eight allocations. This excludes
+codec/offer/capability/kernel storage and is not a physical RAM peak.
+
+The existing generic installation projects the standard `machine/i2c/transact`
+Back alongside the private computation resource pool in the CPU test. Private
+work observation now selects its exact unique pool rather than assuming the Host
+has only one resource; other pools do not supply native readiness evidence.
+The actual Root generated-code tests still bind/execute/retire both private
+fragments with another declared pool present. No limit or grant was enlarged.
+
+Two factory/construction tests, seven package tests, the preparation-profile test,
+two work-pool tests and both generated resident-offer tests pass; strict factory
+and construction Clippy passes. Source, bounds, no-effect publication and failure
+proof remain distinct from execution authority. No native BaseCapabilityTable,
+resource admission, ingress/Line or Start is issued by this factory. Neither
+updated firmware compilation nor device deployment is claimed for this change;
+the previous `f32185f729` qualification predates the new construction fields.
+No live service/device changed. Raw logs remain in ignored
+`target/native-i2c-installation-20261105`.

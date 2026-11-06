@@ -55,6 +55,10 @@ pub fn i2c_initialization_contract() -> BaseInitializationContract {
             count("scl_gpio", 0, 28),
             count("frequency_hz", 10_000, 400_000),
             count("maximum_transaction_polls", 1, u64::from(u32::MAX)),
+            // Both zero leave native Body calls unselected. A declared range
+            // constrains local attachment policy, never grants a Play access.
+            count("minimum_call_address", 0, 119),
+            count("maximum_call_address", 0, 119),
         ],
     }
 }
@@ -150,6 +154,7 @@ pub struct CheckedI2cConstruction {
     pub scl_gpio: u8,
     pub frequency_hz: u32,
     pub maximum_transaction_polls: u32,
+    pub call_address_range: Option<(u8, u8)>,
 }
 impl CheckedI2cConstruction {
     pub fn from_configuration(checked: &CheckedHostConfiguration) -> Result<Self, String> {
@@ -170,6 +175,17 @@ impl CheckedI2cConstruction {
         {
             return Err("RP2040 I2C pin/controller assignment is invalid or reserved".into());
         }
+        let minimum = value(&values, "minimum_call_address")? as u8;
+        let maximum = value(&values, "maximum_call_address")? as u8;
+        let call_address_range = match (minimum, maximum) {
+            (0, 0) => None,
+            (8..=119, 8..=119) if minimum <= maximum => Some((minimum, maximum)),
+            _ => {
+                return Err(
+                    "native I2C call range must be absent or an ordered 7-bit interval".into(),
+                )
+            }
+        };
         Ok(Self {
             configuration_id: checked.configuration_id().into(),
             controller,
@@ -177,6 +193,7 @@ impl CheckedI2cConstruction {
             scl_gpio,
             frequency_hz: value(&values, "frequency_hz")? as u32,
             maximum_transaction_polls: value(&values, "maximum_transaction_polls")? as u32,
+            call_address_range,
         })
     }
 }
