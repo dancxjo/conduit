@@ -8675,3 +8675,49 @@ remain unchanged.
 Qualification: eight retained-Source/owner tests and six complete-workset custody
 tests pass; strict production Clippy (`-D warnings`), formatting and diff checks
 pass. Logs are retained under `target/retained-source-capture-20261106/`.
+
+
+### 6 November 2026 — correct the installed checking bootstrap sequence
+
+A bounded read-only audit of the actual owner, Source installation and Fore
+paths corrected the earlier proposed next step. Installing the compiler during
+fresh startup is necessary equipment preparation, but cannot by itself make an
+installed Source-check action an admitted Body Play.
+
+Authoritative current state: Hamm Creek House remains Lulled at workload
+revision 0, with one resident Source/checked-Plot pair. Its retained Source is
+`plots/creche/main.conduit`, whose only operation is `creche/prepare`.
+`make/body/tests/source_check_call/check.conduit` contains the ordinary
+`check-source` Plot, but is not in this Body's retained workset. The continuing
+owner requires its planned and retained complete worksets to agree. Its current
+Fore adapter also refuses non-Crèche input ports without explicit ingress
+selection. Therefore neither publishing a Source provider nor adding a transient
+Plan entry can lawfully supply the missing execution.
+
+Correct next integration sequence, within existing #6449/#6447 ownership:
+
+1. Independently authorize exact reviewed Source adoption through S4, retaining
+   the Crèche Plot. S4 must check actual Source with admitted preparation; it
+   cannot make an already installed S2 Play its only bootstrap authority.
+2. Select the actual finite request/result adapter and use its exact boundaries
+   in complete-workset preflight and subsequent execution. Budgets alone do not
+   provide an adapter or Source possession.
+3. At one fresh Host construction, resolve the explicitly authorized retained
+   Source selection, validate current Body/revision, mint the original
+   operation-specific Host/Boot grant, and initialize the selected compiler
+   under its existing staged memory custody. Do not create a second Host inside
+   an owner action.
+4. Execute the now-resident Source-check Plot through ordinary Plan/Play. A typed
+   report remains non-authoritative and does not adopt a candidate or Wake it.
+
+The newly separated capture path is necessary preparation for this sequence,
+not its completion. No new framework, MCU memory epic or parallel implementation
+lane is needed. The general guarded continuation in #6828 is the existing S4
+foothold; arbitrary Source authority and admitted proposal preparation remain
+unfinished.
+
+Live continuity readback at this checkpoint: Green remains a Body member on the
+same firmware/configuration and receipt, with 216 successful samples from 216
+attempts, 3,240 acknowledged frames from 3,240, and no reported sensor/display
+fault. These are still diagnostic sampling/display tasks, not environmental
+Body Plays. No live service or device was modified during this audit.
