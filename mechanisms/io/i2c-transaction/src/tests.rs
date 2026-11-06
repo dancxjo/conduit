@@ -6,9 +6,9 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
 };
-use conduit_plot::{
-    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
-};
+#[cfg(feature = "source-catalog")]
+use conduit_plot::expand_canonical_plot_for_authoring;
+use conduit_plot::{check_syntax_document, parse_syntax_document};
 
 pub(super) fn request(contract: &I2cContract, address: u8, write: &[u8], read: u8) -> Vec<u8> {
     let StructuredInfoTypeShape::Record { fields, .. } = contract.request_type().shape() else {
@@ -55,6 +55,7 @@ pub(super) fn request(contract: &I2cContract, address: u8, write: &[u8], read: u
     .unwrap()
 }
 
+#[cfg(feature = "source-catalog")]
 #[test]
 fn checked_i2c_topology_has_one_class_neutral_call() {
     let contract = I2cContract::prepare().unwrap();
@@ -142,6 +143,7 @@ fn actual_shortness_and_bus_dispositions_remain_distinct() {
     }
 }
 
+#[cfg(feature = "source-catalog")]
 #[test]
 fn register_idioms_construct_exact_bounded_requests_as_ordinary_plots() {
     let contract = I2cContract::prepare().unwrap();
@@ -214,5 +216,38 @@ fn register_idioms_construct_exact_bounded_requests_as_ordinary_plots() {
                 assert_eq!(request.read_length(), 0);
             }
         }
+    }
+}
+
+#[test]
+fn fabricated_schemas_match_the_checked_authored_types_and_fore_profiles() {
+    let syntax = parse_syntax_document(include_str!(
+        "../../../../plots/device-protocols/i2c-types.conduit"
+    ));
+    assert!(syntax.diagnostics.is_empty());
+    let checked = check_syntax_document(&syntax, &conduit_plot::StartupCatalog::new()).unwrap();
+    let contract = I2cContract::prepare().unwrap();
+    for (name, actual, port) in [
+        (
+            "I2cTransaction",
+            contract.request_type(),
+            &contract.kind().inputs[0],
+        ),
+        (
+            "I2cResult",
+            contract.result_type(),
+            &contract.kind().outputs[0],
+        ),
+    ] {
+        let source = checked
+            .native_types
+            .iter()
+            .find(|ty| ty.name == name)
+            .unwrap();
+        assert_eq!(actual, &source.value_type);
+        assert_eq!(
+            &port.value_kind,
+            source.value_type.profile().unwrap().value_kind()
+        );
     }
 }
