@@ -6,6 +6,7 @@ pub fn retain(checked: &CheckedSyntaxDocument) {
         "language-parser-transition",
         "language-parser-decode-complete",
         "language-parser-scorer-branch",
+        "language-parser-scorer-model-features",
         "language-parser-scorer-legality",
         "language-parser-scorer-fallback",
         "language-parser-scorer-rank",

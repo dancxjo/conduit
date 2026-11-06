@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-parser-model = ["dep:conduit-ai", "dep:conduit-data"]
+parser-model = ["dep:conduit-ai", "dep:conduit-data", "dep:conduit-composite"]
 
 [dependencies]
+conduit-composite = { path = "../../architecture/composite", optional = true }
 conduit-ai = { path = "../ai", optional = true, features = ["kernel-operation-owners"] }
 conduit-data = { path = "../data", optional = true }
 conduit-core = { path = "../../architecture/core" }
