@@ -17,6 +17,27 @@ next state/history/period. The ordinary prepared realization has 768 nodes and
 extractor, PCM16/device output, intelligibility, or real-time assurance. Those
 claims remain with the speech work's own acceptance criteria.
 
+## Generic operator conformance
+
+`cargo xtask check fixed-numeric-dsp` checks the generic operator/reference and
+refusal corpus, plus `fargan_numeric_conformance`. The latter checks all sixteen
+matrix profiles required by the current frame against independent f64 arithmetic,
+including atomic nonfinite/overflow refusal; it executes all three authored GRU
+entries against a nonzero synthetic reference and detects swapped gates and
+reset-before drift through different checked Source programs.
+
+The full-frame case binds that coverage to the actual 72 numeric kinds in the
+768-node, 1,211-Cord Plan. It checks a synthetic 160-sample recurrence and observes
+zero allocation attempts throughout success, storage pressure and cancellation.
+Preparation and result decoding remain outside that observation. The shared test
+allocator has a positive allocation control and callback-delimited, thread-bound
+intervals; no production allocator or execution kernel is added. The focused
+entrance selects the existing immutable hosted catalogue cache for preparation.
+
+These tests require no checkpoint or audio device and do not establish model
+rights, trained-model parity, streaming cadence, voice quality or physical audio.
+The model/profile and speech-product issues retain their separate gates.
+
 ## Private model differential and performance
 
 Repository performance work enters through:
