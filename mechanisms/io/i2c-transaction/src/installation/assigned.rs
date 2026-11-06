@@ -20,6 +20,15 @@ pub struct PreparedAssignedI2c<'a, P: I2cProvider> {
     node: conduit_kernel::NodeId,
 }
 impl<P: I2cProvider> PreparedAssignedI2c<'_, P> {
+    /// Owned codec/claim/capability backing only. The borrowed ready installation,
+    /// inline frames and allocator overhead must be funded independently.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.prepared
+            .retained_backing_bytes()?
+            .checked_add(self.table.retained_backing_bytes()?)?
+            .checked_add(self.claim.retained_backing_bytes()?)
+    }
+
     pub fn node(&self) -> conduit_kernel::NodeId {
         self.node
     }

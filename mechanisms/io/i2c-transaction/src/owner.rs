@@ -63,6 +63,12 @@ pub(crate) struct PreparedI2cBinding {
     encoder: PreparedI2cResultEncoder,
 }
 impl PreparedI2cBinding {
+    pub(crate) fn retained_backing_bytes(&self) -> Option<usize> {
+        self.decoder
+            .retained_backing_bytes()?
+            .checked_add(self.encoder.prepared_heap_bytes())
+    }
+
     pub(crate) fn new(contract: &I2cContract, node: NodeId) -> Result<Self, I2cCallRefusal> {
         Ok(Self {
             node,

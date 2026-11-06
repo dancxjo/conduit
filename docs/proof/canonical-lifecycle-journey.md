@@ -6682,3 +6682,33 @@ fund its storage, create authority from assignment metadata, admit a complete
 workset or enable wire Start. Root must still consume both native and resident
 preparation under current command custody, exact resource admission and lawful
 Start/terminal-evidence handling. No device or live owner service was changed.
+
+
+### Actual Root native-kernel preparation executes a typed CPU transaction
+
+`targets/rp2040/firmware/host/src/native_preparation.rs` now consumes the prepared
+native binding in Root composition. It rejects standalone Plot scope and supports
+one exact native node with local Fore in a checked Body scope, using the existing
+production fixed scheduler and HostCallBack. Codecs and the original capability
+table/claim remain retained until binding. The budget counts actual owned schema,
+claim and capability capacities plus the kernel allocation, including spare
+String/Vec capacity. Generic Core schema backing inspection covers all Type
+shapes, nested boxes and hidden reserved capacity; no runtime semantics changed.
+
+The actual Root code executes a CPU-only Body/Fore transaction: typed ingress,
+standard native Host Call, exact typed egress, drain and terminal retirement.
+It accounts for 14,360 retained kernel/backing bytes under the unchanged 16,384-byte
+fixture ceiling. A zero budget refuses without preparation allocation, an
+oversized hidden claim capacity refuses, and a one-byte-short budget refuses;
+cancellation preserves the same ready slot. Binding and execution allocate zero
+bytes. Fourteen native library tests, the generic nested-capacity test and strict
+all-feature/all-target Clippy pass. Raw logs are in
+`target/root-native-kernel-20261105/`.
+
+This is actual Root source exercised with an inert CPU provider. It is not a
+physical measurement or a claim that an MCU's whole workset fits. The accounting
+excludes caller-owned installation, inline frames and allocator overhead, which
+must be funded separately. Codec preparation is still not wholly fallible.
+The receiver has not consumed this path; complete local workset admission,
+authorized Start, lifetime/terminal custody and physical sensor/display handover
+remain required. No live owner service, device or retained Body state changed.

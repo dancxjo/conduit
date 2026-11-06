@@ -27,3 +27,6 @@ mod allocation_probe;
 #[cfg(test)]
 #[global_allocator]
 static TEST_ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+
+#[cfg(test)]
+extern crate self as conduit_i2c_transaction;

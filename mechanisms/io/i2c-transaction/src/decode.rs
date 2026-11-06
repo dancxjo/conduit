@@ -25,6 +25,10 @@ pub enum I2cDecodeRefusal {
 }
 
 impl PreparedI2cDecoder {
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.validator.retained_backing_bytes()
+    }
+
     pub fn new(contract: &I2cContract) -> Result<Self, StructuredInfoRefusal> {
         Ok(Self {
             validator: contract.request_validator()?,

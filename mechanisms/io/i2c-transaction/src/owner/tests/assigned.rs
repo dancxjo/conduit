@@ -96,7 +96,7 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
     let mut slot = Some(
         unsafe {
             ReadyI2cBase::new(
-                identity,
+                identity.clone(),
                 I2cAttachment {
                     generation: 7,
                     minimum_address: 0x76,
@@ -386,6 +386,33 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
     assert_eq!(owner.provider.effects, 0);
     let (table, handle, claim) = issue();
     assert!(bind(&mut slot, table, handle, claim, valid_scope).is_err());
+    if body && fore && !borrowed {
+        // Independent inert fixture, not a replacement physical generation.
+        let mut root_slot = Some(
+            unsafe {
+                ReadyI2cBase::new(
+                    identity,
+                    I2cAttachment {
+                        generation: 7,
+                        minimum_address: 0x76,
+                        maximum_address: 0x77,
+                        resource_bytes: 4096,
+                    },
+                    Provider::default(),
+                )
+            }
+            .unwrap(),
+        );
+        assigned_root::run(
+            &mut root_slot,
+            &contract,
+            SelectedAssignedForeOperationPlan {
+                operation: selected(valid_scope),
+                fore: fore_image.as_ref().unwrap().fore(),
+            },
+            issue,
+        );
+    }
     drop(records);
     drop(bytes);
     let forbidden = request(&contract, 0x50, &[0xd0], 1);
@@ -418,3 +445,9 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
     ));
     assert_eq!(owner.provider.effects, 1);
 }
+
+#[path = "../../../../../../targets/rp2040/firmware/host/src/native_preparation.rs"]
+mod root_native_preparation;
+
+#[path = "assigned_root.rs"]
+mod assigned_root;
