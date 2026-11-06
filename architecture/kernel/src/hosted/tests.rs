@@ -1,4 +1,4 @@
-#[path="tests/preparation.rs"]
+#[path = "tests/preparation.rs"]
 mod preparation;
 use super::*;
 #[test]
