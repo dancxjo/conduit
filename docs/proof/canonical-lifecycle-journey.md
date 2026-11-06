@@ -8952,3 +8952,42 @@ caches, install arbitrary Source authoring, or demonstrate a new physical Play.
 The next integration remains actual retained Root/Crèche factory and context
 custody, followed by the authorized complete-workset transition. Existing IMAGE
 refusal guards remain in place.
+
+### 2026-11-06 — Crèche context retains IMAGE custody through a borrowed owner
+
+The preceding Root-scope checkpoint (`5926dd54c8`) passed strict combined product
+and std Host library Clippy. Its original compiler-process tests remain ten
+passing cases.
+
+The next change applies the existing prepared-value mechanism to the actual
+immutable `CrecheExecutionContext`. The selected Host reserves before validating
+and cloning its exact Host/Plan/prospective-Play context. The resulting affine
+value keeps the original counter charge until drop, including Host-first drop.
+`CrecheHost::prepare_from_context` borrows that context instead of cloning its
+Plan and advertisement again. The existing owned reference path uses the same
+adapter checks, request binding and retirement implementation.
+
+Twenty-four std Crèche tests passed, including the existing actual lifecycle,
+refused-start and uncertain-retirement cases. New cases verify original-counter
+custody, foreign-counter refusal, retained context after Host destruction,
+finite pressure/overflow/stale-Plan refusal, and pointer-identical borrowing by
+the real owner. Begin still refuses before actual Play confirmation. A changed
+adapter refuses without begin and is drained. The fixture initializes its
+memory ledger directly: this is isolated software custody/lifecycle evidence,
+not selected IMAGE construction or installed Crèche Play acceptance. Log:
+`/tmp/conduit-funded-creche-regression-20261106.log`.
+
+An earlier test build failed because cleanup raced a newly started compiler's
+incremental directory. The retry passed with active target cleanup suspended;
+subsequent cleanup occurred only after the build handle was terminal and no
+compiler remained. All source and retained evidence were preserved.
+
+The adapter factory, request serialization workspace and asynchronous effects
+still need their own qualified preparation and lifetime custody. Existing
+Crèche IMAGE execution guards remain unchanged. No device or installed service
+was changed by this checkpoint.
+
+The independent shared-type review #6834 also received `fee210a190`: its
+Candidate admission found a test-only `let_and_return` Clippy error. The direct
+return fix passed all-target core Clippy and the independent allocation test
+before push. Its new Candidate result is not yet claimed.
