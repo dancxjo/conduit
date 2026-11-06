@@ -8789,3 +8789,29 @@ in the task's `outputs/` directory.
 
 This is preparation for the remaining installed S4 authorization and S2 execution
 journey. No live service, Body workset or MCU was changed during qualification.
+
+
+### 6 November 2026 — installed revision consumes private Source approval
+
+The installed clock revision no longer passes arbitrary borrowed Source and a
+copied biography into a production generic commit entrance. Its existing finite
+clock policy now owns a private, non-Clone, non-serializable
+`AuthorizedClockRevision`: actual canonical Source, checked expansion, exact
+current biography, and original Host/Boot/offer generation. The guarded commit
+consumes this value. Raw generic entrances are restricted to reference tests;
+the shared journal/planner effect is private.
+
+The existing local Face/acknowledged Show and independently correlated Commons
+return remain the route authorization boundaries. The new value does not turn
+copied interaction metadata or Source-check report Info into permission, widen
+the interval policy, install a compiler, authorize arbitrary Source, or Wake a
+replacement. Preparation/caller memory custody remains independently required.
+
+Qualification passed 22 focused cases: six clock/policy cases, the actual
+attached-Mask workset change/replay test, ten Commons cases, and five guarded
+workset/recovery cases. One installed-service clock test remains explicitly
+ignored pending a fresh product executable. New regressions reject a foreign
+Host, Boot or offer generation and an approval captured before a newer workset
+basis, with retained state unchanged. Strict production Clippy, formatting and
+diff checks pass. Logs are retained in `target/affine-source-approval-20261106/`.
+No live service, MCU or Body workset was changed by this checkpoint.

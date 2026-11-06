@@ -1,4 +1,4 @@
-//! One trusted Root effect after an owner action's policy/return is authorized.
+//! Consume policy-owned Source custody before the guarded Root workset effect.
 //! Incoming proposal Info, copied IDs or matching Source do not grant this call.
 use super::{debug, state, Owner};
 use conduit_body::{BodyBiographyEvidence, BodyState, BodyWorkset, ResidentPlot};
@@ -13,10 +13,35 @@ impl Owner {
         }
     }
 
-    /// Only an already-authorized Root action may invoke this continuation. Its
-    /// semantic policy must constrain these actual owned Sources (as the clock
-    /// action does), not merely approve a caller-supplied digest or description.
-    /// No public command or ordinary Plot receives this privilege here.
+    /// Consume the actual immutable Sources selected by the admitted clock policy.
+    /// The token cannot be cloned or constructed outside that policy module.
+    pub(super) fn commit_authorized_clock_revision(
+        &mut self,
+        root: &Path,
+        authorization: super::clock_interval::AuthorizedClockRevision,
+    ) -> Result<(), String> {
+        let (expected, (host, boot, generation), source, checked) = authorization.into_parts();
+        let advertised = self.host.advertisement();
+        if advertised.host_id != host
+            || advertised.boot_id != boot
+            || advertised.offer_generation != generation
+        {
+            return Err("workset approval belongs to another Host/Boot or offer generation".into());
+        }
+        let sources = [(&source, &checked)];
+        let boundaries =
+            super::continuing::boundaries_for_plots(sources.iter().map(|(_, plot)| *plot), None)?;
+        self.commit_admitted_workset_revision_with_boundaries(
+            root,
+            &expected,
+            &sources,
+            &boundaries,
+        )
+    }
+
+    /// Trusted reference-fixture entrance. Production must consume the private
+    /// policy-owned authorization above; these borrowed values confer no authority.
+    #[cfg(test)]
     pub(super) fn commit_admitted_workset_revision(
         &mut self,
         root: &Path,
@@ -29,9 +54,9 @@ impl Owner {
         self.commit_admitted_workset_revision_with_ingress(root, expected, sources, None)
     }
 
-    /// The same exact finite adapter used by subsequent Plan/Play participates
-    /// in adoption preflight. Root must already authorize the actual Sources;
-    /// neither the adapter nor its custody verifies an adoption proposal.
+    /// Trusted reference-fixture preflight with the exact subsequent adapter.
+    /// Adapter custody does not authorize production adoption.
+    #[cfg(test)]
     pub(super) fn commit_admitted_workset_revision_with_ingress(
         &mut self,
         root: &Path,
@@ -55,7 +80,7 @@ impl Owner {
     /// Existing independently selected adapter bounds participate in revision
     /// preflight exactly as they do in ordinary subsequent workset planning.
     /// Supplying budgets confers neither Source nor adoption authority.
-    pub(super) fn commit_admitted_workset_revision_with_boundaries(
+    fn commit_admitted_workset_revision_with_boundaries(
         &mut self,
         root: &Path,
         expected: &BodyBiographyEvidence,
