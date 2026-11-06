@@ -6871,3 +6871,13 @@ file-descriptor or memory-map references. Removing only its 529 regenerable
 `.rlib`/`.rmeta` archives recovered 1,294,563,081 bytes. The qualified executable
 remained byte-identical (SHA-256 `84fdf37c557e9c5d0d6e71a993029872cff024eec3fd7b755b64dc6c5d3afd0a`).
 Source, private state, firmware and manifests were preserved.
+
+
+The shared declaration is now in PR #6799, isolated on accepted dev. Independent
+qualification exposed a test reference to a delivery-only IMAGE verifier; the
+shared test now checks the existing IMAGE manifest/payload configuration binding
+instead, without importing that unrelated mechanism. All 87 Host/Make library
+tests on the isolated branch pass. The delivery checkout retains its additional
+five existing tests; these proof counts refer to different source inventories.
+The receiver integration and RP2040 build wiring remain on the delivery branch.
+No issue is closed and no physical execution acceptance is claimed.
