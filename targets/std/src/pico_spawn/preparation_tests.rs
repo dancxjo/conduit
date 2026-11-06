@@ -52,7 +52,7 @@ fn report(digest: [u8; 32]) -> Vec<u8> {
         .collect::<String>();
     serde_json::to_vec(
         &serde_json::json!({"phase":"input-retained", "custody":"ram", "payload_sha256":hex,
-        "resources":"released", "start":"not-installed"}),
+        "resources":"not-admitted", "start":"not-started"}),
     )
     .unwrap()
 }

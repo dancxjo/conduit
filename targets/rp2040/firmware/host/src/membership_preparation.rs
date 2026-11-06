@@ -84,68 +84,51 @@ impl MembershipState {
         // One original deadline covers publication, all chunks and signature.
         let result = with_deadline(deadline, async {
             let stamp = {
-            let input = workspace.writable().map_err(|_| ())?;
-            let slot = IssuedHostCommandChallenge::issue(
-                member,
-                self.resources.host(),
-                &self.seed.owner,
-                HostCommandReceiveBounds {
-                    payload_contract: HOST_PREPARED_WORKSET_CONTRACT,
-                    maximum_payload_bytes: ceiling as u32,
-                    lifetime_millis: LIFETIME_MILLIS,
-                },
-                nonce,
-                now.as_millis(),
-            )
-            .map_err(|_| ())?;
-            let n = serde_json_core::to_slice(slot.challenge(), input).map_err(|_| ())?;
-            link.send(&input[..n]).await?;
-            let mut document =
-                BorrowedBoundedDocumentAssembly::new(&mut input[..ceiling], MAXIMUM_CHUNKS);
-            link.receive_document(&mut document).await?;
-            let (payload, digest) = document.completed().ok_or(())?;
-            if Sha256::digest(payload).as_slice() != digest {
-                return Err(());
-            }
-            let mut signature = [0u8; 64];
-            let signature = link.receive(&mut signature).await?;
-            let command = slot
-                .authenticate(payload, signature, Instant::now().as_millis())
-                .map_err(|_| ())?;
-            // The workset receiver checks the installed policy and original
-            // signed command before decoding any constituent fragment.
-
-            let mut inventory = match crate::resident_preparation::inventory() {
-                Ok(owner) => owner,
-                Err(_) => return link.send(br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#).await,
-            };
-            let response = match crate::resident_preparation::prepare_workset_storage(
-                &mut inventory,
-                Some(policy),
-                NativePreparationContext {
-                    bootstrap: &self.seed, member, actual: self.resources.host(),
-                    image_id: crate::config::IMAGE_ID, configuration_id: crate::config::CONFIGURATION_ID,
-                    now_millis: Instant::now().as_millis(),
-                }, command,
-                crate::config::RESIDENT_PREPARATION_MAXIMA,
-                crate::config::RESIDENT_PREPARATION_STORAGE_BYTES,
-            ) {
-                Ok(stored) => match stored.reserve_observed(
-                    &mut self.resources, crate::config::RESIDENT_WORK_POOL,
-                    crate::config::RESIDENT_WORK_UNITS, self.freshness,
-                    crate::config::RESIDENT_PREPARATION_STORAGE_BYTES,
-                ) {
-                    Ok(reserved) => {
-                        reserved.release_for_retention()
+                let input = workspace.writable().map_err(|_| ())?;
+                let slot = IssuedHostCommandChallenge::issue(
+                    member,
+                    self.resources.host(),
+                    &self.seed.owner,
+                    HostCommandReceiveBounds {
+                        payload_contract: HOST_PREPARED_WORKSET_CONTRACT,
+                        maximum_payload_bytes: ceiling as u32,
+                        lifetime_millis: LIFETIME_MILLIS,
                     },
-                    Err(refusal) => return report_resource_refusal(link, refusal).await,
-                },
-                Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Allocation)) => return link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"allocation"}"#).await,
-                Err(crate::resident_preparation::ValidationRefusal::Storage(conduit_kernel::scheduler::KernelPreparationError::Capacity {..})) => return link.send(br#"{"phase":"attributed","preparation":"storage-refused","reason":"capacity"}"#).await,
-                Err(crate::resident_preparation::ValidationRefusal::Unavailable) => return link.send(br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#).await,
-                Err(_) => return Err(()),
-            };
-            response
+                    nonce,
+                    now.as_millis(),
+                )
+                .map_err(|_| ())?;
+                let n = serde_json_core::to_slice(slot.challenge(), input).map_err(|_| ())?;
+                link.send(&input[..n]).await?;
+                let mut document =
+                    BorrowedBoundedDocumentAssembly::new(&mut input[..ceiling], MAXIMUM_CHUNKS);
+                link.receive_document(&mut document).await?;
+                let (payload, digest) = document.completed().ok_or(())?;
+                if Sha256::digest(payload).as_slice() != digest {
+                    return Err(());
+                }
+                let mut signature = [0u8; 64];
+                let signature = link.receive(&mut signature).await?;
+                let command = slot
+                    .authenticate(payload, signature, Instant::now().as_millis())
+                    .map_err(|_| ())?;
+                // Carrier custody authenticates bytes only. Persistent Root work
+                // performs profile validation, preparation and admission once,
+                // outside this cancellable delivery/acknowledgment future.
+                conduit_body::check_host_workset_preparation_delegation(
+                    Some(policy),
+                    NativePreparationContext {
+                        bootstrap: &self.seed,
+                        member,
+                        actual: self.resources.host(),
+                        image_id: crate::config::IMAGE_ID,
+                        configuration_id: crate::config::CONFIGURATION_ID,
+                        now_millis: Instant::now().as_millis(),
+                    },
+                    &command,
+                )
+                .map_err(|_| ())?;
+                command.into_retained_stamp().map_err(|_| ())?
             };
             workspace.retain(stamp).map_err(|_| ())?;
             report_retained_input(link, workspace).await
@@ -201,27 +184,10 @@ fn encode_retained_input(
             phase: "input-retained",
             custody: "ram",
             payload_sha256: core::str::from_utf8(&digest).map_err(|_| ())?,
-            resources: "released",
-            start: "not-installed",
+            resources: "not-admitted",
+            start: "not-started",
         },
         output,
     )
     .map_err(|_| ())
-}
-
-async fn report_resource_refusal(
-    link: &mut Link,
-    refusal: conduit_body::DelegatedResourceRefusal,
-) -> Result<(), ()> {
-    use conduit_body::DelegatedResourceRefusal as E;
-    use conduit_core::ResourceAdmissionRefusal as R;
-    let response: &[u8] = match refusal {
-        E::PreparationCapacity => br#"{"phase":"validated-workset","resources":"refused","reason":"preparation-capacity"}"#,
-        E::Allocation | E::Admission(R::Allocation) => br#"{"phase":"validated-workset","resources":"refused","reason":"allocation"}"#,
-        E::Admission(R::Overcommitted) => br#"{"phase":"validated-workset","resources":"refused","reason":"overcommitted"}"#,
-        E::Admission(R::Unavailable) => br#"{"phase":"validated-workset","resources":"refused","reason":"unavailable"}"#,
-        E::Scope | E::Admission(R::StaleOffer | R::StaleObservation | R::ForeignHost) => br#"{"phase":"validated-workset","resources":"refused","reason":"scope"}"#,
-        _ => br#"{"phase":"validated-workset","resources":"refused","reason":"unsupported-binding"}"#,
-    };
-    link.send(response).await
 }

@@ -6,7 +6,7 @@ fn expired_idle_preparation_reclaims_storage_and_issues_a_new_challenge() {
     NOW.with(|n| n.set(100));
     let mut member = member();
     let mut workspace = HostCommandInput::<LIMIT>::new();
-    let mut first = Link::new(Mode::Reserved, 1000);
+    let mut first = Link::new(Mode::Receipt, 1000);
     run(member.serve_preparation(&mut first, &mut workspace)).unwrap();
     let deadline = workspace.expires_at_millis().unwrap();
     let original = first.nonce;
@@ -23,13 +23,13 @@ fn expired_idle_preparation_reclaims_storage_and_issues_a_new_challenge() {
     assert!(!workspace.is_retained());
     assert!(workspace.writable().unwrap().iter().all(|b| *b == 0));
     assert_eq!(member.freshness, sequence);
-    let mut next = Link::new(Mode::Reserved, 1000);
+    let mut next = Link::new(Mode::Receipt, 1000);
     run(member.serve_preparation(&mut next, &mut workspace)).unwrap();
     assert_ne!(next.nonce, original);
     assert_eq!(member.freshness, sequence + 1);
     assert_eq!(workspace.expires_at_millis(), Some(deadline + 10_000));
     NOW.with(|n| n.set(deadline + 10_000));
-    let mut third = Link::new(Mode::Reserved, 1000);
+    let mut third = Link::new(Mode::Receipt, 1000);
     // Exercise reclamation through the actual entry, without calling the helper.
     run(member.serve_preparation(&mut third, &mut workspace)).unwrap();
     assert_ne!(third.nonce, next.nonce);
@@ -41,7 +41,7 @@ fn busy_or_unretired_inventory_preserves_expired_input() {
     NOW.with(|n| n.set(100));
     let mut member = member();
     let mut workspace = HostCommandInput::<LIMIT>::new();
-    let mut first = Link::new(Mode::Reserved, 1000);
+    let mut first = Link::new(Mode::Receipt, 1000);
     run(member.serve_preparation(&mut first, &mut workspace)).unwrap();
     NOW.with(|n| n.set(workspace.expires_at_millis().unwrap()));
     for withdrawn in [false, true] {
@@ -63,7 +63,7 @@ fn an_outstanding_resource_admission_prevents_expiry_reclamation() {
     NOW.with(|n| n.set(100));
     let mut member = member();
     let mut workspace = HostCommandInput::<LIMIT>::new();
-    let mut first = Link::new(Mode::Reserved, 1000);
+    let mut first = Link::new(Mode::Receipt, 1000);
     run(member.serve_preparation(&mut first, &mut workspace)).unwrap();
     let ad = member.resources.host().clone();
     let observed = c::ResourceObservation {

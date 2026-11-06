@@ -30,15 +30,6 @@ impl Timer {
     pub async fn after_millis(_: u64) {}
 }
 mod config {
-    pub const RESIDENT_WORK_POOL: &str = "fixture/work";
-    pub const RESIDENT_WORK_UNITS: u32 = 1;
-    pub const RESIDENT_PREPARATION_STORAGE_BYTES: usize = 16384;
-    pub const RESIDENT_PREPARATION_MAXIMA: conduit_core::AssignedPlanMaxima =
-        conduit_core::AssignedPlanMaxima {
-            encoded_bytes: 8192,
-            runtime_state_bytes: 8192,
-            counts: [32; conduit_core::ASSIGNED_PLAN_COUNT_KINDS],
-        };
     pub const IMAGE_ID: &str = "fixture/image";
     pub const CONFIGURATION_ID: &str = "fixture/config";
     pub const DIAGNOSTIC_HTTP_BUFFER_LIMIT: u64 = 8192;
@@ -50,82 +41,6 @@ mod config {
         });
 }
 mod resident_preparation {
-    pub enum ValidationRefusal {
-        Unavailable,
-        InvalidAssignment,
-        #[allow(dead_code)]
-        Storage(conduit_kernel::scheduler::KernelPreparationError),
-    }
-    pub struct AttemptStorage<'a, 'o> {
-        marker: core::marker::PhantomData<(&'a (), &'o ())>,
-        stamp: conduit_body::RetainedHostCommandStamp,
-    }
-    pub struct Reserved<'r> {
-        scope: conduit_core::ResourceAdmissionScope<'r>,
-        stamp: conduit_body::RetainedHostCommandStamp,
-    }
-    impl Reserved<'_> {
-        pub fn release_for_retention(self) -> conduit_body::RetainedHostCommandStamp {
-            drop(self.scope);
-            self.stamp
-        }
-    }
-    pub use crate::resource_observation::observe_private_work;
-    impl AttemptStorage<'_, '_> {
-        pub fn reserve_observed<'r>(
-            self,
-            owner: &'r mut conduit_core::ResourceAdmissionOwner,
-            pool: &str,
-            capacity: u32,
-            sequence: u64,
-            maximum_bytes: usize,
-        ) -> Result<Reserved<'r>, conduit_body::DelegatedResourceRefusal> {
-            let observed =
-                observe_private_work(&self, owner, pool, capacity, sequence, maximum_bytes)?;
-            self.reserve(
-                owner,
-                core::slice::from_ref(&observed.value),
-                maximum_bytes - observed.owned_bytes,
-            )
-        }
-        pub fn reserve<'r>(
-            self,
-            owner: &'r mut conduit_core::ResourceAdmissionOwner,
-            observed: &[conduit_core::ResourceObservation],
-            _: usize,
-        ) -> Result<Reserved<'r>, conduit_body::DelegatedResourceRefusal> {
-            let ad = owner.host();
-            let request = conduit_core::ResourceAdmissionRequest {
-                plan_id: "fixture/plan".into(),
-                placement_id: "fixture/placement".into(),
-                host_id: ad.host_id.clone(),
-                boot_id: ad.boot_id.clone(),
-                offer_generation: ad.offer_generation,
-                items: vec![conduit_core::ResourceAdmissionItem {
-                    requirement: conduit_core::resource_requirement(
-                        conduit_core::COOPERATIVE_STEP_WORK_CLASS_ID,
-                        1,
-                    ),
-                    binding: conduit_core::ResourceBinding {
-                        pool_id: ad.resources[0].pool_id.clone(),
-                        class_id: ad.resources[0].class_id.clone(),
-                        units: 1,
-                        protected: None,
-                        compute: None,
-                        content: None,
-                    },
-                }],
-            };
-            let mut scope = owner.preparation_scope();
-            scope
-                .admit_batch(vec![request], observed)
-                .map_err(conduit_body::DelegatedResourceRefusal::Admission)?;
-            Ok(Reserved {
-                scope,
-                stamp: self.stamp,
-            })
-        }
-    }
     pub struct Inventory;
     impl Drop for Inventory {
         fn drop(&mut self) {}
@@ -150,29 +65,7 @@ mod resident_preparation {
             Ok(Inventory)
         }
     }
-    pub fn prepare_workset_storage(
-        _: &mut Inventory,
-        _: Option<&conduit_body::HostPreparationDelegation>,
-        _: conduit_body::NativePreparationContext<'_>,
-        command: conduit_body::AttributedHostCommand<'_, '_>,
-        _: conduit_core::AssignedPlanMaxima,
-        _: usize,
-    ) -> Result<AttemptStorage<'static, 'static>, ValidationRefusal> {
-        if command.payload().first() == Some(&0x52) {
-            Ok(AttemptStorage {
-                marker: core::marker::PhantomData,
-                stamp: command.into_retained_stamp().unwrap(),
-            })
-        } else if command.payload().first() == Some(&0x46) {
-            Err(ValidationRefusal::InvalidAssignment)
-        } else {
-            Err(ValidationRefusal::Unavailable)
-        }
-    }
 }
-use resident_preparation::AttemptStorage;
-#[path = "../../firmware/host/src/resident_resources.rs"]
-mod resource_observation;
 thread_local! { static NOW: Cell<u64> = const { Cell::new(100) }; }
 #[derive(Clone, Copy)]
 pub struct Instant(u64);
@@ -230,18 +123,18 @@ struct MembershipState {
 mod preparation;
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Mode {
-    Valid,
-    InvalidAssignment,
+    ValidAttribution,
+    OpaqueInput,
     BadSignature,
     Replay,
     BadDigest,
     Interrupted,
     Deadline,
     Pending,
-    Reserved,
-    ReservedPending,
-    ReservedLostResponse,
-    ReservedDeadline,
+    Receipt,
+    ReceiptPending,
+    ReceiptLostResponse,
+    ReceiptDeadline,
 }
 struct Link {
     mode: Mode,
@@ -260,13 +153,13 @@ impl Link {
         let payload = vec![
             if matches!(
                 mode,
-                Mode::Reserved
-                    | Mode::ReservedPending
-                    | Mode::ReservedLostResponse
-                    | Mode::ReservedDeadline
+                Mode::Receipt
+                    | Mode::ReceiptPending
+                    | Mode::ReceiptLostResponse
+                    | Mode::ReceiptDeadline
             ) {
                 0x52
-            } else if mode == Mode::InvalidAssignment {
+            } else if mode == Mode::OpaqueInput {
                 0x46
             } else {
                 0x45
@@ -321,14 +214,14 @@ impl Link {
         } else {
             self.response[..bytes.len()].copy_from_slice(bytes);
             self.response_len = bytes.len();
-            if self.mode == Mode::ReservedDeadline {
+            if self.mode == Mode::ReceiptDeadline {
                 NOW.with(|n| n.set(10100));
                 core::future::pending::<()>().await;
             }
-            if self.mode == Mode::ReservedPending {
+            if self.mode == Mode::ReceiptPending {
                 core::future::pending::<()>().await;
             }
-            if self.mode == Mode::ReservedLostResponse {
+            if self.mode == Mode::ReceiptLostResponse {
                 return Err(());
             }
         }
@@ -433,8 +326,8 @@ fn run<F: Future>(future: F) -> F::Output {
 #[test]
 fn actual_root_ingress_authenticates_without_another_document_allocation_or_start() {
     for mode in [
-        Mode::Valid,
-        Mode::InvalidAssignment,
+        Mode::ValidAttribution,
+        Mode::OpaqueInput,
         Mode::BadSignature,
         Mode::BadDigest,
         Mode::Interrupted,
@@ -456,15 +349,19 @@ fn actual_root_ingress_authenticates_without_another_document_allocation_or_star
         assert_eq!(cost.allocations, 0);
         assert_eq!(cost.reallocations, 0);
         assert!(link.challenged);
-        assert!(workspace.writable().unwrap().iter().all(|b| *b == 0));
         assert_eq!(member.resources, before);
-        assert_eq!(result.is_ok(), mode == Mode::Valid);
-        if mode == Mode::Valid {
-            assert_eq!(
-                &link.response[..link.response_len],
-                br#"{"phase":"attributed","preparation":"inventory-unavailable"}"#
-            );
+        let retained = matches!(mode, Mode::ValidAttribution | Mode::OpaqueInput);
+        assert_eq!(result.is_ok(), retained);
+        assert_eq!(workspace.is_retained(), retained);
+        if retained {
+            assert_eq!(workspace.payload().unwrap(), link.payload);
+            let report: serde_json::Value =
+                serde_json::from_slice(&link.response[..link.response_len]).unwrap();
+            assert_eq!(report["phase"], "input-retained");
+            assert_eq!(report["resources"], "not-admitted");
+            assert_eq!(report["start"], "not-started");
         } else {
+            assert!(workspace.writable().unwrap().iter().all(|b| *b == 0));
             assert_eq!(link.response_len, 0);
         }
     }
@@ -473,7 +370,7 @@ fn actual_root_ingress_authenticates_without_another_document_allocation_or_star
 fn current_membership_and_actual_receive_extent_are_required() {
     NOW.with(|n| n.set(100));
     let mut member = member();
-    let mut link = Link::new(Mode::Valid, 1000);
+    let mut link = Link::new(Mode::ValidAttribution, 1000);
     let mut workspace = HostCommandInput::<LIMIT>::new();
     member.receipt = None;
     assert!(run(member.serve_preparation(&mut link, &mut workspace)).is_ok());
@@ -483,7 +380,7 @@ fn current_membership_and_actual_receive_extent_are_required() {
         .unwrap()
         .contains("membership-not-current"));
     let mut member = crate::member();
-    let mut link = Link::new(Mode::Valid, LIMIT + 1);
+    let mut link = Link::new(Mode::ValidAttribution, LIMIT + 1);
     assert!(run(member.serve_preparation(&mut link, &mut workspace)).is_err());
     assert!(member.resources.admissions().is_empty());
     assert!(workspace.writable().unwrap().iter().all(|b| *b == 0));
@@ -509,8 +406,11 @@ fn fresh_attempt_cannot_reuse_an_old_signature_even_if_the_rng_repeats() {
     NOW.with(|n| n.set(100));
     let mut member = member();
     let mut workspace = HostCommandInput::<LIMIT>::new();
-    let mut first = Link::new(Mode::Valid, 1000);
+    let mut first = Link::new(Mode::ValidAttribution, 1000);
     assert!(run(member.serve_preparation(&mut first, &mut workspace)).is_ok());
+    // This courier-only test owns no kernel or reservations. Explicitly retire
+    // the unstarted input to test a fresh challenge at the same clock value.
+    workspace.retire();
     let mut second = Link::new(Mode::Replay, 1000);
     second.signature = first.signature;
     assert!(run(member.serve_preparation(&mut second, &mut workspace)).is_err());
@@ -568,7 +468,7 @@ fn busy_root_does_not_consume_the_document_or_issue_another_attempt() {
         )
         .unwrap();
     let before = member.resources.clone();
-    let mut link = Link::new(Mode::Valid, 1000);
+    let mut link = Link::new(Mode::ValidAttribution, 1000);
     let mut workspace = HostCommandInput::<LIMIT>::new();
     let (result, cost) =
         probe::observe(|| run(member.serve_preparation(&mut link, &mut workspace)));
@@ -584,12 +484,12 @@ fn busy_root_does_not_consume_the_document_or_issue_another_attempt() {
 }
 
 #[test]
-fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellation() {
+fn actual_handler_retains_only_input_after_response_loss_or_cancellation() {
     for mode in [
-        Mode::Reserved,
-        Mode::ReservedLostResponse,
-        Mode::ReservedPending,
-        Mode::ReservedDeadline,
+        Mode::Receipt,
+        Mode::ReceiptLostResponse,
+        Mode::ReceiptPending,
+        Mode::ReceiptDeadline,
     ] {
         NOW.with(|n| n.set(100));
         let mut member = member();
@@ -599,11 +499,11 @@ fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellati
         let mut future = Box::pin(member.serve_preparation(&mut link, &mut workspace));
         let mut cx = std::task::Context::from_waker(std::task::Waker::noop());
         let result = future.as_mut().poll(&mut cx);
-        assert_eq!(result.is_pending(), mode == Mode::ReservedPending);
-        if mode == Mode::Reserved {
+        assert_eq!(result.is_pending(), mode == Mode::ReceiptPending);
+        if mode == Mode::Receipt {
             assert!(matches!(result, Poll::Ready(Ok(()))));
         }
-        if matches!(mode, Mode::ReservedLostResponse | Mode::ReservedDeadline) {
+        if matches!(mode, Mode::ReceiptLostResponse | Mode::ReceiptDeadline) {
             assert!(matches!(result, Poll::Ready(Err(()))));
         }
         drop(future);
@@ -621,15 +521,15 @@ fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellati
             Some(HostCommandRetentionRefusal::Occupied)
         );
         let original_nonce_sequence = member.freshness;
-        let mut retry = Link::new(Mode::Valid, 1000);
+        let mut retry = Link::new(Mode::ValidAttribution, 1000);
         assert!(run(member.serve_preparation(&mut retry, &mut workspace)).is_ok());
-        if mode == Mode::ReservedDeadline {
-            // The original deadline ended and both reservation/Back custody
-            // retired. The next request receives a fresh challenge, not a lease
+        if mode == Mode::ReceiptDeadline {
+            // The original deadline ended with no preparation or reservation.
+            // The next request receives a fresh challenge, not a lease
             // renewal or another acknowledgment of expired input.
             assert!(retry.challenged);
             assert_eq!(member.freshness, original_nonce_sequence + 1);
-            assert!(!workspace.is_retained());
+            assert!(workspace.is_retained());
         } else {
             assert!(!retry.challenged);
             assert_eq!(retry.reads, 0);
@@ -644,7 +544,7 @@ fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellati
             .contains("input-retained"));
         assert!(std::str::from_utf8(&link.response[..link.response_len])
             .unwrap()
-            .contains("not-installed"));
+            .contains("not-started"));
     }
 }
 
@@ -654,14 +554,14 @@ fn occupied_input_keeps_build_bound_recovery_and_sealed_bytes() {
     RESET.with(|flag| flag.set(false));
     let mut member = member();
     let mut workspace = HostCommandInput::<LIMIT>::new();
-    let mut prepared = Link::new(Mode::Reserved, 1000);
+    let mut prepared = Link::new(Mode::Receipt, 1000);
     assert!(run(member.serve_preparation(&mut prepared, &mut workspace)).is_ok());
     let digest = workspace.payload_digest().unwrap();
     let original_freshness = member.freshness;
     let reboot = format!("CONDUIT_REBOOT_BOOTSEL@1:{BUILD_ID}").into_bytes();
     assert_eq!(reboot.len(), 89);
     assert!(reboot.len() > 64);
-    let mut maintenance = Link::new(Mode::Valid, 1);
+    let mut maintenance = Link::new(Mode::ValidAttribution, 1);
     maintenance.control = Some([b"CONDUIT_BOOTSEL_QUERY@1".to_vec(), reboot].into());
     let mut future = Box::pin(preparation::serve_retained_input(
         &mut maintenance,
@@ -693,9 +593,9 @@ fn occupied_input_refuses_another_builds_reboot_without_losing_custody() {
     RESET.with(|flag| flag.set(false));
     let mut member = member();
     let mut workspace = HostCommandInput::<LIMIT>::new();
-    let mut prepared = Link::new(Mode::Reserved, 1000);
+    let mut prepared = Link::new(Mode::Receipt, 1000);
     assert!(run(member.serve_preparation(&mut prepared, &mut workspace)).is_ok());
-    let mut maintenance = Link::new(Mode::Valid, 1);
+    let mut maintenance = Link::new(Mode::ValidAttribution, 1);
     maintenance.control =
         Some([format!("CONDUIT_REBOOT_BOOTSEL@1:{}", "f".repeat(64)).into_bytes()].into());
     let (result, cost) = probe::observe(|| {

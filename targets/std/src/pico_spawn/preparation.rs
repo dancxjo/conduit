@@ -168,8 +168,8 @@ fn reported_input(bytes: &[u8]) -> Result<ReportedPreparationInput, ()> {
     let report: Report<'_> = serde_json::from_slice(bytes).map_err(|_| ())?;
     if report.phase != "input-retained"
         || report.custody != "ram"
-        || report.resources != "released"
-        || report.start != "not-installed"
+        || report.resources != "not-admitted"
+        || report.start != "not-started"
         || report.payload_sha256.len() != 64
     {
         return Err(());
