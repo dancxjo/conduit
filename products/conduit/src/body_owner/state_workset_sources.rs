@@ -37,7 +37,9 @@ impl WorksetSources {
         result.expand(biography)?;
         Ok(result)
     }
-    fn expand(&self, biography: &BodyBiographyEvidence) -> Result<Vec<RetainedPlotSource>, String> {
+    /// Descriptive acquisition checks only. No entry is parsed, checked or made
+    /// executable; caller workspace and Source authority remain independent.
+    fn validate_captured_bytes(&self, biography: &BodyBiographyEvidence) -> Result<(), String> {
         if self.schema != SCHEMA
             || self.entries.len() != biography.body.workset.plots().len()
             || self.entries.len() > conduit_body::MAX_BODY_PLOTS
@@ -67,6 +69,10 @@ impl WorksetSources {
                 return Err("workset Source bytes differ from retained meaning".into());
             }
         }
+        Ok(())
+    }
+    fn expand(&self, biography: &BodyBiographyEvidence) -> Result<Vec<RetainedPlotSource>, String> {
+        self.validate_captured_bytes(biography)?;
         let plots = self
             .entries
             .iter()
@@ -187,8 +193,22 @@ pub(in super::super) fn checked(
     root: &Path,
     biography: &BodyBiographyEvidence,
 ) -> Result<Option<Vec<RetainedPlotSource>>, String> {
-    retained(root)?
+    captured(root, biography)?
         .map(|sources| sources.expand(biography))
+        .transpose()
+}
+/// Own the bounded retained inventory before invoking a compiler. These checks
+/// establish byte/Source correspondence only, not checked entry identities or
+/// authorization of a new Source. The caller must fund capture/JSON workspace.
+fn captured(
+    root: &Path,
+    biography: &BodyBiographyEvidence,
+) -> Result<Option<WorksetSources>, String> {
+    retained(root)?
+        .map(|sources| {
+            sources.validate_captured_bytes(biography)?;
+            Ok(sources)
+        })
         .transpose()
 }
 pub(super) fn validate_transaction(root: &Path, transaction: &Transaction) -> Result<(), String> {

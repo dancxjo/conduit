@@ -8532,3 +8532,24 @@ by `/tmp/conduit-selected-source-snapshot-clippy-20261106.log`.
 All source remains formatted and `git diff --check` passes. Logs retained under
 `target/creche-source-composition-20261106`; these are local process/construction
 proofs, not a live owner/MCU deployment or candidate adoption.
+
+### 2026-11-06 — acquire retained inventory separately from compilation
+
+Installed Source selection cannot acquire arbitrary files merely from a Face
+argument. The already retained complete Source workset is the first useful
+Root-owned inventory. Its reader now separates bounded JSON/byte/Source-document
+correspondence validation from compiler expansion. The existing checked reader
+uses that acquisition phase and still independently expands and checks the exact
+complete workset before any execution or publication. There is no change to
+Source journal format, lifecycle authority, or preference for complete custody
+over the older single-source file.
+
+All five retained-workset tests pass. The new negative test keeps exact retained
+Source bytes but chooses a missing entry: raw acquisition can represent this
+request, while actual compiler expansion refuses it. Changing Source bytes
+instead refuses acquisition itself. Strict production Clippy and formatting/diff
+checks pass. This is an acquisition seam for the installed handoff, not an
+installed Source-review action, admitted caller workspace or compiler result.
+The required remaining boundary is recorded on #6447 comment
+https://github.com/dancxjo/conduit/issues/6447#issuecomment-6692316011
+and remains coupled to existing #6341 preparation custody.

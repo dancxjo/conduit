@@ -293,3 +293,22 @@ fn stale_competing_or_foreign_revision_basis_cannot_replace_committed_state() {
     assert_eq!(fs::read(root.join(FILE)).unwrap(), committed_sources);
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn captured_inventory_does_not_promote_entry_labels_to_checked_source() {
+    let (root, biography, sources) = fixture();
+    retain(&root, &biography, &sources).unwrap();
+    let mut inventory = captured(&root, &biography).unwrap().unwrap();
+    assert_eq!(inventory.entries.len(), 2);
+    // The bytes remain the retained Source, but this entry is not present.
+    // Acquisition must not pretend it has performed expansion or compilation.
+    inventory.entries[1].entry = "missing".into();
+    write_json_atomic(&root.join(FILE), &inventory).unwrap();
+    let captured = captured(&root, &biography).unwrap().unwrap();
+    assert_eq!(captured.entries[1].entry, "missing");
+    assert!(captured.expand(&biography).is_err());
+    inventory.entries[1].source.push_str("\n# drift");
+    write_json_atomic(&root.join(FILE), &inventory).unwrap();
+    assert!(super::captured(&root, &biography).is_err());
+    fs::remove_dir_all(root).unwrap();
+}
