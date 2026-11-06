@@ -7021,3 +7021,12 @@ receiver compilation and static funding, not dynamic peak, real interruption
 recovery, installed Lines, native workset admission or sensing/display through
 admitted Plays. Those remain the next physical and composition gates of the
 full journey. Existing diagnostic sensing/display continues on the older Seed.
+
+
+### 2026-11-05 — finite canonical value envelopes and effect preflight
+
+Core now derives conditional canonical value upper bounds from checked Type shapes and explicitly supplied finite leaf contracts, without allocation. Unknown leaves, overflow and excessive envelopes refuse; these bounds are not grants or inferred sample sizes. Two independent-encoding tests cover all shapes. The I2C fabrication consumer derives 407-byte requests and 841-byte results while preserving its 4096-byte public Fore ceiling. The same CPU native-kernel fixture retains 7,856 rather than 14,360 bytes: 6,504 bytes saved (45.29%). This is not an ARM peak or combined-workset measurement.
+
+A real pressure reproducer performed a second provider effect before discovering a full result store. The synchronous native adapter now preflights result storage and completion Sign capacity before dispatch. Three pressure polls perform no additional effect; draining the first result permits exactly one second effect. Malformed input performs none. Preflight is not a reservation across mutation or await. All 15 I2C tests, the focused Kernel storage test, strict Core/Kernel/I2C Clippy and parser-free thumbv6m I2C checking passed. Raw logs, including the failed reproducer, are retained under ignored target/canonical-value-custody-20261105. No device or live service changed. Native sampler/display admission and Line ingress remain unfinished.
+
+PR #6799 merged at 1da2824a9660d48c16a67b9e56da16083224d83d after Candidate run 42157740678 succeeded. Delivery merged dev with an identical source tree. Package-native cleanup removed 82 inactive build files (1.1 GiB); source, private state and qualified firmware were preserved.
