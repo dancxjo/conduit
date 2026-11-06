@@ -137,6 +137,7 @@ pub fn discover_prepared_storage_schema(
         .ok_or(PreparedStorageProfileRefusal::MissingRoot)?;
     let mut discovery = Discovery {
         types,
+        contracts: &native.value_contracts,
         schema: PreparedStorageSchema {
             root: root.clone(),
             sites: Vec::new(),
@@ -144,11 +145,12 @@ pub fn discover_prepared_storage_schema(
         },
         work: 0,
     };
-    discovery.walk(&native.value_type, &mut Vec::new(), None)?;
+    discovery.walk(&native.value_type, &mut Vec::new(), None, "")?;
     Ok(discovery.schema)
 }
 struct Discovery<'a> {
     types: &'a [CheckedNativeType],
+    contracts: &'a [crate::NativeTypeValueContract],
     schema: PreparedStorageSchema,
     work: usize,
 }
@@ -183,6 +185,7 @@ impl Discovery<'_> {
         ty: &StructuredInfoType,
         path: &mut Vec<NativePathStep>,
         bound: Option<usize>,
+        contract_path: &str,
     ) -> Result<()> {
         use NativePathStep::{Each, Field, Representation, Variant};
         self.work += 1;
@@ -205,7 +208,7 @@ impl Discovery<'_> {
                     .transpose()
                     .map_err(|_| PreparedStorageProfileRefusal::Bounds)?;
                 path.push(Representation);
-                self.walk(representation, path, declared.or(bound))?;
+                self.walk(representation, path, declared.or(bound), contract_path)?;
                 path.pop();
             }
             Shape::Record { schema, fields } => {
@@ -214,7 +217,12 @@ impl Discovery<'_> {
                 }
                 for field in fields {
                     path.push(Field(field.name().into()));
-                    self.walk(field.value_type(), path, None)?;
+                    self.walk(
+                        field.value_type(),
+                        path,
+                        None,
+                        &format!("{contract_path}.{}", field.name()),
+                    )?;
                     path.pop();
                 }
             }
@@ -228,7 +236,7 @@ impl Discovery<'_> {
                     limit: PreparedStorageLimit::SequenceItems(maximum_items as usize),
                 });
                 path.push(Each);
-                self.walk(element, path, None)?;
+                self.walk(element, path, None, &format!("{contract_path}[]"))?;
                 path.pop();
             }
             Shape::Collection { element, length } => {
@@ -236,7 +244,7 @@ impl Discovery<'_> {
                     self.unsupported(path, "nonprimitive/large fixed array");
                 } else {
                     path.push(Each);
-                    self.walk(element, path, bound)?;
+                    self.walk(element, path, bound, &format!("{contract_path}[]"))?;
                     path.pop();
                 }
             }
@@ -264,13 +272,32 @@ impl Discovery<'_> {
                             continue;
                         }
                         path.push(Variant(case.tag().into()));
-                        self.walk(case.payload_type(), path, None)?;
+                        let separator = if schema.as_str() == "conduit.conduitese.optional.v1" {
+                            "?"
+                        } else {
+                            "|"
+                        };
+                        self.walk(
+                            case.payload_type(),
+                            path,
+                            None,
+                            &format!("{contract_path}{separator}{}", case.tag()),
+                        )?;
                         path.pop();
                     }
                 }
             }
             Shape::Leaf(kind) => match kind.as_str() {
-                "value/text" => match bound {
+                "value/text" => match self
+                    .contracts
+                    .iter()
+                    .find(|c| {
+                        c.representation_path == contract_path
+                            && c.contract.value_kind.as_str() == "value/text"
+                    })
+                    .map(|c| c.contract.maximum_bytes as usize)
+                    .or(bound)
+                {
                     Some(maximum) if maximum <= 65536 => {
                         self.schema.sites.push(PreparedStorageCapacity {
                             path: path.clone(),

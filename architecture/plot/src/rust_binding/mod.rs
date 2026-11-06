@@ -73,3 +73,8 @@ pub use prepared_storage_profile::{
     PreparedStorageCapacity, PreparedStorageLimit, PreparedStorageProfile,
     PreparedStorageProfileRefusal, PreparedStorageSchema, PreparedStorageUnsupported,
 };
+
+mod generate_profiled_storage;
+mod prepared_storage_cost;
+pub use generate_profiled_storage::generate_rust_bindings_with_profiled_storage;
+pub use prepared_storage_cost::PreparedStorageCost;
