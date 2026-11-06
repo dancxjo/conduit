@@ -25,9 +25,7 @@ fn unique_schema_backing_agrees_with_requested_live_allocations() {
             StructuredInfoType::record(KindId(text("fixture/record", 67)), fields).unwrap();
         let mut cases = Vec::with_capacity(5);
         cases.push(StructuredVariantCase::new(text("complete", 61), record).unwrap());
-        let schema =
-            StructuredInfoType::variant(KindId(text("fixture/variant", 59)), cases).unwrap();
-        schema
+        StructuredInfoType::variant(KindId(text("fixture/variant", 59)), cases).unwrap()
     });
     assert_eq!(observed.deallocations, 0);
     assert_eq!(observed.reallocations, 0);
