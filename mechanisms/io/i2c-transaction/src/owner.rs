@@ -44,6 +44,7 @@ pub enum I2cCallRefusal {
     Decode(I2cDecodeRefusal),
     Result(I2cResultRefusal),
     Canonical(StructuredInfoRefusal),
+    Preparation(conduit_core::StructuredCompositionPreparationRefusal),
 }
 
 pub struct I2cHostCall<P> {
@@ -75,7 +76,8 @@ impl PreparedI2cBinding {
         Ok(Self {
             node,
             decoder: PreparedI2cDecoder::new(contract).map_err(I2cCallRefusal::Canonical)?,
-            encoder: PreparedI2cResultEncoder::new(contract).map_err(I2cCallRefusal::Canonical)?,
+            encoder: PreparedI2cResultEncoder::new(contract)
+                .map_err(I2cCallRefusal::Preparation)?,
         })
     }
 }

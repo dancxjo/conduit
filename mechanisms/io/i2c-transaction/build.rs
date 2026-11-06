@@ -97,6 +97,16 @@ fn prepare_result_storage(result: &conduit_core::StructuredInfoType, output: &st
                         .collect(),
                 )
                 .unwrap();
+                fs::write(
+                    output.join("input.type"),
+                    field.value_type().canonical_bytes().unwrap(),
+                )
+                .unwrap();
+                fs::write(
+                    output.join("input.bound"),
+                    octets.canonical_bytes().unwrap().len().to_string(),
+                )
+                .unwrap();
                 let value = Value::record(
                     ty.clone(),
                     vec![StructuredFieldValue::new("input", octets).unwrap()],
@@ -115,7 +125,9 @@ fn prepare_result_storage(result: &conduit_core::StructuredInfoType, output: &st
                 value
             }
             Shape::Leaf(kind) if kind.as_str() == "value/empty" => {
-                Value::leaf(ty.clone(), vec![]).unwrap()
+                let value = Value::leaf(ty.clone(), vec![]).unwrap();
+                fs::write(output.join("unit.value"), value.canonical_bytes().unwrap()).unwrap();
+                value
             }
             _ => panic!("unsupported I2C result shape"),
         };
