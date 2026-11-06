@@ -8615,3 +8615,38 @@ sum metadata/provider overlap. This removes the initialization cycle without
 another Host, allocator or public arbitrary reservation handle; it is not yet
 implemented. The current input preparation API alone does not fund metadata
 constructed outside its callback.
+
+### 2026-11-06 — stage the one IMAGE memory owner before Source metadata
+
+The Source initializer now establishes a private, affine `StagedImageMemory`
+after checked Source-to-IMAGE verification, before native metadata construction.
+It borrows immutable intended Host/Boot/offer and IMAGE identities, charges its
+counter metadata, and supplies the existing finite leases. Final binding consumes
+it into the fresh ledger, checks exact identity/IMAGE/bounds, and preserves the
+same counter and outstanding charges without resetting or double-charging.
+Existing Base and Body reservations use one shared reservation helper.
+
+The qualified Source factory reserves its metadata peak before constructing the
+schema, definition, configuration clone and retained provider factory. Its charge
+shrinks to the declared retained bound before provider preparation; both compete
+against the same IMAGE ceiling. The actual product initializer uses this route,
+and no longer asks the caller to construct `SourceCheckNativeSchema` outside the
+admitted scope. The original grant, actual descriptor, exact reviewed snapshot,
+entry/context, pinned executable and bounded child remain required. Borrowed
+checked configuration/catalog and other outside caller stores remain independently
+funded; this is not complete Root workspace or physical #6341 acceptance.
+
+Review found and corrected refusal-path drop ordering: factory captures must drop
+before their metadata lease. Successful initialized Source definitions/providers
+also drop before their retained leases. The metadata charge remains held through
+the initialized native owner, including when other Host fields drop first.
+
+Final qualification: 41 IMAGE tests and nine actual compiler/IMAGE integration
+tests pass, with strict production Clippy for both changed packages and format/
+diff checks. The staged tests prove nonzero same-counter transfer, identity/bounds
+refusal, pressure/overflow and failure release. The new integration test proves a
+large retained metadata charge refuses provider preparation before its factory
+runs. An initial obsolete error-string assertion was aligned with the shared
+managed-heap refusal; its before-effect law remains unchanged. Logs retained in
+`target/staged-image-memory-20261106`. No device or live owner was updated.
+A fetch confirms accepted `dev` remains `816efef7f5`.

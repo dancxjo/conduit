@@ -257,7 +257,6 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
                     generation: definition.base.provider_generation,
                     resource_generation: definition.resource_generation,
                 },
-                schema: &schema,
                 file: source_file(source),
                 maximum_source_bytes: bounds().request_bytes as usize,
                 snapshot: &input.request.snapshot,
@@ -505,7 +504,7 @@ fn image_heap_includes_the_actual_retained_charge_owner_before_effects() {
     assert!(result
         .err()
         .unwrap()
-        .contains("managed Base backing capacity"));
+        .contains("managed heap backing capacity"));
 }
 
 struct BoundedBodyCapture {
@@ -548,7 +547,6 @@ fn product_installation_refuses_grant_drift_and_stop_before_source_capture() {
     for stopped in [false, true] {
         let checked = configuration();
         let image = image(&checked);
-        let schema = SourceCheckNativeSchema::prepare().unwrap();
         let (config, mut definition) = definition(&checked, &image);
         let source = include_str!("../../../../plots/hello/main.conduit");
         let (input, _) = input(source);
@@ -579,7 +577,6 @@ fn product_installation_refuses_grant_drift_and_stop_before_source_capture() {
                         generation: definition.base.provider_generation,
                         resource_generation: definition.resource_generation,
                     },
-                    schema: &schema,
                     file,
                     maximum_source_bytes: bounds().request_bytes as usize,
                     snapshot: &input.request.snapshot,
@@ -606,7 +603,6 @@ fn selected_source_snapshot_drift_refuses_before_compiler_preparation() {
     for changed in 0..3 {
         let checked = configuration();
         let image = image(&checked);
-        let schema = SourceCheckNativeSchema::prepare().unwrap();
         let (config, definition) = definition(&checked, &image);
         let original = include_str!("../../../../plots/hello/main.conduit");
         let (input, _) = input(original);
@@ -641,7 +637,6 @@ fn selected_source_snapshot_drift_refuses_before_compiler_preparation() {
                         generation: definition.base.provider_generation,
                         resource_generation: definition.resource_generation,
                     },
-                    schema: &schema,
                     file,
                     maximum_source_bytes: bounds().request_bytes as usize,
                     snapshot: &snapshot,
@@ -656,4 +651,42 @@ fn selected_source_snapshot_drift_refuses_before_compiler_preparation() {
             .expect("snapshot drift must not publish an initialized Host")
             .contains("selected Source changed since owner review"));
     }
+}
+
+#[test]
+fn metadata_and_provider_preparation_compete_in_one_image_heap() {
+    let checked = configuration();
+    let image = image(&checked);
+    let (config, definition) = definition(&checked, &image);
+    let provider_ran = Rc::new(Cell::new(false));
+    let probe = provider_ran.clone();
+    let provider_budget = budget();
+    // SAFETY: fixed fixture metadata is much smaller than this conservative
+    // envelope. Its retained charge plus provider preparation exceeds the one
+    // IMAGE heap, so native preparation must never be invoked.
+    let result = unsafe {
+        StdHost::from_selected_timer_and_source_factory_image(
+            config,
+            &image,
+            &conduit_workspace_make::catalog(),
+            &checked,
+            ImmediateSourcePreparationBudget {
+                preparation_bytes: 50 * 1024 * 1024,
+                retained_bytes: 50 * 1024 * 1024,
+            },
+            None,
+            move |_| {
+                Ok((
+                    definition,
+                    provider_budget,
+                    move || -> Result<Box<dyn ImmediateNativeSource>, String> {
+                        probe.set(true);
+                        Err("unadmitted provider must not run".into())
+                    },
+                ))
+            },
+        )
+    };
+    assert!(!provider_ran.get());
+    assert!(result.err().unwrap().contains("backing capacity"));
 }

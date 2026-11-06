@@ -56,6 +56,91 @@ impl Drop for ImageMemoryCharge {
             .fetch_sub(self.bytes.load(Ordering::Acquire), Ordering::AcqRel);
     }
 }
+/// Affine initial construction custody. Identity and IMAGE are borrowed from
+/// independently verified immutable inputs, so staging allocates no ID copies.
+/// The one Arc counter allocation is explicitly charged, including its two
+/// reference counts; allocator rounding and process RSS are not measured here.
+pub(crate) struct StagedImageMemory<'a> {
+    config: &'a crate::StdHostConfig,
+    image: &'a conduit_host_make::HostImage,
+    used: Arc<AtomicUsize>,
+    limit: usize,
+}
+impl<'a> StagedImageMemory<'a> {
+    pub(crate) fn verified(
+        config: &'a crate::StdHostConfig,
+        image: &'a conduit_host_make::HostImage,
+        checked: &conduit_host_make::CheckedHostConfiguration,
+        catalog: &conduit_host_make::MakeCatalog,
+    ) -> Result<Self, String> {
+        conduit_host_make::verify_configuration_image(checked, image, catalog)?;
+        if config.host_id.as_str().is_empty()
+            || config.boot_id.as_str().is_empty()
+            || config.offer_generation.0 == 0
+        {
+            return Err("staged IMAGE requires current intended Host/Boot identity".into());
+        }
+        let limit = usize::try_from(image.manifest.bounds.heap_arena_bytes)
+            .map_err(|_| "IMAGE heap exceeds local size")?;
+        let metadata = Self::counter_backing_bytes();
+        if metadata > limit {
+            return Err("IMAGE heap cannot retain its memory counter".into());
+        }
+        Ok(Self {
+            config,
+            image,
+            used: Arc::new(AtomicUsize::new(metadata)),
+            limit,
+        })
+    }
+    pub(crate) fn counter_backing_bytes() -> usize {
+        core::mem::size_of::<AtomicUsize>() + 2 * core::mem::size_of::<usize>()
+    }
+    pub(crate) fn reserve(&mut self, bytes: usize) -> Result<ImageMemoryLease, String> {
+        reserve_image_memory(&self.used, self.limit, bytes)
+    }
+    /// Initial ledger construction only. Existing leases keep exactly the same
+    /// counter; binding neither resets their charge nor reserves them again.
+    pub(crate) fn bind(
+        self,
+        ledger: &mut KernelResourceLedger,
+        actual: &HostAdvertisement,
+        image: &conduit_host_make::HostImage,
+    ) -> Result<(), String> {
+        if image != self.image
+            || actual.host_id != self.config.host_id
+            || actual.boot_id != self.config.boot_id
+            || actual.offer_generation != self.config.offer_generation
+            || ledger.identity.0 != actual.host_id
+            || ledger.identity.1 != actual.boot_id
+            || ledger.identity.2 != actual.offer_generation
+        {
+            return Err("staged IMAGE memory differs from final Host/Boot/IMAGE".into());
+        }
+        ledger.bind_staged_image_bounds(&image.manifest.bounds, self.used)
+    }
+}
+
+fn reserve_image_memory(
+    used: &Arc<AtomicUsize>,
+    limit: usize,
+    bytes: usize,
+) -> Result<ImageMemoryLease, String> {
+    if bytes == 0 {
+        return Err("managed IMAGE receipt is empty".into());
+    }
+    used.fetch_update(Ordering::AcqRel, Ordering::Acquire, |old| {
+        old.checked_add(bytes).filter(|next| *next <= limit)
+    })
+    .map_err(|_| "selected IMAGE managed heap backing capacity is unavailable")?;
+    Ok(ImageMemoryLease {
+        inner: Arc::new(ImageMemoryCharge {
+            used: used.clone(),
+            bytes: AtomicUsize::new(bytes),
+        }),
+    })
+}
+
 impl KernelResourceLedger {
     /// Reserve the independently computed fixed Base stores before allocation.
     /// This is not a complete Plan receipt, process RSS or preparation peak.
@@ -73,21 +158,8 @@ impl KernelResourceLedger {
         let used = self
             .image_memory
             .as_ref()
-            .ok_or("IMAGE memory owner absent")?
-            .clone();
-        if bytes == 0 {
-            return Err("managed Base receipt is empty".into());
-        }
-        used.fetch_update(Ordering::AcqRel, Ordering::Acquire, |old| {
-            old.checked_add(bytes).filter(|next| *next <= limit)
-        })
-        .map_err(|_| "selected IMAGE managed Base backing capacity is unavailable")?;
-        Ok(ImageMemoryLease {
-            inner: Arc::new(ImageMemoryCharge {
-                used,
-                bytes: AtomicUsize::new(bytes),
-            }),
-        })
+            .ok_or("IMAGE memory owner absent")?;
+        reserve_image_memory(used, limit, bytes)
     }
     #[cfg(test)]
     pub(crate) fn image_memory_observer(&self) -> Arc<AtomicUsize> {
@@ -112,22 +184,15 @@ impl KernelResourceLedger {
         let used = self
             .image_memory
             .as_ref()
-            .ok_or("IMAGE memory owner missing")?
-            .clone();
-        used.fetch_update(Ordering::AcqRel, Ordering::Acquire, |old| {
-            old.checked_add(receipt.total_bytes())
-                .filter(|next| *next <= limit)
-        })
-        .map_err(|_| "selected IMAGE managed heap backing capacity is unavailable")?;
-        let lease = ImageMemoryLease {
-            inner: Arc::new(ImageMemoryCharge {
-                used,
-                bytes: AtomicUsize::new(receipt.total_bytes()),
-            }),
-        };
+            .ok_or("IMAGE memory owner missing")?;
+        let lease = reserve_image_memory(used, limit, receipt.total_bytes())?;
         self.image_receipt_reserving = true;
         let result = self.prepare_and_reserve_plans(advertisement, plans);
         self.image_receipt_reserving = false;
         Ok((result?, lease))
     }
 }
+
+#[cfg(test)]
+#[path = "staged_image_memory_tests.rs"]
+mod staged_tests;

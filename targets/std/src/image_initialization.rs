@@ -18,6 +18,7 @@ const MAXIMUM_TIMER_POOLS: usize = 16;
 struct InitialBases<'a> {
     creche: Option<ResourceOffer>,
     source: Option<crate::selected_native_source::InitialNativeSource<'a>>,
+    memory: Option<crate::kernel_preparation::StagedImageMemory<'a>>,
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
     scanout: Option<crate::selected_scanout::SelectedScanoutBase>,
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
@@ -156,16 +157,18 @@ impl StdHost {
                 native_mask: Some(native_mask),
                 source: None,
                 creche: None,
+                memory: None,
             },
         )
     }
 
-    pub(crate) fn from_selected_source_initial_bases(
+    pub(crate) fn from_selected_source_initial_bases<'a>(
         config: StdHostConfig,
         image: &HostImage,
         catalog: &MakeCatalog,
-        source: crate::selected_native_source::InitialNativeSource<'_>,
+        source: crate::selected_native_source::InitialNativeSource<'a>,
         creche: Option<ResourceOffer>,
+        memory: Option<crate::kernel_preparation::StagedImageMemory<'a>>,
     ) -> Result<Self, String> {
         Self::from_selected_initial_bases(
             config,
@@ -174,6 +177,7 @@ impl StdHost {
             InitialBases {
                 source: Some(source),
                 creche,
+                memory,
                 #[cfg(all(target_os = "linux", feature = "linux-display"))]
                 scanout: None,
                 #[cfg(all(target_os = "linux", feature = "linux-display"))]
@@ -500,7 +504,11 @@ impl StdHost {
         {
             host.selected_scanout = initial.scanout;
         }
-        host.kernel_resources.bind_image_bounds(&manifest.bounds)?;
+        if let Some(memory) = initial.memory {
+            memory.bind(&mut host.kernel_resources, &host.advertisement, image)?;
+        } else {
+            host.kernel_resources.bind_image_bounds(&manifest.bounds)?;
+        }
         if let Some(source) = initial.source {
             source.initialize(&mut host)?;
         }

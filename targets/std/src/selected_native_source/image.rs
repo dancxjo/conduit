@@ -8,7 +8,9 @@ type Factory<'a> = Box<dyn FnOnce() -> Result<Box<dyn ImmediateNativeSource>, St
 pub(crate) struct InitialNativeSource<'a> {
     pub definition: NativeSourceDefinition,
     pub budget: ImmediateSourcePreparationBudget,
+    // Drop the factory's owned captures before releasing their metadata charge.
     prepare: Factory<'a>,
+    metadata_memory: Option<crate::kernel_preparation::ImageMemoryLease>,
 }
 impl InitialNativeSource<'_> {
     pub(crate) fn validate_image(&self, image: &HostImage) -> Result<(), String> {
@@ -119,6 +121,7 @@ impl InitialNativeSource<'_> {
             provider: NativeProvider::Immediate(provider),
             backing: Some(backing),
             _image_memory: Some(heap),
+            _metadata_memory: self.metadata_memory,
         });
         Ok(())
     }
@@ -176,9 +179,79 @@ impl StdHost {
         let source = InitialNativeSource {
             definition,
             budget,
+            metadata_memory: None,
             prepare: Box::new(prepare),
         };
         source.validate_image(image)?;
-        Self::from_selected_source_initial_bases(config, image, catalog, source, creche_resource)
+        Self::from_selected_source_initial_bases(
+            config,
+            image,
+            catalog,
+            source,
+            creche_resource,
+            None,
+        )
+    }
+    /// Admit native-definition construction before its metadata factory runs.
+    /// The verified IMAGE counter is transferred into the final Host unchanged;
+    /// metadata retention and provider preparation share its one finite ceiling.
+    ///
+    /// # Safety
+    /// The original Source/Host grant obligations of the immediate constructor
+    /// apply. Root must qualify both factory peaks and retained backing. The
+    /// metadata envelope includes the cloned construction configuration, native
+    /// definition and the returned provider factory's owned captures. Borrowed
+    /// configuration/catalog/schema and other caller stores remain independently
+    /// funded. Each factory must return only after its temporary effects quiesce.
+    #[allow(clippy::too_many_arguments)]
+    pub unsafe fn from_selected_timer_and_source_factory_image<'a, F, G>(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        checked: &CheckedHostConfiguration,
+        metadata_budget: ImmediateSourcePreparationBudget,
+        creche_resource: Option<ResourceOffer>,
+        metadata: F,
+    ) -> Result<Self, String>
+    where
+        F: FnOnce(
+            &StdHostConfig,
+        )
+            -> Result<(NativeSourceDefinition, ImmediateSourcePreparationBudget, G), String>,
+        G: FnOnce() -> Result<Box<dyn ImmediateNativeSource>, String> + 'a,
+    {
+        use crate::kernel_preparation::{ImageMemoryLease, StagedImageMemory};
+        if metadata_budget.retained_bytes == 0
+            || metadata_budget.retained_bytes > metadata_budget.preparation_bytes
+        {
+            return Err("initial Source metadata has an invalid finite budget".into());
+        }
+        let mut memory = StagedImageMemory::verified(&config, image, checked, catalog)?;
+        let overhead = ImageMemoryLease::owned_backing_bytes();
+        let peak = (metadata_budget.preparation_bytes as usize)
+            .checked_add(overhead)
+            .ok_or("initial Source metadata preparation overflow")?;
+        let retained = (metadata_budget.retained_bytes as usize)
+            .checked_add(overhead)
+            .ok_or("initial Source metadata retention overflow")?;
+        let mut metadata_memory = memory.reserve(peak)?;
+        let final_config = config.clone();
+        let (definition, budget, prepare) = metadata(&config)?;
+        metadata_memory.retain_result(retained);
+        let source = InitialNativeSource {
+            definition,
+            budget,
+            metadata_memory: Some(metadata_memory),
+            prepare: Box::new(prepare),
+        };
+        source.validate_image(image)?;
+        Self::from_selected_source_initial_bases(
+            final_config,
+            image,
+            catalog,
+            source,
+            creche_resource,
+            Some(memory),
+        )
     }
 }

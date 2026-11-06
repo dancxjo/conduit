@@ -71,6 +71,7 @@ impl crate::StdHost {
             provider: NativeProvider::Immediate(provider),
             backing: Some(backing),
             _image_memory: None,
+            _metadata_memory: None,
         });
         Ok(())
     }

@@ -50,6 +50,7 @@ pub(crate) struct InitializedNativeSource {
     definition: NativeSourceDefinition,
     provider: NativeProvider,
     _image_memory: Option<crate::kernel_preparation::ImageMemoryLease>,
+    _metadata_memory: Option<crate::kernel_preparation::ImageMemoryLease>,
     pub(super) backing: Option<crate::kernel_preparation::BaseBackingReservation>,
 }
 enum NativeProvider {
@@ -104,6 +105,7 @@ impl crate::StdHost {
                     provider: NativeProvider::Immediate(provider),
                     backing: None,
                     _image_memory: None,
+                    _metadata_memory: None,
                 });
                 Ok(())
             }

@@ -131,6 +131,7 @@ impl crate::StdHost {
             provider: NativeProvider::Worker(worker),
             backing: Some(backing),
             _image_memory: None,
+            _metadata_memory: None,
         });
         Ok(())
     }

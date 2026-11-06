@@ -119,6 +119,26 @@ impl KernelResourceLedger {
         Ok(())
     }
 
+    pub(in super::super) fn bind_staged_image_bounds(
+        &mut self,
+        bounds: &HostBounds,
+        used: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+    ) -> Result<(), String> {
+        self.require_available()?;
+        if self.image_bounds.is_some()
+            || self.image_memory.is_some()
+            || !self.is_idle()
+            || used.load(std::sync::atomic::Ordering::Acquire) as u64 > bounds.heap_arena_bytes
+        {
+            return Err(
+                "staged IMAGE bounds require a fresh idle ledger with sufficient memory".into(),
+            );
+        }
+        self.image_bounds = Some(bounds.clone());
+        self.image_memory = Some(used);
+        Ok(())
+    }
+
     /// A different offer/provider set requires another checked IMAGE/Boot.
     /// Reference profiles retain their existing explicit attachment lifecycle.
     pub(crate) fn require_reference_reconfiguration(&self) -> Result<(), String> {

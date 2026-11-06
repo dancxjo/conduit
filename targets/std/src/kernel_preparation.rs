@@ -33,7 +33,7 @@ mod base_preparation;
 pub(crate) use base_backing::BaseBackingReservation;
 mod image_bounds;
 mod image_memory;
-pub(crate) use image_memory::{BodyMemoryReceipt, ImageMemoryLease};
+pub(crate) use image_memory::{BodyMemoryReceipt, ImageMemoryLease, StagedImageMemory};
 mod ledger;
 pub(crate) use ledger::{KernelResourceLedger, KernelResourceReservation};
 mod placement_resources;
