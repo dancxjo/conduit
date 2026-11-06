@@ -230,3 +230,57 @@ fn native_face_refuses_finite_surfaces_invalid_issuer_and_failed_scanout() {
 
 #[path = "scanout_tests.rs"]
 mod scanout_tests;
+
+#[test]
+fn admitted_pointer_uses_shared_history_and_mask_without_enabling_owner_actions() {
+    let ids = identities();
+    let make = make();
+    let attempts = Arc::new(AtomicU32::new(0));
+    let mut frame = FirmwareFace::prepare(
+        Display {
+            attempts: attempts.clone(),
+            fail: false,
+        },
+        &ids,
+        &offer(&ids, &make),
+        &make,
+        [7; 32],
+    )
+    .unwrap();
+    // Named CPU fixture: this exercises the trusted Root's UI handoff only,
+    // and establishes no native device authority or physical input evidence.
+    unsafe { frame.admit_pointer() }.unwrap();
+    let before = attempts.load(Ordering::SeqCst);
+    let sample = conduit_semantic_catalog::NormalizedPointerSample {
+        position_x: 1_000_000,
+        position_y: 1_000_000,
+        delta_x: 500_000,
+        delta_y: 500_000,
+        primary_pressed: true,
+        coalesced: 0,
+        dropped: 0,
+        queue_capacity: 1,
+        sequence: 1,
+    };
+    frame.observe_pointer(sample).unwrap();
+    assert!(attempts.load(Ordering::SeqCst) > before);
+    assert_eq!(
+        frame
+            .pointer
+            .as_ref()
+            .unwrap()
+            .position(&frame._display)
+            .unwrap(),
+        (639, 479)
+    );
+    frame.retire_pointer().unwrap();
+    assert!(frame.pointer.as_ref().unwrap().is_retired());
+    assert!(
+        frame
+            .observe_pointer(conduit_semantic_catalog::NormalizedPointerSample {
+                sequence: 2,
+                ..sample
+            })
+            .is_err()
+    );
+}

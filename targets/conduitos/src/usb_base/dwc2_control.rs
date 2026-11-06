@@ -36,6 +36,7 @@ pub(crate) struct Dwc2ControlHost<I> {
     pending: Option<NativeControlSubmission>,
     lost: bool,
     revoked: bool,
+    bus_reservation: Option<super::dwc2_bus_route::BusControlReservation>,
 }
 impl<I: RegisterIo> Dwc2ControlHost<I> {
     /// # Safety
@@ -75,8 +76,62 @@ impl<I: RegisterIo> Dwc2ControlHost<I> {
             pending: None,
             lost: false,
             revoked: false,
+            bus_reservation: None,
         })
     }
+    /// Bind a controller-wide native scope and its independently retained
+    /// finite wire-address reservation. This does not broaden a device claim.
+    ///
+    /// # Safety
+    /// All `bind_owned` obligations hold, and `owner` really possesses the
+    /// entire bus named by `reservation`, not merely one discovered device.
+    pub unsafe fn bind_owned_bus(
+        controller: Controller<I>,
+        owner: ControlCallOwner,
+        route: RootControlRoute,
+        reservation: super::dwc2_bus_route::BusControlReservation,
+    ) -> Result<Self, Dwc2ControlRefusal> {
+        if !reservation.permits(route) {
+            return Err(Dwc2ControlRefusal::Binding);
+        }
+        // SAFETY: Root supplies the original controller and bus-wide scope.
+        let mut host = unsafe { Self::bind_owned(controller, owner, route)? };
+        host.bus_reservation = Some(reservation);
+        Ok(host)
+    }
+
+    /// Change only wire geometry within the retained bus reservation, between
+    /// settled calls. Logical attachment identity and original possession stay
+    /// exact. Ordinary per-device owners have no such reservation.
+    pub fn select_reserved_route(
+        &mut self,
+        route: RootControlRoute,
+    ) -> Result<(), Dwc2ControlRefusal> {
+        if self.retains_submission() || !self.controller.is_quiescent() {
+            return Err(Dwc2ControlRefusal::Native(PacketError::Retirement));
+        }
+        let endpoint = EndpointRoute {
+            translator: route.translator,
+            ..EndpointRoute::control(route.address, route.maximum_packet)
+        };
+        if self.lost
+            || self.revoked
+            || !self.controller.is_prepared()
+            || route.slot != self.route.slot
+            || route.generation != self.route.generation
+            || !matches!(route.maximum_packet, 8 | 16 | 32 | 64)
+            || !endpoint.valid()
+            || self
+                .bus_reservation
+                .as_ref()
+                .is_none_or(|scope| !scope.permits(route))
+        {
+            return Err(Dwc2ControlRefusal::Binding);
+        }
+        self.route = route;
+        Ok(())
+    }
+
     pub fn execute(
         &mut self,
         node: NodeId,

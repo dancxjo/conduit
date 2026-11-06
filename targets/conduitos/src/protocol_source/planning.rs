@@ -111,8 +111,12 @@ impl PreparedProtocolSource {
                     let program =
                         conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded)
                             .map_err(|_| Error::Offer)?;
-                    crate::expression_host_call::offer(&program, temporal)
-                        .map_err(|_| Error::Offer)?
+                    if gear.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
+                        crate::filter_host_call::offer(&program, temporal)
+                    } else {
+                        crate::expression_host_call::offer(&program, temporal)
+                    }
+                    .map_err(|_| Error::Offer)?
                 }
                 "selector" => {
                     let selector = conduit_core::StructuredSelector::from_canonical_hex(encoded)

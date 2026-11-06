@@ -50,6 +50,7 @@ impl PreparedPureProtocolPlay {
                     || !matches!(
                         gear.implementation_id.as_str(),
                         crate::expression_host_call::IMPLEMENTATION
+                            | crate::filter_host_call::IMPLEMENTATION
                             | crate::offer::TEXT_LITERAL_IMPLEMENTATION
                             | crate::bytes_literal::IMPLEMENTATION
                             | crate::flow_singleton::IMPLEMENTATION
@@ -113,6 +114,9 @@ impl PreparedPureProtocolPlay {
             .map_err(|_| Refusal::InvalidPlan)?;
         registry
             .install(crate::text_literal::TextLiteralOperationFactory::default())
+            .map_err(|_| Refusal::InvalidPlan)?;
+        registry
+            .install(crate::filter_host_call::FilterOperationFactory::default())
             .map_err(|_| Refusal::InvalidPlan)?;
         registry
             .install(ExpressionOperationFactory::default())

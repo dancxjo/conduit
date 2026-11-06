@@ -299,6 +299,9 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             .map_err(|error| preparation_diagnostic::invalid("singletons", error))?;
         let mut registry = KernelOperationRegistry::new();
         registry
+            .install(crate::filter_host_call::FilterOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
+        registry
             .install(singletons)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry

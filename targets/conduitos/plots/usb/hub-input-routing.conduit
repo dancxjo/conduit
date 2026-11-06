@@ -1,0 +1,72 @@
+# Data routing and request words for the finite hub input lifecycle.
+plot usb-hub-input-control (
+    input: UsbHubInputState...| <= 4096B >> result: UsbHubInputControl...| <= 4096B
+) = ({ address: .address, maximum-packet: .maximum-packet, hub-address: .translator-port == 0 ? 0 : .hub-address, translator-port: .translator-port, low-speed: .translator-port != 0 && .low-speed, request: { setup: (.phase < 20 ? (.phase < 8 ? (.phase < 4 ? (.phase < 2 ? (.phase == 0 ? 0x0008000001000680 : 0) : (.phase == 2 ? 0x0000000000000500 | (value/u64(.hub-address) * 65536) : 0)) : (.phase < 6 ? (.phase == 4 ? 0x0009000002000680 : 0) : (.phase == 6 ? 0x0000000002000680 | (.total-length * 281474976710656) : 0))) : (.phase < 12 ? (.phase < 10 ? (.phase == 8 ? 0x0000000000000900 | (value/u64(.configuration-value) * 65536) : 0) : (.phase == 10 ? 0x00090000290006a0 : 0)) : (.phase < 16 ? (.phase == 12 ? 0x0000000000080323 | (value/u64(.port) * 4294967296) : 0) : (.phase < 18 ? (.phase == 16 ? 0x00040000000000a3 | (value/u64(.port) * 4294967296) : 0) : (.phase == 18 ? 0x0000000000040323 | (value/u64(.port) * 4294967296) : 0))))) : (.phase < 28 ? (.phase < 24 ? (.phase < 22 ? (.phase == 20 ? 0x00040000000000a3 | (value/u64(.port) * 4294967296) : 0) : (.phase == 22 ? 0x0000000000140123 | (value/u64(.port) * 4294967296) : 0)) : (.phase < 25 ? (.phase == 24 ? 0x0000000000100123 | (value/u64(.port) * 4294967296) : 0) : (.phase < 26 ? (.phase == 25 ? 0x0000000000080123 | (value/u64(.port) * 4294967296) : 0) : (.phase == 26 ? 0x0008000001000680 : 0)))) : (.phase < 32 ? (.phase < 30 ? (.phase == 28 ? 0x0000000000000500 | (value/u64(.first-child-address + .port - 1) * 65536) : 0) : (.phase == 30 ? 0x0009000002000680 : 0)) : (.phase < 36 ? (.phase == 32 ? 0x0000000002000680 | (.total-length * 281474976710656) : 0) : (.phase < 38 ? (.phase == 36 ? 0x0000000000000900 | (value/u64(.configuration-value) * 65536) : 0) : (.phase == 38 ? 0x0100000022000681 | (value/u64(.interface-number) * 4294967296) : 0)))))), output: [] } })
+
+plot usb-hub-input-delay (
+    input: UsbHubInputState...| <= 4096B >> result: U64...| <= 8B
+) = (.delay-ms)
+
+plot usb-hub-input-device-frame (
+    input: UsbHubInputState...| <= 4096B >> result: UsbEnumerationDescriptorTransfer...| <= 4096B
+) = ({ wire: .wire, actual: value/u64(.actual) })
+
+plot usb-hub-input-configuration-frame (
+    input: UsbHubInputState...| <= 4096B >> result: UsbConfigurationTransfer...| <= 4096B
+) = ({ wire: .wire, actual: value/u64(.actual) })
+
+plot usb-hub-input-layout-frame (
+    input: UsbHubInputState...| <= 4096B >> result: UsbHidDescriptorTransfer...| <= 4096B
+) = ({ wire: .wire, actual: value/u64(.actual) })
+
+plot usb-hub-input-prefix-frame (
+    input: UsbHubInputState...| <= 4096B >> result: UsbNineOctetDescriptorFrame...| <= 4096B
+) = (sequence/length(.wire) >= 9 ? { wire: [.wire.0, .wire.1, .wire.2, .wire.3, .wire.4, .wire.5, .wire.6, .wire.7, .wire.8], actual: value/u64(.actual) } : { wire: [0, 0, 0, 0, 0, 0, 0, 0, 0], actual: 0 })
+
+
+plot usb-hub-input-profile-input (
+    input: UsbHubTopologyPair...| >> result: UsbHidInputProfileInput...| <= 4096B
+) = ({ topology: .1.configuration, low-speed: .0.low-speed, high-speed: .0.high-speed })
+
+
+
+
+
+
+
+
+
+
+
+plot usb-hub-input-pulse (
+    input: UsbHubInputState...| <= 4096B >> result: Empty...|
+) = (empty)
+
+plot usb-hub-input-finish (
+    input: UsbHubInputState...| <= 4096B >> result: UsbHubInputResult...| <= 4096B
+) = (.reason == 1 ? input({ address: .address, hub-address: .translator-port == 0 ? 0 : .hub-address, translator-port: .translator-port, low-speed: .translator-port != 0 && .low-speed, endpoint: .endpoint, maximum-packet: .input-packet, interval-ms: .interval-ms, layout: { report-id: .layout-octets.0, tip-byte: .layout-offsets.0, tip-mask: .layout-octets.1, x-byte: .layout-offsets.1, y-byte: .layout-offsets.2, x-width: .layout-octets.2, y-width: .layout-octets.3, maximum-x: .layout-maxima.0, maximum-y: .layout-maxima.1 } }) : refused({ port: .last-port, reason: (.reason < 6 ? (.reason < 4 ? (.reason < 3 ? (.reason == 2 ? no-input(empty) : malformed(empty)) : (.reason == 3 ? malformed(empty) : malformed(empty))) : (.reason < 5 ? (.reason == 4 ? stalled(empty) : malformed(empty)) : (.reason == 5 ? provider-lost(empty) : malformed(empty)))) : (.reason < 8 ? (.reason < 7 ? (.reason == 6 ? unsupported(empty) : malformed(empty)) : (.reason == 7 ? pressure(empty) : malformed(empty))) : (.reason < 9 ? (.reason == 8 ? overcurrent(empty) : malformed(empty)) : (.reason < 10 ? (.reason == 9 ? port-timeout(empty) : malformed(empty)) : (.reason == 10 ? short(empty) : malformed(empty)))))) }))
+
+plot usb-hub-input-control-output (
+    input: UsbHubInputControl...| <= 4096B >> result: UsbHubInputControl...| <= 4096B
+) = (.)
+
+plot usb-hub-input-result-output (
+    input: UsbHubInputResult...| <= 4096B >> result: UsbHubInputResult...| <= 4096B
+) = (.)
+
+plot usb-hub-input-wake (
+    input: Empty...| >> result: UsbHubWaitObservation...| <= 4096B
+) = ({ waited: true })
+
+plot usb-hub-input-port-reply (
+    input: UsbHubControlPair...| >> result: UsbControlResult...| <= 4096B
+) = (.1)
+
+plot usb-hub-input-configuration-output (
+    input: UsbConfigurationTransfer...| <= 4096B >> result: UsbConfigurationTransfer...| <= 4096B
+) = (.)
+
+plot usb-hub-input-descriptor-output (
+    input: UsbHidDescriptorTransfer...| <= 4096B >> result: UsbHidDescriptorTransfer...| <= 4096B
+) = (.)
+

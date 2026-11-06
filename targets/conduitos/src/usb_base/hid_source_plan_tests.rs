@@ -130,10 +130,10 @@ fn absolute_input_requires_current_read_authority_and_uses_the_shared_kernel() {
         conduit_composite::KernelCompositeSignStorage::default(),
     )
     .unwrap();
-    assert_eq!(run.kernel_mut().definition().boundary.input_fronts.len(), 1);
+    assert_eq!(run.kernel_mut().definition().boundary.input_fronts.len(), 2);
     assert_eq!(
         run.kernel_mut().definition().boundary.output_fronts.len(),
-        3
+        4
     );
     assert!(prepare(HidSourceRole::AbsoluteMouse, &host, &[]).is_err());
     let mut stale = grants;

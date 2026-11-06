@@ -23,7 +23,7 @@ impl HidSourceRole {
             Self::KeyboardCapture => "usb-hid-keyboard-capture-window",
             Self::Keyboard => "usb-hid-keyboard-batch-endpoint",
             Self::Mouse => "usb-hid-mouse-endpoint",
-            Self::AbsoluteMouse => "usb-hid-absolute-endpoint",
+            Self::AbsoluteMouse => "usb-hid-absolute-device",
         }
     }
 }

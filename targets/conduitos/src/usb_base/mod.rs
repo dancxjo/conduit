@@ -57,3 +57,18 @@ pub(crate) mod dwc2_control;
 pub(crate) mod dwc2_endpoint_read;
 
 pub mod control_source_plan;
+
+#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+pub(crate) mod dwc2_bus_route;
+
+#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+pub(crate) mod dwc2_control_play;
+
+#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+pub(crate) mod dwc2_hub_play;
+
+#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+pub(crate) mod dwc2_pointer_play;
+
+#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+pub(crate) mod dwc2_pointer_session;

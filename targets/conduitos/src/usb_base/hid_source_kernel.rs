@@ -53,6 +53,20 @@ impl PreparedUsbSourceKernel {
         Self::prepare_for(artifact, storage, None)
     }
 
+    /// Clock waits share the same kernel and independently admitted clock owner.
+    pub(crate) fn prepare_clock(
+        artifact: PreparedProtocolArtifact,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_for(
+            artifact,
+            KernelCompositeSignStorage {
+                additional_local_items: 8192,
+                additional_remote_items: 8192,
+            },
+            Some(crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION),
+        )
+    }
+
     fn prepare_for(
         artifact: PreparedProtocolArtifact,
         storage: KernelCompositeSignStorage,
@@ -74,23 +88,36 @@ impl PreparedUsbSourceKernel {
         {
             return Err(Error::Unsupported);
         }
-        operations
-            .joins
-            .validate_plan(plan)
-            .map_err(|_| Error::InvalidPlan)?;
-        operations
-            .states
-            .validate_plan(plan)
-            .map_err(|_| Error::InvalidPlan)?;
-        operations
-            .concats
-            .validate_plan(plan)
-            .map_err(|_| Error::InvalidPlan)?;
-        operations
-            .merges
-            .validate_plan(plan)
-            .map_err(|_| Error::InvalidPlan)?;
-        let lowered = lower_plan_fragment(fragment).map_err(|_| Error::InvalidPlan)?;
+        operations.joins.validate_plan(plan).map_err(|reason| {
+            Error::Kernel(conduit_composite::KernelCompositeError::ChildRefused {
+                child: fragment.host_id.clone(),
+                reason,
+            })
+        })?;
+        operations.states.validate_plan(plan).map_err(|reason| {
+            Error::Kernel(conduit_composite::KernelCompositeError::ChildRefused {
+                child: fragment.host_id.clone(),
+                reason,
+            })
+        })?;
+        operations.concats.validate_plan(plan).map_err(|reason| {
+            Error::Kernel(conduit_composite::KernelCompositeError::ChildRefused {
+                child: fragment.host_id.clone(),
+                reason,
+            })
+        })?;
+        operations.merges.validate_plan(plan).map_err(|reason| {
+            Error::Kernel(conduit_composite::KernelCompositeError::ChildRefused {
+                child: fragment.host_id.clone(),
+                reason,
+            })
+        })?;
+        let lowered = lower_plan_fragment(fragment).map_err(|error| {
+            Error::Kernel(conduit_composite::KernelCompositeError::Lowering {
+                child: fragment.host_id.clone(),
+                error,
+            })
+        })?;
         let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         let identity = PreparationHostIdentity {
             host_id: fragment.host_id.clone(),
@@ -113,6 +140,9 @@ impl PreparedUsbSourceKernel {
             }
         }
         let mut registry = KernelOperationRegistry::new();
+        registry
+            .install(crate::filter_host_call::FilterOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(crate::expression_host_call::ExpressionOperationFactory::default())
             .map_err(|_| Error::InvalidPlan)?;
@@ -138,6 +168,15 @@ impl PreparedUsbSourceKernel {
             registry
                 .install(
                     super::control_factory::ControlOperationFactory::prepare_contract()
+                        .map_err(|_| Error::InvalidPlan)?,
+                )
+                .map_err(|_| Error::InvalidPlan)?;
+        } else if native_implementation
+            == Some(crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION)
+        {
+            registry
+                .install(
+                    crate::monotonic_clock::factory::ClockOperationFactory::prepare_contract()
                         .map_err(|_| Error::InvalidPlan)?,
                 )
                 .map_err(|_| Error::InvalidPlan)?;

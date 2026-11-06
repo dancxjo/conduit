@@ -58,7 +58,4 @@ impl UsbHost {
     pub fn facts(&self) -> ControllerFacts {
         self.facts
     }
-    pub fn is_prepared(&self) -> bool {
-        self.controller.is_prepared()
-    }
 }

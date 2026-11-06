@@ -75,3 +75,77 @@ pub(super) fn prepare_graphics(
         }
     }
 }
+
+/// The product Root retains native input custody through all refusal paths.
+/// Pointer delivery uses the ordinary shared Mask and physical gesture history.
+pub(super) fn run_input(
+    ids: &BootIdentities,
+    mut graphic: Option<FirmwareFace<arch::FirmwareScanout>>,
+) -> ! {
+    use conduitos::armv6_usb_input::BPlusUsbInput;
+    use core::fmt::Write;
+    let mut input = match BPlusUsbInput::prepare(ids) {
+        Ok(input) => Some(input),
+        Err(reason) => {
+            arch::present(b"CONDUIT_USB_INPUT_UNAVAILABLE ");
+            arch::present(reason.as_bytes());
+            arch::present(b"\n");
+            None
+        }
+    };
+    let mut started = false;
+    let mut refused = false;
+    loop {
+        if !refused {
+            if let Some(input) = input.as_mut() {
+                let outcome = (|| {
+                    if input.ready() && !started {
+                        if let Some(graphic) = graphic.as_mut() {
+                            // SAFETY: the actual selected endpoint owner is
+                            // retained above, and loss retires delivery below.
+                            unsafe { graphic.admit_pointer() }?;
+                        }
+                        input.start_pointer()?;
+                        started = true;
+                    }
+                    if let Some(sample) = input.step()? {
+                        if let Some(graphic) = graphic.as_mut() {
+                            graphic.observe_pointer(sample)?;
+                        }
+                        let mut text = conduitos::sign_format::FixedText::new();
+                        let _ = writeln!(
+                            &mut text,
+                            "CONDUIT_POINTER_SAMPLE sequence={} x={} y={} primary={} coalesced={} dropped={}",
+                            sample.sequence,
+                            sample.position_x,
+                            sample.position_y,
+                            sample.primary_pressed,
+                            sample.coalesced,
+                            sample.dropped
+                        );
+                        arch::present(text.as_bytes());
+                    }
+                    Ok::<_, &'static str>(())
+                })();
+                if let Err(reason) = outcome {
+                    refused = true;
+                    if let Some(graphic) = graphic.as_mut() {
+                        let _ = graphic.retire_pointer();
+                    }
+                    arch::present(b"CONDUIT_POINTER_UNAVAILABLE ");
+                    arch::present(reason.as_bytes());
+                    arch::present(b"\n");
+                }
+            }
+        }
+        if refused || input.as_ref().is_none_or(BPlusUsbInput::needs_tick) {
+            // The native Root owns this one-shot machine wake path. Protocol
+            // waits themselves complete only through the admitted clock Play.
+            arch::timer_arm();
+            arch::enable_interrupts();
+            arch::interruptible_idle();
+            arch::disable_interrupts();
+            while arch::pop_interrupt().is_some() {}
+        }
+    }
+}
