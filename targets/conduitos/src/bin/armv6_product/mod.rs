@@ -77,13 +77,12 @@ pub(super) fn prepare_graphics(
 }
 
 /// The product Root retains native input custody through all refusal paths.
-/// Pointer delivery uses the ordinary shared Mask and physical gesture history.
-pub(super) fn run_input(
-    ids: &BootIdentities,
-    mut graphic: Option<FirmwareFace<arch::FirmwareScanout>>,
-) -> ! {
+/// USB plots establish port power before scanout samples a USB-powered panel's
+/// EDID. Pointer delivery starts only after the ordinary shared Mask is ready.
+pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
     use conduitos::armv6_usb_input::BPlusUsbInput;
     use core::fmt::Write;
+    arch::present(b"CONDUIT_BOOT_STAGE usb-before-display\n");
     let mut input = match BPlusUsbInput::prepare(ids) {
         Ok(input) => Some(input),
         Err(reason) => {
@@ -93,9 +92,16 @@ pub(super) fn run_input(
             None
         }
     };
+    let mut graphic = None;
+    let mut graphics_prepared = false;
     let mut started = false;
     let mut refused = false;
     loop {
+        if !graphics_prepared && (refused || input.as_ref().is_none_or(BPlusUsbInput::ready)) {
+            graphic = prepare_graphics(ids, offer);
+            graphics_prepared = true;
+            arch::present(b"CONDUIT_BOOT_STAGE armv6-product-ready\n");
+        }
         if !refused {
             if let Some(input) = input.as_mut() {
                 let outcome = (|| {
