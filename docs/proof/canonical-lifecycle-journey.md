@@ -7346,3 +7346,54 @@ existing local diagnostic sampling/display. Mixed-profile selection, compact
 native offer publication, issuer-state retention, combined setup funding,
 authorized ingress/egress and physical receiver/continuity proof remain required.
 No device, service, credential or live membership state changed in this step.
+
+### 2026-11-06 — Remove duplicate preparation from the delivery future
+
+Receiver inspection exposed a real duplication: `serve_preparation` prepared a
+resident-only workset, provisionally reserved and released it, and only then
+retained its original command. The persistent worker subsequently prepared and
+admitted the same work again. Besides duplicate work, the delivery future thus
+owned profile-specific setup and rejected mixed input before its actual worker
+could consider it.
+
+The carrier now authenticates bounded bytes, checks the installed receive/
+preparation policy under current independent facts, and seals the original
+attribution in the existing input buffer. Profile decoding, complete validation,
+prepared storage, native possession and admission remain the persistent worker's
+responsibility. No parser, reservation or executable kernel is created in the
+carrier future. The shared existing workset policy check is publicly accessible
+for this read-only boundary; it neither decodes nor approves the payload.
+
+The input report and Linux courier now agree on `resources: not-admitted` and
+`start: not-started`. A receipt proves RAM custody of the reported bytes, never
+valid assignment, admission, Start or durable recording. An authenticated opaque
+or malformed assignment may be retained; it still cannot execute without the
+worker's complete validation. Lost, cancelled or timed-out acknowledgments retain
+sealed input, while authentication/receive failures leave no retained command.
+The original deadline is never renewed. Existing admission/Back-custody gates
+still prevent unsafe expiry reclamation and another attempt while occupied.
+
+The owning test removed its synthetic prepare/reserve implementation entirely.
+Actual handler tests cover zero-allocation receive/custody, invalid signatures,
+digests, interruption, cancellation, deadline, fresh-nonce replay refusal,
+occupied storage, expiry and build-bound recovery. This change removes 134 net
+lines from receiver/courier/test code and one whole duplicate preparation pass;
+no physical peak reduction or resolution of #6341's historical panic is claimed.
+
+Internal qualification: receiver 11 tests, Linux courier 6 tests, Body attribution
+9 tests, strict owning receiver/Std-host Clippy, Body authenticated no_std thumbv6m
+library check and whole-checkout formatting passed. Evidence remains ignored in
+`target/input-before-preparation-20261106`. Source `dbaf2816ef` exposes the policy
+preflight; `12a3c65dd3` separates delivery from persistent preparation.
+
+Storage stewardship: the Std courier build reduced root headroom to 3.5 GiB.
+After checking active command/map/environment/file references, package-native
+cleanup removed 1,237 inactive Std-host build artifacts (2.0 GiB), restoring
+5.5 GiB before remaining checks. Source, credentials, logs, qualified releases and
+running services were preserved. The ongoing service executable is outside that
+cache; no devices or live services were changed.
+
+Mixed worker selection/supervision, compact native offer publication, installed
+issuer custody, actual setup funding and authorized input/output still remain.
+This is a necessary delivery-boundary correction, not a claim of an autonomous
+Body instrument or a newly deployed Seed.
