@@ -7241,3 +7241,61 @@ unfinished. No device was flashed or service changed. Fresh Green status still
 reports installed build `46fb0bbc...`, 1,205/1,205 samples, 18,068/18,068 display
 ACKs, five initialized Backs and no sensor/display errors; these are its existing
 diagnostic tasks, not evidence that the newly qualified path is Playing.
+
+### 2026-11-06 — Exact Start custody and clean native return
+
+Kernel funded storage #6808 passed Candidate 42179679659 and merged as
+`29e8cc91a47224cdc29e448ab91e25c95f42aeda`. The delivery branch synchronized
+that dev, including accepted semantic-effect inference #6805, without changing
+the independent native-authority checks. The exact original-command matching
+primitive is now isolated in PR #6810 (two files, 44 added lines), based on that
+dev; its nine attribution tests, strict Body library/test Clippy and formatting
+passed independently. This is neither a full lifecycle merge nor physical proof.
+
+`RetainedHostCommandStamp::check_command` binds a current reborrow to the exact
+admitted transcript. Independently valid signatures over identical payload bytes
+under another nonce cannot substitute for that attempt. The existing resident
+supervisor now checks its original stamp immediately before Start. The check
+creates neither authority nor a renewed deadline.
+
+The mixed committed workset now has a consuming Root Start transition. It
+rechecks original attribution, installed execution policy, current scope, and
+both exact Core reservation items before becoming a started workset. Expiry,
+a substituted valid nonce, missing policy, absent reservations and legitimately
+reserved but changed units refuse without allocation or loss of the original
+boxed kernel. One bounded advance performs the existing kernel decision and at
+most one pending native dispatch. No carrier, timer loop, retry or new scheduler
+is introduced. After Start, attribution expiry does not cancel the Play.
+Retirement retains its original approval, stamp, terminal Signs and native owner;
+Core reservations remain retained until Root separately establishes full return.
+
+Clean I2C finish is now distinct from forced provider quarantine. After kernel
+retirement and zero in-flight operations, `finish_retained` revokes exact local
+possession and returns the provider/attachment once without invoking hardware
+revocation. Existing quarantine stays intact; an in-flight owner refuses without
+being consumed. The original forced-revocation path remains tested. The actual
+mixed CPU Start/step/retirement path exercises clean return and no allocations;
+its isolated adapter tests also exercise failed and quarantined return. This
+establishes an API for safe handover, not physical bus-recovery acceptance.
+
+A separate probe identifies I2C contract preparation outside kernel backing:
+5,575 requested bytes, 4,245-byte CPU peak and 94 allocations. It decodes checked
+canonical schemas rather than a Source parser, but must still be separately
+funded in actual Root setup. Do not add isolated peaks to claim whole-device fit
+or omit this component from physical preparation accounting. Actual five-entry
+kernel/Core retained preparation remains 14,563 bytes under its unchanged
+16,384-byte ceiling. Full Root/allocator/stack/firmware peak is still unmeasured.
+
+Internal checks: mixed CPU fixtures 3 passed; Body attribution 9 passed; I2C
+library 22 passed; strict owning Body/I2C/mixed Clippy and shared no_std thumbv6m
+library checks passed. After dev synchronization, mixed 3 and Body 9 passed
+again and whole-checkout formatting passed. Evidence is ignored under
+`target/mixed-start-20261106`. Source checkpoints: `fad1a1aab8` (matching),
+`a4d4fd0337` (mixed Start/advance), `becffe44dc` (clean I2C finish), `8971ba00a9`
+(contract-cost probe), synchronization `e79c6deda7`.
+
+The mixed Start boundary is CPU-qualified but not installed in the wire
+supervisor. Ordinary authorized ingress/egress, live mixed preparation/status,
+issuer lifetime custody, physical Root measurements and the complete autonomous
+instrument workset remain unfinished. No device was flashed, no live fixture
+was installed, and no service/credential/membership state was changed.
