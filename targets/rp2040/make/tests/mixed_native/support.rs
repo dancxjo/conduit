@@ -93,6 +93,7 @@ pub fn model(
         "i2c",
     );
     f.source_document_id = document.source_document_id.clone();
+    f.placements[0].artifact_id = "fixture/image".into();
     f.placements[0].execution_profile_id = I2C_EXECUTION_PROFILE.into();
     f.placements[0].base.as_mut().unwrap().implementation_id =
         "conduitos.base/i2c-controller@1".into();

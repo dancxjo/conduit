@@ -18,6 +18,8 @@ mod environment_http;
 mod environment_show;
 mod heap;
 mod i2c_installation;
+#[allow(dead_code)] // Qualified local issuance; receiver installation remains separate.
+mod i2c_issuance;
 mod i2c_owner;
 mod membership;
 #[allow(dead_code)] // Qualified composition; wire/native workset admission remains separate.

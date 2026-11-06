@@ -41,6 +41,7 @@ fn run(reverse: bool) {
     authority.capability_id = I2C_IMPLEMENTATION.into();
     authority.implementation_id = I2C_IMPLEMENTATION.into();
     authority.authority_contract_id = I2C_AUTHORITY.into();
+    authority.authority_grant_id = format!("{}/i2c/1/authority", authority.boot_id.as_str()).into();
     let plan = crate::support::model(&document, &program, &image, &authority, &contract, reverse);
     let fragment = &plan.fragments[0];
     let context = body_scope::Context::new(&plan);
@@ -395,7 +396,7 @@ fn ready_slot<'a>(
                 resource_pool_id: authority.resource_pool_id.clone(),
                 resource_generation_id: authority.resource_generation_id.clone(),
                 envelope_id: authority.envelope_id.clone(),
-                artifact_id: "artifact/i2c/fixture".into(),
+                artifact_id: "fixture/image".into(),
             },
             conduit_i2c_transaction::owner::I2cAttachment {
                 generation: 7,

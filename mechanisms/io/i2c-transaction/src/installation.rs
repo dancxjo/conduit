@@ -42,6 +42,10 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
     pub fn native_identity(&self) -> &I2cNativeIdentity {
         &self.identity
     }
+    /// Configured local attachment facts; inspection grants no effect authority.
+    pub fn attachment(&self) -> I2cAttachment {
+        self.attachment
+    }
 
     /// Local ownership supplies a mixed-inventory identity hint without decoding
     /// an advertisement. This grants no capability and does not check a Plan;

@@ -8,7 +8,7 @@ mod support;
 fn same_kernel_retains_both_preparations_and_runs_the_selected_native_node() {
     let (_, _, image) = support::context();
     let library = conduit_embedded_build::generate_resident_library(&[image], 1024 * 1024).unwrap();
-    qualify(library);
+    qualify(library, 1024);
 }
 #[test]
 fn actual_five_entry_library_admits_only_the_selected_program_storage() {
@@ -24,18 +24,31 @@ fn actual_five_entry_library_admits_only_the_selected_program_storage() {
         &packages,
     )
     .unwrap();
-    qualify(conduit_host_rp2040::checked_ht16k33_resident_library(&checked).unwrap());
+    qualify(
+        conduit_host_rp2040::checked_ht16k33_resident_library(&checked).unwrap(),
+        1024,
+    );
 }
-fn qualify(library: String) {
+#[test]
+fn disabled_native_issuance_refuses_an_otherwise_approved_workset() {
+    let (_, _, image) = support::context();
+    let library = conduit_embedded_build::generate_resident_library(&[image], 1024 * 1024).unwrap();
+    qualify(library, 0);
+}
+fn qualify(library: String, operation_ceiling: u32) {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let generated = format!(
         r#"
 extern crate alloc;
 mod resident{{pub mod generated{{{library}}}}}
+mod config{{pub const CONFIGURATION_ID:&str="fixture/config";pub const IMAGE_ID:&str="fixture/image";
+pub const I2C_CONTROLLER:u8=1;pub const I2C_CALL_ADDRESS_RANGE:Option<(u8,u8)>=Some((112,119));pub const I2C_CALL_MAXIMUM_OPERATIONS:u32={operation_ceiling};}}
+#[allow(dead_code)]#[path={issuance:?}]mod i2c_issuance;
 #[allow(dead_code)]#[path={native:?}]mod native_preparation;
 #[allow(dead_code)]#[path={mixed:?}]mod mixed_preparation;
 #[allow(dead_code)]#[path={workset:?}]mod mixed_workset;
 "#,
+        issuance = root.join("../firmware/host/src/i2c_issuance.rs"),
         native = root.join("../firmware/host/src/native_preparation.rs"),
         mixed = root.join("../firmware/host/src/mixed_preparation.rs"),
         workset = root.join("../firmware/host/src/mixed_workset.rs")
@@ -69,6 +82,7 @@ fn main(){{prepared_values::run();exercise::exercise();}}
             "conduit_i2c_transaction",
             "ed25519_dalek",
             "serde_json",
+            "sha2",
         ],
     );
 }

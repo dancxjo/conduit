@@ -46,7 +46,7 @@ impl Receiver {
                 host_id: f.host_id.clone(),
                 boot_id: f.boot_id.clone(),
                 offer_generation: f.offer_generation,
-                profile: "fixture/profile".into(),
+                profile: "fixture/config".into(),
                 bases: vec![],
                 resources: vec![],
                 capabilities: vec![],

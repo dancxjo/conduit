@@ -2,6 +2,8 @@
 use super::*;
 use crate::mixed_workset::{self, Policy};
 use conduit_body as b;
+#[path = "issuance.rs"]
+mod issuance;
 #[path = "receiver.rs"]
 mod receiver;
 
@@ -109,6 +111,8 @@ pub fn run(
     let mut library = crate::resident::generated::Initialized::prepare().unwrap();
     let original = library.offers().map(|o| o.unwrap().as_ptr());
     let issued = core::cell::Cell::new(0);
+    let issuer_checked = core::cell::Cell::new(false);
+    let issuer = core::cell::RefCell::new(crate::i2c_issuance::Issuer::new());
     let issue = |approved: &b::DelegatedBodyFragment<'_>, native: &ReadyI2cBase<Provider<'_>>| {
         issued.set(issued.get() + 1);
         assert_eq!(approved.metadata().body_plan, context.plan_id().as_str());
@@ -117,11 +121,15 @@ pub fn run(
             native.native_identity().resource_pool_id,
             authority.resource_pool_id
         );
-        Ok(crate::support::authority::authorization_for_play(
-            authority.clone(),
-            context.plan_id(),
-            context.play_id(),
-        ))
+        if crate::config::I2C_CALL_MAXIMUM_OPERATIONS != 0 && !issuer_checked.replace(true) {
+            issuance::check(receiver.context(), approved, native);
+        }
+        issuer.borrow_mut().issue(
+            receiver.context(),
+            approved,
+            native,
+            policy.maximum_storage_bytes,
+        )
     };
     macro_rules! prepare {
         ($policy:expr,$context:expr) => {{
@@ -260,6 +268,25 @@ pub fn run(
     assert!(slot.is_some());
     assert_eq!(owner, before);
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    if crate::config::I2C_CALL_MAXIMUM_OPERATIONS == 0 {
+        let before_issued = issued.get();
+        let (result, cost) = crate::probe::observe(|| prepare!(policy, receiver.context()));
+        assert!(matches!(
+            result,
+            Err(mixed_workset::Refusal::Native(
+                crate::native_preparation::Refusal::Scope
+            ))
+        ));
+        drop(result);
+        assert_eq!(issued.get(), before_issued + 1);
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        assert!(slot.is_some());
+        assert_eq!(owner, before);
+        assert_eq!(effects.get(), 0);
+        assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+        println!("actual Root native issuance disabled: complete signed approval cannot create possession; zero allocations, reservations, provider transfers or effects");
+        return;
+    }
     let prepared = prepare!(policy, receiver.context()).unwrap();
     let kernel_bytes = prepared.kernel_storage_bytes();
     let total = prepared.preparation_bytes(&owner, &observations).unwrap();
