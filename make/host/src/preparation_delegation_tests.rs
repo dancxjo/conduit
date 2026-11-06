@@ -42,8 +42,18 @@ fn execution_is_independent_checked_identity_bound_and_parser_free() {
         },
     )
     .unwrap();
-    verify_configuration_image(&selected, &image, &catalog).unwrap();
-    assert!(verify_configuration_image(&preparation_only, &image, &catalog).is_err());
+    assert_eq!(
+        image.manifest.source_configuration_id.as_deref(),
+        Some(selected.configuration_id())
+    );
+    assert_eq!(
+        image.payload.source_configuration_id,
+        image.manifest.source_configuration_id
+    );
+    assert_ne!(
+        image.manifest.source_configuration_id.as_deref(),
+        Some(preparation_only.configuration_id())
+    );
     for (checked, enabled) in [(&preparation_only, false), (&selected, true)] {
         compiled_rust::verify_with_libraries(
             &format!("const EXECUTION:Option<conduit_body::HostExecutionDelegation>={};", rust_execution_delegation(checked)),
