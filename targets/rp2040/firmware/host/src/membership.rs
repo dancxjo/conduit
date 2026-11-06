@@ -1,4 +1,6 @@
 //! Actual current-Boot receipt installation. This does not create a Plan or Play.
+#[path = "membership_execution.rs"]
+mod execution;
 #[path = "membership_preparation.rs"]
 mod preparation;
 #[path = "membership_return.rs"]
@@ -45,16 +47,35 @@ pub fn append_status<const N: usize>(out: &mut heapless::String<N>) -> Result<()
 pub struct Membership {
     state: MembershipState,
     input: conduit_body::HostCommandInput<LIMIT>,
+    execution_attempted: bool,
 }
 impl Membership {
     pub fn new(seed: Seed<'static>, host_id: String, boot_nonce: [u64; 2]) -> Self {
         Self {
             state: MembershipState::new(seed, host_id, boot_nonce),
             input: conduit_body::HostCommandInput::new(),
+            execution_attempted: false,
         }
     }
-    pub async fn serve_once(&mut self, link: &mut Link) -> Result<(), ()> {
-        self.state.serve_once(link, &mut self.input).await
+    pub async fn run(&mut self, link: &mut Link) -> ! {
+        loop {
+            if !self.input.is_retained() {
+                self.execution_attempted = false;
+            }
+            if self.input.is_retained() && !self.execution_attempted {
+                if let Some(policy) = crate::config::EXECUTION_DELEGATION.as_ref() {
+                    self.execution_attempted = true;
+                    // Once admission succeeds, this supervisor outlives every
+                    // connection. A lost delivery ACK cannot cancel its work.
+                    let _ = self.state.run_retained(link, &self.input, policy).await;
+                }
+            }
+            link.connected().await;
+            if self.state.serve_once(link, &mut self.input).await.is_err() {
+                link.reset();
+            }
+            embassy_time::Timer::after_millis(10).await;
+        }
     }
 }
 

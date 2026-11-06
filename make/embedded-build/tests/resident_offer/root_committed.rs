@@ -155,70 +155,72 @@ pub fn run(
     let input = crate::support_kernel::frame(&program);
     let expected = program.evaluate(&input).unwrap();
     let (terminal, execution) = crate::probe::observe(|| {
-        let (fragments, _original_stamp) = workset.into_parts();
-        let keys = fragments.each_ref().map(|fragment| {
-            let metadata = fragment.as_ref().unwrap().approved.metadata();
-            let mut resources =
-                conduit_body::PlainFragmentResources::new(metadata.resource_bindings);
-            let resource = resources.next().unwrap().unwrap();
-            assert!(resources.next().is_none());
-            (metadata.body_plan, resource.placement)
-        });
-        let mut terminal: [Option<FixedSignLog<16>>; 2] = core::array::from_fn(|_| None);
-        for (index, fragment) in fragments.into_iter().flatten().enumerate() {
+        let (mut fragments, _original_stamp) = workset.into_parts();
+        for fragment in fragments.iter_mut().flatten() {
             assert_eq!(
                 fragment.approved.metadata().body_plan,
                 super::assignment_body_plan(bytes)
             );
-            let crate::root_preparer::BoundKernel::One(mut kernel) = fragment.kernel else {
+            let crate::root_preparer::BoundKernel::One(kernel) = &mut fragment.kernel else {
                 panic!("one node per CPU fixture fragment")
             };
-            let ports = fragment.approved.metadata().fore_ports;
-            let port = |direction| {
-                let p = ports
-                    .chunks_exact(c::ASSIGNED_LOCAL_FORE_BYTES)
-                    .find(|p| p[4] == direction)
-                    .unwrap();
-                (
-                    RemoteEndpointId(u16::from_le_bytes(p[..2].try_into().unwrap())),
-                    CordId(u16::from_le_bytes(p[2..4].try_into().unwrap())),
-                )
-            };
-            let (incoming, input_cord) = port(0);
-            let (outgoing, output_cord) = port(1);
+            let port = fragment
+                .approved
+                .metadata()
+                .fore_ports
+                .chunks_exact(c::ASSIGNED_LOCAL_FORE_BYTES)
+                .find(|p| p[4] == 0)
+                .unwrap();
             kernel
-                .admit_remote_input(incoming, input_cord, 0, &input)
+                .admit_remote_input(
+                    RemoteEndpointId(u16::from_le_bytes(port[..2].try_into().unwrap())),
+                    CordId(u16::from_le_bytes(port[2..4].try_into().unwrap())),
+                    0,
+                    &input,
+                )
                 .unwrap();
-            kernel.step().unwrap();
-            let output = kernel
-                .remote_egress_offer(outgoing, output_cord)
-                .unwrap()
+        }
+        assert!(!crate::root_preparer::step_workset(&mut fragments).unwrap());
+        for fragment in fragments.iter_mut().flatten() {
+            let crate::root_preparer::BoundKernel::One(kernel) = &mut fragment.kernel else {
+                unreachable!()
+            };
+            let port = fragment
+                .approved
+                .metadata()
+                .fore_ports
+                .chunks_exact(c::ASSIGNED_LOCAL_FORE_BYTES)
+                .find(|p| p[4] == 1)
                 .unwrap();
+            let endpoint = RemoteEndpointId(u16::from_le_bytes(port[..2].try_into().unwrap()));
+            let cord = CordId(u16::from_le_bytes(port[2..4].try_into().unwrap()));
+            let output = kernel.remote_egress_offer(endpoint, cord).unwrap().unwrap();
             assert_eq!(kernel.host_value(output.value).unwrap(), expected);
             kernel
-                .remote_egress_accept(outgoing, output_cord, output.sequence)
+                .remote_egress_accept(endpoint, cord, output.sequence)
                 .unwrap();
             kernel
-                .remote_egress_delivered(outgoing, output_cord, output.sequence)
+                .remote_egress_delivered(endpoint, cord, output.sequence)
                 .unwrap();
-            let retired = crate::root_preparer::BoundKernel::One(kernel)
-                .cancel_and_retire()
-                .unwrap_or_else(|_| panic!("retirement refused"));
-            assert!(retired.providers_returned);
-            assert!(retired
-                .signs
-                .events()
-                .any(|e| e.kind == KernelEventKind::RunCancelled));
-            terminal[index] = Some(retired.signs);
         }
         assert_eq!(owner.admissions().len(), 2);
-        for (plan, placement) in &keys {
-            let released = owner
-                .release_borrowed(plan, placement, c::ResourceReleaseCause::Cancelled)
-                .unwrap();
-            assert_eq!(released.admission.plan_id.as_str(), *plan);
-            assert_eq!(released.admission.placement_id.as_str(), *placement);
-        }
+        let mut terminal = core::array::from_fn(|_| None);
+        assert!(crate::root_preparer::retire_workset(
+            &mut fragments,
+            &mut terminal,
+            owner,
+            c::ResourceReleaseCause::Cancelled
+        ));
+        assert!(fragments.iter().all(Option::is_none));
+        assert!(owner.admissions().is_empty());
+        assert!(terminal
+            .iter()
+            .flatten()
+            .all(|f| f.retired.providers_returned
+                && f.retired
+                    .signs
+                    .events()
+                    .any(|e| e.kind == KernelEventKind::RunCancelled)));
         terminal
     });
     assert_eq!((execution.allocations, execution.reallocations), (0, 0));

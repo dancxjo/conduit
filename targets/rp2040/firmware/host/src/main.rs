@@ -20,10 +20,10 @@ mod heap;
 mod i2c_installation;
 mod i2c_owner;
 mod membership;
+mod native_preparation;
 mod radio;
 mod resident;
 mod resident_preparation;
-mod native_preparation;
 mod seed;
 mod transport;
 mod usb_identity;
@@ -110,11 +110,12 @@ async fn main(spawner: Spawner) {
             .map(|seed| membership::Membership::new(seed, host, [rng.next_u64(), rng.next_u64()]))
     });
     let mut link = transport::Link::new(class);
+    if let Some(member) = membership.as_mut() {
+        member.run(&mut link).await;
+    }
     loop {
         link.connected().await;
-        let result = if let Some(member) = membership.as_mut() {
-            member.serve_once(&mut link).await
-        } else {
+        let result = {
             let mut discard = [0; transport::LIMIT];
             link.receive(&mut discard).await.map(|_| ())
         };

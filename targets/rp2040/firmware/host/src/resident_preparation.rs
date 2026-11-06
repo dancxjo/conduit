@@ -1,4 +1,7 @@
 //! Root composition over real initialized Backs; no catalog decode or transfer.
+#[path = "resident_execution.rs"]
+mod execution;
+pub use execution::{retire_workset, step_workset, TerminalFragment};
 #[path = "resident_resources.rs"]
 mod resources;
 #[path = "resident_storage.rs"]

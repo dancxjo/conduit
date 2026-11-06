@@ -6945,3 +6945,37 @@ Raw logs are retained locally under `target/root-retirement-20261105/`.
 No device or service changed. These are CPU/component proofs, not installed
 receiver, native bus handover, successive remotely authorized Plays or physical
 instrument acceptance. The complete canonical lifecycle objective remains open.
+
+
+### 5 November 2026 — Persistent receiver supervision wired into the Host
+
+The RP2040 membership loop now attempts execution once for retained input only
+when the checked image explicitly selects execution delegation. It rechecks the
+original current attribution and complete local inventory, atomically admits the
+same workset and retains inventory, input, kernels and ledger outside all carrier
+futures. Preparation-only images retain their previous refusal to Start. The
+explicit delegated Green profile selects one workset; no live Seed was replaced.
+
+The supervisor polls the existing production kernels at a bounded cooperative
+interval independently of USB connection/reconnection. It preserves partial
+control IO across ticks; link failure resets only framing. A persistent tick
+deadline and yielding control servicing prevent malformed carrier traffic from
+starving local work. Original-command expiry before first execution retires a
+failed Start; expiry after Start does not invent an ongoing Play lease.
+
+Terminal storage is fixed inline Root memory, separate from the preparation
+heap. Production step/retirement functions retain each exact scope and terminal
+Signs, restore original providers and release the exact reservation set only
+after full preflight. Refusal fences remaining kernels and reservations. The
+inspection path permits no input injection, cancellation or Start; bounded
+read-only Sign inspection uses `S`, fragment ordinal and Sign ordinal. This is
+diagnostic control, not a planned Line or a recording acknowledgment. Terminal
+evidence remains observable in RAM and is not automatically reclaimed.
+
+Both resident-offer tests pass using the production workset step and retirement
+functions, with typed output, same-owner return, exact resource release and zero
+execution allocations. Raw log: `target/resident-supervisor-20261105/component-tests.log`.
+The updated Make tool builds. Full Cortex-M0+ compilation and image funding are
+the next gate; no firmware was flashed and no physical Start is claimed.
+Line ingress, native workset admission and actual sampler/display Plays remain
+unfinished; `ingress: not-installed` is explicit in supervision status.

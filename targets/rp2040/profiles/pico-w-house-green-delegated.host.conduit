@@ -3,8 +3,10 @@
 host pico-w-house-green {
   schema = 1
   # Consider only the pinned Seed owner's finite preparation requests.
-  # This grants no native capability, installed Play or permission to Start.
+  # Root still validates exact work, local resources and any native possessions.
   preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 4096, maximum_runtime_state_bytes: 16384}
+  # Explicitly opt in to one fully admitted, current Seed-owner workset.
+  execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
   target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
   base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
   base = {kind: "bus/i2c", implementation: "rp2040/i2c@1", initialization: {controller: 1, sda_gpio: 6, scl_gpio: 7, frequency_hz: 100000, maximum_transaction_polls: 100000, minimum_call_address: 112, maximum_call_address: 118}}

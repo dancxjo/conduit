@@ -13,6 +13,18 @@ pub enum BoundKernel<'o> {
     Four(Box<Kernel<'o, 4, 8, 8>>),
     Five(Box<Kernel<'o, 5, 10, 10>>),
 }
+impl BoundKernel<'_> {
+    /// One ordinary bounded scheduler decision, never a second execution loop.
+    pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+        match self {
+            Self::One(kernel) => kernel.step(),
+            Self::Two(kernel) => kernel.step(),
+            Self::Three(kernel) => kernel.step(),
+            Self::Four(kernel) => kernel.step(),
+            Self::Five(kernel) => kernel.step(),
+        }
+    }
+}
 pub struct BoundFragment<'a, 'o> {
     pub approved: conduit_body::DelegatedBodyFragment<'a>,
     pub kernel: BoundKernel<'o>,
