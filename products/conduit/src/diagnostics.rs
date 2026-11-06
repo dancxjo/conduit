@@ -9,7 +9,7 @@ pub(crate) fn run(path: &Path, json: bool) -> Result<bool, String> {
     let diagnostics = if document.syntax.diagnostics.is_empty() {
         let diagnostic = match conduit_plot::check_syntax_document_with_literal_constructors(
             &document.syntax,
-            &document.startup,
+            document.startup,
             document.authoring_catalog(),
         ) {
             Err(diagnostic) => Some(structured(&document.source, &diagnostic)?),
