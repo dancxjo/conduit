@@ -281,7 +281,10 @@ mod tests {
             build_id: "build:sha256:build",
             image_binding: "image:sha256:binding",
             target: "conduitos/x86_64/pc",
-            implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT,
+            implementations: ALL_KNOWN_IMPLEMENTATIONS
+                & !IMPL_LINEAR_PRESENTER
+                & !IMPL_HTTP_CLIENT
+                & !IMPL_STARTUP_CHIME,
             facilities: FACILITY_NATIVE_COMPOSITOR,
             resources: RESOURCE_FACE_SURFACE,
             bases: BASE_DISPLAY_SCANOUT,
@@ -312,6 +315,41 @@ mod tests {
     }
 
     #[test]
+    fn startup_chime_requires_the_selected_audio_base_and_driver() {
+        let record = MakeRecord {
+            target: "conduitos/armv6/raspberry-pi-model-b-plus-v1.2",
+            implementations: IMPL_TIME_TICK
+                | IMPL_NATIVE_PRESENTER
+                | IMPL_LINEAR_PRESENTER
+                | IMPL_STARTUP_CHIME,
+            bases: BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT | BASE_PCM_AUDIO,
+            drivers: DRIVER_LINEAR_FRAMEBUFFER | DRIVER_PL011_SERIAL | DRIVER_PWM_AUDIO,
+            presenters: PRESENTER_NATIVE_GRAPHICAL | PRESENTER_LINEAR_SERIAL,
+            ..record()
+        };
+        assert_eq!(record.validate(4 * 1024 * 1024), Ok(()));
+        for changed in [
+            MakeRecord {
+                bases: record.bases & !BASE_PCM_AUDIO,
+                ..record
+            },
+            MakeRecord {
+                drivers: record.drivers & !DRIVER_PWM_AUDIO,
+                ..record
+            },
+            MakeRecord {
+                implementations: record.implementations & !IMPL_STARTUP_CHIME,
+                ..record
+            },
+        ] {
+            assert_eq!(
+                changed.validate(4 * 1024 * 1024),
+                Err(MakeError::UnknownInventory)
+            );
+        }
+    }
+
+    #[test]
     fn schema_identity_inventory_and_runtime_ceiling_fail_separately() {
         let record = record();
         assert_eq!(
@@ -332,7 +370,7 @@ mod tests {
         );
         assert_eq!(
             MakeRecord {
-                implementations: 1 << 15,
+                implementations: 0,
                 ..record
             }
             .validate(1),
