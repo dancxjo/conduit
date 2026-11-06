@@ -66,19 +66,6 @@ impl PreparedPureProtocolPlay {
             return Err(Refusal::Unsupported);
         }
         operations
-            .joins
-            .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
-        operations
-            .states
-            .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
-        operations
-            .concats
-            .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
-        operations
-            .merges
             .validate_plan(plan)
             .map_err(|_| Refusal::InvalidPlan)?;
         let lowered = lower_plan_fragment(fragment).map_err(|_| Refusal::InvalidPlan)?;
@@ -101,10 +88,6 @@ impl PreparedPureProtocolPlay {
                 return Err(Refusal::Unsupported);
             }
         }
-        operations
-            .singletons
-            .validate_plan(plan)
-            .map_err(|_| Refusal::InvalidPlan)?;
         let mut registry = KernelOperationRegistry::new();
         registry
             .install(operations.singletons)

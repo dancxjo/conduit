@@ -88,28 +88,10 @@ impl PreparedUsbSourceKernel {
         {
             return Err(Error::Unsupported);
         }
-        operations.joins.validate_plan(plan).map_err(|reason| {
+        operations.validate_plan(plan).map_err(|error| {
             Error::Kernel(conduit_composite::KernelCompositeError::ChildRefused {
                 child: fragment.host_id.clone(),
-                reason,
-            })
-        })?;
-        operations.states.validate_plan(plan).map_err(|reason| {
-            Error::Kernel(conduit_composite::KernelCompositeError::ChildRefused {
-                child: fragment.host_id.clone(),
-                reason,
-            })
-        })?;
-        operations.concats.validate_plan(plan).map_err(|reason| {
-            Error::Kernel(conduit_composite::KernelCompositeError::ChildRefused {
-                child: fragment.host_id.clone(),
-                reason,
-            })
-        })?;
-        operations.merges.validate_plan(plan).map_err(|reason| {
-            Error::Kernel(conduit_composite::KernelCompositeError::ChildRefused {
-                child: fragment.host_id.clone(),
-                reason,
+                reason: alloc::format!("{}: {}", error.family, error.reason),
             })
         })?;
         let lowered = lower_plan_fragment(fragment).map_err(|error| {
