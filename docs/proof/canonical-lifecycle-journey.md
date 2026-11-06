@@ -7515,3 +7515,51 @@ hosted acceptance gate. The image fabrication consumer stays on the delivery
 branch until that prerequisite is accepted. Next is current native publication
 and issuer custody in the actual Root receiver, preserving local diagnostic
 operation until the checked Body workset can lawfully take over.
+
+### 6 November 2026 — actual Root compact native publication
+
+Delivery `0861b224f1` connects the fabricated image to ordinary signed member
+return. The Root observes its actual configured bus, prepares Ready identity and
+ordinary Core Base/resource metadata, then ends the temporary bus loan before
+any carrier await. Diagnostics keep their independent controller access. No
+capability catalog or I2C schema is decoded for publication. The image and Base
+associations are signed with the existing complete publication context.
+
+Availability is an observation: an outstanding loan supplies no new evidence;
+a known revoked provider withdraws its image. Changes advance offer generation.
+Root refuses replacement while any original reservation or compute assignment
+is retained. Preparation is fallible and leaves the previous owner unchanged;
+an unfamiliar provider/resource context refuses instead of being dropped.
+The Boot-scoped native issuer counter now has a home in MembershipState, but
+mixed receiver selection has not yet consumed it or issued a physical capability.
+
+Actual controller-custody CPU tests compare compact facts with the existing rich
+BaseRegistry advertisement. Projection retains 214 owned bytes in ten fallible
+allocations. Complete Root publication preparation requests 1,302 bytes and
+peaks at 1,174 CPU component bytes in 25 allocations for the fixture identities.
+Exact-size funding succeeds; one-byte shortage and every allocation fault
+reclaim preparation and leave diagnostics available without bus effects. This
+is not whole-device peak or physical signed-publication proof. All six owning
+I2C, mixed-kernel and image-fabrication tests pass; strict RP2040 test and native
+library Clippy, and formatting, pass. Logs: `target/native-publication-cpu-20261106`.
+
+Ordinary Make links the exact checkpoint. ELF and UF2 digests and every reserved
+sector boundary verify: 1,271,396 flash bytes, 121,624 static RAM bytes including
+the unchanged 49,152-byte heap, 9,448 bytes below the unchanged static ceiling.
+There are 21 warnings; the 148,712-byte linked stack gap is not high-water.
+The actual 640-byte native image is present in the ELF and its decoded artifact
+matches the manifest's exact IMAGE identity. Artifacts and verifier scripts:
+`target/rp2040-native-publication-20261106` (ignored). No firmware was flashed.
+
+PR #6812 passed exact-head Candidate and merged as `db3c90edef`. Delivery sync
+`48e90a34a6` also absorbs #6811's pinned-AVR compatibility repair. One overlapping
+module-declaration conflict was resolved retaining both the accepted offer
+constructor and delivery's compact projection. The six tests pass again after
+sync. Integration/release and physical proof remain separate gates.
+
+Green's installed diagnostic firmware was independently reachable with 1,511
+successful samples, 22,663 acknowledged redraws, five initialized resident Backs,
+and no sensor/display error. It is still the older image, not this publication
+checkpoint and not an admitted environmental Play. Next: mixed receiver profile
+selection, complete execution setup funding, lawful input/output and ordinary
+Body-authored Seed deployment/adoption.
