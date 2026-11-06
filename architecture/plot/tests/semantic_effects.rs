@@ -312,3 +312,123 @@ fn deferred_activation_and_pool_bodies_are_explicit_gaps() {
         }
     }
 }
+
+fn keep_startup() -> StartupCatalog {
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    startup
+}
+
+#[test]
+fn checked_keep_state_is_known_without_inventing_other_laws() {
+    for source in [
+        "plot retained {\n cell: keep Boolean(true) for this wake\n}\n",
+        "plot retained {\n cell: keep Boolean? for this play\n}\n",
+    ] {
+        let checked =
+            check_syntax_document(&parse_syntax_document(source), &keep_startup()).unwrap();
+        let catalog = ProfileCatalog::new();
+        let graph = expand_canonical_plot(&checked, "retained", &catalog).unwrap();
+        let report = graph
+            .infer_semantic_effects(&checked, &catalog, 64)
+            .unwrap();
+        let leaf = &report.leaves()[0];
+        assert_eq!(leaf.temporal_state(), Ok(TemporalStateBehavior::Retained));
+        let declaration = checked.plots[0].gears[0].retained.as_deref().unwrap();
+        assert!(core::ptr::eq(
+            leaf.retained_declaration().unwrap(),
+            declaration
+        ));
+        assert!(matches!(
+            leaf.facts(),
+            Err(EffectInferenceRefusal::SemanticFact {
+                refusal: PureExpressionRefusal::MissingFact(PureExpressionFact::ExternalEffects),
+                ..
+            })
+        ));
+        assert!(report.summary().is_err());
+        assert_eq!(
+            report.require_pure_expression(),
+            Err(EffectInferenceRefusal::SemanticFact {
+                gear: leaf.gear().gear_id.as_str().into(),
+                span: leaf.origin().source_span,
+                refusal: PureExpressionRefusal::TemporalState,
+            })
+        );
+    }
+}
+
+#[test]
+fn repeated_keep_instances_share_declaration_but_keep_distinct_gear_identity() {
+    let source = "plot inner {\n cell: keep Boolean(true) for this wake\n}\nplot retained {\n first: inner()\n second: inner()\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &keep_startup()).unwrap();
+    let catalog = ProfileCatalog::new();
+    let graph = expand_canonical_plot(&checked, "retained", &catalog).unwrap();
+    let report = graph
+        .infer_semantic_effects(&checked, &catalog, 64)
+        .unwrap();
+    assert_eq!(report.leaves().len(), 2);
+    let first = &report.leaves()[0];
+    let second = &report.leaves()[1];
+    assert_ne!(first.gear().gear_id, second.gear().gear_id);
+    assert_ne!(first.origin().plot_path, second.origin().plot_path);
+    assert_eq!(first.origin().source_span, second.origin().source_span);
+    assert!(core::ptr::eq(
+        first.retained_declaration().unwrap(),
+        second.retained_declaration().unwrap()
+    ));
+    for leaf in report.leaves() {
+        assert_eq!(leaf.temporal_state(), Ok(TemporalStateBehavior::Retained));
+    }
+}
+
+#[test]
+fn same_kind_name_does_not_manufacture_a_checked_keep_declaration() {
+    let checked = check_syntax_document(
+        &parse_syntax_document("plot retained {\n cell: keep Boolean(true) for this wake\n}\n"),
+        &keep_startup(),
+    )
+    .unwrap();
+    let mut graph = expand_canonical_plot(&checked, "retained", &ProfileCatalog::new()).unwrap();
+    let state = graph.gears.remove(0);
+    let mut catalog = ProfileCatalog::new();
+    catalog
+        .insert(KindProjection {
+            kind_id: state.kind_id,
+            kind_contract_revision: state.kind_contract_revision,
+            inputs: state.inputs,
+            outputs: state.outputs,
+            configuration: vec![],
+        })
+        .unwrap();
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert(KindSignature {
+            kind: "state/value".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    let checked = check_syntax_document(
+        &parse_syntax_document("plot retained {\n cell: state/value()\n}\n"),
+        &startup,
+    )
+    .unwrap();
+    let graph = expand_canonical_plot(&checked, "retained", &catalog).unwrap();
+    let report = graph
+        .infer_semantic_effects(&checked, &catalog, 64)
+        .unwrap();
+    let leaf = &report.leaves()[0];
+    assert!(leaf.retained_declaration().is_none());
+    assert!(matches!(
+        leaf.temporal_state(),
+        Err(EffectInferenceRefusal::SemanticFact {
+            refusal: PureExpressionRefusal::MissingFact(PureExpressionFact::ExternalEffects),
+            ..
+        })
+    ));
+}
