@@ -47,6 +47,7 @@ pub struct GearEffectFacts<'a> {
     gear: &'a CheckedGear,
     origin: &'a ExpandedGearProvenance,
     facts: Result<PureExpressionFacts, PureExpressionRefusal>,
+    retained_declaration: Option<&'a crate::CheckedRetainedValue>,
 }
 impl GearEffectFacts<'_> {
     pub fn gear(&self) -> &CheckedGear {
@@ -59,6 +60,17 @@ impl GearEffectFacts<'_> {
         self.facts
             .as_ref()
             .map_err(|refusal| self.diagnostic(*refusal))
+    }
+    /// The checked declaration, not a current runtime value or State authority.
+    pub fn retained_declaration(&self) -> Option<&crate::CheckedRetainedValue> {
+        self.retained_declaration
+    }
+    /// KEEP establishes retained temporal state even when other laws are unknown.
+    pub fn temporal_state(&self) -> Result<TemporalStateBehavior, EffectInferenceRefusal> {
+        if self.retained_declaration.is_some() {
+            return Ok(TemporalStateBehavior::Retained);
+        }
+        self.facts().map(|facts| facts.temporal_state)
     }
     fn diagnostic(&self, refusal: PureExpressionRefusal) -> EffectInferenceRefusal {
         EffectInferenceRefusal::SemanticFact {
@@ -81,12 +93,12 @@ impl ExpandedCanonicalPlot {
     /// Bound retained inference by the total graph/provenance item count.
     /// Compiler preparation retains its separate work/storage rules; this
     /// does not alter any existing compiler, Plan or Play admission limit.
-    pub fn infer_semantic_effects(
-        &self,
-        document: &crate::CheckedSyntaxDocument,
+    pub fn infer_semantic_effects<'a>(
+        &'a self,
+        document: &'a crate::CheckedSyntaxDocument,
         catalog: &crate::ProfileCatalog,
         maximum_items: usize,
-    ) -> Result<InferredPlotEffects<'_>, EffectInferenceRefusal> {
+    ) -> Result<InferredPlotEffects<'a>, EffectInferenceRefusal> {
         let count = [
             self.gears.len(),
             self.connections.len(),
@@ -125,10 +137,31 @@ impl ExpandedCanonicalPlot {
                     gear.gear_id.as_str().into(),
                 ));
             }
+            // Source coordinates locate the checked declaration. Expanded Gear
+            // identity remains per instance, including repeated template uses.
+            let mut retained_owners = document
+                .plots
+                .iter()
+                .filter(|plot| plot.name == origin.source_plot)
+                .flat_map(|plot| &plot.gears)
+                .filter(|source| source.source_span == origin.source_span)
+                .filter_map(|source| source.retained.as_deref());
+            let retained_declaration = retained_owners.next();
+            if retained_owners.next().is_some() {
+                return Err(EffectInferenceRefusal::InvalidProvenance(
+                    gear.gear_id.as_str().into(),
+                ));
+            }
             leaves.push(GearEffectFacts {
                 gear,
                 origin,
-                facts: gear.semantic_contract.work_facts(),
+                retained_declaration,
+                facts: gear.semantic_contract.work_facts().map(|mut facts| {
+                    if retained_declaration.is_some() {
+                        facts.temporal_state = TemporalStateBehavior::Retained;
+                    }
+                    facts
+                }),
             });
         }
         if self.provenance.len() != leaves.len() {
@@ -181,6 +214,9 @@ impl InferredPlotEffects<'_> {
     pub fn require_pure_expression(&self) -> Result<(), EffectInferenceRefusal> {
         self.require_complete_bodies()?;
         for leaf in &self.leaves {
+            if leaf.retained_declaration.is_some() {
+                return Err(leaf.diagnostic(PureExpressionRefusal::TemporalState));
+            }
             leaf.facts()?
                 .require_pure_expression()
                 .map_err(|r| leaf.diagnostic(r))?;
