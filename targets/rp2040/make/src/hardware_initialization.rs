@@ -59,6 +59,9 @@ pub fn i2c_initialization_contract() -> BaseInitializationContract {
             // constrains local attachment policy, never grants a Play access.
             count("minimum_call_address", 0, 119),
             count("maximum_call_address", 0, 119),
+            // Zero leaves native issuance disabled. A positive ceiling bounds
+            // each locally issued Play capability; it never proves readiness.
+            count("maximum_call_operations", 0, u64::from(u32::MAX)),
         ],
     }
 }
@@ -155,6 +158,7 @@ pub struct CheckedI2cConstruction {
     pub frequency_hz: u32,
     pub maximum_transaction_polls: u32,
     pub call_address_range: Option<(u8, u8)>,
+    pub maximum_call_operations: u32,
 }
 impl CheckedI2cConstruction {
     pub fn from_configuration(checked: &CheckedHostConfiguration) -> Result<Self, String> {
@@ -186,6 +190,10 @@ impl CheckedI2cConstruction {
                 )
             }
         };
+        let maximum_call_operations = value(&values, "maximum_call_operations")? as u32;
+        if maximum_call_operations != 0 && call_address_range.is_none() {
+            return Err("native I2C issuance requires an explicit local address range".into());
+        }
         Ok(Self {
             configuration_id: checked.configuration_id().into(),
             controller,
@@ -194,6 +202,7 @@ impl CheckedI2cConstruction {
             frequency_hz: value(&values, "frequency_hz")? as u32,
             maximum_transaction_polls: value(&values, "maximum_transaction_polls")? as u32,
             call_address_range,
+            maximum_call_operations,
         })
     }
 }

@@ -34,3 +34,45 @@ fn explicit_local_address_scope_is_bound_to_the_checked_host_source() {
         assert!(CheckedI2cConstruction::from_configuration(&checked(&source)).is_err());
     }
 }
+
+#[test]
+fn native_operation_ceiling_is_explicit_finite_construction_not_an_execution_grant() {
+    let plain = CheckedI2cConstruction::from_configuration(&checked(SOURCE)).unwrap();
+    assert_eq!(plain.maximum_call_operations, 0);
+    let source = include_str!("../../profiles/pico-w-house-green-delegated.host.conduit");
+    let selected = CheckedI2cConstruction::from_configuration(&checked(source)).unwrap();
+    assert_eq!(selected.maximum_call_operations, 1024);
+    for maximum in [0, 1, u32::MAX] {
+        let changed = source.replace(
+            "maximum_call_operations: 1024",
+            &format!("maximum_call_operations: {maximum}"),
+        );
+        let changed = CheckedI2cConstruction::from_configuration(&checked(&changed)).unwrap();
+        assert_eq!(changed.maximum_call_operations, maximum);
+        assert_ne!(selected.configuration_id, changed.configuration_id);
+    }
+    let no_addresses = source
+        .replace("minimum_call_address: 112", "minimum_call_address: 0")
+        .replace("maximum_call_address: 118", "maximum_call_address: 0");
+    assert!(CheckedI2cConstruction::from_configuration(&checked(&no_addresses)).is_err());
+    let packages = MakePackageSet::compose(&[&Rp2040MakePackage]).unwrap();
+    let catalog = MakeCatalog::canonical().with_packages(&packages);
+    let missing = source.replace(", maximum_call_operations: 1024", "");
+    assert!(check_host_configuration(
+        parse_host_configuration_conduit(&missing).unwrap(),
+        &catalog,
+        &packages
+    )
+    .is_err());
+    for invalid in ["4294967296", "-1", "\"unbounded\""] {
+        let changed = source.replace(
+            "maximum_call_operations: 1024",
+            &format!("maximum_call_operations: {invalid}"),
+        );
+        let parsed = parse_host_configuration_conduit(&changed);
+        assert!(
+            parsed.is_err()
+                || check_host_configuration(parsed.unwrap(), &catalog, &packages).is_err()
+        );
+    }
+}

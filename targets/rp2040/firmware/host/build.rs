@@ -56,6 +56,7 @@ pub const RESIDENT_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima=conduit_c
 pub const ROLE:&str="conduit.rp2040-host@1";
 pub const I2C_CONTROLLER:u8={c};
 pub const I2C_CALL_ADDRESS_RANGE:Option<(u8,u8)>={call_address_range:?};
+pub const I2C_CALL_MAXIMUM_OPERATIONS:u32={call_maximum_operations};
 pub const FREQUENCY:u32={frequency};
 pub const MAXIMUM_I2C_POLLS:core::num::NonZeroU32=core::num::NonZeroU32::new({polls}).expect("checked nonzero I2C work bound");
 pub const SENSOR_ADDRESS:u8={sensor};
@@ -71,6 +72,7 @@ macro_rules! start_local_io {{($spawner:expr,$p:ident)=>{{$spawner.spawn(crate::
 pub(crate) use start_local_io;
 "#,
         call_address_range = selected.bus.call_address_range,
+        call_maximum_operations = selected.bus.maximum_call_operations,
         image_id = image_id,
         configuration = checked.configuration_id(),
         frequency = selected.bus.frequency_hz,
