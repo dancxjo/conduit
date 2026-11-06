@@ -7299,3 +7299,50 @@ supervisor. Ordinary authorized ingress/egress, live mixed preparation/status,
 issuer lifetime custody, physical Root measurements and the complete autonomous
 instrument workset remain unfinished. No device was flashed, no live fixture
 was installed, and no service/credential/membership state was changed.
+
+### 2026-11-06 — Admission observes retained providers, not declared readiness
+
+The next receiver dependency was actual local resource evidence. Its CPU
+fixture previously supplied arbitrary observation records outside Root's
+prepared-custody path. The mixed preparation now exposes
+`observe_owned_resources` only on its opaque provider-retaining object, and
+`admit_observed` funds those observations together with the existing Core bridge
+before atomic admission. It retains the initialized resident inventory and
+checked native possession while observing; no await or provider transfer
+intervenes. A pool declaration alone cannot construct this preparation.
+
+The observer checks original Host/Boot/profile/generation, an empty reservation
+ledger, exact local pool/class correspondence, the independently supplied work
+capacity, and the native controller's single-unit capacity. Missing, duplicate,
+foreign-Boot or contradictory pools refuse before allocation. It prepares two
+inline observation records and ten fallible identity/Sign allocations; their
+actual capacities are charged. Inline Root records and allocator overhead remain
+separate Host charges. It never decodes an offer catalog or grants authority.
+
+The CPU admission/Start/step/retirement path now uses this actual observer rather
+than the manually supplied records. Observation backing is 210 bytes; together
+with the observation-specific Core bridge the five-entry case requires 14,793
+bytes under the unchanged 16,384-byte caller ceiling. The earlier 14,563-byte
+figure describes the old fixture's Core-sign identities and excludes owned
+observation backing; it is not the new complete admission bound. The I2C
+contract/Root initialization and physical peak remain separately unproved.
+
+All ten observation-allocation refusals release partial records, a one-byte
+observation shortage refuses before allocation, and a one-byte shortage of the
+combined admission bound preserves both providers and the original ledger.
+Wrong capacity, zero sequence, missing/duplicate pools, native overstatement
+and foreign Boot all refuse without allocation. CPU fixtures 3 passed, owning
+strict Clippy passed, generated no_std CPU code compiled and whole-checkout
+formatting passed. Raw evidence remains ignored under
+`target/mixed-owned-observations-20261106`; source `b536a696c1`.
+
+PR #6810 passed Candidate 42185461796 and merged as
+`f161534ad5c8e757bce4ca4175f1287644e97410`; the delivery branch synchronized it
+as `5d373ad1b2` without a source-tree change. This delivers the shared original
+command match to dev, not the entire mixed receiver.
+
+The installed firmware still runs its resident-only supervision path and its
+existing local diagnostic sampling/display. Mixed-profile selection, compact
+native offer publication, issuer-state retention, combined setup funding,
+authorized ingress/egress and physical receiver/continuity proof remain required.
+No device, service, credential or live membership state changed in this step.
