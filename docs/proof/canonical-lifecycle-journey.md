@@ -8579,3 +8579,39 @@ actual compiler/IMAGE integration tests continue to pass through the updated
 retention path. Strict production Clippy on both changed packages and formatting/
 diff checks pass. No owner, firmware or display deployment changed.
 Logs retained under `target/image-input-preparation-20261106`.
+
+### 2026-11-06 — repair the delivery lane's persisted-Source assertion
+
+PR #6828's Candidate `42266717202` completed unsuccessfully. Its affected-package
+admission ran the conduit tests: 370 passed, six were ignored and one failed.
+The failing attached-terminal action test still asserted that the older
+`body/source.conduit` file changed. The guarded continuation intentionally
+commits the complete `body/workset-sources.json` journal instead. The test now
+asserts its exact schema, one retained `clock-demo` entry and updated `500ms`
+Source, retaining the actual attached provider/Mask action and stale replay
+checks. No compatibility copy was added to production.
+
+Review fix `0e4eb0f6d81f6a54feda73931a39f11fa9c0b638` is pushed; equivalent working
+branch checkpoint is `3d3a508c34`. New Candidate is `42273008182`; last observed
+quick check is in progress. No merge is claimed. The focused local optimized
+review test initially hit the per-user tmpfs quota; after that process terminated,
+verified disposable compiler intermediates, obsolete library artifacts and
+executables from completed isolated clock fixtures were reclaimed. Fixture
+metadata, source, firmware images, installation packages and histories remain.
+The same focused test is running again under its original checked review scope.
+
+The explicit optimized attached-terminal test on corrected review head
+`0e4eb0f6d81f6a54feda73931a39f11fa9c0b638` now passes (one selected test,
+no ignored tests), log `/tmp/conduit-6828-attached-action-retry-20261106.log`.
+Candidate remains pending; no merge or deployed update is claimed.
+
+The caller-metadata admission audit located the next concrete construction seam:
+`bind_image_bounds` currently creates the shared memory counter after native
+metadata has been built. Stage that one verified IMAGE/Host/Boot-bound counter
+before the metadata factory, reserve its qualified peak with existing leases,
+then consume it in the fresh final ledger without reset or double charge. Keep
+this affine construction owner private, preserve reconfiguration refusal and
+sum metadata/provider overlap. This removes the initialization cycle without
+another Host, allocator or public arbitrary reservation handle; it is not yet
+implemented. The current input preparation API alone does not fund metadata
+constructed outside its callback.
