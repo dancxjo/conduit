@@ -25,6 +25,8 @@ impl I2cProvider for Provider<'_> {
     }
     fn revoke(&mut self) {}
 }
+#[path = "admission.rs"]
+mod admission;
 pub fn exercise() {
     run(false);
     run(true);
@@ -110,37 +112,14 @@ fn run(reverse: bool) {
                 maximum_total_text_bytes: 32768,
                 requirements: &[],
             },
-            fragment_id: &fragment.fragment_id,
+            fragment_id: fragment.fragment_id.as_str(),
             scope,
             node: native_node,
         },
         fore: generated.fore(),
     };
     let effects = core::cell::Cell::new(0);
-    // SAFETY: exclusively retained inert CPU provider; no physical controller exists.
-    let mut slot = Some(unsafe {
-        ReadyI2cBase::new(
-            I2cNativeIdentity {
-                host_id: authority.host_id.clone(),
-                boot_id: authority.boot_id.clone(),
-                base_id: "base/i2c".into(),
-                provider_instance_id: authority.base_instance_id.clone(),
-                provider_generation: authority.base_provider_generation,
-                resource_pool_id: authority.resource_pool_id.clone(),
-                resource_generation_id: authority.resource_generation_id.clone(),
-                envelope_id: authority.envelope_id.clone(),
-                artifact_id: "artifact/i2c/fixture".into(),
-            },
-            conduit_i2c_transaction::owner::I2cAttachment {
-                generation: 7,
-                minimum_address: 0x76,
-                maximum_address: 0x77,
-                resource_bytes: 4096,
-            },
-            Provider(&effects),
-        )
-        .unwrap()
-    });
+    let mut slot = ready_slot(&authority, &effects);
     let mut library = crate::resident::generated::Initialized::prepare().unwrap();
     let original = library.offers().map(|o| o.unwrap().as_ptr());
     let issue = || {
@@ -345,5 +324,44 @@ fn run(reverse: bool) {
         .events()
         .any(|e| e.kind == KernelEventKind::RunCancelled));
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
-    println!("actual mixed Root kernel: {charge} retained bytes; real resident to native Host Call to typed egress; zero binding/execution allocation; CPU-only, no workset admission or physical Start claim");
+    admission::run(
+        &context,
+        fragment,
+        &contract,
+        &authority,
+        &image,
+        maxima,
+        (&input, &expected),
+    );
+    println!("actual mixed Root kernel: {charge} retained bytes; real resident to native Host Call to typed egress; zero binding/execution allocation; standalone CPU execution component; signed-set admission tested separately, no physical Start claim");
+}
+
+fn ready_slot<'a>(
+    authority: &BaseCapabilityScope,
+    effects: &'a core::cell::Cell<usize>,
+) -> Option<ReadyI2cBase<Provider<'a>>> {
+    // SAFETY: exclusively retained inert CPU provider; no physical controller exists.
+    Some(unsafe {
+        ReadyI2cBase::new(
+            I2cNativeIdentity {
+                host_id: authority.host_id.clone(),
+                boot_id: authority.boot_id.clone(),
+                base_id: "base/i2c".into(),
+                provider_instance_id: authority.base_instance_id.clone(),
+                provider_generation: authority.base_provider_generation,
+                resource_pool_id: authority.resource_pool_id.clone(),
+                resource_generation_id: authority.resource_generation_id.clone(),
+                envelope_id: authority.envelope_id.clone(),
+                artifact_id: "artifact/i2c/fixture".into(),
+            },
+            conduit_i2c_transaction::owner::I2cAttachment {
+                generation: 7,
+                minimum_address: 0x76,
+                maximum_address: 0x77,
+                resource_bytes: 4096,
+            },
+            Provider(effects),
+        )
+        .unwrap()
+    })
 }

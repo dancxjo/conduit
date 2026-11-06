@@ -22,6 +22,8 @@ mod i2c_owner;
 mod membership;
 #[allow(dead_code)] // Qualified composition; wire/native workset admission remains separate.
 mod mixed_preparation;
+#[allow(dead_code)] // Complete mixed admission is qualified before receiver installation.
+mod mixed_workset;
 mod native_preparation;
 mod radio;
 mod resident;

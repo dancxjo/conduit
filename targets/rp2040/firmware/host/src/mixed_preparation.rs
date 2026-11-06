@@ -160,7 +160,7 @@ impl<'a, 'o, P: I2cProvider> PreparedMixedKernel<'a, 'o, P> {
                     requirements: selected.operation.requirements,
                     computations,
                     fore: Some(selected.fore),
-                    fragment_id: selected.operation.fragment_id.as_str(),
+                    fragment_id: selected.operation.fragment_id,
                     scope: selected.operation.scope,
                     node: NodeId(n.node),
                     work_resource,

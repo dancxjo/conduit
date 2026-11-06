@@ -16,7 +16,8 @@ pub struct SelectedAssignedOperationPlan<'a> {
     pub maxima: c::AssignedPlanMaxima,
     pub requirements: c::AssignedPlanRequirements<'a>,
     pub computations: c::AssignedComputationProfile<'a>,
-    pub fragment_id: &'a c::FragmentId,
+    /// Borrowed identity text; exact fragment and containing scope still check.
+    pub fragment_id: &'a str,
     pub scope: crate::assigned_play_scope::AssignedPlayScope<'a>,
     pub node: NodeId,
 }
@@ -126,7 +127,7 @@ fn bind_assigned_profile(
             admission.fore,
         )
         .map_err(|_| wrong())?;
-    if view.fragment != id(selected.fragment_id.as_str())
+    if view.fragment != id(selected.fragment_id)
         || !selected.scope.matches(&view, selected.input.header())
         || !selected.scope.matches_claim(claim)
         || claim.subject_kind != definition.kind.kind_id

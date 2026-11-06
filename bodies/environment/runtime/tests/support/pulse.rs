@@ -215,7 +215,7 @@ fn bind_mode(
                 maxima: super::assignment::NativeProjection::maxima(),
                 requirements: projection.required(),
                 computations: projection.profile(),
-                fragment_id: &fragment.fragment_id,
+                fragment_id: fragment.fragment_id.as_str(),
                 scope: conduit_plan_lowering::assigned_play_scope::AssignedPlayScope::Plot(&active),
                 node,
             },

@@ -1,0 +1,406 @@
+//! Original signed workset plus the actual Root atomic admission path.
+use super::*;
+use crate::mixed_workset::{self, Policy};
+use conduit_body as b;
+#[path = "receiver.rs"]
+mod receiver;
+
+pub fn run(
+    context: &body_scope::Context,
+    fragment: &PlanFragment,
+    contract: &I2cContract,
+    authority: &BaseCapabilityScope,
+    image: &conduit_embedded_build::PreparedResidentExpression,
+    maxima: AssignedPlanMaxima,
+    values: (&[u8], &[u8]),
+) {
+    let AssignedPlayScope::Body(scope) = context.scope(fragment) else {
+        unreachable!()
+    };
+    let mut receiver = receiver::Receiver::new(scope);
+    receiver.actual.resources = vec![
+        resource_offer("fixture/private-work", COOPERATIVE_STEP_WORK_CLASS_ID, 1000),
+        resource_offer(authority.resource_pool_id.as_str(), I2C_ATTACHMENT_CLASS, 1),
+        resource_offer("fixture/decoy-work", COOPERATIVE_STEP_WORK_CLASS_ID, 1000),
+        resource_offer("fixture/decoy-bus", I2C_ATTACHMENT_CLASS, 1),
+    ];
+    let document = conduit_embedded_build::generate_prepared_body_workset(
+        scope,
+        &receiver.actual,
+        4096,
+        |local| {
+            let resident = local
+                .fragment()
+                .placements
+                .iter()
+                .find(|p| p.artifact_id == *image.artifact_id())
+                .unwrap();
+            let bound = image
+                .bind(
+                    local.plot_plan(),
+                    &local.fragment().fragment_id,
+                    &resident.placement_id,
+                )
+                .unwrap();
+            Ok((
+                vec![bound],
+                conduit_embedded_build::BodyFragmentProjectionLimits {
+                    image: conduit_embedded_build::EmbeddedImageBounds::HOST_TOOLING,
+                    computations: conduit_embedded_build::EmbeddedComputationBounds {
+                        maximum_program_bytes: 32768,
+                        maximum_total_program_bytes: 32768,
+                    },
+                    assigned: maxima,
+                    maximum_fore_ports: 2,
+                    maximum_document_bytes: 4096,
+                },
+            ))
+        },
+    )
+    .unwrap();
+    let mut retained = b::HostCommandInput::<4096>::new();
+    retained.writable().unwrap()[..document.bytes().len()].copy_from_slice(document.bytes());
+    retained
+        .retain(
+            receiver
+                .command_with_contract(document.bytes(), b::HOST_PREPARED_WORKSET_CONTRACT)
+                .into_retained_stamp()
+                .unwrap(),
+        )
+        .unwrap();
+    let preparation = b::HostPreparationDelegation {
+        authorizer: b::HostPreparationAuthorizer::SeedOwner,
+        maximum_assignment_bytes: 4096,
+        maximum_runtime_state_bytes: 16384,
+    };
+    let execution = b::HostExecutionDelegation {
+        authorizer: b::HostExecutionAuthorizer::SeedOwner,
+        maximum_active_worksets: 1,
+    };
+    let policy = Policy {
+        preparation: Some(&preparation),
+        execution: Some(&execution),
+        active_worksets: 0,
+        work_pool: "fixture/private-work",
+        maxima,
+        maximum_storage_bytes: 16384,
+    };
+    let mut owner = ResourceAdmissionOwner::new(receiver.actual.clone());
+    let before = owner.clone();
+    let observations: Vec<_> = owner
+        .host()
+        .resources
+        .iter()
+        .enumerate()
+        .map(|(index, r)| ResourceObservation {
+            host_id: receiver.actual.host_id.clone(),
+            boot_id: receiver.actual.boot_id.clone(),
+            pool_id: r.pool_id.clone(),
+            class_id: r.class_id.clone(),
+            offer_generation: receiver.actual.offer_generation,
+            health: ResourceHealth::Ready,
+            unreserved_units: r.capacity_units,
+            utilized_units: 0,
+            sign_id: format!("fixture/current/{index}").into(),
+        })
+        .collect();
+    let effects = core::cell::Cell::new(0);
+    let mut slot = ready_slot(authority, &effects);
+    let mut library = crate::resident::generated::Initialized::prepare().unwrap();
+    let original = library.offers().map(|o| o.unwrap().as_ptr());
+    macro_rules! prepare {
+        ($policy:expr,$context:expr) => {{
+            let (table, handle, claim) = crate::support::authority::authorization_for_play(
+                authority.clone(),
+                context.plan_id(),
+                context.play_id(),
+            );
+            mixed_workset::prepare_retained(
+                &mut library,
+                NativePossession {
+                    slot: &mut slot,
+                    table,
+                    handle,
+                    claim,
+                },
+                contract,
+                $policy,
+                $context,
+                &retained,
+            )
+        }};
+    }
+    let mut expired = receiver.context();
+    expired.now_millis = 20;
+    for (policy, current) in [
+        (
+            Policy {
+                execution: None,
+                ..policy
+            },
+            receiver.context(),
+        ),
+        (
+            Policy {
+                active_worksets: 1,
+                ..policy
+            },
+            receiver.context(),
+        ),
+        (policy, expired),
+    ] {
+        let (table, handle, claim) = crate::support::authority::authorization_for_play(
+            authority.clone(),
+            context.plan_id(),
+            context.play_id(),
+        );
+        let (result, cost) = crate::probe::observe(|| {
+            mixed_workset::prepare_retained(
+                &mut library,
+                NativePossession {
+                    slot: &mut slot,
+                    table,
+                    handle,
+                    claim,
+                },
+                contract,
+                policy,
+                current,
+                &retained,
+            )
+        });
+        assert!(result.is_err());
+        drop(result);
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        assert!(slot.is_some());
+        assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+        assert_eq!(owner, before);
+        assert_eq!(effects.get(), 0);
+    }
+    // Even a correctly attributed owner cannot substitute another available
+    // pool for the local resident/native owners while keeping numeric slots.
+    let original_set = b::receive_delegated_body_workset::<1>(
+        Some(&preparation),
+        receiver.context(),
+        receiver.command_with_contract(document.bytes(), b::HOST_PREPARED_WORKSET_CONTRACT),
+    )
+    .unwrap();
+    let (metadata, projection) =
+        b::decode_body_fragment_document(original_set.document(0).unwrap()).unwrap();
+    for native in [false, true] {
+        let mut bindings = Vec::new();
+        for entry in b::PlainFragmentResources::new(metadata.resource_bindings) {
+            let mut entry = entry.unwrap();
+            if native && entry.class == I2C_ATTACHMENT_CLASS {
+                entry.pool = "fixture/decoy-bus";
+            }
+            if !native && entry.class == COOPERATIVE_STEP_WORK_CLASS_ID {
+                entry.pool = "fixture/decoy-work";
+            }
+            entry.append_to(&mut bindings).unwrap();
+        }
+        let mut altered = metadata;
+        altered.resource_bindings = &bindings;
+        let altered = b::encode_body_fragment_document(&altered, projection, 4096).unwrap();
+        let altered = b::encode_body_workset_document(&[&altered], 4096).unwrap();
+        let mut input = b::HostCommandInput::<4096>::new();
+        input.writable().unwrap()[..altered.len()].copy_from_slice(&altered);
+        input
+            .retain(
+                receiver
+                    .command_with_contract(&altered, b::HOST_PREPARED_WORKSET_CONTRACT)
+                    .into_retained_stamp()
+                    .unwrap(),
+            )
+            .unwrap();
+        let (table, handle, claim) = crate::support::authority::authorization_for_play(
+            authority.clone(),
+            context.plan_id(),
+            context.play_id(),
+        );
+        let (result, cost) = crate::probe::observe(|| {
+            mixed_workset::prepare_retained(
+                &mut library,
+                NativePossession {
+                    slot: &mut slot,
+                    table,
+                    handle,
+                    claim,
+                },
+                contract,
+                policy,
+                receiver.context(),
+                &input,
+            )
+        });
+        assert!(matches!(
+            result,
+            Err(mixed_workset::Refusal::Resources(
+                b::DelegatedResourceRefusal::Scope
+            ))
+        ));
+        drop(result);
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        assert_eq!(owner, before);
+        assert!(slot.is_some());
+        assert_eq!(effects.get(), 0);
+        assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    }
+    let prepared = prepare!(policy, receiver.context()).unwrap();
+    let kernel_bytes = prepared.kernel_storage_bytes();
+    let total = prepared.preparation_bytes(&owner, &observations).unwrap();
+    assert!(total <= policy.maximum_storage_bytes);
+    assert!(matches!(
+        prepared.admit_and_bind(&mut owner, &[]),
+        Err(mixed_workset::Refusal::Resources(
+            b::DelegatedResourceRefusal::Admission(ResourceAdmissionRefusal::MissingObservation)
+        ))
+    ));
+    assert!(slot.is_some());
+    assert_eq!(owner, before);
+    assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    let prepared = prepare!(policy, receiver.context()).unwrap();
+    let (result, cost) =
+        crate::probe::observe_refusing(1, || prepared.admit_and_bind(&mut owner, &observations));
+    assert!(matches!(
+        result,
+        Err(mixed_workset::Refusal::Resources(
+            b::DelegatedResourceRefusal::Allocation
+                | b::DelegatedResourceRefusal::Admission(ResourceAdmissionRefusal::Allocation)
+        ))
+    ));
+    drop(result);
+    assert_eq!(cost.refused_allocations, 1);
+    assert_eq!(owner, before);
+    assert!(slot.is_some());
+    assert_eq!(effects.get(), 0);
+    assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    let mut low = observations.clone();
+    low[1].unreserved_units = 0;
+    assert!(matches!(
+        prepare!(policy, receiver.context())
+            .unwrap()
+            .admit_and_bind(&mut owner, &low),
+        Err(mixed_workset::Refusal::Resources(
+            b::DelegatedResourceRefusal::Admission(ResourceAdmissionRefusal::Overcommitted)
+        ))
+    ));
+    assert_eq!(owner, before);
+    assert!(slot.is_some());
+    assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    assert_eq!(effects.get(), 0);
+    assert!(matches!(
+        prepare!(
+            Policy {
+                maximum_storage_bytes: total - 1,
+                ..policy
+            },
+            receiver.context()
+        )
+        .unwrap()
+        .admit_and_bind(&mut owner, &observations),
+        Err(mixed_workset::Refusal::Bounds)
+    ));
+    assert_eq!(owner, before);
+    assert!(slot.is_some());
+    assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    let prepared = prepare!(policy, receiver.context()).unwrap();
+    let (committed, cost) =
+        crate::probe::observe(|| prepared.admit_and_bind(&mut owner, &observations));
+    let committed = committed.unwrap();
+    assert_eq!(owner.admissions().len(), 2);
+    assert_eq!(effects.get(), 0);
+    assert!(slot.is_none());
+    assert!(cost.peak_bytes + kernel_bytes <= total);
+    assert!(owner
+        .admissions()
+        .iter()
+        .all(|a| &a.plan_id == context.plan_id()));
+    assert_eq!(
+        committed.approved.metadata().body_play,
+        context.play_id().as_str()
+    );
+    assert_eq!(retained.payload(), Some(document.bytes()));
+    let port = |direction| {
+        let p = committed
+            .approved
+            .metadata()
+            .fore_ports
+            .chunks_exact(ASSIGNED_LOCAL_FORE_BYTES)
+            .find(|p| p[4] == direction)
+            .unwrap();
+        (
+            RemoteEndpointId(u16::from_le_bytes(p[..2].try_into().unwrap())),
+            CordId(u16::from_le_bytes(p[2..4].try_into().unwrap())),
+        )
+    };
+    let (ingress, incoming) = port(0);
+    let (egress, outgoing) = port(1);
+    let mut bound = committed.bound;
+    let ((), cost) = crate::probe::observe(|| {
+        // Current original attribution is checked at this CPU Start boundary;
+        // transport acknowledgment never supplied permission to execute.
+        let current = receiver.context();
+        retained
+            .reborrow(
+                current.member,
+                current.actual,
+                &current.bootstrap.owner,
+                b::HOST_PREPARED_WORKSET_CONTRACT,
+                current.now_millis,
+            )
+            .unwrap();
+        assert_eq!(owner.admissions().len(), 2);
+        bound
+            .kernel
+            .admit_remote_input(ingress, incoming, 0, values.0)
+            .unwrap();
+        for _ in 0..8 {
+            bound.kernel.step().unwrap();
+            bound.dispatch_one().unwrap();
+            if bound
+                .kernel
+                .remote_egress_offer(egress, outgoing)
+                .unwrap()
+                .is_some()
+            {
+                break;
+            }
+        }
+        let offer = bound
+            .kernel
+            .remote_egress_offer(egress, outgoing)
+            .unwrap()
+            .unwrap();
+        assert_eq!(bound.kernel.host_value(offer.value).unwrap(), values.1);
+        assert_eq!(effects.get(), 1);
+        bound
+            .kernel
+            .remote_egress_accept(egress, outgoing, offer.sequence)
+            .unwrap();
+        bound
+            .kernel
+            .remote_egress_delivered(egress, outgoing, offer.sequence)
+            .unwrap();
+        bound.kernel.cancel().unwrap();
+        let retired = (*bound.kernel)
+            .try_retire()
+            .unwrap_or_else(|_| panic!("mixed admission fixture not drained"));
+        assert!(retired
+            .signs
+            .events()
+            .any(|e| e.kind == KernelEventKind::RunCancelled));
+        for back in retired.drivers {
+            if let MixedBack::Resident(back) = back {
+                assert!(back.finish_retired().is_ok())
+            }
+        }
+    });
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    assert_eq!(effects.get(), 1);
+    // Reservations are permanent ledger custody, not a scope that drops with a
+    // carrier/kernel. Release remains Root's separate terminal/provider decision.
+    assert_eq!(owner.admissions().len(), 2);
+    assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    println!("complete signed mixed workset: {} bytes; {kernel_bytes} kernel/native backing plus Core bridge within {total} requested-byte bound; missing/low evidence and one-byte shortage preserve both owners; original Body Plan/Play reservations survive typed CPU execution and kernel retirement; no physical Start",document.bytes().len());
+}

@@ -211,7 +211,7 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
             maximum_total_text_bytes: 32768,
             requirements: &[],
         },
-        fragment_id: &fragment.fragment_id,
+        fragment_id: fragment.fragment_id.as_str(),
         scope,
         node: lowered.nodes[0].node,
     };

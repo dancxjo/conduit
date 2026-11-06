@@ -15,9 +15,11 @@ extern crate alloc;
 mod resident{{pub mod generated{{{library}}}}}
 #[allow(dead_code)]#[path={native:?}]mod native_preparation;
 #[allow(dead_code)]#[path={mixed:?}]mod mixed_preparation;
+#[allow(dead_code)]#[path={workset:?}]mod mixed_workset;
 "#,
         native = root.join("../firmware/host/src/native_preparation.rs"),
-        mixed = root.join("../firmware/host/src/mixed_preparation.rs")
+        mixed = root.join("../firmware/host/src/mixed_preparation.rs"),
+        workset = root.join("../firmware/host/src/mixed_workset.rs")
     );
     let exercise = format!(
         r#"
@@ -44,6 +46,8 @@ fn main(){{exercise::exercise();}}
             "conduit_plan_lowering",
             "conduit_semantic_catalog",
             "conduit_i2c_transaction",
+            "ed25519_dalek",
+            "serde_json",
         ],
     );
 }
