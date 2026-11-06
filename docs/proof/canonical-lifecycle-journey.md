@@ -7563,3 +7563,42 @@ and no sensor/display error. It is still the older image, not this publication
 checkpoint and not an admitted environmental Play. Next: mixed receiver profile
 selection, complete execution setup funding, lawful input/output and ordinary
 Body-authored Seed deployment/adoption.
+
+### 6 November 2026 — mixed profile wired into the persistent receiver
+
+Delivery `1ba9849bea` routes the original attributed workset through an
+allocation-free installed-profile selector. It checks retained attribution and
+both installed delegations before borrowing equipment. Resource classes choose
+a preparation profile only; they do not approve a fragment or confer possession.
+The mixed profile permits one local native/resident pair and its existing
+preparer independently checks the complete signed set, exact nodes, Fore,
+resources, Source/artifacts and locally issued opaque possession. No fallback
+tries another profile after preparation refuses.
+
+The actual Root mixed factory acquires its current native and resident owners,
+uses MembershipState's Boot-retained issuer counter, and admits the original
+resource scopes atomically before the shared supervisor's exact Start check.
+Temporary I2C contract metadata is dropped before observation/admission and
+execution. This still does not prove complete setup funding or fallible recovery
+of contract construction; its previously measured preparation remains outside
+the kernel backing. No native fixture input was installed on hardware.
+
+The resident preparation table intentionally permits zero Host Calls. The new
+mixed table derives its one-call representation ceiling from existing Source
+operation slots and explicit native policy; memory, queue and authority grants
+are unchanged. The actual generated delegated profile retains 1024 native
+operations. The selector tests choose the actual signed mixed set with zero
+allocation and refuse missing execution policy or expired original attribution
+with zero allocation. All three mixed-kernel tests, strict owning Clippy and
+formatting pass. Logs: `target/mixed-receiver-selection-20261106` (ignored).
+
+Ordinary Make links the exact checkpoint including actual mixed receiver code:
+1,376,920 flash bytes and 121,632 static RAM bytes including the unchanged
+49,152-byte heap. Static headroom is 9,440 bytes; the 148,704-byte linked stack
+gap is not measured high-water. There are 21 warnings. ELF/UF2 digests, reserved
+sector boundaries, actual embedded native image identity and generated one-call
+representation verify. Artifacts: `target/rp2040-mixed-receiver-20261106` (ignored).
+No firmware was flashed and no physical native Start or local measurement
+continuity under the new assignment has been demonstrated. Complete setup
+funding/failure handling, authorized stream input/output, ordinary Body Source
+adoption and Seed deployment remain before claiming a working instrument Play.
