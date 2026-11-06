@@ -7483,3 +7483,35 @@ This constructor alone does not reduce the installed device's memory or publish
 a native offer. Next use is fabrication of immutable native offer bytes, followed
 by publication backed by current actual controller evidence; the Root must still
 own and admit the native execution at assignment time. No device was flashed.
+
+### 6 November 2026 — checked native definition image fabrication
+
+Delivery `ecc71ad6c8` connects checked RP2040 I2C selection to the immutable offer
+constructor. A zero-operation policy emits no image; selected native construction
+uses the exact IMAGE artifact identity. Both native and resident definitions now
+share the existing lossless wire-image encoder through embedded-build. No dummy
+Ready provider or MCU-side capability decoder is introduced. The firmware build
+script emits the native image as generated static source; runtime publication
+must still prove actual initialized controller availability.
+
+Five tests pass: both new fabrication tests (including exact preparing-Host
+round-trip, empty artifact and one-byte image shortage) plus all three mixed
+kernel tests. The fixture image is 602 bytes; that is not the measured size of a
+live installed offer or a deployed RAM saving. Strict RP2040 test and separate
+embedded-build library Clippy, and workspace formatting, pass. Logs:
+`target/native-offer-fabrication-20261106` (ignored).
+
+Ordinary Make also links this exact committed source for the delegated Green
+profile. ELF/UF2 digests and every UF2 page's reserved-sector boundary verify.
+Flash load remains 1,263,744 bytes and static RAM remains 121,560 bytes including
+the unchanged 49,152-byte heap. There are 26 warnings. Artifacts and validation:
+`target/rp2040-flash-native-offer-20261106` (ignored). The unreferenced native
+static may be eliminated by the linker until publication uses it; unchanged
+linked size does not establish that it is present in the deployed image.
+No flash, physical execution or dynamic high-water measurement occurred.
+
+PR #6812 is now ready for review; its exact-head Candidate remains a separate
+hosted acceptance gate. The image fabrication consumer stays on the delivery
+branch until that prerequisite is accepted. Next is current native publication
+and issuer custody in the actual Root receiver, preserving local diagnostic
+operation until the checked Body workset can lawfully take over.
