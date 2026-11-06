@@ -290,3 +290,6 @@ fn two_capture_window_reuses_slots_across_128_observations_with_constant_state_b
 
 #[path = "usb_mouse_order/pointer_history.rs"]
 mod pointer_history;
+
+#[path = "usb_mouse_order/absolute_pointer.rs"]
+mod absolute_pointer;

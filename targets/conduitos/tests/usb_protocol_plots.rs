@@ -285,3 +285,15 @@ fn class_recognition_is_specific_and_does_not_publish_offers() {
         );
     }
 }
+
+#[path = "usb_protocol_plots/hub_port_power.rs"]
+mod hub_port_power;
+
+#[path = "../src/arch/dwc2/mod.rs"]
+mod dwc2;
+
+#[path = "usb_protocol_plots/hub_port_status.rs"]
+mod hub_port_status;
+
+#[path = "usb_protocol_plots/hub_port_reset.rs"]
+mod hub_port_reset;
