@@ -22,15 +22,20 @@ pub struct SourceCheckProcessLimits {
     /// Complete child CPU time. The parent separately owns wall-time/cancellation.
     pub cpu_seconds: u64,
 }
-const MAXIMUM_INPUT_BYTES: u64 = 6 * conduit_plot::MAXIMUM_PLOT_SOURCE_BYTES as u64 + 16 * 1024;
-const MAXIMUM_REPLY_BYTES: usize = 64 * 1024;
+pub(super) const MAXIMUM_INPUT_BYTES: u64 =
+    6 * conduit_plot::MAXIMUM_PLOT_SOURCE_BYTES as u64 + 16 * 1024;
+pub(super) const MAXIMUM_REPLY_BYTES: usize = 64 * 1024;
 impl SourceCheckProcessLimits {
-    fn apply(self) -> Result<(), String> {
+    fn validate(self) -> Result<(), String> {
         if !(8 * 1024 * 1024..=1024 * 1024 * 1024).contains(&self.address_space_bytes)
             || !(1..=30).contains(&self.cpu_seconds)
         {
             return Err("Source-check process limits outside finite Linux profile".into());
         }
+        Ok(())
+    }
+    fn apply(self) -> Result<(), String> {
+        self.validate()?;
         // SAFETY: affects only this dedicated child process. No inherited limit
         // is enlarged; failure prevents catalogue construction or Source reading.
         for (resource, requested) in [
@@ -111,3 +116,6 @@ fn analyze(
         SourceCheckProjection::new(&input.owner, input.generation, &input.source, context)?;
     owner.project(&input.request)
 }
+
+mod parent;
+pub use parent::{SourceCheckProcessFailure, SourceCheckProcessOutput, SourceCheckProcessWorker};
