@@ -6614,3 +6614,10 @@ A focused current-dev extraction includes only fabricated I2C schemas, bounded
 result storage, the small generic sequence capacity inspection and relevant
 conformance tests. Native Start, mixed workset binding and device deployment
 remain within the existing MCU/Root delivery lane.
+
+
+The focused extraction is PR #6794, `8500d15021`, against current dev. Its own
+checkout passes 13 all-feature tests, 9 parser-free tests, strict all-target /
+all-feature Clippy, and the ARMv6-M no-default-feature check. Fabricated buffer
+bounds are also checked against the unchanged 4,096-byte Host Call ceiling.
+The PR is reviewable source, not merged acceptance or device deployment.

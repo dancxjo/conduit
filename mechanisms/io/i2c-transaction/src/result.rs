@@ -1,6 +1,6 @@
 //! Finite typed bus outcomes. No device-specific interpretation or retry policy.
 use super::{
-    contract::I2cContract,
+    contract::{I2cContract, I2C_MAXIMUM_BYTES},
     transaction::{I2cDisposition, MAXIMUM_TRANSACTION_BYTES},
 };
 use alloc::vec::Vec;
@@ -44,6 +44,12 @@ impl PreparedI2cResultEncoder {
                 .map(|case| case.payload_type())
                 .ok_or(StructuredInfoRefusal::UnknownVariantTag)
         };
+        let bound = |text: &str| {
+            text.parse::<usize>()
+                .ok()
+                .filter(|bytes| *bytes <= I2C_MAXIMUM_BYTES as usize)
+                .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)
+        };
         let mut unit = PreparedStructuredComposer::new(
             &StructuredInfoType::leaf(kind_id("value/empty"))?,
             64,
@@ -53,23 +59,17 @@ impl PreparedI2cResultEncoder {
             result: PreparedStructuredComposer::with_static_schema(
                 contract.result_type(),
                 include_bytes!(concat!(env!("OUT_DIR"), "/result.type")),
-                include_str!(concat!(env!("OUT_DIR"), "/result.bound"))
-                    .parse()
-                    .map_err(|_| StructuredInfoRefusal::WrongType)?,
+                bound(include_str!(concat!(env!("OUT_DIR"), "/result.bound")))?,
             )?,
             completed: PreparedStructuredComposer::with_static_schema(
                 payload("completed")?,
                 include_bytes!(concat!(env!("OUT_DIR"), "/completed.type")),
-                include_str!(concat!(env!("OUT_DIR"), "/completed.bound"))
-                    .parse()
-                    .map_err(|_| StructuredInfoRefusal::WrongType)?,
+                bound(include_str!(concat!(env!("OUT_DIR"), "/completed.bound")))?,
             )?,
             short: PreparedStructuredComposer::with_static_schema(
                 payload("short")?,
                 include_bytes!(concat!(env!("OUT_DIR"), "/short.type")),
-                include_str!(concat!(env!("OUT_DIR"), "/short.bound"))
-                    .parse()
-                    .map_err(|_| StructuredInfoRefusal::WrongType)?,
+                bound(include_str!(concat!(env!("OUT_DIR"), "/short.bound")))?,
             )?,
             input: PreparedLeafSequenceEncoder::new(
                 kind_id("value/u8"),
