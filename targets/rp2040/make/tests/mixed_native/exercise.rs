@@ -36,7 +36,9 @@ pub fn exercise() {
 fn run(reverse: bool) {
     let outcome = crate::resident::generated::ENTRY_COUNT == 5;
     let (document, program, image) = crate::support::context_for(outcome);
-    let contract = I2cContract::prepare().unwrap();
+    let (contract, contract_cost) = crate::probe::observe(I2cContract::prepare);
+    let contract = contract.unwrap();
+    println!("native I2C contract preparation outside kernel backing: {} requested B, {} B CPU peak, {} allocations; must be separately funded before physical installation", contract_cost.requested_bytes, contract_cost.peak_bytes, contract_cost.allocations);
     let mut authority = crate::support::authority::scope();
     authority.capability_id = I2C_IMPLEMENTATION.into();
     authority.implementation_id = I2C_IMPLEMENTATION.into();

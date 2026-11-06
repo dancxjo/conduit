@@ -473,14 +473,10 @@ pub fn run(
             conduit_i2c_transaction::owner::I2cHostCall::retire_retained(&mut call),
             Err(conduit_i2c_transaction::owner::I2cRetirementRefusal::NotRevoked)
         ));
-        call.as_mut()
-            .unwrap()
-            .revoke(retired.native_node, conduit_kernel::HostCallId(0))
-            .unwrap();
         let (provider, _) =
-            conduit_i2c_transaction::owner::I2cHostCall::retire_retained(&mut call).unwrap();
+            conduit_i2c_transaction::owner::I2cHostCall::finish_retained(&mut call).unwrap();
         assert!(core::ptr::eq(provider.0, &effects));
-        assert!(provider.1);
+        assert!(!provider.1); // Clean retirement preserves usable physical custody.
         assert!(call.is_none());
     });
     assert_eq!((cost.allocations, cost.reallocations), (0, 0));
