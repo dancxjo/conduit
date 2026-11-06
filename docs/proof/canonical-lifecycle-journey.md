@@ -7646,3 +7646,48 @@ Stewardship: after checking active cache references, package-native cleanup
 removed 1,123 inactive Std-host artifacts (145.3 MiB) and 389 inactive CLI outputs
 (1.8 GiB). Root headroom rose from 3.7 to 5.5 GiB before the firmware build;
 source, evidence, credentials and deployed service executables were preserved.
+
+### 6 November 2026 — binding interface no longer materializes Type trees
+
+Delivery `712d3aa2d5` keeps the existing I2cContract as a small, fallibly prepared
+interface. Fabrication derives its exact port-profile identities from the checked
+Types; execution copies only those fixed interface strings and port tables.
+Authoring callers explicitly decode owned request/result Types when needed.
+There is no lazy Type allocation, second contract model or execution parser.
+The existing native binder and Kind/Fore identities remain unchanged.
+
+Contract preparation falls from 5,575 requested bytes / 4,245 peak CPU bytes /
+94 allocations to 408 requested/retained/peak CPU bytes in ten fallible
+allocations: approximately 90% less peak. Exact funding succeeds, one byte less
+refuses before allocation, and every injected allocation failure reclaims all
+preparation. Source-profile cross-checks preserve the exact authored semantics.
+Request validation remains allocation-free and result preparation still owns
+1,916 bytes in seven fallible allocations. Mixed retained preparation remains
+13,951 bytes, independently of the temporary interface's 408 bytes.
+
+The real receiver funds this interface from current allocator headroom, then
+caps kernel preparation separately against the unchanged Source ceiling and
+actual remaining arena. The temporary interface is dropped before admission and
+execution. Complete Root high-water, other preparation boundaries and physical
+execution still require their own proof; this is not a claim of full #6341.
+
+All 26 I2C tests with all features pass, including Source-native custody and
+allocator faults, together with three mixed-kernel and two image-fabrication
+tests. Strict all-feature native library/test Clippy, RP2040 test Clippy and
+workspace formatting pass. A feature-gated macro import and the 2024-edition
+ConduitOS caller formatting were corrected during qualification. Logs:
+`target/flat-interface-cpu-20261106` (ignored).
+
+Ordinary Make links this exact checkpoint with 1,375,284 flash bytes and 121,632
+static RAM bytes, including the unchanged 49,152-byte heap. Static headroom
+remains 9,440 bytes; the linked stack gap is not high-water. There are 21 warnings.
+ELF/UF2 hashes, every reserved-sector boundary and the linked native image's
+exact IMAGE identity verify. Artifacts: `target/rp2040-flat-interface-20261106`
+(ignored). No firmware or live service was changed.
+
+Rechecked #6447: it remains open with no assignee, and still requires complete
+ordinary managed-memory admission and an installed Source-check Plot→Plan→Play.
+This native interface reduction does not close that Source gate or #6449 adoption,
+and no hand-built Rust Plan will be substituted for the ordinary Body journey.
+PR #6813's exact head has passed quick checks; admission was still in progress
+at the last bounded observation. The consumer remains on the delivery branch.
