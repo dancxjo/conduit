@@ -76,11 +76,26 @@ impl WorksetSources {
         biography: &BodyBiographyEvidence,
     ) -> Result<Vec<RetainedPlotSource>, String> {
         self.validate_captured_bytes(biography)?;
-        let plots = self
-            .entries
-            .iter()
+        Self::expand_entries(self.entries.iter().cloned(), biography)
+    }
+
+    /// Consume the captured inventory so compilation retains each Source once.
+    pub(in super::super) fn into_expanded(
+        self,
+        biography: &BodyBiographyEvidence,
+    ) -> Result<Vec<RetainedPlotSource>, String> {
+        self.validate_captured_bytes(biography)?;
+        Self::expand_entries(self.entries, biography)
+    }
+
+    fn expand_entries(
+        entries: impl IntoIterator<Item = SourceEntry>,
+        biography: &BodyBiographyEvidence,
+    ) -> Result<Vec<RetainedPlotSource>, String> {
+        let plots = entries
+            .into_iter()
             .map(|item| {
-                let source = crate::plot_source::parse(&item.source)?;
+                let source = crate::plot_source::parse_owned(item.source)?;
                 let plot = source.expand_named_for_authoring(&item.entry)?;
                 Ok(RetainedPlotSource { source, plot })
             })
