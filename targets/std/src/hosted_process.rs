@@ -51,8 +51,20 @@ pub(crate) fn run_process(
     request: &ProcessRequest<'_>,
     cancelled: impl Fn() -> bool,
 ) -> Result<ProcessReport, ProcessError> {
-    if !request.program.is_absolute()
-        || request.stdin.len() > 256
+    run_process_with_input_bound(request, 256, cancelled)
+}
+
+/// Explicit larger startup payloads use the same polling/retirement path.
+/// Existing operations retain their original 256-byte entrance.
+pub(crate) fn run_process_with_input_bound(
+    request: &ProcessRequest<'_>,
+    maximum_input_bytes: usize,
+    cancelled: impl Fn() -> bool,
+) -> Result<ProcessReport, ProcessError> {
+    if maximum_input_bytes > 8 * 1024 * 1024
+        || (!cfg!(unix) && maximum_input_bytes > 256)
+        || !request.program.is_absolute()
+        || request.stdin.len() > maximum_input_bytes
         || request.maximum_stdout_bytes > 131_116
         || request.maximum_stderr_bytes > 131_116
         || request.timeout.is_zero()
@@ -158,8 +170,8 @@ pub(crate) fn run_process(
             retired_at = Some(Instant::now());
         }
         if let Some(input) = &mut stdin {
-            // At most256 bytes fit an empty platform pipe; Unix is additionally
-            // nonblocking. Never retry a write without returning to the deadline.
+            // Large startup writes are admitted only on Unix's nonblocking
+            // pipes. Never retry a write without returning to the deadline.
             match input.write(&request.stdin[sent..]) {
                 Ok(0) => {
                     terminal = Some(ProcessTerminal::ProviderLost(

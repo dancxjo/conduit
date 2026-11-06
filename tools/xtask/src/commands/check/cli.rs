@@ -44,6 +44,8 @@ pub enum CheckSuite {
     PlotS3,
     /// Admit exact checked Native laws over bounded actual canonical occurrences.
     NativeSourceLaws,
+    /// Derive source-bound composition effects and execute the admitted pure path.
+    SemanticEffects,
     /// Check fixed-profile DSP, conversion, closing-Flow and owned-memory contracts.
     FixedNumericDsp,
     /// Check ordinary Crèche preparation and bounded reviewed Linux source building.

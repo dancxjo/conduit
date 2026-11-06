@@ -168,7 +168,7 @@ fn installed_service_start_inspect_lull_and_restart_clock() {
         .stdin
         .take()
         .unwrap()
-        .write_all(b"control next\ntype 500\napply\nquit\n")
+        .write_all(b"control next\ncontrol next\ntype 500\napply\nquit\n")
         .unwrap();
     let terminal = terminal.wait_with_output().unwrap();
     assert!(
@@ -189,8 +189,9 @@ fn installed_service_start_inspect_lull_and_restart_clock() {
         changed["biography"]["body"]["workset"]["plots"][0]["checked_plot_id"],
         first_plot
     );
-    assert!(fs::read_to_string(state.join("body/source.conduit"))
-        .unwrap()
+    assert!(super::retained_source::workset(&state).unwrap().unwrap()[0]
+        .source
+        .source
         .contains("time/every(500ms)"));
     let started_again = call(binary, &state, "start", &["--maximum-millis", "10000"]);
     assert!(
@@ -260,8 +261,9 @@ fn installed_service_start_inspect_lull_and_restart_clock() {
             + 2
     );
     assert!(after_show["realization"].is_null());
-    assert!(fs::read_to_string(state.join("body/source.conduit"))
-        .unwrap()
+    assert!(super::retained_source::workset(&state).unwrap().unwrap()[0]
+        .source
+        .source
         .contains("time/every(250ms)"));
     drop(service);
     let _ = fs::remove_file(state.join("control.sock"));

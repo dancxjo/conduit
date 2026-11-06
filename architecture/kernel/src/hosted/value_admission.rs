@@ -88,3 +88,47 @@ impl HostedValueStore {
         })
     }
 }
+
+impl HostedValueStore {
+    /// Read-only canonical publication check against actual prepared slots.
+    /// Native/compact-owned slots cannot be borrowed to satisfy this request.
+    pub(super) fn preflight_canonical_publication(
+        &self,
+        byte_len: u32,
+    ) -> Result<(), StorageError> {
+        let length = usize::try_from(byte_len).map_err(|_| StorageError::ValueTooLarge)?;
+        if length > self.maximum_value_bytes {
+            return Err(StorageError::ValueTooLarge);
+        }
+        if self
+            .used_bytes
+            .checked_add(byte_len)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
+        {
+            return Err(StorageError::ByteCapacityExceeded);
+        }
+        if usize::from(self.used_items) == self.slots.len() {
+            return Err(StorageError::ItemCapacityExceeded);
+        }
+        let mut retired = false;
+        for (index, slot) in self.slots.iter().enumerate() {
+            if slot.references != 0
+                || slot.bytes.capacity() < length
+                || self.is_owned_compact(index)
+            {
+                continue;
+            }
+            if slot.generation == u16::MAX {
+                retired = true;
+            } else {
+                return Ok(());
+            }
+        }
+        Err(if retired {
+            StorageError::GenerationExhausted
+        } else {
+            StorageError::ItemCapacityExceeded
+        })
+    }
+}

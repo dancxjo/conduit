@@ -104,6 +104,31 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
         self.used_bytes
     }
 
+    fn preflight_canonical_store(&self, byte_len: u32) -> Result<(), StorageError> {
+        let length = usize::try_from(byte_len).map_err(|_| StorageError::ValueTooLarge)?;
+        if length > MAX_VALUE_BYTES {
+            return Err(StorageError::ValueTooLarge);
+        }
+        if self
+            .used_bytes
+            .checked_add(byte_len)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
+        {
+            return Err(StorageError::ByteCapacityExceeded);
+        }
+        if self.slots[self.free_search_start..]
+            .iter()
+            .any(|slot| slot.references == 0 && slot.generation != u16::MAX)
+        {
+            Ok(())
+        } else if self.has_retired_slots {
+            Err(StorageError::GenerationExhausted)
+        } else {
+            Err(StorageError::ItemCapacityExceeded)
+        }
+    }
+
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError> {
         if bytes.len() > MAX_VALUE_BYTES {
             return Err(StorageError::ValueTooLarge);

@@ -25,6 +25,7 @@ mod transport;
 mod tuple;
 mod typed_pair;
 pub(crate) mod validation;
+mod value_bound;
 use canonical::{
     check_encoding_size, decode_type, decode_value, digest, encode_type, encode_value_node,
     type_extent, validate_value, value_extent,

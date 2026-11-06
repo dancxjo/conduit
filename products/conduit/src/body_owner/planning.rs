@@ -57,6 +57,24 @@ impl Owner {
             &conduit_plot::ExpandedAuthoringPlot,
         )],
     ) -> Result<(), String> {
+        let partitions =
+            self.prepare_workset_partitions_for(&self.session.evidence().body.workset, sources)?;
+        let advertised = self.host.advertisement();
+        self.session
+            .propose(partitions, &advertised.host_id, &advertised.boot_id)
+            .map_err(debug)?;
+        Ok(())
+    }
+
+    pub(super) fn prepare_workset_partitions_for(
+        &self,
+        workset: &BodyWorkset,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+    ) -> Result<Vec<BodyPlotPlan>, String> {
+        self.require_workset_recovered()?;
         if self.session.evidence().body.state != BodyState::Lulled
             || self.session.realization().is_some()
         {
@@ -72,7 +90,7 @@ impl Owner {
             )
         }))
         .map_err(debug)?;
-        if supplied != self.session.evidence().body.workset {
+        if &supplied != workset {
             return Err("checked Sources must cover the exact retained Body workset".into());
         }
         let mut partitions = Vec::with_capacity(sources.len());
@@ -92,11 +110,7 @@ impl Owner {
                 self.host.advertisement(),
             )?);
         }
-        let advertised = self.host.advertisement();
-        self.session
-            .propose(partitions, &advertised.host_id, &advertised.boot_id)
-            .map_err(debug)?;
-        Ok(())
+        Ok(partitions)
     }
 
     pub(super) fn plan_partition(

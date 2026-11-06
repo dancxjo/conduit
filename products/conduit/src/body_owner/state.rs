@@ -18,7 +18,7 @@ use archive::archive_path;
 use archive::{retain_archive_segments, validate_archive_segments, verify_retained_archive};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
-pub(super) use workset_sources::checked as checked_workset_sources;
+pub(super) use workset_sources::captured as capture_workset_sources;
 #[allow(unused_imports)]
 // Source of CAS, not authorization; installed action remains separate.
 pub(super) use workset_sources::retain_revision as retain_workset_revision;

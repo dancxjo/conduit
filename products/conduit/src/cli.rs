@@ -28,6 +28,14 @@ pub(crate) struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
+    /// Dedicated bounded compiler preparation child; not a Host admission command.
+    #[command(hide = true)]
+    SourceCheckWorker {
+        #[arg(long)]
+        address_space_bytes: u64,
+        #[arg(long)]
+        cpu_seconds: u64,
+    },
     /// Check, plan, admit, and execute a plot on available local hosts.
     Run {
         /// Authored plot to execute.
