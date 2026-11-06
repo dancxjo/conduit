@@ -501,6 +501,8 @@ fn main() {
             cli::BodyCommand::Own { source, state_dir, name } => durable_host::run_body_owner(&source, &state_dir, &name),
             _ => unreachable!("durable Body operations are dispatched above"),
         },
+        Some(cli::Command::SourceCheckWorker { address_space_bytes, cpu_seconds }) =>
+            conduit::source_check_worker::run(address_space_bytes, cpu_seconds),
         Some(cli::Command::Check { plot, json }) => match diagnostics::run(&plot, json) {
             Ok(true) => Ok(()),
             Ok(false) => std::process::exit(1),
