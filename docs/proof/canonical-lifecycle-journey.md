@@ -6881,3 +6881,35 @@ tests on the isolated branch pass. The delivery checkout retains its additional
 five existing tests; these proof counts refer to different source inventories.
 The receiver integration and RP2040 build wiring remain on the delivery branch.
 No issue is closed and no physical execution acceptance is claimed.
+
+
+### 5 November 2026 — Execution policy checks the original complete signed set
+
+The complete-set receiver now exposes `check_execution_delegation`. It requires
+explicit execution policy and a positive unexhausted workset ceiling, then
+reuses the original command's pinned Seed issuer, construction correspondence,
+current membership, Host/Boot/profile/generation, contract and deadline checks.
+Root supplies the actual active-workset count; no carrier field supplies it.
+This issues no resource reservation, native possession or refreshed attribution.
+
+The constrained `prepare_retained_execution_storage` entrance applies that check
+inside the existing complete-workset validation, before kernel allocation or
+Back lending. It still checks every actual initialized entry, exact approved
+Fore, disjoint local assignment and finite storage representation. It does not
+reconstruct the receive document or create another execution kernel.
+
+Both generated resident-offer CPU tests pass. The actual committed-workset proof
+now enters through this execution-policy path before ordinary atomic resource
+admission, typed kernel execution and terminal retirement. Missing execution
+selection, zero ceiling and exhausted capacity return distinct typed refusals
+with zero allocations, unchanged provider addresses, unchanged retained bytes
+and unchanged resource ledger. Execution/retirement remain allocation-free.
+Strict authenticated Body library Clippy passes. Raw logs remain locally under
+`target/root-execution-policy-20261105/`.
+
+This is production preparation code exercised on CPU, not installed USB Start,
+physical bus handover or network-interruption acceptance. No device, live
+service, selected profile or persistent state changed. The retained supervisor,
+complete native resource admission and physical sampler/display Plays remain
+necessary. PR #6799 carries the separate shared construction selection; its
+Candidate run 42157740678 was observed in progress at the start of this stage.

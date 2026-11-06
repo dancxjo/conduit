@@ -15,6 +15,14 @@ pub enum DelegatedWorksetRefusal {
     Fragment(DelegatedFragmentRefusal),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExecutionDelegationRefusal {
+    MissingDelegation,
+    Bounds,
+    Capacity,
+    Preparation(PreparationDelegationRefusal),
+}
+
 /// Complete signed local set, not complete profile validation or admission.
 /// Not clonable/deserializable. Child approval rechecks this original command;
 /// no new signed child command, nonce, lifetime or authority is manufactured.
@@ -55,6 +63,35 @@ pub fn receive_delegated_body_workset<'context, 'payload, const N: usize>(
     Ok(DelegatedBodyWorkset { command, documents })
 }
 impl<'payload, const N: usize> DelegatedBodyWorkset<'_, 'payload, N> {
+    /// Check explicit execution intent against this same original signed set.
+    /// Root supplies its actual active-workset count, never a carrier claim.
+    /// This check admits no storage/resources or native possession, and does
+    /// not refresh the command or permit an unchecked child fragment to Start.
+    pub fn check_execution_delegation(
+        &self,
+        execution: Option<&crate::HostExecutionDelegation>,
+        preparation: Option<&HostPreparationDelegation>,
+        context: NativePreparationContext<'_>,
+        active_worksets: u16,
+    ) -> Result<(), ExecutionDelegationRefusal> {
+        use ExecutionDelegationRefusal as E;
+        let execution = execution.ok_or(E::MissingDelegation)?;
+        if execution.maximum_active_worksets == 0 {
+            return Err(E::Bounds);
+        }
+        match execution.authorizer {
+            crate::HostExecutionAuthorizer::SeedOwner => {
+                // Reuses the exact pinned Seed issuer and construction/member/
+                // Host/Boot/profile/generation/contract/deadline checks.
+                check_host_workset_preparation_delegation(preparation, context, &self.command)
+                    .map_err(E::Preparation)?;
+            }
+        }
+        if active_worksets >= execution.maximum_active_worksets {
+            return Err(E::Capacity);
+        }
+        Ok(())
+    }
     /// Retain only the original attribution after local checks. This consumes
     /// the complete-set receiver; it issues no new child command or authority.
     pub fn into_retained_stamp(

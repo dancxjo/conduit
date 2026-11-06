@@ -29,10 +29,48 @@ pub enum ValidationRefusal {
     Assignment,
     Workset,
     Retention(conduit_body::HostCommandRetentionRefusal),
+    Execution(conduit_body::ExecutionDelegationRefusal),
     Storage(conduit_kernel::scheduler::KernelPreparationError),
 }
 
 pub use crate::resident::inventory;
+
+/// Independently installed policy and actual Root occupancy, not wire fields.
+#[derive(Clone, Copy)]
+pub struct ExecutionPolicy<'a> {
+    pub installed: Option<&'a conduit_body::HostExecutionDelegation>,
+    pub active_worksets: u16,
+}
+
+/// Apply execution policy to the original retained workset before allocating
+/// kernels or lending Backs. Successful preparation still requires atomic
+/// resource admission, native possession where applicable and current Start.
+pub fn prepare_retained_execution_storage<'a, 'o, const N: usize>(
+    owner: &'o mut crate::resident::generated::Initialized,
+    installed: Option<&HostPreparationDelegation>,
+    execution: ExecutionPolicy<'_>,
+    context: NativePreparationContext<'_>,
+    workspace: &'a conduit_body::HostCommandInput<N>,
+    maxima: c::AssignedPlanMaxima,
+    maximum_storage_bytes: usize,
+) -> Result<AttemptStorage<'a, 'o>, ValidationRefusal> {
+    let command = workspace
+        .reborrow(
+            context.member,
+            context.actual,
+            &context.bootstrap.owner,
+            conduit_body::HOST_PREPARED_WORKSET_CONTRACT,
+            context.now_millis,
+        )
+        .map_err(ValidationRefusal::Retention)?;
+    let checked = check_workset(owner, installed, context, command, maxima, Some(execution))?;
+    storage::prepare(
+        owner,
+        checked.documents,
+        checked.stamp,
+        maximum_storage_bytes,
+    )
+}
 
 /// Prepare the original sealed input after its delivery future has ended.
 /// Recheck current membership, Boot, issuer and deadline before decoding; RAM
@@ -73,7 +111,7 @@ pub fn prepare_workset_storage<'a, 'o>(
     maxima: c::AssignedPlanMaxima,
     maximum_storage_bytes: usize,
 ) -> Result<AttemptStorage<'a, 'o>, ValidationRefusal> {
-    let checked = check_workset(owner, installed, context, command, maxima)?;
+    let checked = check_workset(owner, installed, context, command, maxima, None)?;
     storage::prepare(
         owner,
         checked.documents,
@@ -91,7 +129,7 @@ pub fn validate_workset_with_inventory(
     command: AttributedHostCommand<'_, '_>,
     maxima: c::AssignedPlanMaxima,
 ) -> Result<(), ValidationRefusal> {
-    check_workset(owner, installed, context, command, maxima).map(|_| ())
+    check_workset(owner, installed, context, command, maxima, None).map(|_| ())
 }
 
 fn check_workset<'a>(
@@ -100,11 +138,22 @@ fn check_workset<'a>(
     context: NativePreparationContext<'_>,
     command: AttributedHostCommand<'_, 'a>,
     maxima: c::AssignedPlanMaxima,
+    execution: Option<ExecutionPolicy<'_>>,
 ) -> Result<CheckedWorkset<'a>, ValidationRefusal> {
     let workset = receive_delegated_body_workset::<{ crate::resident::generated::ENTRY_COUNT }>(
         installed, context, command,
     )
     .map_err(|_| ValidationRefusal::Workset)?;
+    if let Some(execution) = execution {
+        workset
+            .check_execution_delegation(
+                execution.installed,
+                installed,
+                context,
+                execution.active_worksets,
+            )
+            .map_err(ValidationRefusal::Execution)?;
+    }
     if workset.declared_runtime_state_bytes() > u32::from(maxima.runtime_state_bytes) {
         return Err(ValidationRefusal::Bounds);
     }

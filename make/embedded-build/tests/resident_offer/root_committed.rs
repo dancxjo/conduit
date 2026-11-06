@@ -82,9 +82,62 @@ pub fn run(
         ),
         Err(crate::root_preparer::ValidationRefusal::Workset)
     ));
-    let workset = crate::root_preparer::prepare_retained_workset_storage(
+    let execution = conduit_body::HostExecutionDelegation {
+        authorizer: conduit_body::HostExecutionAuthorizer::SeedOwner,
+        maximum_active_worksets: 1,
+    };
+    let unbounded = conduit_body::HostExecutionDelegation {
+        maximum_active_worksets: 0,
+        ..execution
+    };
+    for (installed, active_worksets, expected) in [
+        (
+            None,
+            0,
+            conduit_body::ExecutionDelegationRefusal::MissingDelegation,
+        ),
+        (
+            Some(&unbounded),
+            0,
+            conduit_body::ExecutionDelegationRefusal::Bounds,
+        ),
+        (
+            Some(&execution),
+            1,
+            conduit_body::ExecutionDelegationRefusal::Capacity,
+        ),
+    ] {
+        let (result, cost) = crate::probe::observe(|| {
+            crate::root_preparer::prepare_retained_execution_storage(
+                library,
+                Some(&policy()),
+                crate::root_preparer::ExecutionPolicy {
+                    installed,
+                    active_worksets,
+                },
+                receiver.context(),
+                &retained,
+                assignment.maxima,
+                16384,
+            )
+            .map(|_| ())
+        });
+        assert_eq!(
+            result,
+            Err(crate::root_preparer::ValidationRefusal::Execution(expected))
+        );
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        assert_eq!(owner, &before);
+        assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+        assert_eq!(retained.payload(), Some(bytes));
+    }
+    let workset = crate::root_preparer::prepare_retained_execution_storage(
         library,
         Some(&policy()),
+        crate::root_preparer::ExecutionPolicy {
+            installed: Some(&execution),
+            active_worksets: 0,
+        },
         receiver.context(),
         &retained,
         assignment.maxima,
