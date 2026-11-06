@@ -7146,3 +7146,44 @@ its module now explicitly scopes unused/dead-code allowances to that CPU fixture
 Raw logs are retained in ignored `target/mixed-retirement-20261105`.
 Source checkpoints: `463e8f4ea6` (shared adapter) and `ba2950ea11` (Root terminal
 composition and CPU evidence). No device, service or retained credential changed.
+
+### 2026-11-05 — Checked native issuance ceiling and approval-before-issuance seam
+
+Inspection confirmed that execution delegation deliberately grants no native
+possession, and the I2C construction previously specified only address/poll
+bounds. Checked I2C initialization now requires `maximum_call_operations`:
+zero explicitly disables native issuance; a positive u32 bounds each exact
+locally issued Play capability and requires a selected local address interval.
+The ordinary Green profile declares zero. The delegated construction explicitly
+selects 1024. This is new construction intent for a later Seed, not a grant
+retroactively installed on Green, and not an implicit renewal on exhaustion.
+The firmware build projects the checked ceiling into its generated configuration.
+Missing, mistyped, negative and overflowing values refuse checking; zero, one
+and u32::MAX retain their finite values and distinct configuration identities.
+No heap, queue, work or input ceiling was enlarged.
+
+The mixed receiver preparation now offers one local-issuer seam after complete
+signed workset/installed execution-policy approval, initialized inventory
+selection, exact Fore checking and independent resource-pool pinning. The ready
+native owner's descriptive identity supplies that pool pin; an incoming claim
+cannot substitute it. Only then may Root's independently selected issuer return
+opaque local table/handle/claim custody. Every exact native binder and atomic
+Core admission check still follows. The existing pre-issued entrance delegates
+to this same path; there is one preparation implementation.
+
+CPU tests use an explicitly inert fixture issuer. Missing execution delegation,
+busy execution, expired attribution and signed decoy pools do not call it and
+allocate nothing. An issuer refusal after approval also allocates no kernel and
+retains both owners and the unchanged resource ledger. Successful preparation
+passes the exact approved Body Plan/Play to the issuer and then exercises the
+same admitted execution/retirement tests in both node orderings. Requested
+retained preparation remains 14,548 bytes for the actual five-entry library;
+this is not total transient issuance peak or physical MCU evidence.
+
+Internal checks: construction 2 tests, actual resident-library 1 test, mixed
+execution 2 tests, I2C library 20 tests, strict owning library/test Clippy and
+whole-checkout formatting passed. Source checkpoints `03b3b6613d` (checked
+construction) and `211460d6e4` (approval-before-issuance boundary). Logs remain in
+ignored `target/approved-native-issuer-20261105`. The installed Root issuer,
+wire mixed receiver/Start/ingress, physical peak and safe bus turnover remain
+unfinished; no device was flashed and no installed authority was changed.
