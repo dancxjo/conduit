@@ -18,6 +18,7 @@ thread_local! {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Statistics {
     pub allocations: usize,
+    pub reallocations: usize,
     pub requested_bytes: usize,
     pub live_bytes: usize,
     pub peak_live_bytes: usize,
@@ -42,6 +43,7 @@ fn record(old: Option<usize>, new: Option<(usize, usize)>) {
                 }
             }
             if let Some((pointer, size)) = new {
+                probe.statistics.reallocations += usize::from(old.is_some());
                 if let Some(previous) = probe.pointers.insert(pointer, size) {
                     probe.statistics.live_bytes -= previous;
                 }
@@ -142,6 +144,14 @@ pub fn begin() -> Guard {
     }
 }
 
+/// Shared by test binaries that prefer a callback-delimited measurement.
+#[allow(dead_code)] // Other binaries use the explicit interval/count interface.
+pub fn observe<T>(work: impl FnOnce() -> T) -> (T, Statistics) {
+    let probe = begin();
+    let value = work();
+    (value, probe.finish_statistics())
+}
+
 #[cfg(test)]
 mod byte_tests {
     #[test]
@@ -163,6 +173,7 @@ mod byte_tests {
         std::hint::black_box(&bytes);
         let statistics = probe.finish_statistics();
         assert_eq!(statistics.allocations, 2);
+        assert_eq!(statistics.reallocations, 1);
         assert_eq!(statistics.live_bytes, bytes.capacity());
         assert_eq!(statistics.requested_bytes, 32 + bytes.capacity());
         assert_eq!(statistics.peak_live_bytes, 32 + bytes.capacity());

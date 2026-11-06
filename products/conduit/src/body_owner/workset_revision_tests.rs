@@ -16,6 +16,7 @@ fn checked(
 #[test]
 fn trusted_continuation_adds_and_removes_complete_meaning_without_waking() {
     let (root, mut owner) = fixture();
+    let workspace_probe = crate::allocation_probe::begin();
     let original = owner.session.evidence().clone();
     let (a, pa) = checked("alpha");
     let (b, pb) = checked("beta");
@@ -54,6 +55,8 @@ fn trusted_continuation_adds_and_removes_complete_meaning_without_waking() {
     );
     assert!(owner.session.realization().is_none());
     fs::remove_dir_all(root).unwrap();
+    let workspace = workspace_probe.finish_statistics();
+    println!("Trusted workset revision current-thread allocation diagnostic: {workspace:?}");
 }
 
 #[test]
