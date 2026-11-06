@@ -216,8 +216,8 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
         node: lowered.nodes[0].node,
     };
     let bind = |slot: &mut Option<ReadyI2cBase<Provider>>, table, handle, claim, scope| {
-        if let Some(image) = &fore_image {
-            ReadyI2cBase::bind_assigned_fore_retained(
+        let prepared = if let Some(image) = &fore_image {
+            ReadyI2cBase::prepare_assigned_fore_retained(
                 slot,
                 table,
                 handle,
@@ -229,7 +229,7 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
                 },
             )
         } else {
-            ReadyI2cBase::bind_assigned_retained(
+            ReadyI2cBase::prepare_assigned_retained(
                 slot,
                 table,
                 handle,
@@ -237,7 +237,12 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
                 &contract,
                 selected(scope),
             )
-        }
+        }?;
+        assert_eq!(prepared.node(), lowered.nodes[0].node);
+        let (owner, cost) = crate::allocation_probe::observe(|| prepared.bind());
+        assert_eq!(cost.allocations, 0);
+        assert_eq!(cost.reallocations, 0);
+        Ok(owner)
     };
     let issue = || match &context {
         Some(context) => {
@@ -348,6 +353,33 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
         .is_err());
         assert!(slot.is_some());
     }
+    let (table, handle, claim) = issue();
+    let cancelled = if let Some(image) = &fore_image {
+        ReadyI2cBase::prepare_assigned_fore_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &contract,
+            SelectedAssignedForeOperationPlan {
+                operation: selected(valid_scope),
+                fore: image.fore(),
+            },
+        )
+    } else {
+        ReadyI2cBase::prepare_assigned_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &contract,
+            selected(valid_scope),
+        )
+    }
+    .unwrap();
+    assert_eq!(cancelled.node(), lowered.nodes[0].node);
+    drop(cancelled);
+    assert!(slot.is_some());
     let (table, handle, claim) = issue();
     let mut owner = bind(&mut slot, table, handle, claim, valid_scope).unwrap();
     assert!(slot.is_none());

@@ -6655,3 +6655,30 @@ capability possession, fund Host Call/codec storage, bind the same kernel's mixe
 Backs, reserve the complete workset, and install authorized Start/retirement.
 No live firmware, Body state or execution authority changed at this checkpoint.
 PR #6794 Candidate run 42140687460 remains in progress at the last observation.
+
+
+### Native binding retains its preparation until Root admission
+
+The existing compact native binder prepared and discarded codecs during checking,
+then prepared them again when transferring the controller. It now exposes an
+opaque prepared ticket holding the checked codecs, original local capability
+table/handle/claim, and an exclusive borrow of the original ready slot. Preparation
+does not withdraw the controller. Cancellation destroys the temporary preparation
+while leaving that ready owner available. Consuming the ticket performs an
+infallible allocation-free transfer into the existing I2C Host Call owner.
+Existing immediate-bind entrances use the same prepared path.
+
+All fourteen no-default-feature library tests pass. Existing contiguous, borrowed,
+local Fore and Body-scoped fixtures now cancel a successful ticket, reprepare the
+same owner, and verify allocation-free binding before exercising address refusal,
+real fixture transfer, replay refusal and revocation. These are CPU fixtures, not
+physical MCU execution. Strict all-feature/all-target Clippy and the ARMv6-M
+no-default-feature library check pass. Raw logs are retained in
+`target/i2c-prepared-binding-20261105/`.
+
+This establishes the native half of the preparation/binding split already used by
+resident computations. It does not make codec preparation wholly fallible or
+fund its storage, create authority from assignment metadata, admit a complete
+workset or enable wire Start. Root must still consume both native and resident
+preparation under current command custody, exact resource admission and lawful
+Start/terminal-evidence handling. No device or live owner service was changed.

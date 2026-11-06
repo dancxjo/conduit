@@ -234,3 +234,4 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
 }
 
 mod assigned;
+pub use assigned::PreparedAssignedI2c;

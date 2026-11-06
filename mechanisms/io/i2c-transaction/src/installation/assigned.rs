@@ -8,6 +8,36 @@ use conduit_plan_lowering::{
     },
     selected_operation::{SelectedCallRefusal, SelectedOperationContract},
 };
+/// Exclusive preparation custody, not a reservation or permission to Start.
+/// Dropping this ticket releases codecs and capability storage while leaving
+/// the same ready controller in its original slot. Binding cannot allocate.
+pub struct PreparedAssignedI2c<'a, P: I2cProvider> {
+    prepared: PreparedI2cBinding,
+    table: BaseCapabilityTable,
+    handle: BaseCapabilityHandle,
+    claim: BaseOperationClaim,
+    slot: &'a mut Option<ReadyI2cBase<P>>,
+    node: conduit_kernel::NodeId,
+}
+impl<P: I2cProvider> PreparedAssignedI2c<'_, P> {
+    pub fn node(&self) -> conduit_kernel::NodeId {
+        self.node
+    }
+    /// Root must independently complete whole-workset resource admission and
+    /// arrange lawful Start/retirement. This transfers exactly the checked owner.
+    pub fn bind(self) -> I2cHostCall<P> {
+        let owner = self.slot.take().expect("exclusive prepared I2C owner");
+        I2cHostCall::from_prepared(
+            self.table,
+            self.handle,
+            self.claim,
+            owner.attachment,
+            owner.provider,
+            self.prepared,
+        )
+    }
+}
+
 impl<P: I2cProvider> ReadyI2cBase<P> {
     /// Check the exact assignment against retained native possession; no bus IO.
     pub fn check_assigned(
@@ -105,20 +135,9 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
         contract: &I2cContract,
         selected: SelectedAssignedOperationPlan<'_>,
     ) -> Result<I2cHostCall<P>, I2cCallRefusal> {
-        let (_, prepared) = slot
-            .as_ref()
-            .ok_or(I2cCallRefusal::Possession)?
-            .prepare_assigned(&table, &claim, contract, selected, None)?;
-        let owner = slot.take().expect("preflighted retained I2C owner");
-        Ok(I2cHostCall::from_prepared(
-            table,
-            handle,
-            claim,
-            owner.attachment,
-            owner.provider,
-            prepared,
-        ))
+        Ok(Self::prepare_assigned_retained(slot, table, handle, claim, contract, selected)?.bind())
     }
+
     /// All Fore, identity, possession and codec checks precede controller transfer.
     /// Refusal retains Root's same provider and starts no electrical operation.
     pub fn bind_assigned_fore_retained(
@@ -129,24 +148,65 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
         contract: &I2cContract,
         selected: SelectedAssignedForeOperationPlan<'_>,
     ) -> Result<I2cHostCall<P>, I2cCallRefusal> {
-        let (_, prepared) = slot
-            .as_ref()
-            .ok_or(I2cCallRefusal::Possession)?
-            .prepare_assigned(
-                &table,
-                &claim,
-                contract,
-                selected.operation,
-                Some(selected.fore),
-            )?;
-        let owner = slot.take().expect("preflighted retained Fore I2C owner");
-        Ok(I2cHostCall::from_prepared(
+        Ok(
+            Self::prepare_assigned_fore_retained(slot, table, handle, claim, contract, selected)?
+                .bind(),
+        )
+    }
+
+    /// Prepare exact possession, assignment and codecs before Root reserves the
+    /// complete workset. No controller withdrawal, bus operation or Start.
+    pub fn prepare_assigned_retained<'a>(
+        slot: &'a mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &I2cContract,
+        selected: SelectedAssignedOperationPlan<'_>,
+    ) -> Result<PreparedAssignedI2c<'a, P>, I2cCallRefusal> {
+        Self::prepare_retained(slot, table, handle, claim, contract, selected, None)
+    }
+
+    /// Local Fore pins pass the same binder before retained native transfer.
+    pub fn prepare_assigned_fore_retained<'a>(
+        slot: &'a mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &I2cContract,
+        selected: SelectedAssignedForeOperationPlan<'_>,
+    ) -> Result<PreparedAssignedI2c<'a, P>, I2cCallRefusal> {
+        Self::prepare_retained(
+            slot,
             table,
             handle,
             claim,
-            owner.attachment,
-            owner.provider,
+            contract,
+            selected.operation,
+            Some(selected.fore),
+        )
+    }
+
+    fn prepare_retained<'a>(
+        slot: &'a mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &I2cContract,
+        selected: SelectedAssignedOperationPlan<'_>,
+        fore: Option<&[AssignedForeRequirement]>,
+    ) -> Result<PreparedAssignedI2c<'a, P>, I2cCallRefusal> {
+        let (node, prepared) = slot
+            .as_ref()
+            .ok_or(I2cCallRefusal::Possession)?
+            .prepare_assigned(&table, &claim, contract, selected, fore)?;
+        Ok(PreparedAssignedI2c {
             prepared,
-        ))
+            table,
+            handle,
+            claim,
+            slot,
+            node,
+        })
     }
 }

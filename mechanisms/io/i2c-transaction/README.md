@@ -19,3 +19,9 @@ cargo +stable check --locked --manifest-path mechanisms/io/i2c-transaction/Cargo
 ```
 
 Private-owner tests move with the implementation. ConduitOS retains its public contract, installation, i801 and authored protocol integration suites against the forwarding API.
+
+Compact assigned binding also supports an exclusive prepared ticket. Preparation
+checks exact assignment/Fore/possession and retains codecs while the controller
+stays in its original ready slot. Dropping the ticket cancels preparation;
+consuming it transfers that same controller without allocation. Root must still
+admit the complete workset and authorize Start and retirement independently.
