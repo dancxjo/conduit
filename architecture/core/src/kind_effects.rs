@@ -23,6 +23,14 @@ pub struct PureExpressionFacts {
     pub replay: ReplayBehavior,
 }
 
+impl PureExpressionFacts {
+    /// Check semantic expression eligibility only. This neither admits a Back
+    /// nor grants execution, resource or Host Call authority.
+    pub fn require_pure_expression(&self) -> Result<(), PureExpressionRefusal> {
+        require_recomputable_semantics(self)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkTransformation {
     Recompute,

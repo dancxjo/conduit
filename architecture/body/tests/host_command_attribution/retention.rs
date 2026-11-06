@@ -126,3 +126,29 @@ fn substituted_or_undersized_storage_refuses_without_sealing_or_allocating() {
         Err(HostCommandRetentionRefusal::Bounds)
     );
 }
+
+#[test]
+fn admitted_attempt_stamp_rejects_fresh_valid_commands_even_for_identical_bytes() {
+    let f = Fixture::new();
+    let original = stamp(&f);
+    let input = held(&f);
+    let same = input
+        .reborrow(&f.member, &f.host, &f.issuer, CONTRACT, 19)
+        .unwrap();
+    let (result, cost) = probe::observe(|| original.check_command(&same));
+    assert_eq!(result, Ok(()));
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    for (nonce, payload) in [([4; 32], PAYLOAD), ([3; 32], &b"different-input"[..])] {
+        let slot = f.slot(nonce);
+        let signature = f
+            .key
+            .sign(&host_command_attribution_transcript(slot.challenge(), payload).unwrap())
+            .to_bytes();
+        let replacement = slot.authenticate(payload, &signature, 11).unwrap();
+        let (result, cost) = probe::observe(|| original.check_command(&replacement));
+        assert_eq!(result, Err(HostCommandRetentionRefusal::Context));
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    }
+    assert_eq!(input.payload(), Some(PAYLOAD));
+    assert!(input.is_retained());
+}
