@@ -44,7 +44,10 @@ pub fn check_host_preparation_delegation(
     check_contract(installed, context, command, HOST_PREPARED_FRAGMENT_CONTRACT)
 }
 
-pub(crate) fn check_host_workset_preparation_delegation(
+/// Check only attribution and installed receive/preparation policy for a
+/// payload declared as a workset. This does not decode or approve the workset, reserve
+/// resources, issue native possession or authorize Start.
+pub fn check_host_workset_preparation_delegation(
     installed: Option<&HostPreparationDelegation>,
     context: NativePreparationContext<'_>,
     command: &AttributedHostCommand<'_, '_>,
