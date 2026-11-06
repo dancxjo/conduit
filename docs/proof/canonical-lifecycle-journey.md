@@ -6767,7 +6767,7 @@ release. Missing observations preserve the ledger and provider identities.
 Abandoning a committed workset inside a dropped future leaves its original
 reservations held and its unretired providers unavailable. Binding uses the same
 allocation-free path as scoped preparation; execution/retirement allocate
-nothing. Both generated-library tests and all eleven Core resource-admission
+nothing. Both generated-library tests and all ten Core resource-admission
 regressions pass. Raw evidence is under
 `target/root-retained-admission-20261105/`.
 
