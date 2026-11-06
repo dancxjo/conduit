@@ -64,7 +64,7 @@ impl MembershipState {
                 crate::config::RESIDENT_PREPARATION_STORAGE_BYTES,
             )
             .map_err(|_| ())?;
-        let (mut fragments, _original_stamp) = committed.into_parts();
+        let (mut fragments, original_stamp) = committed.into_parts();
         // Fixed inline Root storage; the checked image must fund this frame
         // separately from its heap preparation arena. No runtime growth.
         let terminal = RefCell::new(core::array::from_fn(|_| None));
@@ -108,13 +108,15 @@ impl MembershipState {
                     if !started {
                         // Recheck at the actual first decision, not before an
                         // await that might carry preparation past its deadline.
-                        let check = workspace.reborrow(
-                            member,
-                            self.resources.host(),
-                            &self.seed.owner,
-                            conduit_body::HOST_PREPARED_WORKSET_CONTRACT,
-                            Instant::now().as_millis(),
-                        );
+                        let check = workspace
+                            .reborrow(
+                                member,
+                                self.resources.host(),
+                                &self.seed.owner,
+                                conduit_body::HOST_PREPARED_WORKSET_CONTRACT,
+                                Instant::now().as_millis(),
+                            )
+                            .and_then(|command| original_stamp.check_command(&command));
                         if let Err(reason) = check {
                             start_refusal.set(Some(reason));
                             running = false;

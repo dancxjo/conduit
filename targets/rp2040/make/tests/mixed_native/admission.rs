@@ -6,6 +6,8 @@ use conduit_body as b;
 mod issuance;
 #[path = "receiver.rs"]
 mod receiver;
+#[path = "start.rs"]
+mod start;
 
 pub fn run(
     context: &body_scope::Context,
@@ -390,29 +392,40 @@ pub fn run(
     };
     let (ingress, incoming) = port(0);
     let (egress, outgoing) = port(1);
-    let mut bound = committed.bound;
+    let mut started = start::check(
+        committed,
+        &receiver,
+        &retained,
+        policy,
+        &owner,
+        &observations,
+    );
     let ((), cost) = crate::probe::observe(|| {
-        // Current original attribution is checked at this CPU Start boundary;
-        // transport acknowledgment never supplied permission to execute.
+        // Once started, later attribution expiry is not an execution lease.
         let current = receiver.context();
-        retained
+        assert!(retained
             .reborrow(
                 current.member,
                 current.actual,
                 &current.bootstrap.owner,
                 b::HOST_PREPARED_WORKSET_CONTRACT,
-                current.now_millis,
+                20
             )
-            .unwrap();
+            .is_err());
         assert_eq!(owner.admissions().len(), 2);
-        bound
+        started
+            .bound_mut()
             .kernel
             .admit_remote_input(ingress, incoming, 0, values.0)
             .unwrap();
         for _ in 0..8 {
-            bound.kernel.step().unwrap();
-            bound.dispatch_one().unwrap();
-            if bound
+            let decision = started.step().unwrap();
+            assert!(!matches!(
+                decision.dispatch,
+                crate::native_preparation::NativeDispatch::Refused(_)
+            ));
+            if started
+                .bound_mut()
                 .kernel
                 .remote_egress_offer(egress, outgoing)
                 .unwrap()
@@ -421,24 +434,35 @@ pub fn run(
                 break;
             }
         }
-        let offer = bound
+        let offer = started
+            .bound_mut()
             .kernel
             .remote_egress_offer(egress, outgoing)
             .unwrap()
             .unwrap();
-        assert_eq!(bound.kernel.host_value(offer.value).unwrap(), values.1);
+        assert_eq!(
+            started.bound_mut().kernel.host_value(offer.value).unwrap(),
+            values.1
+        );
         assert_eq!(effects.get(), 1);
-        bound
+        started
+            .bound_mut()
             .kernel
             .remote_egress_accept(egress, outgoing, offer.sequence)
             .unwrap();
-        bound
+        started
+            .bound_mut()
             .kernel
             .remote_egress_delivered(egress, outgoing, offer.sequence)
             .unwrap();
-        let retired = bound
+        let retired = started
             .cancel_and_retire()
             .unwrap_or_else(|_| panic!("mixed admission fixture not drained"));
+        assert_eq!(
+            retired.approved.metadata().body_play,
+            context.play_id().as_str()
+        );
+        let retired = retired.terminal;
         assert!(retired.residents_returned);
         assert!(retired
             .signs

@@ -6,6 +6,8 @@ use crate::{
     resident::generated,
 };
 use conduit_body as b;
+#[path = "mixed_execution.rs"]
+mod execution;
 use conduit_core as c;
 use conduit_i2c_transaction::{
     contract::{I2cContract, I2C_CALL},
@@ -17,6 +19,7 @@ use conduit_plan_lowering::{
         AssignedOperationInput, SelectedAssignedForeOperationPlan, SelectedAssignedOperationPlan,
     },
 };
+pub use execution::{MixedStep, RetiredMixedWorkset, StartedMixedWorkset};
 
 /// Installed Root facts and remaining preparation capacity, never carrier fields.
 #[derive(Clone, Copy)]
