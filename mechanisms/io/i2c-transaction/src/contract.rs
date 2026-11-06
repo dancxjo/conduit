@@ -5,11 +5,13 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType,
 };
+#[cfg(feature = "source-catalog")]
 use conduit_plot::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
 
 pub const I2C_KIND: &str = "machine/i2c/transact";
 pub const I2C_CALL: &str = "conduit.host/i2c-transact@1";
 pub const I2C_MAXIMUM_BYTES: u32 = 4096;
+#[cfg(feature = "source-catalog")]
 pub const I2C_TYPES: &str = include_str!("../../../../plots/device-protocols/i2c-types.conduit");
 
 /// Exact schemas, prepared before Play. A definition is not an available Back,
@@ -32,22 +34,16 @@ impl I2cContract {
     }
 
     pub fn prepare() -> Result<Self, StructuredInfoRefusal> {
-        let syntax = parse_syntax_document(I2C_TYPES);
-        if !syntax.diagnostics.is_empty() {
-            return Err(StructuredInfoRefusal::WrongType);
-        }
-        let checked = check_syntax_document(&syntax, &StartupCatalog::new())
-            .map_err(|_| StructuredInfoRefusal::WrongType)?;
-        let find = |name| {
-            checked
-                .native_types
-                .iter()
-                .find(|ty| ty.name == name)
-                .map(|ty| ty.value_type.clone())
-                .ok_or(StructuredInfoRefusal::WrongType)
-        };
-        let request = find("I2cTransaction")?;
-        let result = find("I2cResult")?;
+        // These immutable bytes are checked from the authored Types by build.rs.
+        // Decoding retains ordinary bounded schemas, never a Source syntax tree.
+        let request = StructuredInfoType::from_canonical_bytes(include_bytes!(concat!(
+            env!("OUT_DIR"),
+            "/request.type"
+        )))?;
+        let result = StructuredInfoType::from_canonical_bytes(include_bytes!(concat!(
+            env!("OUT_DIR"),
+            "/result.type"
+        )))?;
         let port = |name: &str, ty: &StructuredInfoType, direction| {
             Ok(PortDescriptor {
                 port_id: port_id(name),
@@ -87,10 +83,13 @@ impl I2cContract {
         PreparedStructuredValueValidator::new(&self.request, I2C_MAXIMUM_BYTES as usize)
     }
 
+    /// Authoring-only catalogs retain the checked refinement laws. MCU execution
+    /// can omit this feature and its Source machinery entirely.
+    #[cfg(feature = "source-catalog")]
     pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
-        let checked =
-            check_syntax_document(&parse_syntax_document(I2C_TYPES), &StartupCatalog::new())
-                .expect("build-checked I2C Type Source");
+        let syntax = parse_syntax_document(I2C_TYPES);
+        let checked = check_syntax_document(&syntax, &StartupCatalog::new())
+            .expect("build-checked I2C Type Source");
         let mut startup = StartupCatalog::new();
         for (name, path) in [
             ("I2cTransaction", "machine/i2c/transact/request"),
