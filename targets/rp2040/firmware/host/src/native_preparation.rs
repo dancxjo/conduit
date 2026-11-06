@@ -5,7 +5,7 @@ mod dispatch;
 use alloc::boxed::Box;
 use conduit_core as c;
 use conduit_i2c_transaction::{
-    contract::{I2cContract, I2C_MAXIMUM_BYTES},
+    contract::{I2cContract, I2C_MAXIMUM_BYTES, I2C_VALUE_SLOT_BYTES},
     installation::{PreparedAssignedI2c, ReadyI2cBase},
     owner::{I2cCallRefusal, I2cHostCall},
     I2cProvider,
@@ -23,7 +23,7 @@ pub use dispatch::{NativeDispatch, NativeDispatchRefusal};
 const SIGNS: usize = 16;
 pub type NativeKernel = FixedScheduler<
     HostCallBack,
-    FixedValueStore<2, { I2C_MAXIMUM_BYTES as usize }>,
+    FixedValueStore<2, I2C_VALUE_SLOT_BYTES>,
     FixedSignLog<SIGNS>,
     1,
     2,
@@ -154,7 +154,7 @@ impl<'a, P: I2cProvider> PreparedNativeKernel<'a, P> {
             tables.cords,
             tables.routes,
             tables.calls,
-            FixedValueStore::new(2 * I2C_MAXIMUM_BYTES).map_err(|_| Refusal::Bounds)?,
+            FixedValueStore::new((2 * I2C_VALUE_SLOT_BYTES) as u32).map_err(|_| Refusal::Bounds)?,
             FixedSignLog::new_with_remote_storage(
                 (SIGNS * core::mem::size_of::<KernelEvent>()) as u32,
                 SIGNS as u16,

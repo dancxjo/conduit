@@ -101,6 +101,59 @@ fn bounded_request_decoding_is_exact_and_does_not_interpret_registers() {
 }
 
 #[test]
+fn fabricated_value_slots_hold_all_request_result_extents_without_growth() {
+    use super::contract::{I2C_REQUEST_VALUE_BYTES, I2C_RESULT_VALUE_BYTES, I2C_VALUE_SLOT_BYTES};
+    use conduit_kernel::{FixedValueStore, ValueStorage};
+    let contract = I2cContract::prepare().unwrap();
+    let bytes = [255; 32];
+    for length in 0..=32 {
+        let input = request(&contract, 119, &bytes[..length], 32);
+        assert!(input.len() <= I2C_REQUEST_VALUE_BYTES);
+        if length == 32 {
+            assert_eq!(input.len(), I2C_REQUEST_VALUE_BYTES);
+        }
+    }
+    let input = request(&contract, 119, &bytes, 32);
+    let mut encoder = PreparedI2cResultEncoder::new(&contract).unwrap();
+    let mut values =
+        FixedValueStore::<2, I2C_VALUE_SLOT_BYTES>::new((2 * I2C_VALUE_SLOT_BYTES) as u32).unwrap();
+    let mut maximum_result = 0;
+    let ((), cost) = crate::allocation_probe::observe(|| {
+        let input_slot = values.store(&input).unwrap();
+        for requested in 0..=32 {
+            for actual in 0..=requested {
+                let output = encoder
+                    .completed(requested, &bytes[..usize::from(actual)])
+                    .unwrap();
+                maximum_result = maximum_result.max(output.len());
+                assert!(output.len() <= I2C_RESULT_VALUE_BYTES);
+                let output_slot = values.store(output).unwrap();
+                assert_eq!(values.get(output_slot).unwrap(), output);
+                values.release(output_slot).unwrap();
+            }
+        }
+        for disposition in [
+            I2cDisposition::DeviceError,
+            I2cDisposition::NotAcknowledged,
+            I2cDisposition::ArbitrationLost,
+            I2cDisposition::TimedOut,
+            I2cDisposition::ProviderLost,
+            I2cDisposition::Unsupported,
+            I2cDisposition::StaleAttachment,
+            I2cDisposition::Refused,
+        ] {
+            let output = encoder.disposition(disposition).unwrap();
+            assert!(output.len() <= I2C_RESULT_VALUE_BYTES);
+            let output_slot = values.store(output).unwrap();
+            values.release(output_slot).unwrap();
+        }
+        values.release(input_slot).unwrap();
+    });
+    assert_eq!(maximum_result, I2C_RESULT_VALUE_BYTES);
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+}
+
+#[test]
 fn actual_shortness_and_bus_dispositions_remain_distinct() {
     let contract = I2cContract::prepare().unwrap();
     let mut encoder = PreparedI2cResultEncoder::new(&contract).unwrap();

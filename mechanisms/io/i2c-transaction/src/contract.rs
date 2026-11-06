@@ -11,6 +11,10 @@ use conduit_plot::{check_syntax_document, parse_syntax_document, ProfileCatalog,
 pub const I2C_KIND: &str = "machine/i2c/transact";
 pub const I2C_CALL: &str = "conduit.host/i2c-transact@1";
 pub const I2C_MAXIMUM_BYTES: u32 = 4096;
+// Derived from the checked Types on the fabrication host, not from a sampled
+// value or the transport ceiling. The public Fore and capability bounds stay
+// unchanged; these constants size valid canonical value storage only.
+include!(concat!(env!("OUT_DIR"), "/value_bounds.rs"));
 #[cfg(feature = "source-catalog")]
 pub const I2C_TYPES: &str = include_str!("../../../../plots/device-protocols/i2c-types.conduit");
 
