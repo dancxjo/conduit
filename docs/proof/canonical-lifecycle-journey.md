@@ -9122,7 +9122,14 @@ exact source fee210a190 and merged into dev as 076a7d5940. Scalar leaves remain
 inline; non-atomic targets retain their prior representation. This is accepted
 development source, not a new physical MCU or stable-publication proof. The
 existing Root copy of the five implementation files is identical to that dev
-result; the review adds its independent requested-allocation integration test.
+result; its independent requested-allocation test was already retained here.
+The accepted test removes its test-only Clippy warning.
 
 The supported `cargo xtask ci pipeline evidence-retention` guard passed for this
 checkpoint. Raw captures remain outside tracked source.
+
+The accepted dev result was absorbed by merge 902166761b after saving the new
+initializer as cc8be14ed8. The sole merge conflict was the same allocation test's
+redundant let/return; the accepted dev version was retained. The merge changes
+only that test correction, and the independent allocation test passed again in
+this combined tree. No runtime implementation differs because of the merge.
