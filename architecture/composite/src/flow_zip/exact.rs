@@ -11,6 +11,18 @@ pub struct FlowZipExactBack {
     cancelled: bool,
 }
 impl FlowZipExactBack {
+    fn refuse_unmatched<const P: usize>(&self, io: &mut StepIo<P>) -> StepOutcome {
+        // Consume exposed normal terminal truth even on refusal. The kernel
+        // observes Fail, so this cannot become successful output closure.
+        for side in 0..2 {
+            if !self.closed[side] && io.input_closed(PortId(side as u16)) {
+                io.consume_closed(PortId(side as u16))
+                    .expect("unequal exact stream close");
+                break;
+            }
+        }
+        fail(918)
+    }
     pub fn prepare(
         left: &CheckedValueContract,
         left_type: StructuredInfoType,
@@ -58,7 +70,7 @@ impl<const P: usize> StepBack<P> for FlowZipExactBack {
         if (self.closed[0] && self.inner.left_len.is_none() && self.inner.right_len.is_some())
             || (self.closed[1] && self.inner.right_len.is_none() && self.inner.left_len.is_some())
         {
-            return fail(918);
+            return self.refuse_unmatched(io);
         }
         if self.inner.left_len.is_some() && self.inner.right_len.is_some() {
             if !io.output_ready(PortId(0)) {
@@ -82,8 +94,7 @@ impl<const P: usize> StepBack<P> for FlowZipExactBack {
         }
         for side in 0..2 {
             if !self.closed[side] && io.input_closed(PortId(side as u16)) {
-                // Refuse before consuming the final terminal, so an unequal
-                // stream cannot publish normal output closure as a side effect.
+                // Unequal cardinality is a failure, never a successful close.
                 let pending = if side == 0 {
                     self.inner.right_len
                 } else {
@@ -95,7 +106,7 @@ impl<const P: usize> StepBack<P> for FlowZipExactBack {
                     self.inner.right_len
                 };
                 if own.is_none() && pending.is_some() {
-                    return fail(918);
+                    return self.refuse_unmatched(io);
                 }
                 io.consume_closed(PortId(side as u16))
                     .expect("exact input close");

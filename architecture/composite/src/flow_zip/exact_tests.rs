@@ -170,3 +170,29 @@ fn exact_pair_abnormal_and_cancel_never_flush_a_buffered_pair() {
         assert!(<FlowZipExactBack as StepBack<2>>::prepared_output(&back, PortId(0)).is_none());
     }
 }
+
+#[test]
+fn exact_pair_unequal_close_is_consumed_with_the_refusal() {
+    for closing in 0..2 {
+        let mut back = operation();
+        let value = conduit_core::encode_count(9);
+        let mut values = [None; 2];
+        values[1 - closing] = Some(value.as_slice());
+        assert_eq!(
+            step(&mut back, values, [false; 2], true),
+            StepOutcome::Progress
+        );
+        let mut closed = [false; 2];
+        closed[closing] = true;
+        let mut io = StepIo::test_frame([None; 2], closed, [Some(1024), None], None, 16);
+        assert!(matches!(
+            back.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+            StepOutcome::Fail(Failure {
+                code: FailureCode::InvalidInput,
+                detail: 918
+            })
+        ));
+        assert!(io.test_consumed_closed(PortId(closing as u16)));
+        assert!(<FlowZipExactBack as StepBack<2>>::prepared_output(&back, PortId(0)).is_none());
+    }
+}

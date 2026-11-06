@@ -8023,3 +8023,31 @@ does not yet expose both real device protocol callers on RP2040, enlarge the
 two-node mixed binder, prove complete-workset memory fit, or deploy a device.
 The new semantic/Back slice is being qualified separately on current dev;
 installed Source action selection and the full lifecycle journey remain open.
+
+### 6 November 2026 — shared pairing slice published from current dev
+
+PR #6815 passed Candidate and merged; dev a34f6cf1f3 also includes #6816's
+checked keep-effect correction. Integrator merge 16f2823be3 absorbs both, keeping
+its additional Linux compiler/scanout modules and broader local proof notes;
+the three overlap conflicts contained no new conflicting implementation.
+
+Draft PR #6819 publishes only the reusable Kind and prepared Back at exact
+head 5dcca882f6, from a separate current-dev checkout. It changes five files;
+ConduitOS packaging, physical routing and lifecycle work remain separate. The
+isolated checkout passes 22 zip tests (14 composite, eight catalogue), strict
+library/test Clippy and formatting. Evidence is retained in its ignored target
+`exact-fifo-pair-review-20261106`. No hosted Candidate outcome is claimed yet.
+
+Final review added one boundary case: unequal inputs must consume an exposed
+normal close while returning the explicit input failure. Otherwise kernel
+validation can report InvalidPlan instead of the intended refusal. The new
+regression asserts terminal consumption from either side and no output. An
+editing-script duplicate test/helper was caught by compilation and removed
+before the final isolated proof; no duplicate remains. This patch is mirrored
+back into the integrator. The earlier 20 native transcript cases remain evidence
+for checkpoint cbcfbe33fb; the later merge and unequal-close correction do not
+constitute a new physical or full native-product acceptance run.
+
+#6818 remains open for the containing ordinary execution delivery. Neither it
+nor #6447, Source adoption, autonomous MCU operation, or the journey is complete.
+No device, retained credential, running owner or Threebee release was changed.
