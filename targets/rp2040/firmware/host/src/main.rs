@@ -30,6 +30,7 @@ mod mixed_workset;
 #[allow(dead_code)] // Qualified profile; receiver selection remains separate.
 mod mixed_supervision;
 mod native_preparation;
+mod native_publication;
 mod radio;
 mod resident;
 mod resident_preparation;

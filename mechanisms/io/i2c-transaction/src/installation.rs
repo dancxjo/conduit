@@ -8,7 +8,9 @@ use alloc::vec;
 use conduit_core::*;
 
 mod offer;
+mod projection;
 pub use offer::capability_offer;
+pub use projection::{I2cImageProjection, I2cImageProjectionRefusal};
 
 pub const I2C_IMPLEMENTATION: &str = "conduitos/i2c-transaction@1";
 pub const I2C_EXECUTION_PROFILE: &str = "conduitos/i2c-cooperative-bounded@1";

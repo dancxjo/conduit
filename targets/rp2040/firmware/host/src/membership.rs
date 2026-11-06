@@ -86,6 +86,10 @@ struct MembershipState {
     resources: conduit_core::ResourceAdmissionOwner,
     key: SigningKey,
     freshness: u64,
+    native_offer: Option<&'static [u8]>,
+    // Boot-scoped issuance attempt custody outlives every carrier and Play.
+    #[allow(dead_code)] // mixed receiver selection is the next integration step
+    native_issuer: crate::i2c_issuance::Issuer,
     receipt: Option<conduit_body::MembershipCredential>,
 }
 impl MembershipState {
@@ -115,6 +119,8 @@ impl MembershipState {
             resources: conduit_core::ResourceAdmissionOwner::new(ad),
             key,
             freshness: 0,
+            native_offer: None,
+            native_issuer: crate::i2c_issuance::Issuer::new(),
             receipt: None,
         }
     }

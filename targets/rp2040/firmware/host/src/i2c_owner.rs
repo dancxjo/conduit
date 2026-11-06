@@ -16,6 +16,15 @@ pub fn initialize(bus: Bus) {
     let bus = OWNER.init(bus);
     critical_section::with(|cs| *SLOT.borrow(cs).borrow_mut() = Some(bus));
 }
+/// None means an outstanding loan or no observation, not a Lost provider.
+pub fn native_available() -> Option<bool> {
+    critical_section::with(|cs| {
+        SLOT.borrow(cs)
+            .borrow()
+            .as_ref()
+            .map(|bus| !bus.is_revoked())
+    })
+}
 pub fn protocol_revision() -> u64 {
     critical_section::with(|cs| PROTOCOL_REVISION.borrow(cs).get())
 }

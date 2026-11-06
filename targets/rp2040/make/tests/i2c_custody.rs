@@ -21,6 +21,9 @@ mod config {
     pub const I2C_CALL_ADDRESS_RANGE: Option<(u8, u8)> = Some((112, 118));
     pub const CONFIGURATION_ID: &str = "fixture/config";
     pub const IMAGE_ID: &str = "fixture/image";
+    pub const RESIDENT_WORK_POOL: &str = "fixture/work";
+    pub const RESIDENT_WORK_UNITS: u32 = 5000;
+    pub static I2C_OFFER_IMAGE: Option<&[u8]> = Some(&[1]); // leaf, not a wire image proof
 }
 pub struct Rp2040I2c<'a, T> {
     calls: Arc<AtomicUsize>,
@@ -55,11 +58,15 @@ mod owner;
 use owner as i2c_owner;
 #[path = "../../firmware/host/src/i2c_installation.rs"]
 mod installation;
+use installation as i2c_installation;
+#[path = "../../firmware/host/src/native_publication.rs"]
+mod native_publication;
 
 #[test]
 fn one_controller_lease_survives_cancellation_and_invalidates_cache_only_on_native_use() {
     critical_section::with(|_| {});
     assert!(owner::try_lease().is_none());
+    assert_eq!(owner::native_available(), None);
     let calls = Arc::new(AtomicUsize::new(0));
     let bus = Rp2040I2c {
         calls: calls.clone(),
@@ -73,6 +80,7 @@ fn one_controller_lease_survives_cancellation_and_invalidates_cache_only_on_nati
     assert_eq!(std::mem::size_of_val(&lease), std::mem::size_of::<usize>());
     assert!(owner::try_lease().is_none());
     assert!(owner::try_native_lease().is_none());
+    assert_eq!(owner::native_available(), None);
     drop(lease);
     let ((), cost) = probe::observe(|| drop(owner::try_native_lease().unwrap()));
     assert_eq!((cost.allocations, cost.reallocations), (0, 0));
@@ -94,6 +102,52 @@ fn one_controller_lease_survives_cancellation_and_invalidates_cache_only_on_nati
         capabilities: vec![],
         planner_capabilities: vec![],
     };
+    assert_eq!(owner::native_available(), Some(true));
+    let (publication, publication_cost) =
+        probe::observe(|| native_publication::prepare(&actual, true, 4096));
+    let publication = publication.unwrap();
+    assert_eq!(
+        publication.offer_generation.0,
+        actual.offer_generation.0 + 1
+    );
+    assert!(publication.capabilities.is_empty());
+    assert_eq!(publication.resources.len(), 2);
+    assert_eq!(publication.bases.len(), 1);
+    assert_eq!(owner::native_available(), Some(true));
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let tight = native_publication::prepare(&actual, true, publication_cost.peak_bytes).unwrap();
+    assert_eq!(tight, publication);
+    let (short, shortage) = probe::observe(|| {
+        native_publication::prepare(&actual, true, publication_cost.peak_bytes - 1)
+    });
+    assert!(short.is_err());
+    assert_eq!(shortage.allocations, shortage.deallocations);
+    for nth in 1..=publication_cost.allocations {
+        let (result, failed) =
+            probe::observe_refusing(nth, || native_publication::prepare(&actual, true, 4096));
+        assert!(result.is_err(), "publication allocation {nth}");
+        assert_eq!(failed.refused_allocations, 1);
+        assert_eq!(failed.allocations, failed.deallocations);
+        assert_eq!(owner::native_available(), Some(true));
+    }
+    let withdrawn = native_publication::prepare(&publication, false, 4096).unwrap();
+    assert!(withdrawn.bases.is_empty());
+    assert_eq!(withdrawn.resources, actual.resources);
+    assert_eq!(
+        withdrawn.offer_generation.0,
+        publication.offer_generation.0 + 1
+    );
+    println!("actual Root native publication preparation: {} requested B, {} B CPU component peak, {} fallible allocations; exact-size budget succeeds, one-byte shortage and all allocation faults preserve current owner and diagnostics",publication_cost.requested_bytes,publication_cost.peak_bytes,publication_cost.allocations);
+    let mut unexpected = actual.clone();
+    unexpected.resources.push(conduit_core::resource_offer(
+        "unexpected/pool",
+        "unexpected/class",
+        1,
+    ));
+    let (result, rejected) =
+        probe::observe(|| native_publication::prepare(&unexpected, true, 4096));
+    assert!(matches!(result, Err(native_publication::Refusal::Context)));
+    assert_eq!((rejected.allocations, rejected.reallocations), (0, 0));
     let mut wrong = actual.clone();
     wrong.profile = "foreign/config".into();
     assert!(matches!(
@@ -128,6 +182,37 @@ fn one_controller_lease_survives_cancellation_and_invalidates_cache_only_on_nati
         hint.artifact,
         conduit_core::AssignedIdentity::from_text(config::IMAGE_ID)
     );
+    let (compact, projected) = probe::observe(|| ready.project_for_images(&actual, 4096));
+    let compact = compact.unwrap();
+    assert_eq!(projected.requested_bytes, compact.owned_bytes);
+    assert_eq!(projected.reallocations, 0);
+    let (short, short_cost) =
+        probe::observe(|| ready.project_for_images(&actual, compact.owned_bytes - 1));
+    assert!(matches!(
+        short,
+        Err(conduit_i2c_transaction::installation::I2cImageProjectionRefusal::Capacity)
+    ));
+    assert_eq!((short_cost.allocations, short_cost.reallocations), (0, 0));
+    for nth in 1..=projected.allocations {
+        let (result, failed) = probe::observe_refusing(nth, || {
+            ready.project_for_images(&actual, compact.owned_bytes)
+        });
+        assert!(matches!(
+            result,
+            Err(conduit_i2c_transaction::installation::I2cImageProjectionRefusal::Allocation)
+        ));
+        assert_eq!(failed.allocations, failed.deallocations);
+        assert_eq!(failed.refused_allocations, 1);
+        assert!(owner::try_lease().is_none());
+    }
+    let mut foreign = actual.clone();
+    foreign.boot_id = "wrong/boot".into();
+    let (result, rejected) = probe::observe(|| ready.project_for_images(&foreign, 4096));
+    assert!(matches!(
+        result,
+        Err(conduit_i2c_transaction::installation::I2cImageProjectionRefusal::Context)
+    ));
+    assert_eq!((rejected.allocations, rejected.reallocations), (0, 0));
     let contract = conduit_i2c_transaction::contract::I2cContract::prepare().unwrap();
     ready
         .append_to_advertisement(&mut actual, &contract)
@@ -139,6 +224,9 @@ fn one_controller_lease_survives_cancellation_and_invalidates_cache_only_on_nati
     );
     assert_eq!(actual.resources.len(), 2);
     assert_eq!(actual.bases.len(), 1);
+    assert_eq!(compact.base, actual.bases[0]);
+    assert_eq!(compact.resource, actual.resources[1]);
+    println!("compact actual native publication: {} owned bytes, {} fallible allocations, all faults reclaimed; no catalog decoder or bus effect",compact.owned_bytes,projected.allocations);
     assert_eq!(calls.load(Ordering::SeqCst), 0);
     drop(ready);
     assert_eq!(owner::protocol_revision(), 0);
@@ -188,5 +276,6 @@ fn one_controller_lease_survives_cancellation_and_invalidates_cache_only_on_nati
     assert_eq!((cost.allocations, cost.reallocations), (0, 0));
     assert_eq!(owner::protocol_revision(), 2);
     assert!(owner::try_native_lease().is_none());
+    assert_eq!(owner::native_available(), Some(false));
     assert!(owner::try_lease().unwrap().is_revoked());
 }

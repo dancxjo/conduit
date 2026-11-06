@@ -19,6 +19,7 @@ impl MembershipState {
         link: &mut Link,
         input: &mut [u8; LIMIT],
     ) -> Result<(), ()> {
+        self.refresh_native_offer()?;
         let retained = self
             .receipt
             .as_ref()
@@ -26,9 +27,10 @@ impl MembershipState {
             .ok_or(())?;
         let owner = crate::resident::inventory().map_err(|_| ())?;
         let images = owner.offers();
+        let images = images.into_iter().flatten().chain(self.native_offer);
         let mut total = 0usize;
         let mut hashes = Vec::new();
-        for bytes in images.iter().flatten() {
+        for bytes in images.clone() {
             total = total.checked_add(bytes.len()).ok_or(())?;
             if total > 24 * 1024 {
                 return Err(());
@@ -57,7 +59,7 @@ impl MembershipState {
         };
         let n = serde_json_core::to_slice(&presentation, &mut output).map_err(|_| ())?;
         link.send(&output[..n]).await?;
-        for (bytes, digest) in images.iter().flatten().zip(&projection.capability_images) {
+        for (bytes, digest) in images.zip(&projection.capability_images) {
             let mut offset = 0;
             while offset < bytes.len() {
                 let (n, next) =
@@ -115,6 +117,35 @@ impl MembershipState {
         retain_receipt_digest(raw);
         input.fill(0);
         output.fill(0);
+        Ok(())
+    }
+}
+
+impl MembershipState {
+    fn refresh_native_offer(&mut self) -> Result<(), ()> {
+        if !self.resources.admissions().is_empty() || !self.resources.assignments().is_empty() {
+            return Err(());
+        }
+        let Some(available) = crate::i2c_owner::native_available() else {
+            return Ok(());
+        };
+        let available = available && crate::config::I2C_OFFER_IMAGE.is_some();
+        if available == self.native_offer.is_some() {
+            return Ok(());
+        }
+        let used = crate::heap::usage().0;
+        let remaining = crate::config::HEAP_BYTES.checked_sub(used).ok_or(())?;
+        let context =
+            crate::native_publication::prepare(self.resources.host(), available, remaining)
+                .map_err(|_| ())?;
+        // The idle fence above forbids dropping any original reservation/lane.
+        // Context preparation is fallible and leaves the old owner unchanged.
+        self.resources = conduit_core::ResourceAdmissionOwner::new(context);
+        self.native_offer = if available {
+            crate::config::I2C_OFFER_IMAGE
+        } else {
+            None
+        };
         Ok(())
     }
 }
