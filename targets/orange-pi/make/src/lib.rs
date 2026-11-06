@@ -75,10 +75,7 @@ fn catalog() -> PackageCatalogContribution {
                 ],
             },
         )]),
-        dependencies: BTreeMap::from([(
-            PrerequisiteNode::Base("serial/text".into()),
-            vec![PrerequisiteNode::Driver(ORANGE_PI_5_UART.into())],
-        )]),
+        dependencies: BTreeMap::new(),
         facilities: Vec::new(),
         profile_fragments: Vec::new(),
         mutually_exclusive_mechanisms: Vec::new(),
@@ -89,7 +86,7 @@ impl HostMakePackage for OrangePiMakePackage {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Anchor(MakeAnchor {
             package_id: PACKAGE_ID.into(),
-            package_revision: 1,
+            package_revision: 2,
             catalog: catalog(),
             targets: vec![orange_pi_5_target()],
             offers: vec![ImplementationOffer {

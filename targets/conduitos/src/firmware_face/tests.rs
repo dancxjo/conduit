@@ -227,3 +227,6 @@ fn native_face_refuses_finite_surfaces_invalid_issuer_and_failed_scanout() {
         "the valid path reaches the failing display"
     );
 }
+
+#[path = "scanout_tests.rs"]
+mod scanout_tests;

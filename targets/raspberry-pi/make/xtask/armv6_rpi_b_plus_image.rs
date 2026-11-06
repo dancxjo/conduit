@@ -24,7 +24,10 @@ const PARTITION_START_SECTOR: u32 = 2048;
 const PARTITION_SECTORS: u32 = (IMAGE_BYTES / SECTOR_BYTES) as u32 - PARTITION_START_SECTOR;
 const FAT_OFFSET_BYTES: u64 = PARTITION_START_SECTOR as u64 * SECTOR_BYTES;
 const SOURCE_DATE_EPOCH: &str = "1786233600";
-const CONFIG_BODY: &str = "arm_64bit=0\nkernel=kernel.img\ndisable_commandline_tags=1\ndevice_tree=\nenable_uart=1\ngpu_mem=16\ndisable_splash=1\n";
+// Keep the standard firmware pair selected: gpu_mem=16 requests start_cd.elf
+// and fixup_cd.dat, which this image does not bundle. PL011 uses divisors
+// for a 3 MHz input clock, so pin the firmware clock before entering ARM.
+const CONFIG_BODY: &str = "arm_64bit=0\nkernel=kernel.img\nkernel_address=0x8000\ndisable_commandline_tags=1\ndevice_tree=\nenable_uart=1\nuart_2ndstage=1\ninit_uart_clock=3000000\ngpu_mem=64\ndisable_splash=1\n";
 
 const ASSETS: [FirmwareAsset; 4] = [
     FirmwareAsset::new(
@@ -127,12 +130,20 @@ struct FirmwareAssetRecord {
 pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let paths = Paths::new(ConduitosArch::Armv6)?;
     if opts.dry_run {
-        armv6_rpi_b_plus_a0::execute(board, opts)?;
+        if board == Armv6RpiBoard::BPlusV1_2 {
+            super::build::execute_armv6_product(opts)?;
+        } else {
+            armv6_rpi_b_plus_a0::execute(board, opts)?;
+        }
         println!("fetch and verify Raspberry Pi firmware {FIRMWARE_COMMIT}");
         println!("assemble {}", image_path(&paths, board).display());
         return Ok(());
     }
-    armv6_rpi_b_plus_a0::execute(board, opts)?;
+    if board == Armv6RpiBoard::BPlusV1_2 {
+        super::build::execute_armv6_product(opts)?;
+    } else {
+        armv6_rpi_b_plus_a0::execute(board, opts)?;
+    }
     require_tool("mkfs.vfat", &paths.root)?;
     require_tool("mcopy", &paths.root)?;
     fs::create_dir_all(&paths.target)
@@ -238,12 +249,23 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         physical_proof_claimed: false,
         target_id: format!("conduitos/armv6/{}", board.id()),
         make_package_id: "conduit-host-raspberry-pi@1",
-        make_package_revision: 2,
+        make_package_revision: conduit_host_raspberry_pi::MAKE_PACKAGE_REVISION,
         output: "sd-image",
         builder_adapter: "conduit-host-raspberry-pi/build-sd-image@1",
         deployment_adapter: "conduit-host-raspberry-pi/flash-removable-media@1",
         source_identity: format!("git:{base_commit}"),
-        image_id: format!("conduitos-image/{base_commit}/{}/v1", board.identity_slug()),
+        image_id: if board == Armv6RpiBoard::BPlusV1_2 {
+            let raw = fs::read(paths.target.join("armv6-product-manifest.json"))
+                .map_err(|e| refusal("product-manifest-unavailable", e))?;
+            let manifest: serde_json::Value =
+                serde_json::from_slice(&raw).map_err(|e| refusal("product-manifest-invalid", e))?;
+            manifest["image_id"]
+                .as_str()
+                .ok_or_else(|| refusal("product-manifest-invalid", "missing image identity"))?
+                .to_owned()
+        } else {
+            format!("conduitos-image/{base_commit}/{}/v1", board.identity_slug())
+        },
         artifact: ImageArtifactRecord {
             path: image_name,
             format: "mbr-fat32-sd-image",

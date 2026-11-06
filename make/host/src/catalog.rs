@@ -140,7 +140,19 @@ impl MakeCatalog {
             .extend(contribution.initialization_contracts.clone());
         self.implementations
             .extend(contribution.implementations.clone());
-        self.presenters.extend(contribution.presenters.clone());
+        for (id, metadata) in &contribution.presenters {
+            match self.presenters.get_mut(id) {
+                Some(existing) if existing.prerequisites == metadata.prerequisites => {
+                    // One presenter contract can be offered by several target packages.
+                    existing.targets.extend(metadata.targets.iter().cloned());
+                    existing.targets.sort();
+                    existing.targets.dedup();
+                }
+                _ => {
+                    self.presenters.insert(id.clone(), metadata.clone());
+                }
+            }
+        }
         self.dependencies.extend(contribution.dependencies.clone());
         self.facilities
             .extend(contribution.facilities.iter().cloned());
