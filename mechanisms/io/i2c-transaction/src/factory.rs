@@ -21,7 +21,7 @@ pub struct I2cOperationFactory {
     contract: I2cContract,
 }
 impl I2cOperationFactory {
-    pub fn prepare_contract() -> Result<Self, StructuredInfoRefusal> {
+    pub fn prepare_contract() -> Result<Self, super::contract::I2cContractPreparationRefusal> {
         Ok(Self {
             implementation: ImplementationId::from(I2C_IMPLEMENTATION),
             contract: I2cContract::prepare()?,

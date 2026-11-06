@@ -12,6 +12,7 @@ fn main() {
         check_syntax_document(&syntax, &StartupCatalog::new()).expect("checked I2C Type Source");
     let output = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let mut bounds = Vec::new();
+    let mut profiles = String::new();
     for (name, file, constant) in [
         ("I2cTransaction", "request.type", "I2C_REQUEST_VALUE_BYTES"),
         ("I2cResult", "result.type", "I2C_RESULT_VALUE_BYTES"),
@@ -26,6 +27,16 @@ fn main() {
             ty.value_type.canonical_bytes().expect("canonical I2C Type"),
         )
         .expect("write checked I2C schema");
+        let label = if name == "I2cTransaction" {
+            "I2C_REQUEST_PROFILE"
+        } else {
+            "I2C_RESULT_PROFILE"
+        };
+        let profile = ty.value_type.profile().expect("checked exact port profile");
+        profiles.push_str(&format!(
+            "pub const {label}:&str={:?};\n",
+            profile.value_kind().as_str()
+        ));
         let bound = ty
             .value_type
             .canonical_value_upper_bound(leaf_bound)
@@ -36,6 +47,7 @@ fn main() {
         );
         bounds.push((constant, bound));
     }
+    fs::write(output.join("profiles.rs"), profiles).unwrap();
     let mut constants = String::new();
     for (name, bound) in &bounds {
         constants.push_str(&format!("pub const {name}:usize={bound};\n"));

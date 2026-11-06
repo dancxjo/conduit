@@ -20,22 +20,30 @@ impl MembershipState {
         let available = crate::config::HEAP_BYTES
             .checked_sub(crate::heap::usage().0)
             .ok_or(())?;
-        let (native, identity_bytes) =
+        let (native, _) =
             crate::i2c_installation::prepare(self.resources.host(), available).map_err(|_| ())?;
         let mut slot = Some(native);
         let mut inventory = resident::inventory().map_err(|_| ())?;
         // Native codecs are prepared from the build-checked contract; Source,
         // graph planning and capability-advertisement decoding stay off-device.
-        // Contract setup and allocator overhead still need whole-Root peak proof.
-        let contract = conduit_i2c_transaction::contract::I2cContract::prepare().map_err(|_| ())?;
+        // Flat interface and allocator overhead still need whole-Root peak proof.
+        let contract = conduit_i2c_transaction::contract::I2cContract::prepare_bounded(
+            crate::config::HEAP_BYTES
+                .checked_sub(crate::heap::usage().0)
+                .ok_or(())?,
+        )
+        .map_err(|_| ())?;
         let policy = m::Policy {
             preparation: crate::config::PREPARATION_DELEGATION.as_ref(),
             execution: Some(execution),
             active_worksets: 0,
             work_pool: crate::config::RESIDENT_WORK_POOL,
             maxima: crate::config::MIXED_PREPARATION_MAXIMA,
-            maximum_storage_bytes: crate::config::RESIDENT_PREPARATION_STORAGE_BYTES
-                .min(available.checked_sub(identity_bytes).ok_or(())?),
+            maximum_storage_bytes: crate::config::RESIDENT_PREPARATION_STORAGE_BYTES.min(
+                crate::config::HEAP_BYTES
+                    .checked_sub(crate::heap::usage().0)
+                    .ok_or(())?,
+            ),
         };
         let context = conduit_body::NativePreparationContext {
             bootstrap: &self.seed,
@@ -58,8 +66,8 @@ impl MembershipState {
             },
         )
         .map_err(|_| ())?;
-        // No live kernel borrows the temporary contract. Release preparation
-        // metadata before observation/admission and the execution lifetime.
+        // No live kernel borrows the temporary flat interface. Release it
+        // before observation/admission and the execution lifetime.
         drop(contract);
         self.freshness = self.freshness.checked_add(1).ok_or(())?;
         let committed = stored

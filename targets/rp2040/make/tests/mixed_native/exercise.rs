@@ -222,7 +222,8 @@ fn run(reverse: bool) {
     assert_eq!((cost.allocations, cost.reallocations), (0, 0));
     assert!(slot.is_none());
     assert_eq!(effects.get(), 0);
-    let StructuredInfoTypeShape::Record { fields, .. } = contract.request_type().shape() else {
+    let request_type = contract.decode_request_type().unwrap();
+    let StructuredInfoTypeShape::Record { fields, .. } = request_type.shape() else {
         panic!("request")
     };
     let ty = |name| {
@@ -234,7 +235,7 @@ fn run(reverse: bool) {
             .clone()
     };
     let input = StructuredInfoValue::record(
-        contract.request_type().clone(),
+        request_type.clone(),
         vec![
             StructuredFieldValue::new(
                 "address",

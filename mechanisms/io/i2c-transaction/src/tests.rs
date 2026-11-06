@@ -11,7 +11,8 @@ use conduit_plot::expand_canonical_plot_for_authoring;
 use conduit_plot::{check_syntax_document, parse_syntax_document};
 
 pub(super) fn request(contract: &I2cContract, address: u8, write: &[u8], read: u8) -> Vec<u8> {
-    let StructuredInfoTypeShape::Record { fields, .. } = contract.request_type().shape() else {
+    let request_type = contract.decode_request_type().unwrap();
+    let StructuredInfoTypeShape::Record { fields, .. } = request_type.shape() else {
         panic!("request");
     };
     let ty = |name| {
@@ -24,7 +25,7 @@ pub(super) fn request(contract: &I2cContract, address: u8, write: &[u8], read: u
     };
     let octet = StructuredInfoType::leaf(kind_id("value/u8")).unwrap();
     StructuredInfoValue::record(
-        contract.request_type().clone(),
+        request_type.clone(),
         vec![
             StructuredFieldValue::new(
                 "address",
@@ -226,7 +227,7 @@ fn register_idioms_construct_exact_bounded_requests_as_ordinary_plots() {
             panic!("expression")
         };
         let p = conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-        assert_eq!(&p.output_type, contract.request_type());
+        assert_eq!(p.output_type, contract.decode_request_type().unwrap());
         let mut prepared = conduit_plot::PreparedPortableExpressionEvaluator::new(&p).unwrap();
         let decoder = PreparedI2cDecoder::new(&contract).unwrap();
         let StructuredInfoTypeShape::Record { fields, .. } = p.input_type.shape() else {
@@ -283,12 +284,12 @@ fn fabricated_schemas_match_the_checked_authored_types_and_fore_profiles() {
     for (name, actual, port) in [
         (
             "I2cTransaction",
-            contract.request_type(),
+            contract.decode_request_type().unwrap(),
             &contract.kind().inputs[0],
         ),
         (
             "I2cResult",
-            contract.result_type(),
+            contract.decode_result_type().unwrap(),
             &contract.kind().outputs[0],
         ),
     ] {
@@ -297,7 +298,7 @@ fn fabricated_schemas_match_the_checked_authored_types_and_fore_profiles() {
             .iter()
             .find(|ty| ty.name == name)
             .unwrap();
-        assert_eq!(actual, &source.value_type);
+        assert_eq!(actual, source.value_type);
         assert_eq!(
             &port.value_kind,
             source.value_type.profile().unwrap().value_kind()
