@@ -7799,3 +7799,36 @@ live executable/mapping referenced those three; deleting these regenerable build
 outputs reclaimed 1,344,428,392 bytes. The inventory remains under ignored
 `target/inactive-xtask-cleanup-20261106.json`. Current xtask, firmware evidence,
 private state and live releases remain. Root headroom is approximately 2.0 GiB.
+
+### 6 November 2026 — prepared Source checker isolated for delivery
+
+PR #6815 (`e4f1a439baf44ae71c3ce4ea04d7eb73305f9820`) extracts only the prepared
+std reference checker, semantic identities and ordinary native Source-call
+conformance onto current dev (`334600a4e2`). It adds no dependency, process
+launcher, IMAGE constructor, lifecycle command, UI or firmware. The actual
+selected native Source slot already exists in dev; the provider retains one
+schema pair and finite canonical packet nodes. The larger delivery branch's
+process/IMAGE/product initialization remains separate.
+
+Seven tests pass in the isolated current-dev worktree: canonical valid/invalid
+reports, Host Call results, forged/missing grants, changed provider/Boot/resources,
+cancellation, packet/output pressure, and allocation-free immediate reads. A new
+case also checks authoring eligibility without constructing a compiler/provider
+or an offer; it is mirrored into this delivery branch. Strict std-library and
+Source-call test Clippy, formatting and staged diff checks pass. Review logs and
+cleanup provenance remain ignored under the review worktree's target directory.
+Candidate acceptance and Integration are separate pending gates. #6447 receives
+a progress comment, not closure; installed owner routing and complete workspace
+custody still remain. No device or running service changed.
+
+The first isolated build and first lint attempt hit the per-user /tmp quota
+(EDQUOT), despite filesystem-wide free space. A 64 KiB write probe confirmed the
+quota; these were environment failures, not accepted source/test failures.
+After process/mapping/environment ownership audits, package-native cleanup of
+inactive review caches reclaimed approximately 3,261 MiB. A further inventory
+of 19 old retained .rlib/.rmeta outputs found no active references; removing
+those regenerable libraries reclaimed 4,493,782,234 bytes. Provenance inventories
+were retained. Source, credentials, actual firmware artifacts, live releases and
+the active validation cache were preserved. Root remains tight at 1.7 GiB;
+/tmp has approximately 9.0 GiB filesystem headroom, with its user quota tracked
+separately. No worktree was removed.

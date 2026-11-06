@@ -204,3 +204,26 @@ fn ordinary_plot_returns_actual_valid_and_invalid_source_reports_with_host_call_
 
 #[path = "source_check_call/lifecycle.rs"]
 mod lifecycle;
+
+#[test]
+fn declaration_checks_source_without_preparing_or_offering_a_checker() {
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    PreparedSourceChecker::install_authoring_declaration(
+        &mut startup,
+        &mut profiles,
+        bounds().request_bytes,
+        bounds().report_bytes,
+    )
+    .unwrap();
+    let checked = check_syntax_document(&parse_syntax_document(CHECK), &startup).unwrap();
+    let authored =
+        expand_canonical_plot_for_authoring(&checked, "check-source", &profiles).unwrap();
+    let host = StdHost::new();
+    assert!(!host
+        .advertisement()
+        .capabilities
+        .iter()
+        .any(|offer| { offer.kind_id.as_str() == SOURCE_CHECK_KIND }));
+    assert!(support::plan(&host, &authored, &[], bounds()).is_err());
+}
