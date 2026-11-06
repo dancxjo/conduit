@@ -207,6 +207,19 @@ fn panic(_info: &PanicInfo<'_>) -> ! {
     refuse("panic")
 }
 #[alloc_error_handler]
-fn allocation_error(_layout: core::alloc::Layout) -> ! {
+fn allocation_error(layout: core::alloc::Layout) -> ! {
+    use core::fmt::Write;
+    arch::disable_interrupts();
+    let mut text = conduitos::sign_format::FixedText::new();
+    let _ = writeln!(
+        text,
+        "CONDUIT_ALLOCATION_REFUSAL requested={} alignment={} live={} peak={} capacity={}",
+        layout.size(),
+        layout.align(),
+        BOOT_ARENA.live_bytes(),
+        BOOT_ARENA.used(),
+        BOOT_ARENA.capacity()
+    );
+    arch::present(text.as_bytes());
     refuse("allocation-capacity-exhausted")
 }

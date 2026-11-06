@@ -229,7 +229,7 @@ pub fn usb_configuration_decode_package() -> Result<ProtocolSourcePackage, Proto
         &[],
     )
 }
-/// The same unsigned-contact descriptor policy, split into two native-size stages.
+/// The same unsigned-contact policy with a reusable pass and Source iteration.
 pub fn usb_hid_absolute_descriptor_stages_package()
 -> Result<ProtocolSourcePackage, ProtocolSourceRefusal> {
     ProtocolSourcePackage::compile(
@@ -239,11 +239,20 @@ pub fn usb_hid_absolute_descriptor_stages_package()
             include_str!("../../plots/usb/hid-absolute-layout.conduit"),
             include_str!("../../plots/usb/hid-absolute-layout-stages.conduit")
         ),
-        &[ProtocolSpecializationRequest::SeededUntil {
-            value: ProtocolValueReference {
-                type_name: "UsbAbsoluteHidLayoutState".into(),
-                maximum_bytes: 4096,
+        &[
+            ProtocolSpecializationRequest::MergeInstance {
+                alias: "UsbHidLayoutWorkMerge".into(),
+                value: ProtocolValueReference {
+                    type_name: "UsbAbsoluteHidLayoutState".into(),
+                    maximum_bytes: 4096,
+                },
             },
-        }],
+            ProtocolSpecializationRequest::SeededUntil {
+                value: ProtocolValueReference {
+                    type_name: "UsbAbsoluteHidLayoutState".into(),
+                    maximum_bytes: 4096,
+                },
+            },
+        ],
     )
 }
