@@ -1,6 +1,6 @@
 //! Checked canonical value envelopes from finite Types and leaf-owned bounds.
 use super::{
-    canonical_length, StructuredInfoType, StructuredInfoTypeNode as Node,
+    canonical_length, StructuredInfoType, StructuredInfoTypeShape as Node,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use crate::KindId;
@@ -31,14 +31,14 @@ fn node_bound(
     value: &StructuredInfoType,
     leaf: &mut impl FnMut(&KindId) -> Option<usize>,
 ) -> Option<usize> {
-    match value.node() {
+    match value.shape() {
         Node::Leaf(kind) => add(5, leaf(kind)?),
         // A nominal value reuses its representation's value node; only the
         // Type prefix carries nominal identity.
         Node::Nominal { representation, .. } => node_bound(representation, leaf),
         Node::Collection { element, length } => add(
             5,
-            node_bound(element, leaf)?.checked_mul(usize::from(*length))?,
+            node_bound(element, leaf)?.checked_mul(usize::from(length))?,
         ),
         Node::Sequence {
             element,
@@ -46,7 +46,7 @@ fn node_bound(
             ..
         } => add(
             5,
-            node_bound(element, leaf)?.checked_mul(usize::from(*maximum_items))?,
+            node_bound(element, leaf)?.checked_mul(usize::from(maximum_items))?,
         ),
         Node::Record { fields, .. } => {
             let mut total = 5;

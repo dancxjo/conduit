@@ -1,6 +1,6 @@
 //! Exact canonical type size without allocating a discarded serialization.
 use super::{
-    StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeNode,
+    StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
@@ -10,18 +10,18 @@ pub(super) fn encoded_length(value: &StructuredInfoType) -> Result<usize, Struct
             .filter(|total| *total <= MAXIMUM_STRUCTURED_CANONICAL_BYTES)
             .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)
     };
-    match value.node() {
-        StructuredInfoTypeNode::Leaf(kind) => add(5, kind.as_str().len()),
-        StructuredInfoTypeNode::Nominal {
+    match value.shape() {
+        StructuredInfoTypeShape::Leaf(kind) => add(5, kind.as_str().len()),
+        StructuredInfoTypeShape::Nominal {
             schema,
             representation,
         } => add(
             add(5, schema.as_str().len())?,
             encoded_length(representation)?,
         ),
-        StructuredInfoTypeNode::Collection { element, .. } => add(3, encoded_length(element)?),
-        StructuredInfoTypeNode::Sequence { element, .. } => add(5, encoded_length(element)?),
-        StructuredInfoTypeNode::Record { schema, fields } => {
+        StructuredInfoTypeShape::Collection { element, .. } => add(3, encoded_length(element)?),
+        StructuredInfoTypeShape::Sequence { element, .. } => add(5, encoded_length(element)?),
+        StructuredInfoTypeShape::Record { schema, fields } => {
             let mut length = add(9, schema.as_str().len())?;
             for field in fields {
                 length = add(length, add(4, field.name.len())?)?;
@@ -29,7 +29,7 @@ pub(super) fn encoded_length(value: &StructuredInfoType) -> Result<usize, Struct
             }
             Ok(length)
         }
-        StructuredInfoTypeNode::Variant { schema, cases } => {
+        StructuredInfoTypeShape::Variant { schema, cases } => {
             let mut length = add(9, schema.as_str().len())?;
             for case in cases {
                 length = add(length, add(4, case.tag.len())?)?;
@@ -42,6 +42,7 @@ pub(super) fn encoded_length(value: &StructuredInfoType) -> Result<usize, Struct
 
 #[cfg(test)]
 mod tests {
+    use super::super::StructuredInfoTypeNode;
     use super::*;
     use crate::{kind_id, StructuredFieldType, StructuredVariantCase};
     use alloc::{string::String, vec};

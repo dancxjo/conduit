@@ -8,7 +8,14 @@ impl StructuredInfoType {
     /// Excludes inline Self and allocator overhead.
     pub fn retained_backing_bytes(&self) -> Option<usize> {
         use StructuredInfoTypeNode::*;
-        let contents = match self.node() {
+        #[cfg(target_has_atomic = "ptr")]
+        let node = match &self.0 {
+            StructuredInfoTypeStorage::Leaf(kind) => return Some(kind.0.capacity()),
+            StructuredInfoTypeStorage::Compound(node) => &**node,
+        };
+        #[cfg(not(target_has_atomic = "ptr"))]
+        let node = &self.0;
+        let contents = match node {
             Leaf(kind) => Some(kind.0.capacity()),
             Nominal {
                 schema,
@@ -79,7 +86,12 @@ mod tests {
         )
         .unwrap();
         let cloned = original.clone();
-        assert!(alloc::sync::Arc::ptr_eq(&original.0, &cloned.0));
+        let (StructuredInfoTypeStorage::Compound(left), StructuredInfoTypeStorage::Compound(right)) =
+            (&original.0, &cloned.0)
+        else {
+            panic!("collection must use compound storage");
+        };
+        assert!(alloc::sync::Arc::ptr_eq(left, right));
         assert_eq!(original.canonical_bytes(), cloned.canonical_bytes());
         assert_eq!(
             original.retained_backing_bytes(),
@@ -92,7 +104,7 @@ mod tests {
     #[test]
     fn schema_backing_counts_nested_boxes_and_spare_vector_and_text_capacity() {
         let leaf = text("value/u8", 97);
-        let mut expected = leaf.capacity() + StructuredInfoType::node_backing_bytes();
+        let mut expected = leaf.capacity();
         let mut ty = StructuredInfoType::leaf(KindId(leaf)).unwrap();
         assert_eq!(ty.retained_backing_bytes(), Some(expected));
         ty = StructuredInfoType::collection(ty, Some(2)).unwrap();

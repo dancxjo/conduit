@@ -95,7 +95,11 @@ pub struct StructuredInfoType(StructuredInfoTypeStorage);
 // Immutable semantic structure is shared where native atomic custody exists.
 // Non-atomic targets retain the original inline value representation and traits.
 #[cfg(target_has_atomic = "ptr")]
-type StructuredInfoTypeStorage = alloc::sync::Arc<StructuredInfoTypeNode>;
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum StructuredInfoTypeStorage {
+    Leaf(KindId),
+    Compound(alloc::sync::Arc<StructuredInfoTypeNode>),
+}
 #[cfg(not(target_has_atomic = "ptr"))]
 type StructuredInfoTypeStorage = StructuredInfoTypeNode;
 
@@ -206,18 +210,32 @@ impl StructuredInfoType {
     fn from_node(node: StructuredInfoTypeNode) -> Self {
         #[cfg(target_has_atomic = "ptr")]
         {
-            Self(alloc::sync::Arc::new(node))
+            Self(match node {
+                StructuredInfoTypeNode::Leaf(kind) => StructuredInfoTypeStorage::Leaf(kind),
+                compound => StructuredInfoTypeStorage::Compound(alloc::sync::Arc::new(compound)),
+            })
         }
         #[cfg(not(target_has_atomic = "ptr"))]
         {
             Self(node)
         }
     }
-    fn node(&self) -> &StructuredInfoTypeNode {
-        &self.0
-    }
     pub fn shape(&self) -> StructuredInfoTypeShape<'_> {
-        match self.node() {
+        #[cfg(target_has_atomic = "ptr")]
+        {
+            match &self.0 {
+                StructuredInfoTypeStorage::Leaf(kind) => StructuredInfoTypeShape::Leaf(kind),
+                StructuredInfoTypeStorage::Compound(node) => Self::node_shape(node),
+            }
+        }
+        #[cfg(not(target_has_atomic = "ptr"))]
+        {
+            Self::node_shape(&self.0)
+        }
+    }
+
+    fn node_shape(node: &StructuredInfoTypeNode) -> StructuredInfoTypeShape<'_> {
+        match node {
             StructuredInfoTypeNode::Leaf(kind) => StructuredInfoTypeShape::Leaf(kind),
             StructuredInfoTypeNode::Nominal {
                 schema,
@@ -592,13 +610,13 @@ impl StructuredInfoValue {
         value_type: StructuredInfoType,
         canonical_value: Vec<u8>,
     ) -> Result<Self, StructuredInfoRefusal> {
-        if !matches!(value_type.node(), StructuredInfoTypeNode::Leaf(_)) {
+        if !matches!(value_type.shape(), StructuredInfoTypeShape::Leaf(_)) {
             return Err(StructuredInfoRefusal::WrongType);
         }
         if canonical_value.len() > MAXIMUM_STRUCTURED_LEAF_BYTES {
             return Err(StructuredInfoRefusal::LeafTooLarge);
         }
-        let StructuredInfoTypeNode::Leaf(kind) = value_type.node() else {
+        let StructuredInfoTypeShape::Leaf(kind) = value_type.shape() else {
             unreachable!("leaf shape checked above")
         };
         validate_primitive_info(kind.as_str(), &canonical_value)
@@ -611,14 +629,14 @@ impl StructuredInfoValue {
         value_type: StructuredInfoType,
         representation: StructuredInfoValue,
     ) -> Result<Self, StructuredInfoRefusal> {
-        let StructuredInfoTypeNode::Nominal {
+        let StructuredInfoTypeShape::Nominal {
             representation: expected,
             ..
-        } = value_type.node()
+        } = value_type.shape()
         else {
             return Err(StructuredInfoRefusal::WrongType);
         };
-        if representation.value_type != **expected {
+        if representation.value_type != *expected {
             return Err(StructuredInfoRefusal::WrongType);
         }
         Self::finish(value_type, representation.node)
@@ -628,13 +646,13 @@ impl StructuredInfoValue {
         value_type: StructuredInfoType,
         values: Vec<StructuredInfoValue>,
     ) -> Result<Self, StructuredInfoRefusal> {
-        let StructuredInfoTypeNode::Collection { element, length } = value_type.node() else {
+        let StructuredInfoTypeShape::Collection { element, length } = value_type.shape() else {
             return Err(StructuredInfoRefusal::WrongType);
         };
-        if values.len() != usize::from(*length) {
+        if values.len() != usize::from(length) {
             return Err(StructuredInfoRefusal::WrongCollectionLength);
         }
-        if values.iter().any(|value| value.value_type != **element) {
+        if values.iter().any(|value| value.value_type != *element) {
             return Err(StructuredInfoRefusal::WrongType);
         }
         Self::finish(value_type, StructuredInfoValueNode::Collection(values))
@@ -644,19 +662,18 @@ impl StructuredInfoValue {
         value_type: StructuredInfoType,
         values: Vec<StructuredInfoValue>,
     ) -> Result<Self, StructuredInfoRefusal> {
-        let StructuredInfoTypeNode::Sequence {
+        let StructuredInfoTypeShape::Sequence {
             element,
             minimum_items,
             maximum_items,
-        } = value_type.node()
+        } = value_type.shape()
         else {
             return Err(StructuredInfoRefusal::WrongType);
         };
-        if values.len() < usize::from(*minimum_items) || values.len() > usize::from(*maximum_items)
-        {
+        if values.len() < usize::from(minimum_items) || values.len() > usize::from(maximum_items) {
             return Err(StructuredInfoRefusal::WrongCollectionLength);
         }
-        if values.iter().any(|value| value.value_type != **element) {
+        if values.iter().any(|value| value.value_type != *element) {
             return Err(StructuredInfoRefusal::WrongType);
         }
         Self::finish(value_type, StructuredInfoValueNode::Collection(values))
@@ -666,10 +683,10 @@ impl StructuredInfoValue {
         value_type: StructuredInfoType,
         mut fields: Vec<StructuredFieldValue>,
     ) -> Result<Self, StructuredInfoRefusal> {
-        let StructuredInfoTypeNode::Record {
+        let StructuredInfoTypeShape::Record {
             fields: field_types,
             ..
-        } = value_type.node()
+        } = value_type.shape()
         else {
             return Err(StructuredInfoRefusal::WrongType);
         };
@@ -690,7 +707,7 @@ impl StructuredInfoValue {
         tag: impl Into<String>,
         payload: StructuredInfoValue,
     ) -> Result<Self, StructuredInfoRefusal> {
-        let StructuredInfoTypeNode::Variant { cases, .. } = value_type.node() else {
+        let StructuredInfoTypeShape::Variant { cases, .. } = value_type.shape() else {
             return Err(StructuredInfoRefusal::WrongType);
         };
         let tag = tag.into();
