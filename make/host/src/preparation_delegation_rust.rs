@@ -14,3 +14,16 @@ pub fn rust_preparation_delegation(checked: &CheckedHostConfiguration) -> String
         ),
     }
 }
+
+/// Explicit execution intent only. Absence emits no default permission.
+pub fn rust_execution_delegation(checked: &CheckedHostConfiguration) -> String {
+    let Some(policy) = checked.configuration().execution else {
+        return "None".into();
+    };
+    match policy.authorizer {
+        conduit_body::HostExecutionAuthorizer::SeedOwner => format!(
+            "Some(conduit_body::HostExecutionDelegation{{authorizer:conduit_body::HostExecutionAuthorizer::SeedOwner,maximum_active_worksets:{}}})",
+            policy.maximum_active_worksets
+        ),
+    }
+}

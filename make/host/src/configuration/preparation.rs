@@ -2,6 +2,24 @@
 use crate::{ConfigurationDiagnostic as D, HostConfiguration};
 
 pub(super) fn check(configuration: &HostConfiguration, diagnostics: &mut Vec<D>) {
+    if let Some(execution) = configuration.execution {
+        if configuration.preparation.is_none() || execution.maximum_active_worksets == 0 {
+            diagnostics.push(D::PreparationDelegation {
+                detail:
+                    "execution requires selected preparation and positive active-workset ceiling"
+                        .into(),
+            });
+        }
+        if u64::from(execution.maximum_active_worksets)
+            > u64::from(configuration.limits.active_instances)
+        {
+            diagnostics.push(D::LimitExceeded {
+                field: "maximum_active_worksets",
+                requested: u64::from(execution.maximum_active_worksets),
+                maximum: u64::from(configuration.limits.active_instances),
+            });
+        }
+    }
     let Some(policy) = configuration.preparation else {
         return;
     };

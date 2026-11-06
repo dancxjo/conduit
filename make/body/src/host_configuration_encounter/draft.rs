@@ -141,6 +141,7 @@ pub(super) fn apply(
             bases: vec![],
             capabilities: Vec::new(),
             preparation: None,
+            execution: None,
             resources: vec![],
             limits: HostBounds {
                 static_memory_bytes: 0,
