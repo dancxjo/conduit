@@ -35,6 +35,7 @@ fn main() {
     let sda = selected.bus.sda_gpio;
     let scl = selected.bus.scl_gpio;
     let preparation = conduit_host_make::rust_preparation_delegation(&checked);
+    let execution = conduit_host_make::rust_execution_delegation(&checked);
     let heap = checked.configuration().limits.heap_arena_bytes;
     assert!((32768..=98304).contains(&heap), "finite preparation arena");
     let generated = format!(
@@ -43,6 +44,7 @@ pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image_id:?};
 pub const HEAP_BYTES:usize={heap};
 pub const PREPARATION_DELEGATION:Option<conduit_body::HostPreparationDelegation>={preparation};
+pub const EXECUTION_DELEGATION:Option<conduit_body::HostExecutionDelegation>={execution};
 pub const RESIDENT_WORK_POOL:&str={work_pool:?};
 pub const RESIDENT_WORK_UNITS:u32={work_units};
 pub const RESIDENT_PREPARATION_STORAGE_BYTES:usize={storage_bytes};

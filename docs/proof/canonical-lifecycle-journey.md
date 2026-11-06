@@ -6838,3 +6838,36 @@ receiver supervision and physical Start remain open under the existing owners.
 Strict all-feature/all-target I2C Clippy passed. Accepted dev PR #6798
 (`ecf2725044`) was then merged; all 14 parser-free I2C tests passed again
 with its updated shared allocation probe. No MCU grants or capacities changed.
+
+
+### 5 November 2026 — Separate explicit execution intent in checked Host Source
+
+Host construction now accepts the optional singleton
+`execution = {authorizer: "seed-owner", maximum_active_worksets: 1}` separately
+from `preparation`. The checker requires selected finite preparation and a
+positive workset ceiling within the Host's existing active-instance limit.
+Unknown/missing/duplicate fields or authorizers refuse. Canonical Source,
+configuration identity and IMAGE correspondence retain the selection; selecting
+preparation alone emits no execution policy. Generated Rust carries the exact
+typed optional selection without adding a runtime parser. This declaration is
+construction intent, not local capability possession or a resource grant.
+
+The ordinary Host-configuration Face exposes execution separately, preserves it
+through Check/Rename and refuses target replacement before dropping delegation.
+Browser and terminal recipe constructors retain explicit absence or preserve the
+existing selection as appropriate. The branch-local RP2040 build carries it as
+`EXECUTION_DELEGATION`; no existing profile was enabled or device flashed.
+
+In the delivery checkout, all 92 Host/Make library tests pass, strict Host/Make
+library/test Clippy passes, and the real configuration-encounter test passes with
+both policies visible and preserved. Raw logs are retained locally under
+`target/host-execution-intent-20261105/`. A focused shared-source branch is based
+on accepted dev, with separate exact-head qualification underway. The physical
+receiver still needs current-workset authorization, complete native admission,
+and connection-independent supervision; there is no new Start claim.
+
+Before further builds, an audited inactive release cache had no process command,
+file-descriptor or memory-map references. Removing only its 529 regenerable
+`.rlib`/`.rmeta` archives recovered 1,294,563,081 bytes. The qualified executable
+remained byte-identical (SHA-256 `84fdf37c557e9c5d0d6e71a993029872cff024eec3fd7b755b64dc6c5d3afd0a`).
+Source, private state, firmware and manifests were preserved.
