@@ -17,12 +17,26 @@ impl Owner {
         images: &[&conduit_embedded_build::PreparedResidentExpression],
         limits: BodyFragmentProjectionLimits,
     ) -> Result<(BodyPlayIdentity, GeneratedBodyWorksetDocument), String> {
+        self.prepare_remote_mixed_workset(actual, images, &[], limits)
+    }
+
+    /// Native offers are explicitly selected descriptive inputs, not possession
+    /// or grants. The receiver must separately authorize and admit the exact
+    /// native operation before execution. Resident-only selection stays strict.
+    pub(super) fn prepare_remote_mixed_workset(
+        &self,
+        actual: &HostAdvertisement,
+        images: &[&conduit_embedded_build::PreparedResidentExpression],
+        native: &[&conduit_core::CapabilityOffer],
+        limits: BodyFragmentProjectionLimits,
+    ) -> Result<(BodyPlayIdentity, GeneratedBodyWorksetDocument), String> {
         self.prepare_remote_body_workset(actual, limits.maximum_document_bytes, |scope| {
-            let resident = conduit_embedded_build::bind_current_resident_expressions(
+            let resident = conduit_embedded_build::bind_current_mixed_resident_expressions(
                 scope.plot_plan(),
                 &scope.fragment().fragment_id,
                 actual,
                 images,
+                native,
             )
             .map_err(BodyFragmentGenerationRefusal::Resident)?;
             Ok((resident, limits))

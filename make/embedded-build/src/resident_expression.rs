@@ -268,6 +268,20 @@ pub fn bind_current_resident_expressions(
     actual: &c::HostAdvertisement,
     images: &[&PreparedResidentExpression],
 ) -> Result<Vec<BoundResidentExpression>, ResidentExpressionRefusal> {
+    bind_current_mixed_resident_expressions(plan, fragment, actual, images, &[])
+}
+
+/// Bind resident images while accounting for independently selected native offers.
+/// Native metadata is descriptive: this grants no provider possession, resource
+/// reservation, Host Call authority, or permission to Start. Every supplied native
+/// offer must identify a selected capability and equal its current offer.
+pub fn bind_current_mixed_resident_expressions(
+    plan: &c::Plan,
+    fragment: &c::FragmentId,
+    actual: &c::HostAdvertisement,
+    images: &[&PreparedResidentExpression],
+    native: &[&c::CapabilityOffer],
+) -> Result<Vec<BoundResidentExpression>, ResidentExpressionRefusal> {
     use ResidentExpressionRefusal as R;
     if !c::verify_plan(plan) {
         return Err(R::Plan);
@@ -283,6 +297,20 @@ pub fn bind_current_resident_expressions(
     {
         return Err(R::Selection);
     }
+    // One explicit selection per native capability; duplicate IDs are ambiguous
+    // even when the supplied offers happen to be byte-for-byte equal.
+    for (index, offer) in native.iter().enumerate() {
+        if native[..index]
+            .iter()
+            .any(|prior| prior.capability_id == offer.capability_id)
+            || !selected
+                .placements
+                .iter()
+                .any(|p| p.capability_id == offer.capability_id)
+        {
+            return Err(R::Selection);
+        }
+    }
     let mut bound = Vec::new();
     for placement in &selected.placements {
         let mut offers = actual
@@ -293,12 +321,109 @@ pub fn bind_current_resident_expressions(
         if offers.next().is_some() {
             return Err(R::Selection);
         }
-        let mut candidates = images.iter().filter(|image| image.offer == *offer);
-        let image = candidates.next().ok_or(R::Selection)?;
-        if candidates.next().is_some() {
+        if placement.host_id != actual.host_id
+            || placement.boot_id != actual.boot_id
+            || placement.offer_generation != actual.offer_generation
+        {
             return Err(R::Selection);
         }
-        bound.push(image.bind(plan, fragment, &placement.placement_id)?);
+        let mut candidates = images.iter().filter(|image| image.offer == *offer);
+        let image = candidates.next();
+        let native_offer = native
+            .iter()
+            .find(|n| n.capability_id == offer.capability_id);
+        if candidates.next().is_some() || (image.is_some() && native_offer.is_some()) {
+            return Err(R::Selection);
+        }
+        if let Some(image) = image {
+            bound.push(image.bind(plan, fragment, &placement.placement_id)?);
+        } else if native_offer.is_none_or(|selected| **selected != *offer)
+            || placement.kind_id != offer.kind_id
+            || placement.kind_contract_revision != offer.kind_contract_revision
+            || placement.execution_profile_id != offer.implementation.execution_profile_id
+            || placement.implementation_id != offer.implementation.implementation_id
+            || placement.artifact_id != offer.implementation.artifact_id
+            || placement.limits != offer.limits
+            || placement.inputs != offer.inputs
+            || placement.outputs != offer.outputs
+            || placement.semantic_contract != offer.semantic_contract
+            || placement.host_calls != offer.host_calls
+            || !native_bindings_correspond(placement, offer)
+        {
+            return Err(R::Selection);
+        }
     }
     Ok(bound)
+}
+
+// Descriptive correspondence only. Current grants, opaque provider possession,
+// aggregate pool capacity and actual reservation remain receiving Root gates.
+pub(crate) fn native_bindings_correspond(
+    placement: &c::PlannedGear,
+    offer: &c::CapabilityOffer,
+) -> bool {
+    if placement.resources.len() != offer.resource_requirements.len()
+        || placement.authority.len() != offer.authority_requirements.len()
+    {
+        return false;
+    }
+    for requirement in &offer.resource_requirements {
+        if requirement.units == 0
+            || requirement.protected_role.is_some()
+            || requirement.compute.is_some()
+            || requirement.content.is_some()
+            || offer
+                .resource_requirements
+                .iter()
+                .filter(|r| r.class_id == requirement.class_id)
+                .count()
+                != 1
+        {
+            return false;
+        }
+        let mut bindings = placement
+            .resources
+            .iter()
+            .filter(|r| r.class_id == requirement.class_id);
+        let Some(binding) = bindings.next() else {
+            return false;
+        };
+        if bindings.next().is_some()
+            || binding.pool_id.as_str().is_empty()
+            || binding.units != requirement.units
+            || binding.protected.is_some()
+            || binding.compute.is_some()
+            || binding.content.is_some()
+        {
+            return false;
+        }
+    }
+    for requirement in &offer.authority_requirements {
+        if offer
+            .authority_requirements
+            .iter()
+            .filter(|r| *r == requirement)
+            .count()
+            != 1
+        {
+            return false;
+        }
+        let mut bindings = placement.authority.iter().filter(|a| {
+            a.contract_id == requirement.contract_id
+                && a.host_call_contract_id == requirement.host_call_contract_id
+                && a.subject_kind == requirement.subject_kind
+        });
+        let Some(binding) = bindings.next() else {
+            return false;
+        };
+        if bindings.next().is_some()
+            || binding.grant_id.as_str().is_empty()
+            || binding.host_id != placement.host_id
+            || binding.boot_id != placement.boot_id
+            || binding.capability_id != placement.capability_id
+        {
+            return false;
+        }
+    }
+    true
 }

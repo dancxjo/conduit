@@ -1,7 +1,7 @@
 //! Preparation-only contract derived from reviewed Conduit Types.
 
 #[cfg(feature = "source-catalog")]
-use alloc::vec;
+use alloc::{string::ToString, vec};
 use conduit_core::{Kind, StructuredInfoRefusal, StructuredInfoType};
 mod preparation;
 pub use preparation::I2cContractPreparationRefusal;
@@ -47,10 +47,27 @@ impl I2cContract {
     /// can omit this feature and its Source machinery entirely.
     #[cfg(feature = "source-catalog")]
     pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
+        let mut startup = StartupCatalog::new();
+        let mut profiles = ProfileCatalog::new();
+        self.install_catalogs(&mut startup, &mut profiles)
+            .expect("build-checked I2C authoring catalogue");
+        (startup, profiles)
+    }
+
+    /// Add only checked semantic declarations to an existing authoring context.
+    /// No physical controller, available offer or transfer authority is created.
+    /// Conflicts leave both caller catalogues unchanged.
+    #[cfg(feature = "source-catalog")]
+    pub fn install_catalogs(
+        &self,
+        startup: &mut StartupCatalog,
+        profiles: &mut ProfileCatalog,
+    ) -> Result<(), alloc::string::String> {
         let syntax = parse_syntax_document(I2C_TYPES);
         let checked = check_syntax_document(&syntax, &StartupCatalog::new())
             .expect("build-checked I2C Type Source");
-        let mut startup = StartupCatalog::new();
+        let mut staged = startup.clone();
+        let mut profile = profiles.clone();
         for (name, path) in [
             ("I2cTransaction", "machine/i2c/transact/request"),
             ("I2cResult", "machine/i2c/transact/result"),
@@ -60,21 +77,22 @@ impl I2cContract {
                 .iter()
                 .find(|ty| ty.name == name)
                 .expect("checked I2C Type");
-            startup
-                .insert_checked_native_type_from_document(path, &checked, &ty.identity)
-                .expect("I2C import");
+            staged.insert_checked_native_type_from_document(path, &checked, &ty.identity)?;
         }
-        startup
+        staged
             .insert(conduit_plot::KindSignature {
                 kind: I2C_KIND.into(),
                 startup_parameters: vec![],
             })
-            .expect("I2C startup");
-        startup
+            .map_err(|error| error.to_string())?;
+        staged
             .insert_fore(I2C_KIND, self.kind.checked_front())
-            .expect("I2C Fore");
-        let mut profile = ProfileCatalog::new();
-        profile.insert_kind(self.kind.clone()).expect("I2C Kind");
-        (startup, profile)
+            .map_err(|error| error.to_string())?;
+        profile
+            .insert_kind(self.kind.clone())
+            .map_err(|error| error.to_string())?;
+        *startup = staged;
+        *profiles = profile;
+        Ok(())
     }
 }

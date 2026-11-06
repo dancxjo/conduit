@@ -8338,3 +8338,45 @@ checking process command lines, working directories, mappings and descriptors,
 recovering 405,133,369 unique-inode bytes while preserving generated Source,
 firmware, credentials and evidence. Root headroom after qualification: 753 MiB;
 do not launch another large build without reclaiming further verified caches.
+
+### 6 November 2026 — return to the physical member handoff
+
+A renewed audit corrects the earlier ordering: installed #6447 is needed for the
+full self-authoring journey, but not for ordinary planning/execution of Source
+already admitted to the Body. Retained-source acquisition checks biography,
+bytes and the exact checked Plot; continuing execution checks the complete
+workset. This permits advancing the physical path without treating Source
+checking as adoption. The actual installed biography still contains only
+creche/main, so instrument workset adoption (#6449) remains necessary.
+
+Two concrete sender gaps are repaired. The existing I2C contract can now install
+its exact checked Types/Fore into another authoring context transactionally.
+The ordinary product compiler uses that entrance, so authored I2C Source checks;
+a default std Host still offers no controller and placement refuses. The new
+installer is source-catalog feature gated. A Cortex-M0+ no-default-features
+library check passes; no parser/planner dependency was added to MCU execution.
+
+The embedded sender can bind resident computations alongside explicitly selected
+current native offers. It verifies sealed/current identities, exact contracts,
+plain resource and authority binding correspondence, and rejects duplicates,
+extras, ambiguity, stale identity and same-generation requirement changes. It
+returns only resident bindings, never native possession or a new grant. The
+owner's existing original signed-command custody uses this mixed entrance and
+still refuses relabelling resident metadata before occupying its approval slot.
+
+Six resident/binder tests, one transactional-catalogue test, one ordinary product
+I2C authoring/refusal test and the signed-owner preparation test pass. Strict
+owning-library and product binary/test Clippy, formatting and diff checks pass.
+Raw logs: target/mixed-i2c-authoring-20261106. These are CPU/compile proofs, not
+installed mixed delivery or physical Start. Native grant carriage, lawful workset
+adoption, installed input/result routing, complete Root funding and actual bus
+handover remain under #6770/#6449/#6341/#6295; no new memory epic or lane.
+
+#6823 is synchronized with accepted dev at 7e3d0acead, with an unchanged qualified
+source tree. Its former non-dev base meant no Candidate checks existed; the
+normal synchronization push now supplies the workflow event. No workflow was
+restarted or cancelled. Before local qualification, maintenance checked that no
+builds or mapped/open candidate artifacts were active, then removed 11 inactive
+test/tool executables (1,333,679,696 B) and six older language-library variants
+(1,960,130,864 B), keeping the newest three variants. Source, firmware, private
+state and evidence remain; root headroom after qualification is 2.6 GiB.

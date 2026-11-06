@@ -175,13 +175,24 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
         }
         assert!(
             owner
-                .approve_remote_resident_workset(&member, &changed, &[&image], limits)
+                .approve_remote_workset(&member, &changed, &[&image], &[], limits)
                 .is_err(),
             "substitution {mutation} accepted"
         );
     }
+    // A copied resident offer cannot be relabelled as native selection to skip
+    // the original resident binding. Refusal must leave the approval slot free.
+    assert!(owner
+        .approve_remote_workset(
+            &member,
+            &challenge,
+            &[&image],
+            &[image.offer_description()],
+            limits,
+        )
+        .is_err());
     let command = owner
-        .approve_remote_resident_workset(&member, &challenge, &[&image], limits)
+        .approve_remote_workset(&member, &challenge, &[&image], &[], limits)
         .unwrap();
     assert_eq!(command.play().plan_id, proposal.plan.plan_id);
     assert_eq!(
@@ -193,7 +204,7 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
         .unwrap();
     assert_eq!(attributed.payload(), command.payload());
     assert!(owner
-        .approve_remote_resident_workset(&member, &challenge, &[&image], limits)
+        .approve_remote_workset(&member, &challenge, &[&image], &[], limits)
         .is_err());
     assert_eq!(owner.session.evidence(), &before);
     assert_eq!(owner.session.realization(), Some(&proposal));
@@ -201,7 +212,7 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
     owner.lull().unwrap();
     // Lull cannot silently release an approval that the receiver may retain.
     assert!(owner
-        .approve_remote_resident_workset(&member, &challenge, &[&image], limits)
+        .approve_remote_workset(&member, &challenge, &[&image], &[], limits)
         .is_err());
     std::fs::remove_dir_all(root).unwrap();
 }

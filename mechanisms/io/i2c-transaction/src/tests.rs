@@ -77,6 +77,40 @@ fn checked_i2c_topology_has_one_class_neutral_call() {
     assert_eq!(contract.kind().limits.max_queue_items, 1);
 }
 
+#[cfg(feature = "source-catalog")]
+#[test]
+fn authoring_catalogue_addition_preserves_existing_declarations_and_rolls_back_conflicts() {
+    let contract = I2cContract::prepare().unwrap();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profiles = conduit_plot::ProfileCatalog::new();
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: "fixture/other".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    contract
+        .install_catalogs(&mut startup, &mut profiles)
+        .unwrap();
+    assert!(startup.signature("fixture/other").is_some());
+    assert!(profiles.get(&contract.kind().kind_id).is_some());
+    let before = (startup.clone(), profiles.clone());
+    assert!(contract
+        .install_catalogs(&mut startup, &mut profiles)
+        .is_err());
+    assert_eq!((startup, profiles), before);
+
+    // A late profile conflict must also roll back earlier Type/Fore imports.
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profiles = conduit_plot::ProfileCatalog::new();
+    profiles.insert_kind(contract.kind().clone()).unwrap();
+    let before = (startup.clone(), profiles.clone());
+    assert!(contract
+        .install_catalogs(&mut startup, &mut profiles)
+        .is_err());
+    assert_eq!((startup, profiles), before);
+}
+
 #[test]
 fn bounded_request_decoding_is_exact_and_does_not_interpret_registers() {
     let contract = I2cContract::prepare().unwrap();

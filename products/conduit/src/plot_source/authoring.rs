@@ -46,6 +46,29 @@ impl CanonicalSource {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn ordinary_i2c_source_checks_without_inventing_a_local_controller() {
+        let source = super::super::parse(include_str!(
+            "../../../../plots/device-protocols/i2c.conduit"
+        ))
+        .unwrap();
+        let authored = source.expand_entry_for_authoring().unwrap();
+        assert_eq!(authored.expanded.gears.len(), 1);
+        assert_eq!(
+            authored.expanded.gears[0].kind_id.as_str(),
+            conduit_i2c_transaction::contract::I2C_KIND
+        );
+        let host = conduit_std_host::StdHost::new();
+        assert!(!host.advertisement().capabilities.iter().any(|offer| {
+            offer.kind_id.as_str() == conduit_i2c_transaction::contract::I2C_KIND
+        }));
+        assert!(conduit_planner::default_expanded_placements(
+            &authored.expanded,
+            &[host.advertisement().clone()],
+        )
+        .is_err());
+    }
+
+    #[test]
     fn malformed_source_preserves_checker_diagnostic_before_entry_selection() {
         let source = super::super::parse("plot unfinished (").unwrap();
         let diagnostic = source.check().unwrap_err();

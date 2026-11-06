@@ -31,11 +31,12 @@ impl PreparedRemoteBodyCommand {
     }
 }
 impl Owner {
-    pub(crate) fn approve_remote_resident_workset(
+    pub(crate) fn approve_remote_workset(
         &mut self,
         member: &MemberPresentationBasis,
         challenge: &HostCommandChallenge<'_>,
         images: &[&PreparedResidentExpression],
+        native: &[&conduit_core::CapabilityOffer],
         limits: BodyFragmentProjectionLimits,
     ) -> Result<&PreparedRemoteBodyCommand, String> {
         if self
@@ -80,7 +81,7 @@ impl Owner {
             maximum_document_bytes: challenge.maximum_payload_bytes,
             ..limits
         };
-        let (play, document) = self.prepare_remote_resident_workset(actual, images, limits)?;
+        let (play, document) = self.prepare_remote_mixed_workset(actual, images, native, limits)?;
         let transcript = host_command_attribution_transcript(challenge, document.bytes())
             .map_err(|error| format!("remote command transcript refused: {error:?}"))?;
         let custody = self

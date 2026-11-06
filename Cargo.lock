@@ -1598,6 +1598,7 @@ dependencies = [
  "conduit-finance",
  "conduit-host-browser-make",
  "conduit-host-make",
+ "conduit-i2c-transaction",
  "conduit-kernel",
  "conduit-language",
  "conduit-linux-display",

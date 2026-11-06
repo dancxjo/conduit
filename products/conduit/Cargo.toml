@@ -34,6 +34,7 @@ conduit-thermostat-face = { path = "../../plots/thermostat/face" }
 conduit-thermostat-plot = { path = "../../plots/thermostat/model" }
 conduit-todo-face = { path = "../../plots/todo/face" }
 conduit-host-make = { path = "../../make/host" }
+conduit-i2c-transaction = { path = "../../mechanisms/io/i2c-transaction" }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-language = { path = "../../semantics/language" }
 conduit-data = { path = "../../semantics/data" }
