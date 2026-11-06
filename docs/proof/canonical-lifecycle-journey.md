@@ -7984,3 +7984,42 @@ request/reply correlation and drain contract, or a proven existing operation
 with that lifetime. #4833 owns this protocol-composition dependency; #6341
 continues to own memory admission. The earlier installed Source-action gap
 remains an independent lifecycle blocker.
+
+### 6 November 2026 — exact finite pairing repairs the one-controller composition
+
+The experimentally missing close law is tracked by #6818, separate from MCU
+workspace admission. `flow/zip/exact` is now an explicit semantic Kind with a
+no_std prepared Back. It reuses the existing tuple encoder and fixed buffers,
+retains one pending value per side across independent input closes, and refuses
+unequal stream lengths rather than discarding a context or inventing a reply.
+Finite and feedback zip identities and behavior are preserved.
+
+The ordinary kernel caught an initial invalid terminal implementation that
+passed isolated stepping: exposed terminal truth must be consumed according to
+the selected profile even while flushing a formed pair. The final Back and
+Kind use the existing bounded FlushThenPropagateWhenAllClose contract, consume
+close alongside an admitted final pair, and wait under output pressure before
+that phase. No scheduler law or resource grant was weakened or enlarged.
+
+The original static I2C Source now selects exact zip explicitly. Its actual
+Plan contains precisely one I2C placement against the unchanged exclusive
+capacity-one owner. CPU Plan/Play tests pass for both client admission orders,
+exact successful read bytes, a separately routed not-acknowledged result, and
+an empty caller while the other continues. The full I2C factory group passes
+20 cases, including the existing HT16K33 initialization/redraw and BME280
+state/join execution. These are inert-provider CPU transcripts, not hardware.
+
+The Back/semantic groups pass 21 zip regressions, including early closure from
+either side, delayed counterparts, exact canonical output, pressure, empty
+inputs, unequal lengths, abnormal termination and cancellation. The prepared
+early-close/pressure execution probe records zero allocations. Strict composite
+and semantic-catalog library/test Clippy and workspace formatting pass.
+Logs are retained under ignored `target/exact-fifo-pair-20261106`.
+
+The ConduitOS Source package selects the new exact operation through explicit
+ExactZip specialization and an exact retained offer. This is ordinary typed
+composition, not a new bus arbiter, transport or application coordinator. It
+does not yet expose both real device protocol callers on RP2040, enlarge the
+two-node mixed binder, prove complete-workset memory fit, or deploy a device.
+The new semantic/Back slice is being qualified separately on current dev;
+installed Source action selection and the full lifecycle journey remain open.

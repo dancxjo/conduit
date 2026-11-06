@@ -319,3 +319,5 @@ fn complete_bme280_transition_and_next_action_have_finite_native_admission() {
 
 mod ht16k33;
 mod state;
+
+mod two_clients;

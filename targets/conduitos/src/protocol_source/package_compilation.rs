@@ -40,6 +40,10 @@ pub enum ProtocolSpecializationRequest {
         alias: String,
         value: ProtocolValueReference,
     },
+    ExactZip {
+        left: ProtocolValueReference,
+        right: ProtocolValueReference,
+    },
     Zip {
         left: ProtocolValueReference,
         right: ProtocolValueReference,
@@ -188,6 +192,10 @@ impl ProtocolSourcePackage {
                     );
                     ProtocolSpecialization::MergeInstance { value }
                 }
+                Request::ExactZip { left, right } => ProtocolSpecialization::ExactZip {
+                    left: value(left)?,
+                    right: value(right)?,
+                },
                 Request::Zip { left, right } => ProtocolSpecialization::Zip {
                     left: value(left)?,
                     right: value(right)?,

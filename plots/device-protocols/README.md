@@ -202,3 +202,20 @@ capture outcomes remain separate. The conversion uses generated Forms from
 observation envelope is 4 KiB in the current profile. Run
 `cargo xtask prove environment kernel` for the complete Source/Forms/Face/Mask
 host proof. MCU installation and recurring workload admission remain pending.
+
+`i2c-two-clients.conduit` demonstrates static transaction sharing through **one**
+selected I2C placement. It tags and merges two explicitly connected request
+streams, retains FIFO context with `flow/zip/exact`, and routes each typed bus
+result to its originating caller. It grants no attachment or authority and
+provides no multi-transaction protocol lock. Both protocols must tolerate
+transaction-level interleaving; address overlap and protocol sequencing remain
+explicit configuration/composition concerns.
+
+Exact zip keeps a pending value across the other input's delayed completion,
+closes only after both finite inputs drain, and refuses unequal lengths. It has
+one bounded pending value per side and prepared output storage. It is a distinct
+contract from finite zip (which can discard unmatched values) and feedback zip
+(which requires a returned state generation). CPU tests check the actual kernel
+with one exclusively owned inert bus, exact success/failure routing, both caller
+admission orders and an empty caller. This is not RP2040 mixed-workset fit or
+physical autonomous sampling/display proof; those gates remain open.

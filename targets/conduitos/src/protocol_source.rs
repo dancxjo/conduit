@@ -213,6 +213,21 @@ impl PreparedProtocolSource {
                 ProtocolSpecialization::MergeInstance { value } => {
                     instances::install_merge(value, &mut startup, &mut profile, &mut operations)
                 }
+                ProtocolSpecialization::ExactZip { left, right } => {
+                    conduit_semantic_catalog::install_flow_zip_exact_kind(
+                        &left.contract,
+                        &left.schema,
+                        &right.contract,
+                        &right.schema,
+                        &mut startup,
+                        &mut profile,
+                    )
+                    .map_err(Error::Catalog)?;
+                    operations
+                        .joins
+                        .install_exact(&left.contract, &left.schema, &right.contract, &right.schema)
+                        .map_err(Error::Catalog)
+                }
                 ProtocolSpecialization::Zip { left, right } => {
                     conduit_semantic_catalog::install_flow_zip_finite_kind(
                         &left.contract,
