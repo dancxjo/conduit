@@ -24,6 +24,8 @@ impl PreparedProtocolEntry {
         if entry.is_empty() || entry.len() > MAXIMUM_SOURCE_BYTES {
             return Err(ProtocolSourceRefusal::Bounds);
         }
+        #[cfg(all(target_os = "none", target_arch = "arm", feature = "armv6-product"))]
+        preparation_stage(entry);
         let package = ProtocolSourcePackage::decode(bytes)?;
         preparation_stage("decoded");
         let source = PreparedProtocolSource::prepare(package)?;
