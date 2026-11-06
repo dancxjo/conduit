@@ -320,8 +320,18 @@ mod native_surface_possession;
     feature = "armv6-product"
 ))]
 mod native_surface_provider;
-#[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
+#[cfg(any(
+    test,
+    all(target_arch = "x86_64", feature = "native-compositor"),
+    feature = "armv6-product"
+))]
 mod pointer_coordinates;
+#[cfg(any(
+    test,
+    all(target_arch = "x86_64", feature = "native-compositor"),
+    feature = "armv6-product"
+))]
+mod pointer_state;
 #[cfg(any(
     test,
     target_arch = "x86_64",

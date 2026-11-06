@@ -7,7 +7,9 @@ const USB_BASE: usize = 0x2098_0000;
 static OWNED: AtomicBool = AtomicBool::new(false);
 #[repr(C, align(16))]
 struct PowerMessage([u32; 8]);
-struct Registers;
+pub(crate) struct Registers {
+    _owned: (),
+}
 impl RegisterIo for Registers {
     fn read(&mut self, offset: usize) -> u32 {
         debug_assert!((offset <= 0xe00 || offset == 0x1000) && offset & 3 == 0);
@@ -44,9 +46,14 @@ impl UsbHost {
             let select = read32(GPIO_BASE + 0x0c) & !(7 << 3);
             write32(GPIO_BASE + 0x0c, select | (1 << 3));
         }
-        let mut controller = Controller::new(Registers);
+        let mut controller = Controller::new(Registers { _owned: () });
         let facts = controller.prepare().map_err(|error| error.as_str())?;
         Ok(Self { controller, facts })
+    }
+    /// Move the sole prepared register owner into a separately admitted call
+    /// owner. Constructing a route or inspecting facts cannot duplicate it.
+    pub(crate) fn into_controller(self) -> Controller<Registers> {
+        self.controller
     }
     pub fn facts(&self) -> ControllerFacts {
         self.facts

@@ -293,3 +293,6 @@ mod pointer_history;
 
 #[path = "usb_mouse_order/absolute_pointer.rs"]
 mod absolute_pointer;
+
+#[path = "usb_mouse_order/absolute_report.rs"]
+mod absolute_report;

@@ -29,7 +29,7 @@ fn both_roles_require_explicit_current_authority() {
     let (host, grants) = fixture();
     let before = serde_json::to_vec(&host).unwrap();
     for role in [HidSourceRole::Keyboard, HidSourceRole::Mouse] {
-        let artifact = prepare(role, &host, &grants).unwrap();
+        let artifact = prepare(role, &host, &grants).unwrap_or_else(|e| panic!("{role:?}: {e}"));
         let plan = &artifact.artifact().definition().internal_plan;
         let bindings: alloc::vec::Vec<_> = plan
             .fragments
@@ -119,4 +119,24 @@ fn ordered_keyboard_class_requires_eight_admitted_calls_in_the_shared_kernel() {
     assert!(prepare(HidSourceRole::KeyboardCapture, &fewer, &grants).is_err());
     host.resources[0].capacity_units = 7;
     assert!(prepare(HidSourceRole::KeyboardCapture, &host, &grants).is_err());
+}
+
+#[test]
+fn absolute_input_requires_current_read_authority_and_uses_the_shared_kernel() {
+    let (host, grants) = fixture();
+    let artifact = prepare(HidSourceRole::AbsoluteMouse, &host, &grants).unwrap();
+    let mut run = crate::usb_base::hid_source_kernel::PreparedUsbSourceKernel::prepare(
+        artifact,
+        conduit_composite::KernelCompositeSignStorage::default(),
+    )
+    .unwrap();
+    assert_eq!(run.kernel_mut().definition().boundary.input_fronts.len(), 1);
+    assert_eq!(
+        run.kernel_mut().definition().boundary.output_fronts.len(),
+        3
+    );
+    assert!(prepare(HidSourceRole::AbsoluteMouse, &host, &[]).is_err());
+    let mut stale = grants;
+    stale[0].boot_id = "fixture/stale".into();
+    assert!(prepare(HidSourceRole::AbsoluteMouse, &host, &stale).is_err());
 }

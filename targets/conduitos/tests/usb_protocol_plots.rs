@@ -297,3 +297,12 @@ mod hub_port_status;
 
 #[path = "usb_protocol_plots/hub_port_reset.rs"]
 mod hub_port_reset;
+
+#[path = "usb_protocol_plots/hid_absolute_layout.rs"]
+mod hid_absolute_layout;
+
+#[path = "usb_protocol_plots/enumeration.rs"]
+mod enumeration;
+
+#[path = "usb_protocol_plots/hid_input_profile.rs"]
+mod hid_input_profile;

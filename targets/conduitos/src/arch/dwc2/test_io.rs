@@ -6,6 +6,9 @@ pub(crate) struct Io {
     pub(crate) rx: VecDeque<u32>,
     pub(crate) data: VecDeque<u32>,
     pub(crate) clock: u32,
+    pub(crate) clock_step: u32,
+    pub(crate) frame: u16,
+    pub(crate) frame_step: u16,
     pub(crate) running: bool,
     pub(crate) finish: u32,
     pub(crate) stuck_halt: bool,
@@ -20,6 +23,9 @@ impl Io {
             rx: VecDeque::new(),
             data: VecDeque::new(),
             clock: u32::MAX - 5000,
+            clock_step: 1000,
+            frame: 0,
+            frame_step: 1,
             running: false,
             finish: HALTED | 1,
             stuck_halt: false,
@@ -34,7 +40,11 @@ impl RegisterIo for Io {
         match offset {
             PORT => self.port,
             0x510 => self.residue,
-            TX_SPACE => (1 << 16) | 256,
+            0x408 => {
+                self.frame = self.frame.wrapping_add(self.frame_step);
+                u32::from(self.frame)
+            }
+            0x410 | TX_SPACE => (1 << 16) | 256,
             INTERRUPT_STATUS => {
                 if !self.rx.is_empty() {
                     1 << 4
@@ -79,7 +89,7 @@ impl RegisterIo for Io {
         }
     }
     fn now_us(&mut self) -> u32 {
-        self.clock = self.clock.wrapping_add(1000);
+        self.clock = self.clock.wrapping_add(self.clock_step);
         self.clock
     }
 }

@@ -142,3 +142,29 @@ fn maximum_envelope_uses_exactly_32_data_packets_and_one_status() {
     assert_eq!(sizes(&c).len(), 34);
     assert!(c.io.script.is_empty());
 }
+
+#[test]
+fn control_call_refuses_periodic_or_invalid_routes_before_register_effects() {
+    let mut c = controller();
+    for route in [
+        EndpointRoute {
+            endpoint: 1,
+            transfer_type: super::super::TransferType::Interrupt,
+            ..EndpointRoute::control(1, 8)
+        },
+        EndpointRoute {
+            translator: Some(super::super::TransactionTranslator {
+                hub_address: 0,
+                port: 1,
+                low_speed: false,
+            }),
+            ..EndpointRoute::control(1, 8)
+        },
+    ] {
+        assert_eq!(
+            c.control_on(route, [0; 8], &[], &mut []),
+            Err(PacketError::Geometry)
+        );
+        assert!(c.io.writes.is_empty());
+    }
+}

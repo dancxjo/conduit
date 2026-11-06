@@ -2,7 +2,10 @@
 //! device initialization requests live at this hardware boundary.
 mod control;
 mod packet;
-pub use packet::{PacketError, PacketPid, RootPacket};
+mod route;
+mod split;
+pub use packet::{PacketError, PacketPid};
+pub use route::{EndpointRoute, TransactionTranslator, TransferType};
 mod registers;
 use registers::*;
 
@@ -147,6 +150,15 @@ impl<I: RegisterIo> Controller<I> {
         }
         if root_port & CONNECTED != 0 && root_port & ENABLED == 0 {
             return Err(Refusal::PortNotEnabled);
+        }
+        if root_port & ENABLED != 0 {
+            // Internal 8-bit UTMI PHY is 60 MHz: HS microframe / FS frame.
+            let interval = if root_port & (3 << 17) == 0 {
+                7499
+            } else {
+                59999
+            };
+            self.io.write(0x404, interval);
         }
         self.prepared = true;
         Ok(ControllerFacts {

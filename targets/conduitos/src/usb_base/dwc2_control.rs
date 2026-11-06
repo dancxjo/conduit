@@ -7,7 +7,9 @@ use super::{
     },
     control_result::ControlTransferDisposition,
 };
-use crate::arch::dwc2::{Controller, PacketError, RegisterIo};
+use crate::arch::dwc2::{
+    Controller, EndpointRoute, PacketError, RegisterIo, TransactionTranslator,
+};
 use conduit_core::BaseCapabilityRefusal;
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 
@@ -18,6 +20,7 @@ pub(crate) struct RootControlRoute {
     pub generation: u64,
     pub address: u8,
     pub maximum_packet: u8,
+    pub translator: Option<TransactionTranslator>,
 }
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum Dwc2ControlRefusal {
@@ -47,7 +50,12 @@ impl<I: RegisterIo> Dwc2ControlHost<I> {
         route: RootControlRoute,
     ) -> Result<Self, Dwc2ControlRefusal> {
         let attachment = owner.native_attachment();
-        if !controller.is_prepared()
+        let endpoint = EndpointRoute {
+            translator: route.translator,
+            ..EndpointRoute::control(route.address, route.maximum_packet)
+        };
+        if !endpoint.valid()
+            || !controller.is_prepared()
             || !controller.is_quiescent()
             || attachment.slot != route.slot
             || attachment.generation != route.generation
@@ -101,9 +109,11 @@ impl<I: RegisterIo> Dwc2ControlHost<I> {
                 ))
             })?;
         let incoming = request.input();
-        let result = self.controller.root_control(
-            self.route.address,
-            self.route.maximum_packet,
+        let result = self.controller.control_on(
+            EndpointRoute {
+                translator: self.route.translator,
+                ..EndpointRoute::control(self.route.address, self.route.maximum_packet)
+            },
             *request.setup(),
             request.output(),
             &mut self.input,
