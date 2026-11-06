@@ -135,10 +135,41 @@ impl PreparedSourceChecker {
         startup: &mut StartupCatalog,
         profiles: &mut ProfileCatalog,
     ) -> Result<(), String> {
+        let schema = SourceCheckNativeSchema::prepare()
+            .map_err(|e| format!("Source-check schema: {e:?}"))?;
+        Self::install_kind_authoring(startup, profiles, &schema, self.kind.clone())
+    }
+    /// Register checked semantic declarations without preparing a compiler,
+    /// Source owner, provider, resource offer or authority grant. These finite
+    /// byte ceilings describe authoring eligibility; actual Host admission is
+    /// independent and may be smaller.
+    pub fn install_authoring_declaration(
+        startup: &mut StartupCatalog,
+        profiles: &mut ProfileCatalog,
+        request_bytes: u32,
+        report_bytes: u32,
+    ) -> Result<(), String> {
+        let schema = SourceCheckNativeSchema::prepare()
+            .map_err(|e| format!("Source-check schema: {e:?}"))?;
+        let kind = Self::kind_for_bounds(
+            &schema,
+            SourceCheckPreparationBounds {
+                request_bytes,
+                report_bytes,
+                retained_bytes: 0,
+            },
+        )?;
+        Self::install_kind_authoring(startup, profiles, &schema, kind)
+    }
+    fn install_kind_authoring(
+        startup: &mut StartupCatalog,
+        profiles: &mut ProfileCatalog,
+        schema: &SourceCheckNativeSchema,
+        kind: Kind,
+    ) -> Result<(), String> {
         let mut next = startup.clone();
         let mut kinds = profiles.clone();
-        SourceCheckNativeSchema::prepare()
-            .map_err(|e| format!("Source-check schema: {e:?}"))?
+        schema
             .install_types(&mut next)
             .map_err(|e| format!("Source-check Types: {e:?}"))?;
         next.insert(KindSignature {
@@ -146,11 +177,9 @@ impl PreparedSourceChecker {
             startup_parameters: vec![],
         })
         .map_err(|e| e.to_string())?;
-        next.insert_fore(SOURCE_CHECK_KIND, self.kind.checked_front())
+        next.insert_fore(SOURCE_CHECK_KIND, kind.checked_front())
             .map_err(|e| e.to_string())?;
-        kinds
-            .insert_kind(self.kind.clone())
-            .map_err(|e| e.to_string())?;
+        kinds.insert_kind(kind).map_err(|e| e.to_string())?;
         *startup = next;
         *profiles = kinds;
         Ok(())

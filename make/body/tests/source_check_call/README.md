@@ -56,3 +56,11 @@ Hosts without a Source-check provider. Ordinary owner selection of authorized
 Source, compiler initialization, typed request/result routing, and the complete
 Root preparation bound remain acceptance gates for #6447. Keep those gaps
 distinct from the managed Body execution receipt that already exists.
+
+The ordinary product Source catalogue now includes the checked request/reply
+Types and `language/source-check` declaration without requiring a prepared
+checker instance. `install_authoring_declaration` shares registration with the
+prepared checker and installs no provider, resource or grant. The product test
+in `plot_source/source_check_catalog.rs` checks and expands this Source through
+the ordinary loader, then verifies that placement on an unconfigured Host still
+refuses. This makes the operation authorable; it does not complete installation.

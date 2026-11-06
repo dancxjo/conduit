@@ -7723,3 +7723,36 @@ formatting and diff checks pass. Its first test attempt used the interface error
 instead of the composer's error and was corrected before the final run. The
 ConduitOS test build reports an existing unused native-mask re-export warning;
 this is not a warning-free whole-target qualification.
+
+### 6 November 2026 — Source checking becomes ordinarily authorable
+
+The ordinary product catalogue previously could not check or expand a Plot
+naming `language/source-check`; only test-specific catalogue setup supplied its
+checked Types and Fore. The product now registers those semantic declarations
+through `PreparedSourceChecker::install_authoring_declaration`, sharing the same
+atomic registration path as an initialized checker. It prepares one schema and
+uses the existing Kind construction, rather than introducing a second contract
+or materializing a compiler/provider to obtain authoring metadata. Product
+request/reply ceilings match the existing checked equipment profile's maxima
+(262,144 / 65,536 bytes); these are neither reservations nor authority grants.
+No MCU runtime or firmware metadata was changed by this registration.
+
+The new product test loads the existing authored Source through the ordinary
+Source loader, checks and expands its exact request/checker/reply connections,
+then proves that an unconfigured Std Host has no checker offer and cannot place
+the Plot. All 17 product Source-authoring regressions pass, including ordinary
+notebook, conversation, IPA, DSP and Source-local Type isolation. Formatting and
+diff checks pass. Logs: ignored
+`target/source-check-authoring-declaration-20261106`. This does not install the
+provider or route an owner action; authorized Source selection and installed
+bounded compiler/Body-Play routing remain the next #6447 integration gate.
+
+Stewardship: the product test rebuild reduced root headroom below 1.4 GiB.
+An inventory found no active executable, mapping or process-environment
+references to the separate ARM release cache. Cargo's package cleanup refused
+that relocated cache because it lacks CACHEDIR.TAG; the four explicitly
+inventoried inactive conduit-language .rlib/.rmeta outputs were then removed,
+reclaiming 905,099,837 bytes. The deletion inventory is retained at ignored
+`target/inactive-arm-language-cleanup-20261106.json`. Linked firmware, UF2/ELF
+qualification evidence, live releases, source and private state were preserved.
+Final headroom is approximately 1.5 GiB; further large builds require cleanup.

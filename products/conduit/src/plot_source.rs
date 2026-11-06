@@ -8,6 +8,8 @@ use std::path::Path;
 mod authoring;
 #[path = "plot_source/conversation_catalog.rs"]
 mod conversation_catalog;
+#[path = "plot_source/source_check_catalog.rs"]
+mod source_check_catalog;
 
 pub(crate) struct CanonicalSource {
     pub(crate) source: String,
@@ -258,6 +260,7 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_chat::install_messaging_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profiles)?;
     conduit_alife::install_lenia_catalogs(&mut startup, &mut profiles)?;
+    source_check_catalog::install(&mut startup, &mut profiles)?;
     Ok((startup, profiles))
 }
 
