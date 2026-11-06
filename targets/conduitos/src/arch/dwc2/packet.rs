@@ -87,6 +87,7 @@ impl<I: RegisterIo> Controller<I> {
         }
         // A previous unacknowledged hardware operation is never overwritten.
         if self.io.read(CHARACTER) & ENABLE != 0 {
+            self.quiescent = false;
             self.prepared = false;
             return Err(PacketError::Retirement);
         }
@@ -106,6 +107,7 @@ impl<I: RegisterIo> Controller<I> {
             | u32::from(packet.maximum_packet)
             | (u32::from(packet.input) << 15)
             | (u32::from(packet.address) << 22);
+        self.quiescent = false;
         self.io.write(CHARACTER, characteristic | ENABLE);
         if !packet.input {
             for chunk in bytes.chunks(4) {
@@ -133,6 +135,7 @@ impl<I: RegisterIo> Controller<I> {
                 return Err(PacketError::Retirement);
             }
         }
+        self.quiescent = true;
         if result.is_err() {
             // This sole channel owns both FIFOs; discard its queued residue.
             self.io.write(RESET, (1 << 5) | (0x10 << 6));

@@ -5,6 +5,7 @@ fn controller() -> Controller<Io> {
     Controller {
         io: Io::new(),
         prepared: true,
+        quiescent: true,
     }
 }
 fn completion(bytes: Option<&[u8]>) -> (u32, Vec<u32>, Vec<u32>) {

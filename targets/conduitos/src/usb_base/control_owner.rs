@@ -68,6 +68,11 @@ pub struct ControlCallOwner {
 }
 
 impl ControlCallOwner {
+    /// Non-authorizing structural check for an already selected native owner.
+    pub(crate) fn native_attachment(&self) -> ControlAttachment {
+        self.attachment
+    }
+
     /// Inspect the original lease; revoking its table is not retirement.
     pub(crate) fn has_pending_lease(&self) -> bool {
         self.pending.is_some()
