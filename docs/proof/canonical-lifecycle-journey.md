@@ -8078,3 +8078,35 @@ PR #6817's existing journey repair has merged after all Candidate lanes passed.
 PR #6819 is now review-ready; its quick lane passed and admission is still
 running, so no merge or complete acceptance is claimed. The earlier installed
 authorized Source-selection/action gap remains the next lifecycle focus.
+
+### 6 November 2026 — derive actual compiler equipment for fresh construction
+
+A production Source-check definition now derives its Base, exact offer, IMAGE
+artifact and unique result/memory pools from the checked Host IMAGE. Its caller
+must separately supply the current Host/Boot grant and provider identity; the
+helper validates those values but issues no authority and acquires no Source.
+The product initializer now takes those explicit inputs instead of a caller-
+assembled NativeSourceDefinition. Generic std Root construction stays separate.
+
+Six actual compiler/IMAGE cases pass, including valid/invalid canonical results,
+managed execution admission, failed initialization, preexisting stop, resource
+pressure and grant drift before Source capture. A strengthened rejection case
+uses a fully valid checked IMAGE with two distinct same-class pools, rather
+than an edited manifest that would merely fail its integrity guard. Foreign
+Host, Boot, capability, subject, call and authority grants refuse. Strict product
+library/process-test Clippy, formatting and diff checks pass. Evidence is under
+ignored target/source-image-definition-20261106.
+
+This removes fixture metadata assembly from the product construction path; it
+does not install an owner action or complete Root/caller workspace admission.
+Existing same-Boot IMAGE replacement/retirement guards remain in force. An
+installed Source action still needs explicit descriptor selection during fresh
+runtime construction, admitted request/result routing and independent planner
+grants. No live service, device, Body workset or Seed was replaced.
+
+Before further checks, maintenance verified no active compilers or mapped
+archives, retained the newest three language variants, and removed six older
+regenerable archive/metadata artifacts (1,369,108,094 bytes). Root headroom rose
+from 2.2 to 3.5 GiB. Inventory: target/source-definition-maintenance-20261106.json.
+PR #6819 remains at 5dcca882f6, quick green with admission confirmed running;
+no CI retry, restart, cancellation or merge was requested.

@@ -1,4 +1,6 @@
 //! Selected product compiler context, retained privately inside a bounded child.
+mod definition;
+pub use definition::{derive_image_definition, SourceCheckProviderIdentity};
 /// Actual product catalogue construction. Revision labels describe this selected
 /// artifact's context; they are never a catalogue lookup or an execution grant.
 pub fn standard_context() -> Result<conduit_plot::SourceCheckContext, String> {

@@ -35,36 +35,111 @@ fn image(checked: &CheckedHostConfiguration) -> HostImage {
     .unwrap()
     .0
 }
-fn definition(image: &HostImage, kind: Kind) -> (StdHostConfig, NativeSourceDefinition) {
-    let reference = StdHost::new();
-    let ad = reference.advertisement();
+fn definition(
+    checked: &CheckedHostConfiguration,
+    image: &HostImage,
+) -> (StdHostConfig, NativeSourceDefinition) {
     let config = StdHostConfig {
-        host_id: ad.host_id.clone(),
-        boot_id: ad.boot_id.clone(),
-        offer_generation: ad.offer_generation,
+        host_id: "fixture/authorized-compiler-host".into(),
+        boot_id: "fixture/actual-compiler-boot".into(),
+        offer_generation: OfferGeneration(1),
     };
-    let mut definition = support::definition_for(ad, kind, bounds(), 1048576);
-    let selected = image
-        .manifest
-        .base_selections
-        .iter()
-        .find(|b| b.kind == "language/source-compiler")
-        .unwrap();
-    definition.base.base_id = selected.id.as_str().into();
-    definition.base.mechanism_family = selected.kind.as_str().into();
-    definition.base.implementation_id = selected.driver.as_str().into();
-    definition.base.capabilities[0]
-        .implementation
-        .implementation_id = "std/bounded-source-check@1".into();
-    definition.base.resources[0].pool_id = "source/results".into();
-    definition.base.resources.push(ResourceOffer {
-        pool_id: "source/memory".into(),
-        class_id: RUNTIME_MEMORY_RESOURCE_CLASS.into(),
-        capacity_units: 570425344,
-        compute: None,
-        content: None,
-    });
+    let grant = AuthorityGrant {
+        grant_id: "fixture/independent-source-read-grant".into(),
+        contract_id: SOURCE_CHECK_AUTHORITY.into(),
+        host_call_contract_id: SOURCE_CHECK_CALL.into(),
+        subject_kind: SOURCE_CHECK_KIND.into(),
+        host_id: config.host_id.clone(),
+        boot_id: config.boot_id.clone(),
+        capability_id: conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION.into(),
+    };
+    let definition = conduit::source_check_worker::derive_image_definition(
+        &config,
+        image,
+        checked,
+        &conduit_workspace_make::catalog(),
+        &SourceCheckNativeSchema::prepare().unwrap(),
+        grant,
+        conduit::source_check_worker::SourceCheckProviderIdentity {
+            instance: "fixture/independently-initialized-compiler".into(),
+            generation: 1,
+            resource_generation: ResourceGenerationId("fixture/compiler-resources@1".into()),
+        },
+    )
+    .unwrap();
     (config, definition)
+}
+#[test]
+fn image_definition_rejects_foreign_grants_and_ambiguous_pools() {
+    let checked = configuration();
+    let image = image(&checked);
+    let schema = SourceCheckNativeSchema::prepare().unwrap();
+    let (config, definition) = definition(&checked, &image);
+    for mismatch in 0..6 {
+        let mut grant = definition.grant.clone();
+        match mismatch {
+            0 => grant.host_id = "other/host".into(),
+            1 => grant.boot_id = "other/boot".into(),
+            2 => grant.capability_id = "other/capability".into(),
+            3 => grant.subject_kind = "other/kind".into(),
+            4 => grant.host_call_contract_id = "other/call".into(),
+            _ => grant.contract_id = "other/authority".into(),
+        }
+        assert!(conduit::source_check_worker::derive_image_definition(
+            &config,
+            &image,
+            &checked,
+            &conduit_workspace_make::catalog(),
+            &schema,
+            grant,
+            conduit::source_check_worker::SourceCheckProviderIdentity {
+                instance: "fixture/current-provider".into(),
+                generation: 1,
+                resource_generation: ResourceGenerationId("fixture/current-resources".into()),
+            },
+        )
+        .is_err());
+    }
+    // Build a valid, checked IMAGE with two distinct pools of the same class.
+    // A broken manifest digest would only test the outer integrity guard.
+    let mut ambiguous = checked.configuration().clone();
+    let mut pool = ambiguous
+        .resources
+        .iter()
+        .find(|p| p.class == SOURCE_CHECK_RESOURCE)
+        .unwrap()
+        .clone();
+    pool.id.push_str("/second");
+    ambiguous.resources.push(pool);
+    let ambiguous_checked = check_host_configuration(
+        ambiguous,
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .unwrap();
+    let ambiguous_image = self::image(&ambiguous_checked);
+    verify_configuration_image(
+        &ambiguous_checked,
+        &ambiguous_image,
+        &conduit_workspace_make::catalog(),
+    )
+    .unwrap();
+    let error = conduit::source_check_worker::derive_image_definition(
+        &config,
+        &ambiguous_image,
+        &ambiguous_checked,
+        &conduit_workspace_make::catalog(),
+        &schema,
+        definition.grant,
+        conduit::source_check_worker::SourceCheckProviderIdentity {
+            instance: "fixture/current-provider".into(),
+            generation: 1,
+            resource_generation: ResourceGenerationId("fixture/current-resources".into()),
+        },
+    )
+    .err()
+    .expect("ambiguous valid pools must refuse selection");
+    assert!(error.contains("ambiguous"), "{error}");
 }
 fn budget() -> ImmediateSourcePreparationBudget {
     ImmediateSourcePreparationBudget {
@@ -76,10 +151,8 @@ fn budget() -> ImmediateSourcePreparationBudget {
 fn image_refuses_mismatched_equipment_and_memory_before_running_factory() {
     let checked = configuration();
     let image = image(&checked);
-    let schema = SourceCheckNativeSchema::prepare().unwrap();
-    let kind = PreparedSourceChecker::kind_for_bounds(&schema, bounds()).unwrap();
     for mismatch in [false, true] {
-        let (config, mut definition) = definition(&image, kind.clone());
+        let (config, mut definition) = definition(&checked, &image);
         let mut budget = budget();
         if mismatch {
             definition.base.base_id = "not-in-image".into();
@@ -121,7 +194,7 @@ fn run_image_case(source: &str) {
     let image = image(&checked);
     let schema = SourceCheckNativeSchema::prepare().unwrap();
     let kind = PreparedSourceChecker::kind_for_bounds(&schema, bounds()).unwrap();
-    let (config, definition) = definition(&image, kind.clone());
+    let (config, definition) = definition(&checked, &image);
     let grant = definition.grant.clone();
     let provider = definition.base.provider_instance_id.clone();
     let (input, mut owner) = input(source);
@@ -159,7 +232,12 @@ fn run_image_case(source: &str) {
                 image: &image,
                 checked: &checked,
                 catalog: &catalog,
-                definition,
+                grant: definition.grant,
+                provider: conduit::source_check_worker::SourceCheckProviderIdentity {
+                    instance: definition.base.provider_instance_id,
+                    generation: definition.base.provider_generation,
+                    resource_generation: definition.resource_generation,
+                },
                 schema: &schema,
                 file: source_file(source),
                 maximum_source_bytes: bounds().request_bytes as usize,
@@ -338,9 +416,7 @@ fn run_image_case(source: &str) {
 fn failed_initializer_returns_no_image_host_or_ready_provider() {
     let checked = configuration();
     let image = image(&checked);
-    let schema = SourceCheckNativeSchema::prepare().unwrap();
-    let kind = PreparedSourceChecker::kind_for_bounds(&schema, bounds()).unwrap();
-    let (config, definition) = definition(&image, kind);
+    let (config, definition) = definition(&checked, &image);
     let ran = Rc::new(Cell::new(false));
     let invoked = ran.clone();
     // SAFETY: This bounded refusal has no live effect or retained native owner.
@@ -377,9 +453,7 @@ fn image_heap_includes_the_actual_retained_charge_owner_before_effects() {
     )
     .unwrap();
     let image = image(&checked);
-    let schema = SourceCheckNativeSchema::prepare().unwrap();
-    let kind = PreparedSourceChecker::kind_for_bounds(&schema, bounds()).unwrap();
-    let (config, definition) = definition(&image, kind);
+    let (config, definition) = definition(&checked, &image);
     let ran = Rc::new(Cell::new(false));
     let invoked = ran.clone();
     // SAFETY: IMAGE has no room for the actual charge owner; no effect may run.
@@ -439,14 +513,13 @@ fn source_file(source: &str) -> std::fs::File {
 }
 
 #[test]
-fn product_installation_refuses_envelope_drift_and_stop_before_source_capture() {
+fn product_installation_refuses_grant_drift_and_stop_before_source_capture() {
     use std::io::Seek;
     for stopped in [false, true] {
         let checked = configuration();
         let image = image(&checked);
         let schema = SourceCheckNativeSchema::prepare().unwrap();
-        let kind = PreparedSourceChecker::kind_for_bounds(&schema, bounds()).unwrap();
-        let (config, mut definition) = definition(&image, kind);
+        let (config, mut definition) = definition(&checked, &image);
         let source = include_str!("../../../../plots/hello/main.conduit");
         let (input, _) = input(source);
         let file = source_file(source);
@@ -458,7 +531,7 @@ fn product_installation_refuses_envelope_drift_and_stop_before_source_capture() 
                 .request_stop(RunControlRequestId::new("before-source-capture").unwrap())
                 .unwrap();
         } else {
-            definition.output_bytes += 1;
+            definition.grant.boot_id = "other/boot".into();
         }
         let catalog = conduit_workspace_make::catalog();
         // SAFETY: Independent fixture File/scope/grant; refusal must precede
@@ -470,7 +543,12 @@ fn product_installation_refuses_envelope_drift_and_stop_before_source_capture() 
                     image: &image,
                     checked: &checked,
                     catalog: &catalog,
-                    definition,
+                    grant: definition.grant,
+                    provider: conduit::source_check_worker::SourceCheckProviderIdentity {
+                        instance: definition.base.provider_instance_id,
+                        generation: definition.base.provider_generation,
+                        resource_generation: definition.resource_generation,
+                    },
                     schema: &schema,
                     file,
                     maximum_source_bytes: bounds().request_bytes as usize,
@@ -488,7 +566,7 @@ fn product_installation_refuses_envelope_drift_and_stop_before_source_capture() 
         assert!(error.contains(if stopped {
             "preparation cancelled"
         } else {
-            "checked compiler envelopes"
+            "independent current provider and grant"
         }));
         assert_eq!(probe.stream_position().unwrap(), 0);
     }

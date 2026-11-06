@@ -1,11 +1,13 @@
 //! Selected compiler installation, with Source acquisition inside funded preparation.
+use super::{derive_image_definition, SourceCheckProviderIdentity};
+use conduit_core::AuthorityGrant;
 use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
 use conduit_plot::{CheckContextRevision, SourceCheckNativeSchema, SourceCheckRequest};
 use conduit_std_host::{
     source_check::{
         process::OwnedSourceCheckInput, PreparedSourceChecker, SourceCheckPreparationBounds,
     },
-    ImmediateSourcePreparationBudget, NativeSourceDefinition, RunControl, StdHost, StdHostConfig,
+    ImmediateSourcePreparationBudget, RunControl, StdHost, StdHostConfig,
 };
 use std::fs::File;
 
@@ -17,7 +19,8 @@ pub struct SourceCheckImageInstallation<'a> {
     pub image: &'a HostImage,
     pub checked: &'a CheckedHostConfiguration,
     pub catalog: &'a MakeCatalog,
-    pub definition: NativeSourceDefinition,
+    pub grant: AuthorityGrant,
+    pub provider: SourceCheckProviderIdentity,
     pub schema: &'a SourceCheckNativeSchema,
     pub file: File,
     pub maximum_source_bytes: usize,
@@ -44,7 +47,7 @@ pub struct InitializedSourceCheckImage {
 ///
 /// # Safety
 /// Root must independently own the readable File and authorize the exact Source
-/// scope and Host grant. Its schema, configuration, definition and caller
+/// scope and Host grant. Its schema, configuration and caller
 /// workspace need independent custody. The checked preparation ceiling must
 /// cover complete parent/child preparation, and retirement must satisfy the
 /// existing immediate-provider contract. Names and IMAGE intent grant nothing.
@@ -68,14 +71,15 @@ pub unsafe fn initialize_image(
             .try_into()
             .map_err(|_| "retained bound overflow")?,
     };
-    let kind = PreparedSourceChecker::kind_for_bounds(request.schema, bounds)?;
-    if request.definition.kind != kind
-        || request.definition.input_bytes != bounds.request_bytes
-        || request.definition.output_bytes != bounds.report_bytes
-        || request.definition.resource_bytes != selected.retained_bytes
-    {
-        return Err("Source-check definition differs from checked compiler envelopes".into());
-    }
+    let definition = derive_image_definition(
+        &request.config,
+        request.image,
+        request.checked,
+        request.catalog,
+        request.schema,
+        request.grant,
+        request.provider,
+    )?;
     let budget = ImmediateSourcePreparationBudget {
         preparation_bytes: selected
             .preparation_bytes
@@ -95,7 +99,7 @@ pub unsafe fn initialize_image(
             request.image,
             request.catalog,
             request.checked,
-            request.definition,
+            definition,
             budget,
             || {
                 if request.control.stop_requested() {
