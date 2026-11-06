@@ -78,6 +78,12 @@ impl OwnedSourceCheckInput {
     pub fn into_request(self) -> SourceCheckRequest {
         self.input.request
     }
+    /// Transfer the exact captured bytes into independently funded Root checking
+    /// without reopening the file or cloning its Source. The descriptive request
+    /// remains paired with that capture; neither value authorizes adoption.
+    pub fn into_source_and_request(self) -> (String, SourceCheckRequest) {
+        (self.input.source, self.input.request)
+    }
     pub fn source(&self) -> &str {
         &self.input.source
     }

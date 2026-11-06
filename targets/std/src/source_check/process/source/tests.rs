@@ -103,3 +103,27 @@ fn nonregular_oversized_and_non_utf8_sources_refuse_distinctly() {
         Err(SourceFileRefusal::Utf8)
     ));
 }
+
+#[test]
+fn root_handoff_moves_exact_capture_without_allocating_or_reopening() {
+    let captured = OwnedSourceCheckInput::from_file(
+        selected(b"plot candidate {}"),
+        4096,
+        "owner",
+        1,
+        "candidate",
+        context(),
+    )
+    .unwrap();
+    let pointer = captured.source().as_ptr();
+    let expected = captured.request().clone();
+    let probe = crate::allocation_probe::begin();
+    let (source, request) = captured.into_source_and_request();
+    assert_eq!(probe.finish(), 0);
+    assert_eq!(source.as_ptr(), pointer);
+    assert_eq!(request, expected);
+    assert_eq!(
+        request.snapshot.source_document_id,
+        canonical_source_document_id(&source).0
+    );
+}
