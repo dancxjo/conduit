@@ -173,3 +173,105 @@ pub fn prepared_decode_text(
     output.push_str(text);
     Ok(())
 }
+
+/// Actual-work gate for a generated variable-length materializer. The schema
+/// ceiling and the owner's work budget are distinct: a smaller actual value can
+/// finish below the ceiling, while exhaustion retains the same private staging.
+/// Like the fixed gate, this helper cannot construct or publish a Native value.
+pub struct PreparedDynamicDecodeGate<'d> {
+    gate: PreparedDecodeGate<'d>,
+    budget: usize,
+    complete: bool,
+    pending: bool,
+}
+impl<'d> PreparedDynamicDecodeGate<'d> {
+    pub fn new(
+        native: &'d CheckedNativeType,
+        maximum_steps: usize,
+        bounds: PreparedDecodeBounds,
+    ) -> Result<Self, PreparedDecodeRefusal> {
+        if maximum_steps == 0
+            || maximum_steps > 4096
+            || bounds.leaf_steps == 0
+            || bounds.leaf_steps > 4096
+        {
+            return Err(PreparedDecodeRefusal::Preparation);
+        }
+        // The inner fixed gate supplies witness/canonical custody and the
+        // immutable schema ceiling. This wrapper enforces the original budget
+        // before every actual step; this does not increase an owner's grant.
+        let gate = PreparedDecodeGate::new(
+            native,
+            maximum_steps,
+            PreparedDecodeBounds {
+                leaf_steps: maximum_steps,
+                ..bounds
+            },
+        )?;
+        Ok(Self {
+            gate,
+            budget: bounds.leaf_steps,
+            complete: false,
+            pending: false,
+        })
+    }
+    pub fn step_value<'a>(
+        &mut self,
+        witness: &'a AdmittedNativeCanonical<'_>,
+    ) -> Result<ValidatedCanonicalStructuredValue<'a>, PreparedDecodeRefusal> {
+        self.gate.correlate(witness)?;
+        if self.complete || self.pending {
+            return Err(PreparedDecodeRefusal::State);
+        }
+        if self.gate.next >= self.budget || self.gate.next >= self.gate.total {
+            return Err(self.gate.fail(PreparedDecodeRefusal::Pressure));
+        }
+        let value = validate_canonical_structured_value(witness.canonical_bytes())
+            .map_err(|_| self.gate.fail(PreparedDecodeRefusal::Canonical))?;
+        self.pending = true;
+        Ok(value)
+    }
+    pub fn advance(
+        &mut self,
+        complete: bool,
+    ) -> Result<PreparedDecodeProgress, PreparedDecodeRefusal> {
+        if let Some(reason) = self.gate.failed {
+            return Err(reason);
+        }
+        if !self.pending || self.complete {
+            return Err(PreparedDecodeRefusal::State);
+        }
+        self.pending = false;
+        self.gate.next += 1;
+        self.complete = complete;
+        Ok(if complete {
+            PreparedDecodeProgress::Complete
+        } else {
+            PreparedDecodeProgress::Pending
+        })
+    }
+    pub fn finish(
+        &mut self,
+        witness: &AdmittedNativeCanonical<'_>,
+    ) -> Result<(), PreparedDecodeRefusal> {
+        self.gate.correlate(witness)?;
+        if !self.complete || self.pending {
+            return Err(PreparedDecodeRefusal::State);
+        }
+        Ok(())
+    }
+    pub fn fail(&mut self, reason: PreparedDecodeRefusal) -> PreparedDecodeRefusal {
+        self.pending = false;
+        self.gate.fail(reason)
+    }
+    pub fn cancel(&mut self) {
+        self.pending = false;
+        self.gate.cancel();
+    }
+    pub fn consumed_steps(&self) -> usize {
+        self.gate.next
+    }
+    pub fn canonical_capacity(&self) -> usize {
+        self.gate.canonical_capacity()
+    }
+}
