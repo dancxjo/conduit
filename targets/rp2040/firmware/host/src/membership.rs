@@ -1,6 +1,8 @@
 //! Actual current-Boot receipt installation. This does not create a Plan or Play.
 #[path = "membership_execution.rs"]
 mod execution;
+#[path = "membership_mixed.rs"]
+mod mixed;
 #[path = "membership_preparation.rs"]
 mod preparation;
 #[path = "membership_return.rs"]
@@ -88,7 +90,6 @@ struct MembershipState {
     freshness: u64,
     native_offer: Option<&'static [u8]>,
     // Boot-scoped issuance attempt custody outlives every carrier and Play.
-    #[allow(dead_code)] // mixed receiver selection is the next integration step
     native_issuer: crate::i2c_issuance::Issuer,
     receipt: Option<conduit_body::MembershipCredential>,
 }

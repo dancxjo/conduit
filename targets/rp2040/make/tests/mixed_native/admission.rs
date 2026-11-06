@@ -117,6 +117,47 @@ pub fn run(
     let mut library = crate::resident::generated::Initialized::prepare().unwrap();
     let original = library.offers().map(|o| o.unwrap().as_ptr());
     let issued = core::cell::Cell::new(0);
+    let (route, route_cost) = crate::probe::observe(|| {
+        crate::execution_selection::select::<4096, 1>(
+            &retained,
+            receiver.context(),
+            Some(&preparation),
+            Some(&execution),
+        )
+    });
+    assert_eq!(
+        route.unwrap(),
+        crate::execution_selection::Profile::MixedI2c
+    );
+    assert_eq!((route_cost.allocations, route_cost.reallocations), (0, 0));
+    let (route, route_cost) = crate::probe::observe(|| {
+        crate::execution_selection::select::<4096, 1>(
+            &retained,
+            receiver.context(),
+            Some(&preparation),
+            None,
+        )
+    });
+    assert!(matches!(
+        route,
+        Err(crate::execution_selection::Refusal::Execution(_))
+    ));
+    assert_eq!((route_cost.allocations, route_cost.reallocations), (0, 0));
+    let mut late = receiver.context();
+    late.now_millis = 20;
+    let (route, cost) = crate::probe::observe(|| {
+        crate::execution_selection::select::<4096, 1>(
+            &retained,
+            late,
+            Some(&preparation),
+            Some(&execution),
+        )
+    });
+    assert!(matches!(
+        route,
+        Err(crate::execution_selection::Refusal::Retention(_))
+    ));
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
     let issuer_checked = core::cell::Cell::new(false);
     let issuer = core::cell::RefCell::new(crate::i2c_issuance::Issuer::new());
     let issue = |approved: &b::DelegatedBodyFragment<'_>, native: &ReadyI2cBase<Provider<'_>>| {

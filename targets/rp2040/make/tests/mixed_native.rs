@@ -50,6 +50,7 @@ pub use supervisor_platform::{{Instant,Duration,Timer}};
 mod bootsel{{pub const CONTROL_FRAME_BYTES:usize=128;}}
 mod transport{{pub const LIMIT:usize=4096;pub type Link=crate::supervisor_platform::Link;}}
 #[allow(dead_code)]#[path={supervisor:?}]mod execution_supervisor;
+#[allow(dead_code)]#[path={selection:?}]mod execution_selection;
 #[allow(dead_code)]#[path={mixed_supervisor:?}]mod mixed_supervision;
 #[allow(dead_code)]#[path={release:?}]mod retired_resources;
 mod resident{{{resident}}}
@@ -65,6 +66,7 @@ pub const I2C_CONTROLLER:u8=1;pub const I2C_CALL_ADDRESS_RANGE:Option<(u8,u8)>=S
         resident_preparation = root.join("../firmware/host/src/resident_preparation.rs"),
         resident_supervisor = root.join("../firmware/host/src/resident_supervision.rs"),
         platform = root.join("tests/mixed_native/supervisor_platform.rs"),
+        selection = root.join("../firmware/host/src/execution_selection.rs"),
         supervisor = root.join("../firmware/host/src/execution_supervisor.rs"),
         mixed_supervisor = root.join("../firmware/host/src/mixed_supervision.rs"),
         release = root.join("../firmware/host/src/retired_resources.rs"),

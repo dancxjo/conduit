@@ -14,8 +14,29 @@ impl MembershipState {
         policy: &conduit_body::HostExecutionDelegation,
     ) -> Result<(), ()> {
         let member = self.receipt.as_ref().ok_or(())?;
-        if !self.resources.admissions().is_empty() {
+        if !self.resources.admissions().is_empty() || !self.resources.assignments().is_empty() {
             return Err(());
+        }
+        let context = conduit_body::NativePreparationContext {
+            bootstrap: &self.seed,
+            member,
+            actual: self.resources.host(),
+            image_id: crate::config::IMAGE_ID,
+            configuration_id: crate::config::CONFIGURATION_ID,
+            now_millis: Instant::now().as_millis(),
+        };
+        let profile = crate::execution_selection::select::<
+            LIMIT,
+            { crate::resident::generated::ENTRY_COUNT },
+        >(
+            workspace,
+            context,
+            crate::config::PREPARATION_DELEGATION.as_ref(),
+            Some(policy),
+        )
+        .map_err(|_| ())?;
+        if profile == crate::execution_selection::Profile::MixedI2c {
+            return self.run_mixed(link, workspace, policy).await;
         }
         let mut inventory = resident::inventory().map_err(|_| ())?;
         let stored = resident::prepare_retained_execution_storage(

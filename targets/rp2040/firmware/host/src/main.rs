@@ -17,17 +17,18 @@ mod environment;
 mod environment_http;
 mod environment_show;
 mod execution_supervisor;
+mod execution_selection;
 mod heap;
 mod i2c_installation;
-#[allow(dead_code)] // Qualified local issuance; receiver installation remains separate.
+#[allow(dead_code)] // Supporting native issuance inspection remains independent of execution.
 mod i2c_issuance;
 mod i2c_owner;
 mod membership;
-#[allow(dead_code)] // Qualified composition; wire/native workset admission remains separate.
+#[allow(dead_code)] // Additional bounded composition APIs remain available for qualification.
 mod mixed_preparation;
-#[allow(dead_code)] // Complete mixed admission is qualified before receiver installation.
+#[allow(dead_code)] // Preparation inspection is separate from execution.
 mod mixed_workset;
-#[allow(dead_code)] // Qualified profile; receiver selection remains separate.
+#[allow(dead_code)] // Typed ownership handoff remains available to Root callers.
 mod mixed_supervision;
 mod native_preparation;
 mod native_publication;

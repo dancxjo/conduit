@@ -61,6 +61,13 @@ pub const RESIDENT_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima=conduit_c
  encoded_bytes:{encoded},runtime_state_bytes:{runtime},
  counts:[{nodes},{ports},{nodes},{queues},{nodes},{queues},0,{nodes},{signs},{ports},{nodes},{nodes},0],
 }};
+// The installed mixed profile needs one Host Call, bounded by Source's
+// operation slots and explicit native operation policy. All other ceilings stay.
+pub const MIXED_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima={{
+ let mut limits=RESIDENT_PREPARATION_MAXIMA;
+ limits.counts[6]={mixed_calls};
+ limits
+}};
 pub const ROLE:&str="conduit.rp2040-host@1";
 pub const I2C_CONTROLLER:u8={c};
 pub const I2C_CALL_ADDRESS_RANGE:Option<(u8,u8)>={call_address_range:?};
@@ -79,6 +86,11 @@ embassy_rp::bind_interrupts!(pub struct SensorIrqs {{ I2C{c}_IRQ => embassy_rp::
 macro_rules! start_local_io {{($spawner:expr,$p:ident)=>{{$spawner.spawn(crate::environment::run($p.I2C{c},$p.PIN_{scl},$p.PIN_{sda}).unwrap());}}}}
 pub(crate) use start_local_io;
 "#,
+        mixed_calls = if selected.bus.maximum_call_operations == 0 {
+            0
+        } else {
+            checked.configuration().limits.operation_slots.min(1)
+        },
         call_address_range = selected.bus.call_address_range,
         call_maximum_operations = selected.bus.maximum_call_operations,
         image_id = image_id,
