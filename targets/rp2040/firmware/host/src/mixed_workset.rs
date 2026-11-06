@@ -20,6 +20,9 @@ use conduit_plan_lowering::{
     },
 };
 pub use execution::{MixedStep, RetiredMixedWorkset, StartedMixedWorkset};
+#[path = "mixed_resources.rs"]
+mod resources;
+pub use resources::OwnedObservations;
 
 /// Installed Root facts and remaining preparation capacity, never carrier fields.
 #[derive(Clone, Copy)]

@@ -4,6 +4,8 @@ use crate::mixed_workset::{self, Policy};
 use conduit_body as b;
 #[path = "issuance.rs"]
 mod issuance;
+#[path = "observations.rs"]
+mod observations;
 #[path = "receiver.rs"]
 mod receiver;
 #[path = "start.rs"]
@@ -360,14 +362,36 @@ pub fn run(
     assert_eq!(owner, before);
     assert!(slot.is_some());
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    let observed_budget = {
+        let prepared = prepare!(policy, receiver.context()).unwrap();
+        observations::check(&prepared, &owner, 1000)
+    };
+    assert!(matches!(
+        prepare!(
+            Policy {
+                maximum_storage_bytes: observed_budget - 1,
+                ..policy
+            },
+            receiver.context()
+        )
+        .unwrap()
+        .admit_observed(&mut owner, 1000, 1),
+        Err(mixed_workset::Refusal::Bounds)
+    ));
+    assert_eq!(owner, before);
+    assert!(slot.is_some());
+    assert_eq!(effects.get(), 0);
+    assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
     let prepared = prepare!(policy, receiver.context()).unwrap();
-    let (committed, cost) =
-        crate::probe::observe(|| prepared.admit_and_bind(&mut owner, &observations));
+    let observed_total = observations::check(&prepared, &owner, 1000);
+    assert!(observed_total <= policy.maximum_storage_bytes);
+    assert_eq!(owner, before);
+    let (committed, cost) = crate::probe::observe(|| prepared.admit_observed(&mut owner, 1000, 1));
     let committed = committed.unwrap();
     assert_eq!(owner.admissions().len(), 2);
     assert_eq!(effects.get(), 0);
     assert!(slot.is_none());
-    assert!(cost.peak_bytes + kernel_bytes <= total);
+    assert!(cost.peak_bytes + kernel_bytes <= observed_total);
     assert!(owner
         .admissions()
         .iter()
@@ -485,5 +509,5 @@ pub fn run(
     // carrier/kernel. Release remains Root's separate terminal/provider decision.
     assert_eq!(owner.admissions().len(), 2);
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
-    println!("complete signed mixed workset: {} bytes; {kernel_bytes} kernel/native backing plus Core bridge within {total} requested-byte bound; missing/low evidence and one-byte shortage preserve both owners; original Body Plan/Play reservations survive typed CPU execution and kernel retirement; no physical Start",document.bytes().len());
+    println!("complete signed mixed workset: {} bytes; {kernel_bytes} kernel/native backing plus Core bridge base {total}, with owned observations within {observed_total} requested-byte bound; missing/low evidence and one-byte shortage preserve both owners; original Body Plan/Play reservations survive typed CPU execution and kernel retirement; no physical Start",document.bytes().len());
 }
