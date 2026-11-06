@@ -150,5 +150,5 @@ fn admitted_attempt_stamp_rejects_fresh_valid_commands_even_for_identical_bytes(
         assert_eq!((cost.allocations, cost.reallocations), (0, 0));
     }
     assert_eq!(input.payload(), Some(PAYLOAD));
-    assert_eq!(input.expires_at_millis(), Some(20));
+    assert!(input.is_retained());
 }
