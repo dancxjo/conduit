@@ -52,14 +52,14 @@ fn native_panel_face_writes_the_entire_canvas_without_touching_stride_padding() 
             "native 1024x600, stride {stride}: right-third non-background pixels={right_ink}"
         );
         // Optional internal diagnostic artifact; not a product configuration.
-        if padding == 0 {
-            if let Some(path) = std::env::var_os("CONDUITOS_TEST_FRAME_SNAPSHOT") {
-                let mut bytes = alloc::format!("P6\n{WIDTH} {HEIGHT}\n255\n").into_bytes();
-                for pixel in &pixels {
-                    bytes.extend_from_slice(&pixel.to_le_bytes()[..3]);
-                }
-                std::fs::write(path, bytes).unwrap();
+        if padding == 0
+            && let Some(path) = std::env::var_os("CONDUITOS_TEST_FRAME_SNAPSHOT")
+        {
+            let mut bytes = alloc::format!("P6\n{WIDTH} {HEIGHT}\n255\n").into_bytes();
+            for pixel in &pixels {
+                bytes.extend_from_slice(&pixel.to_le_bytes()[..3]);
             }
+            std::fs::write(path, bytes).unwrap();
         }
     }
 }
