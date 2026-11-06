@@ -47,6 +47,20 @@ impl Owner {
             .map(|play| &play.active_play_id)
     }
 
+    /// Plan the complete retained workset for the owner's existing finite
+    /// receipt adapter. Output budgets confer no input or Host Call authority.
+    pub(crate) fn plan_retained(&mut self, root: &Path) -> Result<(), String> {
+        self.ensure_execution_retained(root)?;
+        let sources = super::super::retained_source::workset(root)?
+            .ok_or("retained Source workset is unavailable for Body Plan")?;
+        let boundaries = fore::boundaries(&sources)?;
+        let borrowed: Vec<_> = sources
+            .iter()
+            .map(|source| (&source.source, &source.plot))
+            .collect();
+        self.plan_workset_with_source_boundaries(&borrowed, &boundaries)
+    }
+
     /// Foreground Run consumes its already proposed exact Plan, using the same
     /// admitted execution and durable Start acknowledgment as the service.
     pub(crate) fn execute_prepared(

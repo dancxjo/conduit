@@ -8225,3 +8225,39 @@ production and test executables. Final root headroom is about 1.3 GiB; tmpfs
 headroom is about 7.8 GiB, with its separate per-user quota still applicable.
 Inventories and archive SHA256 identities are retained; no device, live service,
 credential, journal or authored Source was changed.
+
+
+### 6 November 2026 — foreground planning selects the retained finite adapter
+
+The foreground Plan request previously used a caller-held single Source without
+the receipt Fore budget used by Run. It now independently reloads/rechecks the
+complete retained workset and plans it with the same finite receipt adapter
+used by continuing execution. No request ingress, larger queue, Host Call
+grant or Ready offer is inferred. Source changes before Plan refuse without a
+proposal; changes after Plan still refuse before Run starts.
+
+After the initial Body/Source state is retained, foreground startup now drops
+its expanded Plot, parsed Source/catalog and byte capture before entering the
+request loop. They previously survived while Plan/Run prepared another checked
+copy. This establishes actual preparation retirement in the production caller;
+it is not a measured peak saving or complete Root-workspace admission.
+
+The three focused continuing tests pass, including four service/foreground
+IMAGE admission/refusal cases and Source changes before both Plan and Run.
+Strict product binary/test Clippy, formatting and diff checks pass. No new
+installed executable smoke or deployed Source-check action is claimed. Evidence
+is under ignored target/owner-retained-plan-20261106.
+
+The review lane remains #6822 at 873e4eb428 (quick green, admission last confirmed
+running), with #6823 at 7b3a942bee held draft behind it. This local caller fix
+does not create a third overlapping review lane. Source-check authority still
+needs an independently owned selection scoped to the intended operation; the
+ordinary planner remains deny-by-default.
+
+Maintenance checked the inactive ARM cache against live process mappings and
+open descriptors, then removed 1,234,522,135 unique-inode bytes of regenerable
+archives/metadata. ELF/UF2 artifacts, generated Source, credentials and evidence
+were retained. Root headroom returned to approximately 1.7 GiB before the final
+check. Inventory: target/owner-prepared-run-20261106/inactive-arm-archive-cleanup.json.
+
+A fresh read-only Green status reports 2122 successful samples / 2122 attempts and 31827 ACKs / 31827 frames, with sensor_error=False and display_error=False. Build remains 46fb0bbc789d286fc865d4af894f9fa29318c8828b4092108d77ec1d7258d5e2. The reported 4,924-byte diagnostic heap peak and Body membership flag do not prove an admitted sensing/display Play or native preparation fit. No firmware or live service was changed.

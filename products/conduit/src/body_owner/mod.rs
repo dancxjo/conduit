@@ -228,6 +228,11 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                 .map(str::to_owned);
         super::write_json_atomic(&root.join("runtime.json"), &status)?;
         super::write_bytes_atomic(&root.join("body/source.conduit"), &source_bytes)?;
+        // Subsequent Plan/Run requests independently recheck retained Source.
+        // Retire this startup parse/catalog before another preparation begins.
+        drop(checked);
+        drop(canonical_source);
+        drop(source_bytes);
         emit(&owner.truth())?;
         let stdin = std::io::stdin();
         let mut input = stdin.lock();
@@ -295,7 +300,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                             let receipt = owner.admit_invited(&root, request, &expected_host_id)?;
                             emit(&serde_json::to_value(receipt).map_err(|e| e.to_string())?)?;
                         }
-                        Request::Plan => owner.plan_with_source(&canonical_source, &checked)?,
+                        Request::Plan => owner.plan_retained(&root)?,
                         Request::Run { maximum_millis } => {
                             owner.persist(&root)?;
                             state::require_execution_capacity(&root)?;

@@ -81,19 +81,15 @@ fn ordinary_owner_worker_uses_image_receipt_or_refuses_before_start() {
         owner.persist(&root).unwrap();
         std::fs::write(root.join("body/source.conduit"), SOURCE).unwrap();
         let expected_plan = if prepared {
-            let sources = super::super::super::retained_source::workset(&root)
-                .unwrap()
-                .unwrap();
-            let boundaries = super::fore::boundaries(&sources).unwrap();
-            let borrowed: Vec<_> = sources
-                .iter()
-                .map(|source| (&source.source, &source.plot))
-                .collect();
-            owner
-                .plan_workset_with_source_boundaries(&borrowed, &boundaries)
-                .unwrap();
-            drop(borrowed);
-            drop(sources);
+            std::fs::write(
+                root.join("body/source.conduit"),
+                SOURCE.replace("count = 1", "count = 2"),
+            )
+            .unwrap();
+            assert!(owner.plan_retained(&root).is_err());
+            assert!(owner.session.realization().is_none());
+            std::fs::write(root.join("body/source.conduit"), SOURCE).unwrap();
+            owner.plan_retained(&root).unwrap();
             let plan = owner.session.realization().unwrap().plan.plan_id.clone();
             std::fs::write(
                 root.join("body/source.conduit"),
