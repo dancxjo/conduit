@@ -60,6 +60,7 @@ pub(super) fn run(
     let input = request(contract, 0x76, &[0xd0], 1);
     let mut encoder = crate::result::PreparedI2cResultEncoder::new(contract).unwrap();
     let expected = encoder.completed(1, &[1]).unwrap().to_vec();
+    let expected_second = encoder.completed(1, &[2]).unwrap().to_vec();
     let incoming = selected
         .fore
         .iter()
@@ -99,6 +100,24 @@ pub(super) fn run(
             .unwrap()
             .unwrap();
         assert_eq!(bound.kernel.host_value(offer.value).unwrap(), expected);
+        // Keep the first result retained while a second request arrives.
+        bound
+            .kernel
+            .admit_remote_input(
+                RemoteEndpointId(incoming.endpoint()),
+                CordId(incoming.cord()),
+                1,
+                &input,
+            )
+            .unwrap();
+        bound.kernel.step().unwrap();
+        for _ in 0..3 {
+            assert_eq!(
+                bound.dispatch_one().unwrap(),
+                root_native_preparation::NativeDispatch::Pressure
+            );
+            assert_eq!(bound.call.provider.effects, 1);
+        }
         bound
             .kernel
             .remote_egress_accept(
@@ -115,14 +134,48 @@ pub(super) fn run(
                 offer.sequence,
             )
             .unwrap();
-        // A malformed second input is a typed failed completion, not a stuck
+        assert_eq!(
+            bound.dispatch_one().unwrap(),
+            root_native_preparation::NativeDispatch::Completed
+        );
+        assert_eq!(bound.call.provider.effects, 2);
+        bound.kernel.step().unwrap();
+        let second = bound
+            .kernel
+            .remote_egress_offer(
+                RemoteEndpointId(outgoing.endpoint()),
+                CordId(outgoing.cord()),
+            )
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            bound.kernel.host_value(second.value).unwrap(),
+            expected_second
+        );
+        bound
+            .kernel
+            .remote_egress_accept(
+                RemoteEndpointId(outgoing.endpoint()),
+                CordId(outgoing.cord()),
+                second.sequence,
+            )
+            .unwrap();
+        bound
+            .kernel
+            .remote_egress_delivered(
+                RemoteEndpointId(outgoing.endpoint()),
+                CordId(outgoing.cord()),
+                second.sequence,
+            )
+            .unwrap();
+        // A malformed third input is a typed failed completion, not a stuck
         // dispatched request or an opportunity to repeat the physical effect.
         bound
             .kernel
             .admit_remote_input(
                 RemoteEndpointId(incoming.endpoint()),
                 CordId(incoming.cord()),
-                1,
+                2,
                 b"invalid",
             )
             .unwrap();
@@ -150,7 +203,7 @@ pub(super) fn run(
             .events()
             .any(|e| e.kind == KernelEventKind::RunCancelled));
         assert_eq!(retired.values.used_items(), 0);
-        assert_eq!(bound.call.provider.effects, 1);
+        assert_eq!(bound.call.provider.effects, 2);
     });
     assert_eq!((execution.allocations, execution.reallocations), (0, 0));
     std::println!("actual Root native kernel: {charge} retained backing/kernel bytes; budget/cancellation preserve ready owner, typed Fore/Host Call/egress and terminal retirement, zero binding/execution allocation; CPU-only, no whole-workset admission or device Start claim");

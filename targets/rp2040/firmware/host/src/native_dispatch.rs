@@ -11,6 +11,7 @@ pub enum NativeDispatchRefusal {
 #[derive(Debug, PartialEq, Eq)]
 pub enum NativeDispatch {
     Idle,
+    Pressure,
     Completed,
     Refused(NativeDispatchRefusal),
 }
@@ -18,12 +19,30 @@ pub enum NativeDispatch {
 impl<P: I2cProvider> BoundNativeKernel<P> {
     /// Root calls this only after independently authorizing Start. It services
     /// at most one already pending request and never advances the scheduler.
-    /// Every adapter refusal becomes an exact failed completion, so polling
+    /// Once dispatched, adapter refusal becomes an exact failed completion, so polling
     /// again cannot retry a physical transaction or strand a dispatched request.
     /// Physical bus outcomes remain ordinary typed result values from the Back.
+    /// Result/Sign preflight and synchronous invocation have no intervening
+    /// await or kernel mutation. Pressure leaves the original request undispatched.
     pub fn dispatch_one(&mut self) -> Result<NativeDispatch, SchedulerError> {
-        let Some(request) = self.kernel.next_host_request() else {
-            return Ok(NativeDispatch::Idle);
+        let room = self.kernel.preflight_host_result_storage(
+            conduit_i2c_transaction::contract::I2C_RESULT_VALUE_BYTES as u32,
+        );
+        let mut pending = false;
+        let Some(request) = self.kernel.next_host_request_matching(|_| {
+            pending = true;
+            room.is_ok()
+        }) else {
+            if !pending {
+                return Ok(NativeDispatch::Idle);
+            }
+            return match room {
+                Err(SchedulerError::Storage(
+                    StorageError::ItemCapacityExceeded | StorageError::ByteCapacityExceeded,
+                )) => Ok(NativeDispatch::Pressure),
+                Err(error) => Err(error),
+                Ok(()) => unreachable!("matching pending request was not dispatched"),
+            };
         };
         let result = (|| {
             let input = self
