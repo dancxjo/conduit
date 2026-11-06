@@ -446,7 +446,11 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
     assert_eq!(owner.provider.effects, 1);
 }
 
-#[allow(dead_code, unused_imports, reason = "this fixture exercises native-only Root; mixed-profile exports are qualified by their owning tests")]
+#[allow(
+    dead_code,
+    unused_imports,
+    reason = "this fixture exercises native-only Root; mixed-profile exports are qualified by their owning tests"
+)]
 #[path = "../../../../../../targets/rp2040/firmware/host/src/native_preparation.rs"]
 mod root_native_preparation;
 

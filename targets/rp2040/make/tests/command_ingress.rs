@@ -136,11 +136,19 @@ mod resident_preparation {
     }
     impl Inventory {
         pub fn offers(&self) -> [Option<&[u8]>; 1] {
-            [if WITHDRAWN.with(core::cell::Cell::get) { None } else { Some(b"ready") }]
+            [if WITHDRAWN.with(core::cell::Cell::get) {
+                None
+            } else {
+                Some(b"ready")
+            }]
         }
     }
     pub fn inventory() -> Result<Inventory, ()> {
-        if BUSY.with(core::cell::Cell::get) { Err(()) } else { Ok(Inventory) }
+        if BUSY.with(core::cell::Cell::get) {
+            Err(())
+        } else {
+            Ok(Inventory)
+        }
     }
     pub fn prepare_workset_storage(
         _: &mut Inventory,
