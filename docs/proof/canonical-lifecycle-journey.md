@@ -7903,3 +7903,49 @@ state, qualified firmware and test evidence were preserved. No device or service
 was redeployed. Source-checking ingress/action selection, MCU autonomous Plays
 and the remaining lifecycle journey are still incomplete. #6815 remains at exact
 head e4f1a439ba with quick green and admission in progress at the final observation.
+
+### 6 November 2026 — physical controller custody limits the combined native workset
+
+A read-only audit of Green's actual profile and native preparation distinguishes
+a resource contract from a binder-size limitation. The profile selects one I2C1
+controller (GP6/GP7) with BME280 address 118 and HT16K33 address 112. Its address
+range does not imply two independently ownable controllers. The I2C offer charges
+one attachment unit per placement; projection publishes capacity one. The actual
+RP2040 owner lends one exclusive controller lease to one native Host Call. Simply
+increasing mixed-preparation node counts or advertising capacity two would break
+that custody correspondence. No such change was made.
+
+An authored size-one shared pool bounds members, not controller consumers. The
+planner reserves units times member capacity after ordinary placements; shared
+resource IDs do not deduplicate separate placement demand. Current fragment-set
+and executable-region lowering explicitly refuse shared pools, and the pool
+controller neither invokes providers nor supplies protocol routing. Pool syntax
+therefore cannot admit the presently unsupported combined native workset.
+
+Relevant sources: `mechanisms/io/i2c-transaction/src/installation/{offer,projection,assigned}.rs`,
+`targets/rp2040/firmware/host/src/{i2c_owner,i2c_installation,mixed_preparation}.rs`,
+`architecture/planner/src/canonical/shared_pools.rs`, and
+`architecture/plan-lowering/src/{fragment_set,shared_pool_runtime}.rs`.
+The next static-composition investigation is whether ordinary authored request/
+result routing can serve both protocols through one selected I2C placement. It
+still needs complete resident lowering, routing, bounded workset admission and
+physical execution; this audit proves none of those. Dynamic pool execution is
+not a prerequisite unless that composition actually requires dynamic members.
+
+Issue ownership stays precise: #4833 owns physical primitives versus authored
+protocols; #6341 owns preparation/workspace admission. #6340 concerns retained
+reservation authority across offer-generation changes, not a general permission
+to share an exclusive attachment. No new memory epic or arbitration framework.
+
+The current-dev x86_64 journey failure was inspected at Integration 42211111830,
+job 127885501263: a Source-editor observation differed from the authorized handoff.
+Existing PR #6817 owns the bounded checkpoint-observation repair; it retains
+exact assertions and was still running target checks. Do not duplicate that work
+or infer whole-product acceptance from a passing admission lane. #6815 remains
+unmerged at e4f1a439ba with its admission job confirmed active. Downloaded CI
+evidence is retained under ignored `target/dev-334600a4-journey-diagnostics`.
+
+Maintenance removed the inactive Source-check review target cache and regenerated
+Body-make package artifacts (about 6.7 GiB total); retained source, proof logs,
+firmware, credentials and live services remain. Root headroom reached 7.8 GiB;
+/tmp reached 15 GiB. No device/service was redeployed in this checkpoint.
