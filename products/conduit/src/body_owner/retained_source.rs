@@ -36,10 +36,10 @@ impl CapturedRetainedWorkset {
     /// The exact complete resident workset remains the acceptance boundary.
     pub(super) fn expand(self) -> Result<Vec<RetainedPlotSource>, String> {
         let captured = match self.inventory {
-            CapturedInventory::Complete(sources) => return sources.expand(&self.biography),
+            CapturedInventory::Complete(sources) => return sources.into_expanded(&self.biography),
             CapturedInventory::Single(captured) => captured,
         };
-        let source = crate::plot_source::parse(captured.source())?;
+        let source = crate::plot_source::parse_owned(captured.into_source())?;
         let checked = source.expand_entry_for_authoring()?;
         let resident = ResidentPlot::new(
             checked.expanded.source_document_id.clone(),

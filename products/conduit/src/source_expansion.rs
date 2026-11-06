@@ -72,7 +72,7 @@ pub(crate) fn render_source(
     json: bool,
 ) -> Result<String, String> {
     let checked = source.check()?;
-    let glyph_values = glyphs::views(&source.syntax, &checked, &source.startup)?;
+    let glyph_values = glyphs::views(&source.syntax, &checked, source.startup)?;
     let report = ExpansionReport {
         schema: "conduit.source-sugar-expansion@1",
         boundary: "authored source sugar; canonical checked Plot remains authoritative",
@@ -80,7 +80,7 @@ pub(crate) fn render_source(
         expansions: checked.source_sugar_expansions.iter().map(view).collect(),
         native_types: native_types::types(&source.syntax, &checked)?,
         type_families: native_types::families(&source.syntax),
-        imports: native_types::imports(&source.syntax, &source.startup),
+        imports: native_types::imports(&source.syntax, source.startup),
         glyphs: glyph_values.glyphs,
         glyph_contexts: glyph_values.contexts,
     };
