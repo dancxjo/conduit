@@ -3,7 +3,7 @@
 mod binding;
 use super::{CheckedDocument, ValidationRefusal as E};
 use crate::resident::generated::{BorrowedBack, Initialized, PreparedResidentLoans, ENTRY_COUNT};
-pub use binding::{BoundFragment, BoundKernel, BoundWorkset, CommittedWorkset};
+pub use binding::{BoundFragment, BoundKernel, BoundWorkset, CommittedWorkset, RetiredKernel};
 use conduit_kernel::{scheduler::*, *};
 
 // Explicit supported local representation. Larger signed envelopes refuse;

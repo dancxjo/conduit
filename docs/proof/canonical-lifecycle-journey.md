@@ -6913,3 +6913,35 @@ service, selected profile or persistent state changed. The retained supervisor,
 complete native resource admission and physical sampler/display Plays remain
 necessary. PR #6799 carries the separate shared construction selection; its
 Candidate run 42157740678 was observed in progress at the start of this stage.
+
+
+### 5 November 2026 — Root cancellation returns Backs before exact release
+
+`BoundKernel::cancel_and_retire` now performs the existing bounded scheduler's
+cancellation and retirement for every supported resident specialization. If
+cancellation refuses, the caller receives the same boxed kernel and its original
+provider custody. After successful cancellation, terminal Signs are retained
+before each Back's existing `finish_retired` operation. A failed Back return is
+observable and leaves that inventory unavailable; Root must fence its original
+reservations. The method does not release resources or authorize new work.
+
+Core's existing `release_for` now shares its exact-match implementation with
+`release_borrowed`, accepting retained Plan/placement text without allocating
+new identity objects. This is trusted cleanup bookkeeping with the same scope
+and release-cause behavior, not a grant, retirement proof or newer-offer check.
+The new test proves zero-allocation success and mismatch refusal while retaining
+unrelated reservations and compute-lane assignments. All 11 resource-admission
+tests and strict Core library Clippy pass.
+
+Both generated resident-offer tests pass with the actual Root execution-policy
+and committed-kernel path. Its retirement code now uses the production method;
+release keys are borrowed directly from the original checked assignment, not
+cloned from the ledger into a temporary Vec. Typed execution, cancellation,
+terminal evidence retention, same-address provider return and exact resource
+release remain allocation-free. Abandonment still leaves unretired providers and
+committed reservations unavailable; dropping a future is not retirement.
+Raw logs are retained locally under `target/root-retirement-20261105/`.
+
+No device or service changed. These are CPU/component proofs, not installed
+receiver, native bus handover, successive remotely authorized Plays or physical
+instrument acceptance. The complete canonical lifecycle objective remains open.

@@ -2,6 +2,9 @@
 //! This prepares executable kernels; it does not publish or authorize Start.
 use super::*;
 use alloc::boxed::Box;
+#[path = "resident_retirement.rs"]
+mod retirement;
+pub use retirement::RetiredKernel;
 
 pub enum BoundKernel<'o> {
     One(Box<Kernel<'o, 1, 2, 2>>),

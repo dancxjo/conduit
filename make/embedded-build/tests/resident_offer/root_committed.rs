@@ -149,11 +149,6 @@ pub fn run(
     // The preparation borrow ended. The original ledger can join the kernels
     // in a retained execution owner independently of a delivery future.
     assert_eq!(owner.admissions().len(), 2);
-    let keys: Vec<_> = owner
-        .admissions()
-        .iter()
-        .map(|a| (a.plan_id.clone(), a.placement_id.clone()))
-        .collect();
     let runtime = (workset, owner);
     let (workset, owner) = runtime;
     let (_, program, _) = crate::support::context();
@@ -161,6 +156,14 @@ pub fn run(
     let expected = program.evaluate(&input).unwrap();
     let (terminal, execution) = crate::probe::observe(|| {
         let (fragments, _original_stamp) = workset.into_parts();
+        let keys = fragments.each_ref().map(|fragment| {
+            let metadata = fragment.as_ref().unwrap().approved.metadata();
+            let mut resources =
+                conduit_body::PlainFragmentResources::new(metadata.resource_bindings);
+            let resource = resources.next().unwrap().unwrap();
+            assert!(resources.next().is_none());
+            (metadata.body_plan, resource.placement)
+        });
         let mut terminal: [Option<FixedSignLog<16>>; 2] = core::array::from_fn(|_| None);
         for (index, fragment) in fragments.into_iter().flatten().enumerate() {
             assert_eq!(
@@ -198,25 +201,23 @@ pub fn run(
             kernel
                 .remote_egress_delivered(outgoing, output_cord, output.sequence)
                 .unwrap();
-            kernel.cancel().unwrap();
-            let retired = (*kernel)
-                .try_retire()
-                .unwrap_or_else(|_| panic!("kernel not terminal"));
+            let retired = crate::root_preparer::BoundKernel::One(kernel)
+                .cancel_and_retire()
+                .unwrap_or_else(|_| panic!("retirement refused"));
+            assert!(retired.providers_returned);
             assert!(retired
                 .signs
                 .events()
                 .any(|e| e.kind == KernelEventKind::RunCancelled));
             terminal[index] = Some(retired.signs);
-            let [back] = retired.drivers;
-            assert!(back.finish_retired().is_ok());
         }
         assert_eq!(owner.admissions().len(), 2);
         for (plan, placement) in &keys {
             let released = owner
-                .release_for(plan, placement, c::ResourceReleaseCause::Cancelled)
+                .release_borrowed(plan, placement, c::ResourceReleaseCause::Cancelled)
                 .unwrap();
-            assert_eq!(released.admission.plan_id, *plan);
-            assert_eq!(released.admission.placement_id, *placement);
+            assert_eq!(released.admission.plan_id.as_str(), *plan);
+            assert_eq!(released.admission.placement_id.as_str(), *placement);
         }
         terminal
     });
