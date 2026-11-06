@@ -219,3 +219,12 @@ contract from finite zip (which can discard unmatched values) and feedback zip
 with one exclusively owned inert bus, exact success/failure routing, both caller
 admission orders and an empty caller. This is not RP2040 mixed-workset fit or
 physical autonomous sampling/display proof; those gates remain open.
+
+The `ht16k33-initialize-exchange`, `ht16k33-write-exchange` and
+`bme280-exchange` components expose exact typed I2C `request` and `result`
+Fores without selecting a bus placement. Their surrounding single-client
+compositions bind one transaction Back; a shared composition can instead route
+those Fores through one admitted controller service. BME280 deadlines remain
+part of its protocol composition. No register, timing or failure behavior moves
+into the router. A supplied typed result alone is not hardware provenance: the
+containing exact Plan and granted physical provider still establish that path.

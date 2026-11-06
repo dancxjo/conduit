@@ -8051,3 +8051,30 @@ constitute a new physical or full native-product acceptance run.
 #6818 remains open for the containing ordinary execution delivery. Neither it
 nor #6447, Source adoption, autonomous MCU operation, or the journey is complete.
 No device, retained credential, running owner or Threebee release was changed.
+
+### 6 November 2026 — device protocols expose their bus exchange Fores
+
+HT16K33 initialization/redraw and the BME280 protocol now expose typed I2C
+request/result Fores without an embedded controller placement. Ordinary
+single-client Plots bind those components to one selected bus; a shared
+composition can instead wire both protocol components to the same service.
+Register meaning, protocol transitions, deadlines and failure interpretation
+remain authored Source. There is no new driver or device-aware router.
+
+New checks expand both display exchange entries and the sensor exchange,
+require zero embedded I2C placements, and compare each request/result schema
+with the actual finite I2C contract. CPU execution passes 21 I2C factory cases
+and nine full protocol-operation cases, including successful BME280 calibration/
+capture, wrong identity, unavailable/lost clocks and the display command/error
+transcripts. The complete BME280 topology still expands to 52 gears. This does
+not establish fit in the two-node RP2040 receiver, combined device execution,
+physical behavior, or a newly installed Seed. No deployment occurred.
+
+The first compile exposed an automatically merged duplicate source_check module
+in std-offers from the #6815 integration. Removing its duplicate declaration/
+re-export restored the build; the canonical module remains once. Workspace
+formatting and diff checks pass. Logs: ignored target/protocol-exchange-fores-20261106.
+PR #6817's existing journey repair has merged after all Candidate lanes passed.
+PR #6819 is now review-ready; its quick lane passed and admission is still
+running, so no merge or complete acceptance is claimed. The earlier installed
+authorized Source-selection/action gap remains the next lifecycle focus.
