@@ -101,6 +101,8 @@ pub fn run(
     assert_eq!(owner, &before);
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
 
+    committed::run(receiver, bytes, assignment, library, owner, pool);
+
     // Abandoning bound work ends execution/storage and releases its exact
     // reservation, but cannot silently republish an unretired initialized Back.
     let mut abandoned = crate::library::Initialized::prepare().unwrap();
@@ -135,3 +137,6 @@ pub fn run(
     assert!(abandoned.offers().iter().all(Option::is_none));
     println!("actual Root reserved binding: two exact kernels, typed output and terminal Signs retained before Back restoration/resource release; zero binding/execution allocation; {future_bytes}-byte CPU bound future releases its exact resources and leaves unretired providers unavailable");
 }
+
+#[path = "root_committed.rs"]
+mod committed;

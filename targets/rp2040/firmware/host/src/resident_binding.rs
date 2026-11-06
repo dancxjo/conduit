@@ -21,6 +21,23 @@ pub struct BoundWorkset<'a, 'o, 'r> {
     reservations: conduit_core::ResourceAdmissionScope<'r>,
     stamp: conduit_body::RetainedHostCommandStamp,
 }
+/// The same original ledger retains reservations after preparation returns.
+/// Dropping kernels cannot free them or republish unretired Backs. Root must
+/// retain that ledger and the original command, then retire before release.
+pub struct CommittedWorkset<'a, 'o> {
+    fragments: [Option<BoundFragment<'a, 'o>>; ENTRY_COUNT],
+    stamp: conduit_body::RetainedHostCommandStamp,
+}
+impl<'a, 'o> CommittedWorkset<'a, 'o> {
+    pub fn into_parts(
+        self,
+    ) -> (
+        [Option<BoundFragment<'a, 'o>>; ENTRY_COUNT],
+        conduit_body::RetainedHostCommandStamp,
+    ) {
+        (self.fragments, self.stamp)
+    }
+}
 impl<'a, 'o, 'r> BoundWorkset<'a, 'o, 'r> {
     pub fn admissions(&self) -> &[conduit_core::ResourceAdmission] {
         self.reservations.admissions()
@@ -47,37 +64,51 @@ impl<'a, 'o, 'r> ReservedAttempt<'a, 'o, 'r> {
             reservations,
             ..
         } = self;
-        let AttemptStorage {
-            _owner,
-            fragments,
-            stamp,
-            ..
-        } = _storage;
-        let mut loans = _owner.bind();
-        let fragments = fragments.map(|fragment| {
-            fragment.map(|fragment| {
-                let Fragment {
-                    approved,
-                    _storage,
-                    entries,
-                } = fragment;
-                let kernel = match _storage {
-                    Storage::One(slot) => BoundKernel::One(bind(slot, &entries, &mut loans)),
-                    Storage::Two(slot) => BoundKernel::Two(bind(slot, &entries, &mut loans)),
-                    Storage::Three(slot) => BoundKernel::Three(bind(slot, &entries, &mut loans)),
-                    Storage::Four(slot) => BoundKernel::Four(bind(slot, &entries, &mut loans)),
-                    Storage::Five(slot) => BoundKernel::Five(bind(slot, &entries, &mut loans)),
-                };
-                BoundFragment { approved, kernel }
-            })
-        });
-        debug_assert!(loans.iter().all(Option::is_none));
+        let (fragments, stamp) = bind_storage(_storage);
         BoundWorkset {
             fragments,
             reservations,
             stamp,
         }
     }
+}
+/// Called only after atomic admission succeeds; all remaining work is infallible.
+pub(super) fn bind_admitted<'a, 'o>(storage: AttemptStorage<'a, 'o>) -> CommittedWorkset<'a, 'o> {
+    let (fragments, stamp) = bind_storage(storage);
+    CommittedWorkset { fragments, stamp }
+}
+fn bind_storage<'a, 'o>(
+    _storage: AttemptStorage<'a, 'o>,
+) -> (
+    [Option<BoundFragment<'a, 'o>>; ENTRY_COUNT],
+    conduit_body::RetainedHostCommandStamp,
+) {
+    let AttemptStorage {
+        _owner,
+        fragments,
+        stamp,
+        ..
+    } = _storage;
+    let mut loans = _owner.bind();
+    let fragments = fragments.map(|fragment| {
+        fragment.map(|fragment| {
+            let Fragment {
+                approved,
+                _storage,
+                entries,
+            } = fragment;
+            let kernel = match _storage {
+                Storage::One(slot) => BoundKernel::One(bind(slot, &entries, &mut loans)),
+                Storage::Two(slot) => BoundKernel::Two(bind(slot, &entries, &mut loans)),
+                Storage::Three(slot) => BoundKernel::Three(bind(slot, &entries, &mut loans)),
+                Storage::Four(slot) => BoundKernel::Four(bind(slot, &entries, &mut loans)),
+                Storage::Five(slot) => BoundKernel::Five(bind(slot, &entries, &mut loans)),
+            };
+            BoundFragment { approved, kernel }
+        })
+    });
+    debug_assert!(loans.iter().all(Option::is_none));
+    (fragments, stamp)
 }
 fn bind<'o, const N: usize, const C: usize, const V: usize>(
     slot: Slot<'o, N, C, V>,

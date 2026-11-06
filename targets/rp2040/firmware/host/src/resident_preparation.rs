@@ -16,7 +16,7 @@ use conduit_plan_lowering::{
     selected_assigned_operation::AssignedOperationInput,
 };
 pub use resources::observe_private_work;
-pub use storage::{AttemptStorage, BoundFragment, BoundKernel, BoundWorkset};
+pub use storage::{AttemptStorage, BoundFragment, BoundKernel, BoundWorkset, CommittedWorkset};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ValidationRefusal {

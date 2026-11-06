@@ -3,7 +3,7 @@
 mod binding;
 use super::{CheckedDocument, ValidationRefusal as E};
 use crate::resident::generated::{BorrowedBack, Initialized, PreparedResidentLoans, ENTRY_COUNT};
-pub use binding::{BoundFragment, BoundKernel, BoundWorkset};
+pub use binding::{BoundFragment, BoundKernel, BoundWorkset, CommittedWorkset};
 use conduit_kernel::{scheduler::*, *};
 
 // Explicit supported local representation. Larger signed envelopes refuse;
@@ -86,6 +86,63 @@ impl ReservedAttempt<'_, '_, '_> {
     }
 }
 impl<'a, 'o> AttemptStorage<'a, 'o> {
+    /// Admit the complete prepared set into the same retained ledger and bind
+    /// immediately. No fallible work or await remains after atomic admission.
+    /// The returned kernels neither start nor release their own reservations.
+    pub fn admit_observed(
+        self,
+        owner: &mut conduit_core::ResourceAdmissionOwner,
+        pool_id: &str,
+        capacity: u32,
+        sequence: u64,
+        maximum_bytes: usize,
+    ) -> Result<CommittedWorkset<'a, 'o>, conduit_body::DelegatedResourceRefusal> {
+        let observed = super::resources::observe_private_work(
+            &self,
+            owner,
+            pool_id,
+            capacity,
+            sequence,
+            maximum_bytes
+                .checked_sub(self.bytes)
+                .ok_or(conduit_body::DelegatedResourceRefusal::PreparationCapacity)?,
+        )?;
+        let budget = maximum_bytes
+            .checked_sub(observed.owned_bytes)
+            .ok_or(conduit_body::DelegatedResourceRefusal::PreparationCapacity)?;
+        self.admit_and_bind(owner, core::slice::from_ref(&observed.value), budget)
+    }
+
+    pub fn admit_and_bind(
+        self,
+        owner: &mut conduit_core::ResourceAdmissionOwner,
+        observations: &[conduit_core::ResourceObservation],
+        maximum_bytes: usize,
+    ) -> Result<CommittedWorkset<'a, 'o>, conduit_body::DelegatedResourceRefusal> {
+        let first = self
+            .fragments
+            .first()
+            .and_then(Option::as_ref)
+            .ok_or(conduit_body::DelegatedResourceRefusal::Scope)?;
+        let mut fragments = [&first.approved; ENTRY_COUNT];
+        let mut count = 0;
+        for fragment in self.fragments.iter().flatten() {
+            fragments[count] = &fragment.approved;
+            count += 1;
+        }
+        let reservation_bytes = conduit_body::delegated_plain_resource_preparation_bytes(
+            &fragments[..count],
+            owner,
+            observations,
+        )?;
+        self.bytes
+            .checked_add(reservation_bytes)
+            .filter(|bytes| *bytes <= maximum_bytes)
+            .ok_or(conduit_body::DelegatedResourceRefusal::PreparationCapacity)?;
+        conduit_body::admit_delegated_plain_resources(&fragments[..count], owner, observations)?;
+        Ok(binding::bind_admitted(self))
+    }
+
     /// Complete the synchronous observation/reservation transition before an
     /// async response can suspend. Snapshot and temporary tables do not become
     /// retained coroutine state; their requested bytes remain funded at peak.

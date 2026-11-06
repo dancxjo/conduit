@@ -6743,3 +6743,35 @@ process references. Cargo declined package cleanup because its cache marker was
 absent, so only the four specifically inventoried compiler files were removed.
 The qualified executable's SHA-256 was unchanged; source, manifests, firmware,
 Body state and unique evidence were preserved.
+
+
+### Root retains admitted kernels independently of preparation rollback
+
+The Root now consumes the existing shared Body operation
+`admit_delegated_plain_resources` for a complete prepared local set. Observation
+and reservation bookkeeping are funded before that atomic admission; after it
+succeeds, the same tested infallible binder lends the exact initialized Backs and
+returns a committed workset. The original boot-scoped resource owner retains its
+ledger. No Core reservation API or preparation rollback behavior changed.
+
+The returned workset carries the original command stamp and approved fragments
+but no borrow of the reservation owner. A retained supervisor can therefore keep
+that same owner available for control while holding kernels across delivery
+lifetime changes. This is volatile resource custody, not durable recording,
+permission to Start or proof of native quiescence.
+
+Actual Root generated-code tests now execute typed computation after permanent
+admission, drain output, retain terminal Signs, restore Backs, then explicitly
+release the exact reservations. The original ledger remains reserved until that
+release. Missing observations preserve the ledger and provider identities.
+Abandoning a committed workset inside a dropped future leaves its original
+reservations held and its unretired providers unavailable. Binding uses the same
+allocation-free path as scoped preparation; execution/retirement allocate
+nothing. Both generated-library tests and all eleven Core resource-admission
+regressions pass. Raw evidence is under
+`target/root-retained-admission-20261105/`.
+
+These remain CPU custody proofs. The production receiver still uses the
+preparation-only path; installed execution authorization, mixed native admission,
+independent physical Play, exact reservation-bound control across changed offers
+and terminal publication remain required. No live service or device was changed.
