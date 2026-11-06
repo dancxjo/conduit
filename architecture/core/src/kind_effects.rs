@@ -1,7 +1,7 @@
 //! Fail-closed derivation for semantic Kind use inside pure expressions.
 
 mod semantic_work;
-pub use semantic_work::semantic_work_facts;
+pub use semantic_work::{semantic_work_facts, semantic_work_knowledge, SemanticWorkKnowledge};
 
 use crate::{
     Back, ExternalEffectBehavior, Kind, KindId, KindIdentity, KindSemanticLaw, PlannedGear,
