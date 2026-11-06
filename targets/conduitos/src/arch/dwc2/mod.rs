@@ -46,6 +46,7 @@ pub struct ControllerFacts {
 pub struct Controller<I> {
     io: I,
     prepared: bool,
+    quiescent: bool,
 }
 const POLL_LIMIT: usize = 4_000_000;
 impl<I: RegisterIo> Controller<I> {
@@ -53,6 +54,7 @@ impl<I: RegisterIo> Controller<I> {
         Self {
             io,
             prepared: false,
+            quiescent: true,
         }
     }
 
@@ -157,6 +159,11 @@ impl<I: RegisterIo> Controller<I> {
     pub fn is_prepared(&self) -> bool {
         self.prepared
     }
+    /// True only while no packet was submitted, or its hardware halt was
+    /// acknowledged. Software revocation and a timeout cannot manufacture it.
+    pub fn is_quiescent(&self) -> bool {
+        self.quiescent
+    }
     fn mask_interrupts(&mut self) {
         self.io.write(INTERRUPT_MASK, 0);
         let ahb = self.io.read(AHB) & !((1 << 5) | 1);
@@ -199,4 +206,4 @@ impl<I: RegisterIo> Controller<I> {
 mod tests;
 
 #[cfg(test)]
-mod test_io;
+pub(crate) mod test_io;

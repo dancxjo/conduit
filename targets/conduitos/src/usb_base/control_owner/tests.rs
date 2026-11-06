@@ -487,3 +487,5 @@ fn reusable_possession_and_malformed_physical_results_do_not_hide_work_or_retry(
         10_001
     );
 }
+
+mod dwc2;

@@ -1,20 +1,20 @@
 use super::packet::*;
 use super::*;
 use std::{collections::VecDeque, vec::Vec};
-pub(super) struct Io {
-    pub(super) writes: Vec<(usize, u32)>,
-    pub(super) rx: VecDeque<u32>,
-    pub(super) data: VecDeque<u32>,
-    pub(super) clock: u32,
-    pub(super) running: bool,
-    pub(super) finish: u32,
-    pub(super) stuck_halt: bool,
-    pub(super) port: u32,
-    pub(super) residue: u32,
-    pub(super) script: VecDeque<(u32, Vec<u32>, Vec<u32>)>,
+pub(crate) struct Io {
+    pub(crate) writes: Vec<(usize, u32)>,
+    pub(crate) rx: VecDeque<u32>,
+    pub(crate) data: VecDeque<u32>,
+    pub(crate) clock: u32,
+    pub(crate) running: bool,
+    pub(crate) finish: u32,
+    pub(crate) stuck_halt: bool,
+    pub(crate) port: u32,
+    pub(crate) residue: u32,
+    pub(crate) script: VecDeque<(u32, Vec<u32>, Vec<u32>)>,
 }
 impl Io {
-    pub(super) fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             writes: Vec::new(),
             rx: VecDeque::new(),
@@ -82,4 +82,18 @@ impl RegisterIo for Io {
         self.clock = self.clock.wrapping_add(1000);
         self.clock
     }
+}
+
+#[allow(dead_code)] // Shared by native-owner tests, absent from the protocol-only facade.
+pub(crate) fn prepared() -> Controller<Io> {
+    Controller {
+        io: Io::new(),
+        prepared: true,
+        quiescent: true,
+    }
+}
+
+#[allow(dead_code)] // Native-owner tests share this model with controller tests.
+pub(crate) fn registers(controller: &mut Controller<Io>) -> &mut Io {
+    &mut controller.io
 }

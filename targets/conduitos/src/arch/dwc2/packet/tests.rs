@@ -5,6 +5,7 @@ fn controller() -> Controller<Io> {
     Controller {
         io: Io::new(),
         prepared: true,
+        quiescent: true,
     }
 }
 fn packet(input: bool) -> RootPacket {
@@ -98,6 +99,7 @@ fn deadline_requires_halt_acknowledgement_or_fences_controller() {
             })
         );
         assert_eq!(c.is_prepared(), !stuck);
+        assert_eq!(c.is_quiescent(), !stuck);
         if stuck {
             assert_eq!(
                 c.root_packet(packet(false), &mut []),

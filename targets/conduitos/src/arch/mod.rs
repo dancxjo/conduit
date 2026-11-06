@@ -3,7 +3,7 @@
 //! Shared ConduitOS code depends on this surface. Architecture facts never flow
 //! upward into authored meaning or semantic implementation identity.
 
-#[cfg(all(target_arch = "arm", feature = "armv6-product"))]
+#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
 #[allow(dead_code)] // Mechanism preparation alone does not offer a USB Base.
 pub(crate) mod dwc2;
 

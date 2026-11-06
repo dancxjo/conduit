@@ -23,6 +23,13 @@ source](https://raw.githubusercontent.com/raspberrypi/linux/rpi-6.12.y/drivers/u
 Deterministic register-model tests establish software bounds and sequencing;
 physical controller compatibility remains unverified.
 
+`usb_base/dwc2_control.rs` joins this exclusively retained controller to the
+existing `ControlCallOwner`. The selected route and attachment generation are
+Root facts, never request fields. Completed/stalled/lost observations settle only
+quiescent operations. Other native refusals retain the original lease until
+explicit retirement; software revocation cannot manufacture a halt. Successful
+handoff revokes the old selection before returning the original controller.
+
 The existing admitted USB control/endpoint owners remain the integration boundary.
 Hub power/status exchanges are checked Source in `plots/usb/hub-port-*.conduit`.
 Descriptor interpretation, address/configuration request construction, class
@@ -32,8 +39,8 @@ through `hid-absolute-pointer.conduit`, reusing its exact pointer state and outp
 contract. Descriptor/report decoding and the physical endpoint still have to
 supply those observations; existing Face interaction is the intended consumer.
 
-Remaining integration includes control-transfer dispatch through the existing
-Host Call owner, normal Make/Base admission, the onboard hub's downstream
+Remaining integration includes normal Make/Base admission and product Root
+installation, the onboard hub's downstream
 port lifecycle, split transactions for full/low-speed devices behind its TT, and
 endpoint reads feeding the existing checked HID plots. There is no product input
 offer or physical USB-input claim yet.
