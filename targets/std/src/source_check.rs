@@ -29,6 +29,8 @@ pub struct SourceCheckPreparationBounds {
     pub retained_bytes: usize,
 }
 mod assembly;
+#[cfg(target_os = "linux")]
+pub mod process;
 mod requests;
 use requests::Entry;
 /// One copy of each schema plus finite canonical value nodes. No compiler AST,
