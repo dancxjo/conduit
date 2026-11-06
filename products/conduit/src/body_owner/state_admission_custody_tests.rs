@@ -42,6 +42,7 @@ fn transaction(
         admissions: Some(next),
         admission_custody: Some(custody),
         source: None,
+        workset_sources: None,
         archives: Vec::new(),
     }
 }

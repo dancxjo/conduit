@@ -120,6 +120,7 @@ fn archive_transaction_replays_before_active_biography_and_refuses_corruption() 
             admissions: None,
             admission_custody: None,
             source: None,
+            workset_sources: None,
             archives: segments.clone(),
         },
     )

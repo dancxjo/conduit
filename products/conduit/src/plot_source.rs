@@ -4,6 +4,8 @@ use conduit_plot::{CanonicalBackCatalog, ExpandedCanonicalPlot, ProfileCatalog, 
 use std::fs;
 use std::path::Path;
 
+#[path = "plot_source/authoring.rs"]
+mod authoring;
 #[path = "plot_source/conversation_catalog.rs"]
 mod conversation_catalog;
 
@@ -97,30 +99,6 @@ impl CanonicalSource {
 
     pub(crate) fn expand_entry(&self) -> Result<ExpandedCanonicalPlot, String> {
         self.expand_entry_with_backs(false)
-    }
-
-    // Used by the binary diagram entrance; the library compiles this module independently.
-    #[allow(dead_code)]
-    pub(crate) fn expand_entry_for_authoring(
-        &self,
-    ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
-        let checked = self.check()?;
-        let entry = self.authored_entry_name()?;
-        let Some(backs) = dsp_source_backs_for(&checked)? else {
-            return conduit_plot::expand_canonical_plot_for_authoring(
-                &checked,
-                entry,
-                &self.profiles,
-            )
-            .map_err(|diagnostic| diagnostic.to_string());
-        };
-        conduit_plot::expand_canonical_plot_for_authoring_with_backs(
-            &checked,
-            entry,
-            &self.profiles,
-            backs,
-        )
-        .map_err(|diagnostic| diagnostic.to_string())
     }
 
     // Used by the library entrance; the binary compiles this module independently.

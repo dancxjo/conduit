@@ -11,11 +11,21 @@ use admission_custody::AdmissionUpdate;
 mod archive;
 #[path = "state_execution_custody.rs"]
 mod execution_custody;
+#[path = "state_workset_sources.rs"]
+mod workset_sources;
 #[cfg(test)]
 use archive::archive_path;
 use archive::{retain_archive_segments, validate_archive_segments, verify_retained_archive};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
+pub(super) use workset_sources::checked as checked_workset_sources;
+#[allow(unused_imports)]
+// Source of CAS, not authorization; installed action remains separate.
+pub(super) use workset_sources::retain_revision as retain_workset_revision;
+#[allow(unused_imports)] // Owner revision action will select the complete transaction.
+pub(super) use workset_sources::retain_session as retain_session_with_workset_sources;
+use workset_sources::SourceUpdate;
+pub(super) use workset_sources::WorksetSources;
 pub(super) const MAXIMUM_STATE: u64 = 2 * 1024 * 1024;
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -35,6 +45,8 @@ struct Transaction {
     /// Older owner transactions did not carry source and remain replayable.
     #[serde(default)]
     source: Option<Vec<u8>>,
+    #[serde(default)]
+    workset_sources: Option<WorksetSources>,
     #[serde(default)]
     archives: Vec<BodyBiographyArchiveSegment>,
 }
@@ -96,9 +108,7 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
     {
         return Err("owner transaction biography identity differs".into());
     }
-    if let Some(source) = &transaction.source {
-        validate_source(&transaction.biography, source)?;
-    }
+    workset_sources::validate_transaction(root, transaction)?;
     validate_archive_segments(root, &transaction.biography, &transaction.archives)?;
     // Journal replay preserves immutable outcomes before replacing current state.
     let migrated;
@@ -135,6 +145,7 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
     if let Some(source) = &transaction.source {
         write_bytes_atomic(&root.join("body/source.conduit"), source)?;
     }
+    workset_sources::commit(root, transaction)?;
     retain_archive_segments(root, &transaction.biography, &transaction.archives)?;
     write_bytes_atomic(&root.join("body/biography.json"), &bytes)?;
     if let Some(manager) = &transaction.admissions {
@@ -182,7 +193,7 @@ pub(super) fn retain_with_archives(
         biography,
         last_execution,
         admissions.into(),
-        None,
+        None.into(),
         None,
         archives,
     )
@@ -208,7 +219,7 @@ pub(super) fn retain_session(
         session.evidence(),
         last_execution,
         admissions.into(),
-        source,
+        source.into(),
         todo_selection,
         session.pending_archives(),
     )?;
@@ -236,7 +247,7 @@ pub(super) fn retain_with_source_and_todo_selection(
         biography,
         last_execution,
         admissions.into(),
-        source,
+        source.into(),
         todo_selection,
         &[],
     )
@@ -256,15 +267,14 @@ fn retain_inner(
     biography: &BodyBiographyEvidence,
     last_execution: Option<&serde_json::Value>,
     admissions: AdmissionUpdate<'_>,
-    source: Option<&[u8]>,
+    source: SourceUpdate<'_>,
     todo_selection: Option<&super::super::selected_todo::Selection>,
     archives: &[BodyBiographyArchiveSegment],
 ) -> Result<(), String> {
     recover(root)?;
+    source.validate_transition(root, biography)?;
     validate_archive_segments(root, biography, archives)?;
-    if let Some(source) = source {
-        validate_source(biography, source)?;
-    }
+    source.validate(root, biography)?;
     if serde_json::to_vec(&last_execution)
         .map_err(|e| e.to_string())?
         .len()
@@ -331,7 +341,8 @@ fn retain_inner(
         execution_custody: Some(execution_custody),
         admissions: admissions.manager.cloned(),
         admission_custody: admissions.custody,
-        source: source.map(Vec::from),
+        source: source.single().map(Vec::from),
+        workset_sources: source.workset().cloned(),
         archives: archives.to_vec(),
     };
     if serde_json::to_vec(&transaction)
