@@ -6775,3 +6775,10 @@ These remain CPU custody proofs. The production receiver still uses the
 preparation-only path; installed execution authorization, mixed native admission,
 independent physical Play, exact reservation-bound control across changed offers
 and terminal publication remain required. No live service or device was changed.
+
+
+PR #6796 passed its Candidate checks (run 42150396116) and merged into dev as
+`e3ecc822fe`. The delivery branch absorbed that accepted source; its tree did not
+change because the identical schema-capacity implementation was already present.
+No additional test run or image qualification is claimed from that history-only
+merge. The retained-admission checkpoint remains uninstalled on devices.
