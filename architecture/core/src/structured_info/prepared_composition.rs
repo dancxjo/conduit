@@ -1,6 +1,9 @@
 //! Prepared canonical composition of finite exact structured values.
 
 use alloc::{borrow::Cow, vec::Vec};
+mod borrowed;
+mod leaf_collection;
+pub use borrowed::StructuredCompositionPreparationRefusal;
 
 use super::{
     validate_canonical_structured_value, StructuredInfoRefusal as Refusal, StructuredInfoType,
