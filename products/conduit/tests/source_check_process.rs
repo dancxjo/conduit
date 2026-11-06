@@ -182,3 +182,6 @@ fn kernel_reports_child_address_space_cpu_and_core_limits_before_source_arrives(
         "the actual child did not acquire the exact kernel limits"
     );
 }
+
+#[path = "source_check_process/parent.rs"]
+mod parent;
