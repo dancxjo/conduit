@@ -4,6 +4,18 @@ use super::*;
 /// Derives every independent transformation fact without deciding a policy.
 /// Missing and duplicate axes refuse; absence never implies purity or safety.
 pub fn semantic_work_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExpressionRefusal> {
+    facts_from_laws(&kind.semantic_laws)
+}
+
+impl crate::KindSemanticContract {
+    /// Read the same independent facts from an exact checked contract, without
+    /// inventing a Kind Fore, runtime limits or a selected realization.
+    pub fn work_facts(&self) -> Result<PureExpressionFacts, PureExpressionRefusal> {
+        facts_from_laws(&self.laws)
+    }
+}
+
+fn facts_from_laws(laws: &[KindSemanticLaw]) -> Result<PureExpressionFacts, PureExpressionRefusal> {
     let mut external_effects = None;
     let mut temporal_state = None;
     let mut time_dependence = None;
@@ -13,7 +25,7 @@ pub fn semantic_work_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExpre
     let mut variability = None;
     let mut replay = None;
 
-    for law in &kind.semantic_laws {
+    for law in laws {
         match law {
             KindSemanticLaw::RealizationRequirement { .. } => {}
             KindSemanticLaw::ExactRealizationProperty(_) => {}

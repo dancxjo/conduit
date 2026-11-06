@@ -63,10 +63,13 @@ fn measured(f: impl FnOnce()) {
 }
 fn planned() -> (PortableExpressionProgram, Plan, CapabilityOffer) {
     let source = "plot local (\n input: I32 >> output: I32\n) = (. + 1)\n";
+    planned_source(source, "local")
+}
+fn planned_source(source: &str, entry: &str) -> (PortableExpressionProgram, Plan, CapabilityOffer) {
     let checked =
         check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
     let authored =
-        expand_canonical_plot_for_authoring(&checked, "local", &ProfileCatalog::new()).unwrap();
+        expand_canonical_plot_for_authoring(&checked, entry, &ProfileCatalog::new()).unwrap();
     assert_eq!(authored.expanded.gears.len(), 1);
     let ConfigurationValue::Text(encoded) = &authored.expanded.gears[0].configuration[0].value
     else {
@@ -120,6 +123,9 @@ fn planned() -> (PortableExpressionProgram, Plan, CapabilityOffer) {
     assert!(verify_plan(&plan));
     (program, plan, offer)
 }
+
+#[path = "local_expression_child/semantic_effects.rs"]
+mod semantic_effects;
 fn definition(plan: Plan, offer: CapabilityOffer) -> KernelCompositeDefinition {
     let fragment = &plan.fragments[0];
     let placement = &fragment.placements[0];
