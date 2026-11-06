@@ -27,10 +27,29 @@ the existing fallback/session/revision checks and adds the learned ACK case and
 accepted-model admission corpus. The new case includes equal-valued foreign
 owner/channel refusal before Source ingress, foreign-stream receipt refusal,
 stale-generation refusal, and post-ACK Source failure with zero-Source-work
-retry. Until their actual terminal results and required gates are recorded,
-these are proof obligations, not passing claims.
+retry. The local result below records these controls; required CI and publication
+gates remain separate.
 
 No campaign checkpoint runtime, archived captures, generated proof logs, or
 model parameters are restored by this slice. Raw local results belong under
 ignored `target/`. Exact-head Candidate and the parent's shared Integration and
 publication batch remain required before #6069 closes.
+
+## Local qualification
+
+At implementation source `cc6aa9f8e796159b23254506d7b5d30a773085a3`, the supported
+check passed **28 tests across 10 binaries**, zero failed or ignored. The learned
+case executed 106 actual Source operations, retained four successful-round
+numerical ACKs and one ACK from the injected Source-failure path, and checked
+all four remote lifecycle records. The terminal retry performed zero Source
+operations. Exact accepted artifact/signature/bytes, actual input indices,
+sealed Plan and active Plays were checked alongside the ownership refusals.
+
+Strict scoped library/test Clippy, formatting, evidence retention, and the
+ARMv6-M no-default-features Language library check also passed. The full local
+suite omitted debug symbols for disk capacity; assertions, optimization level,
+runtime bounds and execution paths were unchanged. Supported-run log SHA256:
+`778315992cfd00b1120abc0f27b6e0d250d49071c00863d242ed3b82a9576084`.
+Raw logs and the per-file source/hash summary stay under ignored `target/`.
+These local results do not complete exact-head Candidate or the explicitly
+required shared Integration/publication batch.
