@@ -1,5 +1,7 @@
 //! Root's native fragment storage using the same finite production scheduler.
 //! Complete workset admission and authorized Start remain caller obligations.
+#[path = "native_dispatch.rs"]
+mod dispatch;
 use alloc::boxed::Box;
 use conduit_core as c;
 use conduit_i2c_transaction::{
@@ -17,6 +19,7 @@ use conduit_plan_lowering::{
     assigned_play_scope::AssignedPlayScope,
     selected_assigned_operation::{AssignedOperationInput, SelectedAssignedForeOperationPlan},
 };
+pub use dispatch::{NativeDispatch, NativeDispatchRefusal};
 const SIGNS: usize = 16;
 pub type NativeKernel = FixedScheduler<
     HostCallBack,

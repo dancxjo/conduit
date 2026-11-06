@@ -1,9 +1,6 @@
 //! Actual Root kernel construction with inert local possession, not MCU proof.
 use super::*;
-use conduit_kernel::{
-    BoundedValueRef, CordId, HostCallDisposition, HostCallOutcome, KernelEventKind,
-    RemoteEndpointId, ValueStorage,
-};
+use conduit_kernel::{CordId, KernelEventKind, RemoteEndpointId, ValueStorage};
 use root_native_preparation::{NativePossession, PreparedNativeKernel};
 pub(super) fn run(
     slot: &mut Option<ReadyI2cBase<Provider>>,
@@ -56,14 +53,10 @@ pub(super) fn run(
     let prepared =
         PreparedNativeKernel::prepare(possession(slot, &issue), contract, selection(), charge)
             .unwrap();
-    let (bound, binding) = crate::allocation_probe::observe(|| prepared.bind());
+    let (mut bound, binding) = crate::allocation_probe::observe(|| prepared.bind());
     assert_eq!((binding.allocations, binding.reallocations), (0, 0));
     assert!(slot.is_none());
-    let root_native_preparation::BoundNativeKernel {
-        mut kernel,
-        mut call,
-    } = bound;
-    assert_eq!(call.provider.effects, 0);
+    assert_eq!(bound.call.provider.effects, 0);
     let input = request(contract, 0x76, &[0xd0], 1);
     let mut encoder = crate::result::PreparedI2cResultEncoder::new(contract).unwrap();
     let expected = encoder.completed(1, &[1]).unwrap().to_vec();
@@ -78,7 +71,8 @@ pub(super) fn run(
         .find(|f| f.direction() == AssignedForeDirection::Output)
         .unwrap();
     let (_, execution) = crate::allocation_probe::observe(|| {
-        kernel
+        bound
+            .kernel
             .admit_remote_input(
                 RemoteEndpointId(incoming.endpoint()),
                 CordId(incoming.cord()),
@@ -86,53 +80,69 @@ pub(super) fn run(
                 &input,
             )
             .unwrap();
-        kernel.step().unwrap();
-        let request = kernel.next_host_request().unwrap();
-        let output = call
-            .invoke(
-                request.node,
-                request.call,
-                request.request,
-                kernel.host_value(request.input.value).unwrap(),
-            )
-            .unwrap();
-        let value = kernel.store_host_value(output).unwrap();
-        kernel
-            .complete_host_call(
-                request.node,
-                request.request,
-                HostCallOutcome {
-                    disposition: HostCallDisposition::Completed,
-                    output: Some(BoundedValueRef::new(value, I2C_MAXIMUM_BYTES).unwrap()),
-                    failure: None,
-                },
-            )
-            .unwrap();
-        kernel.step().unwrap();
-        let offer = kernel
+        bound.kernel.step().unwrap();
+        assert_eq!(
+            bound.dispatch_one().unwrap(),
+            root_native_preparation::NativeDispatch::Completed
+        );
+        assert_eq!(
+            bound.dispatch_one().unwrap(),
+            root_native_preparation::NativeDispatch::Idle
+        );
+        bound.kernel.step().unwrap();
+        let offer = bound
+            .kernel
             .remote_egress_offer(
                 RemoteEndpointId(outgoing.endpoint()),
                 CordId(outgoing.cord()),
             )
             .unwrap()
             .unwrap();
-        assert_eq!(kernel.host_value(offer.value).unwrap(), expected);
-        kernel
+        assert_eq!(bound.kernel.host_value(offer.value).unwrap(), expected);
+        bound
+            .kernel
             .remote_egress_accept(
                 RemoteEndpointId(outgoing.endpoint()),
                 CordId(outgoing.cord()),
                 offer.sequence,
             )
             .unwrap();
-        kernel
+        bound
+            .kernel
             .remote_egress_delivered(
                 RemoteEndpointId(outgoing.endpoint()),
                 CordId(outgoing.cord()),
                 offer.sequence,
             )
             .unwrap();
-        kernel.cancel().unwrap();
-        let retired = (*kernel)
+        // A malformed second input is a typed failed completion, not a stuck
+        // dispatched request or an opportunity to repeat the physical effect.
+        bound
+            .kernel
+            .admit_remote_input(
+                RemoteEndpointId(incoming.endpoint()),
+                CordId(incoming.cord()),
+                1,
+                b"invalid",
+            )
+            .unwrap();
+        bound.kernel.step().unwrap();
+        assert!(matches!(
+            bound.dispatch_one().unwrap(),
+            root_native_preparation::NativeDispatch::Refused(
+                root_native_preparation::NativeDispatchRefusal::Call(_)
+            )
+        ));
+        assert_eq!(
+            bound.dispatch_one().unwrap(),
+            root_native_preparation::NativeDispatch::Idle
+        );
+        assert!(matches!(
+            bound.kernel.step(),
+            Err(conduit_kernel::scheduler::SchedulerError::BackFailed(_))
+        ));
+        bound.kernel.cancel().unwrap();
+        let retired = (*bound.kernel)
             .try_retire()
             .unwrap_or_else(|_| panic!("native Root kernel not drained"));
         assert!(retired
@@ -140,7 +150,7 @@ pub(super) fn run(
             .events()
             .any(|e| e.kind == KernelEventKind::RunCancelled));
         assert_eq!(retired.values.used_items(), 0);
-        assert_eq!(call.provider.effects, 1);
+        assert_eq!(bound.call.provider.effects, 1);
     });
     assert_eq!((execution.allocations, execution.reallocations), (0, 0));
     std::println!("actual Root native kernel: {charge} retained backing/kernel bytes; budget/cancellation preserve ready owner, typed Fore/Host Call/egress and terminal retirement, zero binding/execution allocation; CPU-only, no whole-workset admission or device Start claim");

@@ -1,0 +1,95 @@
+//! One admitted synchronous Host Call; no loop, transport or Start authority.
+use super::*;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum NativeDispatchRefusal {
+    Call(I2cCallRefusal),
+    Kernel(SchedulerError),
+    OutputBounds,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum NativeDispatch {
+    Idle,
+    Completed,
+    Refused(NativeDispatchRefusal),
+}
+
+impl<P: I2cProvider> BoundNativeKernel<P> {
+    /// Root calls this only after independently authorizing Start. It services
+    /// at most one already pending request and never advances the scheduler.
+    /// Every adapter refusal becomes an exact failed completion, so polling
+    /// again cannot retry a physical transaction or strand a dispatched request.
+    /// Physical bus outcomes remain ordinary typed result values from the Back.
+    pub fn dispatch_one(&mut self) -> Result<NativeDispatch, SchedulerError> {
+        let Some(request) = self.kernel.next_host_request() else {
+            return Ok(NativeDispatch::Idle);
+        };
+        let result = (|| {
+            let input = self
+                .kernel
+                .host_value(request.input.value)
+                .map_err(NativeDispatchRefusal::Kernel)?;
+            let output = self
+                .call
+                .invoke(request.node, request.call, request.request, input)
+                .map_err(NativeDispatchRefusal::Call)?;
+            if output.len() > I2C_MAXIMUM_BYTES as usize {
+                return Err(NativeDispatchRefusal::OutputBounds);
+            }
+            let value = self
+                .kernel
+                .store_host_value(output)
+                .map_err(NativeDispatchRefusal::Kernel)?;
+            // The preceding finite extent check guarantees this conversion.
+            Ok(BoundedValueRef::new(value, I2C_MAXIMUM_BYTES)
+                .expect("checked native result extent"))
+        })();
+        let (outcome, report) = match result {
+            Ok(output) => (
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output: Some(output),
+                    failure: None,
+                },
+                NativeDispatch::Completed,
+            ),
+            Err(reason) => {
+                let code = match &reason {
+                    NativeDispatchRefusal::Call(
+                        I2cCallRefusal::Capability(_)
+                        | I2cCallRefusal::Possession
+                        | I2cCallRefusal::WrongBinding,
+                    ) => FailureCode::HostCallDenied,
+                    NativeDispatchRefusal::Kernel(SchedulerError::Storage(_)) => {
+                        FailureCode::StorageExhausted
+                    }
+                    _ => FailureCode::HostCallFailed,
+                };
+                (
+                    HostCallOutcome {
+                        disposition: if code == FailureCode::HostCallDenied {
+                            HostCallDisposition::Denied
+                        } else {
+                            HostCallDisposition::Failed
+                        },
+                        output: None,
+                        failure: Some(Failure { code, detail: 0 }),
+                    },
+                    NativeDispatch::Refused(reason),
+                )
+            }
+        };
+        if let Err(error) = self
+            .kernel
+            .complete_host_call(request.node, request.request, outcome)
+        {
+            if let Some(output) = outcome.output {
+                // The scheduler rejected ownership; do not leak its unqueued value.
+                let _ = self.kernel.discard_host_value(output.value);
+            }
+            return Err(error);
+        }
+        Ok(report)
+    }
+}

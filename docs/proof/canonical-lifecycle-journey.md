@@ -6807,3 +6807,30 @@ input-retained / resources-released / start-not-installed. Installing a retained
 supervisor and explicit execution authority remains necessary; Green's existing
 measurement/display tasks and all device state were left untouched. Full
 canonical journey acceptance remains open under #6770/#6295 and related owners.
+
+
+### 5 November 2026 — Native Root dispatch replaces handwritten proof dispatch
+
+`BoundNativeKernel::dispatch_one` now services at most one pending I2C Host
+Call through the already bound local possession and the ordinary kernel
+completion interface. It does not step the scheduler, grant Start, receive
+transport input, retry a request or allocate another buffer. Physical bus
+outcomes retain the existing typed result contract. Adapter refusal completes
+the pending request with a standard failed/denied outcome and returns its typed
+cause to Root; a rejected completion releases any unqueued output value.
+
+The actual native Root CPU proof uses this production method instead of its
+handwritten dispatch sequence. A valid typed request produces exactly one
+provider effect and exact typed egress; another poll is idle. A malformed
+second request produces a typed refusal and actual `BackFailed` kernel result,
+without another provider effect or redispatch. Cancellation and terminal
+retirement still drain the kernel, and binding/execution/retirement remain
+allocation-free. All 14 parser-free I2C library tests pass. Raw proof is retained
+locally under `target/root-native-dispatch-20261105/`.
+
+A read-only live check found Green at 696 successful samples and 10,440 display
+frames/acknowledgments, current Body membership and no reported sensor/display
+fault. Its build remains `46fb0bbc…`, with diagnostic measurement/display rather
+than admitted Plays. No firmware, grants, services or retained device state were
+changed. Complete-workset native resource admission, explicit execution policy,
+receiver supervision and physical Start remain open under the existing owners.
