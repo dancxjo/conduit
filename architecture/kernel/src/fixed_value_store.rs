@@ -112,7 +112,8 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
         if self
             .used_bytes
             .checked_add(byte_len)
-            .is_none_or(|used| used > self.byte_capacity)
+            .filter(|used| *used <= self.byte_capacity)
+            .is_none()
         {
             return Err(StorageError::ByteCapacityExceeded);
         }
