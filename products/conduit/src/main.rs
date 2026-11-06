@@ -3,6 +3,9 @@
 mod allocation_probe;
 
 #[cfg(test)]
+mod source_preparation_memory_tests;
+
+#[cfg(test)]
 #[path = "../../../make/body/tests/common/joining_host_package.rs"]
 mod joining_host_package_test_common;
 

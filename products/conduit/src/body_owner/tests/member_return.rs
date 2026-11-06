@@ -273,8 +273,11 @@ fn image_return_attestation_resolves_exact_committed_offers_inside_owner() {
             .into(),
     };
     assert_eq!(
-        conduit_std_host::pico_spawn::resolve_member_offer_images(&projection, &[bytes.clone()])
-            .unwrap(),
+        conduit_std_host::pico_spawn::resolve_member_offer_images(
+            &projection,
+            std::slice::from_ref(&bytes)
+        )
+        .unwrap(),
         ad
     );
     let challenge = owner
