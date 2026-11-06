@@ -33,3 +33,9 @@ opt-level = 3
 # admitted work budget. Keep the size profile elsewhere and all image/work limits.
 [profile.release.package.conduit-face]
 opt-level = 3
+
+# Authoritative Patchbay contribution comparison and its temporary fragment
+# cleanup execute inside the same finite publication entry. Optimize that path
+# without changing the 64-RTC operation grant or the linked 2-MiB image window.
+[profile.release.package.patchbay-application]
+opt-level = 3
