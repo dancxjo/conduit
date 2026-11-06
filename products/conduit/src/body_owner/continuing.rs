@@ -74,6 +74,10 @@ impl Owner {
                 creche_binding = self.prepare_creche_service_run(root, &source.plot)?;
             }
         }
+        // Source/catalog ownership ends after complete preparation, before Wake
+        // or the one finite worker can retain parser contexts.
+        drop(borrowed);
+        drop(sources);
         let ad = self.host.advertisement();
         self.session
             .propose(partitions, &ad.host_id, &ad.boot_id)
