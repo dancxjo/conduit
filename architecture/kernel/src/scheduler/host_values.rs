@@ -48,6 +48,18 @@ where
     S: ValueStorage,
     E: SignSink,
 {
+    /// Preflight a bounded synchronous Host result and its completion Sign.
+    /// The trusted adapter must not await or mutate value/Sign custody between
+    /// this check, the physical effect and publication. Unsupported storage
+    /// refuses; this creates no capability or long-lived reservation.
+    pub fn preflight_host_result_storage(&self, maximum_bytes: u32) -> Result<(), SchedulerError> {
+        if self.cancelled {
+            return Err(SchedulerError::Cancelled);
+        }
+        self.values.preflight_canonical_store(maximum_bytes)?;
+        self.ensure_sign_capacity(1)
+    }
+
     pub fn store_host_value(&mut self, bytes: &[u8]) -> Result<ValueRef, SchedulerError> {
         if self.cancelled {
             return Err(SchedulerError::Cancelled);

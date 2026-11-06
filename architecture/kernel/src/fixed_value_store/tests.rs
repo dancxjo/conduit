@@ -1,4 +1,35 @@
 use super::*;
+
+#[test]
+fn canonical_preflight_matches_pressure_and_retired_slot_refusals() {
+    let mut store = FixedValueStore::<1, 8>::new(8).unwrap();
+    assert_eq!(
+        store.preflight_canonical_store(9),
+        Err(StorageError::ValueTooLarge)
+    );
+    assert_eq!(store.preflight_canonical_store(8), Ok(()));
+    let small = store.store(&[1]).unwrap();
+    assert_eq!(
+        store.preflight_canonical_store(1),
+        Err(StorageError::ItemCapacityExceeded)
+    );
+    store.release(small).unwrap();
+    let held = store.store(&[1; 8]).unwrap();
+    assert_eq!(
+        store.preflight_canonical_store(1),
+        Err(StorageError::ByteCapacityExceeded)
+    );
+    assert_eq!(store.get(held).unwrap(), &[1; 8]);
+    store.release(held).unwrap();
+    assert_eq!(store.preflight_canonical_store(8), Ok(()));
+    store.slots[0].generation = u16::MAX;
+    store.has_retired_slots = true;
+    assert_eq!(
+        store.preflight_canonical_store(1),
+        Err(StorageError::GenerationExhausted)
+    );
+    assert_eq!(store.store(&[1]), Err(StorageError::GenerationExhausted));
+}
 #[test]
 fn dense_store_and_released_holes_preserve_first_free_slot_identity() {
     let mut store = FixedValueStore::<4096, 1>::new(1).unwrap();
