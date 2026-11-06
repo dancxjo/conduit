@@ -7949,3 +7949,38 @@ Maintenance removed the inactive Source-check review target cache and regenerate
 Body-make package artifacts (about 6.7 GiB total); retained source, proof logs,
 firmware, credentials and live services remain. Root headroom reached 7.8 GiB;
 /tmp reached 15 GiB. No device/service was redeployed in this checkpoint.
+
+### 6 November 2026 — static I2C routing experiment exposes terminal mismatch
+
+An ordinary Source experiment tagged two caller streams, merged their requests
+through one `machine/i2c/transact` placement, paired each FIFO context/result
+through `flow/zip/finite`, and selected the tagged result back to its caller.
+The actual ordinary planner accepted exactly one native I2C placement against
+the unchanged capacity-one attachment. Preparation issued no bus effects.
+
+CPU kernel transcript tests then disproved this topology's required terminal
+behavior. With both inputs closed after admitting their finite requests, one
+case completed with only the first caller's result. A case with only one caller
+remained Active after 512 bounded steps, despite issuing its real inert-provider
+transaction. Tests require both exact success bytes and a separately routed
+not-acknowledged result; neither check was relaxed. Early test attempts corrected
+a Rust sequence-value shape name and the Source record/variant declaration
+syntax; the final failures concern actual kernel lifetime, not parsing.
+
+Inspection of `architecture/composite/src/flow_zip.rs` explains why ordinary
+finite zip is unsuitable as a request/reply drain: normal close flushes only
+an already formed pair and can discard unmatched retained/queued values. Its
+existing documented semantics were not changed. `flow/zip/feedback` has a
+different state-return obligation and is not an interchangeable spelling.
+This is evidence of a missing composition/lifetime contract, not proof that
+physical controller sharing is impossible and not permission to lose replies.
+
+The experiment is excluded from production Source and tests. Exact Source,
+CPU test and failed transcript are retained in ignored
+`target/i2c-two-client-experiment-20261106`; a replay patch is retained there too.
+No runtime service, new Kind, inflated capacity or firmware deployment was
+introduced. The next static-composition step requires an explicit bounded
+request/reply correlation and drain contract, or a proven existing operation
+with that lifetime. #4833 owns this protocol-composition dependency; #6341
+continues to own memory admission. The earlier installed Source-action gap
+remains an independent lifecycle blocker.
