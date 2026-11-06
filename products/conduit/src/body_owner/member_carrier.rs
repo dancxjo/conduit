@@ -426,6 +426,25 @@ impl Owner {
         let member = receipt.presentation()?;
         self.require_current_native_member(&member)?;
         self.require_observed_member_offer(&member.host_advertisement)?;
+        if let super::super::MembershipReceiptDocument::ImageReturn { receipt, .. } = receipt {
+            let accepted: Vec<_> = self
+                .current_host_offers
+                .current_grants(self.session.evidence())
+                .filter(|grant| {
+                    grant.host_id == member.host_advertisement.host_id
+                        && grant.boot_id == member.host_advertisement.boot_id
+                })
+                .collect();
+            if accepted
+                != receipt
+                    .projection
+                    .authority_grants
+                    .iter()
+                    .collect::<Vec<_>>()
+            {
+                return Err("image receipt grants differ from fresh committed return".into());
+            }
+        }
         let manager = self
             .admissions
             .as_ref()

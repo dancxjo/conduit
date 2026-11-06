@@ -12,10 +12,19 @@ impl Owner {
         evidence: &BodyBiographyEvidence,
         advertisement: HostAdvertisement,
     ) -> Result<CurrentHostOffers, String> {
+        self.next_member_offers_with_grants(evidence, advertisement, Vec::new())
+    }
+
+    pub(super) fn next_member_offers_with_grants(
+        &self,
+        evidence: &BodyBiographyEvidence,
+        advertisement: HostAdvertisement,
+        grants: Vec<conduit_core::AuthorityGrant>,
+    ) -> Result<CurrentHostOffers, String> {
         let mut offers = self.current_host_offers.clone();
         offers.reconcile(evidence);
         offers
-            .observe(evidence, advertisement)
+            .observe_authorized(evidence, advertisement, grants)
             .map_err(|error| format!("current-member-offer-refused:{error:?}"))?;
         Ok(offers)
     }

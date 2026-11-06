@@ -5,7 +5,7 @@
 //! prevents durable membership from becoming stale capability truth.
 
 use alloc::vec::Vec;
-use conduit_core::{HostAdvertisement, PROTOCOL_VERSION};
+use conduit_core::{AuthorityGrant, HostAdvertisement, PROTOCOL_VERSION};
 
 use crate::{
     BodyBiographyEvidence, MembershipState, MAX_BODY_PARTS, MAX_CANDIDATE_CAPABILITIES,
@@ -15,6 +15,7 @@ use crate::{
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CurrentHostOffers {
     hosts: Vec<HostAdvertisement>,
+    grants: Vec<AuthorityGrant>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -50,10 +51,53 @@ impl CurrentHostOffers {
         evidence: &BodyBiographyEvidence,
         advertisement: HostAdvertisement,
     ) -> Result<(), CurrentHostOfferError> {
+        self.observe_authorized(evidence, advertisement, Vec::new())
+    }
+
+    /// Caller must independently authenticate these original descriptions and
+    /// commit the fresh member return before publishing this staged collection.
+    /// This method checks correspondence; it does not create execution rights.
+    pub fn observe_authorized(
+        &mut self,
+        evidence: &BodyBiographyEvidence,
+        advertisement: HostAdvertisement,
+        grants: Vec<AuthorityGrant>,
+    ) -> Result<(), CurrentHostOfferError> {
         validate_shape(&advertisement)?;
+        crate::member_return_images::validate_authority_grant_descriptions(&advertisement, &grants)
+            .map_err(|_| CurrentHostOfferError::MalformedAdvertisement)?;
+        for grant in &grants {
+            let mut matching = advertisement
+                .capabilities
+                .iter()
+                .filter(|offer| offer.capability_id == grant.capability_id);
+            let offer = matching
+                .next()
+                .ok_or(CurrentHostOfferError::MalformedAdvertisement)?;
+            if matching.next().is_some()
+                || !offer.authority_requirements.iter().any(|requirement| {
+                    requirement.contract_id == grant.contract_id
+                        && requirement.host_call_contract_id == grant.host_call_contract_id
+                        && requirement.subject_kind == grant.subject_kind
+                })
+            {
+                return Err(CurrentHostOfferError::MalformedAdvertisement);
+            }
+        }
         if !is_current(evidence, &advertisement) {
             return Err(CurrentHostOfferError::NotCurrentMember);
         }
+        if self.hosts.len() == MAX_BODY_PARTS
+            && !self
+                .hosts
+                .iter()
+                .any(|host| host.host_id == advertisement.host_id)
+        {
+            return Err(CurrentHostOfferError::CapacityExceeded);
+        }
+        self.grants
+            .retain(|grant| grant.host_id != advertisement.host_id);
+        self.grants.extend(grants);
         if let Some(index) = self
             .hosts
             .iter()
@@ -61,9 +105,6 @@ impl CurrentHostOffers {
         {
             self.hosts[index] = advertisement;
         } else {
-            if self.hosts.len() == MAX_BODY_PARTS {
-                return Err(CurrentHostOfferError::CapacityExceeded);
-            }
             self.hosts.push(advertisement);
         }
         self.hosts
@@ -71,10 +112,26 @@ impl CurrentHostOffers {
         Ok(())
     }
 
+    /// Descriptions are usable only beside the exact current offer observation.
+    pub fn current_grants<'a>(
+        &'a self,
+        evidence: &'a BodyBiographyEvidence,
+    ) -> impl Iterator<Item = &'a AuthorityGrant> + 'a {
+        self.grants.iter().filter(move |grant| {
+            self.current_hosts(evidence)
+                .any(|ad| ad.host_id == grant.host_id && ad.boot_id == grant.boot_id)
+        })
+    }
+
     /// Remove observations whose exact incarnation is no longer current.
     pub fn reconcile(&mut self, evidence: &BodyBiographyEvidence) {
         self.hosts
             .retain(|advertisement| is_current(evidence, advertisement));
+        self.grants.retain(|grant| {
+            self.hosts
+                .iter()
+                .any(|ad| ad.host_id == grant.host_id && ad.boot_id == grant.boot_id)
+        });
     }
 }
 

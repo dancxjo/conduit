@@ -16,6 +16,7 @@ pub(super) struct PendingMemberReturn {
     advertisement: HostAdvertisement,
     deadline: Instant,
     attempts: u8,
+    presentation: Option<conduit_body::MemberReturnImagePresentation>,
 }
 
 impl Owner {
@@ -24,6 +25,27 @@ impl Owner {
         credential: &MembershipCredential,
         advertisement: &HostAdvertisement,
     ) -> Result<PartReturnChallenge, String> {
+        self.begin_member_image_return(credential, advertisement, None)
+    }
+
+    /// The control boundary independently resolves images before entering here.
+    pub(crate) fn begin_member_image_return(
+        &mut self,
+        credential: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+        presentation: Option<conduit_body::MemberReturnImagePresentation>,
+    ) -> Result<PartReturnChallenge, String> {
+        if let Some(claim) = &presentation {
+            let mut context = advertisement.clone();
+            context.capabilities.clear();
+            if claim.credential != *credential || claim.projection.context != context {
+                return Err("member return presentation differs from pending context".into());
+            }
+            claim
+                .projection
+                .validate()
+                .map_err(|e| format!("member grants: {e:?}"))?;
+        }
         if self.host.is_playing() {
             return Err("body-play-active".into());
         }
@@ -32,7 +54,10 @@ impl Owner {
             .as_ref()
             .filter(|p| Instant::now() < p.deadline)
         {
-            if pending.prior == *credential && pending.advertisement == *advertisement {
+            if pending.prior == *credential
+                && pending.advertisement == *advertisement
+                && pending.presentation == presentation
+            {
                 if let Some((_, current)) = &pending.completed {
                     self.require_current_native_member(
                         &super::super::MemberPresentationBasis::new(
@@ -86,6 +111,7 @@ impl Owner {
             prior: credential.clone(),
             completed: None,
             attempts: 0,
+            presentation,
             deadline: Instant::now() + Duration::from_secs(10),
         });
         Ok(challenge)
@@ -177,7 +203,26 @@ impl Owner {
             .pending_member_return
             .as_ref()
             .ok_or("member return pending custody lost")?;
-        let offers = self.next_member_offers(next.evidence(), pending.advertisement.clone())?;
+        let grants = if let Some(presentation) = &pending.presentation {
+            let witness = manager
+                .current_member_continuity(
+                    &next.evidence().membership,
+                    &credential.part_id,
+                    &pending.advertisement,
+                )
+                .map_err(|e| format!("member return continuity: {e:?}"))?;
+            presentation
+                .verify(&witness.peer().verifying_key)
+                .map_err(|e| format!("member return grant signature: {e:?}"))?;
+            presentation.projection.authority_grants.clone()
+        } else {
+            Vec::new()
+        };
+        let offers = self.next_member_offers_with_grants(
+            next.evidence(),
+            pending.advertisement.clone(),
+            grants,
+        )?;
         state::retain_session(
             root,
             &mut next,

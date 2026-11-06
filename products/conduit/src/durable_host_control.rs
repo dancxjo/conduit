@@ -145,7 +145,10 @@ pub(crate) use body::{
     carrier_mask_route, carrier_receiver, carrier_show, complete_carrier, renew_carrier_presence,
     retire_carrier,
 };
-pub(crate) use body::{begin_member_return, complete_member_return, leave_member, return_member};
+pub(crate) use body::{
+    begin_image_member_return, begin_member_return, complete_member_return, leave_member,
+    return_member,
+};
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
 };
@@ -1831,9 +1834,16 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             protocol,
             credential,
             advertisement,
+            presentation,
+            images,
             ..
         } if protocol == PROTOCOL => runtime
-            .owned_body_member_return_begin(&credential, &advertisement)
+            .owned_body_member_return_begin(
+                &credential,
+                &advertisement,
+                presentation.map(|p| *p),
+                &images,
+            )
             .map(|challenge| Response::BodyMemberReturnChallenge {
                 protocol: PROTOCOL,
                 challenge: Box::new(challenge),

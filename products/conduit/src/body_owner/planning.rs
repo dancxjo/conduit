@@ -196,6 +196,12 @@ impl Owner {
             &placements,
         )
         .map_err(debug)?;
+        let mut grants: Vec<_> = self
+            .current_host_offers
+            .current_grants(self.session.evidence())
+            .cloned()
+            .collect();
+        grants.extend(self.host.native_source_authority_grant().cloned());
         let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
             plot,
             &hosts,
@@ -206,13 +212,9 @@ impl Owner {
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
                 connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
-                // This is the original independently authorized native owner,
-                // never a grant synthesized from its advertised requirements.
-                authority_grants: self
-                    .host
-                    .native_source_authority_grant()
-                    .map(std::slice::from_ref)
-                    .unwrap_or(&[]),
+                // Original local authority plus authenticated current-member
+                // descriptions; never grants inferred from advertised needs.
+                authority_grants: &grants,
                 protected_resource_grants: &[],
                 line_offers: &[],
             },

@@ -181,6 +181,8 @@ pub(super) enum Request {
         token: Vec<u8>,
         credential: MembershipCredential,
         advertisement: Box<HostAdvertisement>,
+        presentation: Option<Box<conduit_body::MemberReturnImagePresentation>>,
+        images: Vec<Vec<u8>>,
     },
     BodyMemberReturnComplete {
         protocol: u16,

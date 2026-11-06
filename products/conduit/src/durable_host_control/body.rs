@@ -15,7 +15,9 @@ pub(crate) use member_carrier::{
 mod member_leave;
 #[path = "body/member_return.rs"]
 mod member_return;
-pub(crate) use member_return::{begin_member_return, complete_member_return, return_member};
+pub(crate) use member_return::{
+    begin_image_member_return, begin_member_return, complete_member_return, return_member,
+};
 #[path = "body/native_mask_route.rs"]
 mod native_mask_route;
 #[cfg(unix)]

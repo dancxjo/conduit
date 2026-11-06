@@ -61,6 +61,13 @@ fn current_member_offers_follow_authenticated_commit_not_membership_alone() {
     )
     .unwrap();
     assert!(reopened.current_host_offers.hosts().is_empty());
+    assert_eq!(
+        reopened
+            .current_host_offers
+            .current_grants(reopened.session.evidence())
+            .count(),
+        0
+    );
     assert!(reopened.current_offer_summary().is_empty());
     assert!(reopened.require_observed_member_offer(&new).is_err());
     std::fs::remove_dir_all(root).unwrap();
@@ -216,7 +223,7 @@ fn image_return_attestation_resolves_exact_committed_offers_inside_owner() {
         image.extend(compressed);
         image
     }
-    let offer = c::capability_offer_from_parts! {
+    let mut offer = c::capability_offer_from_parts! {
         semantic_contract: Default::default(), startup_parameters: vec![], shorthand: None,
         capability_id: "fixture/offer".into(), kind_id: "fixture/kind".into(), kind_contract_revision: "fixture/kind@1".into(),
         inputs: vec![], outputs: vec![],
@@ -232,6 +239,20 @@ fn image_return_attestation_resolves_exact_committed_offers_inside_owner() {
     ad.bases.clear();
     ad.resources.clear();
     ad.planner_capabilities.clear();
+    let grant = c::AuthorityGrant {
+        grant_id: "fixture/original-image-grant".into(),
+        contract_id: "fixture/authority".into(),
+        host_call_contract_id: "fixture/call".into(),
+        subject_kind: offer.kind_id.clone(),
+        capability_id: offer.capability_id.clone(),
+        host_id: ad.host_id.clone(),
+        boot_id: ad.boot_id.clone(),
+    };
+    offer.authority_requirements.push(c::AuthorityRequirement {
+        contract_id: grant.contract_id.clone(),
+        host_call_contract_id: grant.host_call_contract_id.clone(),
+        subject_kind: grant.subject_kind.clone(),
+    });
     ad.capabilities = vec![offer.clone()];
     let bytes = image(&offer);
     let mut context = ad.clone();
@@ -239,10 +260,26 @@ fn image_return_attestation_resolves_exact_committed_offers_inside_owner() {
     let projection = Projection {
         context,
         capability_images: vec![Sha256::digest(&bytes).into()],
-        authority_grants: vec![],
+        authority_grants: vec![grant.clone()],
     };
     let peer = owner.prepare_current_member_carrier_receiver().unwrap();
-    let challenge = owner.begin_member_return(&prior, &ad).unwrap();
+    let presentation = conduit_body::MemberReturnImagePresentation {
+        kind: "Advertise".into(),
+        schema: conduit_body::MEMBER_RETURN_IMAGES_SCHEMA.into(),
+        credential: prior.clone(),
+        projection: projection.clone(),
+        signature: key
+            .sign(&conduit_body::member_return_image_transcript(&prior, &projection).unwrap())
+            .into(),
+    };
+    assert_eq!(
+        conduit_std_host::pico_spawn::resolve_member_offer_images(&projection, &[bytes.clone()])
+            .unwrap(),
+        ad
+    );
+    let challenge = owner
+        .begin_member_image_return(&prior, &ad, Some(presentation))
+        .unwrap();
     let mut uncommitted = prior.clone();
     uncommitted.boot_id = ad.boot_id.clone();
     assert!(owner
@@ -272,6 +309,18 @@ fn image_return_attestation_resolves_exact_committed_offers_inside_owner() {
         .verify_image_return(&peer, &key.verifying_key(), &prior, &projection)
         .unwrap();
     assert_eq!(receipt.credential, current);
+    let mut unaccepted = ack.clone();
+    unaccepted.projection.authority_grants[0].grant_id = "fixture/unaccepted-grant".into();
+    unaccepted.projection.validate().unwrap();
+    assert!(owner
+        .attest_current_member_receipt(
+            &Document::ImageReturn {
+                receipt: unaccepted,
+                images: vec![bytes.clone()],
+            },
+            &peer
+        )
+        .is_err());
     assert_eq!(owner.session.evidence(), &before);
     assert_eq!(state::load(&root).unwrap().unwrap(), before);
     let mut corrupted = bytes.clone();
@@ -320,4 +369,123 @@ fn image_return_attestation_resolves_exact_committed_offers_inside_owner() {
         )
         .is_err());
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn original_member_grants_publish_only_after_signed_fresh_durable_return() {
+    use conduit_body::{
+        member_return_image_transcript, HostAdvertisementImageProjection,
+        MemberReturnImagePresentation, MEMBER_RETURN_IMAGES_SCHEMA,
+    };
+    use conduit_core::{AuthorityGrant, AuthorityRequirement};
+    for fault in ["none", "signature", "capability", "requirement", "boot"] {
+        let (mut owner, root) = owner_fixture();
+        let (prior, key, mut ad) = admit_with_key(&mut owner, &root, "host/grant-return");
+        owner.member_leave(&root, &prior).unwrap();
+        ad.boot_id = "boot/grant-return/2".into();
+        ad.offer_generation.0 += 1;
+        let offer = ad.capabilities.first_mut().unwrap();
+        let requirement = AuthorityRequirement {
+            contract_id: "fixture/authority".into(),
+            host_call_contract_id: "fixture/call".into(),
+            subject_kind: offer.kind_id.clone(),
+        };
+        offer.authority_requirements = vec![requirement.clone()];
+        let mut grant = AuthorityGrant {
+            grant_id: "fixture/original-grant".into(),
+            contract_id: requirement.contract_id,
+            host_call_contract_id: requirement.host_call_contract_id,
+            subject_kind: requirement.subject_kind,
+            host_id: ad.host_id.clone(),
+            boot_id: ad.boot_id.clone(),
+            capability_id: offer.capability_id.clone(),
+        };
+        match fault {
+            "capability" => grant.capability_id = "fixture/absent".into(),
+            "requirement" => grant.contract_id = "fixture/unselected".into(),
+            "boot" => grant.boot_id = "fixture/old-boot".into(),
+            _ => {}
+        }
+        let mut context = ad.clone();
+        context.capabilities.clear();
+        let projection = HostAdvertisementImageProjection {
+            context,
+            capability_images: vec![],
+            authority_grants: vec![grant.clone()],
+        };
+        if fault == "boot" {
+            assert!(projection.validate().is_err());
+            continue;
+        }
+        let mut presentation = MemberReturnImagePresentation {
+            kind: "Advertise".into(),
+            schema: MEMBER_RETURN_IMAGES_SCHEMA.into(),
+            credential: prior.clone(),
+            signature: key
+                .sign(&member_return_image_transcript(&prior, &projection).unwrap())
+                .into(),
+            projection,
+        };
+        if fault == "signature" {
+            presentation.signature[0] ^= 1;
+        }
+        let challenge = owner
+            .begin_member_image_return(&prior, &ad, Some(presentation))
+            .unwrap();
+        assert_eq!(
+            owner
+                .current_host_offers
+                .current_grants(owner.session.evidence())
+                .count(),
+            0
+        );
+        let proof = prove(&challenge, &key);
+        let before = owner.session.evidence().clone();
+        let blocked = root.join("blocked-grant-commit");
+        std::fs::write(&blocked, b"occupied").unwrap();
+        assert!(owner.complete_member_return(&blocked, &proof).is_err());
+        assert_eq!(owner.session.evidence(), &before);
+        assert_eq!(
+            owner
+                .current_host_offers
+                .current_grants(owner.session.evidence())
+                .count(),
+            0
+        );
+        if fault != "none" {
+            assert!(owner.complete_member_return(&root, &proof).is_err());
+            assert_eq!(owner.session.evidence(), &before);
+            assert_eq!(
+                owner
+                    .current_host_offers
+                    .current_grants(owner.session.evidence())
+                    .count(),
+                0
+            );
+            continue;
+        }
+        let current = owner.complete_member_return(&root, &proof).unwrap();
+        assert_eq!(
+            owner
+                .current_host_offers
+                .current_grants(owner.session.evidence())
+                .collect::<Vec<_>>(),
+            vec![&grant]
+        );
+        owner.complete_member_return(&root, &proof).unwrap();
+        let mut replaced = owner.current_host_offers.clone();
+        // An ordinary observation cannot inherit a preceding signed grant set.
+        replaced.observe(owner.session.evidence(), ad).unwrap();
+        assert_eq!(replaced.current_grants(owner.session.evidence()).count(), 0);
+        let retained = owner.current_host_offers.clone();
+        owner.member_leave(&root, &current).unwrap();
+        assert_eq!(retained.current_grants(owner.session.evidence()).count(), 0);
+        assert_eq!(
+            owner
+                .current_host_offers
+                .current_grants(owner.session.evidence())
+                .count(),
+            0
+        );
+    }
 }

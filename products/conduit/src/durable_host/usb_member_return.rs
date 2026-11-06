@@ -28,9 +28,10 @@ pub(crate) fn return_usb(
     let observed = socket
         .request_member_return(&basis, timeout)
         .map_err(|e| format!("observe actual returning member: {e:?}"))?;
-    let challenge = crate::durable_host_control::begin_member_return(
+    let challenge = crate::durable_host_control::begin_image_member_return(
         state,
-        basis.credential.clone(),
+        observed.presentation.clone(),
+        observed.images.clone(),
         observed.advertisement.clone(),
     )?;
     let proof = socket
