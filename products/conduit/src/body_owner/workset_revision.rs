@@ -26,6 +26,33 @@ impl Owner {
             &conduit_plot::ExpandedAuthoringPlot,
         )],
     ) -> Result<(), String> {
+        self.commit_admitted_workset_revision_with_boundaries(
+            root,
+            expected,
+            sources,
+            &Default::default(),
+        )
+    }
+
+    /// Existing independently selected adapter bounds participate in revision
+    /// preflight exactly as they do in ordinary subsequent workset planning.
+    /// Supplying budgets confers neither Source nor adoption authority.
+    pub(super) fn commit_admitted_workset_revision_with_boundaries(
+        &mut self,
+        root: &Path,
+        expected: &BodyBiographyEvidence,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        boundaries: &std::collections::BTreeMap<
+            ResidentPlot,
+            std::collections::BTreeMap<
+                conduit_planner::ForeBoundaryKey,
+                conduit_planner::ConnectionQueueLimits,
+            >,
+        >,
+    ) -> Result<(), String> {
         self.ensure_execution_retained(root)?;
         if self.host.is_playing()
             || self.session.realization().is_some()
@@ -51,7 +78,7 @@ impl Owner {
         }
         // The same ordinary planner independently rechecks every exact Source
         // and current offer. Preparation is not reservation or permission to run.
-        self.prepare_workset_partitions_for(&desired, sources, &Default::default())?;
+        self.prepare_workset_partitions_for(&desired, sources, boundaries)?;
         let ad = self.host.advertisement();
         let mut staged = self.session.clone();
         for plot in expected
