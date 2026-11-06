@@ -74,6 +74,11 @@ impl PreparedLeafSequenceEncoder {
         self.maximum_bytes
     }
 
+    /// Retained heap payload prepared before Play, excluding this inline value.
+    pub fn prepared_heap_bytes(&self) -> usize {
+        self.element_kind.0.capacity() + self.prefix.capacity() + self.output.capacity()
+    }
+
     pub fn encoded(&self) -> &[u8] {
         &self.output
     }

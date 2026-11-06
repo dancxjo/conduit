@@ -15,6 +15,7 @@ conduit-plot = { path = "../../../architecture/plot", optional = true }
 conduit-composite = { path = "../../../architecture/composite", optional = true }
 
 [build-dependencies]
+conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 
 [dev-dependencies]

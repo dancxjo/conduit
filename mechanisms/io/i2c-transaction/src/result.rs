@@ -1,6 +1,6 @@
 //! Finite typed bus outcomes. No device-specific interpretation or retry policy.
 use super::{
-    contract::{I2cContract, I2C_MAXIMUM_BYTES},
+    contract::I2cContract,
     transaction::{I2cDisposition, MAXIMUM_TRANSACTION_BYTES},
 };
 use alloc::vec::Vec;
@@ -24,6 +24,15 @@ pub enum I2cResultRefusal {
 }
 
 impl PreparedI2cResultEncoder {
+    /// Retained buffer/schema storage; does not grant execution memory.
+    pub fn prepared_heap_bytes(&self) -> usize {
+        self.result.prepared_heap_bytes()
+            + self.completed.prepared_heap_bytes()
+            + self.short.prepared_heap_bytes()
+            + self.input.prepared_heap_bytes()
+            + self.unit.capacity()
+    }
+
     pub fn new(contract: &I2cContract) -> Result<Self, StructuredInfoRefusal> {
         let StructuredInfoTypeShape::Variant { cases, .. } = contract.result_type().shape() else {
             return Err(StructuredInfoRefusal::WrongType);
@@ -41,15 +50,27 @@ impl PreparedI2cResultEncoder {
         )?;
         let unit = unit.leaf(&[])?.to_vec();
         Ok(Self {
-            result: PreparedStructuredComposer::new(
+            result: PreparedStructuredComposer::with_static_schema(
                 contract.result_type(),
-                I2C_MAXIMUM_BYTES as usize,
+                include_bytes!(concat!(env!("OUT_DIR"), "/result.type")),
+                include_str!(concat!(env!("OUT_DIR"), "/result.bound"))
+                    .parse()
+                    .map_err(|_| StructuredInfoRefusal::WrongType)?,
             )?,
-            completed: PreparedStructuredComposer::new(
+            completed: PreparedStructuredComposer::with_static_schema(
                 payload("completed")?,
-                I2C_MAXIMUM_BYTES as usize,
+                include_bytes!(concat!(env!("OUT_DIR"), "/completed.type")),
+                include_str!(concat!(env!("OUT_DIR"), "/completed.bound"))
+                    .parse()
+                    .map_err(|_| StructuredInfoRefusal::WrongType)?,
             )?,
-            short: PreparedStructuredComposer::new(payload("short")?, I2C_MAXIMUM_BYTES as usize)?,
+            short: PreparedStructuredComposer::with_static_schema(
+                payload("short")?,
+                include_bytes!(concat!(env!("OUT_DIR"), "/short.type")),
+                include_str!(concat!(env!("OUT_DIR"), "/short.bound"))
+                    .parse()
+                    .map_err(|_| StructuredInfoRefusal::WrongType)?,
+            )?,
             input: PreparedLeafSequenceEncoder::new(
                 kind_id("value/u8"),
                 1,

@@ -6587,3 +6587,30 @@ integration is the existing exact assigned I2C Host Call binding alongside
 resident computations, with independently funded storage, actual local capability
 possession and whole-workset admission before Start. The receiver still reports
 Start uninstalled; no meaningful admitted physical Play is claimed.
+
+
+### Native I2C result storage uses checked fabrication output
+
+Before wiring native calls into Root, inspection found three 4,096-byte output
+buffers and owned copies of immutable result schemas in the existing encoder.
+The fabrication build now checks the existing authored I2C Types and derives
+maximum canonical result/payload lengths from all result cases and the full
+32-octet sequence. Runtime composers compare their exact Types with linked schema
+bytes and borrow those immutable bytes; each output reserves only its derived
+maximum. Transport limits, result semantics, authority and admitted grants are
+unchanged. The generic leaf-sequence encoder exposes retained heap capacity so
+native preparation can count all of these buffers rather than guess.
+
+The actual encoder retains 2,173 heap payload bytes on the CPU fixture, compared
+with the previous output buffers alone reserving 12,288 bytes (excluding their
+owned schemas and other encoder storage). Encoding every supported length,
+short result and bus disposition uses zero allocations/reallocations. Fourteen
+no-default-feature library tests and the allocation/storage integration test
+pass, including the existing assigned Body/Fore custody tests. This does not
+prove MCU peak RAM, fallible allocation throughout preparation or physical Start.
+Raw proof is retained under `target/i2c-exact-result-storage-20261105/`.
+
+A focused current-dev extraction includes only fabricated I2C schemas, bounded
+result storage, the small generic sequence capacity inspection and relevant
+conformance tests. Native Start, mixed workset binding and device deployment
+remain within the existing MCU/Root delivery lane.
