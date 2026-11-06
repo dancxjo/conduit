@@ -48,6 +48,8 @@ mod prosody_commitment;
 mod record_pronunciation;
 #[path = "../suites/resource_reference_equality.rs"]
 mod resource_reference_equality;
+#[path = "../suites/semantic_effects.rs"]
+mod semantic_effects;
 #[path = "../suites/speech_ipa.rs"]
 mod speech_ipa;
 #[path = "../suites/todo.rs"]
@@ -120,6 +122,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::FixedNumericDsp => run_suite(fixed_numeric_dsp::STEPS, &root, opts),
         CheckSuite::CrechePreparation => run_suite(creche_preparation::STEPS, &root, opts),
         CheckSuite::NativeSourceLaws => run_suite(native_source_laws::STEPS, &root, opts),
+        CheckSuite::SemanticEffects => run_suite(semantic_effects::STEPS, &root, opts),
         CheckSuite::NativeLawCustody => run_suite(native_law_custody::STEPS, &root, opts),
         CheckSuite::ResourceReferenceEquality => {
             run_suite(resource_reference_equality::STEPS, &root, opts)
