@@ -2,6 +2,8 @@
 //! Complete workset admission and authorized Start remain caller obligations.
 #[path = "native_dispatch.rs"]
 mod dispatch;
+#[path = "native_tables.rs"]
+pub(crate) mod tables;
 use alloc::boxed::Box;
 use conduit_core as c;
 use conduit_i2c_transaction::{
@@ -10,15 +12,12 @@ use conduit_i2c_transaction::{
     owner::{I2cCallRefusal, I2cHostCall},
     I2cProvider,
 };
-use conduit_kernel::{
-    assigned::{BoundedAssignedKernelTables, ResidentLayout},
-    scheduler::*,
-    *,
-};
+use conduit_kernel::{scheduler::*, *};
 use conduit_plan_lowering::{
     assigned_play_scope::AssignedPlayScope,
     selected_assigned_operation::{AssignedOperationInput, SelectedAssignedForeOperationPlan},
 };
+pub(crate) use dispatch::dispatch_one;
 pub use dispatch::{NativeDispatch, NativeDispatchRefusal};
 const SIGNS: usize = 16;
 pub type NativeKernel = FixedScheduler<
@@ -40,6 +39,8 @@ pub enum Refusal {
     Scope,
     Bounds,
     Assignment,
+    Tables(conduit_kernel::assigned::AssignedKernelRefusal),
+    Resident(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal),
     Native(I2cCallRefusal),
     Storage(KernelPreparationError),
 }
@@ -103,36 +104,7 @@ impl<'a, P: I2cProvider> PreparedNativeKernel<'a, P> {
         {
             return Err(Refusal::Bounds);
         }
-        let mut pins = [c::AssignedRecordRequirement {
-            tag: 0,
-            payload_digest: [0; 32],
-        }; 128];
-        let mut count = 0;
-        let schema = u16::from_le_bytes(bytes[8..10].try_into().map_err(|_| Refusal::Assignment)?);
-        for record in c::AssignedPlanRecords::new(bytes).map_err(|_| Refusal::Assignment)? {
-            let record = record.map_err(|_| Refusal::Assignment)?;
-            if matches!(
-                record.tag,
-                c::ASSIGNED_CONFIGURATION | c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL
-            ) {
-                continue;
-            }
-            *pins.get_mut(count).ok_or(Refusal::Bounds)? =
-                c::AssignedRecordRequirement::from_kernel_record(record, schema);
-            count += 1;
-        }
-        let tables = BoundedAssignedKernelTables::<1, 2, 1, 1, 2, 1>::prepare_with_fore(
-            bytes,
-            maxima,
-            requirements,
-            computations,
-            &ResidentLayout {
-                records: &pins[..count],
-                counts: view.counts,
-            },
-            fore,
-        )
-        .map_err(|_| Refusal::Assignment)?;
+        let tables = tables::prepare::<1, 2>(bytes, maxima, requirements, computations, fore)?;
         let cords = tables.active_cords();
         if tables.cords[..cords]
             .iter()
