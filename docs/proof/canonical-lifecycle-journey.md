@@ -8815,3 +8815,18 @@ Host, Boot or offer generation and an approval captured before a newer workset
 basis, with retained state unchanged. Strict production Clippy, formatting and
 diff checks pass. Logs are retained in `target/affine-source-approval-20261106/`.
 No live service, MCU or Body workset was changed by this checkpoint.
+
+
+The affine-approval delta is independently extracted as draft PR #6831 at
+`ea5481787d`, two files on accepted dev. Its isolated release-target checks passed
+21 cases (six clock/policy, one attached-Mask, ten Commons, four guarded revision
+and recovery), with the one fresh-product installed-service gate explicitly
+ignored. Strict production Clippy, formatting and diff checks pass. The review
+checkout was reused only after prior builds ended and #6830's exact branch/head
+was committed and pushed; no source or evidence was deleted. Logs are retained
+under `target/review-affine-source-approval-20261106/`.
+
+#6830 remains the ready delivery; #6831 remains draft behind it, respecting the
+existing review/concurrency limit. Both are preparation slices of #6449/#6447,
+not delivery of general Source permission, an installed checking Plot or an
+admitted environmental Play. The live devices and owner remain unchanged.
