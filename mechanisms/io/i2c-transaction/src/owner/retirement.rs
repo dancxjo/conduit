@@ -2,14 +2,35 @@
 use super::*;
 use conduit_core::{CapabilityInspection, CapabilityLifecycle};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum I2cRetirementRefusal {
     Unavailable,
     InFlight,
     NotRevoked,
+    Capability(conduit_core::BaseCapabilityRefusal),
 }
 
 impl<P: I2cProvider> I2cHostCall<P> {
+    /// Finish idle synchronous custody without forcing hardware quarantine.
+    /// Root must first retire the kernel using this owner. Revokes only the
+    /// exact local capability, then transfers custody once; it never resets an
+    /// already quarantined provider or asserts fresh readiness/admission.
+    pub fn finish_retained(
+        owner: &mut Option<Self>,
+    ) -> Result<(P, I2cAttachment), I2cRetirementRefusal> {
+        let current = owner.as_mut().ok_or(I2cRetirementRefusal::Unavailable)?;
+        if current.inspection().in_flight_operations != 0 {
+            return Err(I2cRetirementRefusal::InFlight);
+        }
+        if current.inspection().lifecycle != CapabilityLifecycle::Revoked {
+            current
+                .table
+                .revoke(&current.handle)
+                .map_err(I2cRetirementRefusal::Capability)?;
+        }
+        Self::retire_retained(owner)
+    }
+
     pub fn inspection(&self) -> &CapabilityInspection {
         self.table
             .inspections()

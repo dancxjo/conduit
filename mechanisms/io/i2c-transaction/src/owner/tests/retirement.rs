@@ -93,3 +93,47 @@ fn exhaustion_is_not_revocation_and_does_not_release_custody() {
     assert!(provider.revoked);
     assert_eq!(provider.effects, 1);
 }
+
+#[test]
+fn clean_finish_returns_completed_idle_custody_without_quarantining_provider() {
+    let mut current = fixture::owner();
+    let input = request(&I2cContract::prepare().unwrap(), 0x76, &[0xd0], 1);
+    current
+        .invoke(current.node, HostCallId(0), RequestId(0), &input)
+        .unwrap();
+    let mut retained = Some(current);
+    let (provider, attachment) = I2cHostCall::finish_retained(&mut retained).unwrap();
+    assert_eq!(provider.effects, 1);
+    assert!(!provider.revoked);
+    assert_eq!(attachment.generation, 7);
+    assert!(retained.is_none());
+    assert!(matches!(
+        I2cHostCall::<Provider>::finish_retained(&mut retained),
+        Err(I2cRetirementRefusal::Unavailable)
+    ));
+}
+
+#[test]
+fn clean_finish_preserves_in_flight_custody_and_existing_quarantine() {
+    let mut current = fixture::owner();
+    let lease = current
+        .table
+        .authorize(&current.handle, &current.claim)
+        .unwrap();
+    let mut retained = Some(current);
+    let address = retained.as_ref().unwrap() as *const _;
+    assert!(matches!(
+        I2cHostCall::finish_retained(&mut retained),
+        Err(I2cRetirementRefusal::InFlight)
+    ));
+    assert_eq!(retained.as_ref().unwrap() as *const _, address);
+    let current = retained.as_mut().unwrap();
+    assert_eq!(current.inspection().in_flight_operations, 1);
+    current
+        .table
+        .complete(&mut current.handle, lease, 0)
+        .unwrap();
+    current.revoke(current.node, HostCallId(0)).unwrap();
+    let (provider, _) = I2cHostCall::finish_retained(&mut retained).unwrap();
+    assert!(provider.revoked);
+}
