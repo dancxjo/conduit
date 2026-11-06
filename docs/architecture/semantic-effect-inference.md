@@ -20,6 +20,15 @@ against Core's existing semantic expression rule. A refusal names the exact
 leaf and original source span. Missing and duplicate laws remain refusals,
 including when another leaf has complete pure facts.
 
+Checked `keep` declarations independently establish retained temporal state.
+Each leaf exposes its borrowed `retained_declaration` and `temporal_state`,
+including when its other Kind laws remain unknown. For a KEEP leaf, a pure-context
+check reports the known temporal-state reason before its missing laws; complete
+summaries still require every other law. Repeated template uses retain separate expanded Gear identities
+while borrowing the same declaration. A matching Kind name alone establishes
+no KEEP ownership. These are declaration facts, not current runtime values or
+State authority. The receipt borrows both the graph and checked document.
+
 Deferred activation bodies and shared-pool members require additional selected
 body coverage. Their currently unresolved status refuses composition-wide
 summary/purity conclusions; inspected owner facts do not imply knowledge of
