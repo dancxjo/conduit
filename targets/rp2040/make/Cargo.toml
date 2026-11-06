@@ -22,7 +22,7 @@ critical-section = { version = "1.2", features = ["std"] }
 static_cell = "2"
 conduit-wire = { path = "../../../architecture/wire", features = ["offer-images"] }
 sha2 = "0.10"
-conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering", features = ["body-plan-binding"] }
 conduit-core = { path = "../../../architecture/core", default-features = false }
 serde-json-core = "0.6"
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["kernel-step"] }

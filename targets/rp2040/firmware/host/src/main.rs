@@ -20,6 +20,8 @@ mod heap;
 mod i2c_installation;
 mod i2c_owner;
 mod membership;
+#[allow(dead_code)] // Qualified composition; wire/native workset admission remains separate.
+mod mixed_preparation;
 mod native_preparation;
 mod radio;
 mod resident;
