@@ -103,3 +103,31 @@ fn seed_retains_existing_member_and_rejects_scope_extent_or_trailing_payload() {
     bytes[16..20].copy_from_slice(&length.to_le_bytes());
     assert!(Seed::parse(&bytes, "host/1", "image/1", "configuration/1").is_none());
 }
+
+#[test]
+fn in_place_root_keeps_original_scope_and_refuses_reinitialization() {
+    use crate::root::{Configuration, Refusal, RootStorage};
+    let bytes = carrier();
+    let seed = || Seed::parse(&bytes, "host/1", "image/1", "configuration/1").unwrap();
+    let actual = || conduit_core::HostAdvertisement {
+        declared_name: None,
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: "host/1".into(),
+        boot_id: "boot/current".into(),
+        offer_generation: conduit_core::OfferGeneration(1),
+        profile: "configuration/1".into(),
+        bases: vec![], resources: vec![], capabilities: vec![], planner_capabilities: vec![],
+    };
+    let config = || Configuration { image_id: "image/1", configuration_id: "configuration/1",
+        friendly_label: "fixture", preparation: None, execution: None };
+    let mut storage = RootStorage::<16384>::new();
+    let mut foreign = actual();
+    foreign.host_id = "host/foreign".into();
+    assert!(matches!(storage.initialize(seed(), foreign, config()), Err(Refusal::Scope)));
+    let root = storage.initialize(seed(), actual(), config()).unwrap();
+    assert_eq!(root.actual().host_id.as_str(), "host/1");
+    assert!(!root.retained_input());
+    assert!(root.receipt_digest().is_none());
+    assert!(matches!(root.execution_parts(), Err(Refusal::NotMember)));
+    assert!(matches!(storage.initialize(seed(), actual(), config()), Err(Refusal::Scope)));
+}
