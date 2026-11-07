@@ -1,0 +1,500 @@
+//! Concrete composition of real initialized resident/software/native Back loans.
+//! Source/assignment checking happens before this inventory is lent; binding
+//! consumes every selected slot once, without allocating or starting equipment.
+extern crate alloc;
+use crate::{execution::PreparedBacks, execution_software::SoftwareBack};
+use conduit_kernel::{
+    scheduler::{HostCallBack, StepBack, StepInputBytes, StepIo, StepOutcome},
+    PortId,
+};
+use conduit_monotonic_wait::{MonotonicWaitHostCall, MonotonicWaitProvider, PreparedAssignedWait};
+use conduit_plan_lowering::resident_inventory::OtherNodeIdentity;
+use conduit_pulse_capture::{
+    installation::PreparedAssignedPulse,
+    owner::{PulseHostCall, PulseReadProvider},
+};
+use conduit_tm1637_wire::{installation::PreparedAssignedWrite, owner::WriteHostCall, OpenDrain};
+
+pub enum Driver<'a, R> {
+    Resident(R),
+    Software(SoftwareBack<'a>),
+    Native(HostCallBack),
+}
+impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
+    fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
+        match self {
+            Self::Resident(back) => back.step(io, input),
+            Self::Software(back) => back.step(io, input),
+            Self::Native(back) => back.step(io, input),
+        }
+    }
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        match self {
+            Self::Resident(back) => back.prepared_output(port),
+            Self::Software(back) => <SoftwareBack as StepBack<P>>::prepared_output(back, port),
+            Self::Native(back) => <HostCallBack as StepBack<P>>::prepared_output(back, port),
+        }
+    }
+    fn step_committed(&mut self) {
+        match self {
+            Self::Resident(back) => back.step_committed(),
+            Self::Software(back) => <SoftwareBack as StepBack<P>>::step_committed(back),
+            Self::Native(back) => <HostCallBack as StepBack<P>>::step_committed(back),
+        }
+    }
+    fn cancel(&mut self) {
+        match self {
+            Self::Resident(back) => back.cancel(),
+            Self::Software(back) => <SoftwareBack as StepBack<P>>::cancel(back),
+            Self::Native(back) => <HostCallBack as StepBack<P>>::cancel(back),
+        }
+    }
+}
+/// Implemented by the linked generated resident inventory's existing opaque
+/// selection ticket; it must not create a different interpreter or decoder.
+/// # Safety
+/// `nodes` must describe exactly the initialized, exclusively borrowed owners
+/// returned by `bind`; binding must be infallible and allocate no memory.
+pub unsafe trait PreparedResidents<const E: usize> {
+    type Back;
+    fn nodes(&self) -> [Option<u16>; E];
+    fn retained_backing_bytes(&self) -> Option<usize>;
+    fn bind(self) -> [Option<(u16, Self::Back)>; E];
+}
+pub struct SoftwareConfigurationPin {
+    pub node: u16,
+    pub record: conduit_core::AssignedRecordRequirement,
+}
+/// One actual software owner per independently checked Source node.
+pub struct SoftwareInventory<'a, const N: usize> {
+    slots: [Option<SoftwareBack<'a>>; N],
+    identities: [Option<OtherNodeIdentity>; N],
+    backing: usize,
+    configuration: &'static [SoftwareConfigurationPin],
+}
+impl<'a, const N: usize> SoftwareInventory<'a, N> {
+    /// Root supplies initialized objects, their independently compiled identities
+    /// and measured/reachable owned backing. This creates no grant or Plan.
+    /// # Safety
+    /// Identities must describe these exact implementations/configurations; the
+    /// backing charge must cover every retained allocation and excluded aliases.
+    pub unsafe fn new(
+        slots: [Option<SoftwareBack<'a>>; N],
+        identities: [Option<OtherNodeIdentity>; N],
+        backing: usize,
+        configuration: &'static [SoftwareConfigurationPin],
+    ) -> Result<Self, &'static str> {
+        for index in 0..N {
+            if slots[index].is_some() != identities[index].is_some()
+                || identities[index].is_some_and(|id| usize::from(id.node) != index)
+            {
+                return Err("software-inventory");
+            }
+        }
+        Ok(Self {
+            slots,
+            identities,
+            backing,
+            configuration,
+        })
+    }
+    pub fn identities(&self) -> impl Iterator<Item = OtherNodeIdentity> + '_ {
+        self.identities.iter().flatten().copied()
+    }
+    /// Verify immutable Source configuration before lending any software owner.
+    /// Core validates the full projection separately; this exact comparison does
+    /// not authenticate a command, admit resources or authorize Start.
+    pub fn prepare_assigned(
+        &mut self,
+        projection: &[u8],
+        selected: [bool; N],
+    ) -> Result<PreparedSoftware<'_, 'a, N>, &'static str> {
+        if self.configuration.len() > 256 {
+            return Err("software-configuration-bound");
+        }
+        let mut seen = [false; 256];
+        for record in
+            conduit_core::AssignedPlanRecords::new(projection).map_err(|_| "software-projection")?
+        {
+            let record = record.map_err(|_| "software-projection")?;
+            if record.tag != conduit_core::ASSIGNED_CONFIGURATION {
+                continue;
+            }
+            let bytes: [u8; 2] = record
+                .payload
+                .get(..2)
+                .ok_or("software-configuration")?
+                .try_into()
+                .map_err(|_| "software-configuration")?;
+            let node = u16::from_le_bytes(bytes);
+            let Some(selected) = selected.get(usize::from(node)) else {
+                return Err("software-node");
+            };
+            if !*selected {
+                continue;
+            }
+            let actual = conduit_core::AssignedRecordRequirement::from_record(record);
+            let index = self
+                .configuration
+                .iter()
+                .enumerate()
+                .find(|(i, pin)| !seen[*i] && pin.node == node && pin.record == actual)
+                .map(|(i, _)| i)
+                .ok_or("software-configuration")?;
+            seen[index] = true;
+        }
+        if self
+            .configuration
+            .iter()
+            .enumerate()
+            .any(|(i, pin)| selected.get(usize::from(pin.node)) == Some(&true) && !seen[i])
+        {
+            return Err("software-configuration");
+        }
+        // SAFETY: every selected software record matches its independently
+        // linked Source configuration above; owner availability is checked next.
+        unsafe { self.prepare(selected) }
+    }
+    /// # Safety
+    /// Caller has independently checked every selected software configuration
+    /// against this exact initialized inventory (prefer prepare_assigned).
+    pub unsafe fn prepare(
+        &mut self,
+        selected: [bool; N],
+    ) -> Result<PreparedSoftware<'_, 'a, N>, &'static str> {
+        for (index, selected) in selected.iter().enumerate() {
+            if *selected && self.slots[index].is_none() {
+                return Err("software-busy");
+            }
+        }
+        Ok(PreparedSoftware {
+            owner: self,
+            selected,
+        })
+    }
+}
+pub struct PreparedSoftware<'o, 'f, const N: usize> {
+    owner: &'o mut SoftwareInventory<'f, N>,
+    selected: [bool; N],
+}
+impl<'f, const N: usize> PreparedSoftware<'_, 'f, N> {
+    fn bind(self) -> [Option<SoftwareBack<'f>>; N] {
+        core::array::from_fn(|index| {
+            if self.selected[index] {
+                self.owner.slots[index].take()
+            } else {
+                None
+            }
+        })
+    }
+}
+pub struct PreparedCalls<
+    'a,
+    P: PulseReadProvider,
+    T: OpenDrain,
+    W: MonotonicWaitProvider,
+    const A: usize,
+> {
+    pub pulse: Option<PreparedAssignedPulse<'a, P>>,
+    pub write: Option<PreparedAssignedWrite<'a, T>>,
+    pub waits: [PreparedAssignedWait<'a, W>; A],
+}
+pub struct Calls<P, T, W, const A: usize> {
+    pub pulse: Option<PulseHostCall<P>>,
+    pub write: Option<WriteHostCall<T>>,
+    pub waits: [MonotonicWaitHostCall<W>; A],
+}
+/// All mappings below are independently selected immutable Source facts, not
+/// role names decoded from incoming metadata. Native ticket binders already
+/// checked exact original opaque possession against the same assigned nodes.
+pub struct PreparedDrivers<
+    'a,
+    'o,
+    'f,
+    R,
+    P: PulseReadProvider,
+    T: OpenDrain,
+    W: MonotonicWaitProvider,
+    const E: usize,
+    const N: usize,
+    const A: usize,
+> {
+    residents: R,
+    software: PreparedSoftware<'o, 'f, N>,
+    native: PreparedCalls<'a, P, T, W, A>,
+    resident_nodes: [Option<u16>; E],
+    pulse_node: Option<u16>,
+    write_node: Option<u16>,
+    backing: usize,
+}
+impl<
+        'a,
+        'o,
+        'f,
+        R: PreparedResidents<E>,
+        P: PulseReadProvider,
+        T: OpenDrain,
+        W: MonotonicWaitProvider,
+        const E: usize,
+        const N: usize,
+        const A: usize,
+    > PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A>
+{
+    pub fn new(
+        residents: R,
+        resident_nodes: [Option<u16>; E],
+        software: PreparedSoftware<'o, 'f, N>,
+        native: PreparedCalls<'a, P, T, W, A>,
+    ) -> Result<Self, &'static str> {
+        let pulse_node = native.pulse.as_ref().map(|ticket| ticket.node().0);
+        let write_node = native.write.as_ref().map(|ticket| ticket.node().0);
+        if residents.nodes() != resident_nodes {
+            return Err("resident-mapping");
+        }
+        let mut seen = [false; N];
+        for node in resident_nodes
+            .iter()
+            .flatten()
+            .copied()
+            .chain(pulse_node.into_iter().chain(write_node))
+        {
+            let slot = seen.get_mut(usize::from(node)).ok_or("driver-node")?;
+            if *slot {
+                return Err("duplicate-driver");
+            }
+            *slot = true;
+        }
+        for (index, selected) in software.selected.iter().enumerate() {
+            if *selected {
+                if seen[index] {
+                    return Err("duplicate-software");
+                }
+                seen[index] = true;
+            }
+        }
+        if seen.iter().any(|seen| !*seen) {
+            return Err("missing-driver");
+        }
+        let mut backing = residents
+            .retained_backing_bytes()
+            .ok_or("resident-backing")?
+            .checked_add(software.owner.backing)
+            .ok_or("backing")?;
+        if let Some(pulse) = &native.pulse {
+            backing = backing
+                .checked_add(pulse.retained_backing_bytes().ok_or("pulse-backing")?)
+                .ok_or("backing")?;
+        }
+        if let Some(write) = &native.write {
+            backing = backing
+                .checked_add(write.retained_backing_bytes().ok_or("write-backing")?)
+                .ok_or("backing")?;
+        }
+        let mut clock_nodes = [false; N];
+        for wait in &native.waits {
+            let clock_node = usize::from(wait.node().0);
+            if clock_node >= N || clock_nodes[clock_node] || !software.selected[clock_node] {
+                return Err("clock-node");
+            }
+            clock_nodes[clock_node] = true;
+            backing = backing
+                .checked_add(wait.retained_backing_bytes().ok_or("clock-backing")?)
+                .ok_or("backing")?;
+        }
+        Ok(Self {
+            residents,
+            software,
+            native,
+            resident_nodes,
+            pulse_node,
+            write_node,
+            backing,
+        })
+    }
+}
+// SAFETY: constructor validates complete unique Source mapping, individual
+// opaque tickets retain exact initialized owners and all bind methods are
+// allocation-free. Root's generic preparation validates the matching layout.
+unsafe impl<
+        'a,
+        'o,
+        'f,
+        R: PreparedResidents<E>,
+        P: PulseReadProvider,
+        T: OpenDrain,
+        W: MonotonicWaitProvider,
+        const E: usize,
+        const N: usize,
+        const A: usize,
+        const PORTS: usize,
+    > PreparedBacks<N, PORTS> for PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A>
+where
+    R::Back: StepBack<PORTS>,
+{
+    type Driver = Driver<'f, R::Back>;
+    type Calls = Calls<P, T, W, A>;
+    fn retained_backing_bytes(&self) -> Option<usize> {
+        Some(self.backing)
+    }
+    fn bind(self) -> ([Self::Driver; N], Self::Calls) {
+        let mut drivers: [Option<Self::Driver>; N] = core::array::from_fn(|_| None);
+        for (expected, selected) in self.resident_nodes.into_iter().zip(self.residents.bind()) {
+            match (expected, selected) {
+                (Some(node), Some((actual, back))) if node == actual => {
+                    drivers[usize::from(node)] = Some(Driver::Resident(back))
+                }
+                (None, None) => {}
+                _ => unreachable!("exclusively checked resident mapping"),
+            }
+        }
+        for (index, back) in self.software.bind().into_iter().enumerate() {
+            if let Some(back) = back {
+                drivers[index] = Some(Driver::Software(back));
+            }
+        }
+        if let Some(node) = self.pulse_node {
+            drivers[usize::from(node)] = Some(Driver::Native(HostCallBack::new(
+                conduit_pulse_capture::PULSE_READ_MAXIMUM_BYTES,
+            )));
+        }
+        if let Some(node) = self.write_node {
+            drivers[usize::from(node)] = Some(Driver::Native(HostCallBack::new(
+                conduit_tm1637_wire::MAXIMUM_BYTES,
+            )));
+        }
+        let calls = Calls {
+            pulse: self.native.pulse.map(PreparedAssignedPulse::bind),
+            write: self.native.write.map(PreparedAssignedWrite::bind),
+            waits: self.native.waits.map(PreparedAssignedWait::bind),
+        };
+        (
+            drivers.map(|driver| driver.expect("complete checked driver inventory")),
+            calls,
+        )
+    }
+}
+
+/// Immutable preparation facts emitted by checked Source/Make, never taken from
+/// a received assignment. Hardware decoders and packet encoders remain resident
+/// expressions; these cases instantiate only the ordinary software providers.
+pub enum SoftwareDefinition<'a> {
+    Tick {
+        wait: conduit_kernel::ValueRef,
+        count: u64,
+    },
+    Trigger,
+    Selector {
+        canonical: &'a [u8],
+        input_bytes: usize,
+        output_bytes: usize,
+    },
+    Dht11Observation,
+    Publication {
+        channel: conduit_environment_runtime::publication::PublicationChannel,
+        maximum_events: u32,
+    },
+}
+impl<'f, const N: usize> SoftwareInventory<'f, N> {
+    /// Construct the actual independently selected providers before publishing
+    /// their availability. Refusal drops every partial construction.
+    ///
+    /// # Safety
+    /// Definitions/identities must be the same independently installed checked
+    /// Source selection. `allocated_bytes` must report actual exclusively owned
+    /// allocator usage without concurrent allocations/deallocations during this
+    /// call. Root separately funds borrowed Face/sequence/value-store backing,
+    /// temporary preparation peak, allocator overhead and the resident owners.
+    pub unsafe fn initialize(
+        definitions: [Option<SoftwareDefinition<'_>>; N],
+        identities: [Option<OtherNodeIdentity>; N],
+        publisher: &'f core::cell::RefCell<
+            Option<conduit_environment_runtime::publication_face_custody::Publisher<'f>>,
+        >,
+        sequence: conduit_environment_runtime::publication::PublicationSequence,
+        now: crate::execution_software::ReadMonotonicMillis,
+        allocated_bytes: fn() -> usize,
+        configuration: &'static [SoftwareConfigurationPin],
+    ) -> Result<Self, &'static str> {
+        let before = allocated_bytes();
+        let mut slots = core::array::from_fn(|_| None);
+        for (index, definition) in definitions.into_iter().enumerate() {
+            slots[index] = match definition {
+                None => None,
+                Some(SoftwareDefinition::Tick { wait, count }) => {
+                    Some(SoftwareBack::tick(wait, count)?)
+                }
+                Some(SoftwareDefinition::Trigger) => Some(SoftwareBack::trigger()),
+                Some(SoftwareDefinition::Selector {
+                    canonical,
+                    input_bytes,
+                    output_bytes,
+                }) => Some(SoftwareBack::selector(
+                    conduit_core::StructuredSelector::from_canonical_bytes(canonical)
+                        .map_err(|_| "selector-definition")?,
+                    input_bytes,
+                    output_bytes,
+                )?),
+                Some(SoftwareDefinition::Dht11Observation) => {
+                    Some(SoftwareBack::dht11_observation()?)
+                }
+                Some(SoftwareDefinition::Publication {
+                    channel,
+                    maximum_events,
+                }) => {
+                    let contract =
+                        conduit_environment_runtime::publication::PublicationContract::prepare(
+                            channel,
+                        )
+                        .map_err(|_| "publication-contract")?;
+                    Some(SoftwareBack::publication(
+                        &contract,
+                        maximum_events,
+                        sequence.clone(),
+                        publisher,
+                        now,
+                    )?)
+                }
+            };
+        }
+        let backing = allocated_bytes()
+            .checked_sub(before)
+            .ok_or("allocator-measurement")?;
+        // SAFETY: carries the caller's checked-Source/allocator obligations and
+        // retains exactly the newly constructed objects, with no copied runtime.
+        unsafe { Self::new(slots, identities, backing, configuration) }
+    }
+}
+
+/// One disjoint initialized resident entry, preflighted before splitting a
+/// generated inventory. Splitting alone cannot mark it unavailable or Start it.
+/// # Safety
+/// `node` and `bind` must refer to the same original checked loan; bind is
+/// allocation/effect-free, and dropping an unbound loan preserves availability.
+pub unsafe trait PreparedResidentEntry {
+    type Back;
+    fn node(&self) -> u16;
+    fn retained_backing_bytes(&self) -> Option<usize>;
+    fn bind(self) -> (u16, Self::Back);
+}
+/// A fragment's subset of a single collectively preflighted resident inventory.
+/// Different fragments can hold disjoint tickets until the one atomic admission.
+pub struct PreparedResidentSubset<L, const E: usize>(pub [Option<L>; E]);
+// SAFETY: each opaque entry is exclusively held once in this owned array. The
+// adapter preserves the checked mapping and delegates only infallible binds.
+unsafe impl<L: PreparedResidentEntry, const E: usize> PreparedResidents<E>
+    for PreparedResidentSubset<L, E>
+{
+    type Back = L::Back;
+    fn nodes(&self) -> [Option<u16>; E] {
+        core::array::from_fn(|i| self.0[i].as_ref().map(L::node))
+    }
+    fn retained_backing_bytes(&self) -> Option<usize> {
+        self.0
+            .iter()
+            .flatten()
+            .try_fold(0usize, |n, l| n.checked_add(l.retained_backing_bytes()?))
+    }
+    fn bind(self) -> [Option<(u16, Self::Back)>; E] {
+        self.0.map(|l| l.map(L::bind))
+    }
+}

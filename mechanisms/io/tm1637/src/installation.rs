@@ -4,6 +4,9 @@ use crate::{owner::*, *};
 use conduit_core::*;
 #[path = "installation_advertisement.rs"]
 mod advertisement;
+#[path = "installation_offer.rs"]
+mod offer;
+pub use offer::capability_offer;
 #[path = "assigned.rs"]
 mod assigned;
 pub use assigned::PreparedAssignedWrite;

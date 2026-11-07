@@ -83,3 +83,55 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
         ))
     }
 }
+
+/// Exclusive prepared timer custody. Dropping preserves the original ready slot.
+pub struct PreparedAssignedWait<'a, P: MonotonicWaitProvider> {
+    slot: &'a mut Option<ReadyMonotonicWaitBase<P>>,
+    table: BaseCapabilityTable,
+    handle: BaseCapabilityHandle,
+    claim: BaseOperationClaim,
+    node: conduit_kernel::NodeId,
+}
+impl<P: MonotonicWaitProvider> PreparedAssignedWait<'_, P> {
+    pub fn node(&self) -> conduit_kernel::NodeId {
+        self.node
+    }
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.table
+            .retained_backing_bytes()?
+            .checked_add(self.claim.retained_backing_bytes()?)
+    }
+    pub fn bind(self) -> MonotonicWaitHostCall<P> {
+        let owner = self.slot.take().expect("exclusively prepared wait owner");
+        MonotonicWaitHostCall::from_bound(
+            self.table,
+            self.handle,
+            self.claim,
+            owner.attachment,
+            owner.provider,
+            self.node,
+        )
+    }
+}
+impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
+    pub fn prepare_assigned_retained<'a>(
+        slot: &'a mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        configuration: &[ConfigurationEntry],
+        selected: SelectedAssignedOperationPlan<'_>,
+    ) -> Result<PreparedAssignedWait<'a, P>, WaitCallRefusal> {
+        let node = slot
+            .as_ref()
+            .ok_or(WaitCallRefusal::Possession)?
+            .check_assigned(&table, &claim, configuration, selected)?;
+        Ok(PreparedAssignedWait {
+            slot,
+            table,
+            handle,
+            claim,
+            node,
+        })
+    }
+}

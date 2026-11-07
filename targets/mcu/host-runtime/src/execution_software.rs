@@ -1,0 +1,236 @@
+//! Standard prepared software Backs shared by MCU Hosts. Source selects these
+//! implementations; constructors create no offer, admission, authority or Play.
+extern crate alloc;
+use alloc::{boxed::Box, vec::Vec};
+use conduit_environment_runtime::{
+    observation::{ObservationBack, ObservationContract},
+    publication::{PublicationBack, PublicationContract, PublicationSequence},
+    publication_face_custody::Publisher,
+    PreparedCaptureSelector,
+};
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    Failure, FailureCode, PortId, ValueRef,
+};
+use core::cell::RefCell;
+
+/// Physical monotonic reading supplied by the Host, never a browser timestamp.
+pub type ReadMonotonicMillis = fn() -> u64;
+/// This enum contains no parser, sensor decoder, packet encoder or scheduler.
+/// Resident expressions remain separately compiled, exactly selected owners.
+pub enum SoftwareBack<'a> {
+    Tick(conduit_time::TickBack),
+    Trigger(conduit_time::TickTriggerBack),
+    Selector(Box<SelectorBack>),
+    Observation(Box<ObservationBack>),
+    Publication(Box<PublicationFaceBack<'a>>),
+}
+impl<'a> SoftwareBack<'a> {
+    /// The wait value is already retained in the selected kernel's value store.
+    pub fn tick(wait: ValueRef, count: u64) -> Result<Self, &'static str> {
+        conduit_time::TickBack::counted(wait, count)
+            .map(Self::Tick)
+            .ok_or("tick-count")
+    }
+    pub fn trigger() -> Self {
+        Self::Trigger(conduit_time::TickTriggerBack::default())
+    }
+    pub fn selector(
+        selector: conduit_core::StructuredSelector,
+        input_bytes: usize,
+        output_bytes: usize,
+    ) -> Result<Self, &'static str> {
+        Ok(Self::Selector(Box::new(SelectorBack::prepare(
+            selector,
+            input_bytes,
+            output_bytes,
+        )?)))
+    }
+    pub fn dht11_observation() -> Result<Self, &'static str> {
+        let contract = ObservationContract::prepare().map_err(|_| "observation-contract")?;
+        Ok(Self::Observation(Box::new(
+            ObservationBack::prepare(&contract).map_err(|_| "observation-codec")?,
+        )))
+    }
+    /// All outcome channels of this producer share one actual sequence owner
+    /// and one exclusively retained Face publication custody. No Face is invented.
+    pub fn publication(
+        contract: &PublicationContract,
+        maximum_events: u32,
+        sequence: PublicationSequence,
+        publisher: &'a RefCell<Option<Publisher<'a>>>,
+        now: ReadMonotonicMillis,
+    ) -> Result<Self, &'static str> {
+        Ok(Self::Publication(Box::new(PublicationFaceBack {
+            back: PublicationBack::prepare(contract, maximum_events, sequence)
+                .map_err(|_| "publication")?,
+            publisher,
+            now,
+            last_sequence: 0,
+            failed: false,
+        })))
+    }
+}
+impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
+    fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
+        match self {
+            Self::Tick(back) => back.step(io, input),
+            Self::Trigger(back) => back.step(io, input),
+            Self::Selector(back) => back.step(io, input),
+            Self::Observation(back) => back.step(io, input),
+            Self::Publication(back) => back.step(io, input),
+        }
+    }
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        match self {
+            Self::Selector(back) => <SelectorBack as StepBack<P>>::prepared_output(back, port),
+            Self::Observation(back) => {
+                <ObservationBack as StepBack<P>>::prepared_output(back, port)
+            }
+            _ => None,
+        }
+    }
+    fn step_committed(&mut self) {
+        match self {
+            Self::Tick(back) => <conduit_time::TickBack as StepBack<P>>::step_committed(back),
+            Self::Trigger(back) => {
+                <conduit_time::TickTriggerBack as StepBack<P>>::step_committed(back)
+            }
+            Self::Selector(back) => <SelectorBack as StepBack<P>>::step_committed(back),
+            Self::Observation(back) => <ObservationBack as StepBack<P>>::step_committed(back),
+            Self::Publication(back) => <PublicationFaceBack as StepBack<P>>::step_committed(back),
+        }
+    }
+    fn cancel(&mut self) {
+        match self {
+            Self::Tick(back) => <conduit_time::TickBack as StepBack<P>>::cancel(back),
+            Self::Trigger(back) => <conduit_time::TickTriggerBack as StepBack<P>>::cancel(back),
+            Self::Selector(back) => <SelectorBack as StepBack<P>>::cancel(back),
+            Self::Observation(back) => <ObservationBack as StepBack<P>>::cancel(back),
+            Self::Publication(back) => <PublicationFaceBack as StepBack<P>>::cancel(back),
+        }
+    }
+}
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidInput,
+        detail,
+    })
+}
+/// Pure checked selection runs as an ordinary StepBack, not a hardware Host Call.
+pub struct SelectorBack {
+    selector: PreparedCaptureSelector,
+    output: Vec<u8>,
+    maximum: usize,
+    staged: bool,
+}
+impl SelectorBack {
+    pub fn prepare(
+        selector: conduit_core::StructuredSelector,
+        input: usize,
+        output: usize,
+    ) -> Result<Self, &'static str> {
+        if input == 0
+            || output == 0
+            || input > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || output > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+        {
+            return Err("selector-bound");
+        }
+        Ok(Self {
+            selector: PreparedCaptureSelector::prepare(selector, input, output)
+                .map_err(|_| "selector")?,
+            output: Vec::with_capacity(output),
+            maximum: output,
+            staged: false,
+        })
+    }
+}
+impl<const P: usize> StepBack<P> for SelectorBack {
+    fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
+        self.staged = false;
+        if io.input_abnormal(PortId(0)).is_some() {
+            return fail(1);
+        }
+        let Some(reference) = io.input(PortId(0)) else {
+            return if io.input_closed(PortId(0)) {
+                if io.consume_closed(PortId(0)).is_ok() {
+                    StepOutcome::Complete
+                } else {
+                    fail(2)
+                }
+            } else {
+                StepOutcome::Await
+            };
+        };
+        if !io.output_ready(PortId(0)) {
+            return StepOutcome::Await;
+        }
+        let Some(bytes) = input.input(PortId(0)) else {
+            return fail(3);
+        };
+        if bytes.len() != reference.byte_len as usize || io.consume_fuel(1).is_err() {
+            return fail(4);
+        }
+        match self.selector.select(bytes) {
+            Ok(Some(value)) if value.len() <= self.maximum => {
+                self.output.clear();
+                self.output.extend_from_slice(value);
+                if io.send_prepared(PortId(0), value.len() as u32).is_err() {
+                    return fail(5);
+                }
+                self.staged = true;
+            }
+            Ok(None) => {}
+            _ => return fail(6),
+        }
+        if io.consume(PortId(0)).is_err() {
+            return fail(7);
+        }
+        StepOutcome::Progress
+    }
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0) && self.staged).then_some(self.output.as_slice())
+    }
+    fn step_committed(&mut self) {
+        self.staged = false;
+    }
+    fn cancel(&mut self) {
+        self.staged = false;
+    }
+}
+pub struct PublicationFaceBack<'a> {
+    back: PublicationBack,
+    publisher: &'a RefCell<Option<Publisher<'a>>>,
+    now: ReadMonotonicMillis,
+    last_sequence: u64,
+    failed: bool,
+}
+impl<const P: usize> StepBack<P> for PublicationFaceBack<'_> {
+    fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
+        if self.failed {
+            return fail(20);
+        }
+        self.back.step(io, input)
+    }
+    fn step_committed(&mut self) {
+        <PublicationBack as StepBack<P>>::step_committed(&mut self.back);
+        let Some(snapshot) = self.back.snapshot() else {
+            return;
+        };
+        if snapshot.sequence == self.last_sequence {
+            return;
+        }
+        self.last_sequence = snapshot.sequence;
+        self.failed = match self.publisher.try_borrow_mut() {
+            Ok(mut slot) => match slot.as_mut() {
+                Some(publisher) => publisher.publish(snapshot, (self.now)()).is_err(),
+                None => true,
+            },
+            Err(_) => true,
+        };
+    }
+    fn cancel(&mut self) {
+        <PublicationBack as StepBack<P>>::cancel(&mut self.back);
+    }
+}

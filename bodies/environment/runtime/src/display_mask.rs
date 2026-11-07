@@ -28,6 +28,11 @@ pub enum Refusal {
     Show(conduit_seven_segment_mask::ShowPreparationRefusal),
 }
 impl PreparedDisplayMask {
+    /// This realization owns fixed inline profile/timing/canonical-frame arrays.
+    /// No decoded schema or evaluator heap is retained by Mask frame composition.
+    pub const fn retained_backing_bytes(&self) -> usize {
+        0
+    }
     pub fn prepare(
         profile: Tm1637Profile,
         look: SevenSegmentLook,

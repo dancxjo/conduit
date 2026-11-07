@@ -24,6 +24,9 @@ impl DecodedPackets {
 }
 pub(crate) struct PreparedPackets(c::PreparedStructuredValueValidator);
 impl PreparedPackets {
+    pub(crate) fn retained_backing_bytes(&self) -> Option<usize> {
+        self.0.retained_backing_bytes()
+    }
     pub(crate) fn prepare(contract: &WriteContract) -> Result<Self, c::StructuredInfoRefusal> {
         Ok(Self(c::PreparedStructuredValueValidator::new(
             contract.packets_type(),

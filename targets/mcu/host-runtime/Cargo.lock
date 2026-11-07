@@ -45,9 +45,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-alife"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-plot",
+ "conduit-time",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-assigned-plan"
 version = "0.1.0"
 dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "conduit-audio"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-data",
+ "conduit-plot",
+ "libm",
  "serde",
 ]
 
@@ -78,16 +100,156 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-data"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "conduit-time",
+]
+
+[[package]]
+name = "conduit-education"
+version = "0.1.0"
+dependencies = [
+ "conduit-audio",
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-environment-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
+]
+
+[[package]]
+name = "conduit-environment-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-environment-face",
+ "conduit-face",
+ "conduit-kernel",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-seven-segment-mask",
+ "conduit-time",
+]
+
+[[package]]
+name = "conduit-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-human",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-time",
+ "miniz_oxide",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-human"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "serde",
+ "sha2",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "conduit-kernel"
+version = "0.1.0"
+dependencies = [
+ "conduit-assigned-plan",
+]
+
+[[package]]
+name = "conduit-language"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-mcu-host-runtime"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-kernel",
+ "conduit-monotonic-wait",
+ "conduit-plan-lowering",
+ "conduit-pulse-capture",
+ "conduit-seven-segment-mask",
+ "conduit-time",
+ "conduit-tm1637-wire",
  "conduit-wire",
  "ed25519-dalek",
  "serde",
  "serde-json-core",
  "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-midi"
+version = "0.1.0"
+dependencies = [
+ "conduit-audio",
+ "conduit-core",
+]
+
+[[package]]
+name = "conduit-monotonic-wait"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-time",
+]
+
+[[package]]
+name = "conduit-net"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "serde",
+]
+
+[[package]]
+name = "conduit-plan-lowering"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-kernel",
+]
+
+[[package]]
+name = "conduit-planner"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-language",
+ "conduit-plot",
+ "serde",
  "sha2",
 ]
 
@@ -98,6 +260,114 @@ dependencies = [
  "conduit-core",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "conduit-process"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-purpose"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-robotics"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-semantic-catalog"
+version = "0.1.0"
+dependencies = [
+ "conduit-alife",
+ "conduit-audio",
+ "conduit-core",
+ "conduit-data",
+ "conduit-education",
+ "conduit-face",
+ "conduit-human",
+ "conduit-kernel",
+ "conduit-midi",
+ "conduit-net",
+ "conduit-plot",
+ "conduit-process",
+ "conduit-purpose",
+ "conduit-robotics",
+ "conduit-text",
+ "conduit-time",
+ "conduit-web",
+ "serde",
+]
+
+[[package]]
+name = "conduit-seven-segment-mask"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-text"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "conduit-time"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+ "serde",
+]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-web"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "serde",
 ]
 
 [[package]]
@@ -512,6 +782,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyvec"
+version = "1.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
+
+[[package]]
 name = "typenum"
 version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -522,6 +798,15 @@ name = "unicode-ident"
 version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2c754d6c33795a1c324727428e5a7dedb5b06195f9890bdbcba760d3e246563"
+
+[[package]]
+name = "unicode-normalization"
+version = "0.1.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75cd3fb03d5288b3ba9a1ee103ac7e9cbb59f0b03d64f8ddfcc04dd42758a85d"
+dependencies = [
+ "tinyvec",
+]
 
 [[package]]
 name = "version_check"

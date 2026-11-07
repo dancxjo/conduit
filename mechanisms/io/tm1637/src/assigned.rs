@@ -18,6 +18,15 @@ pub struct PreparedAssignedWrite<'a, P: OpenDrain> {
     slot: &'a mut Option<ReadyWriteBase<P>>,
 }
 impl<P: OpenDrain> PreparedAssignedWrite<'_, P> {
+    /// Actual retained codec, capability table and claim backing. Inline state,
+    /// provider storage and allocator overhead remain separately funded.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.prepared
+            .packets
+            .retained_backing_bytes()?
+            .checked_add(self.table.retained_backing_bytes()?)?
+            .checked_add(self.claim.retained_backing_bytes()?)
+    }
     pub fn node(&self) -> conduit_kernel::NodeId {
         self.prepared.node
     }

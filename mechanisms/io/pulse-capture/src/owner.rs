@@ -90,6 +90,11 @@ pub(crate) struct PreparedPulseBinding {
     pub(crate) codec: PreparedPulseCodec,
 }
 impl<P: PulseReadProvider> PulseHostCall<P> {
+    /// Exact node retained by the original checked assignment binding.
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
+
     pub(crate) fn from_prepared(
         table: BaseCapabilityTable,
         handle: BaseCapabilityHandle,

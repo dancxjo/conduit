@@ -127,3 +127,21 @@ impl<C: Carrier> MessageTransport for Link<C> {
         Link::send(self, payload).await
     }
 }
+
+/// Existing bounded document chunks over the same framed channel, without a
+/// second full document buffer. The caller owns its whole-transaction deadline.
+#[allow(async_fn_in_trait)]
+pub trait DocumentTransport: MessageTransport {
+    async fn receive_document(
+        &mut self,
+        document: &mut conduit_wire::BorrowedBoundedDocumentAssembly<'_>,
+    ) -> Result<(), Self::Error>;
+}
+impl<C: Carrier> DocumentTransport for Link<C> {
+    async fn receive_document(
+        &mut self,
+        document: &mut conduit_wire::BorrowedBoundedDocumentAssembly<'_>,
+    ) -> Result<(), Self::Error> {
+        Link::receive_document(self, document).await
+    }
+}

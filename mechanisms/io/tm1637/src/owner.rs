@@ -44,6 +44,11 @@ pub struct WriteHostCall<P> {
     packets: PreparedPackets,
 }
 impl<P: OpenDrain> WriteHostCall<P> {
+    /// Exact node retained by the original checked assignment binding.
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
+
     /// # Safety
     /// Root must independently own the exact initialized electrical pins and
     /// generation, authorize this Plan/Play, and admit provider storage and work.

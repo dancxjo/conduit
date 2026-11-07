@@ -1,11 +1,27 @@
 #![no_std]
 //! Platform-neutral construction and bounded transport used by MCU Hosts.
-//! These mechanisms do not issue authority, admit assignments, or run Plays.
+//! Construction and transport create no execution authority. The optional
+//! execution path uses original Root grants, atomic admission and the ordinary
+//! production kernel to run checked assignments.
+pub mod ingress;
 pub mod member_return;
 pub mod membership;
+pub mod root;
 pub mod seed;
 pub mod transport;
 
+#[cfg(feature = "execution")]
+pub mod execution;
+#[cfg(feature = "execution")]
+pub mod execution_mask;
+#[cfg(feature = "execution")]
+pub mod execution_factory;
+#[cfg(feature = "execution")]
+pub mod execution_authority;
+#[cfg(feature = "execution")]
+pub mod execution_workset;
+#[cfg(feature = "execution")]
+pub mod execution_software;
 #[cfg(test)]
 extern crate std;
 #[cfg(test)]
@@ -16,3 +32,17 @@ mod membership_tests;
 
 #[cfg(test)]
 mod member_return_tests;
+#[cfg(feature = "execution")]
+pub mod native_images;
+
+#[cfg(feature = "execution")]
+pub mod native_dispatch;
+
+#[cfg(feature = "execution")]
+pub mod native_supervisor;
+
+#[cfg(feature = "execution")]
+pub mod execution_group;
+
+#[cfg(feature = "execution")]
+pub mod native_authority;

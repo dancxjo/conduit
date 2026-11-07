@@ -53,6 +53,11 @@ pub struct MonotonicWaitHostCall<P> {
     next_request: u32,
 }
 impl<P: MonotonicWaitProvider> MonotonicWaitHostCall<P> {
+    /// Exact node retained by the original checked assignment binding.
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
+
     /// Bind actual native possession to the exact planned Tick and Play.
     /// # Safety
     /// Root must own this initialized timer slot and generation, independently
