@@ -64,7 +64,7 @@ impl CurrentHostOffers {
         grants: Vec<AuthorityGrant>,
     ) -> Result<(), CurrentHostOfferError> {
         validate_shape(&advertisement)?;
-        crate::member_return_images::validate_authority_grant_descriptions(&advertisement, &grants)
+        crate::authority_grant_descriptions::validate(&advertisement, &grants)
             .map_err(|_| CurrentHostOfferError::MalformedAdvertisement)?;
         for grant in &grants {
             let mut matching = advertisement

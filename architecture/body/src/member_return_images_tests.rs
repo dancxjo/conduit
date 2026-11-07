@@ -1,4 +1,5 @@
 use super::*;
+use crate::MAX_LIFECYCLE_ID_BYTES;
 use crate::SpawnInvitationSecret;
 use alloc::vec;
 use conduit_core::{OfferGeneration, PROTOCOL_VERSION};

@@ -2,8 +2,8 @@
 //! This projection is not a HostAdvertisement until its images are resolved.
 use crate::{
     AdmissionReceiptAttestationRefusal as R, FederationPeer, MemberReturnAcknowledgement,
-    MembershipCredential, SignedPortableAdmissionReceipt, MAX_CANDIDATE_CAPABILITIES,
-    MAX_CANDIDATE_PLANNER_CAPABILITIES, MAX_CANDIDATE_RESOURCES, MAX_LIFECYCLE_ID_BYTES,
+    MembershipCredential, SignedPortableAdmissionReceipt, MAX_CANDIDATE_PLANNER_CAPABILITIES,
+    MAX_CANDIDATE_RESOURCES,
 };
 use alloc::{string::String, vec::Vec};
 use conduit_core::{AuthorityGrant, HostAdvertisement};
@@ -16,8 +16,9 @@ pub const PICO_MEMBER_RETURN_IMAGES_REQUEST: &[u8] = b"CONDUIT_MEMBER_RETURN_IMA
 pub const MAX_MEMBER_RETURN_IMAGES: usize = 16;
 /// At most one descriptive grant per general candidate capability. The smaller
 /// aggregate text ceiling independently bounds this compact carriage profile.
-pub const MAX_MEMBER_RETURN_IMAGE_GRANTS: usize = MAX_CANDIDATE_CAPABILITIES;
-pub const MAX_MEMBER_RETURN_IMAGE_GRANT_ID_BYTES: usize = 4096;
+pub use crate::authority_grant_descriptions::{
+    MAX_MEMBER_RETURN_IMAGE_GRANTS, MAX_MEMBER_RETURN_IMAGE_GRANT_ID_BYTES,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -44,51 +45,9 @@ impl HostAdvertisementImageProjection {
         {
             return Err(R::ReceiptBasis);
         }
-        validate_authority_grant_descriptions(&self.context, &self.authority_grants)
+        crate::authority_grant_descriptions::validate(&self.context, &self.authority_grants)
+            .map_err(|_| R::ReceiptBasis)
     }
-}
-
-/// Bounded structural checks only; attribution and freshness belong to admission.
-pub(crate) fn validate_authority_grant_descriptions(
-    context: &HostAdvertisement,
-    grants: &[AuthorityGrant],
-) -> Result<(), R> {
-    if grants.len() > MAX_MEMBER_RETURN_IMAGE_GRANTS {
-        return Err(R::ReceiptBasis);
-    }
-    let mut total = 0usize;
-    for (index, grant) in grants.iter().enumerate() {
-        if grant.host_id != context.host_id
-            || grant.boot_id != context.boot_id
-            || grants[..index].iter().any(|prior| {
-                prior.grant_id == grant.grant_id
-                    || (prior.capability_id == grant.capability_id
-                        && prior.contract_id == grant.contract_id
-                        && prior.host_call_contract_id == grant.host_call_contract_id
-                        && prior.subject_kind == grant.subject_kind)
-            })
-        {
-            return Err(R::ReceiptBasis);
-        }
-        for id in [
-            grant.grant_id.as_str(),
-            grant.contract_id.as_str(),
-            grant.host_call_contract_id.as_str(),
-            grant.subject_kind.as_str(),
-            grant.host_id.as_str(),
-            grant.boot_id.as_str(),
-            grant.capability_id.as_str(),
-        ] {
-            if id.is_empty() || id.len() > MAX_LIFECYCLE_ID_BYTES {
-                return Err(R::ReceiptBasis);
-            }
-            total = total.checked_add(id.len()).ok_or(R::ReceiptBasis)?;
-            if total > MAX_MEMBER_RETURN_IMAGE_GRANT_ID_BYTES {
-                return Err(R::ReceiptBasis);
-            }
-        }
-    }
-    Ok(())
 }
 
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]

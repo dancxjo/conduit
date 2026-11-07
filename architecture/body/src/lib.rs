@@ -23,6 +23,7 @@ mod storage_usage;
 pub use storage_usage::VecStorageUsage;
 
 mod administration;
+mod authority_grant_descriptions;
 #[cfg(feature = "authenticated-admission")]
 mod rename;
 #[cfg(feature = "authenticated-admission")]
