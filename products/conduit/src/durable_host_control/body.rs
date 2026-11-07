@@ -6,11 +6,14 @@
 mod face_snapshot;
 #[path = "body/member_carrier.rs"]
 mod member_carrier;
+#[path = "body/remote_workset.rs"]
+mod remote_workset;
 pub(crate) use member_carrier::{
     attest_admission_receipt, attest_image_return_acknowledgement, begin_carrier,
     carrier_mask_route, carrier_receiver, carrier_show, complete_carrier, renew_carrier_presence,
     retire_carrier,
 };
+pub(crate) use remote_workset::prepare_usb;
 #[path = "body/member_leave.rs"]
 mod member_leave;
 #[path = "body/member_return.rs"]

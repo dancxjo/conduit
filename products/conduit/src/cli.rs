@@ -580,6 +580,22 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_admission: bool,
     },
+    /// Submit the live owner's checked complete workset over USB.
+    PrepareUsb {
+        port: PathBuf,
+        /// Current admitted member credential and observed Host advertisement.
+        member: PathBuf,
+        /// Checked Source providing the exact resident implementations.
+        source: PathBuf,
+        #[arg(long = "entry", required = true)]
+        entries: Vec<String>,
+        #[arg(long = "native-capability")]
+        native_capabilities: Vec<String>,
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_preparation: bool,
+    },
     /// Return an existing Part over the selected bounded USB carrier.
     ReturnUsb {
         port: PathBuf,
