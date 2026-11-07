@@ -393,6 +393,7 @@ fn two_members_retain_one_exact_body_play_and_block_duplicate_boot_and_source_ca
     }
     let mut new_boot = members[0].clone();
     new_boot.host_advertisement.boot_id = "boot/replacement".into();
+    new_boot.credential.boot_id = new_boot.host_advertisement.boot_id.clone();
     new_boot.host_advertisement.offer_generation.0 += 1;
     let challenge = IssuedHostCommandChallenge::issue(
         &new_boot.credential,
