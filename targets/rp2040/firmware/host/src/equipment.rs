@@ -89,8 +89,9 @@ impl Equipment {
                         identity!(PulseNativeIdentity, actual, "gpio-pulse", "rp2040/dht11@1"),
                         PulseAttachment {
                             generation: 1,
-                            resource_bytes: core::mem::size_of::<crate::pulse_owner::Capture>()
-                                as u64,
+                            // Fund both the physical provider and its bounded capture result.
+                            resource_bytes: (core::mem::size_of::<crate::pulse_owner::Capture>()
+                                + core::mem::size_of::<conduit_pulse_capture::PulseReadCapture>()) as u64,
                             limits: conduit_rp2040_pulse_capture::LIMITS,
                         },
                         pulse,

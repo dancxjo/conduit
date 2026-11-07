@@ -111,7 +111,9 @@ impl Equipment {
                         identity!(PulseNativeIdentity, actual, "gpio-pulse", "esp32/dht11@1"),
                         PulseAttachment {
                             generation: 1,
-                            resource_bytes: core::mem::size_of::<Esp32PulseCapture>() as u64,
+                            // Fund both the physical provider and its bounded capture result.
+                            resource_bytes: (core::mem::size_of::<Esp32PulseCapture>()
+                                + core::mem::size_of::<conduit_pulse_capture::PulseReadCapture>()) as u64,
                             limits: PULSE_LIMITS,
                         },
                         Capture(pulse),
