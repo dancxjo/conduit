@@ -3,7 +3,8 @@ use super::*;
 use crate::owner::{check_possession, PreparedPulseBinding};
 use conduit_plan_lowering::{
     selected_assigned_operation::{
-        bind_selected_assigned_operation, AssignedNativeIdentity, SelectedAssignedOperationPlan,
+        bind_selected_assigned_fore_operation, bind_selected_assigned_operation,
+        AssignedNativeIdentity, SelectedAssignedForeOperationPlan, SelectedAssignedOperationPlan,
     },
     selected_operation::{SelectedCallRefusal, SelectedOperationContract},
 };
@@ -17,6 +18,15 @@ pub struct PreparedAssignedPulse<'a, P: PulseReadProvider> {
     slot: &'a mut Option<ReadyPulseBase<P>>,
 }
 impl<P: PulseReadProvider> PreparedAssignedPulse<'_, P> {
+    /// Codec, capability and claim backing only. Inline/allocator overhead,
+    /// installation and independently supplied preparation tables are separate.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.prepared
+            .codec
+            .retained_backing_bytes()?
+            .checked_add(self.table.retained_backing_bytes()?)?
+            .checked_add(self.claim.retained_backing_bytes()?)
+    }
     pub fn node(&self) -> conduit_kernel::NodeId {
         self.prepared.node
     }
@@ -42,7 +52,7 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
         contract: &PulseReadContract,
         selected: SelectedAssignedOperationPlan<'_>,
     ) -> Result<conduit_kernel::NodeId, PulseCallRefusal> {
-        self.prepare_assigned(table, claim, contract, selected)
+        self.prepare_assigned(table, claim, contract, selected, None)
             .map(|p| p.node)
     }
     fn prepare_assigned(
@@ -51,6 +61,7 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
         claim: &BaseOperationClaim,
         contract: &PulseReadContract,
         selected: SelectedAssignedOperationPlan<'_>,
+        fore: Option<&[AssignedForeRequirement]>,
     ) -> Result<PreparedPulseBinding, PulseCallRefusal> {
         let id = &self.identity;
         if claim.host_id != id.host_id
@@ -65,28 +76,36 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
             return Err(PulseCallRefusal::WrongBinding);
         }
         check_possession(table, claim, self.attachment)?;
-        let node = bind_selected_assigned_operation(
-            table,
-            claim,
-            SelectedOperationContract {
-                kind: contract.kind(),
-                call: PULSE_READ_CALL,
-                input_bytes: PULSE_READ_MAXIMUM_BYTES,
-                output_bytes: PULSE_READ_MAXIMUM_BYTES,
-                resource_bytes: self.attachment.resource_bytes,
-            },
-            AssignedNativeIdentity {
-                capability: PULSE_CAPABILITY,
-                execution_profile: PULSE_EXECUTION_PROFILE,
-                artifact: id.artifact_id.as_str(),
-                base: id.base_id.as_str(),
-                base_implementation: id.base_implementation_id.as_str(),
-                mechanism: PULSE_ATTACHMENT_CLASS,
-                authority: PULSE_AUTHORITY,
-                resource_class: PULSE_ATTACHMENT_CLASS,
-            },
-            selected,
-        )
+        let definition = SelectedOperationContract {
+            kind: contract.kind(),
+            call: PULSE_READ_CALL,
+            input_bytes: PULSE_READ_MAXIMUM_BYTES,
+            output_bytes: PULSE_READ_MAXIMUM_BYTES,
+            resource_bytes: self.attachment.resource_bytes,
+        };
+        let native = AssignedNativeIdentity {
+            capability: PULSE_CAPABILITY,
+            execution_profile: PULSE_EXECUTION_PROFILE,
+            artifact: id.artifact_id.as_str(),
+            base: id.base_id.as_str(),
+            base_implementation: id.base_implementation_id.as_str(),
+            mechanism: PULSE_ATTACHMENT_CLASS,
+            authority: PULSE_AUTHORITY,
+            resource_class: PULSE_ATTACHMENT_CLASS,
+        };
+        let node = match fore {
+            Some(fore) => bind_selected_assigned_fore_operation(
+                table,
+                claim,
+                definition,
+                native,
+                SelectedAssignedForeOperationPlan {
+                    operation: selected,
+                    fore,
+                },
+            ),
+            None => bind_selected_assigned_operation(table, claim, definition, native, selected),
+        }
         .map_err(|e| match e {
             SelectedCallRefusal::WrongBinding => PulseCallRefusal::WrongBinding,
             SelectedCallRefusal::Possession => PulseCallRefusal::Possession,
@@ -108,7 +127,35 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
         let prepared = slot
             .as_ref()
             .ok_or(PulseCallRefusal::Possession)?
-            .prepare_assigned(&table, &claim, contract, selected)?;
+            .prepare_assigned(&table, &claim, contract, selected, None)?;
+        Ok(PreparedAssignedPulse {
+            prepared,
+            table,
+            handle,
+            claim,
+            slot,
+        })
+    }
+
+    /// Exact local Fore pins are checked before the capture owner is withdrawn.
+    pub fn prepare_assigned_fore_retained<'a>(
+        slot: &'a mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PulseReadContract,
+        selected: SelectedAssignedForeOperationPlan<'_>,
+    ) -> Result<PreparedAssignedPulse<'a, P>, PulseCallRefusal> {
+        let prepared = slot
+            .as_ref()
+            .ok_or(PulseCallRefusal::Possession)?
+            .prepare_assigned(
+                &table,
+                &claim,
+                contract,
+                selected.operation,
+                Some(selected.fore),
+            )?;
         Ok(PreparedAssignedPulse {
             prepared,
             table,

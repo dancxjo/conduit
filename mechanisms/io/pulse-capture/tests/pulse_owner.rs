@@ -280,3 +280,6 @@ mod exhausted_retirement;
 
 #[path = "support/assigned_retained.rs"]
 mod assigned_retained;
+#[cfg(feature = "prepared-kernel")]
+#[path = "support/kernel_preparation.rs"]
+mod kernel_preparation;

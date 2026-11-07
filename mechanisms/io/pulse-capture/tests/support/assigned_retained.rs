@@ -4,7 +4,7 @@ use conduit_plan_lowering::{
     selected_assigned_operation::{AssignedOperationInput, SelectedAssignedOperationPlan},
 };
 use conduit_pulse_capture::installation::*;
-fn issued(
+pub(super) fn issued(
     fragment: &PlanFragment,
     active: &ActivePlayIdentity,
 ) -> (
@@ -14,6 +14,8 @@ fn issued(
 ) {
     let mut scope = fixture::scope();
     scope.maximum_operations = 1;
+    scope.capability_id = PULSE_CAPABILITY.into();
+    scope.authority_contract_id = PULSE_AUTHORITY.into();
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
     let authority = BaseCapabilityAuthority {
