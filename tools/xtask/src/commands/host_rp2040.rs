@@ -17,6 +17,7 @@ pub(super) fn build(
     description_bytes: &[u8],
     private_input: Option<&Path>,
     private_output: Option<&Path>,
+    workset: Option<&super::host_workset_source::WorksetSourceInput>,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let checked = super::load_configuration(profile)?;
@@ -38,7 +39,10 @@ pub(super) fn build(
         .current_dir(&root)
         .output()?;
     if !head.status.success()
-        || String::from_utf8(head.stdout)?.trim() != image.manifest.source_identity
+        || String::from_utf8(head.stdout)?.trim()
+            != workset.map_or(image.manifest.source_identity.as_str(), |input| {
+                input.git_revision.as_str()
+            })
     {
         return Err("RP2040 build source identity differs from the exact committed tree".into());
     }
@@ -52,7 +56,13 @@ pub(super) fn build(
     } else {
         root.join(target_dir)
     };
-    let status = Command::new("cargo")
+    let description = super::host_workset_source::ImageDescriptionInput::capture(
+        output,
+        description_bytes,
+        image,
+    )?;
+    let mut command = Command::new("cargo");
+    let command = command
         .current_dir(&root)
         .args([
             "+stable",
@@ -67,8 +77,12 @@ pub(super) fn build(
         .env("CONDUIT_SOURCE_IDENTITY", &image.manifest.source_identity)
         .env("CONDUIT_HOST_IMAGE_ID", &image.manifest.image_id)
         .env("CONDUIT_HOST_CONFIGURATION", profile)
-        .env("CARGO_TARGET_DIR", &target_dir)
-        .status()?;
+        .env("CARGO_TARGET_DIR", &target_dir);
+    description.configure(command)?;
+    if let Some(input) = workset {
+        input.configure(command)?;
+    }
+    let status = command.status()?;
     if !status.success() {
         return Err("RP2040 Host compilation failed".into());
     }
@@ -83,7 +97,10 @@ pub(super) fn build(
     if !post.status.success()
         || !post.stdout.is_empty()
         || !post_head.status.success()
-        || String::from_utf8(post_head.stdout)?.trim() != image.manifest.source_identity
+        || String::from_utf8(post_head.stdout)?.trim()
+            != workset.map_or(image.manifest.source_identity.as_str(), |input| {
+                input.git_revision.as_str()
+            })
     {
         return Err("RP2040 Source changed during compilation".into());
     }
@@ -97,10 +114,14 @@ pub(super) fn build(
     if !status.success() {
         return Err("RP2040 UF2 conversion failed".into());
     }
+    description.verify()?;
     let bytes = fs::read(&uf2)?;
     validate_application_uf2(&bytes)?;
     // Feed the existing verified artifact/package path used by Crèche. This
     // inventory describes inert bytes; it grants no deployment or membership.
+    if let Some(input) = workset {
+        input.verify()?;
+    }
     super::host_release::seal(
         output,
         "checked-artifact.json",
@@ -129,6 +150,9 @@ pub(super) fn build(
         ))?,
     );
     fs::write(artifact_path, serde_json::to_vec_pretty(&artifact)?)?;
+    if let Some(input) = workset {
+        input.publish(&output.join("checked-artifact.json"))?;
+    }
     let elf_digest = format!("{:x}", Sha256::digest(fs::read(&elf)?));
     let uf2_digest = format!("{:x}", Sha256::digest(&bytes));
     // Retain the exact ordinary Make result used to bind this firmware and Seed.

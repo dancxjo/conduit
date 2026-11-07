@@ -19,6 +19,8 @@ mod host_esp32_inspection;
 #[cfg(test)]
 #[path = "host_esp32_inspection_tests.rs"]
 mod host_esp32_inspection_tests;
+#[path = "host_esp32_native.rs"]
+mod host_esp32_native;
 #[path = "host_local_model.rs"]
 mod host_local_model;
 #[path = "host_local_model_journey.rs"]
@@ -41,6 +43,8 @@ mod host_spoken_birth;
 pub(crate) mod host_target;
 #[path = "host_whisper.rs"]
 mod host_whisper;
+#[path = "host_workset_source.rs"]
+mod host_workset_source;
 
 #[path = "host_cli.rs"]
 mod host_cli;
@@ -223,19 +227,49 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             profile: profile_path,
             output,
             source_identity,
+            workset_source,
+            workset_entry,
             private_seed_input,
             private_seed_output,
         } => {
             let source_identity = source_identity
                 .map(Ok)
                 .unwrap_or_else(|| command_identity("git", &["rev-parse", "HEAD"]))?;
-            let (image, bytes) = resolve_profile(&profile_path, source_identity)?;
+            let workset = workset_source
+                .as_deref()
+                .map(|path| {
+                    host_workset_source::WorksetSourceInput::capture(
+                        path,
+                        &workset_entry,
+                        &source_identity,
+                        &output,
+                        opts.dry_run,
+                    )
+                })
+                .transpose()?;
+            let resolved_identity = workset
+                .as_ref()
+                .map_or(source_identity.as_str(), |input| input.identity.as_str());
+            let (image, bytes) = resolve_profile(&profile_path, resolved_identity.to_owned())?;
             if opts.dry_run {
                 println!(
                     "would BUILD {} from resolved binding {}",
                     profile_path.display(),
                     image.manifest.image_id
                 );
+            }
+            if host_esp32_native::selected(&image) {
+                host_esp32_native::build(
+                    &profile_path,
+                    &output,
+                    &image,
+                    &bytes,
+                    private_seed_input.as_deref(),
+                    private_seed_output.as_deref(),
+                    workset.as_ref(),
+                    opts,
+                )?;
+                return Ok(());
             }
             if image.manifest.target == conduit_host_rp2040::TARGET_ID {
                 host_rp2040::build(
@@ -245,9 +279,15 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                     &bytes,
                     private_seed_input.as_deref(),
                     private_seed_output.as_deref(),
+                    workset.as_ref(),
                     opts,
                 )?;
                 return Ok(());
+            }
+            if workset.is_some() {
+                return Err(
+                    "workset Source specialization is not supported by this target adapter".into(),
+                );
             }
             if private_seed_input.is_some() || private_seed_output.is_some() {
                 return Err("private embedded Seed applies only to an RP2040 Host build".into());

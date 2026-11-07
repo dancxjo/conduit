@@ -2,8 +2,10 @@ use conduit_host_make::{
     BaseSelection, HostMakePackage, ImplementationOffer, MakeAnchor, MakeContribution,
 };
 
+pub mod blue_descriptor;
 pub mod descriptor;
 pub mod family;
+pub mod physical;
 pub mod wroom32;
 
 pub use descriptor::{
@@ -20,6 +22,8 @@ pub use wroom32::hw463_esp_wroom_32_sample;
 mod descriptor_tests;
 #[cfg(test)]
 mod family_tests;
+#[cfg(test)]
+mod physical_tests;
 #[cfg(test)]
 mod wroom32_tests;
 
@@ -74,7 +78,7 @@ impl HostMakePackage for Esp32MakePackage {
         MakeContribution::Anchor(MakeAnchor {
             package_id: "conduit-host-esp32@1".into(),
             package_revision: 1,
-            catalog: Default::default(),
+            catalog: physical::catalog(),
             targets: Esp32FamilyTarget::ALL
                 .into_iter()
                 .map(Esp32FamilyTarget::target_descriptor)
@@ -86,7 +90,10 @@ impl HostMakePackage for Esp32MakePackage {
                     "esp32/bluetooth-le-gatt@1",
                     "bluetooth",
                 ),
-            ],
+            ]
+            .into_iter()
+            .chain(physical::offers())
+            .collect(),
         })
     }
 }

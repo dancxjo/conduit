@@ -54,6 +54,11 @@ pub(super) enum HostCommand {
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,
+        /// Explicit authored Source closure to specialize the selected firmware.
+        #[arg(long, requires = "workset_entry")]
+        workset_source: Option<PathBuf>,
+        #[arg(long, requires = "workset_source")]
+        workset_entry: Vec<String>,
         /// Private local invitation/owner pin input, never part of public artifacts.
         #[arg(long, requires = "private_seed_output")]
         private_seed_input: Option<PathBuf>,
