@@ -1,6 +1,6 @@
 //! Read-only Make output consumed by the existing scalar evaluator.
 use super::*;
-mod generate;
+pub(super) mod generate;
 pub use generate::generate_static_scalar_expression;
 
 /// Fixed-integer/Bool execution over an immutable, resident instruction array.
@@ -97,7 +97,7 @@ impl StaticScalarExpression {
         Ok(width)
     }
 }
-fn width(kind: PrimitiveInfoKind) -> Option<usize> {
+pub(super) fn width(kind: PrimitiveInfoKind) -> Option<usize> {
     Some(match kind {
         PrimitiveInfoKind::Bool | PrimitiveInfoKind::U8 | PrimitiveInfoKind::I8 => 1,
         PrimitiveInfoKind::U16 | PrimitiveInfoKind::I16 => 2,
@@ -107,7 +107,7 @@ fn width(kind: PrimitiveInfoKind) -> Option<usize> {
         _ => return None,
     })
 }
-fn validate_leaf(kind: PrimitiveInfoKind, bytes: &[u8]) -> Result<(), Refusal> {
+pub(super) fn validate_leaf(kind: PrimitiveInfoKind, bytes: &[u8]) -> Result<(), Refusal> {
     if width(kind) != Some(bytes.len()) {
         return Err(Refusal::InvalidProgram);
     }
@@ -124,9 +124,19 @@ fn validate(
     code: &[Instruction],
     result: usize,
 ) -> Result<(), Refusal> {
+    if !supported(input) {
+        return Err(Refusal::InvalidProgram);
+    }
+    validate_with_inputs(output, code, result, |_, kind| kind == input)
+}
+pub(super) fn validate_with_inputs(
+    output: PrimitiveInfoKind,
+    code: &[Instruction],
+    result: usize,
+    input: impl Fn(usize, PrimitiveInfoKind) -> bool,
+) -> Result<(), Refusal> {
     let n = code.len();
-    if !supported(input)
-        || !supported(output)
+    if !supported(output)
         || n == 0
         || n > MAXIMUM_INSTRUCTIONS
         || result >= n
@@ -145,8 +155,15 @@ fn validate(
         let earlier = |index: usize| index < pc;
         let forward = |target: usize| target > pc && target <= n;
         let valid = match &instruction.operation {
-            Operation::Input => kind == input,
+            Operation::Input => input(pc, kind),
             Operation::Literal(bytes) => validate_leaf(kind, bytes).is_ok(),
+            Operation::Widen(from) => {
+                earlier(*from)
+                    && crate::expression_semantic_call::is_strict_widening(
+                        kind_name(code[*from].kind),
+                        kind_name(kind),
+                    )
+            }
             Operation::Unary(op, from) => {
                 earlier(*from)
                     && code[*from].kind == kind
@@ -185,7 +202,9 @@ fn validate(
                 continue;
             }
             let reads = match instruction.operation {
-                Operation::Unary(_, from) | Operation::Move(from) => from == slot,
+                Operation::Unary(_, from) | Operation::Widen(from) | Operation::Move(from) => {
+                    from == slot
+                }
                 Operation::Binary(_, _, left, right) => left == slot || right == slot,
                 Operation::BranchFalse(condition, _) => condition == slot,
                 _ => false,

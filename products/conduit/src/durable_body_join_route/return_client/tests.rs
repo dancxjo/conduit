@@ -119,6 +119,7 @@ fn run_return(fresh_boot: bool) {
         maximum_attempts: 2,
         attempt_timeout_millis: 3_000,
     };
+    let owner_peer = owner.prepare_current_member_carrier_receiver().unwrap();
     let prior = receipt.credential;
     let before = detached.membership.revision;
     let mut accepted = None;
@@ -130,6 +131,7 @@ fn run_return(fresh_boot: bool) {
                 part_id: prior.part_id.clone(),
                 host_id: prior.host_id.clone(),
                 candidate: candidate.clone(),
+                owner: owner_peer.clone(),
             };
             let mut foreign = encounter.clone();
             foreign.host_id = "host/another-member".into();

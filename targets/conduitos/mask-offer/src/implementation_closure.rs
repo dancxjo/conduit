@@ -41,6 +41,19 @@ pub fn native_read_only_host_advertisement(
         Some(provider),
         profile,
     );
+    if !provider.capabilities.is_empty() {
+        let base = offer
+            .bases
+            .iter_mut()
+            .find(|base| base.provider_instance_id == provider.provider_instance_id);
+        if let Some(base) = base {
+            base.capability_ids = provider
+                .capabilities
+                .iter()
+                .map(|capability| capability.capability_id.clone())
+                .collect();
+        }
+    }
     offer.resources = provider.resources.clone();
     offer
         .resources
@@ -49,7 +62,10 @@ pub fn native_read_only_host_advertisement(
     offer
 }
 
-fn narrow_read_only(offers: &mut [CapabilityOffer], profile: NativeMaskStorageProfile) {
+fn narrow_read_only(offers: &mut Vec<CapabilityOffer>, profile: NativeMaskStorageProfile) {
+    // This entrance implements the ordinary native-graphical Source. Component
+    // recipes require their own explicitly prepared renderer/Look closure.
+    offers.retain(|offer| offer.kind_id.as_str() != NATIVE_COMPONENT_RENDERER_KIND);
     for offer in offers
         .iter_mut()
         .filter(|offer| offer.kind_id.as_str() == conduit_face::FACE_INTERACTION_KIND)

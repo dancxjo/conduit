@@ -245,7 +245,7 @@ fn acknowledged_browser_show(
         .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     let binding = LinkBindingId::from("line/test/selected-speech-browser");
     let authorized = owner
-        .browser_authorize_window("host/browser-speech-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-speech-test"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let Out::Challenge { challenge, .. } = owner
         .browser_begin(
@@ -461,6 +461,7 @@ fn runtime(owner: Owner, root: &std::path::Path) -> DurableHostRuntime {
         },
         birth: None,
         birth_root: None,
+        creche_factory: None,
         remote_fragment: None,
         pending_worker_text: None,
         pool_member: None,
@@ -473,6 +474,7 @@ fn runtime(owner: Owner, root: &std::path::Path) -> DurableHostRuntime {
         owner_spoken_worker: None,
         owner_spoken_terminal: None,
         spoken_template_session: None,
+        _source_preparation: None,
     }
 }
 

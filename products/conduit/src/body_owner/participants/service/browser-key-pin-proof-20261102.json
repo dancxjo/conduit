@@ -1,0 +1,46 @@
+{
+  "source": "baf757f80f6ac88a078361a345e385b61c63bb8a",
+  "qualified_root_source": "4a486f7a5fb5ff52fe6741939db42f2c0804ad07",
+  "identical_whole_tree": "2fa0d95a42079905deeecc6ad3a847aedc56ed06",
+  "base": "1b23e039fe",
+  "checks": [
+    {
+      "command": "cargo +stable test --locked -p conduit --bin conduit key_pin -- --nocapture",
+      "result": "6 passed",
+      "log": "key-pin-1.log"
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit --bin conduit participants::service::tests -- --nocapture",
+      "result": "11 passed",
+      "log": "browser-window-regressions.log"
+    },
+    {
+      "command": "cargo +stable clippy --locked -p conduit --bin conduit -- -D warnings",
+      "result": "passed",
+      "log": "clippy.log"
+    }
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-local-native-provider-check",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/browser-key-pin-20261102/key-pin-1.log",
+      "sha256": "6cbab65228c0ce0959d381900823674ad90763e3782e2a9258fbca26c9aead8e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/browser-key-pin-20261102/browser-window-regressions.log",
+      "sha256": "62b4aab4cccf4e5343ad53220002ed90347870cb2f9ceb9021f20863722219c8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/browser-key-pin-20261102/clippy.log",
+      "sha256": "5b3c3e97f18594a4fcfdb13e7d5bdecf1feab052ddd6bb5843f256f04cb18f97"
+    }
+  ],
+  "binding": "Optional expected Host selector is typed at CLI, authenticated local control and Owner. Missing Host requires explicit32-byte first-admission key pin. Existing signed ambient challenge proves observed Host/Boot/generation; selected Host is resolved only after signature validation and persisted membership. Wrong offered key, signature key swap, changed Host/Boot proof and key-only ReturnAdvertise refuse. Legacy explicit-Host requests remain accepted; returning members require exact known Host and canonical retained credential. Existing browser protocol, finite windows, membership and Line/Mask authority remain unchanged. No guessed identity, raw-local Cr\u00e8che bypass or unpinned public admission.",
+  "boundary": "Deterministic actual canonical Ed25519/service fixtures and binary lint only. Tests ran on identical whole repository tree in the warmed Root worktree; no duplicate isolated build. No actual browser, installed ELF deployment, live admission, rendered UI, Seed or physical acceptance claim."
+}

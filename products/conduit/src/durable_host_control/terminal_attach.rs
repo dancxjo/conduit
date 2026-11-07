@@ -244,7 +244,19 @@ impl DurableHostRuntime {
             retire(&state_dir, self)?;
             return self.submit_committed_todo_action(show, &correlated.interaction, resolved);
         }
-        owner.apply_clock_interval_interaction(root, show, &correlated.interaction)
+        let action = owner.resolve_clock_interaction(show, &correlated.interaction)?;
+        if matches!(
+            action,
+            crate::durable_host::owner::ClockAction::Start
+                | crate::durable_host::owner::ClockAction::Lull
+        ) {
+            let state_dir = root.clone();
+            // The current route authenticated this exact typed occurrence.
+            // Release its completed kernel before the same Host prepares work.
+            drop(route);
+            retire(&state_dir, self)?;
+        }
+        self.apply_resolved_owner_action(show, &correlated.interaction, action)
     }
 }
 

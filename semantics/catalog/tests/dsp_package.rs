@@ -128,7 +128,7 @@ fn authored_imports_expand_the_same_owned_noise_and_gain_programs() {
         .expanded
         .gears
         .iter()
-        .any(|g| g.kind_contract_revision.as_str() == "structured-info/selector-operation@1"));
+        .any(|g| g.kind_contract_revision.as_str() == "structured-info/selector-operation@2"));
     let example_configurations = example
         .expanded
         .gears

@@ -1,8 +1,31 @@
 use conduit_host_make::{
     HostBounds, HostMakePackage, ImplementationOffer, MakeAnchor, MakeContribution,
-    PostBuildAction, SporeOutputKind, TargetDescriptor,
+    PackageCatalogContribution, PostBuildAction, SporeOutputKind, TargetDescriptor,
 };
 
+mod bootstrap_contract;
+mod gpio_initialization;
+mod hardware_initialization;
+pub use gpio_initialization::*;
+mod membership_seed;
+mod native_offer;
+mod resident_protocol;
+pub use native_offer::checked_i2c_offer_image;
+mod resident_work;
+pub use bootstrap_contract::*;
+pub use hardware_initialization::*;
+pub use membership_seed::*;
+pub use resident_protocol::{
+    checked_dht11_resident_images, checked_dht11_resident_library, checked_ht16k33_resident_library,
+};
+pub use resident_work::CheckedResidentWorkPool;
+
+pub const CLOCK_IMPLEMENTATION: &str = "rp2040/monotonic-clock@1";
+pub use conduit_mcu_source_build::clock::CheckedClockConstruction;
+pub const RENDERER_IMPLEMENTATION: &str = "rp2040/seven-segment-renderer@1";
+pub use conduit_mcu_source_build::renderer::{
+    CheckedRendererConstruction, TemperatureUnit as RendererTemperatureUnit,
+};
 pub const PACKAGE_ID: &str = "conduit-host-rp2040@1";
 pub const TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
 pub const BUILDER_ADAPTER: &str = "conduit-host-rp2040/build-uf2@1";
@@ -14,7 +37,34 @@ impl HostMakePackage for Rp2040MakePackage {
         MakeContribution::Anchor(MakeAnchor {
             package_id: PACKAGE_ID.into(),
             package_revision: 1,
-            catalog: Default::default(),
+            catalog: PackageCatalogContribution {
+                initialization_contracts: std::collections::BTreeMap::from([
+                    (
+                        CLOCK_IMPLEMENTATION.into(),
+                        conduit_mcu_source_build::clock::initialization_contract(),
+                    ),
+                    (
+                        WIFI_IMPLEMENTATION.into(),
+                        retained_wifi_initialization_contract(),
+                    ),
+                    (
+                        RENDERER_IMPLEMENTATION.into(),
+                        conduit_mcu_source_build::renderer::initialization_contract(),
+                    ),
+                    (I2C_IMPLEMENTATION.into(), i2c_initialization_contract()),
+                    (DHT11_IMPLEMENTATION.into(), dht11_initialization_contract()),
+                    (
+                        TM1637_IMPLEMENTATION.into(),
+                        tm1637_initialization_contract(),
+                    ),
+                    (BOSCH_IMPLEMENTATION.into(), bosch_initialization_contract()),
+                    (
+                        HT16K33_IMPLEMENTATION.into(),
+                        ht16k33_initialization_contract(),
+                    ),
+                ]),
+                ..Default::default()
+            },
             targets: vec![TargetDescriptor {
                 label: "Pico W".into(),
                 family: "conduitos".into(),
@@ -52,7 +102,18 @@ impl HostMakePackage for Rp2040MakePackage {
                 target_patterns: vec![TARGET_ID.into()],
                 prerequisites: Vec::new(),
                 build_feature: Some("line-usb-cdc".into()),
-            }],
+            }]
+            .into_iter()
+            .chain(hardware_initialization::offers())
+            .collect(),
         })
     }
 }
+
+#[cfg(test)]
+mod member_return_wire_tests;
+
+/// Shared explicit checked Source closure for ordinary firmware fabrication.
+pub use conduit_mcu_source_build::workset;
+
+pub use conduit_mcu_source_build as source_build;

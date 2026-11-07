@@ -1,0 +1,48 @@
+{
+  "schema": "conduit.proof/mcu-admission-checkpoint@1",
+  "observed_at": "2026-11-02T21:57:24.500478+00:00",
+  "target_body": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "owner_source_validation": {
+    "strict_warnings": true,
+    "filter": "member_carrier",
+    "passed": 10,
+    "failed": 0,
+    "log_sha256": "85362ed7656156767a2b0f3fa1b2cfd9c662cd17d9d8e60efe9cfd62e75846e6"
+  },
+  "blue_recovery": {
+    "classification": "physical controlled reset, no flash writes",
+    "boot_id": "boot/db9df49c278f88ed53818fca5d1fccef",
+    "existing_source": "7d14030b5b389657063c716db800264250080178",
+    "fresh_sample_sequence": 1,
+    "display_updates": 35,
+    "backup_sha256": "df1924cdc7fb13a5e6945bf28d19bc957a91ed1181a757abf624d8797abad7c8",
+    "boot_log_sha256": "b268a4a9d017dbbe23c82f4435cf78febf2e30dd458606ff1198b62ce8ee7a34",
+    "body_migrated_to_hamm": false,
+    "station_connected": false,
+    "network_refusal": "network-evidence-capacity"
+  },
+  "not_proven": [
+    "physical MCU admission to Hamm",
+    "ordinary environmental Plot execution on MCU",
+    "same-Body shared history/graph",
+    "restart continuity of admitted MCU"
+  ],
+  "preservation": "device backups and control keys are private and excluded from source control",
+  "usb_receipt_delivery_validation": {
+    "strict_warnings": true,
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "scope": "two raw bounded Pico USB frames, independent pins/member key/Body/actual advertisement; no device acceptance claim",
+    "log_sha256": "3045124476f113abee2184674e1295414ec46e472bba7552887ad7defd5803f9"
+  },
+  "canonical_usb_request_validation": {
+    "source_identity": "8fca92f7b8",
+    "strict_warnings": true,
+    "passed": 1,
+    "failed": 0,
+    "log_sha256": "eb3cfafbd91bd23a1109001c7e8042a5e7628a7cb23e2d011b469c0b03b4d10a",
+    "scope": "Compiled owner USB request against canonical literal request and non-secret invitation claim; existing receipt pin/bounds test passed. No physical join claim."
+  },
+  "pico_firmware_qualification": "Separate generic composition at c8b4d6cef3 passed ordinary Make; 863692 bytes flash and 93640 bytes static RAM including 49152-byte heap arena. Physical admission and meaningful sampling Play remain unproven."
+}

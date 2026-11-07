@@ -153,3 +153,21 @@ fn failed_creche_retirement_rejects_late_outcome_until_explicit_drain() {
     adapter.cancel_and_drain().unwrap();
     assert_eq!(adapter.polls, 0);
 }
+
+#[test]
+fn borrowed_context_rejects_changed_adapter_before_preparation_or_begin() {
+    let mut adapter = Adapter::new();
+    let (host, plan, play) = planned(&adapter);
+    let context = admission::context(
+        &host,
+        &plan,
+        &play,
+        adapter.resource_offer(),
+        adapter.limits(),
+    )
+    .unwrap();
+    adapter.resource.capacity_units = 2;
+    assert!(CrecheHost::prepare_from_context(&mut adapter, &context).is_err());
+    assert_eq!((adapter.begins, adapter.polls, adapter.drains), (0, 0, 1));
+    assert_eq!(context.host(), &host);
+}

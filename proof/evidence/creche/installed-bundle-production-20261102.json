@@ -1,0 +1,75 @@
+{
+  "source": "6fb46b7eab86f71edefc70dc8cfde7601709de70",
+  "tree": "9e463320817baccbb327a89511980764109ce12b",
+  "accepted_dev": "bdf8c835e45dc3fcf5d993ea7e8568f8b787732a",
+  "class": "CPU software lifecycle/package/consumer proof plus actual retained browser Make bytes; no live installed service or deployment proof",
+  "checks": [
+    {
+      "log": "bundle-pipeline-bin-tests-2.log",
+      "scope": "13 ordinary Owner/kernel tests; before storage-only enum boxing and added metadata ceiling",
+      "sha256": "658a7b760e33f25c694a0b7c1db4dd990a7cb32d73605cd2d7b962d445ab236e"
+    },
+    {
+      "log": "bundle-pipeline-release-tests.log",
+      "scope": "3 same-Body verified-release binding tests",
+      "sha256": "1de088a0e47369bc765dbb5b3cd39b3ffd32cc8f21281bc6ed27a1b082bb0fb2"
+    },
+    {
+      "log": "bundle-pipeline-hosted-make-tests.log",
+      "scope": "23 hosted Make tests",
+      "sha256": "d3f4154a082c5689a5c13495775243e356913770ed78579263bc8a1902e99bf4"
+    },
+    {
+      "log": "bundle-pipeline-native-reader.log",
+      "scope": "1 existing native reader compatibility test; installed provenance caveat retained",
+      "sha256": "a3557259e2b110a9f74ad02ce871fd533bb13572ddf0c156f68972137a228f43"
+    },
+    {
+      "log": "bundle-final-package-tests.log",
+      "scope": "8 package tests including distinct Body/artifact sources and bounded metadata refusal",
+      "sha256": "5cbafb02735e524aea4c501fc4505d56d5b3e2b45d8e41b6f3f7f29f38b7fb31"
+    },
+    {
+      "log": "bundle-final-lib-tests.log",
+      "scope": "8 installed Cr\u00e8che adapter tests with actual ZIP bytes",
+      "sha256": "131cdd6dfd36ff998500a965e40f6cdb34bb126e3a2c0c3b1912ca01dfdd95ef"
+    },
+    {
+      "log": "bundle-final-real-init.log",
+      "scope": "1 explicitly selected real prior-Make browser initialization test",
+      "sha256": "bc18d00cb16b1d6e72ede3c48d4c78703eaa7833e317c42b026e89664c96ae4c"
+    },
+    {
+      "log": "bundle-final-clippy.log",
+      "scope": "strict conduit/body-Make/hosted-Make lib/bin/test compilation",
+      "sha256": "57a064643109a3f1419a97d9ad6466d0585e8516b3f2df8567d65604076ce97b"
+    },
+    {
+      "log": "bundle-final-format.log",
+      "scope": "full workspace formatting",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "real_input": {
+    "source": "ab1a26eaf6b42bbc003cbd5a9fd748c6f6e8a162",
+    "payload_files": 13,
+    "payload_bytes": 16770460,
+    "image_content_digest": "sha256:a914e2dc848baaf6a381fe5ab561076fc387345cc31221a478d86aacedac2147"
+  },
+  "invariants": [
+    "Body Birth Sign and artifact source remain separate",
+    "aggregate bundle identity differs from raw ZIP identity",
+    "retained actual payload handles verified before provider readiness",
+    "known package workspace shortage refuses before Play",
+    "same issued invitation privately provisioned with exact routed descriptor",
+    "partial ZIP output stays private; completion requires full byte verification",
+    "bounded retained evidence encoding and IMAGE metadata parsing"
+  ],
+  "remaining": [
+    "authenticated retained-handle artifact export",
+    "actual authoring Host release/deployment and ordinary attended birth/Cr\u00e8che UI",
+    "actual browser Boot, admission and observed offers",
+    "existing native installer reconstructs source identity from Spore Body source; reader tests do not prove correct installed release provenance",
+    "remaining MCU/Pi/graph/history/Face lifecycle requirements in full goal"
+  ]
+}

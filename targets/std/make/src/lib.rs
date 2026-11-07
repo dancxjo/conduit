@@ -6,16 +6,30 @@ use conduit_host_make::{
 use std::collections::BTreeMap;
 
 mod builder;
+mod creche_initialization;
 #[cfg(target_os = "linux")]
 mod linux_builder;
 mod microphone_initialization;
 mod playback_initialization;
 mod recognition_initialization;
+mod source_check_initialization;
+mod tls_listener_initialization;
 pub use builder::*;
+pub use creche_initialization::{
+    creche_encounter_initialization_contract, CRECHE_ENCOUNTER_BASE_KIND,
+};
 #[cfg(target_os = "linux")]
 pub use linux_builder::*;
 pub use microphone_initialization::{
     alsa_microphone_initialization_contract, ALSA_MICROPHONE_BASE_KIND,
+};
+pub use tls_listener_initialization::{
+    tls_listener_initialization_contract, CheckedTlsListenerInitialization, TLS_LISTENER_BASE_KIND,
+    TLS_LISTENER_IMPLEMENTATION,
+};
+
+pub use source_check_initialization::{
+    source_check_initialization_contract, CheckedSourceCheckInitialization,
 };
 
 pub struct HostedMakePackage;
@@ -67,7 +81,7 @@ pub const HOSTED_PLATFORM_VARIANTS: [HostedPlatformVariant; 4] = [
 ];
 
 fn package_catalog() -> PackageCatalogContribution {
-    let implementations = conduit_std_offers::supported_nucleus_offers()
+    let mut implementations: BTreeMap<_, _> = conduit_std_offers::supported_nucleus_offers()
         .into_iter()
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();
@@ -94,8 +108,28 @@ fn package_catalog() -> PackageCatalogContribution {
             )
         })
         .collect();
+    implementations.insert(
+        conduit_body_make::deployment_runtime_catalog::CRECHE_IMPLEMENTATION.into(),
+        creche_initialization::metadata(),
+    );
+    implementations.insert(
+        conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION.into(),
+        source_check_initialization::metadata(),
+    );
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION.into(),
+                source_check_initialization_contract(),
+            ),
+            (
+                TLS_LISTENER_IMPLEMENTATION.into(),
+                tls_listener_initialization_contract(),
+            ),
+            (
+                conduit_body_make::deployment_runtime_catalog::CRECHE_IMPLEMENTATION.into(),
+                creche_encounter_initialization_contract(),
+            ),
             (
                 conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION.into(),
                 recognition_initialization::whisper_initialization_contract(),
@@ -115,6 +149,8 @@ fn package_catalog() -> PackageCatalogContribution {
         ]),
         implementations,
         dependencies: BTreeMap::from([
+            creche_initialization::resource_dependency(),
+            source_check_initialization::resource_dependency(),
             (
                 PrerequisiteNode::Resource("conduit.resource/timer-slot@1".into()),
                 vec![PrerequisiteNode::Base("timer/monotonic".into())],
@@ -180,7 +216,7 @@ impl HostMakePackage for HostedMakePackage {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Anchor(MakeAnchor {
             package_id: "hosted-native@1".into(),
-            package_revision: 3,
+            package_revision: 4,
             catalog: package_catalog(),
             targets: vec![
                 target(
@@ -203,6 +239,9 @@ impl HostMakePackage for HostedMakePackage {
                 ),
             ],
             offers: vec![
+                creche_initialization::offer(),
+                source_check_initialization::offer(),
+                tls_listener_initialization::offer(),
                 playback_initialization::offer(),
                 recognition_initialization::offer(),
                 microphone_initialization::offer(),

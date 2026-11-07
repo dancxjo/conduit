@@ -210,6 +210,8 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
     drop(next);
     assert!(!next_claim.initialized().is_live());
     drop(next_claim);
+    let mut lifecycle = Scanout::prepare(&mut canvas, &textures, 32, 24).unwrap();
+    crate::input_queue_tests::output_lifecycle(&mut lifecycle, &sdl);
     assert!(
         !fresh_token.is_live(),
         "Drop revokes all outstanding clones"

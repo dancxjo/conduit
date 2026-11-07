@@ -20,7 +20,7 @@ impl CanonicalSource {
         self.expand_checked_for_authoring(&checked, entry)
     }
 
-    fn expand_checked_for_authoring(
+    pub(crate) fn expand_checked_for_authoring(
         &self,
         checked: &conduit_plot::CheckedSyntaxDocument,
         entry: &str,
@@ -46,6 +46,21 @@ impl CanonicalSource {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn ordinary_tick_trigger_expands_against_product_semantics() {
+        let source = super::super::parse(
+            "plot clock-trigger (\n) {\n    clock: time/tick(count = 1, period-ms = 0)\n    trigger: time/tick-trigger\n    clock.tick >> trigger.tick\n}\n",
+        ).unwrap();
+        let plot = source.expand_entry_for_authoring().unwrap();
+        assert_eq!(plot.expanded.gears.len(), 2);
+        assert_eq!(plot.expanded.connections.len(), 1);
+        assert!(plot
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == conduit_time::TICK_TRIGGER_KIND));
+    }
+
+    #[test]
     fn owned_capture_keeps_its_original_source_allocation() {
         let captured = String::from(include_str!("../../../../plots/clock/main.conduit"));
         let original = captured.as_ptr();
@@ -65,6 +80,29 @@ mod tests {
         assert_ne!(first.source.as_ptr(), second.source.as_ptr());
         assert!(first.expand_entry_for_authoring().is_ok());
         assert!(second.expand_entry_for_authoring().is_ok());
+    }
+
+    #[test]
+    fn ordinary_i2c_source_checks_without_inventing_a_local_controller() {
+        let source = super::super::parse(include_str!(
+            "../../../../plots/device-protocols/i2c.conduit"
+        ))
+        .unwrap();
+        let authored = source.expand_entry_for_authoring().unwrap();
+        assert_eq!(authored.expanded.gears.len(), 1);
+        assert_eq!(
+            authored.expanded.gears[0].kind_id.as_str(),
+            conduit_i2c_transaction::contract::I2C_KIND
+        );
+        let host = conduit_std_host::StdHost::new();
+        assert!(!host.advertisement().capabilities.iter().any(|offer| {
+            offer.kind_id.as_str() == conduit_i2c_transaction::contract::I2C_KIND
+        }));
+        assert!(conduit_planner::default_expanded_placements(
+            &authored.expanded,
+            &[host.advertisement().clone()],
+        )
+        .is_err());
     }
 
     #[test]

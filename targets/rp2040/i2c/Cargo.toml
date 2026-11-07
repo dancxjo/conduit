@@ -1,0 +1,19 @@
+[package]
+name = "conduit-rp2040-i2c"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+resolver = "2"
+
+[features]
+default = []
+rp2040 = ["dep:embassy-rp", "dep:critical-section", "dep:embedded-hal", "dep:embedded-hal-async"]
+
+[dependencies]
+embedded-hal = { version = "=1.0.0", optional = true }
+embedded-hal-async = { version = "=1.0.0", optional = true }
+critical-section = { version = "1.2", optional = true }
+conduit-i2c-transaction = { path = "../../../mechanisms/io/i2c-transaction", default-features = false }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true, features = ["rp2040", "critical-section-impl", "unstable-pac"] }

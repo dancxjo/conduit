@@ -8,10 +8,18 @@ use clap::ValueEnum;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
+#[path = "host_configuration_load.rs"]
+pub(super) mod configuration_load;
+
 #[path = "host_release_armv6.rs"]
 mod armv6;
+#[path = "host_release_artifact.rs"]
+mod artifact;
 #[path = "host_release_browser.rs"]
 mod browser;
+#[path = "host_release_checked.rs"]
+mod checked;
+pub(super) use artifact::review_artifact;
 #[path = "host_release_linux.rs"]
 mod linux;
 
@@ -57,21 +65,35 @@ struct ReleaseFile {
 pub(crate) struct ReleaseOptions {
     pub(crate) json: bool,
     pub(crate) quiet: bool,
+    pub(crate) native_library_directories: Vec<PathBuf>,
 }
 
 pub(crate) fn run(
     output: &Path,
     platform: ReleasePlatform,
     source_identity: &str,
+    configuration: Option<&Path>,
     opts: &ReleaseOptions,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    match platform {
-        ReleasePlatform::Browser => build_browser(output, source_identity)?,
-        ReleasePlatform::Linux => linux::build_linux_set(output, source_identity)?,
-        ReleasePlatform::LinuxAarch64 => linux::build_aarch64(output, source_identity)?,
-        ReleasePlatform::LinuxArmv6 => armv6::build(output, source_identity)?,
-        ReleasePlatform::Windows => build_windows(output, source_identity)?,
-        ReleasePlatform::Macos => build_macos(output, source_identity)?,
+    if let Some(configuration) = configuration {
+        checked::build(
+            output,
+            source_identity,
+            configuration,
+            &opts.native_library_directories,
+        )?;
+    } else {
+        if !opts.native_library_directories.is_empty() {
+            return Err("native library directories require a checked Host configuration".into());
+        }
+        match platform {
+            ReleasePlatform::Browser => build_browser(output, source_identity)?,
+            ReleasePlatform::Linux => linux::build_linux_set(output, source_identity)?,
+            ReleasePlatform::LinuxAarch64 => linux::build_aarch64(output, source_identity)?,
+            ReleasePlatform::LinuxArmv6 => armv6::build(output, source_identity)?,
+            ReleasePlatform::Windows => build_windows(output, source_identity)?,
+            ReleasePlatform::Macos => build_macos(output, source_identity)?,
+        }
     }
 
     if opts.json {
@@ -255,7 +277,7 @@ fn build_macos(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::
 }
 
 #[allow(clippy::too_many_arguments)]
-fn seal(
+pub(super) fn seal(
     root: &Path,
     manifest_name: &str,
     target_id: &str,

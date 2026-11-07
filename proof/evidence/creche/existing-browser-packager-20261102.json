@@ -1,0 +1,27 @@
+{
+  "source": "426acac5b9404fb00b825079f4a049c5584a01e4",
+  "class": "existing browser target packager executed on real retained prior-Make bytes; not Body-bound Seed or Boot proof",
+  "prior_make_source": "ab1a26eaf6b42bbc003cbd5a9fd748c6f6e8a162",
+  "browser_image_id": "image:sha256:b8c0fe54aae1b026a1e9957ee4c2d009319577aeddbb74b82fc89a2e7915d786",
+  "profile_id": "sha256:58159a1195f966978492e3e24529e95c51510b8be96d32dc67c5f9d41993abc9",
+  "image_content_digest": "sha256:a914e2dc848baaf6a381fe5ab561076fc387345cc31221a478d86aacedac2147",
+  "runtime_raw_digest": "sha256:d31cffe683e7fd994535c00b51d45c4ab42cd0171f78c7f4941bcb277142c3e7",
+  "verified_payload_count": 13,
+  "verified_payload_bytes": 16770460,
+  "command": "node targets/browser/sdk/package-browser-bundle.mjs PRIOR_BROWSER_BUNDLE NEW_SDK_PACKAGE_DIRECTORY",
+  "checks": [
+    {
+      "command": "node --test targets/browser/sdk/package-browser-bundle.test.mjs",
+      "result": "1 Node test entry passed, zero failures",
+      "log": "existing-browser-packager-tests.log",
+      "sha256": "a6b42c5dec399e29a8a4fe7a8e28a86ec031af01edad6f94f689320fa7db4272"
+    }
+  ],
+  "does_not_prove": [
+    "new source WASM compilation",
+    "Body-bound invitation provisioning",
+    "installed Cr\u00e8che invocation of this target packager",
+    "downloadable same-Body Seed",
+    "Boot, admission or live offers"
+  ]
+}

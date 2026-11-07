@@ -13,12 +13,16 @@ use sha2::{Digest, Sha256};
 use crate::{Face, FaceContentId, RENDERER_KIND};
 
 mod validation;
+mod prepared_context;
+pub use prepared_context::*;
 
 pub const MAX_MANIFESTATION_TARGET_BYTES: usize = 256;
 pub const MAX_MANIFESTATION_SIGNS: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ManifestationId(String);
+
+mod retained_backing;
 
 impl ManifestationId {
     pub fn as_str(&self) -> &str {

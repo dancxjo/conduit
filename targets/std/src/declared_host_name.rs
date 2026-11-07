@@ -7,6 +7,7 @@ impl crate::StdHost {
         if self.advertisement.declared_name.as_ref() == Some(&name) {
             return Ok(());
         }
+        self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() {
             return Err("Host name cannot change during active reservations".into());
         }

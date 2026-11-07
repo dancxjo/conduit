@@ -25,9 +25,11 @@ fn same_receive_buffer_retains_original_attribution_without_allocating() {
     let f = Fixture::new();
     let mut input = HostCommandInput::<64>::new();
     input.writable().unwrap()[..PAYLOAD.len()].copy_from_slice(PAYLOAD);
+    assert_eq!(input.expires_at_millis(), None);
     let address = input.writable().unwrap().as_ptr();
     let ((), cost) = probe::observe(|| {
         input.retain(stamp(&f)).unwrap();
+        assert_eq!(input.expires_at_millis(), Some(20));
         assert_eq!(input.payload().unwrap(), PAYLOAD);
         assert_eq!(input.payload().unwrap().as_ptr(), address);
         assert_eq!(
@@ -49,6 +51,7 @@ fn same_receive_buffer_retains_original_attribution_without_allocating() {
         Some(HostCommandRetentionRefusal::Occupied)
     );
     input.retire();
+    assert_eq!(input.expires_at_millis(), None);
     assert!(!input.is_retained());
     assert!(input.writable().unwrap().iter().all(|b| *b == 0));
     assert_eq!(

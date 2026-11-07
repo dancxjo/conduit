@@ -9,6 +9,8 @@ use conduit_plot::{
 use std::borrow::Cow;
 #[path = "common/allocation_probe.rs"]
 mod allocation_probe;
+#[path = "common/compiled_rust.rs"]
+mod compiled_rust;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_plot::BinaryOperator as B;
@@ -299,7 +301,6 @@ fn checked_boundary_predicates_are_retained_once_and_other_profiles_refuse() {
 #[test]
 fn generated_resident_programs_compile_no_std_and_match_checked_source() {
     use sha2::Digest;
-    use std::{fs, process::Command};
     let mut generated = String::new();
     let mut exercise = String::from("fn main() {\n");
     let mut cases = Vec::new();
@@ -369,57 +370,46 @@ fn generated_resident_programs_compile_no_std_and_match_checked_source() {
         }
     }
     exercise.push_str("}\n");
-    let directory =
-        std::env::temp_dir().join(format!("conduit-static-scalar-{}", std::process::id()));
-    fs::create_dir(&directory).unwrap();
-    let dependencies = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_path_buf();
-    let library = fs::read_dir(&dependencies)
-        .unwrap()
-        .filter_map(Result::ok)
-        .filter(|entry| {
-            entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with("libconduit_plot-")
-                && entry.path().extension().is_some_and(|ext| ext == "rlib")
-        })
-        .max_by_key(|entry| entry.metadata().unwrap().modified().unwrap())
-        .unwrap()
-        .path();
-    for (name, contents, kind) in [
-        ("image", format!("{generated}{exercise}"), "bin"),
-        ("no_std", format!("#![no_std]\n{generated}"), "rlib"),
-    ] {
-        let source = directory.join(format!("{name}.rs"));
-        let output = directory.join(name);
-        fs::write(&source, contents).unwrap();
-        let built = Command::new("rustc")
-            .args(["--edition=2021", "--crate-type", kind, "-L"])
-            .arg(format!("dependency={}", dependencies.display()))
-            .arg("--extern")
-            .arg(format!("conduit_plot={}", library.display()))
-            .arg(&source)
-            .arg("-o")
-            .arg(&output)
-            .output()
+    compiled_rust::verify(&generated, &exercise, "static-scalar");
+}
+
+#[test]
+fn strict_integer_widening_preserves_sign_and_rejects_lossy_static_tapes() {
+    static SIGNED: &[I] = &[
+        instruction(K::I8, 0, O::Input),
+        instruction(K::I128, 1, O::Widen(0)),
+    ];
+    static UNSIGNED: &[I] = &[
+        instruction(K::U8, 0, O::Input),
+        instruction(K::I128, 1, O::Widen(0)),
+    ];
+    let signed = StaticScalarExpression::new(K::I8, K::I128, SIGNED, 1).unwrap();
+    let unsigned = StaticScalarExpression::new(K::U8, K::I128, UNSIGNED, 1).unwrap();
+    let mut output = [0; 16];
+    for value in [i8::MIN, -1, 0, 1, i8::MAX] {
+        signed
+            .evaluate_into(&value.to_le_bytes(), &mut output)
             .unwrap();
-        assert!(
-            built.status.success(),
-            "{}",
-            String::from_utf8_lossy(&built.stderr)
-        );
-        if kind == "bin" {
-            let ran = Command::new(output).output().unwrap();
-            assert!(
-                ran.status.success(),
-                "{}",
-                String::from_utf8_lossy(&ran.stderr)
-            );
-        }
+        assert_eq!(i128::from_le_bytes(output), i128::from(value));
     }
-    fs::remove_dir_all(directory).unwrap();
+    for value in [0u8, 1, 127, 128, 255] {
+        unsigned.evaluate_into(&[value], &mut output).unwrap();
+        assert_eq!(i128::from_le_bytes(output), i128::from(value));
+    }
+    for (input, output) in [
+        (K::U8, K::I8),
+        (K::I8, K::U16),
+        (K::U64, K::U8),
+        (K::U8, K::U8),
+        (K::Bool, K::U16),
+    ] {
+        let code = Box::leak(
+            vec![
+                instruction(input, 0, O::Input),
+                instruction(output, 1, O::Widen(0)),
+            ]
+            .into_boxed_slice(),
+        );
+        assert!(StaticScalarExpression::new(input, output, code, 1).is_err());
+    }
 }

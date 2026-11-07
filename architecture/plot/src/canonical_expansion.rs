@@ -41,7 +41,7 @@ use graph::*;
 use identity::expanded_identity;
 use shared_pool::{bind_pool_environment, expanded_pool_declarations, seal_pool_consumers};
 use startup::{bind_child_environment, canonical_initial_bytes, substitute};
-pub use structured_selector::structured_selector_definition;
+pub use structured_selector::{structured_selector_definition, structured_selector_semantic_laws};
 
 #[derive(Debug, Clone)]
 struct Endpoint {
@@ -191,6 +191,10 @@ fn expand_instance(
 #[allow(clippy::too_many_arguments)]
 fn instantiate_gear(
     gear: &CheckedCanonicalGear,
+    derived_selector: Option<(
+        &conduit_core::StructuredSelector,
+        conduit_core::PortTemporal,
+    )>,
     relational_input_arity: Option<usize>,
     instance_name: &str,
     source_plot: &CheckedCanonicalPlot,
@@ -574,8 +578,21 @@ fn instantiate_gear(
     }
 
     let kind_id = KindId::from(gear.kind.as_str());
+    // A checked selector already determines its complete contract, including
+    // temporal meaning from adjacent checked Ports. Keep that one derived
+    // projection local instead of copying/mutating the shared profile catalog.
+    let derived_definition = derived_selector
+        .map(|(selector, temporal)| structured_selector_definition(selector, temporal));
     let specialized_definition;
-    let definition = if let Some(input_count) = relational_input_arity {
+    let definition = if let Some(definition) = &derived_definition {
+        if definition.kind_id != kind_id || relational_input_arity.is_some() {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-045",
+                "derived selector differs from its checked Gear identity".into(),
+            ));
+        }
+        definition
+    } else if let Some(input_count) = relational_input_arity {
         specialized_definition = catalog
             .projection_for_arity(&kind_id, input_count)
             .map_err(|message| CanonicalExpansionDiagnostic::new("CND-FRM-043", message))?;
@@ -602,9 +619,13 @@ fn instantiate_gear(
             )
         })?
     };
-    let semantic_kind = catalog
-        .canonical_kind_for_arity(&kind_id, relational_input_arity)
-        .map_err(|message| CanonicalExpansionDiagnostic::new("CND-FRM-043", message))?;
+    let semantic_kind = if derived_definition.is_some() {
+        None
+    } else {
+        catalog
+            .canonical_kind_for_arity(&kind_id, relational_input_arity)
+            .map_err(|message| CanonicalExpansionDiagnostic::new("CND-FRM-043", message))?
+    };
     let terminal_transductions = semantic_kind
         .as_ref()
         .map(|kind| kind.terminal_transductions().cloned().collect())
@@ -691,7 +712,8 @@ fn instantiate_gear(
             .map(conduit_core::Kind::semantic_contract)
             .unwrap_or_else(|| conduit_core::KindSemanticContract {
                 configuration: definition.configuration.clone(),
-                laws: Vec::new(),
+                laws: derived_selector.map(|(selector, _)| structured_selector_semantic_laws(selector))
+                    .transpose().expect("checked selector has finite canonical bounds").unwrap_or_default(),
             }),
         terminal_transductions: terminal_transductions.clone(),
         resource_ports: semantic_kind

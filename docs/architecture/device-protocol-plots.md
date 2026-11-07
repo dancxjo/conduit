@@ -166,6 +166,32 @@ The IA-32 boot entrance currently reports unsupported for this module path.
 The retained entry contributes its exact partition to ordinary body planning;
 successful preparation still does not start Play or authorize a controller.
 
+## Resident expression installation
+
+Host-only embedded Make can emit checked structured expressions as immutable
+code with standard offer bytes. Its generated initialized owner must construct
+the common Back and satisfy a declared private-work requirement before lending
+those bytes. The semantic catalog supplies the existing Kind; no device-specific
+Kind model is introduced. Ordinary planning must still reserve the finite work
+pool, and Make binds only the exact selected capability, capacity, Source,
+configuration, implementation and realization artifact. Digest configurations
+in assigned Plans require the independently retained exact resident inventory.
+
+Metadata generation and serialization run on the authoring Host. The emitted
+no_std image borrows immutable bytes without parsing or heap allocation. The
+standard expression Kind still carries its canonical program default in that
+metadata; this is flash residency, not elimination of all program metadata.
+An initialized expression Back grants no bus/clock authority and establishes
+neither Host/Boot readiness nor complete workspace admission. Its retained-owner
+binder checks the assigned execution projection against independently emitted
+Kind/artifact/port/program/work facts and Root's current active-Play scope before
+transferring that same Back. Refusal preserves ownership. The ordinary assigned
+decoder and fixed kernel remain the only decoding/execution path; signature,
+Body policy, full Source/Plan approval and complete storage/resource admission
+still belong to Root. Seed installation
+and physical protocol Play remain separate from the CPU planner/kernel-table
+component proof recorded in the [lifecycle journey](../proof/canonical-lifecycle-journey.md).
+
 ## Existing Rust responsibility audit
 
 The categories below describe responsibilities, not whole-file exemptions.

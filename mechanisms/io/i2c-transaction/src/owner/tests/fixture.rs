@@ -49,9 +49,58 @@ pub(super) fn bind(
     active: &ActivePlayIdentity,
     placement: &PlacementId,
 ) -> Result<I2cHostCall<Provider>, I2cCallRefusal> {
-    let mut scope = scope();
-    scope.plan_id = fragment.plan_id.clone();
-    scope.active_play_id = active.active_play_id.clone();
+    let (table, handle, claim) = authorization(scope(), fragment, active);
+    unsafe {
+        I2cHostCall::bind_selected(
+            table,
+            handle,
+            claim,
+            I2cAttachment {
+                generation: 7,
+                minimum_address: 0x76,
+                maximum_address: 0x77,
+                resource_bytes: 4096,
+            },
+            Provider::default(),
+            I2cCallSelection {
+                contract: &I2cContract::prepare().unwrap(),
+                fragment,
+                lowered,
+                active,
+                placement,
+            },
+        )
+    }
+}
+
+pub(super) fn owner() -> I2cHostCall<Provider> {
+    let (fragment, lowered, active, placement) = selected();
+    bind(&fragment, &lowered, &active, &placement).unwrap()
+}
+
+pub(super) fn authorization(
+    scope: BaseCapabilityScope,
+    fragment: &PlanFragment,
+    active: &ActivePlayIdentity,
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
+    authorization_for_play(scope, &fragment.plan_id, &active.active_play_id)
+}
+
+pub(super) fn authorization_for_play(
+    mut scope: BaseCapabilityScope,
+    plan: &PlanId,
+    play: &ActivePlayId,
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
+    scope.plan_id = plan.clone();
+    scope.active_play_id = play.clone();
     let authority = BaseCapabilityAuthority {
         grant: AuthorityGrant {
             grant_id: scope.authority_grant_id.clone(),
@@ -102,30 +151,5 @@ pub(super) fn bind(
     let handle = table
         .issue(CapabilityIssueRequest { scope, authority })
         .unwrap();
-    unsafe {
-        I2cHostCall::bind_selected(
-            table,
-            handle,
-            claim,
-            I2cAttachment {
-                generation: 7,
-                minimum_address: 0x76,
-                maximum_address: 0x77,
-                resource_bytes: 4096,
-            },
-            Provider::default(),
-            I2cCallSelection {
-                contract: &I2cContract::prepare().unwrap(),
-                fragment,
-                lowered,
-                active,
-                placement,
-            },
-        )
-    }
-}
-
-pub(super) fn owner() -> I2cHostCall<Provider> {
-    let (fragment, lowered, active, placement) = selected();
-    bind(&fragment, &lowered, &active, &placement).unwrap()
+    (table, handle, claim)
 }

@@ -16,8 +16,9 @@ pub struct SelectedAssignedOperationPlan<'a> {
     pub maxima: c::AssignedPlanMaxima,
     pub requirements: c::AssignedPlanRequirements<'a>,
     pub computations: c::AssignedComputationProfile<'a>,
-    pub fragment_id: &'a c::FragmentId,
-    pub active: &'a c::ActivePlayIdentity,
+    /// Borrowed identity text; exact fragment and containing scope still check.
+    pub fragment_id: &'a str,
+    pub scope: crate::assigned_play_scope::AssignedPlayScope<'a>,
     pub node: NodeId,
 }
 /// Explicit opt-in pins for the local fore schema; this is not a Line.
@@ -89,6 +90,29 @@ pub fn bind_selected_assigned_fore_operation(
         },
     )
 }
+/// Exact local Fore plus independently checked startup configuration. The
+/// configuration and Fore pins both remain required by the ordinary binder.
+pub fn bind_selected_assigned_fore_configured_operation(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[c::ConfigurationEntry],
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedForeOperationPlan<'_>,
+) -> Result<NodeId, E> {
+    bind_assigned_profile(
+        table,
+        claim,
+        definition,
+        configuration,
+        native,
+        AssignedSelection {
+            operation: selected.operation,
+            fore: Some(selected.fore),
+        },
+    )
+}
+
 struct AssignedSelection<'a> {
     operation: SelectedAssignedOperationPlan<'a>,
     fore: Option<&'a [c::AssignedForeRequirement]>,
@@ -126,21 +150,9 @@ fn bind_assigned_profile(
             admission.fore,
         )
         .map_err(|_| wrong())?;
-    let active = selected.active;
-    if view.plan != id(claim.plan_id.as_str())
-        || view.fragment != id(selected.fragment_id.as_str())
-        || view.host != id(claim.host_id.as_str())
-        || view.boot != id(claim.boot_id.as_str())
-        || active.plan_id != claim.plan_id
-        || active.host_id != claim.host_id
-        || active.boot_id != claim.boot_id
-        || active.active_play_id != claim.active_play_id
-        || c::bind_active_play(
-            &claim.plan_id,
-            &claim.host_id,
-            &claim.boot_id,
-            active.play_sequence,
-        ) != *active
+    if view.fragment != id(selected.fragment_id)
+        || !selected.scope.matches(&view, selected.input.header())
+        || !selected.scope.matches_claim(claim)
         || claim.subject_kind != definition.kind.kind_id
         || claim.operation_contract_id.as_str() != definition.call
     {

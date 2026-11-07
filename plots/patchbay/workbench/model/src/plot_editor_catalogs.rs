@@ -20,6 +20,11 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotE
     )
     .map_err(|error| PlotEditorError::Catalog(format!("{error:?}")))?;
     let mut profile = ProfileCatalog::new();
+    conduit_body_make::deployment_runtime_catalog::install_creche_catalogs(
+        &mut startup,
+        &mut profile,
+    )
+    .map_err(PlotEditorError::Catalog)?;
     conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profile, "Groceries")
         .map_err(PlotEditorError::Catalog)?;
     conduit_face::install_mask_plot_value_aliases(&mut startup)
@@ -104,6 +109,22 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotE
 #[cfg(test)]
 mod tests {
     use super::standard_catalogs;
+
+    #[test]
+    fn standard_editor_catalog_checks_and_expands_the_shipped_creche() {
+        let source = include_str!("../../../../../plots/creche/main.conduit");
+        let editor =
+            crate::PlotEditor::from_source("plots/creche/main.conduit".into(), source.into())
+                .unwrap();
+        let expanded = editor.expand_plot_for_authoring("creche/main").unwrap();
+        assert_eq!(expanded.expanded.gears.len(), 1);
+        assert_eq!(
+            expanded.expanded.gears[0].kind_id.as_str(),
+            conduit_body_make::deployment_runtime::CRECHE_KIND
+        );
+        assert_eq!(expanded.front.inputs().len(), 1);
+        assert_eq!(expanded.front.outputs().len(), 1);
+    }
 
     #[test]
     fn prepared_editor_catalog_keeps_source_local_types_private() {

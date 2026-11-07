@@ -16,14 +16,58 @@ pub(super) struct PendingMemberReturn {
     advertisement: HostAdvertisement,
     deadline: Instant,
     attempts: u8,
+    presentation: Option<conduit_body::MemberReturnImagePresentation>,
 }
 
 impl Owner {
+    /// Release only this completed return slot after its signed durable receipt
+    /// has been delivered. Retirement cannot attach a member or create offers.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn retire_completed_selected_return(
+        &mut self,
+        credential: &MembershipCredential,
+    ) -> Result<(), String> {
+        let pending = self
+            .pending_member_return
+            .as_ref()
+            .ok_or("member return slot absent")?;
+        if pending
+            .completed
+            .as_ref()
+            .is_none_or(|(_, accepted)| accepted != credential)
+        {
+            return Err("cannot retire an incomplete or different member return".into());
+        }
+        self.pending_member_return = None;
+        Ok(())
+    }
+
     pub(crate) fn begin_member_return(
         &mut self,
         credential: &MembershipCredential,
         advertisement: &HostAdvertisement,
     ) -> Result<PartReturnChallenge, String> {
+        self.begin_member_image_return(credential, advertisement, None)
+    }
+
+    /// The control boundary independently resolves images before entering here.
+    pub(crate) fn begin_member_image_return(
+        &mut self,
+        credential: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+        presentation: Option<conduit_body::MemberReturnImagePresentation>,
+    ) -> Result<PartReturnChallenge, String> {
+        if let Some(claim) = &presentation {
+            let mut context = advertisement.clone();
+            context.capabilities.clear();
+            if claim.credential != *credential || claim.projection.context != context {
+                return Err("member return presentation differs from pending context".into());
+            }
+            claim
+                .projection
+                .validate()
+                .map_err(|e| format!("member grants: {e:?}"))?;
+        }
         if self.host.is_playing() {
             return Err("body-play-active".into());
         }
@@ -32,7 +76,10 @@ impl Owner {
             .as_ref()
             .filter(|p| Instant::now() < p.deadline)
         {
-            if pending.prior == *credential && pending.advertisement == *advertisement {
+            if pending.prior == *credential
+                && pending.advertisement == *advertisement
+                && pending.presentation == presentation
+            {
                 if let Some((_, current)) = &pending.completed {
                     self.require_current_native_member(
                         &super::super::MemberPresentationBasis::new(
@@ -86,6 +133,7 @@ impl Owner {
             prior: credential.clone(),
             completed: None,
             attempts: 0,
+            presentation,
             deadline: Instant::now() + Duration::from_secs(10),
         });
         Ok(challenge)
@@ -177,19 +225,26 @@ impl Owner {
             .pending_member_return
             .as_ref()
             .ok_or("member return pending custody lost")?;
-        if !self
-            .invited_mask_offers
-            .contains_key(&pending.advertisement.host_id)
-            && self.invited_mask_offers.len() >= conduit_body::MAX_BODY_PARTS
-        {
-            return Err("member return observed-offer pressure".into());
-        }
-        let digest = crate::durable_host::digest(
-            &serde_json::to_vec(&pending.advertisement).map_err(|e| e.to_string())?,
-        );
-        let observed =
-            super::native_mask_route::InvitedMaskOffer::observed(&pending.advertisement, digest);
-        let host_id = pending.advertisement.host_id.clone();
+        let grants = if let Some(presentation) = &pending.presentation {
+            let witness = manager
+                .current_member_continuity(
+                    &next.evidence().membership,
+                    &credential.part_id,
+                    &pending.advertisement,
+                )
+                .map_err(|e| format!("member return continuity: {e:?}"))?;
+            presentation
+                .verify(&witness.peer().verifying_key)
+                .map_err(|e| format!("member return grant signature: {e:?}"))?;
+            presentation.projection.authority_grants.clone()
+        } else {
+            Vec::new()
+        };
+        let offers = self.next_member_offers_with_grants(
+            next.evidence(),
+            pending.advertisement.clone(),
+            grants,
+        )?;
         state::retain_session(
             root,
             &mut next,
@@ -200,7 +255,7 @@ impl Owner {
         )?;
         self.session = next;
         self.admissions = Some(manager);
-        self.invited_mask_offers.insert(host_id, observed);
+        self.current_host_offers = offers;
         self.pending_member_return
             .as_mut()
             .ok_or("member return pending custody lost")?

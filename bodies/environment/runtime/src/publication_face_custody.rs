@@ -2,14 +2,34 @@
 //! IDs and these handles confer no Body membership, routing or hardware grant.
 use crate::{
     publication::PublicationSnapshot,
-    retained_publication_face::{RetainedPublicationFace, RetainedPublicationRefusal},
+    retained_publication_face::{
+        RetainedPublicationBacking, RetainedPublicationFace, RetainedPublicationRefusal,
+    },
 };
 use conduit_environment_face::PublicationRefusal;
-use conduit_face::Face;
+use conduit_face::{Face, FaceBasis};
+enum FaceState {
+    Unbound(Option<RetainedPublicationBacking>),
+    Bound(RetainedPublicationFace),
+}
+impl FaceState {
+    fn bound(&self) -> Result<&RetainedPublicationFace, CustodyRefusal> {
+        match self {
+            Self::Bound(face) => Ok(face),
+            Self::Unbound(_) => Err(CustodyRefusal::Unbound),
+        }
+    }
+    fn bound_mut(&mut self) -> Result<&mut RetainedPublicationFace, CustodyRefusal> {
+        match self {
+            Self::Bound(face) => Ok(face),
+            Self::Unbound(_) => Err(CustodyRefusal::Unbound),
+        }
+    }
+}
 use core::cell::{Cell, RefCell};
 
 pub struct LocalPublicationFace {
-    face: RefCell<RetainedPublicationFace>,
+    face: RefCell<FaceState>,
     claimed: Cell<bool>,
     retained: Cell<bool>,
     refusal: Cell<Option<&'static str>>,
@@ -17,6 +37,9 @@ pub struct LocalPublicationFace {
 #[derive(Debug, PartialEq, Eq)]
 pub enum CustodyRefusal {
     AlreadyClaimed,
+    Unbound,
+    AlreadyBound,
+    Capacity,
     Busy,
     Publication(RetainedPublicationRefusal),
     Clock(PublicationRefusal),
@@ -25,6 +48,9 @@ impl CustodyRefusal {
     pub const fn code(&self) -> &'static str {
         match self {
             Self::AlreadyClaimed => "face-already-claimed",
+            Self::Unbound => "face-unbound",
+            Self::AlreadyBound => "face-already-bound",
+            Self::Capacity => "face-capacity",
             Self::Busy => "face-busy",
             Self::Publication(reason) => reason.code(),
             Self::Clock(_) => "clock-reversed",
@@ -57,15 +83,79 @@ pub struct Reader<'a> {
     owner: &'a LocalPublicationFace,
 }
 impl LocalPublicationFace {
+    /// Actual owned payload, excluding this inline owner and allocator overhead.
+    /// Root separately charges incoming actual basis storage before binding.
+    pub fn retained_backing_bytes(&self) -> Result<usize, CustodyRefusal> {
+        let state = self.face.try_borrow().map_err(|_| CustodyRefusal::Busy)?;
+        let bytes = match &*state {
+            FaceState::Unbound(Some(backing)) => backing.retained_backing_bytes(),
+            FaceState::Bound(face) => face.retained_backing_bytes(),
+            FaceState::Unbound(None) => return Err(CustodyRefusal::Unbound),
+        };
+        bytes.ok_or(CustodyRefusal::Capacity)
+    }
+
     pub fn new(face: RetainedPublicationFace) -> Self {
         Self {
-            face: RefCell::new(face),
+            face: RefCell::new(FaceState::Bound(face)),
             claimed: Cell::new(false),
             retained: Cell::new(false),
             refusal: Cell::new(None),
         }
     }
-    /// Claim once, after the enclosing Root admits actual backing and scope.
+    /// Own real inert storage before a Plan exists. Handles obtained now have
+    /// no readable Face, publication, membership or execution authority.
+    pub fn from_backing(backing: RetainedPublicationBacking) -> Self {
+        Self {
+            face: RefCell::new(FaceState::Unbound(Some(backing))),
+            claimed: Cell::new(false),
+            retained: Cell::new(false),
+            refusal: Cell::new(None),
+        }
+    }
+    /// Root supplies actual admitted execution provenance. Invalid scope returns
+    /// the original allocation to its inert state; a bound scope cannot be
+    /// silently replaced while its original Play/services retain ownership.
+    pub fn bind_scope(&self, basis: FaceBasis) -> Result<(), CustodyRefusal> {
+        let mut state = self
+            .face
+            .try_borrow_mut()
+            .map_err(|_| CustodyRefusal::Busy)?;
+        let FaceState::Unbound(slot) = &mut *state else {
+            return Err(CustodyRefusal::AlreadyBound);
+        };
+        let backing = slot.take().ok_or(CustodyRefusal::Unbound)?;
+        match backing.try_bind(basis) {
+            Ok(face) => {
+                *state = FaceState::Bound(face);
+                Ok(())
+            }
+            Err((backing, reason)) => {
+                *slot = Some(backing);
+                Err(CustodyRefusal::Publication(reason))
+            }
+        }
+    }
+    /// Borrow the actual retained Face for read-only inspection. This does not
+    /// claim a producer/renderer handle or grant publication or routing rights.
+    pub fn with_retained<R>(
+        &self,
+        consume: impl FnOnce(&Face, ReadStatus) -> R,
+    ) -> Result<R, CustodyRefusal> {
+        let face = self.face.try_borrow().map_err(|_| CustodyRefusal::Busy)?;
+        let face = face.bound()?;
+        Ok(consume(
+            face.current(),
+            ReadStatus {
+                source_sequence: face.last_source_sequence(),
+                publisher_retained: self.retained.get(),
+                refusal: self.refusal.get(),
+            },
+        ))
+    }
+
+    /// Claim the actual local storage once. Inert backing remains unreadable
+    /// until Root binds its admitted scope; this claim supplies no authority.
     /// Closing publication custody never grants a replacement producer.
     pub fn claim(&self) -> Result<(Publisher<'_>, Reader<'_>), CustodyRefusal> {
         if self.claimed.replace(true) {
@@ -87,6 +177,7 @@ impl Publisher<'_> {
             CustodyRefusal::Busy
         })?;
         let result = face
+            .bound_mut()?
             .publish(snapshot, committed_ms)
             .map_err(CustodyRefusal::Publication);
         self.owner
@@ -110,6 +201,7 @@ impl Reader<'_> {
             .face
             .try_borrow_mut()
             .map_err(|_| CustodyRefusal::Busy)?
+            .bound_mut()?
             .project_body_name(body_id, name)
             .map_err(CustodyRefusal::Publication)
     }
@@ -129,19 +221,7 @@ impl Reader<'_> {
         &self,
         consume: impl FnOnce(&Face, ReadStatus) -> R,
     ) -> Result<R, CustodyRefusal> {
-        let face = self
-            .owner
-            .face
-            .try_borrow()
-            .map_err(|_| CustodyRefusal::Busy)?;
-        Ok(consume(
-            face.current(),
-            ReadStatus {
-                source_sequence: face.last_source_sequence(),
-                publisher_retained: self.owner.retained.get(),
-                refusal: self.owner.refusal.get(),
-            },
-        ))
+        self.owner.with_retained(consume)
     }
 
     /// Age and borrow one sealed revision synchronously. The consumer cannot
@@ -163,6 +243,7 @@ impl Reader<'_> {
             .face
             .try_borrow_mut()
             .map_err(|_| CustodyRefusal::Busy)?;
+        let face = face.bound_mut()?;
         face.at(now_ms).map_err(|reason| {
             self.owner.refusal.set(Some("clock-reversed"));
             CustodyRefusal::Clock(reason)

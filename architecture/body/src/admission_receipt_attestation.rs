@@ -5,7 +5,6 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::HostAdvertisement;
 use ed25519_dalek::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use crate::{BodyId, FederationPeer, PortableAdmissionReceipt, SPAWN_ADMISSION_RECEIPT_SCHEMA};
 
@@ -49,6 +48,15 @@ pub fn attest_portable_admission_receipt(
     )?;
     let receipt_json =
         serde_json::to_string(receipt).map_err(|_| AdmissionReceiptAttestationRefusal::Encoding)?;
+    attest_receipt_json(receipt_json, owner, member_verifying_key, sign)
+}
+
+pub(crate) fn attest_receipt_json(
+    receipt_json: String,
+    owner: FederationPeer,
+    member_verifying_key: [u8; 32],
+    sign: impl FnOnce(&[u8; 32]) -> [u8; 64],
+) -> Result<SignedPortableAdmissionReceipt, AdmissionReceiptAttestationRefusal> {
     let transcript = admission_receipt_attestation_transcript(
         receipt_json.as_bytes(),
         owner.host_id.as_str(),
@@ -76,32 +84,19 @@ pub fn admission_receipt_attestation_transcript(
     owner_key: &[u8; 32],
     member_key: &[u8; 32],
 ) -> Result<[u8; 32], AdmissionReceiptAttestationRefusal> {
-    if receipt_json.is_empty() || receipt_json.len() > MAX_ATTESTED_ADMISSION_RECEIPT_BYTES {
-        return Err(AdmissionReceiptAttestationRefusal::Bounds);
-    }
-    if owner_host.is_empty()
-        || owner_boot.is_empty()
-        || owner_host.len() > crate::MAX_LIFECYCLE_ID_BYTES
-        || owner_boot.len() > crate::MAX_LIFECYCLE_ID_BYTES
-        || *owner_key == [0; 32]
-        || *member_key == [0; 32]
-    {
-        return Err(AdmissionReceiptAttestationRefusal::ReceiptBasis);
-    }
-    let mut digest = Sha256::new();
-    for bytes in [
-        SIGNED_ADMISSION_RECEIPT_SCHEMA.as_bytes(),
-        owner_host.as_bytes(),
-        owner_boot.as_bytes(),
-        receipt_json,
-    ] {
-        digest.update((bytes.len() as u32).to_le_bytes());
-        digest.update(bytes);
-    }
-    digest.update(owner_generation.to_le_bytes());
-    digest.update(owner_key);
-    digest.update(member_key);
-    Ok(digest.finalize().into())
+    let mut transcript = crate::AdmissionReceiptTranscript::new(
+        crate::AdmissionReceiptStreamBounds {
+            receipt_bytes: receipt_json.len(),
+            maximum_chunks: 1,
+        },
+        owner_host,
+        owner_boot,
+        owner_generation,
+        owner_key,
+        member_key,
+    )?;
+    transcript.push(receipt_json)?;
+    transcript.finish()
 }
 
 /// Verify exact received receipt bytes against an independently pinned peer.
@@ -121,11 +116,19 @@ pub fn verify_admission_receipt_attestation(
         &expected_owner.verifying_key,
         member_key,
     )?;
+    verify_receipt_transcript(&transcript, expected_owner, signature)
+}
+
+pub(crate) fn verify_receipt_transcript(
+    transcript: &[u8; 32],
+    expected_owner: &FederationPeer,
+    signature: &[u8],
+) -> Result<(), AdmissionReceiptAttestationRefusal> {
     let signature = Signature::from_slice(signature)
         .map_err(|_| AdmissionReceiptAttestationRefusal::Signature)?;
     VerifyingKey::from_bytes(&expected_owner.verifying_key)
         .map_err(|_| AdmissionReceiptAttestationRefusal::Owner)?
-        .verify_strict(&transcript, &signature)
+        .verify_strict(transcript, &signature)
         .map_err(|_| AdmissionReceiptAttestationRefusal::Signature)
 }
 

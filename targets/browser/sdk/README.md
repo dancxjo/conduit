@@ -417,3 +417,33 @@ Only then does the coordinator commit Lull. Unknown cancellation/transport
 outcomes leave the old Show disabled and the pending intent retained; callers
 must inspect `/api/body-face-state` (including `pending_lull`) rather than retry the action. The explicit
 `play.terminate()` API remains available independently.
+
+## Human-carried Seed admission
+
+A browser runtime with the portable Seed ABI can sign one existing
+`PortableInvitation` for its initialized Host and Boot:
+
+```js
+const request = host.prepareSeedAdmission({ invitation, authorizeJoin: true });
+// Carry this exact request to the owner. On the owner machine:
+// conduit body admit request.json --state-dir OWNER --authorize-admission
+const credential = await host.completeSeedAdmission({ receipt, authorizeMembership: true });
+```
+
+The human must authenticate the owner and receipt carrier before authorizing
+import. Existing receipt v1 is not signed and contains no invitation identity;
+the runtime correlates its exact Body, Host, Boot, advertisement and effect
+claims with its pending request. One attempt is permitted per initialized Boot.
+Canceling does not allow a different invitation on that Boot. A failed durable
+write can retry with `retrySeedAdmissionRetention()` without consuming another
+receipt. `close()` waits for an active retention operation before closing storage.
+
+The exact receipt is retained in application storage. This historical credential
+does not establish current presence, a Line, a Plan or a Play; a fresh Boot must
+perform an authorized return through an actual carrier. This API does not yet
+supply the Seed entry that verifies/loads a ZIP, converts private Spore
+provisioning into the existing invitation document, or shows file controls.
+Older runtime bundles refuse the portable API rather than accepting JSON without
+the runtime verifier. Existing `participate()` uses the distinct live browser
+window route and remains responsible for current presence and typed Owner Face
+interactions.

@@ -12,6 +12,9 @@ use std::{fs, path::Path};
 
 #[path = "durable_host_membership/continuity_key.rs"]
 mod continuity_key;
+#[path = "durable_host_membership/recovery.rs"]
+pub(super) mod recovery;
+pub(crate) use continuity_key::{sign_member_carrier_challenge, MemberCarrierSigningContext};
 #[path = "durable_host_membership/returned.rs"]
 mod returned;
 pub(super) use returned::{load_joined_credential, retain_returned_membership};
@@ -80,6 +83,7 @@ pub(super) fn complete_body_join_document(
             "Body admission receipt lost its exact pending join identity or claims effects".into(),
         );
     }
+    super::pending_seed::validate_completion(state_dir, receipt.credential.body_id.as_str())?;
     continuity_key::retain(
         state_dir,
         &pending,
@@ -87,6 +91,7 @@ pub(super) fn complete_body_join_document(
         &receipt.host_advertisement,
     )?;
     persist_joined_membership(state_dir, &mut installation, &receipt.credential)?;
+    super::pending_seed::complete(state_dir, receipt.credential.body_id.as_str())?;
     fs::remove_file(&pending_path)
         .map_err(|error| format!("consume pending Body join: {error}"))?;
     Ok(())

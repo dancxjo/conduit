@@ -1,0 +1,25 @@
+{
+  "source": "b7ec1c2ba8f3c34c5003701d9e1b6a168472b02f",
+  "proof_class": "synthetic initialized-provider accounting and actual shared ledger/Plan preparation; no socket or device deployment",
+  "tests": {
+    "passed": 20,
+    "failed": 0,
+    "strict_warnings": true,
+    "owning_provider_tests": 4,
+    "log": "provider-resource-ledger-regressions-v2.log",
+    "sha256": "fd8833110bc33e7f6e2612a7f1dcf44f959da177c6a09b63c495619a494adc31"
+  },
+  "behavior": [
+    "Exact initialized provider and current Host/Boot/offer check before atomic pool charge",
+    "Distinct simple resource classes retained; late shortage changes no counters",
+    "Dropped token retains charges until actual retirement",
+    "Fresh nonserialized ledger epochs reject old tokens even with identical serialized Host identity",
+    "Ordinary Plan success/refusal preserves provider reservations across private staging clones"
+  ],
+  "not_proven": [
+    "TLS listener initialization or actual accepted-socket charge",
+    "Total TLS allocator/IMAGE backing admission",
+    "Automatic Line continuation or authorized replacement",
+    "Continuous Threebee presentation or screenshot"
+  ]
+}

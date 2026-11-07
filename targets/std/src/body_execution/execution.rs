@@ -35,6 +35,7 @@ impl StdHost {
             terminal,
             None,
             started,
+            None,
         )
     }
 
@@ -61,10 +62,24 @@ impl StdHost {
         terminal: Option<parsec_terminal::ParsecTerminalAttachment<'a>>,
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
         mut started: F,
+        mut image_result: Option<&mut Option<crate::kernel_preparation::ImageMemoryLease>>,
     ) -> Result<BodyRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
+        let selected_memory = image_result.is_some();
+        if selected_memory
+            && (request.keyboard.is_some()
+                || request.plan.body_time_requirement.is_some()
+                || correlation.is_some()
+                || execution_bounds.is_some()
+                || live.is_some()
+                || checkpoint.is_some()
+                || terminal.is_some()
+                || creche.as_ref().is_some_and(|owner| !owner.image_prepared()))
+        {
+            return Err("selected IMAGE owned-memory profile supports qualified finite local Backs only; keyboard/activation/BodyTime attachments unsupported".into());
+        }
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         let prospective_play = self.prospective_body_play(request.wake, request.plan)?;
         let admitted_clock_quality = if let Some(requirement) = &request.plan.body_time_requirement
@@ -95,6 +110,25 @@ impl StdHost {
         // Bind the prospective identity without consuming the sequence. The
         // exact child pool must be prepared and correlated before Play start;
         // a preparation refusal leaves the Host sequence untouched.
+        let fragments = request
+            .plan
+            .plots
+            .iter()
+            .flat_map(|part| part.plan.fragments.iter());
+        if selected_memory {
+            self.kernel_resources.preflight_image_shape(fragments)?;
+        } else {
+            self.kernel_resources.preflight_image_workset(fragments)?;
+        }
+        let mut prepared_lifecycle = if selected_memory {
+            Some(image::prepare_lifecycle(
+                &request,
+                &prospective_play,
+                &self.advertisement,
+            )?)
+        } else {
+            None
+        };
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
         let mut kernel = if let Some((queue, _)) = &live {
             BodyKernel::prepare_live_on_host(
@@ -116,6 +150,16 @@ impl StdHost {
                 sequential_fore,
                 has_fore_output,
                 &self.advertisement,
+                self.native_source.as_mut().map(|owner| {
+                    crate::installed_std::body_kernel::NativeBodySource {
+                        owner,
+                        registry: &self.base_registry,
+                        host: &self.advertisement,
+                        wake: request.wake,
+                        plan: request.plan,
+                        play: &prospective_play,
+                    }
+                }),
                 #[cfg(target_os = "linux")]
                 self.selected_text_file.as_ref(),
             )?
@@ -136,15 +180,37 @@ impl StdHost {
             kernel.attach_creche(owner, request.plan, &prospective_play, &self.advertisement)?;
         }
         kernel.require_supported_execution()?;
-        let reservations = self.kernel_resources.prepare_and_reserve_plans(
-            &self.advertisement,
-            &request
-                .plan
-                .plots
-                .iter()
-                .map(|part| (&part.plan, false))
-                .collect::<Vec<_>>(),
-        )?;
+        let plans = request
+            .plan
+            .plots
+            .iter()
+            .map(|part| (&part.plan, false))
+            .collect::<Vec<_>>();
+        let (reservations, mut memory_lease) = if let Some((wake, sign)) = &prepared_lifecycle {
+            let lifecycle = crate::installed_std::body_kernel::memory::lifecycle_bytes(
+                &prospective_play,
+                wake,
+                sign,
+            )?;
+            let receipt = kernel.prepare_memory(
+                timer,
+                &self.advertisement.host_id,
+                &self.advertisement.boot_id,
+                lifecycle,
+            )?;
+            let (reservations, lease) =
+                self.kernel_resources
+                    .reserve_body_memory(&self.advertisement, &plans, &receipt)?;
+            kernel.attach_image_memory(&lease);
+            (reservations, Some(lease))
+        } else {
+            (
+                self.kernel_resources
+                    .prepare_and_reserve_plans(&self.advertisement, &plans)?,
+                None,
+            )
+        };
+        drop(plans);
         let result = (|| {
             let sequence = self.next_kernel_play_sequence;
             self.next_kernel_play_sequence = sequence
@@ -167,11 +233,18 @@ impl StdHost {
                     sequence,
                 )
             };
-            let wake_at_start = request
-                .wake
-                .body_plan_ready(request.plan, sign(0).sign_id)
-                .and_then(|wake| wake.body_play_started(request.plan, &play, sign(1).sign_id))
-                .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
+            let (wake_at_start, prepared_terminal_sign) = if let Some(prepared) =
+                prepared_lifecycle.take()
+            {
+                prepared
+            } else {
+                let wake_at_start = request
+                    .wake
+                    .body_plan_ready(request.plan, sign(0).sign_id)
+                    .and_then(|wake| wake.body_play_started(request.plan, &play, sign(1).sign_id))
+                    .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
+                (wake_at_start, sign(2))
+            };
             if let Err(error) = started(&play, &wake_at_start) {
                 if let Some(queue) = live_queue {
                     queue.mark_play_terminal();
@@ -184,7 +257,7 @@ impl StdHost {
             if let Some(queue) = live_queue {
                 queue.mark_play_started();
             }
-            let terminal_sign = sign(2);
+            let terminal_sign = prepared_terminal_sign;
             let fore_output = if let Some((_, adapter)) = live {
                 Some(adapter)
             } else {
@@ -250,6 +323,14 @@ impl StdHost {
                 release_errors.push(error);
             }
         }
-        finish_body_release(result, release_errors)
+        let result = finish_body_release(result, release_errors);
+        if let (Some(slot), Some(mut lease), Ok(report)) =
+            (image_result.as_mut(), memory_lease.take(), result.as_ref())
+        {
+            let bytes = crate::installed_std::body_kernel::memory::result_bytes(report)?;
+            lease.retain_result(bytes);
+            **slot = Some(lease);
+        }
+        result
     }
 }

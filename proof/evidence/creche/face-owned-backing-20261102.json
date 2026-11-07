@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.proof/face-owned-backing@1",
+  "source": "9f4643a824",
+  "tests": {
+    "core_library": 121,
+    "face_library": 91,
+    "face_ignored": 2,
+    "new_capacity_cases_included": 4
+  },
+  "strict": "Core and Face libraries/tests Clippy -D warnings passed",
+  "log_sha256": {
+    "face-show-backing-library.log": "dc92d8a26596c4a99173698420c415a782deaafd1d503c65234390c324a45efe",
+    "face-show-backing-strict.log": "3bb95cc6c4ae6addf0ce794a1472e326335fc9c69f52b5a81b506c9926fe15df"
+  },
+  "boundary": "Actual retained String/Vec capacities and nested typed contracts/Show evidence; checked overflow; inspection performs no effects.",
+  "excluded": [
+    "inline Self (charged by owning container)",
+    "allocator overhead and RSS",
+    "transient preparation workspace",
+    "Plan, scene, serialization and framebuffer owners"
+  ],
+  "not_proved": [
+    "complete native invocation receipt",
+    "final installed IMAGE admission",
+    "graphical Seed or physical deployment"
+  ]
+}

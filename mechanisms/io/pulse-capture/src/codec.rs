@@ -42,6 +42,22 @@ fn field<'a>(
         .ok_or(StructuredInfoRefusal::WrongType)
 }
 impl PreparedPulseCodec {
+    /// Retained reachable backing; shared schema aliases are charged conservatively.
+    /// Inline state and allocator overhead are separate.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let mut bytes = self.request.retained_backing_bytes()?;
+        for composer in self.octets.iter().chain([
+            &self.length,
+            &self.wire,
+            &self.capture,
+            &self.empty,
+            &self.result,
+        ]) {
+            bytes = bytes.checked_add(composer.prepared_heap_bytes())?;
+        }
+        Some(bytes)
+    }
+
     pub fn prepare(contract: &PulseReadContract) -> Result<Self, StructuredInfoRefusal> {
         let wire_type = field(&contract.capture, "wire")?;
         let StructuredInfoTypeShape::Collection { element, length: 8 } = wire_type.shape() else {

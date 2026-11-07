@@ -1,0 +1,24 @@
+{
+  "schema": "conduit.proof/installed-continuity-and-idle-progress@1",
+  "scope": "local installed product tests; no returning-member session or physical display proof",
+  "tests": {
+    "private_continuity_key": 7,
+    "idle_foreground_authenticated_control": 1,
+    "sdl_software_and_lifecycle": 4
+  },
+  "log_sha256": {
+    "continuity-tests-typed.log": "c9fb8aa609aa5e25c12ee7d2bb1e6d4e2c65f688e1e321532373f20c96172da9",
+    "service-tests-fixed.log": "a608b401b2b192ea79f52eb1795280077756b261f87509722e36791cbf1c6eda",
+    "sdl-tests-linked.log": "ba765662fbf4992749b74f9d10dfd32980948c47feb7f282cd2f462ca2882705",
+    "native-service-strict.log": "8af2f351f4e1166307c3672ff831c7c076b140a25c47ad08d11633f131d79cde"
+  },
+  "not_proved": [
+    "current-member authentication and one-use challenge custody",
+    "graphical Mask initialization and Face route",
+    "AArch64 feature-selected release or new Seed",
+    "physical KMSDRM/HDMI and restart continuity"
+  ],
+  "sdl_link_precondition": "LIBRARY_PATH selects local development symlink to the installed SDL2 runtime; first link without this path failed, not a source test failure",
+  "selected_feature_strict": "passed: conduit binary and tests, native-display, -D warnings",
+  "qualified_source": "820878de0f"
+}

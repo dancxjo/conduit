@@ -103,11 +103,13 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &[
             "--test",
             "targets/browser/sdk/browser-sdk-errors.test.mjs",
+            "targets/browser/sdk/browser-sdk-seed-admission.test.mjs",
             "targets/browser/sdk/browser-sdk-events.test.mjs",
             "targets/browser/sdk/browser-sdk-plots.test.mjs",
             "targets/browser/sdk/browser-sdk-owner-show-state.test.mjs",
             "targets/browser/sdk/browser-sdk-owner-component.test.mjs",
             "targets/browser/sdk/package-browser-bundle.test.mjs",
+            "targets/browser/make/src/bundle_verification/fixtures/verify-js-fixture.mjs",
         ],
     ),
     Step::typed(

@@ -93,3 +93,34 @@ fn legacy_identity_program_bytes_do_not_gain_empty_predicate_envelopes() {
         assert_eq!(PortableExpressionProgram::from_canonical_hex(expected).unwrap(), program);
     }
 }
+
+#[test]
+fn nonidentity_expression_publishes_proven_output_transport_ceiling() {
+    let mut program = PortableExpressionProgram::from_checked(&checked()).unwrap();
+    let bytes =
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/bytes")).unwrap();
+    program.output_type = bytes.clone();
+    program.root = PortableExpressionNode {
+        value_type: bytes,
+        operation: PortableExpressionOperation::CanonicalLiteral(vec![0; 300]),
+    };
+    let maximum = program.maximum_prepared_output_bytes().unwrap();
+    assert!(maximum > conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY);
+    let laws = program.semantic_laws().unwrap();
+    let contracts = laws
+        .iter()
+        .find_map(|law| match law {
+            KindSemanticLaw::ValueContracts(contracts) => Some(contracts),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(
+        contracts
+            .iter()
+            .find(|c| c.location == FrontValueLocation::Output(conduit_core::port_id("output")))
+            .unwrap()
+            .contract
+            .maximum_bytes,
+        maximum
+    );
+}

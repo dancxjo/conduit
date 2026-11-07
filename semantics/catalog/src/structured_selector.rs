@@ -7,7 +7,7 @@ use conduit_core::{
     PortTemporal, StructuredSelector, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
-pub const STRUCTURED_SELECTOR_REVISION: &str = "structured-info/selector-operation@1";
+pub const STRUCTURED_SELECTOR_REVISION: &str = "structured-info/selector-operation@2";
 
 pub fn structured_selector_contract(selector: &StructuredSelector, temporal: PortTemporal) -> Kind {
     let kind_id = selector
@@ -59,7 +59,8 @@ pub fn structured_selector_contract(selector: &StructuredSelector, temporal: Por
                 maximum: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
             },
         }],
-        semantic_laws: Default::default(),
+        semantic_laws: conduit_plot::structured_selector_semantic_laws(selector)
+            .expect("checked selector has finite canonical bounds"),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 4,

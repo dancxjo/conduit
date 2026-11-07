@@ -1,4 +1,5 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
+mod local_fore;
 
 mod host_call_back;
 mod host_dispatch;
@@ -143,6 +144,7 @@ enum ActiveTerminalPhase {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct CordSpec {
+    local_fore: Option<crate::assigned::LocalForeProvenance>,
     pub cord: CordId,
     pub source: CordEndpoint,
     pub sink: CordEndpoint,
@@ -166,6 +168,13 @@ pub struct CordCapacity {
 }
 
 impl CordSpec {
+    pub(crate) fn retain_local_fore(&mut self, provenance: crate::assigned::LocalForeProvenance) {
+        self.local_fore = Some(provenance);
+    }
+    fn is_local_fore(&self) -> bool {
+        self.local_fore.is_some()
+    }
+
     pub const fn new(
         cord: CordId,
         source: CordEndpoint,
@@ -182,6 +191,7 @@ impl CordSpec {
             maximum_value_bytes: capacity.byte_capacity,
             pressure_policy: capacity.pressure_policy,
             track: AssignedConnectionTrack::Payload,
+            local_fore: None,
         }
     }
 
@@ -198,6 +208,7 @@ impl CordSpec {
             maximum_value_bytes: 0,
             pressure_policy: AssignedPressurePolicy::PreserveOrder,
             track: AssignedConnectionTrack::Payload,
+            local_fore: None,
         }
     }
 
@@ -1431,7 +1442,9 @@ where
         Ok((state.len, state.queued_bytes))
     }
 
-    /// Offers the head of a remote egress cord without transferring ownership.
+    /// Offers an external output head without transferring ownership. A checked
+    /// local Fore records local Value evidence; an actual Line retains its
+    /// mandatory delivery lifecycle.
     /// Repeated calls return the same sequence and value until exact delivery
     /// is acknowledged.
     pub fn remote_egress_offer(
@@ -1465,9 +1478,10 @@ where
         let sequence = existing.unwrap_or(self.cords[cord_index].next_remote_sequence);
         if existing.is_none() {
             self.ensure_sign_capacity(1)?;
-            self.ensure_remote_sign_capacity(1)?;
+            self.ensure_boundary_remote_capacity(cord_index, 1)?;
             self.cords[cord_index].offered_remote_sequence = Some(sequence);
-            self.signs.record_remote(
+            self.record_boundary_sign(
+                cord_index,
                 source_node,
                 source_port,
                 KernelEventKind::RemoteValueOffered,
@@ -1523,9 +1537,10 @@ where
             return Ok(());
         }
         self.ensure_sign_capacity(1)?;
-        self.ensure_remote_sign_capacity(1)?;
+        self.ensure_boundary_remote_capacity(cord_index, 1)?;
         self.cords[cord_index].remote_accepted = true;
-        self.signs.record_remote(
+        self.record_boundary_sign(
+            cord_index,
             source_node,
             source_port,
             KernelEventKind::RemoteValueAccepted,
@@ -1539,8 +1554,8 @@ where
         Ok(())
     }
 
-    /// Releases the source value only after the line reports the exact
-    /// sequence as delivered by the peer kernel.
+    /// Releases the source value only after exact endpoint acceptance. An actual
+    /// Line reports peer delivery; a checked local Fore transfers local custody.
     pub fn remote_egress_delivered(
         &mut self,
         endpoint: RemoteEndpointId,
@@ -1578,7 +1593,7 @@ where
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
         self.ensure_sign_capacity(1)?;
-        self.ensure_remote_sign_capacity(1)?;
+        self.ensure_boundary_remote_capacity(cord_index, 1)?;
         let value = self.pop(cord_index)?;
         self.values.release(value)?;
         let state = &mut self.cords[cord_index];
@@ -1586,7 +1601,8 @@ where
         state.offered_remote_sequence = None;
         state.remote_accepted = false;
         self.set_ready(usize::from(source_node.0), true);
-        self.signs.record_remote(
+        self.record_boundary_sign(
+            cord_index,
             source_node,
             source_port,
             KernelEventKind::RemoteValueDelivered,
@@ -1600,9 +1616,9 @@ where
         Ok(())
     }
 
-    /// Admits bytes through a remote ingress cord into the kernel-owned value
-    /// store and queue. `Full` performs no allocation or sequence advance, so
-    /// the line must retry the same sequence.
+    /// Admits an external input into the kernel-owned value store and queue.
+    /// Schema7 local Fore has no Line lifecycle. Actual Lines retain mandatory
+    /// remote evidence. `Full` allocates nothing and preserves the same sequence.
     pub fn admit_remote_input(
         &mut self,
         endpoint: RemoteEndpointId,
@@ -1645,7 +1661,7 @@ where
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
         self.ensure_sign_capacity(1)?;
-        self.ensure_remote_sign_capacity(1)?;
+        self.ensure_boundary_remote_capacity(cord_index, 1)?;
         let value = self.values.store(bytes)?;
         match self.push(cord_index, value) {
             Ok(Some(superseded)) => self.values.release(superseded)?,
@@ -1657,7 +1673,8 @@ where
         }
         self.cords[cord_index].next_remote_sequence = next_sequence;
         self.set_ready(usize::from(sink_node.0), true);
-        self.signs.record_remote(
+        self.record_boundary_sign(
+            cord_index,
             sink_node,
             sink_port,
             KernelEventKind::RemoteInputAdmitted,
@@ -1740,12 +1757,13 @@ where
             };
         }
         self.ensure_sign_capacity(1)?;
-        self.ensure_remote_sign_capacity(1)?;
+        self.ensure_boundary_remote_capacity(cord_index, 1)?;
         self.cords[cord_index].producer_closed = true;
         self.cords[cord_index].producer_abnormal = abnormal_terminal.is_some();
         self.cords[cord_index].abnormal_terminal = abnormal_terminal;
         self.set_ready(usize::from(sink_node.0), true);
-        self.signs.record_remote(
+        self.record_boundary_sign(
+            cord_index,
             sink_node,
             sink_port,
             KernelEventKind::RemoteInputClosed,
@@ -3397,7 +3415,10 @@ where
                 .checked_add(
                     targets
                         .iter()
-                        .filter(|target| matches!(target.sink, CordEndpoint::Remote(_)))
+                        .filter(|target| {
+                            matches!(target.sink, CordEndpoint::Remote(_))
+                                && !self.cord_specs[usize::from(target.cord.0)].is_local_fore()
+                        })
                         .count(),
                 )
                 .ok_or(SchedulerError::InvalidPlan)?;
@@ -3461,7 +3482,8 @@ where
                     let CordEndpoint::Remote(endpoint) = target.sink else {
                         unreachable!("remote output closure has remote sink")
                     };
-                    self.signs.record_remote(
+                    self.record_boundary_sign(
+                        cord,
                         NodeId(as_u16(node)?),
                         PortId(as_u16(port)?),
                         KernelEventKind::RemoteOutputClosed,
@@ -3496,7 +3518,9 @@ where
             let cord = usize::from(target.cord.0);
             let spec = self.cord_specs[cord];
             remote_closures = remote_closures
-                .checked_add(usize::from(matches!(target.sink, CordEndpoint::Remote(_))))
+                .checked_add(usize::from(
+                    matches!(target.sink, CordEndpoint::Remote(_)) && !spec.is_local_fore(),
+                ))
                 .ok_or(SchedulerError::InvalidPlan)?;
             if spec.track != AssignedConnectionTrack::AbnormalTerminal {
                 continue;
@@ -3557,7 +3581,8 @@ where
                 let CordEndpoint::Remote(endpoint) = target.sink else {
                     unreachable!("remote output closure has remote sink")
                 };
-                self.signs.record_remote(
+                self.record_boundary_sign(
+                    cord,
                     NodeId(as_u16(node)?),
                     output,
                     KernelEventKind::RemoteOutputClosed,
@@ -3713,6 +3738,12 @@ fn validate_plan<
     }
     let mut prefix = cord_prefix::CordPrefix::default();
     for (cord_index, cord) in cords[..active_cords].iter().copied().enumerate() {
+        if cord
+            .local_fore
+            .is_some_and(|provenance| !provenance.matches(&cord))
+        {
+            return Err(SchedulerError::InvalidPlan);
+        }
         if usize::from(cord.cord.0) != cord_index
             || cord.item_capacity == 0
             || cord.byte_capacity == 0

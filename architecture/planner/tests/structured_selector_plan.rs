@@ -91,7 +91,15 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
     conduit_core::capability_offer_from_parts! {
         semantic_contract: conduit_core::KindSemanticContract {
             configuration: definition.configuration.clone(),
-            laws: Vec::new(),
+            laws: definition.configuration.iter().find(|field| field.key == "selector")
+                .map(|field| {
+                    let conduit_core::ConfigurationValue::Text(encoded) = &field.default_value else {
+                        panic!("selector fixture has exact canonical configuration")
+                    };
+                    conduit_plot::structured_selector_semantic_laws(
+                        &conduit_core::StructuredSelector::from_canonical_hex(encoded).unwrap(),
+                    ).unwrap()
+                }).unwrap_or_default(),
         },
         startup_parameters: definition
             .configuration

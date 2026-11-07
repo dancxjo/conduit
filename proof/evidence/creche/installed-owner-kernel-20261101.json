@@ -1,0 +1,42 @@
+{
+  "source": "9d3f94feafae340983082141d93f5a22c6b8cfe1",
+  "tree": "6f4629c3c7f8a26cffa946542d9e3b3de8c5b2ee",
+  "accepted_dev": "bdf8c835e45dc3fcf5d993ea7e8568f8b787732a",
+  "class": "CPU software lifecycle and provider qualification; no deployed artifact, graphical Show, Boot or member proof",
+  "checks": [
+    {
+      "log": "installed-creche-dev-lib-tests.log",
+      "result": "6 passed",
+      "sha256": "f38688f580252ed41a8828a75205e79d5d0236895aa3d50d0e599fb099da17ef"
+    },
+    {
+      "log": "installed-creche-dev-bin-tests.log",
+      "result": "13 passed",
+      "sha256": "c31a8101b9d1a6354bfaa1923117cdf088d35d53595581996f1d69ab0fe7d03a"
+    },
+    {
+      "log": "installed-creche-dev-clippy.log",
+      "result": "strict Clippy passed",
+      "sha256": "b2725d5bf11c06f706a19a2c6f6a70c29dded4fca5f652dcdb0bfa6eba7a38d7"
+    },
+    {
+      "log": "installed-creche-dev-fmt.log",
+      "result": "format check passed",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "log": "installed-creche-selection-tests.log",
+      "result": "23 package tests passed before accepted-dev merge",
+      "sha256": "431417e49f92ee392d563fb14a42d822a621af3c4706304e54bc4def3a70e0bc"
+    }
+  ],
+  "proved": [
+    "finite initialized provider before advertised offer",
+    "ordinary Owner/Plan/kernel Cr\u00e8che HostCall path",
+    "trusted route receipt required before action",
+    "same original Body/Birth Sign retained",
+    "bounded once-only production and original Host restored after drain"
+  ],
+  "fixture_limit": "Lifecycle tests use fixture artifact bytes, not a usable native or browser bundle.",
+  "next_boundary": "Current producer incorrectly equates raw artifact SHA with target image-content digest. Browser and native bundles use aggregate inventory identities. Reuse existing release verification and target packager; keep BodyBoundArtifactIdentity image_content_sha256 separate from artifact_content_sha256. No live provider or deployment from this candidate is claimed."
+}

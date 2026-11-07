@@ -1,0 +1,95 @@
+{
+  "source": "0fe68c68f1f0bd7fe1dcfc886772026b60fe6d70",
+  "proof_class": "CPU and in-process initialized native Host; not physical Boot",
+  "checks": [
+    {
+      "command": "cargo +stable test --locked -p conduit-std-host --lib image_",
+      "passed": 22
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit-std-host --test region_service_lifecycle",
+      "passed": 3
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit --bin conduit pending_seed",
+      "passed": 3
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit --bin conduit selected_host_configuration",
+      "passed": 14,
+      "ignored": 1
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit-body-make --test joining_host_package",
+      "passed": 9
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit --lib creche_encounter",
+      "passed": 11
+    },
+    {
+      "command": "cargo +stable clippy --locked -p conduit -p conduit-std-host -p conduit-host-make --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo +stable fmt --all -- --check",
+      "exit_code": 0
+    }
+  ],
+  "first_failures": [
+    "Initializer test accessed a sibling-private ledger field; replaced with a read-only cfg(test) accessor.",
+    "The integration lifecycle harness omitted new shared admission methods. Production admission implementation now has its own module reused by the real harness; owning tests remain in the library facade. An unused test-only import was then restricted to cfg(test)."
+  ],
+  "retained_logs": [
+    {
+      "name": "bounds.log",
+      "sha256": "0a856e8c1f491b896c7d8aa2eefc67e35aabfdbe2154fe9d33543ecbd76b963f"
+    },
+    {
+      "name": "creche-recheck.log",
+      "sha256": "e3841d9061dc22f0b8c409368b14caa9c7089a0526662d62a1381cef44079884"
+    },
+    {
+      "name": "image-module-recheck.log",
+      "sha256": "0127e428bc6ff556deec1a1bff41a96350a5722b704b085e678bf31bca892ee5"
+    },
+    {
+      "name": "initializer.log",
+      "sha256": "0cc748b00f1a1a521a34d0bf2ad3557d68d46329df2b575a8d13c0429cd8aaa0"
+    },
+    {
+      "name": "producer.log",
+      "sha256": "bd291ef16a6fefe76b847d3eb602ca23d8ccd80c68427c308929d9887322bbe2"
+    },
+    {
+      "name": "region-lifecycle.log",
+      "sha256": "c550b6083f1c6063d64ceae0c4c7f4154f1cc08131b6d35d689856e3ed712e50"
+    },
+    {
+      "name": "seed-boot.log",
+      "sha256": "c4a89233589fdc8a141f24766293838682fd269cc5d2074dedadc6f709e6daf7"
+    },
+    {
+      "name": "selection.log",
+      "sha256": "0d70ec8ddb81b33327a2d16042a344bb6fa49380f3121c8186257a1f5c240504"
+    },
+    {
+      "name": "strict.log",
+      "sha256": "a7b7219e44c0137a146e0df16d7ca57255c15b7ab9498f5d0a9cda9a60a8128b"
+    }
+  ],
+  "proven": [
+    "Body-authored native name/limits/supported-operation edits produce actual IMAGE metadata inside the admitted release closure and same-Body Seed fixture.",
+    "Installed selected-source/IMAGE initializes only the actual hosted timer Base and authored pool capacities in process.",
+    "Legacy configurations remain operational; stale identity, excess capacity and later reference-profile mutation refuse without losing current providers.",
+    "Unsupported ordinary worksets refuse before kernel preparation because complete managed-memory receipts are not yet available."
+  ],
+  "unproved": [
+    "New physical Pi or MCU Seed Boot",
+    "Live browser admission or rendered Cr\u00e8che UI",
+    "Selected-image ordinary Play execution",
+    "Complete Root workspace custody or process RSS bounds",
+    "New Threebee Seed replacement or graphical Mask",
+    "Distributed environmental feeds, committed history and complete Body journey"
+  ]
+}

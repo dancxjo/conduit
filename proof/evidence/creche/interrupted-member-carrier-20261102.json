@@ -1,0 +1,31 @@
+{
+  "source": "5eb4d5a211381220ed1d9f939d85319160dcce93",
+  "proof_class": "local owner custody and actual loopback TCP/pinned TLS; no physical deployment",
+  "behavior": [
+    "Disconnected and malformed post-challenge exchanges retire their exact pending carrier slot",
+    "Late cleanup and stale proof cannot retire or complete the replacement session",
+    "Successful subsequent authentication preserves membership and admission receipts"
+  ],
+  "tests": [
+    {
+      "log": "interrupted-member-carrier.log",
+      "sha256": "c86fc115e66a7735b4361956c789cf93e04d1e1936bf52f18978e3662e0cdf42",
+      "passed": 9,
+      "failed": 0,
+      "strict_warnings": true
+    },
+    {
+      "log": "interrupted-member-carrier-tls.log",
+      "sha256": "3d94be81a600dfd8789d6eb745989805bb1d033881aaad133838628c0726c0b5",
+      "passed": 1,
+      "failed": 0,
+      "strict_warnings": true
+    }
+  ],
+  "remaining": [
+    "No checked installed-Host persistent TLS listener initialization",
+    "No authorized automatic bounded session replacement",
+    "Threebee still runs source 421ea52dd6 and holds historical pixels",
+    "No online Workspace invitation link delivered"
+  ]
+}

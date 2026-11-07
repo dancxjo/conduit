@@ -5,8 +5,10 @@ use std::path::PathBuf;
 pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
     let mut values = options.iter();
     let mut output = None;
+    let mut configuration = None;
     let mut platform = None;
     let mut source_identity = None;
+    let mut native_library_directories = Vec::new();
     let mut json = false;
     let mut quiet = false;
     while let Some(argument) = values.next() {
@@ -14,6 +16,18 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
             "--locked" => {}
             "--json" => json = true,
             "--quiet" => quiet = true,
+            "--native-library-directory" => {
+                native_library_directories.push(PathBuf::from(
+                    values
+                        .next()
+                        .ok_or("missing --native-library-directory path")?,
+                ));
+            }
+            "--configuration" => {
+                configuration = Some(PathBuf::from(
+                    values.next().ok_or("missing --configuration path")?,
+                ));
+            }
             "--output" => {
                 output = Some(PathBuf::from(values.next().ok_or("missing --output path")?));
             }
@@ -50,7 +64,12 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
         &output,
         platform,
         &source_identity,
-        &host_release::ReleaseOptions { json, quiet },
+        configuration.as_deref(),
+        &host_release::ReleaseOptions {
+            json,
+            quiet,
+            native_library_directories,
+        },
     )
     .map_err(|error| error.to_string())
 }
@@ -93,5 +112,31 @@ fn aarch64_release_platform_is_accepted_before_required_output_validation() {
     assert_eq!(
         run_host_release(&options).unwrap_err(),
         "host release requires --output"
+    );
+}
+
+#[cfg(test)]
+#[test]
+fn checked_configuration_requires_a_path() {
+    assert_eq!(
+        run_host_release(&["--configuration".into()]).unwrap_err(),
+        "missing --configuration path"
+    );
+}
+#[cfg(test)]
+#[test]
+fn checked_configuration_is_accepted_before_output_validation() {
+    assert_eq!(
+        run_host_release(&["--configuration".into(), "pi.host.conduit".into()]).unwrap_err(),
+        "host release requires --output"
+    );
+}
+
+#[cfg(test)]
+#[test]
+fn native_library_directory_requires_a_path() {
+    assert_eq!(
+        run_host_release(&["--native-library-directory".into()]).unwrap_err(),
+        "missing --native-library-directory path"
     );
 }

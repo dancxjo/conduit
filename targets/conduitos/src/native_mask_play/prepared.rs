@@ -3,9 +3,9 @@ use super::*;
 use crate::native_compositor::ScanoutAcknowledgement;
 use conduit_core::{HostBaseId, PortDirection, SignId};
 use conduit_face::{ManifestationLifecycle, MaskShow};
-use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome, SchedulerStatus};
+use conduit_kernel::scheduler::{HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, NodeId, RequestId, SignSink,
+    BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, NodeId, SignSink,
 };
 use conduit_plan_lowering::lowering::LoweredForePort;
 
@@ -30,16 +30,17 @@ impl NativeMaskRendererRequest {
 /// Preparation allocates finite serialized values. No drawing or successful
 /// renderer completion occurs here. Dropping any incomplete execution cancels it.
 pub struct PreparedNativeMaskPlay {
-    pub(super) scheduler: alloc::boxed::Box<Scheduler>,
-    request: HostCallRequest,
+    pub(super) scheduler: MaskScheduler,
+    pub(super) request: HostCallRequest,
     pub(super) renderer: NativeMaskRendererRequest,
     pub(super) show_fore: LoweredForePort,
-    interaction_node: NodeId,
+    pub(super) interaction_node: NodeId,
     pub(super) interaction_fore: LoweredForePort,
-    show_bytes: Vec<u8>,
+    pub(super) show_bytes: Vec<u8>,
     pub(super) receipt: Option<NativeMaskPlayReceipt>,
     pub(super) retired: bool,
     pub(super) read_only: bool,
+    pub(super) available_show: Option<MaskShow>,
 }
 
 impl PreparedNativeMaskPlay {
@@ -75,6 +76,101 @@ impl PreparedNativeMaskPlay {
         display_base_id: HostBaseId,
         profile: NativeMaskStorageProfile,
     ) -> Result<Self, NativeMaskPlayError> {
+        Self::prepare_using(
+            planned,
+            face,
+            play_sequence,
+            front_subject,
+            surface_id,
+            display_base_id,
+            profile,
+            None,
+        )
+    }
+
+    /// Consume the exact retained backing; failure retires it rather than silently
+    /// allocating a replacement or enlarging its admitted profile.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_with_storage(
+        planned: &PlannedMaskPlot,
+        face: &Face,
+        play_sequence: u64,
+        front_subject: &str,
+        surface_id: &str,
+        display_base_id: HostBaseId,
+        profile: NativeMaskStorageProfile,
+        storage: RetainedNativeMaskStorage,
+    ) -> Result<Self, NativeMaskPlayError> {
+        Self::prepare_using(
+            planned,
+            face,
+            play_sequence,
+            front_subject,
+            surface_id,
+            display_base_id,
+            profile,
+            Some(storage),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_using(
+        planned: &PlannedMaskPlot,
+        face: &Face,
+        play_sequence: u64,
+        front_subject: &str,
+        surface_id: &str,
+        display_base_id: HostBaseId,
+        profile: NativeMaskStorageProfile,
+        storage: Option<RetainedNativeMaskStorage>,
+    ) -> Result<Self, NativeMaskPlayError> {
+        Self::prepare_cold_using(
+            planned,
+            face,
+            play_sequence,
+            front_subject,
+            surface_id,
+            display_base_id,
+            profile,
+            storage,
+        )?
+        .start()
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_cold_with_storage(
+        planned: &PlannedMaskPlot,
+        face: &Face,
+        play_sequence: u64,
+        front_subject: &str,
+        surface_id: &str,
+        display_base_id: HostBaseId,
+        profile: NativeMaskStorageProfile,
+        storage: RetainedNativeMaskStorage,
+    ) -> Result<ColdNativeMaskInvocation, NativeMaskPlayError> {
+        Self::prepare_cold_using(
+            planned,
+            face,
+            play_sequence,
+            front_subject,
+            surface_id,
+            display_base_id,
+            profile,
+            Some(storage),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_cold_using(
+        planned: &PlannedMaskPlot,
+        face: &Face,
+        play_sequence: u64,
+        front_subject: &str,
+        surface_id: &str,
+        display_base_id: HostBaseId,
+        profile: NativeMaskStorageProfile,
+        storage: Option<RetainedNativeMaskStorage>,
+    ) -> Result<ColdNativeMaskInvocation, NativeMaskPlayError> {
         storage::validate_profile(planned, profile)?;
         face.validate().map_err(|_| NativeMaskPlayError::Face)?;
         if planned.plan.fragments.len() != 1 || display_base_id.as_str().is_empty() {
@@ -175,52 +271,30 @@ impl PreparedNativeMaskPlay {
         let face_fore = fore("face", PortDirection::Input)?;
         let show_fore = fore("show", PortDirection::Output)?;
         let interaction_fore = fore("interaction", PortDirection::Output)?;
-        let mut scheduler =
-            alloc::boxed::Box::new(scheduler_for_profile(fragment, &lowered, profile)?);
+        let scheduler = match storage {
+            Some(storage) => MaskScheduler::retained(storage, planned, profile)?,
+            None => MaskScheduler::Ephemeral(alloc::boxed::Box::new(scheduler_for_profile(
+                fragment, &lowered, profile,
+            )?)),
+        };
         let storage_budget = storage::admit_budget(&scheduler, profile)?;
-        if scheduler
-            .admit_remote_input(face_fore.endpoint, face_fore.cord, 0, &face_bytes)
-            .map_err(|_| NativeMaskPlayError::ForeAdmit)?
-            != (RemoteIngressOutcome::Accepted { sequence: 0 })
-        {
-            return Err(NativeMaskPlayError::ForeAdmit);
-        }
-        scheduler
-            .close_remote_input(face_fore.endpoint, face_fore.cord)
-            .map_err(|_| NativeMaskPlayError::ForeClose)?;
-        let mut pending = None;
-        for _ in 0..64 {
-            if let Some(request) = scheduler.next_host_request() {
-                if request.node != call.node
-                    || request.call != call.call
-                    || request.request != RequestId(0)
-                    || scheduler
-                        .host_value(request.input.value)
-                        .map_err(|_| NativeMaskPlayError::Value)?
-                        != face_bytes
-                    || scheduler.next_host_request().is_some()
-                {
-                    scheduler
-                        .cancel()
-                        .map_err(|_| NativeMaskPlayError::Kernel)?;
-                    return Err(NativeMaskPlayError::HostComplete);
-                }
-                pending = Some(request);
-                break;
-            }
-            if !matches!(
-                scheduler.step().map_err(|_| NativeMaskPlayError::Kernel)?,
-                SchedulerStatus::Progress { .. }
-            ) {
-                return Err(NativeMaskPlayError::Kernel);
-            }
-        }
-        let request = pending.ok_or(NativeMaskPlayError::Kernel)?;
         let renderer_input_bytes = face_bytes.len() as u32;
+        let available_show = prepared_show
+            .transition(
+                ManifestationLifecycle::Available,
+                SignId::from("conduitos/mask/render-available"),
+            )
+            .map_err(|_| NativeMaskPlayError::Face)?;
+        available_show
+            .validate(face)
+            .map_err(|_| NativeMaskPlayError::Face)?;
         let renderer_show_value_bytes = show_bytes.len() as u32;
-        Ok(Self {
+        Ok(ColdNativeMaskInvocation::new(ColdMaskFields {
             scheduler,
-            request,
+            renderer_node: call.node,
+            renderer_call: call.call,
+            face_fore,
+            face_bytes,
             renderer: NativeMaskRendererRequest {
                 face: face.clone(),
                 prepared_show,
@@ -231,7 +305,7 @@ impl PreparedNativeMaskPlay {
             interaction_node,
             show_bytes,
             read_only: fragment.placements.iter().any(|placement| placement.kind_id.as_str() == conduit_face::FACE_INTERACTION_KIND && matches!(placement.execution_profile_id.as_str(), conduit_conduitos_mask_offer::READ_ONLY_INTERACTION_PROFILE | conduit_conduitos_mask_offer::READ_ONLY_COLLECTION_INTERACTION_PROFILE)),
-            retired: false,
+            available_show: Some(available_show),
             receipt: Some(NativeMaskPlayReceipt {
                 mask_plan_id: planned.plan.plan_id.clone(),
                 active_play_id: active.active_play_id,
@@ -249,7 +323,7 @@ impl PreparedNativeMaskPlay {
                 collection_storage: (profile == NativeMaskStorageProfile::Collection)
                     .then_some(storage_budget),
             }),
-        })
+        }))
     }
 
     pub fn renderer_request(&self) -> &NativeMaskRendererRequest {
@@ -307,7 +381,7 @@ impl PreparedNativeMaskPlay {
                 if pending_interaction.is_some()
                     || request.node != self.interaction_node
                     || request.call != HostCallId(0)
-                    || request.request != RequestId(1)
+                    || request.request != self.scheduler.interaction_request()
                     || self
                         .scheduler
                         .host_value(request.input.value)
@@ -333,34 +407,15 @@ impl PreparedNativeMaskPlay {
                     return Err(NativeMaskPlayError::Value);
                 }
                 self.scheduler
-                    .remote_egress_accept(
-                        self.show_fore.endpoint,
-                        self.show_fore.cord,
-                        offer.sequence,
-                    )
-                    .and_then(|_| {
-                        self.scheduler.remote_egress_delivered(
-                            self.show_fore.endpoint,
-                            self.show_fore.cord,
-                            offer.sequence,
-                        )
-                    })
+                    .accept_output(self.show_fore.endpoint, self.show_fore.cord, offer.sequence)
                     .map_err(|_| NativeMaskPlayError::ForeOutput)?;
                 observed_show = true;
             }
             if observed_show && let Some(request) = pending_interaction.take() {
                 self.renderer.prepared_show = self
-                    .renderer
-                    .prepared_show
-                    .transition(
-                        ManifestationLifecycle::Available,
-                        SignId::from("conduitos/mask/render-available"),
-                    )
-                    .map_err(|_| NativeMaskPlayError::Face)?;
-                self.renderer
-                    .prepared_show
-                    .validate(&self.renderer.face)
-                    .map_err(|_| NativeMaskPlayError::Face)?;
+                    .available_show
+                    .take()
+                    .ok_or(NativeMaskPlayError::Face)?;
                 let receipt = self.receipt.as_mut().ok_or(NativeMaskPlayError::Kernel)?;
                 receipt.kernel_signs = self.scheduler.signs().len();
                 receipt.scanout_frame_sequence = ack.frame_sequence();

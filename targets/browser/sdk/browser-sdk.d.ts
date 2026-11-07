@@ -89,6 +89,14 @@ export class BrowserHost {
     selected: boolean; reason?: string; constructor?: CustomElementConstructor;
     identity?: string; artifactId?: string; bundleSha256?: string;
   }>>;
+  /** Sign one existing portable invitation on this exact Boot; creates no membership or presence. */
+  prepareSeedAdmission(options: { invitation: unknown; authorizeJoin: true }): Readonly<Record<string, unknown>>;
+  /** Human authenticates the owner/carrier. Runtime correlates the receipt, then durable storage retains it. */
+  completeSeedAdmission(options: { receipt: unknown; authorizeMembership: true }): Promise<Readonly<Record<string, unknown>>>;
+  retrySeedAdmissionRetention(): Promise<Readonly<Record<string, unknown>>>;
+  cancelSeedAdmission(): void;
+  /** Historical membership only; does not establish a Line, presence, Plan or Play. */
+  seedMembershipCredential(): Readonly<Record<string, unknown>> | null;
   /** Participate in one externally owned Body without creating a second Host or Boot. */
   participate(options: {
     invitation: string;

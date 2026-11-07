@@ -350,3 +350,47 @@ fn admitted_half_period_accounting_covers_complete_and_maximum_transactions() {
         assert!(intervals <= 592);
     }
 }
+
+#[test]
+fn transaction_deadline_is_rearmed_once_only_after_geometry_and_cancellation_preflight() {
+    #[derive(Default)]
+    struct Clocked {
+        pins: Pins,
+        begins: usize,
+    }
+    impl OpenDrain for Clocked {
+        type Error = ();
+        fn begin_transaction(&mut self) -> Result<(), ()> {
+            self.begins += 1;
+            Ok(())
+        }
+        fn clock(&mut self, v: bool) -> Result<(), ()> {
+            self.pins.clock(v)
+        }
+        fn data(&mut self, v: bool) -> Result<(), ()> {
+            self.pins.data(v)
+        }
+        fn read_data(&mut self) -> Result<bool, ()> {
+            self.pins.read_data()
+        }
+        fn half_period(&mut self) -> Result<(), ()> {
+            self.pins.half_period()
+        }
+    }
+    let mut pins = Clocked::default();
+    assert_eq!(
+        transmit(&mut pins, &[], || false),
+        Err(Failure::InvalidGeometry)
+    );
+    assert_eq!(pins.begins, 0);
+    let packets = [Packet { bytes: &[0x40] }, Packet { bytes: &[0x88] }];
+    assert_eq!(
+        transmit(&mut pins, &packets, || true),
+        Err(Failure::Cancelled)
+    );
+    assert_eq!(pins.begins, 0);
+    transmit(&mut pins, &packets, || false).unwrap();
+    assert_eq!(pins.begins, 1);
+    transmit(&mut pins, &packets, || false).unwrap();
+    assert_eq!(pins.begins, 2);
+}

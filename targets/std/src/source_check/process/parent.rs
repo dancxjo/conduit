@@ -20,13 +20,20 @@ pub enum SourceCheckProcessFailure {
     },
     OutputBounds,
     MalformedOutput,
+    ExecutableIdentity,
+    ExecutableBounds,
 }
 /// Descriptive canonical output only. This is not a Native admission witness,
 /// compiler owner, Source grant or resource-retirement capability.
 pub struct SourceCheckProcessOutput {
     bytes: Vec<u8>,
+    request: SourceCheckRequest,
 }
 impl SourceCheckProcessOutput {
+    /// The exact request sent to the selected child; descriptive, not a grant.
+    pub fn request(&self) -> &SourceCheckRequest {
+        &self.request
+    }
     pub fn canonical_bytes(&self) -> &[u8] {
         &self.bytes
     }
@@ -35,10 +42,12 @@ impl SourceCheckProcessOutput {
 /// Plot input. Calling this helper creates no Ready offer or reservation; the
 /// Root must own the actual selected executable and admit parent/child backing.
 pub struct SourceCheckProcessWorker {
-    executable: PathBuf,
+    pub(super) executable: PathBuf,
     limits: SourceCheckProcessLimits,
-    deadline: Duration,
+    pub(super) deadline: Duration,
     maximum_startup_bytes: usize,
+    maximum_reply_bytes: usize,
+    pub(super) executable_identity: Option<super::executable::ExecutableIdentity>,
 }
 impl SourceCheckProcessWorker {
     pub fn new(
@@ -61,7 +70,17 @@ impl SourceCheckProcessWorker {
             limits,
             deadline,
             maximum_startup_bytes,
+            maximum_reply_bytes: MAXIMUM_REPLY_BYTES,
+            executable_identity: None,
         })
+    }
+    /// Restrict retained child output to the checked provider's reply envelope.
+    pub fn with_reply_bound(mut self, bytes: usize) -> Result<Self, SourceCheckProcessFailure> {
+        if bytes == 0 || bytes > MAXIMUM_REPLY_BYTES {
+            return Err(SourceCheckProcessFailure::Bounds);
+        }
+        self.maximum_reply_bytes = bytes;
+        Ok(self)
     }
     /// One child at a time through this owner. Polling kills the child's group
     /// on Stop/deadline; the existing driver waits/reaps before returning.
@@ -71,10 +90,10 @@ impl SourceCheckProcessWorker {
         input: &SourceCheckProcessInput,
         control: &crate::RunControl,
     ) -> Result<SourceCheckProcessOutput, SourceCheckProcessFailure> {
-        let started = Instant::now();
         if control.stop_requested() {
             return Err(SourceCheckProcessFailure::Cancelled);
         }
+        let started = Instant::now();
         let request = &input.request;
         let labels = [
             &input.owner,
@@ -101,9 +120,7 @@ impl SourceCheckProcessWorker {
         };
         serde_json::to_writer(&mut startup, input)
             .map_err(|_| SourceCheckProcessFailure::InputBounds)?;
-        if control.stop_requested() {
-            return Err(SourceCheckProcessFailure::Cancelled);
-        }
+        self.observe_executable(control, started)?;
         let remaining = self
             .deadline
             .checked_sub(started.elapsed())
@@ -122,7 +139,7 @@ impl SourceCheckProcessWorker {
                 arguments: &arguments,
                 environment: &[],
                 stdin: &startup.bytes,
-                maximum_stdout_bytes: MAXIMUM_REPLY_BYTES,
+                maximum_stdout_bytes: self.maximum_reply_bytes,
                 maximum_stderr_bytes: 4096,
                 timeout: remaining,
                 require_process_group: true,
@@ -149,13 +166,14 @@ impl SourceCheckProcessWorker {
         if control.stop_requested() {
             return Err(SourceCheckProcessFailure::Cancelled);
         }
-        if report.stdout.observed_bytes > MAXIMUM_REPLY_BYTES as u64 {
+        if report.stdout.observed_bytes > self.maximum_reply_bytes as u64 {
             return Err(SourceCheckProcessFailure::OutputBounds);
         }
         conduit_core::validate_canonical_structured_value(&report.stdout.retained)
             .map_err(|_| SourceCheckProcessFailure::MalformedOutput)?;
         Ok(SourceCheckProcessOutput {
             bytes: report.stdout.retained,
+            request: input.request.clone(),
         })
     }
 }

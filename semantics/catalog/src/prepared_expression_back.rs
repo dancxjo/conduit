@@ -26,6 +26,8 @@ pub fn prepared_expression_bounds(
 
 mod resident;
 pub use resident::{StaticExpressionBackRefusal, StaticScalarExpressionBack};
+mod resident_structured;
+pub use resident_structured::{StaticStructuredExpressionBack, StructuredResidentEvaluator};
 
 trait ExpressionEngine {
     type Refusal;

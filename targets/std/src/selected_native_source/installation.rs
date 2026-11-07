@@ -5,12 +5,13 @@ impl crate::StdHost {
     pub(super) fn stage_native_source(
         &self,
         definition: &NativeSourceDefinition,
-        worker_bytes: Option<u32>,
+        backing_bytes: Option<u32>,
     ) -> Result<(BaseRegistry, HostAdvertisement, KernelResourceLedger), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() || self.native_source.is_some() {
             return Err("native Source installation requires an idle empty slot".into());
         }
-        validate_definition(definition, &self.advertisement, worker_bytes)?;
+        validate_definition(definition, &self.advertisement, backing_bytes)?;
         let mut registry = self.base_registry.clone();
         if let Some(previous) = registry
             .entries()
@@ -45,7 +46,7 @@ impl crate::StdHost {
         advertisement
             .resources
             .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
-        let ledger = KernelResourceLedger::new(&advertisement)?;
+        let ledger = self.kernel_resources.replacement_for(&advertisement)?;
         Ok((registry, advertisement, ledger))
     }
     /// Initialize a retained fixed-slot worker only after actual Base backing
@@ -129,6 +130,8 @@ impl crate::StdHost {
             definition,
             provider: NativeProvider::Worker(worker),
             backing: Some(backing),
+            _image_memory: None,
+            _metadata_memory: None,
         });
         Ok(())
     }
@@ -188,7 +191,7 @@ impl crate::StdHost {
             base.provider_instance_id != source.definition.base.provider_instance_id
         });
         advertisement.offer_generation = OfferGeneration(next_generation);
-        let ledger = KernelResourceLedger::new(&advertisement)?;
+        let ledger = self.kernel_resources.replacement_for(&advertisement)?;
         let mut registry = self.base_registry.clone();
         registry
             .set_lifecycle(

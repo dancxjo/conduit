@@ -139,7 +139,7 @@ pub fn prepare_with_runtime_bound<
         alternate.cords[0].pressure_policy
     );
     eprintln!("environment_kernel_schema={} encoded_bytes={} declared_runtime_projection_bytes={} structural_records={}", ASSIGNED_KERNEL_PLAN_SCHEMA, encoded.len(), view.runtime_state_bytes, structural.len());
-    let total: u32 = inventory.iter().map(|r| u32::from(r.text_bytes)).sum();
+    let total: u32 = inventory.iter().map(|r| r.text_bytes).sum();
     let largest = inventory.iter().map(|r| r.text_bytes).max().unwrap();
     for constrained in [
         AssignedComputationProfile {

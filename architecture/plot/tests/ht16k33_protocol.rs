@@ -17,8 +17,43 @@ struct Fixture {
     inputs: BTreeMap<String, Type>,
     evaluators: BTreeMap<String, PreparedPortableExpressionEvaluator>,
 }
+#[test]
+fn ht16k33_expression_preparation_reports_its_actual_host_heap_cost() {
+    let (fixture, observation) = allocation_probe::observe(Fixture::new);
+    assert_eq!(fixture.evaluators.len(), 5);
+    eprintln!("HT16K33 expressions including retained input Types: {observation:?}");
+    let programs = Fixture::programs();
+    for (name, program) in &programs {
+        let (_evaluator, cost) = allocation_probe::observe(|| {
+            PreparedPortableExpressionEvaluator::new(program).unwrap()
+        });
+        if name == "ht16k33-transition" {
+            // Host-side regression guard, not an MCU workspace grant. The old
+            // duplicate projection scratch exceeded 26 KiB on this host.
+            assert!(cost.peak_bytes < 24 * 1024, "{cost:?}");
+        }
+        eprintln!("{name} evaluator only: {cost:?}");
+    }
+}
 impl Fixture {
     fn new() -> Self {
+        let programs = Self::programs();
+        let inputs = programs
+            .iter()
+            .map(|(name, program)| (name.clone(), program.input_type.clone()))
+            .collect();
+        let evaluators = programs
+            .iter()
+            .map(|(name, program)| {
+                (
+                    name.clone(),
+                    PreparedPortableExpressionEvaluator::new(program).unwrap(),
+                )
+            })
+            .collect();
+        Self { inputs, evaluators }
+    }
+    fn programs() -> BTreeMap<String, PortableExpressionProgram> {
         let types = check_syntax_document(
             &parse_syntax_document(include_str!(
                 "../../../plots/device-protocols/i2c-types.conduit"
@@ -43,8 +78,7 @@ impl Fixture {
         ));
         assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
         let checked = check_syntax_document(&syntax, &catalog).unwrap();
-        let mut inputs = BTreeMap::new();
-        let mut evaluators = BTreeMap::new();
+        let mut programs = BTreeMap::new();
         for plot in &checked.plots {
             let expanded =
                 expand_canonical_plot_for_authoring(&checked, &plot.name, &ProfileCatalog::new())
@@ -56,22 +90,35 @@ impl Fixture {
                 panic!("program")
             };
             let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-            inputs.insert(plot.name.clone(), program.input_type.clone());
-            evaluators.insert(
-                plot.name.clone(),
-                PreparedPortableExpressionEvaluator::new(&program).unwrap(),
-            );
+            programs.insert(plot.name.clone(), program);
         }
-        Self { inputs, evaluators }
+        programs
     }
     fn evaluate(&mut self, name: &str, value: &Value) -> Value {
         let bytes = value.canonical_bytes().unwrap();
+        let schema = self.inputs[name].canonical_bytes().unwrap();
         let (result, allocations) = allocation_probe::observe(|| {
-            self.evaluators
+            let validator =
+                conduit_core::BorrowedStructuredValueValidator::new(&schema, bytes.len()).unwrap();
+            let input = validator.validate(&bytes).unwrap();
+            assert_eq!(validator.validate_node(input.value_node()).unwrap(), input);
+            let result = self
+                .evaluators
                 .get_mut(name)
                 .unwrap()
                 .evaluate(&bytes)
-                .unwrap()
+                .unwrap();
+            let output = conduit_core::validate_canonical_structured_value(result).unwrap();
+            let output_validator = conduit_core::BorrowedStructuredValueValidator::new(
+                output.type_bytes(),
+                result.len(),
+            )
+            .unwrap();
+            assert_eq!(
+                output_validator.validate_node(output.value_node()).unwrap(),
+                output
+            );
+            result
         });
         assert_eq!(allocations.allocations, 0, "{name}: {allocations:?}");
         assert_eq!(allocations.reallocations, 0, "{name}: {allocations:?}");

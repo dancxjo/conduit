@@ -34,12 +34,13 @@ fn required_value_bytes(
         .map_err(|_| PlannerError::InvalidConnectionBudget("value bound overflow".into()))
 }
 
-pub fn plan_expanded_canonical(
+/// Queue preferences bounded by both selected Backs and checked value contracts.
+/// Explicit required capacities must still use the strict planning entrances.
+pub fn default_expanded_connection_limits(
     plot: &ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[BaseImplementationId],
-) -> Result<Plan, PlannerError> {
+) -> Result<BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>, PlannerError> {
     plot.validate_expansion()
         .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
     let mut limits = BTreeMap::new();
@@ -102,6 +103,16 @@ pub fn plan_expanded_canonical(
             },
         );
     }
+    Ok(limits)
+}
+
+pub fn plan_expanded_canonical(
+    plot: &ExpandedCanonicalPlot,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+) -> Result<Plan, PlannerError> {
+    let limits = default_expanded_connection_limits(plot, hosts, placements)?;
     plan_expanded_canonical_with_connection_limits(
         plot,
         hosts,

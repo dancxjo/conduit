@@ -54,7 +54,7 @@ pub(super) fn serve(
     // would leave the guest holding a Show from an earlier revision.
     request.request.last_seen_revision = None;
     request.request.last_seen_identity = None;
-    let mut face = crate::durable_host_control::face_snapshot(state_dir, request.request)
+    let mut face = crate::durable_host_control::face_snapshot(state_dir, request.request.clone())
         .unwrap_or_else(|_| OwnerFaceSnapshotResponse::Refused {
             schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
             code: "face-unavailable".into(),
@@ -74,42 +74,25 @@ pub(super) fn serve(
     } else {
         None
     };
-    let mut refusal = None;
-    let selected = if let (Some(grant), OwnerFaceSnapshotResponse::Snapshot { route, .. }) =
-        (next.as_ref(), &mut face)
-    {
-        crate::durable_host_control::local_face_snapshot(state_dir)
-            .and_then(|(_, owner_offer)| {
-                grant.seal_mask_route(listener, state_dir, &owner_offer, 0)
-            })
-            .map(|selected| {
-                *route = Some(Box::new(selected));
-            })
-            .map_err(|error| {
-                refusal = Some(error);
-            })
-            .is_ok()
-    } else {
-        false
-    };
-    if let Some(code) = refusal {
-        face = OwnerFaceSnapshotResponse::Refused {
-            schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-            code: code.chars().take(256).collect(),
+    if let Some(grant) = &next {
+        face = match grant.prepare_face_route(listener, state_dir, request.request, 0) {
+            Ok(response) => response,
+            Err(error) => {
+                next = None;
+                OwnerFaceSnapshotResponse::Refused {
+                    schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                    code: error.chars().take(256).collect(),
+                }
+            }
         };
-    }
-    if let OwnerFaceSnapshotResponse::Snapshot {
+    } else if let OwnerFaceSnapshotResponse::Snapshot {
         interactions_admitted,
+        route,
         ..
     } = &mut face
     {
-        *interactions_admitted = selected
-            && next
-                .as_ref()
-                .is_some_and(|grant| grant.spoken_selection.is_none());
-    }
-    if !selected {
-        next = None;
+        *interactions_admitted = false;
+        *route = None;
     }
     let response = RefreshResponse {
         schema: REFRESH_RESPONSE_SCHEMA,
@@ -118,7 +101,7 @@ pub(super) fn serve(
     };
     let hosted = old.mask == MaskSelection::Terminal;
     let profile = conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
-        &old.receipt.host_advertisement,
+        &old.member.host_advertisement,
     );
     let maximum = if hosted {
         super::super::response_document::MAX_HOSTED_OWNER_DOCUMENT_BYTES

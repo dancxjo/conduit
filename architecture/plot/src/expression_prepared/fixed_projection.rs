@@ -9,7 +9,7 @@ const MAX_DEPTH: u8 = 32;
 /// A whole value node, including its canonical framing, but not its Type.
 /// Unsupported/variable geometry retains ordinary member selection.
 pub(super) fn prepare(input: &Type, node: &Node, prefix_bytes: usize) -> Option<(u32, u32)> {
-    if !matches!(node.operation, Op::Projection { .. }) {
+    if !matches!(node.operation, Op::Projection { .. } | Op::Input) {
         return None;
     }
     let (start, selected) = locate(input, node, prefix_bytes, 0)?;

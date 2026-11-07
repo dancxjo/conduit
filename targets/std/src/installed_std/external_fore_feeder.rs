@@ -10,6 +10,8 @@ use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_kernel::{CordId, RemoteEndpointId};
 use conduit_plan_lowering::lowering::LoweredForePort;
 
+mod memory;
+
 pub(super) const MAX_SEQUENCE_ITEMS: u16 = 64;
 
 pub(super) enum PreparedForeInputs<'a> {
@@ -24,6 +26,13 @@ pub(super) struct SingleInput<'a> {
 }
 
 impl<'a> PreparedForeInputs<'a> {
+    pub(super) fn empty_backing_bytes(&self) -> Option<usize> {
+        match self {
+            Self::Single(entries) if entries.is_empty() => self.one_shot_backing_bytes(),
+            _ => None,
+        }
+    }
+
     pub(super) fn prepare_stream(
         planned: &[&LoweredForePort],
         supplied: &'a [ExternalForeInput],
@@ -107,6 +116,14 @@ impl<'a> PreparedForeInputs<'a> {
     }
 
     pub(super) fn start(&mut self, scheduler: &mut InstalledScheduler) -> Result<(), String> {
+        self.start_with_format(scheduler, |arguments| arguments.to_string())
+    }
+
+    pub(super) fn start_with_format(
+        &mut self,
+        scheduler: &mut InstalledScheduler,
+        mut error: impl FnMut(std::fmt::Arguments<'_>) -> String,
+    ) -> Result<(), String> {
         if let Self::Live(feeder) = self {
             return feeder.start(scheduler);
         }
@@ -116,19 +133,21 @@ impl<'a> PreparedForeInputs<'a> {
         for entry in entries {
             match scheduler
                 .admit_remote_input_fanout(&entry.targets, 0, entry.bytes)
-                .map_err(|error| format!("admit external Fore input: {error:?}"))?
+                .map_err(|failure| error(format_args!("admit external Fore input: {failure:?}")))?
             {
                 RemoteIngressOutcome::Accepted { sequence: 0 } => {}
                 outcome => {
-                    return Err(format!(
+                    return Err(error(format_args!(
                         "external Fore input was not admitted exactly: {outcome:?}"
-                    ))
+                    )))
                 }
             }
             for &(endpoint, cord) in &entry.targets {
                 scheduler
                     .close_remote_input(endpoint, cord)
-                    .map_err(|error| format!("close external Fore input: {error:?}"))?;
+                    .map_err(|failure| {
+                        error(format_args!("close external Fore input: {failure:?}"))
+                    })?;
             }
         }
         Ok(())

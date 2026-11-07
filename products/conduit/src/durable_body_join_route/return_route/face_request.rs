@@ -1,11 +1,11 @@
 //! Decode a read-only native Face request and its explicit return-route opt-in.
 
 use conduit_face::OwnerFaceSnapshotRequest;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 pub(super) const FACE_REQUEST_SCHEMA: &str = "conduit.body/native-owner-face-request@1";
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum MaskSelection {
     #[default]

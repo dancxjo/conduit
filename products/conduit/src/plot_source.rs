@@ -8,6 +8,10 @@ use std::path::Path;
 mod authoring;
 #[path = "plot_source/conversation_catalog.rs"]
 mod conversation_catalog;
+#[path = "plot_source/device_catalog.rs"]
+mod device_catalog;
+#[path = "plot_source/source_check_catalog.rs"]
+mod source_check_catalog;
 
 pub(crate) struct CanonicalSource {
     pub(crate) source: String,
@@ -246,6 +250,7 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_semantic_catalog::install_state_toggle_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profiles)?;
@@ -275,6 +280,13 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_chat::install_messaging_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profiles)?;
     conduit_alife::install_lenia_catalogs(&mut startup, &mut profiles)?;
+    // Declaration only: actual member offers, attachment custody and transfer
+    // authority are checked independently by planning and the receiving Root.
+    conduit_i2c_transaction::contract::I2cContract::prepare()
+        .map_err(|error| format!("I2C authoring interface: {error:?}"))?
+        .install_catalogs(&mut startup, &mut profiles)?;
+    source_check_catalog::install(&mut startup, &mut profiles)?;
+    device_catalog::install(&mut startup, &mut profiles)?;
     Ok((startup, profiles))
 }
 

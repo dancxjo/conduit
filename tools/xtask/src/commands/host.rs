@@ -1,3 +1,4 @@
+use host_release::configuration_load::load_configuration;
 use std::{fs, path::Path};
 
 use conduit_host_make::{
@@ -18,6 +19,8 @@ mod host_esp32_inspection;
 #[cfg(test)]
 #[path = "host_esp32_inspection_tests.rs"]
 mod host_esp32_inspection_tests;
+#[path = "host_esp32_native.rs"]
+mod host_esp32_native;
 #[path = "host_local_model.rs"]
 mod host_local_model;
 #[path = "host_local_model_journey.rs"]
@@ -28,12 +31,20 @@ mod host_microphone;
 mod host_release;
 #[path = "host_release_catalog.rs"]
 mod host_release_catalog;
+#[path = "host_rp2040.rs"]
+mod host_rp2040;
+#[path = "host_rp2040_membership_seed.rs"]
+mod host_rp2040_membership_seed;
+#[path = "host_rp2040_seed.rs"]
+mod host_rp2040_seed;
 #[path = "host_spoken_birth.rs"]
 mod host_spoken_birth;
 #[path = "host_target.rs"]
 pub(crate) mod host_target;
 #[path = "host_whisper.rs"]
 mod host_whisper;
+#[path = "host_workset_source.rs"]
+mod host_workset_source;
 
 #[path = "host_cli.rs"]
 mod host_cli;
@@ -194,21 +205,92 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             println!("{}", serde_json::to_string_pretty(&catalog)?);
             Ok(())
         }
+        HostCommand::PrepareSeed {
+            package,
+            export_receipt,
+            pins,
+            retained_member,
+            output,
+        } => {
+            if opts.dry_run {
+                return Err("private Seed preparation requires actual verification".into());
+            }
+            host_rp2040_seed::prepare(
+                &package,
+                &export_receipt,
+                pins.as_deref(),
+                retained_member.as_deref(),
+                &output,
+            )
+        }
         HostCommand::Build {
             profile: profile_path,
             output,
             source_identity,
+            workset_source,
+            workset_entry,
+            private_seed_input,
+            private_seed_output,
         } => {
             let source_identity = source_identity
                 .map(Ok)
                 .unwrap_or_else(|| command_identity("git", &["rev-parse", "HEAD"]))?;
-            let (image, bytes) = resolve_profile(&profile_path, source_identity)?;
+            let workset = workset_source
+                .as_deref()
+                .map(|path| {
+                    host_workset_source::WorksetSourceInput::capture(
+                        path,
+                        &workset_entry,
+                        &source_identity,
+                        &output,
+                        opts.dry_run,
+                    )
+                })
+                .transpose()?;
+            let resolved_identity = workset
+                .as_ref()
+                .map_or(source_identity.as_str(), |input| input.identity.as_str());
+            let (image, bytes) = resolve_profile(&profile_path, resolved_identity.to_owned())?;
             if opts.dry_run {
                 println!(
                     "would BUILD {} from resolved binding {}",
                     profile_path.display(),
                     image.manifest.image_id
                 );
+            }
+            if host_esp32_native::selected(&image) {
+                host_esp32_native::build(
+                    &profile_path,
+                    &output,
+                    &image,
+                    &bytes,
+                    private_seed_input.as_deref(),
+                    private_seed_output.as_deref(),
+                    workset.as_ref(),
+                    opts,
+                )?;
+                return Ok(());
+            }
+            if image.manifest.target == conduit_host_rp2040::TARGET_ID {
+                host_rp2040::build(
+                    &profile_path,
+                    &output,
+                    &image,
+                    &bytes,
+                    private_seed_input.as_deref(),
+                    private_seed_output.as_deref(),
+                    workset.as_ref(),
+                    opts,
+                )?;
+                return Ok(());
+            }
+            if workset.is_some() {
+                return Err(
+                    "workset Source specialization is not supported by this target adapter".into(),
+                );
+            }
+            if private_seed_input.is_some() || private_seed_output.is_some() {
+                return Err("private embedded Seed applies only to an RP2040 Host build".into());
             }
             if crate::commands::conduitos::target_backend::find(&image.manifest.target).is_some() {
                 let target = host_target::build_target(&image, &bytes, &output, opts)?;
@@ -242,6 +324,8 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
         HostCommand::Release {
             output,
             platform,
+            configuration,
+            native_library_directories,
             source_identity,
         } => {
             let source_identity = source_identity
@@ -251,12 +335,28 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 &output,
                 platform,
                 &source_identity,
+                configuration.as_deref(),
                 &host_release::ReleaseOptions {
                     json: opts.json,
                     quiet: opts.quiet,
+                    native_library_directories,
                 },
             )
         }
+        HostCommand::ReleaseArtifact {
+            configuration,
+            image,
+            executable,
+            sha256,
+            output,
+        } => host_release::review_artifact(
+            &configuration,
+            &image,
+            &executable,
+            &sha256,
+            &output,
+            opts.dry_run,
+        ),
         HostCommand::ReleaseCatalog { root, generation } => {
             host_release_catalog::run(&root, generation, opts.dry_run, opts.json, opts.quiet)
         }
@@ -414,27 +514,6 @@ fn command_identity(
         return Err(format!("{program} returned an empty identity").into());
     }
     Ok(identity)
-}
-
-fn load_configuration(
-    path: &std::path::Path,
-) -> Result<conduit_host_make::CheckedHostConfiguration, Box<dyn std::error::Error>> {
-    let source = fs::read_to_string(path)?;
-    if !is_conduit_source(path, "host") {
-        return Err(format!(
-            "Host construction source must use the canonical .host.conduit suffix: {}",
-            path.display()
-        )
-        .into());
-    }
-    let configuration = parse_host_configuration_conduit(&source)
-        .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
-    check_host_configuration(
-        configuration,
-        &conduit_workspace_make::catalog(),
-        &conduit_workspace_make::package_set(),
-    )
-    .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}").into())
 }
 
 fn is_conduit_source(path: &std::path::Path, role: &str) -> bool {

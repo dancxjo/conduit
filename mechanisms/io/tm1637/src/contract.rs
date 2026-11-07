@@ -17,10 +17,20 @@ impl WriteContract {
         let profile = packets.profile()?;
         let kind = c::Kind {
             kind_id: c::kind_id(WRITE_KIND),
-            kind_contract_revision: "machine/tm1637/write@1".into(),
+            kind_contract_revision: "machine/tm1637/write@2".into(),
             startup_parameters: vec![],
             shorthand: None,
-            semantic_laws: vec![],
+            semantic_laws: vec![c::KindSemanticLaw::ValueContracts(vec![
+                c::FrontValueContract {
+                    location: c::FrontValueLocation::Input(c::port_id("packets")),
+                    contract: c::CheckedValueContract::new(
+                        profile.value_kind().clone(),
+                        packet_value_bound(&packets)?,
+                        vec![],
+                    )
+                    .map_err(|_| c::StructuredInfoRefusal::MalformedCanonicalEncoding)?,
+                },
+            ])],
             configuration: vec![],
             inputs: vec![c::PortDescriptor {
                 port_id: c::port_id("packets"),
@@ -44,4 +54,18 @@ impl WriteContract {
     pub fn packets_type(&self) -> &c::StructuredInfoType {
         &self.packets
     }
+}
+
+fn packet_value_bound(ty: &c::StructuredInfoType) -> Result<u32, c::StructuredInfoRefusal> {
+    // The checked packet schema has only U8 leaves, which the native codec
+    // validates as exact one-byte octets. No transport ceiling is a proof.
+    let bytes = ty
+        .canonical_value_upper_bound(|kind| (kind.as_str() == "value/u8").then_some(1))
+        .ok_or(c::StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    let bytes =
+        u32::try_from(bytes).map_err(|_| c::StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    if bytes > MAXIMUM_BYTES {
+        return Err(c::StructuredInfoRefusal::MalformedCanonicalEncoding);
+    }
+    Ok(bytes)
 }

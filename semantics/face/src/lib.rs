@@ -157,6 +157,7 @@ mod linear;
 mod linear_navigation;
 mod local_look;
 mod look;
+mod retained_backing;
 pub use local_look::*;
 mod look_selection;
 mod manifestation;

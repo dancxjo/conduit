@@ -3,7 +3,14 @@
 //! The owner may issue a face-only browser Mask route on the admitted
 //! carrier; the Body workload remains on its authoritative Host.
 mod admission;
+mod member_presence;
 mod pending_action;
+mod presence_pump;
+pub(crate) use member_presence::serve_member_presence;
+#[cfg(test)]
+pub(crate) use member_presence::serve_with_carrier;
+#[cfg(test)]
+pub(crate) use member_presence::serve_with_dispatch;
 mod service;
 #[cfg(unix)]
 mod service_worker;
@@ -200,47 +207,30 @@ fn serve_presence(
         protocol: PROTOCOL,
         evidence: snapshot.offer.clone(),
     })?;
-    acknowledge_presence(socket, &presence)?;
+    let mut pump = presence_pump::PresencePump::start(
+        socket,
+        credential,
+        presence.leases[0].clone(),
+        clock + Duration::from_millis(presence.leases[0].observed_at_millis),
+        deadline,
+        MAX_PRESENCE_FRAMES,
+        false,
+    )?;
     #[cfg(unix)]
     let mut selected_speech = speech::CarrierSpeech::default();
     let mut pending_action = pending_action::PendingAction::default();
-    let mut received_frames = 0usize;
     loop {
-        let lease = &presence.leases[0];
-        let Some(window_left) = deadline.checked_duration_since(Instant::now()) else {
+        if Instant::now() >= deadline {
             return Ok("window-closed");
-        };
-        let remaining = lease.expires_at_millis.saturating_sub(now(clock));
-        if remaining == 0 {
-            return Err("browser presence lease expired".into());
         }
         if let Some(response) = pending_action.take_response() {
             socket.send(&response)?;
         }
-        if received_frames >= MAX_PRESENCE_FRAMES {
-            return Err("browser presence frame budget exhausted".into());
-        }
-        let wait = window_left.min(Duration::from_millis(remaining));
-        let received = if let Some(frame) = pending_action.take_deferred() {
-            Ok(Some(frame))
-        } else {
-            let received = if pending_action.is_pending() {
-                socket.receive_polled(wait.min(Duration::from_millis(50)))
-            } else {
-                socket.receive(wait).map(Some)
-            };
-            if matches!(&received, Ok(Some(_))) {
-                received_frames += 1;
-            }
-            received
-        };
-        if Instant::now() >= deadline {
-            return Ok("window-closed");
-        }
-        if now(clock) >= lease.expires_at_millis {
-            return Err("browser presence lease expired".into());
-        }
-        let Some((frame, bytes)) = received? else {
+        let poll_hint = pending_action
+            .is_pending()
+            .then_some(Duration::from_millis(50));
+        let deferred = pending_action.take_deferred();
+        let Some((frame, bytes)) = pump.receive(socket, poll_hint, deferred)? else {
             continue;
         };
         if pending_action.is_pending()
@@ -252,34 +242,25 @@ fn serve_presence(
             pending_action.defer((frame, bytes))?;
             continue;
         }
+        let frame = match pump.handle_presence(socket, frame, |sequence| {
+            presence
+                .renew(
+                    membership,
+                    &credential.part_id,
+                    binding,
+                    sequence,
+                    now(clock),
+                    LEASE_MS,
+                    signal(binding, &format!("renew-{sequence}")),
+                )
+                .map_err(debug)?;
+            Ok(presence.leases[0].clone())
+        })? {
+            presence_pump::PresenceEvent::Continue => continue,
+            presence_pump::PresenceEvent::Leave => return Ok("browser-left"),
+            presence_pump::PresenceEvent::Other(frame) => frame,
+        };
         match frame {
-            In::PresenceRenewal {
-                protocol: PROTOCOL,
-                credential_id,
-                body_id,
-                part_id,
-                host_id,
-                boot_id,
-                sequence,
-            } if credential_id == credential.credential_id
-                && body_id == credential.body_id
-                && part_id == credential.part_id
-                && host_id == credential.host_id
-                && boot_id == credential.boot_id =>
-            {
-                presence
-                    .renew(
-                        membership,
-                        &part_id,
-                        binding,
-                        sequence,
-                        now(clock),
-                        LEASE_MS,
-                        signal(binding, &format!("renew-{sequence}")),
-                    )
-                    .map_err(debug)?;
-                acknowledge_presence(socket, &presence)?;
-            }
             In::FaceSnapshotRequest {
                 protocol: PROTOCOL,
                 request,
@@ -586,38 +567,9 @@ fn serve_presence(
                     grant: None,
                 })?;
             }
-            In::PresenceLeave {
-                protocol: PROTOCOL,
-                credential_id,
-                body_id,
-                part_id,
-                host_id,
-                boot_id,
-                sequence,
-            } if sequence > lease.sequence
-                && credential_id == credential.credential_id
-                && body_id == credential.body_id
-                && part_id == credential.part_id
-                && host_id == credential.host_id
-                && boot_id == credential.boot_id =>
-            {
-                return Ok("browser-left")
-            }
             _ => return Err("browser session refused unexpected or stale credential frame".into()),
         }
     }
-}
-fn acknowledge_presence(
-    socket: &mut transport::Socket,
-    presence: &HostPresenceTable,
-) -> Result<(), String> {
-    let lease = &presence.leases[0];
-    socket.send(&Out::PresenceAccepted {
-        protocol: PROTOCOL,
-        sequence: lease.sequence,
-        renew_after_millis: RENEW_MS,
-        expires_at_millis: lease.expires_at_millis,
-    })
 }
 fn now(clock: Instant) -> u64 {
     clock.elapsed().as_millis() as u64

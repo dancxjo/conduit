@@ -90,6 +90,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-kernel"
+version = "0.1.0"
+dependencies = [
+ "conduit-assigned-plan",
+]
+
+[[package]]
 name = "conduit-language"
 version = "0.1.0"
 dependencies = [
@@ -123,6 +130,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-face",
+ "conduit-kernel",
  "conduit-plot",
  "serde_json",
 ]

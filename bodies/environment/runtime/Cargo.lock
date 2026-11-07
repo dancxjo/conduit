@@ -115,10 +115,16 @@ dependencies = [
 name = "conduit-embedded-build"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
+ "conduit-semantic-catalog",
+ "conduit-wire",
+ "miniz_oxide",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -346,6 +352,14 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
 ]
 
 [[package]]

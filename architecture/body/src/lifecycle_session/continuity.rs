@@ -55,6 +55,18 @@ impl BodyLifecycleSession {
             .count()
             .saturating_add(2);
         let mut pending_archives = Vec::new();
+        // A crashed current Wake also needs its failure event and retained Lull,
+        // not just the Host detach/attach records. Reserve their finite space
+        // before publishing either change, using the ordinary archive contract.
+        let terminal_records =
+            usize::from(matches!(evidence.body.state, BodyState::Awake { .. })) * 2;
+        super::make_history_room(
+            &mut evidence,
+            &mut pending_archives,
+            usize::from(terminal_records != 0),
+            0,
+            membership_changes.saturating_add(terminal_records),
+        )?;
         if evidence
             .membership
             .events
@@ -64,6 +76,9 @@ impl BodyLifecycleSession {
             || evidence.records.len().saturating_add(membership_changes)
                 > crate::MAX_BODY_BIOGRAPHY_RECORDS
         {
+            if pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
+                return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
+            }
             let segment = evidence
                 .seal_membership_history()
                 .map_err(BodyLifecycleSessionError::Biography)?

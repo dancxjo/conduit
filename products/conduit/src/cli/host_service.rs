@@ -18,9 +18,22 @@ pub(crate) enum HostServiceCommand {
         #[arg(long)]
         state_dir: PathBuf,
     },
+    /// Apply one exact locally reviewed Source revision while the service is stopped.
+    AdoptSource {
+        /// Owner-selected File, exact Body basis, entries and qualified workspace selection.
+        selection: PathBuf,
+        /// Measure the same funded preparation without publishing an owner, joining, or committing Source.
+        #[arg(long)]
+        prepare_only: bool,
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
     /// Verify and install one reviewed release bundle without replacing durable identity.
     Install {
         manifest: PathBuf,
+        /// Replacement checked Make IMAGE for the retained Host source.
+        #[arg(long)]
+        host_image: Option<PathBuf>,
         #[arg(long)]
         state_dir: PathBuf,
         /// Install without activating the service, for foreground Body ownership.

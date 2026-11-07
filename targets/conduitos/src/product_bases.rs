@@ -8,6 +8,18 @@ use conduit_core::{
     ResourcePoolId,
 };
 
+#[cfg(feature = "native-compositor-core")]
+pub use crate::native_mask_play::{
+    ColdNativeMaskInvocation, NativeMaskBackingReceipt, NativeMaskInteractionSession,
+    PreparedNativeMaskPlay, RetainedNativeMaskStorage, RetiredNativeMaskEvidence,
+    UnboundNativeMaskStorage, native_mask_plan_backing_bytes,
+};
+
+#[cfg(feature = "native-compositor-core")]
+pub use crate::native_surface_possession::{
+    ActiveNativeSurfacePossession, NativeSurfacePossessionReceipt,
+};
+
 pub use crate::native_surface_provider::{
     InitializedNativeOutput, NativeSurfaceProvider, SurfaceProviderError,
 };

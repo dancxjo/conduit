@@ -21,5 +21,7 @@ toml = "0.8"
 conduit-host-make = { path = "../../make/host", optional = true }
 conduit-host-browser-make = { path = "../../targets/browser/make", optional = true }
 
+conduit-workspace-make = { path = "../../make/workspace", optional = true }
+
 [features]
-host-release = ["dep:clap", "dep:conduit-host-browser-make", "dep:conduit-host-make"]
+host-release = ["dep:conduit-workspace-make", "dep:clap", "dep:conduit-host-browser-make", "dep:conduit-host-make"]

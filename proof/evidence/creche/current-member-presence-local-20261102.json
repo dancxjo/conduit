@@ -1,0 +1,46 @@
+{
+  "schema": "conduit.proof/current-member-presence-local@1",
+  "base_commit": "297d768bf43a95261380760e84d1991f5e687fc3",
+  "proof_class": "local real TCP/pinned TLS plus owner callbacks; authenticated local-control schema refusal tests; native compilation",
+  "source_files": {
+    "products/conduit/src/body_owner/controller.rs": "841021822373b32317614e393cbd24758ce071157bc36529f564adcccda495f5",
+    "products/conduit/src/body_owner/member_carrier.rs": "d69d732c1bf8ca58e6b8a5cc65c2b85998f451c13ff2c2d4b12fdeb80c373215",
+    "products/conduit/src/body_owner/mod.rs": "4bc19a88d0665abe97713707f8f7b4065b51a492820314ba3c8bd9129e40b57d",
+    "products/conduit/src/body_owner/participants/mod.rs": "26998ea6b26705150f0adadb3e915a9cc63960f4b551075dffd930b6ce39fd14",
+    "products/conduit/src/body_owner/participants/transport.rs": "e8b07a4c392d54d7671182721e493b635ff92df4943f229acbd588fc3289ef07",
+    "products/conduit/src/body_owner/tests/member_carrier.rs": "55236626a79faa4366b5a96f9b484072c36097ce4bde9d542b8c7d57a9b3fe1f",
+    "products/conduit/src/durable_body_join_route/member_return.rs": "23e4440f65092f6e1a0d1d33cb709257ebbd82490693e4f2d67ae83e2025491e",
+    "products/conduit/src/durable_host_control.rs": "e3b23951e261d9754de3cb2a0a3cf981d6afb4961f92f1f5fa3587d70ee0fbe0",
+    "products/conduit/src/durable_host_control/body.rs": "fd239d589c563b498b95743975345f124d471c8cb1c7bdbf2c809334b089f096",
+    "products/conduit/src/durable_host_control/body/control_client.rs": "df798d8feadafeead2db7893c2a77690438c45ada204f7cabb1c7e381c78693e",
+    "products/conduit/src/durable_host_control/body/member_carrier.rs": "246b450603e4d4eb2625d1b32f37886e9a56928d0fe276e75cbbf1b272d44fdb",
+    "products/conduit/src/durable_host_presentation/member_return_tests.rs": "fd821e925ec9b1bf8773bfccfb6256570714eb2253ff5030259cb1f847c98257",
+    "targets/std/src/secure_websocket.rs": "8580017b2ad24476449703993f2090187008dadd9887d0d146fe5cd3e91c0e3b",
+    "targets/std/src/secure_websocket/tests.rs": "57d3aa8d2390ae8f5b356f65a6f8c1a9deca6d694755b6243913e69882cb608d",
+    "products/conduit/src/body_owner/participants/member_presence.rs": "884e512939573fca0639cafccb38ecaf18b9c0325665e33e8b531a4c31702b30"
+  },
+  "logs": {
+    "member-presence-final-owner.log": "e5e6c76460045cce7142a573f0f204ef7189ae1b648d845ed87fe5f8b12b2b3b",
+    "member-presence-final-transport.log": "28aecdd087580b2990789fb1ac201199e26440e24a9980fac0bb30fe5e51d6fe",
+    "member-presence-final-scope-tls.log": "cd867380867e129ade31bb6e1a6edc0594b7f8c2d720acd425f0e05e028064a6",
+    "member-presence-final-scope-native.log": "df27467f8d9134557c53fb156c749229b6ee48cd49350794171f364a75e75a04",
+    "member-presence-tls-partial-frame.log": "ccd9a3f3a30b515b803a1ed40ad74aa847a10bb7a214cac008f0e77de7595af9"
+  },
+  "assertions": [
+    "two fresh authenticated TLS sessions, eight renewals each at 300 ms intervals",
+    "unchanged fixture biography and admission bytes",
+    "late renewal and duplicate/out-of-bound sequence refusal",
+    "expired started presence releases finite authentication capacity for fresh proof",
+    "stale exact cleanup cannot retire replacement",
+    "TLS partial frame survives polling timeout",
+    "80 ms absolute socket deadline terminates Ping traffic without lease renewal"
+  ],
+  "limits": [
+    "no exercised installed Unix-control worker for this new entrance",
+    "no native Line readiness or Face/Show route",
+    "no online Workspace admission link",
+    "no physical deployment or screenshots",
+    "one active owner carrier slot, not the multi-host end state"
+  ],
+  "delivery_tls_pr": "https://github.com/dancxjo/conduit/pull/6733"
+}

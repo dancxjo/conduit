@@ -134,6 +134,9 @@ fn absent_delegation_is_exact_and_selected_policy_changes_artifact_identity() {
         },
     )
     .unwrap();
+    verify_configuration_image(&selected, &image, &catalog).unwrap();
+    assert!(verify_configuration_image(&absent, &image, &catalog).is_err());
+    assert!(verify_configuration_image(&changed, &image, &catalog).is_err());
     assert_eq!(
         image.manifest.source_configuration_id.as_deref(),
         Some(selected.configuration_id())

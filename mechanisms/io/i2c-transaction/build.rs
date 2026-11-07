@@ -11,9 +11,11 @@ fn main() {
     let checked =
         check_syntax_document(&syntax, &StartupCatalog::new()).expect("checked I2C Type Source");
     let output = PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    for (name, file) in [
-        ("I2cTransaction", "request.type"),
-        ("I2cResult", "result.type"),
+    let mut bounds = Vec::new();
+    let mut profiles = String::new();
+    for (name, file, constant) in [
+        ("I2cTransaction", "request.type", "I2C_REQUEST_VALUE_BYTES"),
+        ("I2cResult", "result.type", "I2C_RESULT_VALUE_BYTES"),
     ] {
         let ty = checked
             .native_types
@@ -25,7 +27,36 @@ fn main() {
             ty.value_type.canonical_bytes().expect("canonical I2C Type"),
         )
         .expect("write checked I2C schema");
+        let label = if name == "I2cTransaction" {
+            "I2C_REQUEST_PROFILE"
+        } else {
+            "I2C_RESULT_PROFILE"
+        };
+        let profile = ty.value_type.profile().expect("checked exact port profile");
+        profiles.push_str(&format!(
+            "pub const {label}:&str={:?};\n",
+            profile.value_kind().as_str()
+        ));
+        let bound = ty
+            .value_type
+            .canonical_value_upper_bound(leaf_bound)
+            .expect("I2C Types require reviewed finite leaf contracts");
+        assert!(
+            bound <= 4096,
+            "checked I2C value exceeds public Fore ceiling"
+        );
+        bounds.push((constant, bound));
     }
+    fs::write(output.join("profiles.rs"), profiles).unwrap();
+    let mut constants = String::new();
+    for (name, bound) in &bounds {
+        constants.push_str(&format!("pub const {name}:usize={bound};\n"));
+    }
+    constants.push_str(&format!(
+        "pub const I2C_VALUE_SLOT_BYTES:usize={};\n",
+        bounds.iter().map(|(_, n)| *n).max().unwrap()
+    ));
+    fs::write(output.join("value_bounds.rs"), constants).unwrap();
     prepare_result_storage(
         &checked
             .native_types
@@ -35,6 +66,14 @@ fn main() {
             .value_type,
         &output,
     );
+}
+
+fn leaf_bound(kind: &conduit_core::KindId) -> Option<usize> {
+    match kind.as_str() {
+        "value/u8" => Some(1),
+        "value/empty" => Some(0),
+        _ => None,
+    }
 }
 
 /// Derive storage from the checked finite wire schema, not the transport ceiling.
@@ -70,6 +109,16 @@ fn prepare_result_storage(result: &conduit_core::StructuredInfoType, output: &st
                         .collect(),
                 )
                 .unwrap();
+                fs::write(
+                    output.join("input.type"),
+                    field.value_type().canonical_bytes().unwrap(),
+                )
+                .unwrap();
+                fs::write(
+                    output.join("input.bound"),
+                    octets.canonical_bytes().unwrap().len().to_string(),
+                )
+                .unwrap();
                 let value = Value::record(
                     ty.clone(),
                     vec![StructuredFieldValue::new("input", octets).unwrap()],
@@ -88,7 +137,9 @@ fn prepare_result_storage(result: &conduit_core::StructuredInfoType, output: &st
                 value
             }
             Shape::Leaf(kind) if kind.as_str() == "value/empty" => {
-                Value::leaf(ty.clone(), vec![]).unwrap()
+                let value = Value::leaf(ty.clone(), vec![]).unwrap();
+                fs::write(output.join("unit.value"), value.canonical_bytes().unwrap()).unwrap();
+                value
             }
             _ => panic!("unsupported I2C result shape"),
         };
@@ -100,5 +151,10 @@ fn prepare_result_storage(result: &conduit_core::StructuredInfoType, output: &st
                 .len(),
         );
     }
-    fs::write(output.join("result.bound"), maximum.to_string()).unwrap();
+    let derived = result.canonical_value_upper_bound(leaf_bound).unwrap();
+    assert_eq!(
+        derived, maximum,
+        "finite Type bound differs from independently encoded maximal cases"
+    );
+    fs::write(output.join("result.bound"), derived.to_string()).unwrap();
 }

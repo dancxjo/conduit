@@ -38,6 +38,7 @@ pub struct NativeProtocolPreparationLimits {
 #[derive(Debug)]
 pub enum NativeProtocolPreparationReason {
     Contract(StructuredInfoRefusal),
+    I2cPreparation(crate::i2c_base::contract::I2cContractPreparationRefusal),
     #[cfg(any(
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-board"))
@@ -72,7 +73,7 @@ pub fn prepare_native_protocol<P: I2cProvider, C: MonotonicDeadlineProvider>(
     use NativeProtocolPreparationReason as Reason;
     let mut retained_session = Some(session);
     let prepared = (|| {
-        let i2c = I2cContract::prepare().map_err(Reason::Contract)?;
+        let i2c = I2cContract::prepare().map_err(Reason::I2cPreparation)?;
         let clock = MonotonicClockContract::prepare().map_err(Reason::Contract)?;
         owners
             .bus

@@ -1,0 +1,23 @@
+# Physical construction only. Runtime initialization and admission are separate.
+# Green's existing sensor/display share I2C1, GP6 SDA and GP7 SCL.
+host pico-w-house-green {
+  schema = 1
+  # Consider only the pinned Seed owner's finite preparation requests.
+  # Root still validates exact work, local resources and any native possessions.
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 4096, maximum_runtime_state_bytes: 16384}
+  # Explicitly opt in to one fully admitted, current Seed-owner workset.
+  execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
+  target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
+  base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
+  # Root may consider at most 1024 operations per exact native Play capability.
+  # Membership, signed workset checking, native possession and admission remain mandatory.
+  base = {kind: "bus/i2c", implementation: "rp2040/i2c@1", initialization: {controller: 1, sda_gpio: 6, scl_gpio: 7, frequency_hz: 100000, maximum_transaction_polls: 100000, minimum_call_address: 112, maximum_call_address: 118, maximum_call_operations: 1024}}
+  base = {kind: "sensor/environment", implementation: "rp2040/bosch-environment@1", initialization: {controller: 1, address: 118}}
+  base = {kind: "display/segmented", implementation: "rp2040/ht16k33@1", initialization: {controller: 1, address: 112, brightness: 3, layout: "adafruit-alpha4"}}
+  base = {kind: "network/wifi", implementation: "rp2040/cyw43-retained@1", initialization: {credential_source: "private-flash-network-journal", maximum_sockets: 4}}
+  # Five resident protocol nodes may each reserve 1000 private work units.
+  # 16 KiB funds kernel preparation, observations and reservation bookkeeping
+  # within the unchanged 48 KiB arena. This is construction intent; Root still reserves before Play.
+  need = {id: "pool/resident-step-work", class: "kernel/cooperative-step-work@1", slots: 5000, bytes: 16384}
+  limits = {static_memory_bytes: 131072, heap_arena_bytes: 49152, queue_items: 16, buffered_bytes: 8192, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 16}
+}

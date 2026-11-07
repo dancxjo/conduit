@@ -23,6 +23,7 @@ mod storage_usage;
 pub use storage_usage::VecStorageUsage;
 
 mod administration;
+mod authority_grant_descriptions;
 #[cfg(feature = "authenticated-admission")]
 mod rename;
 #[cfg(feature = "authenticated-admission")]
@@ -32,11 +33,31 @@ mod admission;
 #[cfg(feature = "authenticated-admission")]
 mod embedded_membership_wire;
 #[cfg(feature = "authenticated-admission")]
+mod member_bootstrap;
+#[cfg(feature = "authenticated-admission")]
+mod member_return_acknowledgement;
+#[cfg(feature = "authenticated-admission")]
+mod member_return_images;
+#[cfg(feature = "authenticated-admission")]
 pub use embedded_membership_wire::*;
+#[cfg(feature = "authenticated-admission")]
+pub use member_bootstrap::*;
+#[cfg(feature = "authenticated-admission")]
+pub use member_return_acknowledgement::*;
+#[cfg(feature = "authenticated-admission")]
+pub use member_return_images::*;
+#[cfg(feature = "authenticated-admission")]
+mod member_return_proof_document;
+#[cfg(feature = "authenticated-admission")]
+pub use member_return_proof_document::*;
 #[cfg(feature = "authenticated-admission")]
 mod admission_receipt_attestation;
 #[cfg(feature = "authenticated-admission")]
 pub use admission_receipt_attestation::*;
+#[cfg(feature = "authenticated-admission")]
+mod admission_receipt_stream;
+#[cfg(feature = "authenticated-admission")]
+pub use admission_receipt_stream::*;
 #[cfg(feature = "authenticated-admission")]
 pub mod admission_advertisement_wire;
 mod biography;
@@ -55,6 +76,10 @@ mod events;
 #[cfg(feature = "authenticated-admission")]
 mod federation;
 mod hold;
+#[cfg(feature = "authenticated-admission")]
+mod host_command_attribution;
+mod host_execution_delegation;
+mod host_preparation_delegation;
 mod identity;
 mod legacy;
 mod lifecycle;
@@ -100,6 +125,10 @@ pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 pub use federation::*;
 pub use hold::*;
 #[cfg(feature = "authenticated-admission")]
+pub use host_command_attribution::*;
+pub use host_execution_delegation::*;
+pub use host_preparation_delegation::*;
+#[cfg(feature = "authenticated-admission")]
 pub use identity::{AdmissionId, MembershipCredentialId, SpawnInvitationId};
 pub use identity::{
     BodyId, CandidateId, DiscoveryProofId, MembershipChangeId, MembershipProofId, PartId, WakeId,
@@ -127,14 +156,9 @@ pub use workload_plan::*;
 pub use workload_transition::*;
 pub use workset::*;
 
-#[cfg(feature = "authenticated-admission")]
-mod host_command_attribution;
-mod host_execution_delegation;
-mod host_preparation_delegation;
-#[cfg(feature = "authenticated-admission")]
-pub use host_command_attribution::*;
-pub use host_execution_delegation::*;
-pub use host_preparation_delegation::*;
-
 mod prepared_fragment;
 pub use prepared_fragment::*;
+mod body_play_digest;
+pub use body_play_digest::*;
+mod delegated_fragment;
+pub use delegated_fragment::*;

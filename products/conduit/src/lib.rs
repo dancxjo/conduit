@@ -4,6 +4,14 @@
 #[path = "../../../semantics/face/tests/common/mod.rs"]
 mod mask_test_common;
 
+#[cfg(test)]
+#[path = "../../../targets/std/src/allocation_probe.rs"]
+mod allocation_probe;
+
+#[cfg(test)]
+mod source_preparation_memory_tests;
+
+pub mod creche_encounter;
 mod hosted_two_std;
 mod plot_source;
 mod product_execution;

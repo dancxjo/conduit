@@ -1,4 +1,6 @@
 #![cfg(target_os = "linux")]
+#[path = "../../../targets/std/src/allocation_probe.rs"]
+mod allocation_probe;
 use conduit_plot::*;
 use conduit_std_host::source_check::process::SourceCheckProcessInput;
 use std::{
@@ -6,9 +8,15 @@ use std::{
     process::{Command, Output, Stdio},
 };
 fn input(source: &str) -> (SourceCheckProcessInput, SourceCheckProjection) {
+    input_with_generation(source, 7)
+}
+fn input_with_generation(
+    source: &str,
+    generation: u64,
+) -> (SourceCheckProcessInput, SourceCheckProjection) {
     let owner = SourceCheckProjection::new(
         "fixture/authorized-source",
-        7,
+        generation,
         source,
         conduit::source_check_worker::standard_context().unwrap(),
     )
@@ -23,7 +31,7 @@ fn input(source: &str) -> (SourceCheckProcessInput, SourceCheckProjection) {
         SourceCheckProcessInput {
             source: source.into(),
             owner: "fixture/authorized-source".into(),
-            generation: 7,
+            generation,
             request,
         },
         owner,
@@ -185,3 +193,13 @@ fn kernel_reports_child_address_space_cpu_and_core_limits_before_source_arrives(
 
 #[path = "source_check_process/parent.rs"]
 mod parent;
+
+#[path = "source_check_process/host_call.rs"]
+mod host_call;
+
+#[cfg(target_arch = "x86_64")]
+#[path = "source_check_process/image.rs"]
+mod image;
+
+#[path = "source_check_process/body.rs"]
+mod body;

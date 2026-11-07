@@ -168,7 +168,7 @@ fn installed_service_start_inspect_lull_and_restart_clock() {
         .stdin
         .take()
         .unwrap()
-        .write_all(b"control next\ncontrol next\ntype 500\napply\nquit\n")
+        .write_all(b"control next\ncontrol next\ncontrol next\ntype 500\napply\nquit\n")
         .unwrap();
     let terminal = terminal.wait_with_output().unwrap();
     assert!(

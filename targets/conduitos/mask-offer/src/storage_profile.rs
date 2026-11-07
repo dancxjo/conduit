@@ -30,17 +30,30 @@ impl NativeMaskStorageProfile {
             Self::Collection => "conduitos/bounded-collection-mask@1",
         }
     }
-    /// Transfer limits come from the already admitted Host profile, never from
+    /// Transfer limits come from the actual finite implementation closure, never from
     /// an incoming chunk length. Requests/actions retain their separate bounds.
     pub fn owner_document_profile(host: &HostAdvertisement) -> Self {
-        if host.protocol_version == PROTOCOL_VERSION
-            && host.offer_generation.0 != 0
-            && host.profile.as_str() == Self::Collection.host_profile()
-        {
-            Self::Collection
-        } else {
-            Self::Standard
+        Self::from_native_implementations(host).unwrap_or(Self::Standard)
+    }
+
+    /// Select the exact initialized four-Back closure independently of the
+    /// general Host profile. Every member must agree on finite execution limits.
+    pub fn from_native_implementations(host: &HostAdvertisement) -> Result<Self, MaskOfferError> {
+        let mut renderers = host
+            .capabilities
+            .iter()
+            .filter(|offer| offer.capability_id.as_str() == "renderer-conduitos");
+        let renderer = renderers.next().ok_or(MaskOfferError::InvalidPlan)?;
+        if renderers.next().is_some() {
+            return Err(MaskOfferError::InvalidPlan);
         }
+        let profile = match renderer.implementation.execution_profile_id.as_str() {
+            "conduitos/bounded-mask@1" => Self::Standard,
+            "conduitos/bounded-collection-mask@1" => Self::Collection,
+            _ => return Err(MaskOfferError::InvalidPlan),
+        };
+        profile.admit_native_implementation_profile(host, "renderer-conduitos")?;
+        Ok(profile)
     }
     pub const fn owner_document_bytes(self) -> usize {
         match self {
@@ -67,6 +80,19 @@ impl NativeMaskStorageProfile {
         }
     }
 
+    /// Explicit native implementation closure admission. A general Host's
+    /// profile label is independent of this selected finite Mask profile.
+    pub(super) fn admit_native_implementation_profile(
+        self,
+        host: &HostAdvertisement,
+        renderer: &str,
+    ) -> Result<(), MaskOfferError> {
+        if host.protocol_version != PROTOCOL_VERSION || host.offer_generation.0 == 0 {
+            return Err(MaskOfferError::InvalidPlan);
+        }
+        self.admit_native_backs(host, renderer)
+    }
+
     pub(super) fn admit_host(
         self,
         host: &HostAdvertisement,
@@ -81,6 +107,13 @@ impl NativeMaskStorageProfile {
         if self == Self::Standard {
             return Ok(());
         }
+        self.admit_native_backs(host, renderer)
+    }
+    fn admit_native_backs(
+        self,
+        host: &HostAdvertisement,
+        renderer: &str,
+    ) -> Result<(), MaskOfferError> {
         // A profile label alone cannot upgrade a smaller initialized offer.
         for id in [
             renderer,
@@ -95,19 +128,31 @@ impl NativeMaskStorageProfile {
             let offer = matching.next().ok_or(MaskOfferError::InvalidPlan)?;
             let read_only = id == "renderer-conduitos-input"
                 && offer.implementation.execution_profile_id.as_str()
-                    == READ_ONLY_COLLECTION_INTERACTION_PROFILE
+                    == match self {
+                        Self::Standard => READ_ONLY_INTERACTION_PROFILE,
+                        Self::Collection => READ_ONLY_COLLECTION_INTERACTION_PROFILE,
+                    }
                 && offer.resource_requirements.is_empty()
                 && offer.authority_requirements.is_empty();
             if matching.next().is_some()
                 || (!read_only
                     && offer.implementation.execution_profile_id.as_str()
                         != if id == "renderer-conduitos-input" {
-                            "conduitos/bounded-collection-interaction@1"
+                            match self {
+                                Self::Standard => "conduitos/bounded-interaction@1",
+                                Self::Collection => "conduitos/bounded-collection-interaction@1",
+                            }
                         } else {
                             self.execution_profile()
                         })
                 || offer.limits.max_queue_items == 0
-                || offer.limits.max_queue_bytes < self.bytes()
+                || offer.limits.max_active_instances == 0
+                || offer.limits.max_queue_bytes
+                    < if id == "renderer-conduitos-input" && self == Self::Standard {
+                        conduit_face::MAX_FACE_INTERACTION_BYTES as u32
+                    } else {
+                        self.bytes()
+                    }
             {
                 return Err(MaskOfferError::InvalidPlan);
             }
@@ -222,6 +267,12 @@ pub fn prepare_advertised_native_stage_from_offer(
     host: &HostAdvertisement,
     selection: Option<(ComponentVisualSelection, TodoComponentRecipe)>,
 ) -> Result<MaskStage, MaskOfferError> {
+    if selection.is_none() {
+        return prepare_native_stage_with_profile(
+            host,
+            NativeMaskStorageProfile::from_native_implementations(host)?,
+        );
+    }
     let profile = match host.profile.as_str() {
         "conduitos/mask-host@1" => NativeMaskStorageProfile::Standard,
         "conduitos/collection-mask-host@1" => NativeMaskStorageProfile::Collection,

@@ -19,4 +19,7 @@ conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 
 [dev-dependencies]
+conduit-body = { path = "../../../architecture/body", default-features = false }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false, features = ["body-plan-binding"] }
 conduit-plot = { path = "../../../architecture/plot" }
+conduit-embedded-build = { path = "../../../make/embedded-build" }

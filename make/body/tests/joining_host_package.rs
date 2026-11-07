@@ -1,0 +1,510 @@
+#[path = "common/joining_host_package.rs"]
+mod common;
+use conduit_body_make::write_joining_host_package;
+use std::{
+    cell::Cell,
+    io::{self, Cursor, Read, Seek, SeekFrom},
+};
+
+#[test]
+fn release_correspondence_modes_and_existing_js_reader() {
+    let (release, spore, invitation, payloads) =
+        common::fixture(&["conduit-linux-x86_64", "install.sh"]);
+    let mut bytes = Vec::new();
+    let receipt = write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+        ),
+        &invitation,
+        1,
+        |path| Ok(Cursor::new(payloads[path].clone())),
+        &mut bytes,
+        || false,
+    )
+    .unwrap();
+    assert_eq!(receipt.artifact_bytes, bytes.len() as u64);
+    assert_eq!(receipt.image_content_sha256, release.image_content_digest());
+    assert_ne!(
+        receipt.artifact_content_sha256,
+        receipt.image_content_sha256
+    );
+    assert_eq!(
+        receipt.files.iter().map(|f| f.mode).collect::<Vec<_>>(),
+        [0o100755, 0o100644, 0o100644]
+    );
+    // Actual existing JS consumer, stdin only: no fixture secret written to disk.
+    let script = r#"import{readBodyBoundZip}from './targets/browser/workspace/creche-native-zip.mjs';let parts=[];for await(const chunk of process.stdin)parts.push(chunk);let r=readBodyBoundZip(Buffer.concat(parts));if(r.entries.size!==3||r.provision.invitation_provision.secret[0]!==7||r.modes.get('conduit-linux-x86_64')!==0o100755)throw Error('correspondence');"#;
+    use std::{
+        io::Write,
+        process::{Command, Stdio},
+    };
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let mut child = Command::new("node")
+        .args(["--input-type=module", "-e", script])
+        .current_dir(root)
+        .stdin(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(&bytes).unwrap();
+    assert!(child.wait().unwrap().success());
+}
+#[test]
+fn changed_missing_extra_and_expired_inputs_never_produce_receipts() {
+    let (release, mut spore, mut invitation, payloads) = common::fixture(&["conduit"]);
+    for changed in [
+        b"other".to_vec(),
+        Vec::new(),
+        [payloads["conduit"].clone(), vec![0]].concat(),
+    ] {
+        assert!(write_joining_host_package(
+            &release,
+            &spore,
+            &common::configuration(
+                spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+            ),
+            &invitation,
+            1,
+            |_| Ok(Cursor::new(changed.clone())),
+            &mut Vec::new(),
+            || false
+        )
+        .is_err());
+    }
+    spore.manifest.body_id = "body/foreign".into();
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut Vec::new(),
+        || false
+    )
+    .is_err());
+    spore.manifest.body_id = invitation.claim.body_id.as_str().into();
+    invitation.claim.expires_at_millis = 1;
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut Vec::new(),
+        || false
+    )
+    .is_err());
+}
+struct ChangesOnRewind(Cursor<Vec<u8>>);
+impl Read for ChangesOnRewind {
+    fn read(&mut self, b: &mut [u8]) -> io::Result<usize> {
+        self.0.read(b)
+    }
+}
+impl Seek for ChangesOnRewind {
+    fn seek(&mut self, p: SeekFrom) -> io::Result<u64> {
+        self.0.get_mut()[0] ^= 1;
+        self.0.seek(p)
+    }
+}
+#[test]
+fn source_changes_after_crc_and_mid_stream_cancellation_refuse() {
+    let (release, spore, invitation, payloads) = common::fixture(&["conduit"]);
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
+        &invitation,
+        1,
+        |p| Ok(ChangesOnRewind(Cursor::new(payloads[p].clone()))),
+        &mut Vec::new(),
+        || false
+    )
+    .is_err());
+    for limit in 0..15 {
+        let calls = Cell::new(0);
+        let mut output = Vec::new();
+        let result = write_joining_host_package(
+            &release,
+            &spore,
+            &common::configuration(
+                spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+            ),
+            &invitation,
+            1,
+            |p| Ok(Cursor::new(payloads[p].clone())),
+            &mut output,
+            || {
+                let n = calls.get();
+                calls.set(n + 1);
+                n >= limit
+            },
+        );
+        if calls.get() > limit {
+            assert!(result.is_err());
+        }
+    }
+}
+#[test]
+fn entry_capacity_and_reserved_or_nested_names_refuse_before_output() {
+    for paths in [vec!["conduit-spore.json"], vec!["nested/conduit"]] {
+        let (release, spore, invitation, payloads) = common::fixture(&paths);
+        let mut output = Vec::new();
+        assert!(write_joining_host_package(
+            &release,
+            &spore,
+            &common::configuration(
+                spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+            ),
+            &invitation,
+            1,
+            |p| Ok(Cursor::new(payloads[p].clone())),
+            &mut output,
+            || false
+        )
+        .is_err());
+        assert!(output.is_empty());
+    }
+    let paths = (0..17).map(|n| format!("payload{n}")).collect::<Vec<_>>();
+    let (release, spore, invitation, payloads) =
+        common::fixture(&paths.iter().map(String::as_str).collect::<Vec<_>>());
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut Vec::new(),
+        || false
+    )
+    .is_err());
+}
+
+#[test]
+fn typed_routed_invitation_survives_existing_js_consumer_without_legacy_conversion() {
+    let (release, spore, mut invitation, payloads) = common::fixture(&["conduit"]);
+    common::routed(&mut invitation);
+    let mut bytes = Vec::new();
+    write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+        ),
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut bytes,
+        || false,
+    )
+    .unwrap();
+    let script = r#"import assert from 'node:assert/strict';import{readBodyBoundZip}from './targets/browser/workspace/creche-native-zip.mjs';let parts=[];for await(const chunk of process.stdin)parts.push(chunk);let p=readBodyBoundZip(Buffer.concat(parts)).provision.invitation_provision;assert.equal(p.rendezvous.protocol,1);assert.equal(p.rendezvous.invitation_id,p.invitation_id);assert.deepEqual(p.rendezvous.candidates[0].authentication.transport_binding_sha256,Array(32).fill(22));assert.deepEqual(p.rendezvous_candidates,[]);"#;
+    use std::{
+        io::Write,
+        process::{Command, Stdio},
+    };
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let mut child = Command::new("node")
+        .args(["--input-type=module", "-e", script])
+        .current_dir(root)
+        .stdin(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(&bytes).unwrap();
+    assert!(child.wait().unwrap().success());
+    invitation.rendezvous.as_mut().unwrap().candidates[0].expires_at_millis = 10001;
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut Vec::new(),
+        || false
+    )
+    .is_err());
+}
+
+#[test]
+fn browser_bundle_uses_same_package_format_and_exact_output_correspondence() {
+    let (release, mut spore, invitation, payloads) =
+        common::fixture_for(&["runtime.wasm", "index.html"], true);
+    let mut bytes = Vec::new();
+    let receipt = write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+        ),
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut bytes,
+        || false,
+    )
+    .unwrap();
+    assert_eq!(
+        serde_json::to_value(&receipt).unwrap()["artifact_bytes"],
+        bytes.len()
+    );
+    let script = r#"import assert from 'node:assert/strict';import{readBodyBoundZip}from './targets/browser/workspace/creche-native-zip.mjs';let parts=[];for await(const chunk of process.stdin)parts.push(chunk);let r=readBodyBoundZip(Buffer.concat(parts));assert.equal(r.provision.spore.output,'browser-bundle');assert.deepEqual(Array.from(r.entries.get('runtime.wasm')),[0,97,115,109,1,0,0,0]);"#;
+    use std::{
+        io::Write,
+        process::{Command, Stdio},
+    };
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let mut child = Command::new("node")
+        .args(["--input-type=module", "-e", script])
+        .current_dir(root)
+        .stdin(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(&bytes).unwrap();
+    assert!(child.wait().unwrap().success());
+    spore.manifest.make.output = conduit_host_make::SporeOutputKind::NativeBundle;
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut Vec::new(),
+        || false
+    )
+    .is_err());
+}
+
+#[test]
+fn original_birth_provenance_and_artifact_source_remain_distinct() {
+    let (release, mut spore, invitation, payloads) = common::fixture(&["conduit"]);
+    assert_eq!(spore.manifest.source_identity, "sign/original-body-birth");
+    assert_eq!(
+        spore.image.manifest.source_identity,
+        "source/prior-reviewed-make"
+    );
+    write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+        ),
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut Vec::new(),
+        || false,
+    )
+    .unwrap();
+    // Re-encode the mutated IMAGE so byte-correspondence alone cannot hide a
+    // mismatch between the selected release and its Make source identity.
+    spore.image.manifest.source_identity = "source/foreign-artifact".into();
+    spore.image_bytes = serde_json::to_vec(&spore.image).unwrap();
+    let mut output = Vec::new();
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut output,
+        || false
+    )
+    .is_err());
+    assert!(output.is_empty());
+}
+
+#[test]
+fn oversized_image_metadata_refuses_before_payload_open_or_write() {
+    let (release, mut spore, invitation, _) = common::fixture(&["conduit"]);
+    spore.image_bytes = vec![b' '; 1024 * 1024 + 1];
+    let opened = Cell::new(false);
+    let mut output = Vec::new();
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
+        &invitation,
+        1,
+        |_| {
+            opened.set(true);
+            Ok(Cursor::new(Vec::new()))
+        },
+        &mut output,
+        || false
+    )
+    .is_err());
+    assert!(!opened.get());
+    assert!(output.is_empty());
+}
+
+#[test]
+fn different_checked_host_source_refuses_before_payload_access() {
+    let (release, spore, invitation, _) = common::fixture(&["conduit-linux-x86_64"]);
+    let mut declaration = common::configuration(false).configuration().clone();
+    declaration.name = "other-installed-host".into();
+    let other = conduit_host_make::check_host_configuration(
+        declaration,
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .unwrap();
+    let opened = Cell::new(false);
+    let mut output = Vec::new();
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &other,
+        &invitation,
+        1,
+        |_| {
+            opened.set(true);
+            Ok(Cursor::new(Vec::<u8>::new()))
+        },
+        &mut output,
+        || false
+    )
+    .is_err());
+    assert!(!opened.get());
+    assert!(output.is_empty());
+}
+
+#[test]
+fn uf2_output_packages_exact_reviewed_bytes_and_private_invitation() {
+    use conduit_host_make::{
+        check_host_configuration, parse_host_configuration_conduit, SporeOutputKind,
+    };
+    let configuration = check_host_configuration(
+        parse_host_configuration_conduit(include_str!(
+            "../../../targets/rp2040/profiles/pico-w-house-green.host.conduit"
+        ))
+        .unwrap(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .unwrap();
+    // Synthetic reviewed bytes establish packaging correspondence only. They
+    // are not firmware, a flashed Host or actual device admission evidence.
+    let (release, mut spore, invitation, payloads) =
+        common::fixture_with_output_at(&["host.uf2"], SporeOutputKind::Uf2, 0, &configuration);
+    let mut bytes = Vec::new();
+    let receipt = write_joining_host_package(
+        &release,
+        &spore,
+        &configuration,
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut bytes,
+        || false,
+    )
+    .unwrap();
+    assert_eq!(&bytes[..4], b"PK\x03\x04");
+    assert_eq!(receipt.files.len(), 2);
+    assert!(receipt.files.iter().all(|f| f.mode == 0o100644));
+    assert_eq!(receipt.artifact_bytes, bytes.len() as u64);
+    assert_ne!(
+        receipt.artifact_content_sha256,
+        receipt.image_content_sha256
+    );
+    let script = r#"import assert from 'node:assert/strict';import{readBodyBoundZip}from './targets/browser/workspace/creche-native-zip.mjs';let parts=[];for await(const chunk of process.stdin)parts.push(chunk);let r=readBodyBoundZip(Buffer.concat(parts));assert.equal(r.provision.spore.output,'uf2');assert.equal(r.provision.host_image.manifest.output,'uf2');assert.equal(r.provision.invitation_provision.secret[0],7);assert.equal(r.entries.size,2);assert.equal(r.modes.get('host.uf2'),0o100644);"#;
+    use std::{
+        io::Write,
+        process::{Command, Stdio},
+    };
+    let mut child = Command::new("node")
+        .args(["--input-type=module", "-e", script])
+        .current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
+        .stdin(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(&bytes).unwrap();
+    assert!(child.wait().unwrap().success());
+    spore.manifest.output = SporeOutputKind::NativeBundle;
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &configuration,
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut Vec::new(),
+        || false
+    )
+    .is_err());
+}
+
+#[test]
+fn verified_package_reader_preserves_seed_and_rejects_foreign_or_expired_carriage() {
+    use conduit_body_make::verify_joining_host_package;
+    use conduit_host_make::{CarrierTerminal, DeploymentRealizationReceipt};
+    let (release, spore, invitation, payloads) = common::fixture(&["conduit"]);
+    let mut bytes = Vec::new();
+    let receipt = write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(false),
+        &invitation,
+        1,
+        |path| Ok(Cursor::new(payloads[path].clone())),
+        &mut bytes,
+        || false,
+    )
+    .unwrap();
+    let mut exported = DeploymentRealizationReceipt {
+        schema: "conduit.carrier/realization@1".into(),
+        carrier_id: "fixture/download".into(),
+        implementation_id: "conduit/download@1".into(),
+        target_id: spore.manifest.target.clone(),
+        spore_id: spore.manifest.spore_id.clone(),
+        artifact_content_sha256: receipt.artifact_content_sha256,
+        terminal: CarrierTerminal::Completed,
+        bytes_realized: bytes.len() as u64,
+        byte_verification_completed: true,
+        explicit_authority_observed: false,
+        boot_observed: false,
+        join_observed: false,
+        membership_admitted: false,
+    };
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
+    let verified = verify_joining_host_package(&bytes, &exported, &catalog, &packages, 1).unwrap();
+    assert_eq!(verified.spore(), &spore.manifest);
+    assert_eq!(verified.invitation().secret, invitation.secret);
+    assert_eq!(verified.payload("conduit").unwrap(), payloads["conduit"]);
+    assert!(verify_joining_host_package(
+        &bytes,
+        &exported,
+        &catalog,
+        &packages,
+        invitation.claim.expires_at_millis
+    )
+    .is_err());
+    exported.spore_id.push_str("-foreign");
+    assert!(verify_joining_host_package(&bytes, &exported, &catalog, &packages, 1).is_err());
+    exported.spore_id = spore.manifest.spore_id;
+    bytes[35] ^= 1;
+    assert!(verify_joining_host_package(&bytes, &exported, &catalog, &packages, 1).is_err());
+}

@@ -1,0 +1,130 @@
+{
+  "scope": "CPU-only selected IMAGE cooperative direct tick with sealed local Fore output managed-payload custody; supporting #6341, no closure claim",
+  "source": "36edc810da490bb2f4c466357ca1de56639c618f",
+  "base": "f3e9b7f87707f28f968643c4c1c109ff20be97e7",
+  "commands": [
+    "cargo +stable test --locked -p conduit-std-host --lib body_execution::image::tests -- --nocapture",
+    "cargo +stable clippy --locked -p conduit-std-host --lib --tests -- -D warnings",
+    "cargo +stable test --locked -p conduit-core --lib identity_receipt_counts_capacities_without_inline_double_count -- --nocapture",
+    "cargo +stable test --locked -p conduit-time --lib --features kernel-step retained_bytes_charge_value_ref_width_without_changing_element_counts -- --nocapture",
+    "cargo +stable test --locked -p conduit-body --lib backing_ -- --nocapture",
+    "cargo +stable test --locked -p conduit-std-host --test region_service_lifecycle -- --nocapture",
+    "cargo +stable test --locked -p conduit-std-host --lib unsupported_real_deadline_back_is_not_misreported_as_zero_bytes -- --nocapture",
+    "cargo +stable xtask ci pipeline evidence-retention"
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-local-native-provider-check",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "proof": [
+    "actual checked Pi3 timer IMAGE, ordinary authored two-tick Plan/BodyKernel, Completed with2 payloads sequences0/1 and0 poststart allocations",
+    "exact managed backing budget admits; one-byte-short refuses before start",
+    "physical timer slots retire while report or escaped immutable Fore byte clones retain shared byte charge",
+    "cancellation and typed timer-provider loss retain bounded result custody",
+    "preowned oversized adapter error yields bounded diagnostic and pending output, no poststart allocations, escaped bytes stay charged",
+    "legacy naked selected path and IMAGE binding lacking bound ledger refuse"
+  ],
+  "limits": [
+    "not process RSS, allocator metadata, hostile-code confinement or all Back variants",
+    "external output adapter backing/effects independently admitted; this does not contain arbitrary adapter allocation",
+    "live/input/activation/BodyTime, remote selectedLine and nonempty dynamic value constraints explicitly unsupported",
+    "no deployed destination Boot/Play/device acceptance claim",
+    "shared immutable workset/Fore identities conservatively charged, not unique-memory accounting",
+    "product continuing worker integration remains separate; this does not prove installed selected Play"
+  ],
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/image-tests-initial.log",
+      "sha256": "9206ba1f259811405c43b295bc72003afc5f9f54da1eb2d51f9564f42c280c2b",
+      "source": "d854fe3ee117d2c27ee1bbb22a1def72716990fc",
+      "result": "1 passed;3 failed; exact cause hidden by prior allocation assertion"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/image-tests-diagnostic.log",
+      "sha256": "373ed2f48a0b4380162baa2d3107be139e9cfb943ddc01ba8cf8012103caf4b6",
+      "source": "e33a1aa615e6c39029a24422f591a7186d258f53",
+      "result": "2 passed;3 failed; no admitted progress source;16 eager error allocations"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/image-tests-fore.log",
+      "sha256": "ea53ab2e675d5eb937b31c5cd82bfea7fb7323be3f635583b25246165409282b",
+      "source": "c553aa7a76b0c81ad26acc2d1349bd8e059119ea",
+      "result": "0 passed;5 failed; fixture used closed-root expansion with exposed Fore"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/image-tests-fore-authoring.log",
+      "sha256": "b3364ecf1df9830fcf8ab075b0f4aa9fc7f56076332abfc842d34da61f303a21",
+      "source": "75016bb602d1b143623e8c7b72011c1c5d462755",
+      "result": "4 passed;1 failed; Completed0alloc; wrong payload count assertion"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/image-tests-fore-final.log",
+      "sha256": "59b1ec53e8f7200c1c1d70983d642572a52a28c52f2c1ad1f0a31fd17fdae37e",
+      "source": "00a78138c943bece0c4b8baaa3a71573d01c7fd8",
+      "result": "5 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/clippy-initial.log",
+      "sha256": "dbbfdfda723dfb1575eb89cef44d152136408b7a3e785187aaf42cc1c5cccda8",
+      "source": "00a78138c943bece0c4b8baaa3a71573d01c7fd8",
+      "result": "failed4 owning lint findings"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/image-tests-bounded-error.log",
+      "sha256": "b12b14615cc083f9edc9ae4a0a8a17f3aa1ef18184b09d425ab1f27de891d62b",
+      "source": "36edc810da490bb2f4c466357ca1de56639c618f",
+      "result": "6 passed;0 failed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/clippy-final.log",
+      "sha256": "17b32ca5b6968f7d4c32f1a0e2db81c9f5643cbebd4c1aa34530c378c973c346",
+      "source": "36edc810da490bb2f4c466357ca1de56639c618f",
+      "result": "passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/accessor-core.log",
+      "sha256": "6aff96d8267aa0fe3207a1cb88ffdc238ecf1042b63ecc1c6cca67d0147dec1f",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "1 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/accessor-time.log",
+      "sha256": "423b8dc8b09ea71d968ebe4e91a7054c8a91740d283d0508035f4d91fdef8a5b",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "0 matched; defaultfeatures exclude TickBack, corrected below"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/accessor-time-kernel-step.log",
+      "sha256": "0f55b3809f5c7b5984f06018da95c4138590cc7e1726f802f1a62e4aef43265c",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "1 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/accessor-body.log",
+      "sha256": "aa3aa19716a3bc03f69d6d54bbe6c809b6e1f46a41259539f47661699384c274",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "2 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/region-service-lifecycle.log",
+      "sha256": "4d4fd56f87fbb7f385279e414e69a151c4518fb90c966f4c5f526435e38b88c7",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "3 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/unsupported-back.log",
+      "sha256": "5a48417bf4938df2b5a01f1068ce741656206af3bb75d1751071936c7be3ed5f",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "1 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/evidence-retention.log",
+      "sha256": "f76aac74a7101af10bba1dec6a9e675736fab27784f73d0ebcf4a4665448912a",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "exit0"
+    }
+  ]
+}

@@ -14,6 +14,14 @@ pub(super) struct CrecheRoute {
     pending: Option<HostCallRequest>,
     dispatched: bool,
 }
+impl CrecheRoute {
+    /// Correlation is entirely inline. Only the exact undispatched node is a
+    /// preparation receipt; worker/context/value backing belongs elsewhere.
+    pub(super) fn prepared_backing_bytes(&self, node: usize) -> Option<usize> {
+        (usize::from(self.node.0) == node && !self.dispatched && self.pending.is_none())
+            .then_some(0)
+    }
+}
 impl BodyKernel<'_> {
     pub(crate) fn attach_creche(
         &mut self,

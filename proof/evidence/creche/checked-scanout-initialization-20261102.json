@@ -1,0 +1,40 @@
+{
+  "schema": "conduit.proof/checked-scanout-initialization@1",
+  "source_commit": "a11c9baba19f6a20e7e56f7387f57f695e3cd554",
+  "owner_issues": [
+    6484,
+    6551,
+    6458
+  ],
+  "contract": {
+    "implementation": "display/linear-framebuffer@1",
+    "backend": "KMSDRM",
+    "width_range": [
+      1,
+      4096
+    ],
+    "height_range": [
+      1,
+      4096
+    ],
+    "maximum_raster_bytes": 8388608,
+    "configuration_identity": "Bound to checked canonical Host Source; no initialization copy added to IMAGE"
+  },
+  "tests": {
+    "workspace_make_library": {
+      "passed": 5,
+      "failed": 0
+    },
+    "strict_workspace_make_library_and_tests": "passed",
+    "format_and_diff": "passed"
+  },
+  "scope": "Source intent and finite checked preparation parameters only. No discovery, Ready offer, renderer capability, authority, physical scanout or new Seed deployment.",
+  "runtime_bridge": "Recovered SDL software tests passed before optional workspace integration; commit-frame dependency recovered, combined tests pending. Physical scanout Base and separate admitted native Show pool remain distinct.",
+  "destination_prerequisite": {
+    "host": "threebee",
+    "os": "Debian GNU/Linux 13 (trixie)",
+    "libsdl2_installed": false,
+    "package_candidate": "2.32.4+dfsg-1",
+    "privileged_installation": "sudo requires password; no package or service changed"
+  }
+}

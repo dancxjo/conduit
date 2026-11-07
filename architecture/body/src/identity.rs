@@ -111,3 +111,30 @@ pub(crate) fn bind_identity(domain: &str, values: &[&str], sequence: u64) -> Str
     // The fixed hexadecimal alphabet is always UTF-8, with unchanged wire text.
     String::from(core::str::from_utf8(&bytes).expect("hexadecimal identity"))
 }
+
+impl BodyId {
+    /// Owned String payload only; excludes the inline identity wrapper.
+    pub fn retained_backing_bytes(&self) -> usize {
+        self.0.capacity()
+    }
+}
+impl WakeId {
+    /// Owned String payload only; excludes the inline identity wrapper.
+    pub fn retained_backing_bytes(&self) -> usize {
+        self.0.capacity()
+    }
+}
+#[cfg(test)]
+mod backing_tests {
+    use super::*;
+    #[test]
+    fn body_and_wake_backing_receipts_preserve_spare_capacity() {
+        let mut value = String::with_capacity(128);
+        value.push_str("identity");
+        let body = BodyId::bound(value);
+        assert_eq!(body.retained_backing_bytes(), body.0.capacity());
+        assert!(body.retained_backing_bytes() >= 128);
+        let wake = WakeId::bound(String::from("wake"));
+        assert_eq!(wake.retained_backing_bytes(), wake.0.capacity());
+    }
+}

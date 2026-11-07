@@ -12,6 +12,11 @@ pub struct NativeMaskInteractionSession {
 }
 
 impl NativeMaskInteractionSession {
+    #[cfg(test)]
+    pub(crate) fn backing_identity(&self) -> usize {
+        (&*self.play.scheduler as *const Scheduler) as usize
+    }
+
     pub fn show(&self) -> &MaskShow {
         &self.play.renderer.prepared_show
     }
@@ -83,6 +88,32 @@ impl NativeMaskInteractionSession {
         Ok(receipt)
     }
 
+    /// Transfer the complete drained Sign log before admitting another Show.
+    /// This is local custody transfer, never a durable-recording acknowledgment.
+    pub fn retire_retained(
+        mut self,
+    ) -> Result<(RetainedNativeMaskStorage, RetiredNativeMaskEvidence), NativeMaskPlayError> {
+        self.complete_input(None)?;
+        self.finish(None)?;
+        let mut receipt = self
+            .play
+            .receipt
+            .take()
+            .ok_or(NativeMaskPlayError::Kernel)?;
+        receipt.kernel_signs = self.play.scheduler.signs().len();
+        let mut storage = self.play.scheduler.take_storage()?;
+        let retired = storage.rearm()?;
+        Ok((
+            storage,
+            RetiredNativeMaskEvidence {
+                receipt,
+                signs: retired.signs,
+                decisions: retired.decisions,
+                logical_invocations: retired.logical_invocations,
+            },
+        ))
+    }
+
     #[cfg(test)]
     pub fn cancel(self) -> Result<(), NativeMaskPlayError> {
         self.play.cancel()
@@ -131,14 +162,7 @@ impl NativeMaskInteractionSession {
                 }
                 self.play
                     .scheduler
-                    .remote_egress_accept(port.endpoint, port.cord, offer.sequence)
-                    .and_then(|_| {
-                        self.play.scheduler.remote_egress_delivered(
-                            port.endpoint,
-                            port.cord,
-                            offer.sequence,
-                        )
-                    })
+                    .accept_output(port.endpoint, port.cord, offer.sequence)
                     .map_err(|_| NativeMaskPlayError::ForeOutput)?;
                 observed = true;
             }

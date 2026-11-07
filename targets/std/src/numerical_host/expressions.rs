@@ -1,5 +1,5 @@
 //! Source-specific offers bind existing installed evaluators before planning.
-use crate::{kernel_preparation, normalize_capability_offers, StdHost};
+use crate::{normalize_capability_offers, StdHost};
 use conduit_core::{CapabilityOffer, ConfigurationValue, OfferGeneration};
 use conduit_plot::{ExpandedCanonicalPlot, PortableExpressionProgram};
 
@@ -26,6 +26,7 @@ impl StdHost {
         {
             return Ok(());
         }
+        self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() {
             return Err("expression offers cannot change active reservations".into());
         }
@@ -95,7 +96,7 @@ impl StdHost {
                 .checked_add(1)
                 .ok_or("expression offer generation exhausted")?,
         );
-        let ledger = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        let ledger = self.kernel_resources.replacement_for(&advertisement)?;
         self.advertisement = advertisement;
         self.kernel_resources = ledger;
         Ok(())

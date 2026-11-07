@@ -11,7 +11,8 @@ use conduit_plot::{
 };
 
 pub(super) fn request(contract: &I2cContract, address: u8, write: &[u8], read: u8) -> Vec<u8> {
-    let StructuredInfoTypeShape::Record { fields, .. } = contract.request_type().shape() else {
+    let request_type = contract.decode_request_type().unwrap();
+    let StructuredInfoTypeShape::Record { fields, .. } = request_type.shape() else {
         panic!("request");
     };
     let ty = |name| {
@@ -24,7 +25,7 @@ pub(super) fn request(contract: &I2cContract, address: u8, write: &[u8], read: u
     };
     let octet = StructuredInfoType::leaf(kind_id("value/u8")).unwrap();
     StructuredInfoValue::record(
-        contract.request_type().clone(),
+        request_type.clone(),
         vec![
             StructuredFieldValue::new(
                 "address",
@@ -173,7 +174,7 @@ fn register_idioms_construct_exact_bounded_requests_as_ordinary_plots() {
             panic!("expression")
         };
         let p = conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-        assert_eq!(&p.output_type, contract.request_type());
+        assert_eq!(p.output_type, contract.decode_request_type().unwrap());
         let mut prepared = conduit_plot::PreparedPortableExpressionEvaluator::new(&p).unwrap();
         let decoder = PreparedI2cDecoder::new(&contract).unwrap();
         let StructuredInfoTypeShape::Record { fields, .. } = p.input_type.shape() else {

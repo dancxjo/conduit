@@ -400,7 +400,7 @@ fn checked_expression_retains_its_exact_input_and_output_contract() {
     assert_eq!(definition.outputs[0].value_kind.as_str(), "value/u16");
     assert_eq!(
         definition.kind_contract_revision.as_str(),
-        "conduitese/pure-expression-operation@1"
+        "conduitese/pure-expression-operation@2"
     );
     let ConfigurationValue::Text(program) = &definition.configuration[0].default_value else {
         panic!("expression program must be exact text configuration")

@@ -47,7 +47,7 @@ pub(super) fn serve(
     // the guest still has to render and acknowledge the replacement Show.
     crate::durable_host_control::select_native_component_mask(
         state_dir,
-        old.receipt.clone(),
+        old.member.clone(),
         selection.request.clone(),
         selection.show,
         selection.look,

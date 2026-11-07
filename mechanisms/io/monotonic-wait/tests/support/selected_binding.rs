@@ -172,8 +172,8 @@ fn generic_assigned_binding_checks_configuration_and_zero_result_shape_in_both_s
                     maximum_total_text_bytes: 32768,
                     requirements: &[],
                 },
-                fragment_id: &fragment.fragment_id,
-                active,
+                fragment_id: fragment.fragment_id.as_str(),
+                scope: conduit_plan_lowering::assigned_play_scope::AssignedPlayScope::Plot(active),
                 node: lowered.nodes[0].node,
             };
 

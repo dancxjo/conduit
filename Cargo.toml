@@ -40,6 +40,7 @@ members = [
 	# Generic make layers.
 	"make/body",
 	"make/embedded-build",
+	"targets/mcu/source-build",
 	"make/host",
 	"make/workspace",
 
@@ -125,6 +126,11 @@ members = [
 	"tools/xtask",
 ]
 exclude = [
+	"bodies/environment/runtime",
+	"bodies/environment/face",
+	"plots/seven-segment-mask",
+	"mechanisms/io/pulse-capture",
+	"mechanisms/io/tm1637",
 	"targets/conduitos/mask-service",
 	"targets/conduitos/tls-service",
 	"targets/conduitos/network-service",
@@ -143,6 +149,12 @@ resolver = "2"
 
 [profile.release.package.conduit-browser-runtime]
 opt-level = "z"
+strip = "symbols"
+
+# Keep installed CLI/control code within the native Seed artifact bound.
+# Execution/provider dependencies retain their normal release optimization.
+[profile.release.package.conduit]
+opt-level = "s"
 strip = "symbols"
 
 [profile.release]

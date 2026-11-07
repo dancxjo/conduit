@@ -157,10 +157,23 @@ pub(crate) fn admit_body_request(
     request_path: &Path,
     state_dir: &Path,
     authorize_admission: bool,
+    attest_owner: Option<&Path>,
 ) -> Result<(), String> {
     if !authorize_admission {
         return Err("admitting a host into this body requires --authorize-admission".into());
     }
+    let expected_owner: Option<conduit_body::FederationPeer> = attest_owner
+        .map(|path| -> Result<conduit_body::FederationPeer, String> {
+            let bytes = bounded_read(path, 4096)?;
+            let expected = serde_json::from_slice(&bytes)
+                .map_err(|error| format!("owner peer pin: {error}"))?;
+            let actual = crate::durable_host_control::carrier_receiver(state_dir)?;
+            if actual != expected {
+                return Err("admission owner differs from independently selected pin".into());
+            }
+            Ok(expected)
+        })
+        .transpose()?;
     let request_bytes = if request_path == Path::new("-") {
         bounded_stdin(MAXIMUM_BODY_ADMISSION_BYTES)?
     } else {
@@ -173,11 +186,18 @@ pub(crate) fn admit_body_request(
     } else {
         admit_body_request_document(request, state_dir, authorize_admission)?
     };
-    println!(
-        "{}",
+    let encoded = if let Some(expected_owner) = expected_owner {
+        let signed = crate::durable_host_control::attest_admission_receipt(
+            state_dir,
+            receipt,
+            expected_owner,
+        )?;
+        serde_json::to_string(&signed)
+    } else {
         serde_json::to_string(&receipt)
-            .map_err(|error| format!("encode Body admission receipt: {error}"))?
-    );
+    }
+    .map_err(|error| format!("encode Body admission receipt: {error}"))?;
+    println!("{encoded}");
     Ok(())
 }
 
@@ -376,6 +396,7 @@ pub(super) fn prepare_body_join(
     if !authorize_join {
         return Err("accepting a body invitation requires --authorize-join".into());
     }
+    super::pending_seed::validate_invitation(state_dir, &invitation)?;
     let installation = read_installation(&state_dir.join("installation.json"))?;
     if installation.body_state.is_some() || installation.joined_body_state.is_some() {
         return Err("this installed host already owns or has joined a body".into());

@@ -17,12 +17,15 @@ mod scalar_tape;
 use evaluate::evaluate_node;
 pub use native_u64::PreparedNativeU64Expression;
 pub use scalar_tape::{
-    generate_static_scalar_expression, ScalarTapeInstruction, ScalarTapeOperation,
-    StaticScalarExpression,
+    generate_static_projected_expression, generate_static_scalar_expression, ScalarTapeInstruction,
+    ScalarTapeOperation, StaticProjectedExpression, StaticProjectedGenerationRefusal,
+    StaticProjectedInput, StaticProjectedRefusal, StaticProjectedSource, StaticScalarExpression,
 };
 mod inspection;
 mod shared_input;
 use shared_input::SharedBytes;
+mod resident_projection;
+pub use resident_projection::StaticExpressionPathStep;
 mod member_selection;
 mod nominal;
 mod sequence_selection;
@@ -44,6 +47,11 @@ use primitive::{
     PrimitiveValue,
 };
 use structured::PreparedStructuredExpression;
+pub use structured::{
+    generate_static_structured_expression, StaticStructuredExpression,
+    StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
+    StaticStructuredValue, StructuredTapeInstruction,
+};
 
 fn prepare_info_kind(
     value_type: &conduit_core::StructuredInfoType,
@@ -448,5 +456,17 @@ impl PreparedPortableExpressionEvaluator {
 
     pub fn output_capacity(&self) -> usize {
         self.output.capacity()
+    }
+}
+
+impl PreparedPortableExpressionEvaluator {
+    fn direct_input_path(&self) -> Option<Vec<resident_projection::OwnedExpressionPathStep>> {
+        if self.input_value_contract.is_some() || self.output_value_contract.is_some() {
+            return None;
+        }
+        match &self.root {
+            PreparedRoot::Structured(value) => value.direct_input_path(),
+            _ => None,
+        }
     }
 }

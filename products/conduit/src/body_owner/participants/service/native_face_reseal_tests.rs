@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
+fn browser_first_read_only_native_join_selects_and_acknowledges_but_refuses_actions() {
     let (mut owner, root, _) = setup();
     let mut browser_offer = host("host/browser-first", "boot/browser-first")
         .advertisement()
@@ -24,7 +24,7 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
         .resources
         .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     let browser = owner
-        .browser_authorize_window("host/browser-first", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-first"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let binding = LinkBindingId::from("line/test/browser-first");
     let Out::Challenge { challenge, .. } = owner
@@ -120,11 +120,12 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
             1,
         )],
     };
-    let native_offer = conduit_conduitos_mask_offer::native_host_advertisement(
+    let native_offer = conduit_conduitos_mask_offer::native_read_only_host_advertisement(
         &HostId::from("host/native-after-browser"),
         &BootId::from("boot/native-after-browser"),
         1,
         &provider,
+        conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
     );
     let invitation = owner.issue_invitation(&root, 60, None).unwrap();
     let secret = SpawnInvitationSecret::from_csprng_bytes(invitation.secret).unwrap();
@@ -151,12 +152,14 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
             "host/native-after-browser",
         )
         .unwrap();
+    let receipt =
+        crate::durable_host::owner::MemberPresentationBasis::from_admission(&receipt).unwrap();
     let owner_offer = owner.host.advertisement().clone();
     let limits = conduit_core::LinkLimits {
         maximum_in_flight_items: 1,
         maximum_payload_bytes: 64 * 1024,
         maximum_buffered_bytes: 128 * 1024,
-        maximum_frame_bytes: 8 * 1024,
+        maximum_frame_bytes: 64 * 1024,
     };
     let line = |direction: &str,
                 source: &conduit_core::HostAdvertisement,
@@ -210,6 +213,52 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
     assert_ne!(plan.plan_id, old_plan);
     assert_eq!(plan.routes.len(), 2);
     assert_eq!(plan.face_revision, current_face.revision);
+
+    let placement = native.planned_mask.show_placement();
+    let show = conduit_face::MaskShow::prepared(
+        &native.planned_mask,
+        &current_face,
+        conduit_core::bind_active_play(
+            &native.planned_mask.plan.plan_id,
+            &placement.host_id,
+            &placement.boot_id,
+            1,
+        ),
+        current_face.subjects[0].identity.clone(),
+        "native/read-only".into(),
+        "sign/native/prepared".into(),
+    )
+    .unwrap()
+    .transition(
+        conduit_face::ManifestationLifecycle::Available,
+        "sign/native/available".into(),
+    )
+    .unwrap();
+    let request = conduit_face::OwnerFaceSnapshotRequest {
+        schema: conduit_face::OWNER_FACE_REQUEST_SCHEMA.into(),
+        credential_id: receipt.credential.credential_id.as_str().into(),
+        body_id: receipt.credential.body_id.clone(),
+        part_id: receipt.credential.part_id.clone(),
+        host_id: receipt.credential.host_id.clone(),
+        boot_id: receipt.credential.boot_id.clone(),
+        last_seen_revision: None,
+        last_seen_identity: None,
+    };
+    // Explicit Native selection supersedes the previously preferred browser;
+    // an actual Available Show can be acknowledged independently of input.
+    owner.acknowledge_native_mask_show(&request, &show).unwrap();
+    let forged: conduit_face::FaceInteraction = serde_json::from_value(serde_json::json!({
+        "identity": "interaction/forged-read-only", "face_id": current_face.identity.as_str(),
+        "face_revision": current_face.revision, "show_id": show.show_id.as_str(),
+        "action_id": "forged/action", "target": "body/forged", "arguments": [], "sequence": 1
+    }))
+    .unwrap();
+    assert_eq!(
+        owner
+            .validate_native_mask_interaction(&request, &show, &forged)
+            .unwrap_err(),
+        "native-mask-has-no-interaction-authority"
+    );
 
     // A checked workset replacement on this same lulled Body advances its
     // workload revision. The old browser seal is stale for that reason, not

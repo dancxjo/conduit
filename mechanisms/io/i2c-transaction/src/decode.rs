@@ -1,14 +1,12 @@
 //! Exact-schema preparation and finite canonical I2C request decoding.
 use super::{
-    contract::I2cContract,
+    contract::{I2cContract, I2C_MAXIMUM_BYTES},
     transaction::{I2cDisposition, I2cTransaction, MAXIMUM_TRANSACTION_BYTES},
 };
-use conduit_core::{
-    validate_canonical_structured_value, PreparedStructuredValueValidator, StructuredInfoRefusal,
-};
+use conduit_core::{BorrowedStructuredValueValidator, StructuredInfoRefusal};
 
 pub struct PreparedI2cDecoder {
-    validator: PreparedStructuredValueValidator,
+    validator: BorrowedStructuredValueValidator<'static>,
 }
 
 pub struct DecodedI2cRequest {
@@ -25,9 +23,16 @@ pub enum I2cDecodeRefusal {
 }
 
 impl PreparedI2cDecoder {
-    pub fn new(contract: &I2cContract) -> Result<Self, StructuredInfoRefusal> {
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        Some(0)
+    }
+
+    pub fn new(_contract: &I2cContract) -> Result<Self, StructuredInfoRefusal> {
         Ok(Self {
-            validator: contract.request_validator()?,
+            validator: BorrowedStructuredValueValidator::new(
+                include_bytes!(concat!(env!("OUT_DIR"), "/request.type")),
+                I2C_MAXIMUM_BYTES as usize,
+            )?,
         })
     }
     pub fn decode(&self, input: &[u8]) -> Result<DecodedI2cRequest, I2cDecodeRefusal> {
@@ -36,8 +41,7 @@ impl PreparedI2cDecoder {
         Ok(request)
     }
     fn canonical(&self, input: &[u8]) -> Result<DecodedI2cRequest, StructuredInfoRefusal> {
-        self.validator.validate(input)?;
-        let value = validate_canonical_structured_value(input)?;
+        let value = self.validator.validate(input)?;
         let field = |name| {
             value
                 .record_field(name)?

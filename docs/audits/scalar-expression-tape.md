@@ -24,20 +24,96 @@ CPU tests compile emitted programs both as a native executable and as a
 `no_std` Rust library and compare checked Source byte/refusal outcomes. They
 also verify allocation-free resident construction/evaluation and refusal of
 invalid code before execution. Static lifetime does not prove physical flash
-placement. Ordinary Make selection, full structured protocol images, kernel
-Back installation and physical MCU admission remain unfinished; this is not a
-new installed Back, scheduler or execution grant. Native-law/quantity profiles
-without a retained validation witness remain unsupported. Fixed-integer boundary contracts retain their
-byte ceiling and range endpoints in immutable `FixedIntegerContractSpec` data.
-The resident view is one pointer; identical input/output guards share one spec.
-Owned and borrowed checks use the same range definition and validation laws.
-Other boundary profiles continue to refuse instead of dropping predicates.
+placement. `StaticScalarExpressionBack` in the semantic catalog wraps this
+image using the same expression Back lifecycle as the owned evaluator: staged
+output, atomic commit, closing Flow, cancellation and reusable Value sessions.
+Its fixed result buffer is 16 bytes. Before evaluation it charges the maximum
+instruction count; a successful Step also needs one send and one consume. The
+installing Host must admit that complete fuel grant, Back state and evaluation
+stack and bind the exact Source/Fore/artifact before offering it. CPU tests run
+this Back in the actual fixed kernel with zero allocations and verify atomic
+refusal under insufficient fuel. This library Back is not an installed offer.
+Ordinary Make selection, full structured protocol images and physical MCU
+admission remain unfinished. Native-law/quantity profiles without a retained
+validation witness remain unsupported. Fixed-integer boundary contracts can
+retain their byte ceiling and range endpoints in immutable
+`FixedIntegerContractSpec` data. The resident view is one pointer; identical
+input/output guards share one emitted spec. The owned and borrowed contracts
+use the same range definition and validation routines. Other boundary profiles
+still refuse emission rather than erase checks.
 
-`computation_work()` includes the bounded predicate checks as well as tape
-instructions. The installing Host must admit and spend that complete private
-work plus kernel IO. Canonical input validation precedes semantic predicates;
-a refused output predicate leaves caller output unchanged. No Source or
-contract decoder runs during resident execution.
+`computation_work()` includes bounded predicate validation as well as tape
+instructions, and the shared resident Back charges that amount before evaluation.
+Malformed input is rejected before semantic predicates, preserving the canonical
+reference's refusal order. A failed output predicate leaves caller output
+unchanged. No Source or contract decoder is invoked during resident execution.
+
+## Resident fields from a structured Native input (development)
+
+`generate_static_projected_expression` resolves fixed field payload offsets or
+retains checked field/index/variant paths on an authoring Host, beside the same
+scalar instructions. Finite sequence lengths and variant tests use those same
+borrowed typed paths. The
+resident `StaticProjectedExpression` first checks the exact Native input with
+its retained schema and fixed predicates, then supplies the selected leaf bytes
+to the existing scalar loop. It owns no field evaluator, Type tree or result
+buffer. Output predicates run before copying into caller storage. Program
+correlation does not grant authority; installing this profile still requires
+exact Source/Fore/artifact binding and full admission of validation work,
+traversal, state, stack and output.
+
+The emitted real HT16K33 conditions and independent multi-field arithmetic cases
+compile as native and no_std modules and preserve ordinary admission plus
+reference outcomes without allocation. Missing checked owners, unsupported
+Native invariants, inadequate input capacity, constructed selection sources and
+Native intermediate constants without law witnesses refuse emission. Common
+Back installation and physical execution remain unfinished.
+
+## Resident structured constructors (development)
+
+`generate_static_structured_expression` emits the existing constructor tape as
+immutable data, using the same compiler and loop as the owned profile. Fixed
+input-node copies preserve canonical framing. Scalar child instructions share
+one input Native table. A supplied scratch buffer holds the complete result;
+the output Native guard checks it before atomic copying into caller output.
+The resident evaluator owns no instructions, constants, Type tree or output
+buffer. Its static descriptor declares finite input/output ceilings, and its
+constructor rejects invalid indices, slices, backward control and oversized
+code. Complete Root workspace and execution-work admission is still required.
+
+All five HT16K33 expressions now have emitted native/no_std component proof,
+including variable payloads, every bus-result tag, pressure and refusal/reuse.
+Selected canonical nodes can be copied directly from an already checked input.
+Make now prepares and binds resident code to a selected sealed Plan; ordinary initialized-provider/Seed installation and physical Play remain unfinished. Source's refined-construction admission rule is preserved; the
+output-predicate test is an explicit portable-program component fixture.
+
+## Structured resident Back lifecycle (development)
+
+`StaticStructuredExpressionBack` wraps the resident image in the existing
+`PreparedExpressionBack` lifecycle. It owns fixed result/staging arrays chosen
+by Make, checks capacities and rejects work that cannot fit the kernel's u16
+Step grant. The installing Host must bind exact Source/Fore/artifact and compare
+required fuel with the Plan-sealed grant before publishing an initialized Back.
+No offer, authority or reservation is created by the library constructor.
+
+Cooperative work counts bounded canonical-validation passes, path/selection
+calls, fixed predicate checks, scalar instructions and constructor/publication
+operations. Canonical byte/depth ceilings and stack/workspace must be admitted
+independently; these units are neither CPU instruction counts nor hard timing or
+preemption guarantees. Iteration through collection paths uses a conservative
+node bound derived from the admitted canonical byte envelope. Both branches and
+all child operations contribute to the bound. The common lifecycle preflights
+private work plus send/consume fuel before evaluation or any IO intent.
+
+The parent validates the whole input once. A private child entrance reuses that
+view only after constructor-time equality of exact schemas, predicate/scope
+tables, canonical capacity and occurrence limits. Standalone child calls retain
+full checks. No public admission witness or authority is inferred from the
+borrowed view. Structured evaluation refusals remain inspectable on the Back.
+Actual frame-request generated-code tests cover bounded kernel delivery,
+pressure, insufficient fuel, uncommitted retry, committed reuse, closing Flow,
+terminal cancellation and invalid/mismatched capacity/work/guards without
+allocation. Make preparation and selected-Plan binding are available on the development branch. Initialized offers, Seed installation and physical execution remain unfinished.
 
 ## Owned tape profile
 
@@ -52,3 +128,22 @@ The actual std kernel test selects the specialized implementation/artifact for t
 Portable tests cover exact byte/refusal parity, zero warm allocations/reallocations, multiplication/Boolean cases, lazy conditional branches, record/text refusal, a 127-instruction accepted shape and named instruction-bound refusal of a larger valid reference program. Direct delivery tests classify their preparation separately from allocation-free successful delivery.
 
 This is scoped native component and ordinary std Plan/Play evidence. No speedup, arbitrary code generation, JIT, browser/no_std installed tape availability or tiny-Host suitability is claimed. #5541/#5542 and the parent retain their independent resource/evidence/performance/cross-target acceptance.
+
+
+## Make binding and compact resident configuration (development)
+
+The embedded Make crate now prepares the structured realization from checked
+Native owners, fingerprints its base generated source, and binds generated
+Back factories to the exact sealed selection and lowered work grant. The
+existing assigned-Plan ABI carries a 55-byte resident configuration digest
+instead of repeating canonical program text. It requires the independently
+installed exact computation inventory and retains logical artifact, encoded
+assignment, runtime-state and execution bounds. See the
+[lowering contract](../architecture/plan-kernel-lowering.md#resident-computation-assignment-development).
+
+The actual HT16K33 frame-request program uses 21,526 canonical text bytes; its
+sealed component fixture produces a 959-byte assignment under the unchanged
+tiny encoded/runtime envelope. This is metadata/component proof, not a whole
+Host resource measurement. Generated native/no_std factories enforce the exact
+selected fuel without allocation. The fixture is not an initialized Host offer
+or a complete ordinary planner/Seed/physical journey.

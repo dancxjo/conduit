@@ -4,6 +4,7 @@ impl crate::StdHost {
         &mut self,
         adapter: super::WhisperSpeechAdapter,
     ) -> Result<(), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() {
             return Err("recognizer cannot replace active Host reservations".into());
         }
@@ -49,7 +50,7 @@ impl crate::StdHost {
         advertisement.offer_generation = conduit_core::OfferGeneration(next);
         advertisement.resources.sort();
         crate::normalize_capability_offers(&mut advertisement.capabilities)?;
-        let resources = crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        let resources = self.kernel_resources.replacement_for(&advertisement)?;
         self.advance_retained_spoken_offer_generation(advertisement.offer_generation)?;
         self.advertisement = advertisement;
         self.speech_recognition = Some(adapter);

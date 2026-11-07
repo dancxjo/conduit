@@ -8,6 +8,42 @@ use conduit_plan_lowering::{
     },
     selected_operation::{SelectedCallRefusal, SelectedOperationContract},
 };
+/// Fallible preparation borrows the exact initialized provider without taking it.
+/// Root must admit the complete workset before consuming this ticket into a call.
+pub struct PreparedAssignedWrite<'a, P: OpenDrain> {
+    prepared: PreparedWriteBinding,
+    table: BaseCapabilityTable,
+    handle: BaseCapabilityHandle,
+    claim: BaseOperationClaim,
+    slot: &'a mut Option<ReadyWriteBase<P>>,
+}
+impl<P: OpenDrain> PreparedAssignedWrite<'_, P> {
+    /// Actual retained codec, capability table and claim backing. Inline state,
+    /// provider storage and allocator overhead remain separately funded.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.prepared
+            .packets
+            .retained_backing_bytes()?
+            .checked_add(self.table.retained_backing_bytes()?)?
+            .checked_add(self.claim.retained_backing_bytes()?)
+    }
+    pub fn node(&self) -> conduit_kernel::NodeId {
+        self.prepared.node
+    }
+    /// No allocation, electrical IO or Start. Dropping before this transfer
+    /// retains Root's provider, including when another workset member refuses.
+    pub fn bind(self) -> WriteHostCall<P> {
+        let owner = self.slot.take().expect("exclusively prepared output owner");
+        WriteHostCall::from_prepared(
+            self.table,
+            self.handle,
+            self.claim,
+            owner.attachment,
+            owner.provider,
+            self.prepared,
+        )
+    }
+}
 impl<P: OpenDrain> ReadyWriteBase<P> {
     pub fn check_assigned(
         &self,
@@ -96,19 +132,28 @@ impl<P: OpenDrain> ReadyWriteBase<P> {
         contract: &WriteContract,
         selected: SelectedAssignedOperationPlan<'_>,
     ) -> Result<WriteHostCall<P>, WriteCallRefusal<P::Error>> {
+        Ok(Self::prepare_assigned_retained(slot, table, handle, claim, contract, selected)?.bind())
+    }
+    /// All assignment/codec refusals precede withdrawal of the initialized pins.
+    pub fn prepare_assigned_retained<'a>(
+        slot: &'a mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &WriteContract,
+        selected: SelectedAssignedOperationPlan<'_>,
+    ) -> Result<PreparedAssignedWrite<'a, P>, WriteCallRefusal<P::Error>> {
         let prepared = slot
             .as_ref()
             .ok_or(WriteCallRefusal::Possession)?
             .prepare_assigned(&table, &claim, contract, selected, None)?;
-        let owner = slot.take().expect("preflighted retained output owner");
-        Ok(WriteHostCall::from_prepared(
+        Ok(PreparedAssignedWrite {
+            prepared,
             table,
             handle,
             claim,
-            owner.attachment,
-            owner.provider,
-            prepared,
-        ))
+            slot,
+        })
     }
     /// Refusal preserves the initialized pins; success transfers them exactly
     /// once after the explicit Fore decoder and all existing possession checks.
@@ -120,6 +165,20 @@ impl<P: OpenDrain> ReadyWriteBase<P> {
         contract: &WriteContract,
         selected: SelectedAssignedForeOperationPlan<'_>,
     ) -> Result<WriteHostCall<P>, WriteCallRefusal<P::Error>> {
+        Ok(
+            Self::prepare_assigned_fore_retained(slot, table, handle, claim, contract, selected)?
+                .bind(),
+        )
+    }
+    /// Retain provider custody through exact local Fore and codec preparation.
+    pub fn prepare_assigned_fore_retained<'a>(
+        slot: &'a mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &WriteContract,
+        selected: SelectedAssignedForeOperationPlan<'_>,
+    ) -> Result<PreparedAssignedWrite<'a, P>, WriteCallRefusal<P::Error>> {
         let prepared = slot
             .as_ref()
             .ok_or(WriteCallRefusal::Possession)?
@@ -130,14 +189,12 @@ impl<P: OpenDrain> ReadyWriteBase<P> {
                 selected.operation,
                 Some(selected.fore),
             )?;
-        let owner = slot.take().expect("preflighted retained Fore output owner");
-        Ok(WriteHostCall::from_prepared(
+        Ok(PreparedAssignedWrite {
+            prepared,
             table,
             handle,
             claim,
-            owner.attachment,
-            owner.provider,
-            prepared,
-        ))
+            slot,
+        })
     }
 }

@@ -6,7 +6,7 @@ fn signed_browser_returns_cross_hot_capacity_without_replacing_the_part() {
     let (mut owner, root, _) = setup();
     let secret = SpawnInvitationSecret::from_csprng_bytes([7; 32]).unwrap();
     let mut window = owner
-        .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-test"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let challenge = advertise(&mut owner, &window.window_id);
     let mut current = owner
@@ -31,7 +31,7 @@ fn signed_browser_returns_cross_hot_capacity_without_replacing_the_part() {
             .browser_cancel_window(&root, &window.window_id)
             .unwrap();
         window = owner
-            .browser_authorize_window("host/browser-test", None, 10_000)
+            .browser_authorize_window(Some("host/browser-test"), None, 10_000)
             .unwrap();
         let ad = host("host/browser-test", &format!("boot/browser/return/{index}"))
             .advertisement()

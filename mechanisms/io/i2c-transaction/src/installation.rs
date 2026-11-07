@@ -8,7 +8,9 @@ use alloc::vec;
 use conduit_core::*;
 
 mod offer;
+mod projection;
 pub use offer::capability_offer;
+pub use projection::{I2cImageProjection, I2cImageProjectionRefusal};
 
 pub const I2C_IMPLEMENTATION: &str = "conduitos/i2c-transaction@1";
 pub const I2C_EXECUTION_PROFILE: &str = "conduitos/i2c-cooperative-bounded@1";
@@ -41,6 +43,30 @@ pub enum I2cInstallationRefusal {
     Advertisement,
 }
 impl<P: I2cProvider> ReadyI2cBase<P> {
+    /// Descriptive facts of the retained local owner, never a capability handle.
+    pub fn native_identity(&self) -> &I2cNativeIdentity {
+        &self.identity
+    }
+    /// Configured local attachment facts; inspection grants no effect authority.
+    pub fn attachment(&self) -> I2cAttachment {
+        self.attachment
+    }
+
+    /// Local ownership supplies a mixed-inventory identity hint without decoding
+    /// an advertisement. This grants no capability and does not check a Plan;
+    /// the exact assigned operation binder remains mandatory before transfer.
+    pub fn assigned_node_identity(
+        &self,
+        node: u16,
+    ) -> conduit_plan_lowering::resident_inventory::OtherNodeIdentity {
+        conduit_plan_lowering::resident_inventory::OtherNodeIdentity {
+            node,
+            kind: AssignedIdentity::from_text(super::contract::I2C_KIND),
+            implementation: AssignedIdentity::from_text(I2C_IMPLEMENTATION),
+            artifact: AssignedIdentity::from_text(self.identity.artifact_id.as_str()),
+        }
+    }
+
     /// Retain an exclusively owned, configured native controller before planning.
     ///
     /// # Safety
@@ -191,3 +217,6 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
         }
     }
 }
+
+mod assigned;
+pub use assigned::PreparedAssignedI2c;

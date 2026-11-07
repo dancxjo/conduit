@@ -4,6 +4,8 @@
 use crate as k;
 use conduit_assigned_plan as c;
 mod boundary;
+mod local_fore;
+pub(crate) use local_fore::LocalForeProvenance;
 mod bounded;
 pub use bounded::BoundedAssignedKernelTables;
 mod record_input;
@@ -353,6 +355,9 @@ impl<
         }
         routes.seal()?;
         calls.seal()?;
+        if u16_at(input.header(), 8)? == c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA {
+            local_fore::pin(&mut cords, fore.ok_or(E::Layout)?)?;
+        }
         Ok(Self {
             identity,
             nodes,

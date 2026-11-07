@@ -85,7 +85,7 @@ fn browser_mask_planning_requires_the_reviewed_back_and_face_resource() {
     .unwrap();
     let browser_offer = advertisement.clone();
     let authorized = owner
-        .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-test"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let Out::Challenge { challenge, .. } = owner
         .browser_begin(

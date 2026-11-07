@@ -35,6 +35,11 @@ impl DurableHostRuntime {
         root: &Path,
     ) -> Result<(Face, conduit_core::HostAdvertisement), String> {
         refuse_pending_birth_publication(root)?;
+        if crate::durable_host::has_pending_seed(root)? {
+            return Err(
+                "installed Seed awaits its original Body admission; use body accept-seed".into(),
+            );
+        }
         let HostSource::Bare(host) = &self.host else {
             return Err("installed Host already belongs to a Body".into());
         };
@@ -44,10 +49,26 @@ impl DurableHostRuntime {
         if self.birth.is_none() {
             let advertisement = host.advertisement().clone();
             let encounter_id = crate::birth_identity::fresh_uuid()?;
-            let door = ZeroBodyFrontDoor::from_model(
+            let mut door = ZeroBodyFrontDoor::from_model(
                 Arc::new(HostedPatchbayAdapter),
                 PatchbayModel::from_advertisement(advertisement.clone()),
             )?;
+            if self.creche_factory.is_some() {
+                door.add_plot(conduit_patchbay_workbench::PlotCandidate::from_source(
+                    "Host authoring and Crèche",
+                    "installed/creche/main.conduit",
+                    include_str!("../../../../plots/creche/main.conduit"),
+                    "Checked shipped Source; selected initialized Crèche provider",
+                    conduit_core::bind_sign(
+                        &advertisement.host_id,
+                        &advertisement.boot_id,
+                        None,
+                        1,
+                    )
+                    .sign_id,
+                    1,
+                )?)?;
+            }
             let draft = door.creche_draft(encounter_id.clone())?;
             self.birth = Some(ServiceBirth {
                 door,
@@ -71,6 +92,11 @@ impl DurableHostRuntime {
         interaction: &FaceInteraction,
     ) -> Result<BirthTransition, String> {
         refuse_pending_birth_publication(root)?;
+        if crate::durable_host::has_pending_seed(root)? {
+            return Err(
+                "installed Seed awaits its original Body admission; use body accept-seed".into(),
+            );
+        }
         let HostSource::Bare(host) = &self.host else {
             return Err("installed Host already belongs to a Body".into());
         };
@@ -135,6 +161,9 @@ impl DurableHostRuntime {
                 let mut owner =
                     crate::durable_host::owner::Owner::from_prepared_born(*host, prepared);
                 let presented = (|| {
+                    if let Some(factory) = self.creche_factory.take() {
+                        owner.install_creche_factory(factory)?;
+                    }
                     if let Some(checked) = &checked_source {
                         owner.set_resident_plot_name(checked)?;
                     }

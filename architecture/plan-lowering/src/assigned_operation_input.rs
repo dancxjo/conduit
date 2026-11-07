@@ -12,7 +12,7 @@ pub enum AssignedOperationInput<'a> {
         records: &'a [c::AssignedRecord<'a>],
     },
 }
-pub(super) enum Records<'a> {
+pub(crate) enum Records<'a> {
     Contiguous(c::AssignedPlanRecords<'a>),
     Borrowed(core::slice::Iter<'a, c::AssignedRecord<'a>>),
 }
@@ -26,19 +26,19 @@ impl<'a> Iterator for Records<'a> {
     }
 }
 impl<'a> AssignedOperationInput<'a> {
-    pub(super) fn header(self) -> &'a [u8] {
+    pub(crate) fn header(self) -> &'a [u8] {
         match self {
             Self::Contiguous(bytes) => bytes,
             Self::Records { header, .. } => header,
         }
     }
-    pub(super) fn records(self) -> Result<Records<'a>, c::AssignedPlanRefusal> {
+    pub(crate) fn records(self) -> Result<Records<'a>, c::AssignedPlanRefusal> {
         match self {
             Self::Contiguous(bytes) => c::AssignedPlanRecords::new(bytes).map(Records::Contiguous),
             Self::Records { records, .. } => Ok(Records::Borrowed(records.iter())),
         }
     }
-    pub(super) fn decode(
+    pub(crate) fn decode(
         self,
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,

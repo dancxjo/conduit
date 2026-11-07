@@ -13,6 +13,7 @@ pub(crate) struct MemberEncounter {
     pub part_id: conduit_body::PartId,
     pub host_id: conduit_core::HostId,
     pub candidate: RendezvousCandidate,
+    pub owner: conduit_body::FederationPeer,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "kind", deny_unknown_fields)]
@@ -21,6 +22,25 @@ pub(crate) enum MemberReturnFrame {
         schema: String,
         credential: MembershipCredential,
         advertisement: Box<HostAdvertisement>,
+    },
+    Resume {
+        schema: String,
+        credential: MembershipCredential,
+        advertisement: Box<HostAdvertisement>,
+    },
+    CarrierChallenge {
+        schema: String,
+        challenge: Box<conduit_body::FederationChallenge>,
+        signature: Vec<u8>,
+    },
+    CarrierProof {
+        schema: String,
+        challenge: Box<conduit_body::FederationChallenge>,
+        signature: Vec<u8>,
+    },
+    CarrierAuthenticated {
+        schema: String,
+        inspection: Box<conduit_body::FederationInspection>,
     },
     Challenge {
         schema: String,
@@ -40,20 +60,18 @@ pub(crate) enum MemberReturnFrame {
         code: String,
     },
 }
-pub(crate) const MEMBER_RETURN_SCHEMA: &str = "conduit.body/member-return@1";
+pub(crate) use conduit_body::MEMBER_RETURN_SCHEMA;
 
-// Keep the selected member and explicit TLS authorization inputs at this CLI boundary.
-#[allow(clippy::too_many_arguments)]
 pub(crate) fn serve_body_member_route(
     state: &Path,
     credential_path: &Path,
     ttl_seconds: u64,
     bind: SocketAddr,
     public_url: &str,
-    certificate: &Path,
-    private_key: &Path,
+    identity: (&Path, &Path),
     authorize: bool,
 ) -> Result<(), String> {
+    let (certificate, private_key) = identity;
     if !authorize
         || !(1..=600).contains(&ttl_seconds)
         || !public_url.starts_with("wss://")
@@ -87,6 +105,7 @@ pub(crate) fn serve_body_member_route(
         body_id: selected.body_id,
         part_id: selected.part_id,
         host_id: selected.host_id,
+        owner: crate::durable_host_control::carrier_receiver(state)?,
         candidate: RendezvousCandidate {
             candidate_id: "candidate/body-member-route".into(),
             line_family: RendezvousLineFamily::AuthenticatedTlsStream,
@@ -115,8 +134,15 @@ pub(crate) fn serve_body_member_route(
             .map_err(|e| format!("member route accept: {e:?}"))?;
         line.set_read_timeout(Some(Duration::from_secs(10)))
             .map_err(|e| format!("member route deadline: {e:?}"))?;
-        let result = exchange(state, &encounter, &mut line);
-        let member = match result {
+        let result = receive(&mut line).and_then(|frame| {
+            if matches!(&frame, MemberReturnFrame::Resume { .. }) {
+                super::current_member::serve(state, &encounter, &mut line, frame)
+                    .map(|(member, session)| (member, Some(session)))
+            } else {
+                exchange(state, &encounter, &mut line, frame).map(|member| (member, None))
+            }
+        });
+        let (member, carrier) = match result {
             Ok(member) => member,
             Err(error) => {
                 let _ = send(
@@ -129,9 +155,27 @@ pub(crate) fn serve_body_member_route(
                 continue;
             }
         };
-        // Successful return changes membership only; this entrance grants no Mask or Line.
-        drop(member);
-        let _ = line.close();
+        if let Some(session) = carrier {
+            // Presence uses the same retained TLS incarnation. It cannot open
+            // the old finite return grant or authorize a Show without Lines.
+            let result = crate::durable_host::owner::serve_member_presence(
+                state,
+                line,
+                session.clone(),
+                &member,
+            );
+            let cleanup = crate::durable_host_control::retire_carrier(state, session);
+            if let Err(error) = result {
+                eprintln!("member presence ended: {error}");
+            }
+            cleanup?;
+            continue;
+        }
+        if let Some(grant) =
+            face_snapshot::serve_optional_face_snapshot(&mut line, &listener, state, &member)?
+        {
+            return_route::serve(&listener, state, &grant)?;
+        }
     }
     Ok(())
 }
@@ -139,6 +183,7 @@ fn exchange(
     state: &Path,
     encounter: &MemberEncounter,
     line: &mut conduit_std_host::secure_websocket::SecureWebSocketLine,
+    frame: MemberReturnFrame,
 ) -> Result<MemberPresentationBasis, String> {
     if current_time_millis()? >= encounter.candidate.expires_at_millis {
         return Err("member encounter expired".into());
@@ -147,7 +192,7 @@ fn exchange(
         schema,
         credential,
         advertisement,
-    } = receive(line)?
+    } = frame
     else {
         return Err("member return requires its retained credential and actual offer".into());
     };
@@ -188,4 +233,68 @@ fn exchange(
         },
     )?;
     Ok(member)
+}
+
+/// Explicit transport selection while the installed Host is stopped. This
+/// descriptor is reachability and a TLS pin, never membership or a Show grant.
+pub(crate) fn install_member_encounter(
+    state: &Path,
+    descriptor: &Path,
+    authorize: bool,
+) -> Result<(), String> {
+    if !authorize {
+        return Err("selecting a member encounter requires --authorize-route".into());
+    }
+    let _host = super::super::owner_lock::acquire(state)?;
+    let installation = super::super::read_installation(&state.join("installation.json"))?;
+    let credential = super::super::membership::load_joined_credential(state, &installation)?;
+    let encounter: MemberEncounter = serde_json::from_slice(&bounded_read(descriptor, 16 * 1024)?)
+        .map_err(|_| "invalid finite member encounter")?;
+    let now = current_time_millis()?;
+    let candidate = &encounter.candidate;
+    if encounter.schema != MEMBER_ROUTE_SCHEMA
+        || encounter.body_id != credential.body_id
+        || encounter.part_id != credential.part_id
+        || encounter.host_id != credential.host_id
+        || encounter.owner.host_id.as_str().is_empty()
+        || encounter.owner.host_id.as_str().len() > 256
+        || encounter.owner.host_id == encounter.host_id
+        || encounter.owner.boot_id.as_str().is_empty()
+        || encounter.owner.boot_id.as_str().len() > 256
+        || encounter.owner.offer_generation.0 == 0
+        || encounter.owner.verifying_key == [0; 32]
+        || candidate.line_family != RendezvousLineFamily::AuthenticatedTlsStream
+        || candidate.expires_at_millis <= now
+        || candidate.expires_at_millis.saturating_sub(now) > 600_000
+        || !(1..=2).contains(&candidate.maximum_attempts)
+        || !(1..=30_000).contains(&candidate.attempt_timeout_millis)
+        || candidate.authentication.transport_binding_sha256 == [0; 32]
+        || candidate.authentication.server_identity
+            != route_server_identity(&candidate.reachability)?
+    {
+        return Err("member encounter differs from retained scope or finite TLS policy".into());
+    }
+    super::super::write_json_atomic(&state.join("body/member-encounter.json"), &encounter)
+}
+
+#[cfg(test)]
+mod acknowledgement_wire_tests {
+    use super::*;
+    #[test]
+    fn tls_admitted_frame_is_the_shared_acknowledgement_document() {
+        let ad = conduit_std_host::StdHost::new().advertisement().clone();
+        let credential:MembershipCredential=serde_json::from_value(serde_json::json!({
+            "credential_id":"credential/1","body_id":"body/1","part_id":"part/1", "host_id":ad.host_id,"boot_id":ad.boot_id,"issued_at_millis":1
+        })).unwrap();
+        let frame = MemberReturnFrame::Admitted {
+            schema: MEMBER_RETURN_SCHEMA.into(),
+            credential: credential.clone(),
+            advertisement: Box::new(ad.clone()),
+        };
+        let acknowledgement = conduit_body::MemberReturnAcknowledgement::new(credential, ad);
+        assert_eq!(
+            serde_json::to_vec(&frame).unwrap(),
+            serde_json::to_vec(&acknowledgement).unwrap()
+        );
+    }
 }

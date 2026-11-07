@@ -518,7 +518,7 @@ mod prepared_expression_back;
 #[cfg(feature = "kernel-step")]
 pub use prepared_expression_back::{
     prepared_expression_bounds, PreparedExpressionBack, StaticExpressionBackRefusal,
-    StaticScalarExpressionBack,
+    StaticScalarExpressionBack, StaticStructuredExpressionBack, StructuredResidentEvaluator,
 };
 #[cfg(feature = "prepared-expression-session")]
 mod prepared_expression_offer;

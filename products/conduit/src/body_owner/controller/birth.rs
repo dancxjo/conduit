@@ -109,11 +109,15 @@ impl Owner {
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            local_fore_adapters: None,
+            #[cfg(target_os = "linux")]
+            selected_file_workset: None,
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
             pending_member_return: None,
-            invited_mask_offers: Default::default(),
+            member_carrier: None,
+            current_host_offers: Default::default(),
             attached_terminal_route: None,
             direct_spoken_route: None,
             direct_spoken_template: None,
@@ -123,6 +127,9 @@ impl Owner {
             todo_live: None,
             todo_verified: None,
             notebook: None,
+            creche_factory: None,
+            creche_live: None,
+            creche_products: None,
         }
     }
 }

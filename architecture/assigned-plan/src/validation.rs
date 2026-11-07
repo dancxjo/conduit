@@ -225,6 +225,7 @@ fn validate<'a>(
             ASSIGNED_CONFIGURATION => match payload[18] {
                 0..=2 => length == 27,
                 3 => computations.text(payload)?,
+                4 => computations.resident(payload)?,
                 _ => false,
             },
             ASSIGNED_CORD => {

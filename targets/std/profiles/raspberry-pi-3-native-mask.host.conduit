@@ -1,0 +1,14 @@
+host threebee-native-display {
+  schema = 1
+  target = {architecture: "aarch64", machine: "raspberry-pi-3-model-b-plus-rev-1.3", board: "raspberry-pi-3-model-b-plus-rev-1.3", os: "linux"}
+  base = {kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}
+  base = {kind: "serial/text", implementation: "raspberry-pi-os/serial@1"}
+  base = {kind: "storage/protected-file", implementation: "hosted/protected-file@1"}
+  base = {kind: "display/scanout", implementation: "display/linear-framebuffer@1", initialization: {backend: "KMSDRM", width: 1024, height: 600}}
+  need = {id: "display/main", class: "face/surface", slots: 1, bytes: 2457600}
+  need = {id: "display/show", class: "face.resource/show@1", slots: 1, bytes: 1}
+  need = {id: "display/memory", class: "conduit.resource/runtime-memory@1", slots: 8388608, bytes: 8388608}
+  capability = {kind: "time/tick", pinned_implementation: "std/kernel-time-tick@2"}
+  need = {id: "timer/main", class: "conduit.resource/timer-slot@1", slots: 8, bytes: 512}
+  limits = {static_memory_bytes: 16777216, heap_arena_bytes: 67108864, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}
+}

@@ -2,7 +2,7 @@
 use super::*;
 use alloc::{collections::BTreeMap, format, string::String};
 use sha2::Digest;
-mod contracts;
+pub(crate) mod contracts;
 
 /// Host-side specialization of the existing checked scalar profile into Rust
 /// static data. Include this fragment inside a module in the target Seed.
@@ -65,6 +65,12 @@ pub fn generate_static_scalar_expression(
             output,
         )?
     };
+    emit_tape(&mut source, tape);
+    source.push_str(&format!("pub fn prepare() -> Result<conduit_plot::StaticScalarExpression, conduit_plot::PortableExpressionEvaluationRefusal> {{ conduit_plot::StaticScalarExpression::new(conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{input:?}, conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{output:?}, INSTRUCTIONS, {})?.with_value_contracts({input_contract}, {output_contract}) }}\n", tape.result));
+    Ok(source)
+}
+
+pub(crate) fn emit_tape(source: &mut String, tape: &ScalarTape) {
     let mut literals = BTreeMap::new();
     for instruction in tape.instructions.iter() {
         if let Operation::Literal(bytes) = &instruction.operation {
@@ -92,11 +98,11 @@ pub fn generate_static_scalar_expression(
             Operation::BranchFalse(condition, target) => {
                 format!("BranchFalse({condition}, {target})")
             }
+            Operation::Widen(from) => format!("Widen({from})"),
             Operation::Jump(target) => format!("Jump({target})"),
             Operation::Move(from) => format!("Move({from})"),
         };
         source.push_str(&format!("conduit_plot::ScalarTapeInstruction {{ kind: conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{:?}, destination: {}, operation: conduit_plot::ScalarTapeOperation::{operation} }},\n", instruction.kind, instruction.destination));
     }
-    source.push_str(&format!("] ;\npub fn prepare() -> Result<conduit_plot::StaticScalarExpression, conduit_plot::PortableExpressionEvaluationRefusal> {{ conduit_plot::StaticScalarExpression::new(conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{input:?}, conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{output:?}, INSTRUCTIONS, {})?.with_value_contracts({input_contract}, {output_contract}) }}\n", tape.result));
-    Ok(source)
+    source.push_str("];\n");
 }

@@ -7,10 +7,7 @@ use conduit_core::{
 };
 use conduit_plan_lowering::lowering::RemoteCordDirection;
 
-use crate::{
-    GeneratedConfigurationValue, GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedSignTarget,
-    GenerationError,
-};
+use crate::{GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedSignTarget, GenerationError};
 
 /// Encodes the already selected, sealed Host fragment. This is deliberately a
 /// projection, not a planner: every record comes from `GeneratedEmbeddedPlan`.
@@ -18,7 +15,7 @@ pub fn encode_assigned_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA, &[])
+    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA, &[], &[])
 }
 
 /// Kernel projection with explicit single-value envelopes and pressure policy.
@@ -27,7 +24,13 @@ pub fn encode_assigned_kernel_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA, &[])
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA,
+        &[],
+        &[],
+    )
 }
 /// Exact single cooperative Base/resource/authority facts for constrained native
 /// possession admission. Legacy and kernel-only projections remain unchanged.
@@ -35,7 +38,43 @@ pub fn encode_assigned_native_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA, &[])
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA,
+        &[],
+        &[],
+    )
+}
+
+/// Project only code-backed selections through explicit resident bindings.
+/// These fingerprints do not initialize Backs or create execution authority.
+pub fn encode_assigned_resident_native_plan(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+    resident: &[crate::BoundResidentExpression],
+) -> Result<Vec<u8>, GenerationError> {
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA,
+        &[],
+        resident,
+    )
+}
+pub(crate) fn encode_resident_fore(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+    fore: &[conduit_core::AssignedForeRequirement],
+    resident: &[crate::BoundResidentExpression],
+) -> Result<Vec<u8>, GenerationError> {
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA,
+        fore,
+        resident,
+    )
 }
 
 pub(crate) fn encode_fore(
@@ -48,6 +87,7 @@ pub(crate) fn encode_fore(
         maxima,
         conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA,
         fore,
+        &[],
     )
 }
 fn encode(
@@ -55,7 +95,9 @@ fn encode(
     maxima: AssignedPlanMaxima,
     schema: u16,
     fore: &[conduit_core::AssignedForeRequirement],
+    resident: &[crate::BoundResidentExpression],
 ) -> Result<Vec<u8>, GenerationError> {
+    crate::configuration_record::validate_bindings(plan, resident)?;
     if schema != conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
         && crate::fore::has_local_fore_endpoint(plan)
     {
@@ -97,28 +139,10 @@ fn encode(
         }
     }
     for entry in &plan.configuration {
-        let mut value = Vec::new();
-        u16_to(&mut value, entry.node);
-        identity_to(&mut value, &entry.key);
-        match &entry.value {
-            GeneratedConfigurationValue::Text(item) => {
-                value.push(3);
-                value.extend_from_slice(item.as_bytes());
-            }
-            GeneratedConfigurationValue::Bool(item) => {
-                value.push(0);
-                value.extend_from_slice(&[u8::from(*item), 0, 0, 0, 0, 0, 0, 0]);
-            }
-            GeneratedConfigurationValue::I64(item) => {
-                value.push(1);
-                value.extend_from_slice(&item.to_le_bytes());
-            }
-            GeneratedConfigurationValue::U64(item) => {
-                value.push(2);
-                value.extend_from_slice(&item.to_le_bytes());
-            }
-        }
-        record(ASSIGNED_CONFIGURATION, value)?;
+        record(
+            ASSIGNED_CONFIGURATION,
+            crate::configuration_record::encode(entry, resident)?,
+        )?;
     }
     for cord in &plan.cords {
         let mut value = Vec::new();
@@ -300,9 +324,9 @@ fn encode(
         record(ASSIGNED_TERMINAL, value)?;
     }
 
-    for (index, (actual, maximum)) in counts.iter().zip(maxima.counts).enumerate() {
+    for (actual, maximum) in counts.iter().zip(maxima.counts) {
         bound(
-            &format!("assigned record {}", index + 1),
+            "assigned record count",
             u64::from(*actual),
             u64::from(maximum),
         )?;
@@ -415,81 +439,13 @@ fn u32_to(target: &mut Vec<u8>, value: u32) {
     target.extend_from_slice(&value.to_le_bytes());
 }
 
-fn bound(table: &str, actual: u64, maximum: u64) -> Result<(), GenerationError> {
+fn bound(table: &'static str, actual: u64, maximum: u64) -> Result<(), GenerationError> {
     if actual > maximum {
-        // Error table labels are static elsewhere; this encoder reports the
-        // stable category while retaining exact values.
         return Err(GenerationError::BoundExceeded {
-            table: "assigned projection",
+            table,
             actual,
             maximum,
         });
     }
-    let _ = table;
     Ok(())
-}
-
-/// Trusted image inventory for the computation-aware assigned-Plan decoder.
-/// Call after fixed-image generation validated each computation's exact contract.
-/// Deploy this inventory with the resident image, never derive it from an incoming
-/// assignment on the device. These digests do not admit evaluator heap or work.
-pub fn assigned_computation_requirements(
-    plan: &GeneratedEmbeddedPlan,
-) -> Result<Vec<conduit_core::AssignedComputationRequirement>, GenerationError> {
-    plan.configuration
-        .iter()
-        .filter(|entry| matches!(entry.key.as_str(), "program" | "selector"))
-        .map(|entry| {
-            let GeneratedConfigurationValue::Text(text) = &entry.value else {
-                return Err(GenerationError::InvalidComputationConfiguration);
-            };
-            conduit_core::AssignedComputationRequirement::from_text(entry.node, &entry.key, text)
-                .map_err(|_| GenerationError::InvalidComputationConfiguration)
-        })
-        .collect()
-}
-
-/// Resident structural inventory for a fixed-source assigned-kernel layout.
-/// Configurations have their separate exact inventory. Sign and terminal IDs
-/// depend on the current Plan/Boot and are not executable structural tables.
-/// Only derive this from a validated generated image on the trusted Make side.
-pub fn assigned_layout_requirements(
-    plan: &GeneratedEmbeddedPlan,
-    maxima: AssignedPlanMaxima,
-) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
-    layout_records(
-        encode_assigned_kernel_plan(plan, maxima)?,
-        conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA,
-    )
-}
-pub fn assigned_native_layout_requirements(
-    plan: &GeneratedEmbeddedPlan,
-    maxima: AssignedPlanMaxima,
-) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
-    layout_records(
-        encode_assigned_native_plan(plan, maxima)?,
-        conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA,
-    )
-}
-pub(crate) fn layout_records(
-    bytes: Vec<u8>,
-    schema: u16,
-) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
-    conduit_core::AssignedPlanRecords::new(&bytes)
-        .map_err(|_| GenerationError::InvalidFragment)?
-        .filter_map(|record| match record {
-            Ok(record)
-                if !matches!(
-                    record.tag,
-                    ASSIGNED_CONFIGURATION | ASSIGNED_SIGN | ASSIGNED_TERMINAL
-                ) =>
-            {
-                Some(Ok(
-                    conduit_core::AssignedRecordRequirement::from_kernel_record(record, schema),
-                ))
-            }
-            Ok(_) => None,
-            Err(_) => Some(Err(GenerationError::InvalidFragment)),
-        })
-        .collect()
 }

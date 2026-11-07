@@ -2,6 +2,22 @@
 use super::*;
 use core::mem::size_of;
 impl BaseCapabilityTable {
+    /// Requested table slots plus one issuance's sequence/digest buffers.
+    /// Identity strings, inline owners and allocator overhead are separate.
+    /// Read-only geometry: this creates neither a table nor possession.
+    pub fn single_issuance_backing_bytes(
+        maximum_capabilities: u16,
+        maximum_in_flight: u16,
+    ) -> Option<usize> {
+        if maximum_capabilities == 0 || maximum_in_flight == 0 {
+            return None;
+        }
+        usize::from(maximum_capabilities)
+            .checked_mul(size_of::<CapabilityEntry>())?
+            .checked_add(usize::from(maximum_in_flight).checked_mul(size_of::<u32>())?)?
+            .checked_add(64)
+    }
+
     /// Actual owned Vec/String capacities only; excludes inline Self, allocator
     /// overhead and caller-owned bearer/lease values. Does not issue authority.
     pub fn retained_backing_bytes(&self) -> Option<usize> {

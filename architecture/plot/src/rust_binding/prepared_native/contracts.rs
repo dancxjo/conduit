@@ -10,7 +10,7 @@ pub(super) struct ContractCursor<'d> {
     pub(super) latest: Vec<u16>,
     pub(super) latest_generation: u64,
     pub(super) checked: bool,
-    source: &'d NativeTypeValueContract,
+    pub(super) source: &'d NativeTypeValueContract,
 }
 
 impl ContractCursor<'_> {

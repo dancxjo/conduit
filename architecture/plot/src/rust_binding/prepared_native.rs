@@ -122,6 +122,11 @@ pub struct NativeContractOccurrence<'a> {
 }
 #[path = "prepared_native/contracts.rs"]
 mod contracts;
+mod resident;
+pub use resident::{
+    generate_resident_native_validator, ResidentNativeGenerationRefusal, ResidentNativeValidator,
+    StaticNativeContract, StaticNativePathStep,
+};
 #[path = "prepared_native/traversal.rs"]
 mod traversal;
 pub struct PreparedNativeAdmission<'d> {
