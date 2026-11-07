@@ -9561,3 +9561,152 @@ headroom after successful deployment was approximately 8.8 GiB. Raw local build,
 BOOTSEL and return logs remain in `/tmp/conduit-green-*-20261106*.log`; private
 receipts/current retained input and health readback remain in the task-private
 `mcu-refresh-20261106` directory.
+
+### 2026-11-06: Shared MCU hardware and specialized Source preparation
+
+Direct firmware work continued independently of Linux Seed creation. Checked
+RP2040 construction now distinguishes Bosch/HT16K33, Bosch/TM1637 and
+DHT11/TM1637 equipment. All eleven Make library tests pass, including the
+actual White/Yellow Host configurations, pin collisions, timing and finite pull
+selection. An initially unsupported Boolean initialization rule was replaced by
+supported `pull: "none" | "up"`; no invalid configuration was flashed.
+
+The shared generator supports an actual empty computation inventory without
+advertising another device's Backs. Two tests compile and exercise that exact
+emitted implementation and its byte ceiling. Pulse assignment preparation now
+retains the actual initialized provider on every possession, codec or assignment
+refusal. Its thirteen host-call tests pass; no positive physical pulse Play is
+claimed from those tests.
+
+Yellow's real authored DHT decoder exposed missing static integer widening.
+The common expression tape now specializes strict whole-domain integer widening
+through existing evaluator semantics; narrowing and lossy conversion still
+refuse. Eight scalar-image and six structured-image tests pass. The actual DHT
+Source generates CPU/no_std code matching the reference evaluator for successful
+frames, every refusal variant and malformed canonical input, without runtime
+allocation. The existing instruction ceiling was not enlarged. Target linking
+also caught the radio/capture shared DMA vector collision; one vector now serves
+the separately owned radio and capture channels.
+
+One source cohort `ef1a4bd8f4fe5e51b2e05ca44ef6566d9d8ccf9f` built all three Pico
+profiles through Make. Public UF2 payloads stay below reserved data sectors:
+
+| Profile | Linked flash bytes | Static RAM bytes (includes 49,152-byte heap) | UF2 SHA-256 |
+| --- | ---: | ---: | --- |
+| Green | 1,256,008 | 121,520 | `3352870a058855c93eae0f86c673a8362525b004a54d0c8ec72f21da67fbed01` |
+| White | 984,004 | 102,432 | `c0eb4cca666b615f9aefffbd531df5b3682a772a4e1f1d854e63263b16de5ac2` |
+| Yellow | 1,055,744 | 103,704 | `9c09a5c1242e531711a506108fdf667eadca3bfb38c3cd06c5873a7dfff8892f` |
+
+These linked figures are not physical peak-RAM or complete-Play qualification.
+The target builds retain warnings. Yellow only initializes equipment and its
+Source decoder inventory; it does not invent measurements. White's measurement
+loop remains explicitly diagnostic. Neither replacement was flashed: White's
+Beeplus route was unavailable, and Yellow's incomplete execution path would
+remove working measurement/display behavior.
+
+Green physically verified the shared bounded carrier and immutable membership
+parser, which now live under `targets/mcu/host-runtime` rather than being copied
+into a second Host. Four carrier/parser tests, strict Clippy and real Xtensa
+compilation pass. The original current attachment was withdrawn normally;
+reviewed configuration/application UF2 transfers preserved reserved data and the
+original key/Part. Ordinary signed return succeeded on new running build
+`82e528c3512549cad9593ab3f0c3320dc5805d6743ffee8a3cfac1a94dfa38f6`.
+Readback confirmed the same Body/Part, five fresh readings, 64 acknowledged
+frames, no sensor/display faults, 4,924 peak requested heap bytes, five resident
+Backs and 19,016 resident bytes. Receipt/private continuity material stays in the
+task-private `mcu-refresh-20261106` directory. Sampling/display remain diagnostic,
+not admitted Body Plays.
+
+ESP32 electrical pulse/TM1637 providers, exclusive bounded UART0 carriage,
+factory identity, real entropy and monotonic clock adapters pass actual Xtensa
+checks and strict Clippy. They are reusable equipment/platform support, not a
+bootable Blue environmental Host; Blue was left measuring on its prior image.
+A shared membership/native-dispatch composition remains required.
+
+Review withdrew the new owner submission entrance entirely: although it
+preserved exact current Body proposal containment, its Source codebook checking
+did not retain original funded workspace custody. No permanently disabled CLI
+or control-token substitute remains. The existing scoped generator and signed
+approval seams remain; the product binary metadata check passes after removal. Existing
+Crèche-only Body state cannot acquire environmental work by relabeling a
+fixture: #6449 original Source policy and #6341 aggregate preparation funding
+remain independent obligations. Existing native execution is still limited to
+one resident/I2C pair, and the owner has one outstanding command slot. Neither
+seed deferral nor successful builds discharge full sampler/Face/Mask admission.
+
+A later Green readback confirmed twenty successful attempts/readings and 294
+acknowledged frames with the same receipt, heap peak and absence of reported
+faults. Beeplus/White remains unresolved/unreachable; Motherbrain/Yellow and
+Victus/Blue remain reachable with their prior firmware. No incomplete image was
+installed merely to count those devices as updated.
+
+Raw build/check logs and images are ignored under `target/mcu-*`,
+`target/esp32-*` and `target/scalar-*`. Verified inactive test/compiler output was
+reclaimed while preserving active caches, deployed binaries, worktrees, keys,
+private inputs and unique evidence. No unrelated source or personal data was
+removed.
+
+### 2026-11-06: Retained native preparation and shared MCU membership
+
+The common no_std MCU runtime now owns authenticated spawn and canonical
+retained-member return exchanges across bounded message carriers. The RP2040
+Root delegates these exchanges but retains its native publication, original
+grant issuer and resource ledger. Thirteen host cases and actual Xtensa checks
+and strict Clippy pass, including current-Boot signed receipt, wrong owner,
+interruption and changed Body/image refusal. Returning an existing Part never
+falls back to a fresh spawn. No Blue replacement was flashed.
+
+Pulse capture now supports deferred assigned preparation with independently
+retained Fore pins and a bounded production scheduler. The separate
+`prepared-kernel` feature opts into boxed storage; basic electrical Host Calls
+retain their smaller feature surface. Eleven library/owner cases pass, as do
+actual `thumbv6m-none-eabi` no_std checking and strict Clippy. A 64-bit CPU
+fixture retains 9,482 bytes: codec 4,092, capability table/claim 1,206, scheduler
+4,184. This excludes the contract, provider, temporary preparation, inline ticket
+and allocator overhead; it is not the complete MCU RAM peak. Its successful
+retained-result ceiling does not itself admit or bound codec preparation peak.
+The actual capture provider survives failed preparation and dropped tickets;
+binding allocates nothing and performs no electrical operation.
+
+TM1637 preparation likewise borrows Root's actual pin owner until the complete
+workset can be admitted. Both plain and local-Fore tickets can be dropped while
+leaving the provider ready. Fifteen output tests pass, including stale scope,
+provider loss, packet geometry, cancellation, exact Source packet encoding and
+allocation-free binding/output. These are CPU fixtures exercising the actual
+wire engine, not physical display or complete Body Play evidence.
+
+Structural authority-grant description checks no longer depend on the
+cryptographic return-carriage feature. The Body library checks without default
+features, and five return-image/grant regressions pass. An attempted no-default
+unit-test harness remains blocked by the existing unconditional Ed25519 test
+import in `rendezvous_cose/tests.rs`; library checking is not reported as that
+unit-test pass. No execution authority was added by the extraction.
+
+Selected Source initialization now retains the actual immutable File capture
+inside an `ImagePreparedValue`, charged on the original IMAGE counter before
+File acquisition. Capacity accounting includes moved context strings. Eleven
+actual Source-image integration cases pass: pressure before File/child effects,
+undersized retention, original/foreign counter correspondence, retention-witness
+release and Source surviving Host drop. Metadata checking and strict Clippy pass.
+The existing 576 MiB component fixture
+adds an explicit capture charge within its unchanged grant; it does not qualify
+the installed 64 MiB Root. No Source policy, arbitrary revision approval or new
+grant is inferred from this custody improvement. Forebrain's running Root still
+lacks a selected Source-check IMAGE, and the Body still needs independently
+authorized complete environmental workset adoption through #6449/#6341.
+
+The user confirmed White is down and asked to continue without it. Yellow and
+Blue keep their prior working software pending complete execution integration.
+Green's later readback retained its same receipt and reported 60 successful
+attempts/readings, 889 acknowledged display frames and no reported fault.
+Its sensing/display remain diagnostic. No complete environmental Play or real
+Body Face/Mask execution on the thermometers is claimed from these components.
+
+Disk exhaustion interrupted compilation and one test-file write; that test was
+restored from its retained Source copy before the passing integration run.
+Package-native cleanup of inactive debug language outputs reclaimed 11.5 GiB;
+additional inactive unit-test executables and downloads with retained extracted
+Source were removed after inventory. Running/deployed binaries, release caches,
+private continuity state and unique evidence were preserved. Raw test/check logs
+stay under ignored `target/` and `/tmp`, including the pulse kernel, TM1637 and
+Source-capture runs; none are committed as evidence payloads.
