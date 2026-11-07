@@ -9863,3 +9863,22 @@ Maintenance additionally removed 1.6 GiB (Cargo-reported logical size) of inacti
 regenerable dev artifacts for Human, Education, Robotics and Process after
 checking process mappings. Active MCU/release caches, credentials, history and
 unique compiler/layout evidence were preserved.
+
+The normal Yellow release link subsequently passed with all assertions enabled:
+219,880 bytes of static RAM, 50,456 bytes of remaining stack-region headroom,
+and 1,271,696 flash bytes. The target kernel size quote is 22,040 bytes across
+sampler, Mask and output. These are linked geometry, not observed heap peaks.
+The larger shared async composition explains why adding only the heap delta to
+the earlier static measurement would have underestimated this final image.
+Victus access was also restored and Blue's USB adapter was found; no Blue flash
+or new membership has yet been performed.
+
+Blue's explicit revised layout also passed its normal optimized link: primary
+static 97,476 bytes plus a single 98,304-byte secondary heap, for 195,780 total
+static bytes under 224 KiB. Primary stack-region headroom is 99,132 bytes. Exact
+link assertions cover both HAL region geometries, sole secondary-heap ownership,
+static limits and at least 16 KiB stack. Static inventory now excludes only the
+reserved `.stack` section and continues to count secondary NOLOAD allocations;
+the paired regression passed, as did 11 ESP32 Make tests. The prior ingress-only
+qualification guard was removed after complete composition/link qualification.
+This permits ordinary artifact construction; it is not hardware Play evidence.

@@ -73,7 +73,9 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
         "}\nimpl<'a> PreparedResidentEntryLoan<'a>{pub fn node(&self)->u16{match &self.inner{\n",
     );
     for index in 0..entries {
-        code.push_str(&format!("PreparedResidentEntryInner::Entry{index}{{node,..}}=>*node,\n"));
+        code.push_str(&format!(
+            "PreparedResidentEntryInner::Entry{index}{{node,..}}=>*node,\n"
+        ));
     }
     code.push_str("}}\npub fn bind(self)->(u16,BorrowedBack<'a>){match self.inner{\n");
     for index in 0..entries {
