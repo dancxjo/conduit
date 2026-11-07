@@ -417,8 +417,10 @@ fn two_members_retain_one_exact_body_play_and_block_duplicate_boot_and_source_ca
     owner.lull().unwrap();
     assert!(owner.require_remote_workset_retired().is_err());
     let lulled = owner.session.evidence().clone();
+    let replacement = crate::plot_source::parse("plot replacement (\n) {\n}\n").unwrap();
+    let replacement_expanded = replacement.expand_entry_for_authoring().unwrap();
     let refused = owner
-        .commit_admitted_workset_revision(&root, &lulled, &[(&source, &expanded)])
+        .commit_admitted_workset_revision(&root, &lulled, &[(&replacement, &replacement_expanded)])
         .unwrap_err();
     assert!(
         refused.contains("actual remote receiver retirement"),
