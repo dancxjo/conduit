@@ -296,22 +296,29 @@ fn ordinary_creche_play_prepares_one_same_body_seed_and_restores_original_host()
         carried.bytes_realized
     );
     assert!(owner.export_prepared_seed(&destination).is_err());
-    let retained = owner.creche_products.as_mut().unwrap();
+    let conduit::creche_encounter::CrecheProducts::Reference(retained) =
+        owner.creche_products.as_mut().unwrap()
+    else {
+        panic!("reference fixture expected")
+    };
     let expiry = retained.invitation.expires_at_millis;
     retained.invitation.expires_at_millis = 0;
     let expired_destination = fixture.root.join("expired-seed.zip");
     assert!(owner.export_prepared_seed(&expired_destination).is_err());
     assert!(!expired_destination.exists());
-    owner
-        .creche_products
-        .as_mut()
-        .unwrap()
-        .invitation
-        .expires_at_millis = expiry;
-    let mut products = owner
+    let conduit::creche_encounter::CrecheProducts::Reference(retained) =
+        owner.creche_products.as_mut().unwrap()
+    else {
+        panic!("reference fixture expected")
+    };
+    retained.invitation.expires_at_millis = expiry;
+    let products = owner
         .creche_products
         .take()
         .expect("typed Prepared outcome retained its verified Seed");
+    let conduit::creche_encounter::CrecheProducts::Reference(mut products) = products else {
+        panic!("reference fixture expected")
+    };
     assert_eq!(products.spore.manifest.body_id, body.as_str());
     assert_eq!(
         products.spore.manifest.binding,

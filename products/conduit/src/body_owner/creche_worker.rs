@@ -90,6 +90,7 @@ impl Owner {
         let Some(products) = &self.creche_products else {
             return Ok(face);
         };
+        let products = products.products();
         let identity = format!("artifact/{}", products.spore.manifest.spore_id);
         if let Some(parent) = face.subjects.first() {
             face.relationships.push(conduit_face::FaceRelationship {

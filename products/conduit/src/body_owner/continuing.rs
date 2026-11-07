@@ -453,7 +453,7 @@ impl RunWorker {
             owner.creche_factory = Some(factory);
         }
         if let Some(live) = &owner.creche_live {
-            if let Some(products) = live.controller.take_products()? {
+            if let Some(products) = live.controller.take_retained_products()? {
                 owner.creche_products = Some(products);
             }
         }

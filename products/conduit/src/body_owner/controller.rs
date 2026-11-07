@@ -259,7 +259,7 @@ pub(crate) struct Owner {
     notebook: Option<notebook::NotebookDocument>,
     creche_factory: Option<conduit::creche_encounter::CrecheEncounterFactory>,
     creche_live: Option<creche_worker::CrecheLive>,
-    creche_products: Option<conduit_body_make::ProducedJoiningHost<std::fs::File>>,
+    creche_products: Option<conduit::creche_encounter::CrecheProducts>,
     /// Bounded display cache from an exact selected read Host Call and both
     /// terminal Signs. It is never a reducer or a source of authority.
     todo_verified: Option<(

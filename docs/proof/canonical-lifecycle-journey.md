@@ -9367,3 +9367,30 @@ factory, and the continuing owner takes raw `ProducedJoiningHost` values.
 Those owners must carry funded factory/product wrappers before switching the
 service to the selected runner. This is a concrete ownership migration, not an
 execution-flag change. No service or hardware deployment occurred here.
+
+### 2026-11-06 — Service retains charged Seed products through inspection/export
+
+The continuing owner now takes `CrecheProducts`, which preserves either the
+reference product owner or the opaque IMAGE product owner. Controller handoff
+selects that representation from actual encounter custody, rather than asking
+the service to guess from identifiers. The service's Face projection borrows
+metadata; authenticated export borrows a read/seek cursor whose private wrapper
+cannot replace or extract the underlying artifact owner. IMAGE metadata and
+its original worker reservation stay together through service retention.
+
+The funded-worker regression now uses this same handoff, verifies the actual
+Seed package, reads its ZIP header through the borrowed cursor, and proves the
+original 16 MiB output charge still blocks reuse after worker join and all
+encounter/controller/view owners drop. Capacity returns only when the retained
+product owner drops. Reference owner tests retain their existing expiry,
+Body/Boot/Seed verification and exact artifact export boundaries.
+
+This migrates the service result owner; its initialized factory and execution
+report still need their IMAGE ownership migration. No live service or physical
+device changed, and no deployment or membership result is inferred from export.
+
+Qualification: all 31 Crèche library cases, three real owner-worker CPU journeys,
+strict product lib/test Clippy passed. Logs:
+`/tmp/conduit-creche-service-products-20261106.log`,
+`/tmp/conduit-creche-service-products-owner-20261106.log`, and
+`/tmp/conduit-creche-service-products-clippy-20261106.log`.

@@ -64,8 +64,8 @@ fn admitted_image_worker_produces_seed_and_output_keeps_original_charge_after_jo
         .err()
         .unwrap()
         .contains("retained output custody"));
-    let products = controller.take_image_products().unwrap().unwrap();
-    assert!(controller.take_image_products().unwrap().is_none());
+    let mut products = controller.take_retained_products().unwrap().unwrap();
+    assert!(controller.take_retained_products().unwrap().is_none());
     assert_eq!(
         products.products().spore.manifest.body_id,
         adapter.channel.binding.biography.body_id.as_str()
@@ -79,6 +79,13 @@ fn admitted_image_worker_produces_seed_and_output_keeps_original_charge_after_jo
         b"artifact",
     );
     drop(file);
+    use std::io::{Read, Seek};
+    let mut reader = products.artifact_reader();
+    reader.rewind().unwrap();
+    let mut first = [0; 4];
+    reader.read_exact(&mut first).unwrap();
+    assert_eq!(&first, b"PK\x03\x04");
+    drop(reader);
     adapter.cancel_and_drain().unwrap();
     assert!(controller.channel.lock().unwrap().worker.is_none());
     drop(adapter);

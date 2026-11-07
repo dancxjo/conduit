@@ -19,10 +19,11 @@ impl Owner {
         if !destination.is_absolute() {
             return Err("Seed export requires an explicit absolute destination".into());
         }
-        let products = self
+        let retained = self
             .creche_products
             .as_mut()
             .ok_or("no prepared Seed is retained")?;
+        let products = retained.products();
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|_| "Seed invitation clock unavailable")?
@@ -69,7 +70,7 @@ impl Owner {
         conduit_host_make::download_body_bound_artifact_from(
             &carrier,
             &identity,
-            &mut products.artifact,
+            &mut retained.artifact_reader(),
             destination,
             || started.elapsed() >= std::time::Duration::from_secs(2),
         )

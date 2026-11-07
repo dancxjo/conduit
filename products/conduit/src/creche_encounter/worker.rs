@@ -19,7 +19,7 @@ pub(super) struct PreparedWorkerMemory {
 /// Borrowing does not permit uncharged owned-data extraction or acknowledge
 /// deployment, joining or durable recording.
 pub struct ImageCrecheProducts {
-    products: ProducedJoiningHost<File>,
+    pub(super) products: ProducedJoiningHost<File>,
     _memory: ImageMemoryRetention,
 }
 impl ImageCrecheProducts {

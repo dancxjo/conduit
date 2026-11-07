@@ -26,10 +26,12 @@ mod controller;
 mod factory;
 mod hosted;
 mod memory;
+mod products;
 mod worker;
 pub use bundle::CrecheReviewedBundle;
 pub use controller::{CrecheEncounterController, CrecheFace};
 use memory::{ChannelCustody, LocalCustody};
+pub use products::CrecheProducts;
 use worker::PreparedWorkerMemory;
 pub use worker::{CrecheWorkerBounds, ImageCrecheProducts};
 
