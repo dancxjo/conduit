@@ -51,24 +51,36 @@ pub fn checked_ht16k33_resident_library(
 }
 /// Exact Source decoder inventory. Electrical capture remains a separately
 /// admitted provider; these expressions do not acquire the DHT pin.
+pub fn checked_dht11_resident_images(
+    checked: &CheckedHostConfiguration,
+) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
+    crate::CheckedDht11Tm1637Construction::from_configuration(checked)?;
+    let document = conduit_mcu_source_build::checked_dht11_tm1637_source()?;
+    conduit_embedded_build::prepare_source_resident_library(
+        &document,
+        conduit_mcu_source_build::DHT11_TM1637_ENTRIES,
+        ResidentExpressionBounds {
+            native: p::rust_binding::PreparedNativeBounds {
+                canonical_bytes: 4096,
+                scopes: 64,
+                invariants: 64,
+                contracts: 64,
+            },
+            maximum_occurrences: 4096,
+            maximum_program_bytes: 512 * 1024,
+            maximum_generated_bytes: 1024 * 1024,
+            private_work_units: conduit_mcu_source_build::DHT11_TM1637_PRIVATE_WORK_UNITS,
+        },
+    )
+}
 pub fn checked_dht11_resident_library(
     checked: &CheckedHostConfiguration,
 ) -> Result<String, String> {
-    crate::CheckedDht11Tm1637Construction::from_configuration(checked)?;
-    let bounds = ResidentExpressionBounds {
-        native: p::rust_binding::PreparedNativeBounds {
-            canonical_bytes: 4096,
-            scopes: 64,
-            invariants: 64,
-            contracts: 64,
-        },
-        maximum_occurrences: 4096,
-        maximum_program_bytes: 512 * 1024,
-        maximum_generated_bytes: 1024 * 1024,
-        private_work_units: conduit_mcu_source_build::DHT11_TM1637_PRIVATE_WORK_UNITS,
-    };
-    conduit_mcu_source_build::generate_dht11_tm1637_inventory(bounds, 2 * 1024 * 1024)
+    let images = checked_dht11_resident_images(checked)?;
+    conduit_embedded_build::generate_resident_library(&images, 2 * 1024 * 1024)
+        .map_err(|e| format!("resident library: {e:?}"))
 }
+
 fn resident_entries(
     document: &p::CheckedSyntaxDocument,
     entries: &[&str],

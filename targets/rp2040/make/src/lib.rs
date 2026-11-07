@@ -15,9 +15,17 @@ mod resident_work;
 pub use bootstrap_contract::*;
 pub use hardware_initialization::*;
 pub use membership_seed::*;
-pub use resident_protocol::{checked_dht11_resident_library, checked_ht16k33_resident_library};
+pub use resident_protocol::{
+    checked_dht11_resident_images, checked_dht11_resident_library, checked_ht16k33_resident_library,
+};
 pub use resident_work::CheckedResidentWorkPool;
 
+pub const CLOCK_IMPLEMENTATION: &str = "rp2040/monotonic-clock@1";
+pub use conduit_mcu_source_build::clock::CheckedClockConstruction;
+pub const RENDERER_IMPLEMENTATION: &str = "rp2040/seven-segment-renderer@1";
+pub use conduit_mcu_source_build::renderer::{
+    CheckedRendererConstruction, TemperatureUnit as RendererTemperatureUnit,
+};
 pub const PACKAGE_ID: &str = "conduit-host-rp2040@1";
 pub const TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
 pub const BUILDER_ADAPTER: &str = "conduit-host-rp2040/build-uf2@1";
@@ -32,8 +40,16 @@ impl HostMakePackage for Rp2040MakePackage {
             catalog: PackageCatalogContribution {
                 initialization_contracts: std::collections::BTreeMap::from([
                     (
+                        CLOCK_IMPLEMENTATION.into(),
+                        conduit_mcu_source_build::clock::initialization_contract(),
+                    ),
+                    (
                         WIFI_IMPLEMENTATION.into(),
                         retained_wifi_initialization_contract(),
+                    ),
+                    (
+                        RENDERER_IMPLEMENTATION.into(),
+                        conduit_mcu_source_build::renderer::initialization_contract(),
                     ),
                     (I2C_IMPLEMENTATION.into(), i2c_initialization_contract()),
                     (DHT11_IMPLEMENTATION.into(), dht11_initialization_contract()),
@@ -96,3 +112,8 @@ impl HostMakePackage for Rp2040MakePackage {
 
 #[cfg(test)]
 mod member_return_wire_tests;
+
+/// Shared explicit checked Source closure for ordinary firmware fabrication.
+pub use conduit_mcu_source_build::workset;
+
+pub use conduit_mcu_source_build as source_build;

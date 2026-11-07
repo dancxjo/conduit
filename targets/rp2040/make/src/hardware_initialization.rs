@@ -96,6 +96,8 @@ pub(super) fn offers() -> Vec<ImplementationOffer> {
         (HT16K33_BASE_KIND, HT16K33_IMPLEMENTATION),
         (WIFI_BASE_KIND, WIFI_IMPLEMENTATION),
         (crate::DHT11_BASE_KIND, crate::DHT11_IMPLEMENTATION),
+        ("face/renderer", crate::RENDERER_IMPLEMENTATION),
+        ("clock/monotonic", crate::CLOCK_IMPLEMENTATION),
         (crate::TM1637_BASE_KIND, crate::TM1637_IMPLEMENTATION),
     ]
     .into_iter()
