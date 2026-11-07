@@ -31,7 +31,6 @@ pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, S
         {
             TODO_ACTION_DEADLINE
         }
-        Request::BodyPrepareUsb { .. } => Duration::from_secs(12),
         Request::BodyReturn { .. } => Duration::from_secs(10),
         _ => CONTROL_DEADLINE,
     };
@@ -118,7 +117,6 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
-        | Request::BodyPrepareUsb { token, .. }
         | Request::BodyMemberCarrierReceiver { token, .. }
         | Request::BodyAttestAdmissionReceipt { token, .. }
         | Request::BodyMemberCarrierBegin { token, .. }

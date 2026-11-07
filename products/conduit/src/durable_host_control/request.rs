@@ -115,15 +115,6 @@ pub(super) enum Request {
         window_id: String,
         credential: MembershipCredential,
     },
-    BodyPrepareUsb {
-        protocol: u16,
-        token: Vec<u8>,
-        port: std::path::PathBuf,
-        member: Box<crate::durable_host::owner::MemberPresentationBasis>,
-        source: String,
-        entries: Vec<String>,
-        native_capabilities: Vec<String>,
-    },
     BodyMemberCarrierReceiver {
         protocol: u16,
         token: Vec<u8>,

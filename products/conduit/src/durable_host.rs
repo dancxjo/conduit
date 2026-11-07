@@ -70,10 +70,7 @@ mod usb_admission;
 pub(crate) use usb_admission::admit_usb;
 #[path = "durable_host/usb_member_return.rs"]
 mod usb_member_return;
-#[path = "durable_host/usb_workset.rs"]
-mod usb_workset;
 pub(crate) use usb_member_return::return_usb;
-pub(crate) use usb_workset::prepare_usb;
 #[path = "durable_host/membership_receipt_custody.rs"]
 mod membership_receipt_custody;
 pub(crate) use membership::leave_member_from_file;

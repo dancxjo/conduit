@@ -69,10 +69,6 @@ pub(super) enum Response {
         protocol: u16,
         biography: Box<BodyBiographyEvidence>,
     },
-    BodyWorksetSubmitted {
-        protocol: u16,
-        report: serde_json::Value,
-    },
     BodyMemberCarrierReceiver {
         protocol: u16,
         receiver: Box<conduit_body::FederationPeer>,

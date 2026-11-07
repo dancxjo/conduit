@@ -125,7 +125,6 @@ pub(crate) mod direct_spoken {
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
 pub(crate) use body::local_wardrobe;
-pub(crate) use body::prepare_usb;
 pub(crate) use body::start_browser_window;
 #[cfg(unix)]
 pub(crate) use body::submit_attached_terminal_interaction;
@@ -1407,7 +1406,6 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
-        | Request::BodyPrepareUsb { token, .. }
         | Request::BodyMemberCarrierReceiver { token, .. }
         | Request::BodyAttestAdmissionReceipt { token, .. }
         | Request::BodyMemberCarrierBegin { token, .. }
@@ -1724,21 +1722,6 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|receipt| Response::BodyAttestedAdmissionReceipt {
                 protocol: PROTOCOL,
                 receipt: Box::new(receipt),
-            })
-            .unwrap_or_else(|code| refused(&code)),
-        Request::BodyPrepareUsb {
-            protocol,
-            port,
-            member,
-            source,
-            entries,
-            native_capabilities,
-            ..
-        } if protocol == PROTOCOL => runtime
-            .owned_body_prepare_usb(&port, &member, source, &entries, &native_capabilities)
-            .map(|report| Response::BodyWorksetSubmitted {
-                protocol: PROTOCOL,
-                report,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberCarrierReceiver { protocol, .. } if protocol == PROTOCOL => runtime

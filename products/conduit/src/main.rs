@@ -472,9 +472,6 @@ fn main() {
         Some(cli::Command::Body { command: Some(cli::BodyCommand::AdmitUsb {
             port, basis, receipt_output, state_dir, authorize_admission,
         }) }) => durable_host::admit_usb(&port, &basis, &receipt_output, &state_dir, authorize_admission),
-        Some(cli::Command::Body { command: Some(cli::BodyCommand::PrepareUsb {
-            port, member, source, entries, native_capabilities, state_dir, authorize_preparation,
-        }) }) => durable_host::prepare_usb(&port, &member, &source, entries, native_capabilities, &state_dir, authorize_preparation),
         Some(cli::Command::Body { command: Some(cli::BodyCommand::ReturnUsb {
             port, basis, receipt_output, state_dir, authorize_return,
         }) }) => durable_host::return_usb(&port, &basis, &receipt_output, &state_dir, authorize_return),
