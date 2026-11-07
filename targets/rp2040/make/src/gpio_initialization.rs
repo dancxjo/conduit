@@ -40,9 +40,11 @@ pub fn tm1637_initialization_contract() -> BaseInitializationContract {
             count("maximum_clock_rise_us", 1, 10_000),
             count("maximum_transaction_us", 1, 1_000_000),
             KindConfigurationField {
-                key: "weak_pullups".into(),
-                default_value: ConfigurationValue::Bool(false),
-                rule: KindConfigurationRule::Any,
+                key: "pull".into(),
+                default_value: ConfigurationValue::Text("none".into()),
+                rule: KindConfigurationRule::TextOneOf {
+                    values: vec!["none".into(), "up".into()],
+                },
             },
         ],
     }
@@ -108,9 +110,10 @@ impl CheckedTm1637Construction {
         if !exposed(clock_gpio) || !exposed(data_gpio) || clock_gpio == data_gpio {
             return Err("TM1637 GPIOs must be distinct exposed pins".into());
         }
-        let weak_pullups = match v.get("weak_pullups") {
-            Some(ConfigurationValue::Bool(b)) => *b,
-            _ => return Err("weak_pullups must be Boolean".into()),
+        let weak_pullups = match v.get("pull") {
+            Some(ConfigurationValue::Text(pull)) if pull == "none" => false,
+            Some(ConfigurationValue::Text(pull)) if pull == "up" => true,
+            _ => return Err("pull must be none or up".into()),
         };
         let half_period_us = value(&v, "half_period_us")? as u32;
         let settled_us = value(&v, "settled_us")? as u32;
@@ -200,7 +203,7 @@ mod tests {
         check_host_configuration, parse_host_configuration_conduit, MakeCatalog, MakePackageSet,
     };
     const GREEN: &str = include_str!("../../profiles/pico-w-house-green.host.conduit");
-    const DISPLAY: &str = "  base = {kind: \"display/segmented\", implementation: \"rp2040/tm1637@1\", initialization: {clk: 7, dio: 6, brightness: 3, layout: \"seven4\", half_period_us: 50, settled_us: 1000, maximum_clock_rise_us: 1000, maximum_transaction_us: 100000, weak_pullups: true}}";
+    const DISPLAY: &str = "  base = {kind: \"display/segmented\", implementation: \"rp2040/tm1637@1\", initialization: {clk: 7, dio: 6, brightness: 3, layout: \"seven4\", half_period_us: 50, settled_us: 1000, maximum_clock_rise_us: 1000, maximum_transaction_us: 100000, pull: \"up\"}}";
     const SENSOR: &str = "  base = {kind: \"sensor/environment\", implementation: \"rp2040/dht11@1\", initialization: {data: 3, start_low_us: 20000, maximum_transaction_us: 50000}}";
     fn source(yellow: bool) -> String {
         GREEN
@@ -239,6 +242,21 @@ mod tests {
     }
     #[test]
     fn exact_attended_yellow_and_white_pin_bindings() {
+        let installed_yellow = yellow(include_str!(
+            "../../profiles/pico-w-house-yellow.host.conduit"
+        ))
+        .unwrap();
+        let installed_white = white(include_str!(
+            "../../profiles/pico-w-house-white.host.conduit"
+        ))
+        .unwrap();
+        assert_eq!(installed_yellow.sensor.data_gpio, 3);
+        assert_eq!(installed_yellow.display.clock_gpio, 7);
+        assert_eq!(installed_yellow.display.data_gpio, 6);
+        assert_eq!(installed_white.bus.sda_gpio, 6);
+        assert_eq!(installed_white.bus.scl_gpio, 7);
+        assert_eq!(installed_white.display.clock_gpio, 3);
+        assert_eq!(installed_white.display.data_gpio, 4);
         let y = yellow(&source(true)).unwrap();
         assert_eq!(
             (
@@ -283,10 +301,9 @@ mod tests {
         assert!(yellow(&y.replace(SENSOR, &format!("{SENSOR}\n{bus_line}"))).is_err());
     }
     #[test]
-    fn explicit_finite_timing_brightness_and_boolean_are_checked() {
+    fn explicit_finite_timing_brightness_and_pull_are_checked() {
         let y = source(true);
         for (from, to) in [
-            ("maximum_capture_polls: 100000", "maximum_capture_polls: 0"),
             (
                 "maximum_transaction_us: 50000",
                 "maximum_transaction_us: 20000",
@@ -297,10 +314,11 @@ mod tests {
             ),
             ("half_period_us: 50", "half_period_us: 0"),
             ("brightness: 3", "brightness: 8"),
-            ("weak_pullups: true", "weak_pullups: 1"),
-            ("", ""),
+            ("pull: \"up\"", "pull: 1"),
+            ("pull: \"up\"", "pull: \"sideways\""),
             ("layout: \"seven4\"", "layout: \"unknown\""),
         ] {
+            assert!(y.contains(from), "fixture lacks mutation target: {from}");
             assert!(yellow(&y.replace(from, to)).is_err(), "{from} => {to}");
         }
         let old = yellow(&y).unwrap();
