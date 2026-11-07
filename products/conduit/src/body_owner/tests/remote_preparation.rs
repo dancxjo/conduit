@@ -216,3 +216,197 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
         .is_err());
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn two_members_retain_one_exact_body_play_and_block_duplicate_boot_and_source_cas() {
+    let source = crate::plot_source::parse("type Reading = {\n value: U8\n}\nplot pair (\n one: Reading...| >> outone: Reading...|\n two: Reading...| >> outtwo: Reading...|\n) {\n one >> (.) >> outone\n two >> ({value: 7}) >> outtwo\n}\n").unwrap();
+    let checked = source.check().unwrap();
+    let expanded = source.expand_entry_for_authoring().unwrap();
+    assert_eq!(expanded.expanded.gears.len(), 2);
+    let images: Vec<_> = expanded
+        .expanded
+        .gears
+        .iter()
+        .map(|gear| {
+            let conduit_core::ConfigurationValue::Text(program) = &gear
+                .configuration
+                .iter()
+                .find(|c| c.key == "program")
+                .unwrap()
+                .value
+            else {
+                panic!("program")
+            };
+            build::PreparedResidentExpression::prepare(
+                &checked,
+                &conduit_plot::PortableExpressionProgram::from_canonical_hex(program).unwrap(),
+                gear.inputs[0].temporal,
+                build::ResidentExpressionBounds {
+                    native: conduit_plot::rust_binding::PreparedNativeBounds {
+                        canonical_bytes: 4096,
+                        scopes: 64,
+                        invariants: 64,
+                        contracts: 64,
+                    },
+                    maximum_occurrences: 4096,
+                    maximum_program_bytes: 512 * 1024,
+                    maximum_generated_bytes: 1024 * 1024,
+                    private_work_units: 1000,
+                },
+            )
+            .unwrap()
+        })
+        .collect();
+    let local = StdHost::new_with_composition(
+        StdHostConfig {
+            host_id: "host/two-approval-owner".into(),
+            boot_id: "boot/two-approval-owner".into(),
+            offer_generation: OfferGeneration(1),
+        },
+        StdHostComposition::minimal(),
+    );
+    let (mut owner, root) = super::member_leave::owner_fixture_with_plot(local, &expanded);
+    let members: Vec<_> = images
+        .iter()
+        .enumerate()
+        .map(|(index, image)| {
+            let host = format!("host/approval-member-{index}");
+            let ad = conduit_core::HostAdvertisement {
+                declared_name: None,
+                protocol_version: conduit_core::PROTOCOL_VERSION,
+                host_id: host.as_str().into(),
+                boot_id: format!("boot/member-{index}").into(),
+                offer_generation: OfferGeneration(1),
+                profile: "fixture/resident-profile".into(),
+                bases: vec![],
+                resources: vec![conduit_core::resource_offer(
+                    "pool/work",
+                    conduit_core::COOPERATIVE_STEP_WORK_CLASS_ID,
+                    1000,
+                )],
+                capabilities: vec![image.offer_description().clone()],
+                planner_capabilities: vec![],
+            };
+            let (credential, _, ad) =
+                super::member_leave::admit_advertisement(&mut owner, &root, &host, ad);
+            crate::durable_host::owner::MemberPresentationBasis::new(credential, ad).unwrap()
+        })
+        .collect();
+    let mut boundary = std::collections::BTreeMap::new();
+    for (direction, bindings) in [
+        (conduit_core::PortDirection::Input, &expanded.input_bindings),
+        (
+            conduit_core::PortDirection::Output,
+            &expanded.output_bindings,
+        ),
+    ] {
+        for binding in bindings {
+            let location = if direction == conduit_core::PortDirection::Input {
+                conduit_core::FrontValueLocation::Input(binding.front_port_id.clone())
+            } else {
+                conduit_core::FrontValueLocation::Output(binding.front_port_id.clone())
+            };
+            boundary.insert(
+                conduit_planner::ForeBoundaryKey {
+                    direction,
+                    front_port_id: binding.front_port_id.clone(),
+                    track: binding.track,
+                },
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: expanded
+                        .front
+                        .value_contract(&location)
+                        .unwrap()
+                        .maximum_bytes
+                        .max(1),
+                },
+            );
+        }
+    }
+    owner
+        .plan_workset_with_source_boundaries(
+            &[(&source, &expanded)],
+            &std::collections::BTreeMap::from([(resident(&expanded), boundary)]),
+        )
+        .unwrap();
+    let issuer = owner.prepare_current_member_carrier_receiver().unwrap();
+    let limits = build::BodyFragmentProjectionLimits {
+        image: build::EmbeddedImageBounds::HOST_TOOLING,
+        computations: build::EmbeddedComputationBounds {
+            maximum_program_bytes: 512 * 1024,
+            maximum_total_program_bytes: 1024 * 1024,
+        },
+        assigned: conduit_core::AssignedPlanMaxima {
+            encoded_bytes: 4096,
+            runtime_state_bytes: 16384,
+            counts: [32; conduit_core::ASSIGNED_PLAN_COUNT_KINDS],
+        },
+        maximum_fore_ports: 4,
+        maximum_document_bytes: 4096,
+    };
+    let image_refs: Vec<_> = images.iter().collect();
+    let mut play = None;
+    for member in &members {
+        let challenge = IssuedHostCommandChallenge::issue(
+            &member.credential,
+            &member.host_advertisement,
+            &issuer,
+            HostCommandReceiveBounds {
+                payload_contract: HOST_PREPARED_WORKSET_CONTRACT,
+                maximum_payload_bytes: 4096,
+                lifetime_millis: 10000,
+            },
+            [9; 32],
+            100,
+        )
+        .unwrap();
+        let command = owner
+            .approve_remote_workset(member, challenge.challenge(), &image_refs, &[], limits)
+            .unwrap();
+        if let Some(play) = &play {
+            assert_eq!(command.play(), play);
+        } else {
+            play = Some(command.play().clone());
+        }
+        assert!(owner.require_remote_workset_retired().is_err());
+    }
+    assert_eq!(owner.member_carrier.as_ref().unwrap().commands.len(), 2);
+    let mut new_boot = members[0].clone();
+    new_boot.host_advertisement.boot_id = "boot/replacement".into();
+    new_boot.host_advertisement.offer_generation.0 += 1;
+    let challenge = IssuedHostCommandChallenge::issue(
+        &new_boot.credential,
+        &new_boot.host_advertisement,
+        &issuer,
+        HostCommandReceiveBounds {
+            payload_contract: HOST_PREPARED_WORKSET_CONTRACT,
+            maximum_payload_bytes: 4096,
+            lifetime_millis: 10000,
+        },
+        [10; 32],
+        100,
+    )
+    .unwrap();
+    let error = owner
+        .approve_remote_workset(&new_boot, challenge.challenge(), &image_refs, &[], limits)
+        .err()
+        .unwrap();
+    assert!(error.contains("Part or Host remains retained"), "{error}");
+    assert_eq!(owner.member_carrier.as_ref().unwrap().commands.len(), 2);
+    let before = owner.session.evidence().clone();
+    owner.lull().unwrap();
+    assert!(owner.require_remote_workset_retired().is_err());
+    let lulled = owner.session.evidence().clone();
+    let refused = owner
+        .commit_admitted_workset_revision(&root, &lulled, &[(&source, &expanded)])
+        .unwrap_err();
+    assert!(
+        refused.contains("actual remote receiver retirement"),
+        "{refused}"
+    );
+    assert_eq!(owner.session.evidence(), &lulled);
+    assert_eq!(owner.member_carrier.as_ref().unwrap().commands.len(), 2);
+    assert_eq!(owner.session.evidence().body.workset, before.body.workset);
+    std::fs::remove_dir_all(root).unwrap();
+}

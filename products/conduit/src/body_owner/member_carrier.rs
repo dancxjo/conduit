@@ -20,7 +20,7 @@ pub(super) struct MemberCarrierCustody {
     key: Option<SpawnInvitationSecret>,
     pending: Option<Pending>,
     active: Option<Active>,
-    command: Option<preparation::PreparedRemoteBodyCommand>,
+    commands: Vec<preparation::PreparedRemoteBodyCommand>,
 }
 struct Pending {
     slot: CurrentMemberChallengeSlot,

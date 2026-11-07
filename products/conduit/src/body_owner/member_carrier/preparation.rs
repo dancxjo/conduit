@@ -1,4 +1,4 @@
-//! One original command approval, retained until actual receiver retirement.
+//! Finite per-member original approvals, retained until actual receiver retirement.
 use super::*;
 use conduit_body::{
     host_command_attribution_transcript, BodyPlayIdentity, HostCommandChallenge,
@@ -11,6 +11,8 @@ use conduit_embedded_build::{
 /// No public constructor, Clone or deserializer. Retaining this command does
 /// not acknowledge receiver preparation, admission or execution.
 pub(crate) struct PreparedRemoteBodyCommand {
+    part: conduit_body::PartId,
+    host: conduit_core::HostId,
     play: BodyPlayIdentity,
     document: GeneratedBodyWorksetDocument,
     transcript: [u8; 32],
@@ -35,7 +37,7 @@ impl Owner {
         if self
             .member_carrier
             .as_ref()
-            .is_some_and(|custody| custody.command.is_some())
+            .is_some_and(|custody| !custody.commands.is_empty())
         {
             return Err("workset replacement requires actual remote receiver retirement".into());
         }
@@ -49,12 +51,16 @@ impl Owner {
         native: &[&conduit_core::CapabilityOffer],
         limits: BodyFragmentProjectionLimits,
     ) -> Result<&PreparedRemoteBodyCommand, String> {
-        if self
-            .member_carrier
-            .as_ref()
-            .is_some_and(|custody| custody.command.is_some())
-        {
-            return Err("remote preparation approval slot occupied".into());
+        if let Some(custody) = &self.member_carrier {
+            if custody.commands.iter().any(|command| {
+                command.part == member.credential.part_id
+                    || command.host == member.host_advertisement.host_id
+            }) {
+                return Err("remote approval for this Part or Host remains retained".into());
+            }
+            if custody.commands.len() >= conduit_body::MAX_BODY_PARTS {
+                return Err("finite remote approval capacity exhausted".into());
+            }
         }
         self.require_current_native_member(member)?;
         self.require_observed_member_offer(&member.host_advertisement)?;
@@ -92,6 +98,13 @@ impl Owner {
             ..limits
         };
         let (play, document) = self.prepare_remote_mixed_workset(actual, images, native, limits)?;
+        if self
+            .member_carrier
+            .as_ref()
+            .is_some_and(|custody| custody.commands.iter().any(|command| command.play != play))
+        {
+            return Err("retained remote approvals pin another exact Body Plan or Play".into());
+        }
         let transcript = host_command_attribution_transcript(challenge, document.bytes())
             .map_err(|error| format!("remote command transcript refused: {error:?}"))?;
         let custody = self
@@ -103,17 +116,19 @@ impl Owner {
             .as_ref()
             .ok_or("owner issuer key absent")?
             .sign(&transcript);
-        custody.command = Some(PreparedRemoteBodyCommand {
+        custody.commands.push(PreparedRemoteBodyCommand {
+            part: credential.part_id.clone(),
+            host: actual.host_id.clone(),
             play,
             document,
             transcript,
             signature,
         });
-        // No timer or transport failure clears this slot. Receiver retirement
+        // No timer or transport failure clears these slots. Receiver retirement
         // and installation/Start remain separate unfinished protocol steps.
         Ok(custody
-            .command
-            .as_ref()
+            .commands
+            .last()
             .expect("just retained original command"))
     }
 }
