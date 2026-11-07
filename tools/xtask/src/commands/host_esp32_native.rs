@@ -13,9 +13,9 @@ pub(super) fn selected(image: &HostImage) -> bool {
     image.manifest.target == "esp32/xtensa-lx6/hw-463-esp-wroom-32"
         && image
             .manifest
-            .implementations
+            .base_selections
             .iter()
-            .any(|i| i == conduit_host_esp32_make::physical::DHT11)
+            .any(|base| base.driver == conduit_host_esp32_make::physical::DHT11)
 }
 pub(super) fn build(
     profile: &Path,
@@ -231,7 +231,42 @@ fn static_dram_bytes(sections: &str) -> Result<u64, Box<dyn std::error::Error>> 
 
 #[cfg(test)]
 mod tests {
-    use super::{application_only, static_dram_bytes};
+    use super::{application_only, selected, static_dram_bytes};
+    #[test]
+    fn physical_base_selects_native_builder_without_a_fictitious_gear_implementation() {
+        use conduit_host_make as h;
+        let packages =
+            h::MakePackageSet::compose(&[&conduit_host_esp32_make::Esp32MakePackage]).unwrap();
+        let catalog = h::MakeCatalog::canonical().with_packages(&packages);
+        let source = include_str!("../../../../targets/esp32/profiles/blue-wroom32.host.conduit");
+        let checked = h::check_host_configuration(
+            h::parse_host_configuration_conduit(source).unwrap(),
+            &catalog,
+            &packages,
+        )
+        .unwrap();
+        let (mut image, _) = h::build_default_host_image(
+            checked.into_profile(),
+            &catalog,
+            &packages,
+            &h::BuildInputs {
+                source_identity: "test/native-builder-selection".into(),
+                toolchain_available: true,
+            },
+        )
+        .unwrap();
+        assert!(image.manifest.implementations.is_empty());
+        assert!(selected(&image));
+        let target = image.manifest.target.clone();
+        image.manifest.target = "unsupported/other-board".into();
+        assert!(!selected(&image));
+        image.manifest.target = target;
+        image
+            .manifest
+            .base_selections
+            .retain(|base| base.driver != conduit_host_esp32_make::physical::DHT11);
+        assert!(!selected(&image));
+    }
     #[test]
     fn static_inventory_excludes_reserved_stack_but_counts_secondary_noload_heap() {
         let sections="0 .data 00001000 3ffb0000 3ffb0000\n1 .bss 00002000 3ffb1000 3ffb1000\n2 .stack 00008000 3ffb3000 3ffb3000\n3 .dram2_uninit 00018000 3ffe7e30 3ffe7e30\n4 .text 00100000 400d0020 400d0020";
