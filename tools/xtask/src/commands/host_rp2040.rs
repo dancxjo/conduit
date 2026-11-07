@@ -20,7 +20,7 @@ pub(super) fn build(
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let checked = super::load_configuration(profile)?;
-    conduit_host_rp2040::CheckedBoschHt16k33Construction::from_configuration(&checked)?;
+    conduit_host_rp2040::check_environmental_construction(&checked)?;
     conduit_host_rp2040::check_retained_wifi_construction(&checked)?;
     if opts.dry_run {
         return Ok(());

@@ -13,6 +13,19 @@ pub const DHT11_IMPLEMENTATION: &str = "rp2040/dht11@1";
 pub const TM1637_BASE_KIND: &str = "display/segmented";
 pub const TM1637_IMPLEMENTATION: &str = "rp2040/tm1637@1";
 
+/// Validate a supported physical composition before invoking its target builder.
+/// This checks construction only; no equipment or execution authority is issued.
+pub fn check_environmental_construction(checked: &CheckedHostConfiguration) -> Result<(), String> {
+    let selected = |name| checked.resolved_bases().iter().any(|(_, id)| id == name);
+    if selected(DHT11_IMPLEMENTATION) {
+        CheckedDht11Tm1637Construction::from_configuration(checked).map(|_| ())
+    } else if selected(TM1637_IMPLEMENTATION) {
+        CheckedBoschTm1637Construction::from_configuration(checked).map(|_| ())
+    } else {
+        crate::CheckedBoschHt16k33Construction::from_configuration(checked).map(|_| ())
+    }
+}
+
 pub fn dht11_initialization_contract() -> BaseInitializationContract {
     BaseInitializationContract {
         fields: vec![
@@ -242,6 +255,13 @@ mod tests {
     }
     #[test]
     fn exact_attended_yellow_and_white_pin_bindings() {
+        for source in [
+            GREEN,
+            include_str!("../../profiles/pico-w-house-yellow.host.conduit"),
+            include_str!("../../profiles/pico-w-house-white.host.conduit"),
+        ] {
+            check_environmental_construction(&checked(source).unwrap()).unwrap();
+        }
         let installed_yellow = yellow(include_str!(
             "../../profiles/pico-w-house-yellow.host.conduit"
         ))
