@@ -112,6 +112,7 @@ impl<I: RegisterIo> Controller<I> {
         }
         // A previous unacknowledged hardware operation is never overwritten.
         if self.io.read(CHARACTER) & ENABLE != 0 {
+            self.observe_failure("already-active", None);
             self.quiescent = false;
             self.prepared = false;
             return Err(PacketError::Retirement);
@@ -150,7 +151,7 @@ impl<I: RegisterIo> Controller<I> {
                 self.io.write(FIFO, u32::from_le_bytes(word));
             }
         }
-        let result = self.poll_packet(
+        let mut result = self.poll_packet(
             packet.input && !packet.start_split,
             packet.start_split,
             bytes,
@@ -161,12 +162,14 @@ impl<I: RegisterIo> Controller<I> {
         let halted = self.io.read(STATUS) & HALTED != 0;
         let active = self.io.read(CHARACTER) & ENABLE != 0;
         if !halted || active {
-            self.io.write(CHARACTER, characteristic | ENABLE | HALT);
-            if self.wait(STATUS, HALTED, HALTED, 100_000).is_err()
-                || self.io.read(CHARACTER) & ENABLE != 0
-            {
-                self.prepared = false;
-                return Err(PacketError::Retirement);
+            match self.halt_packet(characteristic, periodic) {
+                Ok(true) if result.is_ok() => result = Err(PacketError::ReceiveEnvelope),
+                Ok(_) => {}
+                Err(()) => {
+                    self.observe_failure("halt", result.err());
+                    self.prepared = false;
+                    return Err(PacketError::Retirement);
+                }
             }
         }
         self.quiescent = true;
@@ -177,6 +180,7 @@ impl<I: RegisterIo> Controller<I> {
             self.io.write(RESET, 1 << 4);
             let rx = self.wait(RESET, 1 << 4, 0, 100_000);
             if tx.is_err() || rx.is_err() {
+                self.observe_failure("fifo-flush", result.err());
                 self.prepared = false;
                 return Err(PacketError::Retirement);
             }

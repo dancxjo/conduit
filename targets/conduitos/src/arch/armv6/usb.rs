@@ -19,6 +19,12 @@ impl RegisterIo for Registers {
         debug_assert!((offset <= 0xe00 || offset == 0x1000) && offset & 3 == 0);
         unsafe { write32(USB_BASE + offset, value) };
     }
+    fn packet_failure(&mut self, failure: crate::arch::dwc2::PacketFailure) {
+        use core::fmt::Write;
+        let mut text = crate::sign_format::FixedText::new();
+        let _ = writeln!(text, "CONDUIT_USB_PACKET_FAILURE us={} {failure:x?}", read_counter());
+        super::present(text.as_bytes());
+    }
     fn now_us(&mut self) -> u32 {
         read_counter() as u32
     }

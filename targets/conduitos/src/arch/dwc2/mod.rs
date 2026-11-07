@@ -1,6 +1,9 @@
 //! Class-neutral DWC2 controller preparation. No descriptors, HID policy or
 //! device initialization requests live at this hardware boundary.
 mod control;
+mod observation;
+mod retirement;
+pub use observation::PacketFailure;
 mod packet;
 mod route;
 mod split;
@@ -15,6 +18,8 @@ pub trait RegisterIo {
     fn read(&mut self, offset: usize) -> u32;
     fn write(&mut self, offset: usize, value: u32);
     fn now_us(&mut self) -> u32;
+    /// Optional bounded observation; must not access FIFO or mutate custody.
+    fn packet_failure(&mut self, _failure: PacketFailure) {}
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Refusal {

@@ -12,6 +12,10 @@ pub(crate) struct Io {
     pub(crate) running: bool,
     pub(crate) finish: u32,
     pub(crate) stuck_halt: bool,
+    pub(crate) halt_via_rx: bool,
+    pub(crate) queue_slots: VecDeque<u8>,
+    pub(crate) late_halt_data: bool,
+    pub(crate) failures: Vec<PacketFailure>,
     pub(crate) port: u32,
     pub(crate) residue: u32,
     pub(crate) script: VecDeque<(u32, Vec<u32>, Vec<u32>)>,
@@ -29,6 +33,10 @@ impl Io {
             running: false,
             finish: HALTED | 1,
             stuck_halt: false,
+            halt_via_rx: true,
+            queue_slots: VecDeque::new(),
+            late_halt_data: false,
+            failures: Vec::new(),
             residue: 0,
             script: VecDeque::new(),
             port: CONNECTED | ENABLED | PORT_POWER,
@@ -44,7 +52,7 @@ impl RegisterIo for Io {
                 self.frame = self.frame.wrapping_add(self.frame_step);
                 u32::from(self.frame)
             }
-            0x410 | TX_SPACE => (1 << 16) | 256,
+            0x410 | TX_SPACE => (u32::from(self.queue_slots.pop_front().unwrap_or(1)) << 16) | 256,
             INTERRUPT_STATUS => {
                 if !self.rx.is_empty() {
                     1 << 4
@@ -52,7 +60,14 @@ impl RegisterIo for Io {
                     0
                 }
             }
-            RX_POP => self.rx.pop_front().unwrap(),
+            RX_POP => {
+                let status = self.rx.pop_front().unwrap();
+                if (status >> 17) & 15 == 7 && status & 15 == 0 {
+                    self.running = false;
+                    self.finish |= HALTED;
+                }
+                status
+            }
             FIFO => self.data.pop_front().unwrap(),
             STATUS => {
                 if self.finish & HALTED != 0 {
@@ -74,9 +89,17 @@ impl RegisterIo for Io {
         self.writes.push((offset, value));
         if offset == CHARACTER {
             if value & HALT != 0 {
-                if !self.stuck_halt {
-                    self.running = false;
-                    self.finish = HALTED;
+                if !self.stuck_halt && value & ENABLE != 0 {
+                    if self.late_halt_data {
+                        self.rx.push_back((2 << 17) | (4 << 4));
+                        self.data.push_back(0xdeadbeef);
+                    }
+                    if self.halt_via_rx {
+                        self.rx.push_back(7 << 17);
+                    } else {
+                        self.running = false;
+                        self.finish |= HALTED;
+                    }
                 }
             } else {
                 self.running = value & ENABLE != 0;
@@ -87,6 +110,9 @@ impl RegisterIo for Io {
                 }
             }
         }
+    }
+    fn packet_failure(&mut self, failure: PacketFailure) {
+        self.failures.push(failure);
     }
     fn now_us(&mut self) -> u32 {
         self.clock = self.clock.wrapping_add(self.clock_step);
