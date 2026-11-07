@@ -219,7 +219,7 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
 
 #[test]
 fn two_members_retain_one_exact_body_play_and_block_duplicate_boot_and_source_cas() {
-    let source = crate::plot_source::parse("type Reading = {\n value: U8\n}\nplot pair (\n one: Reading...| >> outone: Reading...|\n two: Reading...| >> outtwo: Reading...|\n) {\n one >> (.) >> outone\n two >> ({value: 7}) >> outtwo\n}\n").unwrap();
+    let source = crate::plot_source::parse("type Reading = {\n value: U8\n}\nplot pair (\n >> one: Reading...|\n outone: Reading...| >>\n >> two: Reading...|\n outtwo: Reading...| >>\n) {\n one >> (.) >> outone\n two >> ({value: 7}) >> outtwo\n}\n").unwrap();
     let checked = source.check().unwrap();
     let expanded = source.expand_entry_for_authoring().unwrap();
     assert_eq!(expanded.expanded.gears.len(), 2);
