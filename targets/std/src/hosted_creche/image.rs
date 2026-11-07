@@ -37,6 +37,24 @@ impl StdHost {
     }
 }
 
+impl<'a> CrecheHost<'a> {
+    /// Borrow the retained context only after checking its actual producing
+    /// Host counter. Matching descriptive Host/Boot IDs alone do not suffice.
+    /// Adapter, worker and kernel storage still need independent custody;
+    /// this preparation does not authorize begin or enable IMAGE execution.
+    pub fn prepare_from_image_context(
+        host: &StdHost,
+        adapter: &'a mut dyn HostedCrecheAdapter,
+        context: &'a ImagePreparedValue<CrecheExecutionContext>,
+    ) -> Result<Self, String> {
+        host.verify_selected_image_prepared_value(context)?;
+        if context.value().host() != host.advertisement() {
+            return Err("Crèche IMAGE context differs from current producing Host".into());
+        }
+        Self::prepare_from_context(adapter, context.value())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -138,7 +156,12 @@ mod tests {
         .unwrap();
         let used = host.kernel_resources.image_memory_observer();
         let charged = used.load(Ordering::Acquire);
-        let mut owner = CrecheHost::prepare_from_context(&mut adapter, prepared.value()).unwrap();
+        let (other, _, _, _) = fixture();
+        assert!(CrecheHost::prepare_from_image_context(&other, &mut adapter, &prepared).is_err());
+        // A counter mismatch must not enter or cancel an untouched adapter.
+        assert_eq!((adapter.begins, adapter.polls, adapter.drains), (0, 0, 0));
+        let mut owner =
+            CrecheHost::prepare_from_image_context(&host, &mut adapter, &prepared).unwrap();
         assert!(core::ptr::eq(owner.context(), prepared.value()));
         assert!(owner.begin(owner.request()).is_err());
         owner.confirm_started(host.advertisement(), &play).unwrap();

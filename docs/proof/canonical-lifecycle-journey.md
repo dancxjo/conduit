@@ -9235,3 +9235,22 @@ This closes the activation omission from the preceding checkpoint, not the
 installed IMAGE gate. `BodyKernel::prepare_memory` still explicitly refuses a
 Crèche profile: its exact scheduler, Fore and context receipt must be qualified
 before the ordinary execution restriction can be removed. No device changed.
+
+### 2026-11-06 — Context-to-owner IMAGE counter verification
+
+`CrecheHost::prepare_from_image_context` now checks the retained context against
+the producing Host's original memory counter and current advertisement before
+entering adapter preparation. It borrows the exact context without cloning its
+Plan. The regression rejects an otherwise equivalent Host with matching textual
+identities and a different counter, then exercises actual owner confirmation,
+begin and retirement on the correct Host while the original charge stays held.
+This is not adapter/worker accounting or permission to run an IMAGE Play.
+
+The combined image-filter run passed 15 product cases and 50 std cases; strict
+std/product library/test Clippy passed. Logs:
+`/tmp/conduit-image-context-owner-20261106.log` and
+`/tmp/conduit-image-context-owner-clippy-20261106.log`.
+Current remote dev remains `076a7d59406650658f54ea6adbbf50f633cfaf80`, already
+absorbed by this delivery branch. The owning #6341 remains open: complete
+aggregate custody and matched physical high-water evidence are still missing.
+Kernel receipt and installed execution guards remain unchanged.
