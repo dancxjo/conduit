@@ -3,6 +3,8 @@ use conduitos::{
     arch, cryptographic_entropy::CryptographicEntropyBase, firmware_face::FirmwareFace,
     identity::BootIdentities, make::EMBEDDED_MAKE, offer::HostOffer,
 };
+#[cfg(feature = "native-startup-chime")]
+mod startup;
 pub(super) fn prepare_graphics(
     ids: &BootIdentities,
     offer: &HostOffer<'_>,
@@ -92,12 +94,18 @@ pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
             None
         }
     };
+    #[cfg(feature = "native-startup-chime")]
+    let mut _audio = None;
     let mut graphic = None;
     let mut graphics_prepared = false;
     let mut started = false;
     let mut refused = false;
     loop {
         if !graphics_prepared && (refused || input.as_ref().is_none_or(BPlusUsbInput::ready)) {
+            #[cfg(feature = "native-startup-chime")]
+            {
+                _audio = startup::play(ids, offer);
+            }
             graphic = prepare_graphics(ids, offer);
             graphics_prepared = true;
             arch::present(b"CONDUIT_BOOT_STAGE armv6-product-ready\n");
