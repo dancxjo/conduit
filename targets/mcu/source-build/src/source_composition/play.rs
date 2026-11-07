@@ -120,6 +120,7 @@ fn operation<'a>(
 /// Only original opaque approvals enter the grouped callback. Library selection
 /// checks all four real resident owners before splitting disjoint affine loans.
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[inline(never)] // Keep preparation temporaries out of the continuing async poll frame.
 pub fn prepare<'a, 'f: 'a, 'w>(
     workspace: &'w b::HostCommandInput<16384>,
     context: b::NativePreparationContext<'_>,

@@ -39,6 +39,7 @@ impl Scopes {
 /// The five pool identities are captured from that BSP's initialized owners,
 /// including its finite private-work pool. Incoming descriptors choose none.
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[inline(never)] // Admission and Start have a separate finite stack lifetime.
 pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     prepared: PreparedLocalWorkset<'w, T, 3>,
     workspace: &b::HostCommandInput<16384>,
