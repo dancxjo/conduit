@@ -25,7 +25,24 @@ pub struct Inputs<'a> {
 }
 
 pub struct Layout {
+    pub maxima: c::AssignedPlanMaxima,
+    pub ports_per_node: usize,
+    pub sign_items: u16,
+    pub sign_bytes: u32,
+    pub host_call_contracts: Vec<c::AssignedIdentity>,
+    pub resource_ordinals: Vec<u16>,
+    pub computations: Vec<c::AssignedComputationRequirement>,
+    pub maximum_computation_text_bytes: u32,
+    pub maximum_total_computation_text_bytes: u32,
+    /// Payload reservation for every actual checked Cord item. Not a grant.
+    pub cord_value_slot_capacities: Vec<u32>,
+    /// Additional generated-output staging, one slot per routed output port.
+    pub step_value_slot_capacities: Vec<u32>,
+    /// Native results may exceed their outgoing typed Cord representation.
+    pub host_call_value_slot_capacities: Vec<u32>,
     pub records: Vec<c::AssignedRecordRequirement>,
+    /// Every exact configuration record, in ordinary encoded order.
+    pub configurations: Vec<c::AssignedRecordRequirement>,
     pub counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
     /// Kernel ordinal to original checked Source Gear, never source-list guesses.
     pub nodes: Vec<(u16, c::GearId)>,
@@ -83,9 +100,13 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     let records = generated
         .layout_requirements_with_resident_computations(input.maxima, &resident)
         .map_err(debug)?;
+    let mut configurations = Vec::new();
     let mut counts = [0_u8; c::ASSIGNED_PLAN_COUNT_KINDS];
     for record in c::AssignedPlanRecords::new(&bytes).map_err(debug)? {
         let record = record.map_err(debug)?;
+        if record.tag == c::ASSIGNED_CONFIGURATION {
+            configurations.push(c::AssignedRecordRequirement::from_record(record));
+        }
         let count = counts
             .get_mut(
                 usize::from(record.tag)
@@ -110,8 +131,92 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             Ok((node.node, placement.gear_id.clone()))
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let kernel = generated.kernel();
+    let mut cord_value_slot_capacities = Vec::new();
+    for cord in &kernel.cords {
+        cord_value_slot_capacities.extend(std::iter::repeat_n(
+            cord.maximum_value_bytes,
+            usize::from(cord.item_capacity),
+        ));
+    }
+    // A prepared Step can materialize all routed outputs before its atomic
+    // delivery retires input values. These are distinct from queue occupancy.
+    let mut step_value_slot_capacities = Vec::new();
+    for output in &kernel.output_ports {
+        let maximum = kernel
+            .cords
+            .iter()
+            .filter_map(|cord| match cord.source {
+                e::GeneratedCordEndpoint::Local { node, port }
+                    if node == output.node && port == output.port =>
+                {
+                    Some(cord.maximum_value_bytes)
+                }
+                _ => None,
+            })
+            .max();
+        if let Some(maximum) = maximum {
+            step_value_slot_capacities.push(maximum);
+        }
+    }
+    let mut host_call_value_slot_capacities = Vec::new();
+    for call in &kernel.host_calls {
+        if call.maximum_output_bytes > 0 {
+            host_call_value_slot_capacities.extend(std::iter::repeat_n(
+                call.maximum_output_bytes,
+                usize::from(call.maximum_in_flight),
+            ));
+        }
+    }
+    let mut computations = Vec::new();
+    for configuration in &kernel.configuration {
+        if matches!(configuration.key.as_str(), "program" | "selector") {
+            let e::GeneratedConfigurationValue::Text(text) = &configuration.value else {
+                return Err("non-text checked computation".into());
+            };
+            computations.push(
+                c::AssignedComputationRequirement::from_text(
+                    configuration.node,
+                    &configuration.key,
+                    text,
+                )
+                .map_err(debug)?,
+            );
+        }
+    }
     Ok(Layout {
+        maxima: input.maxima,
+        ports_per_node: kernel
+            .input_ports
+            .iter()
+            .chain(&kernel.output_ports)
+            .map(|port| usize::from(port.port) + 1)
+            .max()
+            .unwrap_or(1),
+        sign_items: kernel.sign_items,
+        sign_bytes: kernel.sign_bytes,
+        host_call_contracts: kernel
+            .host_calls
+            .iter()
+            .map(|call| c::AssignedIdentity::from_text(&call.contract_id))
+            .collect(),
+        resource_ordinals: kernel.resources.iter().map(|r| r.resource).collect(),
+        computations,
+        maximum_computation_text_bytes: input
+            .computations
+            .maximum_program_bytes
+            .checked_mul(2)
+            .ok_or("computation ceiling overflow")?,
+        maximum_total_computation_text_bytes: input
+            .computations
+            .maximum_total_program_bytes
+            .checked_mul(2)
+            .ok_or("computation ceiling overflow")?,
+        cord_value_slot_capacities,
+        step_value_slot_capacities,
+        host_call_value_slot_capacities,
         records,
+        configurations,
         counts,
         nodes,
         fore: generated.fore().to_vec(),
@@ -207,10 +312,10 @@ mod tests {
         let empty = BTreeMap::new();
         let connections = BTreeMap::new();
         let residents = [&image];
-        let make = |boundaries| {
+        let make = |host, boundaries| {
             compile(Inputs {
                 plot: &plot,
-                host: &host,
+                host,
                 placements: &placements,
                 planning: p::PlanningOptions {
                     connection_bases: &empty,
@@ -238,7 +343,20 @@ mod tests {
                 maximum_fore_ports: 2,
             })
         };
-        let layout = make(&boundaries).unwrap();
+        let layout = make(&host, &boundaries).unwrap();
+        let mut restarted = host.clone();
+        restarted.boot_id = "template/later-boot".into();
+        restarted.offer_generation = c::OfferGeneration(2);
+        let later = make(&restarted, &boundaries).unwrap();
+        assert_eq!(layout.nodes, later.nodes);
+        assert_eq!(layout.counts, later.counts);
+        assert_eq!(layout.records, later.records);
+        assert_eq!(layout.configurations, later.configurations);
+        assert!(!layout.configurations.is_empty());
+        assert!(layout
+            .configurations
+            .iter()
+            .all(|r| r.tag == c::ASSIGNED_CONFIGURATION));
         assert_eq!(layout.nodes, vec![(0, gear.gear_id.clone())]);
         assert_eq!(layout.counts[usize::from(c::ASSIGNED_NODE - 1)], 1);
         assert_eq!(layout.fore.len(), 2);
@@ -248,7 +366,7 @@ mod tests {
             c::ASSIGNED_CONFIGURATION | c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL
         )));
         assert!(
-            make(&BTreeMap::new()).is_err(),
+            make(&host, &BTreeMap::new()).is_err(),
             "missing independently selected Fore refuses"
         );
     }

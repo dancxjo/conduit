@@ -33,8 +33,15 @@ pub struct Inputs<'a> {
     pub maximum_fore_ports: usize,
     pub maximum_offer_image_bytes: usize,
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MaskRole {
+    Tee,
+    Renderer,
+    ReadOnly,
+}
 pub struct Entry {
     pub name: String,
+    pub mask_roles: Option<[MaskRole; 3]>,
     pub source_document_id: c::SourceDocumentId,
     pub checked_plot_id: c::CheckedPlotId,
     pub expanded_plot_id: c::ExpandedPlotId,
@@ -135,8 +142,10 @@ pub fn compile(workset: &workset::Workset, input: Inputs<'_>) -> Result<Calibrat
                     .map_err(debug)
             })
             .collect::<Result<Vec<_>, _>>()?;
+        let mask_roles = selected_mask_roles(&source.plot, &layout)?;
         entries.push(Entry {
             name: source.name.clone(),
+            mask_roles,
             source_document_id: source.plot.expanded.source_document_id.clone(),
             checked_plot_id: source.plot.expanded.checked_plot_id.clone(),
             expanded_plot_id: source.plot.expanded.expanded_plot_id.clone(),
@@ -150,6 +159,46 @@ pub fn compile(workset: &workset::Workset, input: Inputs<'_>) -> Result<Calibrat
 }
 
 impl Calibration {
+    /// Install the proven Source/kernel permutation into generated software
+    /// factories before emitting firmware. Stage every entry before mutation.
+    pub fn apply_software_mapping(
+        &self,
+        workset: &mut workset::Workset,
+        mask: Option<workset::MaskBounds>,
+        maximum_image_bytes: usize,
+        maximum_generated_bytes: usize,
+    ) -> Result<(), String> {
+        if self.entries.len() != workset.entries.len() {
+            return Err("calibration differs from complete checked workset".into());
+        }
+        let mut staged = Vec::new();
+        for (calibrated, source) in self.entries.iter().zip(&workset.entries) {
+            if calibrated.name != source.name
+                || calibrated.source_document_id != source.plot.expanded.source_document_id
+                || calibrated.checked_plot_id != source.plot.expanded.checked_plot_id
+                || calibrated.expanded_plot_id != source.plot.expanded.expanded_plot_id
+            {
+                return Err("calibration lost exact checked entry identity".into());
+            }
+            let mut rust = crate::software::emit_rust_for_layout(
+                &source.plot.expanded,
+                &calibrated.source_to_kernel,
+                maximum_image_bytes,
+                maximum_generated_bytes,
+            )?;
+            workset::emit_mask_routing_images(&source.plot.expanded, &mut rust, mask)?;
+            if rust.len() > maximum_generated_bytes {
+                return Err("calibrated software exceeds selected generated-byte bound".into());
+            }
+            staged.push(rust);
+        }
+        for (source, rust) in workset.entries.iter_mut().zip(staged) {
+            source.rust = rust;
+        }
+        workset.calibrated = true;
+        Ok(())
+    }
+
     /// Static topology and definitions only; emitting these never installs a
     /// provider, resource grant, membership receipt or execution permission.
     pub fn emit_to(&self, out: &Path, maximum_generated_bytes: usize) -> Result<(), String> {
@@ -157,11 +206,52 @@ impl Calibration {
         let mut total = 0usize;
         for (index, entry) in self.entries.iter().enumerate() {
             let mut text = format!("pub const ENTRY:&str={:?};\npub const COUNTS:[u8;conduit_core::ASSIGNED_PLAN_COUNT_KINDS]={:?};\npub const SOURCE_TO_KERNEL:&[u16]=&{:?};\npub const RECORDS:&[conduit_core::AssignedRecordRequirement]=&[\n", entry.name, entry.layout.counts, entry.source_to_kernel);
+            let geometry = format!(
+                "pub const CORD_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\npub const STEP_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\npub const HOST_CALL_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\n",
+                entry.layout.cord_value_slot_capacities,
+                entry.layout.step_value_slot_capacities,
+                entry.layout.host_call_value_slot_capacities,
+            );
+            text.insert_str(0, &geometry);
+            let storage=format!("pub const PORTS_PER_NODE:usize={};\npub const SIGN_ITEMS:usize={};\npub const SIGN_BYTES:u32={};\n",entry.layout.ports_per_node,entry.layout.sign_items,entry.layout.sign_bytes);
+            text.insert_str(0, &storage);
+            let mut profile=format!("pub const MAXIMA:conduit_core::AssignedPlanMaxima=conduit_core::AssignedPlanMaxima{{encoded_bytes:{},runtime_state_bytes:{},counts:{:?}}};\npub const HOST_CALL_CONTRACTS:&[conduit_core::AssignedIdentity]=&[",entry.layout.maxima.encoded_bytes,entry.layout.maxima.runtime_state_bytes,entry.layout.maxima.counts);
+            for identity in &entry.layout.host_call_contracts {
+                write!(profile, "conduit_core::AssignedIdentity({:?}),", identity.0).unwrap();
+            }
+            write!(profile,"];\npub const RESOURCE_ORDINALS:&[u16]=&{:?};\npub const COMPUTATIONS:&[conduit_core::AssignedComputationRequirement]=&[",entry.layout.resource_ordinals).unwrap();
+            for pin in &entry.layout.computations {
+                write!(profile,"conduit_core::AssignedComputationRequirement{{node:{},key:conduit_core::AssignedIdentity({:?}),text_bytes:{},text_digest:{:?}}},",pin.node,pin.key.0,pin.text_bytes,pin.text_digest).unwrap();
+            }
+            write!(profile,"];\npub const COMPUTATION_MAXIMUM_TEXT_BYTES:u32={};\npub const COMPUTATION_MAXIMUM_TOTAL_TEXT_BYTES:u32={};\n",entry.layout.maximum_computation_text_bytes,entry.layout.maximum_total_computation_text_bytes).unwrap();
+            text.insert_str(0, &profile);
+            match entry.mask_roles {
+                None => text.insert_str(0, "pub const MASK_ROLES:Option<[conduit_seven_segment_mask::native_kernel::MaskRole;3]>=None;\n"),
+                Some(roles) => {
+                    let mut declaration=String::from("pub const MASK_ROLES:Option<[conduit_seven_segment_mask::native_kernel::MaskRole;3]>=Some([");
+                    for role in roles {
+                        let name=match role {MaskRole::Tee=>"Tee",MaskRole::Renderer=>"Renderer",MaskRole::ReadOnly=>"ReadOnly"};
+                        write!(declaration,"conduit_seven_segment_mask::native_kernel::MaskRole::{name},").unwrap();
+                    }
+                    declaration.push_str("]);\n");text.insert_str(0,&declaration);
+                }
+            }
             // Entry identity comes from the actual checked expansion, never
             // from a received projection or the template's placeholder Boot.
             let identities = format!("pub const SOURCE_DOCUMENT_ID:&str={:?};\npub const CHECKED_PLOT_ID:&str={:?};\npub const EXPANDED_PLOT_ID:&str={:?};\n",entry.source_document_id.as_str(),entry.checked_plot_id.as_str(),entry.expanded_plot_id.as_str());
             text.insert_str(0, &identities);
             for record in &entry.layout.records {
+                writeln!(
+                    text,
+                    "conduit_core::AssignedRecordRequirement{{tag:{},payload_digest:{:?}}},",
+                    record.tag, record.payload_digest
+                )
+                .unwrap();
+            }
+            text.push_str(
+                "];\npub const CONFIGURATIONS:&[conduit_core::AssignedRecordRequirement]=&[\n",
+            );
+            for record in &entry.layout.configurations {
                 writeln!(
                     text,
                     "conduit_core::AssignedRecordRequirement{{tag:{},payload_digest:{:?}}},",
@@ -208,4 +298,53 @@ impl Calibration {
 }
 fn debug(error: impl core::fmt::Debug) -> String {
     format!("workset calibration: {error:?}")
+}
+
+/// The finite three-Back Mask profile is chosen by an actual renderer in the
+/// checked entry. Resolve roles from the lowered mapping, never Source indices.
+fn selected_mask_roles(
+    plot: &conduit_plot::ExpandedAuthoringPlot,
+    layout: &template::Layout,
+) -> Result<Option<[MaskRole; 3]>, String> {
+    if !plot
+        .expanded
+        .gears
+        .iter()
+        .any(|g| g.kind_id.as_str() == "face/renderer")
+    {
+        return Ok(None);
+    }
+    if layout.nodes.len() != 3 {
+        return Err("selected Mask profile requires exactly three lowered Backs".into());
+    }
+    let mut roles = [None; 3];
+    for (node, id) in &layout.nodes {
+        let gear = plot
+            .expanded
+            .gears
+            .iter()
+            .find(|g| &g.gear_id == id)
+            .ok_or("Mask role lost checked Source Gear")?;
+        let role = match gear.kind_id.as_str() {
+            "face/tee" => MaskRole::Tee,
+            "face/renderer" => MaskRole::Renderer,
+            "face/interaction" => MaskRole::ReadOnly,
+            _ => return Err("selected three-Back Mask has an unsupported checked Gear".into()),
+        };
+        let slot = roles
+            .get_mut(usize::from(*node))
+            .ok_or("Mask node ordinal outside selected profile")?;
+        if slot.replace(role).is_some() {
+            return Err("duplicate lowered Mask node ordinal".into());
+        }
+    }
+    let roles = roles.map(|r| r.ok_or("missing lowered Mask role"));
+    let [tee, renderer, interaction] = roles;
+    let roles = [tee?, renderer?, interaction?];
+    for role in [MaskRole::Tee, MaskRole::Renderer, MaskRole::ReadOnly] {
+        if roles.iter().filter(|r| **r == role).count() != 1 {
+            return Err("ambiguous checked Mask roles".into());
+        }
+    }
+    Ok(Some(roles))
 }

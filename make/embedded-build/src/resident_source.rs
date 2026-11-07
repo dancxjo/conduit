@@ -8,6 +8,17 @@ pub fn generate_source_resident_library(
     bounds: ResidentExpressionBounds,
     maximum_generated_bytes: u32,
 ) -> Result<String, String> {
+    let images = prepare_source_resident_library(document, entries, bounds)?;
+    generate_resident_library(&images, maximum_generated_bytes)
+        .map_err(|e| format!("resident protocol library: {e:?}"))
+}
+/// Prepare exact selected Source owners once for both structural calibration
+/// and Rust inventory emission. This creates definitions, never Ready custody.
+pub fn prepare_source_resident_library(
+    document: &p::CheckedSyntaxDocument,
+    entries: &[&str],
+    bounds: ResidentExpressionBounds,
+) -> Result<Vec<PreparedResidentExpression>, String> {
     let mut images = Vec::new();
     for entry in entries {
         let expanded =
@@ -33,6 +44,5 @@ pub fn generate_source_resident_library(
                 .map_err(|e| format!("resident protocol preparation: {e:?}"))?,
         );
     }
-    generate_resident_library(&images, maximum_generated_bytes)
-        .map_err(|e| format!("resident protocol library: {e:?}"))
+    Ok(images)
 }

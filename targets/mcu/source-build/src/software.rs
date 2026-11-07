@@ -33,6 +33,9 @@ pub struct SoftwareNode {
     pub implementation: Option<c::ImplementationId>,
     pub artifact: Option<c::ArtifactId>,
     pub offer_image: Option<Vec<u8>>,
+    /// Build-Host-only ordinary definition for independent template lowering.
+    /// Firmware retains only the lossless immutable offer image.
+    pub offer: Option<c::CapabilityOffer>,
     /// Exact immutable selected configuration, not a grant or input command.
     pub configuration: Vec<c::ConfigurationEntry>,
 }
@@ -165,8 +168,8 @@ pub fn compile(
         {
             return Err("software contract differs from checked Source".into());
         }
-        let (implementation, artifact, offer_image) = if native {
-            (None, None, None)
+        let (implementation, artifact, offer_image, offer) = if native {
+            (None, None, None, None)
         } else {
             let mut h = Sha256::new();
             h.update(kind.kind_id.as_str().as_bytes());
@@ -200,7 +203,12 @@ pub fn compile(
                 maximum_image_bytes,
             )
             .map_err(|e| format!("software image: {e:?}"))?;
-            (Some(implementation), Some(artifact), Some(bytes))
+            (
+                Some(implementation),
+                Some(artifact),
+                Some(bytes),
+                Some(offer),
+            )
         };
         nodes.push(SoftwareNode {
             node: u16::try_from(node).map_err(|_| "node bound")?,
@@ -209,6 +217,7 @@ pub fn compile(
             implementation,
             artifact,
             offer_image,
+            offer,
             configuration: gear.configuration.clone(),
         });
     }
@@ -227,8 +236,38 @@ pub fn emit_rust(
     maximum_image_bytes: usize,
     maximum_generated_bytes: usize,
 ) -> Result<String, String> {
+    let nodes = (0..source.gears.len())
+        .map(|n| u16::try_from(n).map_err(|_| "node bound".to_owned()))
+        .collect::<Result<Vec<_>, _>>()?;
+    emit_rust_for_layout(source, &nodes, maximum_image_bytes, maximum_generated_bytes)
+}
+/// Use only the independently lowered calibration permutation. Configuration
+/// hashes include the actual kernel ordinal; runtime digest rewriting would
+/// turn trusted Source pins into a comparison with untrusted assignment data.
+pub fn emit_rust_for_layout(
+    source: &p::ExpandedCanonicalPlot,
+    source_to_kernel: &[u16],
+    maximum_image_bytes: usize,
+    maximum_generated_bytes: usize,
+) -> Result<String, String> {
     use std::fmt::Write;
-    let material = compile(source, maximum_image_bytes)?;
+    if source_to_kernel.len() != source.gears.len() {
+        return Err("Source/kernel map length".into());
+    }
+    let mut seen = vec![false; source_to_kernel.len()];
+    for node in source_to_kernel {
+        let slot = seen
+            .get_mut(usize::from(*node))
+            .ok_or("Source/kernel map range")?;
+        if *slot {
+            return Err("Source/kernel map duplicate".into());
+        }
+        *slot = true;
+    }
+    let mut material = compile(source, maximum_image_bytes)?;
+    for node in &mut material.nodes {
+        node.node = source_to_kernel[usize::from(node.node)];
+    }
     let mut code=format!("pub const NODE_COUNT:usize={};\npub const CORD_COUNT:usize={};\npub const SOURCE:&str={:?};\npub const CHECKED:&str={:?};\npub const EXPANDED:&str={:?};\n",material.node_count,material.cord_count,source.source_document_id.as_str(),source.checked_plot_id.as_str(),source.expanded_plot_id.as_str());
     code.push_str("pub static NATIVE_KINDS:&[(u16,&str)]=&[\n");
     for (node, gear) in source.gears.iter().enumerate() {
@@ -240,7 +279,13 @@ pub fn emit_rust(
         ]
         .contains(&gear.kind_id.as_str())
         {
-            writeln!(code, "({}, {:?}),", node, gear.kind_id.as_str()).unwrap();
+            writeln!(
+                code,
+                "({}, {:?}),",
+                source_to_kernel[node],
+                gear.kind_id.as_str()
+            )
+            .unwrap();
         }
     }
     code.push_str("];\n");

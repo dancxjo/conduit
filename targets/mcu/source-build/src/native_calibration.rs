@@ -1,0 +1,364 @@
+//! Build-only descriptions for checked native-equipment Hosts. These are
+//! inert Planner inputs. They do not initialize hardware or grant a runtime Play.
+use crate::{template_calibration as t, workset};
+use conduit_core as c;
+use conduit_embedded_build as e;
+use conduit_host_make as h;
+use conduit_planner as p;
+use std::collections::BTreeMap;
+
+pub struct Slot<'a> {
+    pub base: &'a str,
+    pub pool: &'a str,
+    pub implementation: &'a str,
+}
+pub struct NativeDescription<'a> {
+    pub slot: Slot<'a>,
+    pub class: &'a str,
+    pub definition: c::CapabilityOffer,
+}
+pub struct Bounds {
+    pub image: e::EmbeddedImageBounds,
+    pub computations: e::EmbeddedComputationBounds,
+    pub maxima: c::AssignedPlanMaxima,
+    pub maximum_fore_ports: usize,
+    pub maximum_offer_image_bytes: usize,
+}
+impl Bounds {
+    /// Finite artifact ceilings from the checked Host. These remain parser/
+    /// lowering ceilings; original runtime admission must fund actual backing.
+    pub fn for_workset(
+        checked: &h::CheckedHostConfiguration,
+        workset: &workset::Workset,
+    ) -> Result<Self, String> {
+        let limits = &checked.configuration().limits;
+        let preparation = checked
+            .configuration()
+            .preparation
+            .as_ref()
+            .ok_or("missing native preparation policy")?;
+        let encoded = preparation
+            .maximum_assignment_bytes
+            .try_into()
+            .map_err(|_| "assignment exceeds binary format")?;
+        let runtime = preparation
+            .maximum_runtime_state_bytes
+            .try_into()
+            .map_err(|_| "runtime exceeds binary format")?;
+        let bytes = u32::try_from(limits.buffered_bytes)
+            .map_err(|_| "buffer ceiling exceeds binary format")?;
+        // Static topology is exact checked Source material, not a promise of
+        // active execution. Actual storage still needs original whole admission.
+        let nodes = workset
+            .entries
+            .iter()
+            .map(|e| e.plot.expanded.gears.len())
+            .max()
+            .ok_or("empty native workset")?;
+        let cords = workset
+            .entries
+            .iter()
+            .map(|e| e.plot.expanded.connections.len())
+            .max()
+            .ok_or("empty native workset")?;
+        let fronts = workset
+            .entries
+            .iter()
+            .map(|e| e.plot.input_bindings.len() + e.plot.output_bindings.len())
+            .max()
+            .unwrap_or(0);
+        let routes = cords
+            .checked_add(fronts)
+            .ok_or("route table count overflow")?;
+        let calls = nodes;
+        let signs = u16::try_from(limits.evidence_items)
+            .map_err(|_| "Sign ceiling exceeds binary format")?;
+        Ok(Self {
+            image: e::EmbeddedImageBounds {
+                maximum_nodes: nodes,
+                maximum_cords: cords,
+                maximum_routes: routes,
+                maximum_route_targets: routes,
+                maximum_host_calls: calls,
+                maximum_resources: calls,
+                maximum_sign_expectations: nodes
+                    .checked_mul(2)
+                    .ok_or("Sign table count overflow")?,
+                maximum_configuration_entries: nodes
+                    .checked_mul(8)
+                    .ok_or("configuration bound overflow")?,
+                maximum_ports_per_node: 4,
+                maximum_remote_endpoints: 0,
+                maximum_cord_value_slots: u16::try_from(limits.queue_items)
+                    .map_err(|_| "queue ceiling exceeds binary format")?,
+                maximum_cord_value_bytes: bytes,
+                maximum_sign_items: signs,
+                maximum_sign_bytes: bytes,
+            },
+            computations: e::EmbeddedComputationBounds {
+                maximum_program_bytes: bytes,
+                maximum_total_program_bytes: bytes,
+            },
+            maxima: c::AssignedPlanMaxima {
+                encoded_bytes: encoded,
+                runtime_state_bytes: runtime,
+                counts: [u8::MAX; c::ASSIGNED_PLAN_COUNT_KINDS],
+            },
+            maximum_fore_ports: usize::try_from(limits.operation_slots)
+                .map_err(|_| "operation ceiling exceeds Host tooling")?,
+            maximum_offer_image_bytes: 24 * 1024,
+        })
+    }
+}
+pub struct Input<'a> {
+    pub checked: &'a h::CheckedHostConfiguration,
+    pub image: &'a h::HostImage,
+    pub catalog: &'a h::MakeCatalog,
+    pub shared_resources: &'a [c::ResourceOffer],
+    pub native: &'a [NativeDescription<'a>],
+    pub other: &'a [c::CapabilityOffer],
+    pub resident: &'a [e::PreparedResidentExpression],
+    pub bounds: Bounds,
+}
+/// Calibrate exact local topology with checked finite construction. No native
+/// descriptive Boot, original-grant text or placeholder Host identity is emitted.
+pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibration, String> {
+    h::verify_configuration_image(input.checked, input.image, input.catalog)?;
+    for resource in input.shared_resources {
+        if !input.checked.configuration().resources.iter().any(|r| {
+            r.id == resource.pool_id.as_str()
+                && r.class == resource.class_id.as_str()
+                && r.slots == resource.capacity_units
+        }) {
+            return Err(
+                "shared calibration resource differs from checked physical construction".into(),
+            );
+        }
+    }
+    let mut host = c::HostAdvertisement {
+        declared_name: None,
+        protocol_version: c::PROTOCOL_VERSION,
+        host_id: "fabrication/inert-native-description".into(),
+        boot_id: "fabrication/inert-structural-calibration".into(),
+        offer_generation: c::OfferGeneration(1),
+        profile: input.checked.configuration_id().into(),
+        bases: Vec::new(),
+        resources: input.shared_resources.to_vec(),
+        capabilities: input
+            .resident
+            .iter()
+            .map(|r| r.offer_description().clone())
+            .collect(),
+        planner_capabilities: Vec::new(),
+    };
+    let mut grants = Vec::new();
+    for description in input.native {
+        let slot = &description.slot;
+        let class = description.class;
+        let offer = &description.definition;
+        offer
+            .validate_constructed_semantic_contract()
+            .map_err(debug)?;
+        if !input
+            .checked
+            .resolved_bases()
+            .iter()
+            .any(|(_, implementation)| implementation == slot.implementation)
+            || offer.implementation.implementation_id.as_str() != slot.implementation
+            || offer.implementation.artifact_id.as_str() != input.image.manifest.image_id
+            || !offer
+                .resource_requirements
+                .iter()
+                .any(|r| r.class_id.as_str() == class)
+            || host.bases.iter().any(|b| b.base_id.as_str() == slot.base)
+            || slot.base.is_empty()
+            || slot.pool.is_empty()
+            || slot.implementation.is_empty()
+            || host
+                .resources
+                .iter()
+                .any(|r| r.pool_id.as_str() == slot.pool)
+        {
+            return Err("invalid or duplicate checked native calibration slot".into());
+        }
+        for authority in &offer.authority_requirements {
+            grants.push(c::AuthorityGrant {
+                grant_id: format!("fabrication/inert-policy/{}", slot.base).into(),
+                contract_id: authority.contract_id.clone(),
+                host_call_contract_id: authority.host_call_contract_id.clone(),
+                subject_kind: authority.subject_kind.clone(),
+                host_id: host.host_id.clone(),
+                boot_id: host.boot_id.clone(),
+                capability_id: offer.capability_id.clone(),
+            });
+        }
+        host.bases.push(c::BaseProviderAdvertisement {
+            base_id: slot.base.into(),
+            provider_instance_id: slot.base.into(),
+            provider_generation: 1,
+            implementation_id: slot.implementation.into(),
+            mechanism_family: class.into(),
+            enforcement_class: c::BaseEnforcementClass::Cooperative,
+            lifecycle: c::BaseLifecycle::Ready,
+            capability_ids: vec![offer.capability_id.clone()],
+            resource_pool_ids: vec![slot.pool.into()],
+        });
+        host.resources.push(c::resource_offer(slot.pool, class, 1));
+        host.capabilities.push(offer.clone());
+    }
+    let mut entries = Vec::new();
+    for entry in &workset.entries {
+        let software =
+            crate::software::compile(&entry.plot.expanded, input.bounds.maximum_offer_image_bytes)?;
+        for offer in software.nodes.into_iter().filter_map(|n| n.offer) {
+            insert(&mut host, offer)?;
+        }
+        for offer in input.other {
+            if entry
+                .plot
+                .expanded
+                .gears
+                .iter()
+                .any(|g| g.kind_id == offer.kind_id)
+            {
+                insert(&mut host, offer.clone())?;
+            }
+        }
+    }
+    for entry in &workset.entries {
+        let plots = &entry.plot.expanded;
+        if plots
+            .gears
+            .iter()
+            .filter(|g| g.kind_id.as_str() == conduit_time::TICK_KIND)
+            .count()
+            > 1
+        {
+            return Err(
+                "multiple native clocks require distinct capability-instance selection".into(),
+            );
+        }
+        let placements =
+            p::default_expanded_placements(plots, std::slice::from_ref(&host)).map_err(debug)?;
+        let offer = |gear: &c::GearId| -> Result<&c::CapabilityOffer, String> {
+            let placement = placements
+                .by_gear
+                .get(gear)
+                .ok_or("missing calibrated placement")?;
+            host.capabilities
+                .iter()
+                .find(|o| o.capability_id == placement.capability_id)
+                .ok_or("missing calibrated offer".into())
+        };
+        let mut connections = BTreeMap::new();
+        for cord in &plots.connections {
+            let selected = offer(&cord.source_gear_id)?;
+            let location = if cord.track == c::ConnectionTrack::AbnormalTerminal {
+                c::FrontValueLocation::OutputAbnormal(cord.source_port_id.clone())
+            } else {
+                c::FrontValueLocation::Output(cord.source_port_id.clone())
+            };
+            let bytes = extent(selected, &location)?;
+            connections.insert(
+                (
+                    cord.source_gear_id.clone(),
+                    cord.source_port_id.clone(),
+                    cord.sink_gear_id.clone(),
+                    cord.sink_port_id.clone(),
+                ),
+                p::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: bytes,
+                },
+            );
+        }
+        let mut boundaries = BTreeMap::new();
+        for (direction, bindings) in [
+            (c::PortDirection::Input, &entry.plot.input_bindings),
+            (c::PortDirection::Output, &entry.plot.output_bindings),
+        ] {
+            for binding in bindings {
+                let location = match (direction, binding.track) {
+                    (c::PortDirection::Input, c::ConnectionTrack::AbnormalTerminal) => {
+                        c::FrontValueLocation::InputAbnormal(binding.gear_port_id.clone())
+                    }
+                    (c::PortDirection::Input, _) => {
+                        c::FrontValueLocation::Input(binding.gear_port_id.clone())
+                    }
+                    (_, c::ConnectionTrack::AbnormalTerminal) => {
+                        c::FrontValueLocation::OutputAbnormal(binding.gear_port_id.clone())
+                    }
+                    _ => c::FrontValueLocation::Output(binding.gear_port_id.clone()),
+                };
+                boundaries.insert(
+                    p::ForeBoundaryKey {
+                        direction,
+                        front_port_id: binding.front_port_id.clone(),
+                        track: binding.track,
+                    },
+                    p::ConnectionQueueLimits {
+                        item_capacity: 1,
+                        byte_capacity: extent(offer(&binding.gear_id)?, &location)?,
+                    },
+                );
+            }
+        }
+        entries.push(t::EntryLimits {
+            entry: entry.name.clone(),
+            connections,
+            boundaries,
+        });
+    }
+    let residents = input.resident.iter().collect::<Vec<_>>();
+    t::compile(
+        workset,
+        t::Inputs {
+            checked_host: input.checked,
+            image: input.image,
+            catalog: input.catalog,
+            host: &host,
+            authority_descriptions: &grants,
+            protected_resource_descriptions: &[],
+            resident: &residents,
+            entries: &entries,
+            internal_queue: p::ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: 1,
+            },
+            image_bounds: input.bounds.image,
+            computations: input.bounds.computations,
+            maxima: input.bounds.maxima,
+            maximum_fore_ports: input.bounds.maximum_fore_ports,
+            maximum_offer_image_bytes: input.bounds.maximum_offer_image_bytes,
+        },
+    )
+}
+fn insert(host: &mut c::HostAdvertisement, offer: c::CapabilityOffer) -> Result<(), String> {
+    if let Some(prior) = host
+        .capabilities
+        .iter()
+        .find(|o| o.capability_id == offer.capability_id)
+    {
+        if prior != &offer {
+            return Err("conflicting calibrated capability definition".into());
+        }
+    } else {
+        host.capabilities.push(offer);
+    }
+    Ok(())
+}
+fn extent(offer: &c::CapabilityOffer, location: &c::FrontValueLocation) -> Result<u32, String> {
+    let bytes = offer
+        .semantic_contract
+        .value_contracts()
+        .iter()
+        .find(|v| &v.location == location)
+        .map_or(offer.limits.max_queue_bytes, |v| v.contract.maximum_bytes);
+    if bytes == 0 {
+        return Ok(1);
+    } // a finite Unit still owns its queue item
+    Ok(bytes)
+}
+fn debug(e: impl core::fmt::Debug) -> String {
+    format!("native structural calibration: {e:?}")
+}

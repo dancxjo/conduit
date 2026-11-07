@@ -9,7 +9,7 @@
 mod offer_image;
 mod resident_back;
 mod resident_source;
-pub use resident_source::generate_source_resident_library;
+pub use resident_source::{generate_source_resident_library, prepare_source_resident_library};
 mod resident_binding;
 mod resident_expression;
 mod resident_library;

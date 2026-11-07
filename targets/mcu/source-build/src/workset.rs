@@ -24,6 +24,7 @@ pub struct Entry {
     pub cords: usize,
 }
 pub struct Workset {
+    pub(crate) calibrated: bool,
     pub sha256: [u8; 32],
     pub entries: Vec<Entry>,
 }
@@ -127,8 +128,13 @@ pub fn compile(
     for plot in &checked.plots {
         for cord in &plot.cords {
             for stage in &cord.stages {
-                if let p::CheckedCordStage::StructuredSelector{selector,..}=stage {
-                    profiles.insert(p::structured_selector_definition(selector,conduit_core::PortTemporal::Flow{closes:true})).map_err(debug)?;
+                if let p::CheckedCordStage::StructuredSelector { selector, .. } = stage {
+                    profiles
+                        .insert(p::structured_selector_definition(
+                            selector,
+                            conduit_core::PortTemporal::Flow { closes: true },
+                        ))
+                        .map_err(debug)?;
                 }
             }
         }
@@ -150,12 +156,19 @@ pub fn compile(
         });
     }
     Ok(Workset {
+        calibrated: false,
         sha256,
         entries: material,
     })
 }
 impl Workset {
     pub fn emit_to(&self, out: &Path) -> Result<(), String> {
+        if !self.calibrated {
+            return Err(
+                "runtime factory emission requires independent checked structural calibration"
+                    .into(),
+            );
+        }
         let mut index=format!("pub const SOURCE_SHA256:[u8;32]={:?};\npub const ENTRY_COUNT:usize={};\npub const ENTRY_NAMES:&[&str]=&{:?};\n",self.sha256,self.entries.len(),self.entries.iter().map(|e|e.name.as_str()).collect::<Vec<_>>());
         // Bind this finite execution profile to actual checked operations,
         // independent of user entry names or the signed workset's ordering.
@@ -184,6 +197,7 @@ impl Workset {
                 ));
             };
             writeln!(index, "pub use entry_{entry} as {role};").unwrap();
+            writeln!(index, "pub use entry_{entry}_layout as {role}_layout;").unwrap();
         }
         for (i, entry) in self.entries.iter().enumerate() {
             let filename = format!("workset_{i}.rs");
@@ -193,6 +207,7 @@ impl Workset {
                 "pub mod entry_{i}{{include!(concat!(env!(\"OUT_DIR\"),\"/{filename}\"));}}"
             )
             .unwrap();
+            writeln!(index,"pub mod entry_{i}_layout{{include!(concat!(env!(\"OUT_DIR\"),\"/workset_{i}_layout.rs\"));}}\n").unwrap();
         }
         std::fs::write(out.join("workset.rs"), index).map_err(|e| e.to_string())
     }
@@ -214,18 +229,17 @@ fn install(
 }
 /// These are descriptive definitions only. The runtime publishes them only
 /// while its actual initialized ReadyMaskRouting owns the corresponding Backs.
-fn emit_mask_routing_images(
+pub(crate) fn emit_mask_routing_images(
     plot: &p::ExpandedCanonicalPlot,
     rust: &mut String,
     bounds: Option<MaskBounds>,
 ) -> Result<(), String> {
     use conduit_core as c;
     rust.push_str("pub static MASK_ROUTING_IMAGES:&[&[u8]]=&[\n");
+    type Definition =
+        fn(c::CapabilityId, c::ImplementationOffer, c::CapabilityLimits) -> c::CapabilityOffer;
     for gear in &plot.gears {
-        let (identity, build): (
-            &str,
-            fn(c::CapabilityId, c::ImplementationOffer, c::CapabilityLimits) -> c::CapabilityOffer,
-        ) = match gear.kind_id.as_str() {
+        let (identity, build): (&str, Definition) = match gear.kind_id.as_str() {
             "face/tee" => ("mcu.mask/tee@1", conduit_face::face_tee_offer),
             "face/interaction" => (
                 "mcu.mask/interaction-close@1",

@@ -2,6 +2,9 @@
 //! No GPIO, sensor result, runtime readiness, Host identity or grant is invented.
 use conduit_plot as p;
 pub mod renderer;
+pub mod clock;
+pub mod image_input;
+pub mod native_calibration;
 pub mod software;
 pub mod template;
 pub mod template_calibration;
@@ -113,6 +116,30 @@ mod tests {
             super::software::emit_rust(&source.expanded, 24 * 1024, 1024 * 1024).unwrap()
         );
         assert!(first.contains("missing-clock-owner"));
+        let mapping = (0..material.node_count)
+            .rev()
+            .map(|n| u16::try_from(n).unwrap())
+            .collect::<Vec<_>>();
+        let remapped = super::software::emit_rust_for_layout(
+            &source.expanded,
+            &mapping,
+            24 * 1024,
+            1024 * 1024,
+        )
+        .unwrap();
+        assert_ne!(first, remapped);
+        assert!(remapped.contains(&format!(
+            "result[{}]=Some(D::Tick",
+            mapping[usize::from(clock.node)]
+        )));
+        assert!(super::software::emit_rust_for_layout(
+            &source.expanded,
+            &vec![0; material.node_count],
+            24 * 1024,
+            1024 * 1024
+        )
+        .is_err());
+
         assert!(super::software::emit_rust(&source.expanded, 24 * 1024, first.len() - 1).is_err());
     }
     #[test]
