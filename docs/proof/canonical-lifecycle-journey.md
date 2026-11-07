@@ -9882,3 +9882,39 @@ reserved `.stack` section and continues to count secondary NOLOAD allocations;
 the paired regression passed, as did 11 ESP32 Make tests. The prior ingress-only
 qualification guard was removed after complete composition/link qualification.
 This permits ordinary artifact construction; it is not hardware Play evidence.
+
+### Coordinated hardware deployment staging (2026-11-07)
+
+Both public application artifacts passed ordinary Make construction, sealing and
+verification. Yellow's final Face-inspection layout is 224,312 static bytes,
+46,024 bytes stack-region headroom and 1,272,216 flash bytes. The unsigned
+inspection borrows the original actual Face synchronously into caller-owned
+bounded storage; it creates no publication, Show, execution or recording right.
+
+The final owner executable is 66,308,048 bytes, below its original 64 MiB cap.
+Actual binary tests executed and passed for two retained member assignments of
+one exact Body Play, duplicate/member reboot refusal and Source-replacement
+custody, and for the owned-invitation initial-key derivation. Earlier zero-test
+and invalid test-fixture runs are not passing evidence. The ordinary installed
+IMAGE prepared all six selected entries at an observed requested-Rust peak of
+75,542,492 bytes and retained 49,815,548 bytes, below the explicit original
+128 MiB caller budget; four immutable resident codebooks are deduplicated.
+The Body biography was byte-identical to its backup. No Source CAS, invitation,
+MCU admission, Start or physical admitted Play was performed by this preparation.
+The ordinary service was restored using the final executable.
+
+Blue's full 4 MiB flash and old Body banks were backed up and verified on both
+Victus and Forebrain. The last sector overlaps live old-Body payload; it is not
+padding. Fresh Hamm admission therefore requires the explicitly authorized,
+backed-up replacement of that old state. No old history migration is claimed.
+The qualified application and unchanged typed Make bootstrap composer are staged.
+
+Yellow's old carrier did not accept software recovery. After USB reset,
+Motherbrain reported setup failures on its exact port and the device disappeared.
+Selective port power control requires unavailable administrator authentication;
+no host or unrelated USB devices were reset. The user was asked to reconnect
+Yellow holding BOOTSEL. Its qualified application is staged on Motherbrain;
+no Yellow flash was read or written. Coordinated admission remains pending this
+physical recovery. The six-entry Source must not be reported as Playing while a
+required member is absent. The finite Mask evidence archive also remains an
+explicit limit; these artifacts are not overnight acceptance evidence.
