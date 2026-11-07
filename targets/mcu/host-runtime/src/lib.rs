@@ -3,6 +3,7 @@
 //! Construction and transport create no execution authority. The optional
 //! execution path uses original Root grants, atomic admission and the ordinary
 //! production kernel to run checked assignments.
+pub mod image_memory;
 pub mod ingress;
 pub mod member_return;
 pub mod membership;
