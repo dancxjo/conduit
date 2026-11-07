@@ -30,6 +30,20 @@ impl Write for Bounded<'_> {
 
 #[panic_handler]
 fn panic(info: &PanicInfo<'_>) -> ! {
+    recover(format_args!("{info}"))
+}
+
+#[cortex_m_rt::exception]
+unsafe fn HardFault(frame: &cortex_m_rt::ExceptionFrame) -> ! {
+    recover(format_args!(
+        "HardFault pc={:#010x} lr={:#010x} xpsr={:#010x}",
+        frame.pc(),
+        frame.lr(),
+        frame.xpsr()
+    ))
+}
+
+fn recover(reason: fmt::Arguments<'_>) -> ! {
     cortex_m::interrupt::disable();
     // SAFETY: this is the terminal single-core panic path. Initialize every
     // byte before making a slice; no allocator or provider is borrowed here.
@@ -42,7 +56,7 @@ fn panic(info: &PanicInfo<'_>) -> ! {
     let mut output = Bounded { bytes, used: 0 };
     let _ = write!(
         output,
-        "CONDUIT_PANIC@1 heap_used={used} heap_peak={peak} heap_limit={} {info}",
+        "CONDUIT_PANIC@1 heap_used={used} heap_peak={peak} heap_limit={} {reason}",
         crate::config::HEAP_BYTES
     );
     core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
