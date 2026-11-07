@@ -85,7 +85,31 @@ pub struct PulseHostCall<P> {
     next_request: u32,
     codec: PreparedPulseCodec,
 }
+pub(crate) struct PreparedPulseBinding {
+    pub(crate) node: NodeId,
+    pub(crate) codec: PreparedPulseCodec,
+}
 impl<P: PulseReadProvider> PulseHostCall<P> {
+    pub(crate) fn from_prepared(
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        attachment: PulseAttachment,
+        provider: P,
+        prepared: PreparedPulseBinding,
+    ) -> Self {
+        Self {
+            table,
+            handle,
+            claim,
+            attachment,
+            provider,
+            node: prepared.node,
+            next_request: 0,
+            codec: prepared.codec,
+        }
+    }
+
     /// Bind actual native ownership to an already admitted exact Plan and Play.
     ///
     /// # Safety
@@ -286,7 +310,7 @@ impl Drop for PendingLease<'_> {
     }
 }
 
-fn check_possession(
+pub(crate) fn check_possession(
     table: &BaseCapabilityTable,
     claim: &BaseOperationClaim,
     attachment: PulseAttachment,

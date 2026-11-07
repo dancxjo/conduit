@@ -12,6 +12,8 @@ mod resident_binding;
 mod resident_expression;
 mod resident_library;
 mod resident_library_borrow;
+#[cfg(test)]
+mod resident_library_empty_tests;
 mod resident_offer;
 pub use offer_image::{generate_capability_offer_image, CapabilityOfferImageError};
 pub use resident_expression::{

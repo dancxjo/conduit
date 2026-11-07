@@ -1,7 +1,10 @@
 //! Ready native ownership advertised before planning, consumed by exact Play.
 //! Follows the retained I2C installation lifecycle; no peripheral protocol lives here.
 use crate::{owner::*, *};
+#[path = "assigned.rs"]
+mod assigned;
 use alloc::vec;
+pub use assigned::PreparedAssignedPulse;
 use conduit_core::*;
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
 
@@ -36,6 +39,11 @@ pub enum PulseInstallationRefusal {
     Advertisement,
 }
 impl<P: PulseReadProvider> ReadyPulseBase<P> {
+    /// Descriptive retained native facts; never an opaque capability or grant.
+    pub fn identity(&self) -> &PulseNativeIdentity {
+        &self.identity
+    }
+
     /// Retain exclusively owned electrical resources before advertising them.
     ///
     /// # Safety

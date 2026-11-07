@@ -7,8 +7,16 @@ pub fn generate_resident_library(
     images: &[PreparedResidentExpression],
     maximum_generated_bytes: u32,
 ) -> Result<String, R> {
-    if images.is_empty() || images.len() > 64 {
+    if images.len() > 64 {
         return Err(R::Bounds);
+    }
+    if images.is_empty() {
+        let code = include_str!("resident_library_empty_source.rs");
+        return if code.len() as u64 <= u64::from(maximum_generated_bytes) {
+            Ok(code.into())
+        } else {
+            Err(R::Bounds)
+        };
     }
     let mut code = format!("pub const ENTRY_COUNT:usize={};\n", images.len());
     let maximum_value_bytes = images

@@ -277,3 +277,6 @@ fn retirement_requires_revocation_and_returns_exact_native_custody_once() {
 
 #[path = "support/exhausted_retirement.rs"]
 mod exhausted_retirement;
+
+#[path = "support/assigned_retained.rs"]
+mod assigned_retained;
