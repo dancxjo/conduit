@@ -4,6 +4,36 @@ use crate::body_execution::{ImagePreparedValue, ImageRootPreparation};
 use crate::StdHost;
 
 impl StdHost {
+    /// Fund owner construction and retained mutable lifecycle state before
+    /// entering the adapter or serializing its exact request identity.
+    ///
+    /// # Safety
+    /// Root must qualify the full preparation peak (including serialization,
+    /// errors and drain) and owner lifetime backing. Adapter, worker, immutable
+    /// context and kernel storage require independent custody. Mutation through
+    /// this cell must stay within those qualified bounds. This grants no effects
+    /// and does not enable the currently unsupported IMAGE execution profile.
+    pub unsafe fn prepare_selected_image_creche_owner<'a>(
+        &mut self,
+        adapter: &'a mut dyn HostedCrecheAdapter,
+        context: &'a ImagePreparedValue<CrecheExecutionContext>,
+        preparation_bytes: usize,
+        retained_bytes: usize,
+    ) -> Result<ImagePreparedValue<std::cell::RefCell<CrecheHost<'a>>>, String> {
+        self.verify_selected_image_prepared_value(context)?;
+        if context.value().host() != self.advertisement() {
+            return Err("Crèche IMAGE context differs from current producing Host".into());
+        }
+        // SAFETY: Root qualifies construction and every subsequent lifecycle
+        // transition; references keep independently funded inputs alive.
+        unsafe {
+            self.prepare_selected_image_value(preparation_bytes, retained_bytes, || {
+                CrecheHost::prepare_from_context(adapter, context.value())
+                    .map(std::cell::RefCell::new)
+            })
+        }
+    }
+
     /// Prepare the exact prospective Crèche context after reserving its complete
     /// workspace. No adapter is entered and no Play is started. The retained
     /// context keeps its charge even if this Host is dropped first.
@@ -160,15 +190,41 @@ mod tests {
         assert!(CrecheHost::prepare_from_image_context(&other, &mut adapter, &prepared).is_err());
         // A counter mismatch must not enter or cancel an untouched adapter.
         assert_eq!((adapter.begins, adapter.polls, adapter.drains), (0, 0, 0));
-        let mut owner =
-            CrecheHost::prepare_from_image_context(&host, &mut adapter, &prepared).unwrap();
-        assert!(core::ptr::eq(owner.context(), prepared.value()));
-        assert!(owner.begin(owner.request()).is_err());
-        owner.confirm_started(host.advertisement(), &play).unwrap();
-        assert_eq!(owner.begin(owner.request()), Ok(CrechePoll::Pending));
+        // SAFETY: oversized reservation refuses before entering the adapter.
+        assert!(unsafe {
+            host.prepare_selected_image_creche_owner(
+                &mut adapter,
+                &prepared,
+                65 * 1024 * 1024,
+                256 * 1024,
+            )
+        }
+        .is_err());
         assert_eq!(used.load(Ordering::Acquire), charged);
+        assert_eq!((adapter.begins, adapter.polls, adapter.drains), (0, 0, 0));
+        // SAFETY: fixed fixture lifecycle and request serialization fit this
+        // independent envelope; the adapter has no worker or external effects.
+        let prepared_owner = unsafe {
+            host.prepare_selected_image_creche_owner(
+                &mut adapter,
+                &prepared,
+                1024 * 1024,
+                256 * 1024,
+            )
+        }
+        .unwrap();
+        let owner_charge = used.load(Ordering::Acquire);
+        assert!(owner_charge >= charged + 256 * 1024);
+        let mut owner = prepared_owner.value().borrow_mut();
+        assert!(core::ptr::eq(owner.context(), prepared.value()));
+        let request = owner.request();
+        assert!(owner.begin(request).is_err());
+        owner.confirm_started(host.advertisement(), &play).unwrap();
+        assert_eq!(owner.begin(request), Ok(CrechePoll::Pending));
+        assert_eq!(used.load(Ordering::Acquire), owner_charge);
         owner.retire().unwrap();
         drop(owner);
+        drop(prepared_owner);
         assert_eq!((adapter.begins, adapter.drains), (1, 1));
         assert_eq!(used.load(Ordering::Acquire), charged);
         drop(prepared);

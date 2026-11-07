@@ -69,6 +69,7 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
+        InstalledBack::Creche(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::Inactive | InstalledBack::SelectedNativeSource(_) => Ok(0),
         _ => Err("IMAGE memory receipt lacks a complete owned Back accounting".into()),
     }
@@ -221,6 +222,20 @@ impl BodyKernel<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn creche_back_counts_only_its_own_inline_state_not_worker_or_receipts() {
+        use conduit_body_make::deployment_runtime::{CrecheBack, CrecheRequest};
+        let deferred =
+            InstalledBack::Creche(CrecheBack::for_admitted_host(conduit_kernel::HostCallId(0)));
+        let pinned = InstalledBack::Creche(CrecheBack::new(
+            conduit_kernel::HostCallId(0),
+            CrecheRequest([7; 32]),
+        ));
+        assert_eq!(back_bytes(&deferred).unwrap(), 0);
+        assert_eq!(back_bytes(&pinned).unwrap(), 0);
+        // The complete kernel receipt still rejects its separate Crèche owner.
+        // A zero Back charge must never be treated as an entire Play receipt.
+    }
     #[test]
     fn unsupported_real_deadline_back_is_not_misreported_as_zero_bytes() {
         let value = conduit_kernel::ValueRef {

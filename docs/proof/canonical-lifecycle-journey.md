@@ -9254,3 +9254,33 @@ Current remote dev remains `076a7d59406650658f54ea6adbbf50f633cfaf80`, already
 absorbed by this delivery branch. The owning #6341 remains open: complete
 aggregate custody and matched physical high-water evidence are still missing.
 Kernel receipt and installed execution guards remain unchanged.
+
+### 2026-11-06 — Fund the execution owner before request serialization
+
+`StdHost::prepare_selected_image_creche_owner` reserves the independently
+qualified preparation peak before adapter preparation and canonical request
+serialization. It verifies the original context counter/current advertisement,
+then retains the resulting mutable owner in a charged cell whose borrow keeps
+the context and adapter alive. The unsafe Root contract covers all subsequent
+lifecycle transitions, error/drain paths and retained backing; adapter and worker
+storage remain separately funded. This is cooperative accounting, not a memory
+sandbox or an execution grant.
+
+The fixture checks over-capacity refusal without activation/drain or a leaked
+charge, then exercises confirmation, begin and retirement with a distinct
+256 KiB retained owner envelope. Retiring the owner does not prematurely release
+its storage; dropping its actual charged owner does. The context charge remains
+until its separate last owner drops.
+
+The kernel's Back receipt now asks `CrecheBack` for its own backing: every field
+is inline, so its heap contribution is zero, excluding the scheduler's inline
+storage, Host worker, value store and receipts. The complete kernel receipt and
+selected IMAGE execution still refuse Crèche until their remaining ownership
+and finite-Fore obligations are qualified. This checkpoint changes no live
+service or physical device.
+
+Qualification: 32 product Crèche-filter cases and 25 std Crèche-filter cases
+passed; strict std/product library/test Clippy passed. Logs are
+`/tmp/conduit-creche-funded-owner-20261106.log` and
+`/tmp/conduit-creche-funded-owner-clippy-20261106.log`. These are CPU fixtures,
+not ordinary installed IMAGE execution or physical proof.
