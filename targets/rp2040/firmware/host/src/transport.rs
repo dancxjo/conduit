@@ -59,3 +59,13 @@ impl Link {
         self.0.send(payload).await.map_err(|_| ())
     }
 }
+
+impl conduit_mcu_host_runtime::transport::MessageTransport for Link {
+    type Error = ();
+    async fn receive<'a>(&mut self, output: &'a mut [u8]) -> Result<&'a [u8], ()> {
+        Link::receive(self, output).await
+    }
+    async fn send(&mut self, payload: &[u8]) -> Result<(), ()> {
+        Link::send(self, payload).await
+    }
+}

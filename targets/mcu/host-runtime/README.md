@@ -23,3 +23,12 @@ BOOTSEL handling and timers. The shared code consumes none of those platform
 resources and contains no GPIO or application behavior. An ESP32 composition can
 supply the same existing protocol over its independently owned UART without
 copying the membership or execution kernel.
+
+`membership::SpawnAdmission` shares the existing authenticated spawn exchange
+between physical compositions. It borrows the current Host advertisement and
+independently supplied running IMAGE, checks bootstrap/provision Body and image
+correspondence, signs the same invitation proof, and accepts only the pinned
+owner's exact current-Boot receipt. Existing or retained membership refuses this
+entrance before carrier effects; returning Parts use the separate canonical
+return protocol. Receiving a credential does not create a Plan, Play or native
+authority grant. The platform retains the acknowledged receipt and its digest.

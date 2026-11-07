@@ -12,11 +12,7 @@ use crate::{
     transport::{Link, LIMIT},
 };
 use alloc::{format, string::String, vec::Vec};
-use conduit_body::{
-    ambient_admission_transcript, validate_attested_admission_receipt_basis,
-    BorrowedAdmissionReceiptAttestation, PicoAdmissionAdvertisement, PicoSpawnJoinRequest,
-    PortableAdmissionReceipt, PICO_ADMISSION_PROTOCOL, PICO_SPAWN_PROTOCOL, PICO_SPAWN_REQUEST,
-};
+use conduit_body::{BorrowedAdmissionReceiptAttestation, PICO_SPAWN_REQUEST};
 use conduit_core::{BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration};
 use core::{cell::Cell, fmt::Write};
 use ed25519_dalek::{Signer, SigningKey};
@@ -154,73 +150,22 @@ impl MembershipState {
         self.freshness = self.freshness.checked_add(1).ok_or(())?;
         let input = workspace.writable().map_err(|_| ())?;
         let mut output = [0; LIMIT];
-        let arrival = PicoAdmissionAdvertisement {
-            protocol: PICO_ADMISSION_PROTOCOL,
-            advertisement: self.resources.host().clone(),
-            friendly_label: "RP2040 Host".into(),
-            verifying_key: self.key.verifying_key().to_bytes().to_vec(),
-            freshness_sequence: self.freshness,
-        };
-        let n = serde_json_core::to_slice(&arrival, &mut output).map_err(|_| ())?;
-        link.send(&output[..n]).await?;
-        let provision = self.seed.admission.spawn().ok_or(())?;
-        let transcript = ambient_admission_transcript(
-            "spawn-invitation-v1",
-            provision.body_id,
-            provision.invitation_id,
-            self.resources.host().host_id.as_str(),
-            self.resources.host().boot_id.as_str(),
-            self.resources.host().offer_generation,
-            &provision.nonce,
-            provision.expires_at_millis,
-        );
-        let signature = self.key.sign(&transcript).to_bytes();
-        let proof = PicoSpawnJoinRequest {
-            protocol: PICO_SPAWN_PROTOCOL,
-            spore_id: provision.spore_id,
-            image_id: provision.image_id,
-            invitation_id: provision.invitation_id,
-            body_id: provision.body_id,
-            host_id: self.resources.host().host_id.as_str(),
-            boot_id: self.resources.host().boot_id.as_str(),
-            offer_generation: self.resources.host().offer_generation.0,
-            nonce: provision.nonce,
-            signature: &signature,
-        };
-        let n = serde_json_core::to_slice(&proof, &mut output).map_err(|_| ())?;
-        link.send(&output[..n]).await?;
-        let metadata_bytes = link.receive(input).await?;
-        let metadata_length = metadata_bytes.len();
-        let (metadata, used) =
-            serde_json_core::from_slice::<BorrowedAdmissionReceiptAttestation<'_>>(metadata_bytes)
-                .map_err(|_| ())?;
-        // Keep immutable metadata borrowing input while the raw receipt occupies output.
-        if used != metadata_length {
-            return Err(());
+        let accepted = conduit_mcu_host_runtime::membership::SpawnAdmission {
+            bootstrap: &self.seed,
+            actual: self.resources.host(),
+            image_id: crate::config::IMAGE_ID,
+            key: &self.key,
+            current: self.receipt.as_ref(),
+            freshness: self.freshness,
+            friendly_label: "RP2040 Host",
         }
-        let raw_receipt = link.receive(&mut output).await?;
-        metadata
-            .verify(
-                raw_receipt,
-                &self.seed.owner,
-                &self.key.verifying_key().to_bytes(),
-            )
-            .map_err(|_| ())?;
-        let (receipt, used) =
-            serde_json_core::from_slice::<PortableAdmissionReceipt>(raw_receipt).map_err(|_| ())?;
-        if used != raw_receipt.len() {
-            return Err(());
-        }
-        validate_attested_admission_receipt_basis(
-            &receipt,
-            &self.seed.body_id,
-            self.resources.host(),
-        )
+        .exchange(link, input, &mut output)
+        .await
         .map_err(|_| ())?;
-        self.receipt = Some(receipt.credential);
-        retain_receipt_digest(raw_receipt);
-        input.fill(0);
-        output.fill(0);
+        self.receipt = Some(accepted.credential);
+        critical_section::with(|cs| {
+            RECEIPT_DIGEST.borrow(cs).set(Some(accepted.receipt_digest));
+        });
         Ok(())
     }
 }

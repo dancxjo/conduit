@@ -109,3 +109,21 @@ impl<C: Carrier> Link<C> {
         Ok(())
     }
 }
+
+/// Already framed protocol messages. Platform control frames may be intercepted
+/// before delivery (for example RP2040 BOOTSEL) without changing Body semantics.
+#[allow(async_fn_in_trait)]
+pub trait MessageTransport {
+    type Error;
+    async fn receive<'a>(&mut self, output: &'a mut [u8]) -> Result<&'a [u8], Self::Error>;
+    async fn send(&mut self, payload: &[u8]) -> Result<(), Self::Error>;
+}
+impl<C: Carrier> MessageTransport for Link<C> {
+    type Error = Refusal;
+    async fn receive<'a>(&mut self, output: &'a mut [u8]) -> Result<&'a [u8], Self::Error> {
+        Link::receive(self, output).await
+    }
+    async fn send(&mut self, payload: &[u8]) -> Result<(), Self::Error> {
+        Link::send(self, payload).await
+    }
+}

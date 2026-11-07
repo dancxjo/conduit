@@ -4,7 +4,7 @@ use core::{
     task::{Context, Poll, Waker},
 };
 use std::{collections::VecDeque, vec, vec::Vec};
-fn ready<F: Future>(future: F) -> F::Output {
+pub(crate) fn ready<F: Future>(future: F) -> F::Output {
     let mut future = core::pin::pin!(future);
     match future
         .as_mut()
