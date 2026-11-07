@@ -82,6 +82,7 @@ pub struct PreparedKernelSession<
     kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
     phase: Phase,
     remote_sign_reservation: u16,
+    has_owned_boundaries: bool,
     owned_value_index: u64,
     optional_outputs: Option<Box<OptionalOwnedOutputs<C>>>,
 }
@@ -215,11 +216,8 @@ where
             return Err((SessionRefusal::NotFresh, kernel));
         }
         let cords = &kernel.cord_specs[..kernel.active_cords];
-        let remote = cords.iter().any(|cord| {
-            !matches!(cord.source, CordEndpoint::Local { .. })
-                || !matches!(cord.sink, CordEndpoint::Local { .. })
-        });
-        if remote && boundaries.is_empty() {
+        let external = owned_boundaries::has_external(cords);
+        if external && boundaries.is_empty() {
             return Err((SessionRefusal::UnsupportedRemote, kernel));
         }
         if !owned_boundaries::exact(cords, boundaries)
@@ -227,6 +225,12 @@ where
         {
             return Err((SessionRefusal::InvalidOwnedBoundary, kernel));
         }
+        let remote = owned_boundaries::requires_line_signs(cords);
+        let remote_sign_reservation = if external && !remote {
+            0
+        } else {
+            remote_sign_reservation
+        };
         if (remote && remote_sign_reservation == 0)
             || (remote_sign_reservation != 0
                 && kernel
@@ -257,6 +261,7 @@ where
             kernel,
             phase: Phase::Prepared,
             remote_sign_reservation,
+            has_owned_boundaries: !boundaries.is_empty(),
             owned_value_index: 0,
             optional_outputs,
         })
@@ -265,13 +270,6 @@ where
     /// Ordinary lockstep sessions retain no per-Cord tracking allocation.
     pub fn optional_output_storage_requirement() -> usize {
         OptionalOutputStorage::<C>::required_bytes()
-    }
-    pub fn optional_output_storage_bytes(&self) -> usize {
-        if self.optional_outputs.is_some() {
-            Self::optional_output_storage_requirement()
-        } else {
-            0
-        }
     }
     fn owned_sequence(&self, index: usize) -> u64 {
         self.optional_outputs
@@ -365,7 +363,7 @@ where
                 next,
             });
         }
-        if self.remote_sign_reservation != 0 {
+        if self.has_owned_boundaries {
             self.owned_value_index += 1;
         }
         for (driver, input) in self.kernel.drivers[..self.kernel.active_nodes]
@@ -415,7 +413,7 @@ where
     }
     fn preflight(&self, next: &[D::Next; N], signs: &E) -> Result<(), SessionRefusal> {
         let kernel = &self.kernel;
-        if self.remote_sign_reservation != 0
+        if self.has_owned_boundaries
             && (self.owned_value_index >= u64::MAX - 1
                 || kernel.cords[..kernel.active_cords]
                     .iter()
@@ -456,7 +454,7 @@ where
                         || cord.offered_remote_sequence.is_some()
                         || cord.remote_accepted
                         || cord.producer_abnormal
-                        || (self.remote_sign_reservation != 0
+                        || (self.has_owned_boundaries
                             && (!cord.producer_closed
                                 || ((!matches!(
                                     kernel.cord_specs[index].source,

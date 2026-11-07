@@ -11,6 +11,19 @@ pub struct OwnedValueBoundary {
     pub endpoint: RemoteEndpointId,
 }
 
+pub(super) fn has_external(cords: &[CordSpec]) -> bool {
+    cords
+        .iter()
+        .any(|cord| cord.source_local().is_none() || cord.sink_local().is_none())
+}
+/// Only full assigned preparation can classify local Fore. Its owned Value
+/// sequencing remains independent from actual Line lifecycle Sign custody.
+pub(super) fn requires_line_signs(cords: &[CordSpec]) -> bool {
+    cords.iter().any(|cord| {
+        !cord.is_local_fore() && (cord.source_local().is_none() || cord.sink_local().is_none())
+    })
+}
+
 pub(super) fn exact(cords: &[CordSpec], boundaries: &[OwnedValueBoundary]) -> bool {
     if boundaries.len() > cords.len() {
         return false;
@@ -77,10 +90,15 @@ where
     S: ValueStorage,
     E: SignSink + SignQuery,
 {
+    pub fn optional_output_storage_bytes(&self) -> usize {
+        if self.optional_outputs.is_some() {
+            Self::optional_output_storage_requirement()
+        } else {
+            0
+        }
+    }
     fn owned_io(&self) -> Result<(), SchedulerError> {
-        if self.remote_sign_reservation == 0
-            || !matches!(self.phase, Phase::Prepared | Phase::Active)
-        {
+        if !self.has_owned_boundaries || !matches!(self.phase, Phase::Prepared | Phase::Active) {
             return Err(SchedulerError::InvalidRemoteCordAccess);
         }
         Ok(())

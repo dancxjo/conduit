@@ -52,6 +52,7 @@ where
         let source = NodeId(as_u16(node)?);
         let mut values = 0_usize;
         let mut remote = 0_usize;
+        let mut boundaries = 0_usize;
         for port in 0..PORTS {
             let port = PortId(as_u16(port)?);
             if output.is_some_and(|output| output != port) {
@@ -74,7 +75,12 @@ where
                     values = values.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
                 }
                 if matches!(target.sink, CordEndpoint::Remote(_)) {
-                    remote = remote.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
+                    boundaries = boundaries
+                        .checked_add(1)
+                        .ok_or(SchedulerError::InvalidPlan)?;
+                    if !spec.is_local_fore() {
+                        remote = remote.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
+                    }
                 }
             }
         }
@@ -85,7 +91,7 @@ where
         }
         self.ensure_remote_sign_capacity(remote)?;
         values
-            .checked_add(remote)
+            .checked_add(boundaries)
             .ok_or(SchedulerError::InvalidPlan)
     }
 }
