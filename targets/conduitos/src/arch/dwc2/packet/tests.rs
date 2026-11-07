@@ -192,3 +192,62 @@ fn pio_transfer_complete_is_followed_by_explicit_channel_halt() {
     );
     assert!(c.is_quiescent());
 }
+
+#[test]
+fn halt_acknowledgement_requires_receive_status_consumption() {
+    let mut c = controller();
+    c.io.finish = 1; // Transfer complete, not yet halted in slave/PIO mode.
+    assert_eq!(c.root_packet(packet(false), &mut [7; 4]), Ok(4));
+    assert!(c.io.rx.is_empty());
+    assert!(c.is_quiescent());
+    assert!(c.io.failures.is_empty());
+}
+
+#[test]
+fn stuck_halt_reports_original_outcome_and_keeps_channel_fenced() {
+    let mut c = controller();
+    c.io.finish = 1 << 4;
+    c.io.stuck_halt = true;
+    assert_eq!(
+        c.root_packet(packet(false), &mut []),
+        Err(PacketError::Retirement)
+    );
+    assert!(!c.is_quiescent());
+    let failure = c.io.failures.last().unwrap();
+    assert_eq!(failure.phase, "halt");
+    assert_eq!(failure.outcome, Some(PacketError::Nak));
+    assert_ne!(failure.character & ENABLE, 0);
+    assert!(c.io.rx.is_empty());
+}
+
+#[test]
+fn halt_waits_for_queue_room_without_resubmitting_data() {
+    let mut c = controller();
+    c.io.finish = 1;
+    c.io.queue_slots.extend([1, 0, 0, 1]);
+    assert_eq!(c.root_packet(packet(false), &mut [9; 4]), Ok(4));
+    let writes: Vec<_> =
+        c.io.writes
+            .iter()
+            .filter(|(r, _)| *r == CHARACTER)
+            .collect();
+    assert_eq!(writes.len(), 3); // One packet, queue flush, then one halt.
+    assert_eq!(writes[1].1 & (HALT | ENABLE), HALT);
+    assert_eq!(writes[2].1 & (HALT | ENABLE), HALT | ENABLE);
+    assert!(c.io.rx.is_empty());
+}
+
+#[test]
+fn late_receive_data_is_drained_but_never_promoted_to_success() {
+    let mut c = controller();
+    c.io.finish = 1;
+    c.io.late_halt_data = true;
+    let mut bytes = [9; 4];
+    assert_eq!(
+        c.root_packet(packet(false), &mut bytes),
+        Err(PacketError::ReceiveEnvelope)
+    );
+    assert_eq!(bytes, [9; 4]);
+    assert!(c.io.rx.is_empty() && c.io.data.is_empty());
+    assert!(c.is_quiescent());
+}

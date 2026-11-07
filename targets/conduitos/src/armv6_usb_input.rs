@@ -172,7 +172,6 @@ impl BPlusUsbInput {
             }
             // Preparation starts only after the prior Source stages have closed
             // normally. The original controller remains retained on refusal.
-            let hub = self.hub.take().expect("original hub owner");
             let result = hub.result().to_vec();
             let value = validate_canonical_structured_value(&result)
                 .map_err(|_| "usb-enumeration-value")?;
@@ -180,14 +179,6 @@ impl BPlusUsbInput {
                 .variant_payload("input")
                 .map_err(|_| "usb-enumeration-value")?
                 .ok_or("usb-no-supported-pointer")?;
-            let controller = match (*hub).retire_controller() {
-                Ok(controller) => controller,
-                Err((hub, error)) => {
-                    observe("hub-retire", &error);
-                    self.hub = Some(Box::new(hub));
-                    return Err("usb-controller-retirement-refused");
-                }
-            };
             let translator_port = octet(selected, "translator-port")?;
             let translator = if translator_port == 0 {
                 None
@@ -223,6 +214,15 @@ impl BPlusUsbInput {
             // SAFETY: original settled controller and actually configured
             // endpoint; only this Root can issue the corresponding native scope.
             let issuer = unsafe { admission::usb_issuer(&identity, true, &mut self.entropy) }?;
+            let hub = self.hub.take().expect("original hub owner");
+            let controller = match (*hub).retire_controller() {
+                Ok(controller) => controller,
+                Err((hub, error)) => {
+                    observe("hub-retire", &error);
+                    self.hub = Some(Box::new(hub));
+                    return Err("usb-controller-retirement-refused");
+                }
+            };
             let (play, schemas) =
                 unsafe { Dwc2PointerPlay::prepare(controller, route, &identity, issuer) }.map_err(
                     |e| {
