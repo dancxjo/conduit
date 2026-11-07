@@ -16,7 +16,7 @@ use core::cell::RefCell;
 use embassy_time::{with_timeout, Duration, Timer};
 const W: usize = crate::equipment::WAIT_SLOTS;
 pub async fn run<'s>(
-    mut root: Root<'s, 16384>,
+    root: &mut Root<'s, 16384>,
     equipment: crate::equipment::Equipment,
     arena: conduit_mcu_host_runtime::image_memory::ImageMemoryLease<'_>,
     link: &mut crate::transport::Link,

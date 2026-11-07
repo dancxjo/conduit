@@ -52,7 +52,7 @@ pub async fn run(
     equipment
         .publish(&mut actual)
         .expect("bounded actual native publication");
-    let root = Root::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new(
+    let mut root = Root::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new(
         seed,
         actual,
         Configuration {
@@ -65,7 +65,7 @@ pub async fn run(
     )
     .expect("original checked Root");
     let mut link = Link::new(carrier);
-    let future = core::pin::pin!(shared::run(root, equipment, arena, &mut link));
+    let future = core::pin::pin!(shared::run(&mut root, equipment, arena, &mut link));
     conduit_mcu_host_runtime::poll_boundary::separate(future).await
 }
 mod shared {
