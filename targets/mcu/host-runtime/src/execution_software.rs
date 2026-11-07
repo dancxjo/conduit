@@ -4,8 +4,8 @@ extern crate alloc;
 use alloc::{boxed::Box, vec::Vec};
 use conduit_environment_runtime::{
     observation::{ObservationBack, ObservationContract},
-    publication::{PublicationBack, PublicationContract, PublicationSequence},
-    publication_face_custody::Publisher,
+    publication::{PublicationBack, PublicationContract, PublicationSequence, PublicationSnapshot},
+    publication_face_custody::{CustodyRefusal, Publisher},
     PreparedCaptureSelector,
 };
 use conduit_kernel::{
@@ -13,6 +13,30 @@ use conduit_kernel::{
     Failure, FailureCode, PortId, ValueRef,
 };
 use core::cell::RefCell;
+
+mod publication_target_sealed {
+    pub trait Sealed {}
+    impl Sealed for core::cell::RefCell<Option<super::Publisher<'_>>> {}
+}
+/// A borrowed view of the original affine publisher slot. Sealing prevents a
+/// substitute implementation; erasing only its inner borrow lifetime avoids
+/// tying the slot's lifetime to the longer-lived Face it owns a loan from.
+pub trait PublicationTarget: publication_target_sealed::Sealed {
+    fn publish(&self, snapshot: PublicationSnapshot<'_>, now_ms: u64)
+        -> Result<(), CustodyRefusal>;
+}
+impl PublicationTarget for RefCell<Option<Publisher<'_>>> {
+    fn publish(
+        &self,
+        snapshot: PublicationSnapshot<'_>,
+        now_ms: u64,
+    ) -> Result<(), CustodyRefusal> {
+        let mut slot = self.try_borrow_mut().map_err(|_| CustodyRefusal::Busy)?;
+        slot.as_mut()
+            .ok_or(CustodyRefusal::Unbound)?
+            .publish(snapshot, now_ms)
+    }
+}
 
 /// Physical monotonic reading supplied by the Host, never a browser timestamp.
 pub type ReadMonotonicMillis = fn() -> u64;
@@ -58,7 +82,7 @@ impl<'a> SoftwareBack<'a> {
         contract: &PublicationContract,
         maximum_events: u32,
         sequence: PublicationSequence,
-        publisher: &'a RefCell<Option<Publisher<'a>>>,
+        publisher: &'a dyn PublicationTarget,
         now: ReadMonotonicMillis,
     ) -> Result<Self, &'static str> {
         Ok(Self::Publication(Box::new(PublicationFaceBack {
@@ -201,7 +225,7 @@ impl<const P: usize> StepBack<P> for SelectorBack {
 }
 pub struct PublicationFaceBack<'a> {
     back: PublicationBack,
-    publisher: &'a RefCell<Option<Publisher<'a>>>,
+    publisher: &'a dyn PublicationTarget,
     now: ReadMonotonicMillis,
     last_sequence: u64,
     failed: bool,
@@ -222,13 +246,7 @@ impl<const P: usize> StepBack<P> for PublicationFaceBack<'_> {
             return;
         }
         self.last_sequence = snapshot.sequence;
-        self.failed = match self.publisher.try_borrow_mut() {
-            Ok(mut slot) => match slot.as_mut() {
-                Some(publisher) => publisher.publish(snapshot, (self.now)()).is_err(),
-                None => true,
-            },
-            Err(_) => true,
-        };
+        self.failed = self.publisher.publish(snapshot, (self.now)()).is_err();
     }
     fn cancel(&mut self) {
         <PublicationBack as StepBack<P>>::cancel(&mut self.back);

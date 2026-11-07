@@ -539,7 +539,20 @@ impl<C: RendererClock> RendererService<'_, C> {
         });
         Ok(Some((pending.request, &self.ready.show_wire[..length])))
     }
-    pub fn maximum_show_bytes(&self) -> u32 { self.ready.bounds.show_bytes }
+    pub fn face_changed(&self) -> Result<bool, Refusal> {
+        self.reader
+            .with_retained(|face, status| {
+                status.source_sequence > 0
+                    && self
+                        .retained
+                        .as_ref()
+                        .is_none_or(|old| old.show.face_id != face.identity)
+            })
+            .map_err(|_| Refusal::Face)
+    }
+    pub fn maximum_show_bytes(&self) -> u32 {
+        self.ready.bounds.show_bytes
+    }
     pub fn current_show(&self) -> Option<&f::Show> {
         self.retained.as_ref().map(|value| &value.show)
     }

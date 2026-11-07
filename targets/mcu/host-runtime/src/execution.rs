@@ -68,7 +68,16 @@ pub enum Refusal<E> {
     Storage(KernelPreparationError),
     Back(E),
     Bounds,
-    Capacity { required: usize, maximum: usize },
+    Capacity {
+        required: usize,
+        maximum: usize,
+    },
+    /// A pre-allocation lower bound already exceeds the caller's retained
+    /// execution budget; it does not claim to measure preparation peak.
+    LowerBoundCapacity {
+        required: usize,
+        maximum: usize,
+    },
     Scope,
 }
 /// One prepared fragment inside a heterogeneous, atomically admitted workset.

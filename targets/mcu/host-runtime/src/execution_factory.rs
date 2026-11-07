@@ -407,9 +407,7 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
     pub unsafe fn initialize(
         definitions: [Option<SoftwareDefinition<'_>>; N],
         identities: [Option<OtherNodeIdentity>; N],
-        publisher: &'f core::cell::RefCell<
-            Option<conduit_environment_runtime::publication_face_custody::Publisher<'f>>,
-        >,
+        publisher: &'f dyn crate::execution_software::PublicationTarget,
         sequence: conduit_environment_runtime::publication::PublicationSequence,
         now: crate::execution_software::ReadMonotonicMillis,
         allocated_bytes: fn() -> usize,

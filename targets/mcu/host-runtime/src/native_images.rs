@@ -110,6 +110,15 @@ impl<'a> Publication<'a> {
         if self.appended != self.expected {
             return Err(Refusal::Context);
         }
+        // Canonical public resource order is an ordinary planner contract. Do
+        // this before Root owns/signs the initial advertisement; indices in
+        // subsequently prepared Plans then name that same actual inventory.
+        self.actual
+            .resources
+            .sort_unstable_by(|a, b| a.pool_id.cmp(&b.pool_id));
+        self.actual
+            .bases
+            .sort_unstable_by(|a, b| a.base_id.cmp(&b.base_id));
         Ok(())
     }
 }

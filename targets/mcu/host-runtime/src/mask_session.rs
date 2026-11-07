@@ -92,6 +92,16 @@ impl<'a, C: RendererClock> MaskSession<'a, C> {
             frame_pending: None,
         })
     }
+    pub fn face_changed(&self) -> Result<bool, Refusal> {
+        self.renderer.face_changed().map_err(Into::into)
+    }
+    pub fn last_event(&self) -> Option<k::KernelEvent> {
+        self.session.kernel().signs().events().last()
+    }
+    pub fn drained_event_count(&self) -> Option<usize> {
+        self.drained
+            .then(|| self.session.kernel().signs().events().count())
+    }
     /// Freeze the actual current Face before queueing this invocation's input.
     pub fn begin(&mut self, prepared_sign: SignId) -> Result<(), Refusal> {
         if self.active || self.drained {
@@ -114,7 +124,7 @@ impl<'a, C: RendererClock> MaskSession<'a, C> {
     /// custody transfer; electrical completion is handled separately below.
     pub fn step(
         &mut self,
-        prepared_sign: SignId,
+        prepared_sign: &SignId,
         mut accept_show: impl FnMut(&[u8]) -> Result<(), Refusal>,
     ) -> Result<SchedulerStatus, Refusal> {
         if !self.active {
@@ -133,7 +143,7 @@ impl<'a, C: RendererClock> MaskSession<'a, C> {
                     request.call,
                     request.request,
                     input,
-                    prepared_sign,
+                    prepared_sign.clone(),
                 )?;
                 self.request = Some(request);
             }
