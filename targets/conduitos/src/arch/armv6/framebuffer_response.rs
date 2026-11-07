@@ -40,7 +40,6 @@ pub(crate) fn validate(
         || physical & 4095 != 0
         || bytes == 0
         || bytes > (8 * 1024 * 1024)
-        || physical < 0x1c00_0000 // Identity map only caches ARM-owned RAM below here.
         || physical < gpu_start
         || physical
             .checked_add(bytes)
