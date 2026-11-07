@@ -43,3 +43,22 @@ pub fn try_lease() -> Option<DisplayLease> {
             .map(|display| DisplayLease(Some(display)))
     })
 }
+
+impl conduit_tm1637_wire::OpenDrain for DisplayLease {
+    type Error = crate::tm1637_pins::Refusal;
+    fn begin_transaction(&mut self) -> Result<(), Self::Error> {
+        self.deref_mut().begin_transaction()
+    }
+    fn clock(&mut self, released: bool) -> Result<(), Self::Error> {
+        self.deref_mut().clock(released)
+    }
+    fn data(&mut self, released: bool) -> Result<(), Self::Error> {
+        self.deref_mut().data(released)
+    }
+    fn read_data(&mut self) -> Result<bool, Self::Error> {
+        self.deref_mut().read_data()
+    }
+    fn half_period(&mut self) -> Result<(), Self::Error> {
+        self.deref_mut().half_period()
+    }
+}

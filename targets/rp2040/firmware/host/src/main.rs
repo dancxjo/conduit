@@ -1,5 +1,5 @@
 //! Generic RP2040 Host composition with canonical membership and existing local IO.
-//! Local sensor/Face tasks remain diagnostic until ordinary Plot admission exists.
+//! Physical equipment custody and membership are separate from admitted Play.
 #![no_std]
 #![no_main]
 extern crate alloc;
@@ -18,19 +18,15 @@ mod environment;
 #[cfg(all(display_tm1637, not(sensor_dht11)))]
 #[path = "environment_tm1637.rs"]
 mod environment;
-#[cfg(display_tm1637)]
-mod tm1637_pins;
 #[cfg(sensor_dht11)]
 #[path = "environment_dht11.rs"]
 mod environment;
-#[cfg(sensor_dht11)]
-mod pulse_owner;
-#[cfg(sensor_dht11)]
-mod tm1637_owner;
 mod environment_http;
 mod environment_show;
-mod execution_supervisor;
+#[cfg(sensor_dht11)]
+mod equipment;
 mod execution_selection;
+mod execution_supervisor;
 mod heap;
 mod i2c_installation;
 #[allow(dead_code)] // Supporting native issuance inspection remains independent of execution.
@@ -39,20 +35,38 @@ mod i2c_owner;
 mod membership;
 #[allow(dead_code)] // Additional bounded composition APIs remain available for qualification.
 mod mixed_preparation;
-#[allow(dead_code)] // Preparation inspection is separate from execution.
-mod mixed_workset;
 #[allow(dead_code)] // Typed ownership handoff remains available to Root callers.
 mod mixed_supervision;
+#[allow(dead_code)] // Preparation inspection is separate from execution.
+mod mixed_workset;
 mod native_preparation;
 mod native_publication;
+#[cfg(sensor_dht11)]
+mod play;
+#[cfg(sensor_dht11)]
+mod play_service;
+#[cfg(sensor_dht11)]
+mod play_run;
+#[cfg(sensor_dht11)]
+mod pulse_owner;
 mod radio;
 mod resident;
 mod resident_preparation;
 mod retired_resources;
+#[cfg(sensor_dht11)]
+mod runtime;
+#[cfg(sensor_dht11)]
+mod renderer;
 mod seed;
+#[cfg(sensor_dht11)]
+mod tm1637_owner;
+#[cfg(display_tm1637)]
+mod tm1637_pins;
 mod transport;
 mod usb_identity;
 mod wifi;
+#[cfg(sensor_dht11)]
+mod workset;
 #[allow(dead_code)]
 mod config {
     include!(concat!(env!("OUT_DIR"), "/host.rs"));
@@ -109,7 +123,8 @@ async fn main(spawner: Spawner) {
         let credentials = credential_source::restore(&mut flash);
         (serial, credentials)
     };
-    // Independent established local IO keeps running throughout admission.
+    // Initialize checked equipment. The GPIO profile performs no measurement
+    // or display effects here; its Source must first pass complete admission.
     config::start_local_io!(spawner, p);
     resident::initialize();
     spawner.spawn(
@@ -129,12 +144,21 @@ async fn main(spawner: Spawner) {
     let (device, class) = usb(usb::Driver::new(p.USB, UsbIrqs), serial);
     spawner.spawn(usb_task(device).unwrap());
     let mut rng = embassy_rp::clocks::RoscRng;
+    #[cfg(not(sensor_dht11))]
     let mut membership = serial.and_then(|serial| {
         let host = alloc::format!("rp2040/flash/{serial}");
         seed::Seed::load(&host)
             .map(|seed| membership::Membership::new(seed, host, [rng.next_u64(), rng.next_u64()]))
     });
     let mut link = transport::Link::new(class);
+    #[cfg(sensor_dht11)]
+    if let Some(serial) = serial {
+        let host = alloc::format!("rp2040/flash/{serial}");
+        if let Some(seed) = seed::Seed::load(&host) {
+            runtime::run(seed, host, [rng.next_u64(), rng.next_u64()], &mut link).await;
+        }
+    }
+    #[cfg(not(sensor_dht11))]
     if let Some(member) = membership.as_mut() {
         member.run(&mut link).await;
     }

@@ -284,6 +284,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-environment-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
+]
+
+[[package]]
+name = "conduit-environment-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-environment-face",
+ "conduit-face",
+ "conduit-kernel",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-seven-segment-mask",
+ "conduit-time",
+]
+
+[[package]]
 name = "conduit-face"
 version = "0.1.0"
 dependencies = [
@@ -324,6 +349,7 @@ dependencies = [
  "conduit-embedded-build",
  "conduit-host-make",
  "conduit-i2c-transaction",
+ "conduit-mcu-source-build",
  "conduit-plot",
  "conduit-rp2040-flash-layout",
  "serde",
@@ -380,10 +406,38 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-kernel",
+ "conduit-monotonic-wait",
+ "conduit-plan-lowering",
+ "conduit-pulse-capture",
+ "conduit-seven-segment-mask",
+ "conduit-time",
+ "conduit-tm1637-wire",
  "conduit-wire",
  "ed25519-dalek",
  "serde",
  "serde-json-core",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-mcu-source-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-embedded-build",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-host-make",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-time",
+ "conduit-tm1637-wire",
+ "serde_json",
  "sha2",
 ]
 
@@ -393,6 +447,16 @@ version = "0.1.0"
 dependencies = [
  "conduit-audio",
  "conduit-core",
+]
+
+[[package]]
+name = "conduit-monotonic-wait"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-time",
 ]
 
 [[package]]
@@ -489,6 +553,7 @@ dependencies = [
  "conduit-bosch-env",
  "conduit-core",
  "conduit-embedded-build",
+ "conduit-environment-runtime",
  "conduit-face",
  "conduit-host-make",
  "conduit-host-rp2040",
@@ -496,6 +561,7 @@ dependencies = [
  "conduit-i2c-transaction",
  "conduit-kernel",
  "conduit-mcu-host-runtime",
+ "conduit-monotonic-wait",
  "conduit-net",
  "conduit-network-credential-journal",
  "conduit-plan-lowering",
@@ -506,6 +572,7 @@ dependencies = [
  "conduit-rp2040-pulse-capture",
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
+ "conduit-time",
  "conduit-tm1637-wire",
  "conduit-wire",
  "cortex-m",
@@ -580,6 +647,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-face",
+ "conduit-kernel",
  "conduit-plot",
 ]
 
@@ -598,6 +666,7 @@ name = "conduit-time"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "conduit-plot",
  "serde",
 ]
@@ -605,6 +674,12 @@ dependencies = [
 [[package]]
 name = "conduit-tm1637-wire"
 version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
 
 [[package]]
 name = "conduit-web"

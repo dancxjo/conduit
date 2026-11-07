@@ -6,6 +6,11 @@ impl<'a> core::ops::Deref for Seed<'a> {
         &self.0
     }
 }
+impl<'a> Seed<'a> {
+    pub fn into_shared(self) -> conduit_mcu_host_runtime::seed::Seed<'a> {
+        self.0
+    }
+}
 impl Seed<'static> {
     pub fn load(actual_host: &str) -> Option<Self> {
         const REGION: usize = conduit_rp2040_flash_layout::BOOTSTRAP.bytes() as usize;

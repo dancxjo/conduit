@@ -69,3 +69,12 @@ impl conduit_mcu_host_runtime::transport::MessageTransport for Link {
         Link::send(self, payload).await
     }
 }
+
+impl conduit_mcu_host_runtime::transport::DocumentTransport for Link {
+    async fn receive_document(
+        &mut self,
+        document: &mut conduit_wire::BorrowedBoundedDocumentAssembly<'_>,
+    ) -> Result<(), Self::Error> {
+        Link::receive_document(self, document).await
+    }
+}

@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [dependencies]
-conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime" }
+conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
 conduit-i2c-transaction = { path = "../../../../mechanisms/io/i2c-transaction", default-features = false }
 conduit-rp2040-i2c = { path = "../../i2c", features = ["rp2040"] }
 conduit-body = { path = "../../../../architecture/body" }
@@ -44,12 +44,20 @@ cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec
 conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", features = ["host-call"] }
 conduit-rp2040-pulse-capture = { path = "../../pulse-capture", features = ["host-call"] }
 conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637" }
+conduit-time = { path = "../../../../semantics/time", default-features = false }
+conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait" }
+conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", features = ["appliance", "face-projection", "display-mask"] }
 [build-dependencies]
 conduit-embedded-build = { path = "../../../../make/embedded-build" }
 conduit-host-make = { path = "../../../../make/host" }
 conduit-host-rp2040 = { path = "../../make" }
 conduit-rp2040-flash-layout = { path = "../../flash-layout" }
 sha2 = "0.10"
+conduit-core = { path = "../../../../architecture/core" }
+conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", features = ["host-call"] }
+conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637", features = ["host-call"] }
+conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait" }
+conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
 [profile.release]
 opt-level = "s"
 lto = true

@@ -1,4 +1,4 @@
-//! Fixed diagnostic Face-construction heap; no authority or storage journal.
+//! Fixed checked Host preparation arena; no resource grant or storage journal.
 use core::{
     alloc::{GlobalAlloc, Layout},
     cell::RefCell,

@@ -51,6 +51,10 @@ impl Pins {
 }
 impl OpenDrain for Pins {
     type Error = Refusal;
+    fn begin_transaction(&mut self) -> Result<(), Refusal> {
+        self.begin();
+        Ok(())
+    }
     fn clock(&mut self, released: bool) -> Result<(), Refusal> {
         if released {
             // Release even after refusal so shared transport cleanup is safe.

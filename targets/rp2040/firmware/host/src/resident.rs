@@ -95,3 +95,40 @@ pub fn inventory() -> Result<InventoryLease, InventoryRefusal> {
         })
     })
 }
+
+// SAFETY: the generated ticket exclusively preflights the exact resident slots;
+// its immutable node accessor and allocation-free bind refer to the same loans.
+// These generated resident engines contain only static schema references and
+// inline buffers; OWNER's static image reservation funds their complete state.
+unsafe impl<'a>
+    conduit_mcu_host_runtime::execution_factory::PreparedResidents<{ generated::ENTRY_COUNT }>
+    for generated::PreparedResidentLoans<'a>
+{
+    type Back = generated::BorrowedBack<'a>;
+    fn nodes(&self) -> [Option<u16>; generated::ENTRY_COUNT] {
+        self.nodes()
+    }
+    fn retained_backing_bytes(&self) -> Option<usize> {
+        Some(0)
+    }
+    fn bind(self) -> [Option<(u16, Self::Back)>; generated::ENTRY_COUNT] {
+        self.bind()
+    }
+}
+
+// SAFETY: generated split tickets lend disjoint inline owners and preserve the
+// exact preflighted node. No schema, scratch or output backing is heap-owned.
+unsafe impl<'a> conduit_mcu_host_runtime::execution_factory::PreparedResidentEntry
+    for generated::PreparedResidentEntryLoan<'a>
+{
+    type Back = generated::BorrowedBack<'a>;
+    fn node(&self) -> u16 {
+        self.node()
+    }
+    fn retained_backing_bytes(&self) -> Option<usize> {
+        Some(0)
+    }
+    fn bind(self) -> (u16, Self::Back) {
+        self.bind()
+    }
+}
