@@ -9827,3 +9827,39 @@ immediate execution acceptance gate.
 Maintenance preserved active release builds, private state, and unique proof.
 Eight inactive regenerable debug language libraries were inventoried, checked
 against process ownership, and removed, reclaiming 2,680,057,856 allocated bytes.
+
+### Complete Source composition qualification (2026-11-07, before deployment)
+
+Both MCU adapters now use one generated composition for Source-selected sampling,
+Mask and electrical-output kernels. Board adapters retain physical providers;
+there is no diagnostic sampling/display loop in this candidate. The Xtensa
+release typecheck and normal optimized link passed. Yellow's updated thumb
+qualification is pending. Neither result is physical admission or Play evidence.
+
+The checked Source and immutable catalog now agree on proven expression and
+structured-selector value bounds. Missing expanded external Fore contracts are
+inferred from checked endpoint contracts; explicit contracts and strict planner
+compatibility remain enforced. The Plot suite passed 489 tests (one ignored).
+The actual embedded calibration found a 43,570-byte combined lower bound for
+canonical backing and kernel storage before renderer, Face and other runtime
+owners. Yellow's declared heap is therefore being revised from 48 to 96 KiB,
+with a 224 KiB static ceiling, before construction and admission. The actual link
+must verify that declaration; this is not a measured runtime peak or an enlarged
+existing grant. Blue's physical budget remains subject to its target measurement.
+
+The installed Linux owner previously qualified Source preparation at a
+75,538,919-byte observed peak and 49,596,780 retained bytes, within its original
+caller and Root budgets. It did not commit Source or publish the owner. The
+semantic-contract revision requires rebuilding and repeating that qualification
+before this Source is adopted. The live Body remains unchanged at this point.
+
+Success still requires actual member return, Source adoption, original signed
+assignment, atomic admission and Start, valid physical observations, native
+Face/Mask output and continued local operation when the carrier disconnects.
+The current finite Mask evidence archive is not an overnight acceptance result.
+Blue's USB host remains unreachable; White is excluded at the user's direction.
+
+Maintenance additionally removed 1.6 GiB (Cargo-reported logical size) of inactive
+regenerable dev artifacts for Human, Education, Robotics and Process after
+checking process mappings. Active MCU/release caches, credentials, history and
+unique compiler/layout evidence were preserved.
