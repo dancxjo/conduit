@@ -271,7 +271,7 @@ fn excess_images_refuse_before_native_grant_copy_or_transport() {
     assert!(matches!(
         ready(exchange.exchange(
             &mut link,
-            [IMAGE; 17].into_iter(),
+            [IMAGE; conduit_body::MAX_MEMBER_RETURN_IMAGES + 1].into_iter(),
             || {
                 copied.set(true);
                 Ok(vec![])
