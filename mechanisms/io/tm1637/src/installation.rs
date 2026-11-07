@@ -6,6 +6,7 @@ use conduit_core::*;
 mod advertisement;
 #[path = "assigned.rs"]
 mod assigned;
+pub use assigned::PreparedAssignedWrite;
 #[path = "installation_selected.rs"]
 mod selected;
 pub const WRITE_CAPABILITY: &str = "conduit/tm1637-write@1";
