@@ -4,6 +4,7 @@
 //! execution path uses original Root grants, atomic admission and the ordinary
 //! production kernel to run checked assignments.
 pub mod image_memory;
+pub mod poll_boundary;
 pub mod ingress;
 pub mod member_return;
 pub mod membership;
