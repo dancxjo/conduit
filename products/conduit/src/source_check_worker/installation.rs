@@ -4,7 +4,7 @@ use conduit_core::AuthorityGrant;
 use conduit_host_make::{CheckedHostConfiguration, HostImage, MakeCatalog};
 use conduit_plot::{CheckContextRevision, SourceCheckNativeSchema, SourceSnapshotRevision};
 use conduit_std_host::{
-    body_execution::ImageForeInput,
+    body_execution::{ImageForeInput, ImagePreparedValue},
     source_check::{
         process::OwnedSourceCheckInput, PreparedSourceChecker, SourceCheckPreparationBounds,
     },
@@ -25,6 +25,10 @@ pub struct SourceCheckImageInstallation<'a> {
     pub provider: SourceCheckProviderIdentity,
     pub file: File,
     pub maximum_source_bytes: usize,
+    /// Independently qualified capture peak and complete immutable retained
+    /// backing, separately charged while metadata/provider preparation overlap.
+    /// This is a ceiling on the existing IMAGE counter, never an added grant.
+    pub capture_budget: ImmediateSourcePreparationBudget,
     /// Exact independently reviewed snapshot; these labels confer no read authority.
     pub snapshot: &'a SourceSnapshotRevision,
     pub entry: &'a str,
@@ -39,6 +43,9 @@ pub struct SourceCheckImageInstallation<'a> {
 pub struct InitializedSourceCheckImage {
     pub host: StdHost,
     pub request: ImageForeInput,
+    /// The actual immutable File capture, retaining its original IMAGE charge.
+    /// A report or copied snapshot is never substituted for these bytes.
+    pub source: ImagePreparedValue<OwnedSourceCheckInput>,
 }
 
 /// Construct a Host only after selected Source capture and the actual bounded
@@ -49,8 +56,10 @@ pub struct InitializedSourceCheckImage {
 /// # Safety
 /// Root must independently own the readable File and authorize the exact Source
 /// scope and Host grant. Its checked configuration/catalog and caller
-/// workspace need independent custody. The checked preparation ceiling must
-/// cover complete parent/child preparation, and retirement must satisfy the
+/// workspace need independent custody. The capture budget must qualify all
+/// synchronous File acquisition/hash/metadata peak and every retained capacity;
+/// caller-owned captures remain funded until transferred. The checked preparation
+/// ceiling must cover complete parent/child preparation, and retirement must satisfy the
 /// existing immediate-provider contract. Names and IMAGE intent grant nothing.
 pub unsafe fn initialize_image(
     request: SourceCheckImageInstallation<'_>,
@@ -100,6 +109,8 @@ pub unsafe fn initialize_image_with_prepared_creche(
     };
     let mut captured_request = None;
     let capture = &mut captured_request;
+    let mut captured_source = None;
+    let source_capture = &mut captured_source;
     // SAFETY: caller retains the independent authority/workspace obligations;
     // this factory supplies the actual selected, bounded process implementation.
     let mut host = unsafe {
@@ -110,7 +121,7 @@ pub unsafe fn initialize_image_with_prepared_creche(
             request.checked,
             budget,
             creche_resource,
-            |config, _root| {
+            |config, root| {
                 let schema = SourceCheckNativeSchema::prepare()
                     .map_err(|error| format!("selected Source schema: {error:?}"))?;
                 let definition = derive_image_definition(
@@ -122,25 +133,44 @@ pub unsafe fn initialize_image_with_prepared_creche(
                     request.grant,
                     request.provider,
                 )?;
+                // Acquire only after reserving the separate capture envelope on
+                // this original counter. Metadata and later native preparation
+                // retain their own distinct overlapping charges.
+                let source = root.prepare_value(
+                    request.capture_budget.preparation_bytes as usize,
+                    request.capture_budget.retained_bytes as usize,
+                    || {
+                        if request.control.stop_requested() {
+                            return Err("Source-check preparation cancelled before capture".into());
+                        }
+                        let source = OwnedSourceCheckInput::from_file(
+                            request.file,
+                            request.maximum_source_bytes,
+                            &request.snapshot.owner,
+                            request.snapshot.generation,
+                            request.entry,
+                            request.context,
+                        )
+                        .map_err(|e| format!("selected Source capture: {e:?}"))?;
+                        let bytes = source
+                            .owned_backing_bytes()
+                            .ok_or("Source capture backing overflow")?;
+                        if bytes > request.capture_budget.retained_bytes as usize {
+                            return Err("Source capture exceeds qualified retained backing".into());
+                        }
+                        if &source.request().snapshot != request.snapshot {
+                            return Err("selected Source changed since owner review".into());
+                        }
+                        Ok(source)
+                    },
+                )?;
                 Ok((definition, budget, move || {
                     if request.control.stop_requested() {
                         return Err("Source-check preparation cancelled".into());
                     }
-                    let source = OwnedSourceCheckInput::from_file(
-                        request.file,
-                        request.maximum_source_bytes,
-                        &request.snapshot.owner,
-                        request.snapshot.generation,
-                        request.entry,
-                        request.context,
-                    )
-                    .map_err(|e| format!("selected Source capture: {e:?}"))?;
-                    if &source.request().snapshot != request.snapshot {
-                        return Err("selected Source changed since owner review".into());
-                    }
                     let mut worker = super::from_configuration(request.checked)?;
                     let output = worker
-                        .prepare_selected_source(&source, request.control)
+                        .prepare_selected_source(source.value(), request.control)
                         .map_err(|e| format!("selected Source compiler: {e:?}"))?;
                     let prepared = PreparedSourceChecker::from_process_outputs(
                         &schema,
@@ -151,13 +181,14 @@ pub unsafe fn initialize_image_with_prepared_creche(
                     // Encode under the still-reserved complete preparation ceiling.
                     // Do not let a second uncharged typed request escape that scope.
                     let bytes = schema
-                        .encode_request(source.request(), bounds.request_bytes as usize)
+                        .encode_request(source.value().request(), bounds.request_bytes as usize)
                         .map_err(|error| format!("selected Source request: {error:?}"))?;
                     *capture = Some(ExternalForeInput {
                         front_port_id: "request".into(),
                         track: conduit_core::ConnectionTrack::Payload,
                         bytes,
                     });
+                    *source_capture = Some(source);
                     Ok(Box::new(prepared.into_provider())
                         as Box<dyn conduit_std_host::ImmediateNativeSource>)
                 }))
@@ -169,5 +200,11 @@ pub unsafe fn initialize_image_with_prepared_creche(
     let request = host.retain_selected_image_fore_input(
         captured_request.ok_or("initialized Source checker lacks its capture")?,
     )?;
-    Ok(InitializedSourceCheckImage { host, request })
+    let source = captured_source.ok_or("initialized Source checker lacks its actual capture")?;
+    host.verify_selected_image_prepared_value(&source)?;
+    Ok(InitializedSourceCheckImage {
+        host,
+        request,
+        source,
+    })
 }

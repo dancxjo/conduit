@@ -69,6 +69,28 @@ impl OwnedSourceCheckInput {
             },
         })
     }
+    /// Complete owned payload backing, including spare String capacities.
+    /// This is an accounting observation, not a memory grant or Source authority.
+    pub fn owned_backing_bytes(&self) -> Option<usize> {
+        let request = &self.input.request;
+        [
+            &self.input.source,
+            &self.input.owner,
+            &request.snapshot.owner,
+            &request.snapshot.sha256,
+            &request.snapshot.source_document_id,
+            &request.entry,
+            &request.context.grammar_edition,
+            &request.context.catalog,
+            &request.context.kinds_fores,
+            &request.context.types_laws,
+            &request.context.backs,
+        ]
+        .into_iter()
+        .try_fold(core::mem::size_of::<Self>(), |bytes, text| {
+            bytes.checked_add(text.capacity())
+        })
+    }
     pub fn request(&self) -> &SourceCheckRequest {
         &self.input.request
     }

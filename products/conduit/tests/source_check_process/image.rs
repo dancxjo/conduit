@@ -259,6 +259,10 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
                 },
                 file: source_file(source),
                 maximum_source_bytes: bounds().request_bytes as usize,
+                capture_budget: ImmediateSourcePreparationBudget {
+                    preparation_bytes: 512 * 1024,
+                    retained_bytes: 16 * 1024,
+                },
                 snapshot: &input.request.snapshot,
                 entry: &input.request.entry,
                 context: input.request.context.clone(),
@@ -275,7 +279,34 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
     }
     .unwrap();
     assert_eq!(initialized.request.input().bytes, request);
+    assert_eq!(initialized.source.value().source(), source);
+    assert_eq!(initialized.source.value().request(), &input.request);
+    assert!(initialized.source.value().owned_backing_bytes().unwrap() <= 16 * 1024);
+    initialized
+        .host
+        .verify_selected_image_prepared_value(&initialized.source)
+        .unwrap();
+    let foreign = StdHost::new();
+    assert!(foreign
+        .verify_selected_image_prepared_value(&initialized.source)
+        .is_err());
+    let mut retained_source = Some(initialized.source);
     let mut host = initialized.host;
+    if !creche {
+        let before =
+            remaining_preparation(&mut host, image.manifest.bounds.heap_arena_bytes as usize);
+        let witness = retained_source.as_ref().unwrap().retain_memory();
+        drop(retained_source.take());
+        assert_eq!(
+            remaining_preparation(&mut host, image.manifest.bounds.heap_arena_bytes as usize),
+            before
+        );
+        drop(witness);
+        assert!(
+            remaining_preparation(&mut host, image.manifest.bounds.heap_arena_bytes as usize)
+                >= before + 16 * 1024
+        );
+    }
     assert_eq!(
         host.image_identity().unwrap().image_id,
         image.manifest.image_id
@@ -438,6 +469,30 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
     );
     // SAFETY: No active Play; IMAGE reconfiguration must still refuse.
     assert!(unsafe { host.retire_immediate_native_source() }.is_err());
+    drop(host);
+    if let Some(source_owner) = retained_source {
+        // The actual immutable capture and its original charge outlive the Host;
+        // neither the process report nor a filesystem reread supplies these bytes.
+        assert_eq!(source_owner.value().source(), source);
+        assert_eq!(source_owner.value().request(), &input.request);
+    }
+}
+
+fn remaining_preparation(host: &mut StdHost, ceiling: usize) -> usize {
+    let (mut low, mut high) = (0usize, ceiling);
+    while low < high {
+        let bytes = low + (high - low).div_ceil(2);
+        // SAFETY: the immediate factory owns one inline byte, no asynchronous
+        // effects or external captures. The envelope deliberately overbounds it.
+        let probe = unsafe { host.prepare_selected_image_value(bytes, 1, || Ok(0u8)) };
+        if probe.is_ok() {
+            low = bytes;
+        } else {
+            high = bytes - 1;
+        }
+        drop(probe);
+    }
+    low
 }
 
 #[test]
@@ -578,6 +633,10 @@ fn product_installation_refuses_grant_drift_and_stop_before_source_capture() {
                     },
                     file,
                     maximum_source_bytes: bounds().request_bytes as usize,
+                    capture_budget: ImmediateSourcePreparationBudget {
+                        preparation_bytes: 512 * 1024,
+                        retained_bytes: 16 * 1024,
+                    },
                     snapshot: &input.request.snapshot,
                     entry: &input.request.entry,
                     context: input.request.context,
@@ -638,6 +697,10 @@ fn selected_source_snapshot_drift_refuses_before_compiler_preparation() {
                     },
                     file,
                     maximum_source_bytes: bounds().request_bytes as usize,
+                    capture_budget: ImmediateSourcePreparationBudget {
+                        preparation_bytes: 512 * 1024,
+                        retained_bytes: 16 * 1024,
+                    },
                     snapshot: &snapshot,
                     entry: &input.request.entry,
                     context: input.request.context,
@@ -731,4 +794,74 @@ fn retained_root_preparation_refuses_native_start_without_losing_its_value() {
     assert!(result.err().unwrap().contains("backing capacity"));
     assert_eq!(retained.as_ref().unwrap().value().as_slice(), &[7u8; 64]);
     drop(retained);
+}
+
+#[test]
+fn source_capture_refuses_unfunded_io_or_retention_before_starting_child() {
+    use std::io::{Seek, SeekFrom};
+    for pressure in [true, false] {
+        let checked = configuration();
+        let image = image(&checked);
+        let (config, definition) = definition(&checked, &image);
+        let (mut input, _) = input(include_str!("../../../../plots/hello/main.conduit"));
+        if !pressure {
+            input.request.context.catalog.reserve(65_536);
+        }
+        let mut file = source_file(&input.source);
+        file.seek(SeekFrom::Start(3)).unwrap();
+        let mut alias = file.try_clone().unwrap();
+        let children = std::fs::read_to_string("/proc/thread-self/children").unwrap();
+        let catalog = conduit_workspace_make::catalog();
+        // SAFETY: independent fixture grant/descriptor. Pressure denies capture;
+        // otherwise 512 KiB covers the finite capture and 65 KiB moved context,
+        // whose insufficient retention must refuse before provider preparation.
+        let result = unsafe {
+            conduit::source_check_worker::initialize_image(
+                conduit::source_check_worker::SourceCheckImageInstallation {
+                    config,
+                    image: &image,
+                    checked: &checked,
+                    catalog: &catalog,
+                    grant: definition.grant,
+                    provider: conduit::source_check_worker::SourceCheckProviderIdentity {
+                        instance: definition.base.provider_instance_id,
+                        generation: definition.base.provider_generation,
+                        resource_generation: definition.resource_generation,
+                    },
+                    file,
+                    maximum_source_bytes: bounds().request_bytes as usize,
+                    capture_budget: ImmediateSourcePreparationBudget {
+                        preparation_bytes: if pressure {
+                            image.manifest.bounds.heap_arena_bytes as u32
+                        } else {
+                            512 * 1024
+                        },
+                        retained_bytes: 16 * 1024,
+                    },
+                    snapshot: &input.request.snapshot,
+                    entry: &input.request.entry,
+                    context: input.request.context,
+                    control: &RunControl::default(),
+                },
+            )
+        };
+        let expected = if pressure {
+            "backing capacity"
+        } else {
+            "qualified retained backing"
+        };
+        assert!(result.err().unwrap().contains(expected));
+        assert_eq!(
+            alias.stream_position().unwrap(),
+            if pressure {
+                3
+            } else {
+                input.source.len() as u64
+            }
+        );
+        assert_eq!(
+            std::fs::read_to_string("/proc/thread-self/children").unwrap(),
+            children
+        );
+    }
 }

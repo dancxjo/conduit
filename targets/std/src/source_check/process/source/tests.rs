@@ -127,3 +127,18 @@ fn root_handoff_moves_exact_capture_without_allocating_or_reopening() {
         canonical_source_document_id(&source).0
     );
 }
+
+#[test]
+fn retained_source_accounting_includes_moved_context_spare_capacity() {
+    let mut context = context();
+    context.catalog.reserve(65_536);
+    let spare = context.catalog.capacity();
+    let source =
+        OwnedSourceCheckInput::from_file(selected(b"x"), 8, "owner", 1, "main", context).unwrap();
+    let bytes = source.owned_backing_bytes().unwrap();
+    assert!(bytes >= core::mem::size_of::<OwnedSourceCheckInput>() + spare + 2);
+    assert!(bytes > source.source().len() + 65_536);
+    let probe = crate::allocation_probe::begin();
+    assert_eq!(source.owned_backing_bytes(), Some(bytes));
+    assert_eq!(probe.finish(), 0);
+}
