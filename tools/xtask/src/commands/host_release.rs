@@ -13,10 +13,13 @@ pub(super) mod configuration_load;
 
 #[path = "host_release_armv6.rs"]
 mod armv6;
+#[path = "host_release_artifact.rs"]
+mod artifact;
 #[path = "host_release_browser.rs"]
 mod browser;
 #[path = "host_release_checked.rs"]
 mod checked;
+pub(super) use artifact::review_artifact;
 #[path = "host_release_linux.rs"]
 mod linux;
 

@@ -104,6 +104,21 @@ pub(super) enum HostCommand {
         #[arg(long)]
         source_identity: Option<String>,
     },
+    /// Seal an operator-selected existing native executable without claiming a checked native compilation.
+    ReleaseArtifact {
+        #[arg(long)]
+        configuration: PathBuf,
+        #[arg(long)]
+        image: PathBuf,
+        #[arg(long)]
+        executable: PathBuf,
+        /// Exact independently reviewed executable SHA256 (with or without sha256:).
+        #[arg(long)]
+        sha256: String,
+        /// New output directory; existing artifacts are never overwritten.
+        #[arg(long)]
+        output: PathBuf,
+    },
     /// Seal reviewed release manifests into the installed target catalog.
     ReleaseCatalog {
         /// Directory containing reviewed release manifests and their artifacts.

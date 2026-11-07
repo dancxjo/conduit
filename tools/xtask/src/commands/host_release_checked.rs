@@ -88,6 +88,13 @@ pub(super) fn build(
     Ok(())
 }
 
+pub(super) fn native_artifact_name(
+    target: &str,
+    selection: &MakeBuildSelection,
+) -> Result<&'static str, String> {
+    NativeTarget::select(target, selection).map(|target| target.executable)
+}
+
 fn verify_source(source_identity: &str) -> Result<(), Box<dyn std::error::Error>> {
     let revision = Command::new("git").args(["rev-parse", "HEAD"]).output()?;
     if !revision.status.success() || String::from_utf8(revision.stdout)?.trim() != source_identity {
