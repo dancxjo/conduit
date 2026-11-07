@@ -9218,3 +9218,20 @@ This remains preparation-level CPU evidence. IMAGE activation still needs the
 complete mandatory-worker admission gate, closed kernel execution accounting,
 and ordinary installed integration before an admitted Play can be claimed.
 Existing installed IMAGE execution guards remain. No device or display changed.
+
+### 2026-11-06 — Mandatory worker custody before activation
+
+IMAGE encounter begin now refuses while its worker reservation is absent,
+before setting active/begun or exposing a current Face. The regression proves
+that refusal starts no worker and that reserving on the original counter allows
+the same prepared request to begin afterward. View-lifetime fixtures now reserve
+the same mandatory worker envelope even when they never launch a thread; their
+capacity probes include that live charge. Reference encounters keep their
+existing behavior. All 31 Crèche tests and strict product library/test Clippy
+passed (`/tmp/conduit-creche-activation-20261106.log` and
+`/tmp/conduit-creche-activation-clippy-20261106.log`).
+
+This closes the activation omission from the preceding checkpoint, not the
+installed IMAGE gate. `BodyKernel::prepare_memory` still explicitly refuses a
+Crèche profile: its exact scheduler, Fore and context receipt must be qualified
+before the ordinary execution restriction can be removed. No device changed.

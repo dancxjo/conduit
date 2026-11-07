@@ -36,12 +36,14 @@ fn image_encounter_local_and_shared_charges_retire_at_their_actual_last_owners()
     };
     host.verify_selected_image_prepared_value(shared).unwrap();
     let retained = Arc::downgrade(shared);
+    // SAFETY: fixed fixture reserves the complete envelope before activation.
+    unsafe { controller.prepare_image_worker(&mut host, worker_memory::BOUNDS) }.unwrap();
     start_fixture(&mut adapter);
     let view = controller.face().unwrap().unwrap();
-    assert!(!probe(&mut host, 56));
+    assert!(!probe(&mut host, 40));
     adapter.cancel_and_drain().unwrap();
     drop(adapter);
-    assert!(probe(&mut host, 56)); // local storage actually retired
+    assert!(probe(&mut host, 40)); // local storage actually retired
     drop(controller);
     drop(factory);
     assert!(retained.upgrade().is_none()); // private channel can already drop
@@ -106,11 +108,11 @@ fn image_encounter_shared_refusal_releases_local_preparation_and_foreign_owner_r
 }
 
 #[test]
-fn image_encounter_can_check_a_host_but_refuses_unfunded_worker_launch() {
+fn image_encounter_refuses_activation_without_mandatory_worker_memory() {
     let (mut host, prepared, _directory) = image_custody::initialized_factory();
     let mut factory = prepared.value().borrow_mut();
-    // SAFETY: fixed one-check trace and retained views fit these envelopes.
-    // No worker is admitted; the production entrance must refuse it distinctly.
+    // SAFETY: fixed initial state fits these envelopes. No worker is admitted;
+    // activation must refuse before publishing a current Face or starting work.
     let (mut adapter, controller) = unsafe {
         factory.encounter_in_image(
             &mut host,
@@ -124,23 +126,23 @@ fn image_encounter_can_check_a_host_but_refuses_unfunded_worker_launch() {
         )
     }
     .unwrap();
-    start_fixture(&mut adapter);
-    let view = controller.face().unwrap().unwrap();
-    let show = crate::mask_test_common::available_mask_show(&view);
-    let input =
-        FaceInteraction::new(&view, &show, "host-config/check", "host-config", vec![], 1).unwrap();
-    controller.acknowledge_show(show).unwrap();
-    controller.submit(input).unwrap();
-    adapter.poll().unwrap();
-    assert!(controller
-        .start_production_if_reviewed()
+    prepare_fixture(&mut adapter);
+    assert!(adapter
+        .begin(CrecheRequest([9; 32]))
         .unwrap_err()
-        .contains("separately admitted worker memory"));
+        .contains("activation requires admitted worker memory"));
+    assert!(controller.face().unwrap().is_none());
     let state = controller.channel.lock().unwrap();
-    assert!(state.checked.is_some());
+    assert!(!state.active);
     assert!(!state.started);
     assert!(state.worker.is_none());
     drop(state);
+    assert!(!adapter.local.begun);
+    // SAFETY: the same fixed bounded worker is now reserved before activation.
+    unsafe { controller.prepare_image_worker(&mut host, worker_memory::BOUNDS) }.unwrap();
+    adapter.begin(CrecheRequest([9; 32])).unwrap();
+    assert!(controller.face().unwrap().is_some());
+    assert!(controller.channel.lock().unwrap().worker.is_none());
     adapter.cancel_and_drain().unwrap();
 }
 

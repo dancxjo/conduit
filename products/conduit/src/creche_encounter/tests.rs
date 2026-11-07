@@ -95,7 +95,7 @@ fn binding() -> CrecheBodyBinding {
         },
     }
 }
-fn start_fixture(adapter: &mut CrecheEncounterAdapter<'_>) {
+fn prepare_fixture(adapter: &mut CrecheEncounterAdapter<'_>) {
     let (_, wake) = adapter
         .channel
         .binding
@@ -127,7 +127,10 @@ fn start_fixture(adapter: &mut CrecheEncounterAdapter<'_>) {
         state.face = Some(Arc::new(face));
         state.request = Some(request);
     }
-    adapter.begin(request).unwrap();
+}
+fn start_fixture(adapter: &mut CrecheEncounterAdapter<'_>) {
+    prepare_fixture(adapter);
+    adapter.begin(CrecheRequest([9; 32])).unwrap();
 }
 #[test]
 fn structural_available_show_does_not_grant_renderer_acknowledgment() {

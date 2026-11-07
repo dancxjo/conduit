@@ -2,7 +2,7 @@
 use super::encounter_memory::probe;
 use super::*;
 
-const BOUNDS: CrecheWorkerBounds = CrecheWorkerBounds {
+pub(super) const BOUNDS: CrecheWorkerBounds = CrecheWorkerBounds {
     memory_bytes: 16 * 1024 * 1024,
     stack_bytes: 2 * 1024 * 1024,
 };
@@ -134,6 +134,8 @@ fn image_worker_pressure_invalid_bounds_and_late_admission_do_not_launch() {
     }
     assert!(controller.channel.lock().unwrap().worker_memory.is_none());
     assert!(probe(&mut host, 50));
+    // SAFETY: fixed fixture envelope, reserved before activation.
+    unsafe { controller.prepare_image_worker(&mut host, BOUNDS) }.unwrap();
     start_fixture(&mut adapter);
     // SAFETY: late admission is refused before reservation; no effect starts.
     assert!(

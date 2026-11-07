@@ -24,6 +24,8 @@ fn exported_views_keep_charge_without_retaining_private_encounter_data() {
         )
     }
     .unwrap();
+    // SAFETY: fixed fixture reserves the complete envelope before activation.
+    unsafe { controller.prepare_image_worker(&mut host, worker_memory::BOUNDS) }.unwrap();
     start_fixture(&mut adapter);
     let view = controller.face().unwrap().unwrap();
     assert!(core::ptr::eq(

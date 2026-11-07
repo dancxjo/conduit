@@ -78,6 +78,9 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
         if state.retired || state.cancelled.load(std::sync::atomic::Ordering::Acquire) {
             return Err("Crèche begin after cancellation or retirement".into());
         }
+        if self.channel.is_image() && state.worker_memory.is_none() {
+            return Err("Crèche IMAGE activation requires admitted worker memory".into());
+        }
         if state.face.is_none() {
             return Err("Crèche initial Face absent".into());
         }
