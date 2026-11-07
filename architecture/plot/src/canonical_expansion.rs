@@ -41,7 +41,7 @@ use graph::*;
 use identity::expanded_identity;
 use shared_pool::{bind_pool_environment, expanded_pool_declarations, seal_pool_consumers};
 use startup::{bind_child_environment, canonical_initial_bytes, substitute};
-pub use structured_selector::structured_selector_definition;
+pub use structured_selector::{structured_selector_definition, structured_selector_semantic_laws};
 
 #[derive(Debug, Clone)]
 struct Endpoint {
@@ -712,7 +712,8 @@ fn instantiate_gear(
             .map(conduit_core::Kind::semantic_contract)
             .unwrap_or_else(|| conduit_core::KindSemanticContract {
                 configuration: definition.configuration.clone(),
-                laws: Vec::new(),
+                laws: derived_selector.map(|(selector, _)| structured_selector_semantic_laws(selector))
+                    .transpose().expect("checked selector has finite canonical bounds").unwrap_or_default(),
             }),
         terminal_transductions: terminal_transductions.clone(),
         resource_ports: semantic_kind

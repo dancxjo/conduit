@@ -561,7 +561,7 @@ fn pure_expression_lowers_to_one_exact_ordinary_gear() {
         .gears
         .iter()
         .find(|gear| {
-            gear.kind_contract_revision.as_str() == "conduitese/pure-expression-operation@1"
+            gear.kind_contract_revision.as_str() == "conduitese/pure-expression-operation@2"
         })
         .expect("checked expression becomes an ordinary Gear");
     assert!(expression
@@ -599,7 +599,7 @@ fn expression_body_checks_and_expands_identically_to_its_explicit_plot() {
     );
     assert_eq!(
         source_expansion.ordinary_kind,
-        "conduitese/pure-expression-operation@1"
+        "conduitese/pure-expression-operation@2"
     );
     assert_eq!(source_expansion.input_ports, ["value"]);
     assert_eq!(source_expansion.output_ports, ["result"]);

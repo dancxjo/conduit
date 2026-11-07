@@ -131,15 +131,18 @@ fn five_unrelated_plots_use_exact_structured_values_and_the_same_selector_substr
             expand_canonical_plot_for_authoring(&checked, specimen.plot_name, &profile).unwrap();
         assert_eq!(authored.expanded.gears.len(), 2);
         assert_eq!(authored.output_bindings.len(), 1);
-        let mut selector_offer = structured_selector_proof_offer(selector, PortTemporal::Value);
-        selector_offer.semantic_contract = authored
+        let selector_offer = structured_selector_proof_offer(selector, PortTemporal::Value);
+        let checked_selector = &authored
             .expanded
             .gears
             .iter()
             .find(|gear| gear.kind_id == selector_offer.kind_id)
             .unwrap()
-            .semantic_contract
-            .clone();
+            .semantic_contract;
+        assert_eq!(
+            &selector_offer.semantic_contract, checked_selector,
+            "Source and immutable Back catalog must publish identical selector bounds"
+        );
         selector_kinds.push(selector_offer.kind_id.clone());
         let mut literal_offer =
             structured_literal_proof_offer(specimen.type_name, &specimen.value_type);
@@ -157,6 +160,24 @@ fn five_unrelated_plots_use_exact_structured_values_and_the_same_selector_substr
             core::slice::from_ref(&host),
         )
         .unwrap();
+        let ordinary = conduit_planner::default_expanded_connection_limits(
+            &authored.expanded,
+            core::slice::from_ref(&host),
+            &placements,
+        )
+        .unwrap();
+        let selector_input = checked_selector
+            .value_contracts()
+            .iter()
+            .find(|c| {
+                c.location
+                    == conduit_core::FrontValueLocation::Input(conduit_core::port_id("input"))
+            })
+            .unwrap()
+            .contract
+            .maximum_bytes;
+        assert!(selector_input > conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY);
+        assert!(ordinary.values().all(|q| q.byte_capacity >= selector_input));
         conduit_planner::plan_expanded_canonical_with_options(
             &authored.expanded,
             &[host],
@@ -211,7 +232,7 @@ fn structured_selector_proof_offer(
 ) -> CapabilityOffer {
     let contract = conduit_semantic_catalog::structured_selector_contract(selector, temporal);
     conduit_core::capability_offer_from_parts! {
-        semantic_contract: Default::default(),
+        semantic_contract: contract.semantic_contract(),
         startup_parameters: contract.startup_parameters,
         shorthand: contract.shorthand,
         capability_id: "proof/structured-selector".into(),

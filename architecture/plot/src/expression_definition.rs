@@ -10,7 +10,7 @@ use conduit_core::{
     StructuredInfoRefusal, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
 };
 
-pub const PURE_EXPRESSION_REVISION: &str = "conduitese/pure-expression-operation@1";
+pub const PURE_EXPRESSION_REVISION: &str = "conduitese/pure-expression-operation@2";
 pub const PURE_FILTER_REVISION: &str = "conduitese/pure-filter-operation@1";
 
 pub fn pure_expression_semantic_laws() -> alloc::vec::Vec<KindSemanticLaw> {

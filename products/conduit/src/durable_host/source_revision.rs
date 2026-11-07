@@ -153,6 +153,14 @@ impl ResidentPreparationSelection {
                 document, &program, temporal, bounds,
             )
             .map_err(|e| format!("selected resident compiler ceiling: {e:?}"))?;
+            if image.kind_id() != &gear.kind_id
+                || image.offer_description().semantic_contract != gear.semantic_contract
+            {
+                return Err(
+                    "selected resident compiler differs from exact expanded Source Gear contract"
+                        .into(),
+                );
+            }
             if !images.iter().any(
                 |known: &conduit_embedded_build::PreparedResidentExpression| {
                     known.artifact_id() == image.artifact_id() && known.kind_id() == image.kind_id()

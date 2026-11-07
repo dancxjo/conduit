@@ -224,7 +224,7 @@ fn guarded_route_retains_every_possible_track_in_the_expanded_graph() {
             .gears
             .iter()
             .filter(|gear| gear.kind_contract_revision.as_str()
-                == "structured-info/selector-operation@1")
+                == "structured-info/selector-operation@2")
             .count(),
         3
     );
@@ -327,7 +327,7 @@ fn exhaustive_variant_route_expands_every_track_into_the_immutable_graph() {
             .gears
             .iter()
             .filter(|gear| gear.kind_contract_revision.as_str()
-                == "structured-info/selector-operation@1")
+                == "structured-info/selector-operation@2")
             .count(),
         2
     );
