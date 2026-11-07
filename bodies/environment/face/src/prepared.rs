@@ -19,6 +19,52 @@ pub enum PublicationRefusal {
     InvalidFace,
 }
 
+/// Inert, exclusively owned storage. No Face revision can be read or published
+/// before binding a real execution basis; absence here is not a fabricated Play.
+pub struct PreparedObservationBacking {
+    prepared: PreparedObservationFace,
+}
+impl PreparedObservationBacking {
+    pub fn prepare(maximum_samples: u32, stale_after_ms: u64) -> Result<Self, PublicationRefusal> {
+        let unbound = FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: alloc::vec::Vec::new(),
+        };
+        Ok(Self {
+            prepared: PreparedObservationFace::prepare_observed(
+                unbound,
+                maximum_samples,
+                stale_after_ms,
+            )?,
+        })
+    }
+    /// Consume actual pre-Start scope ownership. No allocation or sample is
+    /// introduced here; original Root admission and provenance remain mandatory.
+    pub fn bind(mut self, basis: FaceBasis) -> Result<PreparedObservationFace, PublicationRefusal> {
+        if basis.source_document_id.is_none()
+            || basis.checked_plot_id.is_none()
+            || basis.expanded_plot_id.is_none()
+            || basis.plan_id.is_none()
+            || basis.active_play_id.is_none()
+            || basis.body_id.is_some() != basis.wake_id.is_some()
+        {
+            return Err(PublicationRefusal::InvalidBasis);
+        }
+        self.prepared.face.basis = basis;
+        self.prepared
+            .face
+            .reseal_prepared()
+            .map_err(|_| PublicationRefusal::InvalidBasis)?;
+        Ok(self.prepared)
+    }
+}
+
 pub struct PreparedObservationFace {
     face: Face,
     measurement: Option<[FaceProperty; 3]>,

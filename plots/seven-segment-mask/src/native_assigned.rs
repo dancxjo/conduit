@@ -52,6 +52,28 @@ pub struct PreparedAssignedMaskKernel {
     pub interaction: c::AssignedForeRequirement,
     pub renderer: k::NodeId,
 }
+/// Inert scheduler storage. Actual initialized Backs remain with their owner
+/// until whole-workset admission and authenticated Start have succeeded.
+pub struct PreparedAssignedMaskStorage {
+    identity: c::AssignedPlanView,
+    storage: k::scheduler::PreparedKernelStorage<MaskBack, Kernel, 3>,
+    face: c::AssignedForeRequirement,
+    show: c::AssignedForeRequirement,
+    interaction: c::AssignedForeRequirement,
+    renderer: k::NodeId,
+}
+impl PreparedAssignedMaskStorage {
+    pub fn bind(self, backs: [MaskBack; 3]) -> PreparedAssignedMaskKernel {
+        PreparedAssignedMaskKernel {
+            identity: self.identity,
+            kernel: self.storage.bind(backs),
+            face: self.face,
+            show: self.show,
+            interaction: self.interaction,
+            renderer: self.renderer,
+        }
+    }
+}
 impl PreparedAssignedMaskKernel {
     /// Exact heap backing for the boxed scheduler and its two canonical slots.
     /// Allocator overhead, caller stack/wrapper, retained assignment/material,
@@ -79,6 +101,24 @@ impl PreparedAssignedMaskKernel {
         profile: &AssignedMaskProfile<'_>,
         scope: AssignedMaskScope,
     ) -> Result<Self, AssignedMaskRefusal> {
+        let storage = Self::prepare_storage(input, profile, scope)?;
+        let backs = profile.roles.map(|role| match role {
+            MaskRole::Tee => MaskBack::Tee,
+            MaskRole::Renderer => MaskBack::Renderer {
+                state: 0,
+                maximum_input_bytes: profile.face_bytes,
+                next_request: 0,
+            },
+            MaskRole::ReadOnly => MaskBack::ReadOnly { face: false },
+        });
+        Ok(storage.bind(backs))
+    }
+    /// Acquire topology and buffers without taking any initialized Back.
+    pub fn prepare_storage(
+        input: AssignedMaskInput<'_>,
+        profile: &AssignedMaskProfile<'_>,
+        scope: AssignedMaskScope,
+    ) -> Result<PreparedAssignedMaskStorage, AssignedMaskRefusal> {
         use AssignedMaskRefusal as E;
         Self::required_heap_bytes(profile)?;
         let (tables, face, show, interaction, renderer) = admit(input, profile, scope)?;
@@ -94,31 +134,22 @@ impl PreparedAssignedMaskKernel {
         )
         .map_err(|_| E::Bounds)?;
         signs.ensure_remote_capacity(12).map_err(|_| E::Bounds)?;
-        let backs = profile.roles.map(|role| match role {
-            MaskRole::Tee => MaskBack::Tee,
-            MaskRole::Renderer => MaskBack::Renderer {
-                state: 0,
-                maximum_input_bytes: profile.face_bytes,
-                next_request: 0,
-            },
-            MaskRole::ReadOnly => MaskBack::ReadOnly { face: false },
-        });
         let identity = tables.identity;
-        let kernel = Kernel::new_boxed_with_active_counts_and_host_calls(
+        let storage = Kernel::prepare_boxed(
             3,
             6,
             tables.nodes,
             tables.cords,
             tables.routes,
             tables.calls,
-            backs,
             values,
             signs,
+            core::mem::size_of::<Kernel>(),
         )
         .map_err(|_| E::Kernel)?;
-        Ok(Self {
+        Ok(PreparedAssignedMaskStorage {
             identity,
-            kernel,
+            storage,
             face,
             show,
             interaction,

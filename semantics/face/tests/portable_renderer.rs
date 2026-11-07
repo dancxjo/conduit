@@ -138,13 +138,37 @@ fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
     let prepared = Manifestation::prepared(
         &face,
         &plan,
-        active,
-        placement,
+        active.clone(),
+        placement.clone(),
         "patchbay/plot".into(),
         "linux-host/display-0".into(),
         SignId::from("manifestation/prepared"),
     )
     .unwrap();
+    let context = conduit_face::PreparedRendererContext::prepare(&plan, &placement).unwrap();
+    let compact = context
+        .prepared_show(
+            &face,
+            active.clone(),
+            "patchbay/plot".into(),
+            "linux-host/display-0".into(),
+            SignId::from("manifestation/prepared"),
+        )
+        .unwrap();
+    assert_eq!(compact, prepared);
+    compact.validate_against(&face, &plan).unwrap();
+    let mut wrong = active;
+    wrong.boot_id = "different-boot".into();
+    assert_eq!(
+        context.prepared_show(
+            &face,
+            wrong,
+            "patchbay/plot".into(),
+            "linux-host/display-0".into(),
+            SignId::from("manifestation/prepared")
+        ),
+        Err(ManifestationError::StaleIdentity)
+    );
     let available = prepared
         .transition(
             ManifestationLifecycle::Available,

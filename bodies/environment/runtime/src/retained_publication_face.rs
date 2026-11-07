@@ -1,7 +1,9 @@
 //! Retained semantic state for one admitted local publication stream. This is a
 //! Face owner, not another sensor, scheduler, recorder or source of authority.
 use crate::publication::PublicationSnapshot;
-use conduit_environment_face::{PreparedObservationFace, PublicationRefusal};
+use conduit_environment_face::{
+    PreparedObservationBacking, PreparedObservationFace, PublicationRefusal,
+};
 use conduit_face::{Face, FaceBasis};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -26,6 +28,34 @@ impl RetainedPublicationRefusal {
         }
     }
 }
+/// Actual preplanning semantic storage, with no readable or publishable Face.
+pub struct RetainedPublicationBacking {
+    storage: PreparedObservationBacking,
+}
+impl RetainedPublicationBacking {
+    pub fn prepare(
+        maximum_publications: u32,
+        stale_after_ms: u64,
+    ) -> Result<Self, RetainedPublicationRefusal> {
+        Ok(Self {
+            storage: PreparedObservationBacking::prepare(maximum_publications, stale_after_ms)
+                .map_err(RetainedPublicationRefusal::Publication)?,
+        })
+    }
+    pub fn bind(
+        self,
+        basis: FaceBasis,
+    ) -> Result<RetainedPublicationFace, RetainedPublicationRefusal> {
+        Ok(RetainedPublicationFace {
+            face: self
+                .storage
+                .bind(basis)
+                .map_err(RetainedPublicationRefusal::Publication)?,
+            last_sequence: 0,
+        })
+    }
+}
+
 /// Channel Types are linked; all mutable Face storage is prepared before Play. Root still
 /// supplies its actual admitted basis, publication limit, clock and age policy.
 /// Retaining claimed IDs alone establishes neither admission nor membership.

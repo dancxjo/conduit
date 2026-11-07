@@ -155,4 +155,4 @@ fn property(name: &str, value: FacePropertyValue) -> FaceProperty {
 
 mod prepared;
 mod result;
-pub use prepared::{PreparedObservationFace, PublicationRefusal};
+pub use prepared::{PreparedObservationBacking, PreparedObservationFace, PublicationRefusal};

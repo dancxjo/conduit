@@ -30,3 +30,4 @@ conduit-time = { path = "../time", default-features = false }
 [features]
 default = ["plot-catalog"]
 plot-catalog = []
+assigned-renderer = ["conduit-body/authenticated-admission"]
