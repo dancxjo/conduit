@@ -1,4 +1,4 @@
-//! Bounded property exchange over aligned, write-through Root-owned RAM.
+//! Bounded property-channel exchange over uncached, aligned Root-owned RAM.
 use super::{read_counter, read32, write32};
 use core::sync::atomic::{Ordering, compiler_fence};
 
@@ -34,19 +34,6 @@ pub(super) fn call(words: &mut [u32]) -> Result<(), &'static str> {
         } else if unsafe { read32(BASE + 0x18) } & (1 << 30) == 0 {
             if unsafe { read32(BASE) } != request {
                 continue;
-            }
-            unsafe {
-                core::arch::asm!("mcr p15, 0, {0}, c7, c10, 4", in(reg) 0_u32, options(nostack));
-            }
-            // The GPU writes RAM without snooping ARM L1. All ARM RAM is
-            // write-through, so invalidating intersecting 32-byte lines cannot
-            // discard dirty neighbours even for a 16-byte-aligned message.
-            // Invalidate only after the matching firmware acknowledgement.
-            for line in ((address & !31)..address + words.len() * 4).step_by(32) {
-                unsafe {
-                    core::arch::asm!("mcr p15, 0, {0}, c7, c6, 1",
-                        in(reg) line, options(nostack));
-                }
             }
             unsafe {
                 core::arch::asm!("mcr p15, 0, {0}, c7, c10, 4", in(reg) 0_u32, options(nostack));

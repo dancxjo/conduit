@@ -19,10 +19,10 @@ pub(super) const fn section_descriptor(address: u32) -> u32 {
     address | attributes | PRIVILEGED_READ_WRITE | SECTION
 }
 pub(super) const fn control(previous: u32) -> u32 {
-    // MMU, extended tables, unaligned accesses and both caches. ARM RAM is
-    // write-through; mailbox responses explicitly invalidate cached lines.
-    (previous | 1 | (1 << 23) | (1 << 22) | (1 << 12) | (1 << 2))
-        & !((1 << 13) | (1 << 28) | (1 << 29))
+    // MMU, extended tables, unaligned accesses and I-cache. D-cache stays off;
+    // data and mailbox buffers therefore remain uncached despite RAM's C bit.
+    (previous | 1 | (1 << 23) | (1 << 22) | (1 << 12))
+        & !((1 << 2) | (1 << 13) | (1 << 28) | (1 << 29))
 }
 #[cfg(test)]
 mod tests {
@@ -40,7 +40,7 @@ mod tests {
         }
     }
     #[test]
-    fn peripherals_remain_uncached_while_arm_data_cache_is_enabled() {
+    fn peripherals_remain_device_execute_never_and_data_cache_stays_disabled() {
         for address in [RAM_END, 0x2010_0000, 0xfff0_0000] {
             let entry = section_descriptor(address);
             assert_eq!(entry & 0x700c, SHARED_DEVICE);
@@ -48,8 +48,7 @@ mod tests {
         }
         for previous in [0, u32::MAX] {
             assert_ne!(control(previous) & (1 << 12), 0);
-            assert_ne!(control(previous) & (1 << 2), 0);
-            assert_eq!(control(previous) & ((1 << 13) | (1 << 28)), 0);
+            assert_eq!(control(previous) & ((1 << 2) | (1 << 13) | (1 << 28)), 0);
             assert_ne!(control(previous) & 1, 0);
         }
     }
