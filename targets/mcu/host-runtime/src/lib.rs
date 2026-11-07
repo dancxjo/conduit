@@ -46,3 +46,12 @@ pub mod execution_group;
 
 #[cfg(feature = "execution")]
 pub mod native_authority;
+
+#[cfg(feature = "execution")]
+pub mod native_runner;
+
+#[cfg(feature = "execution")]
+pub mod mask_session;
+
+#[cfg(feature = "execution")]
+pub mod kernel_sign;

@@ -25,6 +25,12 @@ pub struct RetainedHostCommandStamp {
 }
 
 impl RetainedHostCommandStamp {
+    /// Read-only identity of the original authenticated custody attempt.
+    /// This digest grants no preparation, admission, or execution rights.
+    pub fn custody_identity(&self) -> [u8; 32] {
+        self.transcript
+    }
+
     /// Match the original attributed attempt, not merely an identical payload.
     /// A fresh challenge for the same bytes cannot replace admitted custody.
     /// The command must first be reborrowed under current independent facts.

@@ -32,10 +32,41 @@ pub struct CommittedLocalWorkset<'w, T, const F: usize> {
     stamp: b::RetainedHostCommandStamp,
     prepared: T,
 }
-pub struct StartedLocalWorkset<T>(T);
+/// Read-only causal evidence produced only by successful authenticated Start.
+/// This identity does not grant execution or allow another kernel to Start.
+#[derive(Clone, Copy)]
+pub struct StartedEvidence {
+    custody_identity: [u8; 32],
+}
+impl StartedEvidence {
+    pub fn custody_identity(&self) -> &[u8; 32] {
+        &self.custody_identity
+    }
+}
+pub struct StartedLocalWorkset<T> {
+    kernels: T,
+    custody_identity: [u8; 32],
+}
 impl<T> StartedLocalWorkset<T> {
+    /// Original authenticated attempt retained through successful Start.
+    /// Inspection of this identity cannot confer authority on another attempt.
+    pub fn custody_identity(&self) -> &[u8; 32] {
+        &self.custody_identity
+    }
+
+    /// Preserve causal evidence while transferring affine kernels to sessions.
+    pub fn evidence(&self) -> StartedEvidence {
+        StartedEvidence {
+            custody_identity: self.custody_identity,
+        }
+    }
     pub fn kernels_mut(&mut self) -> &mut T {
-        &mut self.0
+        &mut self.kernels
+    }
+    /// Transfer the already Started affine owners into their ordinary execution
+    /// sessions. This exposes no preparation or independent Start transition.
+    pub fn into_kernels(self) -> T {
+        self.kernels
     }
 }
 impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F> {
@@ -119,7 +150,10 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
         let prepared = factory(&fragments, &ports).map_err(Refusal::Back)?;
         let retained = prepared.retained_backing_bytes().ok_or(Refusal::Bounds)?;
         if retained > policy.maximum_retained_bytes {
-            return Err(Refusal::Bounds);
+            return Err(Refusal::Capacity {
+                required: retained,
+                maximum: policy.maximum_retained_bytes,
+            });
         }
         let stamp = set.into_retained_stamp().map_err(Refusal::Retention)?;
         Ok(Self {
@@ -252,7 +286,10 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
             Ok(()) => {
                 // SAFETY: original whole-workset admission plus all current
                 // authenticated Start checks above succeeded atomically.
-                Ok(StartedLocalWorkset(unsafe { self.prepared.bind() }))
+                Ok(StartedLocalWorkset {
+                    custody_identity: self.stamp.custody_identity(),
+                    kernels: unsafe { self.prepared.bind() },
+                })
             }
             Err(e) => Err((self, e)),
         }
@@ -342,7 +379,10 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
         };
         let retained = prepared.retained_backing_bytes().ok_or(Refusal::Bounds)?;
         if retained > self.maximum {
-            return Err(Refusal::Bounds);
+            return Err(Refusal::Capacity {
+                required: retained,
+                maximum: self.maximum,
+            });
         }
         Ok(PreparedLocalWorkset {
             fragments: self.fragments,
