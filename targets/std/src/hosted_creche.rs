@@ -149,6 +149,10 @@ impl core::ops::Deref for ExecutionContext<'_> {
 /// callers must use `retire` and propagate its failure before kernel retirement.
 pub struct CrecheHost<'a> {
     adapter: &'a mut dyn HostedCrecheAdapter,
+    image_memory: Option<(
+        crate::body_execution::ImageMemoryRetention,
+        crate::body_execution::ImageMemoryRetention,
+    )>,
     context: ExecutionContext<'a>,
     request: CrecheRequest,
     phase: Phase,
@@ -214,6 +218,7 @@ impl<'a> CrecheHost<'a> {
         match prepared {
             Ok((context, request)) => Ok(Self {
                 adapter,
+                image_memory: None,
                 context,
                 request,
                 phase: Phase::Prepared,
@@ -229,6 +234,9 @@ impl<'a> CrecheHost<'a> {
                 )),
             },
         }
+    }
+    pub(crate) fn image_prepared(&self) -> bool {
+        self.image_memory.is_some()
     }
     pub fn request(&self) -> CrecheRequest {
         self.request

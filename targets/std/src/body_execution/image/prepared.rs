@@ -16,6 +16,13 @@ pub struct ImageMemoryRetention {
     _memory: ImageMemoryLease,
 }
 
+impl ImageMemoryRetention {
+    pub(crate) fn verify_owner(&self, host: &StdHost) -> Result<(), String> {
+        host.kernel_resources
+            .require_input_memory_owner(&self._memory)
+    }
+}
+
 /// Synchronous Root preparation against an already verified IMAGE counter.
 /// Only the constructor can create this borrowed scope. It supplies memory
 /// custody, never Source, provider, adoption or execution authority.

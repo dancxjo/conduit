@@ -76,7 +76,7 @@ impl StdHost {
                 || live.is_some()
                 || checkpoint.is_some()
                 || terminal.is_some()
-                || creche.is_some())
+                || creche.as_ref().is_some_and(|owner| !owner.image_prepared()))
         {
             return Err("selected IMAGE owned-memory profile supports qualified finite local Backs only; keyboard/activation/BodyTime attachments unsupported".into());
         }

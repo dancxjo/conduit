@@ -9310,3 +9310,35 @@ std/product library/test Clippy passed. Logs:
 `/tmp/conduit-creche-kernel-receipt-clippy-20261106.log`.
 The unchanged combined IMAGE filter also passed 15 product and 50 std cases
 (`/tmp/conduit-creche-kernel-existing-image-20261106.log`).
+
+### 2026-11-06 — Selected Crèche execution through the shared runner
+
+A dedicated selected IMAGE entry now accepts the actual retained request and
+charged execution-owner cell, verifies their original Host counter, borrows the
+owner exclusively, and calls the ordinary Body runner. The owner retains opaque
+counter witnesses for both its own preparation and its borrowed immutable
+context. Verifying these inner witnesses prevents a replacement owner in the
+mutable cell from passing solely through that cell's outer charge. A reference
+owner carries no such evidence and remains refused by the selected path.
+
+The API remains unsafe at the Root boundary: adapter, worker, output adapter,
+shared inputs and uncertainty retirement still need separately qualified finite
+custody. This entry does not infer that custody or grant Source, deployment,
+membership or hardware authority. It narrows the old blanket Crèche refusal
+only for this independently funded preparation path; other unsupported IMAGE
+attachments retain their existing refusal.
+
+A new software fixture executes the real checked Body Plan through this entry,
+confirms the actual issued Play, dispatches the admitted Host Call once, returns
+and decodes the correlated outcome, and retires the adapter. Kernel result
+storage stays charged until report drop, separately from owner/context/input
+storage. This fixture uses a bounded software adapter and an isolated IMAGE
+counter; it is not production Host construction, installed service integration,
+Seed deployment, a real Make worker measurement, or physical device evidence.
+
+Qualification passed: 32 product and 27 std Crèche-filter cases; final IMAGE
+filter passed 15 product and 51 std cases, including foreign-counter rejection
+of the inner owner witnesses. Strict std/product library/test Clippy passed.
+Logs: `/tmp/conduit-creche-image-runner-20261106.log`,
+`/tmp/conduit-creche-image-runner-final-20261106.log`, and
+`/tmp/conduit-creche-image-runner-clippy-final-20261106.log`.

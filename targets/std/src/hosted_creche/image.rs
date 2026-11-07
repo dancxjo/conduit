@@ -26,12 +26,15 @@ impl StdHost {
         }
         // SAFETY: Root qualifies construction and every subsequent lifecycle
         // transition; references keep independently funded inputs alive.
-        unsafe {
+        let prepared = unsafe {
             self.prepare_selected_image_value(preparation_bytes, retained_bytes, || {
                 CrecheHost::prepare_from_context(adapter, context.value())
                     .map(std::cell::RefCell::new)
             })
-        }
+        }?;
+        prepared.value().borrow_mut().image_memory =
+            Some((context.retain_memory(), prepared.retain_memory()));
+        Ok(prepared)
     }
 
     /// Prepare the exact prospective Crèche context after reserving its complete
@@ -68,6 +71,15 @@ impl StdHost {
 }
 
 impl<'a> CrecheHost<'a> {
+    pub(crate) fn verify_image_memory(&self, host: &StdHost) -> Result<(), String> {
+        let (context, owner) = self
+            .image_memory
+            .as_ref()
+            .ok_or("Crèche IMAGE owner lacks funded context preparation")?;
+        context.verify_owner(host)?;
+        owner.verify_owner(host)
+    }
+
     /// Borrow the retained context only after checking its actual producing
     /// Host counter. Matching descriptive Host/Boot IDs alone do not suffice.
     /// Adapter, worker and kernel storage still need independent custody;
@@ -216,6 +228,8 @@ mod tests {
         let owner_charge = used.load(Ordering::Acquire);
         assert!(owner_charge >= charged + 256 * 1024);
         let mut owner = prepared_owner.value().borrow_mut();
+        assert!(owner.verify_image_memory(&other).is_err());
+        owner.verify_image_memory(&host).unwrap();
         assert!(core::ptr::eq(owner.context(), prepared.value()));
         let request = owner.request();
         assert!(owner.begin(request).is_err());
@@ -291,5 +305,99 @@ mod tests {
         .is_err());
         assert_eq!(used.load(Ordering::Acquire), before);
         assert_eq!((adapter.begins, adapter.polls, adapter.drains), (0, 0, 0));
+    }
+    #[test]
+    fn funded_creche_executes_through_selected_kernel_and_retains_result_charge() {
+        use crate::body_execution::{BodyForeOutputAdapter, BodyRunRequest};
+        struct Accept;
+        impl BodyForeOutputAdapter for Accept {
+            fn deliver(&mut self, _: &crate::ExternalForeDelivery) -> Result<(), String> {
+                Ok(())
+            }
+        }
+        let (mut host, mut adapter, _, _) = fixture();
+        let (_, plan, play, wake) = planned_on_host(host.advertisement().clone());
+        // SAFETY: bounded software-only adapter and all outputs fit the retained
+        // envelope; no worker, device or deployment effect is present. Fixture
+        // construction is not evidence of selected production Host initialization.
+        let external =
+            unsafe { host.prepare_selected_image_value(1024 * 1024, 1024 * 1024, || Ok(())) }
+                .unwrap();
+        let context = unsafe {
+            host.prepare_selected_image_creche_context(
+                &plan,
+                &play,
+                adapter.resource_offer(),
+                adapter.limits(),
+                4 * 1024 * 1024,
+                2 * 1024 * 1024,
+            )
+        }
+        .unwrap();
+        let owner = unsafe {
+            host.prepare_selected_image_creche_owner(
+                &mut adapter,
+                &context,
+                1024 * 1024,
+                256 * 1024,
+            )
+        }
+        .unwrap();
+        let request = owner.value().borrow().request();
+        let input = unsafe {
+            host.prepare_selected_image_fore_input(4096, || {
+                Ok(crate::ExternalForeInput {
+                    front_port_id: "request".into(),
+                    track: conduit_core::ConnectionTrack::Payload,
+                    bytes: request.0.to_vec(),
+                })
+            })
+        }
+        .unwrap();
+        let used = host.kernel_resources.image_memory_observer();
+        let before = used.load(Ordering::Acquire);
+        let control = crate::RunControl::default();
+        let report = unsafe {
+            host.run_selected_image_body_plan_with_creche_to_with_start(
+                BodyRunRequest {
+                    wake: &wake,
+                    plan: &plan,
+                    control: &control,
+                    keyboard: None,
+                },
+                &input,
+                &owner,
+                &mut Vec::new(),
+                &mut crate::ThreadTimer,
+                &mut Accept,
+                |issued, _| {
+                    assert_eq!(issued, &play);
+                    Ok(())
+                },
+            )
+        }
+        .unwrap();
+        assert_eq!(
+            report.report().terminal,
+            conduit_core::TerminalDisposition::Completed,
+            "failure={:?}, cleanup={:?}",
+            report.report().failure,
+            report.report().cleanup_failure
+        );
+        assert_eq!(report.report().fore_deliveries.len(), 1);
+        assert!(used.load(Ordering::Acquire) > before);
+        let outcome = conduit_body_make::deployment_runtime::CrecheOutcome::decode(
+            &report.report().fore_deliveries[0].bytes,
+        )
+        .unwrap();
+        assert_eq!(outcome.request, request);
+        drop(report);
+        assert_eq!(used.load(Ordering::Acquire), before);
+        drop(owner);
+        assert_eq!((adapter.begins, adapter.polls, adapter.drains), (1, 1, 1));
+        drop(input);
+        drop(context);
+        drop(external);
+        assert_eq!(used.load(Ordering::Acquire), 0);
     }
 }
