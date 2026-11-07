@@ -99,6 +99,12 @@ pub struct PreparedResidentLoans<'a> {
     _owner: &'a mut Initialized,
 }
 impl<'a> PreparedResidentLoans<'a> {
+    pub fn nodes(&self) -> [Option<u16>; 0] {
+        []
+    }
+    pub fn split(self) -> [Option<PreparedResidentEntryLoan<'a>>; 0] {
+        []
+    }
     pub fn bind(self) -> [Option<(u16, BorrowedBack<'a>)>; 0] {
         []
     }
@@ -128,6 +134,19 @@ impl<const P: usize> conduit_kernel::scheduler::StepBack<P> for BorrowedBack<'_>
         match self.never {}
     }
     fn cancel(&mut self) {
+        match self.never {}
+    }
+}
+
+pub struct PreparedResidentEntryLoan<'a> {
+    never: core::convert::Infallible,
+    _loan: core::marker::PhantomData<&'a mut Initialized>,
+}
+impl<'a> PreparedResidentEntryLoan<'a> {
+    pub fn node(&self) -> u16 {
+        match self.never {}
+    }
+    pub fn bind(self) -> (u16, BorrowedBack<'a>) {
         match self.never {}
     }
 }

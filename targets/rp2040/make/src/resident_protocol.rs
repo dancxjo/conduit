@@ -55,14 +55,19 @@ pub fn checked_dht11_resident_library(
     checked: &CheckedHostConfiguration,
 ) -> Result<String, String> {
     crate::CheckedDht11Tm1637Construction::from_configuration(checked)?;
-    let document = p::check_syntax_document(
-        &p::parse_syntax_document(include_str!(
-            "../../../../plots/device-protocols/dht11.conduit"
-        )),
-        &p::StartupCatalog::new(),
-    )
-    .map_err(|e| format!("DHT11 Source: {e:?}"))?;
-    resident_entries(&document, &["dht11-decode"])
+    let bounds = ResidentExpressionBounds {
+        native: p::rust_binding::PreparedNativeBounds {
+            canonical_bytes: 4096,
+            scopes: 64,
+            invariants: 64,
+            contracts: 64,
+        },
+        maximum_occurrences: 4096,
+        maximum_program_bytes: 512 * 1024,
+        maximum_generated_bytes: 1024 * 1024,
+        private_work_units: conduit_mcu_source_build::DHT11_TM1637_PRIVATE_WORK_UNITS,
+    };
+    conduit_mcu_source_build::generate_dht11_tm1637_inventory(bounds, 2 * 1024 * 1024)
 }
 fn resident_entries(
     document: &p::CheckedSyntaxDocument,

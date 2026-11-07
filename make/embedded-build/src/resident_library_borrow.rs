@@ -33,6 +33,8 @@ fn append_prepared(code: &mut String, entries: usize) {
 /// authority independently; this ticket cannot Start a kernel.
 pub struct PreparedResidentLoans<'a>{{owner:&'a mut Initialized,nodes:[Option<u16>;{entries}]}}
 impl<'a> PreparedResidentLoans<'a>{{
+/// Exact preflighted node mapping; no ownership, allocation or authority transfer.
+pub fn nodes(&self)->[Option<u16>;{entries}]{{self.nodes}}
 /// Infallible, allocation-free binding after Root's complete admission.
 pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
 "#
@@ -46,6 +48,12 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
             "loan_{index}.map(|(node,back)|(node,BorrowedBack::Entry{index}(back))),\n"
         ));
     }
+    code.push_str("]}\npub fn split(self)->[Option<PreparedResidentEntryLoan<'a>>;");
+    code.push_str(&entries.to_string());
+    code.push_str("]{let Self{owner,nodes}=self;[\n");
+    for index in 0..entries {
+        code.push_str(&format!("nodes[{index}].map(|node|PreparedResidentEntryLoan{{inner:PreparedResidentEntryInner::Entry{index}{{node,owner:owner.entry_{index}.as_mut().expect(\"exclusively preflighted resident owner\")}}}}),\n"));
+    }
     code.push_str("]}\nfn borrow_tuple(self)->(\n");
     for index in 0..entries {
         code.push_str(&format!("Option<(u16,entry_{index}::BorrowedBack<'a>)>,\n"));
@@ -55,6 +63,23 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
         code.push_str(&format!("nodes[{index}].map(|node|(node,owner.entry_{index}.as_mut().expect(\"exclusively preflighted resident owner\").borrow_prechecked())),\n"));
     }
     code.push_str(")} }\n");
+    code.push_str("/// Disjoint, unstarted entry loans. Splitting changes no availability.\npub struct PreparedResidentEntryLoan<'a>{inner:PreparedResidentEntryInner<'a>}\nenum PreparedResidentEntryInner<'a>{\n");
+    for index in 0..entries {
+        code.push_str(&format!(
+            "Entry{index}{{node:u16,owner:&'a mut entry_{index}::Initialized}},\n"
+        ));
+    }
+    code.push_str(
+        "}\nimpl<'a> PreparedResidentEntryLoan<'a>{pub fn node(&self)->u16{match &self.inner{\n",
+    );
+    for index in 0..entries {
+        code.push_str(&format!("PreparedResidentEntryInner::Entry{index}{{node,..}}=>*node,\n"));
+    }
+    code.push_str("}}\npub fn bind(self)->(u16,BorrowedBack<'a>){match self.inner{\n");
+    for index in 0..entries {
+        code.push_str(&format!("PreparedResidentEntryInner::Entry{index}{{node,owner}}=>(node,BorrowedBack::Entry{index}(owner.borrow_prechecked())),\n"));
+    }
+    code.push_str("}}}\n");
 }
 
 /// A representation adapter over the existing nominal loans, not another Back.
