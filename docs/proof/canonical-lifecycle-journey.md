@@ -9929,3 +9929,27 @@ Fore queues use 6,144 bytes; output Frame uses 268 and invalid-brightness uses
 handoff scripts and instructions preserve the single owner lifetime across both
 admissions, Returns, Source CAS and assignment submission. This validation minted
 no invitations and changed no Source, membership or device state.
+
+### Review-gap closure while hardware recovery is pending (2026-11-07)
+
+The remaining focused native checks were executed against this checkpoint:
+
+- Monotonic Wait's configured local Fore refuses changed configuration before
+  lending the original owner, then transfers and executes a valid assignment
+  (one passed, twelve filtered).
+- Pulse's immutable definition retains the exact typed Fore, finite value bounds,
+  implementation, resource and authority requirements (one passed, two filtered).
+- TM1637's immutable definition retains its bounded packet contract and refuses
+  empty identities (one passed, none filtered).
+
+These CPU results change neither qualified firmware bytes nor the physical proof
+class. Current issue contracts #6341, #6374 and #6378 still require their distinct
+installed custody/output evidence. In particular, the new explicit construction
+budgets do not establish resolution of #6341's earlier unchanged-budget physical
+setup refusal. No issue is closed from these tests. Yellow remained absent at the
+initial USB recheck; no admission window or device write was started.
+
+Maintenance inventoried process maps and open file handles before package-native
+cleanup of inactive default-dev Face, Planner and Web artifacts. Cargo reported
+1.2 GiB removed; active release/MCU caches, private backups and unique evidence
+were preserved. The final default filesystem headroom was approximately 4 GiB.
