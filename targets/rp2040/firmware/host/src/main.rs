@@ -9,7 +9,7 @@ use embassy_usb::{
     class::cdc_acm::{CdcAcmClass, State},
     Builder, UsbDevice,
 };
-use panic_halt as _;
+mod panic_capture;
 use static_cell::StaticCell;
 mod bootsel;
 mod credential_source;
