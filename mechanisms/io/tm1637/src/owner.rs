@@ -252,6 +252,11 @@ pub(crate) fn check_possession<E>(
     Ok(())
 }
 impl WriteAttachment {
+    /// Provider ownership and the packet storage retained by its Host Call.
+    /// This is descriptive accounting; the ordinary ledger must still admit it.
+    pub const fn retained_bytes_for_provider<P>() -> u64 {
+        (core::mem::size_of::<P>() + core::mem::size_of::<PreparedPackets>()) as u64
+    }
     pub(crate) fn valid(self) -> bool {
         self.generation != 0 && self.resource_bytes >= 24
     }

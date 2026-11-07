@@ -123,7 +123,7 @@ impl Equipment {
                         identity!(WriteNativeIdentity, actual, "tm1637", "esp32/tm1637@1"),
                         WriteAttachment {
                             generation: 1,
-                            resource_bytes: core::mem::size_of::<Esp32Tm1637>() as u64,
+                            resource_bytes: WriteAttachment::retained_bytes_for_provider::<Esp32Tm1637>(),
                         },
                         display,
                     )

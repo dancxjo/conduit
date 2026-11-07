@@ -102,8 +102,7 @@ impl Equipment {
                         identity!(WriteNativeIdentity, actual, "tm1637", "rp2040/tm1637@1"),
                         WriteAttachment {
                             generation: 1,
-                            resource_bytes: core::mem::size_of::<crate::tm1637_owner::Display>()
-                                as u64,
+                            resource_bytes: WriteAttachment::retained_bytes_for_provider::<crate::tm1637_owner::Display>(),
                         },
                         display,
                     )
