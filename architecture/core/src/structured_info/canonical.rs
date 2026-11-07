@@ -4,29 +4,29 @@ use sha2::{Digest, Sha256};
 
 use super::{
     StructuredFieldType, StructuredFieldValue, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoTypeNode, StructuredInfoValue, StructuredInfoValueNode, StructuredVariantCase,
+    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueNode, StructuredVariantCase,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
 pub(super) fn type_extent(value: &StructuredInfoType) -> (usize, usize) {
-    match &value.0 {
-        StructuredInfoTypeNode::Leaf(_) => (1, 1),
-        StructuredInfoTypeNode::Nominal { representation, .. } => {
+    match value.shape() {
+        StructuredInfoTypeShape::Leaf(_) => (1, 1),
+        StructuredInfoTypeShape::Nominal { representation, .. } => {
             let (depth, nodes) = type_extent(representation);
             (depth + 1, nodes + 1)
         }
-        StructuredInfoTypeNode::Collection { element, .. } => {
+        StructuredInfoTypeShape::Collection { element, .. } => {
             let (depth, nodes) = type_extent(element);
             (depth + 1, nodes + 1)
         }
-        StructuredInfoTypeNode::Sequence { element, .. } => {
+        StructuredInfoTypeShape::Sequence { element, .. } => {
             let (depth, nodes) = type_extent(element);
             (depth + 1, nodes + 1)
         }
-        StructuredInfoTypeNode::Record { fields, .. } => {
+        StructuredInfoTypeShape::Record { fields, .. } => {
             aggregate_type_extent(fields.iter().map(|field| &field.value_type))
         }
-        StructuredInfoTypeNode::Variant { cases, .. } => {
+        StructuredInfoTypeShape::Variant { cases, .. } => {
             aggregate_type_extent(cases.iter().map(|case| &case.payload_type))
         }
     }
@@ -65,12 +65,12 @@ fn aggregate_value_extent<'a>(
 }
 
 pub(super) fn encode_type(value: &StructuredInfoType, out: &mut Vec<u8>) {
-    match &value.0 {
-        StructuredInfoTypeNode::Leaf(kind) => {
+    match value.shape() {
+        StructuredInfoTypeShape::Leaf(kind) => {
             out.push(0);
             encode_text(kind.as_str(), out);
         }
-        StructuredInfoTypeNode::Nominal {
+        StructuredInfoTypeShape::Nominal {
             schema,
             representation,
         } => {
@@ -78,12 +78,12 @@ pub(super) fn encode_type(value: &StructuredInfoType, out: &mut Vec<u8>) {
             encode_text(schema.as_str(), out);
             encode_type(representation, out);
         }
-        StructuredInfoTypeNode::Collection { element, length } => {
+        StructuredInfoTypeShape::Collection { element, length } => {
             out.push(1);
             out.extend_from_slice(&length.to_le_bytes());
             encode_type(element, out);
         }
-        StructuredInfoTypeNode::Sequence {
+        StructuredInfoTypeShape::Sequence {
             element,
             minimum_items,
             maximum_items,
@@ -93,7 +93,7 @@ pub(super) fn encode_type(value: &StructuredInfoType, out: &mut Vec<u8>) {
             out.extend_from_slice(&maximum_items.to_le_bytes());
             encode_type(element, out);
         }
-        StructuredInfoTypeNode::Record { schema, fields } => {
+        StructuredInfoTypeShape::Record { schema, fields } => {
             out.push(2);
             encode_text(schema.as_str(), out);
             encode_length(fields.len(), out);
@@ -102,7 +102,7 @@ pub(super) fn encode_type(value: &StructuredInfoType, out: &mut Vec<u8>) {
                 encode_type(&field.value_type, out);
             }
         }
-        StructuredInfoTypeNode::Variant { schema, cases } => {
+        StructuredInfoTypeShape::Variant { schema, cases } => {
             out.push(3);
             encode_text(schema.as_str(), out);
             encode_length(cases.len(), out);
