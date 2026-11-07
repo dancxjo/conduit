@@ -372,3 +372,44 @@ fn generated_resident_programs_compile_no_std_and_match_checked_source() {
     exercise.push_str("}\n");
     compiled_rust::verify(&generated, &exercise, "static-scalar");
 }
+
+#[test]
+fn strict_integer_widening_preserves_sign_and_rejects_lossy_static_tapes() {
+    static SIGNED: &[I] = &[
+        instruction(K::I8, 0, O::Input),
+        instruction(K::I128, 1, O::Widen(0)),
+    ];
+    static UNSIGNED: &[I] = &[
+        instruction(K::U8, 0, O::Input),
+        instruction(K::I128, 1, O::Widen(0)),
+    ];
+    let signed = StaticScalarExpression::new(K::I8, K::I128, SIGNED, 1).unwrap();
+    let unsigned = StaticScalarExpression::new(K::U8, K::I128, UNSIGNED, 1).unwrap();
+    let mut output = [0; 16];
+    for value in [i8::MIN, -1, 0, 1, i8::MAX] {
+        signed
+            .evaluate_into(&value.to_le_bytes(), &mut output)
+            .unwrap();
+        assert_eq!(i128::from_le_bytes(output), i128::from(value));
+    }
+    for value in [0u8, 1, 127, 128, 255] {
+        unsigned.evaluate_into(&[value], &mut output).unwrap();
+        assert_eq!(i128::from_le_bytes(output), i128::from(value));
+    }
+    for (input, output) in [
+        (K::U8, K::I8),
+        (K::I8, K::U16),
+        (K::U64, K::U8),
+        (K::U8, K::U8),
+        (K::Bool, K::U16),
+    ] {
+        let code = Box::leak(
+            vec![
+                instruction(input, 0, O::Input),
+                instruction(output, 1, O::Widen(0)),
+            ]
+            .into_boxed_slice(),
+        );
+        assert!(StaticScalarExpression::new(input, output, code, 1).is_err());
+    }
+}

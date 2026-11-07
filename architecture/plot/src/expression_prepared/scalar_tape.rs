@@ -55,6 +55,8 @@ pub enum ScalarTapeOperation {
     Input,
     Literal(Cow<'static, [u8]>),
     Unary(UnaryOperator, usize),
+    /// Exact whole-domain integer widening selected by checked preparation.
+    Widen(usize),
     Binary(BinaryOperator, bool, usize, usize),
     BranchFalse(usize, usize),
     Jump(usize),
@@ -127,6 +129,7 @@ impl ScalarTape {
             PreparedOperation::Literal(bytes) if bytes.len() <= 16 => {
                 Operation::Literal(Cow::Owned(bytes.clone()))
             }
+            PreparedOperation::Widen(operand) => Operation::Widen(self.lower(operand, external)?),
             PreparedOperation::Unary { operator, operand } => {
                 Operation::Unary(*operator, self.lower(operand, external)?)
             }
@@ -223,6 +226,9 @@ impl ScalarTape {
                 Operation::Input => inputs(pc, instruction.kind)?,
                 Operation::Literal(bytes) => PrimitiveValue::borrowed(instruction.kind, bytes)?,
                 Operation::Unary(op, index) => evaluate_unary(*op, instruction.kind, get(*index)?)?,
+                Operation::Widen(index) => {
+                    primitive::evaluate_widen(instruction.kind, get(*index)?)?
+                }
                 Operation::Binary(op, proven, left, right) => {
                     evaluate_binary(*op, *proven, instruction.kind, get(*left)?, get(*right)?)?
                 }

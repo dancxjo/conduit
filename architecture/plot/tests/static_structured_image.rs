@@ -363,3 +363,80 @@ fn remaining_display_state_and_acknowledgement_expressions_preserve_all_bus_outc
         corpus(&d, &p, values, &format!("structured-{name}-variable"));
     }
 }
+
+#[test]
+fn real_dht11_decoder_all_outcomes_match_reference_with_integer_widening() {
+    let d = checked(include_str!(
+        "../../../plots/device-protocols/dht11.conduit"
+    ));
+    let p = program(&d, "dht11-decode");
+    let ty = &p.input_type;
+    let wire_ty = member(ty, "wire");
+    let StructuredInfoTypeShape::Collection { element, .. } = wire_ty.shape() else {
+        panic!("wire");
+    };
+    let mut values = Vec::new();
+    // Valid positive/negative/fractional frames, short/long lengths, checksum
+    // and each payload rule. These are Source observations, not a second decoder.
+    let frames = [
+        (5, [53, 0, 24, 0, 77]),
+        (5, [53, 0, 10, 130, 193]),
+        (5, [95, 0, 60, 0, 155]),
+        (5, [5, 9, 19, 137, 170]),
+        (0, [0; 5]),
+        (4, [53, 0, 24, 0, 77]),
+        (6, [53, 0, 24, 0, 77]),
+        (5, [53, 0, 24, 0, 76]),
+        (5, [0; 5]),
+        (5, [53, 10, 24, 0, 87]),
+        (5, [53, 0, 24, 16, 93]),
+        (5, [53, 0, 24, 10, 87]),
+        (5, [96, 0, 24, 0, 120]),
+        (5, [95, 1, 24, 0, 120]),
+        (5, [53, 0, 61, 0, 114]),
+        (5, [53, 0, 60, 1, 114]),
+        (5, [53, 0, 20, 128, 201]),
+    ];
+    for (length, wire) in frames {
+        values.push(record(
+            ty,
+            vec![
+                ("length", leaf(member(ty, "length"), length)),
+                (
+                    "wire",
+                    StructuredInfoValue::collection(
+                        wire_ty.clone(),
+                        wire.into_iter()
+                            .map(|octet| leaf(element.clone(), octet))
+                            .collect(),
+                    )
+                    .unwrap(),
+                ),
+            ],
+        ));
+    }
+    for (index, input) in values.iter().enumerate() {
+        let result = p.evaluate(input).unwrap();
+        let value = validate_canonical_structured_value(&result).unwrap();
+        if index < 4 {
+            assert!(value.variant_payload("frame").unwrap().is_some());
+        } else {
+            let failure = value.variant_payload("unavailable").unwrap().unwrap();
+            let tag = match index {
+                4 | 5 => "short-frame",
+                6 => "malformed-length",
+                7 => "checksum",
+                _ => "invalid-payload",
+            };
+            assert!(
+                failure.variant_payload(tag).unwrap().is_some(),
+                "case {index}: {tag}"
+            );
+        }
+    }
+    values.push(vec![]);
+    let mut trailing = values[0].clone();
+    trailing.push(0);
+    values.push(trailing);
+    corpus(&d, &p, values, "structured-dht11-decode-widening");
+}

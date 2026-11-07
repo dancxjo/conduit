@@ -157,6 +157,13 @@ pub(super) fn validate_with_inputs(
         let valid = match &instruction.operation {
             Operation::Input => input(pc, kind),
             Operation::Literal(bytes) => validate_leaf(kind, bytes).is_ok(),
+            Operation::Widen(from) => {
+                earlier(*from)
+                    && crate::expression_semantic_call::is_strict_widening(
+                        kind_name(code[*from].kind),
+                        kind_name(kind),
+                    )
+            }
             Operation::Unary(op, from) => {
                 earlier(*from)
                     && code[*from].kind == kind
@@ -195,7 +202,9 @@ pub(super) fn validate_with_inputs(
                 continue;
             }
             let reads = match instruction.operation {
-                Operation::Unary(_, from) | Operation::Move(from) => from == slot,
+                Operation::Unary(_, from) | Operation::Widen(from) | Operation::Move(from) => {
+                    from == slot
+                }
                 Operation::Binary(_, _, left, right) => left == slot || right == slot,
                 Operation::BranchFalse(condition, _) => condition == slot,
                 _ => false,

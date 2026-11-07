@@ -162,6 +162,14 @@ fn checked_scalar_nodes(node: &PortableExpressionNode) -> Result<(), Refusal> {
             checked_scalar_nodes(when_false)
         }
         Op::Literal(_) | Op::CanonicalLiteral(_) | Op::Constant(_) => Ok(()),
+        Op::SemanticCall { kind, arguments }
+            if crate::expression_semantic_call::integer_widening_target(kind).is_some() =>
+        {
+            let [argument] = arguments.as_slice() else {
+                return Err(Refusal::InvalidProgram);
+            };
+            checked_scalar_nodes(argument)
+        }
         Op::SemanticCall { kind, .. }
             if matches!(kind.as_str(), "variant/is" | "sequence/length") =>
         {

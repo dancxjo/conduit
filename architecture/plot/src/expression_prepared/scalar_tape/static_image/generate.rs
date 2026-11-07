@@ -98,6 +98,7 @@ pub(crate) fn emit_tape(source: &mut String, tape: &ScalarTape) {
             Operation::BranchFalse(condition, target) => {
                 format!("BranchFalse({condition}, {target})")
             }
+            Operation::Widen(from) => format!("Widen({from})"),
             Operation::Jump(target) => format!("Jump({target})"),
             Operation::Move(from) => format!("Move({from})"),
         };
