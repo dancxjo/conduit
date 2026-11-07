@@ -10,7 +10,7 @@ use esp_hal::{
     clock::CpuClock, interrupt::software::SoftwareInterruptControl, rng::TrngSource,
     timer::timg::TimerGroup,
 };
-use panic_halt as _;
+mod panic_capture;
 use static_cell::StaticCell;
 #[cfg(assigned_workset)]
 mod authority;
