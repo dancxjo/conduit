@@ -46,6 +46,21 @@ impl CanonicalSource {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn ordinary_tick_trigger_expands_against_product_semantics() {
+        let source = super::super::parse(
+            "plot clock-trigger (\n) {\n    clock: time/tick(count = 1, period-ms = 0)\n    trigger: time/tick-trigger\n    clock.tick >> trigger.tick\n}\n",
+        ).unwrap();
+        let plot = source.expand_entry_for_authoring().unwrap();
+        assert_eq!(plot.expanded.gears.len(), 2);
+        assert_eq!(plot.expanded.cords.len(), 1);
+        assert!(plot
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == conduit_time::TICK_TRIGGER_KIND));
+    }
+
+    #[test]
     fn owned_capture_keeps_its_original_source_allocation() {
         let captured = String::from(include_str!("../../../../plots/clock/main.conduit"));
         let original = captured.as_ptr();
