@@ -29,3 +29,17 @@ added here.
 
 These providers are support for a shared Host composition, not themselves a
 bootable firmware or proof that Blue has joined or executed a Body Play.
+
+The optional `host-carrier` feature adds the physical UART0 adapter for the shared
+MCU Host framing. It exclusively consumes UART0, GPIO1 (TX) and GPIO3 (RX); the
+application must not enable `esp-println` or another writer on that channel.
+Every read and complete write/flush enforces the shared carrier's local timeout.
+A UART has no connection event, so `connected` grants no reachability or trust.
+The ROM may emit startup text before the application owns this channel; the host
+must establish fresh framed protocol synchronization after reset.
+
+`platform` exposes the factory eFuse identifier, local monotonic milliseconds and
+a fresh Boot nonce obtained through a real retained TRNG source. Missing entropy
+refuses; it does not fall back to a pseudorandom generator, wall time or a fixed
+nonce. These native facts are inputs to the ordinary Host composition, not
+membership evidence or authorization.

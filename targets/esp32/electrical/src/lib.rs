@@ -9,3 +9,7 @@ mod tm1637;
 
 pub use pulse::{Esp32PulseCapture, PULSE_LIMITS};
 pub use tm1637::Esp32Tm1637;
+
+pub mod platform;
+#[cfg(feature = "host-carrier")]
+pub mod uart;
