@@ -102,10 +102,19 @@ impl RetainedReturn<'_, '_> {
             projection: &projection,
             signature: &signature,
         };
-        let n = serde_json_core::to_slice(&presentation, output).map_err(|_| Refusal::Encoding)?;
-        link.send(&output[..n])
-            .await
-            .map_err(|_| Refusal::Transport)?;
+        // Reuse the original caller-owned command arena for the signed
+        // presentation; no second document or decoded offer catalog is retained.
+        let n = serde_json_core::to_slice(&presentation, input).map_err(|_| Refusal::Encoding)?;
+        let document = &input[..n];
+        let digest = Sha256::digest(document).into();
+        let mut offset = 0;
+        while offset < document.len() {
+            let (n, next) = conduit_wire::encode_bounded_document_chunk(
+                output, document, offset, &digest,
+            ).map_err(|_| Refusal::Encoding)?;
+            link.send(&output[..n]).await.map_err(|_| Refusal::Transport)?;
+            offset = next;
+        }
         for (bytes, digest) in images.zip(&projection.capability_images) {
             let mut offset = 0;
             while offset < bytes.len() {

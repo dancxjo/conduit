@@ -11,9 +11,10 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub const MEMBER_RETURN_IMAGES_SCHEMA: &str = "conduit.body/member-return-images@2";
-pub const PICO_MEMBER_RETURN_IMAGES_REQUEST: &[u8] = b"CONDUIT_MEMBER_RETURN_IMAGES@2";
+pub const PICO_MEMBER_RETURN_IMAGES_REQUEST: &[u8] = b"CONDUIT_MEMBER_RETURN_IMAGES@3";
 /// This carriage profile is deliberately smaller than general Host catalogs.
-pub const MAX_MEMBER_RETURN_IMAGES: usize = 16;
+// Finite discovery carriage; grants and execution bounds are admitted separately.
+pub const MAX_MEMBER_RETURN_IMAGES: usize = 32;
 /// At most one descriptive grant per general candidate capability. The smaller
 /// aggregate text ceiling independently bounds this compact carriage profile.
 pub use crate::authority_grant_descriptions::{

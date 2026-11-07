@@ -120,9 +120,13 @@ impl PicoSpawnSocket {
         self.line
             .send_raw_stream_frame(PICO_MEMBER_RETURN_IMAGES_REQUEST, timeout)?;
         let mut bytes = [0; MAX_PICO_ADMISSION_FRAME_BYTES];
-        let presentation =
-            serde_json::from_slice(self.line.receive_raw_stream_frame(&mut bytes, timeout)?)
-                .map_err(|_| Error::Malformed)?;
+        let mut document = conduit_wire::BoundedDocumentAssembly::new(16 * 1024, 32);
+        loop {
+            let frame = self.line.receive_raw_stream_frame(&mut bytes, timeout)?;
+            if document.push(frame).map_err(|_| Error::Malformed)? { break; }
+        }
+        let presentation = serde_json::from_slice(document.completed().ok_or(Error::Malformed)?.0)
+            .map_err(|_| Error::Malformed)?;
         basis.check_presentation(&presentation)?;
         let images = self.receive_offer_images(&presentation.projection, timeout)?;
         let advertisement =

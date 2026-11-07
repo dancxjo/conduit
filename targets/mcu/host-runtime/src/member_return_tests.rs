@@ -110,17 +110,24 @@ fn retained_return_preserves_part_and_signs_exact_expiry_bearing_challenge() {
     assert_eq!(accepted.credential.part_id, retained.part_id);
     assert_eq!(accepted.credential.boot_id, actual.boot_id);
     assert_eq!(retained.boot_id.as_str(), "previous/boot");
-    assert_eq!(link.sent.len(), 3);
+    let mut presentation_bytes = conduit_wire::BoundedDocumentAssembly::new(16 * 1024, 32);
+    let mut frame = 0;
+    loop {
+        let complete = presentation_bytes.push(&link.sent[frame]).unwrap();
+        frame += 1;
+        if complete { break; }
+    }
+    assert_eq!(link.sent.len(), frame + 2);
     let presentation: MemberReturnImagePresentation =
-        serde_json::from_slice(&link.sent[0]).unwrap();
+        serde_json::from_slice(presentation_bytes.completed().unwrap().0).unwrap();
     presentation
         .verify(&member.verifying_key().to_bytes())
         .unwrap();
     let mut output = [0; 128];
     let mut document = conduit_wire::BorrowedBoundedDocumentAssembly::new(&mut output, 1);
-    assert!(document.push(&link.sent[1]).unwrap());
+    assert!(document.push(&link.sent[frame]).unwrap());
     assert_eq!(document.completed().unwrap().0, IMAGE);
-    let proof: serde_json::Value = serde_json::from_slice(&link.sent[2]).unwrap();
+    let proof: serde_json::Value = serde_json::from_slice(&link.sent[frame + 1]).unwrap();
     let signature: Vec<u8> = serde_json::from_value(proof["signature"].clone()).unwrap();
     member
         .verifying_key()
