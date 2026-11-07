@@ -20,7 +20,7 @@ impl CanonicalSource {
         self.expand_checked_for_authoring(&checked, entry)
     }
 
-    fn expand_checked_for_authoring(
+    pub(crate) fn expand_checked_for_authoring(
         &self,
         checked: &conduit_plot::CheckedSyntaxDocument,
         entry: &str,

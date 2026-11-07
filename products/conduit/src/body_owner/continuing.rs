@@ -65,6 +65,26 @@ impl Owner {
         if let Some(ingress) = ingress {
             self.host.verify_selected_image_fore_input(&ingress.input)?;
         }
+        #[cfg(target_os = "linux")]
+        if let Some(retained) = self.selected_file_workset.take() {
+            let result = (|| {
+                retained.verify(&self.host, &self.session.evidence().body.workset)?;
+                let boundaries = fore::boundaries_for_plots_with_local(
+                    retained.checked.plots.iter(),
+                    ingress,
+                    self.local_fore_adapters.as_ref(),
+                )?;
+                let borrowed = retained
+                    .checked
+                    .plots
+                    .iter()
+                    .map(|plot| (&retained.checked.source, plot))
+                    .collect::<Vec<_>>();
+                self.plan_workset_with_source_boundaries(&borrowed, &boundaries)
+            })();
+            self.selected_file_workset = Some(retained);
+            return result;
+        }
         let sources = super::super::retained_source::workset(root)?
             .ok_or("retained Source workset is unavailable for Body Plan")?;
         let boundaries = fore::boundaries_for_plots_with_local(

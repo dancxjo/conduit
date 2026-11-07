@@ -110,6 +110,8 @@ impl Owner {
             execution_persistence_pending: false,
             workset_recovery_required: false,
             local_fore_adapters: None,
+            #[cfg(target_os = "linux")]
+            selected_file_workset: None,
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,

@@ -31,6 +31,16 @@ impl PreparedRemoteBodyCommand {
     }
 }
 impl Owner {
+    pub(crate) fn require_remote_workset_retired(&self) -> Result<(), String> {
+        if self
+            .member_carrier
+            .as_ref()
+            .is_some_and(|custody| custody.command.is_some())
+        {
+            return Err("workset replacement requires actual remote receiver retirement".into());
+        }
+        Ok(())
+    }
     pub(crate) fn approve_remote_workset(
         &mut self,
         member: &MemberPresentationBasis,

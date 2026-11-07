@@ -8,6 +8,39 @@ use conduit_embedded_build::{
 };
 
 impl Owner {
+    /// The installed File policy already prepared these immutable codebooks.
+    /// Neither the transport nor its challenge supplies Source or projections.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn approve_selected_remote_workset(
+        &mut self,
+        member: &crate::durable_host::owner::MemberPresentationBasis,
+        challenge: &conduit_body::HostCommandChallenge<'_>,
+        limits: BodyFragmentProjectionLimits,
+    ) -> Result<(Vec<u8>, [u8; 64]), String> {
+        let retained = self
+            .selected_file_workset
+            .take()
+            .ok_or("selected checked File custody absent")?;
+        let result = (|| {
+            retained.verify(&self.host, &self.session.evidence().body.workset)?;
+            let images: Vec<_> = retained.checked.resident_images.iter().collect();
+            let mut native = Vec::new();
+            for offer in &member.host_advertisement.capabilities {
+                if images
+                    .iter()
+                    .any(|image| image.offer_description() == offer)
+                {
+                    continue;
+                }
+                native.push(offer);
+            }
+            let command =
+                self.approve_remote_workset(member, challenge, &images, &native, limits)?;
+            Ok((command.payload().to_vec(), *command.signature()))
+        })();
+        self.selected_file_workset = Some(retained);
+        result
+    }
     /// Resolve the selected resident implementations from current member offers;
     /// no arbitrary encoded projection crosses this owner preparation boundary.
     #[allow(dead_code)]
@@ -31,12 +64,31 @@ impl Owner {
         limits: BodyFragmentProjectionLimits,
     ) -> Result<(BodyPlayIdentity, GeneratedBodyWorksetDocument), String> {
         self.prepare_remote_body_workset(actual, limits.maximum_document_bytes, |scope| {
+            let local_native: Vec<_> = native
+                .iter()
+                .copied()
+                .filter(|offer| {
+                    scope
+                        .fragment()
+                        .placements
+                        .iter()
+                        .any(|placement| placement.capability_id == offer.capability_id)
+                })
+                .collect();
+            if local_native.iter().any(|offer| {
+                offer.implementation.execution_profile_id.as_str()
+                    == conduit_embedded_build::RESIDENT_EXPRESSION_PROFILE
+            }) {
+                return Err(BodyFragmentGenerationRefusal::Resident(
+                    conduit_embedded_build::ResidentExpressionRefusal::Selection,
+                ));
+            }
             let resident = conduit_embedded_build::bind_current_mixed_resident_expressions(
                 scope.plot_plan(),
                 &scope.fragment().fragment_id,
                 actual,
                 images,
-                native,
+                &local_native,
             )
             .map_err(BodyFragmentGenerationRefusal::Resident)?;
             Ok((resident, limits))

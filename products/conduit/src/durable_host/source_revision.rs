@@ -25,6 +25,10 @@ pub(crate) struct Selection {
     snapshot: SourceSnapshotRevision,
     entries: Vec<String>,
     maximum_source_bytes: usize,
+    #[serde(default)]
+    resident_preparation: Option<ResidentPreparationSelection>,
+    #[serde(default)]
+    plays: Vec<UsbPlaySelection>,
     capture_preparation_bytes: u64,
     capture_retained_bytes: u64,
     /// Full independently qualified caller/catalog/compiler/planner/journal
@@ -36,6 +40,129 @@ pub(crate) struct Selection {
     admissions: Vec<UsbAdmissionSelection>,
     #[serde(default)]
     local_fore_adapters: Vec<super::local_fore_policy::LocalForeAdapterIntent>,
+}
+
+/// Finite attended deployment request selected by the local installer.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct UsbPlaySelection {
+    port: std::path::PathBuf,
+    member_basis: std::path::PathBuf,
+    report_output: std::path::PathBuf,
+    wait_milliseconds: u64,
+    image: ImageProjectionSelection,
+    maximum_program_bytes: u32,
+    maximum_total_program_bytes: u32,
+    assigned_encoded_bytes: u16,
+    assigned_runtime_state_bytes: u16,
+    assigned_counts: [u8; conduit_core::ASSIGNED_PLAN_COUNT_KINDS],
+    maximum_fore_ports: usize,
+    maximum_document_bytes: u32,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ImageProjectionSelection {
+    maximum_nodes: usize,
+    maximum_cords: usize,
+    maximum_routes: usize,
+    maximum_route_targets: usize,
+    maximum_host_calls: usize,
+    maximum_resources: usize,
+    maximum_sign_expectations: usize,
+    maximum_configuration_entries: usize,
+    maximum_ports_per_node: usize,
+    maximum_remote_endpoints: usize,
+    maximum_cord_value_slots: u16,
+    maximum_cord_value_bytes: u32,
+    maximum_sign_items: u16,
+    maximum_sign_bytes: u32,
+}
+impl ImageProjectionSelection {
+    fn bounds(&self) -> conduit_embedded_build::EmbeddedImageBounds {
+        conduit_embedded_build::EmbeddedImageBounds {
+            maximum_nodes: self.maximum_nodes,
+            maximum_cords: self.maximum_cords,
+            maximum_routes: self.maximum_routes,
+            maximum_route_targets: self.maximum_route_targets,
+            maximum_host_calls: self.maximum_host_calls,
+            maximum_resources: self.maximum_resources,
+            maximum_sign_expectations: self.maximum_sign_expectations,
+            maximum_configuration_entries: self.maximum_configuration_entries,
+            maximum_ports_per_node: self.maximum_ports_per_node,
+            maximum_remote_endpoints: self.maximum_remote_endpoints,
+            maximum_cord_value_slots: self.maximum_cord_value_slots,
+            maximum_cord_value_bytes: self.maximum_cord_value_bytes,
+            maximum_sign_items: self.maximum_sign_items,
+            maximum_sign_bytes: self.maximum_sign_bytes,
+        }
+    }
+}
+
+/// Local installation selection of compiler ceilings, not execution grants.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ResidentPreparationSelection {
+    maximum_images: usize,
+    canonical_bytes: usize,
+    scopes: usize,
+    invariants: usize,
+    contracts: usize,
+    maximum_occurrences: usize,
+    maximum_program_bytes: u32,
+    maximum_generated_bytes: u32,
+    private_work_units: u16,
+}
+#[cfg(target_os = "linux")]
+impl ResidentPreparationSelection {
+    fn prepare(
+        &self,
+        document: &conduit_plot::CheckedSyntaxDocument,
+        plots: &[ExpandedAuthoringPlot],
+    ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
+        let bounds = conduit_embedded_build::ResidentExpressionBounds {
+            native: conduit_plot::rust_binding::PreparedNativeBounds {
+                canonical_bytes: self.canonical_bytes,
+                scopes: self.scopes,
+                invariants: self.invariants,
+                contracts: self.contracts,
+            },
+            maximum_occurrences: self.maximum_occurrences,
+            maximum_program_bytes: self.maximum_program_bytes,
+            maximum_generated_bytes: self.maximum_generated_bytes,
+            private_work_units: self.private_work_units,
+        };
+        let mut images = Vec::new();
+        for gear in plots.iter().flat_map(|p| &p.expanded.gears) {
+            let Some(configuration) = gear.configuration.iter().find(|c| c.key == "program") else {
+                continue;
+            };
+            if images.len() >= self.maximum_images {
+                return Err("selected resident image capacity exhausted".into());
+            }
+            let conduit_core::ConfigurationValue::Text(text) = &configuration.value else {
+                return Err("selected resident program is not canonical text".into());
+            };
+            let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(text)
+                .map_err(|e| format!("selected resident program: {e:?}"))?;
+            let temporal = gear
+                .inputs
+                .first()
+                .ok_or("selected resident input absent")?
+                .temporal;
+            let image = conduit_embedded_build::PreparedResidentExpression::prepare(
+                document, &program, temporal, bounds,
+            )
+            .map_err(|e| format!("selected resident compiler ceiling: {e:?}"))?;
+            if !images.iter().any(
+                |known: &conduit_embedded_build::PreparedResidentExpression| {
+                    known.artifact_id() == image.artifact_id() && known.kind_id() == image.kind_id()
+                },
+            ) {
+                images.push(image);
+            }
+        }
+        Ok(images)
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -66,6 +193,7 @@ struct UsbAdmissionSelection {
 pub(crate) struct CheckedFileRevision {
     pub(crate) source: crate::plot_source::CanonicalSource,
     pub(crate) plots: Vec<ExpandedAuthoringPlot>,
+    pub(crate) resident_images: Vec<conduit_embedded_build::PreparedResidentExpression>,
 }
 
 /// Affine policy custody, constructed only after the local OS File selection,
@@ -81,11 +209,42 @@ pub(crate) struct AuthorizedFileRevision {
     checked: CheckedFileRevision,
     caller: ImagePreparedValue<()>,
 }
+
+/// Actual original captures and the checked workset move together. This is
+/// retained planning custody after admission, never fresh Source authority.
 #[cfg(target_os = "linux")]
-pub(crate) type PreparationCustody = (
-    ImagePreparedValue<OwnedSourceCheckInput>,
-    ImagePreparedValue<()>,
-);
+pub(crate) struct RetainedFileWorkset {
+    // Field order releases all derived backing before its original guards.
+    pub(crate) checked: CheckedFileRevision,
+    source: ImagePreparedValue<OwnedSourceCheckInput>,
+    caller: ImagePreparedValue<()>,
+}
+#[cfg(target_os = "linux")]
+impl RetainedFileWorkset {
+    pub(crate) fn verify(
+        &self,
+        host: &conduit_std_host::StdHost,
+        workset: &conduit_body::BodyWorkset,
+    ) -> Result<(), String> {
+        host.verify_selected_image_prepared_value(&self.source)?;
+        host.verify_selected_image_prepared_value(&self.caller)?;
+        let selected =
+            conduit_body::BodyWorkset::from_plots(self.checked.plots.iter().map(|plot| {
+                conduit_body::ResidentPlot::new(
+                    plot.expanded.source_document_id.clone(),
+                    plot.expanded.checked_plot_id.clone(),
+                )
+            }))
+            .map_err(|e| format!("retained File workset: {e:?}"))?;
+        if &selected != workset || self.checked.source.source != self.source.value().source() {
+            return Err(
+                "retained checked File differs from current Body workset or original capture"
+                    .into(),
+            );
+        }
+        Ok(())
+    }
+}
 
 #[cfg(target_os = "linux")]
 impl AuthorizedFileRevision {
@@ -95,8 +254,12 @@ impl AuthorizedFileRevision {
         &self.selection.local_fore_adapters
     }
 
-    pub(crate) fn into_preparation(self) -> PreparationCustody {
-        (self.source, self.caller)
+    pub(crate) fn into_retained(self) -> RetainedFileWorkset {
+        RetainedFileWorkset {
+            source: self.source,
+            caller: self.caller,
+            checked: self.checked,
+        }
     }
     pub(crate) fn verify<'a>(
         &'a self,
@@ -138,6 +301,28 @@ fn validate_selection(selection: &Selection, installation: &Installation) -> Res
             .iter()
             .any(|e| e.is_empty() || e.len() > conduit_plot::MAX_CHECK_LABEL_BYTES)
         || selection.entries.iter().collect::<BTreeSet<_>>().len() != selection.entries.len()
+        || selection.plays.len() > conduit_body::MAX_BODY_PLOTS
+        || selection.plays.iter().any(|p| {
+            p.port.is_relative()
+                || p.member_basis.is_relative()
+                || p.report_output.is_relative()
+                || !(1..=10_000).contains(&p.wait_milliseconds)
+                || p.maximum_document_bytes == 0
+                || p.maximum_document_bytes > u16::MAX.into()
+                || p.maximum_fore_ports > 64
+        })
+        || selection.resident_preparation.as_ref().is_some_and(|p| {
+            p.maximum_images == 0
+                || p.maximum_images > 128
+                || p.canonical_bytes == 0
+                || p.scopes == 0
+                || p.invariants == 0
+                || p.contracts == 0
+                || p.maximum_occurrences == 0
+                || p.maximum_program_bytes == 0
+                || p.maximum_generated_bytes == 0
+                || p.private_work_units == 0
+        })
         || selection.maximum_source_bytes == 0
         || selection.maximum_source_bytes > conduit_plot::MAXIMUM_PLOT_SOURCE_BYTES
         || selection.capture_preparation_bytes == 0
@@ -362,12 +547,23 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path) -> Result<(), String> {
         creche.as_ref().map(|f| f.resource_offer()),
     )?;
     let source = crate::plot_source::parse_owned(prepared.source.value().source().to_owned())?;
+    let document = source.check()?;
     let plots = selection
         .entries
         .iter()
-        .map(|entry| source.expand_named_for_authoring(entry))
+        .map(|entry| source.expand_checked_for_authoring(&document, entry))
         .collect::<Result<Vec<_>, _>>()?;
-    let checked = CheckedFileRevision { source, plots };
+    let resident_images = selection
+        .resident_preparation
+        .as_ref()
+        .map(|policy| policy.prepare(&document, &plots))
+        .transpose()?
+        .unwrap_or_default();
+    let checked = CheckedFileRevision {
+        source,
+        plots,
+        resident_images,
+    };
     let host_id = prepared.host.advertisement().host_id.clone();
     let boot = prepared.host.advertisement().boot_id.clone();
     let generation = prepared.host.advertisement().offer_generation;
@@ -402,7 +598,23 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path) -> Result<(), String> {
     // An interrupted CAS is recovered by the existing journal, never replaying
     // this single-use authorization.
     write_json_atomic(&state_dir.join(SELECTION_FILE), &selection)?;
-    let custody = owner.commit_authorized_file_revision(state_dir, authorization)?;
+    owner.commit_authorized_file_revision(state_dir, authorization)?;
+    if !selection.plays.is_empty() {
+        match owner.plan_retained(state_dir) {
+            Ok(()) => {
+                for play in &selection.plays {
+                    if let Err(error) = submit_selected_play(&mut owner, play) {
+                        // CAS has committed; losing carriage cannot revoke a
+                        // receiver or discard the original approval owner.
+                        eprintln!(
+                            "selected Play request refused or uncertain; owner retained: {error}"
+                        );
+                    }
+                }
+            }
+            Err(error) => eprintln!("selected workset retained; Plan refused: {error}"),
+        }
+    }
     let ad = owner.host.advertisement();
     let status = RuntimeStatus {
         schema: RUNTIME_SCHEMA.into(),
@@ -417,13 +629,14 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path) -> Result<(), String> {
         Path::new(&installation.product_executable),
         MAXIMUM_RELEASE_FILE_BYTES,
     )?;
-    let mut runtime = crate::durable_host_control::DurableHostRuntime::from_selected_owner(
+    let runtime = crate::durable_host_control::DurableHostRuntime::from_selected_owner(
         running_target_id()?.into(),
         content,
         owner,
         state_dir,
     );
-    runtime.retain_source_preparation(Some(custody));
+    // The owner itself retains capture, compiler workspace and checked workset.
+
     write_json_atomic(&state_dir.join("runtime.json"), &status)?;
     #[cfg(all(feature = "root-allocation-observation", not(test)))]
     {
@@ -441,10 +654,84 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path) -> Result<(), String> {
             }),
         )?;
     }
-    println!("Selected Source workset committed; same owner Root is serving. Replacement Wake requires fresh owner authorization.");
+    println!("Selected Source workset committed; same owner Root is serving. Carrier reports do not prove receiver admission or Play.");
     let outcome = crate::durable_host_control::serve(state_dir, runtime);
     let _ = fs::remove_file(state_dir.join("runtime.json"));
     outcome
+}
+
+/// A transport report never proves admission or Start. Preserve owner approval
+/// on every outcome, including a lost reply, until receiver retirement is proved.
+#[cfg(target_os = "linux")]
+fn submit_selected_play(
+    owner: &mut owner::Owner,
+    selected: &UsbPlaySelection,
+) -> Result<(), String> {
+    use conduit_std_host::pico_spawn::{PicoSpawnSocket, PreparationCommandBytes};
+    if !(1..=10_000).contains(&selected.wait_milliseconds) {
+        return Err("selected preparation carriage exceeds original challenge lifetime".into());
+    }
+    let member: owner::MemberPresentationBasis = serde_json::from_slice(&bounded_read(
+        &selected.member_basis,
+        MAXIMUM_BODY_ADMISSION_BYTES,
+    )?)
+    .map_err(|e| format!("selected member basis: {e}"))?;
+    member.validate()?;
+    let limits = conduit_embedded_build::BodyFragmentProjectionLimits {
+        image: selected.image.bounds(),
+        computations: conduit_embedded_build::EmbeddedComputationBounds {
+            maximum_program_bytes: selected.maximum_program_bytes,
+            maximum_total_program_bytes: selected.maximum_total_program_bytes,
+        },
+        assigned: conduit_core::AssignedPlanMaxima {
+            encoded_bytes: selected.assigned_encoded_bytes,
+            runtime_state_bytes: selected.assigned_runtime_state_bytes,
+            counts: selected.assigned_counts,
+        },
+        maximum_fore_ports: selected.maximum_fore_ports,
+        maximum_document_bytes: selected.maximum_document_bytes,
+    };
+    let mut socket = PicoSpawnSocket::open(
+        selected
+            .port
+            .to_str()
+            .ok_or("selected Play port is not UTF-8")?,
+    )
+    .map_err(|e| format!("open selected Play carrier: {e:?}"))?;
+    let mut approved = None;
+    let mut refusal = None;
+    let exchange = socket.exchange_preparation(
+        std::time::Duration::from_millis(selected.wait_milliseconds),
+        |challenge| {
+            match owner.approve_selected_remote_workset(&member, challenge, limits) {
+                Ok(command) => {
+                    approved = Some(command);
+                }
+                Err(error) => {
+                    refusal = Some(error);
+                    return Err(());
+                }
+            }
+            let (payload, signature) = approved.as_ref().expect("just approved");
+            Ok(PreparationCommandBytes { payload, signature })
+        },
+    );
+    write_json_atomic(
+        &selected.report_output,
+        &serde_json::json!({
+            "schema": "conduit.diagnostic/preparation-carriage@1",
+            "member_host": member.host_advertisement.host_id,
+            "member_boot": member.host_advertisement.boot_id,
+            "reported": format!("{exchange:?}"),
+            "owner_refusal": refusal,
+            "admission_proved": false,
+            "play_proved": false,
+            "approval_retained": approved.is_some(),
+        }),
+    )?;
+    exchange.map(|_| ()).map_err(|e| {
+        format!("selected preparation carriage: {e:?}; original approval retained if issued")
+    })
 }
 
 /// Use the ordinary canonical image-return protocol on the same live owner.
@@ -546,6 +833,13 @@ fn return_selected_basis(
             format!("return committed and receipt retained; member delivery uncertain: {e:?}")
         })?;
     owner.retire_completed_selected_return(&credential)?;
+    // Descriptive convenience for this same Root's later checked preparation.
+    // Every use still rechecks actual current membership and observed offers.
+    let presentation = owner::MemberPresentationBasis::new(credential, observed.advertisement)?;
+    write_json_atomic(
+        &receipt_output.with_extension("presentation.json"),
+        &presentation,
+    )?;
     Ok(())
 }
 

@@ -25,7 +25,7 @@ impl Owner {
         &mut self,
         root: &Path,
         authorization: crate::durable_host::source_revision::AuthorizedFileRevision,
-    ) -> Result<crate::durable_host::source_revision::PreparationCustody, String> {
+    ) -> Result<(), String> {
         let (expected, checked) = authorization.verify(&self.host)?;
         let sources = checked
             .plots
@@ -53,7 +53,8 @@ impl Owner {
             self.local_fore_adapters = previous;
             return Err(error);
         }
-        Ok(authorization.into_preparation())
+        self.selected_file_workset = Some(authorization.into_retained());
+        Ok(())
     }
 
     /// Consume the actual immutable Sources selected by the admitted clock policy.
@@ -140,6 +141,7 @@ impl Owner {
         >,
     ) -> Result<(), String> {
         self.ensure_execution_retained(root)?;
+        self.require_remote_workset_retired()?;
         if self.host.is_playing()
             || self.session.realization().is_some()
             || self.session.evidence().body.state != BodyState::Lulled
@@ -243,6 +245,10 @@ impl Owner {
         self.resident = foreground;
         self.resident_name = name;
         self.clock_interval_ms = None;
+        #[cfg(target_os = "linux")]
+        {
+            self.selected_file_workset = None;
+        }
         Ok(())
     }
 }
