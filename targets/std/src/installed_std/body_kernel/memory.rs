@@ -1,4 +1,4 @@
-//! Closed cooperative tick and one-shot immediate-Source receipts. Shared immutable Body/workset inputs
+//! Closed cooperative tick, one-shot immediate-Source and single-Crèche kernel receipts. Shared immutable Body/workset inputs
 //! retain their existing owner; this accounts newly owned execution backing.
 use super::*;
 
@@ -88,8 +88,7 @@ impl BodyKernel<'_> {
         boot: &conduit_core::BootId,
         lifecycle: usize,
     ) -> Result<BodyMemoryReceipt, String> {
-        if self.creche.is_some()
-            || self.input_origin.is_some()
+        if self.input_origin.is_some()
             || self.parsec_map.is_some()
             || self.parsec_terminal.is_some()
             || self.todo_checkpoint.is_some()
@@ -113,6 +112,7 @@ impl BodyKernel<'_> {
         )?;
         let mut ticks = 0;
         let mut sources = 0;
+        let mut creches = 0;
         for (index, driver) in self.scheduler.drivers().iter().enumerate() {
             if matches!(driver, InstalledBack::SelectedNativeSource(_)) {
                 let route = self
@@ -128,22 +128,38 @@ impl BodyKernel<'_> {
                 )?;
                 sources += 1;
             }
+            if matches!(driver, InstalledBack::Creche(_)) {
+                let route = self
+                    .creche
+                    .as_ref()
+                    .ok_or("IMAGE Crèche Back lacks its exact prepared route")?;
+                add(
+                    &mut bytes,
+                    route
+                        .prepared_backing_bytes(index)
+                        .ok_or("IMAGE Crèche route is dispatched or names another Back")?,
+                )?;
+                creches += 1;
+            }
             if matches!(driver, InstalledBack::Tick(_)) {
                 ticks += 1;
             }
             add(&mut bytes, back_bytes(driver)?)?;
         }
         if sources > 1
-            || (ticks == 0 && sources == 0)
+            || creches > 1
+            || (creches == 1 && (ticks != 0 || sources != 0))
+            || (ticks == 0 && sources == 0 && creches == 0)
+            || (self.creche.is_some() != (creches == 1))
             || (self.native_source.is_some() != (sources == 1))
         {
             return Err(
-                "IMAGE memory receipt requires exact tick or one immediate Source ownership".into(),
+                "IMAGE memory receipt requires exact tick, immediate Source or single Crèche ownership".into(),
             );
         }
         add(
             &mut bytes,
-            if sources == 1 {
+            if sources == 1 || creches == 1 {
                 self.fore.finite_one_shot_backing_bytes()
             } else {
                 self.fore.tick_backing_bytes()
@@ -250,3 +266,7 @@ mod tests {
         assert_eq!(back_bytes(&InstalledBack::Inactive).unwrap(), 0);
     }
 }
+
+#[cfg(test)]
+#[path = "memory/creche_tests.rs"]
+mod creche_tests;

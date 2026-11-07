@@ -9284,3 +9284,29 @@ passed; strict std/product library/test Clippy passed. Logs are
 `/tmp/conduit-creche-funded-owner-20261106.log` and
 `/tmp/conduit-creche-funded-owner-clippy-20261106.log`. These are CPU fixtures,
 not ordinary installed IMAGE execution or physical proof.
+
+### 2026-11-06 — Exact single-Crèche kernel receipt
+
+The kernel-owned receipt now supports one exact undispatched Crèche Back/route
+and the existing finite one-shot Fore profile. The scoped attachment already
+checks actual Body/Plan/Play/Host, selected resource and lowered Host Call; the
+receipt additionally requires the route's exact node, no pending dispatch, one
+Crèche and no mixed tick/Source profile. Correlation state is inline; the
+scheduler/value/sign storage, identities, operations, Fore metadata/output
+slots, diagnostics and bounded clock storage remain counted through the normal
+receipt. This accounts only kernel-owned backing, not the separately prepared
+context, execution owner, adapter, worker or produced artifacts.
+
+A real checked-Plan CPU regression constructs the kernel and observes refusal
+without its scoped owner route. Exact attachment then permits preparation of
+its finite kernel receipt without starting or polling the adapter. The outer
+selected IMAGE runner still refuses Crèche: its entry must verify the separately
+funded owner and preserve those lifetimes before this profile may execute.
+No installed service, MCU firmware, or physical display changed.
+
+The Crèche-filter run passed 32 product cases and 26 std cases. Strict
+std/product library/test Clippy passed. Logs:
+`/tmp/conduit-creche-kernel-receipt-20261106.log` and
+`/tmp/conduit-creche-kernel-receipt-clippy-20261106.log`.
+The unchanged combined IMAGE filter also passed 15 product and 50 std cases
+(`/tmp/conduit-creche-kernel-existing-image-20261106.log`).
