@@ -18,12 +18,24 @@ pub enum Refusal<E = ()> {
     Event,
     Carrier(E),
 }
+/// A bounded observation of an actual actor result or pressure condition.
+/// Reporting it cannot cancel work, release resources or authorize a restart.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Observation {
+    Drained,
+    Refused,
+    Cancelled,
+    EvidenceCapacity,
+    FrameCapacity,
+}
 #[derive(Clone, Copy, Default)]
 struct Observed {
     events: u64,
     completions: u64,
     overwritten: u64,
     last: Option<KernelEvent>,
+    condition: Option<Observation>,
 }
 /// Fixed storage for one last observed event per fragment. This never owns a
 /// kernel or enables Start. Root initializes it only after successful Start.
@@ -64,8 +76,18 @@ impl<const F: usize> State<F> {
                 .checked_add(u64::from(old.last.is_some()))
                 .ok_or(Refusal::Capacity)?,
             last: Some(event),
+            condition: old.condition,
         };
         slot.set(next);
+        Ok(())
+    }
+    /// Record only a real local actor result. There is deliberately no
+    /// independent "Started" setter; original Start evidence initializes State.
+    pub fn observe(&self, fragment: usize, condition: Observation) -> Result<(), Refusal> {
+        let slot = self.fragments.get(fragment).ok_or(Refusal::Fragment)?;
+        let mut observed = slot.get();
+        observed.condition = Some(condition);
+        slot.set(observed);
         Ok(())
     }
     /// Serialize only fixed retained observations. Legacy [S,fragment,event]
@@ -122,6 +144,7 @@ struct Fragment {
     completed_calls: u64,
     overwritten_slots: u64,
     last: Option<Event>,
+    condition: Option<Observation>,
 }
 impl From<Observed> for Fragment {
     fn from(value: Observed) -> Self {
@@ -130,6 +153,7 @@ impl From<Observed> for Fragment {
             completed_calls: value.completions,
             overwritten_slots: value.overwritten,
             last: value.last.map(Event::from),
+            condition: value.condition,
         }
     }
 }
@@ -233,6 +257,7 @@ mod tests {
         event.sequence = 5;
         event.kind = KernelEventKind::HostCallCompleted;
         state.record(0, event).unwrap();
+        state.observe(0, Observation::EvidenceCapacity).unwrap();
         let mut output = [0; RESPONSE_BYTES];
         let n = state.encode(&[b'S', 0, 1], &mut output).unwrap();
         let report: serde_json::Value = serde_json::from_slice(&output[..n]).unwrap();
@@ -240,6 +265,7 @@ mod tests {
         assert_eq!(report["fragments"][0]["completed_calls"], 1);
         assert_eq!(report["fragments"][0]["overwritten_slots"], 1);
         assert_eq!(report["selected"]["available"], false);
+        assert_eq!(report["fragments"][0]["condition"], "evidence-capacity");
         assert_eq!(state.record(1, event), Err(Refusal::Fragment));
         event.request = None;
         assert_eq!(state.record(0, event), Err(Refusal::Event));
