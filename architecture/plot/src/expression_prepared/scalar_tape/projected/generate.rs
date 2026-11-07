@@ -35,18 +35,25 @@ pub(in crate::expression_prepared) fn generate_with_native(
     shared_native: Option<&str>,
 ) -> Result<String, StaticProjectedGenerationRefusal> {
     let unsupported = || Refusal::UnsupportedType("projected-image/input-observation@1".into());
-    let identity = match program.input_type.shape() {
-        StructuredInfoTypeShape::Record { schema, .. }
-        | StructuredInfoTypeShape::Variant { schema, .. }
-        | StructuredInfoTypeShape::Nominal { schema, .. } => schema,
-        _ => return Err(unsupported().into()),
+    let native = if matches!(program.input_type.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == "value/empty")
+    {
+        format!("pub const CONTRACT_COUNT:usize=0; pub fn prepare()->Result<conduit_plot::rust_binding::ResidentNativeValidator<0>,conduit_plot::rust_binding::PreparedNativeRefusal>{{conduit_plot::rust_binding::ResidentNativeValidator::intrinsic_empty({maximum_occurrences})}}")
+    } else {
+        let identity = match program.input_type.shape() {
+            StructuredInfoTypeShape::Record { schema, .. }
+            | StructuredInfoTypeShape::Variant { schema, .. }
+            | StructuredInfoTypeShape::Nominal { schema, .. } => schema,
+            _ => return Err(unsupported().into()),
+        };
+        let owner = document
+            .retained_native_owner(identity)
+            .map_err(|_| Refusal::InvalidProgram)?;
+        if owner.value_type != program.input_type {
+            return Err(Refusal::InvalidProgram.into());
+        }
+        generate_resident_native_validator(document, identity, bounds, maximum_occurrences)
+            .map_err(StaticProjectedGenerationRefusal::Native)?
     };
-    let owner = document
-        .retained_native_owner(identity)
-        .map_err(|_| Refusal::InvalidProgram)?;
-    if owner.value_type != program.input_type {
-        return Err(Refusal::InvalidProgram.into());
-    }
     // Scalar outputs are intrinsic; laws on an arbitrary constructed intermediate
     // cannot be recovered from a portable program and must not be erased.
     if !matches!(
@@ -56,9 +63,6 @@ pub(in crate::expression_prepared) fn generate_with_native(
         return Err(unsupported().into());
     }
     checked_scalar_nodes(&program.root)?;
-    let native =
-        generate_resident_native_validator(document, identity, bounds, maximum_occurrences)
-            .map_err(StaticProjectedGenerationRefusal::Native)?;
     let prepared = PreparedPortableExpressionEvaluator::new(program)?;
     if prepared.input_value_contract.is_some() {
         return Err(unsupported().into());

@@ -30,6 +30,7 @@ pub struct ResidentNativeValidator<const CONTRACTS: usize> {
     scopes: &'static [&'static [StaticNativePathStep]],
     predicates: [Option<BorrowedFixedIntegerContract<'static>>; CONTRACTS],
     maximum_occurrences: usize,
+    intrinsic_empty: bool,
 }
 impl<const N: usize> ResidentNativeValidator<N> {
     pub fn new(
@@ -77,6 +78,7 @@ impl<const N: usize> ResidentNativeValidator<N> {
             scopes,
             predicates,
             maximum_occurrences,
+            intrinsic_empty: false,
         })
     }
     pub fn validate(&self, input: &[u8]) -> Result<(), PreparedNativeRefusal> {
@@ -88,6 +90,14 @@ impl<const N: usize> ResidentNativeValidator<N> {
         &'a self,
         input: &'a [u8],
     ) -> Result<ValidatedCanonicalStructuredValue<'a>, PreparedNativeRefusal> {
+        if self.intrinsic_empty && !input.is_empty() {
+            return Err(PreparedNativeRefusal::Shape);
+        }
+        let input = if self.intrinsic_empty {
+            INTRINSIC_EMPTY_CANONICAL
+        } else {
+            input
+        };
         let value = self
             .schema
             .validate(input)
@@ -166,7 +176,8 @@ impl<const N: usize> ResidentNativeValidator<N> {
         work
     }
     pub(crate) fn same_definition(&self, other: &Self) -> bool {
-        self.schema.type_bytes() == other.schema.type_bytes()
+        self.intrinsic_empty == other.intrinsic_empty
+            && self.schema.type_bytes() == other.schema.type_bytes()
             && self.schema.maximum_bytes() == other.schema.maximum_bytes()
             && core::ptr::eq(self.contracts, other.contracts)
             && core::ptr::eq(self.scopes, other.scopes)
@@ -177,6 +188,34 @@ impl<const N: usize> ResidentNativeValidator<N> {
     }
     pub const fn contract_count(&self) -> usize {
         N
+    }
+}
+// The intrinsic Empty ABI is a zero-byte payload. Its canonical typed view is
+// fixed and used only internally for the existing validated path machinery.
+const INTRINSIC_EMPTY_TYPE: &[u8] = &[
+    0, 11, 0, 0, 0, b'v', b'a', b'l', b'u', b'e', b'/', b'e', b'm', b'p', b't', b'y',
+];
+const INTRINSIC_EMPTY_CANONICAL: &[u8] = &[
+    0, 11, 0, 0, 0, b'v', b'a', b'l', b'u', b'e', b'/', b'e', b'm', b'p', b't', b'y', 0, 0, 0, 0, 0,
+];
+impl ResidentNativeValidator<0> {
+    /// Validate only the standard zero-byte Empty ABI; this is not an authored
+    /// Native owner, contract witness, arbitrary schema or admission bypass.
+    pub fn intrinsic_empty(maximum_occurrences: usize) -> Result<Self, PreparedNativeRefusal> {
+        let mut validator = Self::new(
+            INTRINSIC_EMPTY_TYPE,
+            INTRINSIC_EMPTY_CANONICAL.len(),
+            &[],
+            &[],
+            maximum_occurrences,
+        )?;
+        validator.intrinsic_empty = true;
+        Ok(validator)
+    }
+}
+impl<const N: usize> ResidentNativeValidator<N> {
+    pub(crate) fn is_intrinsic_empty(&self) -> bool {
+        self.intrinsic_empty
     }
 }
 fn visit_path<'a>(

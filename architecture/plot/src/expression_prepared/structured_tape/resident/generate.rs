@@ -28,6 +28,14 @@ pub fn generate_static_structured_expression(
         ("input_native", &program.input_type),
         ("output_native", &program.output_type),
     ] {
+        // Empty is the built-in unit boundary: it has no Native owner or laws.
+        // Retain its canonical Type and ordinary borrowed validator, rather
+        // than pretending an authored Native declaration exists for it.
+        if matches!(ty.shape(), conduit_core::StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == "value/empty")
+        {
+            source.push_str(&format!("mod {name} {{ pub const CONTRACT_COUNT:usize=0; pub fn prepare()->Result<conduit_plot::rust_binding::ResidentNativeValidator<0>,conduit_plot::rust_binding::PreparedNativeRefusal>{{ conduit_plot::rust_binding::ResidentNativeValidator::intrinsic_empty({maximum_occurrences}) }} }}\n"));
+            continue;
+        }
         let identity = match ty.shape() {
             conduit_core::StructuredInfoTypeShape::Record { schema, .. }
             | conduit_core::StructuredInfoTypeShape::Variant { schema, .. }

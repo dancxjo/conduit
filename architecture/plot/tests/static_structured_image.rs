@@ -62,6 +62,13 @@ fn admit(
     ty: &StructuredInfoType,
     bytes: &[u8],
 ) -> Result<(), PreparedNativeRefusal> {
+    if matches!(ty.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == "value/empty") {
+        return if bytes.is_empty() {
+            Ok(())
+        } else {
+            Err(PreparedNativeRefusal::Shape)
+        };
+    }
     let id = match ty.shape() {
         StructuredInfoTypeShape::Record { schema, .. }
         | StructuredInfoTypeShape::Variant { schema, .. }
@@ -439,4 +446,31 @@ fn real_dht11_decoder_all_outcomes_match_reference_with_integer_widening() {
     trailing.push(0);
     values.push(trailing);
     corpus(&d, &p, values, "structured-dht11-decode-widening");
+}
+
+#[test]
+fn built_in_empty_constructor_input_preserves_canonical_validation_without_allocation() {
+    let d = checked(
+        &[
+            include_str!("../../../plots/device-protocols/pulse-types.conduit"),
+            include_str!("../../../plots/device-protocols/dht11-capture.conduit"),
+        ]
+        .join("\n"),
+    );
+    let p = program(&d, "dht11-capture-request");
+    let empty = vec![];
+    let trailing = vec![0];
+    let wrong = StructuredInfoValue::leaf(
+        StructuredInfoType::leaf(kind_id("value/u8")).unwrap(),
+        vec![0],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    corpus(
+        &d,
+        &p,
+        vec![empty.clone(), trailing, wrong, vec![0xff], vec![], empty],
+        "structured-empty-input",
+    );
 }

@@ -59,7 +59,9 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
             || program.constants.len() > MAX_CONSTANT_BYTES
             || [program.maximum_input_bytes, program.maximum_output_bytes]
                 .iter()
-                .any(|n| *n == 0 || *n > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+                .any(|n| *n > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+            || (program.maximum_input_bytes == 0 && !input.is_intrinsic_empty())
+            || program.maximum_output_bytes == 0
         {
             return Err(Refusal::InvalidProgram);
         }

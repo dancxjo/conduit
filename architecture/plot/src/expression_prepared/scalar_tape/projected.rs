@@ -63,7 +63,7 @@ impl<const N: usize> StaticProjectedExpression<N> {
         inputs: &'static [StaticProjectedInput],
         output_contract: Option<&'static conduit_core::FixedIntegerContractSpec<'static>>,
     ) -> Result<Self, Refusal> {
-        if maximum_input_bytes == 0
+        if (maximum_input_bytes == 0 && !native.is_intrinsic_empty())
             || maximum_input_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
             || inputs.len() > MAXIMUM_INSTRUCTIONS
             || inputs
