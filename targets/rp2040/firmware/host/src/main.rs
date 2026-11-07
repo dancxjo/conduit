@@ -83,6 +83,7 @@ static SERIAL: StaticCell<[u8; 16]> = StaticCell::new();
 async fn usb_task(mut device: UsbDevice<'static, usb::Driver<'static, USB>>) -> ! {
     device.run().await
 }
+#[inline(never)]
 fn usb(
     driver: usb::Driver<'static, USB>,
     serial: Option<&'static str>,

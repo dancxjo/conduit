@@ -41,6 +41,7 @@ impl Storage for ReadOnly<'_> {
         Err(Refusal::Media)
     }
 }
+#[inline(never)]
 pub fn restore(flash: &mut Device) -> Option<Credentials> {
     let mut journal = Journal::open(ReadOnly(flash)).ok()?;
     let mut out = Credentials {

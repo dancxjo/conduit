@@ -12,6 +12,7 @@ impl<'a> Seed<'a> {
     }
 }
 impl Seed<'static> {
+#[inline(never)]
     pub fn load(actual_host: &str) -> Option<Self> {
         const REGION: usize = conduit_rp2040_flash_layout::BOOTSTRAP.bytes() as usize;
         // SAFETY: immutable XIP view of the target-reserved sector, no write access.

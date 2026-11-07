@@ -160,7 +160,6 @@ async fn remain_retained() -> ! {
 }
 
 #[allow(clippy::too_many_arguments)]
-#[inline(never)] // Construct the future directly in its caller-owned storage.
 pub async fn run<'r, 'f>(
     mut sampling: Box<crate::play::SamplingKernel<'r, 'f>>,
     mut sampling_calls: NativeCalls<WAIT_SLOTS>,

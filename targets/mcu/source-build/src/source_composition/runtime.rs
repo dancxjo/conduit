@@ -15,7 +15,6 @@ use conduit_mcu_host_runtime::{
 use core::cell::RefCell;
 use embassy_time::{with_timeout, Duration, Timer};
 const W: usize = crate::equipment::WAIT_SLOTS;
-#[inline(never)] // Construct the future directly in its caller-owned storage.
 pub async fn run<'s>(
     mut root: Root<'s, 16384>,
     equipment: crate::equipment::Equipment,

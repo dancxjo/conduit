@@ -16,6 +16,7 @@ impl<'a> Deref for Seed<'a> {
 impl<'a> Seed<'a> {
     /// The platform owns carrier address, extent, immutable lifetime and access.
     /// Native identities must come independently from its checked IMAGE.
+#[inline(never)]
     pub fn parse(
         bytes: &'a [u8],
         actual_host: &str,
