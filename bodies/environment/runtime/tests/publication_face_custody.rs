@@ -341,3 +341,33 @@ fn inert_handles_require_actual_scope_and_failed_binding_preserves_storage() {
         Err(E::AlreadyBound)
     );
 }
+
+#[test]
+fn owner_inspection_borrows_actual_revision_without_claiming_or_aging_it() {
+    let owner = owner();
+    owner
+        .with_retained(|_, status| {
+            assert_eq!(status.source_sequence, 0);
+            assert!(!status.publisher_retained);
+        })
+        .unwrap();
+    let (mut publisher, reader) = owner.claim().unwrap();
+    let bytes = reading();
+    publisher.publish(snapshot(&bytes, 1), 1000).unwrap();
+    let revision = reader.with_retained(|face, _| face.revision).unwrap();
+    owner
+        .with_retained(|face, status| {
+            assert_eq!(face.revision, revision);
+            assert_eq!(status.source_sequence, 1);
+            assert!(status.publisher_retained);
+            assert_eq!(publisher.publish(snapshot(&bytes, 2), 1001), Err(E::Busy));
+        })
+        .unwrap();
+    assert_eq!(
+        reader
+            .with_retained(|face, status| (face.revision, status.source_sequence))
+            .unwrap(),
+        (revision, 1)
+    );
+    assert!(matches!(owner.claim(), Err(E::AlreadyClaimed)));
+}

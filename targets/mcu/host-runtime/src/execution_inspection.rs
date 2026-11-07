@@ -238,6 +238,35 @@ pub async fn serve<T: MessageTransport, const F: usize>(
     }
 }
 
+/// Serve read-only inspection using caller-owned response storage and an
+/// optional synchronous encoder. Its borrow ends before carrier transmission;
+/// the callback grants no execution, publication or recording authority.
+pub async fn serve_with<T: MessageTransport, const F: usize>(
+    state: &State<F>,
+    carrier: &mut T,
+    output: &mut [u8],
+    mut encode: impl FnMut(&[u8], &mut [u8]) -> Result<Option<usize>, ()>,
+) -> Result<(), Refusal<T::Error>> {
+    let mut control = [0u8; CONTROL_BYTES];
+    loop {
+        let request = carrier
+            .receive(&mut control)
+            .await
+            .map_err(Refusal::Carrier)?;
+        let count = match encode(request, output).map_err(|_| Refusal::Capacity)? {
+            Some(count) if count <= output.len() => count,
+            Some(_) => return Err(Refusal::Capacity),
+            None => state
+                .encode(request, output)
+                .map_err(|_| Refusal::Capacity)?,
+        };
+        carrier
+            .send(&output[..count])
+            .await
+            .map_err(Refusal::Carrier)?;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -271,6 +300,52 @@ mod tests {
         assert_eq!(state.record(0, event), Err(Refusal::Event));
         assert_eq!(state.fragments[0].get().completions, 1);
         assert_eq!(state.encode(b"?", &mut [0; 8]), Err(Refusal::Capacity));
+    }
+    #[test]
+    fn extended_inspection_encodes_synchronously_before_send_and_refuses_overflow() {
+        struct Carrier;
+        impl MessageTransport for Carrier {
+            type Error = ();
+            async fn receive<'a>(&mut self, output: &'a mut [u8]) -> Result<&'a [u8], ()> {
+                output[0] = b'F';
+                Ok(&output[..1])
+            }
+            async fn send(&mut self, bytes: &[u8]) -> Result<(), ()> {
+                assert_eq!(bytes, b"retained");
+                Err(())
+            }
+        }
+        let state = State::<1>::from_digest([5; 32]);
+        let calls = Cell::new(0);
+        let mut output = [0; 8];
+        let mut carrier = Carrier;
+        let mut future = core::pin::pin!(serve_with(
+            &state,
+            &mut carrier,
+            &mut output,
+            |request, bytes| {
+                assert_eq!(request, b"F");
+                calls.set(calls.get() + 1);
+                bytes.copy_from_slice(b"retained");
+                Ok(Some(8))
+            }
+        ));
+        let mut cx = core::task::Context::from_waker(core::task::Waker::noop());
+        use core::future::Future;
+        assert_eq!(
+            future.as_mut().poll(&mut cx),
+            core::task::Poll::Ready(Err(Refusal::Carrier(())))
+        );
+        assert_eq!(calls.get(), 1);
+        let mut carrier = Carrier;
+        let mut output = [0; 8];
+        let mut future = core::pin::pin!(serve_with(&state, &mut carrier, &mut output, |_, _| Ok(
+            Some(9)
+        )));
+        assert_eq!(
+            future.as_mut().poll(&mut cx),
+            core::task::Poll::Ready(Err(Refusal::Capacity))
+        );
     }
     #[test]
     fn carrier_failure_preserves_observed_execution() {

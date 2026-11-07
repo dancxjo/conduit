@@ -171,6 +171,7 @@ pub async fn run<'r, 'f>(
     scopes: Scopes,
     evidence: StartedEvidence,
     arena: ImageMemoryLease<'_>,
+    face: &conduit_environment_runtime::publication_face_custody::LocalPublicationFace,
     link: &mut crate::transport::Link,
 ) -> ! {
     let inspection = State::<3>::new(&evidence);
@@ -379,12 +380,48 @@ pub async fn run<'r, 'f>(
         }
     };
     let inspect = async {
+        let mut response = [0u8; crate::workset::renderer::RENDERER_FACE_BYTES as usize];
         loop {
             // The original complete arena remains reserved throughout local
             // execution, including carrier interruptions and native failures.
             core::hint::black_box(&arena);
             link.connected().await;
-            let _ = conduit_mcu_host_runtime::execution_inspection::serve(&inspection, link).await;
+            let _ = conduit_mcu_host_runtime::execution_inspection::serve_with(
+                &inspection,
+                link,
+                &mut response,
+                |request, output| {
+                    if request != b"F" {
+                        return Ok(None);
+                    }
+                    face.with_retained(|current, status| {
+                        #[derive(serde::Serialize)]
+                        struct Report<'a> {
+                            schema: &'static str,
+                            assurance: &'static str,
+                            source_sequence: u64,
+                            publisher_retained: bool,
+                            refusal: Option<&'static str>,
+                            face: &'a conduit_face::Face,
+                        }
+                        serde_json_core::to_slice(
+                            &Report {
+                                schema: "conduit.host/retained-face-inspection@1",
+                                assurance: "unsigned-inspection",
+                                source_sequence: status.source_sequence,
+                                publisher_retained: status.publisher_retained,
+                                refusal: status.refusal,
+                                face: current,
+                            },
+                            output,
+                        )
+                        .map(Some)
+                        .map_err(|_| ())
+                    })
+                    .map_err(|_| ())?
+                },
+            )
+            .await;
             link.reset();
             embassy_time::Timer::after_millis(1).await;
         }

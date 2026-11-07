@@ -335,6 +335,7 @@ pub async fn run<'s>(
                         scopes,
                         evidence,
                         arena,
+                        &face,
                         link,
                     )
                     .await;

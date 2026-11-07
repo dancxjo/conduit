@@ -136,6 +136,24 @@ impl LocalPublicationFace {
             }
         }
     }
+    /// Borrow the actual retained Face for read-only inspection. This does not
+    /// claim a producer/renderer handle or grant publication or routing rights.
+    pub fn with_retained<R>(
+        &self,
+        consume: impl FnOnce(&Face, ReadStatus) -> R,
+    ) -> Result<R, CustodyRefusal> {
+        let face = self.face.try_borrow().map_err(|_| CustodyRefusal::Busy)?;
+        let face = face.bound()?;
+        Ok(consume(
+            face.current(),
+            ReadStatus {
+                source_sequence: face.last_source_sequence(),
+                publisher_retained: self.retained.get(),
+                refusal: self.refusal.get(),
+            },
+        ))
+    }
+
     /// Claim the actual local storage once. Inert backing remains unreadable
     /// until Root binds its admitted scope; this claim supplies no authority.
     /// Closing publication custody never grants a replacement producer.
@@ -203,20 +221,7 @@ impl Reader<'_> {
         &self,
         consume: impl FnOnce(&Face, ReadStatus) -> R,
     ) -> Result<R, CustodyRefusal> {
-        let face = self
-            .owner
-            .face
-            .try_borrow()
-            .map_err(|_| CustodyRefusal::Busy)?;
-        let face = face.bound()?;
-        Ok(consume(
-            face.current(),
-            ReadStatus {
-                source_sequence: face.last_source_sequence(),
-                publisher_retained: self.owner.retained.get(),
-                refusal: self.owner.refusal.get(),
-            },
-        ))
+        self.owner.with_retained(consume)
     }
 
     /// Age and borrow one sealed revision synchronously. The consumer cannot
