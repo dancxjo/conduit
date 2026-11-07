@@ -3,7 +3,7 @@
 //! connected; no diagnostic electrical task is used as a substitute for Play.
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration};
-use conduit_mcu_host_runtime::root::{Configuration, Root};
+use conduit_mcu_host_runtime::root::{Configuration, RootStorage};
 pub async fn run(
     seed: crate::seed::Seed<'static>,
     host: String,
@@ -44,7 +44,8 @@ pub async fn run(
     equipment
         .publish(&mut actual)
         .expect("bounded compact native facts");
-    let mut root = Root::<16384>::new(
+    let mut storage = RootStorage::<16384>::new();
+    let root = storage.initialize(
         seed.into_shared(),
         actual,
         Configuration {
@@ -56,7 +57,7 @@ pub async fn run(
         },
     )
     .expect("original checked Root");
-    let future = core::pin::pin!(shared::run(&mut root, equipment, arena, link));
+    let future = core::pin::pin!(shared::run(root, equipment, arena, link));
     conduit_mcu_host_runtime::poll_boundary::separate(future).await
 }
 mod shared {

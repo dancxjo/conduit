@@ -36,10 +36,11 @@ fn panic(info: &PanicInfo<'_>) -> ! {
 #[cortex_m_rt::exception]
 unsafe fn HardFault(frame: &cortex_m_rt::ExceptionFrame) -> ! {
     recover(format_args!(
-        "HardFault pc={:#010x} lr={:#010x} xpsr={:#010x}",
+        "HardFault pc={:#010x} lr={:#010x} xpsr={:#010x} sp={:#010x}",
         frame.pc(),
         frame.lr(),
-        frame.xpsr()
+        frame.xpsr(),
+        frame as *const _ as usize
     ))
 }
 

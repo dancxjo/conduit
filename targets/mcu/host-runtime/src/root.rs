@@ -49,6 +49,59 @@ pub struct Root<'s, const N: usize> {
     pub(crate) config: Configuration,
     receipt_digest: Option<[u8; 32]>,
 }
+/// Caller-funded Root storage. In-place initialization avoids temporarily copying
+/// the fixed command arena onto the MCU stack. Drop preserves ordinary custody.
+pub struct RootStorage<'s, const N: usize> {
+    value: core::mem::MaybeUninit<Root<'s, N>>,
+    initialized: bool,
+}
+impl<'s, const N: usize> RootStorage<'s, N> {
+    pub const fn new() -> Self {
+        Self { value: core::mem::MaybeUninit::uninit(), initialized: false }
+    }
+    pub fn initialize(
+        &mut self,
+        seed: Seed<'s>,
+        actual: HostAdvertisement,
+        config: Configuration,
+    ) -> Result<&mut Root<'s, N>, Refusal> {
+        if self.initialized || actual.protocol_version != conduit_core::PROTOCOL_VERSION
+            || actual.offer_generation.0 == 0
+            || actual.profile.as_str() != config.configuration_id
+            || !seed.matches_native(actual.host_id.as_str(), config.image_id, config.configuration_id)
+        {
+            return Err(Refusal::Scope);
+        }
+        let key = SigningKey::from_bytes(seed.admission.secret());
+        let resources = ResourceAdmissionOwner::new(actual);
+        let target = self.value.as_mut_ptr();
+        // SAFETY: original uninitialized owned storage; every field is written
+        // exactly once before publication, and Drop only observes complete state.
+        unsafe {
+            core::ptr::addr_of_mut!((*target).seed).write(seed);
+            core::ptr::addr_of_mut!((*target).resources).write(resources);
+            core::ptr::addr_of_mut!((*target).key).write(key);
+            core::ptr::addr_of_mut!((*target).receipt).write(None);
+            let input = &mut *core::ptr::addr_of_mut!((*target).input)
+                .cast::<core::mem::MaybeUninit<HostCommandInput<N>>>();
+            HostCommandInput::initialize_in_place(input);
+            core::ptr::addr_of_mut!((*target).freshness).write(0);
+            core::ptr::addr_of_mut!((*target).config).write(config);
+            core::ptr::addr_of_mut!((*target).receipt_digest).write(None);
+            self.initialized = true;
+            Ok(self.value.assume_init_mut())
+        }
+    }
+}
+impl<const N: usize> Drop for RootStorage<'_, N> {
+    fn drop(&mut self) {
+        if self.initialized {
+            // SAFETY: initialized was set only after every field was published.
+            unsafe { self.value.assume_init_drop() };
+        }
+    }
+}
+
 /// Disjoint borrowed original custody, not copies or serializable grants.
 /// The native execution bridge must prepare the complete workset and atomically
 /// admit it against this exact ledger before binding providers or starting.

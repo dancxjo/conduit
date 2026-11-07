@@ -3,7 +3,7 @@ use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration};
 use conduit_esp32_electrical::{uart::Uart0Carrier, Esp32PulseCapture, Esp32Tm1637};
 use conduit_mcu_host_runtime::{
-    root::{Configuration, Root},
+    root::{Configuration, RootStorage},
     seed::Seed,
     transport::Link,
 };
@@ -52,7 +52,8 @@ pub async fn run(
     equipment
         .publish(&mut actual)
         .expect("bounded actual native publication");
-    let mut root = Root::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new(
+    let mut storage = RootStorage::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new();
+    let root = storage.initialize(
         seed,
         actual,
         Configuration {
@@ -65,7 +66,7 @@ pub async fn run(
     )
     .expect("original checked Root");
     let mut link = Link::new(carrier);
-    let future = core::pin::pin!(shared::run(&mut root, equipment, arena, &mut link));
+    let future = core::pin::pin!(shared::run(root, equipment, arena, &mut link));
     conduit_mcu_host_runtime::poll_boundary::separate(future).await
 }
 mod shared {
