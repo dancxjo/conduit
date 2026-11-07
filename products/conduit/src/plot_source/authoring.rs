@@ -52,7 +52,7 @@ mod tests {
         ).unwrap();
         let plot = source.expand_entry_for_authoring().unwrap();
         assert_eq!(plot.expanded.gears.len(), 2);
-        assert_eq!(plot.expanded.cords.len(), 1);
+        assert_eq!(plot.expanded.connections.len(), 1);
         assert!(plot
             .expanded
             .gears
