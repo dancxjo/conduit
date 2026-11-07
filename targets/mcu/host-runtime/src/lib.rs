@@ -55,3 +55,9 @@ pub mod mask_session;
 
 #[cfg(feature = "execution")]
 pub mod kernel_sign;
+
+#[cfg(feature = "execution")]
+pub mod native_values;
+
+#[cfg(feature = "execution")]
+pub mod execution_inspection;
