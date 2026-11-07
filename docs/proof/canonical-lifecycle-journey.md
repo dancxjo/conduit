@@ -9429,3 +9429,32 @@ normally ignored and was separately run successfully above). Strict product
 lib/test Clippy passed. Guard/Clippy logs:
 `/tmp/conduit-real-creche-init-guards-20261106.log` and
 `/tmp/conduit-real-creche-init-clippy-20261106.log`.
+
+### 2026-11-06 — Actual pinned factory on the final Host's original counter
+
+The explicit real-browser-input proof now also constructs a checked Linux
+x86_64 authoring IMAGE with timer and Crèche Bases and runs the actual selected
+initializer inside its staged Root callback. The declared heap remains 64 MiB.
+Separate fixture envelopes cover metadata, the outer provider owner, and the
+factory's immutable inputs. The initializer opens the same pinned real bundle,
+not a fabricated payload. Both outer provider and inner factory custody verify
+against the final Host's original counter.
+
+A 65 MiB request refuses before its callback; a 62 MiB capacity probe refuses
+while the actual factory is retained and succeeds after its charged provider
+owner drops. These are cooperative counter/lifetime observations, not allocator
+containment or complete production Root high-water qualification. Catalog,
+checked authoring Source/IMAGE and other caller inputs retain separate fixture
+ownership; this test does not fund the whole live service implicitly.
+
+The first attempt correctly refused because the checked Host budget named
+`pool/creche` but the selected initializer owned `real/creche-proof`. The fixture
+Host description now names that exact actual slot. No correspondence rule was
+relaxed. The initial negative result established why the descriptions must
+agree; the final selected construction and retention/pressure checks pass.
+
+The explicitly selected real-bundle test and strict product lib/test Clippy
+passed. Logs: `/tmp/conduit-real-creche-init-funded-20261106.log` and
+`/tmp/conduit-real-creche-init-funded-clippy-20261106.log`. This is a CPU Make
+input/construction proof. The live service still needs to carry the charged
+factory wrapper through its owner/worker lifecycle before deployment.

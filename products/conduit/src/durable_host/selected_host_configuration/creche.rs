@@ -263,6 +263,97 @@ mod tests {
             );
             drop(factory);
         }
+        #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+        funded_real_initializer(&initialization);
         std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    fn funded_real_initializer(initialization: &BaseInitialization) {
+        use conduit_std_host::{StdHost, StdHostConfig};
+        let source = include_str!("../../../../../targets/std/profiles/linux-computer.host.conduit")
+            .replace("clock/monotonic", "timer/monotonic")
+            .replace("  limits =", r#"
+  capability = {kind: "time/tick", pinned_implementation: "std/kernel-time-tick@2"}
+  need = {id: "timer/main", class: "conduit.resource/timer-slot@1", slots: 1, bytes: 512}
+  base = {kind: "creche/encounter", implementation: "std/kernel-creche-prepare@1"}
+  capability = {kind: "creche/prepare", pinned_implementation: "std/kernel-creche-prepare@1"}
+  need = {id: "real/creche-proof", class: "conduit.resource/admitted-creche-encounter@1", slots: 1, bytes: 4096}
+  limits ="#);
+        let catalog = conduit_workspace_make::catalog();
+        let packages = conduit_workspace_make::package_set();
+        let checked = conduit_host_make::check_host_configuration(
+            conduit_host_make::parse_host_configuration_conduit(&source).unwrap(),
+            &catalog,
+            &packages,
+        )
+        .unwrap();
+        let image = conduit_host_make::build_default_host_image(
+            checked.profile().clone(),
+            &catalog,
+            &packages,
+            &conduit_host_make::BuildInputs {
+                source_identity: "fixture/real-browser-creche-initialization".into(),
+                toolchain_available: true,
+            },
+        )
+        .unwrap()
+        .0;
+        // SAFETY: this pinned software trace measured <0.5 MiB requested peak
+        // and <0.25 MiB retained; conservative independent fixture envelopes also
+        // cover wrapper/metadata lifetime. Caller-owned catalogs/source/image
+        // retain separate fixture custody. No worker/effect remains on error.
+        // This does not qualify arbitrary sources or an installed Root process.
+        let (mut host, provider) = unsafe {
+            StdHost::from_selected_timer_and_creche_factory_image(
+                StdHostConfig {
+                    host_id: "host/real-creche-inputs".into(),
+                    boot_id: "boot/real-creche-inputs".into(),
+                    offer_generation: conduit_core::OfferGeneration(1),
+                },
+                &image,
+                &catalog,
+                &checked,
+                4 * 1024 * 1024,
+                2 * 1024 * 1024,
+                |root| {
+                    assert!(root
+                        .prepare_value(65 * 1024 * 1024, 0, || -> Result<(), String> {
+                            panic!("pressure must precede initializer")
+                        })
+                        .is_err());
+                    let provider = root.prepare_value(4096, 512, || {
+                        CrecheEncounterFactory::prepare_in_image(
+                            root,
+                            4 * 1024 * 1024,
+                            2 * 1024 * 1024,
+                            || initialize(initialization),
+                        )
+                        .map(std::cell::RefCell::new)
+                    })?;
+                    let resource = provider.value().borrow().resource_offer();
+                    Ok((resource, provider))
+                },
+            )
+        }
+        .unwrap();
+        host.verify_selected_image_prepared_value(&provider)
+            .unwrap();
+        provider
+            .value()
+            .borrow()
+            .verify_image_custody(&host)
+            .unwrap();
+        // SAFETY: fixed unit value, no effect/worker, released immediately.
+        let probe = |host: &mut StdHost| {
+            unsafe {
+                host.prepare_selected_image_value(62 * 1024 * 1024, 62 * 1024 * 1024, || Ok(()))
+            }
+            .is_ok()
+        };
+        assert!(!probe(&mut host));
+        drop(provider);
+        assert!(probe(&mut host));
+        eprintln!("actual selected browser Crèche initialization: original-counter retention and pressure passed");
     }
 }
