@@ -2,7 +2,7 @@
 use super::*;
 use conduit_std_host::StdHost;
 
-fn probe(host: &mut StdHost, mib: usize) -> bool {
+pub(super) fn probe(host: &mut StdHost, mib: usize) -> bool {
     // SAFETY: fixed unit result, no effect or worker, and no escaped backing.
     unsafe { host.prepare_selected_image_value(mib * 1024 * 1024, mib * 1024 * 1024, || Ok(())) }
         .is_ok()

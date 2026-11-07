@@ -173,7 +173,7 @@ impl CrecheEncounterFactory {
 
     /// Prepare local and shared encounter stores on the actual Host counter.
     /// Both complete highwater envelopes remain charged until their owners drop.
-    /// Views retain shared custody; worker launch remains explicitly unsupported.
+    /// Views retain shared custody; workers require a separate pre-Play admission.
     /// Failed final Mask retirement quarantines shared state until process recovery.
     ///
     /// # Safety
@@ -299,6 +299,7 @@ impl CrecheEncounterFactory {
                 result: None,
                 products: None,
                 published: false,
+                worker_memory: None,
             }),
             custody: Mutex::new(custody),
             inputs: self.inputs.clone(),

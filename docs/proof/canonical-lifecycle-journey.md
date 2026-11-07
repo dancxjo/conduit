@@ -9191,3 +9191,30 @@ Remaining: worker heap/stack admission, produced-artifact/receipt custody,
 complete kernel IMAGE execution accounting and ordinary installed integration.
 No IMAGE execution guard was relaxed. No firmware, installed service or physical
 renderer was updated by this checkpoint.
+
+### 2026-11-06 — Finite Crèche worker and retained Seed output
+
+The branch now reserves a separately qualified worker envelope on the producing
+Host's original IMAGE counter before thread creation. The fixed CPU fixture
+admits 16 MiB including an explicitly requested 2 MiB stack. Invalid, foreign,
+duplicate, active and cancelled admissions refuse without enlarging a grant.
+Cancellation joins the actual worker before retirement. Produced Seed artifacts
+and receipts leave through an opaque output owner retaining the original charge;
+the raw reference-profile extraction refuses for IMAGE products.
+
+The actual fixture produces and inspects a same-Body Seed. Its worker-thread
+allocation diagnostic reports 39,665 peak live requested heap bytes, excluding
+stack, TLS, allocator overhead and other threads. This is not a whole-process
+measurement or a general upper bound; Root must independently qualify the full
+asynchronous lifetime before using the unsafe admission interface.
+
+All 31 Crèche library tests and the three existing owner-worker journeys passed.
+Strict product library/test Clippy and the evidence-retention guard passed.
+Final guard logs are `/tmp/conduit-image-worker-closed-20261106.log` and
+`/tmp/conduit-image-worker-closed-clippy-20261106.log`; preceding owner journeys
+are in `/tmp/conduit-image-worker-owner-final-20261106.log`.
+
+This remains preparation-level CPU evidence. IMAGE activation still needs the
+complete mandatory-worker admission gate, closed kernel execution accounting,
+and ordinary installed integration before an admitted Play can be claimed.
+Existing installed IMAGE execution guards remain. No device or display changed.

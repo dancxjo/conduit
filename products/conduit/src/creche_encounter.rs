@@ -26,9 +26,12 @@ mod controller;
 mod factory;
 mod hosted;
 mod memory;
+mod worker;
 pub use bundle::CrecheReviewedBundle;
 pub use controller::{CrecheEncounterController, CrecheFace};
 use memory::{ChannelCustody, LocalCustody};
+use worker::PreparedWorkerMemory;
+pub use worker::{CrecheWorkerBounds, ImageCrecheProducts};
 
 /// Supplied by the service's actual selected Mask route, never a structural ACK
 /// or a default renderer. Calls except retirement must be bounded/nonblocking.
@@ -128,6 +131,9 @@ struct State {
     result: Option<Result<ProducedJoiningHost<File>, String>>,
     products: Option<ProducedJoiningHost<File>>,
     published: bool,
+    // Owned results above drop before their original complete worker charge.
+    worker_memory:
+        Option<conduit_std_host::body_execution::ImagePreparedValue<PreparedWorkerMemory>>,
 }
 struct Channel {
     state: Mutex<State>,

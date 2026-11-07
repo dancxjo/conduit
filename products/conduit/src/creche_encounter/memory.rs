@@ -12,6 +12,19 @@ impl ChannelCustody {
     pub(super) fn is_image(&self) -> bool {
         matches!(self, Self::Image(_))
     }
+    pub(super) fn verify_image_profile(&self) -> Result<(), String> {
+        if self.is_image() {
+            Ok(())
+        } else {
+            Err("Crèche operation requires a funded IMAGE encounter".into())
+        }
+    }
+    pub(super) fn verify_image(&self, host: &conduit_std_host::StdHost) -> Result<(), String> {
+        match self {
+            Self::Image(channel) => host.verify_selected_image_prepared_value(channel),
+            Self::Reference(_) => Err("Crèche operation requires a funded IMAGE encounter".into()),
+        }
+    }
     pub(super) fn retain_memory(&self) -> Option<ImageMemoryRetention> {
         match self {
             Self::Reference(_) => None,

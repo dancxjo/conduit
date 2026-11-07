@@ -75,6 +75,9 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
             .state
             .try_lock()
             .map_err(|_| "Crèche mailbox occupied at begin")?;
+        if state.retired || state.cancelled.load(std::sync::atomic::Ordering::Acquire) {
+            return Err("Crèche begin after cancellation or retirement".into());
+        }
         if state.face.is_none() {
             return Err("Crèche initial Face absent".into());
         }
@@ -270,8 +273,8 @@ impl CrecheEncounterAdapter<'_> {
 impl Drop for CrecheEncounterAdapter<'_> {
     fn drop(&mut self) {
         if !self.local.retired && self.cancel_and_drain().is_err() {
-            // IMAGE workers cannot launch here. Mutable local state has no
-            // asynchronous aliases, but Mask/shared state may still be live.
+            // Cancellation drains any worker before Mask retirement. Mutable
+            // local state has no asynchronous aliases; shared effects may remain.
             self.channel.retain_uncertain();
         }
     }
