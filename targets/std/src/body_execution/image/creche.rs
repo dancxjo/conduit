@@ -43,7 +43,7 @@ impl StdHost {
             return Err("selected IMAGE execution requires IMAGE-bound Host".into());
         }
         let mut custody = None;
-        let report = self.run_body_plan_to_with_start_and_clock_and_creche(
+        let result = self.run_body_plan_to_with_start_and_clock_and_creche(
             request,
             output,
             timer,
@@ -56,7 +56,21 @@ impl StdHost {
             Some(&mut owner),
             started,
             Some(&mut custody),
-        )?;
+        );
+        let report = match result {
+            Ok(report) => report,
+            Err(error) => {
+                // The shared runner drains after reservation. Earlier failures
+                // still own a prepared encounter and must drain it explicitly.
+                if let Err(drain) = owner.retire() {
+                    if self.kernel_resources.require_available().is_ok() {
+                        self.kernel_resources.quarantine_retirement(Vec::new());
+                    }
+                    return Err(format!("{error}; Crèche pre-start retirement: {drain}"));
+                }
+                return Err(error);
+            }
+        };
         Ok(ImageBodyRunReport {
             report,
             _memory: custody.ok_or("selected IMAGE result lost its backing custody")?,

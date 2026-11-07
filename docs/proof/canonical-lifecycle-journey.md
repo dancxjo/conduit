@@ -9342,3 +9342,28 @@ of the inner owner witnesses. Strict std/product library/test Clippy passed.
 Logs: `/tmp/conduit-creche-image-runner-20261106.log`,
 `/tmp/conduit-creche-image-runner-final-20261106.log`, and
 `/tmp/conduit-creche-image-runner-clippy-final-20261106.log`.
+
+### 2026-11-06 — Pre-reservation selected Crèche refusal retires the owner
+
+Service integration review found that the selected entry returned directly from
+a kernel preparation failure before the ordinary runner had reserved execution.
+It now explicitly retires the prepared encounter on that error path. If drain
+is uncertain and the Host has not already been quarantined by the shared runner,
+it records terminal unavailability; it does not fabricate an execution grant or
+make the occupied provider Ready. The original refusal and cleanup error remain
+separately visible in the returned diagnostic.
+
+The new bounded CPU regression submits an input naming the wrong Fore. In both
+cleanup-success and cleanup-failure cases, no Play callback, adapter begin/poll
+or output occurs. Successful cleanup leaves the Host available; failed cleanup
+leaves it unavailable even though execution never obtained a reservation.
+All 32 product and 28 std Crèche-filter cases and strict std/product lib/test
+Clippy passed. Logs: `/tmp/conduit-creche-prestart-drain-20261106.log` and
+`/tmp/conduit-creche-prestart-drain-clippy-20261106.log`.
+
+The installed service remains on its reference path: runtime preparation builds
+an uncharged factory before Host construction, `CrecheExecution` owns a raw
+factory, and the continuing owner takes raw `ProducedJoiningHost` values.
+Those owners must carry funded factory/product wrappers before switching the
+service to the selected runner. This is a concrete ownership migration, not an
+execution-flag change. No service or hardware deployment occurred here.

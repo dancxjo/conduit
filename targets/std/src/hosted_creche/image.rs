@@ -400,4 +400,82 @@ mod tests {
         drop(external);
         assert_eq!(used.load(Ordering::Acquire), 0);
     }
+    #[test]
+    fn selected_creche_preparation_refusal_drains_and_quarantines_uncertainty() {
+        use crate::body_execution::{BodyForeOutputAdapter, BodyRunRequest};
+        struct NoOutput;
+        impl BodyForeOutputAdapter for NoOutput {
+            fn deliver(&mut self, _: &crate::ExternalForeDelivery) -> Result<(), String> {
+                panic!("preparation refusal cannot deliver")
+            }
+        }
+        for uncertain in [false, true] {
+            let (mut host, mut adapter, _, _) = fixture();
+            adapter.fail_drain = uncertain;
+            let (_, plan, play, wake) = planned_on_host(host.advertisement().clone());
+            // SAFETY: bounded software fixture, no worker/device effects; the
+            // deliberate failed drain must leave this Host unavailable.
+            let external =
+                unsafe { host.prepare_selected_image_value(1024 * 1024, 1024 * 1024, || Ok(())) }
+                    .unwrap();
+            let context = unsafe {
+                host.prepare_selected_image_creche_context(
+                    &plan,
+                    &play,
+                    adapter.resource_offer(),
+                    adapter.limits(),
+                    4 * 1024 * 1024,
+                    2 * 1024 * 1024,
+                )
+            }
+            .unwrap();
+            let owner = unsafe {
+                host.prepare_selected_image_creche_owner(
+                    &mut adapter,
+                    &context,
+                    1024 * 1024,
+                    256 * 1024,
+                )
+            }
+            .unwrap();
+            let input = unsafe {
+                host.prepare_selected_image_fore_input(4096, || {
+                    Ok(crate::ExternalForeInput {
+                        front_port_id: "not-the-selected-request".into(),
+                        track: conduit_core::ConnectionTrack::Payload,
+                        bytes: owner.value().borrow().request().0.to_vec(),
+                    })
+                })
+            }
+            .unwrap();
+            let control = crate::RunControl::default();
+            let error = unsafe {
+                host.run_selected_image_body_plan_with_creche_to_with_start(
+                    BodyRunRequest {
+                        wake: &wake,
+                        plan: &plan,
+                        control: &control,
+                        keyboard: None,
+                    },
+                    &input,
+                    &owner,
+                    &mut Vec::new(),
+                    &mut crate::ThreadTimer,
+                    &mut NoOutput,
+                    |_, _| panic!("refusal must precede Play"),
+                )
+            }
+            .err()
+            .expect("wrong Fore must refuse");
+            assert_eq!(
+                host.kernel_resources.require_available().is_err(),
+                uncertain
+            );
+            assert_eq!(error.contains("pre-start retirement"), uncertain);
+            drop(owner);
+            assert_eq!((adapter.begins, adapter.polls), (0, 0));
+            assert!(adapter.drains >= 1);
+            drop(external);
+        }
+    }
 }
