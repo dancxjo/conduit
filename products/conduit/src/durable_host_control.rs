@@ -174,6 +174,13 @@ mod worker_text;
 use remote_fragment_driver::drive_remote_fragment;
 
 pub(crate) struct DurableHostRuntime {
+    #[cfg(target_os = "linux")]
+    _source_preparation: Option<(
+        conduit_std_host::body_execution::ImagePreparedValue<
+            conduit_std_host::source_check::process::OwnedSourceCheckInput,
+        >,
+        conduit_std_host::body_execution::ImagePreparedValue<()>,
+    )>,
     target_id: String,
     image_content_digest: String,
     host: HostSource,
@@ -197,6 +204,19 @@ pub(crate) struct DurableHostRuntime {
 }
 
 impl DurableHostRuntime {
+    #[cfg(target_os = "linux")]
+    pub(crate) fn retain_source_preparation(
+        &mut self,
+        preparation: Option<(
+            conduit_std_host::body_execution::ImagePreparedValue<
+                conduit_std_host::source_check::process::OwnedSourceCheckInput,
+            >,
+            conduit_std_host::body_execution::ImagePreparedValue<()>,
+        )>,
+    ) {
+        self._source_preparation = preparation;
+    }
+
     pub(crate) fn into_owner_host(self) -> StdHost {
         match self.host {
             HostSource::Bare(host) => *host,
@@ -206,10 +226,38 @@ impl DurableHostRuntime {
     }
 
     pub(crate) fn new(target_id: String, image_content_digest: String, host: StdHost) -> Self {
-        Self {
+        Self::from_host_source(
             target_id,
             image_content_digest,
-            host: HostSource::Bare(Box::new(host)),
+            HostSource::Bare(Box::new(host)),
+        )
+    }
+
+    #[cfg(target_os = "linux")]
+    pub(crate) fn from_selected_owner(
+        target_id: String,
+        image_content_digest: String,
+        owner: crate::durable_host::owner::Owner,
+        root: &Path,
+    ) -> Self {
+        Self::from_host_source(
+            target_id,
+            image_content_digest,
+            HostSource::Body {
+                owner: Box::new(owner),
+                root: root.to_path_buf(),
+                running: None,
+            },
+        )
+    }
+
+    fn from_host_source(target_id: String, image_content_digest: String, host: HostSource) -> Self {
+        Self {
+            #[cfg(target_os = "linux")]
+            _source_preparation: None,
+            target_id,
+            image_content_digest,
+            host,
             birth: None,
             birth_root: None,
             creche_factory: None,

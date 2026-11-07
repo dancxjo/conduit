@@ -18,6 +18,13 @@ pub(crate) enum HostServiceCommand {
         #[arg(long)]
         state_dir: PathBuf,
     },
+    /// Apply one exact locally reviewed Source revision while the service is stopped.
+    AdoptSource {
+        /// Owner-selected File, exact Body basis, entries and qualified workspace selection.
+        selection: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
     /// Verify and install one reviewed release bundle without replacing durable identity.
     Install {
         manifest: PathBuf,

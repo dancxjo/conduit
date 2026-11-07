@@ -8,6 +8,8 @@ use std::path::Path;
 mod authoring;
 #[path = "plot_source/conversation_catalog.rs"]
 mod conversation_catalog;
+#[path = "plot_source/device_catalog.rs"]
+mod device_catalog;
 #[path = "plot_source/source_check_catalog.rs"]
 mod source_check_catalog;
 
@@ -284,6 +286,7 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
         .map_err(|error| format!("I2C authoring interface: {error:?}"))?
         .install_catalogs(&mut startup, &mut profiles)?;
     source_check_catalog::install(&mut startup, &mut profiles)?;
+    device_catalog::install(&mut startup, &mut profiles)?;
     Ok((startup, profiles))
 }
 

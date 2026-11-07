@@ -182,7 +182,13 @@ impl Owner {
             }
             return Ok(partition);
         }
-        let hosts = self.planning_hosts();
+        let mut hosts = self.planning_hosts();
+        if let Some(selected) = &self.local_fore_adapters {
+            selected.verify(self.host.advertisement(), &hosts)?;
+            if let Some(target) = selected.target(resident) {
+                hosts.retain(|host| &host.host_id == target);
+            }
+        }
         // Ordinary planning does not attach child Plans for scan/fold/make.
         // Refuse before sealing a deceptively runnable parent-only Body Plan.
         if !plot.expanded.activations.is_empty() {

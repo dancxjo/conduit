@@ -296,6 +296,11 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
         let before =
             remaining_preparation(&mut host, image.manifest.bounds.heap_arena_bytes as usize);
         let witness = retained_source.as_ref().unwrap().retain_memory();
+        host.verify_selected_image_memory_retention(&witness)
+            .unwrap();
+        assert!(foreign
+            .verify_selected_image_memory_retention(&witness)
+            .is_err());
         drop(retained_source.take());
         assert_eq!(
             remaining_preparation(&mut host, image.manifest.bounds.heap_arena_bytes as usize),
@@ -799,7 +804,8 @@ fn retained_root_preparation_refuses_native_start_without_losing_its_value() {
 #[test]
 fn source_capture_refuses_unfunded_io_or_retention_before_starting_child() {
     use std::io::{Seek, SeekFrom};
-    for pressure in [true, false] {
+    for mode in 0..3 {
+        let pressure = mode != 1;
         let checked = configuration();
         let image = image(&checked);
         let (config, definition) = definition(&checked, &image);
@@ -816,7 +822,7 @@ fn source_capture_refuses_unfunded_io_or_retention_before_starting_child() {
         // otherwise 512 KiB covers the finite capture and 65 KiB moved context,
         // whose insufficient retention must refuse before provider preparation.
         let result = unsafe {
-            conduit::source_check_worker::initialize_image(
+            conduit::source_check_worker::initialize_image_with_caller_workspace(
                 conduit::source_check_worker::SourceCheckImageInstallation {
                     config,
                     image: &image,
@@ -843,6 +849,8 @@ fn source_capture_refuses_unfunded_io_or_retention_before_starting_child() {
                     context: input.request.context,
                     control: &RunControl::default(),
                 },
+                None,
+                (mode == 2).then_some(image.manifest.bounds.heap_arena_bytes as usize),
             )
         };
         let expected = if pressure {
@@ -864,4 +872,193 @@ fn source_capture_refuses_unfunded_io_or_retention_before_starting_child() {
             children
         );
     }
+}
+
+#[test]
+fn local_selected_file_revision_commits_exact_workset_and_rejects_replay() {
+    use conduit_body::{
+        AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyMembership,
+        MembershipProofId, PartId,
+    };
+    use sha2::{Digest, Sha256};
+    let root = std::env::temp_dir().join(format!(
+        "conduit-selected-file-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(root.join("body")).unwrap();
+    let checked = configuration();
+    let source = canonical_host_configuration_conduit(checked.configuration())
+        .unwrap()
+        .replace("603979776", "1073741824");
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(&source).unwrap(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .unwrap();
+    let image = image(&checked);
+    let host_id = HostId::from("host/local-selected-file-test");
+    let body = Body::born(
+        "source/before-file-policy".into(),
+        "checked/before-file-policy".into(),
+        1,
+        SignId::from("sign/file-policy/born"),
+    )
+    .unwrap();
+    let mut membership = BodyMembership::new(body.body_id.clone()).unwrap();
+    let mut biography = BodyBiographyEvidence::born(
+        body.clone(),
+        membership.clone(),
+        "Selected File policy test".into(),
+    )
+    .unwrap();
+    let part = PartId::bind(&body.body_id, host_id.as_str(), 0).unwrap();
+    let proof = MembershipProofId::bind("conduit/test/local-source-policy").unwrap();
+    let admitted = membership
+        .admit(
+            &body.body_id,
+            membership.revision,
+            part.clone(),
+            proof.clone(),
+            "sign/file-policy/admit".into(),
+        )
+        .unwrap();
+    let present = membership
+        .observe_present(
+            &body.body_id,
+            membership.revision,
+            &part,
+            AuthenticatedHostObservation {
+                host_id: host_id.clone(),
+                boot_id: "boot/before-file-policy".into(),
+                offer_generation: OfferGeneration(1),
+                proof_id: proof,
+                sequence: 0,
+            },
+            "sign/file-policy/present".into(),
+        )
+        .unwrap();
+    biography
+        .append_membership_events(membership, &[(admitted, 2), (present, 3)])
+        .unwrap();
+    let biography_path = root.join("body/biography.json");
+    let biography_bytes = serde_json::to_vec_pretty(&biography).unwrap();
+    std::fs::write(&biography_path, &biography_bytes).unwrap();
+    let executable = root.join("reviewed-installed-image");
+    std::fs::write(&executable, b"reviewed finite fixture image").unwrap();
+    let release_digest = format!(
+        "sha256:{:x}",
+        Sha256::digest(std::fs::read(&executable).unwrap())
+    );
+    let installed = serde_json::json!({
+        "schema": "conduit.install/durable-host@1", "host_id": host_id.as_str(),
+        "release_source_identity": image.manifest.source_identity,
+        "release_bundle_sha256": release_digest, "product_executable": executable,
+        "body_state": {"body_id": body.body_id, "biography_path": biography_path, "biography_sha256": format!("sha256:{:x}", Sha256::digest(&biography_bytes))},
+        "selected_host_configuration": {"source": source, "configuration_id": checked.configuration_id(), "host_image": image},
+    });
+    std::fs::write(
+        root.join("installation.json"),
+        serde_json::to_vec_pretty(&installed).unwrap(),
+    )
+    .unwrap();
+    let selected_source =
+        "plot selected-clock (\n) {\n clock: time/tick(count = 1, period-ms = 0)\n}\n";
+    let file = root.join("selected.conduit");
+    std::fs::write(&file, selected_source).unwrap();
+    let policy = serde_json::json!({
+        "host_id": host_id, "configuration_id": checked.configuration_id(), "release_bundle_sha256": release_digest,
+        "expected": biography, "file": file,
+        "snapshot": {"owner": body.body_id, "generation": 1, "sha256": format!("{:x}", Sha256::digest(selected_source.as_bytes())), "source_document_id": canonical_source_document_id(selected_source)},
+        "entries": ["selected-clock"], "maximum_source_bytes": 16384,
+        "capture_preparation_bytes": 524288, "capture_retained_bytes": 16384,
+        "caller_workspace_bytes": 134217728,
+    });
+    let policy_file = root.join("policy.json");
+    std::fs::write(&policy_file, serde_json::to_vec_pretty(&policy).unwrap()).unwrap();
+    let command = || {
+        let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_conduit"));
+        command
+            .arg("host")
+            .arg("service")
+            .arg("adopt-source")
+            .arg(&policy_file)
+            .arg("--state-dir")
+            .arg(&root);
+        command
+    };
+    let mut service = command()
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    while !root.join("control.sock").exists() {
+        if let Some(status) = service.try_wait().unwrap() {
+            let output = service.wait_with_output().unwrap();
+            panic!(
+                "selected Source service ended {status}: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+        if std::time::Instant::now() >= deadline {
+            service.kill().unwrap();
+            let output = service.wait_with_output().unwrap();
+            panic!(
+                "selected Source service startup deadline: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    if let Some(status) = service.try_wait().unwrap() {
+        let output = service.wait_with_output().unwrap();
+        panic!(
+            "selected Source service exited after binding {status}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    assert!(root.join("runtime.json").exists());
+    #[cfg(feature = "root-allocation-observation")]
+    {
+        let observed: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(root.join("source-policy-memory.json")).unwrap())
+                .unwrap();
+        assert_eq!(
+            observed["schema"],
+            "conduit.diagnostic/root-preparation-allocations@1"
+        );
+        assert!(
+            observed["observation"]["peak_requested_bytes"]
+                .as_u64()
+                .unwrap()
+                > 0
+        );
+    }
+    service.kill().unwrap();
+    service.wait().unwrap();
+    let current: BodyBiographyEvidence =
+        serde_json::from_slice(&std::fs::read(&biography_path).unwrap()).unwrap();
+    assert_eq!(current.body_id, body.body_id);
+    assert_eq!(current.body.workset.plots().len(), 1);
+    assert_eq!(
+        current.body.workset.plots()[0].source_document_id,
+        canonical_source_document_id(selected_source)
+    );
+    let replay = command().output().unwrap();
+    assert!(!replay.status.success());
+    assert!(
+        String::from_utf8_lossy(&replay.stderr).contains("exact retained Body basis"),
+        "{}",
+        String::from_utf8_lossy(&replay.stderr)
+    );
+    assert_eq!(
+        std::fs::read(&biography_path).unwrap(),
+        serde_json::to_vec_pretty(&current).unwrap()
+    );
+    std::fs::remove_dir_all(root).unwrap();
 }

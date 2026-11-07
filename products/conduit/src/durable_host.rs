@@ -41,6 +41,11 @@ mod installation_configured;
 use installation_configured::install_configured;
 use installation_configured::install_configured_with_todo;
 
+#[path = "durable_host/local_fore_policy.rs"]
+pub(crate) mod local_fore_policy;
+#[path = "durable_host/source_revision.rs"]
+pub(crate) mod source_revision;
+
 #[path = "durable_host/runtime_marker.rs"]
 mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
@@ -137,6 +142,10 @@ struct RuntimeStatus {
 
 pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
     match command {
+        HostServiceCommand::AdoptSource {
+            selection,
+            state_dir,
+        } => source_revision::adopt(&state_dir, &selection),
         HostServiceCommand::Configure {
             configuration,
             clear,
@@ -1066,6 +1075,38 @@ fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
         .and_then(|directory| directory.sync_all())
         .map_err(|error| error.to_string())?;
     Ok(())
+}
+
+/// Hash one selected bounded descriptor without duplicating the executable in
+/// heap. Growth/shrink evidence refuses; the immutable byte digest is descriptive.
+fn bounded_file_digest(path: &Path, maximum: u64) -> Result<String, String> {
+    let mut file = fs::File::open(path).map_err(|e| format!("open {}: {e}", path.display()))?;
+    let metadata = file.metadata().map_err(|e| e.to_string())?;
+    if !metadata.is_file() || metadata.len() == 0 || metadata.len() > maximum {
+        return Err(format!("{} violates its finite file bound", path.display()));
+    }
+    let mut hash = Sha256::new();
+    let mut buffer = [0_u8; 8192];
+    let mut total = 0_u64;
+    loop {
+        let count = file
+            .read(&mut buffer)
+            .map_err(|e| format!("hash {}: {e}", path.display()))?;
+        if count == 0 {
+            break;
+        }
+        total = total
+            .checked_add(count as u64)
+            .ok_or("file digest extent overflow")?;
+        if total > metadata.len() {
+            return Err("selected digest file grew during capture".into());
+        }
+        hash.update(&buffer[..count]);
+    }
+    if total != metadata.len() {
+        return Err("selected digest file shrank during capture".into());
+    }
+    Ok(format!("sha256:{:x}", hash.finalize()))
 }
 
 fn bounded_read(path: &Path, maximum: u64) -> Result<Vec<u8>, String> {

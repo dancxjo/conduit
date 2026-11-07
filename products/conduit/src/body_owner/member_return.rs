@@ -20,6 +20,28 @@ pub(super) struct PendingMemberReturn {
 }
 
 impl Owner {
+    /// Release only this completed return slot after its signed durable receipt
+    /// has been delivered. Retirement cannot attach a member or create offers.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn retire_completed_selected_return(
+        &mut self,
+        credential: &MembershipCredential,
+    ) -> Result<(), String> {
+        let pending = self
+            .pending_member_return
+            .as_ref()
+            .ok_or("member return slot absent")?;
+        if pending
+            .completed
+            .as_ref()
+            .is_none_or(|(_, accepted)| accepted != credential)
+        {
+            return Err("cannot retire an incomplete or different member return".into());
+        }
+        self.pending_member_return = None;
+        Ok(())
+    }
+
     pub(crate) fn begin_member_return(
         &mut self,
         credential: &MembershipCredential,

@@ -1,3 +1,9 @@
+#[cfg(all(feature = "root-allocation-observation", not(test)))]
+#[global_allocator]
+static ROOT_ALLOCATION_OBSERVER:
+    conduit_std_host::allocation_observation::SystemAllocationObserver =
+    conduit_std_host::allocation_observation::SystemAllocationObserver;
+
 #[cfg(test)]
 #[path = "../../../targets/std/src/allocation_probe.rs"]
 mod allocation_probe;

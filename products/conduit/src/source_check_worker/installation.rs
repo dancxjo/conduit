@@ -46,6 +46,9 @@ pub struct InitializedSourceCheckImage {
     /// The actual immutable File capture, retaining its original IMAGE charge.
     /// A report or copied snapshot is never substituted for these bytes.
     pub source: ImagePreparedValue<OwnedSourceCheckInput>,
+    /// Optional complete caller envelope reserved before any File capture or
+    /// compiler launch on the same original counter.
+    pub caller: Option<ImagePreparedValue<()>>,
 }
 
 /// Construct a Host only after selected Source capture and the actual bounded
@@ -80,6 +83,23 @@ pub unsafe fn initialize_image_with_prepared_creche(
     request: SourceCheckImageInstallation<'_>,
     creche_resource: Option<conduit_core::ResourceOffer>,
 ) -> Result<InitializedSourceCheckImage, String> {
+    // SAFETY: preserve the caller's independent external workspace custody.
+    unsafe { initialize_image_with_caller_workspace(request, creche_resource, None) }
+}
+
+/// Additionally reserve a separately qualified caller envelope before Source
+/// capture and compiler launch. Its full charge survives all subsequent overlap.
+///
+/// # Safety
+/// All obligations of [`initialize_image_with_prepared_creche`] apply. When
+/// supplied, the caller envelope must independently cover every parent catalog,
+/// compiler, owner/planner/journal overlap and retained shared store it funds;
+/// it supplies neither Source access nor adoption authority.
+pub unsafe fn initialize_image_with_caller_workspace(
+    request: SourceCheckImageInstallation<'_>,
+    creche_resource: Option<conduit_core::ResourceOffer>,
+    caller_workspace_bytes: Option<usize>,
+) -> Result<InitializedSourceCheckImage, String> {
     let selected = conduit_workspace_make::CheckedSourceCheckInitialization::from_configuration(
         request.checked,
     )?;
@@ -111,6 +131,8 @@ pub unsafe fn initialize_image_with_prepared_creche(
     let capture = &mut captured_request;
     let mut captured_source = None;
     let source_capture = &mut captured_source;
+    let mut captured_caller = None;
+    let caller_capture = &mut captured_caller;
     // SAFETY: caller retains the independent authority/workspace obligations;
     // this factory supplies the actual selected, bounded process implementation.
     let mut host = unsafe {
@@ -122,6 +144,9 @@ pub unsafe fn initialize_image_with_prepared_creche(
             budget,
             creche_resource,
             |config, root| {
+                let caller = caller_workspace_bytes
+                    .map(|bytes| root.prepare_value(bytes, bytes, || Ok(())))
+                    .transpose()?;
                 let schema = SourceCheckNativeSchema::prepare()
                     .map_err(|error| format!("selected Source schema: {error:?}"))?;
                 let definition = derive_image_definition(
@@ -189,6 +214,7 @@ pub unsafe fn initialize_image_with_prepared_creche(
                         bytes,
                     });
                     *source_capture = Some(source);
+                    *caller_capture = caller;
                     Ok(Box::new(prepared.into_provider())
                         as Box<dyn conduit_std_host::ImmediateNativeSource>)
                 }))
@@ -206,5 +232,6 @@ pub unsafe fn initialize_image_with_prepared_creche(
         host,
         request,
         source,
+        caller: captured_caller,
     })
 }

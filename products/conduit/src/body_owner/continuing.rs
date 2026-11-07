@@ -10,9 +10,9 @@ use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
 pub(super) use report::RunReport;
 #[path = "continuing/fore.rs"]
 mod fore;
-pub(super) use fore::boundaries_for_plots;
 pub(crate) use fore::ImageIngress;
 use fore::ReceiptFore;
+pub(super) use fore::{boundaries_for_plots, boundaries_for_plots_with_local};
 use std::{
     path::Path,
     sync::mpsc::{self, Receiver, SyncSender, TryRecvError},
@@ -67,7 +67,11 @@ impl Owner {
         }
         let sources = super::super::retained_source::workset(root)?
             .ok_or("retained Source workset is unavailable for Body Plan")?;
-        let boundaries = fore::boundaries_with_ingress(&sources, ingress)?;
+        let boundaries = fore::boundaries_for_plots_with_local(
+            sources.iter().map(|source| &source.plot),
+            ingress,
+            self.local_fore_adapters.as_ref(),
+        )?;
         let borrowed: Vec<_> = sources
             .iter()
             .map(|source| (&source.source, &source.plot))
@@ -138,7 +142,12 @@ impl Owner {
         if supplied != planned || supplied != self.session.evidence().body.workset {
             return Err("prepared Plan differs from retained Source workset".into());
         }
-        let has_fore = !fore::boundaries_with_ingress(&sources, ingress.as_ref())?.is_empty();
+        let has_fore = !fore::boundaries_for_plots_with_local(
+            sources.iter().map(|source| &source.plot),
+            ingress.as_ref(),
+            self.local_fore_adapters.as_ref(),
+        )?
+        .is_empty();
         drop(sources);
         let mut worker =
             self.spawn_prepared_worker(root, maximum_millis, has_fore, None, ingress)?;
@@ -192,7 +201,11 @@ impl Owner {
             .iter()
             .map(|source| (&source.source, &source.plot))
             .collect();
-        let boundaries = fore::boundaries_with_ingress(&sources, ingress.as_ref())?;
+        let boundaries = fore::boundaries_for_plots_with_local(
+            sources.iter().map(|source| &source.plot),
+            ingress.as_ref(),
+            self.local_fore_adapters.as_ref(),
+        )?;
         let has_fore = !boundaries.is_empty();
         let partitions = self.prepare_workset_partitions(&borrowed, &boundaries)?;
         drop(boundaries);

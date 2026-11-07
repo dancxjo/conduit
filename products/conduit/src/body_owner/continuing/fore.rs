@@ -67,6 +67,7 @@ pub(super) fn boundaries(
     boundaries_with_ingress(sources, None)
 }
 
+#[cfg(test)]
 pub(super) fn boundaries_with_ingress(
     sources: &[super::super::super::retained_source::RetainedPlotSource],
     ingress: Option<&ImageIngress>,
@@ -78,6 +79,14 @@ pub(in super::super) fn boundaries_for_plots<'a>(
     plots: impl IntoIterator<Item = &'a conduit_plot::ExpandedAuthoringPlot>,
     ingress: Option<&ImageIngress>,
 ) -> Result<Boundaries, String> {
+    boundaries_for_plots_with_local(plots, ingress, None)
+}
+
+pub(in super::super) fn boundaries_for_plots_with_local<'a>(
+    plots: impl IntoIterator<Item = &'a conduit_plot::ExpandedAuthoringPlot>,
+    ingress: Option<&ImageIngress>,
+    local: Option<&crate::durable_host::local_fore_policy::SelectedLocalForeSet>,
+) -> Result<Boundaries, String> {
     let mut selected = false;
     let mut result = BTreeMap::new();
     let mut names = BTreeSet::<(String, ConnectionTrack)>::new();
@@ -86,8 +95,13 @@ pub(in super::super) fn boundaries_for_plots<'a>(
         if plot.expanded.name == "creche/main" {
             continue;
         }
-        let mut ports = BTreeMap::new();
-        if !plot.input_bindings.is_empty() {
+        let resident = ResidentPlot::new(
+            plot.expanded.source_document_id.clone(),
+            plot.expanded.checked_plot_id.clone(),
+        );
+        let local_ports = local.and_then(|set| set.boundaries(&resident));
+        let mut ports = local_ports.cloned().unwrap_or_default();
+        if !plot.input_bindings.is_empty() && local_ports.is_none() {
             let resident = ResidentPlot::new(
                 plot.expanded.source_document_id.clone(),
                 plot.expanded.checked_plot_id.clone(),
@@ -117,6 +131,13 @@ pub(in super::super) fn boundaries_for_plots<'a>(
             selected = true;
         }
         for output in &plot.output_bindings {
+            if ports.contains_key(&ForeBoundaryKey {
+                direction: PortDirection::Output,
+                front_port_id: output.front_port_id.clone(),
+                track: output.track,
+            }) {
+                continue;
+            }
             if !names.insert((output.front_port_id.as_str().to_owned(), output.track)) {
                 return Err(
                     "owner receipt Fore outputs require unique port/track identities".into(),
@@ -134,7 +155,7 @@ pub(in super::super) fn boundaries_for_plots<'a>(
                 },
             );
         }
-        if !ports.is_empty() {
+        if !ports.is_empty() || local_ports.is_some() {
             result.insert(
                 ResidentPlot::new(
                     plot.expanded.source_document_id.clone(),

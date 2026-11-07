@@ -1,7 +1,7 @@
 //! Construct the actual installed Host and explicitly selected equipment before Boot publication.
 use super::startup_trace::{Phase, Trace};
 use super::{
-    bounded_read, current_body_id, digest, fresh_identity, owner, read_installation,
+    bounded_file_digest, current_body_id, fresh_identity, owner, read_installation,
     restrict_directory, running_target_id, write_json_atomic, RuntimeStatus,
     MAXIMUM_RELEASE_FILE_BYTES, RUNTIME_SCHEMA,
 };
@@ -141,6 +141,12 @@ fn retained_local_owner_scan(
     {
         return Ok(None);
     }
+    // A selected compiler Root must reserve its original caller envelope before
+    // any retained Source parse. Do not cold-compile a scoped scan as a probe
+    // before that IMAGE exists; actual complete workset checks run afterward.
+    if super::source_revision::retained(state_dir)?.is_some() {
+        return Ok(None);
+    }
     owner::retained_thermostat_scan(state_dir)
 }
 
@@ -175,6 +181,14 @@ fn prepare_runtime_with_composition(
     if scanout.is_some() && selected_image.is_none() {
         return Err("initialized scanout has no selected Seed IMAGE".into());
     }
+    let source_selection = super::source_revision::retained(state_dir)?;
+    #[cfg(not(target_os = "linux"))]
+    if source_selection.is_some() {
+        return Err("selected bounded File compiler requires Linux".into());
+    }
+    if source_selection.is_some() && selected_image.is_none() {
+        return Err("selected File compiler requires its installed IMAGE".into());
+    }
     if selected_image.is_some() {
         if todo.is_some()
             || thermostat.is_some()
@@ -190,12 +204,12 @@ fn prepare_runtime_with_composition(
             .ok_or("selected IMAGE lost its source")?;
         #[cfg(all(target_os = "linux", feature = "native-display"))]
         if scanout.is_some() {
-            selection.require_image_initialization(true)?;
+            selection.require_prepared_image_initialization(true, source_selection.is_some())?;
         } else {
-            selection.require_timer_image_initialization()?;
+            selection.require_prepared_image_initialization(false, source_selection.is_some())?;
         }
         #[cfg(not(all(target_os = "linux", feature = "native-display")))]
-        selection.require_timer_image_initialization()?;
+        selection.require_prepared_image_initialization(false, source_selection.is_some())?;
     }
     if (todo.is_some() || thermostat.is_some())
         && (installation.selected_model.is_some()
@@ -241,8 +255,30 @@ fn prepare_runtime_with_composition(
     {
         return Err("selected Crèche provider cannot preserve this scoped Host composition".into());
     }
+    #[cfg(target_os = "linux")]
+    let mut source_custody = None;
     let mut host = trace.run(Phase::HostConstruction, || {
         Ok(if let Some(image) = selected_image {
+            #[cfg(target_os = "linux")]
+            if let Some(source_selection) = &source_selection {
+                #[cfg(all(target_os = "linux", feature = "native-display"))]
+                if scanout.is_some() {
+                    return Err(
+                        "selected File compiler cannot also initialize scanout in this composition"
+                            .into(),
+                    );
+                }
+                let prepared = super::source_revision::prepare(
+                    source_selection,
+                    &installation,
+                    config,
+                    creche_factory
+                        .as_ref()
+                        .map(|factory| factory.resource_offer()),
+                )?;
+                source_custody = Some((prepared.source, prepared.caller));
+                return Ok(prepared.host);
+            }
             #[cfg(all(target_os = "linux", feature = "native-display"))]
             if let Some(output) = scanout {
                 let checked = installation
@@ -336,10 +372,7 @@ fn prepare_runtime_with_composition(
     })?;
     let executable = Path::new(&installation.product_executable);
     let image_content_digest = trace.run(Phase::ImageDigest, || {
-        Ok(digest(&bounded_read(
-            executable,
-            MAXIMUM_RELEASE_FILE_BYTES,
-        )?))
+        bounded_file_digest(executable, MAXIMUM_RELEASE_FILE_BYTES)
     })?;
     let mut runtime = trace.run(Phase::RuntimeState, || {
         Ok(crate::durable_host_control::DurableHostRuntime::new(
@@ -350,6 +383,8 @@ fn prepare_runtime_with_composition(
         .with_selected_speech_equipment(selected_equipment)
         .with_prepared_creche(creche_factory.map(Into::into)))
     })?;
+    #[cfg(target_os = "linux")]
+    runtime.retain_source_preparation(source_custody);
     // Cold reviewed inventory and compiled contracts belong to preparation,
     // before clients can spend their finite control budget on an interaction.
     trace.run(Phase::Catalogs, crate::plot_source::standard_catalogs)?;

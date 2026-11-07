@@ -109,6 +109,7 @@ impl Owner {
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            local_fore_adapters: None,
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,

@@ -38,6 +38,24 @@ const MAXIMUM_ADMISSION_REQUEST: u64 = super::MAXIMUM_BODY_ADMISSION_BYTES;
 pub(super) fn recover_retained_state(root: &Path) -> Result<(), String> {
     state::recover(root)
 }
+/// Select an exact old biography under exclusive OS continuity ownership;
+/// only the ordinary trusted restart transition may advance that basis before
+/// this one local File policy is consumed. No network proposal selects it.
+#[cfg(target_os = "linux")]
+pub(crate) fn resume_selected_source_service(
+    host: conduit_std_host::StdHost,
+    root: &Path,
+    expected: &conduit_body::BodyBiographyEvidence,
+) -> Result<(Owner, conduit_body::BodyBiographyEvidence), String> {
+    let retained = state::load(root)?.ok_or("selected File has no retained Body")?;
+    if &retained != expected {
+        return Err("selected File revision differs from exact retained Body basis".into());
+    }
+    let owner = resume_service(host, root)?;
+    let resumed = owner.selected_source_current_basis();
+    Ok((owner, resumed))
+}
+
 pub(crate) fn resume_service(
     host: conduit_std_host::StdHost,
     root: &Path,

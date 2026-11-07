@@ -5,6 +5,8 @@ edition = "2021"
 default-run = "conduit"
 
 [features]
+# Explicit diagnostics only; no memory grant or containment guarantee.
+root-allocation-observation = []
 default = []
 native-display = ["dep:conduit-linux-display", "conduit-std-host/linux-display"]
 base-linear-framebuffer = ["native-display"]
@@ -35,6 +37,9 @@ conduit-thermostat-plot = { path = "../../plots/thermostat/model" }
 conduit-todo-face = { path = "../../plots/todo/face" }
 conduit-host-make = { path = "../../make/host" }
 conduit-i2c-transaction = { path = "../../mechanisms/io/i2c-transaction" }
+conduit-pulse-capture = { path = "../../mechanisms/io/pulse-capture", features = ["plot-catalog"] }
+conduit-tm1637-wire = { path = "../../mechanisms/io/tm1637", features = ["host-call"] }
+conduit-environment-runtime = { path = "../../bodies/environment/runtime", features = ["source-capture"] }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-language = { path = "../../semantics/language" }
 conduit-data = { path = "../../semantics/data" }

@@ -107,6 +107,15 @@ impl StdHost {
             .require_input_memory_owner(&value.memory)
     }
 
+    /// Verify the original counter of a retained shared-store charge. Copied
+    /// Host/Boot labels cannot transfer custody to another Root in this process.
+    pub fn verify_selected_image_memory_retention(
+        &self,
+        retention: &ImageMemoryRetention,
+    ) -> Result<(), String> {
+        retention.verify_owner(self)
+    }
+
     /// Admit a complete synchronous preparation envelope before invoking Root's
     /// factory; retain its independently qualified result envelope until drop.
     /// Invalid bounds and pressure refuse before the factory runs. This uses

@@ -13,6 +13,49 @@ impl Owner {
         }
     }
 
+    #[cfg(target_os = "linux")]
+    pub(crate) fn selected_source_current_basis(&self) -> BodyBiographyEvidence {
+        self.session.evidence().clone()
+    }
+
+    /// Consume the single-use local OS-selected File policy, preserving original
+    /// Source and caller workspace custody through the guarded complete revision.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn commit_authorized_file_revision(
+        &mut self,
+        root: &Path,
+        authorization: crate::durable_host::source_revision::AuthorizedFileRevision,
+    ) -> Result<crate::durable_host::source_revision::PreparationCustody, String> {
+        let (expected, checked) = authorization.verify(&self.host)?;
+        let sources = checked
+            .plots
+            .iter()
+            .map(|plot| (&checked.source, plot))
+            .collect::<Vec<_>>();
+        let selected = crate::durable_host::local_fore_policy::SelectedLocalForeSet::prepare(
+            self.host.advertisement(),
+            &checked.plots,
+            &self.planning_hosts(),
+            authorization.local_fore_adapters(),
+        )?;
+        let boundaries = super::continuing::boundaries_for_plots_with_local(
+            sources.iter().map(|(_, plot)| *plot),
+            None,
+            Some(&selected),
+        )?;
+        let previous = self.local_fore_adapters.replace(selected);
+        if let Err(error) = self.commit_admitted_workset_revision_with_boundaries(
+            root,
+            expected,
+            &sources,
+            &boundaries,
+        ) {
+            self.local_fore_adapters = previous;
+            return Err(error);
+        }
+        Ok(authorization.into_preparation())
+    }
+
     /// Consume the actual immutable Sources selected by the admitted clock policy.
     /// The token cannot be cloned or constructed outside that policy module.
     pub(super) fn commit_authorized_clock_revision(

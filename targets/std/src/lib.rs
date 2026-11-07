@@ -1,3 +1,4 @@
+pub mod allocation_observation;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod hosted_display;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]

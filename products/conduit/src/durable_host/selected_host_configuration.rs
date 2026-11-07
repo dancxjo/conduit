@@ -33,16 +33,27 @@ pub(super) struct Selection {
     host_image: Option<conduit_host_make::HostImage>,
 }
 impl Selection {
+    #[cfg(test)]
     pub(super) fn require_timer_image_initialization(&self) -> Result<(), String> {
         self.require_image_initialization(false)
     }
+    #[cfg(test)]
     pub(super) fn require_image_initialization(
         &self,
         scanout_prepared: bool,
     ) -> Result<(), String> {
+        self.require_prepared_image_initialization(scanout_prepared, false)
+    }
+    pub(super) fn require_prepared_image_initialization(
+        &self,
+        scanout_prepared: bool,
+        source_prepared: bool,
+    ) -> Result<(), String> {
         for base in &self.checked()?.configuration().bases {
             if base.initialization.is_some()
                 && !(scanout_prepared && base.kind == "display/scanout")
+                && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
+                && !(source_prepared && base.kind == "creche/encounter")
             {
                 return Err(
                     "selected IMAGE cannot initialize this physical equipment or Crèche provider"
@@ -233,6 +244,13 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     recognition::validate(initialization)?;
+                }
+                Some(conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION) => {
+                    // Validation only: the original selected IMAGE factory must
+                    // still initialize and retain the actual compiler provider.
+                    conduit_workspace_make::CheckedSourceCheckInitialization::from_configuration(
+                        &checked,
+                    )?;
                 }
                 Some("display/linear-framebuffer@1") => {
                     conduit_workspace_make::CheckedScanoutInitialization::from_configuration(
