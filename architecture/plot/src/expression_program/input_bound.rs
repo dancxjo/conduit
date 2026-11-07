@@ -108,25 +108,6 @@ impl PortableExpressionProgram {
                 .collect::<Result<Vec<_>, conduit_core::StructuredInfoRefusal>>()?,
         ));
         super::value_contract::retain_laws(&mut laws, input, output);
-        // A retained physical predicate remains exact; structural proof only
-        // narrows its byte envelope, never removes or substitutes constraints.
-        if let Some(KindSemanticLaw::ValueContracts(contracts)) = laws.last_mut() {
-            for contract in contracts {
-                if let Some((_, _, maximum)) = bounds
-                    .iter()
-                    .find(|(location, _, _)| *location == contract.location)
-                {
-                    let retained_maximum = contract.contract.maximum_bytes;
-                    contract.contract.maximum_bytes = retained_maximum.min(*maximum);
-                    // Some exact predicates carry their own upper envelope.
-                    // Keep that original finite definition rather than mutate
-                    // its predicate or publish an internally invalid contract.
-                    if contract.contract.validate_definition().is_err() {
-                        contract.contract.maximum_bytes = retained_maximum;
-                    }
-                }
-            }
-        }
         Ok(laws)
     }
 }

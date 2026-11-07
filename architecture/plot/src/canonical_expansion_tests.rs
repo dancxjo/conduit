@@ -1980,3 +1980,48 @@ fn front_binding_preserves_flow_closure_and_current_observation_contracts() {
         "CND-FRM-045"
     );
 }
+
+#[test]
+fn open_expression_fore_retains_exact_inferred_endpoint_byte_contracts() {
+    let source = "type Packet = {\n values: collection U8 = 64\n}\nplot transport (\n >> wire: Packet\n result: Packet >>\n) = (.)\n";
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    assert!(checked.plots[0]
+        .checked_front()
+        .value_contracts()
+        .is_empty());
+    let expanded =
+        expand_canonical_plot_for_authoring(&checked, "transport", &ProfileCatalog::new()).unwrap();
+    assert_eq!(expanded.front.value_contracts().len(), 2);
+    for (input, bindings) in [
+        (true, &expanded.input_bindings),
+        (false, &expanded.output_bindings),
+    ] {
+        for binding in bindings {
+            let location = |port| {
+                if input {
+                    conduit_core::FrontValueLocation::Input(port)
+                } else {
+                    conduit_core::FrontValueLocation::Output(port)
+                }
+            };
+            let outer = expanded
+                .front
+                .value_contract(&location(binding.front_port_id.clone()))
+                .unwrap();
+            let inner = expanded
+                .expanded
+                .gears
+                .iter()
+                .find(|g| g.gear_id == binding.gear_id)
+                .unwrap()
+                .semantic_contract
+                .value_contracts()
+                .iter()
+                .find(|c| c.location == location(binding.gear_port_id.clone()))
+                .unwrap();
+            assert_eq!(outer, &inner.contract);
+            assert!(outer.maximum_bytes > conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY);
+        }
+    }
+}
