@@ -9748,3 +9748,48 @@ is insufficient, and restarting between return and adoption loses that current
 evidence. No stale owner Boot/key or decoded advertisement is substituted.
 Yellow and Blue have not yet been flashed with this in-progress integration.
 White is unavailable and explicitly excluded from this live attempt.
+
+### 2026-11-07 — actual Source transition and whole-workset integration checkpoint
+
+The owner transition now has an actual OS-path regression, rather than only
+compiler fixtures: a selected local File snapshot is checked through the
+original funded IMAGE, adopted by exact workset CAS, and served by the same Root
+process. Replaying the stale selection refuses without changing the biography.
+The separate strict product/integration Clippy pass succeeded. This does not
+claim that the live Hamm owner has adopted the environmental workset.
+
+The current private six-entry Source candidate is 9,291 bytes, SHA-256
+`057437ffbee5e3ed208fc098412e4535dda385857610ef1f7cd047a393d12e63`,
+Source document
+`80e402fd445a26a418e2d8dfdabca0965d730b11fe42dcd52f1dd8f054666259`.
+It selects sampling, Mask and electrical-output Plots independently for Yellow
+and Blue. The unused Crèche definition was removed from this candidate; no
+Crèche entry is selected in the candidate workset.
+
+The four actual generated DHT11/TM1637 resident entries initialize with 6,248
+bytes of static initialized inventory. Their measured private computation fuels
+are 41, 24, 241 and 1,113. The last exceeds the old arbitrary 1,000 ceiling; the
+new exact closure ceiling remains within the checked 5,000 cooperative-work
+slots. This changes no Root heap or admission grant.
+
+Finite Face backing can now be acquired before a Plan exists and bound to the
+actual execution basis without allocation. Its focused allocation-probe test
+passed. The native Mask uses the existing affine prepared-kernel storage so
+whole-workset Start can transfer the original initialized routing Backs without
+allocating or risking a second partial admission. The renderer's output frame
+has a monotonic completion ticket; an Available Show requires the corresponding
+original electrical Host Call, not transport delivery. Actual retained storage
+includes simultaneous pending and previous Shows.
+
+These changes are execution integration work in progress. Yellow's USB path was
+rechecked on Motherbrain. The previously used Victus route for Blue timed out
+through Motherbrain. Neither MCU was flashed with an ingress-only image, and no
+live admitted environmental Play is claimed by this checkpoint. The complete
+factory, original native dispatch, actual resource admission and attended
+hardware run remain the acceptance gate.
+
+Maintenance removed 2,738,192,384 bytes of verified inactive regenerable debug
+incremental cache after inventory. Source, keys, history and unique evidence were
+preserved. Additional parent checks were cancelled to avoid competing large
+semantic code generation while the qualified owner replacement is building;
+cancelled checks are not passing evidence.
