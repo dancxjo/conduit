@@ -40,16 +40,40 @@ pub fn checked_ht16k33_resident_library(
         &catalog,
     )
     .map_err(|e| format!("HT16K33 Source: {e:?}"))?;
+    resident_entries(
+        &document,
+        &[
+            "ht16k33-initialize",
+            "ht16k33-action",
+            "ht16k33-transition",
+            "ht16k33-frame-request",
+            "ht16k33-write-outcome",
+        ],
+    )
+}
+/// Exact Source decoder inventory. Electrical capture remains a separately
+/// admitted provider; these expressions do not acquire the DHT pin.
+pub fn checked_dht11_resident_library(
+    checked: &CheckedHostConfiguration,
+) -> Result<String, String> {
+    crate::CheckedDht11Tm1637Construction::from_configuration(checked)?;
+    let document = p::check_syntax_document(
+        &p::parse_syntax_document(include_str!(
+            "../../../../plots/device-protocols/dht11.conduit"
+        )),
+        &p::StartupCatalog::new(),
+    )
+    .map_err(|e| format!("DHT11 Source: {e:?}"))?;
+    resident_entries(&document, &["dht11-decode"])
+}
+fn resident_entries(
+    document: &p::CheckedSyntaxDocument,
+    entries: &[&str],
+) -> Result<String, String> {
     let mut images = Vec::new();
-    for entry in [
-        "ht16k33-initialize",
-        "ht16k33-action",
-        "ht16k33-transition",
-        "ht16k33-frame-request",
-        "ht16k33-write-outcome",
-    ] {
+    for entry in entries {
         let expanded =
-            p::expand_canonical_plot_for_authoring(&document, entry, &p::ProfileCatalog::new())
+            p::expand_canonical_plot_for_authoring(document, entry, &p::ProfileCatalog::new())
                 .map_err(|e| format!("protocol expansion: {e:?}"))?;
         let [gear] = expanded.expanded.gears.as_slice() else {
             return Err("protocol entry is not one resident expression".into());
@@ -80,7 +104,7 @@ pub fn checked_ht16k33_resident_library(
         };
         let temporal = gear.inputs.first().ok_or("protocol input absent")?.temporal;
         images.push(
-            PreparedResidentExpression::prepare(&document, &program, temporal, bounds)
+            PreparedResidentExpression::prepare(document, &program, temporal, bounds)
                 .map_err(|e| format!("resident protocol preparation: {e:?}"))?,
         );
     }

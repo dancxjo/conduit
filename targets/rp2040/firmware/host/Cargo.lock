@@ -375,6 +375,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-mcu-host-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-wire",
+ "serde-json-core",
+]
+
+[[package]]
 name = "conduit-midi"
 version = "0.1.0"
 dependencies = [
@@ -433,6 +442,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-purpose"
 version = "0.1.0"
 dependencies = [
@@ -465,20 +484,25 @@ dependencies = [
  "conduit-body",
  "conduit-bosch-env",
  "conduit-core",
+ "conduit-embedded-build",
  "conduit-face",
  "conduit-host-make",
  "conduit-host-rp2040",
  "conduit-ht16k33",
  "conduit-i2c-transaction",
  "conduit-kernel",
+ "conduit-mcu-host-runtime",
  "conduit-net",
  "conduit-network-credential-journal",
  "conduit-plan-lowering",
  "conduit-plot",
+ "conduit-pulse-capture",
  "conduit-rp2040-flash-layout",
  "conduit-rp2040-i2c",
+ "conduit-rp2040-pulse-capture",
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
+ "conduit-tm1637-wire",
  "conduit-wire",
  "cortex-m",
  "cortex-m-rt",
@@ -509,6 +533,17 @@ dependencies = [
  "embassy-rp",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
+]
+
+[[package]]
+name = "conduit-rp2040-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-pulse-capture",
+ "embassy-rp",
+ "embassy-time",
+ "fixed",
+ "pio",
 ]
 
 [[package]]
@@ -562,6 +597,10 @@ dependencies = [
  "conduit-plot",
  "serde",
 ]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
 
 [[package]]
 name = "conduit-web"

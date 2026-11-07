@@ -4,7 +4,9 @@ use conduit_host_make::{
 };
 
 mod bootstrap_contract;
+mod gpio_initialization;
 mod hardware_initialization;
+pub use gpio_initialization::*;
 mod membership_seed;
 mod native_offer;
 mod resident_protocol;
@@ -13,7 +15,7 @@ mod resident_work;
 pub use bootstrap_contract::*;
 pub use hardware_initialization::*;
 pub use membership_seed::*;
-pub use resident_protocol::checked_ht16k33_resident_library;
+pub use resident_protocol::{checked_dht11_resident_library, checked_ht16k33_resident_library};
 pub use resident_work::CheckedResidentWorkPool;
 
 pub const PACKAGE_ID: &str = "conduit-host-rp2040@1";
@@ -34,6 +36,11 @@ impl HostMakePackage for Rp2040MakePackage {
                         retained_wifi_initialization_contract(),
                     ),
                     (I2C_IMPLEMENTATION.into(), i2c_initialization_contract()),
+                    (DHT11_IMPLEMENTATION.into(), dht11_initialization_contract()),
+                    (
+                        TM1637_IMPLEMENTATION.into(),
+                        tm1637_initialization_contract(),
+                    ),
                     (BOSCH_IMPLEMENTATION.into(), bosch_initialization_contract()),
                     (
                         HT16K33_IMPLEMENTATION.into(),

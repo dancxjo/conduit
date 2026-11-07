@@ -1,0 +1,15 @@
+# Checked physical construction. Runtime admission is separate.
+# Yellow: exact attached sensor and display GPIO ownership.
+host pico-w-house-yellow {
+  schema = 1
+  target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
+  base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
+  base = {kind: "sensor/environment", implementation: "rp2040/dht11@1", initialization: {data: 3, start_low_us: 20000, maximum_transaction_us: 50000}}
+  base = {kind: "display/segmented", implementation: "rp2040/tm1637@1", initialization: {clk: 7, dio: 6, brightness: 3, layout: "seven4", half_period_us: 50, settled_us: 100, maximum_clock_rise_us: 1000, maximum_transaction_us: 100000, weak_pullups: true}}
+  base = {kind: "network/wifi", implementation: "rp2040/cyw43-retained@1", initialization: {credential_source: "private-flash-network-journal", maximum_sockets: 4}}
+  # Finite cooperative work pool; its existence installs no computation Back.
+  # 16 KiB funds kernel preparation, observations and reservation bookkeeping
+  # within the unchanged 48 KiB arena. This is construction intent; Root still reserves before Play.
+  need = {id: "pool/resident-step-work", class: "kernel/cooperative-step-work@1", slots: 5000, bytes: 16384}
+  limits = {static_memory_bytes: 131072, heap_arena_bytes: 49152, queue_items: 16, buffered_bytes: 8192, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 16}
+}

@@ -39,7 +39,7 @@ pub fn check_retained_wifi_construction(checked: &CheckedHostConfiguration) -> R
     .map(|_| ())
 }
 
-fn count(key: &str, minimum: u64, maximum: u64) -> KindConfigurationField {
+pub(super) fn count(key: &str, minimum: u64, maximum: u64) -> KindConfigurationField {
     KindConfigurationField {
         key: key.into(),
         default_value: ConfigurationValue::U64(minimum),
@@ -95,6 +95,8 @@ pub(super) fn offers() -> Vec<ImplementationOffer> {
         (BOSCH_BASE_KIND, BOSCH_IMPLEMENTATION),
         (HT16K33_BASE_KIND, HT16K33_IMPLEMENTATION),
         (WIFI_BASE_KIND, WIFI_IMPLEMENTATION),
+        (crate::DHT11_BASE_KIND, crate::DHT11_IMPLEMENTATION),
+        (crate::TM1637_BASE_KIND, crate::TM1637_IMPLEMENTATION),
     ]
     .into_iter()
     .map(|(kind, implementation)| ImplementationOffer {
@@ -108,7 +110,7 @@ pub(super) fn offers() -> Vec<ImplementationOffer> {
     .collect()
 }
 
-fn selected_values(
+pub(super) fn selected_values(
     checked: &CheckedHostConfiguration,
     kind: &str,
     implementation: &str,
@@ -138,7 +140,7 @@ fn selected_values(
         .checked_values(contract)
 }
 
-fn value(
+pub(super) fn value(
     values: &std::collections::BTreeMap<String, ConfigurationValue>,
     key: &str,
 ) -> Result<u64, String> {

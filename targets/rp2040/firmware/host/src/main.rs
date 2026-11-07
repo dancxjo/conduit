@@ -13,7 +13,20 @@ use panic_halt as _;
 use static_cell::StaticCell;
 mod bootsel;
 mod credential_source;
+#[cfg(all(not(display_tm1637), not(sensor_dht11)))]
 mod environment;
+#[cfg(all(display_tm1637, not(sensor_dht11)))]
+#[path = "environment_tm1637.rs"]
+mod environment;
+#[cfg(display_tm1637)]
+mod tm1637_pins;
+#[cfg(sensor_dht11)]
+#[path = "environment_dht11.rs"]
+mod environment;
+#[cfg(sensor_dht11)]
+mod pulse_owner;
+#[cfg(sensor_dht11)]
+mod tm1637_owner;
 mod environment_http;
 mod environment_show;
 mod execution_supervisor;
