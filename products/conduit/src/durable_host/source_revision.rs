@@ -517,7 +517,10 @@ pub(super) fn prepare(
 }
 
 #[cfg(target_os = "linux")]
-pub(crate) fn adopt(state_dir: &Path, policy: &Path) -> Result<(), String> {
+pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Result<(), String> {
+    if prepare_only && !cfg!(all(feature = "root-allocation-observation", not(test))) {
+        return Err("preparation measurement requires the explicit original-process allocator observation build".into());
+    }
     let _host_lock = owner_lock::acquire(state_dir)?;
     let _body_lock = owner_lock::body(state_dir)?;
     let installation = read_installation(&state_dir.join("installation.json"))?;
@@ -527,7 +530,24 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path) -> Result<(), String> {
     validate_selection(&selection, &installation)?;
     // Reuse the ordinary OS-protected service credential; it grants no Source
     // authority. Prepare it before the transition so the retained Root can serve.
-    crate::durable_host_control::ensure_secret(state_dir)?;
+    if !prepare_only {
+        crate::durable_host_control::ensure_secret(state_dir)?;
+    }
+    if prepare_only {
+        let binding = installation
+            .body_state
+            .as_ref()
+            .ok_or("Source preparation requires the installed owner Body")?;
+        let bytes = bounded_read(
+            Path::new(&binding.biography_path),
+            MAXIMUM_BODY_ADMISSION_BYTES,
+        )?;
+        let current: BodyBiographyEvidence = serde_json::from_slice(&bytes)
+            .map_err(|e| format!("Source preparation Body basis: {e}"))?;
+        if digest(&bytes) != binding.biography_sha256 || current != selection.expected {
+            return Err("Source preparation differs from exact installed owner Body basis".into());
+        }
+    }
     let config = conduit_std_host::StdHostConfig {
         host_id: installation.host_id.as_str().into(),
         boot_id: fresh_identity("boot/local-source-policy", &installation.host_id)
@@ -559,11 +579,53 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path) -> Result<(), String> {
         .map(|policy| policy.prepare(&document, &plots))
         .transpose()?
         .unwrap_or_default();
+    // Expanded Plots and resident programs own their required immutable data;
+    // the compiler's checked syntax is no longer execution-time custody.
+    drop(document);
     let checked = CheckedFileRevision {
         source,
         plots,
         resident_images,
     };
+    if prepare_only {
+        prepared
+            .host
+            .verify_selected_image_prepared_value(&prepared.source)?;
+        prepared
+            .host
+            .verify_selected_image_prepared_value(&prepared.caller)?;
+        #[cfg(all(feature = "root-allocation-observation", not(test)))]
+        {
+            let observation = conduit_std_host::allocation_observation::snapshot();
+            let within = observation.peak_requested_bytes <= selection.caller_workspace_bytes;
+            write_json_atomic(
+                &state_dir.join("source-policy-preparation.json"),
+                &serde_json::json!({
+                    "schema": "conduit.diagnostic/funded-source-preparation@1",
+                    "body_id": selection.expected.body_id,
+                    "host_id": prepared.host.advertisement().host_id,
+                    "configuration_id": selection.configuration_id,
+                    "release_bundle_sha256": selection.release_bundle_sha256,
+                    "snapshot": selection.snapshot,
+                    "entries": selection.entries,
+                    "resident_images": checked.resident_images.len(),
+                    "caller_workspace_bytes": selection.caller_workspace_bytes,
+                    "capture_preparation_bytes": selection.capture_preparation_bytes,
+                    "capture_retained_bytes": selection.capture_retained_bytes,
+                    "observation": observation,
+                    "rust_requested_peak_within_caller_envelope": within,
+                    "source_committed": false,
+                    "owner_published": false,
+                    "scope": "actual installed Host IMAGE original-counter capture/compiler/caller preparation, exact owned Source checking/entry expansion/resident codebooks; process-start conservative requested Rust peak includes temporary old+new realloc backing; excludes allocator metadata, C allocations, mappings, stacks, child compiler and report serialization; never an execution grant or qualification of later member/journal/planning overlap",
+                }),
+            )?;
+            if !within {
+                return Err("actual Source preparation Rust backing exceeds independently selected caller envelope".into());
+            }
+            println!("Funded Source preparation measured; no owner, admission, Source revision or Play was published.");
+        }
+        return Ok(());
+    }
     let host_id = prepared.host.advertisement().host_id.clone();
     let boot = prepared.host.advertisement().boot_id.clone();
     let generation = prepared.host.advertisement().offer_generation;
@@ -944,6 +1006,6 @@ fn admit_selected_member(
 }
 
 #[cfg(not(target_os = "linux"))]
-pub(crate) fn adopt(_state_dir: &Path, _policy: &Path) -> Result<(), String> {
+pub(crate) fn adopt(_state_dir: &Path, _policy: &Path, _prepare_only: bool) -> Result<(), String> {
     Err("selected bounded Source compiler requires Linux".into())
 }

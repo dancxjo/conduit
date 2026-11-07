@@ -22,6 +22,9 @@ pub(crate) enum HostServiceCommand {
     AdoptSource {
         /// Owner-selected File, exact Body basis, entries and qualified workspace selection.
         selection: PathBuf,
+        /// Measure the same funded preparation without publishing an owner, joining, or committing Source.
+        #[arg(long)]
+        prepare_only: bool,
         #[arg(long)]
         state_dir: PathBuf,
     },

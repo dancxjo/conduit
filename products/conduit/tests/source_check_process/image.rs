@@ -991,6 +991,33 @@ fn local_selected_file_revision_commits_exact_workset_and_rejects_replay() {
             .arg(&root);
         command
     };
+    #[cfg(feature = "root-allocation-observation")]
+    {
+        let prepared = command().arg("--prepare-only").output().unwrap();
+        assert!(
+            prepared.status.success(),
+            "{}",
+            String::from_utf8_lossy(&prepared.stderr)
+        );
+        let report: serde_json::Value = serde_json::from_slice(
+            &std::fs::read(root.join("source-policy-preparation.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(report["source_committed"], false);
+        assert_eq!(report["owner_published"], false);
+        assert_eq!(report["rust_requested_peak_within_caller_envelope"], true);
+        assert!(
+            report["observation"]["peak_requested_bytes"]
+                .as_u64()
+                .unwrap()
+                > 0
+        );
+        assert_eq!(std::fs::read(&biography_path).unwrap(), biography_bytes);
+        assert!(!root.join("runtime.json").exists());
+        assert!(!root.join("control.sock").exists());
+        assert!(!root.join("source-policy-owner-peer.json").exists());
+        assert!(!root.join("control.token").exists());
+    }
     let mut service = command()
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::piped())

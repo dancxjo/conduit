@@ -144,8 +144,9 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
     match command {
         HostServiceCommand::AdoptSource {
             selection,
+            prepare_only,
             state_dir,
-        } => source_revision::adopt(&state_dir, &selection),
+        } => source_revision::adopt(&state_dir, &selection, prepare_only),
         HostServiceCommand::Configure {
             configuration,
             clear,
