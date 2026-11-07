@@ -46,6 +46,8 @@ pub(crate) struct Selection {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct UsbPlaySelection {
+    #[serde(default)]
+    carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
     port: std::path::PathBuf,
     member_basis: std::path::PathBuf,
     report_output: std::path::PathBuf,
@@ -176,6 +178,8 @@ impl ResidentPreparationSelection {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct UsbReturnSelection {
+    #[serde(default)]
+    carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
     part_id: conduit_body::PartId,
     port: std::path::PathBuf,
     basis: std::path::PathBuf,
@@ -186,6 +190,8 @@ struct UsbReturnSelection {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct UsbAdmissionSelection {
+    #[serde(default)]
+    carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
     host_id: conduit_core::HostId,
     member_key: AdmissionMemberKey,
     image_id: String,
@@ -787,7 +793,7 @@ fn submit_selected_play(
     owner: &mut owner::Owner,
     selected: &UsbPlaySelection,
 ) -> Result<(), String> {
-    use conduit_std_host::pico_spawn::{PicoSpawnSocket, PreparationCommandBytes};
+    use conduit_std_host::pico_spawn::PreparationCommandBytes;
     if !(1..=10_000).contains(&selected.wait_milliseconds) {
         return Err("selected preparation carriage exceeds original challenge lifetime".into());
     }
@@ -811,7 +817,7 @@ fn submit_selected_play(
         maximum_fore_ports: selected.maximum_fore_ports,
         maximum_document_bytes: selected.maximum_document_bytes,
     };
-    let mut socket = PicoSpawnSocket::open(
+    let mut socket = selected.carrier.open(
         selected
             .port
             .to_str()
@@ -886,6 +892,7 @@ fn return_selected_member(
         owner,
         state_dir,
         &selected.port,
+        selected.carrier,
         &selected.receipt_output,
         &basis,
         peer,
@@ -897,16 +904,16 @@ fn return_selected_basis(
     owner: &mut owner::Owner,
     state_dir: &Path,
     port: &Path,
+    carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
     receipt_output: &Path,
     basis: &conduit_std_host::pico_spawn::PicoMemberReturnBasis,
     peer: &conduit_body::FederationPeer,
 ) -> Result<(), String> {
     use conduit_body::MemberReturnImageAcknowledgement;
-    use conduit_std_host::pico_spawn::PicoSpawnSocket;
     use std::time::Duration;
     let mut receipt = membership_receipt_custody::reserve(receipt_output)?;
     let timeout = Duration::from_secs(5);
-    let mut socket = PicoSpawnSocket::open(port.to_str().ok_or("USB path is not UTF-8")?)
+    let mut socket = carrier.open(port.to_str().ok_or("USB path is not UTF-8")?)
         .map_err(|e| format!("open selected member return: {e:?}"))?;
     let observed = socket
         .request_member_return(basis, timeout)
@@ -971,7 +978,7 @@ fn admit_selected_member(
     peer: &conduit_body::FederationPeer,
 ) -> Result<(), String> {
     use conduit_std_host::pico_spawn::{
-        PicoMemberReturnBasis, PicoSpawnAdmissionBasis, PicoSpawnSocket,
+        PicoMemberReturnBasis, PicoSpawnAdmissionBasis,
     };
     use std::{
         io::Write,
@@ -1006,7 +1013,7 @@ fn admit_selected_member(
     }
     let mut receipt_file = membership_receipt_custody::reserve(&selected.receipt_output)?;
     let timeout = Duration::from_secs(5);
-    let mut socket = PicoSpawnSocket::open(selected.port.to_str().ok_or("USB path is not UTF-8")?)
+    let mut socket = selected.carrier.open(selected.port.to_str().ok_or("USB path is not UTF-8")?)
         .map_err(|e| format!("open selected admission: {e:?}"))?;
     let observed = socket
         .request_join(&basis.spore_id, &basis.image_id, &basis.invitation, timeout)
@@ -1056,6 +1063,7 @@ fn admit_selected_member(
         owner,
         state_dir,
         &selected.port,
+        selected.carrier,
         &selected.return_receipt_output,
         &return_basis,
         peer,
@@ -1126,6 +1134,7 @@ mod admission_key_tests {
             .verifying_key();
         assert_eq!(policy.resolve(&invitation).unwrap(), seed_key);
         let selected = UsbAdmissionSelection {
+            carrier: Default::default(),
             host_id: host.into(),
             member_key: policy,
             image_id: image.clone(),

@@ -236,6 +236,7 @@ impl Drop for OperatorTerminal {
 #[cfg(unix)]
 pub struct NativePathCdcLine {
     fd: FdGuard,
+    controls_dtr: bool,
     maximum_frame_bytes: usize,
     decoder: StreamFrameDecoder<4096>,
 }
@@ -243,7 +244,7 @@ pub struct NativePathCdcLine {
 #[cfg(unix)]
 impl Drop for NativePathCdcLine {
     fn drop(&mut self) {
-        clear_dtr_fd(self.fd.0);
+        if self.controls_dtr { clear_dtr_fd(self.fd.0); }
     }
 }
 
@@ -252,6 +253,21 @@ impl NativePathCdcLine {
     pub fn open<P: AsRef<Path>>(
         path: P,
         maximum_frame_bytes: usize,
+    ) -> Result<Self, NativeUsbCdcError> {
+        Self::open_tty(path, maximum_frame_bytes, true)
+    }
+
+    /// Explicit raw TTY byte stream supplied by an external forwarder. This
+    /// makes no claim to local USB attachment or modem-control observation.
+    /// Framing, limits and authenticated protocol checks remain unchanged.
+    pub fn open_forwarded_tty<P: AsRef<Path>>(
+        path: P, maximum_frame_bytes: usize,
+    ) -> Result<Self, NativeUsbCdcError> {
+        Self::open_tty(path, maximum_frame_bytes, false)
+    }
+
+    fn open_tty<P: AsRef<Path>>(
+        path: P, maximum_frame_bytes: usize, controls_dtr: bool,
     ) -> Result<Self, NativeUsbCdcError> {
         if maximum_frame_bytes == 0 || maximum_frame_bytes > 4096 {
             return Err(NativeUsbCdcError::InvalidLimit);
@@ -276,11 +292,12 @@ impl NativePathCdcLine {
         }
         let guard = FdGuard(fd);
         configure_raw_termios(fd)?;
-        assert_dtr_fd(fd)?;
+        if controls_dtr { assert_dtr_fd(fd)?; }
 
         let decoder = StreamFrameDecoder::new(maximum_frame_bytes)?;
         Ok(Self {
             fd: guard,
+            controls_dtr,
             maximum_frame_bytes,
             decoder,
         })

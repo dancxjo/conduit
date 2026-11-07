@@ -7,7 +7,7 @@ use conduit_body::{
     MAX_PICO_ADMISSION_FRAME_BYTES, PICO_SPAWN_PROTOCOL, PICO_SPAWN_REQUEST,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::pico_admission::{decode_advertisement, PicoAdmissionTransportError};
 use crate::usb_cdc::NativePathCdcLine;
@@ -55,6 +55,24 @@ pub struct PicoSpawnObservation {
     pub proof: SpawnAdmissionProof,
     pub spore_id: String,
     pub image_id: String,
+}
+
+/// Locally selected physical carrier behavior; never membership authority.
+#[derive(Clone, Copy, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProvisioningCarrier {
+    #[default]
+    UsbCdc,
+    ForwardedTty,
+}
+impl ProvisioningCarrier {
+    pub fn open(self, path: &str) -> Result<PicoSpawnSocket, PicoSpawnTransportError> {
+        let line = match self {
+            Self::UsbCdc => NativePathCdcLine::open(path, MAX_PICO_ADMISSION_FRAME_BYTES)?,
+            Self::ForwardedTty => NativePathCdcLine::open_forwarded_tty(path, MAX_PICO_ADMISSION_FRAME_BYTES)?,
+        };
+        Ok(PicoSpawnSocket { line })
+    }
 }
 
 pub struct PicoSpawnSocket {
