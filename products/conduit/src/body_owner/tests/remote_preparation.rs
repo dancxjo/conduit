@@ -371,7 +371,26 @@ fn two_members_retain_one_exact_body_play_and_block_duplicate_boot_and_source_ca
         }
         assert!(owner.require_remote_workset_retired().is_err());
     }
-    assert_eq!(owner.member_carrier.as_ref().unwrap().commands.len(), 2);
+    for member in &members {
+        let challenge = IssuedHostCommandChallenge::issue(
+            &member.credential,
+            &member.host_advertisement,
+            &issuer,
+            HostCommandReceiveBounds {
+                payload_contract: HOST_PREPARED_WORKSET_CONTRACT,
+                maximum_payload_bytes: 4096,
+                lifetime_millis: 10000,
+            },
+            [11; 32],
+            100,
+        )
+        .unwrap();
+        let error = owner
+            .approve_remote_workset(member, challenge.challenge(), &image_refs, &[], limits)
+            .err()
+            .unwrap();
+        assert!(error.contains("Part or Host remains retained"), "{error}");
+    }
     let mut new_boot = members[0].clone();
     new_boot.host_advertisement.boot_id = "boot/replacement".into();
     new_boot.host_advertisement.offer_generation.0 += 1;
@@ -393,7 +412,6 @@ fn two_members_retain_one_exact_body_play_and_block_duplicate_boot_and_source_ca
         .err()
         .unwrap();
     assert!(error.contains("Part or Host remains retained"), "{error}");
-    assert_eq!(owner.member_carrier.as_ref().unwrap().commands.len(), 2);
     let before = owner.session.evidence().clone();
     owner.lull().unwrap();
     assert!(owner.require_remote_workset_retired().is_err());
@@ -406,7 +424,6 @@ fn two_members_retain_one_exact_body_play_and_block_duplicate_boot_and_source_ca
         "{refused}"
     );
     assert_eq!(owner.session.evidence(), &lulled);
-    assert_eq!(owner.member_carrier.as_ref().unwrap().commands.len(), 2);
     assert_eq!(owner.session.evidence().body.workset, before.body.workset);
     std::fs::remove_dir_all(root).unwrap();
 }
