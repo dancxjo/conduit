@@ -27,7 +27,8 @@ pub enum Refusal {
 
 pub struct Link<C> {
     pub(crate) carrier: C,
-    decoder: StreamFrameDecoder<LIMIT>,
+    // Fixed payload ceiling, its wire header, and one carrier read packet.
+    decoder: StreamFrameDecoder<{ LIMIT + 2 + PACKET_BYTES }>,
 }
 impl<C: Carrier> Link<C> {
     pub fn new(carrier: C) -> Self {

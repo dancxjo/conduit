@@ -46,6 +46,8 @@ pub struct StreamFrameDecoder<const MAX: usize> {
 impl<const MAX: usize> StreamFrameDecoder<MAX> {
     /// Creates a new streaming decoder with an explicit runtime maximum frame length.
     ///
+    /// `MAX` bounds buffered wire bytes: callers must fund the two-byte header
+    /// and read-packet overlap in addition to `runtime_max` payload bytes.
     /// `runtime_max` must be `<= MAX` and `<= u16::MAX as usize`.
     pub fn new(runtime_max: usize) -> Result<Self, StreamFrameError> {
         let max_allowed = MAX.min(u16::MAX as usize);

@@ -131,3 +131,15 @@ fn in_place_root_keeps_original_scope_and_refuses_reinitialization() {
     assert!(matches!(root.execution_parts(), Err(Refusal::NotMember)));
     assert!(matches!(storage.initialize(seed(), actual(), config()), Err(Refusal::Scope)));
 }
+
+#[test]
+fn full_payload_and_following_header_fit_funded_wire_backing() {
+    let payload = vec![7; LIMIT];
+    let mut wire = Vec::from((LIMIT as u16).to_be_bytes());
+    wire.extend_from_slice(&payload);
+    wire.extend_from_slice(&[0, 1, 9]);
+    let mut link = Link::new(Fake { input: wire.chunks(PACKET_BYTES).map(Vec::from).collect(), ..Fake::default() });
+    let mut output = [0; LIMIT];
+    assert_eq!(ready(link.receive(&mut output)).unwrap(), payload);
+    assert_eq!(ready(link.receive(&mut output)).unwrap(), &[9]);
+}

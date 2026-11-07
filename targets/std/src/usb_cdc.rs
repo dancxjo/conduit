@@ -238,7 +238,8 @@ pub struct NativePathCdcLine {
     fd: FdGuard,
     controls_dtr: bool,
     maximum_frame_bytes: usize,
-    decoder: StreamFrameDecoder<4096>,
+    // Payload plus its length header and one native read packet of overlap.
+    decoder: StreamFrameDecoder<{ 4096 + 2 + 64 }>,
 }
 
 #[cfg(unix)]
