@@ -458,9 +458,13 @@ fn expansion_lowers_selector_to_one_exact_ordinary_gear_for_value_and_flow() {
             .unwrap();
         let selector_definition = structured_selector_definition(selector, temporal);
         let selector_kind = selector_definition.kind_id.clone();
-        profile.insert(selector_definition).unwrap();
-
+        // Checked selector meaning is sufficient; the shared catalog contains
+        // only the independently declared adjacent primitive contracts.
+        assert!(profile.get(&selector_kind).is_none());
+        let original = profile.clone();
         let expanded = expand_canonical_plot(&checked, "pipeline", &profile).unwrap();
+        assert_eq!(profile, original);
+        assert!(profile.get(&selector_kind).is_none());
         assert_eq!(expanded.gears.len(), 3);
         assert_eq!(expanded.connections.len(), 2);
         let gear = expanded

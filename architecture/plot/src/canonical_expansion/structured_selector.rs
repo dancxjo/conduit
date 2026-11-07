@@ -214,6 +214,7 @@ pub(super) fn resolve_selectors(
         let mut generated_activations = Vec::new();
         let instance = instantiate_gear(
             &gear,
+            Some((selector, temporal)),
             None,
             &name,
             source_plot,

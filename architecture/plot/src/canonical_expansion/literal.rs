@@ -53,6 +53,7 @@ pub(super) fn expand_literal(
     let instance = instantiate_gear(
         &gear,
         None,
+        None,
         &name,
         source_plot,
         plots,

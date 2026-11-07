@@ -15,6 +15,11 @@ pub(super) fn install(
             .map_err(debug)?
             .install(startup, profiles)?;
     }
+    let absence =
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::EMPTY_INFO_ID))
+            .and_then(|ty| ty.profile())
+            .map_err(debug)?;
+    startup.insert_value_kind_alias("Tm1637Absence", absence.value_kind().clone())?;
     let contract = conduit_tm1637_wire::WriteContract::prepare().map_err(debug)?;
     let kind = contract.kind();
     startup.insert(KindSignature {
