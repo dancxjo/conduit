@@ -1,18 +1,5 @@
 //! Canonical retained Part return over the already selected bounded USB carrier.
 use super::*;
-use conduit_body::{
-    BorrowedPartReturnChallenge, BorrowedPartReturnProof, HostAdvertisementImageProjection,
-    MemberReturnImageAcknowledgement, MEMBER_RETURN_IMAGES_SCHEMA,
-};
-use serde::Serialize;
-#[derive(Serialize)]
-struct Presentation<'a> {
-    kind: &'static str,
-    schema: &'static str,
-    credential: &'a conduit_body::MembershipCredential,
-    projection: &'a HostAdvertisementImageProjection,
-    signature: &'a [u8],
-}
 impl MembershipState {
     pub(super) async fn serve_return(
         &mut self,
@@ -61,103 +48,35 @@ impl MembershipState {
         let owner = crate::resident::inventory().map_err(|_| ())?;
         let images = owner.offers();
         let images = images.into_iter().flatten().chain(self.native_offer);
-        let mut total = 0usize;
-        let mut hashes = Vec::new();
-        for bytes in images.clone() {
-            total = total.checked_add(bytes.len()).ok_or(())?;
-            if total > 24 * 1024 {
-                return Err(());
-            }
-            hashes.push(Sha256::digest(bytes).into());
-        }
-        let projection = HostAdvertisementImageProjection {
-            authority_grants: self
-                .native_issuer
-                .copy_grants_for_return(
-                    crate::config::HEAP_BYTES
-                        .checked_sub(crate::heap::usage().0)
-                        .ok_or(())?,
-                )
-                .map_err(|_| ())?,
-            context: self.resources.host().clone(),
-            capability_images: hashes,
-        };
-        projection.validate().map_err(|_| ())?;
-        let signature = self
-            .key
-            .sign(
-                &conduit_body::member_return_image_transcript(retained, &projection)
-                    .map_err(|_| ())?,
-            )
-            .to_bytes();
         let mut output = [0; LIMIT];
-        let presentation = Presentation {
-            kind: "Advertise",
-            schema: MEMBER_RETURN_IMAGES_SCHEMA,
-            credential: retained,
-            projection: &projection,
-            signature: &signature,
-        };
-        let n = serde_json_core::to_slice(&presentation, &mut output).map_err(|_| ())?;
-        link.send(&output[..n]).await?;
-        for (bytes, digest) in images.zip(&projection.capability_images) {
-            let mut offset = 0;
-            while offset < bytes.len() {
-                let (n, next) =
-                    conduit_wire::encode_bounded_document_chunk(&mut output, bytes, offset, digest)
-                        .map_err(|_| ())?;
-                link.send(&output[..n]).await?;
-                offset = next;
-            }
+        let accepted = conduit_mcu_host_runtime::member_return::RetainedReturn {
+            bootstrap: &self.seed,
+            actual: self.resources.host(),
+            image_id: crate::config::IMAGE_ID,
+            key: &self.key,
+            retained,
         }
-        let bytes = link.receive(input).await?;
-        let (challenge, used) =
-            serde_json_core::from_slice::<BorrowedPartReturnChallenge<'_>>(bytes)
-                .map_err(|_| ())?;
-        if used != bytes.len()
-            || !challenge.matches_member(
-                retained.body_id.as_str(),
-                retained.part_id.as_str(),
-                self.resources.host().host_id.as_str(),
-                self.resources.host().boot_id.as_str(),
-                self.resources.host().offer_generation.0,
-            )
-        {
-            return Err(());
-        }
-        let signature = self.key.sign(&challenge.signing_transcript()).to_bytes();
-        let proof = BorrowedPartReturnProof {
-            admission_id: challenge.admission_id,
-            body_id: challenge.body_id,
-            part_id: challenge.part_id,
-            host_id: challenge.host_id,
-            boot_id: challenge.boot_id,
-            nonce: challenge.nonce,
-            signature: &signature,
-        };
-        let n = serde_json_core::to_slice(&proof, &mut output).map_err(|_| ())?;
-        link.send(&output[..n]).await?;
-        let bytes = link.receive(input).await?;
-        let (metadata, used) =
-            serde_json_core::from_slice::<BorrowedAdmissionReceiptAttestation<'_>>(bytes)
-                .map_err(|_| ())?;
-        if used != bytes.len() {
-            return Err(());
-        }
-        let raw = link.receive(&mut output).await?;
-        metadata
-            .verify(raw, &self.seed.owner, &self.key.verifying_key().to_bytes())
-            .map_err(|_| ())?;
-        let (ack, used) =
-            serde_json_core::from_slice::<MemberReturnImageAcknowledgement>(raw).map_err(|_| ())?;
-        if used != raw.len() {
-            return Err(());
-        }
-        ack.validate_for(retained, &projection).map_err(|_| ())?;
-        self.receipt = Some(ack.credential);
-        retain_receipt_digest(raw);
-        input.fill(0);
-        output.fill(0);
+        .exchange(
+            link,
+            images,
+            || {
+                self.native_issuer
+                    .copy_grants_for_return(
+                        crate::config::HEAP_BYTES
+                            .checked_sub(crate::heap::usage().0)
+                            .ok_or(conduit_mcu_host_runtime::member_return::Refusal::Bounds)?,
+                    )
+                    .map_err(|_| conduit_mcu_host_runtime::member_return::Refusal::Bounds)
+            },
+            input,
+            &mut output,
+        )
+        .await
+        .map_err(|_| ())?;
+        self.receipt = Some(accepted.credential);
+        critical_section::with(|cs| {
+            RECEIPT_DIGEST.borrow(cs).set(Some(accepted.receipt_digest));
+        });
         Ok(())
     }
 }

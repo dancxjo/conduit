@@ -12,20 +12,13 @@ use crate::{
     transport::{Link, LIMIT},
 };
 use alloc::{format, string::String, vec::Vec};
-use conduit_body::{BorrowedAdmissionReceiptAttestation, PICO_SPAWN_REQUEST};
+use conduit_body::PICO_SPAWN_REQUEST;
 use conduit_core::{BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration};
 use core::{cell::Cell, fmt::Write};
-use ed25519_dalek::{Signer, SigningKey};
+use ed25519_dalek::SigningKey;
 use sha2::{Digest, Sha256};
 static RECEIPT_DIGEST: critical_section::Mutex<Cell<Option<[u8; 32]>>> =
     critical_section::Mutex::new(Cell::new(None));
-fn retain_receipt_digest(raw: &[u8]) {
-    critical_section::with(|cs| {
-        RECEIPT_DIGEST
-            .borrow(cs)
-            .set(Some(Sha256::digest(raw).into()))
-    });
-}
 pub fn is_member() -> bool {
     critical_section::with(|cs| RECEIPT_DIGEST.borrow(cs).get().is_some())
 }

@@ -32,3 +32,15 @@ owner's exact current-Boot receipt. Existing or retained membership refuses this
 entrance before carrier effects; returning Parts use the separate canonical
 return protocol. Receiving a credential does not create a Plan, Play or native
 authority grant. The platform retains the acknowledged receipt and its digest.
+
+`member_return::RetainedReturn` carries the existing signed image-projection
+return protocol over the same framed interface. Original Body and Part identity,
+current Boot, pinned owner, exact immutable image references and acknowledgement
+remain checked; interruption never falls back to spawn. Native publication and
+grant issuance stay with Root. A grant-copy callback runs after the image hash
+vector is allocated, so Root measures actual remaining preparation headroom at
+the same point as before. Images retain the existing 24KiB aggregate ceiling and
+the canonical finite image-count bound. No decoded offer catalog is retained.
+Owner-issued expiry remains in the exact signed challenge transcript; the
+admitting owner checks its clock and proposal lifetime. MCU monotonic time is
+not substituted for that independently scoped clock.

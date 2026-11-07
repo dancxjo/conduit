@@ -23,7 +23,7 @@ impl MessageTransport for Messages {
         Ok(())
     }
 }
-fn fixture() -> (
+pub(crate) fn fixture() -> (
     MemberBootstrap<'static>,
     HostAdvertisement,
     SigningKey,
@@ -70,7 +70,7 @@ fn fixture() -> (
     };
     (bootstrap, actual, member, owner)
 }
-fn receipt(
+pub(crate) fn receipt(
     bootstrap: &MemberBootstrap<'_>,
     actual: &HostAdvertisement,
 ) -> PortableAdmissionReceipt {
