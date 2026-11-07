@@ -252,12 +252,17 @@ mod tests {
             "maximum_artifact_bytes":32*1024*1024,"maximum_manifest_bytes":65536,
         }))
         .unwrap();
-        let factory = initialize(&initialization).unwrap();
-        assert_eq!(
-            factory.resource_offer().pool_id.as_str(),
-            "real/creche-proof"
-        );
-        drop(factory);
+        for phase in ["cold", "warm"] {
+            let (factory, requested) =
+                crate::allocation_probe::observe(|| initialize(&initialization));
+            let factory = factory.unwrap();
+            eprintln!("actual selected browser Crèche initialization ({phase}): {requested:?}");
+            assert_eq!(
+                factory.resource_offer().pool_id.as_str(),
+                "real/creche-proof"
+            );
+            drop(factory);
+        }
         std::fs::remove_dir_all(directory).unwrap();
     }
 }

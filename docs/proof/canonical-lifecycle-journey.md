@@ -9394,3 +9394,38 @@ strict product lib/test Clippy passed. Logs:
 `/tmp/conduit-creche-service-products-20261106.log`,
 `/tmp/conduit-creche-service-products-owner-20261106.log`, and
 `/tmp/conduit-creche-service-products-clippy-20261106.log`.
+
+### 2026-11-06 — Measure the actual pinned browser factory initializer
+
+Inspection established that `CrecheEncounterFactory` already keeps its IMAGE
+input reservation inside its shared input owner. It does not need another
+service factory enum to preserve that reservation. The remaining construction
+change must run the selected initializer inside Root's reserved callback rather
+than building an uncharged factory before Host construction.
+
+The existing explicitly selected prior-Make browser test now measures both its
+first initializer call and a second call. Both successfully opened and checked
+the real retained browser bundle and reported exactly 73,327 allocations, 5,609
+reallocations, 7,877,054 cumulative requested bytes, 467,344 peak live requested
+bytes, and 227,069 live requested bytes with the initialized factory retained.
+The test runs in an isolated binary-test invocation; these are current-thread
+Rust allocation diagnostics, excluding allocator/probe overhead, stack, other
+threads and preexisting/shared stores. They qualify neither an arbitrary Host
+source nor whole-Root admission, and no production grant changed.
+
+The pinned inputs were:
+- Host image JSON SHA-256 `5db999d454638a10352ee38dafeb317521f7c9165e6b7356134d7e45d7242b21`.
+- Browser release descriptor SHA-256 `1071184f76c7b8e31751a0887c8bf429f275c1d9c86564ec3a4ccc639f3254a9`.
+- Destination Host source SHA-256 `46baeee88704eb67bca0e07b6baa03c2f54337b91facab9240b720b8d5f7c974`.
+
+The selected initializer revalidates pinned file contents and the bundle's own
+artifact identities; a declared Base still does not imply a Ready provider.
+Raw diagnostics: `/tmp/conduit-real-creche-init-memory-20261106.log`.
+The private retained prior-Make directory is
+`work/private/browser-attended-host-20261101`; it was read, not replaced.
+No installed service, firmware or Body membership changed.
+The three ordinary selection guards passed (the explicit real-bundle case is
+normally ignored and was separately run successfully above). Strict product
+lib/test Clippy passed. Guard/Clippy logs:
+`/tmp/conduit-real-creche-init-guards-20261106.log` and
+`/tmp/conduit-real-creche-init-clippy-20261106.log`.
