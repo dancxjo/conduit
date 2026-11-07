@@ -9724,3 +9724,27 @@ and return code; its manifest still reports neither membership nor local
 sampling Plan proven. The image was not flashed over Yellow's working
 measurement/display firmware. Artifacts and log remain ignored under
 `target/mcu-shared-yellow-integrated*`.
+
+
+### 2026-11-07: explicit sampling/Mask/output integration checkpoint
+
+The independently selected candidate Source contains the existing Crèche entry
+and three environmental entries: `environmental-appliance`, `seven-segment`,
+and `environment-display-output`. The 8,670-byte candidate has SHA-256
+`8dd5f62e4a316eff47b302be886c1818d37dc21434982af7b4bff78584543251`;
+its canonical Source document identity is
+`b6ade18e26fc0f87a1039c5ed7bd25ee4e90a3990c09f8b199e176ede9b5ad36`.
+It is staged privately and has **not** been adopted by the installed Body.
+
+The seven-segment package now exposes the actual three-node checked Mask
+assigned-kernel preparation under an opt-in native feature. Its Source lineage
+and exclusions are recorded in the reuse ledger. A current native feature check
+passes against the shared scheduler; this is compilation evidence, not a live
+Mask Play. The shared resident Source emitter extraction also compiles.
+
+Live admission must receive authenticated current member offers in the same
+original owner Root that adopts/plans the Source. Retained membership alone
+is insufficient, and restarting between return and adoption loses that current
+evidence. No stale owner Boot/key or decoded advertisement is substituted.
+Yellow and Blue have not yet been flashed with this in-progress integration.
+White is unavailable and explicitly excluded from this live attempt.

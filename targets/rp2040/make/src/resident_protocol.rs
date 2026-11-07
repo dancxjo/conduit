@@ -1,7 +1,5 @@
 //! Target package installation closure for its selected HT16K33 implementation.
-use conduit_embedded_build::{
-    generate_resident_library, PreparedResidentExpression, ResidentExpressionBounds,
-};
+use conduit_embedded_build::ResidentExpressionBounds;
 use conduit_host_make::CheckedHostConfiguration;
 use conduit_plot as p;
 
@@ -70,44 +68,23 @@ fn resident_entries(
     document: &p::CheckedSyntaxDocument,
     entries: &[&str],
 ) -> Result<String, String> {
-    let mut images = Vec::new();
-    for entry in entries {
-        let expanded =
-            p::expand_canonical_plot_for_authoring(document, entry, &p::ProfileCatalog::new())
-                .map_err(|e| format!("protocol expansion: {e:?}"))?;
-        let [gear] = expanded.expanded.gears.as_slice() else {
-            return Err("protocol entry is not one resident expression".into());
-        };
-        let [configuration] = gear.configuration.as_slice() else {
-            return Err("protocol expression configuration absent".into());
-        };
-        let conduit_host_make::ConfigurationValue::Text(text) = &configuration.value else {
-            return Err("protocol expression program absent".into());
-        };
-        if configuration.key != "program" {
-            return Err("unsupported protocol computation".into());
-        }
-        let program = p::PortableExpressionProgram::from_canonical_hex(text)
-            .map_err(|e| format!("protocol program: {e:?}"))?;
-        // Exact package implementation ceilings, not runtime resource grants.
-        let bounds = ResidentExpressionBounds {
-            native: p::rust_binding::PreparedNativeBounds {
-                canonical_bytes: 4096,
-                scopes: 64,
-                invariants: 64,
-                contracts: 64,
-            },
-            maximum_occurrences: 4096,
-            maximum_program_bytes: 512 * 1024,
-            maximum_generated_bytes: 1024 * 1024,
-            private_work_units: 1000,
-        };
-        let temporal = gear.inputs.first().ok_or("protocol input absent")?.temporal;
-        images.push(
-            PreparedResidentExpression::prepare(document, &program, temporal, bounds)
-                .map_err(|e| format!("resident protocol preparation: {e:?}"))?,
-        );
-    }
-    generate_resident_library(&images, 2 * 1024 * 1024)
-        .map_err(|e| format!("resident protocol library: {e:?}"))
+    // Exact package implementation ceilings, not runtime resource grants.
+    let bounds = ResidentExpressionBounds {
+        native: p::rust_binding::PreparedNativeBounds {
+            canonical_bytes: 4096,
+            scopes: 64,
+            invariants: 64,
+            contracts: 64,
+        },
+        maximum_occurrences: 4096,
+        maximum_program_bytes: 512 * 1024,
+        maximum_generated_bytes: 1024 * 1024,
+        private_work_units: 1000,
+    };
+    conduit_embedded_build::generate_source_resident_library(
+        document,
+        entries,
+        bounds,
+        2 * 1024 * 1024,
+    )
 }
