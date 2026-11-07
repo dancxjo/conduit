@@ -59,7 +59,9 @@ esp_bootloader_esp_idf::esp_app_desc!();
 #[esp_rtos::main]
 async fn main(_spawner: Spawner) {
     let p = esp_hal::init(esp_hal::Config::default().with_cpu_clock(CpuClock::max()));
-    esp_alloc::heap_allocator!(size: config::HEAP_BYTES);
+    // One checked internal heap after reserved ROM data/stacks. The linker
+    // proves region geometry, sole section occupancy and primary stack reserve.
+    esp_alloc::heap_allocator!(#[link_section = ".dram2_uninit"] size: config::HEAP_BYTES);
     let timers = TimerGroup::new(p.TIMG0);
     let software = SoftwareInterruptControl::new(p.SW_INTERRUPT);
     esp_rtos::start(timers.timer0, software.software_interrupt0);

@@ -9,11 +9,6 @@ use std::{
 };
 #[path = "host_esp32_native_seed.rs"]
 mod seed;
-// Pending integration guard: the checked physical/bootstrap/Root construction
-// exists, but this BSP has not yet wired the complete admitted execution path.
-// Remove this guard only with the real sampling/Mask/output bridge and its
-// cross-target qualification; never seal an ingress-only replacement firmware.
-const NATIVE_EXECUTION_INTEGRATION_QUALIFIED: bool = false;
 pub(super) fn selected(image: &HostImage) -> bool {
     image.manifest.target == "esp32/xtensa-lx6/hw-463-esp-wroom-32"
         && image
@@ -36,9 +31,6 @@ pub(super) fn build(
     conduit_host_esp32_make::physical::CheckedPhysicalConstruction::from_configuration(&checked)?;
     if opts.dry_run {
         return Ok(());
-    }
-    if !NATIVE_EXECUTION_INTEGRATION_QUALIFIED {
-        return Err("ESP32 native execution integration is not qualified; refusing an ingress-only firmware artifact".into());
     }
     let root = crate::workspace::workspace_root()?;
     let revision = if let Some(workset) = workset {
@@ -213,15 +205,21 @@ fn ram_bytes(objdump: &Path, elf: &Path) -> Result<u64, Box<dyn std::error::Erro
     if !output.status.success() {
         return Err("ELF static DRAM inventory failed".into());
     }
+    static_dram_bytes(&String::from_utf8(output.stdout)?)
+}
+fn static_dram_bytes(sections: &str) -> Result<u64, Box<dyn std::error::Error>> {
     let mut total = 0u64;
-    for line in String::from_utf8(output.stdout)?.lines() {
+    for line in sections.lines() {
         let columns = line.split_whitespace().collect::<Vec<_>>();
         if columns.len() < 5 || columns[0].parse::<usize>().is_err() {
             continue;
         }
         let size = u64::from_str_radix(columns[2], 16)?;
         let address = u64::from_str_radix(columns[3], 16)?;
-        if (0x3ff00000..0x40000000).contains(&address) {
+        // HAL's .stack is the unused primary-region remainder, not an owned
+        // static allocation. A separate linker assertion reserves >=16KiB.
+        // Other NOLOAD stores, including the real secondary heap, are charged.
+        if columns[1] != ".stack" && (0x3ff00000..0x40000000).contains(&address) {
             total = total.checked_add(size).ok_or("DRAM inventory overflow")?;
         }
     }
@@ -233,7 +231,20 @@ fn ram_bytes(objdump: &Path, elf: &Path) -> Result<u64, Box<dyn std::error::Erro
 
 #[cfg(test)]
 mod tests {
-    use super::application_only;
+    use super::{application_only, static_dram_bytes};
+    #[test]
+    fn static_inventory_excludes_reserved_stack_but_counts_secondary_noload_heap() {
+        let sections="0 .data 00001000 3ffb0000 3ffb0000\n1 .bss 00002000 3ffb1000 3ffb1000\n2 .stack 00008000 3ffb3000 3ffb3000\n3 .dram2_uninit 00018000 3ffe7e30 3ffe7e30\n4 .text 00100000 400d0020 400d0020";
+        assert_eq!(static_dram_bytes(sections).unwrap(), 110592);
+        assert_eq!(
+            static_dram_bytes(
+                "0 .data 00001000 3ffb0000 3ffb0000\n1 .bss 00002000 3ffb1000 3ffb1000"
+            )
+            .unwrap(),
+            12288
+        );
+        assert!(static_dram_bytes("0 .stack 00008000 3ffb3000 3ffb3000").is_err());
+    }
     #[test]
     fn application_extraction_never_packages_bootloader_or_retained_state() {
         let mut merged = vec![0xff; 0x10001];

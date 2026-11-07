@@ -50,6 +50,17 @@ fn blue_descriptor_reserves_only_native_equipment_and_bounded_dram() {
     let descriptor = crate::blue_descriptor::blue_wroom32_native();
     crate::validate_esp32_descriptor(&descriptor).unwrap();
     assert_eq!(descriptor.memory_regions[0].usable_bytes, 128 * 1024);
+    assert_eq!(descriptor.memory_regions.len(), 2);
+    assert_eq!(descriptor.memory_regions[1].physical_bytes, 98768);
+    assert_eq!(descriptor.memory_regions[1].usable_bytes, 96 * 1024);
+    assert_eq!(
+        descriptor
+            .memory_regions
+            .iter()
+            .map(|r| r.usable_bytes)
+            .sum::<u64>(),
+        224 * 1024
+    );
     assert_eq!(
         descriptor.pins.iter().map(|p| p.gpio).collect::<Vec<_>>(),
         [1, 3, 18, 19, 27]

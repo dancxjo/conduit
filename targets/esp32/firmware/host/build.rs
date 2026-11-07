@@ -47,7 +47,14 @@ fn main() {
         .filter(|_| work.next().is_none())
         .expect("one finite admitted work-pool construction");
     assert!(work.bytes <= config.limits.heap_arena_bytes && work.slots > 0);
-    assert!(config.preparation.as_ref().expect("explicit preparation").maximum_assignment_bytes <= 16384);
+    assert!(
+        config
+            .preparation
+            .as_ref()
+            .expect("explicit preparation")
+            .maximum_assignment_bytes
+            <= 16384
+    );
     assert!(config.limits.buffered_bytes <= config.limits.heap_arena_bytes);
     assert!(config.limits.heap_arena_bytes <= 98304);
     let preparation = conduit_host_make::rust_preparation_delegation(&checked);
@@ -90,7 +97,11 @@ pub(crate) use own_equipment;
         configuration = checked.configuration_id(),
         heap = config.limits.heap_arena_bytes,
         static_bytes = config.limits.static_memory_bytes,
-        assignment = config.preparation.as_ref().expect("explicit preparation").maximum_assignment_bytes,
+        assignment = config
+            .preparation
+            .as_ref()
+            .expect("explicit preparation")
+            .maximum_assignment_bytes,
         runtime = config
             .preparation
             .as_ref()
@@ -120,6 +131,26 @@ pub(crate) use own_equipment;
         dio = physical.display_data
     );
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    let arena_script = format!(
+        r#"
+ASSERT(ORIGIN(dram_seg) == 0x3ffb0000, "unexpected primary DRAM origin");
+ASSERT(LENGTH(dram_seg) == 196608, "unexpected primary DRAM size");
+ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) <= 131072, "primary static DRAM exceeds checked physical share");
+ASSERT(ORIGIN(dram2_seg) == 0x3ffe7e30, "unexpected secondary DRAM origin");
+ASSERT(LENGTH(dram2_seg) == 98768, "unexpected secondary DRAM size");
+ASSERT(ADDR(.dram2_uninit) == ORIGIN(dram2_seg), "heap not at secondary region origin");
+ASSERT(SIZEOF(.dram2_uninit) == {heap}, "secondary DRAM has another owner or heap size differs");
+ASSERT(SIZEOF(.dram2_uninit) <= LENGTH(dram2_seg), "secondary heap exceeds physical region");
+ASSERT(SIZEOF(.stack) >= 16384, "primary stack reserve below 16KiB");
+ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <= {static_bytes}, "static DRAM exceeds checked IMAGE");
+"#,
+        heap = config.limits.heap_arena_bytes,
+        static_bytes = config.limits.static_memory_bytes
+    );
+    fs::write(out.join("image-arena.x"), arena_script).expect("checked physical arena assertions");
+    println!("cargo:rustc-link-search={}", out.display());
+    println!("cargo:rustc-link-arg=-Timage-arena.x");
+
     println!("cargo:rustc-check-cfg=cfg(assigned_workset)");
     let mut workset = conduit_mcu_source_build::workset::from_environment(Some(
         conduit_mcu_source_build::workset::MaskBounds {
@@ -263,7 +294,8 @@ pub(crate) use own_equipment;
     calibration
         .emit_to(&out, 2 * 1024 * 1024)
         .expect("finite immutable Source layout emission");
-    conduit_mcu_source_build::source_composition::emit_to(&out).expect("shared Source composition emission");
+    conduit_mcu_source_build::source_composition::emit_to(&out)
+        .expect("shared Source composition emission");
     workset
         .emit_to(&out)
         .expect("calibrated Source factories only");
