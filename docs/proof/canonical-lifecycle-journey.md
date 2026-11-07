@@ -9505,3 +9505,59 @@ cases, three service journeys, strict std/product lib/test Clippy passed. Logs:
 `/tmp/conduit-creche-report-owner-clippy-20261106.log`.
 Work is paused at the user's request; this checkpoint does not claim installed
 IMAGE service execution or physical sensing/display Plays.
+
+### 2026-11-06: Direct MCU update; Linux Seed work deferred
+
+The user explicitly prioritized firmware deployment over native Linux Seed creation.
+Green was built from clean Source `81aaa0e595814c1c76a61eeb091c2cafa91844ec`
+through `xtask make host build` and its checked physical Host configuration.
+Application UF2 SHA-256 is
+`706a7b0966bb467d6445ba14e48e0d94c449626b8193a3c6dc89efcf5a32ec60`;
+its 4,946 payload pages occupy `0x10000000..0x10135200`. Independent UF2
+inspection confirmed no application writes to retained network/history or
+bootstrap sectors. The separately reviewed private bootstrap occupies only
+`0x101ff000..0x10200000`. No continuity secret is published here.
+
+The existing build-bound CDC BOOTSEL entrance identified the original firmware
+before reboot. The ROM USB serial was `E0C9125B0D9B`, matching Green's retained
+physical evidence. The headless mount helper transferred the reviewed private
+configuration and public application. New running build is
+`bd1748210d80cab5e1855e6118b8660e152b3de5cb46ef34a1461922bde72482`,
+configuration `sha256:7fd89131c768f91119107ce991a9cabc8aab7fdd20cb8283949111999107377f`.
+
+The first return correctly refused an obsolete credential from the prior build
+input. Rebuilding the private bootstrap from the last signed return receipt
+preserved the same continuity secret and Part. The next return correctly refused
+while the owner still retained the previous current attachment. The ordinary
+`body member-leave --authorize-leave` operation withdrew only that attachment;
+`body return-usb --authorize-return` then committed the same Part on the observed
+Boot, retained a signed receipt, and delivered it over USB. No Body or Part was
+reborn, and no authority check was weakened.
+
+HTTP readback independently reported `body_member:true`, two successful samples,
+30 frames/30 acknowledgments, no sensor/display faults, five initialized resident
+Backs, 19,016 resident bytes, and 4,924 peak requested heap bytes. The original Part
+is `86ae90b7ee731eb9645e8176a81c8eba24787f011d39f00e801d7a9703eb0a7d`.
+Sampling/display are still autonomous diagnostic tasks; this update does not
+establish environmental execution through admitted Body Plays.
+
+The hardware audit prevents applying Green's image to other units. Yellow has
+DHT11 GP3 and TM1637 CLK GP7/DIO GP6; White has Bosch I2C1 GP6/GP7 and TM1637
+CLK GP3/DIO GP4. Shared firmware currently requires the Bosch/HT16K33 composition.
+Out-of-tree construction/runtime drafts identify the remaining work: checked TM
+GPIO timing, empty resident-library support without fictitious HT Back claims,
+and Yellow's bounded DHT Source/PIO capture integration. These drafts are not
+installed firmware or accepted implementation. Blue's current checked target is
+an electrical probe, not a replacement environmental Host. No unsuitable image
+was flashed to those units. Beeplus/White and Threebee were not reachable in this
+inventory; Motherbrain/Yellow and Victus/Blue were reachable.
+
+Build attempts exhausted the local filesystem before producing a deployable
+image; after each terminal failure, verified inactive regenerable compiler
+artifacts were reclaimed. This pass removed approximately 12.55 GB of old debug
+executables/static archives and generated build-cache Source, preserving active
+artifacts, original Source, deployed releases, private inputs and history. Root
+headroom after successful deployment was approximately 8.8 GiB. Raw local build,
+BOOTSEL and return logs remain in `/tmp/conduit-green-*-20261106*.log`; private
+receipts/current retained input and health readback remain in the task-private
+`mcu-refresh-20261106` directory.
