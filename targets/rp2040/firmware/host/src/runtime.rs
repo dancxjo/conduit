@@ -4,6 +4,7 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration};
 use conduit_mcu_host_runtime::root::{Configuration, Root};
+#[inline(never)] // Construct the future directly in its caller-owned storage.
 pub async fn run(
     seed: crate::seed::Seed<'static>,
     host: String,
