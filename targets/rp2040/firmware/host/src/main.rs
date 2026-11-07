@@ -156,9 +156,10 @@ async fn main(spawner: Spawner) {
     if let Some(serial) = serial {
         let host = alloc::format!("rp2040/flash/{serial}");
         if let Some(seed) = seed::Seed::load(&host) {
-            conduit_mcu_host_runtime::poll_boundary::separate(
-                runtime::run(seed, host, [rng.next_u64(), rng.next_u64()], &mut link),
-            ).await;
+            let future = core::pin::pin!(runtime::run(
+                seed, host, [rng.next_u64(), rng.next_u64()], &mut link,
+            ));
+            conduit_mcu_host_runtime::poll_boundary::separate(future).await;
         }
     }
     #[cfg(not(sensor_dht11))]

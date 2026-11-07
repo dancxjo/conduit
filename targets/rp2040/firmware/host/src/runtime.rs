@@ -56,9 +56,8 @@ pub async fn run(
         },
     )
     .expect("original checked Root");
-    conduit_mcu_host_runtime::poll_boundary::separate(
-        shared::run(root, equipment, arena, link),
-    ).await
+    let future = core::pin::pin!(shared::run(root, equipment, arena, link));
+    conduit_mcu_host_runtime::poll_boundary::separate(future).await
 }
 mod shared {
     include!(concat!(env!("OUT_DIR"), "/source_runtime.rs"));
