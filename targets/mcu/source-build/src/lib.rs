@@ -1,7 +1,11 @@
 //! Host-side checked protocol compilation shared by MCU fabrication targets.
 //! No GPIO, sensor result, runtime readiness, Host identity or grant is invented.
 use conduit_plot as p;
+pub mod renderer;
 pub mod software;
+pub mod template;
+pub mod template_calibration;
+pub mod workset;
 /// Maximum measured private computation fuel of this exact authored closure.
 /// The emitted-code test prepares every actual Back and verifies this ceiling.
 /// Scheduling/commit fuel remains separately accounted by the resident provider.

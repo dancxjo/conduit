@@ -230,6 +230,20 @@ pub fn emit_rust(
     use std::fmt::Write;
     let material = compile(source, maximum_image_bytes)?;
     let mut code=format!("pub const NODE_COUNT:usize={};\npub const CORD_COUNT:usize={};\npub const SOURCE:&str={:?};\npub const CHECKED:&str={:?};\npub const EXPANDED:&str={:?};\n",material.node_count,material.cord_count,source.source_document_id.as_str(),source.checked_plot_id.as_str(),source.expanded_plot_id.as_str());
+    code.push_str("pub static NATIVE_KINDS:&[(u16,&str)]=&[\n");
+    for (node, gear) in source.gears.iter().enumerate() {
+        if [
+            "machine/pulse/read",
+            "machine/tm1637/write",
+            "face/renderer",
+            conduit_time::TICK_KIND,
+        ]
+        .contains(&gear.kind_id.as_str())
+        {
+            writeln!(code, "({}, {:?}),", node, gear.kind_id.as_str()).unwrap();
+        }
+    }
+    code.push_str("];\n");
     code.push_str("pub static CONFIGURATION:&[conduit_mcu_host_runtime::execution_factory::SoftwareConfigurationPin]=&[\n");
     for node in &material.nodes {
         for entry in &node.configuration {
@@ -259,6 +273,13 @@ pub fn emit_rust(
                 payload: &payload,
             });
             writeln!(code,"conduit_mcu_host_runtime::execution_factory::SoftwareConfigurationPin{{node:{},record:conduit_core::AssignedRecordRequirement{{tag:{},payload_digest:{:?}}}}},",node.node,record.tag,record.payload_digest).unwrap();
+        }
+    }
+    code.push_str("];\n");
+    code.push_str("pub const CLOCKS:&[(u16,u64,u64)]=&[\n");
+    for node in &material.nodes {
+        if let SoftwareRole::Tick { count, period_ms } = node.role {
+            writeln!(code, "({},{period_ms},{count}),", node.node).unwrap();
         }
     }
     code.push_str("];\n");

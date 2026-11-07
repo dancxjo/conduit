@@ -1,0 +1,255 @@
+//! Build-Host structural calibration through the ordinary Planner and lowering.
+//! Descriptive template inputs establish no Ready provider, resource custody,
+//! current member, remote approval or permission to execute the resulting work.
+use conduit_core as c;
+use conduit_embedded_build as e;
+use conduit_planner as p;
+use std::collections::BTreeMap;
+
+pub struct Inputs<'a> {
+    /// Preserve the checked external Fore as well as the expanded Gear graph.
+    pub plot: &'a conduit_plot::ExpandedAuthoringPlot,
+    pub host: &'a c::HostAdvertisement,
+    pub placements: &'a p::PlacementChoices,
+    pub planning: p::PlanningOptions<'a>,
+    pub connections: &'a BTreeMap<p::ConnectionEndpoints, p::ConnectionQueueLimits>,
+    pub boundaries: &'a BTreeMap<p::ForeBoundaryKey, p::ConnectionQueueLimits>,
+    pub resident: &'a [&'a e::PreparedResidentExpression],
+    /// Exact descriptive definitions for every selected non-resident Gear,
+    /// including pure software. These are not initialized native handles.
+    pub other: &'a [&'a c::CapabilityOffer],
+    pub image: e::EmbeddedImageBounds,
+    pub computations: e::EmbeddedComputationBounds,
+    pub maxima: c::AssignedPlanMaxima,
+    pub maximum_fore_ports: usize,
+}
+
+pub struct Layout {
+    pub records: Vec<c::AssignedRecordRequirement>,
+    pub counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
+    /// Kernel ordinal to original checked Source Gear, never source-list guesses.
+    pub nodes: Vec<(u16, c::GearId)>,
+    pub fore: Vec<c::AssignedForeRequirement>,
+}
+
+/// Independently generate the immutable receiver layout. Current runtime
+/// assignments still need signed containment, original finite admission and
+/// actual local provider/Fore possession; this helper issues none of those.
+pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
+    if !input.planning.line_offers.is_empty()
+        || !input.planning.connection_bases.is_empty()
+        || !input.planning.line_candidates.is_empty()
+        || input
+            .placements
+            .by_gear
+            .values()
+            .any(|p| p.host_id != input.host.host_id)
+    {
+        return Err("structural template requires one complete local Host without Lines".into());
+    }
+    let plan = p::plan_expanded_authoring_with_connection_limits(
+        input.plot,
+        std::slice::from_ref(input.host),
+        input.placements,
+        &[],
+        input.planning,
+        input.connections,
+        input.boundaries,
+    )
+    .map_err(debug)?;
+    if plan.fragments.len() != 1 {
+        return Err("structural template must lower one complete local fragment".into());
+    }
+    let fragment = &plan.fragments[0];
+    let resident = e::bind_current_mixed_resident_expressions(
+        &plan,
+        &fragment.fragment_id,
+        input.host,
+        input.resident,
+        input.other,
+    )
+    .map_err(debug)?;
+    let generated = e::generate_fore_native_plan(
+        &plan,
+        &fragment.fragment_id,
+        input.image,
+        input.computations,
+        input.maximum_fore_ports,
+    )
+    .map_err(debug)?;
+    let bytes = generated
+        .encode_with_resident_computations(input.maxima, &resident)
+        .map_err(debug)?;
+    let records = generated
+        .layout_requirements_with_resident_computations(input.maxima, &resident)
+        .map_err(debug)?;
+    let mut counts = [0_u8; c::ASSIGNED_PLAN_COUNT_KINDS];
+    for record in c::AssignedPlanRecords::new(&bytes).map_err(debug)? {
+        let record = record.map_err(debug)?;
+        let count = counts
+            .get_mut(
+                usize::from(record.tag)
+                    .checked_sub(1)
+                    .ok_or("invalid generated record tag")?,
+            )
+            .ok_or("generated record count width")?;
+        *count = count
+            .checked_add(1)
+            .ok_or("generated record count overflow")?;
+    }
+    let nodes = generated
+        .kernel()
+        .nodes
+        .iter()
+        .map(|node| {
+            let placement = fragment
+                .placements
+                .iter()
+                .find(|p| p.placement_id.as_str() == node.placement_id)
+                .ok_or("generated node lost original Source placement")?;
+            Ok((node.node, placement.gear_id.clone()))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    Ok(Layout {
+        records,
+        counts,
+        nodes,
+        fore: generated.fore().to_vec(),
+    })
+}
+fn debug(error: impl core::fmt::Debug) -> String {
+    format!("structural template: {error:?}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn authored_resident_fore_lowers_independently_and_preserves_source_node() {
+        let checked = crate::checked_dht11_tm1637_source().unwrap();
+        let plot = conduit_plot::expand_canonical_plot_for_authoring(
+            &checked,
+            "dht11-capture-request",
+            &conduit_plot::ProfileCatalog::new(),
+        )
+        .unwrap();
+        let gear = &plot.expanded.gears[0];
+        let c::ConfigurationValue::Text(program) = &gear.configuration[0].value else {
+            panic!("checked expression program");
+        };
+        let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(program).unwrap();
+        let image = e::PreparedResidentExpression::prepare(
+            &checked,
+            &program,
+            gear.inputs[0].temporal,
+            e::ResidentExpressionBounds {
+                native: conduit_plot::rust_binding::PreparedNativeBounds {
+                    canonical_bytes: 4096,
+                    scopes: 64,
+                    invariants: 64,
+                    contracts: 64,
+                },
+                maximum_occurrences: 4096,
+                maximum_program_bytes: 512 * 1024,
+                maximum_generated_bytes: 1024 * 1024,
+                private_work_units: 1113,
+            },
+        )
+        .unwrap();
+        let host = c::HostAdvertisement {
+            declared_name: None,
+            protocol_version: c::PROTOCOL_VERSION,
+            host_id: "template/descriptive-host".into(),
+            boot_id: "template/descriptive-boot".into(),
+            offer_generation: c::OfferGeneration(1),
+            profile: "template/pure-resident".into(),
+            bases: vec![],
+            resources: vec![c::ResourceOffer {
+                pool_id: "template/reviewed-work".into(),
+                class_id: c::COOPERATIVE_STEP_WORK_CLASS_ID.into(),
+                capacity_units: 1113,
+                compute: None,
+                content: None,
+            }],
+            planner_capabilities: vec![],
+            capabilities: vec![image.offer_description().clone()],
+        };
+        let placements = p::PlacementChoices {
+            by_gear: [(
+                gear.gear_id.clone(),
+                p::PlacementChoice {
+                    host_id: host.host_id.clone(),
+                    capability_id: image.offer_description().capability_id.clone(),
+                },
+            )]
+            .into(),
+        };
+        let queue_bytes = image.offer_description().limits.max_queue_bytes;
+        let mut boundaries = BTreeMap::new();
+        for (direction, bindings) in [
+            (c::PortDirection::Input, &plot.input_bindings),
+            (c::PortDirection::Output, &plot.output_bindings),
+        ] {
+            for binding in bindings {
+                boundaries.insert(
+                    p::ForeBoundaryKey {
+                        direction,
+                        front_port_id: binding.front_port_id.clone(),
+                        track: binding.track,
+                    },
+                    p::ConnectionQueueLimits {
+                        item_capacity: 1,
+                        byte_capacity: queue_bytes,
+                    },
+                );
+            }
+        }
+        let empty = BTreeMap::new();
+        let connections = BTreeMap::new();
+        let residents = [&image];
+        let make = |boundaries| {
+            compile(Inputs {
+                plot: &plot,
+                host: &host,
+                placements: &placements,
+                planning: p::PlanningOptions {
+                    connection_bases: &empty,
+                    line_candidates: &BTreeMap::new(),
+                    connection_item_capacity: 1,
+                    connection_byte_capacity: queue_bytes,
+                    authority_grants: &[],
+                    protected_resource_grants: &[],
+                    line_offers: &[],
+                },
+                connections: &connections,
+                boundaries,
+                resident: &residents,
+                other: &[],
+                image: e::EmbeddedImageBounds {
+                    maximum_nodes: 1,
+                    maximum_remote_endpoints: 0,
+                    ..e::EmbeddedImageBounds::HOST_TOOLING
+                },
+                computations: e::EmbeddedComputationBounds {
+                    maximum_program_bytes: 512 * 1024,
+                    maximum_total_program_bytes: 512 * 1024,
+                },
+                maxima: c::AssignedPlanMaxima::TINY_HOST,
+                maximum_fore_ports: 2,
+            })
+        };
+        let layout = make(&boundaries).unwrap();
+        assert_eq!(layout.nodes, vec![(0, gear.gear_id.clone())]);
+        assert_eq!(layout.counts[usize::from(c::ASSIGNED_NODE - 1)], 1);
+        assert_eq!(layout.fore.len(), 2);
+        assert!(!layout.records.is_empty());
+        assert!(layout.records.iter().all(|r| !matches!(
+            r.tag,
+            c::ASSIGNED_CONFIGURATION | c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL
+        )));
+        assert!(
+            make(&BTreeMap::new()).is_err(),
+            "missing independently selected Fore refuses"
+        );
+    }
+}
