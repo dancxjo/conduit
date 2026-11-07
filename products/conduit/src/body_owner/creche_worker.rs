@@ -5,7 +5,7 @@ use conduit::creche_encounter::{
 };
 use conduit_body::{BodyPlayIdentity, Wake};
 use conduit_body_make::deployment_runtime::CrecheOutcome;
-use conduit_std_host::body_execution::{BodyForeOutputAdapter, BodyRunReport, BodyRunRequest};
+use conduit_std_host::body_execution::{BodyForeOutputAdapter, BodyRunRequest};
 use conduit_std_host::{ExternalForeDelivery, StdHost, TimerAdapter};
 use std::{io::Write, path::Path, sync::mpsc::SyncSender};
 
@@ -185,7 +185,7 @@ impl CrecheExecution {
         timer: &mut T,
         controller: &SyncSender<CrecheEncounterController>,
         started: F,
-    ) -> Result<BodyRunReport, String> {
+    ) -> Result<super::continuing::RunReport, String> {
         if self.factory.is_image() {
             return Err(
                 "Crèche IMAGE service execution requires its qualified worker/context/report path"
@@ -209,6 +209,7 @@ impl CrecheExecution {
             timer,
             started,
         )
+        .map(super::continuing::RunReport::Reference)
     }
 }
 

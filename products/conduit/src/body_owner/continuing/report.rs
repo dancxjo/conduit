@@ -1,7 +1,7 @@
 //! Keep selected IMAGE backing alive through worker handoff and receipt publication.
 use conduit_std_host::body_execution::{BodyRunReport, ImageBodyRunReport};
 
-pub(super) enum RunReport {
+pub(crate) enum RunReport {
     Reference(BodyRunReport),
     Image(ImageBodyRunReport),
 }

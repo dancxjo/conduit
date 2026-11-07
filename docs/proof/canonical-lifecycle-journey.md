@@ -9487,3 +9487,21 @@ CPU journeys, and strict product lib/test Clippy. Logs:
 `/tmp/conduit-creche-retained-factory-20261106.log`,
 `/tmp/conduit-creche-retained-factory-service-20261106.log`, and
 `/tmp/conduit-creche-retained-factory-clippy-20261106.log`.
+
+### 2026-11-06 — Paused checkpoint: report custody and preparation uncertainty
+
+The interrupted change is retained: Crèche service execution now returns the
+existing Reference/Image report owner rather than forcing raw-report extraction
+at its caller. IMAGE owner preparation also propagates failed adapter-drain
+uncertainty into terminal Host unavailability before any execution reservation.
+The new regression proves both cleanup-success and cleanup-failure paths after
+an adapter/context mismatch, with no begin/poll and no leaked preparation charge.
+Tests were extracted from the preparation module into `image/tests.rs`.
+
+Qualification completed after interruption: 33 product and 29 std Crèche-filter
+cases, three service journeys, strict std/product lib/test Clippy passed. Logs:
+`/tmp/conduit-creche-owner-preparation-quarantine-20261106.log`,
+`/tmp/conduit-creche-report-owner-20261106.log`, and
+`/tmp/conduit-creche-report-owner-clippy-20261106.log`.
+Work is paused at the user's request; this checkpoint does not claim installed
+IMAGE service execution or physical sensing/display Plays.

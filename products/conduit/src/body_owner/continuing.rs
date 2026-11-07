@@ -7,7 +7,7 @@ use conduit_std_host::body_execution::BodyRunRequest;
 #[path = "continuing/report.rs"]
 mod report;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
-use report::RunReport;
+pub(super) use report::RunReport;
 #[path = "continuing/fore.rs"]
 mod fore;
 pub(super) use fore::boundaries_for_plots;
@@ -292,8 +292,7 @@ impl Owner {
                                 &mut timer,
                                 &creche_tx,
                                 started,
-                            )
-                            .map(RunReport::Reference),
+                            ),
                         None if ingress.is_some() => host
                             .run_selected_image_body_plan_with_retained_input_to_with_start(
                                 request, &ingress.as_ref().expect("selected ingress").input,
