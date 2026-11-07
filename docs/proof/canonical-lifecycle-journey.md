@@ -9918,3 +9918,14 @@ no Yellow flash was read or written. Coordinated admission remains pending this
 physical recovery. The six-entry Source must not be reported as Playing while a
 required member is absent. The finite Mask evidence archive also remains an
 explicit limit; these artifacts are not overnight acceptance evidence.
+
+The complete private deployment policy was then filled and independently
+accepted by the actual installed original IMAGE: two exact fresh-admission
+selections, two workset projection policies and six whole-Host/Fore selections.
+Its observed requested-Rust peak was 75,555,595 bytes, still within the same
+128 MiB caller budget. Fore extents come from actual calibration: all three Mask
+Fore queues use 6,144 bytes; output Frame uses 268 and invalid-brightness uses
+21 bytes. These are distinct from the renderer's Show wire buffer. Private
+handoff scripts and instructions preserve the single owner lifetime across both
+admissions, Returns, Source CAS and assignment submission. This validation minted
+no invitations and changed no Source, membership or device state.
