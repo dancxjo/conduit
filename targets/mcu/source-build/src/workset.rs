@@ -25,6 +25,7 @@ pub struct Entry {
 }
 pub struct Workset {
     pub(crate) calibrated: bool,
+    checked_source: p::CheckedSyntaxDocument,
     pub sha256: [u8; 32],
     pub entries: Vec<Entry>,
 }
@@ -157,11 +158,26 @@ pub fn compile(
     }
     Ok(Workset {
         calibrated: false,
+        checked_source: checked,
         sha256,
         entries: material,
     })
 }
 impl Workset {
+    /// Generate resident implementations from the same checked Source closure
+    /// as the authored Plans. The document remains on the fabrication Host.
+    pub fn prepare_residents(
+        &self,
+        entries: &[&str],
+        bounds: conduit_embedded_build::ResidentExpressionBounds,
+    ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
+        conduit_embedded_build::prepare_source_resident_library(
+            &self.checked_source,
+            entries,
+            bounds,
+        )
+    }
+
     pub fn emit_to(&self, out: &Path) -> Result<(), String> {
         if !self.calibrated {
             return Err(

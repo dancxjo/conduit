@@ -129,25 +129,12 @@ pub(crate) use own_equipment;
     .expect("native execution requires --workset-source and all selected entries");
     println!("cargo:rustc-cfg=assigned_workset");
     fs::write(out.join("host.rs"), &generated).unwrap();
-    let protocols =
-        conduit_mcu_source_build::checked_dht11_tm1637_source().expect("checked protocol Source");
-    let resident_images = conduit_embedded_build::prepare_source_resident_library(
-        &protocols,
-        conduit_mcu_source_build::DHT11_TM1637_ENTRIES,
-        conduit_embedded_build::ResidentExpressionBounds {
-            native: conduit_plot::rust_binding::PreparedNativeBounds {
-                canonical_bytes: 4096,
-                scopes: 64,
-                invariants: 64,
-                contracts: 64,
-            },
-            maximum_occurrences: 4096,
-            maximum_program_bytes: 512 * 1024,
-            maximum_generated_bytes: 1024 * 1024,
-            private_work_units: conduit_mcu_source_build::DHT11_TM1637_PRIVATE_WORK_UNITS,
-        },
-    )
-    .expect("prepare exact resident Source once");
+    let resident_images = workset
+        .prepare_residents(
+            conduit_mcu_source_build::DHT11_TM1637_ENTRIES,
+            conduit_mcu_source_build::dht11_tm1637_resident_bounds(),
+        )
+        .expect("actual combined checked Source resident definitions");
     let resident =
         conduit_embedded_build::generate_resident_library(&resident_images, 2 * 1024 * 1024)
             .expect("finite resident inventory emission");
@@ -249,7 +236,15 @@ pub(crate) use own_equipment;
             other: &routing,
             resident: &resident_images,
             bounds: conduit_mcu_source_build::native_calibration::Bounds::for_workset(
-                &checked, &workset,
+                &checked,
+                &workset,
+                conduit_embedded_build::EmbeddedComputationBounds {
+                    maximum_program_bytes: conduit_mcu_source_build::dht11_tm1637_resident_bounds()
+                        .maximum_program_bytes,
+                    maximum_total_program_bytes:
+                        conduit_mcu_source_build::dht11_tm1637_resident_bounds()
+                            .maximum_program_bytes,
+                },
             )
             .expect("explicit finite Host calibration bounds"),
         },

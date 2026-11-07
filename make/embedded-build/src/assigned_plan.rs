@@ -324,9 +324,9 @@ fn encode(
         record(ASSIGNED_TERMINAL, value)?;
     }
 
-    for (index, (actual, maximum)) in counts.iter().zip(maxima.counts).enumerate() {
+    for (actual, maximum) in counts.iter().zip(maxima.counts) {
         bound(
-            &format!("assigned record {}", index + 1),
+            "assigned record count",
             u64::from(*actual),
             u64::from(maximum),
         )?;
@@ -439,16 +439,13 @@ fn u32_to(target: &mut Vec<u8>, value: u32) {
     target.extend_from_slice(&value.to_le_bytes());
 }
 
-fn bound(table: &str, actual: u64, maximum: u64) -> Result<(), GenerationError> {
+fn bound(table: &'static str, actual: u64, maximum: u64) -> Result<(), GenerationError> {
     if actual > maximum {
-        // Error table labels are static elsewhere; this encoder reports the
-        // stable category while retaining exact values.
         return Err(GenerationError::BoundExceeded {
-            table: "assigned projection",
+            table,
             actual,
             maximum,
         });
     }
-    let _ = table;
     Ok(())
 }

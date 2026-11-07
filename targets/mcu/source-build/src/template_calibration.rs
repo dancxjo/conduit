@@ -213,6 +213,16 @@ impl Calibration {
                 entry.layout.host_call_value_slot_capacities,
             );
             text.insert_str(0, &geometry);
+            let gears: Vec<_> = entry
+                .layout
+                .nodes
+                .iter()
+                .map(|(node, gear)| (*node, gear.as_str()))
+                .collect();
+            text.insert_str(
+                0,
+                &format!("pub static GEAR_IDS:&[(u16,&str)]=&{gears:?};\n"),
+            );
             let storage=format!("pub const PORTS_PER_NODE:usize={};\npub const SIGN_ITEMS:usize={};\npub const SIGN_BYTES:u32={};\n",entry.layout.ports_per_node,entry.layout.sign_items,entry.layout.sign_bytes);
             text.insert_str(0, &storage);
             let mut profile=format!("pub const MAXIMA:conduit_core::AssignedPlanMaxima=conduit_core::AssignedPlanMaxima{{encoded_bytes:{},runtime_state_bytes:{},counts:{:?}}};\npub const HOST_CALL_CONTRACTS:&[conduit_core::AssignedIdentity]=&[",entry.layout.maxima.encoded_bytes,entry.layout.maxima.runtime_state_bytes,entry.layout.maxima.counts);

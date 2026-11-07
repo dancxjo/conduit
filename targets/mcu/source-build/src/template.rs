@@ -68,12 +68,12 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
         input.plot,
         std::slice::from_ref(input.host),
         input.placements,
-        &[],
+        &[c::LOCAL_BASE_IMPLEMENTATION_ID.into()],
         input.planning,
         input.connections,
         input.boundaries,
     )
-    .map_err(debug)?;
+    .map_err(|e| format!("structural planning: {e:?}"))?;
     if plan.fragments.len() != 1 {
         return Err("structural template must lower one complete local fragment".into());
     }
@@ -85,7 +85,7 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
         input.resident,
         input.other,
     )
-    .map_err(debug)?;
+    .map_err(|e| format!("resident Source correspondence: {e:?}"))?;
     let generated = e::generate_fore_native_plan(
         &plan,
         &fragment.fragment_id,
@@ -93,10 +93,32 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
         input.computations,
         input.maximum_fore_ports,
     )
-    .map_err(debug)?;
+    .map_err(|e| format!("native lowering: {e:?}"))?;
     let bytes = generated
         .encode_with_resident_computations(input.maxima, &resident)
-        .map_err(debug)?;
+        .map_err(|error| {
+            // Diagnostics only: never emit/admit the larger projection. This
+            // bounded re-encoding identifies the immutable record costs behind
+            // an honest refusal under the independently selected actual limit.
+            let diagnostic_maxima = c::AssignedPlanMaxima {
+                encoded_bytes: u16::MAX,
+                runtime_state_bytes: u16::MAX,
+                ..input.maxima
+            };
+            let detail = generated
+                .encode_with_resident_computations(diagnostic_maxima, &resident)
+                .ok()
+                .and_then(|bytes| {
+                    let mut sizes = [0usize; c::ASSIGNED_PLAN_COUNT_KINDS];
+                    for record in c::AssignedPlanRecords::new(&bytes).ok()? {
+                        let record = record.ok()?;
+                        *sizes.get_mut(usize::from(record.tag).checked_sub(1)?)? +=
+                            record.payload.len() + 3;
+                    }
+                    Some(sizes)
+                });
+            format!("assigned encoding: {error:?}; diagnostic record bytes by tag: {detail:?}")
+        })?;
     let records = generated
         .layout_requirements_with_resident_computations(input.maxima, &resident)
         .map_err(debug)?;
@@ -135,7 +157,7 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     let mut cord_value_slot_capacities = Vec::new();
     for cord in &kernel.cords {
         cord_value_slot_capacities.extend(std::iter::repeat_n(
-            cord.maximum_value_bytes,
+            cord.maximum_value_bytes.max(1),
             usize::from(cord.item_capacity),
         ));
     }
@@ -156,7 +178,9 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             })
             .max();
         if let Some(maximum) = maximum {
-            step_value_slot_capacities.push(maximum);
+            // HostedValueStore's physical slots are nonempty even for the
+            // intrinsic zero-byte Empty ABI; logical Cord bounds stay zero.
+            step_value_slot_capacities.push(maximum.max(1));
         }
     }
     let mut host_call_value_slot_capacities = Vec::new();

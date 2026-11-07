@@ -1,10 +1,10 @@
 //! Host-side checked protocol compilation shared by MCU fabrication targets.
 //! No GPIO, sensor result, runtime readiness, Host identity or grant is invented.
 use conduit_plot as p;
-pub mod renderer;
 pub mod clock;
 pub mod image_input;
 pub mod native_calibration;
+pub mod renderer;
 pub mod software;
 pub mod template;
 pub mod template_calibration;
@@ -13,6 +13,8 @@ pub mod workset;
 /// The emitted-code test prepares every actual Back and verifies this ceiling.
 /// Scheduling/commit fuel remains separately accounted by the resident provider.
 pub const DHT11_TM1637_PRIVATE_WORK_UNITS: u16 = 1113;
+/// Bounded host-side resident compiler envelope, independent of MCU queue RAM.
+pub const MAXIMUM_RESIDENT_PROGRAM_BYTES: u32 = 512 * 1024;
 pub const DHT11_TM1637_ENTRIES: &[&str] = &[
     "dht11-capture-request",
     "dht11-pulse-frame",
@@ -153,7 +155,7 @@ mod tests {
                     contracts: 64,
                 },
                 maximum_occurrences: 4096,
-                maximum_program_bytes: 512 * 1024,
+                maximum_program_bytes: MAXIMUM_RESIDENT_PROGRAM_BYTES,
                 maximum_generated_bytes: 1024 * 1024,
                 private_work_units: super::DHT11_TM1637_PRIVATE_WORK_UNITS,
             },
@@ -189,5 +191,22 @@ mod tests {
                 "conduit_semantic_catalog",
             ],
         );
+    }
+}
+
+/// Reviewed implementation-generation envelope; execution fuel is independently
+/// admitted through the original private work resource.
+pub fn dht11_tm1637_resident_bounds() -> conduit_embedded_build::ResidentExpressionBounds {
+    conduit_embedded_build::ResidentExpressionBounds {
+        native: p::rust_binding::PreparedNativeBounds {
+            canonical_bytes: 4096,
+            scopes: 64,
+            invariants: 64,
+            contracts: 64,
+        },
+        maximum_occurrences: 4096,
+        maximum_program_bytes: MAXIMUM_RESIDENT_PROGRAM_BYTES,
+        maximum_generated_bytes: 1024 * 1024,
+        private_work_units: DHT11_TM1637_PRIVATE_WORK_UNITS,
     }
 }

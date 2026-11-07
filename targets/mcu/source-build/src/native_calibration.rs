@@ -30,6 +30,7 @@ impl Bounds {
     pub fn for_workset(
         checked: &h::CheckedHostConfiguration,
         workset: &workset::Workset,
+        computations: e::EmbeddedComputationBounds,
     ) -> Result<Self, String> {
         let limits = &checked.configuration().limits;
         let preparation = checked
@@ -58,7 +59,17 @@ impl Bounds {
         let cords = workset
             .entries
             .iter()
-            .map(|e| e.plot.expanded.connections.len())
+            .map(|e| {
+                e.plot
+                    .expanded
+                    .connections
+                    .len()
+                    .checked_add(e.plot.input_bindings.len())
+                    .and_then(|n| n.checked_add(e.plot.output_bindings.len()))
+            })
+            .collect::<Option<Vec<_>>>()
+            .ok_or("Cord table count overflow")?
+            .into_iter()
             .max()
             .ok_or("empty native workset")?;
         let fronts = workset
@@ -81,9 +92,24 @@ impl Bounds {
                 maximum_route_targets: routes,
                 maximum_host_calls: calls,
                 maximum_resources: calls,
-                maximum_sign_expectations: nodes
-                    .checked_mul(2)
-                    .ok_or("Sign table count overflow")?,
+                maximum_sign_expectations: workset
+                    .entries
+                    .iter()
+                    .map(|entry| {
+                        entry
+                            .plot
+                            .expanded
+                            .gears
+                            .len()
+                            .checked_mul(2)
+                            .and_then(|n| n.checked_add(entry.plot.expanded.connections.len()))
+                            .and_then(|n| n.checked_add(2))
+                    })
+                    .collect::<Option<Vec<_>>>()
+                    .ok_or("Sign table count overflow")?
+                    .into_iter()
+                    .max()
+                    .ok_or("empty native workset")?,
                 maximum_configuration_entries: nodes
                     .checked_mul(8)
                     .ok_or("configuration bound overflow")?,
@@ -95,10 +121,9 @@ impl Bounds {
                 maximum_sign_items: signs,
                 maximum_sign_bytes: bytes,
             },
-            computations: e::EmbeddedComputationBounds {
-                maximum_program_bytes: bytes,
-                maximum_total_program_bytes: bytes,
-            },
+            // Caller-reviewed immutable codebook ceilings are independent of
+            // queue/heap custody; BSP flash qualification remains separate.
+            computations,
             maxima: c::AssignedPlanMaxima {
                 encoded_bytes: encoded,
                 runtime_state_bytes: runtime,
@@ -225,6 +250,12 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
             }
         }
     }
+    // Core's Host resource contract has a canonical, strictly ordered pool
+    // inventory. This changes no pool identity, capacity or per-node resource.
+    host.resources
+        .sort_unstable_by(|a, b| a.pool_id.cmp(&b.pool_id));
+    host.bases
+        .sort_unstable_by(|a, b| a.base_id.cmp(&b.base_id));
     for entry in &workset.entries {
         let plots = &entry.plot.expanded;
         if plots
@@ -250,28 +281,12 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
                 .find(|o| o.capability_id == placement.capability_id)
                 .ok_or("missing calibrated offer".into())
         };
-        let mut connections = BTreeMap::new();
-        for cord in &plots.connections {
-            let selected = offer(&cord.source_gear_id)?;
-            let location = if cord.track == c::ConnectionTrack::AbnormalTerminal {
-                c::FrontValueLocation::OutputAbnormal(cord.source_port_id.clone())
-            } else {
-                c::FrontValueLocation::Output(cord.source_port_id.clone())
-            };
-            let bytes = extent(selected, &location)?;
-            connections.insert(
-                (
-                    cord.source_gear_id.clone(),
-                    cord.source_port_id.clone(),
-                    cord.sink_gear_id.clone(),
-                    cord.sink_port_id.clone(),
-                ),
-                p::ConnectionQueueLimits {
-                    item_capacity: 1,
-                    byte_capacity: bytes,
-                },
-            );
-        }
+        // Match the ordinary owner's queue policy exactly. These independent
+        // immutable records must calibrate the signed Plan, not a private
+        // compiler-only queue preference.
+        let connections =
+            p::default_expanded_connection_limits(plots, std::slice::from_ref(&host), &placements)
+                .map_err(debug)?;
         let mut boundaries = BTreeMap::new();
         for (direction, bindings) in [
             (c::PortDirection::Input, &entry.plot.input_bindings),
@@ -361,4 +376,33 @@ fn extent(offer: &c::CapabilityOffer, location: &c::FrontValueLocation) -> Resul
 }
 fn debug(e: impl core::fmt::Debug) -> String {
     format!("native structural calibration: {e:?}")
+}
+
+impl Bounds {
+    /// Public exact parser/storage selection for the ordinary owner policy.
+    /// These are compilation ceilings, never resource grants or Ready evidence.
+    pub fn policy_json(&self, maximum_document_bytes: u32) -> serde_json::Value {
+        let i = self.image;
+        serde_json::json!({
+            "image":{
+                "maximum_nodes":i.maximum_nodes,"maximum_cords":i.maximum_cords,
+                "maximum_routes":i.maximum_routes,"maximum_route_targets":i.maximum_route_targets,
+                "maximum_host_calls":i.maximum_host_calls,"maximum_resources":i.maximum_resources,
+                "maximum_sign_expectations":i.maximum_sign_expectations,
+                "maximum_configuration_entries":i.maximum_configuration_entries,
+                "maximum_ports_per_node":i.maximum_ports_per_node,
+                "maximum_remote_endpoints":i.maximum_remote_endpoints,
+                "maximum_cord_value_slots":i.maximum_cord_value_slots,
+                "maximum_cord_value_bytes":i.maximum_cord_value_bytes,
+                "maximum_sign_items":i.maximum_sign_items,"maximum_sign_bytes":i.maximum_sign_bytes
+            },
+            "maximum_program_bytes":self.computations.maximum_program_bytes,
+            "maximum_total_program_bytes":self.computations.maximum_total_program_bytes,
+            "assigned_encoded_bytes":self.maxima.encoded_bytes,
+            "assigned_runtime_state_bytes":self.maxima.runtime_state_bytes,
+            "assigned_counts":self.maxima.counts,
+            "maximum_fore_ports":self.maximum_fore_ports,
+            "maximum_document_bytes":maximum_document_bytes
+        })
+    }
 }
