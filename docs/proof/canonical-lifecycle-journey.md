@@ -9704,9 +9704,23 @@ Body Face/Mask execution on the thermometers is claimed from these components.
 
 Disk exhaustion interrupted compilation and one test-file write; that test was
 restored from its retained Source copy before the passing integration run.
-Package-native cleanup of inactive debug language outputs reclaimed 11.5 GiB;
+Package-native cleanup of inactive debug language outputs reclaimed roughly
+14.4 GiB across two passes;
 additional inactive unit-test executables and downloads with retained extracted
 Source were removed after inventory. Running/deployed binaries, release caches,
 private continuity state and unique evidence were preserved. Raw test/check logs
 stay under ignored `target/` and `/tmp`, including the pulse kernel, TM1637 and
 Source-capture runs; none are committed as evidence payloads.
+
+The final checked Yellow firmware link from clean Source
+`c20b5324a1` passed through Make: 1,057,268 linked flash bytes and 99,400 static
+RAM bytes, including the unchanged 49,152-byte heap arena. This is 4,304 fewer
+static bytes than the earlier Yellow cohort, not a physical peak measurement.
+Its public UF2 SHA-256 is
+`1bb428ef53c7f544afae42f24b9f52759dc3f098f7eb97d15ab6f874d3427269`;
+payload ends at `0x10102200`, below reserved data at `0x101fd000`. The build
+retains 34 warnings. It verifies the RP2040 composition of shared membership
+and return code; its manifest still reports neither membership nor local
+sampling Plan proven. The image was not flashed over Yellow's working
+measurement/display firmware. Artifacts and log remain ignored under
+`target/mcu-shared-yellow-integrated*`.
