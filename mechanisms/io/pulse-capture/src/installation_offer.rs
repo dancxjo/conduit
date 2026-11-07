@@ -51,6 +51,12 @@ mod tests {
         offer.validate_constructed_semantic_contract().unwrap();
         assert_eq!(offer.inputs, contract.kind().inputs);
         assert_eq!(offer.outputs, contract.kind().outputs);
+        assert_eq!(offer.semantic_contract.value_contracts().len(), 2);
+        for value in offer.semantic_contract.value_contracts() {
+            assert!(value.contract.maximum_bytes <= PULSE_READ_MAXIMUM_BYTES);
+            assert!(value.contract.maximum_bytes > 64);
+        }
+
         assert_eq!(offer.implementation.artifact_id, artifact);
         assert_eq!(offer.implementation.implementation_id, implementation);
         assert_eq!(offer.host_calls.len(), 1);

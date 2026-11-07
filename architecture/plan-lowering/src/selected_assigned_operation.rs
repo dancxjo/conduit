@@ -90,6 +90,29 @@ pub fn bind_selected_assigned_fore_operation(
         },
     )
 }
+/// Exact local Fore plus independently checked startup configuration. The
+/// configuration and Fore pins both remain required by the ordinary binder.
+pub fn bind_selected_assigned_fore_configured_operation(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[c::ConfigurationEntry],
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedForeOperationPlan<'_>,
+) -> Result<NodeId, E> {
+    bind_assigned_profile(
+        table,
+        claim,
+        definition,
+        configuration,
+        native,
+        AssignedSelection {
+            operation: selected.operation,
+            fore: Some(selected.fore),
+        },
+    )
+}
+
 struct AssignedSelection<'a> {
     operation: SelectedAssignedOperationPlan<'a>,
     fore: Option<&'a [c::AssignedForeRequirement]>,

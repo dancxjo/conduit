@@ -2,8 +2,9 @@
 use super::*;
 use conduit_plan_lowering::{
     selected_assigned_operation::{
-        bind_selected_assigned_configured_operation, AssignedNativeIdentity,
-        SelectedAssignedOperationPlan,
+        bind_selected_assigned_configured_operation,
+        bind_selected_assigned_fore_configured_operation, AssignedNativeIdentity,
+        SelectedAssignedForeOperationPlan, SelectedAssignedOperationPlan,
     },
     selected_operation::{SelectedCallRefusal, SelectedOperationContract},
 };
@@ -16,6 +17,31 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
         claim: &BaseOperationClaim,
         configuration: &[ConfigurationEntry],
         selected: SelectedAssignedOperationPlan<'_>,
+    ) -> Result<conduit_kernel::NodeId, WaitCallRefusal> {
+        self.check_assigned_profile(table, claim, configuration, selected, None)
+    }
+    pub fn check_assigned_fore(
+        &self,
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        configuration: &[ConfigurationEntry],
+        selected: SelectedAssignedForeOperationPlan<'_>,
+    ) -> Result<conduit_kernel::NodeId, WaitCallRefusal> {
+        self.check_assigned_profile(
+            table,
+            claim,
+            configuration,
+            selected.operation,
+            Some(selected.fore),
+        )
+    }
+    fn check_assigned_profile(
+        &self,
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        configuration: &[ConfigurationEntry],
+        selected: SelectedAssignedOperationPlan<'_>,
+        fore: Option<&[AssignedForeRequirement]>,
     ) -> Result<conduit_kernel::NodeId, WaitCallRefusal> {
         let identity = &self.identity;
         if claim.host_id != identity.host_id
@@ -30,29 +56,44 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             return Err(WaitCallRefusal::WrongBinding);
         }
         let kind = crate::owner::checked_contract(table, claim, self.attachment, configuration)?;
-        bind_selected_assigned_configured_operation(
-            table,
-            claim,
-            SelectedOperationContract {
-                kind: &kind,
-                call: WAIT_HOST_CALL_CONTRACT,
-                input_bytes: PARAMETER_BYTES,
-                output_bytes: 0,
-                resource_bytes: self.attachment.resource_bytes,
-            },
-            configuration,
-            AssignedNativeIdentity {
-                capability: WAIT_CAPABILITY,
-                execution_profile: WAIT_EXECUTION_PROFILE,
-                artifact: identity.artifact_id.as_str(),
-                base: identity.base_id.as_str(),
-                base_implementation: identity.base_implementation_id.as_str(),
-                mechanism: WAIT_ATTACHMENT_CLASS,
-                authority: WAIT_AUTHORITY,
-                resource_class: WAIT_ATTACHMENT_CLASS,
-            },
-            selected,
-        )
+        let definition = SelectedOperationContract {
+            kind: &kind,
+            call: WAIT_HOST_CALL_CONTRACT,
+            input_bytes: PARAMETER_BYTES,
+            output_bytes: 0,
+            resource_bytes: self.attachment.resource_bytes,
+        };
+        let native = AssignedNativeIdentity {
+            capability: WAIT_CAPABILITY,
+            execution_profile: WAIT_EXECUTION_PROFILE,
+            artifact: identity.artifact_id.as_str(),
+            base: identity.base_id.as_str(),
+            base_implementation: identity.base_implementation_id.as_str(),
+            mechanism: WAIT_ATTACHMENT_CLASS,
+            authority: WAIT_AUTHORITY,
+            resource_class: WAIT_ATTACHMENT_CLASS,
+        };
+        match fore {
+            None => bind_selected_assigned_configured_operation(
+                table,
+                claim,
+                definition,
+                configuration,
+                native,
+                selected,
+            ),
+            Some(fore) => bind_selected_assigned_fore_configured_operation(
+                table,
+                claim,
+                definition,
+                configuration,
+                native,
+                SelectedAssignedForeOperationPlan {
+                    operation: selected,
+                    fore,
+                },
+            ),
+        }
         .map_err(|e| match e {
             SelectedCallRefusal::WrongBinding => WaitCallRefusal::WrongBinding,
             SelectedCallRefusal::Possession => WaitCallRefusal::Possession,
@@ -126,6 +167,27 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             .as_ref()
             .ok_or(WaitCallRefusal::Possession)?
             .check_assigned(&table, &claim, configuration, selected)?;
+        Ok(PreparedAssignedWait {
+            slot,
+            table,
+            handle,
+            claim,
+            node,
+        })
+    }
+    /// Checks exact local Fore and configuration before lending the owner.
+    pub fn prepare_assigned_fore_retained<'a>(
+        slot: &'a mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        configuration: &[ConfigurationEntry],
+        selected: SelectedAssignedForeOperationPlan<'_>,
+    ) -> Result<PreparedAssignedWait<'a, P>, WaitCallRefusal> {
+        let node = slot
+            .as_ref()
+            .ok_or(WaitCallRefusal::Possession)?
+            .check_assigned_fore(&table, &claim, configuration, selected)?;
         Ok(PreparedAssignedWait {
             slot,
             table,

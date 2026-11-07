@@ -50,6 +50,16 @@ mod tests {
         assert_eq!(offer.implementation.artifact_id, artifact);
         assert_eq!(offer.implementation.implementation_id, implementation);
         assert_eq!(offer.host_calls.len(), 1);
+        let values = offer.semantic_contract.value_contracts();
+        assert_eq!(values.len(), 1);
+        assert_eq!(
+            values[0].location,
+            conduit_core::FrontValueLocation::Input(conduit_core::port_id("packets"))
+        );
+        assert!(values[0].contract.maximum_bytes <= MAXIMUM_BYTES);
+        assert!(values[0].contract.maximum_bytes > 64);
+        assert_eq!(offer.host_calls[0].maximum_output_bytes, 0);
+
         assert!(capability_offer(&contract, &"".into(), &implementation).is_err());
         assert!(capability_offer(&contract, &artifact, &"".into()).is_err());
     }
