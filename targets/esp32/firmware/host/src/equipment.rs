@@ -12,7 +12,6 @@ use conduit_tm1637_wire::{
 };
 pub const SOURCE_WAIT_SLOTS: usize = crate::workset::sampling::CLOCKS.len();
 pub struct Equipment {
-    pub routing: conduit_mcu_host_runtime::execution_mask::ReadyMaskRouting,
     pub renderer: conduit_mcu_host_runtime::execution_mask::ReadyRenderer<crate::renderer::Clock>,
     pub pulse: Option<ReadyPulseBase<Capture>>,
     pub waits: [Option<
@@ -84,12 +83,6 @@ impl Equipment {
         // on cancellation/drop. No received assignment can construct this owner.
         unsafe {
             Self {
-                routing: conduit_mcu_host_runtime::execution_mask::ReadyMaskRouting::new(
-                    crate::workset::mask_layout::MASK_ROLES.expect("calibrated actual Mask roles"),
-                    crate::config::RENDERER_FACE_BYTES,
-                    crate::config::RENDERER_SHOW_BYTES,
-                )
-                .expect("exact initialized Mask routing owners"),
                 renderer: crate::renderer::initialize(actual),
                 waits: core::array::from_fn(|index| {
                     // The renderer owns slot0; only actual Source clocks receive
@@ -164,3 +157,7 @@ impl conduit_pulse_capture::owner::PulseReadProvider for Capture {
         self.0.read(request).await
     }
 }
+
+pub type Wire = Esp32Tm1637<'static>;
+pub use crate::runtime::MonotonicTimer;
+pub const WAIT_SLOTS: usize = SOURCE_WAIT_SLOTS;

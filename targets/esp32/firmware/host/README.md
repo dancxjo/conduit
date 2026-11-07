@@ -11,9 +11,14 @@ Shared Root handles authenticated admission, retained return and preparation.
 Source-derived software, resident protocol definitions, native offer images and
 ordinary lowering layouts are generated from the captured workset.
 
-Remaining work is to connect the complete sampling/Mask/output preparation,
-atomic admission and authenticated Start to the shared native runners and Mask
-session, then qualify the actual optimized Xtensa image and physical behavior.
+The entry now calls the shared Source-selected sampling/Mask/output factory,
+whole-workset admission, authenticated Start, native runners and Mask session.
+These composition templates are shared with RP2040; only actual physical owners,
+identity, entropy and carrier adapters are board-local. They specialize this
+checked three-fragment Source profile, rather than claiming arbitrary Plot support.
+
+The complete optimized Xtensa compilation, link and physical behavior still need
+qualification. The fabrication guard remains in place until those checks pass.
 Earlier electrical/Root compile checks do not establish that integration.
 
 Provisioning must first preserve the existing complete flash, credentials and

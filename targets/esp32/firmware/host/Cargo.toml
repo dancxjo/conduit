@@ -28,7 +28,12 @@ esp-rtos = { version = "0.3.0", features = ["embassy", "esp32"] }
 panic-halt = "1.0"
 static_cell = "2.1.1"
 conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
-conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", features = ["display-mask"] }
+conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", features = ["appliance", "face-projection", "display-mask"] }
+heapless = "0.8"
+serde-json-core = "0.6"
+conduit-time = { path = "../../../../semantics/time", features = ["kernel-step"] }
+serde = { version = "1", default-features = false }
+conduit-face = { path = "../../../../semantics/face", default-features = false }
 [build-dependencies]
 conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
 conduit-core = { path = "../../../../architecture/core" }

@@ -178,6 +178,62 @@ impl Workset {
         )
     }
 
+    /// Prepare the exact context-specialized expression programs selected by
+    /// the expanded workset, rather than re-expanding separate named entries.
+    /// Repeated instances require distinct physical Back custody; the current
+    /// single-owner codebook profile refuses them instead of aliasing an owner.
+    pub fn prepare_selected_residents(
+        &self,
+        bounds: conduit_embedded_build::ResidentExpressionBounds,
+    ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
+        let mut selected = Vec::new();
+        let mut identities = Vec::new();
+        for entry in &self.entries {
+            for gear in &entry.plot.expanded.gears {
+                let Some(configuration) = gear.configuration.iter().find(|c| c.key == "program")
+                else {
+                    continue;
+                };
+                let conduit_core::ConfigurationValue::Text(text) = &configuration.value else {
+                    return Err("selected resident program is not canonical text".into());
+                };
+                let temporal = gear
+                    .inputs
+                    .first()
+                    .ok_or("selected resident input absent")?
+                    .temporal;
+                if identities
+                    .iter()
+                    .any(|(old, mode)| old == text && *mode == temporal)
+                {
+                    return Err(
+                        "repeated resident program requires distinct initialized instance custody"
+                            .into(),
+                    );
+                }
+                let program = p::PortableExpressionProgram::from_canonical_hex(text)
+                    .map_err(|e| format!("selected resident program: {e:?}"))?;
+                let image = conduit_embedded_build::PreparedResidentExpression::prepare(
+                    &self.checked_source,
+                    &program,
+                    temporal,
+                    bounds,
+                )
+                .map_err(|e| format!("selected resident preparation: {e:?}"))?;
+                if image.kind_id() != &gear.kind_id
+                    || image.offer_description().semantic_contract != gear.semantic_contract
+                {
+                    return Err(format!(
+                        "selected resident contract differs from checked gear {}",
+                        gear.gear_id.as_str()
+                    ));
+                }
+                identities.push((text.clone(), temporal));
+                selected.push(image);
+            }
+        }
+        Ok(selected)
+    }
     pub fn emit_to(&self, out: &Path) -> Result<(), String> {
         if !self.calibrated {
             return Err(

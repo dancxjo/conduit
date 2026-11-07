@@ -47,7 +47,9 @@ fn main() {
         .filter(|_| work.next().is_none())
         .expect("one finite admitted work-pool construction");
     assert!(work.bytes <= config.limits.heap_arena_bytes && work.slots > 0);
-    assert!(config.limits.buffered_bytes <= 16384 && config.limits.heap_arena_bytes <= 98304);
+    assert!(config.preparation.as_ref().expect("explicit preparation").maximum_assignment_bytes <= 16384);
+    assert!(config.limits.buffered_bytes <= config.limits.heap_arena_bytes);
+    assert!(config.limits.heap_arena_bytes <= 98304);
     let preparation = conduit_host_make::rust_preparation_delegation(&checked);
     let execution = conduit_host_make::rust_execution_delegation(&checked);
     let generated = format!(
@@ -88,7 +90,7 @@ pub(crate) use own_equipment;
         configuration = checked.configuration_id(),
         heap = config.limits.heap_arena_bytes,
         static_bytes = config.limits.static_memory_bytes,
-        assignment = config.limits.buffered_bytes,
+        assignment = config.preparation.as_ref().expect("explicit preparation").maximum_assignment_bytes,
         runtime = config
             .preparation
             .as_ref()
@@ -130,10 +132,7 @@ pub(crate) use own_equipment;
     println!("cargo:rustc-cfg=assigned_workset");
     fs::write(out.join("host.rs"), &generated).unwrap();
     let resident_images = workset
-        .prepare_residents(
-            conduit_mcu_source_build::DHT11_TM1637_ENTRIES,
-            conduit_mcu_source_build::dht11_tm1637_resident_bounds(),
-        )
+        .prepare_selected_residents(conduit_mcu_source_build::dht11_tm1637_resident_bounds())
         .expect("actual combined checked Source resident definitions");
     let resident =
         conduit_embedded_build::generate_resident_library(&resident_images, 2 * 1024 * 1024)
@@ -264,6 +263,7 @@ pub(crate) use own_equipment;
     calibration
         .emit_to(&out, 2 * 1024 * 1024)
         .expect("finite immutable Source layout emission");
+    conduit_mcu_source_build::source_composition::emit_to(&out).expect("shared Source composition emission");
     workset
         .emit_to(&out)
         .expect("calibrated Source factories only");

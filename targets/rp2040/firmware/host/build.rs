@@ -77,8 +77,27 @@ fn main() {
     let work = conduit_host_rp2040::CheckedResidentWorkPool::from_configuration(&checked)
         .expect("explicit resident work-pool construction budget");
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    let resident = if dht.is_some() {
-        conduit_host_rp2040::checked_dht11_resident_library(&checked)
+    let renderer = dht.as_ref().map(|_| {
+        conduit_host_rp2040::CheckedRendererConstruction::from_configuration(
+            &checked,
+            conduit_host_rp2040::RENDERER_IMPLEMENTATION,
+        )
+        .expect("checked renderer construction")
+    });
+    let resident_images = renderer.map(|renderer| {
+        prepare_dht_workset(
+            &checked,
+            &catalog,
+            &image_id,
+            &source_identity,
+            &out,
+            renderer,
+        )
+    });
+
+    let resident = if let Some(images) = &resident_images {
+        conduit_embedded_build::generate_resident_library(images, 2 * 1024 * 1024)
+            .map_err(|e| format!("resident library: {e:?}"))
     } else if tm {
         // No HT16K33 computations or TM1637 Back are installed for this profile.
         conduit_embedded_build::generate_resident_library(&[], 2 * 1024 * 1024)
@@ -102,6 +121,11 @@ fn main() {
     let c = bus.controller;
     let sda = bus.sda_gpio;
     let scl = bus.scl_gpio;
+    let renderer_source=match renderer {
+        Some(r)=>format!("pub const RENDERER_FACE_BYTES:u32={};pub const RENDERER_SHOW_BYTES:u32={};pub const RENDERER_RESOURCE_BYTES:u64={};pub const RENDERER_MAXIMUM_FRAMES:u32={};pub const RENDERER_PAGE_PERIOD_MS:u64={};pub const RENDERER_SHOW_LIFETIME_MS:u64={};pub const RENDERER_FAHRENHEIT:bool={};",r.face_bytes,r.show_bytes,r.resource_bytes,r.maximum_frames,r.page_period_ms,r.show_lifetime_ms,matches!(r.temperature_unit,conduit_host_rp2040::RendererTemperatureUnit::Fahrenheit)),
+        None=>String::new(),
+    };
+    fs::write(out.join("renderer.rs"), renderer_source).unwrap();
     let preparation = conduit_host_make::rust_preparation_delegation(&checked);
     let execution = conduit_host_make::rust_execution_delegation(&checked);
     let heap = checked.configuration().limits.heap_arena_bytes;
@@ -170,10 +194,13 @@ include!(concat!(env!("OUT_DIR"), "/native_offer.rs"));
 pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image_id:?};
 pub const HEAP_BYTES:usize={heap};
+pub const TIMER_SLOTS:usize={timer_slots};
 pub const PREPARATION_DELEGATION:Option<conduit_body::HostPreparationDelegation>={preparation};
 pub const EXECUTION_DELEGATION:Option<conduit_body::HostExecutionDelegation>={execution};
 pub const RESIDENT_WORK_POOL:&str={work_pool:?};
 pub const RESIDENT_WORK_UNITS:u32={work_units};
+// Checked private computation bookkeeping only, not whole-Root heap permission.
+pub const RESIDENT_WORK_BOOKKEEPING_BYTES:u64={storage_bytes};
 pub const RESIDENT_PREPARATION_STORAGE_BYTES:usize={storage_bytes};
 // Representation ceilings from checked construction, not new execution grants.
 pub const RESIDENT_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima=conduit_core::AssignedPlanMaxima{{
@@ -212,6 +239,7 @@ embassy_rp::bind_interrupts!(pub struct SensorIrqs {{ I2C{c}_IRQ => embassy_rp::
         call_address_range = bus.call_address_range,
         call_maximum_operations = bus.maximum_call_operations,
         image_id = image_id,
+        timer_slots = checked.configuration().limits.timer_slots,
         configuration = checked.configuration_id(),
         frequency = bus.frequency_hz,
         polls = bus.maximum_transaction_polls,
@@ -269,4 +297,206 @@ embassy_rp::bind_interrupts!(pub struct SensorIrqs {{ I2C{c}_IRQ => embassy_rp::
         "cargo:rustc-env=CONDUIT_RP2040_BUILD_ID={:x}",
         digest.finalize()
     );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_dht_workset(
+    checked: &conduit_host_make::CheckedHostConfiguration,
+    catalog: &conduit_host_make::MakeCatalog,
+    image_id: &str,
+    source_identity: &str,
+    out: &std::path::Path,
+    renderer: conduit_host_rp2040::CheckedRendererConstruction,
+) -> Vec<conduit_embedded_build::PreparedResidentExpression> {
+    use conduit_host_rp2040::source_build::{
+        image_input, native_calibration as calibration, workset,
+    };
+    use conduit_mcu_host_runtime::execution_mask;
+    let image = image_input::from_environment(checked, catalog, image_id, source_identity)
+        .expect("original ordinary Make IMAGE");
+    let clock = conduit_host_rp2040::CheckedClockConstruction::from_configuration(
+        checked,
+        conduit_host_rp2040::CLOCK_IMPLEMENTATION,
+    )
+    .expect("checked finite timer slots");
+    let mask = Some(workset::MaskBounds {
+        face_bytes: renderer.face_bytes,
+        show_bytes: renderer.show_bytes,
+    });
+    let mut workset=workset::from_environment(mask).expect("explicit checked workset Source").expect("DHT execution requires explicit --workset-source and all selected --workset-entry inputs");
+    let resident = workset
+        .prepare_selected_residents(
+            conduit_host_rp2040::source_build::dht11_tm1637_resident_bounds(),
+        )
+        .expect("actual combined checked Source resident definitions");
+    let artifact = conduit_core::ArtifactId::from(image_id);
+    let pulse = conduit_pulse_capture::installation::capability_offer(
+        &conduit_pulse_capture::PulseReadContract::prepare().unwrap(),
+        &artifact,
+        &conduit_core::ImplementationId::from(conduit_host_rp2040::DHT11_IMPLEMENTATION),
+    )
+    .unwrap();
+    let display = conduit_tm1637_wire::installation::capability_offer(
+        &conduit_tm1637_wire::WriteContract::prepare().unwrap(),
+        &artifact,
+        &conduit_core::ImplementationId::from(conduit_host_rp2040::TM1637_IMPLEMENTATION),
+    )
+    .unwrap();
+    let wait = conduit_monotonic_wait::capability_offer(
+        &artifact,
+        &conduit_core::ImplementationId::from(conduit_host_rp2040::CLOCK_IMPLEMENTATION),
+    )
+    .unwrap();
+    let renderer_offer = execution_mask::capability_offer(
+        conduit_host_rp2040::RENDERER_IMPLEMENTATION.into(),
+        artifact,
+        execution_mask::Bounds {
+            face_bytes: renderer.face_bytes,
+            show_bytes: renderer.show_bytes,
+            resource_bytes: renderer.resource_bytes,
+            maximum_frames: renderer.maximum_frames,
+        },
+    );
+    let mut waits = 0usize;
+    for entry in &workset.entries {
+        let material =
+            conduit_host_rp2040::source_build::software::compile(&entry.plot.expanded, 24 * 1024)
+                .expect("checked Source software definitions");
+        for node in material.nodes {
+            if let conduit_host_rp2040::source_build::software::SoftwareRole::Tick {
+                period_ms,
+                ..
+            } = node.role
+            {
+                waits += 1;
+                assert!(
+                    period_ms <= clock.maximum_duration_ms,
+                    "Source wait exceeds selected native clock"
+                );
+            }
+        }
+    }
+    assert_eq!(
+        waits, 1,
+        "this finite native execution profile owns one sampling clock"
+    );
+    assert!(
+        waits + 1 <= clock.slots,
+        "Source waits and renderer exceed actual initialized clock slots"
+    );
+    let descriptions = [
+        calibration::NativeDescription {
+            slot: calibration::Slot {
+                base: "rp2040/gpio-pulse",
+                pool: "pool/rp2040/gpio-pulse",
+                implementation: conduit_host_rp2040::DHT11_IMPLEMENTATION,
+            },
+            class: conduit_pulse_capture::installation::PULSE_ATTACHMENT_CLASS,
+            definition: pulse,
+        },
+        calibration::NativeDescription {
+            slot: calibration::Slot {
+                base: "rp2040/tm1637",
+                pool: "pool/rp2040/tm1637",
+                implementation: conduit_host_rp2040::TM1637_IMPLEMENTATION,
+            },
+            class: conduit_tm1637_wire::installation::WRITE_ATTACHMENT_CLASS,
+            definition: display,
+        },
+        calibration::NativeDescription {
+            slot: calibration::Slot {
+                base: "rp2040/wait/0",
+                pool: "pool/rp2040/wait/0",
+                implementation: conduit_host_rp2040::CLOCK_IMPLEMENTATION,
+            },
+            class: conduit_monotonic_wait::WAIT_ATTACHMENT_CLASS,
+            definition: wait,
+        },
+        calibration::NativeDescription {
+            slot: calibration::Slot {
+                base: "rp2040/face-renderer",
+                pool: "pool/rp2040/face-renderer",
+                implementation: conduit_host_rp2040::RENDERER_IMPLEMENTATION,
+            },
+            class: execution_mask::ATTACHMENT,
+            definition: renderer_offer,
+        },
+    ];
+    let mut native = String::new();
+    for (name, description) in [
+        "PULSE_IMAGE",
+        "DISPLAY_IMAGE",
+        "WAIT_IMAGE",
+        "RENDERER_IMAGE",
+    ]
+    .iter()
+    .zip(&descriptions)
+    {
+        let bytes = conduit_embedded_build::generate_capability_offer_image(
+            &description.definition,
+            24 * 1024,
+        )
+        .unwrap();
+        native.push_str(&format!("pub static {name}:&[u8]=&{bytes:?};\n"));
+    }
+    fs::write(out.join("native_images.rs"), native).unwrap();
+    let work = conduit_host_rp2040::CheckedResidentWorkPool::from_configuration(checked).unwrap();
+    let shared = [conduit_core::resource_offer(
+        &work.id,
+        conduit_core::COOPERATIVE_STEP_WORK_CLASS_ID,
+        work.capacity_units,
+    )];
+    let routing = execution_mask::routing_offers(renderer.face_bytes, renderer.show_bytes).unwrap();
+    let bounds = calibration::Bounds::for_workset(
+        checked,
+        &workset,
+        conduit_embedded_build::EmbeddedComputationBounds {
+            maximum_program_bytes: conduit_host_rp2040::source_build::dht11_tm1637_resident_bounds(
+            )
+            .maximum_program_bytes,
+            maximum_total_program_bytes:
+                conduit_host_rp2040::source_build::dht11_tm1637_resident_bounds()
+                    .maximum_program_bytes,
+        },
+    )
+    .expect("finite checked Source lowering bounds");
+    fs::write(
+        out.join("workset-policy.json"),
+        bounds
+            .policy_json(
+                checked
+                    .configuration()
+                    .preparation
+                    .as_ref()
+                    .unwrap()
+                    .maximum_assignment_bytes,
+            )
+            .to_string(),
+    )
+    .unwrap();
+    let calibrated = calibration::compile(
+        &workset,
+        calibration::Input {
+            checked,
+            image: &image,
+            catalog,
+            shared_resources: &shared,
+            native: &descriptions,
+            other: &routing,
+            resident: &resident,
+            bounds,
+        },
+    )
+    .expect("independent native structural calibration");
+    calibrated
+        .apply_software_mapping(&mut workset, mask, 24 * 1024, 1024 * 1024)
+        .expect("actual Source/kernel ordinal factories");
+    calibrated
+        .emit_to(out, 2 * 1024 * 1024)
+        .expect("independent assigned layouts");
+    conduit_host_rp2040::source_build::source_composition::emit_to(&out).expect("shared Source composition emission");
+    workset
+        .emit_to(out)
+        .expect("checked calibrated runtime factories");
+    resident
 }

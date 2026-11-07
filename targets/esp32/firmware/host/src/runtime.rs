@@ -1,14 +1,13 @@
-//! Shared authenticated Root entry. Physical effects require admitted execution.
+//! Actual ESP32 board entry; shared Source composition owns admitted work.
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration};
 use conduit_esp32_electrical::{uart::Uart0Carrier, Esp32PulseCapture, Esp32Tm1637};
 use conduit_mcu_host_runtime::{
-    root::{Configuration, Request, Root},
+    root::{Configuration, Root},
     seed::Seed,
     transport::Link,
 };
-use embassy_time::{with_timeout, Duration, Timer};
-
+use embassy_time::Timer;
 pub async fn run(
     seed: Seed<'static>,
     host: String,
@@ -16,6 +15,18 @@ pub async fn run(
     carrier: Uart0Carrier<'static>,
     equipment: (Esp32PulseCapture<'static>, Esp32Tm1637<'static>),
 ) -> ! {
+    // SAFETY: same original checked IMAGE constructed the sole physical heap.
+    let image_memory = unsafe {
+        conduit_mcu_host_runtime::image_memory::StagedImageMemory::verified_heap(
+            crate::config::HEAP_BYTES,
+        )
+    }
+    .expect("original IMAGE arena");
+    // One coarse reservation covers initialization, preparation and retained
+    // execution before any Ready owner is constructed. It never claims peak fit.
+    let arena = image_memory
+        .reserve_remaining()
+        .expect("whole original IMAGE arena");
     let boot = nonce.iter().fold(String::from("esp32/boot/"), |mut s, b| {
         use core::fmt::Write;
         write!(&mut s, "{b:02x}").expect("String write");
@@ -41,7 +52,7 @@ pub async fn run(
     equipment
         .publish(&mut actual)
         .expect("bounded actual native publication");
-    let mut root = Root::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new(
+    let root = Root::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new(
         seed,
         actual,
         Configuration {
@@ -54,90 +65,11 @@ pub async fn run(
     )
     .expect("original checked Root");
     let mut link = Link::new(carrier);
-    let mut response = [0u8; crate::config::MAX_ASSIGNMENT_BYTES];
-    // Owned here until the shared native issuer/factory consumes them. This
-    // binary is not deployable until the whole-workset execution bridge is wired.
-    let equipment = equipment;
-    let mut issuers = crate::authority::NativeIssuers::new();
-    let operations = crate::authority::operations();
-    let residents = match crate::resident::Initialized::prepare() {
-        Ok(initialized) => initialized,
-        Err(_) => panic!("checked resident inventory initialization refused"),
-    };
-    loop {
-        let result = match root.receive_request(&mut link).await {
-            Ok(Request::Spawn) => root.spawn(&mut link, &mut response).await,
-            Ok(Request::Prepare) => {
-                let mut nonce = [0u8; 32];
-                nonce[..16].copy_from_slice(
-                    &conduit_esp32_electrical::platform::fresh_boot_nonce().expect("entropy"),
-                );
-                nonce[16..].copy_from_slice(
-                    &conduit_esp32_electrical::platform::fresh_boot_nonce().expect("entropy"),
-                );
-                match with_timeout(
-                    Duration::from_secs(10),
-                    root.receive_preparation(
-                        &mut link,
-                        nonce,
-                        conduit_esp32_electrical::platform::monotonic_millis,
-                    ),
-                )
-                .await
-                {
-                    Ok(result) => result,
-                    Err(_) => {
-                        root.clear_unretained_input();
-                        Err(conduit_mcu_host_runtime::root::Refusal::Preparation)
-                    }
-                }
-            }
-            Ok(Request::Return) => {
-                match crate::authority::authorize(&mut root, &equipment, &mut issuers, &operations)
-                {
-                    Err(error) => Err(error),
-                    Ok(()) => {
-                        let images = residents
-                            .offers()
-                            .into_iter()
-                            .flatten()
-                            .chain([
-                                crate::native_images::PULSE_IMAGE,
-                                crate::native_images::DISPLAY_IMAGE,
-                                crate::native_images::RENDERER_IMAGE,
-                                crate::native_images::WAIT_IMAGE,
-                            ])
-                            .chain(crate::workset::sampling::OFFER_IMAGES.iter().copied())
-                            .chain(crate::workset::mask::OFFER_IMAGES.iter().copied())
-                            .chain(crate::workset::mask::MASK_ROUTING_IMAGES.iter().copied())
-                            .chain(crate::workset::output::OFFER_IMAGES.iter().copied());
-                        root.return_member(
-                            &mut link,
-                            images,
-                            || {
-                                issuers
-                                    .copy_grants(
-                                        crate::config::HEAP_BYTES.saturating_sub(allocator_used()),
-                                    )
-                                    .map_err(|_| {
-                                        conduit_mcu_host_runtime::member_return::Refusal::Bounds
-                                    })
-                            },
-                            &mut response,
-                        )
-                        .await
-                    }
-                }
-            }
-            Err(error) => Err(error),
-        };
-        if result.is_err() {
-            link.reset();
-        }
-        Timer::after_millis(10).await;
-    }
+    shared::run(root, equipment, arena, &mut link).await
 }
-
+mod shared {
+    include!(concat!(env!("OUT_DIR"), "/source_runtime.rs"));
+}
 /// Owns an initialized ESP RTOS monotonic timer capability. A cancelled wait
 /// drops the Embassy timer and leaves no hardware effect awaiting retry.
 pub struct MonotonicTimer {
@@ -163,4 +95,25 @@ impl conduit_monotonic_wait::MonotonicWaitProvider for MonotonicTimer {
 /// envelope or accumulated guessed allocation sizes.
 pub fn allocator_used() -> usize {
     esp_alloc::HEAP.used()
+}
+
+pub fn now_ms() -> u64 {
+    conduit_esp32_electrical::platform::monotonic_millis()
+}
+pub fn remaining() -> usize {
+    crate::config::HEAP_BYTES.saturating_sub(allocator_used())
+}
+
+pub fn fresh_challenge() -> [u8; 32] {
+    let mut challenge = [0; 32];
+    challenge[..16]
+        .copy_from_slice(&conduit_esp32_electrical::platform::fresh_boot_nonce().expect("entropy"));
+    challenge[16..]
+        .copy_from_slice(&conduit_esp32_electrical::platform::fresh_boot_nonce().expect("entropy"));
+    challenge
+}
+pub fn observe_receipt(_digest: Option<[u8; 32]>) {}
+// The ESP allocator exposes current usage, not an independently measured peak.
+pub fn allocator_peak() -> Option<usize> {
+    None
 }

@@ -96,29 +96,7 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     .map_err(|e| format!("native lowering: {e:?}"))?;
     let bytes = generated
         .encode_with_resident_computations(input.maxima, &resident)
-        .map_err(|error| {
-            // Diagnostics only: never emit/admit the larger projection. This
-            // bounded re-encoding identifies the immutable record costs behind
-            // an honest refusal under the independently selected actual limit.
-            let diagnostic_maxima = c::AssignedPlanMaxima {
-                encoded_bytes: u16::MAX,
-                runtime_state_bytes: u16::MAX,
-                ..input.maxima
-            };
-            let detail = generated
-                .encode_with_resident_computations(diagnostic_maxima, &resident)
-                .ok()
-                .and_then(|bytes| {
-                    let mut sizes = [0usize; c::ASSIGNED_PLAN_COUNT_KINDS];
-                    for record in c::AssignedPlanRecords::new(&bytes).ok()? {
-                        let record = record.ok()?;
-                        *sizes.get_mut(usize::from(record.tag).checked_sub(1)?)? +=
-                            record.payload.len() + 3;
-                    }
-                    Some(sizes)
-                });
-            format!("assigned encoding: {error:?}; diagnostic record bytes by tag: {detail:?}")
-        })?;
+        .map_err(|e| format!("assigned encoding: {e:?}"))?;
     let records = generated
         .layout_requirements_with_resident_computations(input.maxima, &resident)
         .map_err(debug)?;

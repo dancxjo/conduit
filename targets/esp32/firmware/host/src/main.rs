@@ -12,17 +12,36 @@ use esp_hal::{
 };
 use panic_halt as _;
 use static_cell::StaticCell;
-mod bootstrap;
-mod equipment;
-mod runtime;
-mod renderer;
 #[cfg(assigned_workset)]
 mod authority;
+mod bootstrap;
+mod equipment;
+mod renderer;
+mod runtime;
 #[cfg(assigned_workset)]
 #[allow(dead_code)]
 mod workset {
-    include!(concat!(env!("OUT_DIR"), "/workset.rs"));
+    pub mod generated {
+        include!(concat!(env!("OUT_DIR"), "/workset.rs"));
+    }
+    pub use generated::*;
+    pub mod native_images {
+        pub use crate::native_images::*;
+    }
+    pub mod renderer {
+        pub use crate::config::*;
+    }
+    pub use conduit_mcu_host_runtime::native_values::prepare as values;
 }
+mod play;
+mod play_run;
+mod play_service;
+mod transport {
+    pub type Link = conduit_mcu_host_runtime::transport::Link<
+        conduit_esp32_electrical::uart::Uart0Carrier<'static>,
+    >;
+}
+
 #[allow(dead_code)]
 mod native_images {
     include!(concat!(env!("OUT_DIR"), "/native_images.rs"));
@@ -31,6 +50,9 @@ mod resident;
 #[allow(dead_code)]
 mod config {
     include!(concat!(env!("OUT_DIR"), "/host.rs"));
+    pub use EXECUTION as EXECUTION_DELEGATION;
+    pub use PREPARATION as PREPARATION_DELEGATION;
+    pub use WORK_POOL as RESIDENT_WORK_POOL;
 }
 static BOOTSTRAP: StaticCell<bootstrap::Carrier> = StaticCell::new();
 esp_bootloader_esp_idf::esp_app_desc!();

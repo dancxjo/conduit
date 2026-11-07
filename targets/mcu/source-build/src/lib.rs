@@ -6,6 +6,7 @@ pub mod image_input;
 pub mod native_calibration;
 pub mod renderer;
 pub mod software;
+pub mod source_composition;
 pub mod template;
 pub mod template_calibration;
 pub mod workset;

@@ -112,7 +112,7 @@ pub(crate) fn validate_expression(
             conduit_core::StructuredSelector::from_canonical_hex(text).map_err(|_| Invalid)?;
         (
             conduit_plot::structured_selector_definition(&selector, placement.inputs[0].temporal),
-            Vec::new(),
+            conduit_plot::structured_selector_semantic_laws(&selector).map_err(|_| Invalid)?,
         )
     };
     let contract = KindSemanticContract {

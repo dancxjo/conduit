@@ -1,6 +1,6 @@
 //! Actual generated Source owners; opaque loans are bound only after admission.
 #[allow(dead_code)]
-mod generated {
+pub mod generated {
     include!(concat!(env!("OUT_DIR"), "/resident.rs"));
 }
 pub use generated::*;
@@ -20,4 +20,8 @@ unsafe impl<'a> conduit_mcu_host_runtime::execution_factory::PreparedResidentEnt
     fn bind(self) -> (u16, Self::Back) {
         self.bind()
     }
+}
+
+pub fn inventory() -> Option<generated::Initialized> {
+    generated::Initialized::prepare().ok()
 }
