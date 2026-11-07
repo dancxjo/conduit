@@ -1,7 +1,7 @@
 //! Scoped Crèche execution on the service's existing Body worker and Host.
 use super::{creche_route_custody::CrecheRouteCustody, Owner};
 use conduit::creche_encounter::{
-    CrecheBodyBinding, CrecheEncounterController, CrecheEncounterFactory,
+    CrecheBodyBinding, CrecheEncounterController, RetainedCrecheFactory,
 };
 use conduit_body::{BodyPlayIdentity, Wake};
 use conduit_body_make::deployment_runtime::CrecheOutcome;
@@ -14,22 +14,20 @@ pub(super) struct CrecheLive {
     pub(super) custody: CrecheRouteCustody,
 }
 pub(super) struct CrecheExecution {
-    pub(super) factory: CrecheEncounterFactory,
+    pub(super) factory: RetainedCrecheFactory,
     binding: Option<CrecheBodyBinding>,
     pub(super) custody: CrecheRouteCustody,
 }
 impl Owner {
     pub(crate) fn install_creche_factory(
         &mut self,
-        factory: CrecheEncounterFactory,
+        factory: impl Into<RetainedCrecheFactory>,
     ) -> Result<(), String> {
+        let factory = factory.into();
+        let resource = factory.resource_offer()?;
         if self.creche_factory.is_some()
             || self.host.is_playing()
-            || !self
-                .host
-                .advertisement()
-                .resources
-                .contains(&factory.resource_offer())
+            || !self.host.advertisement().resources.contains(&resource)
             || !self
                 .host
                 .advertisement()
@@ -37,6 +35,9 @@ impl Owner {
                 .contains(&conduit_body_make::deployment_runtime_catalog::creche_std_offer())
         {
             return Err("prepared Crèche factory does not match the idle original Host".into());
+        }
+        if factory.is_image() {
+            factory.verify_image_custody(&self.host)?;
         }
         self.creche_factory = Some(factory);
         Ok(())
@@ -56,8 +57,15 @@ impl Owner {
         // Exact shipped Source and real installed offer must plan before invitation effects.
         self.shipped_creche_partition(source, &resident)?
             .ok_or("Crèche Source absent")?;
-        if self.creche_factory.is_none() {
-            return Err("Crèche has no retained initialized provider".into());
+        let factory = self
+            .creche_factory
+            .as_ref()
+            .ok_or("Crèche has no retained initialized provider")?;
+        if factory.is_image() {
+            return Err(
+                "Crèche IMAGE service execution requires its qualified worker/context/report path"
+                    .into(),
+            );
         }
         let invitation = self.issue_invitation(root, 600, None)?;
         // Private provisioning stays with the owner; never publish this secret in a Face.
@@ -178,13 +186,18 @@ impl CrecheExecution {
         controller: &SyncSender<CrecheEncounterController>,
         started: F,
     ) -> Result<BodyRunReport, String> {
+        if self.factory.is_image() {
+            return Err(
+                "Crèche IMAGE service execution requires its qualified worker/context/report path"
+                    .into(),
+            );
+        }
         let binding = self
             .binding
             .take()
             .ok_or("Crèche execution binding already consumed")?;
-        let (mut adapter, handle) = self
-            .factory
-            .encounter(binding, Box::new(self.custody.clone()))?;
+        let mut factory = self.factory.borrow_mut()?;
+        let (mut adapter, handle) = factory.encounter(binding, Box::new(self.custody.clone()))?;
         controller
             .send(handle)
             .map_err(|_| "Crèche service controller disconnected")?;
@@ -199,6 +212,8 @@ impl CrecheExecution {
     }
 }
 
+#[cfg(test)]
+use conduit::creche_encounter::CrecheEncounterFactory;
 #[cfg(test)]
 #[path = "creche_worker/tests.rs"]
 mod tests;

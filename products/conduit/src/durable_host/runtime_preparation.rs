@@ -348,7 +348,7 @@ fn prepare_runtime_with_composition(
             host,
         )
         .with_selected_speech_equipment(selected_equipment)
-        .with_prepared_creche(creche_factory))
+        .with_prepared_creche(creche_factory.map(Into::into)))
     })?;
     // Cold reviewed inventory and compiled contracts belong to preparation,
     // before clients can spend their finite control budget on an interaction.

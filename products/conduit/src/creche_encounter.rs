@@ -26,6 +26,8 @@ mod controller;
 mod factory;
 mod hosted;
 mod memory;
+mod retained_factory;
+pub use retained_factory::{CrecheFactoryBorrow, RetainedCrecheFactory};
 mod products;
 mod worker;
 pub use bundle::CrecheReviewedBundle;

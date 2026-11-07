@@ -179,7 +179,7 @@ pub(crate) struct DurableHostRuntime {
     host: HostSource,
     birth: Option<body_birth::ServiceBirth>,
     birth_root: Option<PathBuf>,
-    creche_factory: Option<conduit::creche_encounter::CrecheEncounterFactory>,
+    creche_factory: Option<conduit::creche_encounter::RetainedCrecheFactory>,
     remote_fragment: Option<AdmittedRemoteFragment>,
     pending_worker_text: Option<conduit_kernel::scheduler::HostCallRequest>,
     pool_member: Option<AdmittedLocalModelPoolMember>,
@@ -231,7 +231,7 @@ impl DurableHostRuntime {
 
     pub(crate) fn with_prepared_creche(
         mut self,
-        factory: Option<conduit::creche_encounter::CrecheEncounterFactory>,
+        factory: Option<conduit::creche_encounter::RetainedCrecheFactory>,
     ) -> Self {
         self.creche_factory = factory;
         self

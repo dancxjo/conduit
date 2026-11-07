@@ -9458,3 +9458,32 @@ passed. Logs: `/tmp/conduit-real-creche-init-funded-20261106.log` and
 `/tmp/conduit-real-creche-init-funded-clippy-20261106.log`. This is a CPU Make
 input/construction proof. The live service still needs to carry the charged
 factory wrapper through its owner/worker lifecycle before deployment.
+
+### 2026-11-06 — Retain the charged factory across service worker ownership
+
+`RetainedCrecheFactory` now preserves either the reference factory or the actual
+`ImagePreparedValue<RefCell<CrecheEncounterFactory>>`. IMAGE construction checks
+both the outer wrapper and initialized input owner against the original Host
+counter. Resource inspection and exclusive borrowing fail explicitly on an
+occupied cell; the wrapper exposes no owned-value extraction.
+
+The installed runtime/Body owner/worker outcome now carry this retained owner.
+Installing an IMAGE factory verifies original outer and inner custody on the
+idle original Host. Moving the factory into the service worker and restoring it
+does not detach its charge. The reference construction entrance converts into
+the reference variant; it does not relabel already selected IMAGE data.
+
+A new actual-counter CPU regression verifies rejection by an equivalent foreign
+Host, exclusive initialized-factory access, and a real thread move/return. A
+62 MiB probe refuses before and after that handoff while the factory remains
+retained, then succeeds after the last retained factory owner drops.
+
+The service still needs qualified IMAGE worker/context/input/report handling.
+It refuses this pending profile before issuing an invitation and again before
+encounter creation, rather than falling back to uncharged reference execution.
+No default limits or grants were enlarged, and no live deployment changed.
+Qualification passed: all 32 Crèche library cases, three actual owner-worker
+CPU journeys, and strict product lib/test Clippy. Logs:
+`/tmp/conduit-creche-retained-factory-20261106.log`,
+`/tmp/conduit-creche-retained-factory-service-20261106.log`, and
+`/tmp/conduit-creche-retained-factory-clippy-20261106.log`.

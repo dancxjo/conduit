@@ -29,7 +29,7 @@ type WorkerOutcome = (
     Result<RunReport, String>,
     Vec<u8>,
     ReceiptFore,
-    Option<conduit::creche_encounter::CrecheEncounterFactory>,
+    Option<conduit::creche_encounter::RetainedCrecheFactory>,
     Option<ImageIngress>,
 );
 

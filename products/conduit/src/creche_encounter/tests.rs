@@ -376,3 +376,5 @@ fn reviewed_bundle_refuses_nonmatching_retained_payload_handles() {
     )
     .is_err());
 }
+
+mod retained_factory;

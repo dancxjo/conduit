@@ -257,7 +257,7 @@ pub(crate) struct Owner {
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
     /// Canonical document projection adopted from completed notebook Source steps.
     notebook: Option<notebook::NotebookDocument>,
-    creche_factory: Option<conduit::creche_encounter::CrecheEncounterFactory>,
+    creche_factory: Option<conduit::creche_encounter::RetainedCrecheFactory>,
     creche_live: Option<creche_worker::CrecheLive>,
     creche_products: Option<conduit::creche_encounter::CrecheProducts>,
     /// Bounded display cache from an exact selected read Host Call and both
