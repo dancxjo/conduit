@@ -98,25 +98,7 @@ impl Face {
         }
         n.vector(&self.properties)?;
         for property in &self.properties {
-            n.add(property.subject.capacity())?;
-            n.add(property.name.capacity())?;
-            match &property.value {
-                FacePropertyValue::Identity(s) | FacePropertyValue::Text(s) => {
-                    n.add(s.capacity())?
-                }
-                FacePropertyValue::BaseImplementationId(id) => n.add(id.0.capacity())?,
-                FacePropertyValue::Count(_)
-                | FacePropertyValue::Signed(_)
-                | FacePropertyValue::Flag(_) => (),
-                FacePropertyValue::ValueContract(contract) => {
-                    n.add(contract.retained_backing_bytes()?)?
-                }
-                FacePropertyValue::Content(bytes) => n.add(bytes.capacity())?,
-                FacePropertyValue::TypedValue { contract, bytes } => {
-                    n.add(contract.retained_backing_bytes()?)?;
-                    n.add(bytes.capacity())?;
-                }
-            }
+            n.add(property.retained_backing_bytes()?)?;
         }
         n.vector(&self.text)?;
         for text in &self.text {
@@ -175,3 +157,28 @@ impl Face {
 #[cfg(test)]
 #[path = "retained_backing/tests.rs"]
 mod tests;
+
+impl FaceProperty {
+    /// Owned payload only; the containing array/vector charges inline storage.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let mut n = Bytes::default();
+        n.add(self.subject.capacity())?;
+        n.add(self.name.capacity())?;
+        match &self.value {
+            FacePropertyValue::Identity(s) | FacePropertyValue::Text(s) => n.add(s.capacity())?,
+            FacePropertyValue::BaseImplementationId(id) => n.add(id.0.capacity())?,
+            FacePropertyValue::Count(_)
+            | FacePropertyValue::Signed(_)
+            | FacePropertyValue::Flag(_) => (),
+            FacePropertyValue::ValueContract(contract) => {
+                n.add(contract.retained_backing_bytes()?)?
+            }
+            FacePropertyValue::Content(bytes) => n.add(bytes.capacity())?,
+            FacePropertyValue::TypedValue { contract, bytes } => {
+                n.add(contract.retained_backing_bytes()?)?;
+                n.add(bytes.capacity())?;
+            }
+        }
+        Some(n.0)
+    }
+}

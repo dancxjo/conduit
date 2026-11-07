@@ -68,6 +68,7 @@ pub enum Refusal<E> {
     Storage(KernelPreparationError),
     Back(E),
     Bounds,
+    Capacity { required: usize, maximum: usize },
     Scope,
 }
 /// One prepared fragment inside a heterogeneous, atomically admitted workset.

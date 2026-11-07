@@ -234,16 +234,17 @@ impl<C: RendererClock> ReadyRenderer<C> {
     /// Root has checked exact assigned renderer binding, original table/claim,
     /// whole-workset resources and Source-selected local Face/output adapters.
     /// The returned service must not be polled until that whole workset Starts.
-    pub unsafe fn bind(
-        self,
-        reader: Reader<'_>,
+    #[allow(clippy::too_many_arguments)] // Exact admitted owners and finite buffers remain explicit.
+    pub unsafe fn bind<'a>(
+        &'a mut self,
+        reader: Reader<'a>,
         context: f::PreparedRendererContext,
         active: c::ActivePlayIdentity,
         node: NodeId,
         table: c::BaseCapabilityTable,
         handle: c::BaseCapabilityHandle,
         claim: c::BaseOperationClaim,
-    ) -> Result<RendererService<'_, C>, Refusal> {
+    ) -> Result<RendererService<'a, C>, Refusal> {
         let id = &self.identity;
         if active.host_id != id.host_id
             || active.boot_id != id.boot_id
@@ -314,7 +315,7 @@ pub struct OutputFrame<'a> {
     pub canonical: &'a [u8],
 }
 pub struct RendererService<'a, C> {
-    ready: ReadyRenderer<C>,
+    ready: &'a mut ReadyRenderer<C>,
     reader: Reader<'a>,
     context: f::PreparedRendererContext,
     active: c::ActivePlayIdentity,
@@ -538,6 +539,7 @@ impl<C: RendererClock> RendererService<'_, C> {
         });
         Ok(Some((pending.request, &self.ready.show_wire[..length])))
     }
+    pub fn maximum_show_bytes(&self) -> u32 { self.ready.bounds.show_bytes }
     pub fn current_show(&self) -> Option<&f::Show> {
         self.retained.as_ref().map(|value| &value.show)
     }

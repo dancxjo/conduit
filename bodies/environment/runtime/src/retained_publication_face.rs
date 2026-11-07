@@ -33,6 +33,9 @@ pub struct RetainedPublicationBacking {
     storage: PreparedObservationBacking,
 }
 impl RetainedPublicationBacking {
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.storage.retained_backing_bytes()
+    }
     pub fn prepare(
         maximum_publications: u32,
         stale_after_ms: u64,
@@ -46,13 +49,22 @@ impl RetainedPublicationBacking {
         self,
         basis: FaceBasis,
     ) -> Result<RetainedPublicationFace, RetainedPublicationRefusal> {
-        Ok(RetainedPublicationFace {
-            face: self
-                .storage
-                .bind(basis)
-                .map_err(RetainedPublicationRefusal::Publication)?,
-            last_sequence: 0,
-        })
+        self.try_bind(basis).map_err(|(_, error)| error)
+    }
+    pub fn try_bind(
+        self,
+        basis: FaceBasis,
+    ) -> Result<RetainedPublicationFace, (Self, RetainedPublicationRefusal)> {
+        match self.storage.try_bind(basis) {
+            Ok(face) => Ok(RetainedPublicationFace {
+                face,
+                last_sequence: 0,
+            }),
+            Err((storage, error)) => Err((
+                Self { storage },
+                RetainedPublicationRefusal::Publication(error),
+            )),
+        }
     }
 }
 
@@ -64,6 +76,9 @@ pub struct RetainedPublicationFace {
     last_sequence: u64,
 }
 impl RetainedPublicationFace {
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.face.retained_backing_bytes()
+    }
     pub fn prepare(
         basis: FaceBasis,
         maximum_publications: u32,
