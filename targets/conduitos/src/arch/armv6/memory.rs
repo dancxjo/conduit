@@ -2,8 +2,8 @@
 //!
 //! With translation disabled, data accesses are Strongly-ordered. ARM1176
 //! exclusive loads/stores must instead address Normal memory. This map supplies
-//! those attributes and permits instruction caching without enabling the data
-//! cache or claiming Source isolation. GPU-reserved RAM remains noncacheable.
+//! those attributes and write-through instruction/data caching, without claiming
+//! Source isolation. GPU-reserved RAM remains noncacheable.
 
 use core::{
     cell::UnsafeCell,
@@ -46,6 +46,7 @@ pub(super) fn initialize() {
             "mcr p15, 0, {domain}, c3, c0, 0", // Domain 0 client; check AP.
             "mcr p15, 0, {zero}, c8, c7, 0", // Invalidate unified TLB.
             "mcr p15, 0, {zero}, c7, c5, 0", // Invalidate instruction cache.
+            "mcr p15, 0, {zero}, c7, c6, 0", // Invalidate data cache before enabling it.
             "mrc p15, 0, {control}, c1, c0, 0",
             zero = in(reg) 0_u32,
             table = in(reg) table as u32,

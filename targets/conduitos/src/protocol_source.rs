@@ -317,7 +317,10 @@ fn preparation_stage(stage: &str) {
         #[cfg(target_arch = "x86_64")]
         crate::arch::early_write(text.as_bytes());
         #[cfg(target_arch = "arm")]
-        crate::arch::present(text.as_bytes());
+        {
+            let _ = writeln!(text, "CONDUIT_PREPARATION_TIME us={}", crate::arch::read_counter());
+            crate::arch::present(text.as_bytes());
+        }
     }
     #[cfg(not(all(
         target_os = "none",
