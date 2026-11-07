@@ -33,7 +33,7 @@ fn poisoned_mailbox_cancels_and_joins_worker_and_drains_mask_without_reopening()
     assert!(error.contains("mailbox poisoned"));
     assert!(observed.try_recv().unwrap()); // cancellation joined the actual worker
     assert!(drained.load(Ordering::Acquire));
-    assert!(!adapter.retired);
+    assert!(!adapter.local.retired);
     assert!(controller.face().is_err());
     assert!(controller.start_production_if_reviewed().is_err());
     match adapter.channel.state.lock() {
@@ -65,13 +65,13 @@ fn panicked_worker_does_not_skip_independent_mask_drain() {
     let error = adapter.cancel_and_drain().unwrap_err();
     assert!(error.contains("worker panicked"));
     assert!(drained.load(Ordering::Acquire));
-    assert!(!adapter.retired);
+    assert!(!adapter.local.retired);
     assert!(adapter.channel.lock().unwrap().worker.is_none());
     assert!(!controller.start_production_if_reviewed().unwrap());
     // The failed join already consumed the terminated thread. A successful
     // explicit retry can finish retirement without restarting production.
     adapter.cancel_and_drain().unwrap();
-    assert!(adapter.retired);
+    assert!(adapter.local.retired);
 }
 
 #[test]
@@ -99,7 +99,7 @@ fn poisoned_mask_still_drains_and_preserves_its_fault() {
     assert!(error.contains("Mask custody poisoned"));
     assert!(error.contains("worker panicked"));
     assert!(drained.load(Ordering::Acquire));
-    assert!(!adapter.retired);
+    assert!(!adapter.local.retired);
     assert!(!controller.start_production_if_reviewed().unwrap());
     assert!(adapter.channel.custody.is_poisoned());
 }

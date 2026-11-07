@@ -9133,3 +9133,61 @@ initializer as cc8be14ed8. The sole merge conflict was the same allocation test'
 redundant let/return; the accepted dev version was retained. The merge changes
 only that test correction, and the independent allocation test passed again in
 this combined tree. No runtime implementation differs because of the merge.
+
+### 2026-11-06 — Funded encounter regions and retained Face exports
+
+Crèche preparation now separates mutable adapter-local state from shared
+encounter state. `encounter_in_image` requires the factory's original Host
+counter and exact offered resource, admits each complete lifetime envelope
+before construction, and retains those original charges with their actual
+owners. Shared-preparation refusal drops the already prepared local region.
+Funded factories cannot fall back to the reference encounter entry.
+
+The local region is private and uniquely owned. Its cell is never exported;
+shared/exclusive Rust wrapper access governs reads/mutation while the original
+prepared-value charge stays intact. The adapter drops local state before its
+shared encounter. Root must still qualify the complete lifetime bound for its
+selected form, context, retained revisions and Mask, including spare capacity
+and separately owned/borrowed stores. These are cooperative envelopes, not
+allocator containment or automatic worst-case qualification for arbitrary users.
+
+Face exports now use an opaque immutable `CrecheFace`. A generic
+`ImageMemoryRetention` witness keeps its original memory charge alive without
+retaining the producing Channel, private Body binding or factory inventory.
+The Face owns its data, and drops it before its witness. Clones allocate nothing;
+stale views remain readable but cannot revive stale actions. Owned Face copies
+still require caller workspace. The existing owner projection continues using
+an explicit owned copy rather than exporting an uncharged Arc.
+
+Twenty-seven product Crèche tests passed. New finite fixtures verify local
+release at adapter drop, shared capacity retained by exported views after the
+private Channel is freed, final-view release, rollback on shared pressure,
+foreign-counter refusal despite copied IDs, and refusal of the reference fallback.
+A checked IMAGE encounter refuses production before taking its checked request
+or creating a worker, because worker memory has not been admitted. Failed final
+Mask drain conservatively pins shared state and its original charge until process
+recovery; it cannot silently make that capacity reusable. Synchronous local data
+has no asynchronous aliases and retires independently.
+
+Three existing owner-worker tests passed through the real service code,
+including ordinary same-Body Seed production/restoration and stale/foreign
+Mask-route refusal. Those are reference CPU journeys, not IMAGE Play acceptance.
+Fifty std IMAGE tests passed, including a generic witness test proving actual
+data destruction while the original counter remains charged through the last
+witness. The combined image-filter run also passed 11 product cases (a subset
+of the full Crèche suite). Strict std/product library/test Clippy passed. Logs:
+`/tmp/conduit-creche-retained-views-20261106.log`,
+`/tmp/conduit-creche-owner-retained-views-20261106.log`,
+`/tmp/conduit-image-retention-qualified-20261106.log`, and
+`/tmp/conduit-image-retention-clippy-20261106.log`.
+
+The earlier branch-local controller-after-failed-initialization fixture now
+truthfully retains readable factory inputs but refuses to create an uncharged
+encounter. The stronger funded encounter/view tests cover controller and export
+lifetimes on an actual final Host counter. No initialized resource or generation
+is inferred merely from the retained metadata.
+
+Remaining: worker heap/stack admission, produced-artifact/receipt custody,
+complete kernel IMAGE execution accounting and ordinary installed integration.
+No IMAGE execution guard was relaxed. No firmware, installed service or physical
+renderer was updated by this checkpoint.

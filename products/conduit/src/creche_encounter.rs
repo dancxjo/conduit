@@ -25,8 +25,10 @@ mod bundle;
 mod controller;
 mod factory;
 mod hosted;
+mod memory;
 pub use bundle::CrecheReviewedBundle;
 pub use controller::{CrecheEncounterController, CrecheFace};
+use memory::{ChannelCustody, LocalCustody};
 
 /// Supplied by the service's actual selected Mask route, never a structural ACK
 /// or a default renderer. Calls except retirement must be bounded/nonblocking.
@@ -141,15 +143,20 @@ impl Channel {
     }
 }
 
-pub struct CrecheEncounterAdapter<'a> {
+struct Local<'a> {
     encounter: HostConfigurationEncounter<'a>,
-    channel: Arc<Channel>,
     basis: Option<HostConfigurationEncounterBasis>,
     request: Option<CrecheRequest>,
     evidence: Vec<u8>,
     outcome: Option<CrecheOutcome>,
     begun: bool,
     retired: bool,
+}
+
+pub struct CrecheEncounterAdapter<'a> {
+    // Local data and its charge drop before the last shared encounter reference.
+    local: LocalCustody<'a>,
+    channel: ChannelCustody,
 }
 
 fn clock() -> Result<u64, String> {

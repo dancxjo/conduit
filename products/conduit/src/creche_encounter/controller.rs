@@ -1,14 +1,14 @@
 use super::*;
 use std::sync::atomic::Ordering;
 
-/// Immutable semantic view with its producing encounter's retained custody.
+/// Immutable semantic view retaining its producing region's memory charge.
 /// Keeping this view does not keep an action current or authorize another Play.
 /// Owned Face copies require independent caller workspace; no raw Arc escapes.
 #[derive(Clone)]
 pub struct CrecheFace {
-    // Free this exported Face reference before the last owning encounter drops.
+    // Free exported Face data before releasing its last memory witness.
     face: Arc<Face>,
-    _owner: Arc<Channel>,
+    _memory: Option<conduit_std_host::body_execution::ImageMemoryRetention>,
 }
 impl core::ops::Deref for CrecheFace {
     type Target = Face;
@@ -19,7 +19,7 @@ impl core::ops::Deref for CrecheFace {
 
 #[derive(Clone)]
 pub struct CrecheEncounterController {
-    pub(super) channel: Arc<Channel>,
+    pub(super) channel: ChannelCustody,
 }
 impl CrecheEncounterController {
     pub fn face(&self) -> Result<Option<CrecheFace>, String> {
@@ -27,7 +27,7 @@ impl CrecheEncounterController {
         Ok(if state.active {
             state.face.as_ref().map(|face| CrecheFace {
                 face: face.clone(),
-                _owner: self.channel.clone(),
+                _memory: self.channel.retain_memory(),
             })
         } else {
             None
@@ -85,6 +85,11 @@ impl CrecheEncounterController {
         let mut state = self.channel.lock()?;
         if !state.active || state.retired || state.started {
             return Ok(false);
+        }
+        if self.channel.is_image() && state.checked.is_some() {
+            return Err(
+                "Crèche IMAGE production requires separately admitted worker memory".into(),
+            );
         }
         let Some(configuration) = state.checked.take() else {
             return Ok(false);

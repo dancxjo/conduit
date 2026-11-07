@@ -39,7 +39,10 @@ mod parsec_instruction_effect_observation;
 pub use parsec_instruction_effect_observation::ParsecInstructionEffectObservation;
 
 mod image;
-pub use image::{ImageBodyRunReport, ImageForeInput, ImagePreparedValue, ImageRootPreparation};
+pub use image::{
+    ImageBodyRunReport, ImageForeInput, ImageMemoryRetention, ImagePreparedValue,
+    ImageRootPreparation,
+};
 mod creche;
 #[cfg(test)]
 mod creche_tests;

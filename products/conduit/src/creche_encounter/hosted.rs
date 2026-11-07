@@ -12,8 +12,8 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
         &mut self,
         context: &CrecheExecutionContext,
     ) -> Result<PreparedCrecheRequest, String> {
-        if self.request.is_some()
-            || self.retired
+        if self.local.request.is_some()
+            || self.local.retired
             || context.resource_offer() != &self.resource_offer()
             || context.limits() != self.limits()
             || context.plan().body_id != self.channel.binding.biography.body_id
@@ -43,7 +43,7 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
                 sign_ids: vec![],
             },
         };
-        let face = self.encounter.face(&basis)?;
+        let face = self.local.encounter.face(&basis)?;
         // This context already retains the exact biography; avoid duplicating
         // its potentially long lifecycle history merely to bind an operation.
         let digest = Sha256::digest(
@@ -60,14 +60,14 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
         let mut state = self.channel.lock()?;
         state.face = Some(Arc::new(face));
         state.request = Some(request);
-        self.basis = Some(basis);
-        self.request = Some(request);
+        self.local.basis = Some(basis);
+        self.local.request = Some(request);
         Ok(PreparedCrecheRequest {
             admitted_state_digest: digest,
         })
     }
     fn begin(&mut self, request: CrecheRequest) -> Result<CrechePoll, String> {
-        if self.request != Some(request) || self.begun || self.retired {
+        if self.local.request != Some(request) || self.local.begun || self.local.retired {
             return Err("Crèche begin stale or repeated".into());
         }
         let mut state = self
@@ -79,14 +79,14 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
             return Err("Crèche initial Face absent".into());
         }
         state.active = true;
-        self.begun = true;
+        self.local.begun = true;
         Ok(CrechePoll::Pending)
     }
     fn poll(&mut self) -> Result<CrechePoll, String> {
-        if !self.begun || self.retired {
+        if !self.local.begun || self.local.retired {
             return Err("Crèche encounter inactive".into());
         }
-        if let Some(outcome) = self.outcome {
+        if let Some(outcome) = self.local.outcome {
             return Ok(CrechePoll::Outcome(outcome));
         }
         let channel = self.channel.clone();
@@ -101,18 +101,21 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
                     if products.receipt.len() as u64 > self.limits().maximum_evidence_bytes {
                         return Err("Crèche receipt exceeds retained evidence capacity".into());
                     }
-                    self.evidence.clear();
-                    self.evidence.extend_from_slice(&products.receipt);
+                    self.local.evidence.clear();
+                    self.local.evidence.extend_from_slice(&products.receipt);
                     let outcome = CrecheOutcome {
-                        request: self.request.ok_or("Crèche producing request absent")?,
+                        request: self
+                            .local
+                            .request
+                            .ok_or("Crèche producing request absent")?,
                         disposition: CrecheDisposition::Prepared,
-                        evidence_digest: Sha256::digest(&self.evidence).into(),
+                        evidence_digest: Sha256::digest(&self.local.evidence).into(),
                     };
                     state.products = Some(products);
                     state.published = true;
                     state.active = false;
                     state.acknowledged = None;
-                    self.outcome = Some(outcome);
+                    self.local.outcome = Some(outcome);
                     return Ok(CrechePoll::Outcome(outcome));
                 }
                 Err(reason) => {
@@ -136,17 +139,21 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
         custody.validate_acknowledged(face, &command.show)?;
         custody.validate_returned_interaction(face, &command.show, &command.input)?;
         drop(custody);
-        let basis = self.basis.as_ref().ok_or("Crèche execution basis absent")?;
-        let result = self
+        let local = &mut *self.local;
+        let basis = local
+            .basis
+            .as_ref()
+            .ok_or("Crèche execution basis absent")?;
+        let result = local
             .encounter
             .apply_interaction(basis, &command.show, &command.input)?;
         state.acknowledged = None;
         match result {
             HostConfigurationEncounterOutcome::Changed => {
-                state.face = Some(Arc::new(self.encounter.face(basis)?))
+                state.face = Some(Arc::new(local.encounter.face(basis)?))
             }
             HostConfigurationEncounterOutcome::Checked(configuration) => {
-                let mut face = self.encounter.face(basis)?;
+                let mut face = local.encounter.face(basis)?;
                 for action in &mut face.actions {
                     action.availability = conduit_face::FaceActionAvailability::Unavailable {
                         reason_code: "creche-seed-preparation-pending".into(),
@@ -173,13 +180,13 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
         Ok(CrechePoll::Pending)
     }
     fn retained_evidence(&self, outcome: &CrecheOutcome) -> Result<&[u8], String> {
-        if self.outcome.as_ref() != Some(outcome) {
+        if self.local.outcome.as_ref() != Some(outcome) {
             return Err("Crèche outcome lacks exact retained receipt".into());
         }
-        Ok(&self.evidence)
+        Ok(&self.local.evidence)
     }
     fn cancel_and_drain(&mut self) -> Result<(), String> {
-        if self.retired {
+        if self.local.retired {
             return Ok(());
         }
         let mut failures = Vec::new();
@@ -224,11 +231,11 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
             // receipt nor successful retirement may hide incomplete cleanup.
             return Err(failures.join("; "));
         }
-        if self.request.is_some() && self.outcome.is_none() {
+        if self.local.request.is_some() && self.local.outcome.is_none() {
             self.terminal(CrecheDisposition::Cancelled, "cancelled")?;
         }
         self.channel.lock()?.retired = true;
-        self.retired = true;
+        self.local.retired = true;
         Ok(())
     }
 }
@@ -242,28 +249,30 @@ impl CrecheEncounterAdapter<'_> {
         while !reason.is_char_boundary(end) {
             end -= 1;
         }
-        let evidence=serde_json::to_vec(&serde_json::json!({"schema":"conduit.creche/terminal@1","request":self.request.ok_or("Crèche terminal request absent")?.0,"reason":&reason[..end]})).map_err(|e|e.to_string())?;
+        let evidence=serde_json::to_vec(&serde_json::json!({"schema":"conduit.creche/terminal@1","request":self.local.request.ok_or("Crèche terminal request absent")?.0,"reason":&reason[..end]})).map_err(|e|e.to_string())?;
         if evidence.len() as u64 > self.limits().maximum_evidence_bytes {
             return Err("Crèche terminal evidence bound exhausted".into());
         }
-        self.evidence.clear();
-        self.evidence.extend_from_slice(&evidence);
+        self.local.evidence.clear();
+        self.local.evidence.extend_from_slice(&evidence);
         let outcome = CrecheOutcome {
-            request: self.request.unwrap(),
+            request: self.local.request.unwrap(),
             disposition,
-            evidence_digest: Sha256::digest(&self.evidence).into(),
+            evidence_digest: Sha256::digest(&self.local.evidence).into(),
         };
         let mut state = self.channel.lock()?;
         state.active = false;
         state.acknowledged = None;
-        self.outcome = Some(outcome);
+        self.local.outcome = Some(outcome);
         Ok(CrechePoll::Outcome(outcome))
     }
 }
 impl Drop for CrecheEncounterAdapter<'_> {
     fn drop(&mut self) {
-        if !self.retired {
-            let _ = self.cancel_and_drain();
+        if !self.local.retired && self.cancel_and_drain().is_err() {
+            // IMAGE workers cannot launch here. Mutable local state has no
+            // asynchronous aliases, but Mask/shared state may still be live.
+            self.channel.retain_uncertain();
         }
     }
 }

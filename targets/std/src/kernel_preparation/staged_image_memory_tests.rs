@@ -225,3 +225,43 @@ fn root_preparation_refuses_before_effects_and_releases_error_or_unwind() {
         assert_eq!(counter.load(Ordering::Acquire), metadata);
     }
 }
+
+#[test]
+fn image_memory_retention_outlives_value_without_retaining_its_data() {
+    use crate::body_execution::ImageRootPreparation;
+    use std::{cell::Cell, rc::Rc};
+    struct Data(Rc<Cell<bool>>);
+    impl Drop for Data {
+        fn drop(&mut self) {
+            self.0.set(true);
+        }
+    }
+    let (config, image, checked, _) = fixture();
+    let staged = StagedImageMemory::verified(
+        &config,
+        &image,
+        &checked,
+        &conduit_workspace_make::catalog(),
+    )
+    .unwrap();
+    let counter = staged.used.clone();
+    let metadata = StagedImageMemory::counter_backing_bytes();
+    let destroyed = Rc::new(Cell::new(false));
+    let value = {
+        let mut reserve = |bytes| staged.reserve(bytes);
+        let root = ImageRootPreparation::new(&mut reserve);
+        // SAFETY: fixed boxed data fits this envelope; its independent observer
+        // is caller-owned, and no effect or worker can escape preparation.
+        unsafe { root.prepare_value(1024, 512, || Ok(Box::new(Data(destroyed.clone())))) }.unwrap()
+    };
+    let retained = metadata + 512 + ImageMemoryLease::owned_backing_bytes();
+    let witness = value.retain_memory();
+    let alias = witness.clone();
+    drop(value);
+    assert!(destroyed.get());
+    assert_eq!(counter.load(Ordering::Acquire), retained);
+    drop(witness);
+    assert_eq!(counter.load(Ordering::Acquire), retained);
+    drop(alias);
+    assert_eq!(counter.load(Ordering::Acquire), metadata);
+}

@@ -3,7 +3,7 @@
 use super::*;
 use crate::kernel_preparation::ImageMemoryLease;
 mod prepared;
-pub use prepared::{ImagePreparedValue, ImageRootPreparation};
+pub use prepared::{ImageMemoryRetention, ImagePreparedValue, ImageRootPreparation};
 mod input;
 pub use input::ImageForeInput;
 

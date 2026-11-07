@@ -2,42 +2,28 @@
 use super::*;
 
 #[test]
-fn exported_face_and_clones_keep_original_custody_after_encounter_retirement() {
-    let mut prepared = None;
-    let mut directory = None;
-    image_custody::with_verified_root(|root| {
-        // SAFETY: same bounded immutable fixture as the input-custody tests;
-        // synchronous preparation starts no worker and exports no input alias.
-        prepared = Some(
-            unsafe {
-                CrecheEncounterFactory::prepare_in_image(
-                    root,
-                    4 * 1024 * 1024,
-                    2 * 1024 * 1024,
-                    || {
-                        let (factory, files) = factory();
-                        directory = Some(files);
-                        Ok(factory)
-                    },
-                )
-            }
-            .unwrap(),
-        );
-    });
-    let mut factory = prepared.unwrap();
+fn exported_views_keep_charge_without_retaining_private_encounter_data() {
+    let (mut host, prepared, directory) = image_custody::initialized_factory();
+    let mut factory = prepared.value().borrow_mut();
     let InputsCustody::Image(inputs) = &factory.inputs else {
         panic!("funded inputs expected")
     };
     let original_custody = Arc::downgrade(inputs);
-    let (mut adapter, controller) = factory
-        .encounter(
+    // SAFETY: fixed single-view fixture and no worker; inventory has its own
+    // original charge. Both bounded encounter regions remain independently held.
+    let (mut adapter, controller) = unsafe {
+        factory.encounter_in_image(
+            &mut host,
+            4 * 1024 * 1024,
+            4 * 1024 * 1024,
             binding(),
             Box::new(Custody {
                 admitted: true,
                 drained: Arc::new(AtomicBool::new(false)),
             }),
         )
-        .unwrap();
+    }
+    .unwrap();
     start_fixture(&mut adapter);
     let view = controller.face().unwrap().unwrap();
     assert!(core::ptr::eq(
@@ -60,10 +46,12 @@ fn exported_face_and_clones_keep_original_custody_after_encounter_retirement() {
     drop(adapter);
     drop(controller);
     drop(factory);
-    assert!(original_custody.upgrade().is_some());
+    drop(prepared);
+    drop(host);
+    assert!(original_custody.upgrade().is_none());
     assert_eq!(view.revision, revision);
     drop(view);
-    assert!(original_custody.upgrade().is_some());
+    assert!(original_custody.upgrade().is_none());
     assert_eq!(alias.revision, revision);
     drop(alias);
     assert!(original_custody.upgrade().is_none());

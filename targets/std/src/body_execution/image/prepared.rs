@@ -8,6 +8,14 @@ pub struct ImagePreparedValue<T> {
     value: T,
     memory: ImageMemoryLease,
 }
+/// Retains the original memory charge without retaining the prepared value.
+/// Consumers must still own their data. This witness supplies neither access
+/// nor authority and cannot reserve, enlarge or relabel the original budget.
+#[derive(Clone)]
+pub struct ImageMemoryRetention {
+    _memory: ImageMemoryLease,
+}
+
 /// Synchronous Root preparation against an already verified IMAGE counter.
 /// Only the constructor can create this borrowed scope. It supplies memory
 /// custody, never Source, provider, adoption or execution authority.
@@ -66,6 +74,14 @@ impl<T> ImagePreparedValue<T> {
 
     pub fn value(&self) -> &T {
         &self.value
+    }
+
+    /// Keep this original charge while an independently owned export survives.
+    /// Cloning the witness allocates nothing and charges no bytes a second time.
+    pub fn retain_memory(&self) -> ImageMemoryRetention {
+        ImageMemoryRetention {
+            _memory: self.memory.clone(),
+        }
     }
 
     pub(super) fn shrink_qualified_retention(&mut self, bytes: usize) {

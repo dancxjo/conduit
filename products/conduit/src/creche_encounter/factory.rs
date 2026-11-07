@@ -160,6 +160,119 @@ impl CrecheEncounterFactory {
         binding: CrecheBodyBinding,
         custody: Box<dyn CrecheMaskShowCustody>,
     ) -> Result<(CrecheEncounterAdapter<'_>, CrecheEncounterController), String> {
+        if matches!(&self.inputs, InputsCustody::Image(_)) {
+            return Err("IMAGE Crèche factory requires its funded encounter entry".into());
+        }
+        let channel = self.prepare_channel(binding, custody)?;
+        let local = self.prepare_local()?;
+        Ok(Self::assemble(
+            LocalCustody::Reference(local),
+            ChannelCustody::Reference(Arc::new(channel)),
+        ))
+    }
+
+    /// Prepare local and shared encounter stores on the actual Host counter.
+    /// Both complete highwater envelopes remain charged until their owners drop.
+    /// Views retain shared custody; worker launch remains explicitly unsupported.
+    /// Failed final Mask retirement quarantines shared state until process recovery.
+    ///
+    /// # Safety
+    /// Root must independently qualify these complete lifetime envelopes for the
+    /// selected context, form edits, retained Face revisions, Mask custody and
+    /// destruction, including all spare capacity and ownership headers. Borrowed
+    /// and externally shared stores need independent custody. Preparation must
+    /// start no worker/effect that survives failure or unwind. These cooperative
+    /// bounds are not allocator containment or permission to begin a Play.
+    pub unsafe fn encounter_in_image(
+        &mut self,
+        host: &mut conduit_std_host::StdHost,
+        local_bytes: usize,
+        shared_bytes: usize,
+        binding: CrecheBodyBinding,
+        custody: Box<dyn CrecheMaskShowCustody>,
+    ) -> Result<(CrecheEncounterAdapter<'_>, CrecheEncounterController), String> {
+        use conduit_std_host::body_execution::ImagePreparedValue;
+        self.verify_image_custody(host)?;
+        if !host
+            .advertisement()
+            .resources
+            .contains(&self.resource_offer())
+            || !host
+                .advertisement()
+                .capabilities
+                .contains(&conduit_body_make::deployment_runtime_catalog::creche_std_offer())
+        {
+            return Err("Crèche IMAGE encounter differs from the actual offered resource".into());
+        }
+        let minimum_local = core::mem::size_of::<Local<'_>>()
+            .checked_add(self.limits().maximum_evidence_bytes as usize)
+            .ok_or("Crèche local envelope overflow")?;
+        let minimum_shared =
+            core::mem::size_of::<ImagePreparedValue<Channel>>() + 2 * core::mem::size_of::<usize>();
+        if local_bytes < minimum_local || shared_bytes < minimum_shared {
+            return Err("Crèche IMAGE encounter cannot retain its mandatory stores".into());
+        }
+        // SAFETY: Root qualifies the complete bounded mutable local lifetime.
+        let local = unsafe {
+            host.prepare_selected_image_value(local_bytes, local_bytes, || {
+                self.prepare_local().map(std::cell::UnsafeCell::new)
+            })
+        }?;
+        // SAFETY: Root qualifies all shared state and exported Face revisions.
+        // The outer Arc is included in the envelope before its allocation.
+        let channel = unsafe {
+            host.prepare_selected_image_value(shared_bytes, shared_bytes, || {
+                self.prepare_channel(binding, custody)
+            })
+        }?;
+        Ok(Self::assemble(
+            LocalCustody::Image(local),
+            ChannelCustody::Image(Arc::new(channel)),
+        ))
+    }
+
+    fn assemble(
+        local: LocalCustody<'_>,
+        channel: ChannelCustody,
+    ) -> (CrecheEncounterAdapter<'_>, CrecheEncounterController) {
+        (
+            CrecheEncounterAdapter {
+                local,
+                channel: channel.clone(),
+            },
+            CrecheEncounterController { channel },
+        )
+    }
+
+    fn prepare_local(&self) -> Result<Local<'_>, String> {
+        let encounter = match &self.inputs.installation.initial_source {
+            Some(source) => HostConfigurationEncounter::load(
+                source,
+                &self.inputs.catalog,
+                &self.inputs.packages,
+            )?,
+            None => HostConfigurationEncounter::new(&self.inputs.catalog, &self.inputs.packages)?,
+        };
+        let mut evidence = Vec::new();
+        evidence
+            .try_reserve_exact(self.limits().maximum_evidence_bytes as usize)
+            .map_err(|_| "Crèche retained evidence allocation unavailable")?;
+        Ok(Local {
+            encounter,
+            basis: None,
+            request: None,
+            evidence,
+            outcome: None,
+            begun: false,
+            retired: false,
+        })
+    }
+
+    fn prepare_channel(
+        &self,
+        binding: CrecheBodyBinding,
+        custody: Box<dyn CrecheMaskShowCustody>,
+    ) -> Result<Channel, String> {
         binding
             .biography
             .validate()
@@ -171,15 +284,7 @@ impl CrecheEncounterFactory {
         if binding.biography.body_id != binding.invitation.claim.body_id {
             return Err("Crèche invitation belongs to another Body".into());
         }
-        let encounter = match &self.inputs.installation.initial_source {
-            Some(source) => HostConfigurationEncounter::load(
-                source,
-                &self.inputs.catalog,
-                &self.inputs.packages,
-            )?,
-            None => HostConfigurationEncounter::new(&self.inputs.catalog, &self.inputs.packages)?,
-        };
-        let channel = Arc::new(Channel {
+        Ok(Channel {
             state: Mutex::new(State {
                 active: false,
                 retired: false,
@@ -198,24 +303,7 @@ impl CrecheEncounterFactory {
             custody: Mutex::new(custody),
             inputs: self.inputs.clone(),
             binding,
-        });
-        let mut evidence = Vec::new();
-        evidence
-            .try_reserve_exact(self.inputs.installation.limits.maximum_evidence_bytes as usize)
-            .map_err(|_| "Crèche retained evidence allocation unavailable")?;
-        Ok((
-            CrecheEncounterAdapter {
-                encounter,
-                channel: channel.clone(),
-                basis: None,
-                request: None,
-                evidence,
-                outcome: None,
-                begun: false,
-                retired: false,
-            },
-            CrecheEncounterController { channel },
-        ))
+        })
     }
 }
 

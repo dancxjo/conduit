@@ -4,6 +4,7 @@ use super::*;
 #[path = "../../tests/common/creche_bundle.rs"]
 mod bundle_common;
 mod bundle_fixture;
+mod encounter_memory;
 mod face_custody;
 mod image_custody;
 mod native_binding;
@@ -116,10 +117,10 @@ fn start_fixture(adapter: &mut CrecheEncounterAdapter<'_>) {
             sign_ids: vec![],
         },
     };
-    let face = adapter.encounter.face(&b).unwrap();
+    let face = adapter.local.encounter.face(&b).unwrap();
     let request = CrecheRequest([9; 32]);
-    adapter.basis = Some(b);
-    adapter.request = Some(request);
+    adapter.local.basis = Some(b);
+    adapter.local.request = Some(request);
     {
         let mut state = adapter.channel.lock().unwrap();
         state.face = Some(Arc::new(face));
@@ -333,7 +334,7 @@ fn failed_presentation_drain_does_not_report_retirement() {
         .cancel_and_drain()
         .unwrap_err()
         .contains("uncertain"));
-    assert!(!adapter.retired);
+    assert!(!adapter.local.retired);
 }
 
 #[test]

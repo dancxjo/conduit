@@ -72,7 +72,7 @@ pub(super) fn with_verified_root(operation: impl FnOnce(&ImageRootPreparation<'_
 }
 
 #[test]
-fn image_charge_follows_controller_after_adapter_factory_and_staging_drop() {
+fn failed_initial_host_keeps_input_custody_but_cannot_create_an_unfunded_encounter() {
     let mut prepared = None;
     let mut directory = None;
     let copied_identity = with_verified_root(|root| {
@@ -117,25 +117,20 @@ fn image_charge_follows_controller_after_adapter_factory_and_staging_drop() {
         panic!("funded factory expected")
     };
     let original_charge = Arc::downgrade(owner);
-    let (adapter, controller) = prepared
+    assert!(prepared
         .encounter(
             binding(),
             Box::new(Custody {
                 admitted: true,
-                drained: Arc::new(AtomicBool::new(false)),
+                drained: Arc::new(AtomicBool::new(false))
             }),
         )
-        .unwrap();
-    drop(adapter);
-    drop(prepared);
+        .err()
+        .unwrap()
+        .contains("requires its funded encounter entry"));
     assert!(original_charge.upgrade().is_some());
-    // Channel state still owns the original funded inputs, even though no Host
-    // was constructed and the adapter/factory are gone.
-    assert_eq!(
-        controller.channel.inputs.installation.encounter_id,
-        "encounter/test"
-    );
-    drop(controller);
+    assert_eq!(prepared.limits().maximum_evidence_bytes, 65536);
+    drop(prepared);
     assert!(original_charge.upgrade().is_none());
     drop(directory);
 }
@@ -215,8 +210,13 @@ fn creche_image_fixture() -> (conduit_host_make::CheckedHostConfiguration, HostI
     (checked, image)
 }
 
-#[test]
-fn actual_funded_factory_binds_to_initial_host_without_a_source_checker() {
+pub(super) fn initialized_factory() -> (
+    StdHost,
+    conduit_std_host::body_execution::ImagePreparedValue<
+        std::cell::RefCell<CrecheEncounterFactory>,
+    >,
+    bundle_common::PrivateDirectory,
+) {
     let (checked, image) = creche_image_fixture();
     let mut directory = None;
     // SAFETY: fixed metadata and immutable reviewed fixture inputs fit their
@@ -250,6 +250,12 @@ fn actual_funded_factory_binds_to_initial_host_without_a_source_checker() {
         )
     }
     .unwrap();
+    (host, prepared, directory.unwrap())
+}
+
+#[test]
+fn actual_funded_factory_binds_to_initial_host_without_a_source_checker() {
+    let (host, prepared, directory) = initialized_factory();
     host.verify_selected_image_prepared_value(&prepared)
         .unwrap();
     prepared
