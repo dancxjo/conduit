@@ -11,7 +11,12 @@ use embassy_rp::{
 };
 use embassy_time::{with_timeout, Duration};
 use static_cell::StaticCell;
-bind_interrupts!(struct RadioIrqs { PIO0_IRQ_0=>embassy_rp::pio::InterruptHandler<PIO0>; DMA_IRQ_0=>dma::InterruptHandler<DMA_CH0>,dma::InterruptHandler<DMA_CH1>; });
+#[cfg(not(sensor_dht11))]
+bind_interrupts!(pub(crate) struct RadioIrqs { PIO0_IRQ_0=>embassy_rp::pio::InterruptHandler<PIO0>; DMA_IRQ_0=>dma::InterruptHandler<DMA_CH0>,dma::InterruptHandler<DMA_CH1>; });
+// The radio and capture use distinct owned channels, but the chip exposes one
+// shared DMA interrupt. Bind that vector once with every installed handler.
+#[cfg(sensor_dht11)]
+bind_interrupts!(pub(crate) struct RadioIrqs { PIO0_IRQ_0=>embassy_rp::pio::InterruptHandler<PIO0>; DMA_IRQ_0=>dma::InterruptHandler<DMA_CH0>,dma::InterruptHandler<DMA_CH1>,dma::InterruptHandler<embassy_rp::peripherals::DMA_CH2>; });
 static STATE: StaticCell<cyw43::State> = StaticCell::new();
 const RADIO_PHASE_TIMEOUT: Duration = Duration::from_secs(10);
 #[derive(Debug)]

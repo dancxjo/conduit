@@ -7,7 +7,6 @@ use embassy_rp::{
 };
 embassy_rp::bind_interrupts!(struct CaptureIrqs {
     PIO1_IRQ_0 => embassy_rp::pio::InterruptHandler<PIO1>;
-    DMA_IRQ_0 => embassy_rp::dma::InterruptHandler<DMA_CH2>;
 });
 pub fn initialize(
     pio: Peri<'static, PIO1>,
@@ -21,7 +20,7 @@ pub fn initialize(
     crate::pulse_owner::initialize(conduit_rp2040_pulse_capture::PicoPulseCapture::new(
         &mut pio.common,
         pio.sm0,
-        embassy_rp::dma::Channel::new(dma, CaptureIrqs),
+        embassy_rp::dma::Channel::new(dma, crate::radio::RadioIrqs),
         data,
         program,
     ));
