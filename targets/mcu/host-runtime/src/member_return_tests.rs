@@ -1,7 +1,7 @@
 use crate::{
     member_return::{Refusal, RetainedReturn},
     tests::ready,
-    transport::MessageTransport,
+    transport::{MessageTransport, DocumentTransport},
 };
 use conduit_body::*;
 use conduit_core::{BootId, HostAdvertisement};
@@ -24,6 +24,15 @@ impl MessageTransport for Messages {
     async fn send(&mut self, bytes: &[u8]) -> Result<(), ()> {
         self.sent.push(bytes.to_vec());
         Ok(())
+    }
+}
+impl DocumentTransport for Messages {
+    async fn receive_document(&mut self, document: &mut conduit_wire::BorrowedBoundedDocumentAssembly<'_>) -> Result<(), ()> {
+        let mut frame = [0; 4096];
+        loop {
+            let bytes = self.receive(&mut frame).await?;
+            if document.push(bytes).map_err(|_| ())? { return Ok(()); }
+        }
     }
 }
 fn fixture() -> (
@@ -76,13 +85,21 @@ fn messages(
         |t| owner.sign(t).to_bytes(),
     )
     .unwrap();
+    let document = signed.receipt_json.as_bytes();
+    let digest = Sha256::digest(document).into();
+    let mut chunks = Vec::new();
+    let mut offset = 0;
+    while offset < document.len() {
+        let mut frame = [0; 4096];
+        let (length, next) = conduit_wire::encode_bounded_document_chunk(&mut frame, document, offset, &digest).unwrap();
+        chunks.push(frame[..length].to_vec());
+        offset = next;
+    }
     Messages {
         incoming: [
             serde_json::to_vec(&challenge(actual)).unwrap(),
             serde_json::to_vec(&signed.transport_metadata().unwrap()).unwrap(),
-            signed.receipt_json.into_bytes(),
-        ]
-        .into(),
+        ].into_iter().chain(chunks).collect(),
         sent: vec![],
     }
 }

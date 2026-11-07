@@ -238,7 +238,7 @@ impl<'s, const N: usize> Root<'s, N> {
         output: &mut [u8],
     ) -> Result<(), Refusal>
     where
-        T: MessageTransport,
+        T: DocumentTransport,
         I: Iterator<Item = &'i [u8]> + Clone,
         G: FnOnce() -> Result<Vec<AuthorityGrant>, crate::member_return::Refusal>,
     {

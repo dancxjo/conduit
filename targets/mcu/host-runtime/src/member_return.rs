@@ -1,6 +1,6 @@
 //! Canonical retained-Part return, independent of physical carrier or GPIO.
 extern crate alloc;
-use crate::{membership::AcceptedMembership, transport::MessageTransport};
+use crate::{membership::AcceptedMembership, transport::DocumentTransport};
 use alloc::vec::Vec;
 use conduit_body::{
     BorrowedAdmissionReceiptAttestation, BorrowedPartReturnChallenge, BorrowedPartReturnProof,
@@ -50,7 +50,7 @@ impl RetainedReturn<'_, '_> {
         output: &mut [u8],
     ) -> Result<AcceptedMembership, Refusal>
     where
-        T: MessageTransport,
+        T: DocumentTransport,
         I: Iterator<Item = &'i [u8]> + Clone,
         G: FnOnce() -> Result<Vec<AuthorityGrant>, Refusal>,
     {
@@ -158,14 +158,16 @@ impl RetainedReturn<'_, '_> {
         link.send(&output[..n])
             .await
             .map_err(|_| Refusal::Transport)?;
-        let bytes = link.receive(input).await.map_err(|_| Refusal::Transport)?;
+        let bytes = link.receive(output).await.map_err(|_| Refusal::Transport)?;
         let (metadata, used) =
             serde_json_core::from_slice::<BorrowedAdmissionReceiptAttestation<'_>>(bytes)
                 .map_err(|_| Refusal::Encoding)?;
         if used != bytes.len() {
             return Err(Refusal::Encoding);
         }
-        let raw = link.receive(output).await.map_err(|_| Refusal::Transport)?;
+        let mut receipt = conduit_wire::BorrowedBoundedDocumentAssembly::new(input, 32);
+        link.receive_document(&mut receipt).await.map_err(|_| Refusal::Transport)?;
+        let raw = receipt.completed().ok_or(Refusal::Receipt)?.0;
         metadata
             .verify(
                 raw,
