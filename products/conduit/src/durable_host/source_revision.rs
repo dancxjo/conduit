@@ -187,7 +187,9 @@ struct UsbReturnSelection {
 #[serde(deny_unknown_fields)]
 struct UsbAdmissionSelection {
     host_id: conduit_core::HostId,
-    member_verifying_key: [u8; 32],
+    member_key: AdmissionMemberKey,
+    image_id: String,
+    configuration_id: String,
     port: std::path::PathBuf,
     basis: std::path::PathBuf,
     invitation_output: std::path::PathBuf,
@@ -202,6 +204,50 @@ pub(crate) struct CheckedFileRevision {
     pub(crate) source: crate::plot_source::CanonicalSource,
     pub(crate) plots: Vec<ExpandedAuthoringPlot>,
     pub(crate) resident_images: Vec<conduit_embedded_build::PreparedResidentExpression>,
+}
+
+/// Independently selected local bootstrap construction; never an incoming key.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(tag = "source", rename_all = "kebab-case", deny_unknown_fields)]
+enum AdmissionMemberKey {
+    Pinned { verifying_key: [u8; 32] },
+    FromOwnedInvitation,
+}
+impl AdmissionMemberKey {
+    fn valid(&self) -> bool {
+        !matches!(self, Self::Pinned { verifying_key } if *verifying_key == [0; 32])
+    }
+    fn resolve(&self, invitation: &conduit_body::PortableInvitation) -> Result<[u8; 32], String> {
+        match self {
+            Self::Pinned { verifying_key } => Ok(*verifying_key),
+            Self::FromOwnedInvitation => {
+                conduit_body::SpawnInvitationSecret::from_csprng_bytes(invitation.secret)
+                    .map(|key| key.verifying_key())
+                    .map_err(|_| "owned invitation bootstrap key refused".into())
+            }
+        }
+    }
+}
+#[cfg(target_os = "linux")]
+impl UsbAdmissionSelection {
+    fn verify_basis(
+        &self,
+        basis: &conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis,
+        peer: &conduit_body::FederationPeer,
+        invitation: &conduit_body::PortableInvitation,
+    ) -> Result<[u8; 32], String> {
+        let key = self.member_key.resolve(invitation)?;
+        if &basis.owner != peer
+            || basis.expected_host != self.host_id
+            || basis.member_verifying_key != key
+            || basis.invitation != invitation.claim
+            || basis.image_id.as_str() != self.image_id
+            || basis.expected_profile.as_str() != self.configuration_id
+        {
+            return Err("selected admission differs from owned invitation, reviewed IMAGE, or independently selected physical Host/key construction".into());
+        }
+        Ok(key)
+    }
 }
 
 /// Affine policy custody, constructed only after the local OS File selection,
@@ -354,7 +400,11 @@ fn validate_selection(selection: &Selection, installation: &Installation) -> Res
             .any(|path| !path.is_absolute())
                 || !(1..=300_000).contains(&member.wait_milliseconds)
                 || member.host_id == conduit_core::HostId::from(selection.host_id.as_str())
-                || member.member_verifying_key == [0; 32]
+                || !member.member_key.valid()
+                || member.image_id.is_empty()
+                || member.image_id.len() > 256
+                || member.configuration_id.is_empty()
+                || member.configuration_id.len() > 256
                 || selection.expected.membership.parts.iter().any(|part| {
                     part.current
                         .as_ref()
@@ -931,6 +981,9 @@ fn admit_selected_member(
     // Host/key. The ordinary invitation is still consumed only by actual proof.
     let mut invitation_file = membership_receipt_custody::reserve(&selected.invitation_output)?;
     let invitation = owner.issue_invitation(state_dir, 300, None)?;
+    // Derive from the original owner-minted material BEFORE publishing it for
+    // physical Seed composition. Incoming basis bytes never select this key.
+    let member_verifying_key = selected.member_key.resolve(&invitation)?;
     invitation_file
         .write_all(&serde_json::to_vec(&invitation).map_err(|e| e.to_string())?)
         .and_then(|_| invitation_file.sync_all())
@@ -948,12 +1001,8 @@ fn admit_selected_member(
     basis
         .validate(current_time_millis()?)
         .map_err(|e| format!("selected admission basis: {e:?}"))?;
-    if &basis.owner != peer
-        || basis.expected_host != selected.host_id
-        || basis.member_verifying_key != selected.member_verifying_key
-        || basis.invitation != invitation.claim
-    {
-        return Err("selected admission differs from actual owner invitation or independently pinned physical Host/key".into());
+    if selected.verify_basis(&basis, peer, &invitation)? != member_verifying_key {
+        return Err("owned invitation bootstrap key changed".into());
     }
     let mut receipt_file = membership_receipt_custody::reserve(&selected.receipt_output)?;
     let timeout = Duration::from_secs(5);
@@ -969,7 +1018,7 @@ fn admit_selected_member(
     let return_basis = PicoMemberReturnBasis {
         credential: receipt.credential.clone(),
         expected_profile: basis.expected_profile.clone(),
-        member_verifying_key: basis.member_verifying_key,
+        member_verifying_key,
         owner: peer.clone(),
     };
     let signed = owner
@@ -977,7 +1026,7 @@ fn admit_selected_member(
     signed
         .verify(
             peer,
-            &basis.member_verifying_key,
+            &member_verifying_key,
             &basis.invitation.body_id,
             &observed.advertisement,
         )
@@ -987,7 +1036,7 @@ fn admit_selected_member(
         .deliver_admission_receipt(
             &signed,
             peer,
-            &basis.member_verifying_key,
+            &member_verifying_key,
             &basis.invitation.body_id,
             &observed.advertisement,
             timeout,
@@ -1016,4 +1065,108 @@ fn admit_selected_member(
 #[cfg(not(target_os = "linux"))]
 pub(crate) fn adopt(_state_dir: &Path, _policy: &Path, _prepare_only: bool) -> Result<(), String> {
     Err("selected bounded Source compiler requires Linux".into())
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod admission_key_tests {
+    use super::*;
+    #[test]
+    fn owned_invitation_key_matches_native_bootstrap_and_rejects_incoming_substitution() {
+        use conduit_body::{
+            MemberBootstrap, MemberBootstrapMaterial, PicoSpawnProvision, SpawnInvitationSecret,
+        };
+        let body = conduit_body::Body::born(
+            "source/key-test".into(),
+            "checked/key-test".into(),
+            1,
+            conduit_core::SignId::from("sign/key-test"),
+        )
+        .unwrap();
+        let mut manager = conduit_body::AdmissionManager::new(body.body_id.clone()).unwrap();
+        let invitation =
+            super::super::invitation::issue_from_manager(&mut manager, 300, None).unwrap();
+        let policy: AdmissionMemberKey =
+            serde_json::from_str(r#"{"source":"from-owned-invitation"}"#).unwrap();
+        let owner = conduit_body::FederationPeer {
+            host_id: "host/owner-key-test".into(),
+            boot_id: "boot/current-key-test".into(),
+            offer_generation: conduit_core::OfferGeneration(1),
+            verifying_key: SpawnInvitationSecret::from_csprng_bytes([7; 32])
+                .unwrap()
+                .verifying_key(),
+        };
+        let image = format!("image:sha256:{}", "3".repeat(64));
+        let configuration = format!("sha256:{}", "4".repeat(64));
+        let host = "rp2040/flash/0102030405060708";
+        let bootstrap = MemberBootstrap {
+            schema: conduit_body::MEMBER_BOOTSTRAP_SCHEMA.into(),
+            body_id: body.body_id,
+            host_id: host.into(),
+            image_id: image.clone(),
+            configuration_id: configuration.clone(),
+            owner: owner.clone(),
+            admission: MemberBootstrapMaterial::Spawn {
+                provision: PicoSpawnProvision {
+                    protocol: conduit_body::PICO_SPAWN_PROTOCOL,
+                    spore_id: "spore/key-test",
+                    image_id: &image,
+                    invitation_id: invitation.claim.invitation_id.as_str(),
+                    body_id: invitation.claim.body_id.as_str(),
+                    nonce: invitation.claim.nonce,
+                    expires_at_millis: invitation.claim.expires_at_millis,
+                    secret: invitation.secret,
+                },
+            },
+        };
+        assert!(bootstrap.matches_native(host, &image, &configuration));
+        // This is the exact secret accessor used by both actual native BSPs and
+        // the typed private Seed composer, not an incoming advertised key.
+        let seed_key = SpawnInvitationSecret::from_csprng_bytes(*bootstrap.admission.secret())
+            .unwrap()
+            .verifying_key();
+        assert_eq!(policy.resolve(&invitation).unwrap(), seed_key);
+        let selected = UsbAdmissionSelection {
+            host_id: host.into(),
+            member_key: policy,
+            image_id: image.clone(),
+            configuration_id: configuration.clone(),
+            port: "/dev/test-key".into(),
+            basis: "/private/basis".into(),
+            invitation_output: "/private/invitation".into(),
+            receipt_output: "/private/receipt".into(),
+            return_receipt_output: "/private/return".into(),
+            return_basis_output: "/private/return-basis".into(),
+            wait_milliseconds: 1000,
+        };
+        let basis = conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis {
+            spore_id: "spore/key-test".into(),
+            image_id: image.into(),
+            invitation: invitation.claim.clone(),
+            expected_host: host.into(),
+            expected_profile: configuration.into(),
+            member_verifying_key: seed_key,
+            owner: owner.clone(),
+        };
+        assert_eq!(
+            selected.verify_basis(&basis, &owner, &invitation).unwrap(),
+            seed_key
+        );
+        let mut wrong = basis.clone();
+        wrong.member_verifying_key[0] ^= 1;
+        assert!(selected.verify_basis(&wrong, &owner, &invitation).is_err());
+        let mut wrong = basis.clone();
+        wrong.image_id = "image/other".into();
+        assert!(selected.verify_basis(&wrong, &owner, &invitation).is_err());
+        let mut wrong = basis.clone();
+        wrong.expected_host = "host/other".into();
+        assert!(selected.verify_basis(&wrong, &owner, &invitation).is_err());
+        let pinned = AdmissionMemberKey::Pinned {
+            verifying_key: seed_key,
+        };
+        assert_eq!(pinned.resolve(&invitation).unwrap(), seed_key);
+        assert!(!AdmissionMemberKey::Pinned {
+            verifying_key: [0; 32]
+        }
+        .valid());
+    }
 }
