@@ -9793,3 +9793,37 @@ incremental cache after inventory. Source, keys, history and unique evidence wer
 preserved. Additional parent checks were cancelled to avoid competing large
 semantic code generation while the qualified owner replacement is building;
 cancelled checks are not passing evidence.
+
+### Continuing admitted-MCU execution integration (2026-11-07)
+
+The next live acceptance target is Yellow's three-entry sampling/Mask/output
+workset, selected from the same six-wrapper Source intended for Yellow and Blue.
+Blue's current USB host is unreachable; no Blue membership or execution evidence
+has been manufactured to let the first Plan proceed.
+
+The owner now retains the checked document, expanded entries, resident codebooks,
+and original capture/caller guards through Source CAS and planning. An explicit
+finite local installation policy invokes the existing challenge and signed
+workset submission path. Submission or transport acknowledgement is not evidence
+of MCU admission or Play. The product release metadata and strict Clippy checks
+passed. An optimized executable is still being built and qualified.
+
+Actual inert Face storage can now supply affine local handles before planning,
+without exposing a Face or publication. Invalid scope binding preserves that
+storage; actual scope binding allocates nothing (five custody tests passed).
+`MaskSession` uses the ordinary prepared-session lifecycle for successive Value
+inputs, transfers the previous mandatory evidence on rearm, and freezes result
+and Sign custody while the separate output Plot performs its electrical call.
+Only an exact correlated electrical completion can make its Show Available.
+The shared execution crate passed the thumbv6m check and strict Clippy; this is
+not a report of a physical admitted Play.
+
+Native runner and causal evidence ownership, checked Source calibration, and the
+owner submission path are checkpointed on the recovery PR. Concrete RP equipment
+and complete group composition are still being connected. No device was flashed
+for these intermediate checks. Native Seed packaging remains outside this
+immediate execution acceptance gate.
+
+Maintenance preserved active release builds, private state, and unique proof.
+Eight inactive regenerable debug language libraries were inventoried, checked
+against process ownership, and removed, reclaiming 2,680,057,856 allocated bytes.
