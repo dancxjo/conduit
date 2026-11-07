@@ -1140,7 +1140,7 @@ mod admission_key_tests {
         };
         let basis = conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis {
             spore_id: "spore/key-test".into(),
-            image_id: image.into(),
+            image_id: image.clone().into(),
             invitation: invitation.claim.clone(),
             expected_host: host.into(),
             expected_profile: configuration.into(),

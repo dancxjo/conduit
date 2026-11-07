@@ -474,6 +474,7 @@ fn runtime(owner: Owner, root: &std::path::Path) -> DurableHostRuntime {
         owner_spoken_worker: None,
         owner_spoken_terminal: None,
         spoken_template_session: None,
+        _source_preparation: None,
     }
 }
 
