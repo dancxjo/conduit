@@ -13,7 +13,9 @@ host pico-w-house-yellow {
   base = {kind: "network/wifi", implementation: "rp2040/cyw43-retained@1", initialization: {credential_source: "private-flash-network-journal", maximum_sockets: 4}}
   # Finite initialized renderer support; whole-workset admission still uses
   # the separately reviewed IMAGE arena; Root still reserves before effects.
-  base = {kind: "face/renderer", implementation: "rp2040/seven-segment-renderer@1", initialization: {face_bytes: 6144, show_bytes: 4096, resource_bytes: 24576, maximum_frames: 65535, page_period_ms: 2000, show_lifetime_ms: 120000, temperature_unit: "fahrenheit"}}
+  # Finite Face/Show envelopes also bound opaque Value queue planning.
+  # Six shared-reference Mask queues fit the existing 24576-byte ceiling.
+  base = {kind: "face/renderer", implementation: "rp2040/seven-segment-renderer@1", initialization: {face_bytes: 3072, show_bytes: 3072, resource_bytes: 24576, maximum_frames: 65535, page_period_ms: 2000, show_lifetime_ms: 120000, temperature_unit: "fahrenheit"}}
   # Finite cooperative work pool; its existence installs no computation Back.
   # 16 KiB bounds resident initialization/reservation metadata, not all kernels.
   # Full execution backing has separate custody in the checked IMAGE arena.
