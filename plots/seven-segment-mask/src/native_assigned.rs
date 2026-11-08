@@ -266,8 +266,11 @@ fn admit(
     if face_cord.sink != k::CordEndpoint::local(tee, k::PortId(0))
         || show_cord.source != k::CordEndpoint::local(renderer, k::PortId(0))
         || interaction_cord.source != k::CordEndpoint::local(read_only, k::PortId(0))
-        || face_cord.byte_capacity != profile.face_bytes
-        || show_cord.byte_capacity != profile.show_bytes
+        // Logical typed Cords may reserve more than the renderer's wire
+        // envelope. The immutable layout pins both queue capacities, while
+        // the separate Host Call records below retain the exact wire limits.
+        || face_cord.byte_capacity < profile.face_bytes
+        || show_cord.byte_capacity < profile.show_bytes
         || tables.cords.iter().any(|cord| {
             cord.item_capacity != 1 || cord.maximum_value_bytes > 8192 || cord.byte_capacity > 8192
         })
