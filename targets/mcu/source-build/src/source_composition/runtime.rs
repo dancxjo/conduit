@@ -217,7 +217,10 @@ pub async fn run<'s>(
         };
         crate::runtime::observe_receipt(root.receipt_digest());
         if let Err(error) = result {
-            last_refusal = Some(error);
+            // An idle carrier timeout must not erase the preceding transaction refusal.
+            if error != conduit_mcu_host_runtime::root::Refusal::Carrier || last_refusal.is_none() {
+                last_refusal = Some(error);
+            }
             link.reset();
         } else if root.retained_input() {
             let mut refusal_detail = heapless::String::<192>::new();

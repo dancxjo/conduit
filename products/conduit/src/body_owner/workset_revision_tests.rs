@@ -253,3 +253,49 @@ fn revision_preflight_preserves_selected_external_fore_bounds() {
     assert_eq!(ports[0].byte_capacity, 64);
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn exact_retained_workset_revalidation_preserves_biography_and_checks_basis() {
+    let (root, mut owner) = fixture();
+    let before = owner.session.evidence().clone();
+    let (a, pa) = checked("alpha");
+    let (b, pb) = checked("beta");
+    let sources = [(&b, &pb), (&a, &pa)];
+    let boundaries =
+        super::super::continuing::boundaries_for_plots(sources.iter().map(|(_, plot)| *plot), None)
+            .unwrap();
+    let bytes = fs::read(root.join("body/biography.json")).unwrap();
+    owner
+        .commit_admitted_workset_revision_with_boundaries(
+            &root,
+            &before,
+            &sources,
+            &boundaries,
+            true,
+        )
+        .unwrap();
+    assert_eq!(owner.session.evidence(), &before);
+    assert_eq!(fs::read(root.join("body/biography.json")).unwrap(), bytes);
+    assert!(owner.session.realization().is_none());
+    assert!(owner
+        .commit_admitted_workset_revision_with_boundaries(
+            &root,
+            &before,
+            &sources,
+            &boundaries,
+            false
+        )
+        .is_err());
+    let mut stale = before.clone();
+    stale.body.workload_revision += 1;
+    assert!(owner
+        .commit_admitted_workset_revision_with_boundaries(
+            &root,
+            &stale,
+            &sources,
+            &boundaries,
+            true
+        )
+        .is_err());
+    fs::remove_dir_all(root).unwrap();
+}

@@ -49,6 +49,7 @@ impl Owner {
             expected,
             &sources,
             &boundaries,
+            true,
         ) {
             self.local_fore_adapters = previous;
             return Err(error);
@@ -80,6 +81,7 @@ impl Owner {
             &expected,
             &sources,
             &boundaries,
+            false,
         )
     }
 
@@ -118,7 +120,13 @@ impl Owner {
             sources.iter().map(|(_, plot)| *plot),
             ingress,
         )?;
-        self.commit_admitted_workset_revision_with_boundaries(root, expected, sources, &boundaries)
+        self.commit_admitted_workset_revision_with_boundaries(
+            root,
+            expected,
+            sources,
+            &boundaries,
+            false,
+        )
     }
 
     /// Existing independently selected adapter bounds participate in revision
@@ -139,6 +147,7 @@ impl Owner {
                 conduit_planner::ConnectionQueueLimits,
             >,
         >,
+        allow_retained_workset: bool,
     ) -> Result<(), String> {
         self.ensure_execution_retained(root)?;
         self.require_remote_workset_retired()?;
@@ -161,12 +170,17 @@ impl Owner {
             )
         }))
         .map_err(debug)?;
-        if desired == expected.body.workset {
+        if desired == expected.body.workset && !allow_retained_workset {
             return Err("workset revision has no change".into());
         }
         // The same ordinary planner independently rechecks every exact Source
         // and current offer. Preparation is not reservation or permission to run.
         self.prepare_workset_partitions_for(&desired, sources, boundaries)?;
+        // A freshly authorized exact File may revalidate its already retained
+        // workset against this Boot without inventing a biography revision.
+        if desired == expected.body.workset {
+            return Ok(());
+        }
         let ad = self.host.advertisement();
         let mut staged = self.session.clone();
         for plot in expected
