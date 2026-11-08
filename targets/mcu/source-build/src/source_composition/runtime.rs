@@ -224,7 +224,7 @@ pub async fn run<'s>(
             link.reset();
         } else if root.retained_input() {
             let mut refusal_detail = heapless::String::<192>::new();
-            let outcome = {
+            let prepared_outcome = {
                 let future = async {
                 // The original full-arena lease predates Ready construction.
                 // Measure used backing once for this incremental factory bound;
@@ -312,30 +312,34 @@ pub async fn run<'s>(
                     let _ = write!(&mut refusal_detail, "{error:?}");
                     "complete-source-preparation"
                 })?;
-                let (started, scopes) = crate::play_service::start(
-                    prepared,
-                    parts.workspace,
-                    parts.bootstrap,
-                    parts.member,
-                    parts.configuration,
-                    parts.resources,
-                    policy,
-                    &mut equipment.renderer,
-                    &mut issuers.renderer,
-                    &operations.renderer,
-                    reader.take().ok_or("reader-busy")?,
-                    &face,
-                    held_pools,
-                )
-                .map_err(|error| {
-                    use core::fmt::Write;
-                    let _ = write!(&mut refusal_detail, "{error:?}");
-                    "complete-admission-start"
-                })?;
-                Ok((started, scopes))
+                Ok((prepared, &*parts.workspace, parts.bootstrap, parts.member,
+                    parts.configuration, parts.resources, policy, held_pools))
                 };
                 let mut future = core::pin::pin!(future);
                 conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await
+            };
+            // Successive polls retire preparation scratch before admission and
+            // provider binding need their own stack. Custody moves once; no
+            // command, resource ledger, or execution grant is reconstructed.
+            let outcome = match prepared_outcome {
+                Err(reason) => Err(reason),
+                Ok((prepared, workspace, bootstrap, member, configuration,
+                    resources, policy, held_pools)) => {
+                    let future = async {
+                        crate::play_service::start(
+                            prepared, workspace, bootstrap, member, configuration,
+                            resources, policy, &mut equipment.renderer,
+                            &mut issuers.renderer, &operations.renderer,
+                            reader.take().ok_or("reader-busy")?, &face, held_pools,
+                        ).map_err(|error| {
+                            use core::fmt::Write;
+                            let _ = write!(&mut refusal_detail, "{error:?}");
+                            "complete-admission-start"
+                        })
+                    };
+                    let mut future = core::pin::pin!(future);
+                    conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await
+                }
             };
             match outcome {
                 Ok((started, scopes)) => {
