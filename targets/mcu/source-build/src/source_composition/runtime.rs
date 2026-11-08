@@ -391,10 +391,10 @@ pub async fn run<'s>(
                             &face,
                             link,
                         )
-                        .await;
+                        .await
                     };
                     let mut future = core::pin::pin!(future);
-                    conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await;
+                    return conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await;
                 }
                 Err(reason) => {
                     // No partial execution: retain the original signed input and
