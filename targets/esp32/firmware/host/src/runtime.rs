@@ -97,7 +97,9 @@ impl conduit_monotonic_wait::MonotonicWaitProvider for MonotonicTimer {
 /// Shared preparation charges the actual initialized allocator, not a declared
 /// envelope or accumulated guessed allocation sizes.
 pub fn allocator_used() -> usize {
-    esp_alloc::HEAP.used()
+    let used = esp_alloc::HEAP.used();
+    crate::panic_capture::observe_heap(used);
+    used
 }
 
 pub fn now_ms() -> u64 {

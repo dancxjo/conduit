@@ -2,7 +2,13 @@
 use core::{
     fmt::{self, Write},
     panic::PanicInfo,
+    sync::atomic::{AtomicUsize, Ordering},
 };
+// Panic may have interrupted allocator ownership. Never query its lock again.
+static LAST_HEAP_USED: AtomicUsize = AtomicUsize::new(usize::MAX);
+pub(crate) fn observe_heap(bytes: usize) {
+    LAST_HEAP_USED.store(bytes, Ordering::Relaxed);
+}
 struct Report {
     remaining: usize,
 }
@@ -28,8 +34,11 @@ impl Write for Report {
 fn panic(info: &PanicInfo<'_>) -> ! {
     let _ = writeln!(
         Report { remaining: 512 },
-        "\nCONDUIT_PANIC@1 heap_used={} {info}",
-        esp_alloc::HEAP.used()
+        "\nCONDUIT_PANIC@1 heap_last_observed_bytes={:?} {info}",
+        match LAST_HEAP_USED.load(Ordering::Relaxed) {
+            usize::MAX => None,
+            bytes => Some(bytes),
+        }
     );
     loop {
         core::hint::spin_loop();
