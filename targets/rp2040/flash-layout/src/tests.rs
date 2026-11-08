@@ -9,13 +9,15 @@ fn layout_reserves_exact_disjoint_journal_and_existing_bootstrap() {
     assert_eq!(BOOTSTRAP.bytes(), 4096);
     assert_eq!(CREDENTIALS.bytes(), 8192);
     assert_eq!(FIRMWARE.offset(), 0);
-    assert_eq!(FIRMWARE.bytes(), CREDENTIALS.offset());
+    assert_eq!(FIRMWARE.bytes(), DURABLE.offset());
     assert_eq!(
         CREDENTIALS.offset() + CREDENTIALS.bytes(),
         BOOTSTRAP.offset()
     );
     assert_eq!(BOOTSTRAP.offset() + BOOTSTRAP.bytes(), FLASH_BYTES);
-    for region in [FIRMWARE, CREDENTIALS, BOOTSTRAP] {
+    assert_eq!(DURABLE.bytes(), 576 * 1024);
+    assert_eq!(DURABLE.offset() + DURABLE.bytes(), CREDENTIALS.offset());
+    for region in [FIRMWARE, DURABLE, CREDENTIALS, BOOTSTRAP] {
         assert_eq!(region.offset() % ERASE_BYTES, 0);
         assert_eq!(region.bytes() % ERASE_BYTES, 0);
     }
@@ -30,7 +32,7 @@ fn reserved_pages_and_overflow_refuse_without_widening_bounds() {
         Ok(ImageRegion::Firmware)
     );
     assert_eq!(
-        classify_image_page(CREDENTIALS.address() - PAGE_BYTES, PAGE_BYTES),
+        classify_image_page(DURABLE.address() - PAGE_BYTES, PAGE_BYTES),
         Ok(ImageRegion::Firmware)
     );
     assert_eq!(
@@ -39,6 +41,7 @@ fn reserved_pages_and_overflow_refuse_without_widening_bounds() {
     );
     for address in [
         0,
+        DURABLE.address(),
         CREDENTIALS.address(),
         BOOTSTRAP.address() - PAGE_BYTES,
         FLASH_START + FLASH_BYTES,
@@ -64,7 +67,8 @@ fn malformed_geometry_never_generates_a_linker_contract() {
         LAYOUT_MODULE.replace("8192", "4096"),
         LAYOUT_MODULE.replace("4096", "4095"),
         LAYOUT_MODULE.replace("256", "512"),
-        LAYOUT_MODULE.replace("flash-layout@1", "flash-layout@2"),
+        LAYOUT_MODULE.replace("flash-layout@2", "flash-layout@1"),
+        LAYOUT_MODULE.replace("589824", "585728"),
         LAYOUT_MODULE.replace("\"flash_bytes\":", "\"unknown\":"),
         LAYOUT_MODULE.replace(
             "\"flash_bytes\": 2097152,",
@@ -103,6 +107,7 @@ fn streaming_uf2_admits_only_complete_ordered_firmware_and_bootstrap_pages() {
     validator.push(&block(FLASH_START, 0, 2)).unwrap();
     assert_eq!(validator.finish(), Err(Uf2Refusal::Incomplete));
     for address in [
+        DURABLE.address(),
         CREDENTIALS.address(),
         BOOTSTRAP.address() - PAGE_BYTES,
         FLASH_START + FLASH_BYTES,

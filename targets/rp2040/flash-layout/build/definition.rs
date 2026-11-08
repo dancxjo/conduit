@@ -11,6 +11,7 @@ pub struct Layout {
     page_bytes: u32,
     boot2_bytes: u32,
     credentials_bytes: u32,
+    durable_bytes: u32,
     bootstrap_bytes: u32,
 }
 impl Layout {
@@ -28,12 +29,13 @@ impl Layout {
         let value: Self = serde_json::from_str(json).map_err(|_| "layout encoding")?;
         // This layout belongs to the existing 2 MiB Pico/Pico W target, not to
         // arbitrary RP2040 flash chips. A different board needs a reviewed layout.
-        if value.schema != "conduit.rp2040/flash-layout@1"
+        if value.schema != "conduit.rp2040/flash-layout@2"
             || value.flash_start != 0x1000_0000
             || value.flash_bytes != 2 * 1024 * 1024
             || value.erase_bytes != 4096
             || value.page_bytes != 256
             || value.boot2_bytes != 256
+            || value.durable_bytes != 144 * value.erase_bytes
             || value.credentials_bytes != 2 * value.erase_bytes
             || value.bootstrap_bytes != value.erase_bytes
         {
@@ -47,19 +49,24 @@ impl Layout {
     fn credentials_offset(&self) -> u32 {
         self.bootstrap_offset() - self.credentials_bytes
     }
+    fn durable_offset(&self) -> u32 {
+        self.credentials_offset() - self.durable_bytes
+    }
     pub fn rust(&self) -> String {
         format!(
-            "pub const FLASH_START:u32={};\npub const FLASH_BYTES:u32={};\npub const ERASE_BYTES:u32={};\npub const PAGE_BYTES:u32={};\npub const FIRMWARE:Region=Region{{offset:0,bytes:{}}};\npub const CREDENTIALS:Region=Region{{offset:{},bytes:{}}};\npub const BOOTSTRAP:Region=Region{{offset:{},bytes:{}}};\n",
+            "pub const FLASH_START:u32={};\npub const FLASH_BYTES:u32={};\npub const ERASE_BYTES:u32={};\npub const PAGE_BYTES:u32={};\npub const FIRMWARE:Region=Region{{offset:0,bytes:{}}};\npub const DURABLE:Region=Region{{offset:{},bytes:{}}};\npub const CREDENTIALS:Region=Region{{offset:{},bytes:{}}};\npub const BOOTSTRAP:Region=Region{{offset:{},bytes:{}}};\n",
             self.flash_start, self.flash_bytes, self.erase_bytes, self.page_bytes,
-            self.credentials_offset(), self.credentials_offset(), self.credentials_bytes,
+            self.durable_offset(), self.durable_offset(), self.durable_bytes,
+            self.credentials_offset(), self.credentials_bytes,
             self.bootstrap_offset(), self.bootstrap_bytes,
         )
     }
     pub fn linker(&self) -> String {
         format!(
-            "/* Generated from the checked RP2040 flash layout. */\nMEMORY\n{{\n  BOOT2 : ORIGIN = {:#x}, LENGTH = {:#x}\n  FLASH : ORIGIN = {:#x}, LENGTH = {:#x}\n  CREDENTIALS : ORIGIN = {:#x}, LENGTH = {:#x}\n  BODY_BOOTSTRAP : ORIGIN = {:#x}, LENGTH = {:#x}\n  RAM : ORIGIN = 0x20000000, LENGTH = 264K\n}}\n\nSECTIONS {{\n  .boot2 ORIGIN(BOOT2) : {{ KEEP(*(.boot2)); }} > BOOT2\n}} INSERT BEFORE .text;\n\n_stack_start = ORIGIN(RAM) + LENGTH(RAM);\n",
+            "/* Generated from the checked RP2040 flash layout. */\nMEMORY\n{{\n  BOOT2 : ORIGIN = {:#x}, LENGTH = {:#x}\n  FLASH : ORIGIN = {:#x}, LENGTH = {:#x}\n  DURABLE : ORIGIN = {:#x}, LENGTH = {:#x}\n  CREDENTIALS : ORIGIN = {:#x}, LENGTH = {:#x}\n  BODY_BOOTSTRAP : ORIGIN = {:#x}, LENGTH = {:#x}\n  RAM : ORIGIN = 0x20000000, LENGTH = 264K\n}}\n\nSECTIONS {{\n  .boot2 ORIGIN(BOOT2) : {{ KEEP(*(.boot2)); }} > BOOT2\n}} INSERT BEFORE .text;\n\n_stack_start = ORIGIN(RAM) + LENGTH(RAM);\n",
             self.flash_start, self.boot2_bytes,
-            self.flash_start + self.boot2_bytes, self.credentials_offset() - self.boot2_bytes,
+            self.flash_start + self.boot2_bytes, self.durable_offset() - self.boot2_bytes,
+            self.flash_start + self.durable_offset(), self.durable_bytes,
             self.flash_start + self.credentials_offset(), self.credentials_bytes,
             self.flash_start + self.bootstrap_offset(), self.bootstrap_bytes,
         )

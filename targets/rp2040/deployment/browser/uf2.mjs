@@ -4,11 +4,12 @@ const BLOCK_BYTES = 512;
 const PAYLOAD_BYTES = 256;
 // This is the same source checked by the no_std target crate at build time.
 // Fail closed if a stale/incompatible layout is delivered independently.
-if (Object.keys(layout).length !== 8
-  || layout.schema !== "conduit.rp2040/flash-layout@1"
+if (Object.keys(layout).length !== 9
+  || layout.schema !== "conduit.rp2040/flash-layout@2"
   || layout.flash_start !== 0x10000000 || layout.flash_bytes !== 2 * 1024 * 1024
   || layout.page_bytes !== 256 || layout.erase_bytes !== 4096
   || layout.boot2_bytes !== layout.page_bytes
+  || layout.durable_bytes !== 144 * layout.erase_bytes
   || layout.credentials_bytes !== 2 * layout.erase_bytes
   || layout.bootstrap_bytes !== layout.erase_bytes) {
   throw new Error("Unsupported RP2040 flash layout");
@@ -21,6 +22,7 @@ const FLASH_START = layout.flash_start;
 const FLASH_END = FLASH_START + MAXIMUM_FLASH_BYTES;
 const SPORE_SECTOR_ADDRESS = FLASH_END - layout.bootstrap_bytes;
 const CREDENTIALS_ADDRESS = SPORE_SECTOR_ADDRESS - layout.credentials_bytes;
+const DURABLE_ADDRESS = CREDENTIALS_ADDRESS - layout.durable_bytes;
 const MAGIC_START_0 = 0x0a324655;
 const MAGIC_START_1 = 0x9e5d5157;
 const MAGIC_END = 0x0ab16f30;
@@ -104,8 +106,8 @@ export function parseRp2040Uf2(value, maximumTransferBytes) {
     ) {
       refuse("Uf2Sequence", `UF2 block ${index} has stale address or sequence truth`);
     }
-    if (address < SPORE_SECTOR_ADDRESS && address + payloadBytes > CREDENTIALS_ADDRESS) {
-      refuse("ReservedFlash", "RP2040 IMAGE overlaps retained credential sectors");
+    if (address < SPORE_SECTOR_ADDRESS && address + payloadBytes > DURABLE_ADDRESS) {
+      refuse("ReservedFlash", "RP2040 IMAGE overlaps retained durable or credential sectors");
     }
     if (previousEnd !== null && address !== previousEnd && address !== SPORE_SECTOR_ADDRESS) {
       refuse("SparseImage", "RP2040 UF2 admits only one exact native Spore bootstrap sector gap");
@@ -185,7 +187,9 @@ export const RP2040_UF2 = Object.freeze({
   flashEnd: FLASH_END,
   credentialsAddress: CREDENTIALS_ADDRESS,
   credentialsBytes: layout.credentials_bytes,
-  firmwareEnd: CREDENTIALS_ADDRESS,
+  durableAddress: DURABLE_ADDRESS,
+  durableBytes: layout.durable_bytes,
+  firmwareEnd: DURABLE_ADDRESS,
   sporeSectorAddress: SPORE_SECTOR_ADDRESS,
   sporeSectorBytes: FLASH_SECTOR_BYTES,
 });
