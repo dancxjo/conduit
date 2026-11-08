@@ -237,6 +237,7 @@ dependencies = [
  "critical-section",
  "embassy-time",
  "esp-hal",
+ "xtensa-lx",
 ]
 
 [[package]]

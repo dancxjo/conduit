@@ -113,6 +113,13 @@ impl<'d> Esp32PulseCapture<'d> {
         {
             return Err(PulseReadRefusal::DeadlineExtent);
         }
+        // Calibrate from the actual initialized CPU clock before effects. The
+        // finite intervals fit below half the wrapping CCOUNT range.
+        let hz = esp_hal::clock::cpu_clock().as_hz();
+        let capture_cycles = cycles_for_micros(hz, request.capture_timeout_us)
+            .ok_or(PulseReadRefusal::DeadlineExtent)?;
+        let sample_cycles = cycles_for_micros(hz, u32::from(request.sample_after_rise_us))
+            .ok_or(PulseReadRefusal::SampleOffset)?;
         self.pin.set_output_enable(true);
         self.delay.delay_micros(request.hold_low_us);
         let mut wire = [0; conduit_pulse_capture::MAXIMUM_OCTETS];
@@ -128,8 +135,19 @@ impl<'d> Esp32PulseCapture<'d> {
         // budget covers the capture deadline plus bounded polling/exit overhead.
         let (complete, elapsed_us) = critical_section::with(|_| {
             let start = Instant::now();
+            let deadline = CycleDeadline {
+                start: xtensa_lx::timer::get_cycle_count(),
+                budget: capture_cycles,
+            };
             self.pin.set_output_enable(false);
-            let complete = self.read_bits(request, start, &mut wire, &mut length, &mut observation);
+            let complete = self.read_bits(
+                request,
+                deadline,
+                sample_cycles,
+                &mut wire,
+                &mut length,
+                &mut observation,
+            );
             (complete, start.elapsed().as_micros())
         });
         observation.elapsed_us = elapsed_us.min(u64::from(u32::MAX)) as u32;
@@ -151,16 +169,15 @@ impl<'d> Esp32PulseCapture<'d> {
         .expect("checked finite capture extent"))
     }
 
-    fn wait_level(&self, high: bool, start: Instant, timeout_us: u32) -> bool {
+    fn wait_level(&self, high: bool, deadline: CycleDeadline) -> Option<u32> {
         loop {
-            // Observe short levels before the comparatively slow timer read.
-            // The following deadline check still gates acceptance of that sample.
             match sample_before_deadline(
                 || self.pin.is_high(),
-                || start.elapsed().as_micros() >= u64::from(timeout_us),
+                xtensa_lx::timer::get_cycle_count,
+                deadline,
             ) {
-                Some(level) if level == high => return true,
-                None => return false,
+                Some((level, observed_at)) if level == high => return Some(observed_at),
+                None => return None,
                 Some(_) => core::hint::spin_loop(),
             }
         }
@@ -169,26 +186,27 @@ impl<'d> Esp32PulseCapture<'d> {
     fn read_bits(
         &self,
         request: conduit_pulse_capture::PulseReadRequest,
-        start: Instant,
+        deadline: CycleDeadline,
+        sample_cycles: u32,
         wire: &mut [u8; conduit_pulse_capture::MAXIMUM_OCTETS],
         length: &mut usize,
         observation: &mut CaptureObservation,
     ) -> bool {
         observation.phase = CapturePhase::ReleaseRise;
-        if !self.wait_level(true, start, request.capture_timeout_us) {
+        if self.wait_level(true, deadline).is_none() {
             return false;
         }
         observation.phase = CapturePhase::ResponseLow;
-        if !self.wait_level(false, start, request.capture_timeout_us) {
+        if self.wait_level(false, deadline).is_none() {
             return false;
         }
         for _ in 0..request.skip_high_pulses {
             observation.phase = CapturePhase::SkippedRise;
-            if !self.wait_level(true, start, request.capture_timeout_us) {
+            if self.wait_level(true, deadline).is_none() {
                 return false;
             }
             observation.phase = CapturePhase::SkippedFall;
-            if !self.wait_level(false, start, request.capture_timeout_us) {
+            if self.wait_level(false, deadline).is_none() {
                 return false;
             }
         }
@@ -196,17 +214,26 @@ impl<'d> Esp32PulseCapture<'d> {
             let mut value = 0;
             for _ in 0..8 {
                 observation.phase = CapturePhase::DataRise;
-                if !self.wait_level(true, start, request.capture_timeout_us) {
+                let Some(rise) = self.wait_level(true, deadline) else {
                     return false;
-                }
+                };
                 observation.phase = CapturePhase::Sample;
-                self.delay
-                    .delay_micros(u32::from(request.sample_after_rise_us));
-                // Sample at the requested offset before reading the timer, but
-                // never consume the sampled bit if the capture deadline expired.
-                let Some(high) = sample_before_deadline(
+                // Anchor the offset to the observed rise. No slow LACT timer
+                // reads or HAL Delay setup occur between capture edges.
+                loop {
+                    let now = xtensa_lx::timer::get_cycle_count();
+                    if deadline.expired(now) {
+                        return false;
+                    }
+                    if now.wrapping_sub(rise) >= sample_cycles {
+                        break;
+                    }
+                    core::hint::spin_loop();
+                }
+                let Some((high, _)) = sample_before_deadline(
                     || self.pin.is_high(),
-                    || start.elapsed().as_micros() >= u64::from(request.capture_timeout_us),
+                    xtensa_lx::timer::get_cycle_count,
+                    deadline,
                 ) else {
                     return false;
                 };
@@ -222,7 +249,7 @@ impl<'d> Esp32PulseCapture<'d> {
                     return true;
                 }
                 observation.phase = CapturePhase::DataFall;
-                if !self.wait_level(false, start, request.capture_timeout_us) {
+                if self.wait_level(false, deadline).is_none() {
                     return false;
                 }
             }
@@ -253,63 +280,100 @@ impl Drop for Esp32PulseCapture<'_> {
     }
 }
 
-// Keep the GPIO-before-timer order identical for edge polling and bit sampling.
-// Inlined closures retain direct HAL accesses in the timed realization.
+// Pure calibration and wrapping-deadline law shared by the timed realization.
+fn cycles_for_micros(hz: u32, micros: u32) -> Option<u32> {
+    let cycles = u64::from(hz)
+        .checked_mul(u64::from(micros))?
+        .checked_add(999_999)?
+        / 1_000_000;
+    (hz != 0 && cycles != 0 && cycles < (1u64 << 31)).then_some(cycles as u32)
+}
+#[derive(Clone, Copy)]
+struct CycleDeadline {
+    start: u32,
+    budget: u32,
+}
+impl CycleDeadline {
+    #[inline(always)]
+    fn expired(self, now: u32) -> bool {
+        now.wrapping_sub(self.start) >= self.budget
+    }
+}
 #[inline(always)]
 fn sample_before_deadline(
     sample: impl FnOnce() -> bool,
-    deadline_reached: impl FnOnce() -> bool,
-) -> Option<bool> {
+    clock: impl FnOnce() -> u32,
+    deadline: CycleDeadline,
+) -> Option<(bool, u32)> {
     let level = sample();
-    if deadline_reached() {
+    let now = clock();
+    if deadline.expired(now) {
         None
     } else {
-        Some(level)
+        Some((level, now))
     }
 }
 
 #[cfg(test)]
 mod timing_tests {
-    use super::sample_before_deadline;
+    use super::{cycles_for_micros, sample_before_deadline, CycleDeadline};
     use core::cell::Cell;
 
     #[test]
-    fn short_release_high_is_observed_before_slow_timer_poll() {
-        let time = Cell::new(0u32);
-        // Release high ends before one timer read. A timer-first realization
-        // mistakes the later response high for the release high.
-        let level = || matches!(time.get(), 0..10 | 90..170 | 220..290 | 340..410);
-        let expired = || {
-            time.set(time.get() + 20);
-            time.get() >= 1000
+    fn calibration_uses_the_actual_rate_and_refuses_ambiguous_wrap_intervals() {
+        assert_eq!(cycles_for_micros(240_000_000, 50_000), Some(12_000_000));
+        assert_eq!(cycles_for_micros(80_000_000, 40), Some(3200));
+        assert_eq!(cycles_for_micros(1_500_001, 1), Some(2));
+        assert_eq!(cycles_for_micros(0, 40), None);
+        assert_eq!(cycles_for_micros(240_000_000, 0), None);
+        assert_eq!(cycles_for_micros(1_000_000, 1 << 31), None);
+        assert_eq!(cycles_for_micros(u32::MAX, u32::MAX), None);
+    }
+    #[test]
+    fn deadline_and_sample_offset_remain_exact_across_counter_wrap() {
+        let deadline = CycleDeadline {
+            start: u32::MAX - 9,
+            budget: 40,
+        };
+        assert!(!deadline.expired(u32::MAX));
+        assert!(!deadline.expired(29));
+        assert!(deadline.expired(30));
+        let rise = u32::MAX - 4;
+        assert_eq!(4u32.wrapping_sub(rise), 9);
+        assert_eq!(5u32.wrapping_sub(rise), 10);
+        assert_eq!(
+            sample_before_deadline(|| true, || 29, deadline),
+            Some((true, 29))
+        );
+        assert_eq!(sample_before_deadline(|| true, || 30, deadline), None);
+    }
+    #[test]
+    fn fast_poll_catches_release_that_rises_between_iterations() {
+        let tick = Cell::new(0u32);
+        // Initially low: unlike just reordering one slow timer read, fast polling
+        // must see a complete short high which begins AFTER the first GPIO read.
+        let level = || matches!(tick.get(), 2..7 | 90..170 | 220..290);
+        let clock = || {
+            tick.set(tick.get() + 1);
+            tick.get()
+        };
+        let deadline = CycleDeadline {
+            start: 0,
+            budget: 1000,
         };
         let wait = |wanted| loop {
-            match sample_before_deadline(level, expired) {
-                Some(actual) if actual == wanted => return time.get(),
+            match sample_before_deadline(level, clock, deadline) {
+                Some((actual, at)) if actual == wanted => return at,
                 Some(_) => (),
                 None => panic!("finite fixture deadline"),
             }
         };
-        assert_eq!(wait(true), 20); // release high, sampled at zero
-        assert_eq!(wait(false), 40); // response low
-        assert_eq!(wait(true), 120); // skipped response high
-        assert_eq!(wait(false), 200); // response fall/data low
-        assert_eq!(wait(true), 240); // first data bit, not the second
-    }
-
-    #[test]
-    fn bit_sample_precedes_timer_but_expiration_still_refuses_it() {
-        let time = Cell::new(40u32);
-        let sampled = sample_before_deadline(
-            || time.get() < 70,
-            || {
-                time.set(80);
-                time.get() >= 1000
-            },
-        );
-        assert_eq!(sampled, Some(true));
-        assert_eq!(time.get(), 80); // A timer-first GPIO read would have been low.
-        assert_eq!(sample_before_deadline(|| true, || true), None);
-        assert_eq!(sample_before_deadline(|| false, || true), None);
+        assert_eq!(wait(true), 3);
+        assert_eq!(wait(false), 8);
+        assert_eq!(wait(true), 91);
+        assert_eq!(wait(false), 171);
+        assert_eq!(wait(true), 221);
+        tick.set(1000);
+        assert_eq!(sample_before_deadline(|| true, clock, deadline), None);
     }
 }
