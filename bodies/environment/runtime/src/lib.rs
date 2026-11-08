@@ -104,7 +104,7 @@ impl<const P: usize> StepBack<P> for CaptureBack {
 /// The output envelope is reserved before Play; unmatched drops return None.
 pub struct PreparedCaptureSelector {
     selector: StructuredSelector,
-    validator: conduit_core::PreparedStructuredValueValidator,
+    maximum_input_bytes: usize,
     input_type: alloc::vec::Vec<u8>,
     output_type: alloc::vec::Vec<u8>,
     output: alloc::vec::Vec<u8>,
@@ -115,16 +115,23 @@ impl PreparedCaptureSelector {
         maximum_input_bytes: usize,
         maximum_output_bytes: usize,
     ) -> Result<Self, conduit_core::StructuredInfoRefusal> {
+        let input_type = selector.input_type().canonical_bytes()?;
+        if maximum_input_bytes == 0
+            || maximum_input_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || input_type.len() >= maximum_input_bytes
+        {
+            return Err(conduit_core::StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
         Ok(Self {
-            validator: conduit_core::PreparedStructuredValueValidator::new(
-                selector.input_type(),
-                maximum_input_bytes,
-            )?,
-            input_type: selector.input_type().canonical_bytes()?,
+            maximum_input_bytes,
+            input_type,
             output_type: selector.output_type().canonical_bytes()?,
             selector,
             output: alloc::vec::Vec::with_capacity(maximum_output_bytes),
         })
+    }
+    pub fn output(&self) -> &[u8] {
+        &self.output
     }
     pub fn select(
         &mut self,
@@ -134,8 +141,15 @@ impl PreparedCaptureSelector {
             StructuredCanonicalSelection as S, StructuredSelectorRefusal as R,
             UnmatchedVariantDisposition as D,
         };
-        self.validator
-            .validate(input)
+        if input.len() > self.maximum_input_bytes {
+            return Err(R::MalformedCheckedValue);
+        }
+        let node = input
+            .strip_prefix(self.input_type.as_slice())
+            .ok_or(R::MalformedCheckedValue)?;
+        self.selector
+            .input_type()
+            .validate_canonical_value_node(node)
             .map_err(|_| R::MalformedCheckedValue)?;
         match self.selector.select_canonical_into(
             input,

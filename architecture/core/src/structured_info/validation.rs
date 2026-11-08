@@ -47,9 +47,21 @@ impl PreparedStructuredValueValidator {
         let node = input
             .strip_prefix(self.prefix.as_slice())
             .ok_or(Refusal::WrongType)?;
+        self.value_type.validate_canonical_value_node(node)
+    }
+}
+impl StructuredInfoType {
+    /// Validate a borrowed value node against this already checked schema.
+    /// The caller retains the exact schema-prefix and envelope-size checks.
+    /// This allocates nothing and checks every primitive leaf, including fields
+    /// which a subsequent selector will not choose.
+    pub fn validate_canonical_value_node(&self, node: &[u8]) -> Result<(), Refusal> {
+        if node.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+            return Err(Refusal::CanonicalEncodingTooLarge);
+        }
         let mut cursor = Cursor::new(node);
         let mut remaining = MAXIMUM_STRUCTURED_INFO_NODES;
-        validate_node(&self.value_type, &mut cursor, &mut remaining, true)?;
+        validate_node(self, &mut cursor, &mut remaining, true)?;
         if !cursor.remaining.is_empty() {
             return Err(Refusal::MalformedCanonicalEncoding);
         }

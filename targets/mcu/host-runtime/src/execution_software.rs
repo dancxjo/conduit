@@ -1,7 +1,7 @@
 //! Standard prepared software Backs shared by MCU Hosts. Source selects these
 //! implementations; constructors create no offer, admission, authority or Play.
 extern crate alloc;
-use alloc::{boxed::Box, vec::Vec};
+use alloc::boxed::Box;
 use conduit_environment_runtime::{
     observation::{ObservationBack, ObservationContract},
     publication::{PublicationBack, PublicationContract, PublicationSequence, PublicationSnapshot},
@@ -144,7 +144,6 @@ fn fail(detail: u16) -> StepOutcome {
 /// Pure checked selection runs as an ordinary StepBack, not a hardware Host Call.
 pub struct SelectorBack {
     selector: PreparedCaptureSelector,
-    output: Vec<u8>,
     maximum: usize,
     staged: bool,
 }
@@ -164,7 +163,6 @@ impl SelectorBack {
         Ok(Self {
             selector: PreparedCaptureSelector::prepare(selector, input, output)
                 .map_err(|_| "selector")?,
-            output: Vec::with_capacity(output),
             maximum: output,
             staged: false,
         })
@@ -198,8 +196,6 @@ impl<const P: usize> StepBack<P> for SelectorBack {
         }
         match self.selector.select(bytes) {
             Ok(Some(value)) if value.len() <= self.maximum => {
-                self.output.clear();
-                self.output.extend_from_slice(value);
                 if io.send_prepared(PortId(0), value.len() as u32).is_err() {
                     return fail(5);
                 }
@@ -214,7 +210,7 @@ impl<const P: usize> StepBack<P> for SelectorBack {
         StepOutcome::Progress
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0) && self.staged).then_some(self.output.as_slice())
+        (port == PortId(0) && self.staged).then_some(self.selector.output())
     }
     fn step_committed(&mut self) {
         self.staged = false;
