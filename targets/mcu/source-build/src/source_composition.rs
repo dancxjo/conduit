@@ -9,6 +9,10 @@ pub fn emit_to(out: &Path) -> std::io::Result<()> {
         ("runtime", include_str!("source_composition/runtime.rs")),
         ("play", include_str!("source_composition/play.rs")),
         (
+            "play_owners",
+            include_str!("source_composition/play_owners.rs"),
+        ),
+        (
             "play_shapes",
             include_str!("source_composition/play_shapes.rs"),
         ),

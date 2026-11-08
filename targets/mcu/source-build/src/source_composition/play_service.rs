@@ -71,7 +71,7 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
                 && m.checked_plot == sample::CHECKED_PLOT_ID
                 && m.expanded_plot == sample::EXPANDED_PLOT_ID
         })
-        .ok_or(Refusal::Scope)?;
+        .ok_or(Refusal::Back("sampling-fragment"))?;
     let approved = prepared
         .fragments()
         .iter()
@@ -81,7 +81,7 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
                 && m.checked_plot == mask::CHECKED_PLOT_ID
                 && m.expanded_plot == mask::EXPANDED_PLOT_ID
         })
-        .ok_or(Refusal::Scope)?;
+        .ok_or(Refusal::Back("mask-fragment"))?;
     let sm = sampling.metadata();
     let m = approved.metadata();
     let output = prepared
@@ -90,7 +90,7 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         .find(|f| {
             f.metadata().checked_plot == crate::workset::generated::output_layout::CHECKED_PLOT_ID
         })
-        .ok_or(Refusal::Scope)?;
+        .ok_or(Refusal::Back("output-fragment"))?;
     let scopes = Scopes {
         body: member.body_id.clone(),
         active: c::ActivePlayIdentity {
@@ -113,14 +113,14 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         || sm.body_plan != m.body_plan
         || sm.body_play != m.body_play
     {
-        return Err(Refusal::Scope);
+        return Err(Refusal::Back("fragment-body-scope"));
     }
     // Deserialize the actual opaque approval's Wake identity, never birth a
     // surrogate Body just to obtain a conveniently typed identifier.
     let wake = b::WakeId::deserialize(serde::de::value::BorrowedStrDeserializer::<
         serde::de::value::Error,
     >::new(sm.wake))
-    .map_err(|_| Refusal::Scope)?;
+    .map_err(|_| Refusal::Back("wake-identity"))?;
     let basis = FaceBasis {
         body_id: Some(member.body_id.clone()),
         wake_id: Some(wake),
@@ -151,14 +151,14 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         + basis.plan_id.as_ref().map_or(0, |x| x.0.capacity())
         + basis.active_play_id.as_ref().map_or(0, |x| x.0.capacity());
     let node = mask::MASK_ROLES
-        .ok_or(Refusal::Scope)?
+        .ok_or(Refusal::Back("renderer-role"))?
         .iter()
         .position(|role| *role == conduit_seven_segment_mask::native_kernel::MaskRole::Renderer)
-        .ok_or(Refusal::Scope)? as u16;
+        .ok_or(Refusal::Back("renderer-role-node"))? as u16;
     let gear: c::GearId = mask::GEAR_IDS
         .iter()
         .find(|(n, _)| *n == node)
-        .ok_or(Refusal::Scope)?
+        .ok_or(Refusal::Back("renderer-gear"))?
         .1
         .into();
     let actual = resources.host();
@@ -187,7 +187,7 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
             },
         )
     }
-    .map_err(|_| Refusal::Scope)?;
+    .map_err(|_| Refusal::Back("renderer-context"))?;
     let native_context = b::NativePreparationContext {
         bootstrap,
         member,
@@ -243,7 +243,8 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     let committed = prepared.admit(resources, &observations, observation_bytes)?;
     // Scope storage was fully prepared and charged before admission. Binding
     // only moves it; invalid provenance cannot expose a partially scoped Face.
-    face.bind_scope(basis).map_err(|_| Refusal::Scope)?;
+    face.bind_scope(basis)
+        .map_err(|_| Refusal::Back("face-scope"))?;
     let context = b::NativePreparationContext {
         bootstrap,
         member,
@@ -255,7 +256,10 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     committed
         .start(workspace, context, policy, resources)
         .map(|started| (started, scopes))
-        .map_err(|(_, refusal)| refusal)
+        .map_err(|(_, refusal)| match refusal {
+            Refusal::Scope => Refusal::Back("authenticated-start-scope"),
+            other => other,
+        })
 }
 
 fn observe_held<T: PreparedLocalKernels>(
