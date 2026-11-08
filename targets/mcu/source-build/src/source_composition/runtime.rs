@@ -373,21 +373,28 @@ pub async fn run<'s>(
                     let evidence = started.evidence();
                     let (((sample, sample_calls), mask, (output, output_calls)), renderer) =
                         started.into_kernels();
-                    conduit_mcu_host_runtime::poll_boundary::separate(crate::play_run::run(
-                        sample,
-                        sample_calls,
-                        mask,
-                        output,
-                        output_calls,
-                        renderer,
-                        optional.take().expect("original optional tracking"),
-                        scopes,
-                        evidence,
-                        arena,
-                        &face,
-                        link,
-                    ))
-                    .await;
+                    // Construct the continuing future only inside its own poll
+                    // frame. Constructing it here reserves its large return
+                    // scratch during unrelated cold preparation as well.
+                    let future = async {
+                        crate::play_run::run(
+                            sample,
+                            sample_calls,
+                            mask,
+                            output,
+                            output_calls,
+                            renderer,
+                            optional.take().expect("original optional tracking"),
+                            scopes,
+                            evidence,
+                            arena,
+                            &face,
+                            link,
+                        )
+                        .await;
+                    };
+                    let mut future = core::pin::pin!(future);
+                    conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await;
                 }
                 Err(reason) => {
                     // No partial execution: retain the original signed input and
