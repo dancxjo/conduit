@@ -34,118 +34,13 @@ impl CooperativeYield for Yield {
         embassy_time::Timer::after_millis(1).await;
     }
 }
-enum Delivery {
-    Empty,
-    Queued {
-        ticket: FrameTicket,
-        bytes: [u8; FRAME_BYTES],
-        length: usize,
-    },
-    Admitted {
-        ticket: FrameTicket,
-    },
-    Completed {
-        ticket: FrameTicket,
-        sign: c::SignId,
-    },
-    Failed,
+mod observers {
+    use super::*;
+    include!(concat!(env!("OUT_DIR"), "/source_play_observers.rs"));
 }
-struct SampleObserver<'a> {
-    inspection: &'a State<3>,
-}
-impl<'r, 'f> Observer<crate::play::SamplingKernel<'r, 'f>> for SampleObserver<'_> {
-    type Error = ();
-    fn before_step(&mut self, _: &mut crate::play::SamplingKernel<'r, 'f>) -> Result<(), ()> {
-        Ok(())
-    }
-    fn completed(
-        &mut self,
-        kernel: &mut crate::play::SamplingKernel<'r, 'f>,
-        _: Dispatch,
-    ) -> Result<(), ()> {
-        if let Some(event) = kernel.signs().events().last() {
-            self.inspection.record(0, event).map_err(|_| ())?;
-        }
-        Ok(())
-    }
-}
-struct OutputObserver<'a> {
-    delivery: &'a RefCell<Delivery>,
-    inspection: &'a State<3>,
-    scopes: &'a Scopes,
-    evidence: &'a StartedEvidence,
-    boundary: OwnedValueBoundary,
-    sequence: u64,
-    write_node: k::NodeId,
-}
-impl<'r, 'f> Observer<crate::play::OutputKernel<'r, 'f>> for OutputObserver<'_> {
-    type Error = ();
-    fn before_step(&mut self, kernel: &mut crate::play::OutputKernel<'r, 'f>) -> Result<(), ()> {
-        let mut state = self.delivery.borrow_mut();
-        if let Delivery::Queued {
-            ticket,
-            bytes,
-            length,
-        } = &*state
-        {
-            let ticket = *ticket;
-            match kernel
-                .admit_remote_input(
-                    self.boundary.endpoint,
-                    self.boundary.cord,
-                    self.sequence,
-                    &bytes[..*length],
-                )
-                .map_err(|_| ())?
-            {
-                RemoteIngressOutcome::Accepted { .. } => {
-                    self.sequence = self.sequence.checked_add(1).ok_or(())?;
-                    *state = Delivery::Admitted { ticket };
-                }
-                RemoteIngressOutcome::Full { .. } => {}
-            }
-        }
-        Ok(())
-    }
-    fn completed(
-        &mut self,
-        kernel: &mut crate::play::OutputKernel<'r, 'f>,
-        dispatch: Dispatch,
-    ) -> Result<(), ()> {
-        let Dispatch::Completed { request, outcome } = dispatch else {
-            return Ok(());
-        };
-        if let Some(event) = kernel.signs().events().last() {
-            self.inspection.record(2, event).map_err(|_| ())?;
-        }
-        if request.node != self.write_node || request.call != k::HostCallId(0) {
-            return Err(());
-        }
-        let mut state = self.delivery.borrow_mut();
-        let Delivery::Admitted { ticket } = &*state else {
-            return Err(());
-        };
-        let ticket = *ticket;
-        if outcome.disposition != k::HostCallDisposition::Completed || outcome.failure.is_some() {
-            *state = Delivery::Failed;
-            return Err(());
-        }
-        // This independently checked output Source has one input Frame and one
-        // write path. Only one Frame is admitted at a time, so this completion
-        // belongs to this exact ticket, never to carrier delivery or another Play.
-        let sign = kernel_sign::host_call(
-            self.evidence,
-            self.scopes.fragment(2),
-            kernel.signs(),
-            request.node,
-            request.request,
-            kernel_sign::Phase::Completed,
-            64,
-        )
-        .map_err(|_| ())?;
-        *state = Delivery::Completed { ticket, sign };
-        Ok(())
-    }
+use observers::{Delivery, OutputExit, OutputObserver, SampleObserver};
+mod inspection_encoder {
+    include!(concat!(env!("OUT_DIR"), "/source_play_inspection.rs"));
 }
 fn boundary(fore: c::AssignedForeRequirement) -> OwnedValueBoundary {
     OwnedValueBoundary {
@@ -200,6 +95,7 @@ pub async fn run<'r, 'f>(
         boundary: boundary(frame),
         sequence: 0,
         write_node,
+        last_outcome: None,
     };
     let mut mask = MaskSession::bind_started(
         mask.kernel,
@@ -226,6 +122,12 @@ pub async fn run<'r, 'f>(
         )
         .run(&mut sampling_calls)
         .await;
+        if let Some(event) = sampling.signs().events().last() {
+            let _ = inspection.record(0, event);
+        }
+        if let Err(reason) = &result {
+            let _ = inspection.observe_refusal(0, "runner", reason);
+        }
         let _ = inspection.observe(
             0,
             if result.is_ok() {
@@ -245,6 +147,19 @@ pub async fn run<'r, 'f>(
         )
         .run(&mut output_calls)
         .await;
+        if let Some(event) = output.signs().events().last() {
+            let _ = inspection.record(2, event);
+        }
+        if let Err(reason) = &result {
+            let _ = inspection.observe_refusal(
+                2,
+                "runner",
+                &OutputExit {
+                    outcome: output_observer.last_outcome,
+                    refusal: reason,
+                },
+            );
+        }
         let _ = inspection.observe(
             2,
             if result.is_ok() {
@@ -288,7 +203,11 @@ pub async fn run<'r, 'f>(
                         break;
                     }
                 }
-                Some(Delivery::Failed) => break,
+                Some(Delivery::Failed) => {
+                    let _ =
+                        inspection.observe_refusal(1, "output-delivery", &"output runner refused");
+                    break;
+                }
                 _ => {}
             }
             if drained {
@@ -402,68 +321,7 @@ pub async fn run<'r, 'f>(
                 &inspection,
                 link,
                 &mut response,
-                |request, output| {
-                    #[cfg(target_arch = "xtensa")]
-                    if request == b"P" {
-                        use core::fmt::Write;
-                        #[derive(serde::Serialize)]
-                        struct CaptureReport<'a> {
-                            schema: &'static str,
-                            assurance: &'static str,
-                            phase: &'a str,
-                            completed_bits: u8,
-                            completed_octets: u8,
-                            elapsed_us: u32,
-                        }
-                        let Some(capture) = conduit_esp32_electrical::last_capture_observation()
-                        else {
-                            return Err(());
-                        };
-                        let mut phase = heapless::String::<24>::new();
-                        write!(&mut phase, "{:?}", capture.phase).map_err(|_| ())?;
-                        return serde_json_core::to_slice(
-                            &CaptureReport {
-                                schema: "conduit.host/pulse-capture-inspection@1",
-                                assurance: "unsigned-inspection",
-                                phase: phase.as_str(),
-                                completed_bits: capture.completed_bits,
-                                completed_octets: capture.completed_octets,
-                                elapsed_us: capture.elapsed_us,
-                            },
-                            output,
-                        )
-                        .map(Some)
-                        .map_err(|_| ());
-                    }
-                    if request != b"F" {
-                        return Ok(None);
-                    }
-                    face.with_retained(|current, status| {
-                        #[derive(serde::Serialize)]
-                        struct Report<'a> {
-                            schema: &'static str,
-                            assurance: &'static str,
-                            source_sequence: u64,
-                            publisher_retained: bool,
-                            refusal: Option<&'static str>,
-                            face: &'a conduit_face::Face,
-                        }
-                        serde_json_core::to_slice(
-                            &Report {
-                                schema: "conduit.host/retained-face-inspection@1",
-                                assurance: "unsigned-inspection",
-                                source_sequence: status.source_sequence,
-                                publisher_retained: status.publisher_retained,
-                                refusal: status.refusal,
-                                face: current,
-                            },
-                            output,
-                        )
-                        .map(Some)
-                        .map_err(|_| ())
-                    })
-                    .map_err(|_| ())?
-                },
+                |request, output| inspection_encoder::encode(face, request, output),
             )
             .await;
             link.reset();

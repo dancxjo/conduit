@@ -1,0 +1,66 @@
+// Read-only platform and retained Face inspection; no execution authority.
+pub(super) fn encode(
+    face: &conduit_environment_runtime::publication_face_custody::LocalPublicationFace,
+    request: &[u8],
+    output: &mut [u8],
+) -> Result<Option<usize>, ()> {
+    #[cfg(target_arch = "xtensa")]
+    if request == b"P" {
+        use core::fmt::Write;
+        #[derive(serde::Serialize)]
+        struct CaptureReport<'a> {
+            schema: &'static str,
+            assurance: &'static str,
+            phase: &'a str,
+            completed_bits: u8,
+            completed_octets: u8,
+            elapsed_us: u32,
+        }
+        let Some(capture) = conduit_esp32_electrical::last_capture_observation() else {
+            return Err(());
+        };
+        let mut phase = heapless::String::<24>::new();
+        write!(&mut phase, "{:?}", capture.phase).map_err(|_| ())?;
+        return serde_json_core::to_slice(
+            &CaptureReport {
+                schema: "conduit.host/pulse-capture-inspection@1",
+                assurance: "unsigned-inspection",
+                phase: phase.as_str(),
+                completed_bits: capture.completed_bits,
+                completed_octets: capture.completed_octets,
+                elapsed_us: capture.elapsed_us,
+            },
+            output,
+        )
+        .map(Some)
+        .map_err(|_| ());
+    }
+    if request != b"F" {
+        return Ok(None);
+    }
+    face.with_retained(|current, status| {
+        #[derive(serde::Serialize)]
+        struct Report<'a> {
+            schema: &'static str,
+            assurance: &'static str,
+            source_sequence: u64,
+            publisher_retained: bool,
+            refusal: Option<&'static str>,
+            face: &'a conduit_face::Face,
+        }
+        serde_json_core::to_slice(
+            &Report {
+                schema: "conduit.host/retained-face-inspection@1",
+                assurance: "unsigned-inspection",
+                source_sequence: status.source_sequence,
+                publisher_retained: status.publisher_retained,
+                refusal: status.refusal,
+                face: current,
+            },
+            output,
+        )
+        .map(Some)
+        .map_err(|_| ())
+    })
+    .map_err(|_| ())?
+}
