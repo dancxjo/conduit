@@ -131,8 +131,19 @@ pub async fn run<'s>(
     let mut reader = Some(reader);
     let mut optional =
         Some(conduit_kernel::scheduler::prepared_session::OptionalOutputStorage::<6>::prepare());
+    let mut last_refusal = None;
     loop {
         let result = match root.receive_request(link).await {
+            Ok(Request::Inspect) => {
+                use core::fmt::Write;
+                use conduit_mcu_host_runtime::transport::MessageTransport;
+                let mut status = heapless::String::<384>::new();
+                let _ = write!(status,
+                    "ROOT_INSPECTION@1 unsigned phase=not-started current_member={} retained_input={} heap_used={} last_refusal={:?}",
+                    root.has_current_member(), root.retained_input(), allocator_used(), last_refusal);
+                link.send(status.as_bytes()).await
+                    .map_err(|_| conduit_mcu_host_runtime::root::Refusal::Carrier)
+            }
             Ok(Request::Spawn) => root.spawn(link, &mut response).await,
             Ok(Request::Return) => {
                 let policy = Policy {
@@ -205,7 +216,8 @@ pub async fn run<'s>(
             Err(error) => Err(error),
         };
         crate::runtime::observe_receipt(root.receipt_digest());
-        if result.is_err() {
+        if let Err(error) = result {
+            last_refusal = Some(error);
             link.reset();
         } else if root.retained_input() {
             let mut refusal_detail = heapless::String::<192>::new();

@@ -34,6 +34,9 @@ pub enum PreparationTransportError {
     OutcomeUnknown,
 }
 
+// Whole-document bound is distinct from the unchanged per-frame bound.
+const MAX_PREPARATION_DOCUMENT_BYTES: usize = 16 * 1024;
+
 trait Frames {
     fn send(&mut self, bytes: &[u8], timeout: Duration) -> Result<(), ()>;
     fn receive<'a>(&mut self, output: &'a mut [u8], timeout: Duration) -> Result<&'a [u8], ()>;
@@ -97,7 +100,7 @@ fn exchange<'a>(
         .ok_or(E::Challenge)?;
     if !(1..=10_000).contains(&lifetime)
         || challenge.maximum_payload_bytes == 0
-        || challenge.maximum_payload_bytes as usize > MAX_PICO_ADMISSION_FRAME_BYTES
+        || challenge.maximum_payload_bytes as usize > MAX_PREPARATION_DOCUMENT_BYTES
         || challenge.payload_contract != HOST_PREPARED_WORKSET_CONTRACT
     {
         return Err(E::Challenge);

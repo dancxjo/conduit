@@ -30,10 +30,13 @@ pub enum Refusal {
     Carrier,
     Request,
     Membership,
+    MemberReturn(crate::member_return::Refusal),
+    Ingress(crate::ingress::Refusal),
     Preparation,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Request {
+    Inspect,
     Spawn,
     Return,
     Prepare,
@@ -166,6 +169,9 @@ impl<'s, const N: usize> Root<'s, N> {
             bytes.fill(0);
         }
     }
+    pub fn has_current_member(&self) -> bool {
+        self.receipt.is_some()
+    }
     pub fn retained_input(&self) -> bool {
         self.input.is_retained()
     }
@@ -207,7 +213,9 @@ impl<'s, const N: usize> Root<'s, N> {
             .receive(self.input.writable().map_err(|_| Refusal::RetainedInput)?)
             .await
             .map_err(|_| Refusal::Carrier)?;
-        if bytes == conduit_body::PICO_SPAWN_REQUEST {
+        if bytes == b"?" {
+            Ok(Request::Inspect)
+        } else if bytes == conduit_body::PICO_SPAWN_REQUEST {
             Ok(Request::Spawn)
         } else if bytes == conduit_body::PICO_MEMBER_RETURN_IMAGES_REQUEST {
             Ok(Request::Return)
@@ -278,7 +286,7 @@ impl<'s, const N: usize> Root<'s, N> {
             output,
         )
         .await
-        .map_err(|_| Refusal::Membership)?;
+        .map_err(Refusal::MemberReturn)?;
         self.receipt = Some(accepted.credential);
         self.receipt_digest = Some(accepted.receipt_digest);
         Ok(())
@@ -312,6 +320,6 @@ impl<'s, const N: usize> Root<'s, N> {
         };
         crate::ingress::receive(link, &mut self.input, policy, context, nonce, now)
             .await
-            .map_err(|_| Refusal::Preparation)
+            .map_err(Refusal::Ingress)
     }
 }

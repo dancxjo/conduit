@@ -232,7 +232,7 @@ fn malformed_or_overwide_challenge_and_failed_approval_send_no_document() {
     for mutation in 0..4 {
         let mut value: serde_json::Value = serde_json::from_slice(&challenge()).unwrap();
         match mutation {
-            0 => value["maximum_payload_bytes"] = serde_json::json!(4097),
+            0 => value["maximum_payload_bytes"] = serde_json::json!(16385),
             1 => value["payload_contract"] = serde_json::json!("other-contract"),
             2 => value["expires_at_millis"] = serde_json::json!(100),
             _ => value["expires_at_millis"] = serde_json::json!(10101),
@@ -251,5 +251,22 @@ fn malformed_or_overwide_challenge_and_failed_approval_send_no_document() {
         run(&mut frames, Duration::from_secs(1), |_| Err(())),
         Err(PreparationTransportError::ApprovalRefused)
     );
+    assert_eq!(frames.sent.len(), 1);
+}
+
+#[test]
+fn bounded_document_ceiling_is_independent_of_frame_ceiling() {
+    let mut value: serde_json::Value = serde_json::from_slice(&challenge()).unwrap();
+    value["maximum_payload_bytes"] = serde_json::json!(16384);
+    let mut frames = fake(vec![serde_json::to_vec(&value).unwrap()]);
+    let mut approved = false;
+    assert_eq!(
+        run(&mut frames, Duration::from_secs(1), |_| {
+            approved = true;
+            Err(())
+        }),
+        Err(PreparationTransportError::ApprovalRefused)
+    );
+    assert!(approved);
     assert_eq!(frames.sent.len(), 1);
 }
