@@ -3,7 +3,7 @@
 //! its providers before the complete set has passed Core's resource admission.
 extern crate alloc;
 use crate::execution::{Policy, Refusal};
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use conduit_body as b;
 use conduit_core as c;
 
@@ -21,14 +21,14 @@ pub unsafe trait PreparedLocalKernels {
     unsafe fn bind(self) -> Self::Bound;
 }
 pub struct PreparedLocalWorkset<'w, T, const F: usize> {
-    fragments: [b::DelegatedBodyFragment<'w>; F],
+    fragments: Box<[b::DelegatedBodyFragment<'w>; F]>,
     stamp: b::RetainedHostCommandStamp,
     prepared: T,
     maximum: usize,
     retained: usize,
 }
 pub struct CommittedLocalWorkset<'w, T, const F: usize> {
-    fragments: [b::DelegatedBodyFragment<'w>; F],
+    fragments: Box<[b::DelegatedBodyFragment<'w>; F]>,
     stamp: b::RetainedHostCommandStamp,
     prepared: T,
 }
@@ -154,10 +154,23 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
             fragments.push(fragment);
             ports.push(fore);
         }
-        let fragments: [_; F] = fragments.try_into().map_err(|_| Refusal::Bounds)?;
-        let ports: [_; F] = ports.try_into().map_err(|_| Refusal::Bounds)?;
+        // Preserve the preparation allocation instead of moving every approval
+        // through successive affine return frames.
+        let fragments: Box<[_; F]> = fragments
+            .into_boxed_slice()
+            .try_into()
+            .map_err(|_| Refusal::Bounds)?;
+        let ports: Box<[_; F]> = ports
+            .into_boxed_slice()
+            .try_into()
+            .map_err(|_| Refusal::Bounds)?;
         let prepared = factory(&fragments, &ports).map_err(Refusal::Back)?;
-        let retained = prepared.retained_backing_bytes().ok_or(Refusal::Bounds)?;
+        let retained = prepared
+            .retained_backing_bytes()
+            .and_then(|bytes| {
+                bytes.checked_add(core::mem::size_of::<[b::DelegatedBodyFragment<'w>; F]>())
+            })
+            .ok_or(Refusal::Bounds)?;
         if retained > policy.maximum_retained_bytes {
             return Err(Refusal::Capacity {
                 required: retained,
@@ -212,6 +225,7 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
     /// Recheck the unchanged original signed command and complete live ledger at
     /// the actual Start transition. Transport acknowledgement grants no Start.
     #[allow(clippy::result_large_err)]
+    #[inline(always)] // Elide duplicate affine success/refusal return storage at the caller.
     pub fn start<const I: usize, E>(
         self,
         workspace: &b::HostCommandInput<I>,
@@ -245,7 +259,7 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
                 return Err(Refusal::Scope);
             }
             let mut entries = 0usize;
-            for fragment in &self.fragments {
+            for fragment in self.fragments.iter() {
                 let m = fragment.metadata();
                 if m.body != context.member.body_id.as_str()
                     || m.host != context.actual.host_id.as_str()
@@ -388,7 +402,12 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
             services,
             shared_backing_bytes,
         };
-        let retained = prepared.retained_backing_bytes().ok_or(Refusal::Bounds)?;
+        let retained = prepared
+            .retained_backing_bytes()
+            .and_then(|bytes| {
+                bytes.checked_add(core::mem::size_of::<[b::DelegatedBodyFragment<'w>; F]>())
+            })
+            .ok_or(Refusal::Bounds)?;
         if retained > self.maximum {
             return Err(Refusal::Capacity {
                 required: retained,
