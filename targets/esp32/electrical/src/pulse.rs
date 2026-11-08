@@ -1,7 +1,7 @@
 use conduit_pulse_capture::{
     CheckedPulseRead, PulseReadCapture, PulseReadDisposition, PulseReadLimits, PulseReadRefusal,
 };
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::cell::Cell;
 use esp_hal::{
     delay::Delay,
     gpio::{Flex, InputConfig, Pin, Pull},
@@ -27,41 +27,25 @@ pub struct CaptureObservation {
     pub phase: CapturePhase,
     pub completed_bits: u8,
     pub completed_octets: u8,
-    /// Saturates at 131071us; that already exceeds every admitted exclusion.
+    /// Timed capture interval, saturating at u32::MAX microseconds.
     pub elapsed_us: u32,
+    /// Completed octets only; remaining slots stay zero. Protocol interpretation
+    /// belongs to Source. Published after capture, never inside the timed loop.
+    pub wire: [u8; conduit_pulse_capture::MAXIMUM_OCTETS],
 }
 
-// One coherent word; no shared writes or atomics occur in the timed GPIO loop.
-static LAST_CAPTURE: AtomicU32 = AtomicU32::new(0);
+// Publish/read the complete diagnostic under a short exclusion after capture.
+// No shared writes, atomics, formatting or diagnostic locks enter the GPIO loop.
+static LAST_CAPTURE: critical_section::Mutex<Cell<Option<CaptureObservation>>> =
+    critical_section::Mutex::new(Cell::new(None));
 
 pub fn last_capture_observation() -> Option<CaptureObservation> {
-    let snapshot = LAST_CAPTURE.load(Ordering::Acquire);
-    let phase = match snapshot & 15 {
-        1 => CapturePhase::ReleaseRise,
-        2 => CapturePhase::ResponseLow,
-        3 => CapturePhase::SkippedRise,
-        4 => CapturePhase::SkippedFall,
-        5 => CapturePhase::DataRise,
-        6 => CapturePhase::Sample,
-        7 => CapturePhase::DataFall,
-        8 => CapturePhase::Complete,
-        _ => return None,
-    };
-    Some(CaptureObservation {
-        phase,
-        completed_bits: ((snapshot >> 4) & 127) as u8,
-        completed_octets: ((snapshot >> 11) & 15) as u8,
-        elapsed_us: snapshot >> 15,
-    })
+    critical_section::with(|cs| LAST_CAPTURE.borrow(cs).get())
 }
 
 impl CaptureObservation {
     fn publish(self) {
-        let snapshot = self.phase as u32
-            | (u32::from(self.completed_bits) << 4)
-            | (u32::from(self.completed_octets) << 11)
-            | (self.elapsed_us.min(131071) << 15);
-        LAST_CAPTURE.store(snapshot, Ordering::Release);
+        critical_section::with(|cs| LAST_CAPTURE.borrow(cs).set(Some(self)));
     }
 }
 
@@ -138,6 +122,7 @@ impl<'d> Esp32PulseCapture<'d> {
             completed_bits: 0,
             completed_octets: 0,
             elapsed_us: 0,
+            wire: [0; conduit_pulse_capture::MAXIMUM_OCTETS],
         };
         // The checked hold runs with interrupts enabled. The separate exclusion
         // budget covers the capture deadline plus bounded polling/exit overhead.
@@ -148,6 +133,7 @@ impl<'d> Esp32PulseCapture<'d> {
             (complete, start.elapsed().as_micros())
         });
         observation.elapsed_us = elapsed_us.min(u64::from(u32::MAX)) as u32;
+        observation.wire = wire;
         observation.publish();
         if elapsed_us > u64::from(self.maximum_interrupt_exclusion_us) {
             return Err(PulseReadRefusal::DeadlineExtent);

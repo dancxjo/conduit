@@ -25,6 +25,7 @@ pub(super) fn encode(
             completed_bits: u8,
             completed_octets: u8,
             elapsed_us: u32,
+            wire: &'a [u8],
         }
         let Some(capture) = conduit_esp32_electrical::last_capture_observation() else {
             return Err(());
@@ -39,6 +40,7 @@ pub(super) fn encode(
                 completed_bits: capture.completed_bits,
                 completed_octets: capture.completed_octets,
                 elapsed_us: capture.elapsed_us,
+                wire: &capture.wire[..usize::from(capture.completed_octets)],
             },
             output,
         )
