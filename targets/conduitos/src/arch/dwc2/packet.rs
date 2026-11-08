@@ -251,9 +251,8 @@ impl<I: RegisterIo> Controller<I> {
                 return Ok(0);
             }
             if status & 1 != 0 {
-                if !input && self.io.read(SIZE) & 0x7ffff != 0 {
-                    return Err(PacketError::Transaction);
-                }
+                // PIO OUT completion accounts for the submitted packet.
+                // HCTSIZ.XFERSIZE can retain the programmed byte count.
                 return if input {
                     received.ok_or(PacketError::ReceiveEnvelope)
                 } else {
