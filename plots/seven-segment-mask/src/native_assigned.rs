@@ -42,7 +42,8 @@ pub enum AssignedMaskRefusal {
     Scope,
     Bounds,
     Assignment(AssignedKernelRefusal),
-    Kernel,
+    Kernel(k::scheduler::KernelPreparationError),
+    Values(k::StorageError),
 }
 type Tables = AssignedKernelTables<3, 6, 2, 6, 6, 3>;
 pub struct PreparedAssignedMaskKernel {
@@ -127,7 +128,7 @@ impl PreparedAssignedMaskKernel {
             &[profile.face_bytes, profile.show_bytes],
             profile.face_bytes + profile.show_bytes,
         )
-        .map_err(|_| E::Bounds)?;
+        .map_err(E::Values)?;
         let signs = k::FixedSignLog::<64>::new_with_remote_storage(
             (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
             12,
@@ -147,7 +148,7 @@ impl PreparedAssignedMaskKernel {
             signs,
             core::mem::size_of::<Kernel>(),
         )
-        .map_err(|_| E::Kernel)?;
+        .map_err(E::Kernel)?;
         Ok(PreparedAssignedMaskStorage {
             identity,
             storage,

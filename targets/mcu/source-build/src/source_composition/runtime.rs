@@ -131,6 +131,12 @@ pub async fn run<'s>(
     let mut reader = Some(reader);
     let mut optional =
         Some(conduit_kernel::scheduler::prepared_session::OptionalOutputStorage::<6>::prepare());
+    // Cold schema preparation runs before deep group construction, then its
+    // original owners are consumed and dropped before execution allocation.
+    let mut contracts = Some(
+        conduit_mcu_host_runtime::execution_group::NativeContracts::prepare()
+            .expect("funded native contract preparation"),
+    );
     let mut last_refusal = None;
     loop {
         let result = match root.receive_request(link).await {
@@ -227,13 +233,6 @@ pub async fn run<'s>(
             let mut refusal_detail = heapless::String::<192>::new();
             let prepared_outcome = {
                 let future = async {
-                    // The original full-arena lease predates Ready construction.
-                    // Measure used backing once for this incremental factory bound;
-                    // baseline and workspace remain within that same retained lease.
-                    let available = arena
-                        .bytes()
-                        .checked_sub(allocator_used())
-                        .ok_or("image-workspace")?;
                     let parts = root.execution_parts().map_err(|_| "execution-custody")?;
                     let policy = Policy {
                         preparation: crate::config::PREPARATION_DELEGATION.as_ref(),
@@ -306,7 +305,7 @@ pub async fn run<'s>(
                         &operations,
                         sampling_values.take().ok_or("sampling-values-busy")?,
                         output_values.take().ok_or("output-values-busy")?,
-                        available,
+                        contracts.take().ok_or("native-contracts-busy")?,
                         &mut refusal_detail,
                     )
                     .map_err(|error| {

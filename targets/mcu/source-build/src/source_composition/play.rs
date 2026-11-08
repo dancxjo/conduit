@@ -129,7 +129,6 @@ fn operation<'a>(
 /// checks all four real resident owners before splitting disjoint affine loans.
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 #[inline(never)] // Keep preparation temporaries out of the continuing async poll frame.
-#[inline(always)]
 pub fn prepare<'a, 'f: 'a, 'w>(
     workspace: &'w b::HostCommandInput<16384>,
     context: b::NativePreparationContext<'_>,
@@ -147,7 +146,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
     operations: &Operations<'_, WAIT_SLOTS>,
     sampling_values: HostedValueStore,
     output_values: HostedValueStore,
-    maximum_incremental_bytes: usize,
+    contracts: execution_group::NativeContracts,
     diagnostic: &mut heapless::String<192>,
 ) -> Result<
     PreparedLocalWorkset<
@@ -187,12 +186,6 @@ pub fn prepare<'a, 'f: 'a, 'w>(
         .checked_sub(sampling_values.reserved_storage_bytes())
         .and_then(|n| n.checked_sub(output_values.reserved_storage_bytes()))
         .ok_or(Refusal::Bounds)?;
-    if incremental > maximum_incremental_bytes {
-        return Err(Refusal::LowerBoundCapacity {
-            required: incremental,
-            maximum: maximum_incremental_bytes,
-        });
-    }
     if minimum > policy.maximum_retained_bytes {
         return Err(Refusal::LowerBoundCapacity {
             required: minimum,
@@ -302,8 +295,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                     crate::runtime::remaining(),
                 )
                 .map_err(|_| "pulse-authority")?;
-            let pulse_contract = conduit_pulse_capture::PulseReadContract::prepare()
-                .map_err(|_| "pulse-contract")?;
+            let pulse_contract = contracts.pulse;
             let pulse = ReadyPulseBase::prepare_assigned_fore_retained(
                 pulse,
                 table,
@@ -327,8 +319,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                     crate::runtime::remaining(),
                 )
                 .map_err(|_| "write-authority")?;
-            let write_contract =
-                conduit_tm1637_wire::WriteContract::prepare().map_err(|_| "write-contract")?;
+            let write_contract = contracts.write;
             let write = ReadyWriteBase::prepare_assigned_fore_retained(
                 write,
                 table,
@@ -424,6 +415,17 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                     waits: [],
                 },
             )?;
+            let available = crate::runtime::remaining();
+            if incremental > available {
+                return Err(kernel_refusal(
+                    diagnostic,
+                    Refusal::<()>::LowerBoundCapacity {
+                        required: incremental,
+                        maximum: available,
+                    },
+                    "kernel-headroom",
+                ));
+            }
             let sample = PreparedFragment::<_, SN, SC, SP, SR, ST, SH, SS>::prepare(
                 sampling,
                 sampling_profile,

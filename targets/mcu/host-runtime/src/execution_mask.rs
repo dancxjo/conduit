@@ -46,6 +46,7 @@ pub enum Refusal {
     Encoding,
     Output,
     Capability(c::BaseCapabilityRefusal),
+    AssignedMask(conduit_seven_segment_mask::native_kernel::AssignedMaskRefusal),
 }
 /// Immutable contract construction for checked Make/flash images. This is
 /// deliberately separate from Ready projection and grants no provider custody.
@@ -664,7 +665,7 @@ impl ReadyMaskRouting {
             conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel::prepare_storage(
                 input, profile, scope,
             )
-            .map_err(|_| Refusal::Scope)?;
+            .map_err(Refusal::AssignedMask)?;
         Ok(PreparedMaskRouting {
             owner: self,
             storage,

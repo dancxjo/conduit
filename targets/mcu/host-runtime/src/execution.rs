@@ -79,6 +79,7 @@ pub enum Refusal<E> {
         maximum: usize,
     },
     Scope,
+    Mask(super::execution_mask::Refusal),
 }
 /// One prepared fragment inside a heterogeneous, atomically admitted workset.
 /// This ticket has no independent admit/Start path; use PreparedLocalWorkset.

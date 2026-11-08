@@ -14,6 +14,22 @@ use conduit_seven_segment_mask::native_kernel::{
     AssignedMaskInput, AssignedMaskProfile, AssignedMaskScope,
 };
 
+/// Cold checked definitions prepared at Root's shallow preparation boundary.
+/// Consumed before kernel storage is allocated; these grant no native effects.
+pub struct NativeContracts {
+    pub pulse: conduit_pulse_capture::PulseReadContract,
+    pub write: conduit_tm1637_wire::WriteContract,
+}
+impl NativeContracts {
+    #[inline(never)]
+    pub fn prepare() -> Result<Self, &'static str> {
+        Ok(Self {
+            pulse: conduit_pulse_capture::PulseReadContract::prepare()
+                .map_err(|_| "pulse-contract")?,
+            write: conduit_tm1637_wire::WriteContract::prepare().map_err(|_| "write-contract")?,
+        })
+    }
+}
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct EntryPin<'a> {
     pub source: &'a str,
@@ -202,7 +218,7 @@ impl<'o, 'p> FragmentFactory<'p> for MaskConstruction<'o, 'p> {
                 &self.layout,
                 scope,
             )
-            .map_err(|_| Refusal::Back("mask-construction"))
+            .map_err(Refusal::Mask)
     }
 }
 pub type PreparedGroup<'w, S, M, O> = PreparedLocalWorkset<'w, PreparedKernelGroup<S, M, O>, 3>;

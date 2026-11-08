@@ -175,6 +175,7 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
     }
     /// The original ledger admits all fragments in one batch. Any refusal leaves
     /// native owners in their Ready slots and the ledger unchanged.
+    #[inline(always)]
     pub fn admit<E>(
         self,
         owner: &mut c::ResourceAdmissionOwner,
@@ -376,6 +377,7 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
     /// Include actual services and externally retained, separately owned shared
     /// storage before any resource admission. The original retained-byte ceiling
     /// remains unchanged. `shared_backing_bytes` is accounting, never a grant.
+    #[inline(always)]
     pub fn with_services<S: PreparedLocalKernels, E>(
         self,
         services: S,
