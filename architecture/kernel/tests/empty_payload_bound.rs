@@ -32,8 +32,12 @@ fn zero_semantic_bound_accepts_empty_payload_and_rejects_bytes() {
         routes,
         [Sink],
         FixedValueStore::new(2).unwrap(),
-        FixedSignLog::new_with_remote_storage((32 * core::mem::size_of::<KernelEvent>()) as u32, 2)
-            .unwrap(),
+        FixedSignLog::new_with_remote_storage(
+            (32 * core::mem::size_of::<KernelEvent>()) as u32,
+            2,
+            remote_sign_storage_bytes(2).unwrap(),
+        )
+        .unwrap(),
     )
     .unwrap();
     assert_eq!(
