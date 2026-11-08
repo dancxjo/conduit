@@ -21,7 +21,6 @@ impl From<StructuredInfoRefusal> for PulseCodecRefusal {
 }
 pub struct PreparedPulseCodec {
     request: PreparedStructuredValueValidator,
-    octets: [Composer; 8],
     length: Composer,
     wire: Composer,
     capture: Composer,
@@ -46,13 +45,13 @@ impl PreparedPulseCodec {
     /// Inline state and allocator overhead are separate.
     pub fn retained_backing_bytes(&self) -> Option<usize> {
         let mut bytes = self.request.retained_backing_bytes()?;
-        for composer in self.octets.iter().chain([
+        for composer in [
             &self.length,
             &self.wire,
             &self.capture,
             &self.empty,
             &self.result,
-        ]) {
+        ] {
             bytes = bytes.checked_add(composer.prepared_heap_bytes())?;
         }
         Some(bytes)
@@ -60,7 +59,7 @@ impl PreparedPulseCodec {
 
     pub fn prepare(contract: &PulseReadContract) -> Result<Self, StructuredInfoRefusal> {
         let wire_type = field(&contract.capture, "wire")?;
-        let StructuredInfoTypeShape::Collection { element, length: 8 } = wire_type.shape() else {
+        let StructuredInfoTypeShape::Collection { length: 8, .. } = wire_type.shape() else {
             return Err(StructuredInfoRefusal::WrongType);
         };
         let StructuredInfoTypeShape::Variant { cases, .. } = contract.result.shape() else {
@@ -71,19 +70,11 @@ impl PreparedPulseCodec {
             .find(|c| c.tag() == "provider-failed")
             .ok_or(StructuredInfoRefusal::WrongType)?
             .payload_type();
-        // Array construction is fallible during preparation; never while playing.
-        let mut octets = alloc::vec::Vec::with_capacity(8);
-        for _ in 0..8 {
-            octets.push(Composer::new(element, 64)?);
-        }
         Ok(Self {
             request: PreparedStructuredValueValidator::new(
                 &contract.request,
                 PULSE_READ_MAXIMUM_BYTES as usize,
             )?,
-            octets: octets
-                .try_into()
-                .map_err(|_| StructuredInfoRefusal::WrongType)?,
             length: Composer::new(field(&contract.capture, "length")?, 64)?,
             wire: Composer::new(wire_type, 256)?,
             capture: Composer::new(&contract.capture, 512)?,
@@ -143,12 +134,8 @@ impl PreparedPulseCodec {
             let empty = validate(self.empty.leaf(&[])?)?;
             return Ok(self.result.variant("provider-failed", empty)?);
         }
-        for (encoder, byte) in self.octets.iter_mut().zip(capture.wire) {
-            encoder.leaf(&[byte])?;
-        }
-        let octets: [_; 8] =
-            core::array::from_fn(|i| validate(self.octets[i].encoded()).expect("prepared octet"));
-        self.wire.collection(&octets)?;
+        self.wire
+            .leaf_collection(capture.wire.iter().map(core::slice::from_ref))?;
         self.length.leaf(&[capture.length])?;
         self.capture.record(&[
             validate(self.length.encoded())?,

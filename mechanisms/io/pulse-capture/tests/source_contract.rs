@@ -216,3 +216,36 @@ fn the_source_read_graph_preserves_electrical_outcomes_on_distinct_ports() {
         1
     );
 }
+
+#[test]
+fn every_octet_and_capture_extent_preserves_exact_wire_values_without_growth() {
+    let contract = PulseReadContract::prepare().unwrap();
+    let mut codec = PreparedPulseCodec::prepare(&contract).unwrap();
+    let (_, measured) = allocation_probe::observe(|| {
+        for value in 0u8..=255 {
+            let wire: [u8; 8] = core::array::from_fn(|i| value.wrapping_add(i as u8));
+            for count in 0..=8 {
+                let capture = PulseReadCapture::from_complete_octets(
+                    PulseReadDisposition::TimedOut,
+                    &wire[..count],
+                )
+                .unwrap();
+                let result = validate(codec.result(capture).unwrap()).unwrap();
+                let payload = result.variant_payload("timed-out").unwrap().unwrap();
+                let length = payload.record_field("length").unwrap().unwrap();
+                assert_eq!(&length.value_node()[5..], &[count as u8]);
+                let encoded_wire = payload.record_field("wire").unwrap().unwrap();
+                assert_eq!(encoded_wire.collection_length().unwrap(), 8);
+                for index in 0..8 {
+                    let octet = encoded_wire
+                        .collection_index(index as u16)
+                        .unwrap()
+                        .unwrap();
+                    let expected = if index < count { wire[index] } else { 0 };
+                    assert_eq!(&octet.value_node()[5..], &[expected]);
+                }
+            }
+        }
+    });
+    assert_eq!((measured.allocations, measured.reallocations), (0, 0));
+}
