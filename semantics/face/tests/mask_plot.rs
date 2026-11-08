@@ -694,6 +694,14 @@ fn the_ordinary_planner_seals_the_mask_plot_without_a_mask_planner() {
     )
     .unwrap();
     show.validate(&face).unwrap();
+    let face_wire_bytes = serde_json::to_vec(&face).unwrap().len();
+    let show_wire_bytes = serde_json::to_vec(&show).unwrap().len();
+    println!(
+        "prepared_mask_face_bytes={face_wire_bytes} available_mask_show_bytes={show_wire_bytes}"
+    );
+    assert!(face_wire_bytes <= 3072);
+    assert!(show_wire_bytes <= 3072);
+
     // This ordinary planner fixture is not a complete typed Mask topology.
     // A valid Face still reaches that unchanged plan admission refusal.
     assert_eq!(
@@ -811,7 +819,7 @@ fn seven_segment_default_queues_carry_selected_opaque_face_and_show_values() {
     let mut host = host_for(&expanded.expanded, &profiles, "host/finite-mask");
     for offer in &mut host.capabilities {
         offer.limits.max_queue_items = 1;
-        offer.limits.max_queue_bytes = 6144;
+        offer.limits.max_queue_bytes = 3072;
     }
     let placements = conduit_planner::default_expanded_placements(
         &expanded.expanded,
@@ -827,6 +835,6 @@ fn seven_segment_default_queues_carry_selected_opaque_face_and_show_values() {
     assert_eq!(queues.len(), 3);
     assert!(queues
         .values()
-        .all(|q| q.item_capacity == 1 && q.byte_capacity == 6144));
-    assert_eq!(queues.values().map(|q| q.byte_capacity).sum::<u32>(), 18432);
+        .all(|q| q.item_capacity == 1 && q.byte_capacity == 3072));
+    assert_eq!(queues.values().map(|q| q.byte_capacity).sum::<u32>(), 9216);
 }
