@@ -20,6 +20,10 @@ pub fn emit_to(out: &Path) -> std::io::Result<()> {
             "play_service",
             include_str!("source_composition/play_service.rs"),
         ),
+        (
+            "play_presentation",
+            include_str!("source_composition/play_presentation.rs"),
+        ),
         ("play_run", include_str!("source_composition/play_run.rs")),
     ] {
         fs::write(out.join(format!("source_{name}.rs")), source)?;

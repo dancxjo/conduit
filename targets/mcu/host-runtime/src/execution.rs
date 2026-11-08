@@ -118,6 +118,10 @@ pub enum Refusal<E> {
     },
     Scope,
     Mask(super::execution_mask::Refusal),
+    Authority {
+        available: usize,
+        reason: super::execution_authority::Refusal,
+    },
 }
 /// One prepared fragment inside a heterogeneous, atomically admitted workset.
 /// This ticket has no independent admit/Start path; use PreparedLocalWorkset.
