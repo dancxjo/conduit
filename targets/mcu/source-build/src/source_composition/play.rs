@@ -38,7 +38,11 @@ const FORE_PORTS: usize = {
     let b = source::mask_layout::FORE_PORTS;
     let c = source::output_layout::FORE_PORTS;
     let ab = if a > b { a } else { b };
-    if ab > c { ab } else { c }
+    if ab > c {
+        ab
+    } else {
+        c
+    }
 };
 macro_rules! shape {
     ($name:ident,$module:ident,$tag:ident) => {
@@ -148,6 +152,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
     sampling_values: HostedValueStore,
     output_values: HostedValueStore,
     maximum_incremental_bytes: usize,
+    diagnostic: &mut heapless::String<192>,
 ) -> Result<
     PreparedLocalWorkset<
         'w,
@@ -441,7 +446,11 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 policy.maximum_retained_bytes,
                 || Ok::<_, &'static str>(sample_backs),
             )
-            .map_err(|_| "sampling-kernel")?;
+            .map_err(|error| {
+                use core::fmt::Write;
+                let _ = write!(diagnostic, "{error:?}");
+                "sampling-kernel"
+            })?;
             let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS>::prepare(
                 output,
                 output_profile,
@@ -458,7 +467,11 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 policy.maximum_retained_bytes,
                 || Ok::<_, &'static str>(output_backs),
             )
-            .map_err(|_| "output-kernel")?;
+            .map_err(|error| {
+                use core::fmt::Write;
+                let _ = write!(diagnostic, "{error:?}");
+                "output-kernel"
+            })?;
             let mask = MaskConstruction {
                 entry: pin!(mask_layout),
                 configuration: source::mask_layout::CONFIGURATIONS,
@@ -480,7 +493,11 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 owner: routing,
             }
             .prepare(mask, mask_fore)
-            .map_err(|_| "mask-kernel")?;
+            .map_err(|error| {
+                use core::fmt::Write;
+                let _ = write!(diagnostic, "{error:?}");
+                "mask-kernel"
+            })?;
             Ok(PreparedKernelGroup(sample, mask, output))
         },
     )

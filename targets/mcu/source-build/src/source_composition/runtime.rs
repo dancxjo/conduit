@@ -135,13 +135,14 @@ pub async fn run<'s>(
     loop {
         let result = match root.receive_request(link).await {
             Ok(Request::Inspect) => {
-                use core::fmt::Write;
                 use conduit_mcu_host_runtime::transport::MessageTransport;
+                use core::fmt::Write;
                 let mut status = heapless::String::<384>::new();
                 let _ = write!(status,
                     "ROOT_INSPECTION@1 unsigned phase=not-started current_member={} retained_input={} heap_used={} last_refusal={:?}",
                     root.has_current_member(), root.retained_input(), allocator_used(), last_refusal);
-                link.send(status.as_bytes()).await
+                link.send(status.as_bytes())
+                    .await
                     .map_err(|_| conduit_mcu_host_runtime::root::Refusal::Carrier)
             }
             Ok(Request::Spawn) => root.spawn(link, &mut response).await,
@@ -226,94 +227,103 @@ pub async fn run<'s>(
             let mut refusal_detail = heapless::String::<192>::new();
             let prepared_outcome = {
                 let future = async {
-                // The original full-arena lease predates Ready construction.
-                // Measure used backing once for this incremental factory bound;
-                // baseline and workspace remain within that same retained lease.
-                let available = arena
-                    .bytes()
-                    .checked_sub(allocator_used())
-                    .ok_or("image-workspace")?;
-                let parts = root.execution_parts().map_err(|_| "execution-custody")?;
-                let policy = Policy {
-                    preparation: crate::config::PREPARATION_DELEGATION.as_ref(),
-                    execution: crate::config::EXECUTION_DELEGATION.as_ref(),
-                    active_worksets: 0,
-                    // A logical complete-owner receipt is bounded separately
-                    // from ASG representation. Physical backing is exclusively
-                    // held by the original whole-arena lease.
-                    maximum_retained_bytes: arena.bytes(),
-                };
-                let identity = conduit_core::AssignedIdentity::from_text;
-                let held_pools = [
-                    identity(crate::config::RESIDENT_WORK_POOL),
-                    identity(
-                        equipment
-                            .pulse
-                            .as_ref()
-                            .ok_or("pulse-busy")?
-                            .identity()
-                            .resource_pool_id
-                            .as_str(),
-                    ),
-                    identity(
-                        equipment
-                            .display
-                            .as_ref()
-                            .ok_or("display-busy")?
-                            .native_identity()
-                            .resource_pool_id
-                            .as_str(),
-                    ),
-                    identity(
-                        equipment.waits[0]
-                            .as_ref()
-                            .ok_or("wait-busy")?
-                            .native_identity()
-                            .resource_pool_id
-                            .as_str(),
-                    ),
-                    identity(
-                        equipment
-                            .renderer
-                            .native_identity()
-                            .resource_pool_id
-                            .as_str(),
-                    ),
-                ];
-                let context = conduit_body::NativePreparationContext {
-                    bootstrap: parts.bootstrap,
-                    member: parts.member,
-                    actual: parts.resources.host(),
-                    image_id: parts.configuration.image_id,
-                    configuration_id: parts.configuration.configuration_id,
-                    now_millis: now_ms(),
-                };
-                let prepared = crate::play::prepare(
-                    parts.workspace,
-                    context,
-                    policy,
-                    &mut residents,
-                    &mut software,
-                    &mut output_software,
-                    &mut routing,
-                    &mut equipment.pulse,
-                    &mut equipment.display,
-                    &mut equipment.waits,
-                    &mut issuers.pulse,
-                    &mut issuers.write,
-                    &mut issuers.waits,
-                    &operations,
-                    sampling_values.take().ok_or("sampling-values-busy")?,
-                    output_values.take().ok_or("output-values-busy")?,
-                    available,
-                )
-                .map_err(|error| {
-                    use core::fmt::Write;
-                    let _ = write!(&mut refusal_detail, "{error:?}");
-                    "complete-source-preparation"
-                })?;
-                Ok((prepared, &*parts.workspace, parts.bootstrap, parts.member,
-                    parts.configuration, parts.resources, policy, held_pools))
+                    // The original full-arena lease predates Ready construction.
+                    // Measure used backing once for this incremental factory bound;
+                    // baseline and workspace remain within that same retained lease.
+                    let available = arena
+                        .bytes()
+                        .checked_sub(allocator_used())
+                        .ok_or("image-workspace")?;
+                    let parts = root.execution_parts().map_err(|_| "execution-custody")?;
+                    let policy = Policy {
+                        preparation: crate::config::PREPARATION_DELEGATION.as_ref(),
+                        execution: crate::config::EXECUTION_DELEGATION.as_ref(),
+                        active_worksets: 0,
+                        // A logical complete-owner receipt is bounded separately
+                        // from ASG representation. Physical backing is exclusively
+                        // held by the original whole-arena lease.
+                        maximum_retained_bytes: arena.bytes(),
+                    };
+                    let identity = conduit_core::AssignedIdentity::from_text;
+                    let held_pools = [
+                        identity(crate::config::RESIDENT_WORK_POOL),
+                        identity(
+                            equipment
+                                .pulse
+                                .as_ref()
+                                .ok_or("pulse-busy")?
+                                .identity()
+                                .resource_pool_id
+                                .as_str(),
+                        ),
+                        identity(
+                            equipment
+                                .display
+                                .as_ref()
+                                .ok_or("display-busy")?
+                                .native_identity()
+                                .resource_pool_id
+                                .as_str(),
+                        ),
+                        identity(
+                            equipment.waits[0]
+                                .as_ref()
+                                .ok_or("wait-busy")?
+                                .native_identity()
+                                .resource_pool_id
+                                .as_str(),
+                        ),
+                        identity(
+                            equipment
+                                .renderer
+                                .native_identity()
+                                .resource_pool_id
+                                .as_str(),
+                        ),
+                    ];
+                    let context = conduit_body::NativePreparationContext {
+                        bootstrap: parts.bootstrap,
+                        member: parts.member,
+                        actual: parts.resources.host(),
+                        image_id: parts.configuration.image_id,
+                        configuration_id: parts.configuration.configuration_id,
+                        now_millis: now_ms(),
+                    };
+                    let prepared = crate::play::prepare(
+                        parts.workspace,
+                        context,
+                        policy,
+                        &mut residents,
+                        &mut software,
+                        &mut output_software,
+                        &mut routing,
+                        &mut equipment.pulse,
+                        &mut equipment.display,
+                        &mut equipment.waits,
+                        &mut issuers.pulse,
+                        &mut issuers.write,
+                        &mut issuers.waits,
+                        &operations,
+                        sampling_values.take().ok_or("sampling-values-busy")?,
+                        output_values.take().ok_or("output-values-busy")?,
+                        available,
+                        &mut refusal_detail,
+                    )
+                    .map_err(|error| {
+                        use core::fmt::Write;
+                        let _ = write!(&mut refusal_detail, "{error:?}");
+                        "complete-source-preparation"
+                    })?;
+                    Ok((
+                        prepared,
+                        &*parts.workspace,
+                        parts.bootstrap,
+                        parts.member,
+                        parts.configuration,
+                        parts.resources,
+                        policy,
+                        held_pools,
+                    ))
                 };
                 let mut future = core::pin::pin!(future);
                 conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await
@@ -323,15 +333,33 @@ pub async fn run<'s>(
             // command, resource ledger, or execution grant is reconstructed.
             let outcome = match prepared_outcome {
                 Err(reason) => Err(reason),
-                Ok((prepared, workspace, bootstrap, member, configuration,
-                    resources, policy, held_pools)) => {
+                Ok((
+                    prepared,
+                    workspace,
+                    bootstrap,
+                    member,
+                    configuration,
+                    resources,
+                    policy,
+                    held_pools,
+                )) => {
                     let future = async {
                         crate::play_service::start(
-                            prepared, workspace, bootstrap, member, configuration,
-                            resources, policy, &mut equipment.renderer,
-                            &mut issuers.renderer, &operations.renderer,
-                            reader.take().ok_or("reader-busy")?, &face, held_pools,
-                        ).map_err(|error| {
+                            prepared,
+                            workspace,
+                            bootstrap,
+                            member,
+                            configuration,
+                            resources,
+                            policy,
+                            &mut equipment.renderer,
+                            &mut issuers.renderer,
+                            &operations.renderer,
+                            reader.take().ok_or("reader-busy")?,
+                            &face,
+                            held_pools,
+                        )
+                        .map_err(|error| {
                             use core::fmt::Write;
                             let _ = write!(&mut refusal_detail, "{error:?}");
                             "complete-admission-start"
