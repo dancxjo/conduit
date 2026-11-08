@@ -48,13 +48,32 @@ impl ObservationContract {
         };
         let kind = c::Kind {
             kind_id: c::kind_id(KIND),
-            kind_contract_revision: "device/dht11-observation@1".into(),
+            kind_contract_revision: "device/dht11-observation@2".into(),
             startup_parameters: vec![],
             shorthand: Some((c::port_id("decoded"), c::port_id("result"))),
             inputs: vec![port("decoded", &input, c::PortDirection::Input)?],
             outputs: vec![port("result", &output, c::PortDirection::Output)?],
             configuration: vec![],
-            semantic_laws: vec![],
+            semantic_laws: vec![c::KindSemanticLaw::ValueContracts(vec![
+                c::FrontValueContract {
+                    location: c::FrontValueLocation::Input(c::port_id("decoded")),
+                    contract: c::CheckedValueContract::new(
+                        input.profile()?.value_kind().clone(),
+                        crate::canonical_storage::bytes(&input, 1024)? as u32,
+                        vec![],
+                    )
+                    .map_err(|_| R::MalformedCanonicalEncoding)?,
+                },
+                c::FrontValueContract {
+                    location: c::FrontValueLocation::Output(c::port_id("result")),
+                    contract: c::CheckedValueContract::new(
+                        output.profile()?.value_kind().clone(),
+                        crate::canonical_storage::bytes(&output, MAXIMUM_BYTES as usize)? as u32,
+                        vec![],
+                    )
+                    .map_err(|_| R::MalformedCanonicalEncoding)?,
+                },
+            ])],
             limits: c::CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 1,
