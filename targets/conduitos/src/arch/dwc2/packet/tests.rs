@@ -151,13 +151,12 @@ fn first_nak_requires_explicit_halt_without_waiting_for_deadline() {
     assert!(c.is_prepared());
 }
 #[test]
-fn transfer_complete_does_not_hide_untransmitted_bytes() {
+fn completed_out_can_retain_programmed_transfer_size() {
     let mut c = controller();
-    c.io.residue = 1;
-    assert_eq!(
-        c.root_packet(packet(false), &mut [7; 4]),
-        Err(PacketError::Transaction)
-    );
+    c.io.finish = 0x21; // ACK and transfer complete, as observed on the B+.
+    c.io.residue = 0x20000008;
+    assert_eq!(c.root_packet(packet(false), &mut [7; 8]), Ok(8));
+    assert!(c.is_quiescent());
 }
 
 #[test]
