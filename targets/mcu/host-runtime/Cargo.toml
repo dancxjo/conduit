@@ -24,7 +24,7 @@ conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", optiona
 conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", optional = true, features = ["host-call"] }
 conduit-monotonic-wait = { path = "../../../mechanisms/io/monotonic-wait", optional = true }
 
-conduit-face = { path = "../../../semantics/face", default-features = false, features = ["assigned-renderer"], optional = true }
+conduit-face = { path = "../../../semantics/face", default-features = false, features = ["assigned-renderer", "postcard-wire"], optional = true }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", features = ["native-kernel"], optional = true }
 
 [features]

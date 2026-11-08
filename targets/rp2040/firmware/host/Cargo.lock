@@ -312,6 +312,7 @@ dependencies = [
 name = "conduit-face"
 version = "0.1.0"
 dependencies = [
+ "postcard",
  "conduit-body",
  "conduit-core",
  "conduit-human",

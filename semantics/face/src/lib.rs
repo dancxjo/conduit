@@ -10,6 +10,8 @@
 //! do not define the Face boundary.
 
 extern crate alloc;
+#[cfg(feature = "postcard-wire")]
+pub mod postcard_wire;
 mod host_attribution;
 pub use host_attribution::HostAttributionRefusal;
 

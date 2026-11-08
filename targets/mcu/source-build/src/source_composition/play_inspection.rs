@@ -4,6 +4,16 @@ pub(super) fn encode(
     request: &[u8],
     output: &mut [u8],
 ) -> Result<Option<usize>, ()> {
+    // Read-only full-object binary inspection; this supplies no authority.
+    if request == b"B" {
+        return face
+            .with_retained(|current, _| {
+                conduit_face::postcard_wire::encode_face(current, output)
+                    .map(|bytes| Some(bytes.len()))
+                    .map_err(|_| ())
+            })
+            .map_err(|_| ())?;
+    }
     #[cfg(target_arch = "xtensa")]
     if request == b"P" {
         use core::fmt::Write;

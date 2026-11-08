@@ -13,8 +13,9 @@ use conduit_kernel::{HostCallId, NodeId, RequestId};
 use conduit_seven_segment_mask::PreparedAlternatingShow;
 
 pub const CAPABILITY: &str = "conduit/seven-segment-renderer@1";
-pub const CALL: &str = "conduit/seven-segment-present@1";
-pub const PROFILE: &str = "conduit/seven-segment-local-fore@1";
+// Both directions carry full objects using conduit_face::postcard_wire::ABI.
+pub const CALL: &str = "conduit/seven-segment-present@2";
+pub const PROFILE: &str = "conduit/seven-segment-local-fore@2";
 pub const ATTACHMENT: &str = "face/local-renderer-storage@1";
 pub const AUTHORITY: &str = "conduit.authority/seven-segment-present@1";
 pub const TEE: &str = "mcu.mask/tee@1";
@@ -375,8 +376,9 @@ impl<C: RendererClock> RendererService<'_, C> {
         let (show, pages, length) = self
             .reader
             .with_retained(|face, _| {
-                let bytes = serde_json_core::to_slice(face, ready.wire.face_mut())
-                    .map_err(|_| Refusal::Encoding)?;
+                let bytes = f::postcard_wire::encode_face(face, ready.wire.face_mut())
+                    .map_err(|_| Refusal::Encoding)?
+                    .len();
                 let pages = ready.mask.prepare_show(face).map_err(|_| Refusal::Face)?;
                 let show = context
                     .prepared_show(
@@ -507,8 +509,9 @@ impl<C: RendererClock> RendererService<'_, C> {
                 .show
                 .transition(f::ManifestationLifecycle::Available, available_sign)
                 .map_err(|_| Refusal::Output)?;
-            let length = serde_json_core::to_slice(&show, self.ready.wire.show_mut())
-                .map_err(|_| Refusal::Encoding)?;
+            let length = f::postcard_wire::encode_show(&show, self.ready.wire.show_mut())
+                .map_err(|_| Refusal::Encoding)?
+                .len();
             Ok((show, length))
         })();
         let (show, length) = match prepared {

@@ -2033,6 +2033,15 @@ name = "conduit-emergency-keyword-spotter"
 version = "0.1.0"
 
 [[package]]
+name = "conduit-environment-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
+]
+
+[[package]]
 name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
@@ -2051,6 +2060,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-environment-face",
  "conduit-human",
  "conduit-planner",
  "conduit-plot",
