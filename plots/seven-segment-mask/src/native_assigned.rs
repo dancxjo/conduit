@@ -13,6 +13,7 @@ pub enum MaskRole {
 }
 pub struct AssignedMaskProfile<'a> {
     pub layout: ResidentLayout<'a>,
+    pub configurations: &'a [c::AssignedRecordRequirement],
     pub fore: &'a [c::AssignedForeRequirement],
     pub roles: [MaskRole; 3],
     pub present_call: c::AssignedIdentity,
@@ -178,15 +179,28 @@ fn admit(
         || profile.face_bytes > 8192
         || profile.show_bytes == 0
         || profile.show_bytes > 8192
+        || profile.configurations.len() != 3
         || profile
-            .layout
-            .records
+            .configurations
             .iter()
-            .filter(|r| r.tag == c::ASSIGNED_CONFIGURATION)
-            .count()
-            != 3
+            .any(|r| r.tag != c::ASSIGNED_CONFIGURATION)
         || profile.layout.counts[6] != 1
     {
+        return Err(E::Shape);
+    }
+    // Configuration is pinned independently of the structural table layout,
+    // whose canonical fingerprint deliberately omits configuration records.
+    let mut expected = profile.configurations.iter();
+    for record in input
+        .records
+        .iter()
+        .filter(|r| r.tag == c::ASSIGNED_CONFIGURATION)
+    {
+        if expected.next() != Some(&c::AssignedRecordRequirement::from_record(*record)) {
+            return Err(E::Shape);
+        }
+    }
+    if expected.next().is_some() {
         return Err(E::Shape);
     }
     let node = |role| {

@@ -1,4 +1,3 @@
-// Composition of actual Source-selected loans, under the shared atomic Root.
 use crate::{
     equipment::{MonotonicTimer, WAIT_SLOTS},
     resident::generated as resident,
@@ -467,6 +466,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 configuration: source::mask_layout::CONFIGURATIONS,
                 profile: profile!(mask_layout, host, boot, mask_fore),
                 layout: conduit_seven_segment_mask::native_kernel::AssignedMaskProfile {
+                    configurations: source::mask_layout::CONFIGURATIONS,
                     layout: ResidentLayout {
                         records: source::mask_layout::RECORDS,
                         counts: source::mask_layout::COUNTS,
