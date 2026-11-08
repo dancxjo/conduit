@@ -94,6 +94,7 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
     /// Select an independently installed profile from an authenticated set's
     /// public child metadata. Selection is not admission; every selected child
     /// is still checked below against that profile and the original command.
+    #[inline(always)] // Fuse affine return storage with the installed factory.
     pub fn prepare_selected<'p, const I: usize, const PORTS: usize, E>(
         workspace: &'w b::HostCommandInput<I>,
         context: b::NativePreparationContext<'_>,

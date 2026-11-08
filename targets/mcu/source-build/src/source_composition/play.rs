@@ -30,7 +30,6 @@ use conduit_pulse_capture::installation::ReadyPulseBase;
 use conduit_tm1637_wire::installation::ReadyWriteBase;
 type Pulse = crate::equipment::Capture;
 type Wire = crate::equipment::Wire;
-// Use the independently compiled endpoint capacity.
 const FORE_PORTS: usize = {
     let a = source::sampling_layout::FORE_PORTS;
     let b = source::mask_layout::FORE_PORTS;
@@ -130,6 +129,7 @@ fn operation<'a>(
 /// checks all four real resident owners before splitting disjoint affine loans.
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 #[inline(never)] // Keep preparation temporaries out of the continuing async poll frame.
+#[inline(always)]
 pub fn prepare<'a, 'f: 'a, 'w>(
     workspace: &'w b::HostCommandInput<16384>,
     context: b::NativePreparationContext<'_>,

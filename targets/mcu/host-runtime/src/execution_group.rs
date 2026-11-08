@@ -362,6 +362,7 @@ where
 /// be checked together and then split into disjoint fragment loans. Signed
 /// fragment order is retained; callback roles are independent installed pins.
 #[allow(clippy::too_many_arguments)]
+#[inline(always)] // Avoid a second complete prepared-group return frame.
 pub fn prepare_with_source<'w, 'p, T, E, const INPUT: usize, const PORTS: usize>(
     workspace: &'w b::HostCommandInput<INPUT>,
     context: b::NativePreparationContext<'_>,
