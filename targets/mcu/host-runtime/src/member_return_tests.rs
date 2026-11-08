@@ -1,7 +1,7 @@
 use crate::{
     member_return::{Refusal, RetainedReturn},
     tests::ready,
-    transport::{MessageTransport, DocumentTransport},
+    transport::{DocumentTransport, MessageTransport},
 };
 use conduit_body::*;
 use conduit_core::{BootId, HostAdvertisement};
@@ -27,11 +27,16 @@ impl MessageTransport for Messages {
     }
 }
 impl DocumentTransport for Messages {
-    async fn receive_document(&mut self, document: &mut conduit_wire::BorrowedBoundedDocumentAssembly<'_>) -> Result<(), ()> {
+    async fn receive_document(
+        &mut self,
+        document: &mut conduit_wire::BorrowedBoundedDocumentAssembly<'_>,
+    ) -> Result<(), ()> {
         let mut frame = [0; 4096];
         loop {
             let bytes = self.receive(&mut frame).await?;
-            if document.push(bytes).map_err(|_| ())? { return Ok(()); }
+            if document.push(bytes).map_err(|_| ())? {
+                return Ok(());
+            }
         }
     }
 }
@@ -91,7 +96,9 @@ fn messages(
     let mut offset = 0;
     while offset < document.len() {
         let mut frame = [0; 4096];
-        let (length, next) = conduit_wire::encode_bounded_document_chunk(&mut frame, document, offset, &digest).unwrap();
+        let (length, next) =
+            conduit_wire::encode_bounded_document_chunk(&mut frame, document, offset, &digest)
+                .unwrap();
         chunks.push(frame[..length].to_vec());
         offset = next;
     }
@@ -99,7 +106,10 @@ fn messages(
         incoming: [
             serde_json::to_vec(&challenge(actual)).unwrap(),
             serde_json::to_vec(&signed.transport_metadata().unwrap()).unwrap(),
-        ].into_iter().chain(chunks).collect(),
+        ]
+        .into_iter()
+        .chain(chunks)
+        .collect(),
         sent: vec![],
     }
 }
@@ -132,7 +142,9 @@ fn retained_return_preserves_part_and_signs_exact_expiry_bearing_challenge() {
     loop {
         let complete = presentation_bytes.push(&link.sent[frame]).unwrap();
         frame += 1;
-        if complete { break; }
+        if complete {
+            break;
+        }
     }
     assert_eq!(link.sent.len(), frame + 2);
     let presentation: MemberReturnImagePresentation =

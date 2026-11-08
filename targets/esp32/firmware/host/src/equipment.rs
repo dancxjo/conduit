@@ -113,7 +113,8 @@ impl Equipment {
                             generation: 1,
                             // Fund both the physical provider and its bounded capture result.
                             resource_bytes: (core::mem::size_of::<Esp32PulseCapture>()
-                                + core::mem::size_of::<conduit_pulse_capture::PulseReadCapture>()) as u64,
+                                + core::mem::size_of::<conduit_pulse_capture::PulseReadCapture>())
+                                as u64,
                             limits: PULSE_LIMITS,
                         },
                         Capture(pulse),
@@ -125,7 +126,9 @@ impl Equipment {
                         identity!(WriteNativeIdentity, actual, "tm1637", "esp32/tm1637@1"),
                         WriteAttachment {
                             generation: 1,
-                            resource_bytes: WriteAttachment::retained_bytes_for_provider::<Esp32Tm1637>(),
+                            resource_bytes: WriteAttachment::retained_bytes_for_provider::<
+                                Esp32Tm1637,
+                            >(),
                         },
                         display,
                     )

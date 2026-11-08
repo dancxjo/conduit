@@ -53,18 +53,19 @@ pub async fn run(
         .publish(&mut actual)
         .expect("bounded actual native publication");
     let mut storage = RootStorage::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new();
-    let root = storage.initialize(
-        seed,
-        actual,
-        Configuration {
-            image_id: crate::config::IMAGE_ID,
-            configuration_id: crate::config::CONFIGURATION_ID,
-            friendly_label: "Blue",
-            preparation: crate::config::PREPARATION.as_ref(),
-            execution: crate::config::EXECUTION.as_ref(),
-        },
-    )
-    .expect("original checked Root");
+    let root = storage
+        .initialize(
+            seed,
+            actual,
+            Configuration {
+                image_id: crate::config::IMAGE_ID,
+                configuration_id: crate::config::CONFIGURATION_ID,
+                friendly_label: "Blue",
+                preparation: crate::config::PREPARATION.as_ref(),
+                execution: crate::config::EXECUTION.as_ref(),
+            },
+        )
+        .expect("original checked Root");
     let mut link = Link::new(carrier);
     let future = core::pin::pin!(shared::run(root, equipment, arena, &mut link));
     conduit_mcu_host_runtime::poll_boundary::separate(future).await

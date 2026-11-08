@@ -1,7 +1,11 @@
 //! A poll boundary keeps successive asynchronous phases from being flattened
 //! into one poll function's stack frame. Storage remains in the original
 //! future; this wrapper allocates nothing and changes no execution authority.
-use core::{future::Future, pin::Pin, task::{Context, Poll}};
+use core::{
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 pub struct PollBoundary<F>(F);
 

@@ -116,20 +116,34 @@ fn in_place_root_keeps_original_scope_and_refuses_reinitialization() {
         boot_id: "boot/current".into(),
         offer_generation: conduit_core::OfferGeneration(1),
         profile: "configuration/1".into(),
-        bases: vec![], resources: vec![], capabilities: vec![], planner_capabilities: vec![],
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
     };
-    let config = || Configuration { image_id: "image/1", configuration_id: "configuration/1",
-        friendly_label: "fixture", preparation: None, execution: None };
+    let config = || Configuration {
+        image_id: "image/1",
+        configuration_id: "configuration/1",
+        friendly_label: "fixture",
+        preparation: None,
+        execution: None,
+    };
     let mut storage = RootStorage::<16384>::new();
     let mut foreign = actual();
     foreign.host_id = "host/foreign".into();
-    assert!(matches!(storage.initialize(seed(), foreign, config()), Err(Refusal::Scope)));
+    assert!(matches!(
+        storage.initialize(seed(), foreign, config()),
+        Err(Refusal::Scope)
+    ));
     let root = storage.initialize(seed(), actual(), config()).unwrap();
     assert_eq!(root.actual().host_id.as_str(), "host/1");
     assert!(!root.retained_input());
     assert!(root.receipt_digest().is_none());
     assert!(matches!(root.execution_parts(), Err(Refusal::NotMember)));
-    assert!(matches!(storage.initialize(seed(), actual(), config()), Err(Refusal::Scope)));
+    assert!(matches!(
+        storage.initialize(seed(), actual(), config()),
+        Err(Refusal::Scope)
+    ));
 }
 
 #[test]
@@ -138,7 +152,10 @@ fn full_payload_and_following_header_fit_funded_wire_backing() {
     let mut wire = Vec::from((LIMIT as u16).to_be_bytes());
     wire.extend_from_slice(&payload);
     wire.extend_from_slice(&[0, 1, 9]);
-    let mut link = Link::new(Fake { input: wire.chunks(PACKET_BYTES).map(Vec::from).collect(), ..Fake::default() });
+    let mut link = Link::new(Fake {
+        input: wire.chunks(PACKET_BYTES).map(Vec::from).collect(),
+        ..Fake::default()
+    });
     let mut output = [0; LIMIT];
     assert_eq!(ready(link.receive(&mut output)).unwrap(), payload);
     assert_eq!(ready(link.receive(&mut output)).unwrap(), &[9]);

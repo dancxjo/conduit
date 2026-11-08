@@ -69,7 +69,9 @@ impl ProvisioningCarrier {
     pub fn open(self, path: &str) -> Result<PicoSpawnSocket, PicoSpawnTransportError> {
         let line = match self {
             Self::UsbCdc => NativePathCdcLine::open(path, MAX_PICO_ADMISSION_FRAME_BYTES)?,
-            Self::ForwardedTty => NativePathCdcLine::open_forwarded_tty(path, MAX_PICO_ADMISSION_FRAME_BYTES)?,
+            Self::ForwardedTty => {
+                NativePathCdcLine::open_forwarded_tty(path, MAX_PICO_ADMISSION_FRAME_BYTES)?
+            }
         };
         Ok(PicoSpawnSocket { line })
     }

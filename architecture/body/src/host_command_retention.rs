@@ -87,7 +87,9 @@ impl<const N: usize> HostCommandInput<N> {
         // SAFETY: both fields are fully initialized before the reference exists.
         unsafe {
             core::ptr::addr_of_mut!((*target).stamp).write(None);
-            core::ptr::addr_of_mut!((*target).bytes).cast::<u8>().write_bytes(0, N);
+            core::ptr::addr_of_mut!((*target).bytes)
+                .cast::<u8>()
+                .write_bytes(0, N);
             storage.assume_init_mut()
         }
     }

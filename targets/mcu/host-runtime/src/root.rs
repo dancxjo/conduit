@@ -57,7 +57,10 @@ pub struct RootStorage<'s, const N: usize> {
 }
 impl<'s, const N: usize> RootStorage<'s, N> {
     pub const fn new() -> Self {
-        Self { value: core::mem::MaybeUninit::uninit(), initialized: false }
+        Self {
+            value: core::mem::MaybeUninit::uninit(),
+            initialized: false,
+        }
     }
     pub fn initialize(
         &mut self,
@@ -65,10 +68,15 @@ impl<'s, const N: usize> RootStorage<'s, N> {
         actual: HostAdvertisement,
         config: Configuration,
     ) -> Result<&mut Root<'s, N>, Refusal> {
-        if self.initialized || actual.protocol_version != conduit_core::PROTOCOL_VERSION
+        if self.initialized
+            || actual.protocol_version != conduit_core::PROTOCOL_VERSION
             || actual.offer_generation.0 == 0
             || actual.profile.as_str() != config.configuration_id
-            || !seed.matches_native(actual.host_id.as_str(), config.image_id, config.configuration_id)
+            || !seed.matches_native(
+                actual.host_id.as_str(),
+                config.image_id,
+                config.configuration_id,
+            )
         {
             return Err(Refusal::Scope);
         }
@@ -91,6 +99,11 @@ impl<'s, const N: usize> RootStorage<'s, N> {
             self.initialized = true;
             Ok(self.value.assume_init_mut())
         }
+    }
+}
+impl<const N: usize> Default for RootStorage<'_, N> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 impl<const N: usize> Drop for RootStorage<'_, N> {

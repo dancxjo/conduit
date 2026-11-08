@@ -109,10 +109,12 @@ impl RetainedReturn<'_, '_> {
         let digest = Sha256::digest(document).into();
         let mut offset = 0;
         while offset < document.len() {
-            let (n, next) = conduit_wire::encode_bounded_document_chunk(
-                output, document, offset, &digest,
-            ).map_err(|_| Refusal::Encoding)?;
-            link.send(&output[..n]).await.map_err(|_| Refusal::Transport)?;
+            let (n, next) =
+                conduit_wire::encode_bounded_document_chunk(output, document, offset, &digest)
+                    .map_err(|_| Refusal::Encoding)?;
+            link.send(&output[..n])
+                .await
+                .map_err(|_| Refusal::Transport)?;
             offset = next;
         }
         for (bytes, digest) in images.zip(&projection.capability_images) {
@@ -166,7 +168,9 @@ impl RetainedReturn<'_, '_> {
             return Err(Refusal::Encoding);
         }
         let mut receipt = conduit_wire::BorrowedBoundedDocumentAssembly::new(input, 32);
-        link.receive_document(&mut receipt).await.map_err(|_| Refusal::Transport)?;
+        link.receive_document(&mut receipt)
+            .await
+            .map_err(|_| Refusal::Transport)?;
         let raw = receipt.completed().ok_or(Refusal::Receipt)?.0;
         metadata
             .verify(

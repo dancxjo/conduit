@@ -44,19 +44,19 @@ mod native_publication;
 #[cfg(sensor_dht11)]
 mod play;
 #[cfg(sensor_dht11)]
-mod play_service;
-#[cfg(sensor_dht11)]
 mod play_run;
+#[cfg(sensor_dht11)]
+mod play_service;
 #[cfg(sensor_dht11)]
 mod pulse_owner;
 mod radio;
+#[cfg(sensor_dht11)]
+mod renderer;
 mod resident;
 mod resident_preparation;
 mod retired_resources;
 #[cfg(sensor_dht11)]
 mod runtime;
-#[cfg(sensor_dht11)]
-mod renderer;
 mod seed;
 #[cfg(sensor_dht11)]
 mod tm1637_owner;
@@ -157,7 +157,10 @@ async fn main(spawner: Spawner) {
         let host = alloc::format!("rp2040/flash/{serial}");
         if let Some(seed) = seed::Seed::load(&host) {
             let future = core::pin::pin!(runtime::run(
-                seed, host, [rng.next_u64(), rng.next_u64()], &mut link,
+                seed,
+                host,
+                [rng.next_u64(), rng.next_u64()],
+                &mut link,
             ));
             conduit_mcu_host_runtime::poll_boundary::separate(future).await;
         }

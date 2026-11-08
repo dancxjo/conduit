@@ -8,8 +8,8 @@ use conduit_body::{
 use conduit_core::{HostAdvertisement, HostProfileId, PROTOCOL_VERSION};
 use ed25519_dalek::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use sha2::Digest;
+use std::time::Duration;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -124,7 +124,9 @@ impl PicoSpawnSocket {
         let mut document = conduit_wire::BoundedDocumentAssembly::new(16 * 1024, 32);
         loop {
             let frame = self.line.receive_raw_stream_frame(&mut bytes, timeout)?;
-            if document.push(frame).map_err(|_| Error::Malformed)? { break; }
+            if document.push(frame).map_err(|_| Error::Malformed)? {
+                break;
+            }
         }
         let presentation = serde_json::from_slice(document.completed().ok_or(Error::Malformed)?.0)
             .map_err(|_| Error::Malformed)?;
@@ -179,8 +181,7 @@ impl PicoSpawnSocket {
                 .map_err(|_| Error::InvalidReceipt)?,
         )
         .map_err(|_| Error::Malformed)?;
-        if metadata.len() > MAX_PICO_ADMISSION_FRAME_BYTES
-            || signed.receipt_json.len() > 16 * 1024
+        if metadata.len() > MAX_PICO_ADMISSION_FRAME_BYTES || signed.receipt_json.len() > 16 * 1024
         {
             return Err(Error::Oversized);
         }
@@ -190,9 +191,9 @@ impl PicoSpawnSocket {
         let mut frame = [0; MAX_PICO_ADMISSION_FRAME_BYTES];
         let mut offset = 0;
         while offset < document.len() {
-            let (length, next) = conduit_wire::encode_bounded_document_chunk(
-                &mut frame, document, offset, &digest,
-            ).map_err(|_| Error::Malformed)?;
+            let (length, next) =
+                conduit_wire::encode_bounded_document_chunk(&mut frame, document, offset, &digest)
+                    .map_err(|_| Error::Malformed)?;
             self.line.send_raw_stream_frame(&frame[..length], timeout)?;
             offset = next;
         }
