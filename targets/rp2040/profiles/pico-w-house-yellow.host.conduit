@@ -21,9 +21,8 @@ host pico-w-house-yellow {
   need = {id: "pool/resident-step-work", class: "kernel/cooperative-step-work@1", slots: 5000, bytes: 16384}
   # Ordinary checked Mask queue declarations require 18624 aggregate bytes;
   # 24576 is the explicit queue ceiling, not measured physical heap use.
-  # Shared selector custody reduced observed preparation peak to 74020 bytes.
-  # Reserve 80 KiB for heap, leaving 16 KiB more physical stack than the prior
-  # 96 KiB arena. This is an explicit tighter construction limit; measured
-  # link layout and complete Root admission must still accept the workset.
-  limits = {static_memory_bytes: 229376, heap_arena_bytes: 81920, queue_items: 16, buffered_bytes: 24576, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
+  # Complete three-kernel preparation requires the explicit 96 KiB arena.
+  # The tested 80 KiB split refused kernel headroom before Play; stack fitting
+  # must be resolved independently rather than claiming that smaller arena fits.
+  limits = {static_memory_bytes: 229376, heap_arena_bytes: 98304, queue_items: 16, buffered_bytes: 24576, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
 }

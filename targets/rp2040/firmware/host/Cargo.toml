@@ -59,6 +59,6 @@ conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637", features = ["
 conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait" }
 conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
 [profile.release]
-opt-level = "s"
+opt-level = 3
 lto = true
 codegen-units = 1
