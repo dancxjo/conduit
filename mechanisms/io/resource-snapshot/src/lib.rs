@@ -2,6 +2,7 @@
 //! Shared immutable snapshot records; no storage executor or authority issuer.
 extern crate alloc;
 mod record;
+pub mod nor;
 pub use record::*;
 #[cfg(test)]
 mod tests;
