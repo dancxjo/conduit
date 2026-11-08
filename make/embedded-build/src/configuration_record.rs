@@ -92,6 +92,13 @@ pub(crate) fn encode(entry: &Entry, resident: &[B], pin_selectors: bool) -> Resu
     Ok(value)
 }
 
+/// Encode independently installed software configuration using the same explicit
+/// resident ABI as checked assignment generation. This issues no approval or
+/// computation inventory; the receiver must retain its own exact Source pins.
+pub fn encode_assigned_software_configuration(entry: &Entry) -> Result<Vec<u8>, E> {
+    encode(entry, &[], true)
+}
+
 /// Trusted image inventory for the computation-aware assigned-Plan decoder.
 /// Call after fixed-image generation validated each computation's exact contract.
 /// Deploy this inventory with the resident image, never derive it from an incoming

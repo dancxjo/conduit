@@ -215,6 +215,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
             profile!(mask_layout, host, boot, &mf),
             profile!(output_layout, host, boot, &of),
         ],
+        #[inline(always)]
         move |[sampling, mask, output], [sampling_fore, mask_fore, output_fore]| {
             let sampling_profile = profile!(sampling_layout, host, boot, sampling_fore);
             let output_profile = profile!(output_layout, host, boot, output_fore);

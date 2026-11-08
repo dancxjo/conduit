@@ -292,27 +292,24 @@ pub fn emit_rust_for_layout(
     code.push_str("pub static CONFIGURATION:&[conduit_mcu_host_runtime::execution_factory::SoftwareConfigurationPin]=&[\n");
     for node in &material.nodes {
         for entry in &node.configuration {
-            let mut payload = node.node.to_le_bytes().to_vec();
-            payload.extend_from_slice(&c::AssignedIdentity::from_text(&entry.key).0);
-            match &entry.value {
-                c::ConfigurationValue::Bool(value) => {
-                    payload.push(0);
-                    payload.extend_from_slice(&[u8::from(*value), 0, 0, 0, 0, 0, 0, 0]);
-                }
-                c::ConfigurationValue::I64(value) => {
-                    payload.push(1);
-                    payload.extend_from_slice(&value.to_le_bytes());
-                }
-                c::ConfigurationValue::U64(value) => {
-                    payload.push(2);
-                    payload.extend_from_slice(&value.to_le_bytes());
-                }
-                c::ConfigurationValue::Text(value) => {
-                    payload.push(3);
-                    payload.extend_from_slice(value.as_bytes());
-                }
+            use conduit_embedded_build::{
+                GeneratedConfigurationEntry, GeneratedConfigurationValue as V,
+            };
+            let value = match &entry.value {
+                c::ConfigurationValue::Bool(v) => V::Bool(*v),
+                c::ConfigurationValue::I64(v) => V::I64(*v),
+                c::ConfigurationValue::U64(v) => V::U64(*v),
+                c::ConfigurationValue::Text(v) => V::Text(v.clone()),
                 _ => return Err("software configuration outside assigned primitive profile".into()),
-            }
+            };
+            let payload = conduit_embedded_build::encode_assigned_software_configuration(
+                &GeneratedConfigurationEntry {
+                    node: node.node,
+                    key: entry.key.clone(),
+                    value,
+                },
+            )
+            .map_err(|e| format!("software assigned configuration: {e:?}"))?;
             let record = c::AssignedRecordRequirement::from_record(c::AssignedRecord {
                 tag: c::ASSIGNED_CONFIGURATION,
                 payload: &payload,

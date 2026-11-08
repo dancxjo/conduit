@@ -29,6 +29,7 @@ mod assigned_native;
 mod assigned_plan;
 mod configuration;
 mod configuration_record;
+pub use configuration_record::encode_assigned_software_configuration;
 mod fore;
 mod generate;
 pub use fore::{generate_fore_native_plan, GeneratedForePlan};

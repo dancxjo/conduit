@@ -394,6 +394,9 @@ where
                 .ok_or(Refusal::Scope)?;
             profiles[role].take().ok_or(Refusal::Scope)
         },
+        // Fuse this adapter's affine return storage with its caller instead of
+        // retaining another complete prepared-group copy on the MCU stack.
+        #[inline(always)]
         move |fragments, fore| {
             let mut indices = [0usize; 3];
             for (role, pin) in pins.iter().enumerate() {
