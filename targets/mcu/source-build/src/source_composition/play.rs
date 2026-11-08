@@ -53,12 +53,14 @@ shape!(SN, sampling_layout, ASSIGNED_NODE);
 shape!(SC, sampling_layout, ASSIGNED_CORD);
 shape!(SR, sampling_layout, ASSIGNED_ROUTE);
 shape!(ST, sampling_layout, ASSIGNED_ROUTE_TARGET);
-shape!(SH, sampling_layout, ASSIGNED_HOST_CALL);
+// FixedHostCallBindings uses node-indexed slots (one call per node),
+// not a packed count of native operations. Software nodes leave inert holes.
+const SH: usize = SN;
 shape!(ON, output_layout, ASSIGNED_NODE);
 shape!(OC, output_layout, ASSIGNED_CORD);
 shape!(OR, output_layout, ASSIGNED_ROUTE);
 shape!(OT, output_layout, ASSIGNED_ROUTE_TARGET);
-shape!(OH, output_layout, ASSIGNED_HOST_CALL);
+const OH: usize = ON;
 const SP: usize = source::sampling_layout::PORTS_PER_NODE;
 const OP: usize = source::output_layout::PORTS_PER_NODE;
 const SS: usize = source::sampling_layout::SIGN_ITEMS;
@@ -446,11 +448,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 policy.maximum_retained_bytes,
                 || Ok::<_, &'static str>(sample_backs),
             )
-            .map_err(|error| {
-                use core::fmt::Write;
-                let _ = write!(diagnostic, "{error:?}");
-                "sampling-kernel"
-            })?;
+            .map_err(|error| kernel_refusal(diagnostic, error, "sampling-kernel"))?;
             let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS>::prepare(
                 output,
                 output_profile,
@@ -467,11 +465,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 policy.maximum_retained_bytes,
                 || Ok::<_, &'static str>(output_backs),
             )
-            .map_err(|error| {
-                use core::fmt::Write;
-                let _ = write!(diagnostic, "{error:?}");
-                "output-kernel"
-            })?;
+            .map_err(|error| kernel_refusal(diagnostic, error, "output-kernel"))?;
             let mask = MaskConstruction {
                 entry: pin!(mask_layout),
                 configuration: source::mask_layout::CONFIGURATIONS,
@@ -493,12 +487,18 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 owner: routing,
             }
             .prepare(mask, mask_fore)
-            .map_err(|error| {
-                use core::fmt::Write;
-                let _ = write!(diagnostic, "{error:?}");
-                "mask-kernel"
-            })?;
+            .map_err(|error| kernel_refusal(diagnostic, error, "mask-kernel"))?;
             Ok(PreparedKernelGroup(sample, mask, output))
         },
     )
+}
+
+fn kernel_refusal(
+    detail: &mut heapless::String<192>,
+    error: impl core::fmt::Debug,
+    label: &'static str,
+) -> &'static str {
+    use core::fmt::Write;
+    let _ = write!(detail, "{error:?}");
+    label
 }
