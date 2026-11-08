@@ -127,9 +127,13 @@ mod tests {
         let expected =
             AssignedComputationRequirement::from_text(7, "selector", &"ab".repeat(1024)).unwrap();
         assert_eq!(literal.len() - pinned.len(), 2048 - 36);
-        assert_eq!(pinned[34], 4);
-        assert_eq!(&pinned[35..39], &expected.text_bytes.to_le_bytes());
-        assert_eq!(&pinned[39..], &expected.text_digest);
+        let offset = 2 + core::mem::size_of::<conduit_core::AssignedIdentity>();
+        assert_eq!(pinned[offset], 4);
+        assert_eq!(
+            &pinned[offset + 1..offset + 5],
+            &expected.text_bytes.to_le_bytes()
+        );
+        assert_eq!(&pinned[offset + 5..], &expected.text_digest);
         let other = Entry {
             node: 7,
             key: "label".into(),
