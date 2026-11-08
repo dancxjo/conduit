@@ -1,7 +1,7 @@
 //! Admitted renderer service: semantic Show and local output Fore, never GPIO.
 //! Root drives this only after the complete local workset has Started.
 extern crate alloc;
-use alloc::boxed::Box;
+use alloc::vec;
 #[path = "execution_mask_wire.rs"]
 mod wire;
 use conduit_core as c;
