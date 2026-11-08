@@ -69,14 +69,18 @@ pub fn delegated_plain_resource_preparation_bytes(
     bound.add(placements, size_of::<c::ResourceAdmissionRequest>())?;
     if placements != 0 {
         bound.add(placements, size_of::<c::ResourceAdmission>())?;
-        bound.add(
-            owner
-                .admissions()
-                .len()
-                .checked_add(placements)
-                .ok_or(E::PreparationCapacity)?,
-            size_of::<c::ResourceAdmission>(),
-        )?;
+        // An empty owner adopts the fully validated pending table directly.
+        // Existing reservations still require a separate expanded owner table.
+        if !owner.admissions().is_empty() {
+            bound.add(
+                owner
+                    .admissions()
+                    .len()
+                    .checked_add(placements)
+                    .ok_or(E::PreparationCapacity)?,
+                size_of::<c::ResourceAdmission>(),
+            )?;
+        }
     }
     Ok(bound.0)
 }

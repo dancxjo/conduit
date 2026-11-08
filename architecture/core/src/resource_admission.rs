@@ -162,10 +162,16 @@ impl ResourceAdmissionOwner {
         for request in requests {
             pending.push(self.prepare_admission(&pending, request, observations)?);
         }
-        self.admissions
-            .try_reserve_exact(pending.len())
-            .map_err(|_| ResourceAdmissionRefusal::Allocation)?;
-        self.admissions.extend(pending);
+        if self.admissions.is_empty() {
+            // All checks succeeded. Transfer the actual staged backing rather
+            // than allocating a duplicate empty-ledger commit table.
+            self.admissions = pending;
+        } else {
+            self.admissions
+                .try_reserve_exact(pending.len())
+                .map_err(|_| ResourceAdmissionRefusal::Allocation)?;
+            self.admissions.extend(pending);
+        }
         Ok(&self.admissions[first..])
     }
 
