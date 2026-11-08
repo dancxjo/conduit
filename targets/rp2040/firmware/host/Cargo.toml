@@ -62,3 +62,7 @@ conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["ex
 opt-level = 3
 lto = true
 codegen-units = 1
+
+# Radio code is outside the Source preparation stack-critical path.
+[profile.release.package.cyw43]
+opt-level = "s"
