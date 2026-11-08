@@ -792,3 +792,41 @@ fn seven_segment_source_is_an_ordinary_mask_with_one_role_boundary() {
 
 #[path = "mask_plot/wire.rs"]
 mod wire;
+
+#[test]
+fn seven_segment_default_queues_carry_selected_opaque_face_and_show_values() {
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    install_mask_plot_value_aliases(&mut startup).unwrap();
+    conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles).unwrap();
+    let checked = check_syntax_document(
+        &parse_syntax_document(include_str!(
+            "../../../plots/seven-segment-mask/main.conduit"
+        )),
+        &startup,
+    )
+    .unwrap();
+    let expanded =
+        expand_canonical_plot_for_authoring(&checked, "seven-segment", &profiles).unwrap();
+    let mut host = host_for(&expanded.expanded, &profiles, "host/finite-mask");
+    for offer in &mut host.capabilities {
+        offer.limits.max_queue_items = 1;
+        offer.limits.max_queue_bytes = 6144;
+    }
+    let placements = conduit_planner::default_expanded_placements(
+        &expanded.expanded,
+        core::slice::from_ref(&host),
+    )
+    .unwrap();
+    let queues = conduit_planner::default_expanded_connection_limits(
+        &expanded.expanded,
+        core::slice::from_ref(&host),
+        &placements,
+    )
+    .unwrap();
+    assert_eq!(queues.len(), 3);
+    assert!(queues
+        .values()
+        .all(|q| q.item_capacity == 1 && q.byte_capacity == 6144));
+    assert_eq!(queues.values().map(|q| q.byte_capacity).sum::<u32>(), 18432);
+}

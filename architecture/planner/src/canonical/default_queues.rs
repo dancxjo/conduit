@@ -34,6 +34,28 @@ fn required_value_bytes(
         .map_err(|_| PlannerError::InvalidConnectionBudget("value bound overflow".into()))
 }
 
+// An opaque Value has no checked byte envelope from which to size a single
+// retained value. Prefer the finite capacity supported by both selected Backs;
+// this is storage planning, not a new semantic domain or resource grant.
+fn preferred_bytes(
+    temporal: conduit_core::PortTemporal,
+    required: u32,
+    source: u32,
+    sink: u32,
+) -> Result<u32, PlannerError> {
+    if source == 0 || sink == 0 || required > source || required > sink {
+        return Err(PlannerError::QueueRequirementAboveHostLimit(
+            "checked value envelope exceeds selected Back queue capacity".into(),
+        ));
+    }
+    let preference = if temporal == conduit_core::PortTemporal::Value && required == 0 {
+        source.min(sink)
+    } else {
+        DEFAULT_CONNECTION_BYTE_CAPACITY
+    };
+    Ok(preference.max(required).min(source).min(sink))
+}
+
 /// Queue preferences bounded by both selected Backs and checked value contracts.
 /// Explicit required capacities must still use the strict planning entrances.
 pub fn default_expanded_connection_limits(
@@ -96,10 +118,12 @@ pub fn default_expanded_connection_limits(
                 item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY
                     .min(source.limits.max_queue_items)
                     .min(sink.limits.max_queue_items),
-                byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY
-                    .max(required_value_bytes)
-                    .min(source.limits.max_queue_bytes)
-                    .min(sink.limits.max_queue_bytes),
+                byte_capacity: preferred_bytes(
+                    connection.temporal,
+                    required_value_bytes,
+                    source.limits.max_queue_bytes,
+                    sink.limits.max_queue_bytes,
+                )?,
             },
         );
     }
@@ -194,6 +218,36 @@ mod tests {
                 conduit_core::ConnectionTrack::Payload,
             ),
             Ok(8_192)
+        );
+    }
+}
+
+#[cfg(test)]
+mod opaque_value_tests {
+    use super::*;
+    use conduit_core::PortTemporal;
+
+    #[test]
+    fn opaque_value_capacity_uses_finite_selected_back_support() {
+        assert_eq!(
+            preferred_bytes(PortTemporal::Value, 0, 6144, 8192).unwrap(),
+            6144
+        );
+        assert_eq!(
+            preferred_bytes(PortTemporal::Value, 0, 8192, 4096).unwrap(),
+            4096
+        );
+        assert!(preferred_bytes(PortTemporal::Value, 0, 0, 8192).is_err());
+        assert!(preferred_bytes(PortTemporal::Value, 8193, 6144, 8192).is_err());
+        // Authored envelopes retain their existing capacity preference rather
+        // than inheriting a wider implementation storage ceiling.
+        assert_eq!(
+            preferred_bytes(PortTemporal::Value, 256, 6144, 8192).unwrap(),
+            256
+        );
+        assert_eq!(
+            preferred_bytes(PortTemporal::Flow { closes: true }, 0, 6144, 8192).unwrap(),
+            DEFAULT_CONNECTION_BYTE_CAPACITY
         );
     }
 }
