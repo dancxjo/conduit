@@ -46,6 +46,8 @@ mod character_purpose;
 mod character_purpose_continuity;
 mod clock_admission;
 mod continuity;
+#[cfg(feature = "authenticated-admission")]
+mod continuation_intent;
 mod conversation;
 mod current_host_offers;
 mod durable_body;
@@ -90,6 +92,8 @@ pub use character_purpose::*;
 pub use character_purpose_continuity::*;
 pub use clock_admission::*;
 pub use continuity::*;
+#[cfg(feature = "authenticated-admission")]
+pub use continuation_intent::*;
 pub use conversation::*;
 pub use current_host_offers::*;
 pub use durable_body::*;
