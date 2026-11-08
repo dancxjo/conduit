@@ -83,18 +83,17 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         face,
     )?;
     let observations = observe_held(&prepared, resources, held_pools)?;
-    let observation_bytes = observations.capacity()
-        * core::mem::size_of::<c::ResourceObservation>()
-        + observations
-            .iter()
-            .map(|o| {
-                o.host_id.0.capacity()
-                    + o.boot_id.0.capacity()
-                    + o.pool_id.0.capacity()
-                    + o.class_id.0.capacity()
-                    + o.sign_id.0.capacity()
-            })
-            .sum::<usize>();
+    // The fixed outer table lives inline; its owned identity payload is heap.
+    let observation_bytes = observations
+        .iter()
+        .map(|o| {
+            o.host_id.0.capacity()
+                + o.boot_id.0.capacity()
+                + o.pool_id.0.capacity()
+                + o.class_id.0.capacity()
+                + o.sign_id.0.capacity()
+        })
+        .sum::<usize>();
     let prepared = prepared.with_services(PreparedRendererService::new(service), shared)?;
     let mut committed = prepared.admit(resources, &observations, observation_bytes)?;
     // Scope storage was fully prepared and charged before admission. Binding
@@ -122,12 +121,12 @@ fn observe_held<T: PreparedLocalKernels>(
     prepared: &PreparedLocalWorkset<'_, T, 3>,
     owner: &c::ResourceAdmissionOwner,
     held: [c::AssignedIdentity; 5],
-) -> Result<Vec<c::ResourceObservation>, Refusal<&'static str>> {
+) -> Result<heapless::Vec<c::ResourceObservation, 5>, Refusal<&'static str>> {
     if !owner.admissions().is_empty() {
         return Err(Refusal::Scope);
     }
     let actual = owner.host();
-    let mut observations = Vec::new();
+    let mut observations = heapless::Vec::<c::ResourceObservation, 5>::new();
     for fragment in prepared.fragments() {
         for binding in b::PlainFragmentResources::new(fragment.metadata().resource_bindings) {
             let binding = binding.map_err(|_| Refusal::Scope)?;
@@ -153,23 +152,24 @@ fn observe_held<T: PreparedLocalKernels>(
             {
                 return Err(Refusal::Scope);
             }
-            observations.try_reserve(1).map_err(|_| Refusal::Bounds)?;
-            observations.push(c::ResourceObservation {
-                host_id: actual.host_id.clone(),
-                boot_id: actual.boot_id.clone(),
-                pool_id: pool.pool_id.clone(),
-                class_id: pool.class_id.clone(),
-                offer_generation: actual.offer_generation,
-                health: c::ResourceHealth::Ready,
-                unreserved_units: pool.capacity_units,
-                utilized_units: 0,
-                sign_id: format!(
-                    "{}/held-workset-resources/1/{}",
-                    actual.boot_id.as_str(),
-                    binding.pool
-                )
-                .into(),
-            });
+            observations
+                .push(c::ResourceObservation {
+                    host_id: actual.host_id.clone(),
+                    boot_id: actual.boot_id.clone(),
+                    pool_id: pool.pool_id.clone(),
+                    class_id: pool.class_id.clone(),
+                    offer_generation: actual.offer_generation,
+                    health: c::ResourceHealth::Ready,
+                    unreserved_units: pool.capacity_units,
+                    utilized_units: 0,
+                    sign_id: format!(
+                        "{}/held-workset-resources/1/{}",
+                        actual.boot_id.as_str(),
+                        binding.pool
+                    )
+                    .into(),
+                })
+                .map_err(|_| Refusal::Bounds)?;
         }
     }
     Ok(observations)
