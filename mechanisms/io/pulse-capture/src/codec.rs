@@ -4,8 +4,8 @@ use super::{
     PulseReadRefusal, PulseReadRequest, PULSE_READ_MAXIMUM_BYTES,
 };
 use conduit_core::{
-    validate_canonical_structured_value as validate, PreparedStructuredComposer as Composer,
-    PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType,
+    validate_canonical_structured_value as validate, BorrowedStructuredValueValidator,
+    PreparedStructuredComposer as Composer, StructuredInfoRefusal, StructuredInfoType,
     StructuredInfoTypeShape,
 };
 #[derive(Debug, PartialEq, Eq)]
@@ -20,7 +20,7 @@ impl From<StructuredInfoRefusal> for PulseCodecRefusal {
     }
 }
 pub struct PreparedPulseCodec {
-    request: PreparedStructuredValueValidator,
+    request: BorrowedStructuredValueValidator<'static>,
     length: Composer,
     wire: Composer,
     capture: Composer,
@@ -41,10 +41,10 @@ fn field<'a>(
         .ok_or(StructuredInfoRefusal::WrongType)
 }
 impl PreparedPulseCodec {
-    /// Retained reachable backing; shared schema aliases are charged conservatively.
+    /// Retained heap backing; linked immutable schemas occupy no heap.
     /// Inline state and allocator overhead are separate.
     pub fn retained_backing_bytes(&self) -> Option<usize> {
-        let mut bytes = self.request.retained_backing_bytes()?;
+        let mut bytes = 0usize;
         for composer in [
             &self.length,
             &self.wire,
@@ -70,16 +70,40 @@ impl PreparedPulseCodec {
             .find(|c| c.tag() == "provider-failed")
             .ok_or(StructuredInfoRefusal::WrongType)?
             .payload_type();
+        const REQUEST_SCHEMA: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/request.type"));
+        if contract.request.canonical_bytes()? != REQUEST_SCHEMA {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
         Ok(Self {
-            request: PreparedStructuredValueValidator::new(
-                &contract.request,
+            request: BorrowedStructuredValueValidator::new(
+                REQUEST_SCHEMA,
                 PULSE_READ_MAXIMUM_BYTES as usize,
             )?,
-            length: Composer::new(field(&contract.capture, "length")?, 64)?,
-            wire: Composer::new(wire_type, 256)?,
-            capture: Composer::new(&contract.capture, 512)?,
-            empty: Composer::new(empty_type, 64)?,
-            result: Composer::new(&contract.result, PULSE_READ_MAXIMUM_BYTES as usize)?,
+            length: Composer::with_static_schema(
+                field(&contract.capture, "length")?,
+                include_bytes!(concat!(env!("OUT_DIR"), "/length.type")),
+                64,
+            )?,
+            wire: Composer::with_static_schema(
+                wire_type,
+                include_bytes!(concat!(env!("OUT_DIR"), "/wire.type")),
+                256,
+            )?,
+            capture: Composer::with_static_schema(
+                &contract.capture,
+                include_bytes!(concat!(env!("OUT_DIR"), "/capture.type")),
+                512,
+            )?,
+            empty: Composer::with_static_schema(
+                empty_type,
+                include_bytes!(concat!(env!("OUT_DIR"), "/empty.type")),
+                64,
+            )?,
+            result: Composer::with_static_schema(
+                &contract.result,
+                include_bytes!(concat!(env!("OUT_DIR"), "/result.type")),
+                PULSE_READ_MAXIMUM_BYTES as usize,
+            )?,
         })
     }
     pub fn request(
@@ -87,8 +111,7 @@ impl PreparedPulseCodec {
         input: &[u8],
         limits: PulseReadLimits,
     ) -> Result<CheckedPulseRead, PulseCodecRefusal> {
-        self.request.validate(input)?;
-        let value = validate(input)?;
+        let value = self.request.validate(input)?;
         let read = |name| -> Result<u32, StructuredInfoRefusal> {
             let child = value
                 .record_field(name)?
@@ -149,5 +172,26 @@ impl PreparedPulseCodec {
         Ok(self
             .result
             .variant(tag, validate(self.capture.encoded())?)?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn linked_codec_refuses_a_foreign_contract_before_play() {
+        let mut contract = PulseReadContract::prepare().unwrap();
+        contract.request = contract.capture.clone();
+        assert!(matches!(
+            PreparedPulseCodec::prepare(&contract),
+            Err(StructuredInfoRefusal::WrongType)
+        ));
+        let mut contract = PulseReadContract::prepare().unwrap();
+        contract.capture = contract.request.clone();
+        assert!(matches!(
+            PreparedPulseCodec::prepare(&contract),
+            Err(StructuredInfoRefusal::WrongType)
+        ));
     }
 }
