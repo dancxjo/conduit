@@ -153,13 +153,16 @@ impl<'d> Esp32PulseCapture<'d> {
 
     fn wait_level(&self, high: bool, start: Instant, timeout_us: u32) -> bool {
         loop {
-            if start.elapsed().as_micros() >= u64::from(timeout_us) {
-                return false;
+            // Observe short levels before the comparatively slow timer read.
+            // The following deadline check still gates acceptance of that sample.
+            match sample_before_deadline(
+                || self.pin.is_high(),
+                || start.elapsed().as_micros() >= u64::from(timeout_us),
+            ) {
+                Some(level) if level == high => return true,
+                None => return false,
+                Some(_) => core::hint::spin_loop(),
             }
-            if self.pin.is_high() == high {
-                return true;
-            }
-            core::hint::spin_loop();
         }
     }
 
@@ -199,10 +202,15 @@ impl<'d> Esp32PulseCapture<'d> {
                 observation.phase = CapturePhase::Sample;
                 self.delay
                     .delay_micros(u32::from(request.sample_after_rise_us));
-                if start.elapsed().as_micros() >= u64::from(request.capture_timeout_us) {
+                // Sample at the requested offset before reading the timer, but
+                // never consume the sampled bit if the capture deadline expired.
+                let Some(high) = sample_before_deadline(
+                    || self.pin.is_high(),
+                    || start.elapsed().as_micros() >= u64::from(request.capture_timeout_us),
+                ) else {
                     return false;
-                }
-                value = (value << 1) | u8::from(self.pin.is_high());
+                };
+                value = (value << 1) | u8::from(high);
                 observation.completed_bits += 1;
                 // The request asks for samples, not a trailing edge after its
                 // final bit. Retain that complete octet before returning.
@@ -242,5 +250,66 @@ impl conduit_pulse_capture::owner::PulseReadProvider for Esp32PulseCapture<'_> {
 impl Drop for Esp32PulseCapture<'_> {
     fn drop(&mut self) {
         self.pin.set_output_enable(false);
+    }
+}
+
+// Keep the GPIO-before-timer order identical for edge polling and bit sampling.
+// Inlined closures retain direct HAL accesses in the timed realization.
+#[inline(always)]
+fn sample_before_deadline(
+    sample: impl FnOnce() -> bool,
+    deadline_reached: impl FnOnce() -> bool,
+) -> Option<bool> {
+    let level = sample();
+    if deadline_reached() {
+        None
+    } else {
+        Some(level)
+    }
+}
+
+#[cfg(test)]
+mod timing_tests {
+    use super::sample_before_deadline;
+    use core::cell::Cell;
+
+    #[test]
+    fn short_release_high_is_observed_before_slow_timer_poll() {
+        let time = Cell::new(0u32);
+        // Release high ends before one timer read. A timer-first realization
+        // mistakes the later response high for the release high.
+        let level = || matches!(time.get(), 0..10 | 90..170 | 220..290 | 340..410);
+        let expired = || {
+            time.set(time.get() + 20);
+            time.get() >= 1000
+        };
+        let wait = |wanted| loop {
+            match sample_before_deadline(level, expired) {
+                Some(actual) if actual == wanted => return time.get(),
+                Some(_) => (),
+                None => panic!("finite fixture deadline"),
+            }
+        };
+        assert_eq!(wait(true), 20); // release high, sampled at zero
+        assert_eq!(wait(false), 40); // response low
+        assert_eq!(wait(true), 120); // skipped response high
+        assert_eq!(wait(false), 200); // response fall/data low
+        assert_eq!(wait(true), 240); // first data bit, not the second
+    }
+
+    #[test]
+    fn bit_sample_precedes_timer_but_expiration_still_refuses_it() {
+        let time = Cell::new(40u32);
+        let sampled = sample_before_deadline(
+            || time.get() < 70,
+            || {
+                time.set(80);
+                time.get() >= 1000
+            },
+        );
+        assert_eq!(sampled, Some(true));
+        assert_eq!(time.get(), 80); // A timer-first GPIO read would have been low.
+        assert_eq!(sample_before_deadline(|| true, || true), None);
+        assert_eq!(sample_before_deadline(|| false, || true), None);
     }
 }
