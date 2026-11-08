@@ -283,7 +283,8 @@ pub async fn run<'r, 'f>(
                 Some(Delivery::Completed { ticket, sign }) => {
                     // SAFETY: the exact single in-flight Fore ticket has just
                     // completed its actual output-kernel electrical Host Call.
-                    if unsafe { mask.electrical_completion(ticket, sign) }.is_err() {
+                    if let Err(reason) = unsafe { mask.electrical_completion(ticket, sign) } {
+                        let _ = inspection.observe_refusal(1, "electrical-completion", &reason);
                         break;
                     }
                 }
@@ -316,7 +317,10 @@ pub async fn run<'r, 'f>(
                             drained = false;
                             active = false;
                         }
-                        Err(_) => break,
+                        Err(reason) => {
+                            let _ = inspection.observe_refusal(1, "rearm", &reason);
+                            break;
+                        }
                     }
                 } else {
                     let _ = inspection.observe(1, Observation::EvidenceCapacity);
@@ -328,7 +332,10 @@ pub async fn run<'r, 'f>(
                     Err(conduit_mcu_host_runtime::mask_session::Refusal::Renderer(
                         conduit_mcu_host_runtime::execution_mask::Refusal::Face,
                     )) => {}
-                    Err(_) => break,
+                    Err(reason) => {
+                        let _ = inspection.observe_refusal(1, "begin", &reason);
+                        break;
+                    }
                 }
             }
             if active && !drained {
@@ -338,7 +345,10 @@ pub async fn run<'r, 'f>(
                         let _ = inspection.observe(1, Observation::Drained);
                     }
                     Ok(_) => {}
-                    Err(_) => break,
+                    Err(reason) => {
+                        let _ = inspection.observe_refusal(1, "step", &reason);
+                        break;
+                    }
                 }
                 if let Some(event) = mask.last_event() {
                     let _ = inspection.record(1, event);
@@ -360,7 +370,10 @@ pub async fn run<'r, 'f>(
                         };
                     }
                     Ok(None) => {}
-                    Err(_) => break,
+                    Err(reason) => {
+                        let _ = inspection.observe_refusal(1, "frame", &reason);
+                        break;
+                    }
                 }
             }
             embassy_time::Timer::after_millis(10).await;

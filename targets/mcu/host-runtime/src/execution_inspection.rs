@@ -4,7 +4,10 @@
 //! cancel or restart the independently owned local workset.
 use crate::{execution_workset::StartedEvidence, transport::MessageTransport};
 use conduit_kernel::{KernelEvent, KernelEventKind};
-use core::cell::Cell;
+use core::{
+    cell::Cell,
+    fmt::{self, Write},
+};
 use serde::Serialize;
 
 // Preserve the existing bounded build-bound platform recovery exchange, which
@@ -37,11 +40,55 @@ struct Observed {
     last: Option<KernelEvent>,
     condition: Option<Observation>,
 }
+/// Bounded UTF-8 diagnostic text; formatting never allocates or grants authority.
+const REFUSAL_BYTES: usize = 96;
+#[derive(Clone, Copy)]
+struct RefusalDetail {
+    phase: &'static str,
+    text: [u8; REFUSAL_BYTES],
+    length: u8,
+    truncated: bool,
+}
+impl fmt::Write for RefusalDetail {
+    fn write_str(&mut self, value: &str) -> fmt::Result {
+        if self.truncated {
+            return Ok(());
+        }
+        let available = REFUSAL_BYTES - usize::from(self.length);
+        let mut length = value.len().min(available);
+        while !value.is_char_boundary(length) {
+            length -= 1;
+        }
+        let start = usize::from(self.length);
+        self.text[start..start + length].copy_from_slice(&value.as_bytes()[..length]);
+        self.length += length as u8;
+        self.truncated = length < value.len();
+        Ok(())
+    }
+}
+impl Serialize for RefusalDetail {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        #[derive(Serialize)]
+        struct View<'a> {
+            phase: &'static str,
+            error: &'a str,
+            truncated: bool,
+        }
+        View {
+            phase: self.phase,
+            error: core::str::from_utf8(&self.text[..usize::from(self.length)])
+                .expect("formatter preserves UTF-8 boundaries"),
+            truncated: self.truncated,
+        }
+        .serialize(serializer)
+    }
+}
 /// Fixed storage for one last observed event per fragment. This never owns a
 /// kernel or enables Start. Root initializes it only after successful Start.
 pub struct State<const F: usize> {
     custody: [u8; 32],
     fragments: [Cell<Observed>; F],
+    refusals: [Cell<Option<RefusalDetail>>; F],
 }
 impl<const F: usize> State<F> {
     pub fn new(started: &StartedEvidence) -> Self {
@@ -51,6 +98,7 @@ impl<const F: usize> State<F> {
         Self {
             custody,
             fragments: core::array::from_fn(|_| Cell::new(Observed::default())),
+            refusals: core::array::from_fn(|_| Cell::new(None)),
         }
     }
     /// Call synchronously from the original kernel observer. Re-reading the
@@ -90,11 +138,31 @@ impl<const F: usize> State<F> {
         slot.set(observed);
         Ok(())
     }
+    /// Record the actual local refusal before its actor stops. This is unsigned
+    /// diagnostic evidence only; it cannot alter any execution or resource owner.
+    pub fn observe_refusal(
+        &self,
+        fragment: usize,
+        phase: &'static str,
+        error: &impl fmt::Debug,
+    ) -> Result<(), Refusal> {
+        let slot = self.refusals.get(fragment).ok_or(Refusal::Fragment)?;
+        let mut detail = RefusalDetail {
+            phase,
+            text: [0; REFUSAL_BYTES],
+            length: 0,
+            truncated: false,
+        };
+        if write!(&mut detail, "{error:?}").is_err() {
+            detail.truncated = true;
+        }
+        slot.set(Some(detail));
+        Ok(())
+    }
     /// Serialize only fixed retained observations. Legacy [S,fragment,event]
     /// inspection can retrieve last-slot ordinal0; older slots are unavailable.
     pub fn encode(&self, request: &[u8], output: &mut [u8]) -> Result<usize, Refusal> {
-        let fragments: [Fragment; F] =
-            core::array::from_fn(|i| Fragment::from(self.fragments[i].get()));
+        let fragments = Fragments(self);
         let selected = if let [b'S', fragment, event] = request {
             let last = self
                 .fragments
@@ -130,12 +198,12 @@ impl<const F: usize> State<F> {
     }
 }
 #[derive(Serialize)]
-struct Report<'a> {
+struct Report<'a, const F: usize> {
     schema: &'static str,
     assurance: &'static str,
     start: &'static str,
     custody_sha256: &'a str,
-    fragments: &'a [Fragment],
+    fragments: &'a Fragments<'a, F>,
     selected: Option<Selected>,
 }
 #[derive(Serialize)]
@@ -145,6 +213,7 @@ struct Fragment {
     overwritten_slots: u64,
     last: Option<Event>,
     condition: Option<Observation>,
+    refusal: Option<RefusalDetail>,
 }
 impl From<Observed> for Fragment {
     fn from(value: Observed) -> Self {
@@ -154,7 +223,23 @@ impl From<Observed> for Fragment {
             overwritten_slots: value.overwritten,
             last: value.last.map(Event::from),
             condition: value.condition,
+            refusal: None,
         }
+    }
+}
+// Stream one fragment at a time instead of copying all diagnostic arrays onto
+// the response stack. Fixed retained state is the only source of these fields.
+struct Fragments<'a, const F: usize>(&'a State<F>);
+impl<const F: usize> Serialize for Fragments<'_, F> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeSeq;
+        let mut sequence = serializer.serialize_seq(Some(F))?;
+        for i in 0..F {
+            let mut fragment = Fragment::from(self.0.fragments[i].get());
+            fragment.refusal = self.0.refusals[i].get();
+            sequence.serialize_element(&fragment)?;
+        }
+        sequence.end()
     }
 }
 #[derive(Serialize)]
@@ -300,6 +385,47 @@ mod tests {
         assert_eq!(state.record(0, event), Err(Refusal::Event));
         assert_eq!(state.fragments[0].get().completions, 1);
         assert_eq!(state.encode(b"?", &mut [0; 8]), Err(Refusal::Capacity));
+    }
+    #[test]
+    fn refusal_details_are_bounded_utf8_and_preserve_original_observations() {
+        struct Long;
+        impl fmt::Debug for Long {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                for _ in 0..40 {
+                    f.write_str("界")?;
+                }
+                Ok(())
+            }
+        }
+        let state = State::<3>::from_digest([6; 32]);
+        state.observe(1, Observation::Refused).unwrap();
+        state.observe_refusal(1, "step", &Long).unwrap();
+        assert_eq!(
+            state.observe_refusal(3, "frame", &Long),
+            Err(Refusal::Fragment)
+        );
+        let mut output = [0; RESPONSE_BYTES];
+        let n = state.encode(b"?", &mut output).unwrap();
+        let report: serde_json::Value = serde_json::from_slice(&output[..n]).unwrap();
+        let fragment = &report["fragments"][1];
+        assert_eq!(fragment["condition"], "refused");
+        assert_eq!(fragment["refusal"]["phase"], "step");
+        assert_eq!(fragment["refusal"]["truncated"], true);
+        assert_eq!(
+            fragment["refusal"]["error"].as_str().unwrap().len(),
+            REFUSAL_BYTES
+        );
+        assert_eq!(fragment["observed_events"], 0);
+        assert!(report["fragments"][0]["refusal"].is_null());
+        state.observe_refusal(1, "begin", &"Face").unwrap();
+        let n = state.encode(b"?", &mut output).unwrap();
+        let report: serde_json::Value = serde_json::from_slice(&output[..n]).unwrap();
+        assert_eq!(report["fragments"][1]["refusal"]["phase"], "begin");
+        assert_eq!(report["fragments"][1]["refusal"]["error"], "\"Face\"");
+        assert_eq!(report["fragments"][1]["refusal"]["truncated"], false);
+        // Three retained slots remain below 400 extra inline bytes even on the
+        // 64-bit test host; MCU slots are smaller. Encoding streams one slot.
+        assert!(3 * core::mem::size_of::<Option<RefusalDetail>>() <= 400);
     }
     #[test]
     fn extended_inspection_encodes_synchronously_before_send_and_refuses_overflow() {
