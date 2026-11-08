@@ -51,14 +51,13 @@ macro_rules! shape {
 }
 shape!(SN, sampling_layout, ASSIGNED_NODE);
 shape!(SC, sampling_layout, ASSIGNED_CORD);
-shape!(SR, sampling_layout, ASSIGNED_ROUTE);
+const SR: usize = SN * SP;
 shape!(ST, sampling_layout, ASSIGNED_ROUTE_TARGET);
-// FixedHostCallBindings uses node-indexed slots (one call per node),
-// not a packed count of native operations. Software nodes leave inert holes.
+// Fixed tables are indexed by node/port, not packed record counts.
 const SH: usize = SN;
 shape!(ON, output_layout, ASSIGNED_NODE);
 shape!(OC, output_layout, ASSIGNED_CORD);
-shape!(OR, output_layout, ASSIGNED_ROUTE);
+const OR: usize = ON * OP;
 shape!(OT, output_layout, ASSIGNED_ROUTE_TARGET);
 const OH: usize = ON;
 const SP: usize = source::sampling_layout::PORTS_PER_NODE;
@@ -69,9 +68,7 @@ pub type SamplingKernel<'a, 'f> =
     ExecutionKernel<Driver<'f, resident::BorrowedBack<'a>>, SN, SC, SP, SR, ST, SH, SS>;
 pub type OutputKernel<'a, 'f> =
     ExecutionKernel<Driver<'f, resident::BorrowedBack<'a>>, ON, OC, OP, OR, OT, OH, OS>;
-/// Actual target type sizes, retained in the ELF for qualification. These are
-/// only kernel allocations: providers, canonical buffers and temporary
-/// preparation require separate accounting.
+/// Kernel-only sizes; providers and preparation require separate accounting.
 #[used]
 #[no_mangle]
 pub static CONDUIT_EXECUTION_KERNEL_BYTES: [usize; 3] = [
@@ -188,9 +185,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
         ])
         .try_fold(0usize, usize::checked_add)
         .ok_or(Refusal::Bounds)?;
-    // These two stores are already included in Root's actual allocator
-    // baseline. Only the incremental kernels and Mask slots consume the held
-    // workspace; all additional native/temporary allocations must also fit it.
+    // The two existing stores are already included in Root's allocator baseline.
     let incremental = minimum
         .checked_sub(sampling_values.reserved_storage_bytes())
         .and_then(|n| n.checked_sub(output_values.reserved_storage_bytes()))
