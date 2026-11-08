@@ -96,7 +96,7 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
             })
             .sum::<usize>();
     let prepared = prepared.with_services(PreparedRendererService::new(service), shared)?;
-    let committed = prepared.admit(resources, &observations, observation_bytes)?;
+    let mut committed = prepared.admit(resources, &observations, observation_bytes)?;
     // Scope storage was fully prepared and charged before admission. Binding
     // only moves it; invalid provenance cannot expose a partially scoped Face.
     face.bind_scope(basis)
@@ -112,7 +112,7 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     committed
         .start(workspace, context, policy, resources)
         .map(|started| (started, scopes))
-        .map_err(|(_, refusal)| match refusal {
+        .map_err(|refusal| match refusal {
             Refusal::Scope => Refusal::Back("authenticated-start-scope"),
             other => other,
         })

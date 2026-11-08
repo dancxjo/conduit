@@ -32,7 +32,7 @@ pub struct PreparedLocalWorkset<'w, T, const F: usize> {
 pub struct CommittedLocalWorkset<'w, T, const F: usize> {
     fragments: Box<[b::DelegatedBodyFragment<'w>; F]>,
     stamp: b::RetainedHostCommandStamp,
-    prepared: T,
+    prepared: Option<T>,
 }
 /// Read-only causal evidence produced only by successful authenticated Start.
 /// This identity does not grant execution or allow another kernel to Start.
@@ -155,7 +155,7 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
         Ok(CommittedLocalWorkset {
             fragments: self.fragments,
             stamp: self.stamp,
-            prepared: self.prepared,
+            prepared: Some(self.prepared),
         })
     }
 }
@@ -168,15 +168,19 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
 
     /// Recheck the unchanged original signed command and complete live ledger at
     /// the actual Start transition. Transport acknowledgement grants no Start.
-    #[allow(clippy::result_large_err)]
-    #[inline(always)] // Elide duplicate affine success/refusal return storage at the caller.
+    /// Refusal preserves this owner in place. Success consumes its original
+    /// kernel tickets once; a repeated Start cannot bind them again.
+    #[inline(always)] // The original committed owner stays in caller storage.
     pub fn start<const I: usize, E>(
-        self,
+        &mut self,
         workspace: &b::HostCommandInput<I>,
         context: b::NativePreparationContext<'_>,
         policy: Policy<'_>,
         resources: &c::ResourceAdmissionOwner,
-    ) -> Result<StartedLocalWorkset<T::Bound>, (Self, Refusal<E>)> {
+    ) -> Result<StartedLocalWorkset<T::Bound>, Refusal<E>> {
+        if self.prepared.is_none() {
+            return Err(Refusal::Scope);
+        }
         let check = (|| {
             let command = workspace
                 .reborrow(
@@ -256,10 +260,15 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
                 // authenticated Start checks above succeeded atomically.
                 Ok(StartedLocalWorkset {
                     custody_identity: self.stamp.custody_identity(),
-                    kernels: unsafe { self.prepared.bind() },
+                    kernels: unsafe {
+                        self.prepared
+                            .take()
+                            .expect("original unstarted kernels")
+                            .bind()
+                    },
                 })
             }
-            Err(e) => Err((self, e)),
+            Err(e) => Err(e),
         }
     }
 }
