@@ -37,6 +37,7 @@ pub fn sensor_contract() -> BaseInitializationContract {
         count("data", 0, 33),
         count("start_low_us", 18000, 30000),
         count("maximum_transaction_us", 30000, 100000),
+        count("maximum_interrupt_exclusion_us", 1, 20000),
     ])
 }
 pub fn display_contract() -> BaseInitializationContract {
@@ -96,6 +97,7 @@ pub struct CheckedPhysicalConstruction {
     pub display_data: u8,
     pub start_low_us: u32,
     pub maximum_capture_transaction_us: u32,
+    pub maximum_interrupt_exclusion_us: u32,
     pub brightness: u8,
     pub half_period_us: u32,
     pub settled_us: u32,
@@ -173,11 +175,12 @@ impl CheckedPhysicalConstruction {
         }
         let start = value(&sensor, "start_low_us")?;
         let capture = value(&sensor, "maximum_transaction_us")?;
+        let exclusion = value(&sensor, "maximum_interrupt_exclusion_us")?;
         let half = value(&display, "half_period_us")?;
         let settled = value(&display, "settled_us")?;
         let rise = value(&display, "maximum_clock_rise_us")?;
         let write = value(&display, "maximum_transaction_us")?;
-        if capture <= start || write <= half + settled + rise {
+        if capture <= start || exclusion > capture - start || write <= half + settled + rise {
             return Err("transaction ceiling cannot contain configured electrical timing".into());
         }
         Ok(Self {
@@ -188,6 +191,7 @@ impl CheckedPhysicalConstruction {
             display_data: dio as u8,
             start_low_us: start,
             maximum_capture_transaction_us: capture,
+            maximum_interrupt_exclusion_us: exclusion,
             brightness: value(&display, "brightness")? as u8,
             half_period_us: half,
             settled_us: settled,

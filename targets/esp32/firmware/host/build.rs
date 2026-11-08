@@ -78,6 +78,7 @@ pub const WAIT_SLOTS:usize={wait_slots};
 pub const MAXIMUM_WAIT_MS:u64={maximum_wait};
 pub const DHT_START_LOW_US:u32={start};
 pub const DHT_TRANSACTION_US:u32={capture};
+pub const DHT_MAXIMUM_INTERRUPT_EXCLUSION_US:u32={exclusion};
 pub const TM_HALF_PERIOD_US:u16={half};
 pub const TM_BRIGHTNESS:u8={brightness};
 pub const TM_WEAK_PULLUPS:bool={pullups};
@@ -89,7 +90,7 @@ pub const RENDERER_PAGE_PERIOD_MS:u64={page_period};
 pub const RENDERER_SHOW_LIFETIME_MS:u64={show_lifetime};
 pub const RENDERER_FAHRENHEIT:bool={fahrenheit};
 macro_rules! own_equipment {{($p:ident)=>{{(
- conduit_esp32_electrical::Esp32PulseCapture::new($p.GPIO{data},true),
+ conduit_esp32_electrical::Esp32PulseCapture::new($p.GPIO{data},true,crate::config::DHT_TRANSACTION_US,crate::config::DHT_MAXIMUM_INTERRUPT_EXCLUSION_US).expect("checked capture timing"),
  conduit_esp32_electrical::Esp32Tm1637::new($p.GPIO{clk},$p.GPIO{dio},crate::config::TM_HALF_PERIOD_US,crate::config::TM_WEAK_PULLUPS).expect("checked timing")
 )}}}}
 pub(crate) use own_equipment;
@@ -115,6 +116,7 @@ pub(crate) use own_equipment;
         maximum_wait = physical.maximum_wait_ms,
         start = physical.start_low_us,
         capture = physical.maximum_capture_transaction_us,
+        exclusion = physical.maximum_interrupt_exclusion_us,
         half = physical.half_period_us,
         brightness = physical.brightness,
         pullups = physical.weak_pullups,

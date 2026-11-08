@@ -12,13 +12,17 @@ these providers are used by a Play. The DHT11 request and decoding remain author
 in `plots/device-protocols`; presentation remains the shared Face and Mask path.
 
 Pulse capture accepts only the provider's finite geometry envelope and rechecks
-it before effects. It blocks cooperatively for at most 50ms drive plus 50ms
-capture according to the local clock, leaves interrupts enabled, allocates
-nothing, and releases the line before returning. This synchronous extent must be
-admitted by its Host's execution budget; it is not a background polling task.
-Interrupt latency can corrupt an observation, which the authored protocol checks
-must reject. Timeout exposes only complete octets and remains distinct from a
-complete frame. The `host-call` feature implements the existing
+it before effects. Checked construction separately bounds the whole transaction
+and capture interrupt exclusion, capped at 20ms. Blue admits a 50ms transaction
+and 20ms exclusion for its 10ms capture deadline plus bounded polling and exit
+overhead. The drive hold runs with interrupts enabled; release and capture run
+in one critical section so preemption cannot lose timed edges.
+Measured capture-window overruns refuse with `DeadlineExtent`; interrupt restore
+and return add bounded exit overhead.
+The provider allocates nothing and releases the line before returning. These
+synchronous extents must be admitted by its Host's execution budget; this is not
+a background polling task. Timeout exposes only complete octets and remains
+distinct from a complete frame. The `host-call` feature implements the existing
 `PulseReadProvider` contract; construction alone supplies no authority.
 
 The TM1637 implementation consumes two owned pins, drives only low/release,

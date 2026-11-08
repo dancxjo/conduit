@@ -234,6 +234,7 @@ dependencies = [
  "conduit-mcu-host-runtime",
  "conduit-pulse-capture",
  "conduit-tm1637-wire",
+ "critical-section",
  "embassy-time",
  "esp-hal",
 ]

@@ -11,6 +11,7 @@ host-carrier = ["dep:conduit-mcu-host-runtime", "dep:embassy-time"]
 host-call = ["conduit-pulse-capture/host-call"]
 
 [dependencies]
+critical-section = "1"
 conduit-mcu-host-runtime = { path = "../../mcu/host-runtime", optional = true }
 embassy-time = { version = "0.5.1", optional = true }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture" }

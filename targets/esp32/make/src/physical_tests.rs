@@ -20,6 +20,7 @@ fn blue_source_selects_exact_physical_routes_and_finite_timings() {
         (20000, 50000)
     );
     assert!(pins.weak_pullups);
+    assert_eq!(pins.maximum_interrupt_exclusion_us, 20000);
     assert_eq!((pins.maximum_wait_ms, pins.wait_slots), (60000, 4));
     for (from, to) in [
         ("maximum_duration_ms: 60000", "maximum_duration_ms: 60001"),
@@ -29,6 +30,19 @@ fn blue_source_selects_exact_physical_routes_and_finite_timings() {
         ("data: 27", "data: 18"),
         ("dio: 19", "dio: 18"),
         ("tx: 1", "tx: 27"),
+        (
+            "maximum_interrupt_exclusion_us: 20000",
+            "maximum_interrupt_exclusion_us: 0",
+        ),
+        (
+            "maximum_interrupt_exclusion_us: 20000",
+            "maximum_interrupt_exclusion_us: 20001",
+        ),
+        (", maximum_interrupt_exclusion_us: 20000", ""),
+        (
+            "start_low_us: 20000, maximum_transaction_us: 50000",
+            "start_low_us: 30000, maximum_transaction_us: 35000",
+        ),
         (
             "maximum_transaction_us: 50000",
             "maximum_transaction_us: 18000",
@@ -43,6 +57,24 @@ fn blue_source_selects_exact_physical_routes_and_finite_timings() {
             "accepted invalid attachment {from} -> {to}"
         );
     }
+}
+
+#[test]
+fn blue_interrupt_exclusion_budget_is_part_of_checked_configuration_identity() {
+    let source = include_str!("../../profiles/blue-wroom32.host.conduit");
+    let original = checked(source).unwrap();
+    let changed = checked(&source.replace(
+        "maximum_interrupt_exclusion_us: 20000",
+        "maximum_interrupt_exclusion_us: 9000",
+    ))
+    .unwrap();
+    assert_ne!(original.configuration_id(), changed.configuration_id());
+    assert_eq!(
+        physical::CheckedPhysicalConstruction::from_configuration(&changed)
+            .unwrap()
+            .maximum_interrupt_exclusion_us,
+        9000
+    );
 }
 
 #[test]
