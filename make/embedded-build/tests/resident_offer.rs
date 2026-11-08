@@ -63,8 +63,11 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
     };
     let root_preparer = if cfg!(feature = "delegated-preparation") {
         format!(
-            "#[allow(dead_code)]#[path={:?}]mod root_preparer;",
+            "#[allow(dead_code)]#[path={:?}]mod root_preparer;#[path={:?}]mod retired_resources;",
             root.join("../../targets/rp2040/firmware/host/src/resident_preparation.rs")
+                .to_str()
+                .unwrap(),
+            root.join("../../targets/rp2040/firmware/host/src/retired_resources.rs")
                 .to_str()
                 .unwrap()
         )
