@@ -243,6 +243,40 @@ impl WriteAttachment {
         (core::mem::size_of::<P>() + core::mem::size_of::<PreparedPackets>()) as u64
     }
     pub(crate) fn valid(self) -> bool {
-        self.generation != 0 && self.resource_bytes >= 24
+        // This is the retained codec footprint, not a wire-protocol minimum.
+        // Linked schema storage changes this size, especially on 32-bit hosts.
+        self.generation != 0
+            && self.resource_bytes >= core::mem::size_of::<PreparedPackets>() as u64
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn zero_sized_provider_storage_is_valid_at_the_actual_codec_footprint() {
+        struct ZeroSizedProvider;
+        let bytes = WriteAttachment::retained_bytes_for_provider::<ZeroSizedProvider>();
+        assert_eq!(bytes, core::mem::size_of::<PreparedPackets>() as u64);
+        assert!(WriteAttachment {
+            generation: 1,
+            resource_bytes: bytes
+        }
+        .valid());
+        assert!(!WriteAttachment {
+            generation: 1,
+            resource_bytes: bytes - 1
+        }
+        .valid());
+        assert!(!WriteAttachment {
+            generation: 0,
+            resource_bytes: bytes
+        }
+        .valid());
+        // This test also runs unchanged on 32-bit targets: the borrowed
+        // validator retains one slice and one usize, rather than 24 bytes.
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(bytes, 12);
     }
 }
