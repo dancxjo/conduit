@@ -17,7 +17,7 @@ impl StepBack<2> for MaskBack {
         match self {
             Self::Tee => {
                 if let Some(value) = io.input(k::PortId(0)) {
-                    if !io.output_ready(k::PortId(0)) {
+                    if !io.output_ready_for(k::PortId(0), value.byte_len) {
                         return StepOutcome::Await;
                     }
                     if io.consume(k::PortId(0)).is_err() || io.send(k::PortId(0), value).is_err() {
@@ -78,7 +78,7 @@ impl StepBack<2> for MaskBack {
                     let Some(output) = outcome.output else {
                         return failed();
                     };
-                    if !io.output_ready(k::PortId(0)) {
+                    if !io.output_ready_for(k::PortId(0), output.value.byte_len) {
                         return StepOutcome::Await;
                     }
                     if request != k::RequestId(*next_request)
