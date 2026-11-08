@@ -112,6 +112,44 @@ impl<'payload, const N: usize> DelegatedBodyWorkset<'_, 'payload, N> {
         self.documents.document(index)
     }
 
+    /// Validate a child using the receiver's independently installed Fore ABI.
+    /// The signed complete set cannot substitute different local endpoints.
+    pub fn receive_fragment_with_pinned_fore<const PORTS: usize>(
+        &self,
+        index: usize,
+        installed: Option<&HostPreparationDelegation>,
+        context: NativePreparationContext<'_>,
+        profile: AssignedBodyPreparationProfile<'_>,
+    ) -> Result<
+        (
+            DelegatedBodyFragment<'payload>,
+            ApprovedBodyForePorts<PORTS>,
+        ),
+        DelegatedWorksetRefusal,
+    > {
+        use DelegatedWorksetRefusal as E;
+        check_host_workset_preparation_delegation(installed, context, &self.command)
+            .map_err(E::Policy)?;
+        if self.documents.declared_runtime_state_bytes
+            > installed
+                .expect("checked delegation")
+                .maximum_runtime_state_bytes
+        {
+            return Err(E::Policy(PreparationDelegationRefusal::Bounds));
+        }
+        let bytes = self.documents.document(index).ok_or(E::Index)?;
+        let (metadata, projection) = decode_body_fragment_document(bytes)
+            .map_err(|e| E::Document(BodyWorksetDocumentRefusal::Fragment(e)))?;
+        approved_fore::finish_pinned_fore(
+            metadata,
+            projection,
+            installed.expect("checked delegation"),
+            context,
+            profile,
+        )
+        .map_err(E::Fragment)
+    }
+
     /// Approve only a child of this exact signed complete set. Root still needs
     /// every child's full local profile, complete storage and atomic resources
     /// before any provider transfer or start. An individual result is not that.

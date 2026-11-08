@@ -174,6 +174,38 @@ pub fn run(
         Err(crate::root_preparer::ValidationRefusal::Bounds)
     );
     assert_eq!(token.document(0).unwrap().as_ptr(), bytes[14..].as_ptr());
+    let pinned = token
+        .receive_fragment_with_pinned_fore::<2>(
+            0,
+            Some(&policy()),
+            receiver.context(),
+            profile(first),
+        )
+        .unwrap();
+    assert_eq!(pinned.1.as_slice(), first.fore.as_slice());
+    assert!(token
+        .receive_fragment_with_approved_fore::<2>(
+            0,
+            Some(&policy()),
+            receiver.context(),
+            profile(first)
+        )
+        .is_err());
+    let mut wrong_fore = first.fore.clone();
+    if !wrong_fore.is_empty() {
+        wrong_fore.clear();
+        assert!(token
+            .receive_fragment_with_pinned_fore::<2>(
+                0,
+                Some(&policy()),
+                receiver.context(),
+                AssignedBodyPreparationProfile {
+                    fore: Some(&wrong_fore),
+                    ..profile(first)
+                }
+            )
+            .is_err());
+    }
     let (l, cost) = crate::probe::observe(|| {
         token
             .receive_fragment_with_approved_fore::<2>(

@@ -107,3 +107,40 @@ pub(super) fn finish_approved_fore<'a, const PORTS: usize>(
         },
     ))
 }
+
+/// Preserve independently installed Fore pins. This entrance cannot replace
+/// them with descriptors supplied by the authoring Host.
+pub(super) fn finish_pinned_fore<'a, const PORTS: usize>(
+    metadata: BodyFragmentApprovalMetadata<'a>,
+    projection: &'a [u8],
+    policy: &HostPreparationDelegation,
+    context: NativePreparationContext<'_>,
+    profile: AssignedBodyPreparationProfile<'_>,
+) -> Result<(DelegatedBodyFragment<'a>, ApprovedBodyForePorts<PORTS>), DelegatedFragmentRefusal> {
+    use DelegatedFragmentRefusal as E;
+    let installed = profile.fore.ok_or(E::ForeApproval)?;
+    if installed.len() > PORTS || installed.len() > usize::from(profile.maxima.counts[9]) {
+        return Err(E::ForeApproval);
+    }
+    let count = installed.len();
+    let empty = c::AssignedForeRequirement::new(
+        0,
+        0,
+        c::AssignedForeDirection::Input,
+        c::AssignedIdentity([0; 16]),
+        [0; 32],
+    );
+    let mut pins = [empty; PORTS];
+    pins[..count].copy_from_slice(installed);
+    // Checks every metadata descriptor against these pins, then independently
+    // decodes the assigned projection with the same exact installed Fore ABI.
+    let fragment = receiving::finish_receive(
+        metadata,
+        projection,
+        context.actual,
+        context.member,
+        policy,
+        profile,
+    )?;
+    Ok((fragment, ApprovedBodyForePorts { pins, count }))
+}

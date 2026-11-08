@@ -134,14 +134,22 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
         for index in 0..F {
             let profile = profile_for(index, set.document(index).ok_or(Refusal::Scope)?)
                 .map_err(Refusal::Back)?;
-            let (fragment, fore) = set
-                .receive_fragment_with_approved_fore::<PORTS>(
+            let received = if profile.fore.is_some() {
+                set.receive_fragment_with_pinned_fore::<PORTS>(
                     index,
                     policy.preparation,
                     context,
                     profile,
                 )
-                .map_err(Refusal::Workset)?;
+            } else {
+                set.receive_fragment_with_approved_fore::<PORTS>(
+                    index,
+                    policy.preparation,
+                    context,
+                    profile,
+                )
+            };
+            let (fragment, fore) = received.map_err(Refusal::Workset)?;
             fragments.push(fragment);
             ports.push(fore);
         }
