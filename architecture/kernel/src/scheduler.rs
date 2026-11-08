@@ -3747,7 +3747,6 @@ fn validate_plan<
         if usize::from(cord.cord.0) != cord_index
             || cord.item_capacity == 0
             || cord.byte_capacity == 0
-            || cord.maximum_value_bytes == 0
             || cord.maximum_value_bytes > cord.byte_capacity
         {
             return Err(SchedulerError::InvalidPlan);
