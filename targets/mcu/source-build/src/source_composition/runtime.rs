@@ -224,7 +224,8 @@ pub async fn run<'s>(
             link.reset();
         } else if root.retained_input() {
             let mut refusal_detail = heapless::String::<192>::new();
-            let outcome = conduit_mcu_host_runtime::poll_boundary::separate(async {
+            let outcome = {
+                let future = async {
                 // The original full-arena lease predates Ready construction.
                 // Measure used backing once for this incremental factory bound;
                 // baseline and workspace remain within that same retained lease.
@@ -332,8 +333,10 @@ pub async fn run<'s>(
                     "complete-admission-start"
                 })?;
                 Ok((started, scopes))
-            })
-            .await;
+                };
+                let mut future = core::pin::pin!(future);
+                conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await
+            };
             match outcome {
                 Ok((started, scopes)) => {
                     let evidence = started.evidence();

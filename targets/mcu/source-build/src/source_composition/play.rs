@@ -342,13 +342,14 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 return Err("source-clock-count");
             };
             let configuration = [
-                c::ConfigurationEntry {
-                    key: "period-ms".into(),
-                    value: c::ConfigurationValue::U64(*period),
-                },
+                // The assigned ABI retains canonical Source field order.
                 c::ConfigurationEntry {
                     key: "count".into(),
                     value: c::ConfigurationValue::U64(*count),
+                },
+                c::ConfigurationEntry {
+                    key: "period-ms".into(),
+                    value: c::ConfigurationValue::U64(*period),
                 },
             ];
             let (table, handle, claim) = issuer
