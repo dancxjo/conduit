@@ -77,7 +77,9 @@ impl PreparedHidDescriptorPipe {
             value_kind,
             encoded: Vec::with_capacity(4096),
         };
+        super::preparation_stage("usb-hid-driver-kernel");
         let driver = artifact.prepare_pure(storage).map_err(E::Call)?;
+        super::preparation_stage("usb-hid-driver-ready");
         Ok(Self {
             driver,
             pass,

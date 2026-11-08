@@ -297,7 +297,7 @@ impl PreparedProtocolSource {
     }
 }
 
-fn preparation_stage(stage: &str) {
+pub(crate) fn preparation_stage(stage: &str) {
     #[cfg(all(
         target_os = "none",
         any(
