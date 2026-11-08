@@ -70,6 +70,17 @@ impl<'a> SoftwareBack<'a> {
             output_bytes,
         )?)))
     }
+    pub fn selector_static(
+        canonical: &'static [u8],
+        input_bytes: usize,
+        output_bytes: usize,
+    ) -> Result<Self, &'static str> {
+        Ok(Self::Selector(Box::new(SelectorBack::prepare_static(
+            canonical,
+            input_bytes,
+            output_bytes,
+        )?)))
+    }
     pub fn dht11_observation() -> Result<Self, &'static str> {
         let contract = ObservationContract::prepare().map_err(|_| "observation-contract")?;
         Ok(Self::Observation(Box::new(
@@ -162,6 +173,25 @@ impl SelectorBack {
         }
         Ok(Self {
             selector: PreparedCaptureSelector::prepare(selector, input, output)
+                .map_err(|_| "selector")?,
+            maximum: output,
+            staged: false,
+        })
+    }
+    pub fn prepare_static(
+        canonical: &'static [u8],
+        input: usize,
+        output: usize,
+    ) -> Result<Self, &'static str> {
+        if input == 0
+            || output == 0
+            || input > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || output > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+        {
+            return Err("selector-bound");
+        }
+        Ok(Self {
+            selector: PreparedCaptureSelector::prepare_static(canonical, input, output)
                 .map_err(|_| "selector")?,
             maximum: output,
             staged: false,

@@ -31,6 +31,16 @@ fn selection_validates_unselected_primitive_leaves_without_play_allocations() {
     .unwrap();
     let selector = StructuredSelector::field(ty.clone(), "chosen").unwrap();
     let mut prepared = PreparedCaptureSelector::prepare(selector.clone(), 512, 512).unwrap();
+    let canonical = Box::leak(selector.canonical_bytes().unwrap().into_boxed_slice());
+    let mut linked = PreparedCaptureSelector::prepare_static(canonical, 512, 512).unwrap();
+    let mut trailing_selector = canonical.to_vec();
+    trailing_selector.push(0);
+    assert!(PreparedCaptureSelector::prepare_static(
+        Box::leak(trailing_selector.into_boxed_slice()),
+        512,
+        512,
+    )
+    .is_err());
     let mut malformed = value.clone();
     *malformed.last_mut().unwrap() = 2; // Invalid Boolean in the unselected field.
     let mut trailing = value.clone();
@@ -39,13 +49,15 @@ fn selection_validates_unselected_primitive_leaves_without_play_allocations() {
     wrong_type[5] ^= 1;
     let mut too_small = PreparedCaptureSelector::prepare(selector, value.len() - 1, 512).unwrap();
     let ((), memory) = allocation_probe::observe(|| {
-        assert_eq!(prepared.select(&value).unwrap(), Some(expected.as_slice()));
-        assert_eq!(prepared.output(), expected);
-        for input in [&malformed, &trailing, &wrong_type] {
-            assert_eq!(
-                prepared.select(input),
-                Err(StructuredSelectorRefusal::MalformedCheckedValue)
-            );
+        for prepared in [&mut prepared, &mut linked] {
+            assert_eq!(prepared.select(&value).unwrap(), Some(expected.as_slice()));
+            assert_eq!(prepared.output(), expected);
+            for input in [&malformed, &trailing, &wrong_type] {
+                assert_eq!(
+                    prepared.select(input),
+                    Err(StructuredSelectorRefusal::MalformedCheckedValue)
+                );
+            }
         }
         assert_eq!(
             too_small.select(&value),

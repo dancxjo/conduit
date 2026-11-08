@@ -156,7 +156,7 @@ mod tests {
                     contracts: 64,
                 },
                 maximum_occurrences: 4096,
-                maximum_program_bytes: MAXIMUM_RESIDENT_PROGRAM_BYTES,
+                maximum_program_bytes: crate::MAXIMUM_RESIDENT_PROGRAM_BYTES,
                 maximum_generated_bytes: 1024 * 1024,
                 private_work_units: super::DHT11_TM1637_PRIVATE_WORK_UNITS,
             },

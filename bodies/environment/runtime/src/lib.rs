@@ -18,7 +18,7 @@ pub mod publication;
 pub mod publication_face_custody;
 #[cfg(feature = "face-projection")]
 pub mod retained_publication_face;
-use alloc::{boxed::Box, string::String};
+use alloc::{borrow::Cow, boxed::Box, string::String};
 use conduit_core::{PortTemporal, StructuredSelector};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -105,8 +105,8 @@ impl<const P: usize> StepBack<P> for CaptureBack {
 pub struct PreparedCaptureSelector {
     selector: StructuredSelector,
     maximum_input_bytes: usize,
-    input_type: alloc::vec::Vec<u8>,
-    output_type: alloc::vec::Vec<u8>,
+    input_type: Cow<'static, [u8]>,
+    output_type: Cow<'static, [u8]>,
     output: alloc::vec::Vec<u8>,
 }
 impl PreparedCaptureSelector {
@@ -124,12 +124,38 @@ impl PreparedCaptureSelector {
         }
         Ok(Self {
             maximum_input_bytes,
-            input_type,
-            output_type: selector.output_type().canonical_bytes()?,
+            input_type: Cow::Owned(input_type),
+            output_type: Cow::Owned(selector.output_type().canonical_bytes()?),
             selector,
             output: alloc::vec::Vec::with_capacity(maximum_output_bytes),
         })
     }
+    /// Retain the same checked selector graphs while borrowing their exact
+    /// canonical Type prefixes from immutable linked selection material.
+    pub fn prepare_static(
+        canonical: &'static [u8],
+        maximum_input_bytes: usize,
+        maximum_output_bytes: usize,
+    ) -> Result<Self, conduit_core::StructuredSelectorRefusal> {
+        use conduit_core::StructuredSelectorRefusal as R;
+        let selector = StructuredSelector::from_canonical_bytes(canonical)?;
+        if selector.canonical_bytes()?.as_slice() != canonical {
+            return Err(R::MalformedCanonicalEncoding);
+        }
+        let mut prepared = Self::prepare(selector, maximum_input_bytes, maximum_output_bytes)
+            .map_err(|_| R::CanonicalEncodingTooLarge)?;
+        fn linked_type(canonical: &'static [u8], expected: &[u8]) -> Option<&'static [u8]> {
+            canonical
+                .windows(expected.len())
+                .find(|window| *window == expected)
+        }
+        let input = linked_type(canonical, &prepared.input_type).ok_or(R::WrongInputType)?;
+        let output = linked_type(canonical, &prepared.output_type).ok_or(R::WrongInputType)?;
+        prepared.input_type = Cow::Borrowed(input);
+        prepared.output_type = Cow::Borrowed(output);
+        Ok(prepared)
+    }
+
     pub fn output(&self) -> &[u8] {
         &self.output
     }
@@ -145,7 +171,7 @@ impl PreparedCaptureSelector {
             return Err(R::MalformedCheckedValue);
         }
         let node = input
-            .strip_prefix(self.input_type.as_slice())
+            .strip_prefix(self.input_type.as_ref())
             .ok_or(R::MalformedCheckedValue)?;
         self.selector
             .input_type()
@@ -165,3 +191,32 @@ impl PreparedCaptureSelector {
 }
 
 pub mod recording;
+
+#[cfg(test)]
+mod linked_selector_tests {
+    use super::*;
+    use conduit_core::{kind_id, StructuredFieldType, StructuredInfoType};
+
+    #[test]
+    fn linked_selector_borrows_both_exact_type_prefixes() {
+        let leaf = StructuredInfoType::leaf(kind_id("value/boolean")).unwrap();
+        let input = StructuredInfoType::record(
+            kind_id("test/linked-selector"),
+            alloc::vec![StructuredFieldType::new("chosen", leaf).unwrap()],
+        )
+        .unwrap();
+        let selector = StructuredSelector::field(input, "chosen").unwrap();
+        let canonical = Box::leak(selector.canonical_bytes().unwrap().into_boxed_slice());
+        let linked = PreparedCaptureSelector::prepare_static(canonical, 512, 512).unwrap();
+        assert!(matches!(linked.input_type, Cow::Borrowed(_)));
+        assert!(matches!(linked.output_type, Cow::Borrowed(_)));
+        assert_eq!(
+            linked.input_type.as_ref(),
+            selector.input_type().canonical_bytes().unwrap()
+        );
+        assert_eq!(
+            linked.output_type.as_ref(),
+            selector.output_type().canonical_bytes().unwrap()
+        );
+    }
+}

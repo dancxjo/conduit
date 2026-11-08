@@ -336,7 +336,7 @@ pub fn emit_rust_for_layout(
         let definition=match &node.role {
             SoftwareRole::Tick{count,..}=>format!("D::Tick{{wait:waits.iter().find(|v|v.0=={}).ok_or(\"missing-clock-value\")?.1,count:{count}}}",node.node),
             SoftwareRole::Trigger=>"D::Trigger".into(),
-            SoftwareRole::Selector{canonical,input_bytes,output_bytes}=>format!("D::Selector{{canonical:&{canonical:?},input_bytes:{input_bytes},output_bytes:{output_bytes}}}"),
+            SoftwareRole::Selector{canonical,input_bytes,output_bytes}=>format!("D::SelectorStatic{{canonical:&{canonical:?},input_bytes:{input_bytes},output_bytes:{output_bytes}}}"),
             SoftwareRole::Dht11Observation=>"D::Dht11Observation".into(),
             SoftwareRole::Publication{channel,maximum_events}=>format!("D::Publication{{channel:conduit_environment_runtime::publication::PublicationChannel::{channel:?},maximum_events:{maximum_events}}}"),
         };

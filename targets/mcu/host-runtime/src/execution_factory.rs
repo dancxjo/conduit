@@ -388,6 +388,11 @@ pub enum SoftwareDefinition<'a> {
         input_bytes: usize,
         output_bytes: usize,
     },
+    SelectorStatic {
+        canonical: &'static [u8],
+        input_bytes: usize,
+        output_bytes: usize,
+    },
     Dht11Observation,
     Publication {
         channel: conduit_environment_runtime::publication::PublicationChannel,
@@ -429,6 +434,15 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
                 }) => Some(SoftwareBack::selector(
                     conduit_core::StructuredSelector::from_canonical_bytes(canonical)
                         .map_err(|_| "selector-definition")?,
+                    input_bytes,
+                    output_bytes,
+                )?),
+                Some(SoftwareDefinition::SelectorStatic {
+                    canonical,
+                    input_bytes,
+                    output_bytes,
+                }) => Some(SoftwareBack::selector_static(
+                    canonical,
                     input_bytes,
                     output_bytes,
                 )?),
