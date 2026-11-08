@@ -2,12 +2,12 @@
 //! This runner neither prepares nor admits work. Independent fragments retain
 //! independent runners, so output failure need not cancel local measurement.
 use crate::{
-    execution::ExecutionKernel,
+    execution::StoredExecutionKernel,
     execution_factory::Calls,
     native_dispatch::{self, Dispatch},
 };
 use conduit_kernel::scheduler::{SchedulerError, SchedulerStatus, StepBack};
-use conduit_kernel::HostCallId;
+use conduit_kernel::{HostCallId, SignSink};
 use conduit_monotonic_wait::{MonotonicWaitHostCall, MonotonicWaitProvider};
 use conduit_pulse_capture::owner::{PulseHostCall, PulseReadProvider};
 use conduit_tm1637_wire::{owner::WriteHostCall, OpenDrain};
@@ -53,12 +53,12 @@ pub struct Runner<
     const R: usize,
     const T: usize,
     const H: usize,
-    const S: usize,
     Y,
     O,
     F,
+    L: SignSink,
 > {
-    kernel: RefCell<&'a mut ExecutionKernel<D, N, C, P, R, T, H, S>>,
+    kernel: RefCell<&'a mut StoredExecutionKernel<D, L, N, C, P, R, T, H>>,
     observer: RefCell<&'a mut O>,
     yield_to_host: &'a Y,
     cancelled: &'a F,
@@ -73,14 +73,14 @@ impl<
         const R: usize,
         const T: usize,
         const H: usize,
-        const S: usize,
         Y: CooperativeYield,
-        O: Observer<ExecutionKernel<D, N, C, P, R, T, H, S>>,
+        O: Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H>>,
         F: Fn() -> bool,
-    > Runner<'a, D, N, C, P, R, T, H, S, Y, O, F>
+        L: SignSink,
+    > Runner<'a, D, N, C, P, R, T, H, Y, O, F, L>
 {
     pub fn new(
-        kernel: &'a mut ExecutionKernel<D, N, C, P, R, T, H, S>,
+        kernel: &'a mut StoredExecutionKernel<D, L, N, C, P, R, T, H>,
         observer: &'a mut O,
         yield_to_host: &'a Y,
         cancelled: &'a F,

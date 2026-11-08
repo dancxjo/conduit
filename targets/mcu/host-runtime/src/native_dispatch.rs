@@ -6,7 +6,7 @@
 //! The supervisor must drop all provider futures before calling kernel.cancel.
 //! Clock waits instead retain an exact request and eight owned input bytes;
 //! they release the kernel loan, then recheck it when publishing completion.
-use crate::execution::ExecutionKernel;
+use crate::execution::StoredExecutionKernel;
 use conduit_kernel::{scheduler::*, *};
 use conduit_monotonic_wait::{MonotonicWaitHostCall, MonotonicWaitProvider, WaitCallRefusal};
 use conduit_pulse_capture::owner::{PulseCallRefusal, PulseHostCall, PulseReadProvider};
@@ -69,10 +69,10 @@ pub async fn pulse<
     const R: usize,
     const T: usize,
     const H: usize,
-    const S: usize,
+    L: SignSink,
     A: PulseReadProvider,
 >(
-    kernel: &mut ExecutionKernel<D, N, C, P, R, T, H, S>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H>,
     call: &mut PulseHostCall<A>,
 ) -> Result<Dispatch, SchedulerError> {
     let room = kernel.preflight_host_result_storage(1024);
@@ -135,10 +135,10 @@ pub fn write<
     const R: usize,
     const T: usize,
     const H: usize,
-    const S: usize,
+    L: SignSink,
     A: OpenDrain,
 >(
-    kernel: &mut ExecutionKernel<D, N, C, P, R, T, H, S>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H>,
     call: &mut WriteHostCall<A>,
     cancelled: impl FnMut() -> bool,
 ) -> Result<Dispatch, SchedulerError> {
@@ -219,10 +219,10 @@ pub fn begin_wait<
     const R: usize,
     const T: usize,
     const H: usize,
-    const S: usize,
+    L: SignSink,
     A: MonotonicWaitProvider,
 >(
-    kernel: &mut ExecutionKernel<D, N, C, P, R, T, H, S>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H>,
     call: &MonotonicWaitHostCall<A>,
 ) -> Result<Option<PendingWait>, SchedulerError> {
     let room = kernel.signs().ensure_capacity(1);
@@ -256,9 +256,9 @@ pub fn complete_wait<
     const R: usize,
     const T: usize,
     const H: usize,
-    const S: usize,
+    L: SignSink,
 >(
-    kernel: &mut ExecutionKernel<D, N, C, P, R, T, H, S>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H>,
     pending: &PendingWait,
     completion: HostCallOutcome,
 ) -> Result<Dispatch, SchedulerError> {

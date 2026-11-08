@@ -1,9 +1,10 @@
 //! Canonical identity for observed original-kernel Host Call evidence. An ID
 //! names evidence; it is neither a signature nor durable recording acceptance.
 extern crate alloc;
+use crate::execution::ExecutionSigns;
 use alloc::string::String;
 use conduit_core as c;
-use conduit_kernel::{FixedSignLog, KernelEventKind, NodeId, RequestId};
+use conduit_kernel::{KernelEventKind, NodeId, RequestId};
 use sha2::{Digest, Sha256};
 
 /// Actual approved scope retained by Root. Fragment separates child kernels
@@ -29,10 +30,10 @@ pub enum Refusal {
 /// The event must still be present in the actual kernel's finite Sign log.
 /// Call synchronously after request/completion, before another actor advances
 /// the same kernel. The returned 64-byte ID needs separately admitted retention.
-pub fn host_call<const S: usize>(
+pub fn host_call(
     started: &crate::execution_workset::StartedEvidence,
     scope: Scope<'_>,
-    signs: &FixedSignLog<S>,
+    signs: &impl ExecutionSigns,
     node: NodeId,
     request: RequestId,
     phase: Phase,

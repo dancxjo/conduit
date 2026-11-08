@@ -30,17 +30,24 @@ pub unsafe trait PreparedBacks<const N: usize, const P: usize> {
 /// Count every external allocation retained by this exact Sign owner.
 pub unsafe trait ExecutionSigns: SignSink {
     fn external_backing_bytes(&self) -> usize;
+    fn events(&self) -> impl Iterator<Item = KernelEvent>;
 }
 // SAFETY: fixed arrays are wholly inside the kernel allocation.
 unsafe impl<const S: usize> ExecutionSigns for FixedSignLog<S> {
     fn external_backing_bytes(&self) -> usize {
         0
     }
+    fn events(&self) -> impl Iterator<Item = KernelEvent> {
+        FixedSignLog::events(self)
+    }
 }
 // SAFETY: the canonical store reports both actual backing capacities.
 unsafe impl ExecutionSigns for HostedSignLog {
     fn external_backing_bytes(&self) -> usize {
         self.reserved_storage_bytes()
+    }
+    fn events(&self) -> impl Iterator<Item = KernelEvent> {
+        HostedSignLog::events(self)
     }
 }
 pub type ExecutionKernel<
@@ -53,6 +60,17 @@ pub type ExecutionKernel<
     const H: usize,
     const S: usize,
     L = FixedSignLog<S>,
+> = StoredExecutionKernel<D, L, N, C, P, R, T, H>;
+/// The same scheduler independent of its prepared Sign representation.
+pub type StoredExecutionKernel<
+    D,
+    L,
+    const N: usize,
+    const C: usize,
+    const P: usize,
+    const R: usize,
+    const T: usize,
+    const H: usize,
 > = FixedScheduler<D, HostedValueStore, L, N, C, P, C, R, T, H, H>;
 type Storage<
     B,
