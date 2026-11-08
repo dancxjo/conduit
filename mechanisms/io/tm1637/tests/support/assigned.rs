@@ -48,7 +48,10 @@ fn assigned_output_control(borrowed: bool, fore: bool, deferred: bool) {
             placement_id: gear.placement_id.clone(),
             gear_port_id: port.port_id.clone(),
             value_kind: port.value_kind.clone(),
-            value_contract: None,
+            value_contract: gear
+                .checked_port_front()
+                .value_contract(&FrontValueLocation::Input(port.port_id.clone()))
+                .cloned(),
             abnormal_kind: None,
             track: ConnectionTrack::Payload,
             temporal: port.temporal,
@@ -245,6 +248,16 @@ fn assigned_output_control(borrowed: bool, fore: bool, deferred: bool) {
         assert!(slot.is_some());
         assert_eq!(state.edges.get(), 0);
     }
+    // Existing selected-possession checks reject a revoked table before
+    // bound-operation construction and before withdrawing the provider.
+    let (mut table, handle, claim) = issue();
+    table.revoke(&handle).unwrap();
+    assert!(matches!(
+        bind(&mut slot, table, handle, claim, &active),
+        Err(WriteCallRefusal::Possession)
+    ));
+    assert!(slot.is_some());
+    assert_eq!(state.edges.get(), 0);
     let mut foreign = active.clone();
     foreign.boot_id = "stale/boot".into();
     let (table, handle, claim) = issue();

@@ -1,5 +1,6 @@
 //! Transfer actual retained timer possession under a constrained assignment.
 use super::*;
+use conduit_core::BoundBaseOperation;
 use conduit_plan_lowering::{
     selected_assigned_operation::{
         bind_selected_assigned_configured_operation,
@@ -113,11 +114,11 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             .as_ref()
             .ok_or(WaitCallRefusal::Possession)?
             .check_assigned(&table, &claim, configuration, selected)?;
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WaitCallRefusal::Capability(reason))?;
         let owner = slot.take().expect("preflighted retained timer");
         Ok(MonotonicWaitHostCall::from_bound(
-            table,
-            handle,
-            claim,
+            operation,
             owner.attachment,
             owner.provider,
             node,
@@ -128,9 +129,7 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
 /// Exclusive prepared timer custody. Dropping preserves the original ready slot.
 pub struct PreparedAssignedWait<'a, P: MonotonicWaitProvider> {
     slot: &'a mut Option<ReadyMonotonicWaitBase<P>>,
-    table: BaseCapabilityTable,
-    handle: BaseCapabilityHandle,
-    claim: BaseOperationClaim,
+    operation: BoundBaseOperation,
     node: conduit_kernel::NodeId,
 }
 impl<P: MonotonicWaitProvider> PreparedAssignedWait<'_, P> {
@@ -138,16 +137,12 @@ impl<P: MonotonicWaitProvider> PreparedAssignedWait<'_, P> {
         self.node
     }
     pub fn retained_backing_bytes(&self) -> Option<usize> {
-        self.table
-            .retained_backing_bytes()?
-            .checked_add(self.claim.retained_backing_bytes()?)
+        self.operation.retained_backing_bytes()
     }
     pub fn bind(self) -> MonotonicWaitHostCall<P> {
         let owner = self.slot.take().expect("exclusively prepared wait owner");
         MonotonicWaitHostCall::from_bound(
-            self.table,
-            self.handle,
-            self.claim,
+            self.operation,
             owner.attachment,
             owner.provider,
             self.node,
@@ -167,11 +162,11 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             .as_ref()
             .ok_or(WaitCallRefusal::Possession)?
             .check_assigned(&table, &claim, configuration, selected)?;
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WaitCallRefusal::Capability(reason))?;
         Ok(PreparedAssignedWait {
             slot,
-            table,
-            handle,
-            claim,
+            operation,
             node,
         })
     }
@@ -188,11 +183,11 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             .as_ref()
             .ok_or(WaitCallRefusal::Possession)?
             .check_assigned_fore(&table, &claim, configuration, selected)?;
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WaitCallRefusal::Capability(reason))?;
         Ok(PreparedAssignedWait {
             slot,
-            table,
-            handle,
-            claim,
+            operation,
             node,
         })
     }

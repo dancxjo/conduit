@@ -260,15 +260,15 @@ impl<C: RendererClock> ReadyRenderer<C> {
         {
             return Err(Refusal::Scope);
         }
+        let operation = c::BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| Refusal::Capability(reason))?;
         let service = RendererService {
             ready: self,
             reader,
             context,
             active,
             node,
-            table,
-            handle,
-            claim,
+            operation,
             next_request: 0,
             pending: None,
             staged: None,
@@ -321,9 +321,7 @@ pub struct RendererService<'a, C> {
     context: f::PreparedRendererContext,
     active: c::ActivePlayIdentity,
     node: NodeId,
-    table: c::BaseCapabilityTable,
-    handle: c::BaseCapabilityHandle,
-    claim: c::BaseOperationClaim,
+    operation: c::BoundBaseOperation,
     next_request: u32,
     pending: Option<Pending>,
     staged: Option<Staged>,
@@ -343,8 +341,7 @@ impl<C: RendererClock> RendererService<'_, C> {
             .ready
             .retained_backing_bytes()?
             .checked_add(self.context.retained_backing_bytes()?)?
-            .checked_add(self.table.retained_backing_bytes()?)?
-            .checked_add(self.claim.retained_backing_bytes()?)?;
+            .checked_add(self.operation.retained_backing_bytes()?)?;
         for text in [
             &self.active.active_play_id.0,
             &self.active.plan_id.0,
@@ -436,10 +433,7 @@ impl<C: RendererClock> RendererService<'_, C> {
             return Err(Refusal::Face);
         }
         let Staged { show, pages } = self.staged.take().ok_or(Refusal::Pending)?;
-        let lease = self
-            .table
-            .authorize(&self.handle, &self.claim)
-            .map_err(Refusal::Capability)?;
+        let lease = self.operation.authorize().map_err(Refusal::Capability)?;
         self.next_request = next;
         self.last_clock = now;
         self.pending = Some(Pending {
@@ -520,16 +514,13 @@ impl<C: RendererClock> RendererService<'_, C> {
         let (show, length) = match prepared {
             Ok(value) => value,
             Err(error) => {
-                let _ = self.table.revoke(&self.handle);
+                let _ = self.operation.revoke();
                 self.retained = None;
                 return Err(error);
             }
         };
-        if let Err(error) = self
-            .table
-            .complete(&mut self.handle, pending.lease, length as u32)
-        {
-            let _ = self.table.revoke(&self.handle);
+        if let Err(error) = self.operation.complete(pending.lease, length as u32) {
+            let _ = self.operation.revoke();
             self.retained = None;
             return Err(Refusal::Capability(error));
         }
@@ -563,13 +554,13 @@ impl<C: RendererClock> RendererService<'_, C> {
         self.staged = None;
         self.face_input_len = 0;
         self.retained = None;
-        self.table.revoke(&self.handle).map_err(Refusal::Capability)
+        self.operation.revoke().map_err(Refusal::Capability)
     }
 }
 
 impl<C> Drop for RendererService<'_, C> {
     fn drop(&mut self) {
-        let _ = self.table.revoke(&self.handle);
+        let _ = self.operation.revoke();
         self.ready.wire.clear();
     }
 }

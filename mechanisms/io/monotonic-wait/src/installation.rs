@@ -190,11 +190,11 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             configuration,
             selection,
         )?;
+        let operation = conduit_core::BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WaitCallRefusal::Capability(reason))?;
         let owner = slot.take().expect("preflighted retained timer");
         Ok(MonotonicWaitHostCall::from_bound(
-            table,
-            handle,
-            claim,
+            operation,
             owner.attachment,
             owner.provider,
             node,

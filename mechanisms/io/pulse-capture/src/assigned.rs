@@ -1,6 +1,7 @@
 //! Exact assigned preparation retains Root's capture owner until complete admission.
 use super::*;
 use crate::owner::{check_possession, PreparedPulseBinding};
+use conduit_core::BoundBaseOperation;
 use conduit_plan_lowering::{
     selected_assigned_operation::{
         bind_selected_assigned_fore_operation, bind_selected_assigned_operation,
@@ -12,20 +13,17 @@ use conduit_plan_lowering::{
 /// Dropping preparation leaves the exact initialized capture provider in its slot.
 pub struct PreparedAssignedPulse<'a, P: PulseReadProvider> {
     prepared: PreparedPulseBinding,
-    table: BaseCapabilityTable,
-    handle: BaseCapabilityHandle,
-    claim: BaseOperationClaim,
+    operation: BoundBaseOperation,
     slot: &'a mut Option<ReadyPulseBase<P>>,
 }
 impl<P: PulseReadProvider> PreparedAssignedPulse<'_, P> {
-    /// Codec, capability and claim backing only. Inline/allocator overhead,
+    /// Codec and bound capability backing only. Inline/allocator overhead,
     /// installation and independently supplied preparation tables are separate.
     pub fn retained_backing_bytes(&self) -> Option<usize> {
         self.prepared
             .codec
             .retained_backing_bytes()?
-            .checked_add(self.table.retained_backing_bytes()?)?
-            .checked_add(self.claim.retained_backing_bytes()?)
+            .checked_add(self.operation.retained_backing_bytes()?)
     }
     pub fn node(&self) -> conduit_kernel::NodeId {
         self.prepared.node
@@ -35,9 +33,7 @@ impl<P: PulseReadProvider> PreparedAssignedPulse<'_, P> {
     pub fn bind(self) -> PulseHostCall<P> {
         let owner = self.slot.take().expect("exclusively prepared pulse owner");
         PulseHostCall::from_prepared(
-            self.table,
-            self.handle,
-            self.claim,
+            self.operation,
             owner.attachment,
             owner.provider,
             self.prepared,
@@ -128,11 +124,11 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
             .as_ref()
             .ok_or(PulseCallRefusal::Possession)?
             .prepare_assigned(&table, &claim, contract, selected, None)?;
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| PulseCallRefusal::Capability(reason))?;
         Ok(PreparedAssignedPulse {
             prepared,
-            table,
-            handle,
-            claim,
+            operation,
             slot,
         })
     }
@@ -156,11 +152,11 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
                 selected.operation,
                 Some(selected.fore),
             )?;
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| PulseCallRefusal::Capability(reason))?;
         Ok(PreparedAssignedPulse {
             prepared,
-            table,
-            handle,
-            claim,
+            operation,
             slot,
         })
     }

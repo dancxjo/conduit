@@ -58,7 +58,13 @@ fn generated_pulse_preparation_preserves_owner_until_exact_bounded_transfer() {
             placement_id: gear.placement_id.clone(),
             gear_port_id: port.port_id.clone(),
             value_kind: port.value_kind.clone(),
-            value_contract: None,
+            value_contract: gear
+                .checked_port_front()
+                .value_contract(&match port.direction {
+                    PortDirection::Input => FrontValueLocation::Input(port.port_id.clone()),
+                    PortDirection::Output => FrontValueLocation::Output(port.port_id.clone()),
+                })
+                .cloned(),
             abnormal_kind: None,
             track: ConnectionTrack::Payload,
             temporal: port.temporal,
@@ -76,6 +82,12 @@ fn generated_pulse_preparation_preserves_owner_until_exact_bounded_transfer() {
         },
         vec![fragment],
     );
+    assert!(verify_plan(&plan), "fixture Plan must verify");
+    conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
+        &plan,
+        &plan.fragments[0].fragment_id,
+    )
+    .expect("fixture lowering");
     let fragment = &plan.fragments[0];
     let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     let image = e::generate_fore_native_plan(
@@ -235,7 +247,7 @@ fn generated_pulse_preparation_preserves_owner_until_exact_bounded_transfer() {
     )
     .unwrap();
     assert!(prepared.storage_bytes() > core::mem::size_of::<PulseKernel>());
-    report!("pulse CPU fixture prepared_retained_storage_bytes={} (scheduler + codec/table/claim reachable backing; excludes retained contract, provider, temporary workspace, inline ticket and allocator overhead)", prepared.storage_bytes());
+    report!("pulse CPU fixture prepared_retained_storage_bytes={} (scheduler + codec/bound-table reachable backing; excludes retained contract, provider, temporary workspace, inline ticket and allocator overhead)", prepared.storage_bytes());
 
     drop(prepared);
     assert!(slot.is_some());

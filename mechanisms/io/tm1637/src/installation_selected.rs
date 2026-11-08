@@ -44,11 +44,11 @@ impl<P: OpenDrain> ReadyWriteBase<P> {
             contract,
             selection,
         )?;
+        let operation = conduit_core::BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WriteCallRefusal::Capability(reason))?;
         let owner = slot.take().expect("preflighted retained output owner");
         Ok(WriteHostCall::from_prepared(
-            table,
-            handle,
-            claim,
+            operation,
             owner.attachment,
             owner.provider,
             prepared,

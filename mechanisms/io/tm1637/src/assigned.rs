@@ -12,20 +12,17 @@ use conduit_plan_lowering::{
 /// Root must admit the complete workset before consuming this ticket into a call.
 pub struct PreparedAssignedWrite<'a, P: OpenDrain> {
     prepared: PreparedWriteBinding,
-    table: BaseCapabilityTable,
-    handle: BaseCapabilityHandle,
-    claim: BaseOperationClaim,
+    operation: conduit_core::BoundBaseOperation,
     slot: &'a mut Option<ReadyWriteBase<P>>,
 }
 impl<P: OpenDrain> PreparedAssignedWrite<'_, P> {
-    /// Actual retained codec, capability table and claim backing. Inline state,
+    /// Actual retained codec and bound capability table backing. Inline state,
     /// provider storage and allocator overhead remain separately funded.
     pub fn retained_backing_bytes(&self) -> Option<usize> {
         self.prepared
             .packets
             .retained_backing_bytes()?
-            .checked_add(self.table.retained_backing_bytes()?)?
-            .checked_add(self.claim.retained_backing_bytes()?)
+            .checked_add(self.operation.retained_backing_bytes()?)
     }
     pub fn node(&self) -> conduit_kernel::NodeId {
         self.prepared.node
@@ -35,9 +32,7 @@ impl<P: OpenDrain> PreparedAssignedWrite<'_, P> {
     pub fn bind(self) -> WriteHostCall<P> {
         let owner = self.slot.take().expect("exclusively prepared output owner");
         WriteHostCall::from_prepared(
-            self.table,
-            self.handle,
-            self.claim,
+            self.operation,
             owner.attachment,
             owner.provider,
             self.prepared,
@@ -147,11 +142,11 @@ impl<P: OpenDrain> ReadyWriteBase<P> {
             .as_ref()
             .ok_or(WriteCallRefusal::Possession)?
             .prepare_assigned(&table, &claim, contract, selected, None)?;
+        let operation = conduit_core::BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WriteCallRefusal::Capability(reason))?;
         Ok(PreparedAssignedWrite {
             prepared,
-            table,
-            handle,
-            claim,
+            operation,
             slot,
         })
     }
@@ -189,11 +184,11 @@ impl<P: OpenDrain> ReadyWriteBase<P> {
                 selected.operation,
                 Some(selected.fore),
             )?;
+        let operation = conduit_core::BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WriteCallRefusal::Capability(reason))?;
         Ok(PreparedAssignedWrite {
             prepared,
-            table,
-            handle,
-            claim,
+            operation,
             slot,
         })
     }

@@ -11,7 +11,7 @@ pub struct AssignedPulseSelection<'a> {
 
 use conduit_core::{
     BaseCapabilityHandle, BaseCapabilityRefusal, BaseCapabilityTable, BaseOperationClaim,
-    BaseOperationLease, CapabilityInspection, StructuredInfoRefusal,
+    BaseOperationLease, BoundBaseOperation, CapabilityInspection, StructuredInfoRefusal,
 };
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 use conduit_plan_lowering::selected_operation::{
@@ -76,9 +76,7 @@ pub enum PulseRetirementRefusal {
 }
 
 pub struct PulseHostCall<P> {
-    table: BaseCapabilityTable,
-    handle: BaseCapabilityHandle,
-    claim: BaseOperationClaim,
+    operation: BoundBaseOperation,
     attachment: PulseAttachment,
     provider: P,
     node: NodeId,
@@ -96,17 +94,13 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
     }
 
     pub(crate) fn from_prepared(
-        table: BaseCapabilityTable,
-        handle: BaseCapabilityHandle,
-        claim: BaseOperationClaim,
+        operation: BoundBaseOperation,
         attachment: PulseAttachment,
         provider: P,
         prepared: PreparedPulseBinding,
     ) -> Self {
         Self {
-            table,
-            handle,
-            claim,
+            operation,
             attachment,
             provider,
             node: prepared.node,
@@ -148,10 +142,10 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
             SelectedCallRefusal::WrongBinding => PulseCallRefusal::WrongBinding,
             SelectedCallRefusal::Possession => PulseCallRefusal::Possession,
         })?;
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| PulseCallRefusal::Capability(reason))?;
         Ok(Self {
-            table,
-            handle,
-            claim,
+            operation,
             attachment,
             provider,
             node,
@@ -191,10 +185,10 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
             SelectedCallRefusal::WrongBinding => PulseCallRefusal::WrongBinding,
             SelectedCallRefusal::Possession => PulseCallRefusal::Possession,
         })?;
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| PulseCallRefusal::Capability(reason))?;
         Ok(Self {
-            table,
-            handle,
-            claim,
+            operation,
             attachment,
             provider,
             node,
@@ -225,15 +219,14 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
             Err(reason) => return Err(PulseCallRefusal::Codec(reason)),
         };
         let lease = self
-            .table
-            .authorize(&self.handle, &self.claim)
+            .operation
+            .authorize()
             .map_err(PulseCallRefusal::Capability)?;
         self.next_request = next;
         // This guard is created before the provider future: cancellation first
         // drops/quiesces electrical work, then revokes the unfinished capability.
         let lease = PendingLease {
-            table: &mut self.table,
-            handle: &mut self.handle,
+            operation: &mut self.operation,
             lease: Some(lease),
         };
         let encoded = match geometry {
@@ -253,8 +246,8 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
 
     pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), PulseCallRefusal> {
         self.check_binding(node, call)?;
-        self.table
-            .revoke(&self.handle)
+        self.operation
+            .revoke()
             .map_err(PulseCallRefusal::Capability)
     }
 
@@ -279,10 +272,7 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
     }
 
     pub fn inspection(&self) -> &CapabilityInspection {
-        self.table
-            .inspections()
-            .next()
-            .expect("single prepared capability")
+        self.operation.inspection()
     }
 
     fn check_binding(&self, node: NodeId, call: HostCallId) -> Result<(), PulseCallRefusal> {
@@ -294,14 +284,13 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
 }
 
 struct PendingLease<'a> {
-    table: &'a mut BaseCapabilityTable,
-    handle: &'a mut BaseCapabilityHandle,
+    operation: &'a mut BoundBaseOperation,
     lease: Option<BaseOperationLease>,
 }
 impl PendingLease<'_> {
     fn complete(mut self, result_bytes: u32) -> Result<(), BaseCapabilityRefusal> {
         let lease = self.lease.as_ref().expect("pending").clone();
-        self.table.complete(self.handle, lease, result_bytes)?;
+        self.operation.complete(lease, result_bytes)?;
         self.lease = None;
         Ok(())
     }
@@ -310,7 +299,7 @@ impl Drop for PendingLease<'_> {
     fn drop(&mut self) {
         if self.lease.is_some() {
             // A cancelled dispatch cannot be resumed or replayed under this grant.
-            let _ = self.table.revoke(self.handle);
+            let _ = self.operation.revoke();
         }
     }
 }
