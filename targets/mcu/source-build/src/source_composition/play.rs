@@ -308,6 +308,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 },
             )
             .map_err(|_| "pulse-assignment")?;
+            drop(pulse_contract); // Cold schema metadata is not execution custody.
             let (table, handle, claim) = write_issuer
                 .issue(
                     context,
@@ -332,6 +333,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 },
             )
             .map_err(|_| "write-assignment")?;
+            drop(write_contract);
             // This checked BSP construction currently admits exactly one Source
             // clock; shared mechanisms support larger independently built sets.
             let [wait] = waits;
@@ -375,6 +377,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 },
             )
             .map_err(|_| "wait-assignment")?;
+            drop(configuration);
             let sample_software = software
                 .prepare_assigned(
                     sampling.projection(),
