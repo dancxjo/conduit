@@ -84,6 +84,7 @@ pub fn run(
     let execution = b::HostExecutionDelegation {
         authorizer: b::HostExecutionAuthorizer::SeedOwner,
         maximum_active_worksets: 1,
+        continuation: None,
     };
     let policy = Policy {
         preparation: Some(&preparation),

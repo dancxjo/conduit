@@ -80,6 +80,7 @@ mod hold;
 mod host_command_attribution;
 #[cfg(feature = "authenticated-admission")]
 mod continuation_intent;
+mod continuation_ceilings;
 mod host_execution_delegation;
 mod host_preparation_delegation;
 mod identity;
@@ -130,6 +131,7 @@ pub use hold::*;
 pub use host_command_attribution::*;
 #[cfg(feature = "authenticated-admission")]
 pub use continuation_intent::*;
+pub use continuation_ceilings::ContinuationCeilings;
 pub use host_execution_delegation::*;
 pub use host_preparation_delegation::*;
 #[cfg(feature = "authenticated-admission")]

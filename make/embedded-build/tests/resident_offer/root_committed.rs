@@ -85,9 +85,11 @@ pub fn run(
     let execution = conduit_body::HostExecutionDelegation {
         authorizer: conduit_body::HostExecutionAuthorizer::SeedOwner,
         maximum_active_worksets: 1,
+        continuation: None,
     };
     let unbounded = conduit_body::HostExecutionDelegation {
         maximum_active_worksets: 0,
+        continuation: None,
         ..execution
     };
     for (installed, active_worksets, expected) in [

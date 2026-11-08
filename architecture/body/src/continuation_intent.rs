@@ -5,43 +5,12 @@
 //! A disconnected Host cannot infer revocation it has not received. Before any
 //! effect, Root must still inspect current inventory, prepare/admit the complete
 //! workset and issue fresh local capabilities and Plan/Play/session identities.
-use crate::MAX_LIFECYCLE_ID_BYTES;
+use crate::{ContinuationCeilings, MAX_LIFECYCLE_ID_BYTES};
 use ed25519_dalek::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 pub const CONTINUATION_INTENT_SCHEMA: &str = "conduit.body/continuation-intent@1";
-
-/// Finite instantaneous ceilings, not resource grants or operation possession.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ContinuationCeilings {
-    pub assignment_bytes: u32,
-    pub runtime_bytes: u32,
-    pub durable_bytes: u32,
-    pub operation_slots: u32,
-    pub active_worksets: u32,
-}
-impl ContinuationCeilings {
-    fn words(self) -> [u32; 5] {
-        [
-            self.assignment_bytes,
-            self.runtime_bytes,
-            self.durable_bytes,
-            self.operation_slots,
-            self.active_worksets,
-        ]
-    }
-    fn finite(self) -> bool {
-        self.words().into_iter().all(|n| n != 0)
-    }
-    fn within(self, maximum: Self) -> bool {
-        self.words()
-            .into_iter()
-            .zip(maximum.words())
-            .all(|(n, max)| n <= max)
-    }
-}
 
 /// Public signed recipe identity. No Boot command, reservation or Started token
 /// is persisted here. The detached signature covers the complete transcript.
@@ -175,8 +144,8 @@ pub fn verify_continuation_intent<'a>(
     ]
     .into_iter()
     .all(valid_id)
-        || !intent.ceilings.finite()
-        || !policy.maximum.finite()
+        || !intent.ceilings.has_finite_bounds()
+        || !policy.maximum.has_finite_bounds()
         || !intent.ceilings.within(policy.maximum)
         || intent.source_digest == [0; 32]
         || intent.workset_digest == [0; 32]

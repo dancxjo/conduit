@@ -50,6 +50,7 @@ fn historical_seed_basis_describes_current_provider_but_cannot_select_execution(
     let execution = b::HostExecutionDelegation {
         authorizer: b::HostExecutionAuthorizer::SeedOwner,
         maximum_active_worksets: 1,
+        continuation: None,
     };
     let policy = super::super::execution::Policy {
         preparation: Some(&preparation),

@@ -229,3 +229,42 @@ fn checked_policy_emission_compiles_without_a_runtime_parser_or_default_permissi
         );
     }
 }
+
+#[test]
+fn continuation_is_explicit_finite_and_survives_source_and_rust_fabrication() {
+    let selected = source().replacen(" schema = 1", &format!(" {EXECUTION} schema = 1"), 1);
+    assert!(check(&selected)
+        .unwrap()
+        .configuration()
+        .execution
+        .unwrap()
+        .continuation
+        .is_none());
+    let continued = selected.replace("maximum_active_worksets: 1}", "maximum_active_worksets: 1, continuation: {assignment_bytes: 8192, runtime_bytes: 16384, durable_bytes: 65536, operation_slots: 8, active_worksets: 1}}");
+    let checked = check(&continued).unwrap();
+    let canonical = canonical_host_configuration_conduit(checked.configuration()).unwrap();
+    let reopened = check(&canonical).unwrap();
+    assert_eq!(checked.configuration_id(), reopened.configuration_id());
+    assert!(rust_execution_delegation(&checked)
+        .contains("continuation:Some(conduit_body::ContinuationCeilings"));
+    compiled_rust::verify_with_libraries(
+        &format!("const EXECUTION:Option<conduit_body::HostExecutionDelegation>={};", rust_execution_delegation(&checked)),
+        "fn main(){let c=EXECUTION.unwrap().continuation.unwrap();assert_eq!(c.durable_bytes,65536);assert!(c.has_finite_bounds());}",
+        "checked-continuation-policy", &["conduit_body"],
+    );
+    for invalid in [
+        continued.replace(
+            "continuation: {assignment_bytes: 8192",
+            "continuation: {assignment_bytes: 8193",
+        ),
+        continued.replace("runtime_bytes: 16384", "runtime_bytes: 1048577"),
+        continued.replace("durable_bytes: 65536", "durable_bytes: 0"),
+        continued.replace(
+            "operation_slots: 8, active_worksets",
+            "operation_slots: 9, active_worksets",
+        ),
+        continued.replace("active_worksets: 1}}", "active_worksets: 2}}"),
+    ] {
+        assert!(check(&invalid).is_err(), "accepted {invalid}");
+    }
+}
