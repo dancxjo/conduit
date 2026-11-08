@@ -95,6 +95,13 @@ impl PreparedRecordingSnapshot {
         }
         Ok(())
     }
+    /// Owned chunk buffers and exact encoded-reference capacity. Inline Self,
+    /// shared immutable schemas and allocator overhead are separate.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.chunk
+            .retained_backing_bytes()?
+            .checked_add(self.encoded_reference.capacity())
+    }
     pub fn len(&self) -> usize {
         self.chunk.len()
     }

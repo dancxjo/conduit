@@ -14,7 +14,7 @@ mod back;
 mod packed;
 mod source_frame;
 pub use back::ObservationBack;
-pub use packed::PreparedObservationQuantityForms;
+pub use packed::{PreparedObservationQuantityForms, PreparedObservationQuantityPacker};
 pub use source_frame::{PreparedSourceFrameDecoder, SourceFrameRefusal};
 pub const KIND: &str = "device/dht11-observation";
 pub const MAXIMUM_BYTES: u32 = 4096;

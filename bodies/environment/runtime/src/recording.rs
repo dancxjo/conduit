@@ -3,6 +3,7 @@
 //! durable-acceptance claim. Root must admit and complete publication separately.
 use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
+    PreparedObservationQuantityPacker,
 };
 mod encoder;
 pub use encoder::{RecordingClock, RecordingEncoderBack};
@@ -67,7 +68,7 @@ pub enum ChunkAppend {
 /// preserves the exact bytes across failed publication attempts. No implicit
 /// flush, retry, eviction, next generation or mutable store is hidden here.
 pub struct PreparedRecordingChunk {
-    quantities: PreparedObservationQuantityForms,
+    quantities: PreparedObservationQuantityPacker,
     prefix: String,
     output: String,
     samples: [[u8; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES],
@@ -109,7 +110,7 @@ impl PreparedRecordingChunk {
             return Err(RecordingRefusal::ContextExtent);
         }
         Ok(Self {
-            quantities: PreparedObservationQuantityForms::prepare(contract)?,
+            quantities: PreparedObservationQuantityPacker::prepare(contract)?,
             prefix,
             output: String::with_capacity(MAXIMUM_CHUNK_BYTES),
             samples: [[0; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES],
@@ -178,6 +179,14 @@ impl PreparedRecordingChunk {
         self.samples[self.count] = entry;
         self.count += 1;
         Ok(ChunkAppend::Buffered { gap_before })
+    }
+    /// Owned heap capacities only. Inline Self includes the fixed 64-sample
+    /// array; static schemas and allocator overhead are accounted separately.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.quantities
+            .retained_backing_bytes()
+            .checked_add(self.prefix.capacity())?
+            .checked_add(self.output.capacity())
     }
     pub fn len(&self) -> usize {
         self.count

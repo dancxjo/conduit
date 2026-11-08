@@ -10,6 +10,7 @@ use conduit_core::{
 };
 use conduit_environment_runtime::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms as Forms,
+    PreparedObservationQuantityPacker as Packer,
 };
 
 fn canonical(contract: &ObservationContract, temperature: Quantity, humidity: Quantity) -> Vec<u8> {
@@ -33,6 +34,8 @@ fn canonical(contract: &ObservationContract, temperature: Quantity, humidity: Qu
 fn authored_quantity_forms_round_trip_exact_observations_without_play_allocations() {
     let contract = ObservationContract::prepare().unwrap();
     let mut forms = Forms::prepare(&contract).unwrap();
+    let packer = Packer::prepare(&contract).unwrap();
+    assert_eq!(packer.retained_backing_bytes(), 0);
     assert_ne!(Forms::TEMPERATURE_FORM_ID, Forms::HUMIDITY_FORM_ID);
     for (temperature, humidity) in [(198, 590), (-108, 530), (0, 0), (600, 950)] {
         let t = Quantity::from_decimal(temperature, -1, Unit::Celsius).unwrap();
@@ -41,6 +44,7 @@ fn authored_quantity_forms_round_trip_exact_observations_without_play_allocation
         assert!(original.len() > Forms::PACKED_BYTES);
         let ((), measured) = allocation_probe::observe(|| {
             let packed = forms.pack(&original).unwrap();
+            assert_eq!(packer.pack(&original).unwrap(), packed);
             assert_eq!(&packed[..2], &(temperature as i16).to_le_bytes());
             assert_eq!(&packed[2..], &(humidity as u16).to_le_bytes());
             assert_eq!(forms.unpack(&packed).unwrap(), original);
@@ -59,6 +63,7 @@ fn authored_quantity_forms_round_trip_exact_observations_without_play_allocation
     );
     let ((), measured) = allocation_probe::observe(|| {
         let packed = forms.pack(&fahrenheit).unwrap();
+        assert_eq!(packer.pack(&fahrenheit).unwrap(), packed);
         assert_eq!(forms.unpack(&packed).unwrap(), celsius);
     });
     assert_eq!((measured.allocations, measured.reallocations), (0, 0));
@@ -67,6 +72,8 @@ fn authored_quantity_forms_round_trip_exact_observations_without_play_allocation
 fn compact_storage_refuses_inexact_overflowing_truncated_and_wrong_type_values() {
     let contract = ObservationContract::prepare().unwrap();
     let mut forms = Forms::prepare(&contract).unwrap();
+    let packer = Packer::prepare(&contract).unwrap();
+    assert_eq!(packer.retained_backing_bytes(), 0);
     for (temperature, humidity, refusal) in [
         (
             Quantity::from_decimal(1981, -2, Unit::Celsius).unwrap(),
@@ -86,15 +93,31 @@ fn compact_storage_refuses_inexact_overflowing_truncated_and_wrong_type_values()
     ] {
         let value = canonical(&contract, temperature, humidity);
         assert_eq!(forms.pack(&value), Err(ObservationRefusal::Form(refusal)));
+        assert_eq!(packer.pack(&value), Err(ObservationRefusal::Form(refusal)));
     }
     assert!(matches!(
         forms.pack(&[0]),
         Err(ObservationRefusal::Canonical(_))
     ));
+    assert_eq!(packer.pack(&[0]), forms.pack(&[0]));
     for bytes in [&[][..], &[0; 3][..], &[0; 5][..]] {
         assert!(matches!(
             forms.unpack(bytes),
             Err(ObservationRefusal::Form(F::WrongLength))
         ));
     }
+}
+
+#[test]
+fn pack_only_preparation_retains_no_allocation_or_unpack_workspace() {
+    let contract = ObservationContract::prepare().unwrap();
+    let (packer, preparation) = allocation_probe::observe(|| Packer::prepare(&contract).unwrap());
+    // Temporary exact-Type comparison may allocate during preparation. Every
+    // created block has already been released while the packer remains alive.
+    assert_eq!(preparation.allocations, preparation.deallocations);
+    assert_eq!(packer.retained_backing_bytes(), 0);
+    let ((), retirement) = allocation_probe::observe(|| {
+        let _retired = packer;
+    });
+    assert_eq!(retirement.deallocations, 0);
 }

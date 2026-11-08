@@ -180,3 +180,70 @@ fn committed_append_seal_and_pressure_retry_allocate_nothing() {
     assert_eq!(allocations.allocations, 0);
     assert_eq!(allocations.reallocations, 0);
 }
+
+#[test]
+fn write_backing_accounts_all_capacities_without_unpack_workspaces() {
+    let contract = ObservationContract::prepare().unwrap();
+    let host: c::HostId = "rp2040/flash/e6639c758f335f34".into();
+    let boot: c::BootId = "b".repeat(64).into();
+    let plan: c::PlanId = "p".repeat(64).into();
+    let play: c::ActivePlayId = "x".repeat(64).into();
+    let selected_context = || RecordingContext {
+        host: &host,
+        boot: &boot,
+        plan: &plan,
+        play: &play,
+    };
+    let full_codec = PreparedObservationQuantityForms::prepare(&contract).unwrap();
+    let unpack_backing = full_codec.retained_backing_bytes().unwrap();
+    assert!(unpack_backing >= 4096);
+    for samples in [8, 64] {
+        let content_bytes =
+            PreparedRecordingSnapshot::content_bytes(selected_context(), &contract, samples)
+                .unwrap();
+        let reference = c::BoundedResourceRef {
+            identity: c::ResourceSemanticIdentity::from_digest([1; 32]),
+            content_profile: "text/json-utf8@1".into(),
+            access_class: "resource/snapshot@1".into(),
+            extent: c::ResourceExtent {
+                bytes: content_bytes as u64,
+                items: Some(1),
+            },
+            lifetime: c::ResourceLifetime {
+                version: c::ResourceVersionIdentity::from_digest([2; 32]),
+                expires_at: None,
+            },
+        };
+        let chunk = PreparedRecordingChunk::prepare(selected_context(), &contract).unwrap();
+        let snapshot =
+            PreparedRecordingSnapshot::prepare(selected_context(), &contract, samples, &reference)
+                .unwrap();
+        // Both fixed String capacities are charged even for an eight-record
+        // generation; the fixed 64-record array remains part of inline Self.
+        assert_eq!(
+            chunk.retained_backing_bytes(),
+            Some(2 * MAXIMUM_CHUNK_BYTES)
+        );
+        let snapshot_bytes = 2 * MAXIMUM_CHUNK_BYTES + reference.encode().unwrap().len();
+        assert_eq!(snapshot.retained_backing_bytes(), Some(snapshot_bytes));
+        let ((back, inline_bytes), measured) = allocation_probe::observe(|| {
+            let back = RecordingEncoderBack::prepare(
+                selected_context(),
+                &contract,
+                samples,
+                &reference,
+                17,
+                now,
+            )
+            .unwrap();
+            (back, core::mem::size_of::<RecordingEncoderBack>())
+        });
+        let staging_bytes =
+            conduit_plot::maximum_prepared_canonical_value_bytes(contract.observation_type())
+                .unwrap() as usize;
+        let retained = back.retained_backing_bytes().unwrap();
+        assert_eq!(retained, snapshot_bytes + staging_bytes + content_bytes);
+        assert!(measured.peak_bytes >= retained);
+        println!("samples={samples} retained_heap={retained} inline={inline_bytes} constructor_peak={} removed_unpack_heap={}", measured.peak_bytes, 2 * unpack_backing);
+    }
+}

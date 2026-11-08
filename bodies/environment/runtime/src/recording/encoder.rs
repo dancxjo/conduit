@@ -25,7 +25,7 @@ enum Staged {
 /// the separately admitted snapshot publication Back, never an acknowledgement.
 pub struct RecordingEncoderBack {
     snapshot: PreparedRecordingSnapshot,
-    validator: PreparedObservationQuantityForms,
+    validator: PreparedObservationQuantityPacker,
     samples: usize,
     next_sequence: u64,
     last_time: Option<u64>,
@@ -38,8 +38,8 @@ pub struct RecordingEncoderBack {
     poisoned: bool,
 }
 impl RecordingEncoderBack {
-    /// Preparation owns snapshot prefix/output/sample storage and its quantity
-    /// codec, a second validation codec, one canonical input staging buffer and
+    /// Preparation owns snapshot prefix/output/sample storage and its pack-only
+    /// codec, a second pack-only validation codec, one canonical staging buffer and
     /// one exact-extent output copy. The preparing Root must fund ALL of these;
     /// this constructor does not admit memory or storage. No runtime allocation
     /// is required by append, sealing, pressure retries or commit.
@@ -66,7 +66,7 @@ impl RecordingEncoderBack {
         .map_err(RecordingRefusal::Canonical)?;
         Ok(Self {
             snapshot,
-            validator: PreparedObservationQuantityForms::prepare(contract)
+            validator: PreparedObservationQuantityPacker::prepare(contract)
                 .map_err(RecordingRefusal::Canonical)?,
             samples,
             next_sequence: first_sequence,
@@ -79,6 +79,15 @@ impl RecordingEncoderBack {
             cancelled: false,
             poisoned: false,
         })
+    }
+    /// Complete owned heap capacities; excludes inline Self (including the
+    /// fixed sample array), allocator overhead and shared immutable schemas.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.snapshot
+            .retained_backing_bytes()?
+            .checked_add(self.validator.retained_backing_bytes())?
+            .checked_add(self.pending.capacity())?
+            .checked_add(self.output.capacity())
     }
     pub fn committed_samples(&self) -> usize {
         self.snapshot.len()

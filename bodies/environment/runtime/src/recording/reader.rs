@@ -40,7 +40,7 @@ impl PreparedRecordingReader {
         let prepared = PreparedRecordingChunk::prepare(context, contract)?;
         Ok(Self {
             prefix: prepared.prefix,
-            quantities: prepared.quantities,
+            quantities: PreparedObservationQuantityForms::prepare(contract)?,
             samples: [[0; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES],
             count: 0,
             preceding_sequence: None,
