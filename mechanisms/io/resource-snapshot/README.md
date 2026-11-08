@@ -38,3 +38,15 @@ Thus one-reading generations are costly; 64-reading chunks retain a volatile
 tail until their admitted publication completes. This primitive does not solve
 per-reading stream compression, discover committed generations, install an MCU
 provider, or establish restart admission of a Body/Play.
+
+`PreparedSnapshotRecord::prepare_selected` accepts borrowed selected facts without
+fabricating a `PlannedGear`. It shares the original semantic/record checks and
+requires an independently retained original `AuthorityGrant` plus local
+`ResourceReferenceBinding`. Core's existing reference admission checks identity,
+version, availability and byte/item ceilings; exact original grant matching
+checks operation, subject, capability and current Host/Boot. `AuthorityGrant`
+has no wall-clock expiry field; expiring snapshot references remain unsupported.
+The trusted Root must supply those independent grants and separately establish
+exact assigned correspondence, reservations, revocation/Play lifetime and safe
+provider execution. This constructor issues none of those permissions. The rich
+preparation API keeps its existing strength and does not invent local grants.
