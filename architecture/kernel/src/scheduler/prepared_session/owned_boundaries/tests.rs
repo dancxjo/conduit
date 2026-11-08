@@ -132,13 +132,19 @@ fn invoke(s: &mut Session, sequence: u64, bytes: &[u8]) {
 #[test]
 fn exact_owned_boundaries_preserve_sequences_resources_and_old_evidence() {
     let mut s = session();
+    assert!(matches!(s.drained_evidence(), Err(SessionRefusal::NotNormallyDrained)));
     let address = s.kernel() as *const _ as usize;
     invoke(&mut s, 0, &[7]);
     let events = s.kernel().signs().events().collect::<alloc::vec::Vec<_>>();
+    let borrowed = s.drained_evidence().expect("normally drained evidence");
+    assert_eq!(borrowed.signs.events().collect::<alloc::vec::Vec<_>>(), events);
+    let counts = (borrowed.decisions, borrowed.logical_invocations);
     let old = s
         .begin_next([()], log(32))
         .unwrap_or_else(|_| panic!("drained"));
     assert_eq!(old.signs.events().collect::<alloc::vec::Vec<_>>(), events);
+    assert_eq!((old.decisions, old.logical_invocations), counts);
+    assert!(matches!(s.drained_evidence(), Err(SessionRefusal::NotNormallyDrained)));
     assert_eq!(address, s.kernel() as *const _ as usize);
     assert_eq!(s.kernel().values().used_items(), 0);
     invoke(&mut s, 1, &[8, 9]);

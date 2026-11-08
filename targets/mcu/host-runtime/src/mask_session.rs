@@ -211,6 +211,13 @@ impl<'a, C: RendererClock> MaskSession<'a, C> {
         self.frame_pending = None;
         Ok(())
     }
+    /// Borrow drained evidence for exact archive preflight without rearming.
+    pub fn drained_evidence(&self) -> Result<DrainedInvocation<&k::FixedSignLog<64>>, Refusal> {
+        if !self.drained || self.request.is_some() || self.frame_pending.is_some() {
+            return Err(Refusal::Lifecycle);
+        }
+        self.session.drained_evidence().map_err(Refusal::Session)
+    }
     /// Retain old Signs outside this owner before another rearm. The ordinary
     /// session verifies normal drain, output acceptance and unchanged bindings.
     pub fn rearm(

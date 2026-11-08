@@ -174,15 +174,19 @@ pub async fn run<'r, 'f>(
         remain_retained().await
     };
     let display_mask = async {
-        // Finite real evidence retention; capacity pressure stops new Face
-        // invocations, never silently discards mandatory prior Signs. Retained
-        // timed pages and independent sampling continue under original ownership.
-        let mut archive = heapless::Vec::<(u32, k::KernelEvent), 128>::new();
-        // Invocation ordinal, exact retention gap, decisions, logical count,
-        // and range in the flat event archive are retained together.
-        let mut invocations =
-            heapless::Vec::<(u32, Option<k::SignRetentionGap>, u32, u64, usize, usize), 16>::new();
-        let mut invocation = 0u32;
+        // Full original traces remain owned. Repeated structure is stored once;
+        // every request generation, remote identity and gap is reconstructible.
+        let mut archive = k::invocation_archive::InvocationArchive::<64, 4, 3>::new();
+        const _: () = assert!(
+            core::mem::size_of::<k::invocation_archive::InvocationArchive<64, 4, 3>>()
+                <= core::mem::size_of::<heapless::Vec<(u32, k::KernelEvent), 128>>()
+                    + core::mem::size_of::<
+                        heapless::Vec<
+                            (u32, Option<k::SignRetentionGap>, u32, u64, usize, usize),
+                            16,
+                        >,
+                    >()
+        );
         let mut active = false;
         let mut drained = false;
         loop {
@@ -211,28 +215,26 @@ pub async fn run<'r, 'f>(
                 _ => {}
             }
             if drained {
-                let count = mask.drained_event_count().expect("normally drained Mask");
-                if archive.capacity() - archive.len() >= count && !invocations.is_full() {
+                let previous = mask.drained_evidence().expect("normally drained Mask");
+                if archive
+                    .can_append(
+                        previous.signs,
+                        previous.decisions,
+                        previous.logical_invocations,
+                    )
+                    .is_ok()
+                {
                     let signs = conduit_seven_segment_mask::native_kernel::prepare_signs()
                         .expect("pre-admitted fixed Sign capacity");
                     match mask.rearm(signs) {
                         Ok(previous) => {
-                            invocations
-                                .push((
-                                    invocation,
-                                    previous.signs.retention_gap(),
+                            archive
+                                .append(
+                                    &previous.signs,
                                     previous.decisions,
                                     previous.logical_invocations,
-                                    archive.len(),
-                                    count,
-                                ))
-                                .expect("preflighted invocation evidence retention");
-                            for event in previous.signs.events() {
-                                archive
-                                    .push((invocation, event))
-                                    .expect("preflighted evidence retention");
-                            }
-                            invocation = invocation.checked_add(1).expect("finite archive ordinal");
+                                )
+                                .expect("preflighted exact invocation evidence retention");
                             drained = false;
                             active = false;
                         }
@@ -305,7 +307,6 @@ pub async fn run<'r, 'f>(
             // The fenced Root continues owning the evidence after a local
             // refusal. Keep its bytes live across every suspension.
             core::hint::black_box(&archive);
-            core::hint::black_box(&invocations);
             core::hint::black_box(&mask);
             embassy_time::Timer::after_secs(1).await;
         }

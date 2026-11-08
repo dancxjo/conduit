@@ -284,6 +284,17 @@ where
     pub fn kernel(&self) -> &FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A> {
         &self.kernel
     }
+    /// Borrow the exact normally drained evidence before committing a rearm.
+    pub fn drained_evidence(&self) -> Result<DrainedInvocation<&E>, SessionRefusal> {
+        if self.phase != Phase::Drained {
+            return Err(SessionRefusal::NotNormallyDrained);
+        }
+        Ok(DrainedInvocation {
+            signs: &self.kernel.signs,
+            decisions: self.kernel.decisions,
+            logical_invocations: self.kernel.logical_invocations,
+        })
+    }
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
         let result = self.kernel.step();
         self.observe_step(result)
