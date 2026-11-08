@@ -1,4 +1,5 @@
 //! Exact canonical requests/results; all preparation precedes electrical effects.
+use super::contract::fixed_value_bound;
 use super::{
     CheckedPulseRead, PulseReadCapture, PulseReadContract, PulseReadDisposition, PulseReadLimits,
     PulseReadRefusal, PulseReadRequest, PULSE_READ_MAXIMUM_BYTES,
@@ -58,6 +59,9 @@ impl PreparedPulseCodec {
     }
 
     pub fn prepare(contract: &PulseReadContract) -> Result<Self, StructuredInfoRefusal> {
+        // Fund the complete canonical domain of every fixed-width Type, while
+        // the public Host Call envelope remains PULSE_READ_MAXIMUM_BYTES.
+        let length_type = field(&contract.capture, "length")?;
         let wire_type = field(&contract.capture, "wire")?;
         let StructuredInfoTypeShape::Collection { length: 8, .. } = wire_type.shape() else {
             return Err(StructuredInfoRefusal::WrongType);
@@ -80,29 +84,29 @@ impl PreparedPulseCodec {
                 PULSE_READ_MAXIMUM_BYTES as usize,
             )?,
             length: Composer::with_static_schema(
-                field(&contract.capture, "length")?,
+                length_type,
                 include_bytes!(concat!(env!("OUT_DIR"), "/length.type")),
-                64,
+                fixed_value_bound(length_type)? as usize,
             )?,
             wire: Composer::with_static_schema(
                 wire_type,
                 include_bytes!(concat!(env!("OUT_DIR"), "/wire.type")),
-                256,
+                fixed_value_bound(wire_type)? as usize,
             )?,
             capture: Composer::with_static_schema(
                 &contract.capture,
                 include_bytes!(concat!(env!("OUT_DIR"), "/capture.type")),
-                512,
+                fixed_value_bound(&contract.capture)? as usize,
             )?,
             empty: Composer::with_static_schema(
                 empty_type,
                 include_bytes!(concat!(env!("OUT_DIR"), "/empty.type")),
-                64,
+                fixed_value_bound(empty_type)? as usize,
             )?,
             result: Composer::with_static_schema(
                 &contract.result,
                 include_bytes!(concat!(env!("OUT_DIR"), "/result.type")),
-                PULSE_READ_MAXIMUM_BYTES as usize,
+                fixed_value_bound(&contract.result)? as usize,
             )?,
         })
     }
@@ -193,5 +197,51 @@ mod tests {
             PreparedPulseCodec::prepare(&contract),
             Err(StructuredInfoRefusal::WrongType)
         ));
+    }
+    #[test]
+    fn exact_storage_covers_the_complete_fixed_width_capture_domain() {
+        let contract = PulseReadContract::prepare().unwrap();
+        let mut codec = PreparedPulseCodec::prepare(&contract).unwrap();
+        for disposition in [
+            PulseReadDisposition::Complete,
+            PulseReadDisposition::TimedOut,
+        ] {
+            let capture = PulseReadCapture::from_complete_octets(disposition, &[255; 8]).unwrap();
+            let result = codec.result(capture).unwrap();
+            assert_eq!(
+                result.len(),
+                fixed_value_bound(&contract.result).unwrap() as usize
+            );
+            assert_eq!(
+                codec.capture.encoded().len(),
+                fixed_value_bound(&contract.capture).unwrap() as usize
+            );
+            assert_eq!(
+                codec.wire.encoded().len(),
+                fixed_value_bound(field(&contract.capture, "wire").unwrap()).unwrap() as usize
+            );
+            assert_eq!(
+                codec.length.encoded().len(),
+                fixed_value_bound(field(&contract.capture, "length").unwrap()).unwrap() as usize
+            );
+        }
+        codec.geometry_refused().unwrap();
+        assert_eq!(
+            codec.empty.encoded().len(),
+            fixed_value_bound(
+                &StructuredInfoType::from_canonical_bytes(include_bytes!(concat!(
+                    env!("OUT_DIR"),
+                    "/empty.type"
+                )))
+                .unwrap()
+            )
+            .unwrap() as usize
+        );
+        codec
+            .result(
+                PulseReadCapture::from_complete_octets(PulseReadDisposition::ProviderFailed, &[])
+                    .unwrap(),
+            )
+            .unwrap();
     }
 }

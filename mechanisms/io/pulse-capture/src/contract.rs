@@ -121,7 +121,7 @@ impl PulseReadContract {
 
 // These schemas contain only fixed-width integers and Empty; both codec sides
 // enforce those exact primitive widths. Unknown leaf owners refuse this proof.
-fn fixed_value_bound(ty: &StructuredInfoType) -> Result<u32, StructuredInfoRefusal> {
+pub(crate) fn fixed_value_bound(ty: &StructuredInfoType) -> Result<u32, StructuredInfoRefusal> {
     let bound = ty
         .canonical_value_upper_bound(|kind| {
             let primitive = conduit_core::primitive_info_kind(kind.as_str())?;
