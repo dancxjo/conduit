@@ -13,6 +13,8 @@ mod execution;
 mod fore;
 pub use fore::*;
 mod native;
+mod projection_template;
+pub use projection_template::*;
 mod records;
 pub use computation::{AssignedComputationProfile, AssignedComputationRequirement};
 pub use native::*;
