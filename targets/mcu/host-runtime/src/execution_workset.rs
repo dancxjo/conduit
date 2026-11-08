@@ -142,13 +142,16 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
         let fragments = core::array::from_fn::<_, F, _>(|i| &self.fragments[i]);
         let bridge = b::delegated_plain_resource_preparation_bytes(&fragments, owner, observations)
             .map_err(Refusal::Resources)?;
-        if self
+        let required = self
             .retained
             .checked_add(bridge)
             .and_then(|n| n.checked_add(observation_backing_bytes))
-            .is_none_or(|n| n > self.maximum)
-        {
-            return Err(Refusal::Bounds);
+            .ok_or(Refusal::Bounds)?;
+        if required > self.maximum {
+            return Err(Refusal::Capacity {
+                required,
+                maximum: self.maximum,
+            });
         }
         b::admit_delegated_plain_resources(&fragments, owner, observations)
             .map_err(Refusal::Resources)?;
