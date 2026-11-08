@@ -272,6 +272,12 @@ impl Calibration {
             text.push_str("];\n");
             writeln!(
                 text,
+                "pub const FORE_PORTS:usize={};",
+                entry.layout.fore.len()
+            )
+            .unwrap();
+            writeln!(
+                text,
                 "pub fn fore()->[conduit_core::AssignedForeRequirement;{}]{{[",
                 entry.layout.fore.len()
             )

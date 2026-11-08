@@ -31,6 +31,15 @@ use conduit_pulse_capture::installation::ReadyPulseBase;
 use conduit_tm1637_wire::installation::ReadyWriteBase;
 type Pulse = crate::equipment::Capture;
 type Wire = crate::equipment::Wire;
+// Retain only the independently compiled endpoint capacity, not the generic
+// carriage ceiling in every fragment's temporary preparation wrapper.
+const FORE_PORTS: usize = {
+    let a = source::sampling_layout::FORE_PORTS;
+    let b = source::mask_layout::FORE_PORTS;
+    let c = source::output_layout::FORE_PORTS;
+    let ab = if a > b { a } else { b };
+    if ab > c { ab } else { c }
+};
 macro_rules! shape {
     ($name:ident,$module:ident,$tag:ident) => {
         const $name: usize = source::$module::COUNTS[(c::$tag - 1) as usize] as usize;
@@ -196,7 +205,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
     let sf = source::sampling_layout::fore();
     let mf = source::mask_layout::fore();
     let of = source::output_layout::fore();
-    execution_group::prepare_with_source::<_, _, 16384, 16>(
+    execution_group::prepare_with_source::<_, _, 16384, FORE_PORTS>(
         workspace,
         context,
         policy,
