@@ -31,8 +31,7 @@ use conduit_pulse_capture::installation::ReadyPulseBase;
 use conduit_tm1637_wire::installation::ReadyWriteBase;
 type Pulse = crate::equipment::Capture;
 type Wire = crate::equipment::Wire;
-// Retain only the independently compiled endpoint capacity, not the generic
-// carriage ceiling in every fragment's temporary preparation wrapper.
+// Use the independently compiled endpoint capacity.
 const FORE_PORTS: usize = {
     let a = source::sampling_layout::FORE_PORTS;
     let b = source::mask_layout::FORE_PORTS;
@@ -68,7 +67,6 @@ pub type SamplingKernel<'a, 'f> =
     ExecutionKernel<Driver<'f, resident::BorrowedBack<'a>>, SN, SC, SP, SR, ST, SH, SS>;
 pub type OutputKernel<'a, 'f> =
     ExecutionKernel<Driver<'f, resident::BorrowedBack<'a>>, ON, OC, OP, OR, OT, OH, OS>;
-/// Kernel-only sizes; providers and preparation require separate accounting.
 #[used]
 #[no_mangle]
 pub static CONDUIT_EXECUTION_KERNEL_BYTES: [usize; 3] = [
@@ -453,8 +451,11 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                     counts: source::output_layout::COUNTS,
                 },
                 output_values,
-                FixedSignLog::new(
+                FixedSignLog::new_with_remote_storage(
                     (OS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
+                    OS as u16,
+                    conduit_kernel::remote_sign_storage_bytes(OS as u16)
+                        .ok_or("output-sign-bound")?,
                 )
                 .map_err(|_| "output-sign-storage")?,
                 policy.maximum_retained_bytes,

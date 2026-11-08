@@ -155,31 +155,42 @@ async fn main(spawner: Spawner) {
             .map(|seed| membership::Membership::new(seed, host, [rng.next_u64(), rng.next_u64()]))
     });
     let mut link = transport::Link::new(class);
-    #[cfg(sensor_dht11)]
-    if let Some(serial) = serial {
-        let host = alloc::format!("rp2040/flash/{serial}");
-        if let Some(seed) = seed::Seed::load(&host) {
-            spawner.spawn(
-                runtime::root_task(seed, host, [rng.next_u64(), rng.next_u64()], link).unwrap(),
-            );
-            // The executor owns this Root independently; the boot task does not
-            // remain on its preparation/execution poll stack.
-            match core::future::pending::<core::convert::Infallible>().await {}
-        }
+    #[cfg(shared_source_execution)]
+    {
+        let host = alloc::format!("rp2040/flash/{}", serial.expect("physical Host identity"));
+        let seed = seed::Seed::load(&host).expect("checked shared Source Seed");
+        spawner
+            .spawn(runtime::root_task(seed, host, [rng.next_u64(), rng.next_u64()], link).unwrap());
+        match core::future::pending::<core::convert::Infallible>().await {}
     }
-    #[cfg(not(sensor_dht11))]
-    if let Some(member) = membership.as_mut() {
-        member.run(&mut link).await;
-    }
-    loop {
-        link.connected().await;
-        let result = {
-            let mut discard = [0; transport::LIMIT];
-            link.receive(&mut discard).await.map(|_| ())
-        };
-        if result.is_err() {
-            link.reset();
+    #[cfg(not(shared_source_execution))]
+    {
+        #[cfg(sensor_dht11)]
+        if let Some(serial) = serial {
+            let host = alloc::format!("rp2040/flash/{serial}");
+            if let Some(seed) = seed::Seed::load(&host) {
+                spawner.spawn(
+                    runtime::root_task(seed, host, [rng.next_u64(), rng.next_u64()], link).unwrap(),
+                );
+                // The executor owns this Root independently; the boot task does not
+                // remain on its preparation/execution poll stack.
+                match core::future::pending::<core::convert::Infallible>().await {}
+            }
         }
-        embassy_time::Timer::after_millis(10).await;
+        #[cfg(not(sensor_dht11))]
+        if let Some(member) = membership.as_mut() {
+            member.run(&mut link).await;
+        }
+        loop {
+            link.connected().await;
+            let result = {
+                let mut discard = [0; transport::LIMIT];
+                link.receive(&mut discard).await.map(|_| ())
+            };
+            if result.is_err() {
+                link.reset();
+            }
+            embassy_time::Timer::after_millis(10).await;
+        }
     }
 }
