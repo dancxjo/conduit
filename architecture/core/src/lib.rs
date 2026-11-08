@@ -75,9 +75,12 @@ mod shared_pool;
 mod state_delay;
 mod stream_sampling;
 use plan_fingerprint::compute_plan_id;
+pub use canonical_bytes::FragmentScopeRole;
 pub use plan_fingerprint::{
     compute_checked_front_fingerprint, compute_fragment_id, FragmentFingerprintBuilder,
     FragmentFingerprintHeader, FragmentFingerprintRefusal, FragmentFingerprintTail,
+    fragment_seal_recipe_digest, FragmentSealBinding, FragmentSealField, FragmentSealLimits,
+    FragmentSealPiece, FragmentSealRecipe, FragmentSealRefusal, FragmentSealValue,
 };
 mod structured_info;
 mod temporal;

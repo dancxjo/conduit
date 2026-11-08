@@ -2,8 +2,12 @@
 use super::*;
 mod parts;
 mod placement;
+#[path = "fragment/recipe.rs"]
+mod recipe;
 mod tail;
+use crate::canonical_bytes::{FragmentScopeField as Field, FragmentScopeRole as Role};
 pub use parts::{FragmentFingerprintHeader, FragmentFingerprintTail};
+pub use recipe::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FragmentFingerprintRefusal {
@@ -87,9 +91,12 @@ fn push_header(canonical: &mut impl CanonicalSink, header: FragmentFingerprintHe
     if !header.realization_backs.is_empty() {
         plan_realization::push_canonical(canonical, header.realization_backs);
     }
-    push_string(canonical, header.host_id.as_str());
-    push_string(canonical, header.boot_id.as_str());
-    push_u64(canonical, header.offer_generation.0);
+    canonical.scope_string(Field::Header(Role::Host), header.host_id.as_str());
+    canonical.scope_string(Field::Header(Role::Boot), header.boot_id.as_str());
+    canonical.scope_u64(
+        Field::Header(Role::OfferGeneration),
+        header.offer_generation.0,
+    );
     execution_regions::push_canonical(canonical, header.execution_regions);
     execution_fusion::push_canonical(canonical, header.execution_fusions);
 }

@@ -4,7 +4,18 @@ pub(crate) fn push_resource_binding(
     canonical: &mut impl crate::canonical_bytes::CanonicalSink,
     binding: &ResourceBinding,
 ) {
-    push_string(canonical, binding.pool_id.as_str());
+    push_resource_binding_scoped(canonical, binding, None);
+}
+pub(crate) fn push_resource_binding_scoped(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    binding: &ResourceBinding,
+    scope: Option<crate::canonical_bytes::FragmentScopeField<'_>>,
+) {
+    if let Some(scope) = scope {
+        canonical.scope_string(scope, binding.pool_id.as_str());
+    } else {
+        push_string(canonical, binding.pool_id.as_str());
+    }
     push_string(canonical, binding.class_id.as_str());
     push_u32(canonical, binding.units);
     if let Some(content) = &binding.content {

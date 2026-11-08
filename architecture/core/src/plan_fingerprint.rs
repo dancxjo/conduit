@@ -35,8 +35,10 @@ fn push_optional_string(
 
 mod fragment;
 pub use fragment::{
-    compute_fragment_id, FragmentFingerprintBuilder, FragmentFingerprintHeader,
-    FragmentFingerprintRefusal, FragmentFingerprintTail,
+    compute_fragment_id, fragment_seal_recipe_digest, FragmentFingerprintBuilder,
+    FragmentFingerprintHeader, FragmentFingerprintRefusal, FragmentFingerprintTail,
+    FragmentSealBinding, FragmentSealField, FragmentSealLimits, FragmentSealPiece,
+    FragmentSealRecipe, FragmentSealRefusal, FragmentSealValue,
 };
 
 pub(crate) fn push_configuration_value(
