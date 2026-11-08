@@ -156,6 +156,9 @@ impl<I: RegisterIo> Controller<I> {
             packet.start_split,
             bytes,
         );
+        if result == Err(PacketError::Transaction) {
+            self.observe_failure("transaction", result.err());
+        }
         // Even timeout, removal and malformed FIFO observations must retire the
         // hardware channel before another caller can reuse it. Otherwise fence
         // this controller until a fresh machine-level reset/ownership epoch.
