@@ -218,6 +218,15 @@ impl<'d> Esp32PulseCapture<'d> {
                 }
                 value = (value << 1) | u8::from(self.pin.is_high());
                 observation.completed_bits += 1;
+                // The request asks for samples, not a trailing edge after its
+                // final bit. Retain that complete octet before returning.
+                if observation.completed_bits == request.octets * 8 {
+                    *octet = value;
+                    *length += 1;
+                    observation.completed_octets = *length as u8;
+                    observation.phase = CapturePhase::Complete;
+                    return true;
+                }
                 observation.phase = CapturePhase::DataFall;
                 if !self.wait_level(false, start, request.capture_timeout_us) {
                     return false;
