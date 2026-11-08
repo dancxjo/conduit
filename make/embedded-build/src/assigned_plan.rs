@@ -15,7 +15,7 @@ pub fn encode_assigned_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA, &[], &[])
+    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA, &[], &[], false)
 }
 
 /// Kernel projection with explicit single-value envelopes and pressure policy.
@@ -30,6 +30,7 @@ pub fn encode_assigned_kernel_plan(
         conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA,
         &[],
         &[],
+        false,
     )
 }
 /// Exact single cooperative Base/resource/authority facts for constrained native
@@ -44,6 +45,7 @@ pub fn encode_assigned_native_plan(
         conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA,
         &[],
         &[],
+        false,
     )
 }
 
@@ -60,6 +62,7 @@ pub fn encode_assigned_resident_native_plan(
         conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA,
         &[],
         resident,
+        true,
     )
 }
 pub(crate) fn encode_resident_fore(
@@ -74,6 +77,7 @@ pub(crate) fn encode_resident_fore(
         conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA,
         fore,
         resident,
+        true,
     )
 }
 
@@ -88,6 +92,7 @@ pub(crate) fn encode_fore(
         conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA,
         fore,
         &[],
+        false,
     )
 }
 fn encode(
@@ -96,6 +101,7 @@ fn encode(
     schema: u16,
     fore: &[conduit_core::AssignedForeRequirement],
     resident: &[crate::BoundResidentExpression],
+    pin_selectors: bool,
 ) -> Result<Vec<u8>, GenerationError> {
     crate::configuration_record::validate_bindings(plan, resident)?;
     if schema != conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
@@ -141,7 +147,7 @@ fn encode(
     for entry in &plan.configuration {
         record(
             ASSIGNED_CONFIGURATION,
-            crate::configuration_record::encode(entry, resident)?,
+            crate::configuration_record::encode(entry, resident, pin_selectors)?,
         )?;
     }
     for cord in &plan.cords {

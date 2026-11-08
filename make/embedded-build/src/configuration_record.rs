@@ -44,7 +44,7 @@ pub(crate) fn validate_bindings(plan: &GeneratedEmbeddedPlan, resident: &[B]) ->
     }
     Ok(())
 }
-pub(crate) fn encode(entry: &Entry, resident: &[B]) -> Result<Vec<u8>, E> {
+pub(crate) fn encode(entry: &Entry, resident: &[B], pin_selectors: bool) -> Result<Vec<u8>, E> {
     let mut value = Vec::new();
     value.extend_from_slice(&entry.node.to_le_bytes());
     value.extend_from_slice(&conduit_core::AssignedIdentity::from_text(&entry.key).0);
@@ -55,6 +55,20 @@ pub(crate) fn encode(entry: &Entry, resident: &[B]) -> Result<Vec<u8>, E> {
         value.push(4);
         value.extend_from_slice(&binding.pin.text_bytes.to_le_bytes());
         value.extend_from_slice(&binding.pin.text_digest);
+        return Ok(value);
+    }
+    // The explicit resident projection already requires an independently linked
+    // computation inventory. Selectors use that same exact length/digest ABI;
+    // their immutable canonical material stays with the initialized Source Back.
+    if pin_selectors && entry.key == "selector" {
+        let V::Text(text) = &entry.value else {
+            return Err(E::InvalidComputationConfiguration);
+        };
+        let pin = AssignedComputationRequirement::from_text(entry.node, &entry.key, text)
+            .map_err(|_| E::InvalidComputationConfiguration)?;
+        value.push(4);
+        value.extend_from_slice(&pin.text_bytes.to_le_bytes());
+        value.extend_from_slice(&pin.text_digest);
         return Ok(value);
     }
     match &entry.value {
@@ -96,4 +110,40 @@ pub fn assigned_computation_requirements(
                 .map_err(|_| crate::GenerationError::InvalidComputationConfiguration)
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn selector_reference_is_explicit_and_leaves_other_configuration_literal() {
+        let entry = Entry {
+            node: 7,
+            key: "selector".into(),
+            value: V::Text("ab".repeat(1024)),
+        };
+        let literal = encode(&entry, &[], false).unwrap();
+        let pinned = encode(&entry, &[], true).unwrap();
+        let expected =
+            AssignedComputationRequirement::from_text(7, "selector", &"ab".repeat(1024)).unwrap();
+        assert_eq!(literal.len() - pinned.len(), 2048 - 36);
+        assert_eq!(pinned[34], 4);
+        assert_eq!(&pinned[35..39], &expected.text_bytes.to_le_bytes());
+        assert_eq!(&pinned[39..], &expected.text_digest);
+        let other = Entry {
+            node: 7,
+            key: "label".into(),
+            value: V::Text("room".into()),
+        };
+        assert_eq!(
+            encode(&other, &[], false).unwrap(),
+            encode(&other, &[], true).unwrap()
+        );
+        let invalid = Entry {
+            node: 7,
+            key: "selector".into(),
+            value: V::Bool(true),
+        };
+        assert!(encode(&invalid, &[], true).is_err());
+    }
 }
