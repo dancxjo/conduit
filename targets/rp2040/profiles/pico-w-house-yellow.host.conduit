@@ -3,7 +3,7 @@
 host pico-w-house-yellow {
   schema = 1
   # Assigned representation requires 19357 bytes; this excludes full kernel/Ready heap.
-  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 16384, maximum_runtime_state_bytes: 24576}
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 16384, maximum_runtime_state_bytes: 32768}
   execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
   target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
   base = {kind: "clock/monotonic", implementation: "rp2040/monotonic-clock@1", initialization: {slots: 4, maximum_duration_ms: 60000}}

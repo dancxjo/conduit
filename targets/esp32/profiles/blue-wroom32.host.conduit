@@ -3,7 +3,7 @@
 # not extra arena RAM. Assignment input remains 16KiB, heap96KiB is exclusively in HAL secondary DRAM; static224KiB includes it.
 host blue-wroom32 {
   schema = 1
-  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 16384, maximum_runtime_state_bytes: 24576}
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 16384, maximum_runtime_state_bytes: 32768}
   execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
   target = {architecture: "xtensa-lx6", machine: "hw-463-esp-wroom-32", board: "hw-463-esp-wroom-32", make_descriptor: "sha256:3015c678e54e8ae4dc1d0552a30ebdcb118b5c55dfa372252a8a5b86847dc255"}
   base = {kind: "serial/text", implementation: "esp32/uart0@1", initialization: {tx: 1, rx: 3, baud: 115200}}

@@ -1,7 +1,9 @@
 //! Admitted renderer service: semantic Show and local output Fore, never GPIO.
 //! Root drives this only after the complete local workset has Started.
 extern crate alloc;
-use alloc::{boxed::Box, vec};
+use alloc::boxed::Box;
+#[path = "execution_mask_wire.rs"]
+mod wire;
 use conduit_core as c;
 use conduit_environment_runtime::{
     display_mask::PreparedDisplayMask, publication_face_custody::Reader,
@@ -111,8 +113,7 @@ pub struct ReadyRenderer<C> {
     clock: C,
     mask: PreparedDisplayMask,
     bounds: Bounds,
-    face_wire: Box<[u8]>,
-    show_wire: Box<[u8]>,
+    wire: wire::Storage,
 }
 impl<C: RendererClock> ReadyRenderer<C> {
     /// # Safety
@@ -140,8 +141,8 @@ impl<C: RendererClock> ReadyRenderer<C> {
             clock,
             mask,
             bounds,
-            face_wire: vec![0; bounds.face_bytes as usize].into_boxed_slice(),
-            show_wire: vec![0; bounds.show_bytes as usize].into_boxed_slice(),
+            wire: wire::Storage::prepare(bounds.face_bytes, bounds.show_bytes)
+                .map_err(|_| Refusal::Bounds)?,
         };
         if ready
             .retained_backing_bytes()
@@ -157,9 +158,8 @@ impl<C: RendererClock> ReadyRenderer<C> {
     pub fn retained_backing_bytes(&self) -> Option<usize> {
         let id = &self.identity;
         let mut bytes = self
-            .face_wire
-            .len()
-            .checked_add(self.show_wire.len())?
+            .wire
+            .retained_bytes()
             .checked_add(self.mask.retained_backing_bytes())?
             .checked_add(self.clock.retained_backing_bytes()?)?;
         for text in [
@@ -377,7 +377,7 @@ impl<C: RendererClock> RendererService<'_, C> {
         let (show, pages, length) = self
             .reader
             .with_retained(|face, _| {
-                let bytes = serde_json_core::to_slice(face, &mut ready.face_wire)
+                let bytes = serde_json_core::to_slice(face, ready.wire.face_mut())
                     .map_err(|_| Refusal::Encoding)?;
                 let pages = ready.mask.prepare_show(face).map_err(|_| Refusal::Face)?;
                 let show = context
@@ -403,7 +403,7 @@ impl<C: RendererClock> RendererService<'_, C> {
         }
         self.staged = Some(Staged { show, pages });
         self.face_input_len = length;
-        Ok(&self.ready.face_wire[..length])
+        Ok(&self.ready.wire.bytes()[..length])
     }
     /// Cold per-Face preparation under the enclosing admitted preparation owner.
     /// It validates the exact kernel input; it performs no output or clock wait.
@@ -431,7 +431,7 @@ impl<C: RendererClock> RendererService<'_, C> {
         if self.staged.is_none() {
             self.stage_face(prepared_sign)?;
         }
-        if input != &self.ready.face_wire[..self.face_input_len] {
+        if input != &self.ready.wire.bytes()[..self.face_input_len] {
             return Err(Refusal::Face);
         }
         let Staged { show, pages } = self.staged.take().ok_or(Refusal::Pending)?;
@@ -512,7 +512,7 @@ impl<C: RendererClock> RendererService<'_, C> {
                 .show
                 .transition(f::ManifestationLifecycle::Available, available_sign)
                 .map_err(|_| Refusal::Output)?;
-            let length = serde_json_core::to_slice(&show, &mut self.ready.show_wire)
+            let length = serde_json_core::to_slice(&show, self.ready.wire.show_mut())
                 .map_err(|_| Refusal::Encoding)?;
             Ok((show, length))
         })();
@@ -537,7 +537,7 @@ impl<C: RendererClock> RendererService<'_, C> {
             pages: pending.pages,
             started: pending.started,
         });
-        Ok(Some((pending.request, &self.ready.show_wire[..length])))
+        Ok(Some((pending.request, &self.ready.wire.bytes()[..length])))
     }
     pub fn face_changed(&self) -> Result<bool, Refusal> {
         self.reader
@@ -569,8 +569,7 @@ impl<C: RendererClock> RendererService<'_, C> {
 impl<C> Drop for RendererService<'_, C> {
     fn drop(&mut self) {
         let _ = self.table.revoke(&self.handle);
-        self.ready.face_wire.fill(0);
-        self.ready.show_wire.fill(0);
+        self.ready.wire.clear();
     }
 }
 
