@@ -103,11 +103,15 @@ impl<const P: usize> StepBack<P> for CaptureBack {
 /// Prepared pure selection invoked by the selector Back's existing Host Call.
 /// The output envelope is reserved before Play; unmatched drops return None.
 pub struct PreparedCaptureSelector {
-    selector: StructuredSelector,
+    selector: CaptureSelection,
     maximum_input_bytes: usize,
     input_type: Cow<'static, [u8]>,
     output_type: Cow<'static, [u8]>,
     output: alloc::vec::Vec<u8>,
+}
+enum CaptureSelection {
+    Owned(StructuredSelector),
+    Linked(conduit_core::PreparedBorrowedStructuredSelector),
 }
 impl PreparedCaptureSelector {
     pub fn prepare(
@@ -126,34 +130,29 @@ impl PreparedCaptureSelector {
             maximum_input_bytes,
             input_type: Cow::Owned(input_type),
             output_type: Cow::Owned(selector.output_type().canonical_bytes()?),
-            selector,
+            selector: CaptureSelection::Owned(selector),
             output: alloc::vec::Vec::with_capacity(maximum_output_bytes),
         })
     }
-    /// Retain the same checked selector graphs while borrowing their exact
-    /// canonical Type prefixes from immutable linked selection material.
+    /// Check the complete linked selector once, retaining its operation and
+    /// immutable schema spans rather than duplicate decoded Type trees.
     pub fn prepare_static(
         canonical: &'static [u8],
         maximum_input_bytes: usize,
         maximum_output_bytes: usize,
     ) -> Result<Self, conduit_core::StructuredSelectorRefusal> {
-        use conduit_core::StructuredSelectorRefusal as R;
-        let selector = StructuredSelector::from_canonical_bytes(canonical)?;
-        if selector.canonical_bytes()?.as_slice() != canonical {
-            return Err(R::MalformedCanonicalEncoding);
-        }
-        let mut prepared = Self::prepare(selector, maximum_input_bytes, maximum_output_bytes)
-            .map_err(|_| R::CanonicalEncodingTooLarge)?;
-        fn linked_type(canonical: &'static [u8], expected: &[u8]) -> Option<&'static [u8]> {
-            canonical
-                .windows(expected.len())
-                .find(|window| *window == expected)
-        }
-        let input = linked_type(canonical, &prepared.input_type).ok_or(R::WrongInputType)?;
-        let output = linked_type(canonical, &prepared.output_type).ok_or(R::WrongInputType)?;
-        prepared.input_type = Cow::Borrowed(input);
-        prepared.output_type = Cow::Borrowed(output);
-        Ok(prepared)
+        let selector = conduit_core::PreparedBorrowedStructuredSelector::new(
+            canonical,
+            maximum_input_bytes,
+            maximum_output_bytes,
+        )?;
+        Ok(Self {
+            maximum_input_bytes,
+            input_type: Cow::Borrowed(selector.input_type_bytes()),
+            output_type: Cow::Borrowed(selector.output_type_bytes()),
+            selector: CaptureSelection::Linked(selector),
+            output: alloc::vec::Vec::with_capacity(maximum_output_bytes),
+        })
     }
 
     pub fn output(&self) -> &[u8] {
@@ -170,19 +169,30 @@ impl PreparedCaptureSelector {
         if input.len() > self.maximum_input_bytes {
             return Err(R::MalformedCheckedValue);
         }
-        let node = input
-            .strip_prefix(self.input_type.as_ref())
-            .ok_or(R::MalformedCheckedValue)?;
-        self.selector
-            .input_type()
-            .validate_canonical_value_node(node)
-            .map_err(|_| R::MalformedCheckedValue)?;
-        match self.selector.select_canonical_into(
-            input,
-            &self.input_type,
-            &self.output_type,
-            &mut self.output,
-        )? {
+        let selected = match &self.selector {
+            CaptureSelection::Linked(selector) => selector
+                .select_canonical_into(input, &mut self.output)
+                .map_err(|error| match error {
+                    R::WrongInputType => R::MalformedCheckedValue,
+                    other => other,
+                })?,
+            CaptureSelection::Owned(selector) => {
+                let node = input
+                    .strip_prefix(self.input_type.as_ref())
+                    .ok_or(R::MalformedCheckedValue)?;
+                selector
+                    .input_type()
+                    .validate_canonical_value_node(node)
+                    .map_err(|_| R::MalformedCheckedValue)?;
+                selector.select_canonical_into(
+                    input,
+                    &self.input_type,
+                    &self.output_type,
+                    &mut self.output,
+                )?
+            }
+        };
+        match selected {
             S::Matched => Ok(Some(&self.output)),
             S::Unmatched(D::Drop) => Ok(None),
             S::Unmatched(D::Refuse) => Err(R::UnmatchedVariant),
@@ -208,6 +218,7 @@ mod linked_selector_tests {
         let selector = StructuredSelector::field(input, "chosen").unwrap();
         let canonical = Box::leak(selector.canonical_bytes().unwrap().into_boxed_slice());
         let linked = PreparedCaptureSelector::prepare_static(canonical, 512, 512).unwrap();
+        assert!(matches!(linked.selector, CaptureSelection::Linked(_)));
         assert!(matches!(linked.input_type, Cow::Borrowed(_)));
         assert!(matches!(linked.output_type, Cow::Borrowed(_)));
         assert_eq!(
