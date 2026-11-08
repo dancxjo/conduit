@@ -403,6 +403,38 @@ pub async fn run<'r, 'f>(
                 link,
                 &mut response,
                 |request, output| {
+                    #[cfg(target_arch = "xtensa")]
+                    if request == b"P" {
+                        use core::fmt::Write;
+                        #[derive(serde::Serialize)]
+                        struct CaptureReport<'a> {
+                            schema: &'static str,
+                            assurance: &'static str,
+                            phase: &'a str,
+                            completed_bits: u8,
+                            completed_octets: u8,
+                            elapsed_us: u32,
+                        }
+                        let Some(capture) = conduit_esp32_electrical::last_capture_observation()
+                        else {
+                            return Err(());
+                        };
+                        let mut phase = heapless::String::<24>::new();
+                        write!(&mut phase, "{:?}", capture.phase).map_err(|_| ())?;
+                        return serde_json_core::to_slice(
+                            &CaptureReport {
+                                schema: "conduit.host/pulse-capture-inspection@1",
+                                assurance: "unsigned-inspection",
+                                phase: phase.as_str(),
+                                completed_bits: capture.completed_bits,
+                                completed_octets: capture.completed_octets,
+                                elapsed_us: capture.elapsed_us,
+                            },
+                            output,
+                        )
+                        .map(Some)
+                        .map_err(|_| ());
+                    }
                     if request != b"F" {
                         return Ok(None);
                     }

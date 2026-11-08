@@ -7,7 +7,9 @@
 mod pulse;
 mod tm1637;
 
-pub use pulse::{Esp32PulseCapture, PULSE_LIMITS};
+pub use pulse::{
+    last_capture_observation, CaptureObservation, CapturePhase, Esp32PulseCapture, PULSE_LIMITS,
+};
 pub use tm1637::Esp32Tm1637;
 
 pub mod platform;

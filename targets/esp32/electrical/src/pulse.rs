@@ -1,11 +1,69 @@
 use conduit_pulse_capture::{
     CheckedPulseRead, PulseReadCapture, PulseReadDisposition, PulseReadLimits, PulseReadRefusal,
 };
+use core::sync::atomic::{AtomicU32, Ordering};
 use esp_hal::{
     delay::Delay,
     gpio::{Flex, InputConfig, Pin, Pull},
     time::Instant,
 };
+
+/// Recovery evidence from the last actual capture, never an IO command or grant.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum CapturePhase {
+    ReleaseRise = 1,
+    ResponseLow,
+    SkippedRise,
+    SkippedFall,
+    DataRise,
+    Sample,
+    DataFall,
+    Complete,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CaptureObservation {
+    pub phase: CapturePhase,
+    pub completed_bits: u8,
+    pub completed_octets: u8,
+    /// Saturates at 131071us; that already exceeds every admitted exclusion.
+    pub elapsed_us: u32,
+}
+
+// One coherent word; no shared writes or atomics occur in the timed GPIO loop.
+static LAST_CAPTURE: AtomicU32 = AtomicU32::new(0);
+
+pub fn last_capture_observation() -> Option<CaptureObservation> {
+    let snapshot = LAST_CAPTURE.load(Ordering::Acquire);
+    let phase = match snapshot & 15 {
+        1 => CapturePhase::ReleaseRise,
+        2 => CapturePhase::ResponseLow,
+        3 => CapturePhase::SkippedRise,
+        4 => CapturePhase::SkippedFall,
+        5 => CapturePhase::DataRise,
+        6 => CapturePhase::Sample,
+        7 => CapturePhase::DataFall,
+        8 => CapturePhase::Complete,
+        _ => return None,
+    };
+    Some(CaptureObservation {
+        phase,
+        completed_bits: ((snapshot >> 4) & 127) as u8,
+        completed_octets: ((snapshot >> 11) & 15) as u8,
+        elapsed_us: snapshot >> 15,
+    })
+}
+
+impl CaptureObservation {
+    fn publish(self) {
+        let snapshot = self.phase as u32
+            | (u32::from(self.completed_bits) << 4)
+            | (u32::from(self.completed_octets) << 11)
+            | (self.elapsed_us.min(131071) << 15);
+        LAST_CAPTURE.store(snapshot, Ordering::Release);
+    }
+}
 
 pub const PULSE_LIMITS: PulseReadLimits = PulseReadLimits {
     maximum_hold_low_us: 50_000,
@@ -75,14 +133,22 @@ impl<'d> Esp32PulseCapture<'d> {
         self.delay.delay_micros(request.hold_low_us);
         let mut wire = [0; conduit_pulse_capture::MAXIMUM_OCTETS];
         let mut length = 0;
+        let mut observation = CaptureObservation {
+            phase: CapturePhase::ReleaseRise,
+            completed_bits: 0,
+            completed_octets: 0,
+            elapsed_us: 0,
+        };
         // The checked hold runs with interrupts enabled. The separate exclusion
         // budget covers the capture deadline plus bounded polling/exit overhead.
         let (complete, elapsed_us) = critical_section::with(|_| {
             let start = Instant::now();
             self.pin.set_output_enable(false);
-            let complete = self.read_bits(request, start, &mut wire, &mut length);
+            let complete = self.read_bits(request, start, &mut wire, &mut length, &mut observation);
             (complete, start.elapsed().as_micros())
         });
+        observation.elapsed_us = elapsed_us.min(u64::from(u32::MAX)) as u32;
+        observation.publish();
         if elapsed_us > u64::from(self.maximum_interrupt_exclusion_us) {
             return Err(PulseReadRefusal::DeadlineExtent);
         }
@@ -117,38 +183,51 @@ impl<'d> Esp32PulseCapture<'d> {
         start: Instant,
         wire: &mut [u8; conduit_pulse_capture::MAXIMUM_OCTETS],
         length: &mut usize,
+        observation: &mut CaptureObservation,
     ) -> bool {
-        if !self.wait_level(true, start, request.capture_timeout_us)
-            || !self.wait_level(false, start, request.capture_timeout_us)
-        {
+        observation.phase = CapturePhase::ReleaseRise;
+        if !self.wait_level(true, start, request.capture_timeout_us) {
+            return false;
+        }
+        observation.phase = CapturePhase::ResponseLow;
+        if !self.wait_level(false, start, request.capture_timeout_us) {
             return false;
         }
         for _ in 0..request.skip_high_pulses {
-            if !self.wait_level(true, start, request.capture_timeout_us)
-                || !self.wait_level(false, start, request.capture_timeout_us)
-            {
+            observation.phase = CapturePhase::SkippedRise;
+            if !self.wait_level(true, start, request.capture_timeout_us) {
+                return false;
+            }
+            observation.phase = CapturePhase::SkippedFall;
+            if !self.wait_level(false, start, request.capture_timeout_us) {
                 return false;
             }
         }
         for octet in wire.iter_mut().take(usize::from(request.octets)) {
             let mut value = 0;
             for _ in 0..8 {
+                observation.phase = CapturePhase::DataRise;
                 if !self.wait_level(true, start, request.capture_timeout_us) {
                     return false;
                 }
+                observation.phase = CapturePhase::Sample;
                 self.delay
                     .delay_micros(u32::from(request.sample_after_rise_us));
                 if start.elapsed().as_micros() >= u64::from(request.capture_timeout_us) {
                     return false;
                 }
                 value = (value << 1) | u8::from(self.pin.is_high());
+                observation.completed_bits += 1;
+                observation.phase = CapturePhase::DataFall;
                 if !self.wait_level(false, start, request.capture_timeout_us) {
                     return false;
                 }
             }
             *octet = value;
             *length += 1;
+            observation.completed_octets = *length as u8;
         }
+        observation.phase = CapturePhase::Complete;
         true
     }
 }
