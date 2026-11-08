@@ -3,7 +3,6 @@
 extern crate alloc;
 pub mod nor;
 mod record;
-pub mod nor;
 pub use record::*;
 #[cfg(test)]
 mod tests;
