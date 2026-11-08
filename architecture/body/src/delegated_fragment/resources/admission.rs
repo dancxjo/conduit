@@ -23,10 +23,10 @@ impl super::super::DelegatedBodyFragment<'_> {
         admit_delegated_plain_resources(&[self], owner, observations)
     }
 
-    fn plain_resource_requests(
+    fn plain_resource_request_count(
         &self,
         actual: &c::HostAdvertisement,
-    ) -> Result<Vec<c::ResourceAdmissionRequest>, DelegatedResourceRefusal> {
+    ) -> Result<usize, DelegatedResourceRefusal> {
         use DelegatedResourceRefusal as E;
         let metadata = self.metadata();
         if c::AssignedIdentity::from_text(actual.profile.as_str()) != self.receiver_profile()
@@ -65,17 +65,27 @@ impl super::super::DelegatedBodyFragment<'_> {
                     .any(|prior| prior.is_ok_and(|p| p.node == node))
             })
             .count();
-        let mut requests: Vec<c::ResourceAdmissionRequest> = Vec::new();
-        requests
-            .try_reserve_exact(placements)
-            .map_err(|_| E::Allocation)?;
+        Ok(placements)
+    }
+
+    fn append_plain_resource_requests(
+        &self,
+        actual: &c::HostAdvertisement,
+        requests: &mut Vec<c::ResourceAdmissionRequest>,
+    ) -> Result<(), DelegatedResourceRefusal> {
+        use DelegatedResourceRefusal as E;
+        let metadata = self.metadata();
+        let entries = || PlainFragmentResources::new(metadata.resource_bindings);
+        // The aggregate has already reserved every fragment's exact row count.
+        // Equal placement text in another fragment remains a separate request.
+        let start = requests.len();
         for entry in entries() {
             let entry = entry.map_err(|_| E::Projection)?;
-            let index = if let Some(index) = requests
+            let index = if let Some(index) = requests[start..]
                 .iter()
                 .position(|r| r.placement_id.as_str() == entry.placement)
             {
-                index
+                start + index
             } else {
                 let mut items = Vec::new();
                 items
@@ -113,7 +123,7 @@ impl super::super::DelegatedBodyFragment<'_> {
                 },
             });
         }
-        Ok(requests)
+        Ok(())
     }
 
     pub(crate) fn check_plain_resource_projection(&self) -> Result<(), DelegatedResourceRefusal> {
@@ -219,7 +229,7 @@ fn resource_requests(
     if !super::super::workset::matches_local_fragment_set(fragments) {
         return Err(E::Scope);
     }
-    let mut requests = Vec::new();
+    let mut placements = 0usize;
     for fragment in fragments {
         let m = fragment.metadata();
         if (
@@ -237,14 +247,19 @@ fn resource_requests(
         ) {
             return Err(E::Scope);
         }
-        let mut prepared = fragment.plain_resource_requests(actual)?;
-        if requests.len() + prepared.len() > c::MAXIMUM_RESOURCE_ADMISSIONS {
+        placements = placements
+            .checked_add(fragment.plain_resource_request_count(actual)?)
+            .ok_or(E::Projection)?;
+        if placements > c::MAXIMUM_RESOURCE_ADMISSIONS {
             return Err(E::Projection);
         }
-        requests
-            .try_reserve_exact(prepared.len())
-            .map_err(|_| E::Allocation)?;
-        requests.append(&mut prepared);
+    }
+    let mut requests = Vec::new();
+    requests
+        .try_reserve_exact(placements)
+        .map_err(|_| E::Allocation)?;
+    for fragment in fragments {
+        fragment.append_plain_resource_requests(actual, &mut requests)?;
     }
     Ok(requests)
 }

@@ -3,8 +3,8 @@ use super::*;
 use core::mem::size_of;
 
 /// Bounds the bridge/Core bookkeeping allocations before any request is built.
-/// Sum every requested buffer, including temporary outer tables and full new
-/// owner backing, rather than assuming their lifetimes do not overlap. Existing
+/// Sum every requested buffer, including the exact aggregate request table and
+/// full new owner backing, rather than assuming disjoint lifetimes. Existing
 /// owner inventory, caller observations, allocator overhead and execution/kernel
 /// storage are separate charges. No resource reservation or authority is issued.
 pub fn delegated_plain_resource_preparation_bytes(
@@ -64,10 +64,9 @@ pub fn delegated_plain_resource_preparation_bytes(
         if placements > c::MAXIMUM_RESOURCE_ADMISSIONS {
             return Err(E::PreparationCapacity);
         }
-        // One fragment's request table and each growing aggregate request table.
-        bound.add(local, size_of::<c::ResourceAdmissionRequest>())?;
-        bound.add(placements, size_of::<c::ResourceAdmissionRequest>())?;
     }
+    // The bridge reserves one exact aggregate table before constructing rows.
+    bound.add(placements, size_of::<c::ResourceAdmissionRequest>())?;
     if placements != 0 {
         bound.add(placements, size_of::<c::ResourceAdmission>())?;
         bound.add(

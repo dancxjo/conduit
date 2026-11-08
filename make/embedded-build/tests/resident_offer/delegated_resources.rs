@@ -331,6 +331,12 @@ pub fn batch(
         ))
     ));
     assert_eq!(owner, before);
+    let bridge_bound = delegated_plain_resource_preparation_bytes(
+        &[&left, &right],
+        &owner,
+        core::slice::from_ref(&observed),
+    )
+    .unwrap();
     let (_, preparation) = crate::probe::observe(|| {
         admit_delegated_plain_resources(
             &[&left, &right],
@@ -339,6 +345,10 @@ pub fn batch(
         )
         .unwrap();
     });
+    // Only Core grows the preexisting reservation ledger. The bridge creates
+    // its complete request table once, without per-fragment reallocations.
+    assert_eq!(preparation.reallocations, 1);
+    assert!(preparation.requested_bytes <= bridge_bound);
     let admitted = &owner.admissions()[before.admissions().len()..];
     assert_eq!(admitted.len(), 2);
     assert_eq!(
