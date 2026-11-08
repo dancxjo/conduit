@@ -4,6 +4,8 @@
 use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
 };
+mod encoder;
+pub use encoder::{RecordingClock, RecordingEncoderBack};
 mod history;
 mod host_call;
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};
