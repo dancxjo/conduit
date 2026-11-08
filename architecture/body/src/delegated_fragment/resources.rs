@@ -68,9 +68,17 @@ impl<'a> Iterator for PlainFragmentResources<'a> {
 mod admission;
 #[cfg(feature = "authenticated-admission")]
 pub use admission::{
-    admit_delegated_plain_resources, reserve_delegated_plain_resources, DelegatedResourceRefusal,
+    admit_delegated_plain_resources, admit_delegated_resources, reserve_delegated_plain_resources,
+    reserve_delegated_resources, DelegatedResourceRefusal,
 };
 #[cfg(feature = "authenticated-admission")]
 mod preparation_bound;
 #[cfg(feature = "authenticated-admission")]
-pub use preparation_bound::delegated_plain_resource_preparation_bytes;
+pub use preparation_bound::{
+    delegated_plain_resource_preparation_bytes, delegated_resource_preparation_bytes,
+};
+
+mod content_wire;
+pub use content_wire::{FragmentContent, FragmentContentContract};
+mod projection;
+pub use projection::{FragmentResource, FragmentResources};

@@ -12,6 +12,23 @@ pub fn delegated_plain_resource_preparation_bytes(
     owner: &c::ResourceAdmissionOwner,
     observations: &[c::ResourceObservation],
 ) -> Result<usize, DelegatedResourceRefusal> {
+    preparation_bytes(fragments, owner, observations, false)
+}
+/// Fund signed content-contract conversion in addition to the complete existing
+/// Core reservation bookkeeping. Caller inventory/observations remain separate.
+pub fn delegated_resource_preparation_bytes(
+    fragments: &[&super::super::DelegatedBodyFragment<'_>],
+    owner: &c::ResourceAdmissionOwner,
+    observations: &[c::ResourceObservation],
+) -> Result<usize, DelegatedResourceRefusal> {
+    preparation_bytes(fragments, owner, observations, true)
+}
+fn preparation_bytes(
+    fragments: &[&super::super::DelegatedBodyFragment<'_>],
+    owner: &c::ResourceAdmissionOwner,
+    observations: &[c::ResourceObservation],
+    allow_content: bool,
+) -> Result<usize, DelegatedResourceRefusal> {
     use DelegatedResourceRefusal as E;
     if fragments.len() > c::MAXIMUM_RESOURCE_ADMISSIONS
         || !super::super::workset::matches_local_fragment_set(fragments)
@@ -32,10 +49,19 @@ pub fn delegated_plain_resource_preparation_bytes(
             return Err(E::Scope);
         }
         fragment.check_plain_resource_projection()?;
-        let entries = || PlainFragmentResources::new(m.resource_bindings);
+        let entries = || FragmentResources::new(m.resource_bindings);
         let mut local = 0usize;
         for (index, entry) in entries().enumerate() {
             let entry = entry.map_err(|_| E::Projection)?;
+            if let Some(content) = entry.content {
+                if !allow_content {
+                    return Err(E::UnsupportedPool);
+                }
+                bound.add(2, content.contract.content_profile.len())?;
+                for text in [m.host, m.boot, content.base, content.residence_profile] {
+                    bound.add(1, text.len())?;
+                }
+            }
             let observed = observations
                 .iter()
                 .find(|o| o.pool_id.as_str() == entry.pool && o.class_id.as_str() == entry.class)

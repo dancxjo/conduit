@@ -26,6 +26,7 @@ impl super::super::DelegatedBodyFragment<'_> {
     fn plain_resource_request_count(
         &self,
         actual: &c::HostAdvertisement,
+        allow_content: bool,
     ) -> Result<usize, DelegatedResourceRefusal> {
         use DelegatedResourceRefusal as E;
         let metadata = self.metadata();
@@ -36,7 +37,7 @@ impl super::super::DelegatedBodyFragment<'_> {
         {
             return Err(E::Scope);
         }
-        let entries = || PlainFragmentResources::new(metadata.resource_bindings);
+        let entries = || FragmentResources::new(metadata.resource_bindings);
         // All signed descriptors and numeric correspondence are checked before
         // allocating requests or changing the existing reservation ledger.
         self.check_plain_resource_projection()?;
@@ -49,7 +50,10 @@ impl super::super::DelegatedBodyFragment<'_> {
                     pool.pool_id.as_str() == item.pool && pool.class_id.as_str() == item.class
                 })
                 .ok_or(E::UnsupportedPool)?;
-            if pool.compute.is_some() || pool.content.is_some() {
+            if pool.compute.is_some()
+                || (item.content.is_some() && !allow_content)
+                || pool.content.is_some() != item.content.is_some()
+            {
                 return Err(E::UnsupportedPool);
             }
         }
@@ -75,7 +79,7 @@ impl super::super::DelegatedBodyFragment<'_> {
     ) -> Result<(), DelegatedResourceRefusal> {
         use DelegatedResourceRefusal as E;
         let metadata = self.metadata();
-        let entries = || PlainFragmentResources::new(metadata.resource_bindings);
+        let entries = || FragmentResources::new(metadata.resource_bindings);
         // The aggregate has already reserved every fragment's exact row count.
         // Equal placement text in another fragment remains a separate request.
         let start = requests.len();
@@ -105,13 +109,29 @@ impl super::super::DelegatedBodyFragment<'_> {
                 });
                 requests.len() - 1
             };
+            let requirement_content = entry
+                .content
+                .map(|content| content.contract.owned())
+                .transpose()?;
+            let binding_content = entry
+                .content
+                .map(|content| -> Result<_, E> {
+                    Ok(c::ResourceContentOffer {
+                        contract: content.contract.owned()?,
+                        owner_host: copy_id(metadata.host)?.into(),
+                        owner_boot: copy_id(metadata.boot)?.into(),
+                        base_id: copy_id(content.base)?.into(),
+                        residence_profile: copy_id(content.residence_profile)?.into(),
+                    })
+                })
+                .transpose()?;
             requests[index].items.push(c::ResourceAdmissionItem {
                 requirement: c::ResourceRequirement {
                     class_id: copy_id(entry.class)?.into(),
                     units: entry.units,
                     protected_role: None,
                     compute: None,
-                    content: None,
+                    content: requirement_content,
                 },
                 binding: c::ResourceBinding {
                     pool_id: copy_id(entry.pool)?.into(),
@@ -119,7 +139,7 @@ impl super::super::DelegatedBodyFragment<'_> {
                     units: entry.units,
                     protected: None,
                     compute: None,
-                    content: None,
+                    content: binding_content,
                 },
             });
         }
@@ -128,7 +148,7 @@ impl super::super::DelegatedBodyFragment<'_> {
 
     pub(crate) fn check_plain_resource_projection(&self) -> Result<(), DelegatedResourceRefusal> {
         use DelegatedResourceRefusal::Projection as E;
-        let entries = || PlainFragmentResources::new(self.metadata().resource_bindings);
+        let entries = || FragmentResources::new(self.metadata().resource_bindings);
         let mut count = 0usize;
         for (index, entry) in entries().enumerate() {
             if index >= c::MAXIMUM_BINDINGS_PER_ADMISSION {
@@ -190,7 +210,7 @@ pub fn admit_delegated_plain_resources<'o>(
     owner: &'o mut c::ResourceAdmissionOwner,
     observations: &[c::ResourceObservation],
 ) -> Result<&'o [c::ResourceAdmission], DelegatedResourceRefusal> {
-    let requests = resource_requests(fragments, owner.host())?;
+    let requests = resource_requests(fragments, owner.host(), false)?;
     if requests.is_empty() {
         let end = owner.admissions().len();
         return Ok(&owner.admissions()[end..]);
@@ -207,7 +227,39 @@ pub fn reserve_delegated_plain_resources<'o>(
     owner: &'o mut c::ResourceAdmissionOwner,
     observations: &[c::ResourceObservation],
 ) -> Result<c::ResourceAdmissionScope<'o>, DelegatedResourceRefusal> {
-    let requests = resource_requests(fragments, owner.host())?;
+    let requests = resource_requests(fragments, owner.host(), false)?;
+    let mut scope = owner.preparation_scope();
+    if !requests.is_empty() {
+        scope
+            .admit_batch(requests, observations)
+            .map_err(DelegatedResourceRefusal::Admission)?;
+    }
+    Ok(scope)
+}
+
+/// Explicit content-capable policy: only exact signed content/residence facts
+/// enter the unchanged atomic Core admission law. This is still no Play grant.
+pub fn admit_delegated_resources<'o>(
+    fragments: &[&super::super::DelegatedBodyFragment<'_>],
+    owner: &'o mut c::ResourceAdmissionOwner,
+    observations: &[c::ResourceObservation],
+) -> Result<&'o [c::ResourceAdmission], DelegatedResourceRefusal> {
+    let requests = resource_requests(fragments, owner.host(), true)?;
+    if requests.is_empty() {
+        let end = owner.admissions().len();
+        return Ok(&owner.admissions()[end..]);
+    }
+    owner
+        .admit_batch(requests, observations)
+        .map_err(DelegatedResourceRefusal::Admission)
+}
+/// Content-capable preparation reservation; Drop releases only this attempt.
+pub fn reserve_delegated_resources<'o>(
+    fragments: &[&super::super::DelegatedBodyFragment<'_>],
+    owner: &'o mut c::ResourceAdmissionOwner,
+    observations: &[c::ResourceObservation],
+) -> Result<c::ResourceAdmissionScope<'o>, DelegatedResourceRefusal> {
+    let requests = resource_requests(fragments, owner.host(), true)?;
     let mut scope = owner.preparation_scope();
     if !requests.is_empty() {
         scope
@@ -220,6 +272,7 @@ pub fn reserve_delegated_plain_resources<'o>(
 fn resource_requests(
     fragments: &[&super::super::DelegatedBodyFragment<'_>],
     actual: &c::HostAdvertisement,
+    allow_content: bool,
 ) -> Result<Vec<c::ResourceAdmissionRequest>, DelegatedResourceRefusal> {
     use DelegatedResourceRefusal as E;
     if fragments.len() > c::MAXIMUM_RESOURCE_ADMISSIONS {
@@ -248,7 +301,7 @@ fn resource_requests(
             return Err(E::Scope);
         }
         placements = placements
-            .checked_add(fragment.plain_resource_request_count(actual)?)
+            .checked_add(fragment.plain_resource_request_count(actual, allow_content)?)
             .ok_or(E::Projection)?;
         if placements > c::MAXIMUM_RESOURCE_ADMISSIONS {
             return Err(E::Projection);
@@ -265,8 +318,8 @@ fn resource_requests(
 }
 
 // Build original signed IDs fallibly; converting the owned String into its typed
-// identity moves the allocation. No richer catalog or contract is reconstructed.
-fn copy_id(text: &str) -> Result<alloc::string::String, DelegatedResourceRefusal> {
+// identity moves the allocation. No offer catalog is reconstructed.
+pub(super) fn copy_id(text: &str) -> Result<alloc::string::String, DelegatedResourceRefusal> {
     let mut owned = alloc::string::String::new();
     owned
         .try_reserve_exact(text.len())

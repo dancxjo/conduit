@@ -147,3 +147,8 @@ pub(super) fn finish_receive<'a>(
         .map_err(E::Resources)?;
     Ok(prepared)
 }
+
+// Explicit CPU resource-bridge fixtures; these do not prove authenticated ingress.
+#[cfg(test)]
+#[path = "resources/resource_tests.rs"]
+mod resource_tests;
