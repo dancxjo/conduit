@@ -10,6 +10,7 @@ use embassy_usb::{
     Builder, UsbDevice,
 };
 mod panic_capture;
+mod stack_probe;
 use static_cell::StaticCell;
 mod bootsel;
 mod credential_source;
@@ -113,6 +114,7 @@ fn usb(
 async fn main(spawner: Spawner) {
     // SAFETY: exclusive boot initialization before spawning allocation users.
     unsafe { heap::initialize() };
+    stack_probe::initialize();
     let p = embassy_rp::init(Default::default());
     let (serial, credentials) = {
         let mut flash = credential_source::Device::new_blocking(p.FLASH);
@@ -157,13 +159,12 @@ async fn main(spawner: Spawner) {
     if let Some(serial) = serial {
         let host = alloc::format!("rp2040/flash/{serial}");
         if let Some(seed) = seed::Seed::load(&host) {
-            let future = core::pin::pin!(runtime::run(
-                seed,
-                host,
-                [rng.next_u64(), rng.next_u64()],
-                &mut link,
-            ));
-            conduit_mcu_host_runtime::poll_boundary::separate(future).await;
+            spawner.spawn(
+                runtime::root_task(seed, host, [rng.next_u64(), rng.next_u64()], link).unwrap(),
+            );
+            // The executor owns this Root independently; the boot task does not
+            // remain on its preparation/execution poll stack.
+            match core::future::pending::<core::convert::Infallible>().await {}
         }
     }
     #[cfg(not(sensor_dht11))]

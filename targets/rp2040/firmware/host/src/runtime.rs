@@ -4,6 +4,15 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{BootId, HostAdvertisement, HostId, HostProfileId, OfferGeneration};
 use conduit_mcu_host_runtime::root::{Configuration, RootStorage};
+#[embassy_executor::task]
+pub async fn root_task(
+    seed: crate::seed::Seed<'static>,
+    host: String,
+    nonce: [u64; 2],
+    mut link: crate::transport::Link,
+) -> ! {
+    run(seed, host, nonce, &mut link).await
+}
 pub async fn run(
     seed: crate::seed::Seed<'static>,
     host: String,
