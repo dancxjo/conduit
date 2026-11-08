@@ -108,6 +108,7 @@ impl<
     > PreparedFragment<B, N, C, P, R, T, H, S>
 {
     #[allow(clippy::too_many_arguments)]
+    #[inline(never)] // Per-kernel table scratch must end before the next constructor.
     pub fn prepare<E>(
         approved: &b::DelegatedBodyFragment<'_>,
         profile: b::AssignedBodyPreparationProfile<'_>,
