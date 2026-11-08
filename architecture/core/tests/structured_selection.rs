@@ -398,3 +398,6 @@ fn canonical_selection_validates_the_whole_input_and_writes_the_exact_value() {
         Err(StructuredSelectorRefusal::MalformedCheckedValue)
     );
 }
+
+#[path = "structured_selection/borrowed.rs"]
+mod borrowed;
