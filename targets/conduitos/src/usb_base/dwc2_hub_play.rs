@@ -78,6 +78,7 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
         .map_err(E::Pipe)?;
         let descriptor = PreparedHidDescriptorPipe::prepare(host_id.clone(), boot_id.clone())
             .map_err(E::Pipe)?;
+        crate::protocol_source::preparation_stage("usb-hub-package");
         let package = usb_hub_input_package().map_err(E::Source)?;
         let bytes = serde_json::to_vec(&package).map_err(|_| E::Binding)?;
         let entry = PreparedProtocolEntry::prepare(&bytes, "usb-hub-input").map_err(E::Source)?;
@@ -118,9 +119,12 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
             capabilities: alloc::vec![],
             planner_capabilities: alloc::vec![],
         };
+        crate::protocol_source::preparation_stage("usb-hub-publish-backs");
         entry.publish_pure_backs(&mut host).map_err(E::Source)?;
         let hosts = [host];
+        crate::protocol_source::preparation_stage("usb-hub-place");
         let placements = entry.placements(&hosts).map_err(E::Source)?;
+        crate::protocol_source::preparation_stage("usb-hub-plan");
         let artifact = entry
             .plan(
                 &hosts,
@@ -137,6 +141,7 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
                 },
             )
             .map_err(E::Source)?;
+        crate::protocol_source::preparation_stage("usb-hub-plan-ready");
         let boundary = &artifact.artifact().definition().boundary;
         let input = |name: &str| {
             boundary
@@ -169,8 +174,10 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
         let setup_first = fields[0].name() == "setup";
         let request =
             PreparedStructuredComposer::new(contract.request_type(), 4096).map_err(E::Value)?;
+        crate::protocol_source::preparation_stage("usb-hub-kernel");
         let run =
             PreparedUsbSourceKernel::prepare_pure(artifact, Default::default()).map_err(E::Call)?;
+        crate::protocol_source::preparation_stage("usb-hub-ready");
         Ok(Self {
             run,
             control: Some(control),

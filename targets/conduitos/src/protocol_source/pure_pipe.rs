@@ -43,6 +43,7 @@ impl PreparedPureProtocolPipe {
     ) -> Result<Self, PurePipeRefusal> {
         use PurePipeRefusal as E;
         let artifact = prepare_stage(package, entry_name, host_id, boot_id)?;
+        crate::protocol_source::preparation_stage("pure-pipe-plan-ready");
         let boundary = &artifact.artifact().definition().boundary;
         let ([input], [output]) = (
             boundary.input_fronts.as_slice(),
@@ -52,7 +53,9 @@ impl PreparedPureProtocolPipe {
         };
         let input = input.external_port.clone();
         let output = output.external_port.clone();
+        crate::protocol_source::preparation_stage("pure-pipe-kernel");
         let play = artifact.prepare_pure(storage).map_err(E::Call)?;
+        crate::protocol_source::preparation_stage("pure-pipe-ready");
         Ok(Self {
             play,
             input: input.port_id,
@@ -168,9 +171,12 @@ pub(super) fn prepare_stage(
         capabilities: vec![],
         planner_capabilities: vec![],
     };
+    crate::protocol_source::preparation_stage("pure-pipe-publish-backs");
     entry.publish_pure_backs(&mut host).map_err(E::Source)?;
     let hosts = [host];
+    crate::protocol_source::preparation_stage("pure-pipe-place");
     let placements = entry.placements(&hosts).map_err(E::Source)?;
+    crate::protocol_source::preparation_stage("pure-pipe-plan");
     let artifact = entry
         .plan(
             &hosts,
