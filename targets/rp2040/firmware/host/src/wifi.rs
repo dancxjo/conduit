@@ -50,6 +50,9 @@ pub async fn run(
         rng.next_u64(),
     );
     spawner.spawn(network(runner).unwrap());
+    // Shared Source execution exposes its real Body Face through admitted
+    // carriers; do not retain the separate diagnostic environmental server.
+    #[cfg(not(shared_source_execution))]
     for _ in 0..crate::environment_http::SESSIONS {
         spawner.spawn(crate::environment_http::run(stack).unwrap());
     }

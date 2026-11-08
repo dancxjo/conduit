@@ -21,6 +21,7 @@ mod environment;
 #[cfg(sensor_dht11)]
 #[path = "environment_dht11.rs"]
 mod environment;
+#[cfg(not(shared_source_execution))]
 mod environment_http;
 mod environment_show;
 #[cfg(sensor_dht11)]

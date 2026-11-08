@@ -28,6 +28,7 @@ fn main() {
         .iter()
         .any(|(_, implementation)| implementation == conduit_host_rp2040::TM1637_IMPLEMENTATION);
     println!("cargo:rustc-check-cfg=cfg(sensor_dht11)");
+    println!("cargo:rustc-check-cfg=cfg(shared_source_execution)");
     let dht = checked
         .resolved_bases()
         .iter()
@@ -324,6 +325,7 @@ fn prepare_dht_workset(
         show_bytes: renderer.show_bytes,
     });
     let mut workset=workset::from_environment(mask).expect("explicit checked workset Source").expect("DHT execution requires explicit --workset-source and all selected --workset-entry inputs");
+    println!("cargo:rustc-cfg=shared_source_execution");
     let resident = workset
         .prepare_selected_residents(
             conduit_host_rp2040::source_build::dht11_tm1637_resident_bounds(),
