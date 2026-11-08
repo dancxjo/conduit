@@ -162,10 +162,8 @@ pub fn prepare<'a, 'f: 'a, 'w>(
     >,
     Refusal<Refusal<&'static str>>,
 > {
-    // Refuse before borrowing any provider or allocating native codecs/kernel
-    // storage. This is deliberately a lower bound, not an aggregate peak or a
-    // resource grant: the caller must independently fund temporary preparation
-    // and the additional Ready/native/Face backing counted by the group.
+    // The original arena funds cold preparation and retained execution.
+    // Check physical kernel headroom after retiring the cold contracts.
     let mask_values = HostedValueStore::canonical_storage_bytes([
         display::RENDERER_FACE_BYTES,
         display::RENDERER_SHOW_BYTES,
