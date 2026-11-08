@@ -13,12 +13,15 @@ use conduit_pulse_capture::{
     installation::PreparedAssignedPulse,
     owner::{PulseHostCall, PulseReadProvider},
 };
-use conduit_tm1637_wire::{installation::PreparedAssignedWrite, owner::WriteHostCall, OpenDrain};
+use conduit_tm1637_wire::{
+    installation::PreparedAssignedWrite, owner::WriteHostCall, OpenDrain, WriteBack,
+};
 
 pub enum Driver<'a, R> {
     Resident(R),
     Software(SoftwareBack<'a>),
     Native(HostCallBack),
+    Write(WriteBack),
 }
 impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
     fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
@@ -26,6 +29,7 @@ impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
             Self::Resident(back) => back.step(io, input),
             Self::Software(back) => back.step(io, input),
             Self::Native(back) => back.step(io, input),
+            Self::Write(back) => back.step(io, input),
         }
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
@@ -33,6 +37,7 @@ impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
             Self::Resident(back) => back.prepared_output(port),
             Self::Software(back) => <SoftwareBack as StepBack<P>>::prepared_output(back, port),
             Self::Native(back) => <HostCallBack as StepBack<P>>::prepared_output(back, port),
+            Self::Write(back) => <WriteBack as StepBack<P>>::prepared_output(back, port),
         }
     }
     fn step_committed(&mut self) {
@@ -40,6 +45,7 @@ impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
             Self::Resident(back) => back.step_committed(),
             Self::Software(back) => <SoftwareBack as StepBack<P>>::step_committed(back),
             Self::Native(back) => <HostCallBack as StepBack<P>>::step_committed(back),
+            Self::Write(back) => <WriteBack as StepBack<P>>::step_committed(back),
         }
     }
     fn cancel(&mut self) {
@@ -47,6 +53,7 @@ impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
             Self::Resident(back) => back.cancel(),
             Self::Software(back) => <SoftwareBack as StepBack<P>>::cancel(back),
             Self::Native(back) => <HostCallBack as StepBack<P>>::cancel(back),
+            Self::Write(back) => <WriteBack as StepBack<P>>::cancel(back),
         }
     }
 }
@@ -357,16 +364,24 @@ where
                 conduit_pulse_capture::PULSE_READ_MAXIMUM_BYTES,
             )));
         }
-        if let Some(node) = self.write_node {
-            drivers[usize::from(node)] = Some(Driver::Native(HostCallBack::new(
-                conduit_tm1637_wire::MAXIMUM_BYTES,
-            )));
-        }
         let calls = Calls {
             pulse: self.native.pulse.map(PreparedAssignedPulse::bind),
             write: self.native.write.map(PreparedAssignedWrite::bind),
             waits: self.native.waits.map(PreparedAssignedWait::bind),
         };
+        if let Some(node) = self.write_node {
+            // This checked Gear is an effect-only sink. Its electrical success
+            // completes without a value; retain the admitted operation ceiling
+            // and the sink's commit-scoped request generations.
+            let maximum_operations = calls
+                .write
+                .as_ref()
+                .expect("checked write owner")
+                .inspection()
+                .scope
+                .maximum_operations;
+            drivers[usize::from(node)] = Some(Driver::Write(WriteBack::new(maximum_operations)));
+        }
         (
             drivers.map(|driver| driver.expect("complete checked driver inventory")),
             calls,
@@ -510,3 +525,7 @@ unsafe impl<L: PreparedResidentEntry, const E: usize> PreparedResidents<E>
         self.0.map(|l| l.map(L::bind))
     }
 }
+
+#[cfg(test)]
+#[path = "execution_factory_tests.rs"]
+mod tests;

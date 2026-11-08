@@ -32,3 +32,4 @@ execution = ["dep:conduit-face", "dep:conduit-seven-segment-mask", "dep:conduit-
 
 [dev-dependencies]
 serde_json = "1"
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc", "step-test-support"] }
