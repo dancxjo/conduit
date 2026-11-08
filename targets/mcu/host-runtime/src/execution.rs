@@ -25,6 +25,24 @@ pub unsafe trait PreparedBacks<const N: usize, const P: usize> {
     fn retained_backing_bytes(&self) -> Option<usize>;
     fn bind(self) -> ([Self::Driver; N], Self::Calls);
 }
+/// Physical backing outside the kernel's own inline storage.
+/// # Safety
+/// Count every external allocation retained by this exact Sign owner.
+pub unsafe trait ExecutionSigns: SignSink {
+    fn external_backing_bytes(&self) -> usize;
+}
+// SAFETY: fixed arrays are wholly inside the kernel allocation.
+unsafe impl<const S: usize> ExecutionSigns for FixedSignLog<S> {
+    fn external_backing_bytes(&self) -> usize {
+        0
+    }
+}
+// SAFETY: the canonical store reports both actual backing capacities.
+unsafe impl ExecutionSigns for HostedSignLog {
+    fn external_backing_bytes(&self) -> usize {
+        self.reserved_storage_bytes()
+    }
+}
 pub type ExecutionKernel<
     D,
     const N: usize,
@@ -34,7 +52,8 @@ pub type ExecutionKernel<
     const T: usize,
     const H: usize,
     const S: usize,
-> = FixedScheduler<D, HostedValueStore, FixedSignLog<S>, N, C, P, C, R, T, H, H>;
+    L = FixedSignLog<S>,
+> = FixedScheduler<D, HostedValueStore, L, N, C, P, C, R, T, H, H>;
 type Storage<
     B,
     const N: usize,
@@ -44,9 +63,10 @@ type Storage<
     const T: usize,
     const H: usize,
     const S: usize,
+    L,
 > = PreparedKernelStorage<
     <B as PreparedBacks<N, P>>::Driver,
-    ExecutionKernel<<B as PreparedBacks<N, P>>::Driver, N, C, P, R, T, H, S>,
+    ExecutionKernel<<B as PreparedBacks<N, P>>::Driver, N, C, P, R, T, H, S, L>,
     N,
 >;
 #[derive(Clone, Copy)]
@@ -92,8 +112,9 @@ pub struct PreparedFragment<
     const T: usize,
     const H: usize,
     const S: usize,
+    L: ExecutionSigns = FixedSignLog<S>,
 > {
-    storage: Storage<B, N, C, P, R, T, H, S>,
+    storage: Storage<B, N, C, P, R, T, H, S, L>,
     backs: B,
     retained: usize,
 }
@@ -106,7 +127,8 @@ impl<
         const T: usize,
         const H: usize,
         const S: usize,
-    > PreparedFragment<B, N, C, P, R, T, H, S>
+        L: ExecutionSigns,
+    > PreparedFragment<B, N, C, P, R, T, H, S, L>
 {
     #[allow(clippy::too_many_arguments)]
     #[inline(never)] // Per-kernel table scratch must end before the next constructor.
@@ -116,7 +138,7 @@ impl<
         fore: &[c::AssignedForeRequirement],
         layout: &ResidentLayout<'_>,
         values: HostedValueStore,
-        signs: FixedSignLog<S>,
+        signs: L,
         maximum_retained_bytes: usize,
         factory: impl FnOnce() -> Result<B, E>,
     ) -> Result<Self, Refusal<E>> {
@@ -136,11 +158,12 @@ impl<
             .retained_backing_bytes()
             .ok_or(Refusal::Bounds)?
             .checked_add(values.reserved_storage_bytes())
+            .and_then(|n| n.checked_add(signs.external_backing_bytes()))
             .ok_or(Refusal::Bounds)?;
         let remaining = maximum_retained_bytes
             .checked_sub(backing)
             .ok_or(Refusal::Bounds)?;
-        let storage = ExecutionKernel::<B::Driver, N, C, P, R, T, H, S>::prepare_boxed(
+        let storage = ExecutionKernel::<B::Driver, N, C, P, R, T, H, S, L>::prepare_boxed(
             nodes,
             cords,
             tables.nodes,
@@ -173,10 +196,12 @@ unsafe impl<
         const T: usize,
         const H: usize,
         const S: usize,
-    > super::execution_workset::PreparedLocalKernels for PreparedFragment<B, N, C, P, R, T, H, S>
+        L: ExecutionSigns,
+    > super::execution_workset::PreparedLocalKernels
+    for PreparedFragment<B, N, C, P, R, T, H, S, L>
 {
     type Bound = (
-        Box<ExecutionKernel<B::Driver, N, C, P, R, T, H, S>>,
+        Box<ExecutionKernel<B::Driver, N, C, P, R, T, H, S, L>>,
         B::Calls,
     );
     fn retained_backing_bytes(&self) -> Option<usize> {

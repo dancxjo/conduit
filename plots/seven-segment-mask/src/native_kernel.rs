@@ -9,3 +9,12 @@ mod assigned;
 pub use assigned::*;
 mod backs;
 pub use backs::MaskBack;
+
+/// Retain the same finite lifecycle quota on first preparation and rearm.
+pub fn prepare_signs() -> Result<k::FixedSignLog<64>, k::SignError> {
+    k::FixedSignLog::new_with_remote_storage(
+        (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
+        12,
+        k::remote_sign_storage_bytes(12).ok_or(k::SignError::InvalidBudget)?,
+    )
+}

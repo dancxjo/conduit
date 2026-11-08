@@ -293,9 +293,8 @@ pub async fn run<'r, 'f>(
             if drained {
                 let count = mask.drained_event_count().expect("normally drained Mask");
                 if archive.capacity() - archive.len() >= count && !invocations.is_full() {
-                    let signs =
-                        k::FixedSignLog::new((64 * core::mem::size_of::<k::KernelEvent>()) as u32)
-                            .expect("pre-admitted fixed Sign capacity");
+                    let signs = conduit_seven_segment_mask::native_kernel::prepare_signs()
+                        .expect("pre-admitted fixed Sign capacity");
                     match mask.rearm(signs) {
                         Ok(previous) => {
                             invocations

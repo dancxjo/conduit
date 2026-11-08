@@ -129,12 +129,7 @@ impl PreparedAssignedMaskKernel {
             profile.face_bytes + profile.show_bytes,
         )
         .map_err(E::Values)?;
-        let signs = k::FixedSignLog::<64>::new_with_remote_storage(
-            (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
-            12,
-            k::remote_sign_storage_bytes(12).ok_or(E::Bounds)?,
-        )
-        .map_err(|_| E::Bounds)?;
+        let signs = super::prepare_signs().map_err(|_| E::Bounds)?;
         signs.ensure_remote_capacity(12).map_err(|_| E::Bounds)?;
         let identity = tables.identity;
         let storage = Kernel::prepare_boxed(

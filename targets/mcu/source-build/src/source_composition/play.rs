@@ -6,7 +6,7 @@ use crate::{
 use alloc::boxed::Box;
 use conduit_body as b;
 use conduit_core as c;
-use conduit_kernel::{assigned::ResidentLayout, FixedSignLog, HostedValueStore, NodeId};
+use conduit_kernel::{assigned::ResidentLayout, HostedSignLog, HostedValueStore, NodeId};
 use conduit_mcu_host_runtime::{
     execution::{ExecutionKernel, Policy, PreparedFragment, Refusal},
     execution_authority::{Issuer, NativeFacts},
@@ -30,56 +30,13 @@ use conduit_pulse_capture::installation::ReadyPulseBase;
 use conduit_tm1637_wire::installation::ReadyWriteBase;
 type Pulse = crate::equipment::Capture;
 type Wire = crate::equipment::Wire;
-const FORE_PORTS: usize = {
-    let a = source::sampling_layout::FORE_PORTS;
-    let b = source::mask_layout::FORE_PORTS;
-    let c = source::output_layout::FORE_PORTS;
-    let ab = if a > b { a } else { b };
-    if ab > c {
-        ab
-    } else {
-        c
-    }
-};
-macro_rules! shape {
-    ($name:ident,$module:ident,$tag:ident) => {
-        const $name: usize = source::$module::COUNTS[(c::$tag - 1) as usize] as usize;
-    };
+mod shapes {
+    include!(concat!(env!("OUT_DIR"), "/source_play_shapes.rs"));
 }
-shape!(SN, sampling_layout, ASSIGNED_NODE);
-shape!(SC, sampling_layout, ASSIGNED_CORD);
-const SR: usize = SN * SP;
-shape!(ST, sampling_layout, ASSIGNED_ROUTE_TARGET);
-// Fixed tables are indexed by node/port, not packed record counts.
-const SH: usize = SN;
-shape!(ON, output_layout, ASSIGNED_NODE);
-shape!(OC, output_layout, ASSIGNED_CORD);
-const OR: usize = ON * OP;
-shape!(OT, output_layout, ASSIGNED_ROUTE_TARGET);
-const OH: usize = ON;
-const SP: usize = source::sampling_layout::PORTS_PER_NODE;
-const OP: usize = source::output_layout::PORTS_PER_NODE;
-const SS: usize = source::sampling_layout::SIGN_ITEMS;
-const OS: usize = source::output_layout::SIGN_ITEMS;
-pub type SamplingKernel<'a, 'f> =
-    ExecutionKernel<Driver<'f, resident::BorrowedBack<'a>>, SN, SC, SP, SR, ST, SH, SS>;
-pub type OutputKernel<'a, 'f> =
-    ExecutionKernel<Driver<'f, resident::BorrowedBack<'a>>, ON, OC, OP, OR, OT, OH, OS>;
-#[used]
-#[no_mangle]
-pub static CONDUIT_EXECUTION_KERNEL_BYTES: [usize; 3] = [
-    core::mem::size_of::<SamplingKernel<'static, 'static>>(),
-    core::mem::size_of::<conduit_seven_segment_mask::native_kernel::Kernel>(),
-    core::mem::size_of::<OutputKernel<'static, 'static>>(),
-];
-type SamplingBound<'a, 'f> = (
-    Box<SamplingKernel<'a, 'f>>,
-    conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>,
-);
-type OutputBound<'a, 'f> = (
-    Box<OutputKernel<'a, 'f>>,
-    conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, 0>,
-);
+use shapes::{
+    OutputBound, SamplingBound, FORE_PORTS, OC, OH, ON, OP, OR, OS, OT, SC, SH, SN, SP, SR, SS, ST,
+};
+pub use shapes::{OutputKernel, SamplingKernel, CONDUIT_EXECUTION_KERNEL_BYTES};
 macro_rules! profile {
     ($module:ident,$host:expr,$boot:expr,$fore:expr) => {{
         use crate::workset::generated::$module as f;
@@ -424,7 +381,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                     "kernel-headroom",
                 ));
             }
-            let sample = PreparedFragment::<_, SN, SC, SP, SR, ST, SH, SS>::prepare(
+            let sample = PreparedFragment::<_, SN, SC, SP, SR, ST, SH, SS, HostedSignLog>::prepare(
                 sampling,
                 sampling_profile,
                 sampling_fore,
@@ -433,7 +390,8 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                     counts: source::sampling_layout::COUNTS,
                 },
                 sampling_values,
-                FixedSignLog::new(
+                HostedSignLog::new(
+                    SS as u16,
                     (SS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
                 )
                 .map_err(|_| "sampling-sign-storage")?,
@@ -441,7 +399,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 || Ok::<_, &'static str>(sample_backs),
             )
             .map_err(|error| kernel_refusal(diagnostic, error, "sampling-kernel"))?;
-            let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS>::prepare(
+            let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog>::prepare(
                 output,
                 output_profile,
                 output_fore,
@@ -450,7 +408,8 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                     counts: source::output_layout::COUNTS,
                 },
                 output_values,
-                FixedSignLog::new_with_remote_storage(
+                HostedSignLog::new_with_remote_storage(
+                    OS as u16,
                     (OS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
                     OS as u16,
                     conduit_kernel::remote_sign_storage_bytes(OS as u16)
