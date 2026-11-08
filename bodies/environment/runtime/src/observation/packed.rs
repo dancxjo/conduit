@@ -4,12 +4,13 @@
 //! semantic contract and both Form identities, plus its independent provenance.
 use super::{field, forms, ObservationContract, ObservationRefusal, MAXIMUM_BYTES};
 use conduit_core::{
-    validate_canonical_structured_value as validate, PreparedStructuredComposer as Composer,
-    PreparedStructuredValueValidator, Quantity, StructuredInfoRefusal as R, QUANTITY_ENCODED_LEN,
+    validate_canonical_structured_value as validate, BorrowedStructuredValueValidator,
+    PreparedStructuredComposer as Composer, Quantity, StructuredInfoRefusal as R,
+    QUANTITY_ENCODED_LEN,
 };
 
 pub struct PreparedObservationQuantityForms {
-    validator: PreparedStructuredValueValidator,
+    validator: BorrowedStructuredValueValidator<'static>,
     temperature: Composer,
     humidity: Composer,
     observation: Composer,
@@ -22,15 +23,37 @@ impl PreparedObservationQuantityForms {
 
     pub fn prepare(contract: &ObservationContract) -> Result<Self, R> {
         let ty = contract.observation_type();
-        let leaf = |name| {
+        const OBSERVATION_SCHEMA: &[u8] =
+            include_bytes!(concat!(env!("OUT_DIR"), "/observation.type"));
+        if ty.canonical_bytes()? != OBSERVATION_SCHEMA {
+            return Err(R::WrongType);
+        }
+        let leaf = |name, schema| {
             let ty = field(ty, name)?;
-            Composer::new(ty, ty.canonical_bytes()?.len() + 5 + QUANTITY_ENCODED_LEN)
+            Composer::with_static_schema(
+                ty,
+                schema,
+                ty.canonical_bytes()?.len() + 5 + QUANTITY_ENCODED_LEN,
+            )
         };
         Ok(Self {
-            validator: PreparedStructuredValueValidator::new(ty, MAXIMUM_BYTES as usize)?,
-            temperature: leaf("temperature")?,
-            humidity: leaf("humidity")?,
-            observation: Composer::new(ty, MAXIMUM_BYTES as usize)?,
+            validator: BorrowedStructuredValueValidator::new(
+                OBSERVATION_SCHEMA,
+                MAXIMUM_BYTES as usize,
+            )?,
+            temperature: leaf(
+                "temperature",
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation-temperature.type")),
+            )?,
+            humidity: leaf(
+                "humidity",
+                include_bytes!(concat!(env!("OUT_DIR"), "/observation-humidity.type")),
+            )?,
+            observation: Composer::with_static_schema(
+                ty,
+                OBSERVATION_SCHEMA,
+                MAXIMUM_BYTES as usize,
+            )?,
         })
     }
 
@@ -38,8 +61,7 @@ impl PreparedObservationQuantityForms {
     /// Inexact and overflowing quantities refuse rather than becoming display
     /// rounding. Output is owned so persistence need not hold this codec borrowed.
     pub fn pack(&mut self, canonical: &[u8]) -> Result<[u8; 4], ObservationRefusal> {
-        self.validator.validate(canonical)?;
-        let observation = validate(canonical)?;
+        let observation = self.validator.validate(canonical)?;
         let quantity = |name| -> Result<Quantity, ObservationRefusal> {
             let leaf = observation
                 .record_field(name)?

@@ -123,7 +123,7 @@ impl From<c::QuantityFormRefusal> for ObservationRefusal {
     }
 }
 pub struct PreparedObservationCodec {
-    input: c::PreparedStructuredValueValidator,
+    input: c::BorrowedStructuredValueValidator<'static>,
     temperature: Composer,
     humidity: Composer,
     observation: Composer,
@@ -147,8 +147,12 @@ impl PreparedObservationCodec {
             };
             Ok(bytes)
         };
+        const INPUT_SCHEMA: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/decoded.type"));
+        if contract.input.canonical_bytes()? != INPUT_SCHEMA {
+            return Err(R::WrongType);
+        }
         Ok(Self {
-            input: c::PreparedStructuredValueValidator::new(&contract.input, 1024)?,
+            input: c::BorrowedStructuredValueValidator::new(INPUT_SCHEMA, 1024)?,
             temperature: Composer::with_static_schema(
                 temperature_type,
                 include_bytes!(concat!(env!("OUT_DIR"), "/observation-temperature.type")),
@@ -172,8 +176,7 @@ impl PreparedObservationCodec {
         })
     }
     pub fn convert(&mut self, input: &[u8]) -> Result<&[u8], ObservationRefusal> {
-        self.input.validate(input)?;
-        let decoded = validate(input)?;
+        let decoded = self.input.validate(input)?;
         if let Some(frame) = decoded.variant_payload("frame")? {
             let temperature = i16::try_from(coordinate(
                 frame.record_field("temperature")?.ok_or(R::WrongType)?,
@@ -220,4 +223,24 @@ fn coordinate(value: Value<'_>) -> Result<i128, R> {
             .try_into()
             .map_err(|_| R::MalformedCanonicalEncoding)?,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn linked_observation_codecs_refuse_foreign_contract_types() {
+        let mut contract = ObservationContract::prepare().unwrap();
+        contract.input = contract.observation.clone();
+        assert!(matches!(
+            PreparedObservationCodec::prepare(&contract),
+            Err(R::WrongType)
+        ));
+        let mut contract = ObservationContract::prepare().unwrap();
+        contract.observation = contract.input.clone();
+        assert!(matches!(
+            PreparedObservationQuantityForms::prepare(&contract),
+            Err(R::WrongType)
+        ));
+    }
 }
