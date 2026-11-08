@@ -11,7 +11,6 @@ use conduit_mcu_host_runtime::{
     execution_mask::{PreparedRendererService, ReadyRenderer, RendererClock, RendererService},
     execution_workset::{PreparedLocalKernels, PreparedLocalWorkset, StartedLocalWorkset},
 };
-use serde::Deserialize;
 
 pub struct Scopes {
     pub body: b::BodyId,
@@ -115,12 +114,7 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     {
         return Err(Refusal::Back("fragment-body-scope"));
     }
-    // Deserialize the actual opaque approval's Wake identity, never birth a
-    // surrogate Body just to obtain a conveniently typed identifier.
-    let wake = b::WakeId::deserialize(serde::de::value::BorrowedStrDeserializer::<
-        serde::de::value::Error,
-    >::new(sm.wake))
-    .map_err(|_| Refusal::Back("wake-identity"))?;
+    let wake = sampling.wake_id();
     let basis = FaceBasis {
         body_id: Some(member.body_id.clone()),
         wake_id: Some(wake),

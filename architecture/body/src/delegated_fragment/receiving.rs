@@ -39,6 +39,11 @@ impl<'a> DelegatedBodyFragment<'a> {
     pub fn metadata(&self) -> &BodyFragmentApprovalMetadata<'a> {
         &self.metadata
     }
+    /// Own the exact Wake identity already checked in this opaque fragment.
+    /// This copies provenance only; it supplies no resource or execution grant.
+    pub fn wake_id(&self) -> crate::WakeId {
+        crate::WakeId::bound(self.metadata.wake.into())
+    }
     pub fn projection(&self) -> &'a [u8] {
         self.projection
     }
