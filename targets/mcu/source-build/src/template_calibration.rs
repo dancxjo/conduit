@@ -206,6 +206,12 @@ impl Calibration {
         let mut total = 0usize;
         for (index, entry) in self.entries.iter().enumerate() {
             let mut text = format!("pub const ENTRY:&str={:?};\npub const COUNTS:[u8;conduit_core::ASSIGNED_PLAN_COUNT_KINDS]={:?};\npub const SOURCE_TO_KERNEL:&[u16]=&{:?};\npub const RECORDS:&[conduit_core::AssignedRecordRequirement]=&[\n", entry.name, entry.layout.counts, entry.source_to_kernel);
+            let continuation = format!(
+                "// Inert checked construction; not a sealed current-Boot Plan or execution grant.\npub const PROJECTION_TEMPLATE:&[u8]=&{:?};\npub const PROJECTION_TEMPLATE_DIGEST:[u8;32]={:?};\n",
+                entry.layout.projection_template,
+                entry.layout.projection_template_digest,
+            );
+            text.insert_str(0, &continuation);
             let geometry = format!(
                 "pub const CORD_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\npub const STEP_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\npub const HOST_CALL_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\n",
                 entry.layout.cord_value_slot_capacities,

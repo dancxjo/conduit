@@ -89,6 +89,23 @@ pub fn selector_material(
     Ok(material)
 }
 
+/// Reviewed implementation-generation envelope; execution fuel is independently
+/// admitted through the original private work resource.
+pub fn dht11_tm1637_resident_bounds() -> conduit_embedded_build::ResidentExpressionBounds {
+    conduit_embedded_build::ResidentExpressionBounds {
+        native: p::rust_binding::PreparedNativeBounds {
+            canonical_bytes: 4096,
+            scopes: 64,
+            invariants: 64,
+            contracts: 64,
+        },
+        maximum_occurrences: 4096,
+        maximum_program_bytes: MAXIMUM_RESIDENT_PROGRAM_BYTES,
+        maximum_generated_bytes: 1024 * 1024,
+        private_work_units: DHT11_TM1637_PRIVATE_WORK_UNITS,
+    }
+}
+
 #[cfg(test)]
 #[path = "../../../../architecture/plot/tests/common/compiled_rust.rs"]
 mod compiled_rust;
@@ -192,22 +209,5 @@ mod tests {
                 "conduit_semantic_catalog",
             ],
         );
-    }
-}
-
-/// Reviewed implementation-generation envelope; execution fuel is independently
-/// admitted through the original private work resource.
-pub fn dht11_tm1637_resident_bounds() -> conduit_embedded_build::ResidentExpressionBounds {
-    conduit_embedded_build::ResidentExpressionBounds {
-        native: p::rust_binding::PreparedNativeBounds {
-            canonical_bytes: 4096,
-            scopes: 64,
-            invariants: 64,
-            contracts: 64,
-        },
-        maximum_occurrences: 4096,
-        maximum_program_bytes: MAXIMUM_RESIDENT_PROGRAM_BYTES,
-        maximum_generated_bytes: 1024 * 1024,
-        private_work_units: DHT11_TM1637_PRIVATE_WORK_UNITS,
     }
 }

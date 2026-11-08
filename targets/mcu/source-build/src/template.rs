@@ -25,6 +25,10 @@ pub struct Inputs<'a> {
 }
 
 pub struct Layout {
+    /// Checked calibration bytes and Boot-independent static digest. These are
+    /// inert construction material; fresh sealing/admission remain mandatory.
+    pub projection_template: Vec<u8>,
+    pub projection_template_digest: [u8; 32],
     pub maxima: c::AssignedPlanMaxima,
     pub ports_per_node: usize,
     pub sign_items: u16,
@@ -97,6 +101,8 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     let bytes = generated
         .encode_with_resident_computations(input.maxima, &resident)
         .map_err(|e| format!("assigned encoding: {e:?}"))?;
+    let projection_template_digest =
+        c::assigned_local_projection_template_digest(&bytes, input.maxima).map_err(debug)?;
     let records = generated
         .layout_requirements_with_resident_computations(input.maxima, &resident)
         .map_err(debug)?;
@@ -187,6 +193,8 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
         }
     }
     Ok(Layout {
+        projection_template: bytes,
+        projection_template_digest,
         maxima: input.maxima,
         ports_per_node: kernel
             .input_ports
@@ -352,6 +360,16 @@ mod tests {
         let later = make(&restarted, &boundaries).unwrap();
         assert_eq!(layout.nodes, later.nodes);
         assert_eq!(layout.counts, later.counts);
+        assert_eq!(
+            layout.projection_template_digest,
+            later.projection_template_digest
+        );
+        c::AssignedLocalProjectionTemplate::check(
+            &layout.projection_template,
+            &layout.projection_template_digest,
+            layout.maxima,
+        )
+        .unwrap();
         assert_eq!(layout.records, later.records);
         assert_eq!(layout.configurations, later.configurations);
         assert!(!layout.configurations.is_empty());
