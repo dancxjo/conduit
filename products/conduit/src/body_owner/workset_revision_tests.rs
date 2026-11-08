@@ -203,7 +203,8 @@ fn revision_preflight_preserves_selected_external_fore_bounds() {
             &root,
             &expected,
             &[(&source, &plot)],
-            &invalid
+            &invalid,
+            false,
         )
         .is_err());
     assert_eq!(owner.session.evidence(), &expected);
@@ -216,7 +217,8 @@ fn revision_preflight_preserves_selected_external_fore_bounds() {
             &root,
             &expected,
             &[(&source, &plot)],
-            &foreign
+            &foreign,
+            false,
         )
         .is_err());
     assert_eq!(owner.session.evidence(), &expected);
@@ -226,6 +228,7 @@ fn revision_preflight_preserves_selected_external_fore_bounds() {
             &expected,
             &[(&source, &plot)],
             &boundaries,
+            false,
         )
         .unwrap();
     assert!(owner.session.realization().is_none());
