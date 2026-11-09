@@ -4,6 +4,9 @@ pub struct ContinuationParts<'a, 's> {
     pub bootstrap: &'a b::MemberBootstrap<'s>,
     pub resources: &'a mut ResourceAdmissionOwner,
     pub configuration: &'a Configuration,
+    /// Original empty assignment backing; bytes confer no command attribution.
+    /// Keep output immutable while FreshContinuationScope/Play borrows it.
+    pub workspace: &'a mut [u8],
 }
 impl InstalledContinuationAcceptance {
     /// Borrow descriptive bytes from the SAME independently read accepted media.
@@ -147,11 +150,13 @@ impl<'s, const N: usize> Root<'s, N> {
         {
             return Err(E::Scope);
         }
+        let workspace = self.input.writable().map_err(|_| E::Scope)?;
         self.continuation_attempted = true;
         Ok(ContinuationParts {
             bootstrap: &self.seed,
             resources: &mut self.resources,
             configuration: &self.config,
+            workspace,
         })
     }
 }

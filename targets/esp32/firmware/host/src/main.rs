@@ -16,6 +16,8 @@ use static_cell::StaticCell;
 mod authority;
 mod bootstrap;
 mod equipment;
+#[allow(dead_code)] // Cold continuation is separately opt-in and Root-verified.
+mod installed_continuation;
 mod renderer;
 mod runtime;
 #[cfg(assigned_workset)]

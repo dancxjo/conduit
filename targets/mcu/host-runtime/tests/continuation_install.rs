@@ -354,6 +354,12 @@ fn original_root_selects_commits_and_restores_only_retained_acceptance() {
         {
             let parts = next.take_continuation_parts(&acceptance).unwrap();
             assert_eq!(
+                parts.workspace.len(),
+                24576,
+                "original complete assignment backing"
+            );
+            parts.workspace[..4].copy_from_slice(b"cold");
+            assert_eq!(
                 parts.bootstrap.admission.credential(),
                 Some(&receipt.credential)
             );
@@ -381,6 +387,10 @@ fn original_root_selects_commits_and_restores_only_retained_acceptance() {
                 Err(ContinuationAcceptanceRefusal::Scope)
             ),
             "one Root attempt per Boot"
+        );
+        assert!(
+            !next.retained_input(),
+            "writing cold bytes did not mint a command stamp"
         );
         let mut tampered = selected;
         tampered[20] ^= 1;

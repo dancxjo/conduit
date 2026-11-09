@@ -34,6 +34,9 @@ mod i2c_installation;
 #[allow(dead_code)] // Supporting native issuance inspection remains independent of execution.
 mod i2c_issuance;
 mod i2c_owner;
+#[cfg(sensor_dht11)]
+#[allow(dead_code)] // Cold continuation is separately opt-in and Root-verified.
+mod installed_continuation;
 mod membership;
 #[allow(dead_code)] // Additional bounded composition APIs remain available for qualification.
 mod mixed_preparation;
