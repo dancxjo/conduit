@@ -142,7 +142,7 @@ fn main() {
         conduit_host_rp2040::source_build::native_build::checked_assignment_bytes(&checked)
             .expect("checked finite command workspace");
     let heap = checked.configuration().limits.heap_arena_bytes;
-    assert!((32768..=98304).contains(&heap), "finite preparation arena");
+    assert!((32768..=110592).contains(&heap), "finite preparation arena");
     let local_io = if let Some(dht) = &dht {
         let d = &dht.display;
         format!(

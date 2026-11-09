@@ -27,9 +27,9 @@ host pico-w-house-yellow {
   need = {id: "pool/resident-step-work", class: "kernel/cooperative-step-work@1", slots: 5000, bytes: 16384}
   # Ordinary checked Mask queue declarations require 18624 aggregate bytes;
   # 24576 is the explicit queue ceiling, not measured physical heap use.
-  # Complete three-kernel preparation requires the explicit 96 KiB arena.
+  # Complete three-kernel preparation requires the explicit 108 KiB arena.
   # The tested 80 KiB split refused kernel headroom before Play; stack fitting
   # must be resolved independently rather than claiming that smaller arena fits.
-  # Recording adds two finite cord-value slots; byte/work/arena grants stay explicit above.
-  limits = {static_memory_bytes: 229376, heap_arena_bytes: 98304, queue_items: 18, buffered_bytes: 24576, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
+  # Recording adds two finite cord-value slots; byte/work/arena bounds remain explicit above.
+  limits = {static_memory_bytes: 229376, heap_arena_bytes: 110592, queue_items: 18, buffered_bytes: 24576, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
 }
