@@ -170,3 +170,7 @@ mod body_play_digest;
 pub use body_play_digest::*;
 mod delegated_fragment;
 pub use delegated_fragment::*;
+
+#[cfg(feature = "authenticated-admission")]
+pub mod continuation_artifact;
+pub mod continuation_recipe;
