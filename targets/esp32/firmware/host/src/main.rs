@@ -59,9 +59,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
 #[esp_rtos::main]
 async fn main(_spawner: Spawner) {
     let p = esp_hal::init(esp_hal::Config::default().with_cpu_clock(CpuClock::max()));
-    // One checked internal heap after reserved ROM data/stacks. The linker
-    // proves region geometry, sole section occupancy and primary stack reserve.
-    esp_alloc::heap_allocator!(#[link_section = ".dram2_uninit"] size: config::HEAP_BYTES);
+    initialize_image_heap();
     let timers = TimerGroup::new(p.TIMG0);
     let software = SoftwareInterruptControl::new(p.SW_INTERRUPT);
     esp_rtos::start(timers.timer0, software.software_interrupt0);
@@ -89,4 +87,46 @@ async fn main(_spawner: Spawner) {
     let equipment = config::own_equipment!(p);
     let future = core::pin::pin!(runtime::run(seed, host, nonce, carrier, equipment, p.FLASH));
     conduit_mcu_host_runtime::poll_boundary::separate(future).await
+}
+
+/// Original checked IMAGE backing, installed exactly once before allocation.
+/// Both static owners remain exclusive to the allocator for the whole Boot.
+fn initialize_image_heap() {
+    use core::{
+        mem::MaybeUninit,
+        sync::atomic::{AtomicBool, Ordering},
+    };
+    #[repr(align(16))]
+    struct Arena<const N: usize>([u8; N]);
+    #[link_section = ".dram2_uninit"]
+    static mut SECONDARY: MaybeUninit<Arena<{ config::HEAP_SECONDARY_BYTES }>> =
+        MaybeUninit::uninit();
+    #[link_section = ".image_heap_primary"]
+    static mut PRIMARY: MaybeUninit<Arena<{ config::HEAP_PRIMARY_BYTES }>> = MaybeUninit::uninit();
+    static INITIALIZED: AtomicBool = AtomicBool::new(false);
+    assert!(
+        !INITIALIZED.swap(true, Ordering::Relaxed),
+        "original IMAGE heap initialized twice"
+    );
+    assert_eq!(
+        config::HEAP_SECONDARY_BYTES + config::HEAP_PRIMARY_BYTES,
+        config::HEAP_BYTES
+    );
+    // SAFETY: startup is the only caller, before any allocation or other task.
+    // The linker verifies exact sole-owned extents, physical nonoverlap, total
+    // IMAGE funding and a separate >=64KiB primary stack. No ROM region is used.
+    unsafe {
+        esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
+            core::ptr::addr_of_mut!(SECONDARY).cast::<u8>(),
+            config::HEAP_SECONDARY_BYTES,
+            esp_alloc::MemoryCapability::Internal.into(),
+        ));
+        if config::HEAP_PRIMARY_BYTES != 0 {
+            esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
+                core::ptr::addr_of_mut!(PRIMARY).cast::<u8>(),
+                config::HEAP_PRIMARY_BYTES,
+                esp_alloc::MemoryCapability::Internal.into(),
+            ));
+        }
+    }
 }

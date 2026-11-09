@@ -1,7 +1,9 @@
 //! Checked physical Host construction, separate from runtime admission.
 use sha2::{Digest, Sha256};
 use std::{env, fs, path::PathBuf};
+mod heap_layout;
 fn main() {
+    println!("cargo:rerun-if-changed=heap_layout.rs");
     println!("cargo:rustc-link-arg=-Tlinkall.x");
     for key in [
         "CONDUIT_HOST_CONFIGURATION",
@@ -60,7 +62,8 @@ fn main() {
                 .expect("bounded command workspace")
     );
     assert!(config.limits.buffered_bytes <= config.limits.heap_arena_bytes);
-    assert!(config.limits.heap_arena_bytes <= 98304);
+    let heap = heap_layout::checked(config.limits.heap_arena_bytes)
+        .expect("IMAGE heap must fit the explicitly checked two-region ESP32 construction");
     let recording = if checked
         .configuration()
         .bases
@@ -94,6 +97,8 @@ pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image:?};
 pub const SOURCE_IDENTITY:&str={source_identity:?};
 pub const HEAP_BYTES:usize={heap};
+pub const HEAP_SECONDARY_BYTES:usize={secondary_heap};
+pub const HEAP_PRIMARY_BYTES:usize={primary_heap};
 pub const STATIC_MEMORY_BYTES:usize={static_bytes};
 pub const MAX_ASSIGNMENT_BYTES:usize={assignment};
 pub const MAX_RUNTIME_STATE_BYTES:usize={runtime};
@@ -126,6 +131,8 @@ pub(crate) use own_equipment;
 "#,
         configuration = checked.configuration_id(),
         heap = config.limits.heap_arena_bytes,
+        secondary_heap = heap.secondary,
+        primary_heap = heap.primary,
         static_bytes = config.limits.static_memory_bytes,
         assignment = config
             .preparation
@@ -164,18 +171,34 @@ pub(crate) use own_equipment;
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let arena_script = format!(
         r#"
+SECTIONS {{
+  .image_heap_primary (NOLOAD) : ALIGN(16) {{
+    __image_heap_primary_start = ABSOLUTE(.);
+    KEEP(*(.image_heap_primary))
+    __image_heap_primary_end = ABSOLUTE(.);
+  }} > dram_seg
+}} INSERT BEFORE .stack;
 ASSERT(ORIGIN(dram_seg) == 0x3ffb0000, "unexpected primary DRAM origin");
 ASSERT(LENGTH(dram_seg) == 196608, "unexpected primary DRAM size");
-ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) <= 131072, "primary static DRAM exceeds checked physical share");
+ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.image_heap_primary) <= 131072, "primary static DRAM exceeds checked physical share");
 ASSERT(ORIGIN(dram2_seg) == 0x3ffe7e30, "unexpected secondary DRAM origin");
 ASSERT(LENGTH(dram2_seg) == 98768, "unexpected secondary DRAM size");
 ASSERT(ADDR(.dram2_uninit) == ORIGIN(dram2_seg), "heap not at secondary region origin");
-ASSERT(SIZEOF(.dram2_uninit) == {heap}, "secondary DRAM has another owner or heap size differs");
+ASSERT(SIZEOF(.dram2_uninit) == {secondary_heap}, "secondary DRAM has another owner or heap size differs");
 ASSERT(SIZEOF(.dram2_uninit) <= LENGTH(dram2_seg), "secondary heap exceeds physical region");
-ASSERT(SIZEOF(.stack) >= 16384, "primary stack reserve below 16KiB");
-ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <= {static_bytes}, "static DRAM exceeds checked IMAGE");
+ASSERT(SIZEOF(.image_heap_primary) == {primary_heap}, "primary heap has another owner or differs from IMAGE");
+ASSERT(__image_heap_primary_end - __image_heap_primary_start == {primary_heap}, "primary heap extent differs from IMAGE");
+ASSERT(ADDR(.image_heap_primary) >= ORIGIN(dram_seg), "primary heap below original RAM region");
+ASSERT(ADDR(.image_heap_primary) + SIZEOF(.image_heap_primary) <= ORIGIN(dram_seg) + LENGTH(dram_seg), "primary heap exceeds original RAM region");
+ASSERT(ADDR(.image_heap_primary) + SIZEOF(.image_heap_primary) <= _stack_end, "primary heap overlaps current stack");
+ASSERT(ADDR(.image_heap_primary) + SIZEOF(.image_heap_primary) <= ORIGIN(dram2_seg), "physical IMAGE arenas overlap");
+ASSERT(SIZEOF(.image_heap_primary) + SIZEOF(.dram2_uninit) == {heap}, "physical heap total differs from checked IMAGE");
+ASSERT(SIZEOF(.stack) >= 65536, "primary stack reserve below checked 64KiB");
+ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.image_heap_primary) + SIZEOF(.dram2_uninit) <= {static_bytes}, "static DRAM exceeds checked IMAGE");
 "#,
         heap = config.limits.heap_arena_bytes,
+        secondary_heap = heap.secondary,
+        primary_heap = heap.primary,
         static_bytes = config.limits.static_memory_bytes
     );
     fs::write(out.join("image-arena.x"), arena_script).expect("checked physical arena assertions");
