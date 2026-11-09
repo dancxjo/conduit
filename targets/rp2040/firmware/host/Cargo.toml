@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [dependencies]
+conduit-rp2040-snapshot-nor = { path = "../../snapshot-nor", features = ["rp2040"] }
 conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
 conduit-i2c-transaction = { path = "../../../../mechanisms/io/i2c-transaction", default-features = false }
 conduit-rp2040-i2c = { path = "../../i2c", features = ["rp2040"] }

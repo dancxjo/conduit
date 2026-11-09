@@ -312,7 +312,6 @@ dependencies = [
 name = "conduit-face"
 version = "0.1.0"
 dependencies = [
- "postcard",
  "conduit-body",
  "conduit-core",
  "conduit-human",
@@ -320,6 +319,7 @@ dependencies = [
  "conduit-plot",
  "conduit-time",
  "miniz_oxide",
+ "postcard",
  "serde",
  "serde_json",
  "sha2",
@@ -530,6 +530,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-resource-snapshot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
 name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
@@ -572,6 +579,7 @@ dependencies = [
  "conduit-rp2040-flash-layout",
  "conduit-rp2040-i2c",
  "conduit-rp2040-pulse-capture",
+ "conduit-rp2040-snapshot-nor",
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
@@ -617,6 +625,15 @@ dependencies = [
  "embassy-time",
  "fixed",
  "pio",
+]
+
+[[package]]
+name = "conduit-rp2040-snapshot-nor"
+version = "0.1.0"
+dependencies = [
+ "conduit-resource-snapshot",
+ "conduit-rp2040-flash-layout",
+ "embassy-rp",
 ]
 
 [[package]]

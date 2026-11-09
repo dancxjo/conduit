@@ -12,6 +12,10 @@ use conduit_tm1637_wire::{
 };
 pub const SOURCE_WAIT_SLOTS: usize = crate::workset::sampling::CLOCKS.len();
 pub struct Equipment {
+    pub activity: conduit_mcu_host_runtime::native_runner::NativeActivity,
+    /// Actual sole flash owner; no writable offer or effects before admission.
+    #[allow(dead_code)]
+    pub recording_storage: Option<conduit_esp32_snapshot_nor::hardware::Esp32SnapshotNor<'static>>,
     pub renderer: conduit_mcu_host_runtime::execution_mask::ReadyRenderer<crate::renderer::Clock>,
     pub pulse: Option<ReadyPulseBase<Capture>>,
     pub waits: [Option<
@@ -66,6 +70,7 @@ impl Equipment {
         actual: &HostAdvertisement,
         pulse: Esp32PulseCapture<'static>,
         display: Esp32Tm1637<'static>,
+        recording_storage: conduit_esp32_snapshot_nor::hardware::Esp32SnapshotNor<'static>,
     ) -> Self {
         assert!(
             crate::workset::sampling::CLOCKS.len() + 1 <= crate::config::WAIT_SLOTS,
@@ -83,6 +88,8 @@ impl Equipment {
         // on cancellation/drop. No received assignment can construct this owner.
         unsafe {
             Self {
+                activity: conduit_mcu_host_runtime::native_runner::NativeActivity::new(),
+                recording_storage: Some(recording_storage),
                 renderer: crate::renderer::initialize(actual),
                 waits: core::array::from_fn(|index| {
                     // The renderer owns slot0; only actual Source clocks receive

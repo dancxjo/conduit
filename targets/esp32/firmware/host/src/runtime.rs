@@ -14,6 +14,7 @@ pub async fn run(
     nonce: [u8; 16],
     carrier: Uart0Carrier<'static>,
     equipment: (Esp32PulseCapture<'static>, Esp32Tm1637<'static>),
+    flash: esp_hal::peripherals::FLASH<'static>,
 ) -> ! {
     // SAFETY: same original checked IMAGE constructed the sole physical heap.
     let image_memory = unsafe {
@@ -48,7 +49,15 @@ pub async fn run(
         capabilities: Vec::new(),
         planner_capabilities: Vec::new(),
     };
-    let equipment = crate::equipment::Equipment::new(&actual, equipment.0, equipment.1);
+    let slot = conduit_esp32_snapshot_nor::SlotGeometry::checked(
+        conduit_esp32_snapshot_nor::DURABLE_START,
+        conduit_esp32_snapshot_nor::DURABLE_END - conduit_esp32_snapshot_nor::DURABLE_START,
+    )
+    .expect("checked durable partition extent");
+    let storage = conduit_esp32_snapshot_nor::hardware::prepare(flash, slot)
+        .map_err(|(_, refusal)| refusal)
+        .expect("actual sole flash owner");
+    let equipment = crate::equipment::Equipment::new(&actual, equipment.0, equipment.1, storage);
     equipment
         .publish(&mut actual)
         .expect("bounded actual native publication");

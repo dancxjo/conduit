@@ -116,7 +116,7 @@ async fn main(spawner: Spawner) {
     unsafe { heap::initialize() };
     stack_probe::initialize();
     let p = embassy_rp::init(Default::default());
-    let (serial, credentials) = {
+    let (serial, credentials, flash) = {
         let mut flash = credential_source::Device::new_blocking(p.FLASH);
         let mut uid = [0; 8];
         let serial = flash
@@ -125,8 +125,10 @@ async fn main(spawner: Spawner) {
             .and_then(|_| usb_identity::serial(uid))
             .and_then(|bytes| core::str::from_utf8(SERIAL.init(bytes)).ok());
         let credentials = credential_source::restore(&mut flash);
-        (serial, credentials)
+        (serial, credentials, flash)
     };
+    #[cfg(not(sensor_dht11))]
+    drop(flash);
     // Initialize checked equipment. The GPIO profile performs no measurement
     // or display effects here; its Source must first pass complete admission.
     config::start_local_io!(spawner, p);
@@ -164,6 +166,7 @@ async fn main(spawner: Spawner) {
                 host,
                 [rng.next_u64(), rng.next_u64()],
                 &mut link,
+                flash,
             ));
             conduit_mcu_host_runtime::poll_boundary::separate(future).await;
         }

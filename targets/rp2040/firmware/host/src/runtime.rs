@@ -9,6 +9,7 @@ pub async fn run(
     host: String,
     nonce: [u64; 2],
     link: &mut crate::transport::Link,
+    flash: crate::credential_source::Device,
 ) -> ! {
     // SAFETY: this Root is the sole owner of the arena initialized from the
     // same independently checked IMAGE; no received assignment selects its size.
@@ -39,8 +40,8 @@ pub async fn run(
         capabilities: Vec::new(),
         planner_capabilities: Vec::new(),
     };
-    let equipment =
-        crate::equipment::Equipment::new(&actual).expect("actual initialized Yellow providers");
+    let equipment = crate::equipment::Equipment::new(&actual, flash)
+        .expect("actual initialized Yellow providers");
     equipment
         .publish(&mut actual)
         .expect("bounded compact native facts");

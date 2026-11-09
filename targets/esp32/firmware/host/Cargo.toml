@@ -8,6 +8,7 @@ publish = false
 default = []
 native-host = []
 [dependencies]
+conduit-esp32-snapshot-nor = { path = "../../snapshot-nor" }
 conduit-esp32-electrical = { path = "../../electrical", features = ["host-call", "host-carrier"] }
 conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
 conduit-body = { path = "../../../../architecture/body" }
@@ -51,3 +52,7 @@ codegen-units = 1
 lto = "fat"
 opt-level = "s"
 debug = 1
+
+# ESP32 flash ROM/cache wrappers require optimized code even during type checks.
+[profile.dev.package.esp-storage]
+opt-level = "s"

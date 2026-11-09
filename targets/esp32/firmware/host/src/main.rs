@@ -87,6 +87,6 @@ async fn main(_spawner: Spawner) {
     // Moving these pins proves exclusive physical custody. They are not used
     // until the shared whole-workset admission binds the native providers.
     let equipment = config::own_equipment!(p);
-    let future = core::pin::pin!(runtime::run(seed, host, nonce, carrier, equipment));
+    let future = core::pin::pin!(runtime::run(seed, host, nonce, carrier, equipment, p.FLASH));
     conduit_mcu_host_runtime::poll_boundary::separate(future).await
 }

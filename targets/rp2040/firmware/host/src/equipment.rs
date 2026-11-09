@@ -15,6 +15,11 @@ use conduit_tm1637_wire::{
 };
 pub const WAIT_SLOTS: usize = crate::workset::generated::sampling::CLOCKS.len();
 pub struct Equipment {
+    pub activity: conduit_mcu_host_runtime::native_runner::NativeActivity,
+    /// Sole physical owner retained for separately admitted durable operations.
+    /// No writable capability is published until its Ready owner is installed.
+    #[allow(dead_code)]
+    pub recording_storage: Option<conduit_rp2040_snapshot_nor::SnapshotNor>,
     pub renderer: conduit_mcu_host_runtime::execution_mask::ReadyRenderer<crate::renderer::Clock>,
     pub pulse: Option<ReadyPulseBase<crate::pulse_owner::CaptureLease>>,
     pub display: Option<ReadyWriteBase<crate::tm1637_owner::DisplayLease>>,
@@ -72,7 +77,10 @@ impl Equipment {
         }
         publication.finish()
     }
-    pub fn new(actual: &HostAdvertisement) -> Option<Self> {
+    pub fn new(
+        actual: &HostAdvertisement,
+        flash: crate::credential_source::Device,
+    ) -> Option<Self> {
         if WAIT_SLOTS == 0 || WAIT_SLOTS >= crate::config::TIMER_SLOTS {
             return None;
         }
@@ -83,6 +91,15 @@ impl Equipment {
         // finite initialized Embassy providers under this Host's checked limit.
         unsafe {
             Some(Self {
+                activity: conduit_mcu_host_runtime::native_runner::NativeActivity::new(),
+                recording_storage: Some(conduit_rp2040_snapshot_nor::SnapshotNor::new(
+                    flash,
+                    conduit_rp2040_snapshot_nor::Slot::new(
+                        0,
+                        conduit_rp2040_flash_layout::DURABLE.bytes(),
+                    )
+                    .ok()?,
+                )),
                 renderer: crate::renderer::initialize(actual)?,
                 pulse: Some(
                     ReadyPulseBase::new(

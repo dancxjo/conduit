@@ -68,6 +68,7 @@ pub async fn run<'r, 'f>(
     arena: ImageMemoryLease<'_>,
     face: &conduit_environment_runtime::publication_face_custody::LocalPublicationFace,
     link: &mut crate::transport::Link,
+    activity: &conduit_mcu_host_runtime::native_runner::NativeActivity,
 ) -> ! {
     let inspection = State::<3>::new(&evidence);
     let delivery = RefCell::new(Delivery::Empty);
@@ -120,6 +121,7 @@ pub async fn run<'r, 'f>(
             &yield_to_host,
             &cancelled,
         )
+        .with_activity(activity)
         .run(&mut sampling_calls)
         .await;
         if let Some(event) = sampling.signs().events().last() {
@@ -145,6 +147,7 @@ pub async fn run<'r, 'f>(
             &yield_to_host,
             &cancelled,
         )
+        .with_activity(activity)
         .run(&mut output_calls)
         .await;
         if let Some(event) = output.signs().events().last() {
