@@ -308,7 +308,7 @@ fn explicit_caller_extent_carries_a_larger_document_without_larger_frames() {
         assert!(chunk.len() <= PREPARATION_FRAME_BYTES);
         assembly.push(chunk).unwrap();
     }
-    assert_eq!(assembly.complete().unwrap(), payload.as_slice());
+    assert_eq!(assembly.completed().unwrap().0, payload.as_slice());
 }
 
 #[test]
