@@ -189,6 +189,7 @@ fn snapshot_failure(error: SnapshotRefusal) -> Failure {
         SnapshotRefusal::ContentExtent => 207,
         SnapshotRefusal::CorruptRecord => 208,
         SnapshotRefusal::UnsupportedExpiry => 210,
+        SnapshotRefusal::LocalReference(_) => 211,
     };
     Failure {
         code: FailureCode::HostCallFailed,

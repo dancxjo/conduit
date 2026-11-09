@@ -438,7 +438,7 @@ pub fn assigned_computation_requirements(
 ) -> Result<Vec<conduit_core::AssignedComputationRequirement>, GenerationError> {
     plan.configuration
         .iter()
-        .filter(|entry| matches!(entry.key.as_str(), "program" | "selector"))
+        .filter(|entry| matches!(entry.key.as_str(), "program" | "selector" | "reference"))
         .map(|entry| {
             let GeneratedConfigurationValue::Text(text) = &entry.value else {
                 return Err(GenerationError::InvalidComputationConfiguration);
