@@ -63,3 +63,6 @@ pub mod native_values;
 
 #[cfg(feature = "execution")]
 pub mod execution_inspection;
+
+#[cfg(feature = "execution")]
+pub mod continuation_native;

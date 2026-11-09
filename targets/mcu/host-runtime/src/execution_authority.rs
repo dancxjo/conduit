@@ -6,6 +6,8 @@ use alloc::string::String;
 use conduit_body as b;
 use conduit_core as c;
 use sha2::{Digest, Sha256};
+#[path = "execution_authority_continuation.rs"]
+mod continuation;
 #[path = "execution_authority_grant.rs"]
 mod grant_identity;
 
@@ -138,6 +140,16 @@ impl Issuer {
     ) -> Result<(), Refusal> {
         selected_description(context, policy, native)?;
         let fingerprint = fingerprint(context, native, operation);
+        self.authorize_checked(fingerprint, native, operation, grant_id, maximum_bytes)
+    }
+    fn authorize_checked(
+        &mut self,
+        fingerprint: [u8; 32],
+        native: &NativeFacts<'_>,
+        operation: &Operation<'_>,
+        grant_id: &str,
+        maximum_bytes: usize,
+    ) -> Result<(), Refusal> {
         if grant_id.is_empty() || grant_id.len() > maximum_bytes {
             return Err(Refusal::Bounds);
         }
@@ -175,17 +187,40 @@ impl Issuer {
         maximum_bytes: usize,
     ) -> Result<Issued, Refusal> {
         selected(context, policy, native)?;
+        self.issue_checked(
+            context.bootstrap.admission.secret(),
+            context.actual,
+            context.member.body_id.as_str(),
+            fingerprint(context, native, op),
+            approved,
+            native,
+            op,
+            maximum_bytes,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn issue_checked(
+        &mut self,
+        secret: &[u8; 32],
+        actual: &c::HostAdvertisement,
+        body: &str,
+        fingerprint: [u8; 32],
+        approved: &b::DelegatedBodyFragment<'_>,
+        native: &NativeFacts<'_>,
+        op: &Operation<'_>,
+        maximum_bytes: usize,
+    ) -> Result<Issued, Refusal> {
         let (grant, old) = self.original.as_ref().ok_or(Refusal::Scope)?;
-        if old != &fingerprint(context, native, op) {
+        if old != &fingerprint {
             return Err(Refusal::Scope);
         }
         let m = approved.metadata();
-        if m.body != context.member.body_id.as_str()
+        if m.body != body
             || m.host != native.host.as_str()
             || m.boot != native.boot.as_str()
-            || m.offer_generation != context.actual.offer_generation.0
+            || m.offer_generation != actual.offer_generation.0
             || approved.receiver_profile()
-                != c::AssignedIdentity::from_text(context.actual.profile.as_str())
+                != c::AssignedIdentity::from_text(actual.profile.as_str())
         {
             return Err(Refusal::Scope);
         }
@@ -193,7 +228,7 @@ impl Issuer {
         self.next = attempt.checked_add(1).ok_or(Refusal::Bounds)?;
         let mut hash = Sha256::new();
         hash.update(b"conduit.mcu/native-capability-issuer@1\0");
-        hash.update(context.bootstrap.admission.secret());
+        hash.update(secret);
         hash.update(attempt.to_le_bytes());
         hash.update(old);
         let key = hash.finalize().into();
@@ -372,11 +407,26 @@ fn fingerprint(
     native: &NativeFacts<'_>,
     op: &Operation<'_>,
 ) -> [u8; 32] {
-    let mut h = Sha256::new();
-    for text in [
+    fingerprint_parts(
         context.image_id,
         context.configuration_id,
         context.member.body_id.as_str(),
+        native,
+        op,
+    )
+}
+fn fingerprint_parts(
+    image: &str,
+    configuration: &str,
+    body: &str,
+    native: &NativeFacts<'_>,
+    op: &Operation<'_>,
+) -> [u8; 32] {
+    let mut h = Sha256::new();
+    for text in [
+        image,
+        configuration,
+        body,
         native.host.as_str(),
         native.boot.as_str(),
         native.instance.as_str(),

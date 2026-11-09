@@ -80,10 +80,33 @@ pub(super) fn finish_receive<'a>(
     actual: &c::HostAdvertisement,
     member: &crate::MembershipCredential,
     policy: &HostPreparationDelegation,
+    profile: AssignedBodyPreparationProfile<'_>,
+) -> Result<DelegatedBodyFragment<'a>, DelegatedFragmentRefusal> {
+    finish_checked(
+        metadata,
+        projection,
+        actual,
+        member.body_id.as_str(),
+        policy.maximum_assignment_bytes,
+        policy.maximum_runtime_state_bytes,
+        profile,
+    )
+}
+
+// Shared validation below attribution. Callers must retain their ORIGINAL
+// authenticated origin; these private inputs cannot construct an approval.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn finish_checked<'a>(
+    metadata: BodyFragmentApprovalMetadata<'a>,
+    projection: &'a [u8],
+    actual: &c::HostAdvertisement,
+    body: &str,
+    maximum_assignment_bytes: u32,
+    maximum_runtime_state_bytes: u32,
     mut profile: AssignedBodyPreparationProfile<'_>,
 ) -> Result<DelegatedBodyFragment<'a>, DelegatedFragmentRefusal> {
     use DelegatedFragmentRefusal as E;
-    if metadata.body != member.body_id.as_str()
+    if metadata.body != body
         || metadata.host != actual.host_id.as_str()
         || metadata.boot != actual.boot_id.as_str()
         || metadata.offer_generation != actual.offer_generation.0
@@ -109,9 +132,9 @@ pub(super) fn finish_receive<'a>(
     }
     // Policy may narrow an actual profile, never silently enlarge its grants.
     profile.maxima.encoded_bytes =
-        u32::from(profile.maxima.encoded_bytes).min(policy.maximum_assignment_bytes) as u16;
-    profile.maxima.runtime_state_bytes = u32::from(profile.maxima.runtime_state_bytes)
-        .min(policy.maximum_runtime_state_bytes) as u16;
+        u32::from(profile.maxima.encoded_bytes).min(maximum_assignment_bytes) as u16;
+    profile.maxima.runtime_state_bytes =
+        u32::from(profile.maxima.runtime_state_bytes).min(maximum_runtime_state_bytes) as u16;
     let view = match profile.fore {
         Some(fore) => c::decode_assigned_plan_with_fore(
             projection,

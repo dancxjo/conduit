@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 /// Public wire data, not permission or evidence of full Plan validation.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct BodyFragmentApprovalMetadata<'a> {
     pub schema: u16,
@@ -173,3 +173,8 @@ pub use approved_fore::*;
 
 mod preparation_workset;
 pub use preparation_workset::*;
+
+#[cfg(feature = "authenticated-admission")]
+mod continuation;
+#[cfg(feature = "authenticated-admission")]
+pub use continuation::*;

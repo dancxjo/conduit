@@ -15,6 +15,24 @@ impl<const PORTS: usize> ApprovedBodyForePorts<PORTS> {
     pub fn as_slice(&self) -> &[c::AssignedForeRequirement] {
         &self.pins[..self.count]
     }
+    pub(super) fn copy_pinned(pins: &[c::AssignedForeRequirement]) -> Option<Self> {
+        if pins.len() > PORTS {
+            return None;
+        }
+        let empty = c::AssignedForeRequirement::new(
+            0,
+            0,
+            c::AssignedForeDirection::Input,
+            c::AssignedIdentity([0; 16]),
+            [0; 32],
+        );
+        let mut result = Self {
+            pins: [empty; PORTS],
+            count: pins.len(),
+        };
+        result.pins[..pins.len()].copy_from_slice(pins);
+        Some(result)
+    }
 }
 
 /// Accept the exact Fore ABI supplied by the delegated full Source/Plan checker.
