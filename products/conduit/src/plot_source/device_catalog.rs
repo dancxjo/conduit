@@ -15,6 +15,7 @@ pub(super) fn install(
     )
     .map_err(debug)?
     .install(startup, profiles)?;
+    conduit_semantic_catalog::install_resource_append_catalog(startup, profiles)?;
     for channel in conduit_environment_runtime::publication::PublicationChannel::ALL {
         conduit_environment_runtime::publication::PublicationContract::prepare(channel)
             .map_err(debug)?

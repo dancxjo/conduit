@@ -424,5 +424,49 @@ mod recording_tests {
         assert!(workset.entries[0]
             .rust
             .contains("D::RecordingLog{maximum_samples:2}"));
+        let pipeline = source
+            .replace(
+                "record: Bytes...| >>",
+                "append_status: RecordAppendResult...| >>",
+            )
+            .replace(
+                "encode: environment/encode-recording",
+                "encode: environment/encode-recording\n append: resource/try-append-record",
+            )
+            .replace(
+                "encode.record >> record",
+                "encode.record >> append.record\n append.index >> append_status",
+            );
+        let sha = format!("{:x}", Sha256::digest(pipeline.as_bytes()));
+        let pipeline = crate::workset::compile(
+            pipeline.as_bytes(),
+            &sha,
+            &["recorded-sampling".into()],
+            None,
+        )
+        .unwrap();
+        let expanded = &pipeline.entries[0].plot.expanded;
+        let append = expanded
+            .gears
+            .iter()
+            .find(|g| g.kind_id.as_str() == conduit_semantic_catalog::RESOURCE_APPEND_KIND)
+            .unwrap();
+        assert_eq!(append.inputs[0].port_id.as_str(), "record");
+        assert_eq!(append.outputs[0].port_id.as_str(), "index");
+        assert!(pipeline.entries[0]
+            .plot
+            .output_bindings
+            .iter()
+            .any(|binding| binding.gear_id == append.gear_id
+                && binding.gear_port_id.as_str() == "index"
+                && binding.front_port_id.as_str() == "append_status"));
+        assert!(pipeline.entries[0]
+            .rust
+            .contains(conduit_semantic_catalog::RESOURCE_APPEND_KIND));
+        assert!(!compile(expanded, 24 * 1024)
+            .unwrap()
+            .nodes
+            .iter()
+            .any(|node| node.kind == append.kind_id));
     }
 }

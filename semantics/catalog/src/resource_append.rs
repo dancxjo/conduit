@@ -69,11 +69,10 @@ pub fn install_resource_append_catalog(
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
     let kind = resource_append_semantic_contract();
-    startup.insert_structured_type(
-        "resource/try-append-record/result",
-        conduit_resource_snapshot::append_result::result_type()
-            .map_err(|e| alloc::format!("{e:?}"))?,
-    )?;
+    let result = conduit_resource_snapshot::append_result::result_type()
+        .map_err(|e| alloc::format!("{e:?}"))?;
+    startup.insert_structured_type("resource/try-append-record/result", result.clone())?;
+    startup.insert_structured_type("RecordAppendResult", result)?;
     startup.insert(conduit_plot::KindSignature {
         kind: RESOURCE_APPEND_KIND.into(),
         startup_parameters: Vec::new(),

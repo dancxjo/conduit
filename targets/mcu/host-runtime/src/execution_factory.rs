@@ -467,6 +467,18 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
         configuration: &'static [SoftwareConfigurationPin],
         recording: Option<crate::execution_software::RecordingLogScope<'_>>,
     ) -> Result<Self, &'static str> {
+        // One externally selected stream cannot silently become two sequence
+        // owners. A multi-recorder workset needs separately selected scopes.
+        if definitions
+            .iter()
+            .filter(|definition| {
+                matches!(definition, Some(SoftwareDefinition::RecordingLog { .. }))
+            })
+            .count()
+            > 1
+        {
+            return Err("recording-scope-multiple-owners");
+        }
         let before = allocated_bytes();
         let mut slots = core::array::from_fn(|_| None);
         for (index, definition) in definitions.into_iter().enumerate() {
