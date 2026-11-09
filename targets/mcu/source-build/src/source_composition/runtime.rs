@@ -19,7 +19,7 @@ mod recording {
     include!(concat!(env!("OUT_DIR"), "/source_play_recording.rs"));
 }
 pub async fn run<'s>(
-    root: &mut Root<'s, 16384>,
+    root: &mut Root<'s, { crate::config::MAX_ASSIGNMENT_BYTES }>,
     equipment: crate::equipment::Equipment,
     arena: conduit_mcu_host_runtime::image_memory::ImageMemoryLease<'_>,
     link: &mut crate::transport::Link,

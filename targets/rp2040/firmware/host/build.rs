@@ -138,6 +138,9 @@ fn main() {
     let recording_slots = recording.map_or(0, |r| r.slots);
     let preparation = conduit_host_make::rust_preparation_delegation(&checked);
     let execution = conduit_host_make::rust_execution_delegation(&checked);
+    let assignment =
+        conduit_host_rp2040::source_build::native_build::checked_assignment_bytes(&checked)
+            .expect("checked finite command workspace");
     let heap = checked.configuration().limits.heap_arena_bytes;
     assert!((32768..=98304).contains(&heap), "finite preparation arena");
     let local_io = if let Some(dht) = &dht {
@@ -203,6 +206,7 @@ pub(crate) use start_local_io;
 include!(concat!(env!("OUT_DIR"), "/native_offer.rs"));
 pub const RECORDING_PREFIX_BYTES:u32={recording_prefix};
 pub const RECORDING_SLOTS:u32={recording_slots};
+pub const MAX_ASSIGNMENT_BYTES:usize={assignment};
 pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image_id:?};
 pub const HEAP_BYTES:usize={heap};

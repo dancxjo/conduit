@@ -3,7 +3,9 @@
 # not extra arena RAM. Assignment input remains 16KiB, heap96KiB is exclusively in HAL secondary DRAM; static224KiB includes it.
 host blue-wroom32 {
   schema = 1
-  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 16384, maximum_runtime_state_bytes: 32768}
+  # Recording has finite preparation ceilings; physical heap/work bounds stay below.
+  # The measured full native Show fits its separately checked 2048-byte envelope.
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 36864}
   execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
   target = {architecture: "xtensa-lx6", machine: "hw-463-esp-wroom-32", board: "hw-463-esp-wroom-32", make_descriptor: "sha256:3015c678e54e8ae4dc1d0552a30ebdcb118b5c55dfa372252a8a5b86847dc255"}
   # Finite flash residence; these bytes are not a RAM need or write permission.
@@ -14,7 +16,7 @@ host blue-wroom32 {
   base = {kind: "display/segmented", implementation: "esp32/tm1637@1", initialization: {clk: 18, dio: 19, brightness: 3, half_period_us: 50, settled_us: 100, maximum_clock_rise_us: 1000, maximum_transaction_us: 100000, pull: "up"}}
   # Finite Face/Show envelopes also bound opaque Value queue planning.
   # Six shared-reference Mask queues fit the existing 24576-byte ceiling.
-  base = {kind: "face/renderer", implementation: "esp32/seven-segment-renderer@1", initialization: {face_bytes: 3072, show_bytes: 3072, resource_bytes: 24576, maximum_frames: 65535, page_period_ms: 2000, show_lifetime_ms: 120000, temperature_unit: "fahrenheit"}}
+  base = {kind: "face/renderer", implementation: "esp32/seven-segment-renderer@1", initialization: {face_bytes: 3072, show_bytes: 2048, resource_bytes: 24576, maximum_frames: 65535, page_period_ms: 2000, show_lifetime_ms: 120000, temperature_unit: "fahrenheit"}}
   need = {id: "pool/resident-step-work", class: "kernel/cooperative-step-work@1", slots: 5000, bytes: 16384}
   # Recording adds two finite cord-value slots; byte/work/arena grants stay explicit above.
   limits = {static_memory_bytes: 229376, heap_arena_bytes: 98304, queue_items: 18, buffered_bytes: 24576, active_instances: 32, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}

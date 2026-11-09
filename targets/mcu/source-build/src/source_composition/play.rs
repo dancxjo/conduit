@@ -92,7 +92,7 @@ mod owners {
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 #[inline(never)] // Keep preparation temporaries out of the continuing async poll frame.
 pub fn prepare<'a, 'f: 'a, 'w>(
-    workspace: &'w b::HostCommandInput<16384>,
+    workspace: &'w b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>,
     context: b::NativePreparationContext<'_>,
     policy: Policy<'_>,
     residents: &'a mut resident::Initialized,
@@ -170,7 +170,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
     let sf = source::sampling_layout::fore();
     let mf = source::mask_layout::fore();
     let of = source::output_layout::fore();
-    execution_group::prepare_with_source::<_, _, 16384, FORE_PORTS>(
+    execution_group::prepare_with_source::<_, _, { crate::config::MAX_ASSIGNMENT_BYTES }, FORE_PORTS>(
         workspace,
         context,
         policy,

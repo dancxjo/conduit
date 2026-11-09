@@ -45,7 +45,7 @@ impl Scopes {
 #[inline(always)] // The separate Start poll owns its affine return storage.
 pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     prepared: PreparedLocalWorkset<'w, T, 3>,
-    workspace: &b::HostCommandInput<16384>,
+    workspace: &b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>,
     bootstrap: &b::MemberBootstrap<'_>,
     member: &b::MembershipCredential,
     configuration: &conduit_mcu_host_runtime::root::Configuration,

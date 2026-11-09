@@ -109,3 +109,19 @@ pub fn check_source_clocks(
     }
     Ok(())
 }
+
+/// Actual command storage follows explicit Host preparation authority. A Host
+/// without that authority allocates no command workspace. This is not a grant.
+pub fn checked_assignment_bytes(checked: &CheckedHostConfiguration) -> Result<u32, String> {
+    let Some(preparation) = checked.configuration().preparation.as_ref() else {
+        return Ok(0);
+    };
+    let bytes = preparation.maximum_assignment_bytes;
+    if bytes == 0
+        || u64::from(bytes) > checked.configuration().limits.buffered_bytes
+        || bytes > u32::from(u16::MAX)
+    {
+        return Err("command workspace exceeds checked buffer or framing extent".into());
+    }
+    Ok(bytes)
+}

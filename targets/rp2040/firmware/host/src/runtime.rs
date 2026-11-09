@@ -45,7 +45,7 @@ pub async fn run(
     equipment
         .publish(&mut actual)
         .expect("bounded compact native facts");
-    let mut storage = RootStorage::<16384>::new();
+    let mut storage = RootStorage::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new();
     let root = storage
         .initialize(
             seed.into_shared(),

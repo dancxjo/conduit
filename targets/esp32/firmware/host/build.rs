@@ -53,7 +53,11 @@ fn main() {
             .as_ref()
             .expect("explicit preparation")
             .maximum_assignment_bytes
-            <= 16384
+            <= config
+                .limits
+                .buffered_bytes
+                .try_into()
+                .expect("bounded command workspace")
     );
     assert!(config.limits.buffered_bytes <= config.limits.heap_arena_bytes);
     assert!(config.limits.heap_arena_bytes <= 98304);

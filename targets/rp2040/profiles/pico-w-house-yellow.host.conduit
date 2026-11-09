@@ -3,7 +3,9 @@
 host pico-w-house-yellow {
   schema = 1
   # Assigned representation requires 19357 bytes; this excludes full kernel/Ready heap.
-  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 16384, maximum_runtime_state_bytes: 32768}
+  # Recording has finite preparation ceilings; physical heap/work bounds stay below.
+  # The measured full native Show fits its separately checked 2048-byte envelope.
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 36864}
   execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
   target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
   # Finite flash residence; these bytes are not a RAM need or write permission.
@@ -17,7 +19,7 @@ host pico-w-house-yellow {
   # the separately reviewed IMAGE arena; Root still reserves before effects.
   # Finite Face/Show envelopes also bound opaque Value queue planning.
   # Six shared-reference Mask queues fit the existing 24576-byte ceiling.
-  base = {kind: "face/renderer", implementation: "rp2040/seven-segment-renderer@1", initialization: {face_bytes: 3072, show_bytes: 3072, resource_bytes: 24576, maximum_frames: 65535, page_period_ms: 2000, show_lifetime_ms: 120000, temperature_unit: "fahrenheit"}}
+  base = {kind: "face/renderer", implementation: "rp2040/seven-segment-renderer@1", initialization: {face_bytes: 3072, show_bytes: 2048, resource_bytes: 24576, maximum_frames: 65535, page_period_ms: 2000, show_lifetime_ms: 120000, temperature_unit: "fahrenheit"}}
   # Finite cooperative work pool; its existence installs no computation Back.
   # 16 KiB bounds resident initialization/reservation metadata, not all kernels.
   # Full execution backing has separate custody in the checked IMAGE arena.
