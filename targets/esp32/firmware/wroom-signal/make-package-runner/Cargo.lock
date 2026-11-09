@@ -103,6 +103,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-embedded-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+ "conduit-semantic-catalog",
+ "conduit-wire",
+ "miniz_oxide",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-environment-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-time",
+]
+
+[[package]]
 name = "conduit-esp32-make-package-runner"
 version = "0.1.0"
 dependencies = [
@@ -134,6 +163,7 @@ name = "conduit-host-esp32-make"
 version = "0.1.0"
 dependencies = [
  "conduit-host-make",
+ "conduit-mcu-source-build",
  "serde",
  "serde_json",
  "sha2",
@@ -167,11 +197,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-kernel"
+version = "0.1.0"
+dependencies = [
+ "conduit-assigned-plan",
+]
+
+[[package]]
 name = "conduit-language"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-mcu-source-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-embedded-build",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-host-make",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-time",
+ "conduit-tm1637-wire",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -189,6 +246,14 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-plan-lowering"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]
@@ -220,11 +285,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-purpose"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-resource-snapshot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
 ]
 
 [[package]]
@@ -255,11 +335,13 @@ dependencies = [
  "conduit-education",
  "conduit-face",
  "conduit-human",
+ "conduit-kernel",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
  "conduit-process",
  "conduit-purpose",
+ "conduit-resource-snapshot",
  "conduit-robotics",
  "conduit-text",
  "conduit-time",
@@ -282,8 +364,19 @@ name = "conduit-time"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -293,6 +386,14 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
 ]
 
 [[package]]

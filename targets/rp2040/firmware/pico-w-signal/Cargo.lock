@@ -589,6 +589,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-resource-snapshot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
 name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
@@ -629,6 +636,7 @@ dependencies = [
  "conduit-plot",
  "conduit-process",
  "conduit-purpose",
+ "conduit-resource-snapshot",
  "conduit-robotics",
  "conduit-text",
  "conduit-time",

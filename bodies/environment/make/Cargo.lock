@@ -181,8 +181,11 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-kernel",
+ "conduit-planner",
  "conduit-plot",
+ "conduit-pulse-capture",
  "conduit-semantic-catalog",
+ "conduit-time",
 ]
 
 [[package]]
@@ -233,8 +236,11 @@ name = "conduit-host-rp2040"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-core",
  "conduit-embedded-build",
  "conduit-host-make",
+ "conduit-i2c-transaction",
+ "conduit-mcu-source-build",
  "conduit-plot",
  "conduit-rp2040-flash-layout",
  "serde",
@@ -253,6 +259,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-i2c-transaction"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-kernel"
 version = "0.1.0"
 dependencies = [
@@ -265,6 +281,26 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-mcu-source-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-embedded-build",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-host-make",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-time",
+ "conduit-tm1637-wire",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -321,11 +357,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-purpose"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-resource-snapshot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
 ]
 
 [[package]]
@@ -362,6 +413,7 @@ dependencies = [
  "conduit-plot",
  "conduit-process",
  "conduit-purpose",
+ "conduit-resource-snapshot",
  "conduit-robotics",
  "conduit-text",
  "conduit-time",
@@ -384,6 +436,7 @@ name = "conduit-time"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "conduit-plot",
  "serde",
 ]
