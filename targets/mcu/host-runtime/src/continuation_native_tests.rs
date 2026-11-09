@@ -35,6 +35,8 @@ fn signed_cross_boot_intent_selects_actual_native_description_only_with_opt_in()
         issuer_key: owner.verifying_key().to_bytes(),
         source_digest: [1; 32],
         workset_digest: [2; 32],
+        authority: b::ContinuationAuthority::LocalWorksetReplacement,
+        scope_digest: [3; 32],
         image_id: "image/1",
         configuration_id: "configuration/1",
         ceilings: ceiling,

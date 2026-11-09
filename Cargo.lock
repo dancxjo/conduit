@@ -1737,6 +1737,7 @@ name = "conduit-body"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-embedded-build",
  "ed25519-dalek",
  "minicbor",
  "miniz_oxide 0.8.9",

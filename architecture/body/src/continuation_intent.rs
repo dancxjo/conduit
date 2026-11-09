@@ -10,7 +10,11 @@ use ed25519_dalek::{Signature, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-pub const CONTINUATION_INTENT_SCHEMA: &str = "conduit.body/continuation-intent@1";
+#[path = "continuation_scope.rs"]
+pub(crate) mod scope;
+pub use scope::*;
+
+pub const CONTINUATION_INTENT_SCHEMA: &str = "conduit.body/continuation-intent@2";
 
 /// Public signed recipe identity. No Boot command, reservation or Started token
 /// is persisted here. The detached signature covers the complete transcript.
@@ -29,6 +33,8 @@ pub struct ContinuationIntent<'a> {
     pub issuer_key: [u8; 32],
     pub source_digest: [u8; 32],
     pub workset_digest: [u8; 32],
+    pub authority: ContinuationAuthority,
+    pub scope_digest: [u8; 32],
     pub image_id: &'a str,
     pub configuration_id: &'a str,
     pub ceilings: ContinuationCeilings,
@@ -36,7 +42,7 @@ pub struct ContinuationIntent<'a> {
 impl ContinuationIntent<'_> {
     pub fn signing_transcript(&self) -> [u8; 32] {
         let mut hash = Sha256::new();
-        hash.update(b"conduit.body/continuation-intent@1\0");
+        hash.update(b"conduit.body/continuation-intent@2\0");
         for text in [
             self.schema,
             self.body_id,
@@ -55,6 +61,12 @@ impl ContinuationIntent<'_> {
         hash.update(self.issuer_key);
         hash.update(self.source_digest);
         hash.update(self.workset_digest);
+        match self.authority {
+            ContinuationAuthority::LocalWorksetReplacement => {
+                hash.update(b"local-workset-replacement\0")
+            }
+        };
+        hash.update(self.scope_digest);
         for word in self.ceilings.words() {
             hash.update(word.to_le_bytes());
         }
@@ -149,6 +161,7 @@ pub fn verify_continuation_intent<'a>(
         || !intent.ceilings.within(policy.maximum)
         || intent.source_digest == [0; 32]
         || intent.workset_digest == [0; 32]
+        || intent.scope_digest == [0; 32]
         || policy.issuer_key == [0; 32]
     {
         return Err(E::Bounds);

@@ -15,7 +15,6 @@ use conduit_core as c;
 pub struct FreshContinuationScope<'a> {
     pub(crate) intent: &'a VerifiedContinuationIntent<'a>,
     pub(crate) documents: &'a [&'a [u8]],
-    pub(crate) expected: &'a [BodyFragmentApprovalMetadata<'a>],
     pub(crate) custody_identity: [u8; 32],
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,7 +57,10 @@ impl<'a> FreshContinuationScope<'a> {
             return Err(E::Scope);
         }
         if self.documents.is_empty()
-            || self.documents.len() != self.expected.len()
+            || self
+                .documents
+                .iter()
+                .any(|d| decode_body_fragment_document(d).is_err())
             || self.documents.len() > crate::MAX_BODY_PLOTS
             || self
                 .documents
@@ -68,8 +70,14 @@ impl<'a> FreshContinuationScope<'a> {
         {
             return Err(E::Bounds);
         }
-        if !workset::matches_local_metadata(self.expected.len(), |i| self.expected[i])
-            || self.expected.iter().any(|m| {
+        let metadata = |i| {
+            decode_body_fragment_document(self.documents[i])
+                .expect("checked immutable document")
+                .0
+        };
+        if !workset::matches_local_metadata(self.documents.len(), metadata)
+            || (0..self.documents.len()).any(|i| {
+                let m = metadata(i);
                 m.body != intent.body_id
                     || m.host != intent.host_id
                     || m.boot != current.actual_boot()
@@ -100,25 +108,63 @@ impl<'a> FreshContinuationScope<'a> {
         let (metadata, projection) =
             decode_body_fragment_document(self.document(index).ok_or(E::Scope)?)
                 .map_err(|e| E::Fragment(crate::DelegatedFragmentRefusal::Document(e)))?;
-        if self.expected.get(index) != Some(&metadata) {
-            return Err(E::Scope);
-        }
-        let fore =
-            ApprovedBodyForePorts::copy_pinned(profile.fore.unwrap_or(&[])).ok_or(E::Bounds)?;
-        let ceilings = current.intent().ceilings;
-        let fragment = receiving::finish_checked(
+        approve_checked(
             metadata,
             projection,
             actual,
             current.intent().body_id,
+            current.intent().ceilings,
+            profile,
+        )
+        .map_err(E::Fragment)
+    }
+    pub fn matches_fragment(&self, fragment: &crate::DelegatedBodyFragment<'_>) -> bool {
+        self.documents
+            .iter()
+            .any(|d| decode_body_fragment_document(d).is_ok_and(|(m, _)| &m == fragment.metadata()))
+    }
+}
+
+#[path = "continuation_verifier.rs"]
+mod verifier;
+pub use verifier::*;
+#[allow(clippy::too_many_arguments)]
+fn approve_checked<'a, const PORTS: usize>(
+    metadata: BodyFragmentApprovalMetadata<'a>,
+    projection: &'a [u8],
+    actual: &c::HostAdvertisement,
+    body: &str,
+    ceilings: crate::ContinuationCeilings,
+    profile: AssignedBodyPreparationProfile<'_>,
+) -> Result<
+    (
+        crate::DelegatedBodyFragment<'a>,
+        ApprovedBodyForePorts<PORTS>,
+    ),
+    crate::DelegatedFragmentRefusal,
+> {
+    if let Some(pins) = profile.fore {
+        let fore = ApprovedBodyForePorts::copy_pinned(pins)
+            .ok_or(crate::DelegatedFragmentRefusal::ForeApproval)?;
+        let fragment = receiving::finish_checked(
+            metadata,
+            projection,
+            actual,
+            body,
+            ceilings.assignment_bytes,
+            ceilings.runtime_bytes,
+            profile,
+        )?;
+        Ok((fragment, fore))
+    } else {
+        approved_fore::finish_approved_fore_checked(
+            metadata,
+            projection,
+            actual,
+            body,
             ceilings.assignment_bytes,
             ceilings.runtime_bytes,
             profile,
         )
-        .map_err(E::Fragment)?;
-        Ok((fragment, fore))
-    }
-    pub fn matches_fragment(&self, fragment: &crate::DelegatedBodyFragment<'_>) -> bool {
-        self.expected.contains(fragment.metadata())
     }
 }

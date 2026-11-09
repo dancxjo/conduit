@@ -69,6 +69,26 @@ pub(super) fn finish_approved_fore<'a, const PORTS: usize>(
     context: NativePreparationContext<'_>,
     profile: AssignedBodyPreparationProfile<'_>,
 ) -> Result<(DelegatedBodyFragment<'a>, ApprovedBodyForePorts<PORTS>), DelegatedFragmentRefusal> {
+    finish_approved_fore_checked(
+        metadata,
+        projection,
+        context.actual,
+        context.member.body_id.as_str(),
+        policy.maximum_assignment_bytes,
+        policy.maximum_runtime_state_bytes,
+        profile,
+    )
+}
+#[allow(clippy::too_many_arguments)]
+pub(super) fn finish_approved_fore_checked<'a, const PORTS: usize>(
+    metadata: BodyFragmentApprovalMetadata<'a>,
+    projection: &'a [u8],
+    actual: &c::HostAdvertisement,
+    body: &str,
+    maximum_assignment_bytes: u32,
+    maximum_runtime_state_bytes: u32,
+    profile: AssignedBodyPreparationProfile<'_>,
+) -> Result<(DelegatedBodyFragment<'a>, ApprovedBodyForePorts<PORTS>), DelegatedFragmentRefusal> {
     use DelegatedFragmentRefusal as E;
     if profile.fore.is_some() {
         return Err(E::ForeApproval);
@@ -104,12 +124,13 @@ pub(super) fn finish_approved_fore<'a, const PORTS: usize>(
             raw[21..].try_into().map_err(|_| E::ForeApproval)?,
         );
     }
-    let fragment = receiving::finish_receive(
+    let fragment = receiving::finish_checked(
         metadata,
         projection,
-        context.actual,
-        context.member,
-        policy,
+        actual,
+        body,
+        maximum_assignment_bytes,
+        maximum_runtime_state_bytes,
         AssignedBodyPreparationProfile {
             maxima: profile.maxima,
             requirements: profile.requirements,
