@@ -311,7 +311,7 @@ fn build_candidate<const PORTS: usize, R: CandidateResource>(
             let versioned = rows.iter().any(CandidateResource::content);
             let resource_bytes = rows
                 .iter()
-                .try_fold(if versioned { 7 } else { 0 }, |n, r| {
+                .try_fold(if versioned { 7usize } else { 0 }, |n, r| {
                     n.checked_add(r.encoded_length(versioned).ok()?)
                 })
                 .ok_or(E::Bounds)?;
