@@ -89,6 +89,34 @@ This declaration alone does not authorize a received assignment or start a
 kernel: Root must still bind the pinned issuer to the exact current approved
 Body workset, admit its full resources and obtain actual local possessions.
 
+## Selecting bounded continuation permission
+
+A Host can separately opt into owner-signed permission to reconstruct a prepared
+workset after reboot. It is an optional field of `execution`:
+
+```conduit
+execution = {authorizer: "seed-owner", maximum_active_worksets: 1, continuation: {assignment_bytes: 8192, runtime_bytes: 8192, durable_bytes: 32768, operation_slots: 4, active_worksets: 1}}
+```
+
+All five ceilings must be positive. Assignment bytes must fit selected
+preparation, runtime bytes the declared heap arena, operation slots the Host
+limit, and active worksets the external-execution limit. The durable-byte ceiling
+does not declare a storage Base, supply a residence or reserve media. Physical
+storage and safe provider work still require independent finite admission.
+Absence keeps ordinary external execution scoped to its current Boot.
+
+This choice is retained in canonical Source, configuration identity and generated
+typed policy. It supplies no membership receipt or Start. A candidate continuation
+intent must match independently installed Body/Part/Host, Source/workset,
+IMAGE/configuration, issuer and locally accepted generations. Signature validation
+alone does not prove those durable installation facts. Root must reconstruct fresh
+canonical identities, inspect actual current providers, admit the complete workset
+and issue fresh current-Boot capabilities before execution. An old command or
+Started token cannot be replayed. Disconnected operation cannot discover a remote
+revocation it has not received. See [#6841](https://github.com/dancxjo/conduit/issues/6841)
+for the remaining physical restart acceptance; configuration and intent validation
+alone do not provide automatic restart.
+
 ## One kernel, explicit effects
 
 [plan lowering](plan-kernel-lowering.md) turns rich identities into finite
