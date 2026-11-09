@@ -8,6 +8,8 @@ pub const UART: &str = "esp32/uart0@1";
 pub const DHT11: &str = "esp32/dht11@1";
 pub const TM1637: &str = "esp32/tm1637@1";
 pub const RENDERER: &str = "esp32/seven-segment-renderer@1";
+pub const RECORDING: &str = "esp32/nor-record-append@1";
+pub use conduit_mcu_source_build::recording::CheckedRecordingConstruction;
 pub const CLOCK: &str = "esp32/monotonic-clock@1";
 fn count(key: &str, minimum: u64, maximum: u64) -> KindConfigurationField {
     KindConfigurationField {
@@ -63,6 +65,10 @@ pub(super) fn catalog() -> PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
             (UART.into(), uart_contract()),
             (CLOCK.into(), clock_contract()),
+            (
+                RECORDING.into(),
+                conduit_mcu_source_build::recording::initialization_contract(),
+            ),
             (DHT11.into(), sensor_contract()),
             (TM1637.into(), display_contract()),
             (
@@ -79,6 +85,7 @@ pub(super) fn offers() -> impl Iterator<Item = conduit_host_make::Implementation
         ("sensor/environment", DHT11),
         ("display/segmented", TM1637),
         ("clock/monotonic", CLOCK),
+        (conduit_mcu_source_build::recording::BASE_KIND, RECORDING),
         ("face/renderer", RENDERER),
     ]
     .into_iter()

@@ -6,6 +6,8 @@ host blue-wroom32 {
   preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 16384, maximum_runtime_state_bytes: 32768}
   execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
   target = {architecture: "xtensa-lx6", machine: "hw-463-esp-wroom-32", board: "hw-463-esp-wroom-32", make_descriptor: "sha256:3015c678e54e8ae4dc1d0552a30ebdcb118b5c55dfa372252a8a5b86847dc255"}
+  # Finite flash residence; these bytes are not a RAM need or write permission.
+  base = {kind: "resource/nor-record-residence", implementation: "esp32/nor-record-append@1", initialization: {prefix_bytes: 8192, slots: 1264}}
   base = {kind: "serial/text", implementation: "esp32/uart0@1", initialization: {tx: 1, rx: 3, baud: 115200}}
   base = {kind: "clock/monotonic", implementation: "esp32/monotonic-clock@1", initialization: {maximum_duration_ms: 60000, slots: 4}}
   base = {kind: "sensor/environment", implementation: "esp32/dht11@1", initialization: {data: 27, start_low_us: 20000, maximum_transaction_us: 50000, maximum_interrupt_exclusion_us: 20000}}

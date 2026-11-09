@@ -6,6 +6,8 @@ host pico-w-house-yellow {
   preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 16384, maximum_runtime_state_bytes: 32768}
   execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
   target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
+  # Finite flash residence; these bytes are not a RAM need or write permission.
+  base = {kind: "resource/nor-record-residence", implementation: "rp2040/nor-record-append@1", initialization: {prefix_bytes: 8192, slots: 1136}}
   base = {kind: "clock/monotonic", implementation: "rp2040/monotonic-clock@1", initialization: {slots: 4, maximum_duration_ms: 60000}}
   base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
   base = {kind: "sensor/environment", implementation: "rp2040/dht11@1", initialization: {data: 3, start_low_us: 20000, maximum_transaction_us: 50000}}

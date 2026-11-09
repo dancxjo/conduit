@@ -98,6 +98,10 @@ pub(super) fn offers() -> Vec<ImplementationOffer> {
         (crate::DHT11_BASE_KIND, crate::DHT11_IMPLEMENTATION),
         ("face/renderer", crate::RENDERER_IMPLEMENTATION),
         ("clock/monotonic", crate::CLOCK_IMPLEMENTATION),
+        (
+            conduit_mcu_source_build::recording::BASE_KIND,
+            crate::RECORDING_IMPLEMENTATION,
+        ),
         (crate::TM1637_BASE_KIND, crate::TM1637_IMPLEMENTATION),
     ]
     .into_iter()

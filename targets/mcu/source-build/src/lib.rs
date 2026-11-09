@@ -5,6 +5,7 @@ pub mod clock;
 pub mod image_input;
 pub mod native_calibration;
 pub mod renderer;
+pub mod recording;
 pub mod software;
 pub mod source_composition;
 pub mod template;
