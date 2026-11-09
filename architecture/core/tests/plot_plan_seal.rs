@@ -1,7 +1,11 @@
 //! Exact canonical bytes only; digest inputs confer no approval.
 use conduit_core::*;
+#[path = "../../plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
 #[path = "common/sealed_state.rs"]
 mod fixture;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 fn hex(bytes: [u8; 32]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
@@ -24,12 +28,15 @@ fn fresh_fragment_commitments_match_full_core_sealing_for_two_boots() {
         );
         let pins = PlainPlotPlanSeal::capture(&plan).unwrap();
         let f = &plan.fragments[0];
-        let digest = pins
-            .digest(&[PlotFragmentSeal {
+        let (digest, allocation) = allocation_probe::observe(|| {
+            pins.digest(&[PlotFragmentSeal {
                 host_id: f.host_id.as_str(),
                 fragment_id: f.fragment_id.as_str(),
             }])
-            .unwrap();
+            .unwrap()
+        });
+        assert_eq!(allocation.allocations, 0);
+        assert_eq!(allocation.reallocations, 0);
         assert_eq!(hex(digest), plan.plan_id.as_str());
         ids.push(digest);
         assert_eq!(pins.digest(&[]), Err(PlotPlanSealRefusal::Commitments));

@@ -2,8 +2,12 @@
 use conduit_body::*;
 use conduit_core::*;
 use sha2::{Digest, Sha256};
+#[path = "../../plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
 #[path = "../../core/tests/common/sealed_state.rs"]
 mod fixture;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 fn text(bytes: &mut Vec<u8>, s: &str) {
     bytes.extend_from_slice(&(s.len() as u32).to_le_bytes());
     bytes.extend_from_slice(s.as_bytes());
@@ -66,15 +70,19 @@ fn borrowed_three_plot_commitments_match_legacy_body_and_play_bytes() {
                 plan_id: p.plan.plan_id.as_str(),
             })
             .collect();
-        let digest = body_plan_commitment_digest(
-            full.body_id.as_str(),
-            full.wake_id.as_str(),
-            full.workload_revision,
-            &pins,
-            &[],
-            None,
-        )
-        .unwrap();
+        let (digest, allocation) = allocation_probe::observe(|| {
+            body_plan_commitment_digest(
+                full.body_id.as_str(),
+                full.wake_id.as_str(),
+                full.workload_revision,
+                &pins,
+                &[],
+                None,
+            )
+            .unwrap()
+        });
+        assert_eq!(allocation.allocations, 0);
+        assert_eq!(allocation.reallocations, 0);
         // Independent former Vec serializer, including domain and zero tails.
         let mut old = Vec::new();
         text(&mut old, "conduit.body/body-plan@3");

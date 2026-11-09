@@ -86,9 +86,16 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     if plan.fragments.len() != 1 {
         return Err("structural template must lower one complete local fragment".into());
     }
-    c::PlainPlotPlanSeal::capture(&plan)
+    let plot_seal = c::PlainPlotPlanSeal::capture(&plan)
         .map_err(|e| format!("canonical Plot Plan seal eligibility: {e:?}"))?;
     let fragment = &plan.fragments[0];
+    let digest = plot_seal.digest(&[c::PlotFragmentSeal {
+        host_id: fragment.host_id.as_str(), fragment_id: fragment.fragment_id.as_str(),
+    }]).map_err(|e| format!("canonical Plot Plan commitment seal: {e:?}"))?;
+    let hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
+    if hex != plan.plan_id.as_str() {
+        return Err("canonical Plot Plan commitment differs from ordinary seal".into());
+    }
     let seal_limits = c::FragmentSealRecipe::required_limits(fragment)
         .map_err(|e| format!("canonical fragment recipe measurement: {e:?}"))?;
     let fragment_seal_recipe = c::FragmentSealRecipe::capture(fragment, seal_limits)
@@ -200,7 +207,7 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     }
     let mut computations = Vec::new();
     for configuration in &kernel.configuration {
-        if matches!(configuration.key.as_str(), "program" | "selector") {
+        if matches!(configuration.key.as_str(), "program" | "selector" | "reference") {
             let e::GeneratedConfigurationValue::Text(text) = &configuration.value else {
                 return Err("non-text checked computation".into());
             };

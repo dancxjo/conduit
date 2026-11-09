@@ -20,6 +20,20 @@ pub fn body_plan_commitment_digest(
     mask_topologies: &[BodyMaskTopology],
     body_time_requirement: Option<&BodyTimeRequirement>,
 ) -> Result<[u8; 32], BodyPlanError> {
+    let valid_text = |s: &str| !s.is_empty() && u32::try_from(s.len()).is_ok();
+    if !valid_text(body_id)
+        || !valid_text(wake_id)
+        || plots.iter().any(|p| {
+            !valid_text(p.source_document_id)
+                || !valid_text(p.checked_plot_id)
+                || !valid_text(p.plan_id)
+        })
+    {
+        return Err(BodyPlanError::InvalidIdentity);
+    }
+    if body_time_requirement.is_some_and(|r| !r.valid_basis() || r.body_basis() != body_id) {
+        return Err(BodyPlanError::InvalidBodyTimeRequirement);
+    }
     if plots.is_empty() {
         return Err(BodyPlanError::EmptyWorkset);
     }

@@ -40,11 +40,18 @@ impl<'a> PlainPlotPlanSeal<'a> {
         self,
         fragments: &[PlotFragmentSeal<'_>],
     ) -> Result<[u8; 32], PlotPlanSealRefusal> {
+        let valid_text = |s: &str| !s.is_empty() && u32::try_from(s.len()).is_ok();
+        if !valid_text(self.source_document_id)
+            || !valid_text(self.checked_plot_id)
+            || !valid_text(self.expanded_plot_id)
+        {
+            return Err(PlotPlanSealRefusal::Commitments);
+        }
         if fragments.is_empty()
             || fragments.len() > usize::from(u16::MAX)
             || fragments
                 .iter()
-                .any(|f| f.host_id.is_empty() || f.fragment_id.is_empty())
+                .any(|f| !valid_text(f.host_id) || !valid_text(f.fragment_id))
             || fragments
                 .windows(2)
                 .any(|p| (p[0].host_id, p[0].fragment_id) >= (p[1].host_id, p[1].fragment_id))
