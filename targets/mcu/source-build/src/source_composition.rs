@@ -7,6 +7,10 @@ use std::{fs, path::Path};
 pub fn emit_to(out: &Path) -> std::io::Result<()> {
     for (name, source) in [
         ("runtime", include_str!("source_composition/runtime.rs")),
+        (
+            "play_recording",
+            include_str!("source_composition/play_recording.rs"),
+        ),
         ("play", include_str!("source_composition/play.rs")),
         (
             "play_owners",

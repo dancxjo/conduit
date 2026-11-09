@@ -15,6 +15,9 @@ use conduit_mcu_host_runtime::{
 use core::cell::RefCell;
 use embassy_time::{with_timeout, Duration, Timer};
 const W: usize = crate::equipment::WAIT_SLOTS;
+mod recording {
+    include!(concat!(env!("OUT_DIR"), "/source_play_recording.rs"));
+}
 pub async fn run<'s>(
     root: &mut Root<'s, 16384>,
     equipment: crate::equipment::Equipment,
@@ -50,25 +53,8 @@ pub async fn run<'s>(
     .expect("funded canonical output storage");
     let definitions =
         source::sampling::definitions(&parameters).expect("checked software definitions");
-    let maximum_records = definitions
-        .iter()
-        .flatten()
-        .filter_map(|d| match d {
-            conduit_mcu_host_runtime::execution_factory::SoftwareDefinition::RecordingLog {
-                maximum_samples,
-            } => maximum_samples.checked_add(
-                conduit_environment_runtime::recording::LOG_CONTEXT_BYTES
-                    .div_ceil(conduit_environment_runtime::recording::LOG_CONTEXT_PART_BYTES)
-                    as u32,
-            ),
-            _ => None,
-        })
-        .max();
-    let recording_operation = conduit_mcu_host_runtime::native_authority::append_operation(
-        source::sampling::NATIVE_KINDS,
-        maximum_records,
-    )
-    .expect("independently compiled finite recording operation");
+    let recording_operation = recording::operation(&definitions, source::sampling::NATIVE_KINDS)
+        .expect("independently compiled finite recording operation");
     let mut append_output =
         [0u8; conduit_resource_snapshot::native_append::APPEND_RESULT_BYTES as usize];
     let mut append_status = Some(

@@ -127,26 +127,13 @@ fn main() {
         None=>String::new(),
     };
     fs::write(out.join("renderer.rs"), renderer_source).unwrap();
-    let recording = if checked
-        .configuration()
-        .bases
-        .iter()
-        .any(|base| base.kind == "resource/nor-record-residence")
-    {
-        let construction = conduit_host_rp2040::CheckedRecordingConstruction::from_configuration(
-            &checked,
-            conduit_host_rp2040::RECORDING_IMPLEMENTATION,
-        )
-        .expect("checked finite recording construction");
-        assert!(
-            construction.prefix_bytes >= 8192
-                && construction.end_bytes().expect("recording extent") <= 589824,
-            "recording exceeds physical DURABLE"
-        );
-        Some(construction)
-    } else {
-        None
-    };
+    let recording = conduit_host_rp2040::source_build::native_build::checked_recording(
+        &checked,
+        conduit_host_rp2040::RECORDING_IMPLEMENTATION,
+        8192,
+        589824,
+    )
+    .expect("checked finite recording construction");
     let recording_prefix = recording.map_or(0, |r| r.prefix_bytes);
     let recording_slots = recording.map_or(0, |r| r.slots);
     let preparation = conduit_host_make::rust_preparation_delegation(&checked);
@@ -383,33 +370,8 @@ fn prepare_dht_workset(
             maximum_frames: renderer.maximum_frames,
         },
     );
-    let mut waits = 0usize;
-    for entry in &workset.entries {
-        let material =
-            conduit_host_rp2040::source_build::software::compile(&entry.plot.expanded, 24 * 1024)
-                .expect("checked Source software definitions");
-        for node in material.nodes {
-            if let conduit_host_rp2040::source_build::software::SoftwareRole::Tick {
-                period_ms,
-                ..
-            } = node.role
-            {
-                waits += 1;
-                assert!(
-                    period_ms <= clock.maximum_duration_ms,
-                    "Source wait exceeds selected native clock"
-                );
-            }
-        }
-    }
-    assert_eq!(
-        waits, 1,
-        "this finite native execution profile owns one sampling clock"
-    );
-    assert!(
-        waits + 1 <= clock.slots,
-        "Source waits and renderer exceed actual initialized clock slots"
-    );
+    conduit_host_rp2040::source_build::native_build::check_source_clocks(&workset, clock)
+        .expect("checked Source clock construction");
     let append = workset
         .entries
         .iter()
@@ -480,33 +442,18 @@ fn prepare_dht_workset(
         });
     }
 
-    let mut native = String::new();
-    for (name, description) in [
-        "PULSE_IMAGE",
-        "DISPLAY_IMAGE",
-        "WAIT_IMAGE",
-        "RENDERER_IMAGE",
-    ]
-    .iter()
-    .zip(&descriptions)
-    {
-        let bytes = conduit_embedded_build::generate_capability_offer_image(
-            &description.definition,
-            24 * 1024,
-        )
-        .unwrap();
-        native.push_str(&format!("pub static {name}:&[u8]=&{bytes:?};\n"));
-    }
-    if let Some(offer) = &append {
-        let bytes = conduit_embedded_build::generate_capability_offer_image(offer, 24 * 1024)
-            .expect("finite checked append image");
-        native.push_str(&format!(
-            "pub static APPEND_IMAGE:Option<&[u8]>=Some(&{bytes:?});\n"
-        ));
-    } else {
-        native.push_str("pub static APPEND_IMAGE:Option<&[u8]>=None;\n");
-    }
-    fs::write(out.join("native_images.rs"), native).unwrap();
+    conduit_host_rp2040::source_build::native_build::emit_capability_images(
+        out,
+        &[
+            ("PULSE_IMAGE", &descriptions[0].definition),
+            ("DISPLAY_IMAGE", &descriptions[1].definition),
+            ("WAIT_IMAGE", &descriptions[2].definition),
+            ("RENDERER_IMAGE", &descriptions[3].definition),
+        ],
+        append.as_ref(),
+        24 * 1024,
+    )
+    .expect("finite checked native images");
     let work = conduit_host_rp2040::CheckedResidentWorkPool::from_configuration(checked).unwrap();
     let shared = [conduit_core::resource_offer(
         &work.id,
@@ -527,22 +474,10 @@ fn prepare_dht_workset(
         },
     )
     .expect("finite checked Source lowering bounds");
-    fs::write(
-        out.join("workset-policy.json"),
-        bounds
-            .policy_json(
-                checked
-                    .configuration()
-                    .preparation
-                    .as_ref()
-                    .unwrap()
-                    .maximum_assignment_bytes,
-            )
-            .to_string(),
-    )
-    .unwrap();
-    let calibrated = calibration::compile(
-        &workset,
+    conduit_host_rp2040::source_build::native_build::calibrate_and_emit(
+        &mut workset,
+        mask,
+        out,
         calibration::Input {
             checked,
             image: &image,
@@ -554,20 +489,6 @@ fn prepare_dht_workset(
             bounds,
         },
     )
-    .expect("independent native structural calibration");
-    calibrated
-        .apply_software_mapping(&mut workset, mask, 24 * 1024, 1024 * 1024)
-        .expect("actual Source/kernel ordinal factories");
-    calibrated
-        .emit_continuation_identity(out, workset.sha256)
-        .expect("checked continuation identity emission");
-    calibrated
-        .emit_to(out, 2 * 1024 * 1024)
-        .expect("independent assigned layouts");
-    conduit_host_rp2040::source_build::source_composition::emit_to(&out)
-        .expect("shared Source composition emission");
-    workset
-        .emit_to(out)
-        .expect("checked calibrated runtime factories");
+    .expect("independent native calibration and emission");
     resident
 }
