@@ -20,6 +20,7 @@ impl<S: NorStorage> PreparedAssignedAppender<'_, S> {
     pub fn retained_backing_bytes(&self) -> Option<usize> {
         self.operation.retained_backing_bytes()
     }
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     pub fn bind(self) -> RecordAppendHostCall<S> {
         RecordAppendHostCall {
             operation: self.operation,

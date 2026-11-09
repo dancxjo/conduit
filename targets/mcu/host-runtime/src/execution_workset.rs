@@ -206,6 +206,7 @@ unsafe impl PreparedLocalKernels for super::execution_mask::PreparedMaskRouting<
     fn retained_backing_bytes(&self) -> Option<usize> {
         super::execution_mask::PreparedMaskRouting::retained_backing_bytes(self)
     }
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     unsafe fn bind(self) -> Self::Bound {
         // SAFETY: this trait is consumed only by authenticated whole-workset
         // Start; no provider can bind independently through this API.

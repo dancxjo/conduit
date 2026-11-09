@@ -678,6 +678,7 @@ impl PreparedMaskRouting<'_> {
     /// Root has admitted the complete workset and authenticated its current
     /// Start. This transfers the original initialized Backs once, without any
     /// allocation, validation failure, or native effect.
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     pub unsafe fn bind(
         self,
     ) -> conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel {
@@ -702,6 +703,7 @@ unsafe impl<'a, C: RendererClock> super::execution_workset::PreparedLocalKernels
     fn retained_backing_bytes(&self) -> Option<usize> {
         self.0.retained_backing_bytes()
     }
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     unsafe fn bind(self) -> Self::Bound {
         self.0
     }

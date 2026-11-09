@@ -29,6 +29,7 @@ impl<P: OpenDrain> PreparedAssignedWrite<'_, P> {
     }
     /// No allocation, electrical IO or Start. Dropping before this transfer
     /// retains Root's provider, including when another workset member refuses.
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     pub fn bind(self) -> WriteHostCall<P> {
         let owner = self.slot.take().expect("exclusively prepared output owner");
         WriteHostCall::from_prepared(

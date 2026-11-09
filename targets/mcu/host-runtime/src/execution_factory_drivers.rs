@@ -112,6 +112,7 @@ impl<
         const A: usize,
     > PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A>
 {
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     pub(super) fn bind_slots<const PORTS: usize>(
         self,
     ) -> BoundDriverSlots<'f, R::Back, P, T, W, N, A>
@@ -183,6 +184,7 @@ where
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     fn bind(self) -> ([Self::Driver; N], Self::Calls) {
         let (drivers, calls) = self.bind_slots::<PORTS>();
         (

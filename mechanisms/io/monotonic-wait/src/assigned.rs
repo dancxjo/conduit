@@ -139,6 +139,7 @@ impl<P: MonotonicWaitProvider> PreparedAssignedWait<'_, P> {
     pub fn retained_backing_bytes(&self) -> Option<usize> {
         self.operation.retained_backing_bytes()
     }
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     pub fn bind(self) -> MonotonicWaitHostCall<P> {
         let owner = self.slot.take().expect("exclusively prepared wait owner");
         MonotonicWaitHostCall::from_bound(

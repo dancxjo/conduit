@@ -87,6 +87,7 @@ where
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     fn bind(self) -> ([Self::Driver; N], Self::Calls) {
         let node = usize::from(self.appender.node().0);
         let (mut drivers, base) = self.base.bind_slots::<PORTS>();
@@ -184,6 +185,7 @@ where
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     fn bind(self) -> ([Self::Driver; N], Self::Calls) {
         let (mut drivers, base) = self.base.bind_slots::<PORTS>();
         let appender = self.appender.map(|ticket| {

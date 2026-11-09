@@ -65,6 +65,7 @@ pub struct PreparedAssignedMaskStorage {
     renderer: k::NodeId,
 }
 impl PreparedAssignedMaskStorage {
+    #[inline(always)] // Transfer the original boxed owner directly into its destination.
     pub fn bind(self, backs: [MaskBack; 3]) -> PreparedAssignedMaskKernel {
         PreparedAssignedMaskKernel {
             identity: self.identity,

@@ -198,6 +198,7 @@ pub struct PreparedSoftware<'o, 'f, const N: usize> {
     selected: [bool; N],
 }
 impl<'f, const N: usize> PreparedSoftware<'_, 'f, N> {
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     fn bind(self) -> [Option<SoftwareBack<'f>>; N] {
         core::array::from_fn(|index| {
             if self.selected[index] {
@@ -433,6 +434,7 @@ unsafe impl<L: PreparedResidentEntry, const E: usize> PreparedResidents<E>
             .flatten()
             .try_fold(0usize, |n, l| n.checked_add(l.retained_backing_bytes()?))
     }
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     fn bind(self) -> [Option<(u16, Self::Back)>; E] {
         self.0.map(|l| l.map(L::bind))
     }

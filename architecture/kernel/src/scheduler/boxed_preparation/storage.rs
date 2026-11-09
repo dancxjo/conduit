@@ -84,6 +84,7 @@ impl<D, K, const N: usize> PreparedKernelStorage<D, K, N> {
 
     /// Infallible and allocation-free. Caller first admits the whole workset and
     /// supplies the exact independently checked, actually possessed Back owners.
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     pub fn bind(mut self, drivers: [D; N]) -> Box<K> {
         let mut storage = self.storage.take().expect("live prepared storage");
         // SAFETY: the private constructor pairs this storage with its exact

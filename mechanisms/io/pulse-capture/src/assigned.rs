@@ -30,6 +30,7 @@ impl<P: PulseReadProvider> PreparedAssignedPulse<'_, P> {
     }
     /// Root must independently admit the whole workset before this transfer.
     /// No allocation, electrical effect, or execution authority is added here.
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     pub fn bind(self) -> PulseHostCall<P> {
         let owner = self.slot.take().expect("exclusively prepared pulse owner");
         PulseHostCall::from_prepared(

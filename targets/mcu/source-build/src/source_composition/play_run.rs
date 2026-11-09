@@ -54,6 +54,42 @@ async fn remain_retained() -> ! {
     }
 }
 
+// Keep one-time session construction scratch off every actor's live poll chain.
+#[inline(never)]
+fn prepare_mask<'a>(
+    mask: conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
+    renderer: RendererService<'a, crate::renderer::Clock>,
+    optional: OptionalOutputStorage<6>,
+) -> MaskSession<'a, crate::renderer::Clock> {
+    MaskSession::bind_started(
+        mask.kernel,
+        renderer,
+        Boundaries {
+            face: boundary(mask.face),
+            show: boundary(mask.show),
+            interaction: boundary(mask.interaction),
+        },
+        16,
+        optional,
+    )
+    .expect("exact prepared Mask session")
+}
+
+// Return directly into the retained future field; no temporary zeroed array
+// or archive needs to remain on the sampling actor's synchronous call chain.
+#[inline(never)]
+fn inspection_buffer() -> [u8; crate::workset::renderer::RENDERER_FACE_BYTES as usize] {
+    [0; crate::workset::renderer::RENDERER_FACE_BYTES as usize]
+}
+#[inline(never)]
+fn invocation_archive() -> k::invocation_archive::InvocationArchive<64, 4, 3> {
+    k::invocation_archive::InvocationArchive::new()
+}
+#[inline(never)]
+fn inspection_state(evidence: &StartedEvidence) -> State<3> {
+    State::new(evidence)
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn run<'r, 'f>(
     mut sampling: Box<crate::play::SamplingKernel<'r, 'f>>,
@@ -75,7 +111,7 @@ pub async fn run<'r, 'f>(
     append_output: &mut [u8],
     append_status: conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus,
 ) -> ! {
-    let inspection = State::<3>::new(&evidence);
+    let inspection = inspection_state(&evidence);
     let delivery = RefCell::new(Delivery::Empty);
     let mut sample_observer = SampleObserver {
         inspection: &inspection,
@@ -104,18 +140,7 @@ pub async fn run<'r, 'f>(
         write_node,
         last_outcome: None,
     };
-    let mut mask = MaskSession::bind_started(
-        mask.kernel,
-        renderer,
-        Boundaries {
-            face: boundary(mask.face),
-            show: boundary(mask.show),
-            interaction: boundary(mask.interaction),
-        },
-        16,
-        optional,
-    )
-    .expect("exact prepared Mask session");
+    let mut mask = prepare_mask(mask, renderer, optional);
     let start_sign = kernel_sign::authenticated_start(&evidence, scopes.fragment(1), 64)
         .expect("actual authenticated Start causal identity");
     let cancelled = || false;
@@ -195,7 +220,7 @@ pub async fn run<'r, 'f>(
     let display_mask = async {
         // Full original traces remain owned. Repeated structure is stored once;
         // every request generation, remote identity and gap is reconstructible.
-        let mut archive = k::invocation_archive::InvocationArchive::<64, 4, 3>::new();
+        let mut archive = invocation_archive();
         const _: () = assert!(
             core::mem::size_of::<k::invocation_archive::InvocationArchive<64, 4, 3>>()
                 <= core::mem::size_of::<heapless::Vec<(u32, k::KernelEvent), 128>>()
@@ -331,7 +356,7 @@ pub async fn run<'r, 'f>(
         }
     };
     let inspect = async {
-        let mut response = [0u8; crate::workset::renderer::RENDERER_FACE_BYTES as usize];
+        let mut response = inspection_buffer();
         loop {
             // The original complete arena remains reserved throughout local
             // execution, including carrier interruptions and native failures.
@@ -360,6 +385,22 @@ pub async fn run<'r, 'f>(
         pin!(display_output),
         pin!(display_mask),
         pin!(inspect),
+    );
+    // Separate actor polls so display/archive and carrier cold initialization
+    // scratch is retired before the sampler's scalar evaluator runs.
+    let (mut sample, mut output, mut mask, mut inspect) = (
+        pin!(conduit_mcu_host_runtime::poll_boundary::separate(
+            sample.as_mut()
+        )),
+        pin!(conduit_mcu_host_runtime::poll_boundary::separate(
+            output.as_mut()
+        )),
+        pin!(conduit_mcu_host_runtime::poll_boundary::separate(
+            mask.as_mut()
+        )),
+        pin!(conduit_mcu_host_runtime::poll_boundary::separate(
+            inspect.as_mut()
+        )),
     );
     poll_fn(|cx| {
         let _ = sample.as_mut().poll(cx);

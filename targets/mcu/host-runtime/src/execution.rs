@@ -229,6 +229,7 @@ unsafe impl<
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.retained)
     }
+    #[inline(always)] // Fuse the affine owner transfer with its final destination.
     unsafe fn bind(self) -> Self::Bound {
         let (drivers, calls) = self.backs.bind();
         (self.storage.bind(drivers), calls)
