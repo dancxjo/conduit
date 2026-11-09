@@ -124,14 +124,17 @@ pub(super) fn prepare(
     println!("Prepared exact application, private bootstrap and public admission pins in {}. No flash write or admission performed.", output.display());
     Ok(())
 }
+fn application_files(files: &[conduit_host_make::HostReleaseFile]) -> bool {
+    matches!(files, [app] if app.path == "host.uf2" && app.media_type == "application/x-uf2")
+        || matches!(files, [app, recipe] if app.path == "host.uf2" && app.media_type == "application/x-uf2"
+            && recipe.path == super::host_continuation_recipe::NAME && recipe.media_type == "application/json")
+}
 fn validate_package(package: &VerifiedJoiningHostPackage) -> Result<(), String> {
     let image = &package.image().manifest;
     let release = package.release();
     if image.target != conduit_host_rp2040::TARGET_ID
         || image.output != SporeOutputKind::Uf2
-        || release.files.len() != 1
-        || release.files[0].path != "host.uf2"
-        || release.files[0].media_type != "application/x-uf2"
+        || !application_files(&release.files)
     {
         return Err("Seed is not the reviewed RP2040 application closure".into());
     }

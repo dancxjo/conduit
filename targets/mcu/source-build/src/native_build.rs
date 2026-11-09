@@ -75,9 +75,17 @@ pub fn calibrate_and_emit(
         input.bounds.policy_json(assignment_bytes).to_string(),
     )
     .map_err(|e| e.to_string())?;
+    let image = input.image;
+    let checked = input.checked;
     let calibrated = calibration::compile(workset, input)?;
     calibrated.apply_software_mapping(workset, mask, 24 * 1024, 1024 * 1024)?;
     calibrated.emit_continuation_identity(out, workset.sha256)?;
+    calibrated.emit_continuation_recipe(
+        out,
+        workset.sha256,
+        &image.manifest.image_id,
+        checked.configuration_id(),
+    )?;
     calibrated.emit_to(out, 2 * 1024 * 1024)?;
     crate::source_composition::emit_to(out).map_err(|e| e.to_string())?;
     workset.emit_to(out)

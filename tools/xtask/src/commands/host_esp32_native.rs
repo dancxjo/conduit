@@ -81,10 +81,7 @@ pub(super) fn build(
     if let Some(workset) = workset {
         workset.configure(&mut command)?;
     }
-    let status = command.status()?;
-    if !status.success() {
-        return Err("native ESP32 Host compilation failed".into());
-    }
+    let build_out = super::host_cargo_build::run(&mut command, &target, "conduit-esp32-host")?;
     clean_source(&root, revision)?;
     image_description.verify()?;
     if let Some(workset) = workset {
@@ -141,6 +138,16 @@ pub(super) fn build(
     if let Some(workset) = workset {
         workset.verify()?;
     }
+    let mut payloads = vec![("host.bin", "application/octet-stream")];
+    if super::host_continuation_recipe::publish(
+        &build_out,
+        output,
+        image,
+        checked.configuration_id(),
+        workset,
+    )? {
+        payloads.push((super::host_continuation_recipe::NAME, "application/json"));
+    }
     super::host_release::seal(
         output,
         "checked-artifact.json",
@@ -154,7 +161,7 @@ pub(super) fn build(
             .as_deref()
             .ok_or("ESP32 deployment adapter absent")?,
         &image.manifest.source_identity,
-        &[("host.bin", "application/octet-stream")],
+        &payloads,
     )?;
     if let Some(workset) = workset {
         workset.publish(&output.join("checked-artifact.json"))?;

@@ -82,10 +82,7 @@ pub(super) fn build(
     if let Some(input) = workset {
         input.configure(command)?;
     }
-    let status = command.status()?;
-    if !status.success() {
-        return Err("RP2040 Host compilation failed".into());
-    }
+    let build_out = super::host_cargo_build::run(command, &target_dir, "conduit-rp2040-host")?;
     let post = Command::new("git")
         .args(["status", "--porcelain", "--untracked-files=normal"])
         .current_dir(&root)
@@ -122,6 +119,16 @@ pub(super) fn build(
     if let Some(input) = workset {
         input.verify()?;
     }
+    let mut payloads = vec![("host.uf2", "application/x-uf2")];
+    if super::host_continuation_recipe::publish(
+        &build_out,
+        output,
+        image,
+        checked.configuration_id(),
+        workset,
+    )? {
+        payloads.push((super::host_continuation_recipe::NAME, "application/json"));
+    }
     super::host_release::seal(
         output,
         "checked-artifact.json",
@@ -135,7 +142,7 @@ pub(super) fn build(
             .as_deref()
             .ok_or("RP2040 deployment adapter absent")?,
         &image.manifest.source_identity,
-        &[("host.uf2", "application/x-uf2")],
+        &payloads,
     )?;
     // Use the existing target-owned release extension; no extra payload or
     // competing manifest is needed to select the matching native Seed codec.

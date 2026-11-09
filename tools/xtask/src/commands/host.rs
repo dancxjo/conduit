@@ -43,6 +43,10 @@ mod host_spoken_birth;
 pub(crate) mod host_target;
 #[path = "host_whisper.rs"]
 mod host_whisper;
+#[path = "host_cargo_build.rs"]
+mod host_cargo_build;
+#[path = "host_continuation_recipe.rs"]
+mod host_continuation_recipe;
 #[path = "host_workset_source.rs"]
 mod host_workset_source;
 

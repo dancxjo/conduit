@@ -380,6 +380,14 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
         .emit_continuation_identity(&out, workset.sha256)
         .expect("checked continuation identity emission");
     calibration
+        .emit_continuation_recipe(
+            &out,
+            workset.sha256,
+            &host_image.manifest.image_id,
+            checked.configuration_id(),
+        )
+        .expect("checked owner-visible continuation recipe emission");
+    calibration
         .emit_to(&out, 2 * 1024 * 1024)
         .expect("finite immutable Source layout emission");
     conduit_mcu_source_build::source_composition::emit_to(&out)

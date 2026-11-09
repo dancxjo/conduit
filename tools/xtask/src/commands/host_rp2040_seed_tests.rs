@@ -234,3 +234,25 @@ fn prepared_member_update_preserves_credential_and_key_and_refuses_foreign_body(
     assert!(!rejected.exists());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn application_closure_admits_only_exact_optional_calibrated_metadata() {
+    let app = conduit_host_make::HostReleaseFile {
+        path: "host.uf2".into(),
+        bytes: 1,
+        sha256: format!("sha256:{}", "a".repeat(64)),
+        media_type: "application/x-uf2".into(),
+    };
+    let recipe = conduit_host_make::HostReleaseFile {
+        path: "continuation-recipe.json".into(),
+        bytes: 1,
+        sha256: format!("sha256:{}", "b".repeat(64)),
+        media_type: "application/json".into(),
+    };
+    assert!(application_files(std::slice::from_ref(&app)));
+    assert!(application_files(&[app.clone(), recipe.clone()]));
+    assert!(!application_files(&[recipe.clone(), app.clone()]));
+    let mut foreign = recipe;
+    foreign.path = "foreign.json".into();
+    assert!(!application_files(&[app, foreign]));
+}
