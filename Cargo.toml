@@ -126,6 +126,7 @@ members = [
 	"tools/xtask",
 ]
 exclude = [
+	"targets/rp2040/snapshot-nor",
 	"bodies/environment/runtime",
 	"bodies/environment/face",
 	"plots/seven-segment-mask",
