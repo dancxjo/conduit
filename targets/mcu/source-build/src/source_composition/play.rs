@@ -102,7 +102,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
     pulse: &'a mut Option<ReadyPulseBase<Pulse>>,
     write: &'a mut Option<ReadyWriteBase<Wire>>,
     waits: &'a mut [Option<ReadyMonotonicWaitBase<MonotonicTimer>>; WAIT_SLOTS],
-    recording: &'a mut Option<ReadyRecordAppender<RecordingStorage>>,
+    recording: Option<&'a mut Option<ReadyRecordAppender<RecordingStorage>>>,
     recording_issuer: &mut Issuer,
     recording_operation: Option<&Operation<'_>>,
     append_output_bytes: usize,

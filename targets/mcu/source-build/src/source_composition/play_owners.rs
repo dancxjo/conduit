@@ -45,7 +45,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
     pulse: &'a mut Option<ReadyPulseBase<Pulse>>,
     write: &'a mut Option<ReadyWriteBase<Wire>>,
     waits: &'a mut [Option<ReadyMonotonicWaitBase<MonotonicTimer>>; WAIT_SLOTS],
-    recording: &'a mut Option<ReadyRecordAppender<RecordingStorage>>,
+    recording: Option<&'a mut Option<ReadyRecordAppender<RecordingStorage>>>,
     recording_issuer: &mut Issuer,
     recording_operation: Option<&Operation<'_>>,
     pulse_issuer: &mut Issuer,
@@ -227,6 +227,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
     }
     let appender = match (append_node, contracts.append, recording_operation) {
         (Some(node), Some(contract), Some(op)) => {
+            let recording = recording.ok_or("append-busy")?;
             let (table, handle, claim) = recording_issuer
                 .issue(
                     context,
