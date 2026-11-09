@@ -35,6 +35,7 @@ fn main() {
             .into(),
             serde_record_types: ["InputSurfacePoint".into(), "InteractionValue".into()].into(),
             serde_variant_exclusions: [
+                "ExperienceEvidenceSource".into(),
                 "ChordInfo".into(),
                 "ControlChordModifier".into(),
                 "CurrentExperienceInspectionError".into(),

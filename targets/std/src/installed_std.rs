@@ -27,6 +27,9 @@ mod count_backs;
 mod creche_back;
 mod deadline_host;
 mod distance_frequency_back;
+mod experience_evidence_back;
+#[cfg(test)]
+mod experience_evidence_back_tests;
 mod external_fore_feeder;
 mod external_websocket;
 mod external_websocket_host;
