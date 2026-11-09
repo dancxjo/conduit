@@ -329,6 +329,60 @@ pub fn with_reference(
     });
     assert_eq!(cost.allocations, 0);
     assert_eq!(cost.reallocations, 0);
+    // Actual bounded assembler must reproduce the full rich canonical encoder,
+    // not merely mint IDs which happen to satisfy its own reader.
+    let rows: Vec<Vec<_>> = docs
+        .iter()
+        .map(|document| {
+            let (metadata, _) = decode_body_fragment_document(document).unwrap();
+            PlainFragmentResources::new(metadata.resource_bindings)
+                .map(Result::unwrap)
+                .collect()
+        })
+        .collect();
+    let resources: Vec<_> = rows.iter().map(Vec::as_slice).collect();
+    let candidate = build_continuation_candidate::<0>(
+        &verified,
+        &checked,
+        &full,
+        &actual,
+        &pins,
+        &entries,
+        &resources,
+        ceilings.runtime_bytes as usize,
+    )
+    .unwrap();
+    assert_eq!(candidate.len(), docs.len());
+    for (i, original) in docs.iter().enumerate() {
+        assert_eq!(
+            candidate.document(i),
+            Some(*original),
+            "exact canonical fresh document"
+        );
+    }
+    let (refused, pressure) = allocation_probe::observe(|| {
+        build_continuation_candidate::<0>(
+            &verified, &checked, &full, &actual, &pins, &entries, &resources, 1,
+        )
+    });
+    assert!(matches!(refused, Err(ContinuationScopeRefusal::Bounds)));
+    assert_eq!(
+        pressure.allocations, 0,
+        "workspace shortage refuses before any reserve"
+    );
+    let mut foreign_boot = actual.clone();
+    foreign_boot.boot_id = "other/fresh".into();
+    assert!(build_continuation_candidate::<0>(
+        &verified,
+        &checked,
+        &full,
+        &foreign_boot,
+        &pins,
+        &entries,
+        &resources,
+        ceilings.runtime_bytes as usize,
+    )
+    .is_err());
     assert_eq!(accepted.fragment_count(), 3);
     assert_eq!(
         decode_body_fragment_document(accepted.document(0).unwrap())

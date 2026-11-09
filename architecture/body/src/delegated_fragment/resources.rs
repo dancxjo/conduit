@@ -21,10 +21,28 @@ impl PlainFragmentResource<'_> {
         if !self.valid() {
             return Err(BodyFragmentDocumentRefusal::Metadata);
         }
-        bytes.extend(
-            postcard::to_allocvec(self).map_err(|_| BodyFragmentDocumentRefusal::Metadata)?,
-        );
+        let n = self.encoded_length()?;
+        let start = bytes.len();
+        let end = start
+            .checked_add(n)
+            .ok_or(BodyFragmentDocumentRefusal::Bounds)?;
+        bytes
+            .try_reserve_exact(n)
+            .map_err(|_| BodyFragmentDocumentRefusal::Bounds)?;
+        bytes.resize(end, 0);
+        if postcard::to_slice(self, &mut bytes[start..]).is_err() {
+            bytes.truncate(start);
+            return Err(BodyFragmentDocumentRefusal::Metadata);
+        }
         Ok(())
+    }
+    /// Exact same canonical Postcard length, without a temporary row allocation.
+    pub fn encoded_length(&self) -> Result<usize, BodyFragmentDocumentRefusal> {
+        if !self.valid() {
+            return Err(BodyFragmentDocumentRefusal::Metadata);
+        }
+        postcard::experimental::serialized_size(self)
+            .map_err(|_| BodyFragmentDocumentRefusal::Metadata)
     }
 
     fn valid(&self) -> bool {

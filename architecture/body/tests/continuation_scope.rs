@@ -5,5 +5,14 @@ mod reference;
 
 #[test]
 fn full_six_reference_authorizes_only_fresh_local_three_and_refuses_scope_tampering() {
-    reference::with_reference(|_, _, _| {});
+    reference::with_reference(|scope, _, _| {
+        for i in 0..scope.fragment_count() {
+            let document = scope.document(i).unwrap();
+            let (metadata, projection) =
+                conduit_body::decode_body_fragment_document(document).unwrap();
+            let mut legacy = postcard::to_allocvec(&metadata).unwrap();
+            legacy.extend_from_slice(projection);
+            assert_eq!(legacy, document, "same original Postcard model/bytes");
+        }
+    });
 }

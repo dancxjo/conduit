@@ -169,3 +169,7 @@ fn approve_checked<'a, const PORTS: usize>(
         )
     }
 }
+
+#[path = "continuation_candidate.rs"]
+mod candidate;
+pub use candidate::*;

@@ -127,16 +127,22 @@ pub fn encode_body_fragment_document(
     {
         return Err(BodyFragmentDocumentRefusal::Projection);
     }
-    let mut bytes =
-        postcard::to_allocvec(metadata).map_err(|_| BodyFragmentDocumentRefusal::Metadata)?;
-    let total = bytes
-        .len()
+    let header = postcard::experimental::serialized_size(metadata)
+        .map_err(|_| BodyFragmentDocumentRefusal::Metadata)?;
+    let total = header
         .checked_add(projection.len())
         .ok_or(BodyFragmentDocumentRefusal::Bounds)?;
     if total as u64 > u64::from(maximum_bytes) {
         return Err(BodyFragmentDocumentRefusal::Bounds);
     }
-    bytes.extend_from_slice(projection);
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(total)
+        .map_err(|_| BodyFragmentDocumentRefusal::Bounds)?;
+    bytes.resize(total, 0);
+    postcard::to_slice(metadata, &mut bytes[..header])
+        .map_err(|_| BodyFragmentDocumentRefusal::Metadata)?;
+    bytes[header..].copy_from_slice(projection);
     Ok(bytes)
 }
 
@@ -178,3 +184,11 @@ pub use preparation_workset::*;
 mod continuation;
 #[cfg(feature = "authenticated-admission")]
 pub use continuation::*;
+
+/// Canonical commitment of sorted unique local fragment identities; encoding
+/// data only, not proof of completeness or execution permission.
+pub fn local_fragment_set_commitment(
+    ids: &[&str],
+) -> Result<(u16, [u8; 32]), BodyFragmentDocumentRefusal> {
+    workset::fragment_set_commitment(ids)
+}

@@ -30,7 +30,13 @@ pub(super) fn local_fragment_scope(
         .map(|f| f.fragment_id.as_str())
         .collect();
     ids.sort_unstable();
-    if ids.windows(2).any(|pair| pair[0] == pair[1]) {
+    fragment_set_commitment(&ids)
+}
+
+pub(super) fn fragment_set_commitment(
+    ids: &[&str],
+) -> Result<(u16, [u8; 32]), BodyFragmentDocumentRefusal> {
+    if ids.windows(2).any(|pair| pair[0] >= pair[1]) {
         return Err(BodyFragmentDocumentRefusal::Metadata);
     }
     let count = u16::try_from(ids.len()).map_err(|_| BodyFragmentDocumentRefusal::Bounds)?;
