@@ -377,6 +377,23 @@ pub async fn run<'s>(
             // Successive polls retire preparation scratch before admission and
             // provider binding need their own stack. Custody moves once; no
             // command, resource ledger, or execution grant is reconstructed.
+            let mut presentation_slot = None;
+            let prepared_status = match prepared_status {
+                Err(reason) => Err(reason),
+                Ok(()) => {
+                    let future = crate::play_service::prepare_online_in_slot(
+                        &prepared_slot, &mut presentation_slot, &mut equipment.renderer,
+                        &mut issuers.renderer, &operations.renderer,
+                        reader.take().expect("original unclaimed Reader"), &face,
+                    );
+                    conduit_mcu_host_runtime::poll_boundary::separate(core::pin::pin!(future))
+                        .await.map_err(|error| {
+                            use core::fmt::Write;
+                            let _ = write!(&mut refusal_detail, "{error:?}");
+                            "renderer-preparation"
+                        })
+                }
+            };
             let mut started_slot = None;
             let outcome = match prepared_status {
                 Err(reason) => Err(reason),
@@ -385,7 +402,7 @@ pub async fn run<'s>(
                         let (prepared, workspace, bootstrap, member, configuration,
                             resources, policy, held_pools) = prepared_slot.take()
                             .ok_or("prepared-slot-empty")?;
-                        let started = crate::play_service::start(
+                        let started = crate::play_service::start_prepared(
                             prepared,
                             workspace,
                             bootstrap,
@@ -393,10 +410,7 @@ pub async fn run<'s>(
                             configuration,
                             resources,
                             policy,
-                            &mut equipment.renderer,
-                            &mut issuers.renderer,
-                            &operations.renderer,
-                            reader.take().ok_or("reader-busy")?,
+                            presentation_slot.take().ok_or("presentation-slot-empty")?,
                             &face,
                             &held_pools,
                             append_output.len() + core::mem::size_of::<conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus>(),

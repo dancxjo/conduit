@@ -181,3 +181,44 @@ pub(super) fn prepare<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         shared,
     })
 }
+
+// Local ticket correspondence only, never a grant, wire identity or Start proof.
+// Hash the exact already approved metadata without allocating or decoding again.
+#[inline(never)]
+pub(super) fn workset_pin<T: PreparedLocalKernels>(
+    prepared: &PreparedLocalWorkset<'_, T, 3>,
+) -> [u8; 32] {
+    use sha2::{Digest, Sha256};
+    let mut hash = Sha256::new();
+    hash.update(b"conduit.native/prepared-renderer-workset@1");
+    for fragment in prepared.fragments() {
+        let m = fragment.metadata();
+        for bytes in [
+            m.body.as_bytes(),
+            m.wake.as_bytes(),
+            m.body_plan.as_bytes(),
+            m.body_play.as_bytes(),
+            m.source.as_bytes(),
+            m.checked_plot.as_bytes(),
+            m.expanded_plot.as_bytes(),
+            m.plot_plan.as_bytes(),
+            m.fragment.as_bytes(),
+            m.host.as_bytes(),
+            m.boot.as_bytes(),
+            m.resource_bindings,
+            m.fore_ports,
+        ] {
+            hash.update((bytes.len() as u64).to_le_bytes());
+            hash.update(bytes);
+        }
+        hash.update(m.schema.to_le_bytes());
+        hash.update(m.play_sequence.to_le_bytes());
+        hash.update(m.workload_revision.to_le_bytes());
+        hash.update(m.offer_generation.to_le_bytes());
+        hash.update(m.local_fragment_count.to_le_bytes());
+        hash.update(m.local_fragment_digest);
+        hash.update(m.projection_length.to_le_bytes());
+        hash.update(m.projection_digest);
+    }
+    hash.finalize().into()
+}

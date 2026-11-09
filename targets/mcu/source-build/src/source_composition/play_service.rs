@@ -38,6 +38,77 @@ impl Scopes {
             + self.fragments.iter().map(|f| f.0.capacity()).sum::<usize>()
     }
 }
+/// Inert original renderer owner, pinned to the exact approved workset.
+/// Private fields prevent polling or manufacturing a substitute service.
+pub struct PreparedPresentation<'a, C> {
+    original: presentation::Presentation<'a, C>,
+    workset: [u8; 32],
+}
+#[allow(clippy::too_many_arguments)]
+#[inline(never)] // This cold frame must retire before admission/Start scratch.
+pub fn prepare_presentation<'a, T: PreparedLocalKernels, C: RendererClock>(
+    prepared: &PreparedLocalWorkset<'_, T, 3>,
+    authority: crate::play::NativeAuthority<'_, '_, '_>,
+    policy: Policy<'_>,
+    renderer: &'a mut ReadyRenderer<C>,
+    issuer: &mut Issuer,
+    operation: &Operation<'_>,
+    reader: Reader<'a>,
+    face: &LocalPublicationFace,
+) -> Result<PreparedPresentation<'a, C>, Refusal<&'static str>> {
+    let workset = presentation::workset_pin(prepared);
+    let original = presentation::prepare(
+        prepared, authority, policy, renderer, issuer, operation, reader, face,
+    )?;
+    Ok(PreparedPresentation { original, workset })
+}
+// Original online preparation output, borrowed only during the cold renderer poll.
+// The tuple owns the same opaque workset and mutable ledger; it grants no Start.
+pub type OnlinePrepared<'w, 'r, T> = (
+    PreparedLocalWorkset<'w, T, 3>,
+    &'w b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>,
+    &'r b::MemberBootstrap<'r>,
+    &'r b::MembershipCredential,
+    &'r conduit_mcu_host_runtime::root::Configuration,
+    &'r mut c::ResourceAdmissionOwner,
+    Policy<'r>,
+    heapless::Vec<c::AssignedIdentity, 6>,
+);
+#[allow(clippy::too_many_arguments)]
+pub async fn prepare_online_in_slot<'a, T: PreparedLocalKernels, C: RendererClock>(
+    input: &Option<OnlinePrepared<'_, '_, T>>,
+    target: &mut Option<PreparedPresentation<'a, C>>,
+    renderer: &'a mut ReadyRenderer<C>,
+    issuer: &mut Issuer,
+    operation: &Operation<'_>,
+    reader: Reader<'a>,
+    face: &LocalPublicationFace,
+) -> Result<(), Refusal<&'static str>> {
+    if target.is_some() {
+        return Err(Refusal::Scope);
+    }
+    let (prepared, _, bootstrap, member, configuration, resources, policy, _) =
+        input.as_ref().ok_or(Refusal::Scope)?;
+    let authority = b::NativePreparationContext {
+        bootstrap,
+        member,
+        actual: resources.host(),
+        image_id: configuration.image_id,
+        configuration_id: configuration.configuration_id,
+        now_millis: crate::runtime::now_ms(),
+    };
+    *target = Some(prepare_presentation(
+        prepared,
+        authority.into(),
+        *policy,
+        renderer,
+        issuer,
+        operation,
+        reader,
+        face,
+    )?);
+    Ok(())
+}
 /// The Source factory owns all actual resident/native tickets before this call.
 /// The five pool identities are captured from that BSP's initialized owners,
 /// including its finite private-work pool. Incoming descriptors choose none.
@@ -65,6 +136,61 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     ),
     Refusal<&'static str>,
 > {
+    let authority = b::NativePreparationContext {
+        bootstrap,
+        member,
+        actual: resources.host(),
+        image_id: configuration.image_id,
+        configuration_id: configuration.configuration_id,
+        now_millis: crate::runtime::now_ms(),
+    };
+    let presentation = prepare_presentation(
+        &prepared,
+        authority.into(),
+        policy,
+        renderer,
+        issuer,
+        operation,
+        reader,
+        face,
+    )?;
+    start_prepared(
+        prepared,
+        workspace,
+        bootstrap,
+        member,
+        configuration,
+        resources,
+        policy,
+        presentation,
+        face,
+        held_pools,
+        recording_service_bytes,
+    )
+}
+
+/// Consume the separately prepared renderer only at ordinary whole-set admission.
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[inline(always)]
+pub fn start_prepared<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
+    prepared: PreparedLocalWorkset<'w, T, 3>,
+    workspace: &b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>,
+    bootstrap: &b::MemberBootstrap<'_>,
+    member: &b::MembershipCredential,
+    configuration: &conduit_mcu_host_runtime::root::Configuration,
+    resources: &mut c::ResourceAdmissionOwner,
+    policy: Policy<'_>,
+    presentation: PreparedPresentation<'a, C>,
+    face: &LocalPublicationFace,
+    held_pools: &[c::AssignedIdentity],
+    recording_service_bytes: usize,
+) -> Result<
+    (
+        StartedLocalWorkset<(T::Bound, RendererService<'a, C>)>,
+        Scopes,
+    ),
+    Refusal<&'static str>,
+> {
     start_selected(
         prepared,
         Some(workspace),
@@ -75,10 +201,7 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         },
         resources,
         policy,
-        renderer,
-        issuer,
-        operation,
-        reader,
+        presentation,
         face,
         held_pools,
         recording_service_bytes,
@@ -97,10 +220,7 @@ pub fn start_continuation<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     scope: &b::FreshContinuationScope<'w>,
     resources: &mut c::ResourceAdmissionOwner,
     policy: Policy<'_>,
-    renderer: &'a mut ReadyRenderer<C>,
-    issuer: &mut Issuer,
-    operation: &Operation<'_>,
-    reader: Reader<'a>,
+    presentation: PreparedPresentation<'a, C>,
     face: &LocalPublicationFace,
     held_pools: &[c::AssignedIdentity],
     recording_service_bytes: usize,
@@ -122,10 +242,7 @@ pub fn start_continuation<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         },
         resources,
         policy,
-        renderer,
-        issuer,
-        operation,
-        reader,
+        presentation,
         face,
         held_pools,
         recording_service_bytes,
@@ -139,10 +256,7 @@ fn start_selected<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     origin: PresentationOrigin<'_, '_, 'w>,
     resources: &mut c::ResourceAdmissionOwner,
     policy: Policy<'_>,
-    renderer: &'a mut ReadyRenderer<C>,
-    issuer: &mut Issuer,
-    operation: &Operation<'_>,
-    reader: Reader<'a>,
+    presentation: PreparedPresentation<'a, C>,
     face: &LocalPublicationFace,
     held_pools: &[c::AssignedIdentity],
     recording_service_bytes: usize,
@@ -153,15 +267,15 @@ fn start_selected<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     ),
     Refusal<&'static str>,
 > {
-    let authority = origin.native(resources.host(), policy)?;
+    if presentation.workset != presentation::workset_pin(&prepared) {
+        return Err(Refusal::Back("renderer-workset"));
+    }
     let presentation::Presentation {
         service,
         scopes,
         basis,
         shared,
-    } = presentation::prepare(
-        &prepared, authority, policy, renderer, issuer, operation, reader, face,
-    )?;
+    } = presentation.original;
     let observations = observe_held(&prepared, resources, held_pools)?;
     // The fixed outer table lives inline; its owned identity payload is heap.
     let observation_bytes = observations
