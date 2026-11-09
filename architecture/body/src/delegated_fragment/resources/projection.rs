@@ -51,19 +51,38 @@ impl FragmentResource<'_> {
         }
     }
 
-    pub fn append_to(&self, bytes: &mut Vec<u8>) -> Result<(), BodyFragmentDocumentRefusal> {
-        if !self.binding.valid()
-            || self.content.is_some_and(|c| !c.valid())
-            || (!bytes.is_empty() && !bytes.starts_with(MAGIC))
-        {
+    /// Exact canonical row payload length; the stream adds one seven-byte header.
+    pub fn encoded_length(&self) -> Result<usize, BodyFragmentDocumentRefusal> {
+        if !self.binding.valid() || self.content.is_some_and(|c| !c.valid()) {
             return Err(BodyFragmentDocumentRefusal::Metadata);
         }
-        if bytes.is_empty() {
-            bytes.extend_from_slice(MAGIC);
+        postcard::experimental::serialized_size(self)
+            .map_err(|_| BodyFragmentDocumentRefusal::Metadata)
+    }
+    pub fn append_to(&self, bytes: &mut Vec<u8>) -> Result<(), BodyFragmentDocumentRefusal> {
+        let n = self.encoded_length()?;
+        if !bytes.is_empty() && !bytes.starts_with(MAGIC) {
+            return Err(BodyFragmentDocumentRefusal::Metadata);
         }
-        bytes.extend(
-            postcard::to_allocvec(self).map_err(|_| BodyFragmentDocumentRefusal::Metadata)?,
-        );
+        let prefix = if bytes.is_empty() { MAGIC.len() } else { 0 };
+        let additional = n
+            .checked_add(prefix)
+            .ok_or(BodyFragmentDocumentRefusal::Bounds)?;
+        let start = bytes.len();
+        let end = start
+            .checked_add(additional)
+            .ok_or(BodyFragmentDocumentRefusal::Bounds)?;
+        bytes
+            .try_reserve_exact(additional)
+            .map_err(|_| BodyFragmentDocumentRefusal::Bounds)?;
+        bytes.resize(end, 0);
+        if prefix != 0 {
+            bytes[..prefix].copy_from_slice(MAGIC);
+        }
+        if postcard::to_slice(self, &mut bytes[start + prefix..]).is_err() {
+            bytes.truncate(start);
+            return Err(BodyFragmentDocumentRefusal::Metadata);
+        }
         Ok(())
     }
 }
