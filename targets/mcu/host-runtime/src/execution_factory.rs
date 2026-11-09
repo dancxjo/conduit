@@ -3,7 +3,10 @@
 //! consumes every selected slot once, without allocating or starting equipment.
 #[path = "execution_factory_appender.rs"]
 mod appender;
-pub use appender::{CallsWithAppender, PreparedWithAppender};
+pub use appender::{
+    CallsWithAppender, CallsWithOptionalAppender, PreparedWithAppender,
+    PreparedWithOptionalAppender,
+};
 
 #[path = "execution_factory_drivers.rs"]
 mod drivers;

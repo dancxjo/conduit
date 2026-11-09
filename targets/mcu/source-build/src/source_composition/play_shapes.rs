@@ -62,7 +62,10 @@ pub static CONDUIT_EXECUTION_KERNEL_BYTES: [usize; 3] = [
 ];
 pub(super) type SamplingBound<'a, 'f> = (
     Box<SamplingKernel<'a, 'f>>,
-    conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>,
+    conduit_mcu_host_runtime::execution_factory::CallsWithOptionalAppender<
+        conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>,
+        RecordingStorage,
+    >,
 );
 pub(super) type OutputBound<'a, 'f> = (
     Box<OutputKernel<'a, 'f>>,

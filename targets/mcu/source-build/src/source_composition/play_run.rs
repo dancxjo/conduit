@@ -57,7 +57,10 @@ async fn remain_retained() -> ! {
 #[allow(clippy::too_many_arguments)]
 pub async fn run<'r, 'f>(
     mut sampling: Box<crate::play::SamplingKernel<'r, 'f>>,
-    mut sampling_calls: NativeCalls<WAIT_SLOTS>,
+    mut sampling_calls: conduit_mcu_host_runtime::execution_factory::CallsWithOptionalAppender<
+        NativeCalls<WAIT_SLOTS>,
+        crate::equipment::RecordingStorage,
+    >,
     mask: conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
     mut output: Box<crate::play::OutputKernel<'r, 'f>>,
     mut output_calls: NativeCalls<0>,
@@ -69,11 +72,14 @@ pub async fn run<'r, 'f>(
     face: &conduit_environment_runtime::publication_face_custody::LocalPublicationFace,
     link: &mut crate::transport::Link,
     activity: &conduit_mcu_host_runtime::native_runner::NativeActivity,
+    append_output: &mut [u8],
+    append_status: conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus,
 ) -> ! {
     let inspection = State::<3>::new(&evidence);
     let delivery = RefCell::new(Delivery::Empty);
     let mut sample_observer = SampleObserver {
         inspection: &inspection,
+        status: append_status,
     };
     let fore = crate::workset::generated::output_layout::fore();
     // The independently checked output wrapper has exactly one input. Its
@@ -115,15 +121,25 @@ pub async fn run<'r, 'f>(
     let cancelled = || false;
     let yield_to_host = Yield;
     let sample = async {
-        let result = Runner::new(
+        let runner = Runner::new(
             &mut *sampling,
             &mut sample_observer,
             &yield_to_host,
             &cancelled,
         )
-        .with_activity(activity)
-        .run(&mut sampling_calls)
-        .await;
+        .with_activity(activity);
+        let result = if let Some(appender) = sampling_calls.appender.as_mut() {
+            let mut service = conduit_mcu_host_runtime::native_runner::synchronous::Service::new(
+                appender,
+                append_output,
+            )
+            .expect("pre-Start funded append output");
+            runner
+                .run_with_sync_calls(&mut sampling_calls.base, &mut service)
+                .await
+        } else {
+            runner.run(&mut sampling_calls.base).await
+        };
         if let Some(event) = sampling.signs().events().last() {
             let _ = inspection.record(0, event);
         }

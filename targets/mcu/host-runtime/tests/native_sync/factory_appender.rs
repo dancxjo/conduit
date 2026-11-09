@@ -139,3 +139,40 @@ fn actual_append_ticket_refuses_duplicate_missing_and_backing_overflow() {
     .unwrap();
     assert_eq!(f.storage.programs.get(), 0);
 }
+
+#[test]
+fn absent_appender_preserves_complete_original_inventory_without_native_placeholder() {
+    // SAFETY: no software slot or effect owner exists in this CPU inventory.
+    let mut software = unsafe { SoftwareInventory::new([None], [None], 0, &[]) }.unwrap();
+    let selected = unsafe { software.prepare([false]) }.unwrap();
+    let prepared = PreparedDrivers::with_optional_appender(
+        Residents {
+            nodes: [Some(0)],
+            backing: 37,
+        },
+        [Some(0)],
+        selected,
+        PreparedCalls::<NoHardware, NoHardware, NoHardware, 0> {
+            pulse: None,
+            write: None,
+            waits: [],
+        },
+        None::<
+            conduit_resource_snapshot::native_append::PreparedAssignedAppender<
+                '_,
+                fixture::Storage,
+            >,
+        >,
+    )
+    .unwrap();
+    assert_eq!(
+        PreparedBacks::<1, 1>::retained_backing_bytes(&prepared),
+        Some(37)
+    );
+    let (drivers, calls) = PreparedBacks::<1, 1>::bind(prepared);
+    assert!(matches!(drivers[0], Driver::Resident(_)));
+    assert!(calls.appender.is_none());
+    assert!(
+        calls.base.pulse.is_none() && calls.base.write.is_none() && calls.base.waits.is_empty()
+    );
+}

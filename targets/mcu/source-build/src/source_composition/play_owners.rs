@@ -1,7 +1,7 @@
 use super::*;
 type Residents<'a> =
     PreparedResidentSubset<resident::PreparedResidentEntryLoan<'a>, { resident::ENTRY_COUNT }>;
-type Sample<'a, 'f> = PreparedDrivers<
+type SampleBase<'a, 'f> = PreparedDrivers<
     'a,
     'a,
     'f,
@@ -12,6 +12,11 @@ type Sample<'a, 'f> = PreparedDrivers<
     { resident::ENTRY_COUNT },
     SN,
     WAIT_SLOTS,
+>;
+type Sample<'a, 'f> = conduit_mcu_host_runtime::execution_factory::PreparedWithOptionalAppender<
+    'a,
+    SampleBase<'a, 'f>,
+    RecordingStorage,
 >;
 type Output<'a, 'f> = PreparedDrivers<
     'a,
@@ -40,6 +45,9 @@ pub(super) fn prepare<'a, 'f: 'a>(
     pulse: &'a mut Option<ReadyPulseBase<Pulse>>,
     write: &'a mut Option<ReadyWriteBase<Wire>>,
     waits: &'a mut [Option<ReadyMonotonicWaitBase<MonotonicTimer>>; WAIT_SLOTS],
+    recording: &'a mut Option<ReadyRecordAppender<RecordingStorage>>,
+    recording_issuer: &mut Issuer,
+    recording_operation: Option<&Operation<'_>>,
     pulse_issuer: &mut Issuer,
     write_issuer: &mut Issuer,
     wait_issuers: &mut [Issuer; WAIT_SLOTS],
@@ -209,11 +217,52 @@ pub(super) fn prepare<'a, 'f: 'a>(
     )
     .map_err(|_| "wait-assignment")?;
     drop(configuration);
+    // Only independently compiled Source selects this actual native owner.
+    let mut append_nodes = source::sampling::NATIVE_KINDS
+        .iter()
+        .filter(|(_, kind)| *kind == conduit_resource_snapshot::native_append::APPEND_KIND);
+    let append_node = append_nodes.next().map(|(node, _)| *node);
+    if append_nodes.next().is_some() {
+        return Err("append-source-duplicate");
+    }
+    let appender = match (append_node, contracts.append, recording_operation) {
+        (Some(node), Some(contract), Some(op)) => {
+            let (table, handle, claim) = recording_issuer
+                .issue(
+                    context,
+                    policy,
+                    sampling,
+                    &NativeFacts::append(recording.as_ref().ok_or("append-busy")?),
+                    op,
+                    crate::runtime::remaining(),
+                )
+                .map_err(|_| "append-authority")?;
+            let ticket = ReadyRecordAppender::prepare_assigned_fore_retained(
+                recording,
+                table,
+                handle,
+                claim,
+                &contract,
+                &[],
+                SelectedAssignedForeOperationPlan {
+                    operation: operation(sampling, &sampling_profile, node),
+                    fore: sampling_fore,
+                },
+            )
+            .map_err(|_| "append-assignment")?;
+            drop(contract);
+            Some(ticket)
+        }
+        (None, None, None) => None,
+        _ => return Err("append-source-contract"),
+    };
     let sample_software = software
         .prepare_assigned(
             sampling.projection(),
             core::array::from_fn(|i| {
-                !sample_nodes.iter().flatten().any(|n| usize::from(*n) == i) && i != usize::from(pn)
+                !sample_nodes.iter().flatten().any(|n| usize::from(*n) == i)
+                    && i != usize::from(pn)
+                    && append_node.is_none_or(|node| i != usize::from(node))
             }),
         )
         .map_err(|_| "sampling-software")?;
@@ -225,7 +274,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
             }),
         )
         .map_err(|_| "output-software")?;
-    let sample_backs = PreparedDrivers::new(
+    let sample_backs = PreparedDrivers::with_optional_appender(
         sample_loans,
         sample_nodes,
         sample_software,
@@ -234,6 +283,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
             write: None,
             waits: [wait],
         },
+        appender,
     )?;
     let output_backs = PreparedDrivers::<_, Pulse, Wire, MonotonicTimer, 4, ON, 0>::new(
         output_loans,

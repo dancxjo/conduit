@@ -9,7 +9,7 @@ use conduit_core as c;
 use conduit_kernel::{assigned::ResidentLayout, HostedSignLog, HostedValueStore, NodeId};
 use conduit_mcu_host_runtime::{
     execution::{ExecutionKernel, Policy, PreparedFragment, Refusal},
-    execution_authority::{Issuer, NativeFacts},
+    execution_authority::{Issuer, NativeFacts, Operation},
     execution_factory::{
         Driver, PreparedCalls, PreparedDrivers, PreparedResidentSubset, SoftwareInventory,
     },
@@ -27,7 +27,9 @@ use conduit_plan_lowering::{
     },
 };
 use conduit_pulse_capture::installation::ReadyPulseBase;
+use conduit_resource_snapshot::native_append::ReadyRecordAppender;
 use conduit_tm1637_wire::installation::ReadyWriteBase;
+type RecordingStorage = crate::equipment::RecordingStorage;
 type Pulse = crate::equipment::Capture;
 type Wire = crate::equipment::Wire;
 mod shapes {
@@ -100,6 +102,10 @@ pub fn prepare<'a, 'f: 'a, 'w>(
     pulse: &'a mut Option<ReadyPulseBase<Pulse>>,
     write: &'a mut Option<ReadyWriteBase<Wire>>,
     waits: &'a mut [Option<ReadyMonotonicWaitBase<MonotonicTimer>>; WAIT_SLOTS],
+    recording: &'a mut Option<ReadyRecordAppender<RecordingStorage>>,
+    recording_issuer: &mut Issuer,
+    recording_operation: Option<&Operation<'_>>,
+    append_output_bytes: usize,
     pulse_issuer: &mut Issuer,
     write_issuer: &mut Issuer,
     wait_issuers: &mut [Issuer; WAIT_SLOTS],
@@ -122,6 +128,15 @@ pub fn prepare<'a, 'f: 'a, 'w>(
     >,
     Refusal<Refusal<&'static str>>,
 > {
+    let append_selected = source::sampling::NATIVE_KINDS
+        .iter()
+        .any(|(_, kind)| *kind == conduit_resource_snapshot::native_append::APPEND_KIND);
+    if append_selected
+        && append_output_bytes
+            < conduit_resource_snapshot::native_append::APPEND_RESULT_BYTES as usize
+    {
+        return Err(Refusal::Bounds);
+    }
     // The original arena funds cold preparation and retained execution.
     // Check physical kernel headroom after retiring the cold contracts.
     let mask_values = HostedValueStore::canonical_storage_bytes([
@@ -208,6 +223,9 @@ pub fn prepare<'a, 'f: 'a, 'w>(
                 pulse,
                 write,
                 waits,
+                recording,
+                recording_issuer,
+                recording_operation,
                 pulse_issuer,
                 write_issuer,
                 wait_issuers,
