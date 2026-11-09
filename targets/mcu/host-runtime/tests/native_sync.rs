@@ -408,3 +408,6 @@ fn public_runner_services_original_kernel_and_retires_on_drain_missing_window_or
         );
     }
 }
+
+#[path = "native_sync/factory_appender.rs"]
+mod native_factory_appender;

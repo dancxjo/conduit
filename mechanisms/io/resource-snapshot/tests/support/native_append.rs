@@ -225,6 +225,15 @@ impl Fixture {
         fore: bool,
         maximum_operations: u32,
     ) -> Result<RecordAppendHostCall<Storage>, AppendCallRefusal> {
+        self.with_prepared(foreign, fore, maximum_operations, |ticket| ticket.bind())
+    }
+    pub(super) fn with_prepared<U>(
+        &self,
+        foreign: bool,
+        fore: bool,
+        maximum_operations: u32,
+        bind: impl for<'a> FnOnce(PreparedAssignedAppender<'a, Storage>) -> U,
+    ) -> Result<U, AppendCallRefusal> {
         use conduit_embedded_build as e;
         use conduit_plan_lowering::{
             assigned_play_scope::AssignedPlayScope, selected_assigned_operation::*,
@@ -328,7 +337,7 @@ impl Fixture {
             )
         };
         match ticket {
-            Ok(ticket) => Ok(ticket.bind()),
+            Ok(ticket) => Ok(bind(ticket)),
             Err(e) => {
                 assert!(slot.is_some());
                 Err(e)

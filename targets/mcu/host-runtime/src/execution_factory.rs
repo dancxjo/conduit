@@ -1,6 +1,13 @@
 //! Concrete composition of real initialized resident/software/native Back loans.
 //! Source/assignment checking happens before this inventory is lent; binding
 //! consumes every selected slot once, without allocating or starting equipment.
+#[path = "execution_factory_appender.rs"]
+mod appender;
+pub use appender::{CallsWithAppender, PreparedWithAppender};
+
+#[path = "execution_factory_drivers.rs"]
+mod drivers;
+
 extern crate alloc;
 use crate::{execution::PreparedBacks, execution_software::SoftwareBack};
 use conduit_kernel::{
@@ -237,161 +244,6 @@ pub struct PreparedDrivers<
     write_node: Option<u16>,
     backing: usize,
 }
-impl<
-        'a,
-        'o,
-        'f,
-        R: PreparedResidents<E>,
-        P: PulseReadProvider,
-        T: OpenDrain,
-        W: MonotonicWaitProvider,
-        const E: usize,
-        const N: usize,
-        const A: usize,
-    > PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A>
-{
-    pub fn new(
-        residents: R,
-        resident_nodes: [Option<u16>; E],
-        software: PreparedSoftware<'o, 'f, N>,
-        native: PreparedCalls<'a, P, T, W, A>,
-    ) -> Result<Self, &'static str> {
-        let pulse_node = native.pulse.as_ref().map(|ticket| ticket.node().0);
-        let write_node = native.write.as_ref().map(|ticket| ticket.node().0);
-        if residents.nodes() != resident_nodes {
-            return Err("resident-mapping");
-        }
-        let mut seen = [false; N];
-        for node in resident_nodes
-            .iter()
-            .flatten()
-            .copied()
-            .chain(pulse_node.into_iter().chain(write_node))
-        {
-            let slot = seen.get_mut(usize::from(node)).ok_or("driver-node")?;
-            if *slot {
-                return Err("duplicate-driver");
-            }
-            *slot = true;
-        }
-        for (index, selected) in software.selected.iter().enumerate() {
-            if *selected {
-                if seen[index] {
-                    return Err("duplicate-software");
-                }
-                seen[index] = true;
-            }
-        }
-        if seen.iter().any(|seen| !*seen) {
-            return Err("missing-driver");
-        }
-        let mut backing = residents
-            .retained_backing_bytes()
-            .ok_or("resident-backing")?
-            .checked_add(software.owner.backing)
-            .ok_or("backing")?;
-        if let Some(pulse) = &native.pulse {
-            backing = backing
-                .checked_add(pulse.retained_backing_bytes().ok_or("pulse-backing")?)
-                .ok_or("backing")?;
-        }
-        if let Some(write) = &native.write {
-            backing = backing
-                .checked_add(write.retained_backing_bytes().ok_or("write-backing")?)
-                .ok_or("backing")?;
-        }
-        let mut clock_nodes = [false; N];
-        for wait in &native.waits {
-            let clock_node = usize::from(wait.node().0);
-            if clock_node >= N || clock_nodes[clock_node] || !software.selected[clock_node] {
-                return Err("clock-node");
-            }
-            clock_nodes[clock_node] = true;
-            backing = backing
-                .checked_add(wait.retained_backing_bytes().ok_or("clock-backing")?)
-                .ok_or("backing")?;
-        }
-        Ok(Self {
-            residents,
-            software,
-            native,
-            resident_nodes,
-            pulse_node,
-            write_node,
-            backing,
-        })
-    }
-}
-// SAFETY: constructor validates complete unique Source mapping, individual
-// opaque tickets retain exact initialized owners and all bind methods are
-// allocation-free. Root's generic preparation validates the matching layout.
-unsafe impl<
-        'a,
-        'o,
-        'f,
-        R: PreparedResidents<E>,
-        P: PulseReadProvider,
-        T: OpenDrain,
-        W: MonotonicWaitProvider,
-        const E: usize,
-        const N: usize,
-        const A: usize,
-        const PORTS: usize,
-    > PreparedBacks<N, PORTS> for PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A>
-where
-    R::Back: StepBack<PORTS>,
-{
-    type Driver = Driver<'f, R::Back>;
-    type Calls = Calls<P, T, W, A>;
-    fn retained_backing_bytes(&self) -> Option<usize> {
-        Some(self.backing)
-    }
-    fn bind(self) -> ([Self::Driver; N], Self::Calls) {
-        let mut drivers: [Option<Self::Driver>; N] = core::array::from_fn(|_| None);
-        for (expected, selected) in self.resident_nodes.into_iter().zip(self.residents.bind()) {
-            match (expected, selected) {
-                (Some(node), Some((actual, back))) if node == actual => {
-                    drivers[usize::from(node)] = Some(Driver::Resident(back))
-                }
-                (None, None) => {}
-                _ => unreachable!("exclusively checked resident mapping"),
-            }
-        }
-        for (index, back) in self.software.bind().into_iter().enumerate() {
-            if let Some(back) = back {
-                drivers[index] = Some(Driver::Software(back));
-            }
-        }
-        if let Some(node) = self.pulse_node {
-            drivers[usize::from(node)] = Some(Driver::Native(HostCallBack::new(
-                conduit_pulse_capture::PULSE_READ_MAXIMUM_BYTES,
-            )));
-        }
-        let calls = Calls {
-            pulse: self.native.pulse.map(PreparedAssignedPulse::bind),
-            write: self.native.write.map(PreparedAssignedWrite::bind),
-            waits: self.native.waits.map(PreparedAssignedWait::bind),
-        };
-        if let Some(node) = self.write_node {
-            // This checked Gear is an effect-only sink. Its electrical success
-            // completes without a value; retain the admitted operation ceiling
-            // and the sink's commit-scoped request generations.
-            let maximum_operations = calls
-                .write
-                .as_ref()
-                .expect("checked write owner")
-                .inspection()
-                .scope
-                .maximum_operations;
-            drivers[usize::from(node)] = Some(Driver::Write(WriteBack::new(maximum_operations)));
-        }
-        (
-            drivers.map(|driver| driver.expect("complete checked driver inventory")),
-            calls,
-        )
-    }
-}
-
 /// Immutable preparation facts emitted by checked Source/Make, never taken from
 /// a received assignment. Hardware decoders and packet encoders remain resident
 /// expressions; these cases instantiate only the ordinary software providers.
