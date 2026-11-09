@@ -138,26 +138,46 @@ pub fn build_continuation_candidate_with_resources<const PORTS: usize>(
 }
 
 trait CandidateResource {
-    const PREFIX_BYTES: usize;
-    fn encoded_length(&self) -> Result<usize, BodyFragmentDocumentRefusal>;
-    fn append_to(&self, output: &mut Vec<u8>) -> Result<(), BodyFragmentDocumentRefusal>;
+    fn content(&self) -> bool;
+    fn encoded_length(&self, versioned: bool) -> Result<usize, BodyFragmentDocumentRefusal>;
+    fn append_to(
+        &self,
+        output: &mut Vec<u8>,
+        versioned: bool,
+    ) -> Result<(), BodyFragmentDocumentRefusal>;
 }
 impl CandidateResource for PlainFragmentResource<'_> {
-    const PREFIX_BYTES: usize = 0;
-    fn encoded_length(&self) -> Result<usize, BodyFragmentDocumentRefusal> {
+    fn content(&self) -> bool {
+        false
+    }
+    fn encoded_length(&self, _: bool) -> Result<usize, BodyFragmentDocumentRefusal> {
         self.encoded_length()
     }
-    fn append_to(&self, output: &mut Vec<u8>) -> Result<(), BodyFragmentDocumentRefusal> {
+    fn append_to(&self, output: &mut Vec<u8>, _: bool) -> Result<(), BodyFragmentDocumentRefusal> {
         self.append_to(output)
     }
 }
 impl CandidateResource for FragmentResource<'_> {
-    const PREFIX_BYTES: usize = 7;
-    fn encoded_length(&self) -> Result<usize, BodyFragmentDocumentRefusal> {
-        self.encoded_length()
+    fn content(&self) -> bool {
+        self.content.is_some()
     }
-    fn append_to(&self, output: &mut Vec<u8>) -> Result<(), BodyFragmentDocumentRefusal> {
-        self.append_to(output)
+    fn encoded_length(&self, versioned: bool) -> Result<usize, BodyFragmentDocumentRefusal> {
+        if versioned {
+            self.encoded_length()
+        } else {
+            self.binding.encoded_length()
+        }
+    }
+    fn append_to(
+        &self,
+        output: &mut Vec<u8>,
+        versioned: bool,
+    ) -> Result<(), BodyFragmentDocumentRefusal> {
+        if versioned {
+            self.append_to(output)
+        } else {
+            self.binding.append_to(output)
+        }
     }
 }
 #[allow(clippy::too_many_arguments)]
@@ -288,16 +308,17 @@ fn build_candidate<const PORTS: usize, R: CandidateResource>(
             if rows.len() > c::MAXIMUM_BINDINGS_PER_ADMISSION {
                 return Err(E::Bounds);
             }
+            let versioned = rows.iter().any(CandidateResource::content);
             let resource_bytes = rows
                 .iter()
-                .try_fold(if rows.is_empty() { 0 } else { R::PREFIX_BYTES }, |n, r| {
-                    n.checked_add(r.encoded_length().ok()?)
+                .try_fold(if versioned { 7 } else { 0 }, |n, r| {
+                    n.checked_add(r.encoded_length(versioned).ok()?)
                 })
                 .ok_or(E::Bounds)?;
             let mut encoded_resources = Vec::new();
             let with_resources = reserve(&mut encoded_resources, resource_bytes, held, budget)?;
             for row in *rows {
-                row.append_to(&mut encoded_resources)
+                row.append_to(&mut encoded_resources, versioned)
                     .map_err(|_| E::Scope)?;
             }
             let mut encoded_fore = Vec::new();

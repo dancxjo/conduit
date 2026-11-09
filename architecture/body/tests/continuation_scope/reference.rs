@@ -154,8 +154,9 @@ fn with_reference_kind(
         .enumerate()
         .map(|(i, label)| {
             let mut plan = support::plan(label, if i < 3 { "host/local" } else { "host/remote" });
-            if content && i < 3 {
+            if content && i == 0 {
                 let f = &mut plan.fragments[0];
+                f.placements[0].resources[0].pool_id = "host/local/recording-pool".into();
                 f.placements[0].resources[0].content = Some(c::ResourceContentOffer {
                     contract: content_contract(),
                     owner_host: f.host_id.clone(),
@@ -291,7 +292,7 @@ fn with_reference_kind(
         .enumerate()
         .map(|(i, p)| bindings(&recipes[i], &p.plan.fragments[0]))
         .collect();
-    let actual = c::HostAdvertisement {
+    let mut actual = c::HostAdvertisement {
         declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "host/local".into(),
@@ -304,17 +305,26 @@ fn with_reference_kind(
             class_id: "test/timer".into(),
             capacity_units: 3,
             compute: None,
-            content: content.then(|| c::ResourceContentOffer {
+            content: None,
+        }],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    if content {
+        actual.resources.push(c::ResourceOffer {
+            pool_id: "host/local/recording-pool".into(),
+            class_id: "test/timer".into(),
+            capacity_units: 1,
+            compute: None,
+            content: Some(c::ResourceContentOffer {
                 contract: content_contract(),
                 owner_host: "host/local".into(),
                 owner_boot: "local/fresh".into(),
                 base_id: "flash/base".into(),
                 residence_profile: "flash/recording@1".into(),
             }),
-        }],
-        capabilities: vec![],
-        planner_capabilities: vec![],
-    };
+        });
+    }
     let entries: Vec<_> = (0..3)
         .map(|i| ContinuationLocalEntry {
             recipe: &pieces[i],
@@ -521,7 +531,7 @@ fn with_reference_kind(
     if content {
         for mutation in 0..5 {
             let mut changed_actual = actual.clone();
-            let held = changed_actual.resources[0].content.as_mut().unwrap();
+            let held = changed_actual.resources[1].content.as_mut().unwrap();
             match mutation {
                 0 => held.contract.maximum_items += 1,
                 1 => held.base_id = "other/base".into(),

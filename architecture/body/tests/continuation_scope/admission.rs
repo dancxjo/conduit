@@ -36,23 +36,26 @@ pub fn check(
         );
     }
     let mut owner = c::ResourceAdmissionOwner::new(actual.clone());
-    let pool = &actual.resources[0];
-    let observation = c::ResourceObservation {
-        host_id: actual.host_id.clone(),
-        boot_id: actual.boot_id.clone(),
-        offer_generation: actual.offer_generation,
-        pool_id: pool.pool_id.clone(),
-        class_id: pool.class_id.clone(),
-        health: c::ResourceHealth::Ready,
-        unreserved_units: 3,
-        utilized_units: 0,
-        sign_id: "observed".into(),
-    };
+    let observations: Vec<_> = actual
+        .resources
+        .iter()
+        .map(|pool| c::ResourceObservation {
+            host_id: actual.host_id.clone(),
+            boot_id: actual.boot_id.clone(),
+            offer_generation: actual.offer_generation,
+            pool_id: pool.pool_id.clone(),
+            class_id: pool.class_id.clone(),
+            health: c::ResourceHealth::Ready,
+            unreserved_units: pool.capacity_units,
+            utilized_units: 0,
+            sign_id: "observed".into(),
+        })
+        .collect();
     let refs: Vec<_> = fragments.iter().collect();
     let before = owner.clone();
     assert!(admit_delegated_resources(&refs, &mut owner, &[]).is_err());
     assert_eq!(owner, before);
-    admit_delegated_resources(&refs, &mut owner, &[observation]).unwrap();
+    admit_delegated_resources(&refs, &mut owner, &observations).unwrap();
     assert_eq!(owner.admissions().len(), 3);
     assert!(owner
         .admissions()
