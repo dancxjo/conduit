@@ -26,6 +26,11 @@ pub(crate) fn generate_configuration(
                     GeneratedConfigurationValue::Text(value.clone())
                 }
                 ConfigurationValue::Text(value)
+                    if entry.key == "reference" && valid_snapshot_reference(placement, value) =>
+                {
+                    GeneratedConfigurationValue::Text(value.clone())
+                }
+                ConfigurationValue::Text(value)
                     if matches!(entry.key.as_str(), "program" | "selector")
                         && expressions.is_some() =>
                 {
@@ -129,3 +134,44 @@ pub(crate) fn validate_expression(
     }
     Ok(())
 }
+
+// This carries a checked portable reference, never a local handle or grant.
+fn valid_snapshot_reference(placement: &PlannedGear, text: &str) -> bool {
+    use conduit_semantic_catalog::{
+        resource_snapshot_semantic_contract, SNAPSHOT_PUBLISH_KIND, SNAPSHOT_READ_KIND,
+    };
+    let publish = match placement.kind_id.as_str() {
+        SNAPSHOT_PUBLISH_KIND => true,
+        SNAPSHOT_READ_KIND => false,
+        _ => return false,
+    };
+    let kind = resource_snapshot_semantic_contract(publish);
+    if placement.configuration.len() != 1
+        || placement.kind_contract_revision != kind.kind_contract_revision
+        || placement.inputs != kind.inputs
+        || placement.outputs != kind.outputs
+        || placement.semantic_contract.configuration != kind.configuration
+        || placement.semantic_contract.laws != kind.semantic_laws
+        || text.len() > 2 * conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES
+        || !text.len().is_multiple_of(2)
+    {
+        return false;
+    }
+    let mut bytes = [0; conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES];
+    for (out, pair) in bytes.iter_mut().zip(text.as_bytes().chunks_exact(2)) {
+        let digit = |b| match b {
+            b'0'..=b'9' => Some(b - b'0'),
+            b'a'..=b'f' => Some(b - b'a' + 10),
+            _ => None,
+        };
+        let (Some(hi), Some(lo)) = (digit(pair[0]), digit(pair[1])) else {
+            return false;
+        };
+        *out = (hi << 4) | lo;
+    }
+    conduit_core::BoundedResourceRef::validate_encoded(&bytes[..text.len() / 2]).is_ok()
+}
+
+#[cfg(test)]
+#[path = "snapshot_configuration_tests.rs"]
+mod snapshot_tests;
