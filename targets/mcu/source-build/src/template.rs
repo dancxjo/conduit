@@ -392,6 +392,8 @@ mod tests {
         restarted.offer_generation = c::OfferGeneration(2);
         let later = make(&restarted, &boundaries).unwrap();
         assert_eq!(layout.nodes, later.nodes);
+        assert_eq!(layout.fragment_seal_placement_ids, later.fragment_seal_placement_ids);
+        assert_eq!(c::fragment_seal_recipe_identity(layout.fragment_seal_recipe.pieces()), c::fragment_seal_recipe_identity(later.fragment_seal_recipe.pieces()));
         assert_eq!(layout.counts, later.counts);
         assert_eq!(
             layout.projection_template_digest,
