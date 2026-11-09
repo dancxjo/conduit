@@ -127,6 +127,7 @@ members = [
 ]
 exclude = [
 	"targets/rp2040/snapshot-nor",
+	"targets/esp32/snapshot-nor",
 	"targets/mcu/host-runtime",
 	"mechanisms/io/monotonic-wait",
 	"bodies/environment/runtime",
