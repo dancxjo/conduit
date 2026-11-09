@@ -100,15 +100,16 @@ pub fn encode_assigned_software_configuration(entry: &Entry) -> Result<Vec<u8>, 
 }
 
 /// Trusted image inventory for the computation-aware assigned-Plan decoder.
-/// Call after fixed-image generation validated each computation's exact contract.
+/// Call after fixed-image generation validated each computation or reference's exact contract.
 /// Deploy this inventory with the resident image, never derive it from an incoming
-/// assignment on the device. These digests do not admit evaluator heap or work.
+/// assignment on the device. These digests admit neither evaluator heap/work nor
+/// access to referenced content.
 pub fn assigned_computation_requirements(
     plan: &crate::GeneratedEmbeddedPlan,
 ) -> Result<Vec<conduit_core::AssignedComputationRequirement>, crate::GenerationError> {
     plan.configuration
         .iter()
-        .filter(|entry| matches!(entry.key.as_str(), "program" | "selector"))
+        .filter(|entry| matches!(entry.key.as_str(), "program" | "selector" | "reference"))
         .map(|entry| {
             let crate::GeneratedConfigurationValue::Text(text) = &entry.value else {
                 return Err(crate::GenerationError::InvalidComputationConfiguration);
