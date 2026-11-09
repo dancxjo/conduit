@@ -35,7 +35,10 @@ pub enum PreparationTransportError {
 }
 
 // Whole-document bound is distinct from the unchanged per-frame bound.
-const MAX_PREPARATION_DOCUMENT_BYTES: usize = 16 * 1024;
+const MAX_PREPARATION_CHUNKS: usize = 64;
+const PREPARATION_FRAME_BYTES: usize = 512;
+const MAX_PREPARATION_DOCUMENT_BYTES: usize = MAX_PREPARATION_CHUNKS
+    * (PREPARATION_FRAME_BYTES - conduit_wire::BOUNDED_DOCUMENT_HEADER_BYTES);
 
 trait Frames {
     fn send(&mut self, bytes: &[u8], timeout: Duration) -> Result<(), ()>;
@@ -58,9 +61,16 @@ impl PicoSpawnSocket {
     pub fn exchange_preparation<'a>(
         &mut self,
         timeout: Duration,
+        maximum_document_bytes: usize,
         approve: impl FnOnce(&HostCommandChallenge<'_>) -> Result<PreparationCommandBytes<'a>, ()>,
     ) -> Result<PreparationExchange, PreparationTransportError> {
-        exchange(&mut self.line, timeout, approve, Instant::now)
+        exchange(
+            &mut self.line,
+            timeout,
+            maximum_document_bytes,
+            approve,
+            Instant::now,
+        )
     }
 }
 fn left(
@@ -75,10 +85,14 @@ fn left(
 fn exchange<'a>(
     frames: &mut impl Frames,
     timeout: Duration,
+    maximum_document_bytes: usize,
     approve: impl FnOnce(&HostCommandChallenge<'_>) -> Result<PreparationCommandBytes<'a>, ()>,
     clock: impl Fn() -> Instant,
 ) -> Result<PreparationExchange, PreparationTransportError> {
     use PreparationTransportError as E;
+    if maximum_document_bytes == 0 || maximum_document_bytes > MAX_PREPARATION_DOCUMENT_BYTES {
+        return Err(E::Bounds);
+    }
     let start = clock();
     let mut deadline = start + timeout.min(Duration::from_secs(10));
     frames
@@ -100,7 +114,7 @@ fn exchange<'a>(
         .ok_or(E::Challenge)?;
     if !(1..=10_000).contains(&lifetime)
         || challenge.maximum_payload_bytes == 0
-        || challenge.maximum_payload_bytes as usize > MAX_PREPARATION_DOCUMENT_BYTES
+        || challenge.maximum_payload_bytes as usize > maximum_document_bytes
         || challenge.payload_contract != HOST_PREPARED_WORKSET_CONTRACT
     {
         return Err(E::Challenge);
@@ -116,7 +130,7 @@ fn exchange<'a>(
     }
     left(deadline, &clock)?;
     let digest: [u8; 32] = Sha256::digest(command.payload).into();
-    let mut frame = [0u8; 512];
+    let mut frame = [0u8; PREPARATION_FRAME_BYTES];
     let mut offset = 0;
     let mut count = 0;
     while offset < command.payload.len() {
@@ -128,7 +142,7 @@ fn exchange<'a>(
         )
         .map_err(|_| E::OutcomeUnknown)?;
         count += 1;
-        if count > 64 {
+        if count > MAX_PREPARATION_CHUNKS {
             return Err(E::OutcomeUnknown);
         }
         frames

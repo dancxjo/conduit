@@ -73,7 +73,9 @@ fn run<'a>(
 ) -> Result<PreparationExchange, PreparationTransportError> {
     let start = Instant::now();
     let elapsed = frames.elapsed.clone();
-    exchange(frames, timeout, approve, || start + elapsed.get())
+    exchange(frames, timeout, 16 * 1024, approve, || {
+        start + elapsed.get()
+    })
 }
 #[test]
 fn exact_chunks_signature_digest_and_one_original_deadline() {

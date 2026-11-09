@@ -817,17 +817,20 @@ fn submit_selected_play(
         maximum_fore_ports: selected.maximum_fore_ports,
         maximum_document_bytes: selected.maximum_document_bytes,
     };
-    let mut socket = selected.carrier.open(
-        selected
-            .port
-            .to_str()
-            .ok_or("selected Play port is not UTF-8")?,
-    )
-    .map_err(|e| format!("open selected Play carrier: {e:?}"))?;
+    let mut socket = selected
+        .carrier
+        .open(
+            selected
+                .port
+                .to_str()
+                .ok_or("selected Play port is not UTF-8")?,
+        )
+        .map_err(|e| format!("open selected Play carrier: {e:?}"))?;
     let mut approved = None;
     let mut refusal = None;
     let exchange = socket.exchange_preparation(
         std::time::Duration::from_millis(selected.wait_milliseconds),
+        selected.maximum_document_bytes as usize,
         |challenge| {
             match owner.approve_selected_remote_workset(&member, challenge, limits) {
                 Ok(command) => {
@@ -913,7 +916,8 @@ fn return_selected_basis(
     use std::time::Duration;
     let mut receipt = membership_receipt_custody::reserve(receipt_output)?;
     let timeout = Duration::from_secs(5);
-    let mut socket = carrier.open(port.to_str().ok_or("USB path is not UTF-8")?)
+    let mut socket = carrier
+        .open(port.to_str().ok_or("USB path is not UTF-8")?)
         .map_err(|e| format!("open selected member return: {e:?}"))?;
     let observed = socket
         .request_member_return(basis, timeout)
@@ -977,9 +981,7 @@ fn admit_selected_member(
     selected: &UsbAdmissionSelection,
     peer: &conduit_body::FederationPeer,
 ) -> Result<(), String> {
-    use conduit_std_host::pico_spawn::{
-        PicoMemberReturnBasis, PicoSpawnAdmissionBasis,
-    };
+    use conduit_std_host::pico_spawn::{PicoMemberReturnBasis, PicoSpawnAdmissionBasis};
     use std::{
         io::Write,
         time::{Duration, Instant},
@@ -1013,7 +1015,9 @@ fn admit_selected_member(
     }
     let mut receipt_file = membership_receipt_custody::reserve(&selected.receipt_output)?;
     let timeout = Duration::from_secs(5);
-    let mut socket = selected.carrier.open(selected.port.to_str().ok_or("USB path is not UTF-8")?)
+    let mut socket = selected
+        .carrier
+        .open(selected.port.to_str().ok_or("USB path is not UTF-8")?)
         .map_err(|e| format!("open selected admission: {e:?}"))?;
     let observed = socket
         .request_join(&basis.spore_id, &basis.image_id, &basis.invitation, timeout)
