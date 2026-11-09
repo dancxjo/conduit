@@ -62,6 +62,7 @@ impl<'c, 's, 'w> NativeAuthority<'c, 's, 'w> {
             ),
         }
     }
+    #[inline(always)] // Fuse the affine bound result into the original Start destination.
     pub(crate) fn start<T: PreparedLocalKernels, const F: usize, E>(
         self,
         committed: &mut CommittedLocalWorkset<'_, T, F>,

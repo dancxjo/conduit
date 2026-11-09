@@ -229,6 +229,7 @@ unsafe impl<K: PreparedLocalKernels, S: PreparedLocalKernels> PreparedLocalKerne
             .checked_add(self.services.retained_backing_bytes()?)?
             .checked_add(self.shared_backing_bytes)
     }
+    #[inline(always)] // Avoid a second complete bound-group return scratch frame.
     unsafe fn bind(self) -> Self::Bound {
         // SAFETY: the enclosing complete original workset authenticated Start;
         // both owned tickets retain their exact initialized providers.
