@@ -25,12 +25,7 @@ pub async fn run<'s>(
 ) -> ! {
     let mut residents =
         crate::resident::inventory().expect("actual initialized resident inventory");
-    let mut routing = ReadyMaskRouting::new(
-        source::mask_layout::MASK_ROLES.expect("checked actual Mask roles"),
-        display::RENDERER_FACE_BYTES,
-        display::RENDERER_SHOW_BYTES,
-    )
-    .expect("actual initialized Mask routing");
+    let mut routing = initialization::routing();
     let clocks: &[(u16, u64, u64); W] = source::sampling::CLOCKS
         .try_into()
         .expect("checked Source clocks");
@@ -84,26 +79,16 @@ pub async fn run<'s>(
     let output_software = output_software_slot
         .as_mut()
         .expect("initialized output slot");
-    let operations = Operations::from_source(
-        source::sampling::NATIVE_KINDS,
-        source::mask::NATIVE_KINDS,
-        source::output::NATIVE_KINDS,
-        core::array::from_fn(|slot| Some(clocks[slot])),
-        display::RENDERER_MAXIMUM_FRAMES,
-        display::RENDERER_FACE_BYTES,
-        display::RENDERER_SHOW_BYTES,
-    )
-    .expect("finite independently compiled operations");
-    let mut issuers = Issuers::<W>::new();
-    let mut response = [0u8; 4096];
+    let operations = initialization::operations(clocks);
+    let mut issuers = initialization::issuers();
+    let mut response = initialization::response_buffer();
     // Equipment remains owned here; only the shared whole-workset factory may
     // withdraw its providers after original admission and authenticated Start.
     let mut equipment = equipment;
     let mut sampling_values = Some(sampling_values);
     let mut output_values = Some(output_values);
     let mut reader = Some(reader);
-    let mut optional =
-        Some(conduit_kernel::scheduler::prepared_session::OptionalOutputStorage::<6>::prepare());
+    let mut optional = Some(initialization::optional_outputs());
     // Cold schema preparation runs before deep group construction, then its
     // original owners are consumed and dropped before execution allocation.
     let mut contracts = Some(

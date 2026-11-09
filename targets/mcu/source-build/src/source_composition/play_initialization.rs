@@ -102,3 +102,41 @@ pub(super) fn output<'f>(
         .expect("actual initialized output Backs"),
     );
 }
+
+// Fixed-buffer and finite owner initialization belongs to the cold call, not
+// the stack frame retained beneath every subsequent admission/actor poll.
+#[inline(never)]
+pub(super) fn response_buffer() -> [u8; 4096] {
+    [0; 4096]
+}
+#[inline(never)]
+pub(super) fn optional_outputs(
+) -> conduit_kernel::scheduler::prepared_session::OptionalOutputStorage<6> {
+    conduit_kernel::scheduler::prepared_session::OptionalOutputStorage::prepare()
+}
+#[inline(never)]
+pub(super) fn issuers() -> Issuers<W> {
+    Issuers::new()
+}
+#[inline(never)]
+pub(super) fn routing() -> ReadyMaskRouting {
+    ReadyMaskRouting::new(
+        source::mask_layout::MASK_ROLES.expect("checked actual Mask roles"),
+        display::RENDERER_FACE_BYTES,
+        display::RENDERER_SHOW_BYTES,
+    )
+    .expect("actual initialized Mask routing")
+}
+#[inline(never)]
+pub(super) fn operations(clocks: &[(u16, u64, u64); W]) -> Operations<'static, W> {
+    Operations::from_source(
+        source::sampling::NATIVE_KINDS,
+        source::mask::NATIVE_KINDS,
+        source::output::NATIVE_KINDS,
+        core::array::from_fn(|slot| Some(clocks[slot])),
+        display::RENDERER_MAXIMUM_FRAMES,
+        display::RENDERER_FACE_BYTES,
+        display::RENDERER_SHOW_BYTES,
+    )
+    .expect("finite independently compiled operations")
+}
