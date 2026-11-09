@@ -4,8 +4,19 @@
 extern crate alloc;
 use crate::execution::{Policy, Refusal};
 use alloc::boxed::Box;
+#[path = "execution_workset_continuation.rs"]
+mod continuation;
 #[path = "execution_workset_receiving.rs"]
 mod receiving;
+#[path = "execution_workset_start.rs"]
+mod start;
+
+// Authority origins are intentionally disjoint; a continuation never invents a
+// current-Boot online command stamp or membership acknowledgment.
+enum StartOrigin {
+    Online(b::RetainedHostCommandStamp),
+    Continuation([u8; 32]),
+}
 use conduit_body as b;
 use conduit_core as c;
 
@@ -24,14 +35,14 @@ pub unsafe trait PreparedLocalKernels {
 }
 pub struct PreparedLocalWorkset<'w, T, const F: usize> {
     fragments: Box<[b::DelegatedBodyFragment<'w>; F]>,
-    stamp: b::RetainedHostCommandStamp,
+    origin: StartOrigin,
     prepared: T,
     maximum: usize,
     retained: usize,
 }
 pub struct CommittedLocalWorkset<'w, T, const F: usize> {
     fragments: Box<[b::DelegatedBodyFragment<'w>; F]>,
-    stamp: b::RetainedHostCommandStamp,
+    origin: StartOrigin,
     prepared: Option<T>,
 }
 /// Read-only causal evidence produced only by successful authenticated Start.
@@ -124,7 +135,7 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
         }
         Ok(Self {
             fragments,
-            stamp,
+            origin: StartOrigin::Online(stamp),
             prepared,
             maximum: policy.maximum_retained_bytes,
             retained,
@@ -157,119 +168,11 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
             .map_err(Refusal::Resources)?;
         Ok(CommittedLocalWorkset {
             fragments: self.fragments,
-            stamp: self.stamp,
+            origin: self.origin,
             prepared: Some(self.prepared),
         })
     }
 }
-impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
-    /// Original approved scopes needed to abort this unstarted reservation via
-    /// Core and retain its release evidence. Providers remain unbound on refusal.
-    pub fn fragments(&self) -> &[b::DelegatedBodyFragment<'_>; F] {
-        &self.fragments
-    }
-
-    /// Recheck the unchanged original signed command and complete live ledger at
-    /// the actual Start transition. Transport acknowledgement grants no Start.
-    /// Refusal preserves this owner in place. Success consumes its original
-    /// kernel tickets once; a repeated Start cannot bind them again.
-    #[inline(always)] // The original committed owner stays in caller storage.
-    pub fn start<const I: usize, E>(
-        &mut self,
-        workspace: &b::HostCommandInput<I>,
-        context: b::NativePreparationContext<'_>,
-        policy: Policy<'_>,
-        resources: &c::ResourceAdmissionOwner,
-    ) -> Result<StartedLocalWorkset<T::Bound>, Refusal<E>> {
-        if self.prepared.is_none() {
-            return Err(Refusal::Scope);
-        }
-        let check = (|| {
-            let command = workspace
-                .reborrow(
-                    context.member,
-                    context.actual,
-                    &context.bootstrap.owner,
-                    b::HOST_PREPARED_WORKSET_CONTRACT,
-                    context.now_millis,
-                )
-                .map_err(Refusal::Retention)?;
-            self.stamp
-                .check_command(&command)
-                .map_err(Refusal::Retention)?;
-            let set = b::receive_delegated_body_workset::<F>(policy.preparation, context, command)
-                .map_err(Refusal::Workset)?;
-            set.check_execution_delegation(
-                policy.execution,
-                policy.preparation,
-                context,
-                policy.active_worksets,
-            )
-            .map_err(Refusal::Execution)?;
-            if set.fragment_count() != F || resources.host() != context.actual {
-                return Err(Refusal::Scope);
-            }
-            let mut entries = 0usize;
-            for fragment in self.fragments.iter() {
-                let m = fragment.metadata();
-                if m.body != context.member.body_id.as_str()
-                    || m.host != context.actual.host_id.as_str()
-                    || m.boot != context.actual.boot_id.as_str()
-                    || m.offer_generation != context.actual.offer_generation.0
-                {
-                    return Err(Refusal::Scope);
-                }
-                for item in b::FragmentResources::new(m.resource_bindings) {
-                    let item = item.map_err(|_| Refusal::Scope)?;
-                    entries += 1;
-                    let matches = resources
-                        .admissions()
-                        .iter()
-                        .filter(|a| {
-                            a.plan_id.as_str() == m.body_plan
-                                && a.placement_id.as_str() == item.placement
-                                && a.host_id.as_str() == m.host
-                                && a.boot_id.as_str() == m.boot
-                                && a.offer_generation.0 == m.offer_generation
-                        })
-                        .flat_map(|a| &a.items)
-                        .filter(|held| item.matches_admitted_item(held, m.host, m.boot))
-                        .count();
-                    if matches != 1 {
-                        return Err(Refusal::Scope);
-                    }
-                }
-            }
-            if resources
-                .admissions()
-                .iter()
-                .map(|a| a.items.len())
-                .sum::<usize>()
-                != entries
-            {
-                return Err(Refusal::Scope);
-            }
-            Ok(())
-        })();
-        match check {
-            Ok(()) => {
-                // SAFETY: original whole-workset admission plus all current
-                // authenticated Start checks above succeeded atomically.
-                Ok(StartedLocalWorkset {
-                    custody_identity: self.stamp.custody_identity(),
-                    kernels: unsafe {
-                        self.prepared
-                            .take()
-                            .expect("original unstarted kernels")
-                            .bind()
-                    },
-                })
-            }
-            Err(e) => Err(e),
-        }
-    }
-}
-
 /// Different finite kernel shapes retain their own original Plan scopes while
 /// sharing one complete-set admission and Start transition.
 pub struct PreparedKernelGroup<A, B, C>(pub A, pub B, pub C);
@@ -366,7 +269,7 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
         }
         Ok(PreparedLocalWorkset {
             fragments: self.fragments,
-            stamp: self.stamp,
+            origin: self.origin,
             prepared,
             maximum: self.maximum,
             retained,

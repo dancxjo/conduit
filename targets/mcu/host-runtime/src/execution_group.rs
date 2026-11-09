@@ -446,3 +446,7 @@ where
         },
     )
 }
+
+#[path = "execution_group_continuation.rs"]
+mod continuation;
+pub use continuation::prepare_continuation_with_source;
