@@ -7,7 +7,6 @@ use conduit_environment_runtime::{
 };
 use conduit_mcu_host_runtime::{
     execution::Policy,
-    execution_factory::SoftwareInventory,
     execution_mask::ReadyMaskRouting,
     native_authority::{Issuers, Operations},
     root::{Request, Root},
@@ -15,8 +14,8 @@ use conduit_mcu_host_runtime::{
 use core::cell::RefCell;
 use embassy_time::{with_timeout, Duration, Timer};
 const W: usize = crate::equipment::WAIT_SLOTS;
-mod recording {
-    include!(concat!(env!("OUT_DIR"), "/source_play_recording.rs"));
+mod initialization {
+    include!(concat!(env!("OUT_DIR"), "/source_play_initialization.rs"));
 }
 pub async fn run<'s>(
     root: &mut Root<'s, { crate::config::MAX_ASSIGNMENT_BYTES }>,
@@ -51,10 +50,7 @@ pub async fn run<'s>(
         remaining(),
     )
     .expect("funded canonical output storage");
-    let definitions =
-        source::sampling::definitions(&parameters).expect("checked software definitions");
-    let recording_operation = recording::operation(&definitions, source::sampling::NATIVE_KINDS)
-        .expect("independently compiled finite recording operation");
+    let (maximum_events, recording_operation) = initialization::publication_bounds(&parameters);
     let mut append_output =
         [0u8; conduit_resource_snapshot::native_append::APPEND_RESULT_BYTES as usize];
     let mut append_status = Some(
@@ -64,18 +60,6 @@ pub async fn run<'s>(
         )
         .expect("exact installed recording status Fore"),
     );
-    let maximum_events = definitions
-        .iter()
-        .flatten()
-        .filter_map(|d| match d {
-            conduit_mcu_host_runtime::execution_factory::SoftwareDefinition::Publication {
-                maximum_events,
-                ..
-            } => Some(*maximum_events),
-            _ => None,
-        })
-        .max()
-        .expect("actual Source publication");
     let face = LocalPublicationFace::from_backing(
         RetainedPublicationBacking::prepare(maximum_events, display::RENDERER_SHOW_LIFETIME_MS)
             .expect("funded inert Face storage"),
@@ -83,48 +67,23 @@ pub async fn run<'s>(
     let (publisher, reader) = face.claim().expect("exclusive local Face custody");
     let publisher = RefCell::new(Some(publisher));
     let sequence = PublicationSequence::prepare(u64::from(maximum_events));
-    let clock_identities: [_; W] = core::array::from_fn(|slot| {
-        let actual = equipment.waits[slot]
-            .as_ref()
-            .expect("actual wait slot")
-            .native_identity();
-        conduit_plan_lowering::resident_inventory::OtherNodeIdentity {
-            node: clocks[slot].0,
-            kind: conduit_core::AssignedIdentity::from_text(conduit_time::TICK_KIND),
-            implementation: conduit_core::AssignedIdentity::from_text(
-                actual.implementation_id.as_str(),
-            ),
-            artifact: conduit_core::AssignedIdentity::from_text(actual.artifact_id.as_str()),
-        }
-    });
-    // SAFETY: definitions, identities and configuration hashes come from the
-    // same independently checked Source/lowered layout. This executor is the
-    // only allocator user during each synchronous inventory initialization.
-    let mut software = unsafe {
-        SoftwareInventory::initialize(
-            definitions,
-            source::sampling::identities(&clock_identities)
-                .expect("actual Source clock identities"),
-            &publisher,
-            sequence.clone(),
-            now_ms,
-            allocator_used,
-            source::sampling::CONFIGURATION,
-        )
-    }
-    .expect("actual initialized sampling Backs");
-    let mut output_software = unsafe {
-        SoftwareInventory::initialize(
-            source::output::definitions(&[]).expect("checked output definitions"),
-            source::output::identities(&[]).expect("checked output identities"),
-            &publisher,
-            sequence,
-            now_ms,
-            allocator_used,
-            source::output::CONFIGURATION,
-        )
-    }
-    .expect("actual initialized output Backs");
+    // Slots are the retained owners; cold constructors write directly into
+    // them rather than return fat identity/Back arrays through this poll frame.
+    let mut software_slot = None;
+    let mut output_software_slot = None;
+    initialization::sampling(
+        &mut software_slot,
+        &parameters,
+        clocks,
+        &equipment,
+        &publisher,
+        sequence.clone(),
+    );
+    initialization::output(&mut output_software_slot, &publisher, sequence);
+    let software = software_slot.as_mut().expect("initialized sampling slot");
+    let output_software = output_software_slot
+        .as_mut()
+        .expect("initialized output slot");
     let operations = Operations::from_source(
         source::sampling::NATIVE_KINDS,
         source::mask::NATIVE_KINDS,
@@ -335,8 +294,8 @@ pub async fn run<'s>(
                         context.into(),
                         policy,
                         &mut residents,
-                        &mut software,
-                        &mut output_software,
+                        &mut *software,
+                        &mut *output_software,
                         &mut routing,
                         &mut equipment.pulse,
                         &mut equipment.display,
@@ -382,12 +341,17 @@ pub async fn run<'s>(
                 Err(reason) => Err(reason),
                 Ok(()) => {
                     let future = crate::play_service::prepare_online_in_slot(
-                        &prepared_slot, &mut presentation_slot, &mut equipment.renderer,
-                        &mut issuers.renderer, &operations.renderer,
-                        reader.take().expect("original unclaimed Reader"), &face,
+                        &prepared_slot,
+                        &mut presentation_slot,
+                        &mut equipment.renderer,
+                        &mut issuers.renderer,
+                        &operations.renderer,
+                        reader.take().expect("original unclaimed Reader"),
+                        &face,
                     );
                     conduit_mcu_host_runtime::poll_boundary::separate(core::pin::pin!(future))
-                        .await.map_err(|error| {
+                        .await
+                        .map_err(|error| {
                             use core::fmt::Write;
                             let _ = write!(&mut refusal_detail, "{error:?}");
                             "renderer-preparation"
@@ -399,9 +363,16 @@ pub async fn run<'s>(
                 Err(reason) => Err(reason),
                 Ok(()) => {
                     let future = async {
-                        let (prepared, workspace, bootstrap, member, configuration,
-                            resources, policy, held_pools) = prepared_slot.take()
-                            .ok_or("prepared-slot-empty")?;
+                        let (
+                            prepared,
+                            workspace,
+                            bootstrap,
+                            member,
+                            configuration,
+                            resources,
+                            policy,
+                            held_pools,
+                        ) = prepared_slot.take().ok_or("prepared-slot-empty")?;
                         let started = crate::play_service::start_prepared(
                             prepared,
                             workspace,
@@ -432,8 +403,8 @@ pub async fn run<'s>(
                     // Withdraw the Started payload only inside the continuing
                     // poll, so the parent never needs its by-value return scratch.
                     let future = async {
-                        let (started, scopes) = started_slot.take()
-                            .expect("original Started output slot");
+                        let (started, scopes) =
+                            started_slot.take().expect("original Started output slot");
                         let evidence = started.evidence();
                         let (((sample, sample_calls), mask, (output, output_calls)), renderer) =
                             started.into_kernels();

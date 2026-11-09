@@ -8,6 +8,10 @@ pub fn emit_to(out: &Path) -> std::io::Result<()> {
     for (name, source) in [
         ("runtime", include_str!("source_composition/runtime.rs")),
         (
+            "play_initialization",
+            include_str!("source_composition/play_initialization.rs"),
+        ),
+        (
             "play_recording",
             include_str!("source_composition/play_recording.rs"),
         ),
