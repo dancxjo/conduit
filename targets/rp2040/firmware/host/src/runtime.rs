@@ -24,6 +24,27 @@ pub async fn run(
     let arena = image_memory
         .reserve_remaining()
         .expect("whole original IMAGE arena");
+    let mut storage = RootStorage::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new();
+    let mut equipment = None;
+    let root = initialize(seed, host, nonce, flash, &mut storage, &mut equipment);
+    let equipment = equipment
+        .take()
+        .expect("original initialized equipment slot");
+    let future = core::pin::pin!(shared::run(root, equipment, arena, link));
+    conduit_mcu_host_runtime::poll_boundary::separate(future).await
+}
+// Construct directly into caller-owned Root/Equipment slots. Cold initialization
+// scratch retires before the original continuing future is first polled.
+#[inline(never)]
+fn initialize<'a>(
+    seed: crate::seed::Seed<'static>,
+    host: String,
+    nonce: [u64; 2],
+    flash: crate::credential_source::Device,
+    storage: &'a mut RootStorage<'static, { crate::config::MAX_ASSIGNMENT_BYTES }>,
+    equipment: &mut Option<crate::equipment::Equipment>,
+) -> &'a mut conduit_mcu_host_runtime::root::Root<'static, { crate::config::MAX_ASSIGNMENT_BYTES }>
+{
     let mut actual = HostAdvertisement {
         declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
@@ -40,13 +61,13 @@ pub async fn run(
         capabilities: Vec::new(),
         planner_capabilities: Vec::new(),
     };
-    let equipment = crate::equipment::Equipment::new(&actual, &seed.body_id, flash)
+    let initialized = crate::equipment::Equipment::new(&actual, &seed.body_id, flash)
         .expect("actual initialized Yellow providers");
-    equipment
+    initialized
         .publish(&mut actual)
         .expect("bounded compact native facts");
-    let mut storage = RootStorage::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new();
-    let root = storage
+    *equipment = Some(initialized);
+    storage
         .initialize(
             seed.into_shared(),
             actual,
@@ -58,10 +79,9 @@ pub async fn run(
                 execution: crate::config::EXECUTION_DELEGATION.as_ref(),
             },
         )
-        .expect("original checked Root");
-    let future = core::pin::pin!(shared::run(root, equipment, arena, link));
-    conduit_mcu_host_runtime::poll_boundary::separate(future).await
+        .expect("original checked Root")
 }
+
 mod shared {
     include!(concat!(env!("OUT_DIR"), "/source_runtime.rs"));
 }

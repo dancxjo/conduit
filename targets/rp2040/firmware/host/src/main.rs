@@ -110,8 +110,16 @@ fn usb(
     let cdc = CdcAcmClass::new(&mut builder, CDC.init(State::new()), 64);
     (builder.build(), cdc)
 }
-#[embassy_executor::main]
-async fn main(spawner: Spawner) {
+struct Boot {
+    serial: Option<&'static str>,
+    nonce: [u64; 2],
+    link: transport::Link,
+    #[cfg(sensor_dht11)]
+    flash: credential_source::Device,
+}
+// Cold peripheral/USB/Wi-Fi construction must not reserve scratch in every poll.
+#[inline(never)]
+fn initialize(spawner: Spawner) -> Boot {
     // SAFETY: exclusive boot initialization before spawning allocation users.
     unsafe { heap::initialize() };
     stack_probe::initialize();
@@ -150,24 +158,32 @@ async fn main(spawner: Spawner) {
     let (device, class) = usb(usb::Driver::new(p.USB, UsbIrqs), serial);
     spawner.spawn(usb_task(device).unwrap());
     let mut rng = embassy_rp::clocks::RoscRng;
+    Boot {
+        serial,
+        nonce: [rng.next_u64(), rng.next_u64()],
+        link: transport::Link::new(class),
+        #[cfg(sensor_dht11)]
+        flash,
+    }
+}
+#[embassy_executor::main]
+async fn main(spawner: Spawner) {
+    let boot = initialize(spawner);
+    let serial = boot.serial;
+    let nonce = boot.nonce;
+    let mut link = boot.link;
+    #[cfg(sensor_dht11)]
+    let flash = boot.flash;
     #[cfg(not(sensor_dht11))]
     let mut membership = serial.and_then(|serial| {
         let host = alloc::format!("rp2040/flash/{serial}");
-        seed::Seed::load(&host)
-            .map(|seed| membership::Membership::new(seed, host, [rng.next_u64(), rng.next_u64()]))
+        seed::Seed::load(&host).map(|seed| membership::Membership::new(seed, host, nonce))
     });
-    let mut link = transport::Link::new(class);
     #[cfg(sensor_dht11)]
     if let Some(serial) = serial {
         let host = alloc::format!("rp2040/flash/{serial}");
         if let Some(seed) = seed::Seed::load(&host) {
-            let future = core::pin::pin!(runtime::run(
-                seed,
-                host,
-                [rng.next_u64(), rng.next_u64()],
-                &mut link,
-                flash,
-            ));
+            let future = core::pin::pin!(runtime::run(seed, host, nonce, &mut link, flash,));
             conduit_mcu_host_runtime::poll_boundary::separate(future).await;
         }
     }
@@ -175,6 +191,12 @@ async fn main(spawner: Spawner) {
     if let Some(member) = membership.as_mut() {
         member.run(&mut link).await;
     }
+    let future = core::pin::pin!(unconfigured_link(&mut link));
+    conduit_mcu_host_runtime::poll_boundary::separate(future).await
+}
+// This fallback's discard buffer belongs only to the unconfigured carrier poll,
+// never to the normal Root/Play call chain.
+async fn unconfigured_link(link: &mut transport::Link) -> ! {
     loop {
         link.connected().await;
         let result = {
