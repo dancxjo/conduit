@@ -57,7 +57,8 @@ pub async fn run(
     let storage = conduit_esp32_snapshot_nor::hardware::prepare(flash, slot)
         .map_err(|(_, refusal)| refusal)
         .expect("actual sole flash owner");
-    let equipment = crate::equipment::Equipment::new(&actual, equipment.0, equipment.1, storage);
+    let equipment =
+        crate::equipment::Equipment::new(&actual, &seed.body_id, equipment.0, equipment.1, storage);
     equipment
         .publish(&mut actual)
         .expect("bounded actual native publication");

@@ -4,6 +4,7 @@ pub use crate::pulse_owner::CaptureLease as Capture;
 pub use crate::tm1637_owner::DisplayLease as Wire;
 use alloc::format;
 use conduit_core::{HostAdvertisement, ResourceGenerationId};
+use conduit_mcu_host_runtime::recording_equipment::AppendNativeIdentity;
 use conduit_monotonic_wait::{ReadyMonotonicWaitBase, WaitAttachment, WaitNativeIdentity};
 use conduit_pulse_capture::{
     installation::{PulseNativeIdentity, ReadyPulseBase},
@@ -14,12 +15,10 @@ use conduit_tm1637_wire::{
     owner::WriteAttachment,
 };
 pub const WAIT_SLOTS: usize = crate::workset::generated::sampling::CLOCKS.len();
+pub type RecordingStorage = conduit_rp2040_snapshot_nor::SnapshotNor;
 pub struct Equipment {
     pub activity: conduit_mcu_host_runtime::native_runner::NativeActivity,
-    /// Sole physical owner retained for separately admitted durable operations.
-    /// No writable capability is published until its Ready owner is installed.
-    #[allow(dead_code)]
-    pub recording_storage: Option<conduit_rp2040_snapshot_nor::SnapshotNor>,
+    pub recording: conduit_mcu_host_runtime::recording_equipment::Equipment<RecordingStorage>,
     pub renderer: conduit_mcu_host_runtime::execution_mask::ReadyRenderer<crate::renderer::Clock>,
     pub pulse: Option<ReadyPulseBase<crate::pulse_owner::CaptureLease>>,
     pub display: Option<ReadyWriteBase<crate::tm1637_owner::DisplayLease>>,
@@ -67,18 +66,23 @@ impl Equipment {
         let remaining = crate::config::HEAP_BYTES
             .checked_sub(crate::heap::usage().0)
             .ok_or(Refusal::Capacity)?;
-        let mut publication =
-            Publication::new(actual, 3 + self.waits.iter().flatten().count(), remaining)?;
+        let mut publication = Publication::new(
+            actual,
+            3 + self.waits.iter().flatten().count() + usize::from(self.recording.selected()),
+            remaining,
+        )?;
         publication.pulse(self.pulse.as_ref().ok_or(Refusal::Context)?)?;
         publication.write(self.display.as_ref().ok_or(Refusal::Context)?)?;
         publication.renderer(&self.renderer)?;
         for wait in self.waits.iter().flatten() {
             publication.wait(wait)?;
         }
+        self.recording.publish(&mut publication)?;
         publication.finish()
     }
     pub fn new(
         actual: &HostAdvertisement,
+        body: &conduit_core::BodyId,
         flash: crate::credential_source::Device,
     ) -> Option<Self> {
         if WAIT_SLOTS == 0 || WAIT_SLOTS >= crate::config::TIMER_SLOTS {
@@ -92,14 +96,26 @@ impl Equipment {
         unsafe {
             Some(Self {
                 activity: conduit_mcu_host_runtime::native_runner::NativeActivity::new(),
-                recording_storage: Some(conduit_rp2040_snapshot_nor::SnapshotNor::new(
-                    flash,
-                    conduit_rp2040_snapshot_nor::Slot::new(
-                        0,
-                        conduit_rp2040_flash_layout::DURABLE.bytes(),
-                    )
-                    .ok()?,
-                )),
+                // No electrical tasks exist yet; this is a bounded read-only
+                // recovery using the sole checked DURABLE peripheral owner.
+                recording: conduit_mcu_host_runtime::recording_equipment::Equipment::new(
+                    conduit_rp2040_snapshot_nor::SnapshotNor::new(
+                        flash,
+                        conduit_rp2040_snapshot_nor::Slot::new(
+                            0,
+                            conduit_rp2040_flash_layout::DURABLE.bytes(),
+                        )
+                        .ok()?,
+                    ),
+                    identity!(
+                        AppendNativeIdentity,
+                        actual,
+                        "record-append",
+                        "rp2040/nor-record-append@1"
+                    ),
+                    body,
+                    crate::workset::generated::sampling::NATIVE_KINDS,
+                ),
                 renderer: crate::renderer::initialize(actual)?,
                 pulse: Some(
                     ReadyPulseBase::new(

@@ -33,6 +33,29 @@ impl<S: NorStorage> ReadyRecordAppender<S> {
         original: &c::AuthorityGrant,
         maximum_operations: u32,
     ) -> Result<Self, AppendCallRefusal> {
+        // SAFETY: preserves the caller's original physical ownership obligations.
+        unsafe { Self::new_retained(identity, provider, original, maximum_operations) }
+            .map_err(|(_, _, refusal)| refusal)
+    }
+    /// Same checked construction, returning both original owners on refusal.
+    /// No media IO occurs, including on allocation failure.
+    /// # Safety
+    /// Same original ownership, funding and physical-window obligations as `new`.
+    // Affine original owners must return intact without another heap allocation.
+    #[allow(clippy::result_large_err, clippy::type_complexity)]
+    pub unsafe fn new_retained(
+        identity: AppendNativeIdentity,
+        provider: PreparedNorRecordResidence<S>,
+        original: &c::AuthorityGrant,
+        maximum_operations: u32,
+    ) -> Result<
+        Self,
+        (
+            AppendNativeIdentity,
+            PreparedNorRecordResidence<S>,
+            AppendCallRefusal,
+        ),
+    > {
         use AppendCallRefusal as E;
         if [
             identity.host_id.as_str(),
@@ -50,7 +73,7 @@ impl<S: NorStorage> ReadyRecordAppender<S> {
         .any(|s| s.is_empty())
             || identity.provider_generation == 0
         {
-            return Err(E::InvalidIdentity);
+            return Err((identity, provider, E::InvalidIdentity));
         }
         if original.grant_id.as_str().is_empty()
             || original.host_id != identity.host_id
@@ -60,26 +83,38 @@ impl<S: NorStorage> ReadyRecordAppender<S> {
             || original.subject_kind.as_str() != APPEND_KIND
             || original.capability_id.as_str() != APPEND_CAPABILITY
         {
-            return Err(E::WrongBinding);
+            return Err((identity, provider, E::WrongBinding));
         }
         if maximum_operations == 0 {
-            return Err(E::InvalidIdentity);
+            return Err((identity, provider, E::InvalidIdentity));
         }
         if !provider.recovered() {
-            return Err(E::Media(RecordResidenceRefusal::RecoveryRequired));
+            return Err((
+                identity,
+                provider,
+                E::Media(RecordResidenceRefusal::RecoveryRequired),
+            ));
         }
+        let encoder = match result::Encoder::new() {
+            Ok(encoder) => encoder,
+            Err(_) => return Err((identity, provider, E::Possession)),
+        };
         Ok(Self {
             identity,
             provider,
             original: original.clone(),
             maximum_operations,
-            encoder: result::Encoder::new().map_err(|_| E::Possession)?,
+            encoder,
         })
     }
     /// Actual provider recovery state, including after revoked retirement.
     /// This is not a grant or evidence of resource/Play admission.
     pub fn recovered(&self) -> bool {
         self.provider.recovered()
+    }
+    /// Original independently issued grant retained by this actual owner.
+    pub fn original_grant(&self) -> &c::AuthorityGrant {
+        &self.original
     }
     pub fn native_identity(&self) -> &AppendNativeIdentity {
         &self.identity

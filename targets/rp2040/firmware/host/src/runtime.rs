@@ -40,7 +40,7 @@ pub async fn run(
         capabilities: Vec::new(),
         planner_capabilities: Vec::new(),
     };
-    let equipment = crate::equipment::Equipment::new(&actual, flash)
+    let equipment = crate::equipment::Equipment::new(&actual, &seed.body_id, flash)
         .expect("actual initialized Yellow providers");
     equipment
         .publish(&mut actual)

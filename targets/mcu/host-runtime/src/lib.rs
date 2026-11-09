@@ -66,3 +66,6 @@ pub mod execution_inspection;
 
 #[cfg(feature = "execution")]
 pub mod continuation_native;
+
+#[cfg(feature = "execution")]
+pub mod recording_equipment;

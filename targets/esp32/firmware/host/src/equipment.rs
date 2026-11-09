@@ -2,6 +2,7 @@
 use alloc::format;
 use conduit_core::{HostAdvertisement, ResourceGenerationId};
 use conduit_esp32_electrical::{Esp32PulseCapture, Esp32Tm1637, PULSE_LIMITS};
+use conduit_mcu_host_runtime::recording_equipment::AppendNativeIdentity;
 use conduit_pulse_capture::{
     installation::{PulseNativeIdentity, ReadyPulseBase},
     owner::PulseAttachment,
@@ -11,11 +12,10 @@ use conduit_tm1637_wire::{
     owner::WriteAttachment,
 };
 pub const SOURCE_WAIT_SLOTS: usize = crate::workset::sampling::CLOCKS.len();
+pub type RecordingStorage = conduit_esp32_snapshot_nor::hardware::Esp32SnapshotNor<'static>;
 pub struct Equipment {
     pub activity: conduit_mcu_host_runtime::native_runner::NativeActivity,
-    /// Actual sole flash owner; no writable offer or effects before admission.
-    #[allow(dead_code)]
-    pub recording_storage: Option<conduit_esp32_snapshot_nor::hardware::Esp32SnapshotNor<'static>>,
+    pub recording: conduit_mcu_host_runtime::recording_equipment::Equipment<RecordingStorage>,
     pub renderer: conduit_mcu_host_runtime::execution_mask::ReadyRenderer<crate::renderer::Clock>,
     pub pulse: Option<ReadyPulseBase<Capture>>,
     pub waits: [Option<
@@ -55,19 +55,24 @@ impl Equipment {
         let remaining = crate::config::HEAP_BYTES
             .checked_sub(crate::runtime::allocator_used())
             .ok_or(Refusal::Capacity)?;
-        let mut publication =
-            Publication::new(actual, 3 + self.waits.iter().flatten().count(), remaining)?;
+        let mut publication = Publication::new(
+            actual,
+            3 + self.waits.iter().flatten().count() + usize::from(self.recording.selected()),
+            remaining,
+        )?;
         publication.pulse(self.pulse.as_ref().ok_or(Refusal::Capacity)?)?;
         publication.write(self.display.as_ref().ok_or(Refusal::Capacity)?)?;
         publication.renderer(&self.renderer)?;
         for wait in self.waits.iter().flatten() {
             publication.wait(wait)?;
         }
+        self.recording.publish(&mut publication)?;
         publication.finish()
     }
 
     pub fn new(
         actual: &HostAdvertisement,
+        body: &conduit_core::BodyId,
         pulse: Esp32PulseCapture<'static>,
         display: Esp32Tm1637<'static>,
         recording_storage: conduit_esp32_snapshot_nor::hardware::Esp32SnapshotNor<'static>,
@@ -89,7 +94,19 @@ impl Equipment {
         unsafe {
             Self {
                 activity: conduit_mcu_host_runtime::native_runner::NativeActivity::new(),
-                recording_storage: Some(recording_storage),
+                // Sole checked owner; only selected immutable Source enables
+                // the finite read-only recovery before any electrical task.
+                recording: conduit_mcu_host_runtime::recording_equipment::Equipment::new(
+                    recording_storage,
+                    identity!(
+                        AppendNativeIdentity,
+                        actual,
+                        "record-append",
+                        "esp32/nor-record-append@1"
+                    ),
+                    body,
+                    crate::workset::sampling::NATIVE_KINDS,
+                ),
                 renderer: crate::renderer::initialize(actual),
                 waits: core::array::from_fn(|index| {
                     // The renderer owns slot0; only actual Source clocks receive
