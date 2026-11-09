@@ -171,30 +171,28 @@ pub(crate) use own_equipment;
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let arena_script = format!(
         r#"
-SECTIONS {{
-  .image_heap_primary (NOLOAD) : ALIGN(16) {{
-    __image_heap_primary_start = ABSOLUTE(.);
-    KEEP(*(.image_heap_primary))
-    __image_heap_primary_end = ABSOLUTE(.);
-  }} > dram_seg
-}} INSERT BEFORE .stack;
+/* The HAL's canonical .bss.* collector places this original static owner
+ * before .stack. No INSERT augmentation against an unrelated default script. */
+EXTERN(CONDUIT_IMAGE_PRIMARY_HEAP);
 ASSERT(ORIGIN(dram_seg) == 0x3ffb0000, "unexpected primary DRAM origin");
 ASSERT(LENGTH(dram_seg) == 196608, "unexpected primary DRAM size");
-ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.image_heap_primary) <= 131072, "primary static DRAM exceeds checked physical share");
+ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) <= 131072, "primary static DRAM exceeds checked physical share");
 ASSERT(ORIGIN(dram2_seg) == 0x3ffe7e30, "unexpected secondary DRAM origin");
 ASSERT(LENGTH(dram2_seg) == 98768, "unexpected secondary DRAM size");
 ASSERT(ADDR(.dram2_uninit) == ORIGIN(dram2_seg), "heap not at secondary region origin");
 ASSERT(SIZEOF(.dram2_uninit) == {secondary_heap}, "secondary DRAM has another owner or heap size differs");
 ASSERT(SIZEOF(.dram2_uninit) <= LENGTH(dram2_seg), "secondary heap exceeds physical region");
-ASSERT(SIZEOF(.image_heap_primary) == {primary_heap}, "primary heap has another owner or differs from IMAGE");
-ASSERT(__image_heap_primary_end - __image_heap_primary_start == {primary_heap}, "primary heap extent differs from IMAGE");
-ASSERT(ADDR(.image_heap_primary) >= ORIGIN(dram_seg), "primary heap below original RAM region");
-ASSERT(ADDR(.image_heap_primary) + SIZEOF(.image_heap_primary) <= ORIGIN(dram_seg) + LENGTH(dram_seg), "primary heap exceeds original RAM region");
-ASSERT(ADDR(.image_heap_primary) + SIZEOF(.image_heap_primary) <= _stack_end, "primary heap overlaps current stack");
-ASSERT(ADDR(.image_heap_primary) + SIZEOF(.image_heap_primary) <= ORIGIN(dram2_seg), "physical IMAGE arenas overlap");
-ASSERT(SIZEOF(.image_heap_primary) + SIZEOF(.dram2_uninit) == {heap}, "physical heap total differs from checked IMAGE");
+ASSERT(DEFINED(CONDUIT_IMAGE_PRIMARY_HEAP), "missing original primary heap owner");
+ASSERT(CONDUIT_IMAGE_PRIMARY_HEAP % 16 == 0, "primary heap owner is not aligned");
+ASSERT(CONDUIT_IMAGE_PRIMARY_HEAP >= ADDR(.bss), "primary heap below canonical BSS");
+ASSERT(CONDUIT_IMAGE_PRIMARY_HEAP + {primary_heap} <= ADDR(.bss) + SIZEOF(.bss), "primary heap exceeds canonical BSS owner extent");
+ASSERT(CONDUIT_IMAGE_PRIMARY_HEAP >= ORIGIN(dram_seg), "primary heap below original RAM region");
+ASSERT(CONDUIT_IMAGE_PRIMARY_HEAP + {primary_heap} <= ORIGIN(dram_seg) + LENGTH(dram_seg), "primary heap exceeds original RAM region");
+ASSERT(CONDUIT_IMAGE_PRIMARY_HEAP + {primary_heap} <= _stack_end, "primary heap overlaps current stack");
+ASSERT(CONDUIT_IMAGE_PRIMARY_HEAP + {primary_heap} <= ORIGIN(dram2_seg), "physical IMAGE arenas overlap");
+ASSERT({primary_heap} + SIZEOF(.dram2_uninit) == {heap}, "physical heap total differs from checked IMAGE");
 ASSERT(SIZEOF(.stack) >= {minimum_stack}, "primary stack reserve below checked IMAGE construction minimum");
-ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.image_heap_primary) + SIZEOF(.dram2_uninit) <= {static_bytes}, "static DRAM exceeds checked IMAGE");
+ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <= {static_bytes}, "static DRAM exceeds checked IMAGE");
 "#,
         heap = config.limits.heap_arena_bytes,
         secondary_heap = heap.secondary,

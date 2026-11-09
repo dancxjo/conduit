@@ -101,8 +101,16 @@ fn initialize_image_heap() {
     #[link_section = ".dram2_uninit"]
     static mut SECONDARY: MaybeUninit<Arena<{ config::HEAP_SECONDARY_BYTES }>> =
         MaybeUninit::uninit();
-    #[link_section = ".image_heap_primary"]
+    // Canonical HAL rwdata.x collects .bss.* before its reserved .stack.
+    // This unique exported owner is also an explicit linker GC root.
+    #[export_name = "CONDUIT_IMAGE_PRIMARY_HEAP"]
+    #[link_section = ".bss.conduit_image_heap_primary"]
     static mut PRIMARY: MaybeUninit<Arena<{ config::HEAP_PRIMARY_BYTES }>> = MaybeUninit::uninit();
+    // Exact owner extent follows from the checked aligned IMAGE byte count,
+    // independently checked against canonical BSS/stack addresses by ld.
+    const _: () = assert!(
+        core::mem::size_of::<Arena<{ config::HEAP_PRIMARY_BYTES }>>() == config::HEAP_PRIMARY_BYTES
+    );
     static INITIALIZED: AtomicBool = AtomicBool::new(false);
     assert!(
         !INITIALIZED.swap(true, Ordering::Relaxed),
@@ -113,7 +121,7 @@ fn initialize_image_heap() {
         config::HEAP_BYTES
     );
     // SAFETY: startup is the only caller, before any allocation or other task.
-    // The linker verifies exact sole-owned extents, physical nonoverlap, total
+    // The linker verifies the unique static owner bounds, physical nonoverlap, total
     // IMAGE funding and a separate stack (>=64KiB for split backing, >=16KiB
     // for the original secondary-only construction). No ROM region is used.
     unsafe {
