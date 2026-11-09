@@ -344,6 +344,7 @@ pub async fn run<'s>(
                 }
             };
             let mut started_slot = None;
+            let mut scopes_slot = None;
             let outcome = match prepared_status {
                 Err(reason) => Err(reason),
                 Ok(()) => {
@@ -358,7 +359,7 @@ pub async fn run<'s>(
                             policy,
                             held_pools,
                         ) = prepared_slot.take().ok_or("prepared-slot-empty")?;
-                        let started = crate::play_service::start_prepared(
+                        crate::play_service::start_prepared_into(
                             prepared,
                             workspace,
                             bootstrap,
@@ -370,13 +371,14 @@ pub async fn run<'s>(
                             &face,
                             &held_pools,
                             append_output.len() + core::mem::size_of::<conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus>(),
+                            &mut started_slot,
+                            &mut scopes_slot,
                         )
                         .map_err(|error| {
                             use core::fmt::Write;
                             let _ = write!(&mut refusal_detail, "{error:?}");
                             "complete-admission-start"
                         })?;
-                        started_slot = Some(started);
                         Ok::<(), &'static str>(())
                     };
                     let mut future = core::pin::pin!(future);
@@ -388,8 +390,8 @@ pub async fn run<'s>(
                     // Withdraw the Started payload only inside the continuing
                     // poll, so the parent never needs its by-value return scratch.
                     let future = async {
-                        let (started, scopes) =
-                            started_slot.take().expect("original Started output slot");
+                        let started = started_slot.take().expect("original Started output slot");
+                        let scopes = scopes_slot.take().expect("original Scopes output slot");
                         let evidence = started.evidence();
                         let (((sample, sample_calls), mask, (output, output_calls)), renderer) =
                             started.into_kernels();

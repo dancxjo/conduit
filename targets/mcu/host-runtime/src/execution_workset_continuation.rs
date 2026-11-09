@@ -81,6 +81,25 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
         policy: Policy<'_>,
         resources: &c::ResourceAdmissionOwner,
     ) -> Result<StartedLocalWorkset<T::Bound>, Refusal<E>> {
+        let mut target = None;
+        self.start_continuation_into(scope, context, policy, resources, &mut target)?;
+        Ok(target.expect("successful original continuation Start output"))
+    }
+
+    /// The same checked continuation transition with no fat result return.
+    /// An occupied output refuses before checking or consuming any owner.
+    #[inline(always)]
+    pub fn start_continuation_into<E>(
+        &mut self,
+        scope: &b::FreshContinuationScope<'_>,
+        context: ContinuationNativeContext<'_>,
+        policy: Policy<'_>,
+        resources: &c::ResourceAdmissionOwner,
+        target: &mut Option<StartedLocalWorkset<T::Bound>>,
+    ) -> Result<(), Refusal<E>> {
+        if target.is_some() {
+            return Err(Refusal::Scope);
+        }
         if self.prepared.is_none() {
             return Err(Refusal::Scope);
         }
@@ -108,7 +127,7 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
         )?;
         // SAFETY: the original complete admission and same checked fresh scope
         // succeeded. The affine ticket is taken once, only after every check.
-        Ok(StartedLocalWorkset {
+        *target = Some(StartedLocalWorkset {
             custody_identity: *custody,
             kernels: unsafe {
                 self.prepared
@@ -116,6 +135,7 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
                     .expect("original unstarted continuation kernels")
                     .bind()
             },
-        })
+        });
+        Ok(())
     }
 }

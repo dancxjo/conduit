@@ -20,6 +20,25 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
         policy: Policy<'_>,
         resources: &c::ResourceAdmissionOwner,
     ) -> Result<StartedLocalWorkset<T::Bound>, Refusal<E>> {
+        let mut target = None;
+        self.start_into(workspace, context, policy, resources, &mut target)?;
+        Ok(target.expect("successful original Start output"))
+    }
+
+    /// Same authenticated transition, writing the affine owner directly into
+    /// caller storage. Refusal leaves both the committed owner and slot intact.
+    #[inline(always)]
+    pub fn start_into<const I: usize, E>(
+        &mut self,
+        workspace: &b::HostCommandInput<I>,
+        context: b::NativePreparationContext<'_>,
+        policy: Policy<'_>,
+        resources: &c::ResourceAdmissionOwner,
+        target: &mut Option<StartedLocalWorkset<T::Bound>>,
+    ) -> Result<(), Refusal<E>> {
+        if target.is_some() {
+            return Err(Refusal::Scope);
+        }
         if self.prepared.is_none() {
             return Err(Refusal::Scope);
         }
@@ -61,7 +80,7 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
             Ok(()) => {
                 // SAFETY: original whole-workset admission plus all current
                 // authenticated Start checks above succeeded atomically.
-                Ok(StartedLocalWorkset {
+                *target = Some(StartedLocalWorkset {
                     custody_identity: match &self.origin {
                         StartOrigin::Online(stamp) => stamp.custody_identity(),
                         StartOrigin::Continuation(_) => unreachable!("online origin checked"),
@@ -72,7 +91,8 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
                             .expect("original unstarted kernels")
                             .bind()
                     },
-                })
+                });
+                Ok(())
             }
             Err(e) => Err(e),
         }

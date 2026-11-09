@@ -62,20 +62,21 @@ impl<'c, 's, 'w> NativeAuthority<'c, 's, 'w> {
             ),
         }
     }
-    #[inline(always)] // Fuse the affine bound result into the original Start destination.
-    pub(crate) fn start<T: PreparedLocalKernels, const F: usize, E>(
+    #[inline(always)]
+    pub(crate) fn start_into<T: PreparedLocalKernels, const F: usize, E>(
         self,
         committed: &mut CommittedLocalWorkset<'_, T, F>,
         workspace: Option<&b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>>,
         policy: Policy<'_>,
         resources: &c::ResourceAdmissionOwner,
-    ) -> Result<StartedLocalWorkset<T::Bound>, Refusal<E>> {
+        target: &mut Option<StartedLocalWorkset<T::Bound>>,
+    ) -> Result<(), Refusal<E>> {
         match (self, workspace) {
             (Self::Online(context), Some(workspace)) => {
-                committed.start(workspace, context, policy, resources)
+                committed.start_into(workspace, context, policy, resources, target)
             }
             (Self::Continuation { context, scope }, None) => {
-                committed.start_continuation(scope, context, policy, resources)
+                committed.start_continuation_into(scope, context, policy, resources, target)
             }
             _ => Err(Refusal::Scope),
         }

@@ -208,6 +208,42 @@ pub fn start_prepared<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     )
 }
 
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[inline(always)]
+pub fn start_prepared_into<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
+    prepared: PreparedLocalWorkset<'w, T, 3>,
+    workspace: &b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>,
+    bootstrap: &b::MemberBootstrap<'_>,
+    member: &b::MembershipCredential,
+    configuration: &conduit_mcu_host_runtime::root::Configuration,
+    resources: &mut c::ResourceAdmissionOwner,
+    policy: Policy<'_>,
+    presentation: PreparedPresentation<'a, C>,
+    face: &LocalPublicationFace,
+    held_pools: &[c::AssignedIdentity],
+    recording_service_bytes: usize,
+    target: &mut Option<StartedLocalWorkset<(T::Bound, RendererService<'a, C>)>>,
+    scopes_target: &mut Option<Scopes>,
+) -> Result<(), Refusal<&'static str>> {
+    start_selected_into(
+        prepared,
+        Some(workspace),
+        PresentationOrigin::Online {
+            bootstrap,
+            member,
+            configuration,
+        },
+        resources,
+        policy,
+        presentation,
+        face,
+        held_pools,
+        recording_service_bytes,
+        target,
+        scopes_target,
+    )
+}
+
 /// Same complete renderer/admission path with the actual checked installed
 /// owner-intent and fresh local scope; no online command or member stamp exists.
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
@@ -267,6 +303,45 @@ fn start_selected<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     ),
     Refusal<&'static str>,
 > {
+    let mut target = None;
+    let mut scopes_target = None;
+    start_selected_into(
+        prepared,
+        workspace,
+        origin,
+        resources,
+        policy,
+        presentation,
+        face,
+        held_pools,
+        recording_service_bytes,
+        &mut target,
+        &mut scopes_target,
+    )?;
+    Ok((
+        target.expect("successful Started slot"),
+        scopes_target.expect("successful Scopes slot"),
+    ))
+}
+
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[inline(always)]
+fn start_selected_into<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
+    prepared: PreparedLocalWorkset<'w, T, 3>,
+    workspace: Option<&b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>>,
+    origin: PresentationOrigin<'_, '_, 'w>,
+    resources: &mut c::ResourceAdmissionOwner,
+    policy: Policy<'_>,
+    presentation: PreparedPresentation<'a, C>,
+    face: &LocalPublicationFace,
+    held_pools: &[c::AssignedIdentity],
+    recording_service_bytes: usize,
+    target: &mut Option<StartedLocalWorkset<(T::Bound, RendererService<'a, C>)>>,
+    scopes_target: &mut Option<Scopes>,
+) -> Result<(), Refusal<&'static str>> {
+    if target.is_some() || scopes_target.is_some() {
+        return Err(Refusal::Scope);
+    }
     if presentation.workset != presentation::workset_pin(&prepared) {
         return Err(Refusal::Back("renderer-workset"));
     }
@@ -299,12 +374,13 @@ fn start_selected<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         .map_err(|_| Refusal::Back("face-scope"))?;
     origin
         .native(resources.host(), policy)?
-        .start(&mut committed, workspace, policy, resources)
-        .map(|started| (started, scopes))
+        .start_into(&mut committed, workspace, policy, resources, target)
         .map_err(|refusal| match refusal {
             Refusal::Scope => Refusal::Back("authenticated-start-scope"),
             other => other,
-        })
+        })?;
+    *scopes_target = Some(scopes);
+    Ok(())
 }
 
 /// Original immutable authority references only: no Host loan survives mutable

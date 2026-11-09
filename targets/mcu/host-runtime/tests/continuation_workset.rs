@@ -136,10 +136,21 @@ fn checked_continuation_uses_atomic_admission_distinct_origin_and_one_use_start(
             .unwrap();
         assert_eq!(resources.admissions().len(), 3);
         let missing_ledger = c::ResourceAdmissionOwner::new(actual.clone());
+        let mut started_slot = None;
         assert!(matches!(
-            admitted.start_continuation::<()>(scope, context, policy, &missing_ledger),
+            admitted.start_continuation_into::<()>(
+                scope,
+                context,
+                policy,
+                &missing_ledger,
+                &mut started_slot,
+            ),
             Err(Refusal::Scope)
         ));
+        assert!(
+            started_slot.is_none(),
+            "refused Start cannot publish output"
+        );
         assert_eq!(binds.get(), 0, "refused Start retains original ticket");
         let workspace = b::HostCommandInput::<1>::new();
         // Deliberately old retained identity and EMPTY online input. A continuation
@@ -157,10 +168,28 @@ fn checked_continuation_uses_atomic_admission_distinct_origin_and_one_use_start(
             Err(Refusal::Scope)
         ));
         assert_eq!(binds.get(), 0);
-        let started = admitted
-            .start_continuation::<()>(scope, context, policy, &resources)
+        admitted
+            .start_continuation_into::<()>(scope, context, policy, &resources, &mut started_slot)
             .unwrap();
-        assert_eq!(*started.custody_identity(), scope.custody_identity());
+        assert_eq!(
+            *started_slot.as_ref().unwrap().custody_identity(),
+            scope.custody_identity(),
+        );
+        assert!(matches!(
+            admitted.start_continuation_into::<()>(
+                scope,
+                context,
+                policy,
+                &resources,
+                &mut started_slot,
+            ),
+            Err(Refusal::Scope)
+        ));
+        assert_eq!(
+            *started_slot.as_ref().unwrap().custody_identity(),
+            scope.custody_identity(),
+            "occupied output retains its exact original Started owner",
+        );
         assert_eq!(binds.get(), 1);
         assert!(matches!(
             admitted.start_continuation::<()>(scope, context, policy, &resources),
