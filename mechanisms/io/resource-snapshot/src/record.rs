@@ -14,6 +14,9 @@ pub const PUBLISH_OPERATION: &str = "conduit.host/resource-snapshot-publish@1";
 pub const READ_OPERATION: &str = "conduit.host/resource-snapshot-read@1";
 pub const MAXIMUM_SNAPSHOT_BYTES: usize = 4096;
 pub const MAXIMUM_RECORD_BYTES: usize = 8 + 2 + 128 + 2 + 512 + 32 + MAXIMUM_SNAPSHOT_BYTES;
+mod selected;
+pub use selected::SnapshotRecordSelection;
+
 const MAGIC: &[u8; 8] = b"CDRSNP01";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,6 +29,7 @@ pub enum SnapshotRefusal {
     AuthorityDenied,
     Reference(ResourceContentRefusal),
     WrongAccess,
+    LocalReference(conduit_core::ResourceReferenceAccessRefusal),
     ContentExtent,
     CorruptRecord,
 }
@@ -50,6 +54,39 @@ impl PreparedSnapshotRecord {
         let [binding] = placement.resources.as_slice() else {
             return Err(SnapshotRefusal::InvalidBinding);
         };
+        let [host_call] = placement.host_calls.as_slice() else {
+            return Err(SnapshotRefusal::InvalidBinding);
+        };
+        let [authority] = placement.authority.as_slice() else {
+            return Err(SnapshotRefusal::AuthorityDenied);
+        };
+        Self::prepare_parts(
+            SnapshotRecordSelection {
+                host: &placement.host_id,
+                boot: &placement.boot_id,
+                kind: &placement.kind_id,
+                capability: &placement.capability_id,
+                binding,
+                host_call,
+                authority,
+            },
+            reference,
+        )
+    }
+
+    fn prepare_parts(
+        selected: SnapshotRecordSelection<'_>,
+        reference: &BoundedResourceRef,
+    ) -> Result<Self, SnapshotRefusal> {
+        let SnapshotRecordSelection {
+            host,
+            boot,
+            kind,
+            capability,
+            binding,
+            host_call,
+            authority,
+        } = selected;
         let offer = binding
             .content
             .as_ref()
@@ -59,10 +96,10 @@ impl PreparedSnapshotRecord {
         contract
             .accepts_reference(reference)
             .map_err(SnapshotRefusal::Reference)?;
-        if offer.owner_host != placement.host_id {
+        if offer.owner_host != *host {
             return Err(SnapshotRefusal::ForeignHost);
         }
-        if offer.owner_boot != placement.boot_id {
+        if offer.owner_boot != *boot {
             return Err(SnapshotRefusal::StaleBoot);
         }
         if reference.lifetime.expires_at.is_some() {
@@ -83,9 +120,6 @@ impl PreparedSnapshotRecord {
             ResourceAccessMode::WriteCandidatePublish => PUBLISH_OPERATION,
             ResourceAccessMode::ReadPublished => READ_OPERATION,
         };
-        let [host_call] = placement.host_calls.as_slice() else {
-            return Err(SnapshotRefusal::InvalidBinding);
-        };
         let expected_bounds = if contract.access == ResourceAccessMode::WriteCandidatePublish {
             (
                 MAXIMUM_SNAPSHOT_BYTES as u32,
@@ -105,32 +139,29 @@ impl PreparedSnapshotRecord {
             return Err(SnapshotRefusal::InvalidBinding);
         }
         if host_call.contract_id.as_str() != operation
-            || host_call.target_kind.as_ref() != Some(&placement.kind_id)
+            || host_call.target_kind.as_ref() != Some(kind)
             || host_call.maximum_in_flight != 1
         {
             return Err(SnapshotRefusal::InvalidBinding);
         }
-        let [authority] = placement.authority.as_slice() else {
-            return Err(SnapshotRefusal::AuthorityDenied);
-        };
         if authority.grant_id.as_str().is_empty()
             || authority.contract_id.as_str() != AUTHORITY_CONTRACT
             || authority.host_call_contract_id != host_call.contract_id
-            || authority.subject_kind != placement.kind_id
-            || authority.capability_id != placement.capability_id
+            || authority.subject_kind != *kind
+            || authority.capability_id != *capability
         {
             return Err(SnapshotRefusal::AuthorityDenied);
         }
-        if authority.host_id != placement.host_id {
+        if authority.host_id != *host {
             return Err(SnapshotRefusal::ForeignHost);
         }
-        if authority.boot_id != placement.boot_id {
+        if authority.boot_id != *boot {
             return Err(SnapshotRefusal::StaleBoot);
         }
         let encoded = reference
             .encode()
             .map_err(|_| SnapshotRefusal::InvalidBinding)?;
-        let owner = placement.host_id.as_str().as_bytes();
+        let owner = host.as_str().as_bytes();
         let mut prefix = Vec::with_capacity(8 + 2 + owner.len() + 2 + encoded.len());
         prefix.extend_from_slice(MAGIC);
         prefix.extend_from_slice(&(owner.len() as u16).to_le_bytes());
