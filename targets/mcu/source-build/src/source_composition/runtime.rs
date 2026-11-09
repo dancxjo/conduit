@@ -134,8 +134,12 @@ pub async fn run<'s>(
     // Cold schema preparation runs before deep group construction, then its
     // original owners are consumed and dropped before execution allocation.
     let mut contracts = Some(
-        conduit_mcu_host_runtime::execution_group::NativeContracts::prepare()
-            .expect("funded native contract preparation"),
+        conduit_mcu_host_runtime::execution_group::NativeContracts::prepare_with_recording(
+            source::sampling::NATIVE_KINDS
+                .iter()
+                .any(|(_, kind)| *kind == "resource/try-append-record"),
+        )
+        .expect("funded native contract preparation"),
     );
     let mut last_refusal = None;
     loop {

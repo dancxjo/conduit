@@ -10,8 +10,7 @@ use conduit_core as c;
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 pub use installation::{AppendAttachment, AppendNativeIdentity, ReadyRecordAppender};
 
-pub const APPEND_KIND: &str = "resource/try-append-record";
-pub const APPEND_REVISION: &str = "conduit.resource/try-append-record@1";
+pub use crate::append_contract::{APPEND_KIND, APPEND_REVISION};
 pub const APPEND_OPERATION: &str = "conduit.host/resource-try-append-record@1";
 pub const APPEND_AUTHORITY: &str = "authority/resource-try-append-record@1";
 pub const APPEND_CAPABILITY: &str = "conduit/resource-try-append-record@1";

@@ -176,6 +176,27 @@ pub fn prepare<'a, 'f: 'a, 'w>(
         ],
         #[inline(always)]
         move |[sampling, mask, output], [sampling_fore, mask_fore, output_fore]| {
+            // Bind the already funded recording owner only from the original
+            // opaque approval. The stream identifies this authored producer;
+            // Boot/Plan/Play remain separate, exact record context fields.
+            use sha2::{Digest, Sha256};
+            let mut stream = Sha256::new();
+            stream.update(b"conduit.mcu/authored-recording-stream@1\0");
+            for field in [
+                sampling.metadata().body,
+                context.actual.host_id.as_str(),
+                source::sampling_layout::SOURCE_DOCUMENT_ID,
+                source::sampling_layout::CHECKED_PLOT_ID,
+            ] {
+                stream.update((field.len() as u64).to_le_bytes());
+                stream.update(field.as_bytes());
+            }
+            software.prepare_recording_from_approved(
+                sampling,
+                context.actual,
+                stream.finalize().into(),
+                1,
+            )?;
             let sampling_profile = profile!(sampling_layout, host, boot, sampling_fore);
             let output_profile = profile!(output_layout, host, boot, output_fore);
             let (sample_backs, output_backs) = owners::prepare(

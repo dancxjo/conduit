@@ -5,6 +5,7 @@ extern crate alloc;
 #[macro_use]
 extern crate std;
 pub mod append;
+pub mod append_contract;
 pub mod append_result;
 pub mod nor;
 mod record;

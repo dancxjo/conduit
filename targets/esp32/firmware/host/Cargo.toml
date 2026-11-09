@@ -8,6 +8,7 @@ publish = false
 default = []
 native-host = []
 [dependencies]
+sha2 = { version = "0.10", default-features = false }
 conduit-esp32-snapshot-nor = { path = "../../snapshot-nor" }
 conduit-esp32-electrical = { path = "../../electrical", features = ["host-call", "host-carrier"] }
 conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }

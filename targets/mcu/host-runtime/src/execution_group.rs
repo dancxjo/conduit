@@ -17,13 +17,20 @@ use conduit_seven_segment_mask::native_kernel::{
 /// Cold checked definitions prepared at Root's shallow preparation boundary.
 /// Consumed before kernel storage is allocated; these grant no native effects.
 pub struct NativeContracts {
+    pub append: Option<c::Kind>,
     pub pulse: conduit_pulse_capture::PulseReadContract,
     pub write: conduit_tm1637_wire::WriteContract,
 }
 impl NativeContracts {
     #[inline(never)]
     pub fn prepare() -> Result<Self, &'static str> {
+        Self::prepare_with_recording(false)
+    }
+    /// Only an independently installed native Source node selects this cold Kind.
+    #[inline(never)]
+    pub fn prepare_with_recording(recording: bool) -> Result<Self, &'static str> {
         Ok(Self {
+            append: recording.then(conduit_resource_snapshot::append_contract::definition),
             pulse: conduit_pulse_capture::PulseReadContract::prepare()
                 .map_err(|_| "pulse-contract")?,
             write: conduit_tm1637_wire::WriteContract::prepare().map_err(|_| "write-contract")?,
