@@ -293,6 +293,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
+ "conduit-semantic-catalog",
 ]
 
 [[package]]
