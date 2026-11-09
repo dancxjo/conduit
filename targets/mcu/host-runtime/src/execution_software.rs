@@ -40,6 +40,13 @@ impl PublicationTarget for RefCell<Option<Publisher<'_>>> {
 
 /// Physical monotonic reading supplied by the Host, never a browser timestamp.
 pub type ReadMonotonicMillis = fn() -> u64;
+/// Scope selected from the actual admitted assignment before Back construction,
+/// never from an input value or a descriptive candidate projection.
+#[derive(Clone, Copy)]
+pub struct RecordingLogScope<'a> {
+    pub context: conduit_environment_runtime::recording::LogContext<'a>,
+    pub first_sequence: u64,
+}
 /// This enum contains no parser, sensor decoder, packet encoder or scheduler.
 /// Resident expressions remain separately compiled, exactly selected owners.
 pub enum SoftwareBack<'a> {
@@ -47,6 +54,7 @@ pub enum SoftwareBack<'a> {
     Trigger(conduit_time::TickTriggerBack),
     Selector(Box<SelectorBack>),
     Observation(Box<ObservationBack>),
+    RecordingLog(Box<conduit_environment_runtime::recording::RecordingLogBack>),
     Publication(Box<PublicationFaceBack<'a>>),
 }
 impl<'a> SoftwareBack<'a> {
@@ -87,6 +95,23 @@ impl<'a> SoftwareBack<'a> {
             ObservationBack::prepare(&contract).map_err(|_| "observation-codec")?,
         )))
     }
+    pub fn recording_log(
+        scope: RecordingLogScope<'_>,
+        maximum_samples: u32,
+        now: ReadMonotonicMillis,
+    ) -> Result<Self, &'static str> {
+        let contract = ObservationContract::prepare().map_err(|_| "recording-contract")?;
+        Ok(Self::RecordingLog(Box::new(
+            conduit_environment_runtime::recording::RecordingLogBack::prepare(
+                scope.context,
+                &contract,
+                scope.first_sequence,
+                maximum_samples,
+                now,
+            )
+            .map_err(|_| "recording-codec")?,
+        )))
+    }
     /// All outcome channels of this producer share one actual sequence owner
     /// and one exclusively retained Face publication custody. No Face is invented.
     pub fn publication(
@@ -113,6 +138,7 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             Self::Trigger(back) => back.step(io, input),
             Self::Selector(back) => back.step(io, input),
             Self::Observation(back) => back.step(io, input),
+            Self::RecordingLog(back) => back.step(io, input),
             Self::Publication(back) => back.step(io, input),
         }
     }
@@ -122,6 +148,7 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             Self::Observation(back) => {
                 <ObservationBack as StepBack<P>>::prepared_output(back, port)
             }
+            Self::RecordingLog(back) => <conduit_environment_runtime::recording::RecordingLogBack as StepBack<P>>::prepared_output(back,port),
             _ => None,
         }
     }
@@ -133,6 +160,7 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             }
             Self::Selector(back) => <SelectorBack as StepBack<P>>::step_committed(back),
             Self::Observation(back) => <ObservationBack as StepBack<P>>::step_committed(back),
+            Self::RecordingLog(back) => <conduit_environment_runtime::recording::RecordingLogBack as StepBack<P>>::step_committed(back),
             Self::Publication(back) => <PublicationFaceBack as StepBack<P>>::step_committed(back),
         }
     }
@@ -142,6 +170,11 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             Self::Trigger(back) => <conduit_time::TickTriggerBack as StepBack<P>>::cancel(back),
             Self::Selector(back) => <SelectorBack as StepBack<P>>::cancel(back),
             Self::Observation(back) => <ObservationBack as StepBack<P>>::cancel(back),
+            Self::RecordingLog(back) => {
+                <conduit_environment_runtime::recording::RecordingLogBack as StepBack<P>>::cancel(
+                    back,
+                )
+            }
             Self::Publication(back) => <PublicationFaceBack as StepBack<P>>::cancel(back),
         }
     }

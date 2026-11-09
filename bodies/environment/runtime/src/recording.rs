@@ -6,7 +6,14 @@ use crate::observation::{
     PreparedObservationQuantityPacker,
 };
 mod encoder;
+mod log_encoder;
+mod log_reader;
 pub use encoder::{RecordingClock, RecordingEncoderBack};
+pub use log_encoder::{
+    LogContext, LogContract, LogRefusal, PreparedLogContext, RecordingLogBack, LOG_CLOCK,
+    LOG_CONTEXT_BYTES, LOG_CONTEXT_PART_BYTES, LOG_KIND, LOG_RECORD_BYTES,
+};
+pub use log_reader::{LogFrame, LogReadRefusal, PreparedLogReader, RecoveredLogContext};
 mod history;
 mod host_call;
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};
@@ -28,6 +35,7 @@ pub const MAXIMUM_CHUNK_SAMPLES: usize = 64;
 pub const SAMPLE_BYTES: usize = 21; // sequence u64le, boot ms u64le, status Form, quantity Forms
 const PREFIX_BYTES: usize = MAXIMUM_CHUNK_BYTES - MAXIMUM_CHUNK_SAMPLES * SAMPLE_BYTES * 2 - 2;
 
+#[derive(Clone, Copy)]
 pub struct RecordingContext<'a> {
     pub host: &'a HostId,
     pub boot: &'a BootId,

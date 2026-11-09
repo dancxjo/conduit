@@ -409,6 +409,9 @@ pub enum SoftwareDefinition<'a> {
         output_bytes: usize,
     },
     Dht11Observation,
+    RecordingLog {
+        maximum_samples: u32,
+    },
     Publication {
         channel: conduit_environment_runtime::publication::PublicationChannel,
         maximum_events: u32,
@@ -432,6 +435,37 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
         now: crate::execution_software::ReadMonotonicMillis,
         allocated_bytes: fn() -> usize,
         configuration: &'static [SoftwareConfigurationPin],
+    ) -> Result<Self, &'static str> {
+        unsafe {
+            Self::initialize_with_recording_scope(
+                definitions,
+                identities,
+                publisher,
+                sequence,
+                now,
+                allocated_bytes,
+                configuration,
+                None,
+            )
+        }
+    }
+    /// Same construction and funding obligations as `initialize`. Any recording
+    /// scope must be selected independently from the actual admitted assignment,
+    /// before Start. Missing scope refuses without a placeholder identity.
+    ///
+    /// # Safety
+    /// The original `initialize` safety obligations apply unchanged, including
+    /// all temporary and retained backing and actual scoped custody.
+    #[allow(clippy::too_many_arguments)]
+    pub unsafe fn initialize_with_recording_scope(
+        definitions: [Option<SoftwareDefinition<'_>>; N],
+        identities: [Option<OtherNodeIdentity>; N],
+        publisher: &'f dyn crate::execution_software::PublicationTarget,
+        sequence: conduit_environment_runtime::publication::PublicationSequence,
+        now: crate::execution_software::ReadMonotonicMillis,
+        allocated_bytes: fn() -> usize,
+        configuration: &'static [SoftwareConfigurationPin],
+        recording: Option<crate::execution_software::RecordingLogScope<'_>>,
     ) -> Result<Self, &'static str> {
         let before = allocated_bytes();
         let mut slots = core::array::from_fn(|_| None);
@@ -461,6 +495,13 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
                     input_bytes,
                     output_bytes,
                 )?),
+                Some(SoftwareDefinition::RecordingLog { maximum_samples }) => {
+                    Some(SoftwareBack::recording_log(
+                        recording.ok_or("recording-scope-required")?,
+                        maximum_samples,
+                        now,
+                    )?)
+                }
                 Some(SoftwareDefinition::Dht11Observation) => {
                     Some(SoftwareBack::dht11_observation()?)
                 }

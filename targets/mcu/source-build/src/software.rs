@@ -21,6 +21,9 @@ pub enum SoftwareRole {
         output_bytes: usize,
     },
     Dht11Observation,
+    RecordingLog {
+        maximum_samples: u32,
+    },
     Publication {
         channel: PublicationChannel,
         maximum_events: u32,
@@ -70,6 +73,7 @@ pub fn compile(
             || [
                 "machine/pulse/read",
                 "machine/tm1637/write",
+                conduit_semantic_catalog::RESOURCE_APPEND_KIND,
                 // Actual initialized Mask routing and renderer owners have
                 // their own exact offers and assigned-kernel binding.
                 "face/tee",
@@ -105,6 +109,23 @@ pub fn compile(
                     .kind()
                     .clone(),
                 SoftwareRole::Dht11Observation,
+                false,
+            )
+        } else if gear.kind_id.as_str() == conduit_environment_runtime::recording::LOG_KIND {
+            if maximum_events == 0 {
+                return Err("recording without finite checked clock".into());
+            }
+            (
+                conduit_environment_runtime::recording::LogContract::prepare(
+                    &ObservationContract::prepare()
+                        .map_err(|e| format!("recording observation: {e:?}"))?,
+                )
+                .map_err(|e| format!("recording: {e:?}"))?
+                .kind()
+                .clone(),
+                SoftwareRole::RecordingLog {
+                    maximum_samples: maximum_events,
+                },
                 false,
             )
         } else if let Some(channel) = PublicationChannel::ALL
@@ -274,6 +295,7 @@ pub fn emit_rust_for_layout(
         if [
             "machine/pulse/read",
             "machine/tm1637/write",
+            conduit_semantic_catalog::RESOURCE_APPEND_KIND,
             "face/renderer",
             conduit_time::TICK_KIND,
         ]
@@ -338,6 +360,7 @@ pub fn emit_rust_for_layout(
             SoftwareRole::Trigger=>"D::Trigger".into(),
             SoftwareRole::Selector{canonical,input_bytes,output_bytes}=>format!("D::SelectorStatic{{canonical:&{canonical:?},input_bytes:{input_bytes},output_bytes:{output_bytes}}}"),
             SoftwareRole::Dht11Observation=>"D::Dht11Observation".into(),
+            SoftwareRole::RecordingLog{maximum_samples}=>format!("D::RecordingLog{{maximum_samples:{maximum_samples}}}"),
             SoftwareRole::Publication{channel,maximum_events}=>format!("D::Publication{{channel:conduit_environment_runtime::publication::PublicationChannel::{channel:?},maximum_events:{maximum_events}}}"),
         };
         writeln!(code, "result[{}]=Some({definition});", node.node).unwrap();
@@ -355,4 +378,51 @@ pub fn emit_rust_for_layout(
         return Err("software generated-byte ceiling".into());
     }
     Ok(code)
+}
+
+#[cfg(test)]
+mod recording_tests {
+    use super::*;
+    #[test]
+    fn authored_observation_selection_emits_scoped_recording_constructor_and_exact_contract() {
+        let source = format!(
+            "{}\n{}\n{}\n{}\n{}\n{}\n{}",
+            include_str!("../../../../plots/device-protocols/pulse-types.conduit"),
+            include_str!("../../../../plots/device-protocols/dht11-capture.conduit"),
+            include_str!("../../../../plots/device-protocols/dht11.conduit"),
+            include_str!("../../../../plots/device-protocols/dht11-read.conduit"),
+            include_str!("../../../../plots/device-protocols/dht11-observe.conduit"),
+            include_str!("../../../../bodies/environment/profiles/sampling.conduit"),
+            r#"plot recorded-sampling (
+                record: Bytes...| >>
+            ) {
+                sampling: environment-sampling(2,1000)
+                encode: environment/encode-recording
+                sampling.observed >> select(Dht11Result.observation, unmatched=drop) >> encode.observation
+                encode.record >> record
+            }"#
+        );
+        let sha = format!("{:x}", Sha256::digest(source.as_bytes()));
+        let workset =
+            crate::workset::compile(source.as_bytes(), &sha, &["recorded-sampling".into()], None)
+                .unwrap();
+        let material = compile(&workset.entries[0].plot.expanded, 24 * 1024).unwrap();
+        let record = material
+            .nodes
+            .iter()
+            .find(|n| matches!(n.role, SoftwareRole::RecordingLog { .. }))
+            .unwrap();
+        assert!(matches!(
+            record.role,
+            SoftwareRole::RecordingLog { maximum_samples: 2 }
+        ));
+        let offer = record.offer.as_ref().unwrap();
+        assert_eq!(
+            offer.kind_id.as_str(),
+            conduit_environment_runtime::recording::LOG_KIND
+        );
+        assert!(workset.entries[0]
+            .rust
+            .contains("D::RecordingLog{maximum_samples:2}"));
+    }
 }

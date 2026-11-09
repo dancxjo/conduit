@@ -205,7 +205,7 @@ fn failure_with(code: FailureCode, detail: u16) -> StepOutcome {
         detail: 2300 + detail,
     })
 }
-fn io_failure(error: conduit_kernel::scheduler::SchedulerError, detail: u16) -> StepOutcome {
+pub(super) fn io_failure(error: conduit_kernel::scheduler::SchedulerError, detail: u16) -> StepOutcome {
     use conduit_kernel::scheduler::SchedulerError as E;
     let code = match error {
         E::StepFuelExceeded => FailureCode::WorkBudgetExhausted,

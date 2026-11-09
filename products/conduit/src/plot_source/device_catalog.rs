@@ -10,6 +10,11 @@ pub(super) fn install(
     conduit_environment_runtime::observation::ObservationContract::prepare()
         .map_err(debug)?
         .install(startup, profiles)?;
+    conduit_environment_runtime::recording::LogContract::prepare(
+        &conduit_environment_runtime::observation::ObservationContract::prepare().map_err(debug)?,
+    )
+    .map_err(debug)?
+    .install(startup, profiles)?;
     for channel in conduit_environment_runtime::publication::PublicationChannel::ALL {
         conduit_environment_runtime::publication::PublicationContract::prepare(channel)
             .map_err(debug)?

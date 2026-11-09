@@ -99,11 +99,17 @@ pub fn compile(
     conduit_environment_runtime::observation::ObservationContract::prepare()
         .map_err(debug)?
         .install(&mut startup, &mut profiles)?;
+    conduit_environment_runtime::recording::LogContract::prepare(
+        &conduit_environment_runtime::observation::ObservationContract::prepare().map_err(debug)?,
+    )
+    .map_err(debug)?
+    .install(&mut startup, &mut profiles)?;
     for channel in conduit_environment_runtime::publication::PublicationChannel::ALL {
         conduit_environment_runtime::publication::PublicationContract::prepare(channel)
             .map_err(debug)?
             .install(&mut startup, &mut profiles)?;
     }
+    conduit_semantic_catalog::install_resource_append_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
     install(
         conduit_time::tick_trigger_semantic_contract(),
