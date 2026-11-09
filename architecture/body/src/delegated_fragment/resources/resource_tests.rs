@@ -358,3 +358,106 @@ fn existing_owner_attribution_covers_exact_versioned_content_metadata_bytes() {
         .authenticate(&changed_payload, &signature, 11)
         .is_err());
 }
+
+#[test]
+fn start_custody_comparison_requires_exact_content_and_residence() {
+    let contract = contract(true);
+    let row = row(&contract, false);
+    let mut bytes = vec![];
+    row.append_to(&mut bytes).unwrap();
+    let projection = projection(&[row]);
+    let fragment = fixture(&bytes, &projection);
+    let host = host(&contract);
+    let observations = observations(&host);
+    let mut owner = c::ResourceAdmissionOwner::new(host);
+    let admitted = admit_delegated_resources(&[&fragment], &mut owner, &observations).unwrap();
+    let original = &admitted[0].items[0];
+    assert!(row.matches_admitted_item(original, "host", "boot"));
+    assert!(!row.matches_admitted_item(original, "host", "other-boot"));
+    for change in 0..17 {
+        let mut changed = original.clone();
+        match change {
+            0 => changed.binding.pool_id = "other-pool".into(),
+            1 => changed.binding.units += 1,
+            2 => changed.requirement.content = None,
+            3 => changed.binding.content = None,
+            4 => changed.requirement.content.as_mut().unwrap().maximum_bytes -= 1,
+            5 => {
+                changed.requirement.content.as_mut().unwrap().version =
+                    c::ResourceVersionIdentity::from_digest([9; 32])
+            }
+            6 => changed.binding.content.as_mut().unwrap().owner_host = "other-host".into(),
+            7 => changed.binding.content.as_mut().unwrap().owner_boot = "other-boot".into(),
+            8 => changed.binding.content.as_mut().unwrap().base_id = "other-base".into(),
+            9 => {
+                changed.binding.content.as_mut().unwrap().residence_profile =
+                    "other-residence".into()
+            }
+            10 => {
+                changed.binding.content.as_mut().unwrap().contract.access =
+                    c::ResourceAccessMode::ReadPublished
+            }
+            11 => {
+                changed
+                    .binding
+                    .content
+                    .as_mut()
+                    .unwrap()
+                    .contract
+                    .generation_slots += 1
+            }
+            12 => {
+                changed
+                    .binding
+                    .content
+                    .as_mut()
+                    .unwrap()
+                    .contract
+                    .reader_leases += 1
+            }
+            13 => {
+                changed
+                    .binding
+                    .content
+                    .as_mut()
+                    .unwrap()
+                    .contract
+                    .publication_slots += 1
+            }
+            14 => changed.binding.content.as_mut().unwrap().contract.sensitive = true,
+            15 => {
+                changed
+                    .binding
+                    .content
+                    .as_mut()
+                    .unwrap()
+                    .contract
+                    .maximum_items += 1
+            }
+            16 => {
+                changed
+                    .binding
+                    .content
+                    .as_mut()
+                    .unwrap()
+                    .contract
+                    .content_profile = "other-profile".into()
+            }
+            _ => unreachable!(),
+        }
+        assert!(
+            !row.matches_admitted_item(&changed, "host", "boot"),
+            "mutation {change}"
+        );
+    }
+    let plain = FragmentResource {
+        content: None,
+        ..row
+    };
+    assert!(!plain.matches_admitted_item(original, "host", "boot"));
+    let mut plain_item = original.clone();
+    plain_item.requirement.content = None;
+    plain_item.binding.content = None;
+    assert!(plain.matches_admitted_item(&plain_item, "host", "boot"));
+    assert!(!row.matches_admitted_item(&plain_item, "host", "boot"));
+}

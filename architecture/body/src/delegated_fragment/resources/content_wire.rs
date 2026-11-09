@@ -3,7 +3,7 @@ use super::*;
 use conduit_core as c;
 
 /// The existing Core content contract without owned strings or hidden allocation.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FragmentContentContract<'a> {
     pub identity: c::ResourceSemanticIdentity,
     pub version: c::ResourceVersionIdentity,

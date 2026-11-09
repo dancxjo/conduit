@@ -108,7 +108,7 @@ pub fn generate_prepared_body_fragment(
         generated.encode_with_resident_computations(limits.assigned, resident)
     }
     .map_err(E::Generation)?;
-    let resources = plain_resources(fragment, generated.kernel()).ok_or(E::Resources)?;
+    let resources = projected_resources(fragment, generated.kernel()).ok_or(E::Resources)?;
     let fore: Vec<_> = generated
         .fore()
         .iter()
@@ -130,9 +130,9 @@ pub fn generate_prepared_body_fragment(
     Ok(GeneratedBodyFragmentDocument { bytes })
 }
 
-// A deliberately plain profile: preserve original placement/pool/class/units.
-// Rich protected/content/compute bindings must retain their full contracts.
-fn plain_resources(
+// Retain the full signed content contract; plain-only documents keep their
+// existing representation. Protected and compute bindings remain unsupported.
+fn projected_resources(
     fragment: &conduit_core::PlanFragment,
     generated: &GeneratedEmbeddedPlan,
 ) -> Option<Vec<u8>> {
@@ -140,6 +140,10 @@ fn plain_resources(
     if generated.resources.len() > conduit_core::MAXIMUM_BINDINGS_PER_ADMISSION {
         return None;
     }
+    let versioned = fragment
+        .placements
+        .iter()
+        .any(|p| p.resources.iter().any(|r| r.content.is_some()));
     for r in &generated.resources {
         let node = generated.nodes.iter().find(|n| n.node == r.node)?;
         let placement = fragment
@@ -147,11 +151,7 @@ fn plain_resources(
             .iter()
             .find(|p| p.placement_id.as_str() == node.placement_id)?;
         let binding = placement.resources.get(usize::from(r.resource))?;
-        if binding.units != r.units
-            || binding.protected.is_some()
-            || binding.compute.is_some()
-            || binding.content.is_some()
-        {
+        if binding.units != r.units || binding.protected.is_some() || binding.compute.is_some() {
             return None;
         }
         let entry = conduit_body::PlainFragmentResource {
@@ -162,7 +162,33 @@ fn plain_resources(
             class: binding.class_id.as_str(),
             units: r.units,
         };
-        entry.append_to(&mut bytes).ok()?;
+        if versioned {
+            let content = if let Some(content) = binding.content.as_ref() {
+                if content.owner_host != fragment.host_id || content.owner_boot != fragment.boot_id
+                {
+                    return None;
+                }
+                Some(conduit_body::FragmentContent {
+                    contract: conduit_body::FragmentContentContract::from_core(&content.contract),
+                    base: content.base_id.as_str(),
+                    residence_profile: content.residence_profile.as_str(),
+                })
+            } else {
+                None
+            };
+            conduit_body::FragmentResource {
+                binding: entry,
+                content,
+            }
+            .append_to(&mut bytes)
+            .ok()?;
+        } else {
+            entry.append_to(&mut bytes).ok()?;
+        }
     }
     Some(bytes)
 }
+
+#[cfg(test)]
+#[path = "body_fragment_tests.rs"]
+mod tests;

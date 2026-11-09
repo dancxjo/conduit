@@ -140,7 +140,7 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
         observation_backing_bytes: usize,
     ) -> Result<CommittedLocalWorkset<'w, T, F>, Refusal<E>> {
         let fragments = core::array::from_fn::<_, F, _>(|i| &self.fragments[i]);
-        let bridge = b::delegated_plain_resource_preparation_bytes(&fragments, owner, observations)
+        let bridge = b::delegated_resource_preparation_bytes(&fragments, owner, observations)
             .map_err(Refusal::Resources)?;
         let required = self
             .retained
@@ -153,7 +153,7 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
                 maximum: self.maximum,
             });
         }
-        b::admit_delegated_plain_resources(&fragments, owner, observations)
+        b::admit_delegated_resources(&fragments, owner, observations)
             .map_err(Refusal::Resources)?;
         Ok(CommittedLocalWorkset {
             fragments: self.fragments,
@@ -219,7 +219,7 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
                 {
                     return Err(Refusal::Scope);
                 }
-                for item in b::PlainFragmentResources::new(m.resource_bindings) {
+                for item in b::FragmentResources::new(m.resource_bindings) {
                     let item = item.map_err(|_| Refusal::Scope)?;
                     entries += 1;
                     let matches = resources
@@ -233,13 +233,7 @@ impl<T: PreparedLocalKernels, const F: usize> CommittedLocalWorkset<'_, T, F> {
                                 && a.offer_generation.0 == m.offer_generation
                         })
                         .flat_map(|a| &a.items)
-                        .filter(|held| {
-                            held.binding.pool_id.as_str() == item.pool
-                                && held.binding.class_id.as_str() == item.class
-                                && held.binding.units == item.units
-                                && held.requirement.class_id.as_str() == item.class
-                                && held.requirement.units == item.units
-                        })
+                        .filter(|held| item.matches_admitted_item(held, m.host, m.boot))
                         .count();
                     if matches != 1 {
                         return Err(Refusal::Scope);

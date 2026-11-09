@@ -15,6 +15,42 @@ impl<'a> core::ops::Deref for FragmentResource<'a> {
     }
 }
 impl FragmentResource<'_> {
+    /// Allocation-free equality against the original admitted item at Start.
+    /// This checks retained custody; it cannot admit an item or issue authority.
+    pub fn matches_admitted_item(
+        &self,
+        item: &conduit_core::ResourceAdmissionItem,
+        host: &str,
+        boot: &str,
+    ) -> bool {
+        let requirement = &item.requirement;
+        let binding = &item.binding;
+        if binding.pool_id.as_str() != self.pool
+            || binding.class_id.as_str() != self.class
+            || binding.units != self.units
+            || requirement.class_id.as_str() != self.class
+            || requirement.units != self.units
+            || requirement.protected_role.is_some()
+            || requirement.compute.is_some()
+            || binding.protected.is_some()
+            || binding.compute.is_some()
+        {
+            return false;
+        }
+        match (self.content, &requirement.content, &binding.content) {
+            (None, None, None) => true,
+            (Some(expected), Some(required), Some(held)) => {
+                expected.contract == FragmentContentContract::from_core(required)
+                    && expected.contract == FragmentContentContract::from_core(&held.contract)
+                    && held.owner_host.as_str() == host
+                    && held.owner_boot.as_str() == boot
+                    && held.base_id.as_str() == expected.base
+                    && held.residence_profile.as_str() == expected.residence_profile
+            }
+            _ => false,
+        }
+    }
+
     pub fn append_to(&self, bytes: &mut Vec<u8>) -> Result<(), BodyFragmentDocumentRefusal> {
         if !self.binding.valid()
             || self.content.is_some_and(|c| !c.valid())
