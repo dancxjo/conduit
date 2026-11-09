@@ -10,6 +10,12 @@ use conduit_std_host::{
     body_execution::ImagePreparedValue, source_check::process::OwnedSourceCheckInput,
 };
 
+#[cfg(target_os = "linux")]
+#[path = "source_revision_carriage.rs"]
+mod carriage;
+#[cfg(target_os = "linux")]
+use carriage::{admit_selected_member, return_selected_member, submit_selected_play};
+
 const SELECTION_FILE: &str = "source-check-selection.json";
 
 /// Explicit operator review of one finite transition. This document is consumed
@@ -29,6 +35,8 @@ pub(crate) struct Selection {
     resident_preparation: Option<ResidentPreparationSelection>,
     #[serde(default)]
     plays: Vec<UsbPlaySelection>,
+    #[serde(default)]
+    continuation_outputs: Vec<super::source_continuation::OutputSelection>,
     capture_preparation_bytes: u64,
     capture_retained_bytes: u64,
     /// Full independently qualified caller/catalog/compiler/planner/journal
@@ -115,65 +123,8 @@ struct ResidentPreparationSelection {
     private_work_units: u16,
 }
 #[cfg(target_os = "linux")]
-impl ResidentPreparationSelection {
-    fn prepare(
-        &self,
-        document: &conduit_plot::CheckedSyntaxDocument,
-        plots: &[ExpandedAuthoringPlot],
-    ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
-        let bounds = conduit_embedded_build::ResidentExpressionBounds {
-            native: conduit_plot::rust_binding::PreparedNativeBounds {
-                canonical_bytes: self.canonical_bytes,
-                scopes: self.scopes,
-                invariants: self.invariants,
-                contracts: self.contracts,
-            },
-            maximum_occurrences: self.maximum_occurrences,
-            maximum_program_bytes: self.maximum_program_bytes,
-            maximum_generated_bytes: self.maximum_generated_bytes,
-            private_work_units: self.private_work_units,
-        };
-        let mut images = Vec::new();
-        for gear in plots.iter().flat_map(|p| &p.expanded.gears) {
-            let Some(configuration) = gear.configuration.iter().find(|c| c.key == "program") else {
-                continue;
-            };
-            if images.len() >= self.maximum_images {
-                return Err("selected resident image capacity exhausted".into());
-            }
-            let conduit_core::ConfigurationValue::Text(text) = &configuration.value else {
-                return Err("selected resident program is not canonical text".into());
-            };
-            let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(text)
-                .map_err(|e| format!("selected resident program: {e:?}"))?;
-            let temporal = gear
-                .inputs
-                .first()
-                .ok_or("selected resident input absent")?
-                .temporal;
-            let image = conduit_embedded_build::PreparedResidentExpression::prepare(
-                document, &program, temporal, bounds,
-            )
-            .map_err(|e| format!("selected resident compiler ceiling: {e:?}"))?;
-            if image.kind_id() != &gear.kind_id
-                || image.offer_description().semantic_contract != gear.semantic_contract
-            {
-                return Err(
-                    "selected resident compiler differs from exact expanded Source Gear contract"
-                        .into(),
-                );
-            }
-            if !images.iter().any(
-                |known: &conduit_embedded_build::PreparedResidentExpression| {
-                    known.artifact_id() == image.artifact_id() && known.kind_id() == image.kind_id()
-                },
-            ) {
-                images.push(image);
-            }
-        }
-        Ok(images)
-    }
-}
+#[path = "source_revision_residents.rs"]
+mod residents;
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -345,6 +296,7 @@ impl AuthorizedFileRevision {
 
 #[cfg(target_os = "linux")]
 fn validate_selection(selection: &Selection, installation: &Installation) -> Result<(), String> {
+    super::source_continuation::validate(&selection.continuation_outputs)?;
     let configured = installation
         .selected_host_configuration
         .as_ref()
@@ -725,9 +677,17 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     // this single-use authorization.
     write_json_atomic(&state_dir.join(SELECTION_FILE), &selection)?;
     owner.commit_authorized_file_revision(state_dir, authorization)?;
-    if !selection.plays.is_empty() {
+    if !selection.plays.is_empty() || !selection.continuation_outputs.is_empty() {
         match owner.plan_retained(state_dir) {
             Ok(()) => {
+                if let Err(error) =
+                    super::source_continuation::export(&owner, &selection.continuation_outputs)
+                {
+                    // Source CAS is already committed. Preserve the SAME Root,
+                    // current members and approvals while the selected output
+                    // refusal remains explicit; an export is never a Start.
+                    eprintln!("selected continuation output refused: {error}");
+                }
                 for play in &selection.plays {
                     if let Err(error) = submit_selected_play(&mut owner, play) {
                         // CAS has committed; losing carriage cannot revoke a
@@ -786,400 +746,11 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     outcome
 }
 
-/// A transport report never proves admission or Start. Preserve owner approval
-/// on every outcome, including a lost reply, until receiver retirement is proved.
-#[cfg(target_os = "linux")]
-fn submit_selected_play(
-    owner: &mut owner::Owner,
-    selected: &UsbPlaySelection,
-) -> Result<(), String> {
-    use conduit_std_host::pico_spawn::PreparationCommandBytes;
-    if !(1..=10_000).contains(&selected.wait_milliseconds) {
-        return Err("selected preparation carriage exceeds original challenge lifetime".into());
-    }
-    let member: owner::MemberPresentationBasis = serde_json::from_slice(&bounded_read(
-        &selected.member_basis,
-        MAXIMUM_BODY_ADMISSION_BYTES,
-    )?)
-    .map_err(|e| format!("selected member basis: {e}"))?;
-    member.validate()?;
-    let limits = conduit_embedded_build::BodyFragmentProjectionLimits {
-        image: selected.image.bounds(),
-        computations: conduit_embedded_build::EmbeddedComputationBounds {
-            maximum_program_bytes: selected.maximum_program_bytes,
-            maximum_total_program_bytes: selected.maximum_total_program_bytes,
-        },
-        assigned: conduit_core::AssignedPlanMaxima {
-            encoded_bytes: selected.assigned_encoded_bytes,
-            runtime_state_bytes: selected.assigned_runtime_state_bytes,
-            counts: selected.assigned_counts,
-        },
-        maximum_fore_ports: selected.maximum_fore_ports,
-        maximum_document_bytes: selected.maximum_document_bytes,
-    };
-    let mut socket = selected
-        .carrier
-        .open(
-            selected
-                .port
-                .to_str()
-                .ok_or("selected Play port is not UTF-8")?,
-        )
-        .map_err(|e| format!("open selected Play carrier: {e:?}"))?;
-    let mut approved = None;
-    let mut refusal = None;
-    let exchange = socket.exchange_preparation(
-        std::time::Duration::from_millis(selected.wait_milliseconds),
-        selected.maximum_document_bytes as usize,
-        |challenge| {
-            match owner.approve_selected_remote_workset(&member, challenge, limits) {
-                Ok(command) => {
-                    approved = Some(command);
-                }
-                Err(error) => {
-                    refusal = Some(error);
-                    return Err(());
-                }
-            }
-            let (payload, signature) = approved.as_ref().expect("just approved");
-            Ok(PreparationCommandBytes { payload, signature })
-        },
-    );
-    write_json_atomic(
-        &selected.report_output,
-        &serde_json::json!({
-            "schema": "conduit.diagnostic/preparation-carriage@1",
-            "member_host": member.host_advertisement.host_id,
-            "member_boot": member.host_advertisement.boot_id,
-            "reported": format!("{exchange:?}"),
-            "owner_refusal": refusal,
-            "admission_proved": false,
-            "play_proved": false,
-            "approval_retained": approved.is_some(),
-        }),
-    )?;
-    exchange.map(|_| ()).map_err(|e| {
-        format!("selected preparation carriage: {e:?}; original approval retained if issued")
-    })
-}
-
-/// Use the ordinary canonical image-return protocol on the same live owner.
-/// Public basis files pin the reinstalled member to this actual owner peer;
-/// neither a copied advertisement nor USB access establishes current offers.
-#[cfg(target_os = "linux")]
-fn return_selected_member(
-    owner: &mut owner::Owner,
-    state_dir: &Path,
-    selected: &UsbReturnSelection,
-    peer: &conduit_body::FederationPeer,
-) -> Result<(), String> {
-    use conduit_std_host::pico_spawn::PicoMemberReturnBasis;
-    use std::time::{Duration, Instant};
-    let deadline = Instant::now() + Duration::from_millis(selected.wait_milliseconds);
-    while !selected.basis.try_exists().map_err(|e| e.to_string())? {
-        if Instant::now() >= deadline {
-            return Err("selected member basis did not arrive within authorized wait".into());
-        }
-        std::thread::sleep(Duration::from_millis(100));
-    }
-    let basis: PicoMemberReturnBasis =
-        serde_json::from_slice(&bounded_read(&selected.basis, 8192)?)
-            .map_err(|e| format!("selected member return basis: {e}"))?;
-    basis
-        .validate()
-        .map_err(|e| format!("selected member return basis: {e:?}"))?;
-    if &basis.owner != peer || basis.credential.part_id != selected.part_id {
-        return Err("selected return differs from the member's independently installed current owner pin or selected Part".into());
-    }
-    return_selected_basis(
-        owner,
-        state_dir,
-        &selected.port,
-        selected.carrier,
-        &selected.receipt_output,
-        &basis,
-        peer,
-    )
-}
-
-#[cfg(target_os = "linux")]
-fn return_selected_basis(
-    owner: &mut owner::Owner,
-    state_dir: &Path,
-    port: &Path,
-    carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
-    receipt_output: &Path,
-    basis: &conduit_std_host::pico_spawn::PicoMemberReturnBasis,
-    peer: &conduit_body::FederationPeer,
-) -> Result<(), String> {
-    use conduit_body::MemberReturnImageAcknowledgement;
-    use std::time::Duration;
-    let mut receipt = membership_receipt_custody::reserve(receipt_output)?;
-    let timeout = Duration::from_secs(5);
-    let mut socket = carrier
-        .open(port.to_str().ok_or("USB path is not UTF-8")?)
-        .map_err(|e| format!("open selected member return: {e:?}"))?;
-    let observed = socket
-        .request_member_return(basis, timeout)
-        .map_err(|e| format!("observe selected member: {e:?}"))?;
-    let resolved = conduit_std_host::pico_spawn::resolve_member_offer_images(
-        &observed.presentation.projection,
-        &observed.images,
-    )
-    .map_err(|e| format!("resolve selected member images: {e:?}"))?;
-    if resolved != observed.advertisement {
-        return Err("selected member image resolution differs from observed advertisement".into());
-    }
-    let challenge = owner.begin_member_image_return(
-        &basis.credential,
-        &observed.advertisement,
-        Some(observed.presentation.clone()),
-    )?;
-    let proof = socket
-        .prove_member_return(basis, &observed.advertisement, &challenge, timeout)
-        .map_err(|e| format!("selected member continuity proof: {e:?}"))?;
-    let credential = owner.complete_member_return(state_dir, &proof)?;
-    let signed = owner.attest_current_member_receipt(
-        &owner::MembershipReceiptDocument::ImageReturn {
-            receipt: MemberReturnImageAcknowledgement::new(
-                credential.clone(),
-                observed.presentation.projection.clone(),
-            ),
-            images: observed.images,
-        },
-        peer,
-    )?;
-    signed
-        .verify_image_return(
-            peer,
-            &basis.member_verifying_key,
-            &basis.credential,
-            &observed.presentation.projection,
-        )
-        .map_err(|e| format!("verify selected member receipt: {e:?}"))?;
-    membership_receipt_custody::retain(&mut receipt, &signed)?;
-    socket
-        .deliver_member_return(&signed, basis, &observed.presentation.projection, timeout)
-        .map_err(|e| {
-            format!("return committed and receipt retained; member delivery uncertain: {e:?}")
-        })?;
-    owner.retire_completed_selected_return(&credential)?;
-    // Descriptive convenience for this same Root's later checked preparation.
-    // Every use still rechecks actual current membership and observed offers.
-    let presentation = owner::MemberPresentationBasis::new(credential, observed.advertisement)?;
-    write_json_atomic(
-        &receipt_output.with_extension("presentation.json"),
-        &presentation,
-    )?;
-    Ok(())
-}
-
-#[cfg(target_os = "linux")]
-fn admit_selected_member(
-    owner: &mut owner::Owner,
-    state_dir: &Path,
-    selected: &UsbAdmissionSelection,
-    peer: &conduit_body::FederationPeer,
-) -> Result<(), String> {
-    use conduit_std_host::pico_spawn::{PicoMemberReturnBasis, PicoSpawnAdmissionBasis};
-    use std::{
-        io::Write,
-        time::{Duration, Instant},
-    };
-    // The local OS policy independently authorizes precisely this physical
-    // Host/key. The ordinary invitation is still consumed only by actual proof.
-    let mut invitation_file = membership_receipt_custody::reserve(&selected.invitation_output)?;
-    let invitation = owner.issue_invitation(state_dir, 300, None)?;
-    // Derive from the original owner-minted material BEFORE publishing it for
-    // physical Seed composition. Incoming basis bytes never select this key.
-    let member_verifying_key = selected.member_key.resolve(&invitation)?;
-    invitation_file
-        .write_all(&serde_json::to_vec(&invitation).map_err(|e| e.to_string())?)
-        .and_then(|_| invitation_file.sync_all())
-        .map_err(|e| format!("retain selected private invitation: {e}"))?;
-    let deadline = Instant::now() + Duration::from_millis(selected.wait_milliseconds);
-    while !selected.basis.try_exists().map_err(|e| e.to_string())? {
-        if Instant::now() >= deadline {
-            return Err("selected admission basis did not arrive in its finite window".into());
-        }
-        std::thread::sleep(Duration::from_millis(100));
-    }
-    let basis: PicoSpawnAdmissionBasis =
-        serde_json::from_slice(&bounded_read(&selected.basis, 8192)?)
-            .map_err(|e| format!("selected admission basis: {e}"))?;
-    basis
-        .validate(current_time_millis()?)
-        .map_err(|e| format!("selected admission basis: {e:?}"))?;
-    if selected.verify_basis(&basis, peer, &invitation)? != member_verifying_key {
-        return Err("owned invitation bootstrap key changed".into());
-    }
-    let mut receipt_file = membership_receipt_custody::reserve(&selected.receipt_output)?;
-    let timeout = Duration::from_secs(5);
-    let mut socket = selected
-        .carrier
-        .open(selected.port.to_str().ok_or("USB path is not UTF-8")?)
-        .map_err(|e| format!("open selected admission: {e:?}"))?;
-    let observed = socket
-        .request_join(&basis.spore_id, &basis.image_id, &basis.invitation, timeout)
-        .map_err(|e| format!("observe selected physical admission proof: {e:?}"))?;
-    let request = basis
-        .request(&observed, current_time_millis()?)
-        .map_err(|e| format!("validate selected physical admission proof: {e:?}"))?;
-    let receipt = owner.admit_invited(state_dir, request, selected.host_id.as_str())?;
-    let return_basis = PicoMemberReturnBasis {
-        credential: receipt.credential.clone(),
-        expected_profile: basis.expected_profile.clone(),
-        member_verifying_key,
-        owner: peer.clone(),
-    };
-    let signed = owner
-        .attest_current_member_receipt(&owner::MembershipReceiptDocument::Spawn(receipt), peer)?;
-    signed
-        .verify(
-            peer,
-            &member_verifying_key,
-            &basis.invitation.body_id,
-            &observed.advertisement,
-        )
-        .map_err(|e| format!("verify selected admission receipt: {e:?}"))?;
-    membership_receipt_custody::retain(&mut receipt_file, &signed)?;
-    socket
-        .deliver_admission_receipt(
-            &signed,
-            peer,
-            &member_verifying_key,
-            &basis.invitation.body_id,
-            &observed.advertisement,
-            timeout,
-        )
-        .map_err(|e| {
-            format!("membership committed and receipt retained; delivery uncertain: {e:?}")
-        })?;
-    drop(socket);
-    let mut return_file = membership_receipt_custody::reserve(&selected.return_basis_output)?;
-    return_file
-        .write_all(&serde_json::to_vec(&return_basis).map_err(|e| e.to_string())?)
-        .and_then(|_| return_file.sync_all())
-        .map_err(|e| format!("retain actual return basis: {e}"))?;
-    // Ordinary admission does not carry native resource grants. The actual
-    // newly joined member must now sign its current complete image projection.
-    return_selected_basis(
-        owner,
-        state_dir,
-        &selected.port,
-        selected.carrier,
-        &selected.return_receipt_output,
-        &return_basis,
-        peer,
-    )
-}
-
 #[cfg(not(target_os = "linux"))]
 pub(crate) fn adopt(_state_dir: &Path, _policy: &Path, _prepare_only: bool) -> Result<(), String> {
     Err("selected bounded Source compiler requires Linux".into())
 }
 
 #[cfg(all(test, target_os = "linux"))]
-mod admission_key_tests {
-    use super::*;
-    #[test]
-    fn owned_invitation_key_matches_native_bootstrap_and_rejects_incoming_substitution() {
-        use conduit_body::{
-            MemberBootstrap, MemberBootstrapMaterial, PicoSpawnProvision, SpawnInvitationSecret,
-        };
-        let body = conduit_body::Body::born(
-            "source/key-test".into(),
-            "checked/key-test".into(),
-            1,
-            conduit_core::SignId::from("sign/key-test"),
-        )
-        .unwrap();
-        let mut manager = conduit_body::AdmissionManager::new(body.body_id.clone()).unwrap();
-        let invitation =
-            super::super::invitation::issue_from_manager(&mut manager, 300, None).unwrap();
-        let policy: AdmissionMemberKey =
-            serde_json::from_str(r#"{"source":"from-owned-invitation"}"#).unwrap();
-        let owner = conduit_body::FederationPeer {
-            host_id: "host/owner-key-test".into(),
-            boot_id: "boot/current-key-test".into(),
-            offer_generation: conduit_core::OfferGeneration(1),
-            verifying_key: SpawnInvitationSecret::from_csprng_bytes([7; 32])
-                .unwrap()
-                .verifying_key(),
-        };
-        let image = format!("image:sha256:{}", "3".repeat(64));
-        let configuration = format!("sha256:{}", "4".repeat(64));
-        let host = "rp2040/flash/0102030405060708";
-        let bootstrap = MemberBootstrap {
-            schema: conduit_body::MEMBER_BOOTSTRAP_SCHEMA.into(),
-            body_id: body.body_id,
-            host_id: host.into(),
-            image_id: image.clone(),
-            configuration_id: configuration.clone(),
-            owner: owner.clone(),
-            admission: MemberBootstrapMaterial::Spawn {
-                provision: PicoSpawnProvision {
-                    protocol: conduit_body::PICO_SPAWN_PROTOCOL,
-                    spore_id: "spore/key-test",
-                    image_id: &image,
-                    invitation_id: invitation.claim.invitation_id.as_str(),
-                    body_id: invitation.claim.body_id.as_str(),
-                    nonce: invitation.claim.nonce,
-                    expires_at_millis: invitation.claim.expires_at_millis,
-                    secret: invitation.secret,
-                },
-            },
-        };
-        assert!(bootstrap.matches_native(host, &image, &configuration));
-        // This is the exact secret accessor used by both actual native BSPs and
-        // the typed private Seed composer, not an incoming advertised key.
-        let seed_key = SpawnInvitationSecret::from_csprng_bytes(*bootstrap.admission.secret())
-            .unwrap()
-            .verifying_key();
-        assert_eq!(policy.resolve(&invitation).unwrap(), seed_key);
-        let selected = UsbAdmissionSelection {
-            carrier: Default::default(),
-            host_id: host.into(),
-            member_key: policy,
-            image_id: image.clone(),
-            configuration_id: configuration.clone(),
-            port: "/dev/test-key".into(),
-            basis: "/private/basis".into(),
-            invitation_output: "/private/invitation".into(),
-            receipt_output: "/private/receipt".into(),
-            return_receipt_output: "/private/return".into(),
-            return_basis_output: "/private/return-basis".into(),
-            wait_milliseconds: 1000,
-        };
-        let basis = conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis {
-            spore_id: "spore/key-test".into(),
-            image_id: image.clone().into(),
-            invitation: invitation.claim.clone(),
-            expected_host: host.into(),
-            expected_profile: configuration.into(),
-            member_verifying_key: seed_key,
-            owner: owner.clone(),
-        };
-        assert_eq!(
-            selected.verify_basis(&basis, &owner, &invitation).unwrap(),
-            seed_key
-        );
-        let mut wrong = basis.clone();
-        wrong.member_verifying_key[0] ^= 1;
-        assert!(selected.verify_basis(&wrong, &owner, &invitation).is_err());
-        let mut wrong = basis.clone();
-        wrong.image_id = "image/other".into();
-        assert!(selected.verify_basis(&wrong, &owner, &invitation).is_err());
-        let mut wrong = basis.clone();
-        wrong.expected_host = "host/other".into();
-        assert!(selected.verify_basis(&wrong, &owner, &invitation).is_err());
-        let pinned = AdmissionMemberKey::Pinned {
-            verifying_key: seed_key,
-        };
-        assert_eq!(pinned.resolve(&invitation).unwrap(), seed_key);
-        assert!(!AdmissionMemberKey::Pinned {
-            verifying_key: [0; 32]
-        }
-        .valid());
-    }
-}
+#[path = "source_revision_admission_key_tests.rs"]
+mod admission_key_tests;

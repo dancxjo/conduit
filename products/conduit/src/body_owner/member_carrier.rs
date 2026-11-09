@@ -9,6 +9,8 @@ use conduit_body::{
 };
 use conduit_core::{HostAdvertisement, LineId, LineSecurity};
 use std::time::{Duration, Instant};
+#[path = "member_carrier/continuation.rs"]
+mod continuation;
 #[allow(dead_code)]
 #[path = "member_carrier/preparation.rs"]
 mod preparation;

@@ -43,6 +43,8 @@ use installation_configured::install_configured_with_todo;
 
 #[path = "durable_host/local_fore_policy.rs"]
 pub(crate) mod local_fore_policy;
+#[path = "durable_host/source_continuation.rs"]
+pub(crate) mod source_continuation;
 #[path = "durable_host/source_revision.rs"]
 pub(crate) mod source_revision;
 
