@@ -58,7 +58,7 @@ fn committed_context_precedes_exact_sample_bytes_and_reader_flags_gaps() {
     let canonical = forms.unpack(&[0; 4]).unwrap().to_vec();
     let mut back = RecordingLogBack::prepare(context(), &contract, 17, 2, now).unwrap();
     let mut reader = PreparedLogReader::prepare(context(), &contract, 17).unwrap();
-    let parts = back.context.parts();
+    let parts = back.context.as_ref().unwrap().parts();
     let mut frames = Vec::new();
     for ordinal in 0..parts {
         let (result, io) = stage(&mut back, &canonical, Some(200), 16);
@@ -166,7 +166,7 @@ fn refusal_cancellation_and_steady_encoding_allocate_nothing() {
         ));
         commit(&mut back);
         assert_eq!(back.ordinal, 0);
-        while back.ordinal < back.context.parts() {
+        while back.ordinal < back.context.as_ref().unwrap().parts() {
             assert_eq!(
                 stage(&mut back, &canonical, Some(200), 16).0,
                 StepOutcome::Progress
@@ -219,7 +219,7 @@ fn content_reader_recovers_unknown_boots_without_granting_them_authority() {
         ctx.producer.boot = boot;
         let mut back = RecordingLogBack::prepare(ctx, &contract, 3, 1, now).unwrap();
         assert!(reader.context().is_none() || reader.context().unwrap().boot != boot.as_str());
-        while back.ordinal < back.context.parts() {
+        while back.ordinal < back.context.as_ref().unwrap().parts() {
             assert_eq!(
                 stage(&mut back, &canonical, Some(200), 16).0,
                 StepOutcome::Progress
@@ -248,4 +248,36 @@ fn content_reader_recovers_unknown_boots_without_granting_them_authority() {
             StepOutcome::Complete
         );
     }
+}
+
+#[test]
+fn unbound_owner_refuses_execution_then_binds_once_without_heap_or_retiming() {
+    let contract = ObservationContract::prepare().unwrap();
+    let ctx = context();
+    let mut back = RecordingLogBack::prepare_unbound(&contract, 2, now).unwrap();
+    let mut forms = PreparedObservationQuantityForms::prepare(&contract).unwrap();
+    let canonical = forms.unpack(&[0; 4]).unwrap().to_vec();
+    assert!(!back.is_bound());
+    assert!(matches!(
+        stage(&mut back, &canonical, Some(200), 16).0,
+        StepOutcome::Fail(Failure {
+            code: FailureCode::InvalidLifecycle,
+            ..
+        })
+    ));
+    let ((), allocations) = allocation_probe::observe(|| {
+        back.bind_scope(ctx, 17).unwrap();
+        assert!(back.is_bound());
+        back.validate_scope(ctx, 17).unwrap();
+        assert_eq!(back.bind_scope(ctx, 17), Err(LogRefusal::AlreadyBound));
+        let mut wrong = ctx;
+        wrong.stream = [8; 32];
+        assert_eq!(
+            back.validate_scope(wrong, 17),
+            Err(LogRefusal::ScopeMismatch)
+        );
+        assert_eq!(back.next_sequence(), 17);
+        assert_eq!(back.committed_context_parts(), 0);
+    });
+    assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
 }

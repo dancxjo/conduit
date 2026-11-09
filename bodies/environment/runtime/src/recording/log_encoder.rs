@@ -27,6 +27,9 @@ pub struct LogContext<'a> {
 pub enum LogRefusal {
     Context,
     Sequence,
+    Unbound,
+    AlreadyBound,
+    ScopeMismatch,
     Observation(ObservationRefusal),
     Canonical(c::StructuredInfoRefusal),
 }
@@ -50,6 +53,17 @@ impl PreparedLogContext {
     pub fn prepare(
         context: LogContext<'_>,
         contract: &ObservationContract,
+        first_sequence: u64,
+    ) -> Result<Self, LogRefusal> {
+        Self::prepare_with_observation(
+            context,
+            contract.observation_type().semantic_digest()?,
+            first_sequence,
+        )
+    }
+    fn prepare_with_observation(
+        context: LogContext<'_>,
+        observation: [u8; 32],
         first_sequence: u64,
     ) -> Result<Self, LogRefusal> {
         let mut result = Self {
@@ -79,7 +93,7 @@ impl PreparedLogContext {
             return Err(LogRefusal::Context);
         }
         result.push(&context.stream)?;
-        result.push(&contract.observation_type().semantic_digest()?)?;
+        result.push(&observation)?;
         result.push(&first_sequence.to_le_bytes())?;
         result.digest = c::semantic_digest(DOMAIN, result.as_bytes());
         Ok(result)
@@ -212,7 +226,8 @@ enum Staged {
 /// advances context/sequence and consumes the sample. This does NOT mean media
 /// commitment: the separate admitted append Back must commit these exact bytes.
 pub struct RecordingLogBack {
-    context: PreparedLogContext,
+    context: Option<PreparedLogContext>,
+    observation_digest: [u8; 32],
     quantities: PreparedObservationQuantityPacker,
     ordinal: u16,
     next: u64,
@@ -232,17 +247,27 @@ impl RecordingLogBack {
         maximum_samples: u32,
         now: RecordingClock,
     ) -> Result<Self, LogRefusal> {
-        if first == 0
-            || maximum_samples == 0
-            || first.checked_add(u64::from(maximum_samples) - 1).is_none()
-        {
+        let mut result = Self::prepare_unbound(contract, maximum_samples, now)?;
+        result.bind_scope(context, first)?;
+        Ok(result)
+    }
+    /// Prepare the actual finite owner before publishing availability. There is
+    /// no placeholder Body/Boot/Play: execution and selection refuse until the
+    /// original admitted scope is copied into this already funded inline storage.
+    pub fn prepare_unbound(
+        contract: &ObservationContract,
+        maximum_samples: u32,
+        now: RecordingClock,
+    ) -> Result<Self, LogRefusal> {
+        if maximum_samples == 0 {
             return Err(LogRefusal::Sequence);
         }
         Ok(Self {
-            context: PreparedLogContext::prepare(context, contract, first)?,
+            context: None,
+            observation_digest: contract.observation_type().semantic_digest()?,
             quantities: PreparedObservationQuantityPacker::prepare(contract)?,
             ordinal: 0,
-            next: first,
+            next: 0,
             remaining: maximum_samples,
             last_time: None,
             now,
@@ -251,6 +276,38 @@ impl RecordingLogBack {
             staged: None,
             cancelled: false,
         })
+    }
+    pub fn is_bound(&self) -> bool {
+        self.context.is_some()
+    }
+    /// Pure content preparation, no admission or execution authority. No heap
+    /// allocation occurs: the Type digest was prepared with the original owner.
+    pub fn bind_scope(&mut self, context: LogContext<'_>, first: u64) -> Result<(), LogRefusal> {
+        if self.context.is_some() {
+            return Err(LogRefusal::AlreadyBound);
+        }
+        if self.cancelled
+            || first == 0
+            || first.checked_add(u64::from(self.remaining) - 1).is_none()
+        {
+            return Err(LogRefusal::Sequence);
+        }
+        let prepared =
+            PreparedLogContext::prepare_with_observation(context, self.observation_digest, first)?;
+        self.context = Some(prepared);
+        self.next = first;
+        Ok(())
+    }
+    /// Exact retry comparison; never replaces scope or resets progress.
+    pub fn validate_scope(&self, context: LogContext<'_>, first: u64) -> Result<(), LogRefusal> {
+        let existing = self.context.as_ref().ok_or(LogRefusal::Unbound)?;
+        let candidate =
+            PreparedLogContext::prepare_with_observation(context, self.observation_digest, first)?;
+        if existing.digest == candidate.digest {
+            Ok(())
+        } else {
+            Err(LogRefusal::ScopeMismatch)
+        }
     }
     pub const fn retained_backing_bytes(&self) -> usize {
         0
@@ -268,6 +325,9 @@ impl<const P: usize> StepBack<P> for RecordingLogBack {
         if self.cancelled {
             return fail(FailureCode::Cancelled, 1);
         }
+        let Some(context) = self.context.as_ref() else {
+            return fail(FailureCode::InvalidLifecycle, 7);
+        };
         if self.remaining == 0 {
             return StepOutcome::Complete;
         }
@@ -296,8 +356,8 @@ impl<const P: usize> StepBack<P> for RecordingLogBack {
         if let Err(e) = io.consume_fuel(1) {
             return super::encoder::io_failure(e, 30);
         }
-        let stage = if self.ordinal < self.context.parts() {
-            self.len = self.context.frame(self.ordinal, &mut self.output);
+        let stage = if self.ordinal < context.parts() {
+            self.len = context.frame(self.ordinal, &mut self.output);
             Staged::Context
         } else {
             let time = (self.now)();
@@ -306,7 +366,7 @@ impl<const P: usize> StepBack<P> for RecordingLogBack {
             }
             self.output[0] = 2;
             self.output[1] = 1;
-            self.output[2..34].copy_from_slice(&self.context.digest);
+            self.output[2..34].copy_from_slice(&context.digest);
             let mut sample = [0; SAMPLE_BYTES];
             sample[..8].copy_from_slice(&self.next.to_le_bytes());
             sample[8..16].copy_from_slice(&time.to_le_bytes());

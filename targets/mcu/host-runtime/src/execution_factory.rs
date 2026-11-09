@@ -169,6 +169,9 @@ impl<'a, const N: usize> SoftwareInventory<'a, N> {
         &mut self,
         selected: [bool; N],
     ) -> Result<PreparedSoftware<'_, 'a, N>, &'static str> {
+        if self.selected_recording_is_unbound(&selected) {
+            return Err("recording-scope-required");
+        }
         for (index, selected) in selected.iter().enumerate() {
             if *selected && self.slots[index].is_none() {
                 return Err("software-busy");
@@ -451,7 +454,8 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
     }
     /// Same construction and funding obligations as `initialize`. Any recording
     /// scope must be selected independently from the actual admitted assignment,
-    /// before Start. Missing scope refuses without a placeholder identity.
+    /// before Start. Without scope, the actual prepared owner remains unbound;
+    /// selection and execution refuse until opaque approved scope is supplied.
     ///
     /// # Safety
     /// The original `initialize` safety obligations apply unchanged, including
@@ -508,11 +512,11 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
                     output_bytes,
                 )?),
                 Some(SoftwareDefinition::RecordingLog { maximum_samples }) => {
-                    Some(SoftwareBack::recording_log(
-                        recording.ok_or("recording-scope-required")?,
-                        maximum_samples,
-                        now,
-                    )?)
+                    let mut owner = SoftwareBack::recording_log_unbound(maximum_samples, now)?;
+                    if let Some(scope) = recording {
+                        owner.prepare_recording_scope(scope)?;
+                    }
+                    Some(owner)
                 }
                 Some(SoftwareDefinition::Dht11Observation) => {
                     Some(SoftwareBack::dht11_observation()?)
@@ -576,6 +580,73 @@ unsafe impl<L: PreparedResidentEntry, const E: usize> PreparedResidents<E>
     }
     fn bind(self) -> [Option<(u16, Self::Back)>; E] {
         self.0.map(|l| l.map(L::bind))
+    }
+}
+
+impl<const N: usize> SoftwareInventory<'_, N> {
+    pub fn needs_recording_scope(&self) -> bool {
+        self.slots
+            .iter()
+            .flatten()
+            .any(SoftwareBack::needs_recording_scope)
+    }
+    pub(crate) fn selected_recording_is_unbound(&self, selected: &[bool; N]) -> bool {
+        self.slots.iter().zip(selected).any(|(slot, selected)| {
+            *selected
+                && slot
+                    .as_ref()
+                    .is_some_and(SoftwareBack::needs_recording_scope)
+        })
+    }
+    /// Copy scope only from an original opaque admitted fragment, not its public
+    /// wire metadata DTO. Retrying the same scope validates without resetting
+    /// progress. No recording role means no scope construction or allocation.
+    /// The temporary typed Plan/Play IDs are preparation workspace, not retained
+    /// backing; the funded encoder's scope binding itself allocates nothing.
+    pub fn prepare_recording_from_approved(
+        &mut self,
+        approved: &conduit_body::DelegatedBodyFragment<'_>,
+        actual: &conduit_core::HostAdvertisement,
+        stream: [u8; 32],
+        first_sequence: u64,
+    ) -> Result<(), &'static str> {
+        let count = self
+            .slots
+            .iter()
+            .flatten()
+            .filter(|slot| matches!(slot, SoftwareBack::RecordingLog(_)))
+            .count();
+        if count == 0 {
+            return Ok(());
+        }
+        if count != 1 {
+            return Err("recording-scope-count");
+        }
+        let metadata = approved.metadata();
+        if metadata.host != actual.host_id.as_str() || metadata.boot != actual.boot_id.as_str() {
+            return Err("recording-scope-host");
+        }
+        let plan: conduit_core::PlanId = metadata.plot_plan.into();
+        let play: conduit_core::ActivePlayId = metadata.body_play.into();
+        let scope = crate::execution_software::RecordingLogScope {
+            context: conduit_environment_runtime::recording::LogContext {
+                body: metadata.body,
+                producer: conduit_environment_runtime::recording::RecordingContext {
+                    host: &actual.host_id,
+                    boot: &actual.boot_id,
+                    plan: &plan,
+                    play: &play,
+                },
+                stream,
+            },
+            first_sequence,
+        };
+        self.slots
+            .iter_mut()
+            .flatten()
+            .find(|slot| matches!(slot, SoftwareBack::RecordingLog(_)))
+            .ok_or("recording-owner")?
+            .prepare_recording_scope(scope)
     }
 }
 

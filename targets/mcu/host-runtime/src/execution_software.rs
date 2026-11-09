@@ -95,6 +95,38 @@ impl<'a> SoftwareBack<'a> {
             ObservationBack::prepare(&contract).map_err(|_| "observation-codec")?,
         )))
     }
+    pub fn recording_log_unbound(
+        maximum_samples: u32,
+        now: ReadMonotonicMillis,
+    ) -> Result<Self, &'static str> {
+        let contract = ObservationContract::prepare().map_err(|_| "recording-contract")?;
+        Ok(Self::RecordingLog(Box::new(
+            conduit_environment_runtime::recording::RecordingLogBack::prepare_unbound(
+                &contract,
+                maximum_samples,
+                now,
+            )
+            .map_err(|_| "recording-codec")?,
+        )))
+    }
+    pub(crate) fn needs_recording_scope(&self) -> bool {
+        matches!(self,Self::RecordingLog(back) if !back.is_bound())
+    }
+    pub(crate) fn prepare_recording_scope(
+        &mut self,
+        scope: RecordingLogScope<'_>,
+    ) -> Result<(), &'static str> {
+        let Self::RecordingLog(back) = self else {
+            return Err("recording-owner");
+        };
+        if back.is_bound() {
+            back.validate_scope(scope.context, scope.first_sequence)
+                .map_err(|_| "recording-scope-mismatch")
+        } else {
+            back.bind_scope(scope.context, scope.first_sequence)
+                .map_err(|_| "recording-scope")
+        }
+    }
     pub fn recording_log(
         scope: RecordingLogScope<'_>,
         maximum_samples: u32,
