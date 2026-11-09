@@ -83,44 +83,90 @@ fn decimal(value: Quantity, places: u8) -> Result<i128, QuantityFormatRefusal> {
 #[inline(never)]
 fn rational(value: Quantity, unit: Unit, places: u8) -> Result<i128, QuantityFormatRefusal> {
     let mut work = ExactNumericWork::new(3 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK);
-    let coordinate = RationalQuantity::from_quantity(value, &mut work)
-        .and_then(|value| value.convert_to_unit(unit, &mut work))
+    // Retain one exact coordinate. Each noinline phase owns its transient wide
+    // return/intermediate scratch; those frames retire before the next phase.
+    // The original Core work budget and operation order remain unchanged.
+    let mut coordinate = ExactRational::ZERO;
+    converted_coordinate(value, unit, &mut work, &mut coordinate)?;
+    scale_coordinate(&mut coordinate, places, &mut work)?;
+    let negative = coordinate.is_negative();
+    absolute_coordinate(&mut coordinate);
+    add_half(&mut coordinate, &mut work)?;
+    signed(enclosed_floor(&coordinate, &mut work)?, negative)
+}
+
+#[inline(never)]
+fn converted_coordinate(
+    value: Quantity,
+    unit: Unit,
+    work: &mut ExactNumericWork,
+    target: &mut ExactRational,
+) -> Result<(), QuantityFormatRefusal> {
+    *target = RationalQuantity::from_quantity(value, work)
+        .and_then(|value| value.convert_to_unit(unit, work))
         .map_err(|_| QuantityFormatRefusal::NumericExtent)?
         .coordinate();
-    let coordinate = coordinate
+    Ok(())
+}
+
+#[inline(never)]
+fn scale_coordinate(
+    coordinate: &mut ExactRational,
+    places: u8,
+    work: &mut ExactNumericWork,
+) -> Result<(), QuantityFormatRefusal> {
+    *coordinate = coordinate
         .checked_multiply(
             ExactRational::from_u128(10_u128.pow(u32::from(places))),
-            &mut work,
+            work,
         )
         .map_err(|_| QuantityFormatRefusal::NumericExtent)?;
-    let magnitude = if coordinate.is_negative() {
-        coordinate.negated()
-    } else {
-        coordinate
-    };
-    // floor(abs(coordinate) + 1/2) is nearest, ties away from zero.
-    // Divide in Core's wide exact profile before narrowing the integer; large
-    // numerator/denominator components do not imply a large display result.
+    Ok(())
+}
+
+#[inline(never)]
+fn absolute_coordinate(coordinate: &mut ExactRational) {
+    if coordinate.is_negative() {
+        *coordinate = coordinate.negated();
+    }
+}
+
+// floor(abs(coordinate) + 1/2) is nearest, ties away from zero. The
+// original half construction and its charged work are preserved exactly.
+#[inline(never)]
+fn add_half(
+    coordinate: &mut ExactRational,
+    work: &mut ExactNumericWork,
+) -> Result<(), QuantityFormatRefusal> {
     let half =
-        ExactRational::ratio(1, 2, &mut work).map_err(|_| QuantityFormatRefusal::NumericExtent)?;
-    let shifted = magnitude
-        .checked_add(half, &mut work)
+        ExactRational::ratio(1, 2, work).map_err(|_| QuantityFormatRefusal::NumericExtent)?;
+    *coordinate = coordinate
+        .checked_add(half, work)
         .map_err(|_| QuantityFormatRefusal::NumericExtent)?;
+    Ok(())
+}
+
+#[inline(never)]
+fn enclosed_floor(
+    coordinate: &ExactRational,
+    work: &mut ExactNumericWork,
+) -> Result<u128, QuantityFormatRefusal> {
+    // Divide before narrowing: wide numerator/denominator components do not
+    // imply a large display result. No integer/numeric extent is reduced.
     let enclosure = PreparedIntegerEnclosure::prepare(
-        shifted,
+        *coordinate,
         PrimitiveInfoKind::U128,
         ExactRational::ONE,
-        &mut work,
+        work,
     )
     .map_err(|why| match why {
         IntegerEnclosureRefusal::Numeric(ExactNumericRefusal::OutOfRange)
         | IntegerEnclosureRefusal::Target(_) => QuantityFormatRefusal::Overflow,
         _ => QuantityFormatRefusal::NumericExtent,
     })?;
-    let rounded = enclosure
+    enclosure
         .target()
         .lower()
         .unsigned()
-        .map_err(|_| QuantityFormatRefusal::Overflow)?;
-    signed(rounded, coordinate.is_negative())
+        .map_err(|_| QuantityFormatRefusal::Overflow)
 }
