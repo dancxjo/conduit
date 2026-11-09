@@ -454,6 +454,9 @@ fn fingerprint_parts(
     h.finalize().into()
 }
 
+#[path = "execution_authority_append.rs"]
+mod append;
+
 #[cfg(test)]
 #[path = "execution_authority_tests.rs"]
 mod tests;
