@@ -112,6 +112,26 @@ impl<S: NorStorage> PreparedNorRecordResidence<S> {
             marker: [0; RECORD_UNIT_BYTES],
         })
     }
+    /// Pure finite physical facts; none confer resource admission or authority.
+    pub const fn residence_id(&self) -> RecordResidenceId {
+        self.identity
+    }
+    pub const fn total_slots(&self) -> u32 {
+        self.slots
+    }
+    pub const fn residence_bytes(&self) -> u32 {
+        self.slots * RECORD_SLOT_BYTES
+    }
+    pub const fn recovered(&self) -> bool {
+        self.recovered
+    }
+    pub const fn remaining_slots(&self) -> Option<u32> {
+        if self.recovered {
+            Some(self.slots - self.next)
+        } else {
+            None
+        }
+    }
     pub fn into_storage(self) -> S {
         self.storage
     }
