@@ -4,6 +4,10 @@
 #[path = "native_activity.rs"]
 mod activity;
 pub use activity::NativeActivity;
+#[path = "native_sync_join.rs"]
+mod sync_join;
+#[path = "native_sync.rs"]
+pub mod synchronous;
 
 use crate::{
     execution::StoredExecutionKernel,
@@ -36,6 +40,7 @@ pub trait Observer<K> {
 pub enum Refusal<E> {
     Kernel(SchedulerError),
     Observer(E),
+    Synchronous(synchronous::Refusal),
     Retirement {
         kernel: Option<SchedulerError>,
         native_revocation_failed: bool,
@@ -258,6 +263,32 @@ impl<
         })
         .await
     }
+    async fn synchronous<S: synchronous::SynchronousHostCall>(
+        &self,
+        service: Option<&mut synchronous::Service<'_, S>>,
+    ) -> Result<(), Refusal<O::Error>> {
+        let Some(service) = service else {
+            return Ok(());
+        };
+        let activity = self
+            .activity
+            .ok_or(Refusal::Synchronous(synchronous::Refusal::MissingActivity))?;
+        while !self.done.get() {
+            if let Ok(mut kernel) = self.kernel.try_borrow_mut() {
+                let dispatch = service
+                    .dispatch(&mut **kernel, activity)
+                    .map_err(Refusal::Synchronous)?;
+                if matches!(dispatch, Dispatch::Completed { .. }) {
+                    self.observer
+                        .borrow_mut()
+                        .completed(&mut **kernel, dispatch)
+                        .map_err(Refusal::Observer)?;
+                }
+            }
+            self.yield_to_host.pause().await;
+        }
+        Ok(())
+    }
     /// Return only after all provider futures have quiesced. On refusal revoke
     /// this fragment's owners, then cancel this kernel; other fragments continue.
     pub async fn run<
@@ -269,15 +300,72 @@ impl<
         self,
         calls: &mut Calls<A, B, W, Q>,
     ) -> Result<Exit, Refusal<O::Error>> {
-        let result = crate::native_supervisor::supervise(
-            self.scheduler(),
-            self.pulse(calls.pulse.as_mut()),
-            self.write(calls.write.as_mut()),
-            self.waits(calls.waits.each_mut()),
+        self.run_services(
+            calls,
+            None::<&mut synchronous::Service<'_, synchronous::NoService>>,
         )
-        .await;
+        .await
+    }
+    /// Add one actual independently bound synchronous native owner. Its result
+    /// buffer and provider are funded before Start; no factory/admission occurs.
+    /// `with_activity` must name the same interlock used by every GPIO runner.
+    pub async fn run_with_sync_calls<
+        A: PulseReadProvider,
+        B: OpenDrain,
+        W: MonotonicWaitProvider,
+        const Q: usize,
+        S: synchronous::SynchronousHostCall,
+    >(
+        self,
+        calls: &mut Calls<A, B, W, Q>,
+        service: &mut synchronous::Service<'_, S>,
+    ) -> Result<Exit, Refusal<O::Error>> {
+        self.run_services(calls, Some(service)).await
+    }
+    async fn run_services<
+        A: PulseReadProvider,
+        B: OpenDrain,
+        W: MonotonicWaitProvider,
+        const Q: usize,
+        S: synchronous::SynchronousHostCall,
+    >(
+        self,
+        calls: &mut Calls<A, B, W, Q>,
+        mut service: Option<&mut synchronous::Service<'_, S>>,
+    ) -> Result<Exit, Refusal<O::Error>> {
+        let validation = service.as_ref().map_or(Ok(()), |service| {
+            if self.activity.is_none() {
+                return Err(synchronous::Refusal::MissingActivity);
+            }
+            let node = service.node();
+            if calls.pulse.as_ref().is_some_and(|c| c.node() == node)
+                || calls.write.as_ref().is_some_and(|c| c.node() == node)
+                || calls.waits.iter().any(|c| c.node() == node)
+            {
+                return Err(synchronous::Refusal::ConflictingNode);
+            }
+            Ok(())
+        });
+        let result = match validation {
+            Err(error) => Err(Refusal::Synchronous(error)),
+            Ok(()) => {
+                crate::native_supervisor::supervise(
+                    self.scheduler(),
+                    self.pulse(calls.pulse.as_mut()),
+                    self.write(calls.write.as_mut()),
+                    sync_join::join(
+                        self.waits(calls.waits.each_mut()),
+                        self.synchronous(service.as_deref_mut()),
+                    ),
+                )
+                .await
+            }
+        };
         // supervise owns and drops every child future before returning here.
         let mut revoked = true;
+        if let Some(service) = service {
+            revoked &= service.revoke().is_ok();
+        }
         if let Some(call) = calls.pulse.as_mut() {
             revoked &= call.revoke(call.node(), HostCallId(0)).is_ok();
         }
