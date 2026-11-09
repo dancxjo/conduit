@@ -328,7 +328,7 @@ pub async fn run<'s>(
                         now_millis: now_ms(),
                     };
                     let prepared = crate::play::prepare(
-                        parts.workspace,
+                        &*parts.workspace,
                         context,
                         policy,
                         &mut residents,
