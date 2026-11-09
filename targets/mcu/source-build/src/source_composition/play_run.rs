@@ -90,6 +90,38 @@ fn inspection_state(evidence: &StartedEvidence) -> State<3> {
     State::new(evidence)
 }
 
+// Cold normal-drain transition. Keep both complete fixed Sign owners and
+// begin_next's affine return scratch off every ordinary rendering poll frame.
+// The session and exact finite archive remain in their original actor fields.
+#[inline(never)]
+fn rearm_archived(
+    mask: &mut MaskSession<'_, crate::renderer::Clock>,
+    archive: &mut k::invocation_archive::InvocationArchive<64, 4, 3>,
+) -> Result<bool, conduit_mcu_host_runtime::mask_session::Refusal> {
+    let previous = mask.drained_evidence().expect("normally drained Mask");
+    if archive
+        .can_append(
+            previous.signs,
+            previous.decisions,
+            previous.logical_invocations,
+        )
+        .is_err()
+    {
+        return Ok(false);
+    }
+    let signs = conduit_seven_segment_mask::native_kernel::prepare_signs()
+        .expect("pre-admitted fixed Sign capacity");
+    let previous = mask.rearm(signs)?;
+    archive
+        .append(
+            &previous.signs,
+            previous.decisions,
+            previous.logical_invocations,
+        )
+        .expect("preflighted exact invocation evidence retention");
+    Ok(true)
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn run<'r, 'f>(
     mut sampling: Box<crate::play::SamplingKernel<'r, 'f>>,
@@ -260,36 +292,18 @@ pub async fn run<'r, 'f>(
                 _ => {}
             }
             if drained {
-                let previous = mask.drained_evidence().expect("normally drained Mask");
-                if archive
-                    .can_append(
-                        previous.signs,
-                        previous.decisions,
-                        previous.logical_invocations,
-                    )
-                    .is_ok()
-                {
-                    let signs = conduit_seven_segment_mask::native_kernel::prepare_signs()
-                        .expect("pre-admitted fixed Sign capacity");
-                    match mask.rearm(signs) {
-                        Ok(previous) => {
-                            archive
-                                .append(
-                                    &previous.signs,
-                                    previous.decisions,
-                                    previous.logical_invocations,
-                                )
-                                .expect("preflighted exact invocation evidence retention");
-                            drained = false;
-                            active = false;
-                        }
-                        Err(reason) => {
-                            let _ = inspection.observe_refusal(1, "rearm", &reason);
-                            break;
-                        }
+                match rearm_archived(&mut mask, &mut archive) {
+                    Ok(true) => {
+                        drained = false;
+                        active = false;
                     }
-                } else {
-                    let _ = inspection.observe(1, Observation::EvidenceCapacity);
+                    Ok(false) => {
+                        let _ = inspection.observe(1, Observation::EvidenceCapacity);
+                    }
+                    Err(reason) => {
+                        let _ = inspection.observe_refusal(1, "rearm", &reason);
+                        break;
+                    }
                 }
             }
             if !active && !drained && mask.face_changed().unwrap_or(false) {
