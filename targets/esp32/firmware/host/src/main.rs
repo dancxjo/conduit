@@ -114,7 +114,8 @@ fn initialize_image_heap() {
     );
     // SAFETY: startup is the only caller, before any allocation or other task.
     // The linker verifies exact sole-owned extents, physical nonoverlap, total
-    // IMAGE funding and a separate >=64KiB primary stack. No ROM region is used.
+    // IMAGE funding and a separate stack (>=64KiB for split backing, >=16KiB
+    // for the original secondary-only construction). No ROM region is used.
     unsafe {
         esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
             core::ptr::addr_of_mut!(SECONDARY).cast::<u8>(),

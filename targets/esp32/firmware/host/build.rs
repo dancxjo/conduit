@@ -193,12 +193,13 @@ ASSERT(ADDR(.image_heap_primary) + SIZEOF(.image_heap_primary) <= ORIGIN(dram_se
 ASSERT(ADDR(.image_heap_primary) + SIZEOF(.image_heap_primary) <= _stack_end, "primary heap overlaps current stack");
 ASSERT(ADDR(.image_heap_primary) + SIZEOF(.image_heap_primary) <= ORIGIN(dram2_seg), "physical IMAGE arenas overlap");
 ASSERT(SIZEOF(.image_heap_primary) + SIZEOF(.dram2_uninit) == {heap}, "physical heap total differs from checked IMAGE");
-ASSERT(SIZEOF(.stack) >= 65536, "primary stack reserve below checked 64KiB");
+ASSERT(SIZEOF(.stack) >= {minimum_stack}, "primary stack reserve below checked IMAGE construction minimum");
 ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.image_heap_primary) + SIZEOF(.dram2_uninit) <= {static_bytes}, "static DRAM exceeds checked IMAGE");
 "#,
         heap = config.limits.heap_arena_bytes,
         secondary_heap = heap.secondary,
         primary_heap = heap.primary,
+        minimum_stack = if heap.primary != 0 { 65536 } else { 16384 },
         static_bytes = config.limits.static_memory_bytes
     );
     fs::write(out.join("image-arena.x"), arena_script).expect("checked physical arena assertions");
