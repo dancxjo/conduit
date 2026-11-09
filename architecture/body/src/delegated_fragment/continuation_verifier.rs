@@ -40,6 +40,18 @@ impl<'a> FreshContinuationScope<'a> {
     ) -> Result<Self, ContinuationScopeRefusal> {
         use ContinuationScopeRefusal as E;
         let permission = intent.intent();
+        if actual.protocol_version != c::PROTOCOL_VERSION
+            || actual.offer_generation.0 == 0
+            || actual.host_id.as_str() != permission.host_id
+            || actual.boot_id.as_str() != intent.actual_boot()
+            || actual.profile.as_str() != permission.configuration_id
+            || documents
+                .iter()
+                .try_fold(10usize, |n, d| n.checked_add(4)?.checked_add(d.len()))
+                .is_none_or(|n| n as u64 > u64::from(permission.ceilings.assignment_bytes))
+        {
+            return Err(E::Bounds);
+        }
         if continuation_scope_digest(permission.body_id, full).map_err(|_| E::Scope)?
             != permission.scope_digest
             || continuation_bundle_digest(permission.source_digest, pins).map_err(|_| E::Scope)?
@@ -65,6 +77,7 @@ impl<'a> FreshContinuationScope<'a> {
                 plan_id: pin.plan_id,
             };
         }
+        let mut declared_runtime = 0u32;
         for (i, (pin, entry)) in pins.iter().zip(entries).enumerate() {
             let (m, projection) = decode_body_fragment_document(documents[i])
                 .map_err(|e| E::Fragment(crate::DelegatedFragmentRefusal::Document(e)))?;
@@ -142,7 +155,7 @@ impl<'a> FreshContinuationScope<'a> {
                 computations: entry.profile.computations,
                 fore: entry.profile.fore,
             };
-            approve_checked::<PORTS>(
+            let (approved, _) = approve_checked::<PORTS>(
                 m,
                 projection,
                 actual,
@@ -151,6 +164,12 @@ impl<'a> FreshContinuationScope<'a> {
                 profile,
             )
             .map_err(E::Fragment)?;
+            declared_runtime = declared_runtime
+                .checked_add(u32::from(approved.view().runtime_state_bytes))
+                .ok_or(E::Bounds)?;
+            if declared_runtime > permission.ceilings.runtime_bytes {
+                return Err(E::Bounds);
+            }
             proposed[slot].plan_id = m.plot_plan;
         }
         let candidate = body_plan_commitment_digest(

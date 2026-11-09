@@ -5,6 +5,8 @@ use conduit_core as c;
 use conduit_embedded_build as e;
 use ed25519_dalek::{Signer, SigningKey};
 use sha2::{Digest, Sha256};
+#[path = "continuation_scope/admission.rs"]
+mod admission;
 #[path = "../../plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
 #[path = "prepared_fragment/support.rs"]
@@ -332,6 +334,12 @@ fn full_six_reference_authorizes_only_fresh_local_three_and_refuses_scope_tamper
         current.plan_id.as_str()
     );
     assert!(accepted.check_actual(&verified, &actual).is_ok());
+    admission::check(&accepted, &verified, &actual);
+    assert_eq!(
+        wake.lifecycle,
+        WakeLifecycle::AwaitingPlan,
+        "local admission is NOT global Playing"
+    );
     let mut foreign = actual.clone();
     foreign.host_id = "host/remote".into();
     assert!(FreshContinuationScope::check_local_replacement::<0>(
@@ -412,6 +420,51 @@ fn full_six_reference_authorizes_only_fresh_local_three_and_refuses_scope_tamper
         &mut scratch
     )
     .is_err());
+    let altered = BodyPlan::seal(
+        &wake,
+        current
+            .plots
+            .iter()
+            .enumerate()
+            .map(|(i, p)| BodyPlotPlan {
+                plot: p.plot.clone(),
+                plan: if i < 3 {
+                    p.plan.clone()
+                } else {
+                    seal(&p.plan, "unauthorized/remote")
+                },
+            })
+            .collect(),
+    )
+    .unwrap();
+    let altered_play = BodyPlayIdentity::bind(&altered, 1);
+    let altered_documents: Vec<_> = altered.plots[..3]
+        .iter()
+        .map(|p| {
+            e::generate_prepared_body_fragment(
+                PreparedBodyFragment::prepare(&wake, &altered, &altered_play, &p.plan.fragments[0])
+                    .unwrap(),
+                &[],
+                limits(),
+            )
+            .unwrap()
+        })
+        .collect();
+    let altered_refs: Vec<_> = altered_documents.iter().map(|d| d.bytes()).collect();
+    assert!(
+        FreshContinuationScope::check_local_replacement::<0>(
+            &verified,
+            &checked,
+            &full,
+            &actual,
+            &pins,
+            &entries,
+            &altered_refs,
+            &mut scratch
+        )
+        .is_err(),
+        "changed nonlocal commitment cannot ride a local replacement"
+    );
     assert_eq!(
         base.plots[3..],
         current.plots[3..],

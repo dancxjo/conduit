@@ -1,13 +1,14 @@
 //! Separate owner-intent origin. No online command or membership is manufactured.
-//! Construction belongs to canonical bundle checking PLUS committed fresh-scope
-//! allocation. There is deliberately no public raw-field approval constructor.
+//! Construction checks the signed retained Wake/full workset and fresh local
+//! canonical realizations. Root separately enforces its one-use Boot attempt. There is deliberately no public raw-field approval constructor.
 use super::*;
 use crate::{ApprovedBodyForePorts, AssignedBodyPreparationProfile, VerifiedContinuationIntent};
 use conduit_core as c;
 
 /// A complete freshly sealed local set. Neither a signed intent alone nor a
 /// public assigned header can construct this value. Root must obtain it through
-/// checked installed recipes and committed unique lifecycle scope allocation.
+/// checked installed recipes, the signed retained Wake/full workset, and fresh
+/// current-Boot canonical realizations. It does not allocate a new Wake.
 /// ```compile_fail
 /// use conduit_body::FreshContinuationScope;
 /// let forged = FreshContinuationScope { documents: &[], ..todo!() };
@@ -65,7 +66,7 @@ impl<'a> FreshContinuationScope<'a> {
             || self
                 .documents
                 .iter()
-                .try_fold(0usize, |n, d| n.checked_add(d.len()))
+                .try_fold(10usize, |n, d| n.checked_add(4)?.checked_add(d.len()))
                 .is_none_or(|n| n as u64 > u64::from(intent.ceilings.assignment_bytes))
         {
             return Err(E::Bounds);
