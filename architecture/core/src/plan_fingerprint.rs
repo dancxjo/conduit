@@ -39,9 +39,10 @@ pub use plot_seal::{PlainPlotPlanSeal, PlotFragmentSeal, PlotPlanSealRefusal};
 mod fragment;
 pub use fragment::{
     compute_fragment_id, fragment_seal_recipe_digest, fragment_seal_recipe_identity,
-    FragmentFingerprintBuilder, FragmentFingerprintHeader, FragmentFingerprintRefusal,
-    FragmentFingerprintTail, FragmentSealBinding, FragmentSealField, FragmentSealLimits,
-    FragmentSealPiece, FragmentSealRecipe, FragmentSealRefusal, FragmentSealValue,
+    fragment_seal_resource_matches, FragmentFingerprintBuilder, FragmentFingerprintHeader,
+    FragmentFingerprintRefusal, FragmentFingerprintTail, FragmentSealBinding, FragmentSealField,
+    FragmentSealLimits, FragmentSealPiece, FragmentSealRecipe, FragmentSealRefusal,
+    FragmentSealValue,
 };
 
 pub(crate) fn push_configuration_value(

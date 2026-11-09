@@ -38,6 +38,11 @@ fn seal(plan: &c::Plan, boot: &str) -> c::Plan {
     for p in &mut f.placements {
         p.boot_id = boot.into();
         p.offer_generation = c::OfferGeneration(9);
+        for resource in &mut p.resources {
+            if let Some(content) = &mut resource.content {
+                content.owner_boot = boot.into();
+            }
+        }
     }
     c::seal_plan(
         c::PlotIdentity {
@@ -72,6 +77,22 @@ fn bindings<'a>(
                 R::OfferGeneration => V::U64(p.offer_generation.0),
                 R::PlacementId => V::Text(p.placement_id.as_str()),
                 R::ResourcePool => V::Text(p.resources[usize::from(field.entry)].pool_id.as_str()),
+                R::ContentOwnerHost => V::Text(
+                    p.resources[usize::from(field.entry)]
+                        .content
+                        .as_ref()
+                        .unwrap()
+                        .owner_host
+                        .as_str(),
+                ),
+                R::ContentOwnerBoot => V::Text(
+                    p.resources[usize::from(field.entry)]
+                        .content
+                        .as_ref()
+                        .unwrap()
+                        .owner_boot
+                        .as_str(),
+                ),
                 _ => panic!("fixture has no other dynamic fields"),
             }
         } else {
@@ -93,11 +114,64 @@ pub fn with_reference(
         &c::HostAdvertisement,
     ),
 ) {
+    with_reference_kind(false, check);
+}
+pub fn with_typed_reference(
+    check: impl for<'a> FnOnce(
+        &FreshContinuationScope<'a>,
+        &VerifiedContinuationIntent<'a>,
+        &c::HostAdvertisement,
+    ),
+) {
+    with_reference_kind(true, check);
+}
+fn content_contract() -> c::ResourceContentRequirement {
+    c::ResourceContentRequirement {
+        identity: c::ResourceSemanticIdentity::from_digest([1; 32]),
+        version: c::ResourceVersionIdentity::from_digest([2; 32]),
+        content_profile: "recording/canonical@1".into(),
+        maximum_bytes: 4096,
+        maximum_items: 64,
+        retention: c::ResourceRetention::ExternalDurable,
+        sharing: c::ResourceSharing::SingleWriterPublished,
+        access: c::ResourceAccessMode::WriteCandidatePublish,
+        generation_slots: 1,
+        reader_leases: 1,
+        publication_slots: 1,
+        sensitive: false,
+    }
+}
+fn with_reference_kind(
+    content: bool,
+    check: impl for<'a> FnOnce(
+        &FreshContinuationScope<'a>,
+        &VerifiedContinuationIntent<'a>,
+        &c::HostAdvertisement,
+    ),
+) {
     let partitions: Vec<_> = ["a", "b", "c", "d", "e", "f"]
         .iter()
         .enumerate()
         .map(|(i, label)| {
-            let plan = support::plan(label, if i < 3 { "host/local" } else { "host/remote" });
+            let mut plan = support::plan(label, if i < 3 { "host/local" } else { "host/remote" });
+            if content && i < 3 {
+                let f = &mut plan.fragments[0];
+                f.placements[0].resources[0].content = Some(c::ResourceContentOffer {
+                    contract: content_contract(),
+                    owner_host: f.host_id.clone(),
+                    owner_boot: f.boot_id.clone(),
+                    base_id: "flash/base".into(),
+                    residence_profile: "flash/recording@1".into(),
+                });
+                plan = c::seal_plan(
+                    c::PlotIdentity {
+                        source_document_id: plan.source_document_id.clone(),
+                        checked_plot_id: plan.checked_plot_id.clone(),
+                        expanded_plot_id: plan.expanded_plot_id.clone(),
+                    },
+                    plan.fragments,
+                );
+            }
             BodyPlotPlan {
                 plot: ResidentPlot::new(
                     plan.source_document_id.clone(),
@@ -230,7 +304,13 @@ pub fn with_reference(
             class_id: "test/timer".into(),
             capacity_units: 3,
             compute: None,
-            content: None,
+            content: content.then(|| c::ResourceContentOffer {
+                contract: content_contract(),
+                owner_host: "host/local".into(),
+                owner_boot: "local/fresh".into(),
+                base_id: "flash/base".into(),
+                residence_profile: "flash/recording@1".into(),
+            }),
         }],
         capabilities: vec![],
         planner_capabilities: vec![],
@@ -331,58 +411,137 @@ pub fn with_reference(
     assert_eq!(cost.reallocations, 0);
     // Actual bounded assembler must reproduce the full rich canonical encoder,
     // not merely mint IDs which happen to satisfy its own reader.
-    let rows: Vec<Vec<_>> = docs
-        .iter()
-        .map(|document| {
-            let (metadata, _) = decode_body_fragment_document(document).unwrap();
-            PlainFragmentResources::new(metadata.resource_bindings)
-                .map(Result::unwrap)
-                .collect()
-        })
-        .collect();
-    let resources: Vec<_> = rows.iter().map(Vec::as_slice).collect();
-    let candidate = build_continuation_candidate::<0>(
-        &verified,
-        &checked,
-        &full,
-        &actual,
-        &pins,
-        &entries,
-        &resources,
-        ceilings.runtime_bytes as usize,
-    )
-    .unwrap();
-    assert_eq!(candidate.len(), docs.len());
-    for (i, original) in docs.iter().enumerate() {
-        assert_eq!(
-            candidate.document(i),
-            Some(*original),
-            "exact canonical fresh document"
-        );
-    }
-    let (refused, pressure) = allocation_probe::observe(|| {
-        build_continuation_candidate::<0>(
-            &verified, &checked, &full, &actual, &pins, &entries, &resources, 1,
+    if content {
+        let rows: Vec<Vec<_>> = docs
+            .iter()
+            .map(|document| {
+                let (metadata, _) = decode_body_fragment_document(document).unwrap();
+                FragmentResources::new(metadata.resource_bindings)
+                    .map(Result::unwrap)
+                    .collect()
+            })
+            .collect();
+        let resources: Vec<_> = rows.iter().map(Vec::as_slice).collect();
+        let candidate = build_continuation_candidate_with_resources::<0>(
+            &verified,
+            &checked,
+            &full,
+            &actual,
+            &pins,
+            &entries,
+            &resources,
+            ceilings.runtime_bytes as usize,
         )
-    });
-    assert!(matches!(refused, Err(ContinuationScopeRefusal::Bounds)));
-    assert_eq!(
-        pressure.allocations, 0,
-        "workspace shortage refuses before any reserve"
-    );
-    let mut foreign_boot = actual.clone();
-    foreign_boot.boot_id = "other/fresh".into();
-    assert!(build_continuation_candidate::<0>(
-        &verified,
-        &checked,
-        &full,
-        &foreign_boot,
-        &pins,
-        &entries,
-        &resources,
-        ceilings.runtime_bytes as usize,
-    )
-    .is_err());
+        .unwrap();
+        assert_eq!(candidate.len(), docs.len());
+        for (i, original) in docs.iter().enumerate() {
+            assert_eq!(
+                candidate.document(i),
+                Some(*original),
+                "exact canonical fresh document"
+            );
+        }
+        let (refused, pressure) = allocation_probe::observe(|| {
+            build_continuation_candidate_with_resources::<0>(
+                &verified, &checked, &full, &actual, &pins, &entries, &resources, 1,
+            )
+        });
+        assert!(matches!(refused, Err(ContinuationScopeRefusal::Bounds)));
+        assert_eq!(
+            pressure.allocations, 0,
+            "workspace shortage refuses before any reserve"
+        );
+        let mut foreign_boot = actual.clone();
+        foreign_boot.boot_id = "other/fresh".into();
+        assert!(build_continuation_candidate_with_resources::<0>(
+            &verified,
+            &checked,
+            &full,
+            &foreign_boot,
+            &pins,
+            &entries,
+            &resources,
+            ceilings.runtime_bytes as usize,
+        )
+        .is_err());
+    } else {
+        let rows: Vec<Vec<_>> = docs
+            .iter()
+            .map(|document| {
+                let (metadata, _) = decode_body_fragment_document(document).unwrap();
+                PlainFragmentResources::new(metadata.resource_bindings)
+                    .map(Result::unwrap)
+                    .collect()
+            })
+            .collect();
+        let resources: Vec<_> = rows.iter().map(Vec::as_slice).collect();
+        let candidate = build_continuation_candidate::<0>(
+            &verified,
+            &checked,
+            &full,
+            &actual,
+            &pins,
+            &entries,
+            &resources,
+            ceilings.runtime_bytes as usize,
+        )
+        .unwrap();
+        assert_eq!(candidate.len(), docs.len());
+        for (i, original) in docs.iter().enumerate() {
+            assert_eq!(
+                candidate.document(i),
+                Some(*original),
+                "exact canonical fresh document"
+            );
+        }
+        let (refused, pressure) = allocation_probe::observe(|| {
+            build_continuation_candidate::<0>(
+                &verified, &checked, &full, &actual, &pins, &entries, &resources, 1,
+            )
+        });
+        assert!(matches!(refused, Err(ContinuationScopeRefusal::Bounds)));
+        assert_eq!(
+            pressure.allocations, 0,
+            "workspace shortage refuses before any reserve"
+        );
+        let mut foreign_boot = actual.clone();
+        foreign_boot.boot_id = "other/fresh".into();
+        assert!(build_continuation_candidate::<0>(
+            &verified,
+            &checked,
+            &full,
+            &foreign_boot,
+            &pins,
+            &entries,
+            &resources,
+            ceilings.runtime_bytes as usize,
+        )
+        .is_err());
+    }
+    if content {
+        for mutation in 0..5 {
+            let mut changed_actual = actual.clone();
+            let held = changed_actual.resources[0].content.as_mut().unwrap();
+            match mutation {
+                0 => held.contract.maximum_items += 1,
+                1 => held.base_id = "other/base".into(),
+                2 => held.residence_profile = "other/profile".into(),
+                3 => held.owner_boot = "stale/boot".into(),
+                _ => held.contract.version = c::ResourceVersionIdentity::from_digest([9; 32]),
+            }
+            assert!(FreshContinuationScope::check_local_replacement::<0>(
+                &verified,
+                &checked,
+                &full,
+                &changed_actual,
+                &pins,
+                &entries,
+                &docs,
+                &mut scratch
+            )
+            .is_err());
+        }
+    }
     assert_eq!(accepted.fragment_count(), 3);
     assert_eq!(
         decode_body_fragment_document(accepted.document(0).unwrap())

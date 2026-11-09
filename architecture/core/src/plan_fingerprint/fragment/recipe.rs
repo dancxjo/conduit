@@ -189,7 +189,7 @@ fn supported(f: &PlanFragment) -> bool {
         && f.placements.iter().all(|p| {
             p.resources
                 .iter()
-                .all(|r| r.protected.is_none() && r.compute.is_none() && r.content.is_none())
+                .all(|r| r.protected.is_none() && r.compute.is_none())
         })
 }
 struct Capture<'a> {

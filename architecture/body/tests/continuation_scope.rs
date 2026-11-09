@@ -16,3 +16,8 @@ fn full_six_reference_authorizes_only_fresh_local_three_and_refuses_scope_tamper
         }
     });
 }
+
+#[test]
+fn full_six_typed_content_rebinds_owner_boot_and_preserves_static_contract() {
+    reference::with_typed_reference(|scope, _, _| assert_eq!(scope.fragment_count(), 3));
+}

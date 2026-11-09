@@ -52,8 +52,23 @@ pub(super) fn check(
                 let mut resources = crate::FragmentResources::new(metadata.resource_bindings)
                     .filter_map(Result::ok)
                     .filter(|r| r.node == node && r.resource == b.field.entry);
+                resources
+                    .next()
+                    .is_some_and(|r| r.placement == placement_id && text(r.pool))
+                    && resources.next().is_none()
+            }
+            R::ContentOwnerHost | R::ContentOwnerBoot => {
+                let mut resources = crate::FragmentResources::new(metadata.resource_bindings)
+                    .filter_map(Result::ok)
+                    .filter(|r| r.node == node && r.resource == b.field.entry);
                 resources.next().is_some_and(|r| {
-                    r.content.is_none() && r.placement == placement_id && text(r.pool)
+                    r.content.is_some()
+                        && r.placement == placement_id
+                        && text(if b.field.role == R::ContentOwnerHost {
+                            actual.host_id.as_str()
+                        } else {
+                            actual.boot_id.as_str()
+                        })
                 }) && resources.next().is_none()
             }
             // Authored references require their own immutable semantic pin;
@@ -66,18 +81,47 @@ pub(super) fn check(
     }
     for resource in crate::FragmentResources::new(metadata.resource_bindings) {
         let r = resource.map_err(|_| fail.clone())?;
-        if r.content.is_some()
-            || !actual.resources.iter().any(|p| {
-                p.pool_id.as_str() == r.pool
-                    && p.class_id.as_str() == r.class
-                    && p.capacity_units >= r.units
-                    && p.compute.is_none()
-                    && p.content.is_none()
-            })
+        let ordinal = pin
+            .placement_nodes
+            .iter()
+            .position(|node| *node == r.node)
+            .ok_or(fail.clone())?;
+        if pin.placement_ids[ordinal] != r.placement {
+            return Err(fail.clone());
+        }
+        let mut pools = actual
+            .resources
+            .iter()
+            .filter(|p| p.pool_id.as_str() == r.pool);
+        let pool = pools.next().ok_or(fail.clone())?;
+        if pools.next().is_some()
+            || pool.class_id.as_str() != r.class
+            || pool.capacity_units < r.units
+            || pool.compute.is_some()
         {
             return Err(fail.clone());
         }
+        match (r.content, &pool.content) {
+            (None, None) => {}
+            (Some(expected), Some(held))
+                if expected.contract
+                    == crate::FragmentContentContract::from_core(&held.contract)
+                    && expected.base == held.base_id.as_str()
+                    && expected.residence_profile == held.residence_profile.as_str()
+                    && held.owner_host == actual.host_id
+                    && held.owner_boot == actual.boot_id => {}
+            _ => return Err(fail.clone()),
+        }
+        c::fragment_seal_resource_matches(
+            entry.recipe,
+            u16::try_from(ordinal).map_err(|_| fail.clone())?,
+            r.resource,
+            pool,
+            r.units,
+        )
+        .map_err(|_| fail.clone())?;
     }
+
     for n in entry.native {
         if n.binding.host != c::AssignedIdentity::from_text(actual.host_id.as_str())
             || n.binding.boot != c::AssignedIdentity::from_text(actual.boot_id.as_str())
@@ -88,8 +132,7 @@ pub(super) fn check(
             .filter_map(Result::ok)
             .filter(|r| r.node == n.node && r.resource == n.binding.resource);
         if !resource.next().is_some_and(|r| {
-            r.content.is_none()
-                && c::AssignedIdentity::from_text(r.pool) == n.binding.pool
+            c::AssignedIdentity::from_text(r.pool) == n.binding.pool
                 && c::AssignedIdentity::from_text(r.class) == n.binding.resource_class
                 && r.units == n.binding.units
         }) || resource.next().is_some()

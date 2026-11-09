@@ -41,6 +41,8 @@ pub fn fragment_seal_recipe_identity<'a>(
                     FragmentScopeRole::AuthorityBoot => 8,
                     FragmentScopeRole::ResourcePool => 9,
                     FragmentScopeRole::PoolReference => 10,
+                    FragmentScopeRole::ContentOwnerHost => 11,
+                    FragmentScopeRole::ContentOwnerBoot => 12,
                 };
                 hash.update([role]);
                 hash.update(field.entry.to_le_bytes());

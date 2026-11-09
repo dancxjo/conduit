@@ -103,3 +103,6 @@ fn push_header(canonical: &mut impl CanonicalSink, header: FragmentFingerprintHe
 
 mod recipe_identity;
 pub use recipe_identity::fragment_seal_recipe_identity;
+#[path = "fragment/resource_recipe.rs"]
+mod resource_recipe;
+pub use resource_recipe::fragment_seal_resource_matches;

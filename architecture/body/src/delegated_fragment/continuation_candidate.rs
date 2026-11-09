@@ -2,7 +2,7 @@
 use super::*;
 use crate::{
     BodyPlotSeal, CheckedContinuationBundle, ContinuationBundleEntry, ContinuationFullScope,
-    PlainFragmentResource,
+    FragmentResource, PlainFragmentResource,
 };
 use alloc::vec::Vec;
 use sha2::{Digest, Sha256};
@@ -99,6 +99,76 @@ pub fn build_continuation_candidate<const PORTS: usize>(
     pins: &[ContinuationBundleEntry<'_>],
     entries: &[ContinuationLocalEntry<'_>],
     resources: &[&[PlainFragmentResource<'_>]],
+    maximum_preparation_bytes: usize,
+) -> Result<ContinuationCandidateDocuments, ContinuationScopeRefusal> {
+    build_candidate::<PORTS, _>(
+        intent,
+        bundle,
+        full,
+        actual,
+        pins,
+        entries,
+        resources,
+        maximum_preparation_bytes,
+    )
+}
+
+/// Canonical content-capable rows; no resource authority is created.
+#[allow(clippy::too_many_arguments)]
+pub fn build_continuation_candidate_with_resources<const PORTS: usize>(
+    intent: &VerifiedContinuationIntent<'_>,
+    bundle: &CheckedContinuationBundle,
+    full: &ContinuationFullScope<'_>,
+    actual: &c::HostAdvertisement,
+    pins: &[ContinuationBundleEntry<'_>],
+    entries: &[ContinuationLocalEntry<'_>],
+    resources: &[&[FragmentResource<'_>]],
+    maximum_preparation_bytes: usize,
+) -> Result<ContinuationCandidateDocuments, ContinuationScopeRefusal> {
+    build_candidate::<PORTS, _>(
+        intent,
+        bundle,
+        full,
+        actual,
+        pins,
+        entries,
+        resources,
+        maximum_preparation_bytes,
+    )
+}
+
+trait CandidateResource {
+    const PREFIX_BYTES: usize;
+    fn encoded_length(&self) -> Result<usize, BodyFragmentDocumentRefusal>;
+    fn append_to(&self, output: &mut Vec<u8>) -> Result<(), BodyFragmentDocumentRefusal>;
+}
+impl CandidateResource for PlainFragmentResource<'_> {
+    const PREFIX_BYTES: usize = 0;
+    fn encoded_length(&self) -> Result<usize, BodyFragmentDocumentRefusal> {
+        self.encoded_length()
+    }
+    fn append_to(&self, output: &mut Vec<u8>) -> Result<(), BodyFragmentDocumentRefusal> {
+        self.append_to(output)
+    }
+}
+impl CandidateResource for FragmentResource<'_> {
+    const PREFIX_BYTES: usize = 7;
+    fn encoded_length(&self) -> Result<usize, BodyFragmentDocumentRefusal> {
+        self.encoded_length()
+    }
+    fn append_to(&self, output: &mut Vec<u8>) -> Result<(), BodyFragmentDocumentRefusal> {
+        self.append_to(output)
+    }
+}
+#[allow(clippy::too_many_arguments)]
+fn build_candidate<const PORTS: usize, R: CandidateResource>(
+    intent: &VerifiedContinuationIntent<'_>,
+    bundle: &CheckedContinuationBundle,
+    full: &ContinuationFullScope<'_>,
+    actual: &c::HostAdvertisement,
+    pins: &[ContinuationBundleEntry<'_>],
+    entries: &[ContinuationLocalEntry<'_>],
+    resources: &[&[R]],
     maximum_preparation_bytes: usize,
 ) -> Result<ContinuationCandidateDocuments, ContinuationScopeRefusal> {
     use ContinuationScopeRefusal as E;
@@ -220,7 +290,9 @@ pub fn build_continuation_candidate<const PORTS: usize>(
             }
             let resource_bytes = rows
                 .iter()
-                .try_fold(0usize, |n, r| n.checked_add(r.encoded_length().ok()?))
+                .try_fold(if rows.is_empty() { 0 } else { R::PREFIX_BYTES }, |n, r| {
+                    n.checked_add(r.encoded_length().ok()?)
+                })
                 .ok_or(E::Bounds)?;
             let mut encoded_resources = Vec::new();
             let with_resources = reserve(&mut encoded_resources, resource_bytes, held, budget)?;

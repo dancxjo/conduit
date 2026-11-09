@@ -59,6 +59,8 @@ pub enum FragmentScopeRole {
     AuthorityHost,
     AuthorityBoot,
     ResourcePool,
+    ContentOwnerHost,
+    ContentOwnerBoot,
     PoolReference,
 }
 #[derive(Clone, Copy)]
