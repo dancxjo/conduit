@@ -264,7 +264,7 @@ impl Calibration {
                 None => "None".to_owned(),
                 Some(pin) => format!("Some(conduit_core::AssignedForeRequirement::new({},{},conduit_core::AssignedForeDirection::Output,conduit_core::AssignedIdentity({:?}),{:?}))",pin.endpoint(),pin.cord(),&pin.payload()[5..21],&pin.payload()[21..]),
             };
-            writeln!(text,"pub const APPEND_STATUS_FORE:Option<conduit_core::AssignedForeRequirement>={status};").unwrap();
+            writeln!(text,"pub fn append_status_fore()->Option<conduit_core::AssignedForeRequirement>{{{status}}}").unwrap();
             let continuation = format!(
                 "// Inert checked construction; not a sealed current-Boot Plan or execution grant.\npub const PROJECTION_TEMPLATE:&[u8]=&{:?};\npub const PROJECTION_TEMPLATE_DIGEST:[u8;32]={:?};\n",
                 entry.layout.projection_template,
