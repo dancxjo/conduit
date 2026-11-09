@@ -15,13 +15,14 @@ pub(super) struct ScalarTape {
     scratch: ScratchProfile,
 }
 
-// Bound before Play. Four monomorphized loops limit both scratch initialization
+// Bound before Play. Five monomorphized loops limit both scratch initialization
 // and code growth; the largest profile retains the original 128-slot ceiling.
 #[derive(Clone, Copy)]
 enum ScratchProfile {
     Tiny,
     Small,
     Medium,
+    Large,
     Maximum,
 }
 impl ScratchProfile {
@@ -30,6 +31,7 @@ impl ScratchProfile {
             0..=4 => Self::Tiny,
             5..=8 => Self::Small,
             9..=32 => Self::Medium,
+            33..=64 => Self::Large,
             _ => Self::Maximum,
         }
     }
@@ -38,6 +40,7 @@ impl ScratchProfile {
             Self::Tiny => 4,
             Self::Small => 8,
             Self::Medium => 32,
+            Self::Large => 64,
             Self::Maximum => MAXIMUM_INSTRUCTIONS,
         }
     }
@@ -202,6 +205,7 @@ impl ScalarTape {
             ScratchProfile::Tiny => self.evaluate_slots::<4>(inputs),
             ScratchProfile::Small => self.evaluate_slots::<8>(inputs),
             ScratchProfile::Medium => self.evaluate_slots::<32>(inputs),
+            ScratchProfile::Large => self.evaluate_slots::<64>(inputs),
             ScratchProfile::Maximum => self.evaluate_slots::<MAXIMUM_INSTRUCTIONS>(inputs),
         }
     }
