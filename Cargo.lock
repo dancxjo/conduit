@@ -2308,6 +2308,7 @@ dependencies = [
  "conduit-monotonic-wait",
  "conduit-plan-lowering",
  "conduit-pulse-capture",
+ "conduit-resource-snapshot",
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
