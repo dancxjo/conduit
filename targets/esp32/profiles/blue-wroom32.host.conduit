@@ -16,5 +16,6 @@ host blue-wroom32 {
   # Six shared-reference Mask queues fit the existing 24576-byte ceiling.
   base = {kind: "face/renderer", implementation: "esp32/seven-segment-renderer@1", initialization: {face_bytes: 3072, show_bytes: 3072, resource_bytes: 24576, maximum_frames: 65535, page_period_ms: 2000, show_lifetime_ms: 120000, temperature_unit: "fahrenheit"}}
   need = {id: "pool/resident-step-work", class: "kernel/cooperative-step-work@1", slots: 5000, bytes: 16384}
-  limits = {static_memory_bytes: 229376, heap_arena_bytes: 98304, queue_items: 16, buffered_bytes: 24576, active_instances: 32, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
+  # Recording adds two finite cord-value slots; byte/work/arena grants stay explicit above.
+  limits = {static_memory_bytes: 229376, heap_arena_bytes: 98304, queue_items: 18, buffered_bytes: 24576, active_instances: 32, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
 }

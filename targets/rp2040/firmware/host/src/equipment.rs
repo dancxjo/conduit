@@ -82,7 +82,7 @@ impl Equipment {
     }
     pub fn new(
         actual: &HostAdvertisement,
-        body: &conduit_core::BodyId,
+        body: &conduit_body::BodyId,
         flash: crate::credential_source::Device,
     ) -> Option<Self> {
         if WAIT_SLOTS == 0 || WAIT_SLOTS >= crate::config::TIMER_SLOTS {

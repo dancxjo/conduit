@@ -28,5 +28,6 @@ host pico-w-house-yellow {
   # Complete three-kernel preparation requires the explicit 96 KiB arena.
   # The tested 80 KiB split refused kernel headroom before Play; stack fitting
   # must be resolved independently rather than claiming that smaller arena fits.
-  limits = {static_memory_bytes: 229376, heap_arena_bytes: 98304, queue_items: 16, buffered_bytes: 24576, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
+  # Recording adds two finite cord-value slots; byte/work/arena grants stay explicit above.
+  limits = {static_memory_bytes: 229376, heap_arena_bytes: 98304, queue_items: 18, buffered_bytes: 24576, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
 }

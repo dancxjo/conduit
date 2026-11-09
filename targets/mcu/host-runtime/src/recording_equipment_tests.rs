@@ -1,7 +1,7 @@
 //! Owned CPU media tests, not physical admission or execution-window evidence.
 use super::*;
 use conduit_body as b;
-use conduit_resource_snapshot::nor::NorRefusal;
+use conduit_resource_snapshot::{append::RECORD_SLOT_BYTES, nor::NorRefusal};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
@@ -138,7 +138,8 @@ fn reboot_preserves_identity_and_foreign_body_refuses_without_writes_or_owner_lo
         panic!("recovered");
     };
     assert_eq!(provider.residence_id(), residence);
-    let mut refused = selected(provider.into_storage(), &actual, &"foreign/body".into());
+    let foreign: conduit_body::BodyId = serde_json::from_str(r#""foreign/body""#).unwrap();
+    let mut refused = selected(provider.into_storage(), &actual, &foreign);
     assert!(matches!(
         refused.recovery(),
         Some(Err(RecordResidenceRefusal::ForeignResidence))

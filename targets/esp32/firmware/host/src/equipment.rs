@@ -72,7 +72,7 @@ impl Equipment {
 
     pub fn new(
         actual: &HostAdvertisement,
-        body: &conduit_core::BodyId,
+        body: &conduit_body::BodyId,
         pulse: Esp32PulseCapture<'static>,
         display: Esp32Tm1637<'static>,
         recording_storage: conduit_esp32_snapshot_nor::hardware::Esp32SnapshotNor<'static>,
