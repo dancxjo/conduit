@@ -131,6 +131,7 @@ struct Facts<'a> {
     implementation: &'a c::BaseImplementationId,
     pool: &'a c::ResourcePoolId,
     class: &'static str,
+    mechanism: &'static str,
     capability: &'static str,
 }
 macro_rules! facts {
@@ -145,6 +146,7 @@ macro_rules! facts {
             implementation: &id.base_implementation_id,
             pool: &id.resource_pool_id,
             class: $class,
+            mechanism: $class,
             capability: $capability,
         }
     }};
@@ -229,7 +231,7 @@ fn project(
         f.base.as_str(),
         f.instance.as_str(),
         f.implementation.as_str(),
-        f.class,
+        f.mechanism,
         f.capability,
         f.pool.as_str(),
         f.pool.as_str(),
@@ -318,6 +320,10 @@ fn vector<T>(count: usize, remaining: &mut usize) -> Result<Vec<T>, Refusal> {
         .ok_or(Refusal::Capacity)?;
     Ok(values)
 }
+
+#[path = "native_images_append.rs"]
+mod append;
+pub use append::{record_append, recovered_record_append};
 
 #[cfg(test)]
 mod tests {

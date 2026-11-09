@@ -76,6 +76,11 @@ impl<S: NorStorage> ReadyRecordAppender<S> {
             encoder: result::Encoder::new().map_err(|_| E::Possession)?,
         })
     }
+    /// Actual provider recovery state, including after revoked retirement.
+    /// This is not a grant or evidence of resource/Play admission.
+    pub fn recovered(&self) -> bool {
+        self.provider.recovered()
+    }
     pub fn native_identity(&self) -> &AppendNativeIdentity {
         &self.identity
     }
