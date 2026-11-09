@@ -7,6 +7,10 @@ use conduit_body as b;
 use serde::{Deserialize, Serialize};
 
 pub const PREFIX_BYTES: usize = 8192;
+/// The physical prefix remains8192 bytes; its final2048 bytes hold Root's
+/// committed acceptance, not a larger artifact or recording grant.
+pub const ACCEPTANCE_BYTES: usize = 2048;
+pub const ARTIFACT_BYTES: usize = PREFIX_BYTES - ACCEPTANCE_BYTES;
 const HEADER_BYTES: usize = 20;
 const MAGIC: &[u8; 16] = b"CONDUIT_CONT@1\0\0";
 pub const SCHEMA: &str = "conduit.host/installed-continuation@1";
@@ -131,7 +135,7 @@ impl Artifact<'_> {
 pub fn encode(artifact: &Artifact<'_>, output: &mut [u8; PREFIX_BYTES]) -> Result<(), Refusal> {
     artifact.validate()?;
     output.fill(0xff);
-    let length = serde_json_core::to_slice(artifact, &mut output[HEADER_BYTES..])
+    let length = serde_json_core::to_slice(artifact, &mut output[HEADER_BYTES..ARTIFACT_BYTES])
         .map_err(|_| Refusal::Extent)?;
     output[..16].copy_from_slice(MAGIC);
     output[16..HEADER_BYTES].copy_from_slice(&(length as u32).to_le_bytes());
@@ -145,6 +149,21 @@ pub fn decode<'a>(
     input: &'a [u8],
     scratch: &mut [u8; PREFIX_BYTES],
 ) -> Result<Artifact<'a>, Refusal> {
+    decode_inner(input, scratch, false)
+}
+/// Decode only descriptive artifact bytes from an accepted physical prefix.
+/// This does NOT verify the separate Root acceptance or authorize execution.
+pub(crate) fn decode_installed<'a>(
+    input: &'a [u8],
+    scratch: &mut [u8; PREFIX_BYTES],
+) -> Result<Artifact<'a>, Refusal> {
+    decode_inner(input, scratch, true)
+}
+fn decode_inner<'a>(
+    input: &'a [u8],
+    scratch: &mut [u8; PREFIX_BYTES],
+    accepted: bool,
+) -> Result<Artifact<'a>, Refusal> {
     if input.len() != PREFIX_BYTES {
         return Err(Refusal::Extent);
     }
@@ -156,11 +175,11 @@ pub fn decode<'a>(
             .try_into()
             .map_err(|_| Refusal::Header)?,
     ) as usize;
-    if length == 0 || length > PREFIX_BYTES - HEADER_BYTES {
+    if length == 0 || length > ARTIFACT_BYTES - HEADER_BYTES {
         return Err(Refusal::Extent);
     }
     let end = HEADER_BYTES + length;
-    if input[end..].iter().any(|byte| *byte != 0xff) {
+    if input[end..ARTIFACT_BYTES].iter().any(|byte| *byte != 0xff) {
         return Err(Refusal::Noncanonical);
     }
     let (artifact, used) = serde_json_core::from_slice::<Artifact<'a>>(&input[HEADER_BYTES..end])
@@ -169,7 +188,9 @@ pub fn decode<'a>(
         return Err(Refusal::Noncanonical);
     }
     encode(&artifact, scratch)?;
-    if scratch.as_slice() != input {
+    if scratch[..ARTIFACT_BYTES] != input[..ARTIFACT_BYTES]
+        || (!accepted && scratch[ARTIFACT_BYTES..] != input[ARTIFACT_BYTES..])
+    {
         return Err(Refusal::Noncanonical);
     }
     Ok(artifact)

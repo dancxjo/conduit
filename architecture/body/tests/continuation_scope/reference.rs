@@ -114,7 +114,7 @@ pub fn with_reference(
         &c::HostAdvertisement,
     ),
 ) {
-    with_reference_kind(false, check);
+    with_reference_kind(false, |s, v, a, _, _, _| check(s, v, a));
 }
 pub fn with_typed_reference(
     check: impl for<'a> FnOnce(
@@ -123,7 +123,7 @@ pub fn with_typed_reference(
         &c::HostAdvertisement,
     ),
 ) {
-    with_reference_kind(true, check);
+    with_reference_kind(true, |s, v, a, _, _, _| check(s, v, a));
 }
 fn content_contract() -> c::ResourceContentRequirement {
     c::ResourceContentRequirement {
@@ -141,12 +141,27 @@ fn content_contract() -> c::ResourceContentRequirement {
         sensitive: false,
     }
 }
+pub fn with_full_reference(
+    check: impl for<'a> FnOnce(
+        &FreshContinuationScope<'a>,
+        &VerifiedContinuationIntent<'a>,
+        &c::HostAdvertisement,
+        &ContinuationFullScope<'_>,
+        &[ContinuationBundleEntry<'_>],
+        &[u8],
+    ),
+) {
+    with_reference_kind(false, check);
+}
 fn with_reference_kind(
     content: bool,
     check: impl for<'a> FnOnce(
         &FreshContinuationScope<'a>,
         &VerifiedContinuationIntent<'a>,
         &c::HostAdvertisement,
+        &ContinuationFullScope<'_>,
+        &[ContinuationBundleEntry<'_>],
+        &[u8],
     ),
 ) {
     let partitions: Vec<_> = ["a", "b", "c", "d", "e", "f"]
@@ -562,7 +577,7 @@ fn with_reference_kind(
     );
     assert!(accepted.check_actual(&verified, &actual).is_ok());
     admission::check(&accepted, &verified, &actual);
-    check(&accepted, &verified, &actual);
+    check(&accepted, &verified, &actual, &full, &pins, source);
     assert_eq!(
         wake.lifecycle,
         WakeLifecycle::AwaitingPlan,

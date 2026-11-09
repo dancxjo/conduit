@@ -14,9 +14,22 @@ impl<'a> Deref for Seed<'a> {
     }
 }
 impl<'a> Seed<'a> {
+    // Only original Root restores an already authenticated durable acceptance.
+    // This does not create current-Boot online membership.
+    #[cfg(feature = "execution")]
+    pub(crate) fn replace_retained_credential(
+        &mut self,
+        credential: conduit_body::MembershipCredential,
+    ) {
+        let mut secret = *self.0.admission.secret();
+        self.0.admission = conduit_body::MemberBootstrapMaterial::Retained { credential, secret };
+        for byte in &mut secret {
+            unsafe { core::ptr::write_volatile(byte, 0) }
+        }
+    }
     /// The platform owns carrier address, extent, immutable lifetime and access.
     /// Native identities must come independently from its checked IMAGE.
-#[inline(never)]
+    #[inline(never)]
     pub fn parse(
         bytes: &'a [u8],
         actual_host: &str,

@@ -40,7 +40,11 @@ pub enum Request {
     Spawn,
     Return,
     Prepare,
+    #[cfg(feature = "execution")]
+    InstallContinuation,
 }
+/// Select a signed continuation artifact through the existing framed channel.
+pub const CONTINUATION_INSTALL_REQUEST: &[u8] = b"conduit.host/install-continuation@1";
 
 pub struct Root<'s, const N: usize> {
     pub(crate) seed: Seed<'s>,
@@ -51,6 +55,8 @@ pub struct Root<'s, const N: usize> {
     pub(crate) freshness: u64,
     pub(crate) config: Configuration,
     receipt_digest: Option<[u8; 32]>,
+    #[cfg(feature = "execution")]
+    continuation_attempted: bool,
 }
 /// Caller-funded Root storage. In-place initialization avoids temporarily copying
 /// the fixed command arena onto the MCU stack. Drop preserves ordinary custody.
@@ -99,6 +105,8 @@ impl<'s, const N: usize> RootStorage<'s, N> {
             core::ptr::addr_of_mut!((*target).freshness).write(0);
             core::ptr::addr_of_mut!((*target).config).write(config);
             core::ptr::addr_of_mut!((*target).receipt_digest).write(None);
+            #[cfg(feature = "execution")]
+            core::ptr::addr_of_mut!((*target).continuation_attempted).write(false);
             self.initialized = true;
             Ok(self.value.assume_init_mut())
         }
@@ -155,6 +163,8 @@ impl<'s, const N: usize> Root<'s, N> {
             freshness: 0,
             config,
             receipt_digest: None,
+            #[cfg(feature = "execution")]
+            continuation_attempted: false,
         })
     }
     pub fn actual(&self) -> &HostAdvertisement {
@@ -222,6 +232,13 @@ impl<'s, const N: usize> Root<'s, N> {
         } else if bytes == conduit_body::HOST_PREPARATION_REQUEST {
             Ok(Request::Prepare)
         } else {
+            #[cfg(feature = "execution")]
+            if bytes == CONTINUATION_INSTALL_REQUEST {
+                if self.config.execution.and_then(|p| p.continuation).is_none() {
+                    return Err(Refusal::Preparation);
+                }
+                return Ok(Request::InstallContinuation);
+            }
             Err(Refusal::Request)
         }
     }
@@ -323,3 +340,12 @@ impl<'s, const N: usize> Root<'s, N> {
             .map_err(Refusal::Ingress)
     }
 }
+
+#[cfg(feature = "execution")]
+#[path = "root_continuation.rs"]
+mod continuation;
+#[cfg(feature = "execution")]
+pub use continuation::{
+    ContinuationAcceptanceRefusal, ContinuationParts, InstalledContinuationAcceptance,
+    PreparedContinuationInstall,
+};
