@@ -95,9 +95,9 @@ mod owners {
 /// checks all four real resident owners before splitting disjoint affine loans.
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 #[inline(never)] // Keep preparation temporaries out of the continuing async poll frame.
-pub fn prepare<'a, 'f: 'a, 'w, 'context, 'scope>(
+pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     workspace: impl Into<Option<&'w b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>>>,
-    context: impl Into<NativeAuthority<'context, 'scope, 'w>>,
+    context: NativeAuthority<'context, 'scope, 'w>,
     policy: Policy<'_>,
     residents: &'a mut resident::Initialized,
     software: &'a mut SoftwareInventory<'f, SN>,
@@ -132,7 +132,6 @@ pub fn prepare<'a, 'f: 'a, 'w, 'context, 'scope>(
     >,
     Refusal<Refusal<&'static str>>,
 > {
-    let context = context.into();
     let workspace = workspace.into();
     let append_selected = source::sampling::NATIVE_KINDS
         .iter()

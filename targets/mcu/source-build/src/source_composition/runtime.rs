@@ -329,7 +329,7 @@ pub async fn run<'s>(
                     };
                     let prepared = crate::play::prepare(
                         &*parts.workspace,
-                        context,
+                        context.into(),
                         policy,
                         &mut residents,
                         &mut software,

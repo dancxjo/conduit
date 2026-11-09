@@ -1,6 +1,6 @@
-//! Explicit authority origin; both paths retain the same Source-selected owners.
-//! No online command, member receipt or Started stamp is synthesized for offline
-//! continuation. Each existing issuer/group entry independently checks its origin.
+// Explicit authority origin; both paths retain the same Source-selected owners.
+// No online command, member receipt or Started stamp is synthesized for offline
+// continuation. Each existing issuer/group entry independently checks its origin.
 use conduit_body as b;
 use conduit_core as c;
 use conduit_mcu_host_runtime::{
