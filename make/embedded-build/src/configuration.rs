@@ -158,7 +158,8 @@ fn valid_snapshot_reference(placement: &PlannedGear, text: &str) -> bool {
         return false;
     }
     let mut bytes = [0; conduit_core::MAXIMUM_RESOURCE_REFERENCE_ENCODED_BYTES];
-    for (out, pair) in bytes.iter_mut().zip(text.as_bytes().chunks_exact(2)) {
+    let (pairs, _) = text.as_bytes().as_chunks::<2>();
+    for (out, pair) in bytes.iter_mut().zip(pairs) {
         let digit = |b| match b {
             b'0'..=b'9' => Some(b - b'0'),
             b'a'..=b'f' => Some(b - b'a' + 10),
