@@ -35,19 +35,19 @@ pub trait NorStorage {
     fn read(&mut self, offset: u32, bytes: &mut [u8]) -> Result<(), NorRefusal>;
     fn program(&mut self, offset: u32, bytes: &[u8]) -> Result<(), NorRefusal>;
 }
-/// Retains bounded record/read/program workspace before Play. This owns no
+/// Publication-only specialization retains one program unit, not a read record.
+/// Prepared before Play. This owns no
 /// resource grant, generation allocator, catalog, retry or delivery cursor.
 /// Publication success means an exact committed media record, not a kernel
 /// committed output, member delivery acknowledgement or permission to reclaim.
-pub struct PreparedNorSnapshot<S> {
+pub struct PreparedNorSnapshotWriter<S> {
     storage: S,
     capacity: usize,
     unit: usize,
     attempted: bool,
-    record: [u8; MAXIMUM_RECORD_BYTES],
     work: [u8; MAXIMUM_PROGRAM_UNIT],
 }
-impl<S: NorStorage> PreparedNorSnapshot<S> {
+impl<S: NorStorage> PreparedNorSnapshotWriter<S> {
     /// Pure geometry preparation; custody is returned intact on refusal. Slots
     /// need program alignment only, never exclusive erase-block ownership.
     pub fn prepare(storage: S) -> Result<Self, (S, NorRefusal)> {
@@ -66,9 +66,13 @@ impl<S: NorStorage> PreparedNorSnapshot<S> {
             capacity,
             unit,
             attempted: false,
-            record: [0; MAXIMUM_RECORD_BYTES],
             work: [0; MAXIMUM_PROGRAM_UNIT],
         })
+    }
+    /// Pure preparation geometry; this grants no publication or erase access.
+    pub fn fits_record(&self, bytes: usize) -> bool {
+        bytes <= MAXIMUM_RECORD_BYTES
+            && (HEADER + bytes).div_ceil(self.unit) * self.unit <= self.capacity - self.unit
     }
     pub fn slot_bytes(&self) -> usize {
         self.capacity
@@ -96,7 +100,7 @@ impl<S: NorStorage> PreparedNorSnapshot<S> {
         let bytes = record.publication(authority, content)?;
         let end = (HEADER + bytes.len()).div_ceil(self.unit) * self.unit;
         let commit = self.capacity - self.unit;
-        if end > commit {
+        if !self.fits_record(bytes.len()) {
             return Err(NorRefusal::Capacity);
         }
         self.attempted = true;
@@ -153,6 +157,49 @@ impl<S: NorStorage> PreparedNorSnapshot<S> {
         }
         Ok(())
     }
+}
+
+/// Compatibility reader/publication owner. The immutable NOR format and all
+/// publication logic are shared with the smaller publication-only writer.
+pub struct PreparedNorSnapshot<S> {
+    writer: PreparedNorSnapshotWriter<S>,
+    record: [u8; MAXIMUM_RECORD_BYTES],
+}
+impl<S: NorStorage> PreparedNorSnapshot<S> {
+    pub fn prepare(storage: S) -> Result<Self, (S, NorRefusal)> {
+        PreparedNorSnapshotWriter::prepare(storage).map(Self::from_writer)
+    }
+    /// Add explicitly funded read workspace to the same exclusive writer.
+    pub fn from_writer(writer: PreparedNorSnapshotWriter<S>) -> Self {
+        Self {
+            writer,
+            record: [0; MAXIMUM_RECORD_BYTES],
+        }
+    }
+    /// Discard read workspace while preserving actual slot/attempt custody.
+    pub fn into_writer(self) -> PreparedNorSnapshotWriter<S> {
+        self.writer
+    }
+    pub fn fits_record(&self, bytes: usize) -> bool {
+        self.writer.fits_record(bytes)
+    }
+    pub fn slot_bytes(&self) -> usize {
+        self.writer.slot_bytes()
+    }
+    pub fn maximum_publish_calls(&self) -> usize {
+        self.writer.maximum_publish_calls()
+    }
+    pub fn into_storage(self) -> S {
+        self.writer.into_storage()
+    }
+    pub fn publish(
+        &mut self,
+        record: &mut PreparedSnapshotRecord,
+        authority: &AuthorityBinding,
+        content: &[u8],
+    ) -> Result<(), NorRefusal> {
+        self.writer.publish(record, authority, content)
+    }
     /// Reopen requires a fresh current-Boot codec/authority. A lost publication
     /// response may leave a readable committed record; occupied bytes alone do
     /// not establish success. This method never repairs or discards a tail.
@@ -162,23 +209,27 @@ impl<S: NorStorage> PreparedNorSnapshot<S> {
         authority: &AuthorityBinding,
     ) -> Result<&'a [u8], NorRefusal> {
         record.check_read_binding(authority)?;
-        self.storage.read(
-            (self.capacity - self.unit) as u32,
-            &mut self.work[..self.unit],
+        self.writer.storage.read(
+            (self.writer.capacity - self.writer.unit) as u32,
+            &mut self.writer.work[..self.writer.unit],
         )?;
-        if self.work[..self.unit].iter().any(|v| *v != 0xa5) {
+        if self.writer.work[..self.writer.unit]
+            .iter()
+            .any(|v| *v != 0xa5)
+        {
             return Err(NorRefusal::Unpublished);
         }
         let mut header = [0; HEADER];
-        self.storage.read(0, &mut header)?;
+        self.writer.storage.read(0, &mut header)?;
         let length = u32::from_le_bytes(header[8..12].try_into().unwrap()) as usize;
         if &header[..8] != MAGIC
             || length > MAXIMUM_RECORD_BYTES
-            || HEADER + length > self.capacity - self.unit
+            || HEADER + length > self.writer.capacity - self.writer.unit
         {
             return Err(NorRefusal::Corrupt);
         }
-        self.storage
+        self.writer
+            .storage
             .read(HEADER as u32, &mut self.record[..length])?;
         if header[12..] != semantic_digest("conduit.resource/nor-record@1", &self.record[..length])
         {
@@ -187,5 +238,6 @@ impl<S: NorStorage> PreparedNorSnapshot<S> {
         Ok(record.restore(authority, &self.record[..length])?)
     }
 }
+
 #[cfg(test)]
 mod tests;

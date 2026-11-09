@@ -222,3 +222,22 @@ fn acknowledged_wrong_program_is_detected_before_marker_and_marker_itself_is_ver
         );
     }
 }
+
+#[test]
+fn publication_only_writer_drops_read_workspace_without_changing_committed_bytes() {
+    use core::mem::size_of;
+    assert!(
+        size_of::<PreparedNorSnapshot<Flash>>()
+            >= size_of::<PreparedNorSnapshotWriter<Flash>>() + MAXIMUM_RECORD_BYTES
+    );
+    let (authority, mut record) = writer();
+    let mut compact = PreparedNorSnapshotWriter::prepare(Flash::new(256)).unwrap();
+    assert!(compact.fits_record(record.record_bytes()));
+    assert!(!compact.fits_record(MAXIMUM_RECORD_BYTES + 1));
+    compact.publish(&mut record, &authority, b"[]").unwrap();
+    let expected = compact.into_storage().bytes;
+    let (authority, mut record) = writer();
+    let mut combined = PreparedNorSnapshot::prepare(Flash::new(256)).unwrap();
+    combined.publish(&mut record, &authority, b"[]").unwrap();
+    assert_eq!(combined.into_storage().bytes, expected);
+}

@@ -4,5 +4,20 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+default = []
+native-host-call = ["dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:conduit-web"]
+
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
+conduit-kernel = { path = "../../../architecture/kernel", optional = true }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false, optional = true }
+conduit-web = { path = "../../../semantics/web", default-features = false, optional = true }
+
+[dev-dependencies]
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false }
+conduit-embedded-build = { path = "../../../make/embedded-build" }
+
+[[test]]
+name = "native_publisher"
+required-features = ["native-host-call"]

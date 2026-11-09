@@ -2626,6 +2626,11 @@ name = "conduit-resource-snapshot"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-embedded-build",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-semantic-catalog",
+ "conduit-web",
 ]
 
 [[package]]
