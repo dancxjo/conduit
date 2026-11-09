@@ -188,6 +188,9 @@ unsafe impl<A: PreparedLocalKernels, B: PreparedLocalKernels, C: PreparedLocalKe
             .checked_add(self.1.retained_backing_bytes()?)?
             .checked_add(self.2.retained_backing_bytes()?)
     }
+    // Fuse the affine tuple transfer with its destination; a separate return
+    // frame otherwise duplicates all three concrete native call owners.
+    #[inline(always)]
     unsafe fn bind(self) -> Self::Bound {
         // SAFETY: caller supplies the same complete authenticated Start for
         // every fragment; these are disjoint original prepared owner loans.
