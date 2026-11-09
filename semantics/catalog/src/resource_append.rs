@@ -1,4 +1,5 @@
 //! Generic finite append equipment; no observation, catalog or delivery semantics.
+#[cfg(feature = "plot-catalog")]
 use alloc::vec::Vec;
 use conduit_core::*;
 pub use conduit_resource_snapshot::append_contract::{
