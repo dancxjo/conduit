@@ -192,23 +192,15 @@ fn build_candidate<const PORTS: usize, R: CandidateResource>(
     maximum_preparation_bytes: usize,
 ) -> Result<ContinuationCandidateDocuments, ContinuationScopeRefusal> {
     use ContinuationScopeRefusal as E;
-    let permission = intent.intent();
-    if pins.is_empty()
-        || pins.len() > crate::MAX_BODY_PLOTS
-        || pins.len() != entries.len()
-        || resources.len() != pins.len()
-        || full.plots.len() > crate::MAX_BODY_PLOTS
-        || crate::continuation_scope_digest(permission.body_id, full).map_err(|_| E::Scope)?
-            != permission.scope_digest
-        || crate::continuation_bundle_digest(permission.source_digest, pins)
-            .map_err(|_| E::Scope)?
-            != bundle.digest()
-        || bundle.digest() != permission.workset_digest
-    {
-        return Err(E::Scope);
-    }
-    let budget = maximum_preparation_bytes
-        .min(usize::try_from(permission.ceilings.runtime_bytes).map_err(|_| E::Bounds)?);
+    let budget = checked_budget(
+        intent,
+        bundle,
+        full,
+        pins,
+        entries.len(),
+        resources.len(),
+        maximum_preparation_bytes,
+    )?;
     let mut output = ContinuationCandidateDocuments {
         documents: Vec::new(),
     };
@@ -225,6 +217,66 @@ fn build_candidate<const PORTS: usize, R: CandidateResource>(
         budget,
     )?;
     scratch.resize(scratch.capacity(), 0);
+    build_destination::<PORTS, _, _>(
+        intent,
+        bundle,
+        full,
+        actual,
+        pins,
+        entries,
+        resources,
+        &mut output,
+        &mut scratch,
+        held,
+        budget,
+    )?;
+    Ok(output)
+}
+#[allow(clippy::too_many_arguments)]
+fn checked_budget(
+    intent: &VerifiedContinuationIntent<'_>,
+    bundle: &CheckedContinuationBundle,
+    full: &ContinuationFullScope<'_>,
+    pins: &[ContinuationBundleEntry<'_>],
+    entries_len: usize,
+    resources_len: usize,
+    maximum_preparation_bytes: usize,
+) -> Result<usize, ContinuationScopeRefusal> {
+    use ContinuationScopeRefusal as E;
+    let permission = intent.intent();
+    if pins.is_empty()
+        || pins.len() > crate::MAX_BODY_PLOTS
+        || pins.len() != entries_len
+        || resources_len != pins.len()
+        || full.plots.len() > crate::MAX_BODY_PLOTS
+        || crate::continuation_scope_digest(permission.body_id, full).map_err(|_| E::Scope)?
+            != permission.scope_digest
+        || crate::continuation_bundle_digest(permission.source_digest, pins)
+            .map_err(|_| E::Scope)?
+            != bundle.digest()
+        || bundle.digest() != permission.workset_digest
+    {
+        return Err(E::Scope);
+    }
+    Ok(maximum_preparation_bytes
+        .min(usize::try_from(permission.ceilings.runtime_bytes).map_err(|_| E::Bounds)?))
+}
+#[allow(clippy::too_many_arguments)]
+fn build_destination<const PORTS: usize, R: CandidateResource, D: destination::Destination>(
+    intent: &VerifiedContinuationIntent<'_>,
+    bundle: &CheckedContinuationBundle,
+    full: &ContinuationFullScope<'_>,
+    actual: &c::HostAdvertisement,
+    pins: &[ContinuationBundleEntry<'_>],
+    entries: &[ContinuationLocalEntry<'_>],
+    resources: &[&[R]],
+    output: &mut D,
+    scratch: &mut [u8],
+    mut held: usize,
+    budget: usize,
+) -> Result<(), ContinuationScopeRefusal> {
+    use ContinuationScopeRefusal as E;
+    let permission = intent.intent();
     {
         let mut ids = Vec::new();
         held = reserve(&mut ids, pins.len(), held, budget)?;
@@ -301,7 +353,7 @@ fn build_candidate<const PORTS: usize, R: CandidateResource>(
                     },
                     entry.native,
                     entry.fore,
-                    &mut scratch,
+                    scratch,
                 )
                 .map_err(|_| E::Scope)?;
             let projection = &scratch[..length];
@@ -368,41 +420,45 @@ fn build_candidate<const PORTS: usize, R: CandidateResource>(
                 .map_err(|_| E::Bounds)?
                 .checked_sub(assignment_bytes.checked_add(4).ok_or(E::Bounds)?)
                 .ok_or(E::Bounds)?;
-            let maximum = u32::try_from(available.min(remaining)).map_err(|_| E::Bounds)?;
-            let document = encode_body_fragment_document(&metadata, projection, maximum)
+            let maximum = u32::try_from(output.maximum_document_bytes(available).min(remaining))
                 .map_err(|_| E::Bounds)?;
-            if temporary
-                .checked_add(document.capacity())
-                .is_none_or(|n| n > budget)
-            {
+            let before = output.retained_bytes().ok_or(E::Bounds)?;
+            let length = output.append(&metadata, projection, maximum)?;
+            let increase = output
+                .retained_bytes()
+                .ok_or(E::Bounds)?
+                .checked_sub(before)
+                .ok_or(E::Bounds)?;
+            if temporary.checked_add(increase).is_none_or(|n| n > budget) {
                 return Err(E::Bounds);
             }
             assignment_bytes = assignment_bytes
                 .checked_add(4)
-                .and_then(|n| n.checked_add(document.len()))
+                .and_then(|n| n.checked_add(length))
                 .ok_or(E::Bounds)?;
-            held = held.checked_add(document.capacity()).ok_or(E::Bounds)?;
-            output.documents.push(document);
+            held = held.checked_add(increase).ok_or(E::Bounds)?;
         }
     }
     let mut documents = Vec::new();
     let retained = output
-        .retained_backing_bytes()
-        .and_then(|n| n.checked_add(scratch.capacity()))
+        .retained_bytes()
+        .and_then(|n| n.checked_add(scratch.len()))
         .ok_or(E::Bounds)?;
-    reserve(&mut documents, output.documents.len(), retained, budget)?;
-    documents.extend(output.documents.iter().map(Vec::as_slice));
+    reserve(&mut documents, output.len(), retained, budget)?;
+    for i in 0..output.len() {
+        documents.push(output.document(i).ok_or(E::Bounds)?);
+    }
     // Same complete SAFE verifier as externally authored fresh candidates. This
     // temporary approval cannot escape: Root later borrows its retained bytes.
     FreshContinuationScope::check_local_replacement::<PORTS>(
-        intent,
-        bundle,
-        full,
-        actual,
-        pins,
-        entries,
-        &documents,
-        &mut scratch,
+        intent, bundle, full, actual, pins, entries, &documents, scratch,
     )?;
-    Ok(output)
+    Ok(())
 }
+
+#[path = "continuation_candidate_destination.rs"]
+mod destination;
+pub use destination::{
+    build_continuation_candidate_into, build_continuation_candidate_with_resources_into,
+    ContinuationCandidateRanges,
+};

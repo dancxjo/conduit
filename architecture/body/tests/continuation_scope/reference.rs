@@ -8,6 +8,8 @@ use sha2::{Digest, Sha256};
 mod admission;
 #[path = "../../../plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
+#[path = "candidate_storage.rs"]
+mod candidate_storage;
 #[path = "../prepared_fragment/support.rs"]
 mod support;
 #[global_allocator]
@@ -434,6 +436,17 @@ fn with_reference_kind(
     });
     assert_eq!(cost.allocations, 0);
     assert_eq!(cost.reallocations, 0);
+    candidate_storage::check(
+        &verified,
+        &checked,
+        &full,
+        &actual,
+        &pins,
+        &entries,
+        &docs,
+        &mut scratch,
+        ceilings.runtime_bytes as usize,
+    );
     // Actual bounded assembler must reproduce the full rich canonical encoder,
     // not merely mint IDs which happen to satisfy its own reader.
     if content {
