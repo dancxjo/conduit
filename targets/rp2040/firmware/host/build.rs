@@ -493,6 +493,7 @@ fn prepare_dht_workset(
     calibrated
         .apply_software_mapping(&mut workset, mask, 24 * 1024, 1024 * 1024)
         .expect("actual Source/kernel ordinal factories");
+    calibrated.emit_continuation_identity(out, workset.sha256).expect("checked continuation identity emission");
     calibrated
         .emit_to(out, 2 * 1024 * 1024)
         .expect("independent assigned layouts");

@@ -55,6 +55,9 @@ fn actual_yellow_three_fragment_make_emits_canonical_seal_recipes() {
         renderer,
     );
     assert!(!resident.is_empty());
+    let identity = fs::read_to_string(out.join("continuation_identity.rs")).unwrap();
+    assert!(identity.contains("pub const WORKSET_DIGEST:"));
+    assert!(identity.contains("pub const SOURCE_DIGEST:"));
     let mut entries = 0;
     let mut emitted = String::new();
     for file in fs::read_dir(&out).unwrap() {
@@ -66,6 +69,8 @@ fn actual_yellow_three_fragment_make_emits_canonical_seal_recipes() {
             if text.contains("FRAGMENT_SEAL_RECIPE") {
                 assert!(text.contains("pub const PLOT_PLAN_SEAL:"),
                     "actual entry must pass empty-tail eligibility before emitting static pins");
+                assert!(text.contains("FRAGMENT_RECIPE_DIGEST"));
+                assert!(text.contains("FRAGMENT_PLACEMENT_IDS"));
                 emitted.push_str(&format!("mod entry_{entries} {{ {text} }}\n"));
                 entries += 1;
             }

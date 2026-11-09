@@ -293,6 +293,7 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
             2 * 1024 * 1024,
         )
         .expect("exact Source to kernel ordinal software mapping");
+    calibration.emit_continuation_identity(&out, workset.sha256).expect("checked continuation identity emission");
     calibration
         .emit_to(&out, 2 * 1024 * 1024)
         .expect("finite immutable Source layout emission");

@@ -202,6 +202,54 @@ impl Calibration {
         Ok(())
     }
 
+    /// Identity of the exact ordered immutable reconstruction recipes. The
+    /// source digest must come from the complete authored workset bytes.
+    /// This is inert fabrication identity, never a permission to execute.
+    pub fn continuation_digest(&self, source_digest: [u8; 32]) -> Result<[u8; 32], String> {
+        let placement_ids: Vec<Vec<&str>> = self
+            .entries
+            .iter()
+            .map(|entry| {
+                entry
+                    .layout
+                    .fragment_seal_placement_ids
+                    .iter()
+                    .map(String::as_str)
+                    .collect()
+            })
+            .collect();
+        let entries: Vec<_> = self
+            .entries
+            .iter()
+            .zip(&placement_ids)
+            .map(
+                |(entry, placement_ids)| conduit_body::ContinuationBundleEntry {
+                    name: &entry.name,
+                    source_document: entry.source_document_id.as_str(),
+                    checked_plot: entry.checked_plot_id.as_str(),
+                    expanded_plot: entry.expanded_plot_id.as_str(),
+                    projection_digest: entry.layout.projection_template_digest,
+                    recipe_digest: c::fragment_seal_recipe_identity(
+                        entry.layout.fragment_seal_recipe.pieces(),
+                    ),
+                    placement_ids,
+                    placement_nodes: &entry.layout.fragment_seal_to_kernel,
+                },
+            )
+            .collect();
+        conduit_body::continuation_bundle_digest(source_digest, &entries).map_err(debug)
+    }
+
+    /// Emit the owner-visible recipe identity from checked fabrication inputs.
+    pub fn emit_continuation_identity(
+        &self,
+        out: &Path,
+        source_digest: [u8; 32],
+    ) -> Result<(), String> {
+        let digest = self.continuation_digest(source_digest)?;
+        std::fs::write(out.join("continuation_identity.rs"), format!("// Inert recipe identity; not Start authority.\npub const SOURCE_DIGEST:[u8;32]={source_digest:?};\npub const WORKSET_DIGEST:[u8;32]={digest:?};\n")).map_err(debug)
+    }
+
     /// Static topology and definitions only; emitting these never installs a
     /// provider, resource grant, membership receipt or execution permission.
     pub fn emit_to(&self, out: &Path, maximum_generated_bytes: usize) -> Result<(), String> {
@@ -215,6 +263,7 @@ impl Calibration {
                 entry.layout.projection_template_digest,
             );
             text.insert_str(0, &continuation);
+            text.insert_str(0, &format!("pub const FRAGMENT_RECIPE_DIGEST:[u8;32]={:?};\npub const FRAGMENT_PLACEMENT_IDS:&[&str]=&{:?};\n", c::fragment_seal_recipe_identity(entry.layout.fragment_seal_recipe.pieces()), entry.layout.fragment_seal_placement_ids));
             text.insert_str(0, &seal_emission::emit(&entry.layout.fragment_seal_recipe));
             text.insert_str(
                 0,

@@ -66,6 +66,10 @@ mod candidate;
 mod character_purpose;
 mod character_purpose_continuity;
 mod clock_admission;
+mod continuation_bundle;
+mod continuation_ceilings;
+#[cfg(feature = "authenticated-admission")]
+mod continuation_intent;
 mod continuity;
 mod conversation;
 mod current_host_offers;
@@ -78,9 +82,6 @@ mod federation;
 mod hold;
 #[cfg(feature = "authenticated-admission")]
 mod host_command_attribution;
-#[cfg(feature = "authenticated-admission")]
-mod continuation_intent;
-mod continuation_ceilings;
 mod host_execution_delegation;
 mod host_preparation_delegation;
 mod identity;
@@ -117,6 +118,10 @@ pub use candidate::*;
 pub use character_purpose::*;
 pub use character_purpose_continuity::*;
 pub use clock_admission::*;
+pub use continuation_bundle::*;
+pub use continuation_ceilings::ContinuationCeilings;
+#[cfg(feature = "authenticated-admission")]
+pub use continuation_intent::*;
 pub use continuity::*;
 pub use conversation::*;
 pub use current_host_offers::*;
@@ -129,9 +134,6 @@ pub use federation::*;
 pub use hold::*;
 #[cfg(feature = "authenticated-admission")]
 pub use host_command_attribution::*;
-#[cfg(feature = "authenticated-admission")]
-pub use continuation_intent::*;
-pub use continuation_ceilings::ContinuationCeilings;
 pub use host_execution_delegation::*;
 pub use host_preparation_delegation::*;
 #[cfg(feature = "authenticated-admission")]

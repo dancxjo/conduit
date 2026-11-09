@@ -100,3 +100,6 @@ fn push_header(canonical: &mut impl CanonicalSink, header: FragmentFingerprintHe
     execution_regions::push_canonical(canonical, header.execution_regions);
     execution_fusion::push_canonical(canonical, header.execution_fusions);
 }
+
+mod recipe_identity;
+pub use recipe_identity::fragment_seal_recipe_identity;

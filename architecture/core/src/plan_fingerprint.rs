@@ -38,10 +38,10 @@ pub use plot_seal::{PlainPlotPlanSeal, PlotFragmentSeal, PlotPlanSealRefusal};
 
 mod fragment;
 pub use fragment::{
-    compute_fragment_id, fragment_seal_recipe_digest, FragmentFingerprintBuilder,
-    FragmentFingerprintHeader, FragmentFingerprintRefusal, FragmentFingerprintTail,
-    FragmentSealBinding, FragmentSealField, FragmentSealLimits, FragmentSealPiece,
-    FragmentSealRecipe, FragmentSealRefusal, FragmentSealValue,
+    compute_fragment_id, fragment_seal_recipe_digest, fragment_seal_recipe_identity,
+    FragmentFingerprintBuilder, FragmentFingerprintHeader, FragmentFingerprintRefusal,
+    FragmentFingerprintTail, FragmentSealBinding, FragmentSealField, FragmentSealLimits,
+    FragmentSealPiece, FragmentSealRecipe, FragmentSealRefusal, FragmentSealValue,
 };
 
 pub(crate) fn push_configuration_value(
@@ -277,11 +277,14 @@ pub(crate) fn compute_plan_id(
     activation_preparations: &[PlannedActivationPreparationBinding],
 ) -> PlanId {
     let mut canonical = CanonicalHash::new();
-    plot_seal::push_identity(&mut canonical, PlainPlotPlanSeal {
-        source_document_id: plot_identity.source_document_id.as_str(),
-        checked_plot_id: plot_identity.checked_plot_id.as_str(),
-        expanded_plot_id: plot_identity.expanded_plot_id.as_str(),
-    });
+    plot_seal::push_identity(
+        &mut canonical,
+        PlainPlotPlanSeal {
+            source_document_id: plot_identity.source_document_id.as_str(),
+            checked_plot_id: plot_identity.checked_plot_id.as_str(),
+            expanded_plot_id: plot_identity.expanded_plot_id.as_str(),
+        },
+    );
     if !realization_backs.is_empty() {
         plan_realization::push_canonical(&mut canonical, realization_backs);
     }
@@ -402,9 +405,13 @@ pub(crate) fn compute_plan_id(
             }
         }
     }
-    plot_seal::push_commitments(&mut canonical, commitments.iter().map(|commitment| {
-        PlotFragmentSeal { host_id: commitment.host_id.as_str(), fragment_id: commitment.fragment_id.as_str() }
-    }));
+    plot_seal::push_commitments(
+        &mut canonical,
+        commitments.iter().map(|commitment| PlotFragmentSeal {
+            host_id: commitment.host_id.as_str(),
+            fragment_id: commitment.fragment_id.as_str(),
+        }),
+    );
     PlanId::from(crate::hex_digest(&canonical.finish()))
 }
 

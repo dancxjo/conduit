@@ -30,6 +30,7 @@ pub struct Layout {
     /// Canonical placement ordinal to actual lowered kernel node, derived by
     /// exact Gear identity; never inferred from Source-list or kernel order.
     pub fragment_seal_to_kernel: Vec<u16>,
+    pub fragment_seal_placement_ids: Vec<String>,
     /// Checked calibration bytes and Boot-independent static digest. These are
     /// inert construction material; fresh sealing/admission remain mandatory.
     pub projection_template: Vec<u8>,
@@ -224,6 +225,7 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     Ok(Layout {
         fragment_seal_recipe,
         fragment_seal_to_kernel,
+        fragment_seal_placement_ids: fragment.placements.iter().map(|p| p.placement_id.as_str().to_owned()).collect(),
         projection_template: bytes,
         projection_template_digest,
         maxima: input.maxima,

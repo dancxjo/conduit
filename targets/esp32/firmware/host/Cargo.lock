@@ -373,6 +373,7 @@ dependencies = [
 name = "conduit-mcu-source-build"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-embedded-build",
  "conduit-environment-runtime",

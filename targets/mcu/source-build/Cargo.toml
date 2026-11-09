@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 [dependencies]
+conduit-body = { path = "../../../architecture/body", default-features = false }
 conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-embedded-build = { path = "../../../make/embedded-build" }
