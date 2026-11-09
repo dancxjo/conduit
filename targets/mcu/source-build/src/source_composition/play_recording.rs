@@ -1,5 +1,5 @@
-//! Finite recording call bounds from the original checked software definitions.
-//! These are requested ceilings; they do not enlarge physical storage or grants.
+// Finite recording call bounds from the original checked software definitions.
+// These are requested ceilings; they do not enlarge physical storage or grants.
 use conduit_mcu_host_runtime::{
     execution_authority::{Operation, Refusal},
     execution_factory::SoftwareDefinition,
