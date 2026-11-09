@@ -36,6 +36,8 @@ mod text_state;
 pub use text_state::*;
 mod http;
 pub use http::*;
+mod resource_append;
+pub use resource_append::*;
 mod resource_snapshot;
 pub use resource_snapshot::*;
 mod json;

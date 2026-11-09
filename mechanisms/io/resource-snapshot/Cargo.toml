@@ -21,3 +21,10 @@ conduit-embedded-build = { path = "../../../make/embedded-build" }
 [[test]]
 name = "native_publisher"
 required-features = ["native-host-call"]
+
+[[test]]
+name = "native_appender"
+required-features = ["native-host-call"]
+
+[build-dependencies]
+conduit-core = { path = "../../../architecture/core", default-features = false }

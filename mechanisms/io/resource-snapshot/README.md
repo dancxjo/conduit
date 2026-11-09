@@ -75,3 +75,30 @@ exact retained input can retrieve the cached result without a second program.
 Changed/stale requests, cancellation, revocation or a media failure cannot retry
 side effects. Media commit, kernel commit, remote delivery and reclamation remain
 separate; this installs no scheduler, durable catalog, rollover or erase policy.
+
+With `native-host-call`, `native_append::ReadyRecordAppender` retains an actual
+recovered `PreparedNorRecordResidence` and independently held current-Boot append
+authority. Its plain `machine/nor-record-residence@1` resource unit denotes the
+entire affine finite residence, not unlimited bytes/work and not a content
+Resource reference. Exact physical bytes, slots, remaining write slots, original
+finite call ceiling, append calls and recovery reads are exposed for separate
+Root funding. Calls/status work and physical write capacity are distinct bounds.
+Preparation uses the ordinary assigned/Fore native binder and rotating Base
+capability; it retains no rich Kind or Type tree. The catalog's generic
+`resource/try-append-record` consumes existing `value/bytes` (at most 200) and
+emits the canonical declared variant `recorded(U64) | capacity(Empty) |
+uncertain(Empty) | recovery-required(Empty)`. Build-host derivation links its
+immutable schema once; the existing Core composers prepare all result storage.
+
+The exact outcome is cached for same-request/same-byte retry without another
+program operation. Only actual kernel acceptance may acknowledge the exact
+request/outcome through the owner API and permit the next request. Capacity and
+uncertain media are ordinary declared results, allowing authored sampling flow
+to continue. After an uncertain attempt, later calls report recovery-required
+without further writes; the original uncertain custody remains retained. Scope,
+authority and invalid request failures remain hard refusals. Output pressure
+never programs media. Revoked retirement preserves committed/uncertain custody
+and returns no erase grant. Media publication and kernel acknowledgment do not
+claim remote recording, catalog commitment, delivery, reclamation or device Start.
+Root must still admit provider memory/work and exclude timing-sensitive operations
+through the shared native activity window before invoking synchronous flash work.

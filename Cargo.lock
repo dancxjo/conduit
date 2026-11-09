@@ -2704,6 +2704,7 @@ dependencies = [
  "conduit-plot",
  "conduit-process",
  "conduit-purpose",
+ "conduit-resource-snapshot",
  "conduit-robotics",
  "conduit-text",
  "conduit-time",

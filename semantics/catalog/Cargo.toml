@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-resource-snapshot = { path = "../../mechanisms/io/resource-snapshot", default-features = false }
 conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["step-test-support"] }
 conduit-alife = { path = "../alife" }
 conduit-audio = { path = "../audio" }

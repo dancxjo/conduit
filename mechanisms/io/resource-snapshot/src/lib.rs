@@ -5,6 +5,7 @@ extern crate alloc;
 #[macro_use]
 extern crate std;
 pub mod append;
+pub mod append_result;
 pub mod nor;
 mod record;
 pub use record::*;
@@ -12,3 +13,6 @@ pub use record::*;
 pub mod native;
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "native-host-call")]
+pub mod native_append;
