@@ -25,6 +25,11 @@ pub struct Inputs<'a> {
 }
 
 pub struct Layout {
+    /// Inert canonical identity program, not a sealed current-Boot fragment.
+    pub fragment_seal_recipe: c::FragmentSealRecipe,
+    /// Canonical placement ordinal to actual lowered kernel node, derived by
+    /// exact Gear identity; never inferred from Source-list or kernel order.
+    pub fragment_seal_to_kernel: Vec<u16>,
     /// Checked calibration bytes and Boot-independent static digest. These are
     /// inert construction material; fresh sealing/admission remain mandatory.
     pub projection_template: Vec<u8>,
@@ -82,6 +87,10 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
         return Err("structural template must lower one complete local fragment".into());
     }
     let fragment = &plan.fragments[0];
+    let seal_limits = c::FragmentSealRecipe::required_limits(fragment)
+        .map_err(|e| format!("canonical fragment recipe measurement: {e:?}"))?;
+    let fragment_seal_recipe = c::FragmentSealRecipe::capture(fragment, seal_limits)
+        .map_err(|e| format!("canonical fragment recipe capture: {e:?}"))?;
     let resident = e::bind_current_mixed_resident_expressions(
         &plan,
         &fragment.fragment_id,
@@ -137,6 +146,17 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             Ok((node.node, placement.gear_id.clone()))
         })
         .collect::<Result<Vec<_>, String>>()?;
+    let fragment_seal_to_kernel = fragment
+        .placements
+        .iter()
+        .map(|placement| {
+            nodes
+                .iter()
+                .find(|(_, gear)| gear == &placement.gear_id)
+                .map(|(node, _)| *node)
+                .ok_or("canonical placement lost lowered Gear")
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     let kernel = generated.kernel();
     let mut cord_value_slot_capacities = Vec::new();
     for cord in &kernel.cords {
@@ -193,6 +213,8 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
         }
     }
     Ok(Layout {
+        fragment_seal_recipe,
+        fragment_seal_to_kernel,
         projection_template: bytes,
         projection_template_digest,
         maxima: input.maxima,

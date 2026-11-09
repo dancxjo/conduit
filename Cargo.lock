@@ -2046,11 +2046,14 @@ name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-environment-face",
+ "conduit-face",
  "conduit-kernel",
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
  "conduit-semantic-catalog",
+ "conduit-seven-segment-mask",
  "conduit-time",
 ]
 
@@ -2180,11 +2183,16 @@ dependencies = [
  "conduit-host-make",
  "conduit-i2c-transaction",
  "conduit-kernel",
+ "conduit-mcu-host-runtime",
  "conduit-mcu-source-build",
+ "conduit-monotonic-wait",
  "conduit-plan-lowering",
  "conduit-plot",
+ "conduit-pulse-capture",
  "conduit-rp2040-flash-layout",
  "conduit-semantic-catalog",
+ "conduit-seven-segment-mask",
+ "conduit-tm1637-wire",
  "conduit-wire",
  "critical-section",
  "ed25519-dalek",
@@ -2288,6 +2296,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-mcu-host-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-kernel",
+ "conduit-monotonic-wait",
+ "conduit-plan-lowering",
+ "conduit-pulse-capture",
+ "conduit-seven-segment-mask",
+ "conduit-time",
+ "conduit-tm1637-wire",
+ "conduit-wire",
+ "ed25519-dalek",
+ "serde",
+ "serde-json-core",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "conduit-mcu-source-build"
 version = "0.1.0"
 dependencies = [
@@ -2314,6 +2344,16 @@ version = "0.1.0"
 dependencies = [
  "conduit-audio",
  "conduit-core",
+]
+
+[[package]]
+name = "conduit-monotonic-wait"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-time",
 ]
 
 [[package]]
@@ -2552,6 +2592,8 @@ name = "conduit-pulse-capture"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-plot",
 ]
 
@@ -2661,6 +2703,16 @@ dependencies = [
  "conduit-time",
  "conduit-web",
  "serde",
+]
+
+[[package]]
+name = "conduit-seven-segment-mask"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-kernel",
+ "conduit-plot",
 ]
 
 [[package]]

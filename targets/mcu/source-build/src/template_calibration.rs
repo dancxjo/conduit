@@ -7,6 +7,9 @@ use conduit_host_make as h;
 use conduit_planner as p;
 use std::{collections::BTreeMap, fmt::Write, path::Path};
 
+#[path = "template_seal_emission.rs"]
+mod seal_emission;
+
 pub struct EntryLimits {
     pub entry: String,
     pub connections: BTreeMap<p::ConnectionEndpoints, p::ConnectionQueueLimits>,
@@ -212,6 +215,14 @@ impl Calibration {
                 entry.layout.projection_template_digest,
             );
             text.insert_str(0, &continuation);
+            text.insert_str(0, &seal_emission::emit(&entry.layout.fragment_seal_recipe));
+            text.insert_str(
+                0,
+                &format!(
+                    "pub const FRAGMENT_SEAL_TO_KERNEL:&[u16]=&{:?};\n",
+                    entry.layout.fragment_seal_to_kernel
+                ),
+            );
             let geometry = format!(
                 "pub const CORD_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\npub const STEP_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\npub const HOST_CALL_VALUE_SLOT_CAPACITIES:&[u32]=&{:?};\n",
                 entry.layout.cord_value_slot_capacities,

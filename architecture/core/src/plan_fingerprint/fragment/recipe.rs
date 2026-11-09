@@ -48,6 +48,29 @@ pub struct FragmentSealRecipe {
     pieces: Vec<OwnedPiece>,
 }
 impl FragmentSealRecipe {
+    /// Builder-side exact measurement, not a resource grant. Uses the same
+    /// canonical writer without retaining bytes or allocating any storage.
+    pub fn required_limits(
+        fragment: &PlanFragment,
+    ) -> Result<FragmentSealLimits, FragmentSealRefusal> {
+        if !supported(fragment) {
+            return Err(FragmentSealRefusal::Unsupported);
+        }
+        let mut count = Measure {
+            bytes: 0,
+            pieces: 0,
+            literal: false,
+            overflow: false,
+        };
+        emit(&mut count, fragment);
+        if count.overflow {
+            return Err(FragmentSealRefusal::Capacity);
+        }
+        Ok(FragmentSealLimits {
+            literal_bytes: count.bytes,
+            pieces: count.pieces,
+        })
+    }
     /// Builder-side capture uses the same field serializer as full Core sealing.
     /// All storage is reserved fallibly before encoding. A refused recipe cannot
     /// carry unhandled Boot-dependent tails forward as literal old authority.
@@ -81,12 +104,7 @@ impl FragmentSealRecipe {
             limits,
             refusal: None,
         };
-        push_header(&mut sink, fragment.into());
-        push_u32(&mut sink, fragment.placements.len() as u32);
-        for gear in &fragment.placements {
-            placement::push_placement(&mut sink, gear);
-        }
-        tail::push_tail(&mut sink, fragment.into());
+        emit(&mut sink, fragment);
         if let Some(refusal) = sink.refusal {
             return Err(refusal);
         }
@@ -250,5 +268,56 @@ impl CanonicalSink for Capture<'_> {
                 .push(OwnedPiece::Literal(start, bytes.len()));
         }
         self.recipe.literals.extend_from_slice(bytes);
+    }
+}
+
+fn emit(sink: &mut impl CanonicalSink, fragment: &PlanFragment) {
+    push_header(sink, fragment.into());
+    push_u32(sink, fragment.placements.len() as u32);
+    for gear in &fragment.placements {
+        placement::push_placement(sink, gear);
+    }
+    tail::push_tail(sink, fragment.into());
+}
+struct Measure {
+    bytes: usize,
+    pieces: usize,
+    literal: bool,
+    overflow: bool,
+}
+impl Measure {
+    fn next(&mut self) {
+        if let Some(n) = self.pieces.checked_add(1) {
+            self.pieces = n;
+        } else {
+            self.overflow = true;
+        }
+    }
+}
+impl CanonicalSink for Measure {
+    fn scope_string(&mut self, _: Field<'_>, _: &str) {
+        self.next();
+        self.literal = false;
+    }
+    fn scope_u64(&mut self, _: Field<'_>, _: u64) {
+        self.next();
+        self.literal = false;
+    }
+    fn push(&mut self, _: u8) {
+        self.extend_from_slice(&[0]);
+    }
+    fn extend_from_slice(&mut self, bytes: &[u8]) {
+        if bytes.is_empty() {
+            return;
+        }
+        if !self.literal {
+            self.next();
+            self.literal = true;
+        }
+        if let Some(n) = self.bytes.checked_add(bytes.len()) {
+            self.bytes = n;
+        } else {
+            self.overflow = true;
+        }
     }
 }

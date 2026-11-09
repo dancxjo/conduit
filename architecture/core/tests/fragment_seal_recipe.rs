@@ -228,3 +228,22 @@ fn preparation_pressure_and_unhandled_tail_fail_closed() {
         Err(FragmentSealRefusal::Unsupported)
     ));
 }
+
+#[test]
+fn measurement_matches_exact_captured_literals_and_piece_count() {
+    let f = fragment("boot/original");
+    let limits = FragmentSealRecipe::required_limits(&f).unwrap();
+    let recipe = FragmentSealRecipe::capture(&f, limits).unwrap();
+    assert_eq!(recipe.pieces().count(), limits.pieces);
+    assert_eq!(
+        recipe
+            .pieces()
+            .map(|p| match p {
+                FragmentSealPiece::Literal(b) => b.len(),
+                _ => 0,
+            })
+            .sum::<usize>(),
+        limits.literal_bytes
+    );
+    assert!(recipe.digest(&values(&f)).is_ok());
+}

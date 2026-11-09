@@ -18,6 +18,11 @@ conduit-plot = { path = "../../../architecture/plot" }
 conduit-mcu-source-build = { path = "../../mcu/source-build" }
 
 [dev-dependencies]
+conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", features = ["native-kernel"] }
+conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["host-call"] }
+conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"] }
+conduit-monotonic-wait = { path = "../../../mechanisms/io/monotonic-wait" }
+conduit-mcu-host-runtime = { path = "../../mcu/host-runtime", features = ["execution"] }
 heapless = "0.8"
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 ed25519-dalek = { version = "2.2", default-features = false }
