@@ -1,6 +1,10 @@
 //! Concurrent service of one already Started fragment's original kernel/Calls.
 //! This runner neither prepares nor admits work. Independent fragments retain
 //! independent runners, so output failure need not cancel local measurement.
+#[path = "native_activity.rs"]
+mod activity;
+pub use activity::NativeActivity;
+
 use crate::{
     execution::StoredExecutionKernel,
     execution_factory::Calls,
@@ -63,6 +67,7 @@ pub struct Runner<
     yield_to_host: &'a Y,
     cancelled: &'a F,
     done: Cell<bool>,
+    activity: Option<&'a NativeActivity>,
 }
 impl<
         'a,
@@ -91,7 +96,14 @@ impl<
             yield_to_host,
             cancelled,
             done: Cell::new(false),
+            activity: None,
         }
+    }
+    /// Share one single-core timing exclusion across every GPIO runner and the
+    /// blocking provider actor. This does not confer resource or Start authority.
+    pub fn with_activity(mut self, activity: &'a NativeActivity) -> Self {
+        self.activity = Some(activity);
+        self
     }
     async fn scheduler(&self) -> Result<(), Refusal<O::Error>> {
         loop {
@@ -127,6 +139,11 @@ impl<
     ) -> Result<(), Refusal<O::Error>> {
         let mut call = call;
         while !self.done.get() {
+            let timing = self.activity.and_then(NativeActivity::try_timing);
+            if self.activity.is_some() && timing.is_none() {
+                self.yield_to_host.pause().await;
+                continue;
+            }
             if let (Some(call), Ok(mut kernel)) =
                 (call.as_deref_mut(), self.kernel.try_borrow_mut())
             {
@@ -142,6 +159,7 @@ impl<
                         .map_err(Refusal::Observer)?;
                 }
             }
+            drop(timing);
             self.yield_to_host.pause().await;
         }
         Ok(())
@@ -152,6 +170,11 @@ impl<
     ) -> Result<(), Refusal<O::Error>> {
         let mut call = call;
         while !self.done.get() {
+            let timing = self.activity.and_then(NativeActivity::try_timing);
+            if self.activity.is_some() && timing.is_none() {
+                self.yield_to_host.pause().await;
+                continue;
+            }
             if let (Some(call), Ok(mut kernel)) =
                 (call.as_deref_mut(), self.kernel.try_borrow_mut())
             {
@@ -164,6 +187,7 @@ impl<
                         .map_err(Refusal::Observer)?;
                 }
             }
+            drop(timing);
             self.yield_to_host.pause().await;
         }
         Ok(())
