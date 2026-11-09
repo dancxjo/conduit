@@ -86,6 +86,8 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     if plan.fragments.len() != 1 {
         return Err("structural template must lower one complete local fragment".into());
     }
+    c::PlainPlotPlanSeal::capture(&plan)
+        .map_err(|e| format!("canonical Plot Plan seal eligibility: {e:?}"))?;
     let fragment = &plan.fragments[0];
     let seal_limits = c::FragmentSealRecipe::required_limits(fragment)
         .map_err(|e| format!("canonical fragment recipe measurement: {e:?}"))?;

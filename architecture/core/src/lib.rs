@@ -81,6 +81,7 @@ pub use plan_fingerprint::{
     FragmentFingerprintHeader, FragmentFingerprintRefusal, FragmentFingerprintTail,
     fragment_seal_recipe_digest, FragmentSealBinding, FragmentSealField, FragmentSealLimits,
     FragmentSealPiece, FragmentSealRecipe, FragmentSealRefusal, FragmentSealValue,
+    PlainPlotPlanSeal, PlotFragmentSeal, PlotPlanSealRefusal,
 };
 mod structured_info;
 mod temporal;

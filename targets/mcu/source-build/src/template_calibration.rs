@@ -266,6 +266,7 @@ impl Calibration {
             // Entry identity comes from the actual checked expansion, never
             // from a received projection or the template's placeholder Boot.
             let identities = format!("pub const SOURCE_DOCUMENT_ID:&str={:?};\npub const CHECKED_PLOT_ID:&str={:?};\npub const EXPANDED_PLOT_ID:&str={:?};\n",entry.source_document_id.as_str(),entry.checked_plot_id.as_str(),entry.expanded_plot_id.as_str());
+            text.insert_str(0, "pub const PLOT_PLAN_SEAL:conduit_core::PlainPlotPlanSeal<'static>=conduit_core::PlainPlotPlanSeal{source_document_id:SOURCE_DOCUMENT_ID,checked_plot_id:CHECKED_PLOT_ID,expanded_plot_id:EXPANDED_PLOT_ID};\n");
             text.insert_str(0, &identities);
             for record in &entry.layout.records {
                 writeln!(
