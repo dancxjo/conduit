@@ -272,3 +272,73 @@ fn bounded_document_ceiling_is_independent_of_frame_ceiling() {
     assert!(approved);
     assert_eq!(frames.sent.len(), 1);
 }
+
+#[test]
+fn explicit_caller_extent_carries_a_larger_document_without_larger_frames() {
+    let payload = vec![42; 17 * 1024];
+    let signature = [9; 64];
+    let digest = Sha256::digest(&payload).into();
+    let mut value: serde_json::Value = serde_json::from_slice(&challenge()).unwrap();
+    value["maximum_payload_bytes"] = serde_json::json!(18432);
+    let mut frames = fake(vec![serde_json::to_vec(&value).unwrap(), report(digest)]);
+    let start = Instant::now();
+    let elapsed = frames.elapsed.clone();
+    assert_eq!(
+        exchange(
+            &mut frames,
+            Duration::from_secs(1),
+            18432,
+            |_| {
+                Ok(PreparationCommandBytes {
+                    payload: &payload,
+                    signature: &signature,
+                })
+            },
+            || start + elapsed.get()
+        ),
+        Ok(PreparationExchange::InputReported(
+            ReportedPreparationInput {
+                payload_sha256: digest
+            }
+        ))
+    );
+    let mut storage = vec![0; 18432];
+    let mut assembly = conduit_wire::BorrowedBoundedDocumentAssembly::new(&mut storage, 64);
+    for chunk in &frames.sent[1..frames.sent.len() - 1] {
+        assert!(chunk.len() <= PREPARATION_FRAME_BYTES);
+        assembly.push(chunk).unwrap();
+    }
+    assert_eq!(assembly.complete().unwrap(), payload.as_slice());
+}
+
+#[test]
+fn caller_extent_refuses_unfunded_policy_and_receiver_claims_before_approval() {
+    for maximum in [0, MAX_PREPARATION_DOCUMENT_BYTES + 1] {
+        let mut frames = fake(vec![]);
+        assert_eq!(
+            exchange(
+                &mut frames,
+                Duration::from_secs(1),
+                maximum,
+                |_| panic!("unfunded approval"),
+                Instant::now
+            ),
+            Err(PreparationTransportError::Bounds)
+        );
+        assert!(frames.sent.is_empty());
+    }
+    let mut value: serde_json::Value = serde_json::from_slice(&challenge()).unwrap();
+    value["maximum_payload_bytes"] = serde_json::json!(18433);
+    let mut frames = fake(vec![serde_json::to_vec(&value).unwrap()]);
+    assert_eq!(
+        exchange(
+            &mut frames,
+            Duration::from_secs(1),
+            18432,
+            |_| panic!("oversized receiver approval"),
+            Instant::now
+        ),
+        Err(PreparationTransportError::Challenge)
+    );
+    assert_eq!(frames.sent.len(), 1);
+}
