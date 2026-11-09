@@ -59,9 +59,8 @@ pub async fn run(
             },
         )
         .expect("original checked Root");
-    // Outer cold construction and the continuing Root may reuse poll scratch;
-    // explicit inner phases still isolate their affine preparation/Start work.
-    shared::run(root, equipment, arena, link).await
+    let future = core::pin::pin!(shared::run(root, equipment, arena, link));
+    conduit_mcu_host_runtime::poll_boundary::separate(future).await
 }
 mod shared {
     include!(concat!(env!("OUT_DIR"), "/source_runtime.rs"));

@@ -161,16 +161,14 @@ async fn main(spawner: Spawner) {
     if let Some(serial) = serial {
         let host = alloc::format!("rp2040/flash/{serial}");
         if let Some(seed) = seed::Seed::load(&host) {
-            // Reuse cold initialization scratch in the same outer poll frame.
-            // The shared Root retains separate inner preparation/Start polls.
-            runtime::run(
+            let future = core::pin::pin!(runtime::run(
                 seed,
                 host,
                 [rng.next_u64(), rng.next_u64()],
                 &mut link,
                 flash,
-            )
-            .await;
+            ));
+            conduit_mcu_host_runtime::poll_boundary::separate(future).await;
         }
     }
     #[cfg(not(sensor_dht11))]
