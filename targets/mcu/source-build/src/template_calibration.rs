@@ -45,6 +45,7 @@ pub enum MaskRole {
 pub struct Entry {
     pub name: String,
     pub mask_roles: Option<[MaskRole; 3]>,
+    pub append_status: Option<c::AssignedForeRequirement>,
     pub source_document_id: c::SourceDocumentId,
     pub checked_plot_id: c::CheckedPlotId,
     pub expanded_plot_id: c::ExpandedPlotId,
@@ -146,9 +147,11 @@ pub fn compile(workset: &workset::Workset, input: Inputs<'_>) -> Result<Calibrat
             })
             .collect::<Result<Vec<_>, _>>()?;
         let mask_roles = selected_mask_roles(&source.plot, &layout)?;
+        let append_status = selected_append_status(&source.plot, &layout)?;
         entries.push(Entry {
             name: source.name.clone(),
             mask_roles,
+            append_status,
             source_document_id: source.plot.expanded.source_document_id.clone(),
             checked_plot_id: source.plot.expanded.checked_plot_id.clone(),
             expanded_plot_id: source.plot.expanded.expanded_plot_id.clone(),
@@ -257,6 +260,11 @@ impl Calibration {
         let mut total = 0usize;
         for (index, entry) in self.entries.iter().enumerate() {
             let mut text = format!("pub const ENTRY:&str={:?};\npub const COUNTS:[u8;conduit_core::ASSIGNED_PLAN_COUNT_KINDS]={:?};\npub const SOURCE_TO_KERNEL:&[u16]=&{:?};\npub const RECORDS:&[conduit_core::AssignedRecordRequirement]=&[\n", entry.name, entry.layout.counts, entry.source_to_kernel);
+            let status = match entry.append_status {
+                None => "None".to_owned(),
+                Some(pin) => format!("Some(conduit_core::AssignedForeRequirement::new({},{},conduit_core::AssignedForeDirection::Output,conduit_core::AssignedIdentity({:?}),{:?}))",pin.endpoint(),pin.cord(),&pin.payload()[5..21],&pin.payload()[21..]),
+            };
+            writeln!(text,"pub const APPEND_STATUS_FORE:Option<conduit_core::AssignedForeRequirement>={status};").unwrap();
             let continuation = format!(
                 "// Inert checked construction; not a sealed current-Boot Plan or execution grant.\npub const PROJECTION_TEMPLATE:&[u8]=&{:?};\npub const PROJECTION_TEMPLATE_DIGEST:[u8;32]={:?};\n",
                 entry.layout.projection_template,
@@ -430,4 +438,57 @@ fn selected_mask_roles(
         }
     }
     Ok(Some(roles))
+}
+
+fn selected_append_status(
+    plot: &conduit_plot::ExpandedAuthoringPlot,
+    layout: &template::Layout,
+) -> Result<Option<c::AssignedForeRequirement>, String> {
+    let Some(port) = plot
+        .front
+        .outputs()
+        .iter()
+        .find(|port| port.port_id.as_str() == "append_status")
+    else {
+        return Ok(None);
+    };
+    let kind = conduit_semantic_catalog::resource_append_semantic_contract();
+    let expected = &kind.outputs[0];
+    let contract = plot
+        .front
+        .value_contract(&c::FrontValueLocation::Output(port.port_id.clone()));
+    let expected_contract = kind.checked_front();
+    if port.value_kind != expected.value_kind
+        || port.temporal != expected.temporal
+        || port.direction != c::PortDirection::Output
+        || port.abnormal_kind.is_some()
+        || contract
+            != expected_contract
+                .value_contract(&c::FrontValueLocation::Output(expected.port_id.clone()))
+        || plot
+            .output_bindings
+            .iter()
+            .filter(|binding| {
+                binding.front_port_id == port.port_id
+                    && binding.track == c::ConnectionTrack::Payload
+            })
+            .count()
+            != 1
+    {
+        return Err(
+            "append_status must expose the exact finite canonical append outcome Flow".into(),
+        );
+    }
+    let identity = c::AssignedIdentity::from_text("append_status");
+    let mut pins = layout.fore.iter().filter(|pin| {
+        pin.direction() == c::AssignedForeDirection::Output && pin.payload()[5..21] == identity.0
+    });
+    let pin = pins
+        .next()
+        .copied()
+        .ok_or("append_status has no calibrated Fore ABI")?;
+    if pins.next().is_some() {
+        return Err("duplicate append_status calibrated Fore".into());
+    }
+    Ok(Some(pin))
 }

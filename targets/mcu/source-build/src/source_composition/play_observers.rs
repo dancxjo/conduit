@@ -26,27 +26,65 @@ pub(super) enum Delivery {
     Failed,
 }
 pub(super) struct SampleObserver<'a> {
+    pub(super) status: conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus,
     pub(super) inspection: &'a State<3>,
 }
 impl<'r, 'f> Observer<crate::play::SamplingKernel<'r, 'f>> for SampleObserver<'_> {
     type Error = BridgeRefusal;
     fn before_step(
         &mut self,
-        _: &mut crate::play::SamplingKernel<'r, 'f>,
+        kernel: &mut crate::play::SamplingKernel<'r, 'f>,
     ) -> Result<(), BridgeRefusal> {
-        Ok(())
+        self.drain_status(kernel)
     }
     fn completed(
         &mut self,
         kernel: &mut crate::play::SamplingKernel<'r, 'f>,
         _: Dispatch,
     ) -> Result<(), BridgeRefusal> {
+        self.drain_status(kernel)?;
         if let Some(event) = kernel.signs().events().last() {
             self.inspection
                 .record(0, event)
                 .map_err(BridgeRefusal::Inspection)?;
         }
         Ok(())
+    }
+}
+impl SampleObserver<'_> {
+    fn drain_status(
+        &mut self,
+        kernel: &mut crate::play::SamplingKernel<'_, '_>,
+    ) -> Result<(), BridgeRefusal> {
+        use conduit_kernel::ValueStore as _;
+        let Some(pin) = self.status.boundary() else {
+            return Ok(());
+        };
+        let endpoint = k::RemoteEndpointId(pin.endpoint());
+        let cord = k::CordId(pin.cord());
+        let Some(offer) = kernel
+            .remote_egress_offer(endpoint, cord)
+            .map_err(BridgeRefusal::AdmitFrame)?
+        else {
+            return Ok(());
+        };
+        let bytes = kernel.values().get(offer.value).map_err(|_| {
+            BridgeRefusal::Inspection(
+                conduit_mcu_host_runtime::execution_inspection::Refusal::AppendStatus,
+            )
+        })?;
+        self.status
+            .stage(offer.sequence, bytes)
+            .map_err(BridgeRefusal::Inspection)?;
+        kernel
+            .remote_egress_accept(endpoint, cord, offer.sequence)
+            .map_err(BridgeRefusal::AdmitFrame)?;
+        kernel
+            .remote_egress_delivered(endpoint, cord, offer.sequence)
+            .map_err(BridgeRefusal::AdmitFrame)?;
+        self.status
+            .delivered(self.inspection, offer.sequence)
+            .map_err(BridgeRefusal::Inspection)
     }
 }
 pub(super) struct OutputObserver<'a> {
