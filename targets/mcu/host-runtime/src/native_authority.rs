@@ -131,6 +131,7 @@ impl<'a, const W: usize> Operations<'a, W> {
 }
 /// One opaque issuer per actual owner, no duplicated Root/resource ledger.
 pub struct Issuers<const W: usize> {
+    pub recording: Issuer,
     pub pulse: Issuer,
     pub write: Issuer,
     pub renderer: Issuer,
@@ -144,6 +145,7 @@ impl<const W: usize> Default for Issuers<W> {
 impl<const W: usize> Issuers<W> {
     pub fn new() -> Self {
         Self {
+            recording: Issuer::new(),
             pulse: Issuer::new(),
             write: Issuer::new(),
             renderer: Issuer::new(),
@@ -213,7 +215,8 @@ impl<const W: usize> Issuers<W> {
         Ok(())
     }
     pub fn retained_backing_bytes(&self) -> Option<usize> {
-        core::iter::once(&self.pulse)
+        core::iter::once(&self.recording)
+            .chain(core::iter::once(&self.pulse))
             .chain(core::iter::once(&self.write))
             .chain(core::iter::once(&self.renderer))
             .chain(self.waits.iter())
@@ -223,7 +226,8 @@ impl<const W: usize> Issuers<W> {
     /// vector and fallible text allocations. Descriptions create no new tokens.
     pub fn copy_grants(&self, maximum_bytes: usize) -> Result<Vec<AuthorityGrant>, Refusal> {
         let issuers = || {
-            core::iter::once(&self.pulse)
+            core::iter::once(&self.recording)
+                .chain(core::iter::once(&self.pulse))
                 .chain(core::iter::once(&self.write))
                 .chain(core::iter::once(&self.renderer))
                 .chain(self.waits.iter())
@@ -272,6 +276,34 @@ impl<const W: usize> Issuers<W> {
         }
         Ok(result)
     }
+}
+
+/// Installed Source supplies a finite record count; receiving a Plan supplies none.
+/// One operation owns the whole finite NOR residence, independently of call count.
+pub fn append_operation<'a>(
+    nodes: &'a [(u16, &'a str)],
+    maximum_records: Option<u32>,
+) -> Result<Option<Operation<'a>>, Refusal> {
+    use conduit_resource_snapshot::{append::MAXIMUM_RECORD_PAYLOAD_BYTES, native_append::*};
+    let mut selected = nodes.iter().filter(|n| n.1 == APPEND_KIND);
+    let Some((_, kind)) = selected.next() else {
+        return Ok(None);
+    };
+    if selected.next().is_some() {
+        return Err(Refusal::Scope);
+    }
+    let count = maximum_records.filter(|n| *n != 0).ok_or(Refusal::Bounds)?;
+    Ok(Some(Operation {
+        kind,
+        authority: APPEND_AUTHORITY,
+        call: APPEND_OPERATION,
+        maximum_parameter_bytes: MAXIMUM_RECORD_PAYLOAD_BYTES as u32,
+        maximum_result_bytes: APPEND_RESULT_BYTES,
+        // Two programs and four readbacks/preflights per append, independent
+        // of physical capacity and the separately bounded initial recovery scan.
+        maximum_work_units: 6,
+        maximum_operations: count,
+    }))
 }
 
 #[cfg(test)]

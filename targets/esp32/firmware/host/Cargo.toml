@@ -8,6 +8,7 @@ publish = false
 default = []
 native-host = []
 [dependencies]
+conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
 sha2 = { version = "0.10", default-features = false }
 conduit-esp32-snapshot-nor = { path = "../../snapshot-nor" }
 conduit-esp32-electrical = { path = "../../electrical", features = ["host-call", "host-carrier"] }
@@ -37,6 +38,7 @@ conduit-time = { path = "../../../../semantics/time", features = ["kernel-step"]
 serde = { version = "1", default-features = false }
 conduit-face = { path = "../../../../semantics/face", default-features = false }
 [build-dependencies]
+conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
 conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
 conduit-core = { path = "../../../../architecture/core" }
 conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", features = ["host-call", "plot-catalog"] }

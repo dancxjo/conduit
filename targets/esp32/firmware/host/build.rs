@@ -57,10 +57,35 @@ fn main() {
     );
     assert!(config.limits.buffered_bytes <= config.limits.heap_arena_bytes);
     assert!(config.limits.heap_arena_bytes <= 98304);
+    let recording = if checked
+        .configuration()
+        .bases
+        .iter()
+        .any(|base| base.kind == "resource/nor-record-residence")
+    {
+        let construction =
+            conduit_host_esp32_make::physical::CheckedRecordingConstruction::from_configuration(
+                &checked,
+                conduit_host_esp32_make::physical::RECORDING,
+            )
+            .expect("checked finite recording construction");
+        assert!(
+            construction.prefix_bytes >= 8192
+                && construction.end_bytes().expect("recording extent") <= 655360,
+            "recording exceeds physical DURABLE"
+        );
+        Some(construction)
+    } else {
+        None
+    };
+    let recording_prefix = recording.map_or(0, |r| r.prefix_bytes);
+    let recording_slots = recording.map_or(0, |r| r.slots);
     let preparation = conduit_host_make::rust_preparation_delegation(&checked);
     let execution = conduit_host_make::rust_execution_delegation(&checked);
     let generated = format!(
         r#"
+pub const RECORDING_PREFIX_BYTES:u32={recording_prefix};
+pub const RECORDING_SLOTS:u32={recording_slots};
 pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image:?};
 pub const SOURCE_IDENTITY:&str={source_identity:?};
@@ -209,7 +234,22 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
     )
     .expect("exact original captured Make IMAGE");
     use conduit_mcu_source_build::native_calibration::{NativeDescription, Slot};
-    let descriptions = [
+    let append = workset
+        .entries
+        .iter()
+        .any(|entry| {
+            entry.plot.expanded.gears.iter().any(|g| {
+                g.kind_id.as_str() == conduit_resource_snapshot::native_append::APPEND_KIND
+            })
+        })
+        .then(|| {
+            conduit_resource_snapshot::native_append::capability_offer(
+                &artifact,
+                &conduit_core::ImplementationId::from("esp32/nor-record-append@1"),
+            )
+            .expect("finite immutable append definition")
+        });
+    let mut descriptions = vec![
         NativeDescription {
             slot: Slot {
                 base: "esp32/gpio-pulse",
@@ -217,6 +257,7 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
                 implementation: conduit_host_esp32_make::physical::DHT11,
             },
             class: conduit_pulse_capture::installation::PULSE_ATTACHMENT_CLASS,
+            mechanism: conduit_pulse_capture::installation::PULSE_ATTACHMENT_CLASS,
             definition: pulse.clone(),
         },
         NativeDescription {
@@ -226,6 +267,7 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
                 implementation: conduit_host_esp32_make::physical::TM1637,
             },
             class: conduit_tm1637_wire::installation::WRITE_ATTACHMENT_CLASS,
+            mechanism: conduit_tm1637_wire::installation::WRITE_ATTACHMENT_CLASS,
             definition: display.clone(),
         },
         NativeDescription {
@@ -235,6 +277,7 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
                 implementation: conduit_host_esp32_make::physical::RENDERER,
             },
             class: conduit_mcu_host_runtime::execution_mask::ATTACHMENT,
+            mechanism: conduit_mcu_host_runtime::execution_mask::ATTACHMENT,
             definition: renderer_offer.clone(),
         },
         NativeDescription {
@@ -244,9 +287,23 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
                 implementation: conduit_host_esp32_make::physical::CLOCK,
             },
             class: conduit_monotonic_wait::WAIT_ATTACHMENT_CLASS,
+            mechanism: conduit_monotonic_wait::WAIT_ATTACHMENT_CLASS,
             definition: wait.clone(),
         },
     ];
+    if let Some(definition) = &append {
+        descriptions.push(NativeDescription {
+            slot: Slot {
+                base: "esp32/record-append",
+                pool: "pool/esp32/record-append",
+                implementation: "esp32/nor-record-append@1",
+            },
+            class: conduit_resource_snapshot::native_append::APPEND_CLASS,
+            mechanism: conduit_resource_snapshot::native_append::APPEND_MECHANISM,
+            definition: definition.clone(),
+        });
+    }
+
     let routing = conduit_mcu_host_runtime::execution_mask::routing_offers(
         renderer.face_bytes,
         renderer.show_bytes,
@@ -293,7 +350,9 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
             2 * 1024 * 1024,
         )
         .expect("exact Source to kernel ordinal software mapping");
-    calibration.emit_continuation_identity(&out, workset.sha256).expect("checked continuation identity emission");
+    calibration
+        .emit_continuation_identity(&out, workset.sha256)
+        .expect("checked continuation identity emission");
     calibration
         .emit_to(&out, 2 * 1024 * 1024)
         .expect("finite immutable Source layout emission");
@@ -312,6 +371,15 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
         let bytes = conduit_embedded_build::generate_capability_offer_image(&offer, 24 * 1024)
             .expect("finite checked native definition image");
         native.push_str(&format!("pub static {name}:&[u8]=&{bytes:?};\n"));
+    }
+    if let Some(offer) = &append {
+        let bytes = conduit_embedded_build::generate_capability_offer_image(offer, 24 * 1024)
+            .expect("finite checked append image");
+        native.push_str(&format!(
+            "pub static APPEND_IMAGE:Option<&[u8]>=Some(&{bytes:?});\n"
+        ));
+    } else {
+        native.push_str("pub static APPEND_IMAGE:Option<&[u8]>=None;\n");
     }
     fs::write(out.join("native_images.rs"), native).unwrap();
     let mut hash = Sha256::new();

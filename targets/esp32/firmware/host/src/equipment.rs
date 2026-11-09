@@ -106,6 +106,8 @@ impl Equipment {
                     ),
                     body,
                     crate::workset::sampling::NATIVE_KINDS,
+                    crate::config::RECORDING_PREFIX_BYTES,
+                    crate::config::RECORDING_SLOTS,
                 ),
                 renderer: crate::renderer::initialize(actual),
                 waits: core::array::from_fn(|index| {

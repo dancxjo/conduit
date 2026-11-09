@@ -580,6 +580,7 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-resource-snapshot",
  "conduit-rp2040-flash-layout",
  "conduit-rp2040-i2c",
  "conduit-rp2040-pulse-capture",

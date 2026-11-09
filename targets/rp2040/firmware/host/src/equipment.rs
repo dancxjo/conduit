@@ -115,6 +115,8 @@ impl Equipment {
                     ),
                     body,
                     crate::workset::generated::sampling::NATIVE_KINDS,
+                    crate::config::RECORDING_PREFIX_BYTES,
+                    crate::config::RECORDING_SLOTS,
                 ),
                 renderer: crate::renderer::initialize(actual)?,
                 pulse: Some(

@@ -127,6 +127,28 @@ fn main() {
         None=>String::new(),
     };
     fs::write(out.join("renderer.rs"), renderer_source).unwrap();
+    let recording = if checked
+        .configuration()
+        .bases
+        .iter()
+        .any(|base| base.kind == "resource/nor-record-residence")
+    {
+        let construction = conduit_host_rp2040::CheckedRecordingConstruction::from_configuration(
+            &checked,
+            conduit_host_rp2040::RECORDING_IMPLEMENTATION,
+        )
+        .expect("checked finite recording construction");
+        assert!(
+            construction.prefix_bytes >= 8192
+                && construction.end_bytes().expect("recording extent") <= 589824,
+            "recording exceeds physical DURABLE"
+        );
+        Some(construction)
+    } else {
+        None
+    };
+    let recording_prefix = recording.map_or(0, |r| r.prefix_bytes);
+    let recording_slots = recording.map_or(0, |r| r.slots);
     let preparation = conduit_host_make::rust_preparation_delegation(&checked);
     let execution = conduit_host_make::rust_execution_delegation(&checked);
     let heap = checked.configuration().limits.heap_arena_bytes;
@@ -192,6 +214,8 @@ pub(crate) use start_local_io;
     let generated = format!(
         r#"
 include!(concat!(env!("OUT_DIR"), "/native_offer.rs"));
+pub const RECORDING_PREFIX_BYTES:u32={recording_prefix};
+pub const RECORDING_SLOTS:u32={recording_slots};
 pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image_id:?};
 pub const HEAP_BYTES:usize={heap};
@@ -351,7 +375,7 @@ fn prepare_dht_workset(
     .unwrap();
     let renderer_offer = execution_mask::capability_offer(
         conduit_host_rp2040::RENDERER_IMPLEMENTATION.into(),
-        artifact,
+        artifact.clone(),
         execution_mask::Bounds {
             face_bytes: renderer.face_bytes,
             show_bytes: renderer.show_bytes,
@@ -386,7 +410,22 @@ fn prepare_dht_workset(
         waits + 1 <= clock.slots,
         "Source waits and renderer exceed actual initialized clock slots"
     );
-    let descriptions = [
+    let append = workset
+        .entries
+        .iter()
+        .any(|entry| {
+            entry.plot.expanded.gears.iter().any(|g| {
+                g.kind_id.as_str() == conduit_resource_snapshot::native_append::APPEND_KIND
+            })
+        })
+        .then(|| {
+            conduit_resource_snapshot::native_append::capability_offer(
+                &artifact,
+                &conduit_core::ImplementationId::from("rp2040/nor-record-append@1"),
+            )
+            .expect("finite immutable append definition")
+        });
+    let mut descriptions = vec![
         calibration::NativeDescription {
             slot: calibration::Slot {
                 base: "rp2040/gpio-pulse",
@@ -394,6 +433,7 @@ fn prepare_dht_workset(
                 implementation: conduit_host_rp2040::DHT11_IMPLEMENTATION,
             },
             class: conduit_pulse_capture::installation::PULSE_ATTACHMENT_CLASS,
+            mechanism: conduit_pulse_capture::installation::PULSE_ATTACHMENT_CLASS,
             definition: pulse,
         },
         calibration::NativeDescription {
@@ -403,6 +443,7 @@ fn prepare_dht_workset(
                 implementation: conduit_host_rp2040::TM1637_IMPLEMENTATION,
             },
             class: conduit_tm1637_wire::installation::WRITE_ATTACHMENT_CLASS,
+            mechanism: conduit_tm1637_wire::installation::WRITE_ATTACHMENT_CLASS,
             definition: display,
         },
         calibration::NativeDescription {
@@ -412,6 +453,7 @@ fn prepare_dht_workset(
                 implementation: conduit_host_rp2040::CLOCK_IMPLEMENTATION,
             },
             class: conduit_monotonic_wait::WAIT_ATTACHMENT_CLASS,
+            mechanism: conduit_monotonic_wait::WAIT_ATTACHMENT_CLASS,
             definition: wait,
         },
         calibration::NativeDescription {
@@ -421,9 +463,23 @@ fn prepare_dht_workset(
                 implementation: conduit_host_rp2040::RENDERER_IMPLEMENTATION,
             },
             class: execution_mask::ATTACHMENT,
+            mechanism: execution_mask::ATTACHMENT,
             definition: renderer_offer,
         },
     ];
+    if let Some(definition) = &append {
+        descriptions.push(calibration::NativeDescription {
+            slot: calibration::Slot {
+                base: "rp2040/record-append",
+                pool: "pool/rp2040/record-append",
+                implementation: "rp2040/nor-record-append@1",
+            },
+            class: conduit_resource_snapshot::native_append::APPEND_CLASS,
+            mechanism: conduit_resource_snapshot::native_append::APPEND_MECHANISM,
+            definition: definition.clone(),
+        });
+    }
+
     let mut native = String::new();
     for (name, description) in [
         "PULSE_IMAGE",
@@ -440,6 +496,15 @@ fn prepare_dht_workset(
         )
         .unwrap();
         native.push_str(&format!("pub static {name}:&[u8]=&{bytes:?};\n"));
+    }
+    if let Some(offer) = &append {
+        let bytes = conduit_embedded_build::generate_capability_offer_image(offer, 24 * 1024)
+            .expect("finite checked append image");
+        native.push_str(&format!(
+            "pub static APPEND_IMAGE:Option<&[u8]>=Some(&{bytes:?});\n"
+        ));
+    } else {
+        native.push_str("pub static APPEND_IMAGE:Option<&[u8]>=None;\n");
     }
     fs::write(out.join("native_images.rs"), native).unwrap();
     let work = conduit_host_rp2040::CheckedResidentWorkPool::from_configuration(checked).unwrap();
@@ -493,11 +558,14 @@ fn prepare_dht_workset(
     calibrated
         .apply_software_mapping(&mut workset, mask, 24 * 1024, 1024 * 1024)
         .expect("actual Source/kernel ordinal factories");
-    calibrated.emit_continuation_identity(out, workset.sha256).expect("checked continuation identity emission");
+    calibrated
+        .emit_continuation_identity(out, workset.sha256)
+        .expect("checked continuation identity emission");
     calibrated
         .emit_to(out, 2 * 1024 * 1024)
         .expect("independent assigned layouts");
-    conduit_host_rp2040::source_build::source_composition::emit_to(&out).expect("shared Source composition emission");
+    conduit_host_rp2040::source_build::source_composition::emit_to(&out)
+        .expect("shared Source composition emission");
     workset
         .emit_to(out)
         .expect("checked calibrated runtime factories");

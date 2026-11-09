@@ -56,7 +56,8 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     operation: &Operation<'_>,
     reader: Reader<'a>,
     face: &LocalPublicationFace,
-    held_pools: [c::AssignedIdentity; 5],
+    held_pools: &[c::AssignedIdentity],
+    recording_service_bytes: usize,
 ) -> Result<
     (
         StartedLocalWorkset<(T::Bound, RendererService<'a, C>)>,
@@ -94,6 +95,9 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
                 + o.sign_id.0.capacity()
         })
         .sum::<usize>();
+    let shared = shared
+        .checked_add(recording_service_bytes)
+        .ok_or(Refusal::Bounds)?;
     let prepared = prepared.with_services(PreparedRendererService::new(service), shared)?;
     let mut committed = prepared.admit(resources, &observations, observation_bytes)?;
     // Scope storage was fully prepared and charged before admission. Binding
@@ -120,13 +124,13 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
 fn observe_held<T: PreparedLocalKernels>(
     prepared: &PreparedLocalWorkset<'_, T, 3>,
     owner: &c::ResourceAdmissionOwner,
-    held: [c::AssignedIdentity; 5],
-) -> Result<heapless::Vec<c::ResourceObservation, 5>, Refusal<&'static str>> {
+    held: &[c::AssignedIdentity],
+) -> Result<heapless::Vec<c::ResourceObservation, 6>, Refusal<&'static str>> {
     if !owner.admissions().is_empty() {
         return Err(Refusal::Scope);
     }
     let actual = owner.host();
-    let mut observations = heapless::Vec::<c::ResourceObservation, 5>::new();
+    let mut observations = heapless::Vec::<c::ResourceObservation, 6>::new();
     for fragment in prepared.fragments() {
         for binding in b::PlainFragmentResources::new(fragment.metadata().resource_bindings) {
             let binding = binding.map_err(|_| Refusal::Scope)?;

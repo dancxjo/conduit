@@ -15,6 +15,7 @@ pub struct Slot<'a> {
 pub struct NativeDescription<'a> {
     pub slot: Slot<'a>,
     pub class: &'a str,
+    pub mechanism: &'a str,
     pub definition: c::CapabilityOffer,
 }
 pub struct Bounds {
@@ -196,6 +197,7 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
                 .iter()
                 .any(|r| r.class_id.as_str() == class)
             || host.bases.iter().any(|b| b.base_id.as_str() == slot.base)
+            || description.mechanism.is_empty()
             || slot.base.is_empty()
             || slot.pool.is_empty()
             || slot.implementation.is_empty()
@@ -222,7 +224,7 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
             provider_instance_id: slot.base.into(),
             provider_generation: 1,
             implementation_id: slot.implementation.into(),
-            mechanism_family: class.into(),
+            mechanism_family: description.mechanism.into(),
             enforcement_class: c::BaseEnforcementClass::Cooperative,
             lifecycle: c::BaseLifecycle::Ready,
             capability_ids: vec![offer.capability_id.clone()],

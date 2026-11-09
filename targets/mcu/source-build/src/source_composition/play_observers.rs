@@ -56,7 +56,7 @@ impl SampleObserver<'_> {
         &mut self,
         kernel: &mut crate::play::SamplingKernel<'_, '_>,
     ) -> Result<(), BridgeRefusal> {
-        use conduit_kernel::ValueStore as _;
+        use conduit_kernel::ValueStorage as _;
         let Some(pin) = self.status.boundary() else {
             return Ok(());
         };

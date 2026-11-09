@@ -50,6 +50,34 @@ pub async fn run<'s>(
     .expect("funded canonical output storage");
     let definitions =
         source::sampling::definitions(&parameters).expect("checked software definitions");
+    let maximum_records = definitions
+        .iter()
+        .flatten()
+        .filter_map(|d| match d {
+            conduit_mcu_host_runtime::execution_factory::SoftwareDefinition::RecordingLog {
+                maximum_samples,
+            } => maximum_samples.checked_add(
+                conduit_environment_runtime::recording::LOG_CONTEXT_BYTES
+                    .div_ceil(conduit_environment_runtime::recording::LOG_CONTEXT_PART_BYTES)
+                    as u32,
+            ),
+            _ => None,
+        })
+        .max();
+    let recording_operation = conduit_mcu_host_runtime::native_authority::append_operation(
+        source::sampling::NATIVE_KINDS,
+        maximum_records,
+    )
+    .expect("independently compiled finite recording operation");
+    let mut append_output =
+        [0u8; conduit_resource_snapshot::native_append::APPEND_RESULT_BYTES as usize];
+    let mut append_status = Some(
+        conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus::prepare(
+            &source::sampling_layout::fore(),
+            source::sampling_layout::append_status_fore(),
+        )
+        .expect("exact installed recording status Fore"),
+    );
     let maximum_events = definitions
         .iter()
         .flatten()
@@ -175,7 +203,21 @@ pub async fn run<'s>(
                             &operations,
                             remaining,
                         )
-                        .map_err(|_| conduit_mcu_host_runtime::root::Refusal::Scope)
+                        .map_err(|_| conduit_mcu_host_runtime::root::Refusal::Scope)?;
+                    match (equipment.recording.selected(), recording_operation.as_ref()) {
+                        (false, None) => Ok(()),
+                        (true, Some(operation)) => equipment
+                            .recording
+                            .authorize(
+                                context,
+                                policy,
+                                &mut issuers.recording,
+                                operation,
+                                remaining(),
+                            )
+                            .map_err(|_| conduit_mcu_host_runtime::root::Refusal::Scope),
+                        _ => Err(conduit_mcu_host_runtime::root::Refusal::Scope),
+                    }
                 });
                 match authorized {
                     Err(error) => Err(error),
@@ -191,6 +233,7 @@ pub async fn run<'s>(
                             .into_iter()
                             .flatten()
                             .chain(native.into_iter())
+                            .chain(crate::workset::native_images::APPEND_IMAGE)
                             .chain(source::sampling::OFFER_IMAGES.iter().copied())
                             .chain(source::mask::OFFER_IMAGES.iter().copied())
                             .chain(source::mask::MASK_ROUTING_IMAGES.iter().copied())
@@ -248,7 +291,7 @@ pub async fn run<'s>(
                         maximum_retained_bytes: arena.bytes(),
                     };
                     let identity = conduit_core::AssignedIdentity::from_text;
-                    let held_pools = [
+                    let mut held_pools = heapless::Vec::<_, 6>::from_slice(&[
                         identity(crate::config::RESIDENT_WORK_POOL),
                         identity(
                             equipment
@@ -283,7 +326,13 @@ pub async fn run<'s>(
                                 .resource_pool_id
                                 .as_str(),
                         ),
-                    ];
+                    ])
+                    .expect("five original held pools");
+                    if let Some(pool) = equipment.recording.held_pool() {
+                        held_pools
+                            .push(identity(pool.as_str()))
+                            .map_err(|_| "held-pools")?;
+                    }
                     let context = conduit_body::NativePreparationContext {
                         bootstrap: parts.bootstrap,
                         member: parts.member,
@@ -303,6 +352,10 @@ pub async fn run<'s>(
                         &mut equipment.pulse,
                         &mut equipment.display,
                         &mut equipment.waits,
+                        equipment.recording.ready_slot(),
+                        &mut issuers.recording,
+                        recording_operation.as_ref(),
+                        append_output.len(),
                         &mut issuers.pulse,
                         &mut issuers.write,
                         &mut issuers.waits,
@@ -360,7 +413,8 @@ pub async fn run<'s>(
                             &operations.renderer,
                             reader.take().ok_or("reader-busy")?,
                             &face,
-                            held_pools,
+                            &held_pools,
+                            append_output.len() + core::mem::size_of::<conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus>(),
                         )
                         .map_err(|error| {
                             use core::fmt::Write;
@@ -395,6 +449,10 @@ pub async fn run<'s>(
                             &face,
                             link,
                             &equipment.activity,
+                            &mut append_output,
+                            append_status
+                                .take()
+                                .expect("original prepared status custody"),
                         )
                         .await
                     };

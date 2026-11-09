@@ -67,10 +67,20 @@ fn identity(actual: &c::HostAdvertisement) -> AppendNativeIdentity {
 fn selected(
     storage: Storage,
     actual: &c::HostAdvertisement,
-    body: &c::BodyId,
+    body: &conduit_body::BodyId,
 ) -> Equipment<Storage> {
+    let storage_capacity = storage.capacity();
     // SAFETY: actual exclusively owned CPU media, no asynchronous physical IO.
-    unsafe { Equipment::new(storage, identity(actual), body, &[(0, APPEND_KIND)]) }
+    unsafe {
+        Equipment::new(
+            storage,
+            identity(actual),
+            body,
+            &[(0, APPEND_KIND)],
+            RESERVED_PREFIX_BYTES,
+            (storage_capacity - RESERVED_PREFIX_BYTES) / RECORD_SLOT_BYTES,
+        )
+    }
 }
 #[test]
 fn unselected_preserves_unused_flash_and_selected_recovery_preserves_prefix() {
@@ -79,7 +89,16 @@ fn unselected_preserves_unused_flash_and_selected_recovery_preserves_prefix() {
     let reads = storage.reads.clone();
     let programs = storage.programs.clone();
     // SAFETY: original CPU owner, no effects selected.
-    let unused = unsafe { Equipment::new(storage, identity(&actual), &bootstrap.body_id, &[]) };
+    let unused = unsafe {
+        Equipment::new(
+            storage,
+            identity(&actual),
+            &bootstrap.body_id,
+            &[],
+            RESERVED_PREFIX_BYTES,
+            1,
+        )
+    };
     assert!(!unused.selected());
     assert!(unused.unused_storage().is_some());
     assert!(unused.held_pool().is_none());

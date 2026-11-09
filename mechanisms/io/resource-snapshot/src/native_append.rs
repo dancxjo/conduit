@@ -231,3 +231,7 @@ impl<S: NorStorage> RecordAppendHostCall<S> {
         Ok((current.ready, current.custody))
     }
 }
+
+#[path = "native_append/offer.rs"]
+mod offer;
+pub use offer::capability_offer;

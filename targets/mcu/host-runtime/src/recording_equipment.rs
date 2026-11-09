@@ -9,7 +9,6 @@ pub use conduit_resource_snapshot::native_append::AppendNativeIdentity;
 use conduit_resource_snapshot::{
     append::{
         PreparedNorRecordResidence, RecordRecovery, RecordResidenceId, RecordResidenceRefusal,
-        RECORD_SLOT_BYTES,
     },
     native_append::{
         AppendCallRefusal, ReadyRecordAppender, APPEND_AUTHORITY, APPEND_KIND, APPEND_OPERATION,
@@ -54,8 +53,10 @@ impl<S: NorStorage> Equipment<S> {
     pub unsafe fn new(
         storage: S,
         identity: AppendNativeIdentity,
-        body: &c::BodyId,
+        body: &conduit_body::BodyId,
         native_kinds: &[(u16, &str)],
+        prefix_bytes: u32,
+        slots: u32,
     ) -> Self {
         let selected = native_kinds.iter().any(|(_, kind)| *kind == APPEND_KIND);
         if !selected {
@@ -72,11 +73,10 @@ impl<S: NorStorage> Equipment<S> {
             hash.update(value.as_bytes());
         }
         let residence = RecordResidenceId(hash.finalize().into());
-        let slots = storage.capacity().saturating_sub(RESERVED_PREFIX_BYTES) / RECORD_SLOT_BYTES;
-        let prepared = if body.as_str().is_empty() {
+        let prepared = if body.as_str().is_empty() || prefix_bytes < RESERVED_PREFIX_BYTES {
             Err((storage, RecordResidenceRefusal::Geometry))
         } else {
-            PreparedNorRecordResidence::prepare(storage, residence, RESERVED_PREFIX_BYTES, slots)
+            PreparedNorRecordResidence::prepare(storage, residence, prefix_bytes, slots)
         };
         match prepared {
             Err((storage, refusal)) => Self {

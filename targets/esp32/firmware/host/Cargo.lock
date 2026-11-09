@@ -260,6 +260,7 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-resource-snapshot",
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",

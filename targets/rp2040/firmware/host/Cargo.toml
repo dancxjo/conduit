@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [dependencies]
+conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
 conduit-rp2040-snapshot-nor = { path = "../../snapshot-nor", features = ["rp2040"] }
 conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
 conduit-i2c-transaction = { path = "../../../../mechanisms/io/i2c-transaction", default-features = false }
@@ -49,6 +50,7 @@ conduit-time = { path = "../../../../semantics/time", default-features = false }
 conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait" }
 conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", features = ["appliance", "face-projection", "display-mask"] }
 [build-dependencies]
+conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
 conduit-embedded-build = { path = "../../../../make/embedded-build" }
 conduit-host-make = { path = "../../../../make/host" }
 conduit-host-rp2040 = { path = "../../make" }
