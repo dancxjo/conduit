@@ -1,6 +1,23 @@
 //! Actual existing firmware Make composition, executed on the building Host.
 //! No device, Ready provider, membership or Start authority is constructed.
-include!("../../firmware/host/build.rs");
+use std::{env, fs};
+
+// Reuse the unchanged firmware builder, including its existing local style.
+#[allow(dead_code, clippy::int_plus_one, clippy::needless_borrow)]
+mod actual_make {
+    include!("../../firmware/host/build.rs");
+
+    pub fn prepare(
+        checked: &conduit_host_make::CheckedHostConfiguration,
+        catalog: &conduit_host_make::MakeCatalog,
+        image_id: &str,
+        source_identity: &str,
+        out: &std::path::Path,
+        renderer: conduit_host_rp2040::CheckedRendererConstruction,
+    ) -> Vec<conduit_embedded_build::PreparedResidentExpression> {
+        prepare_dht_workset(checked, catalog, image_id, source_identity, out, renderer)
+    }
+}
 #[path = "../../../../architecture/plot/tests/common/compiled_rust.rs"]
 mod compiled_rust;
 
@@ -29,7 +46,7 @@ fn actual_yellow_three_fragment_make_emits_canonical_seal_recipes() {
     let out =
         std::env::temp_dir().join(format!("conduit-yellow-seal-recipe-{}", std::process::id()));
     fs::create_dir(&out).unwrap();
-    let resident = prepare_dht_workset(
+    let resident = actual_make::prepare(
         &checked,
         &catalog,
         &image.manifest.image_id,
