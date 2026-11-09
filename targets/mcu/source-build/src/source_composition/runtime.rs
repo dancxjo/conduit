@@ -23,6 +23,7 @@ pub async fn run<'s>(
     arena: conduit_mcu_host_runtime::image_memory::ImageMemoryLease<'_>,
     link: &mut crate::transport::Link,
 ) -> ! {
+    crate::runtime::stack_checkpoint(1);
     let mut residents =
         crate::resident::inventory().expect("actual initialized resident inventory");
     let mut routing = initialization::routing();
@@ -99,6 +100,7 @@ pub async fn run<'s>(
         )
         .expect("funded native contract preparation"),
     );
+    crate::runtime::stack_checkpoint(2);
     let mut last_refusal = None;
     loop {
         let result = match root.receive_request(link).await {
@@ -216,6 +218,7 @@ pub async fn run<'s>(
             // Caller-owned affine slots live in the original future storage.
             // Poll boundaries return only status, never another fat workset copy.
             let mut prepared_slot = None;
+            crate::runtime::stack_checkpoint(3);
             let prepared_status = {
                 let future = async {
                     let parts = root.execution_parts().map_err(|_| "execution-custody")?;
@@ -323,9 +326,11 @@ pub async fn run<'s>(
                 let mut future = core::pin::pin!(future);
                 conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await
             };
+            crate::runtime::stack_checkpoint(4);
             // Successive polls retire preparation scratch before admission and
             // provider binding need their own stack. Custody moves once; no
             // command, resource ledger, or execution grant is reconstructed.
+            crate::runtime::stack_checkpoint(5);
             let mut presentation_slot = None;
             let prepared_status = match prepared_status {
                 Err(reason) => Err(reason),
@@ -348,7 +353,9 @@ pub async fn run<'s>(
                         })
                 }
             };
+            crate::runtime::stack_checkpoint(6);
             let mut started_slot = None;
+            crate::runtime::stack_checkpoint(7);
             let mut scopes_slot = None;
             let outcome = match prepared_status {
                 Err(reason) => Err(reason),
@@ -390,6 +397,7 @@ pub async fn run<'s>(
                     conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await
                 }
             };
+            crate::runtime::stack_checkpoint(8);
             match outcome {
                 Ok(()) => {
                     // Withdraw the Started payload only inside the continuing

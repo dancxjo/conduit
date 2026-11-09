@@ -55,9 +55,10 @@ fn recover(reason: fmt::Arguments<'_>) -> ! {
     };
     let (used, peak) = crate::heap::observed_usage();
     let mut output = Bounded { bytes, used: 0 };
+    let (phase, phase_spare, phase_msp, first_zero) = crate::stack_probe::startup_checkpoint();
     let _ = write!(
         output,
-        "CONDUIT_PANIC@1 heap_used={used} heap_peak={peak} heap_limit={} stack_spare={:?} stack_msp={:#010x} {reason}",
+        "CONDUIT_PANIC@1 heap_used={used} heap_peak={peak} heap_limit={} stack_spare={:?} stack_msp={:#010x} phase={phase} phase_spare={phase_spare} phase_msp={phase_msp:#010x} first_zero={first_zero} {reason}",
         crate::config::HEAP_BYTES,
         crate::stack_probe::spare_bytes(),
         cortex_m::register::msp::read()

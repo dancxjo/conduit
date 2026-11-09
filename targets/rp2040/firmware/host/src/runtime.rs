@@ -26,7 +26,9 @@ pub async fn run(
         .expect("whole original IMAGE arena");
     let mut storage = RootStorage::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new();
     let mut equipment = None;
+    stack_checkpoint(23);
     let root = initialize(seed, host, nonce, flash, &mut storage, &mut equipment);
+    stack_checkpoint(24);
     let equipment = equipment
         .take()
         .expect("original initialized equipment slot");
@@ -110,4 +112,10 @@ pub fn observe_receipt(digest: Option<[u8; 32]>) {
 }
 pub fn allocator_peak() -> Option<usize> {
     Some(crate::heap::usage().1)
+}
+
+/// Fixed, once-per-stage startup diagnostic; never execution authority.
+#[inline(always)]
+pub fn stack_checkpoint(phase: usize) {
+    crate::stack_probe::checkpoint(phase);
 }

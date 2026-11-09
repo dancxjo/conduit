@@ -132,3 +132,9 @@ pub fn observe_receipt(_digest: Option<[u8; 32]>) {}
 pub fn allocator_peak() -> Option<usize> {
     None
 }
+
+/// Fixed, once-per-stage startup diagnostic; never execution authority.
+#[inline(always)]
+pub fn stack_checkpoint(phase: usize) {
+    let _ = phase;
+}

@@ -123,6 +123,7 @@ fn initialize(spawner: Spawner) -> Boot {
     // SAFETY: exclusive boot initialization before spawning allocation users.
     unsafe { heap::initialize() };
     stack_probe::initialize();
+    stack_probe::checkpoint(19);
     let p = embassy_rp::init(Default::default());
     let (serial, credentials, flash) = {
         let mut flash = credential_source::Device::new_blocking(p.FLASH);
@@ -140,7 +141,9 @@ fn initialize(spawner: Spawner) -> Boot {
     // Initialize checked equipment. The GPIO profile performs no measurement
     // or display effects here; its Source must first pass complete admission.
     config::start_local_io!(spawner, p);
+    stack_probe::checkpoint(20);
     resident::initialize();
+    stack_probe::checkpoint(21);
     spawner.spawn(
         wifi::run(
             spawner,

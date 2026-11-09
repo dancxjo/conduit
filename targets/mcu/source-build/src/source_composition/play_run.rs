@@ -111,6 +111,7 @@ pub async fn run<'r, 'f>(
     append_output: &mut [u8],
     append_status: conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus,
 ) -> ! {
+    crate::runtime::stack_checkpoint(9);
     let inspection = inspection_state(&evidence);
     let delivery = RefCell::new(Delivery::Empty);
     let mut sample_observer = SampleObserver {
@@ -402,11 +403,20 @@ pub async fn run<'r, 'f>(
             inspect.as_mut()
         )),
     );
+    crate::runtime::stack_checkpoint(10);
     poll_fn(|cx| {
+        crate::runtime::stack_checkpoint(11);
         let _ = sample.as_mut().poll(cx);
+        crate::runtime::stack_checkpoint(12);
+        crate::runtime::stack_checkpoint(13);
         let _ = output.as_mut().poll(cx);
+        crate::runtime::stack_checkpoint(14);
+        crate::runtime::stack_checkpoint(15);
         let _ = mask.as_mut().poll(cx);
+        crate::runtime::stack_checkpoint(16);
+        crate::runtime::stack_checkpoint(17);
         let _ = inspect.as_mut().poll(cx);
+        crate::runtime::stack_checkpoint(18);
         Poll::<()>::Pending
     })
     .await;
