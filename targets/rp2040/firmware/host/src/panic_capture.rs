@@ -57,9 +57,10 @@ fn recover(reason: fmt::Arguments<'_>) -> ! {
     let mut output = Bounded { bytes, used: 0 };
     let _ = write!(
         output,
-        "CONDUIT_PANIC@1 heap_used={used} heap_peak={peak} heap_limit={} stack_spare={:?} {reason}",
+        "CONDUIT_PANIC@1 heap_used={used} heap_peak={peak} heap_limit={} stack_spare={:?} stack_msp={:#010x} {reason}",
         crate::config::HEAP_BYTES,
-        crate::stack_probe::spare_bytes()
+        crate::stack_probe::spare_bytes(),
+        cortex_m::register::msp::read()
     );
     core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
     embassy_rp::rom_data::reset_to_usb_boot(0, 0);
