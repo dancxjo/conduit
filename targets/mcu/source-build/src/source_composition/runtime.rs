@@ -264,7 +264,10 @@ pub async fn run<'s>(
             link.reset();
         } else if root.retained_input() {
             let mut refusal_detail = heapless::String::<192>::new();
-            let prepared_outcome = {
+            // Caller-owned affine slots live in the original future storage.
+            // Poll boundaries return only status, never another fat workset copy.
+            let mut prepared_slot = None;
+            let prepared_status = {
                 let future = async {
                     let parts = root.execution_parts().map_err(|_| "execution-custody")?;
                     let policy = Policy {
@@ -356,7 +359,7 @@ pub async fn run<'s>(
                         let _ = write!(&mut refusal_detail, "{error:?}");
                         "complete-source-preparation"
                     })?;
-                    Ok((
+                    prepared_slot = Some((
                         prepared,
                         &*parts.workspace,
                         parts.bootstrap,
@@ -365,7 +368,8 @@ pub async fn run<'s>(
                         parts.resources,
                         policy,
                         held_pools,
-                    ))
+                    ));
+                    Ok::<(), &'static str>(())
                 };
                 let mut future = core::pin::pin!(future);
                 conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await
@@ -373,20 +377,15 @@ pub async fn run<'s>(
             // Successive polls retire preparation scratch before admission and
             // provider binding need their own stack. Custody moves once; no
             // command, resource ledger, or execution grant is reconstructed.
-            let outcome = match prepared_outcome {
+            let mut started_slot = None;
+            let outcome = match prepared_status {
                 Err(reason) => Err(reason),
-                Ok((
-                    prepared,
-                    workspace,
-                    bootstrap,
-                    member,
-                    configuration,
-                    resources,
-                    policy,
-                    held_pools,
-                )) => {
+                Ok(()) => {
                     let future = async {
-                        crate::play_service::start(
+                        let (prepared, workspace, bootstrap, member, configuration,
+                            resources, policy, held_pools) = prepared_slot.take()
+                            .ok_or("prepared-slot-empty")?;
+                        let started = crate::play_service::start(
                             prepared,
                             workspace,
                             bootstrap,
@@ -406,21 +405,24 @@ pub async fn run<'s>(
                             use core::fmt::Write;
                             let _ = write!(&mut refusal_detail, "{error:?}");
                             "complete-admission-start"
-                        })
+                        })?;
+                        started_slot = Some(started);
+                        Ok::<(), &'static str>(())
                     };
                     let mut future = core::pin::pin!(future);
                     conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await
                 }
             };
             match outcome {
-                Ok((started, scopes)) => {
-                    let evidence = started.evidence();
-                    let (((sample, sample_calls), mask, (output, output_calls)), renderer) =
-                        started.into_kernels();
-                    // Construct the continuing future only inside its own poll
-                    // frame. Constructing it here reserves its large return
-                    // scratch during unrelated cold preparation as well.
+                Ok(()) => {
+                    // Withdraw the Started payload only inside the continuing
+                    // poll, so the parent never needs its by-value return scratch.
                     let future = async {
+                        let (started, scopes) = started_slot.take()
+                            .expect("original Started output slot");
+                        let evidence = started.evidence();
+                        let (((sample, sample_calls), mask, (output, output_calls)), renderer) =
+                            started.into_kernels();
                         crate::play_run::run(
                             sample,
                             sample_calls,
