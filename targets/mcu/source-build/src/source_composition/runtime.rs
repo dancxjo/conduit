@@ -102,6 +102,11 @@ pub async fn run<'s>(
     let mut last_refusal = None;
     loop {
         let result = match root.receive_request(link).await {
+            // This composition has no installed cold-prefix transaction yet.
+            // Root also refuses the request before intake when policy is absent.
+            Ok(Request::InstallContinuation) => {
+                Err(conduit_mcu_host_runtime::root::Refusal::Preparation)
+            }
             Ok(Request::Inspect) => {
                 use conduit_mcu_host_runtime::transport::MessageTransport;
                 use core::fmt::Write;
