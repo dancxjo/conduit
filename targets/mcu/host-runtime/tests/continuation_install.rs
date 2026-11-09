@@ -8,6 +8,7 @@ use conduit_mcu_host_runtime::{
 };
 use conduit_resource_snapshot::nor::{NorRefusal, NorStorage};
 use ed25519_dalek::{Signer, SigningKey};
+use sha2::{Digest, Sha256};
 use std::{
     collections::VecDeque,
     future::Future,
@@ -111,7 +112,7 @@ impl NorStorage for Media {
 }
 #[test]
 fn original_root_selects_commits_and_restores_only_retained_acceptance() {
-    reference::with_full_reference(|_, verified, actual, full, pins, source| {
+    reference::with_full_reference(|fresh_scope, verified, actual, full, pins, source| {
         let i = verified.intent();
         let owner = SigningKey::from_bytes(&[7; 32]);
         let member = SigningKey::from_bytes(&[3; 32]);
@@ -145,7 +146,9 @@ fn original_root_selects_commits_and_restores_only_retained_acceptance() {
         carrier.extend_from_slice(&(json.len() as u32).to_le_bytes());
         carrier.extend_from_slice(&json);
         let seed = || Seed::parse(&carrier, actual.host_id.as_str(), "image", "config").unwrap();
-        let mut root = Root::<24576>::new(seed(), actual.clone(), config()).unwrap();
+        let mut original_actual = actual.clone();
+        original_actual.boot_id = "local/previous".into();
+        let mut root = Root::<24576>::new(seed(), original_actual.clone(), config()).unwrap();
         let receipt = b::PortableAdmissionReceipt {
             schema: b::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
             credential: b::MembershipCredential {
@@ -153,10 +156,10 @@ fn original_root_selects_commits_and_restores_only_retained_acceptance() {
                 body_id: bootstrap.body_id.clone(),
                 part_id: serde_json::from_value(serde_json::json!(i.part_id)).unwrap(),
                 host_id: actual.host_id.clone(),
-                boot_id: actual.boot_id.clone(),
+                boot_id: original_actual.boot_id.clone(),
                 issued_at_millis: 10,
             },
-            host_advertisement: actual.clone(),
+            host_advertisement: original_actual,
             membership_admitted: true,
             current_offers_available: false,
             plan_created: false,
@@ -304,9 +307,11 @@ fn original_root_selects_commits_and_restores_only_retained_acceptance() {
         ));
         assert_eq!(media.bytes, before);
         assert_eq!(media.programs, count, "no erase or partial replacement");
-        let mut next_actual = actual.clone();
-        next_actual.boot_id = "local/next".into();
-        let mut next = Root::<24576>::new(seed(), next_actual.clone(), config()).unwrap();
+        // Move the fresh fixture inventory into its original Root; no second
+        // inventory is retained for permission or later ledger admission.
+        let mut next = Root::<24576>::new(seed(), actual.clone(), config()).unwrap();
+        let next_boot = next.actual().boot_id.as_str().to_owned();
+        let inventory_address = core::ptr::from_ref(next.actual());
         let acceptance = next
             .read_continuation_acceptance(&selected, &mut scratch)
             .unwrap();
@@ -315,22 +320,37 @@ fn original_root_selects_commits_and_restores_only_retained_acceptance() {
         assert!(!next.has_current_member());
         let retained = next.return_context(1).unwrap();
         assert_eq!(retained.member, &receipt.credential);
-        assert_ne!(retained.member.boot_id, next_actual.boot_id);
+        assert_ne!(retained.member.boot_id.as_str(), next_boot);
         assert!(
             matches!(next.execution_parts(), Err(Refusal::NotMember)),
             "no online current-Boot receipt manufactured"
         );
-        let permission = next
-            .verify_installed_continuation(
+        let source_digest: [u8; 32] = Sha256::digest(source).into();
+        assert!(matches!(
+            next.verify_installed_continuation_boot_digest(
                 &acceptance,
                 &selected,
                 &mut scratch,
-                &next_actual,
-                source,
+                "foreign/boot",
+                source_digest,
+                pins,
+            ),
+            Err(ContinuationAcceptanceRefusal::Scope)
+        ));
+        let permission = next
+            .verify_installed_continuation_boot_digest(
+                &acceptance,
+                &selected,
+                &mut scratch,
+                &next_boot,
+                source_digest,
                 pins,
             )
             .unwrap();
-        assert_eq!(permission.actual_boot(), next_actual.boot_id.as_str());
+        assert_eq!(permission.actual_boot(), next_boot);
+        fresh_scope
+            .check_actual(&permission, next.actual())
+            .unwrap();
         {
             let parts = next.take_continuation_parts(&acceptance).unwrap();
             assert_eq!(
@@ -338,18 +358,22 @@ fn original_root_selects_commits_and_restores_only_retained_acceptance() {
                 Some(&receipt.credential)
             );
             let context = conduit_mcu_host_runtime::continuation_native::ContinuationNativeContext::check_installation(
-                parts.bootstrap, &next_actual, &permission, "image", "config",
+                parts.bootstrap, parts.resources.host(), &permission, "image", "config",
                 conduit_mcu_host_runtime::execution::Policy {
                     preparation: parts.configuration.preparation,
                     execution: parts.configuration.execution,
                     active_worksets: 0, maximum_retained_bytes: 24576,
                 },
             ).unwrap();
-            assert_eq!(
-                context.verified_intent().actual_boot(),
-                next_actual.boot_id.as_str()
+            assert_eq!(context.verified_intent().actual_boot(), next_boot.as_str());
+            fresh_scope
+                .check_actual(&permission, parts.resources.host())
+                .unwrap();
+            assert_eq!(parts.resources.host().boot_id.as_str(), next_boot);
+            assert!(
+                core::ptr::eq(parts.resources.host(), inventory_address),
+                "original inventory behind the mutable ledger"
             );
-            assert_eq!(parts.resources.host(), &next_actual);
         }
         assert!(
             matches!(

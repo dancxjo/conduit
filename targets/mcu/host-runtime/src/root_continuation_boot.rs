@@ -55,8 +55,36 @@ impl<'s, const N: usize> Root<'s, N> {
         source_digest: [u8; 32],
         pins: &[b::ContinuationBundleEntry<'_>],
     ) -> Result<b::VerifiedContinuationIntent<'a>, E> {
-        self.check_anchor(&accepted.anchor)?;
         if actual != self.resources.host() {
+            return Err(E::Scope);
+        }
+        self.verify_installed_continuation_boot_digest(
+            accepted,
+            prefix,
+            scratch,
+            actual.boot_id.as_str(),
+            source_digest,
+            pins,
+        )
+    }
+    /// Borrow only separately funded Boot text, checked against THIS original
+    /// Root. All other installed facts come from Root's verified acceptance and
+    /// configuration. No caller-provided inventory or identity is trusted.
+    ///
+    /// The result does not borrow Root, so subsequent full admission uses its
+    /// original mutable ledger without retaining a duplicate Host advertisement.
+    #[allow(clippy::too_many_arguments)]
+    pub fn verify_installed_continuation_boot_digest<'a>(
+        &self,
+        accepted: &'a InstalledContinuationAcceptance,
+        prefix: &'a [u8; PREFIX_BYTES],
+        scratch: &mut [u8; PREFIX_BYTES],
+        actual_boot: &'a str,
+        source_digest: [u8; 32],
+        pins: &[b::ContinuationBundleEntry<'_>],
+    ) -> Result<b::VerifiedContinuationIntent<'a>, E> {
+        self.check_anchor(&accepted.anchor)?;
+        if actual_boot != self.resources.host().boot_id.as_str() {
             return Err(E::Scope);
         }
         let candidate = accepted.artifact(prefix, scratch)?;
@@ -79,7 +107,7 @@ impl<'s, const N: usize> Root<'s, N> {
             b::TrustedInstalledContinuationFacts {
                 body_id: accepted.anchor.credential.body_id.as_str(),
                 part_id: accepted.anchor.credential.part_id.as_str(),
-                host_id: actual.host_id.as_str(),
+                host_id: accepted.anchor.credential.host_id.as_str(),
                 credential_id: accepted.anchor.credential.credential_id.as_str(),
                 membership_generation: accepted.anchor.membership_generation,
                 intent_generation: accepted.anchor.intent_generation,
@@ -87,7 +115,7 @@ impl<'s, const N: usize> Root<'s, N> {
                 workset_digest,
                 image_id: self.config.image_id,
                 configuration_id: self.config.configuration_id,
-                actual_boot: actual.boot_id.as_str(),
+                actual_boot,
             },
         )
         .map_err(|e| match e {
