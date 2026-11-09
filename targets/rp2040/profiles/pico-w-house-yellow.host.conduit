@@ -5,7 +5,7 @@ host pico-w-house-yellow {
   # Assigned representation requires 19357 bytes; this excludes full kernel/Ready heap.
   # Recording has finite preparation ceilings; physical heap/work bounds stay below.
   # The measured full native Show fits its separately checked 2048-byte envelope.
-  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 36864}
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 38912}
   execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
   target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
   # Finite flash residence; these bytes are not a RAM need or write permission.

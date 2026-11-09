@@ -5,7 +5,7 @@ host blue-wroom32 {
   schema = 1
   # Recording has finite preparation ceilings; physical heap/work bounds stay below.
   # The measured full native Show fits its separately checked 2048-byte envelope.
-  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 36864}
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 38912}
   execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
   target = {architecture: "xtensa-lx6", machine: "hw-463-esp-wroom-32", board: "hw-463-esp-wroom-32", make_descriptor: "sha256:3015c678e54e8ae4dc1d0552a30ebdcb118b5c55dfa372252a8a5b86847dc255"}
   # Finite flash residence; these bytes are not a RAM need or write permission.
