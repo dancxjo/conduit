@@ -108,6 +108,18 @@ pub fn check_continuation_bundle(
     entries: &[ContinuationBundleEntry<'_>],
 ) -> Result<CheckedContinuationBundle, ContinuationBundleRefusal> {
     let source: [u8; 32] = Sha256::digest(installed_source).into();
+    check_installed_continuation_bundle(intent, source, entries)
+}
+
+/// MCU specialization for an independently Make-pinned Source digest. Root
+/// must supply the compiled installed pin, never copy the candidate intent.
+/// Avoids retaining Source text on a Moon; proves the same recipe identity only.
+#[cfg(feature = "authenticated-admission")]
+pub fn check_installed_continuation_bundle(
+    intent: &VerifiedContinuationIntent<'_>,
+    source: [u8; 32],
+    entries: &[ContinuationBundleEntry<'_>],
+) -> Result<CheckedContinuationBundle, ContinuationBundleRefusal> {
     if source != intent.intent().source_digest {
         return Err(ContinuationBundleRefusal::Source);
     }
