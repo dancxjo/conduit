@@ -9,6 +9,8 @@ use std::{collections::BTreeMap, fmt::Write, path::Path};
 
 #[path = "template_seal_emission.rs"]
 mod seal_emission;
+#[path = "template_continuation_manifest.rs"]
+mod continuation_manifest;
 
 pub struct EntryLimits {
     pub entry: String,
@@ -205,54 +207,6 @@ impl Calibration {
         Ok(())
     }
 
-    /// Identity of the exact ordered immutable reconstruction recipes. The
-    /// source digest must come from the complete authored workset bytes.
-    /// This is inert fabrication identity, never a permission to execute.
-    pub fn continuation_digest(&self, source_digest: [u8; 32]) -> Result<[u8; 32], String> {
-        let placement_ids: Vec<Vec<&str>> = self
-            .entries
-            .iter()
-            .map(|entry| {
-                entry
-                    .layout
-                    .fragment_seal_placement_ids
-                    .iter()
-                    .map(String::as_str)
-                    .collect()
-            })
-            .collect();
-        let entries: Vec<_> = self
-            .entries
-            .iter()
-            .zip(&placement_ids)
-            .map(
-                |(entry, placement_ids)| conduit_body::ContinuationBundleEntry {
-                    name: &entry.name,
-                    source_document: entry.source_document_id.as_str(),
-                    checked_plot: entry.checked_plot_id.as_str(),
-                    expanded_plot: entry.expanded_plot_id.as_str(),
-                    projection_digest: entry.layout.projection_template_digest,
-                    recipe_digest: c::fragment_seal_recipe_identity(
-                        entry.layout.fragment_seal_recipe.pieces(),
-                    ),
-                    placement_ids,
-                    placement_nodes: &entry.layout.fragment_seal_to_kernel,
-                },
-            )
-            .collect();
-        conduit_body::continuation_bundle_digest(source_digest, &entries).map_err(debug)
-    }
-
-    /// Emit the owner-visible recipe identity from checked fabrication inputs.
-    pub fn emit_continuation_identity(
-        &self,
-        out: &Path,
-        source_digest: [u8; 32],
-    ) -> Result<(), String> {
-        let digest = self.continuation_digest(source_digest)?;
-        std::fs::write(out.join("continuation_identity.rs"), format!("// Inert recipe identity; not Start authority.\npub const SOURCE_DIGEST:[u8;32]={source_digest:?};\npub const WORKSET_DIGEST:[u8;32]={digest:?};\n")).map_err(debug)
-    }
-
     /// Static topology and definitions only; emitting these never installs a
     /// provider, resource grant, membership receipt or execution permission.
     pub fn emit_to(&self, out: &Path, maximum_generated_bytes: usize) -> Result<(), String> {
@@ -265,6 +219,7 @@ impl Calibration {
                 Some(pin) => format!("Some(conduit_core::AssignedForeRequirement::new({},{},conduit_core::AssignedForeDirection::Output,conduit_core::AssignedIdentity({:?}),{:?}))",pin.endpoint(),pin.cord(),&pin.payload()[5..21],&pin.payload()[21..]),
             };
             text.insert_str(0, &format!("pub fn append_status_fore()->Option<conduit_core::AssignedForeRequirement>{{{status}}}\n"));
+            text.insert_str(0, &entry.layout.continuation.emit());
             let continuation = format!(
                 "// Inert checked construction; not a sealed current-Boot Plan or execution grant.\npub const PROJECTION_TEMPLATE:&[u8]=&{:?};\npub const PROJECTION_TEMPLATE_DIGEST:[u8;32]={:?};\n",
                 entry.layout.projection_template,
@@ -353,7 +308,7 @@ impl Calibration {
             .unwrap();
             writeln!(
                 text,
-                "pub fn fore()->[conduit_core::AssignedForeRequirement;{}]{{[",
+                "pub static FORE:[conduit_core::AssignedForeRequirement;{}]=[",
                 entry.layout.fore.len()
             )
             .unwrap();
@@ -367,7 +322,13 @@ impl Calibration {
                 };
                 writeln!(text,"conduit_core::AssignedForeRequirement::new({},{},conduit_core::AssignedForeDirection::{},conduit_core::AssignedIdentity({:?}),{:?}),",fore.endpoint(),fore.cord(),direction,front,abi).unwrap();
             }
-            text.push_str("]}\npub const OTHER_OFFER_IMAGES:&[&[u8]]=&[\n");
+            writeln!(
+                text,
+                "];\npub fn fore()->[conduit_core::AssignedForeRequirement;{}]{{FORE}}",
+                entry.layout.fore.len()
+            )
+            .unwrap();
+            text.push_str("pub const OTHER_OFFER_IMAGES:&[&[u8]]=&[\n");
             for image in &entry.offer_images {
                 writeln!(text, "&{:?},", image).unwrap();
             }

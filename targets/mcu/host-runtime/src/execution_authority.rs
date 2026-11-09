@@ -8,8 +8,11 @@ use conduit_core as c;
 use sha2::{Digest, Sha256};
 #[path = "execution_authority_continuation.rs"]
 mod continuation;
+#[path = "execution_authority_description.rs"]
+mod description;
 #[path = "execution_authority_grant.rs"]
 mod grant_identity;
+pub use description::ContinuationNativeDescription;
 
 pub struct NativeFacts<'a> {
     host: &'a c::HostId,

@@ -88,6 +88,9 @@ mod authority {
     include!(concat!(env!("OUT_DIR"), "/source_play_authority.rs"));
 }
 pub use authority::NativeAuthority;
+pub mod continuation {
+    include!(concat!(env!("OUT_DIR"), "/source_play_continuation.rs"));
+}
 mod owners {
     include!(concat!(env!("OUT_DIR"), "/source_play_owners.rs"));
 }

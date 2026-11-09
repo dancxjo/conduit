@@ -148,6 +148,78 @@ fn signed_cross_boot_intent_selects_actual_native_description_only_with_opt_in()
     // This description creates neither an opaque fresh scope nor a capability
     // table; issue_continuation still requires the unforgeable canonical proof.
 
+    // Reuse the actual initialized clock to publish independently owned Base
+    // facts, then request only a descriptive fresh binding (never a table).
+    let mut described_actual = actual.clone();
+    let mut publication =
+        crate::native_images::Publication::new(&mut described_actual, 1, 4096).unwrap();
+    publication.wait(&clock).unwrap();
+    publication.finish().unwrap();
+    let described_context = ContinuationNativeContext::check_installation(
+        &bootstrap,
+        &described_actual,
+        &verified,
+        "image/1",
+        "configuration/1",
+        policy,
+    )
+    .unwrap();
+    let id = c::AssignedIdentity::from_text;
+    let binding = c::AssignedNativeBinding {
+        capability: id(conduit_monotonic_wait::WAIT_CAPABILITY),
+        kind_revision: id("checked/revision"),
+        execution_profile: id("checked/profile"),
+        maximum_instances: 1,
+        queue_items: 1,
+        queue_bytes: 8,
+        base: id("clock/base"),
+        instance: id("calibration/instance"),
+        generation: 1,
+        base_implementation: id("clock/implementation"),
+        mechanism: id(conduit_monotonic_wait::WAIT_ATTACHMENT_CLASS),
+        enforcement: 0,
+        grant: id("calibration/grant"),
+        authority: id(operation.authority),
+        call: id(operation.call),
+        subject: id(operation.kind),
+        host: id("calibration/host"),
+        boot: id("calibration/boot"),
+        authority_capability: id(conduit_monotonic_wait::WAIT_CAPABILITY),
+        resource: 0,
+        pool: id("calibration/pool"),
+        resource_class: id(conduit_monotonic_wait::WAIT_ATTACHMENT_CLASS),
+        units: 1,
+    };
+    let fresh = issuer
+        .describe_continuation(described_context, policy, &facts, &operation, binding)
+        .unwrap();
+    assert_eq!(fresh.binding.instance, id("clock/instance"));
+    assert_eq!(fresh.binding.host, id(actual.host_id.as_str()));
+    assert_eq!(fresh.binding.boot, id(actual.boot_id.as_str()));
+    assert_eq!(fresh.binding.pool, id("clock/pool"));
+    assert_eq!(fresh.grant, original.as_str());
+    let mut wrong = binding;
+    wrong.base = id("foreign/base");
+    assert!(issuer
+        .describe_continuation(described_context, policy, &facts, &operation, wrong)
+        .is_err());
+    let mut changed_operation = operation;
+    changed_operation.maximum_operations += 1;
+    assert!(issuer
+        .describe_continuation(
+            described_context,
+            policy,
+            &facts,
+            &changed_operation,
+            binding
+        )
+        .is_err());
+    assert_eq!(
+        issuer.grant().unwrap().grant_id,
+        original,
+        "description cannot replace original authority"
+    );
+
     let disabled = b::HostExecutionDelegation {
         continuation: None,
         ..execution

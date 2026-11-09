@@ -114,6 +114,14 @@ impl<S: NorStorage> Equipment<S> {
             _ => None,
         }
     }
+    /// Borrow the same initialized owner for descriptive current-Boot matching.
+    /// This creates no operation capability and cannot withdraw the provider.
+    pub fn ready(&self) -> Option<&ReadyRecordAppender<S>> {
+        match self.stage.as_ref()? {
+            Stage::Ready(Some(owner)) => Some(owner),
+            _ => None,
+        }
+    }
     pub fn ready_slot(&mut self) -> Option<&mut Option<ReadyRecordAppender<S>>> {
         match self.stage.as_mut()? {
             Stage::Ready(slot) => Some(slot),

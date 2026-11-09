@@ -24,7 +24,12 @@ pub struct Inputs<'a> {
     pub maximum_fore_ports: usize,
 }
 
+#[path = "template_continuation.rs"]
+mod continuation;
+pub use continuation::ContinuationPins;
+
 pub struct Layout {
+    pub continuation: ContinuationPins,
     /// Inert canonical identity program, not a sealed current-Boot fragment.
     pub fragment_seal_recipe: c::FragmentSealRecipe,
     /// Canonical placement ordinal to actual lowered kernel node, derived by
@@ -222,7 +227,9 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             );
         }
     }
+    let continuation = continuation::capture(fragment, kernel, generated.fore())?;
     Ok(Layout {
+        continuation,
         fragment_seal_recipe,
         fragment_seal_to_kernel,
         fragment_seal_placement_ids: fragment.placements.iter().map(|p| p.placement_id.as_str().to_owned()).collect(),
@@ -392,6 +399,20 @@ mod tests {
         restarted.offer_generation = c::OfferGeneration(2);
         let later = make(&restarted, &boundaries).unwrap();
         assert_eq!(layout.nodes, later.nodes);
+        assert_eq!(layout.continuation, later.continuation,
+            "named Fore/resource pins are immutable across Boot changes");
+        assert_eq!(layout.continuation.fore.len(), layout.fore.len());
+        for fore in &layout.continuation.fore {
+            assert!(!fore.front.is_empty() && !fore.gear.is_empty());
+            assert_eq!(layout.fragment_seal_placement_ids[
+                layout.fragment_seal_to_kernel.iter().position(|node| *node==fore.node).unwrap()
+            ], fore.placement);
+            assert!(layout.fore.iter().any(|pin| pin.cord()==fore.cord && pin.endpoint()==fore.endpoint
+                && pin.payload()[5..21]==c::AssignedIdentity::from_text(&fore.front).0));
+        }
+        let emitted=layout.continuation.emit();
+        assert!(emitted.contains("pub static FRESH_FORE"));
+        assert!(emitted.contains("pub static CONTINUATION_RESOURCES"));
         assert_eq!(layout.fragment_seal_placement_ids, later.fragment_seal_placement_ids);
         assert_eq!(c::fragment_seal_recipe_identity(layout.fragment_seal_recipe.pieces()), c::fragment_seal_recipe_identity(later.fragment_seal_recipe.pieces()));
         assert_eq!(layout.counts, later.counts);
