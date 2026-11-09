@@ -65,23 +65,102 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     ),
     Refusal<&'static str>,
 > {
-    let presentation::Presentation {
-        service,
-        scopes,
-        basis,
-        shared,
-    } = presentation::prepare(
-        &prepared,
-        bootstrap,
-        member,
-        configuration,
-        resources.host(),
+    start_selected(
+        prepared,
+        Some(workspace),
+        PresentationOrigin::Online {
+            bootstrap,
+            member,
+            configuration,
+        },
+        resources,
         policy,
         renderer,
         issuer,
         operation,
         reader,
         face,
+        held_pools,
+        recording_service_bytes,
+    )
+}
+
+/// Same complete renderer/admission path with the actual checked installed
+/// owner-intent and fresh local scope; no online command or member stamp exists.
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[inline(always)]
+pub fn start_continuation<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
+    prepared: PreparedLocalWorkset<'w, T, 3>,
+    bootstrap: &b::MemberBootstrap<'_>,
+    verified: &b::VerifiedContinuationIntent<'_>,
+    configuration: &conduit_mcu_host_runtime::root::Configuration,
+    scope: &b::FreshContinuationScope<'w>,
+    resources: &mut c::ResourceAdmissionOwner,
+    policy: Policy<'_>,
+    renderer: &'a mut ReadyRenderer<C>,
+    issuer: &mut Issuer,
+    operation: &Operation<'_>,
+    reader: Reader<'a>,
+    face: &LocalPublicationFace,
+    held_pools: &[c::AssignedIdentity],
+    recording_service_bytes: usize,
+) -> Result<
+    (
+        StartedLocalWorkset<(T::Bound, RendererService<'a, C>)>,
+        Scopes,
+    ),
+    Refusal<&'static str>,
+> {
+    start_selected(
+        prepared,
+        None,
+        PresentationOrigin::Continuation {
+            bootstrap,
+            verified,
+            configuration,
+            scope,
+        },
+        resources,
+        policy,
+        renderer,
+        issuer,
+        operation,
+        reader,
+        face,
+        held_pools,
+        recording_service_bytes,
+    )
+}
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+#[inline(always)]
+fn start_selected<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
+    prepared: PreparedLocalWorkset<'w, T, 3>,
+    workspace: Option<&b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>>,
+    origin: PresentationOrigin<'_, '_, 'w>,
+    resources: &mut c::ResourceAdmissionOwner,
+    policy: Policy<'_>,
+    renderer: &'a mut ReadyRenderer<C>,
+    issuer: &mut Issuer,
+    operation: &Operation<'_>,
+    reader: Reader<'a>,
+    face: &LocalPublicationFace,
+    held_pools: &[c::AssignedIdentity],
+    recording_service_bytes: usize,
+) -> Result<
+    (
+        StartedLocalWorkset<(T::Bound, RendererService<'a, C>)>,
+        Scopes,
+    ),
+    Refusal<&'static str>,
+> {
+    let authority = origin.native(resources.host(), policy)?;
+    let presentation::Presentation {
+        service,
+        scopes,
+        basis,
+        shared,
+    } = presentation::prepare(
+        &prepared, authority, policy, renderer, issuer, operation, reader, face,
     )?;
     let observations = observe_held(&prepared, resources, held_pools)?;
     // The fixed outer table lives inline; its owned identity payload is heap.
@@ -104,21 +183,64 @@ pub fn start<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     // only moves it; invalid provenance cannot expose a partially scoped Face.
     face.bind_scope(basis)
         .map_err(|_| Refusal::Back("face-scope"))?;
-    let context = b::NativePreparationContext {
-        bootstrap,
-        member,
-        actual: resources.host(),
-        image_id: configuration.image_id,
-        configuration_id: configuration.configuration_id,
-        now_millis: crate::runtime::now_ms(),
-    };
-    committed
-        .start(workspace, context, policy, resources)
+    origin
+        .native(resources.host(), policy)?
+        .start(&mut committed, workspace, policy, resources)
         .map(|started| (started, scopes))
         .map_err(|refusal| match refusal {
             Refusal::Scope => Refusal::Back("authenticated-start-scope"),
             other => other,
         })
+}
+
+/// Original immutable authority references only: no Host loan survives mutable
+/// batch admission. Rechecking does not create a receipt or a command stamp.
+enum PresentationOrigin<'a, 'scope, 'work> {
+    Online {
+        bootstrap: &'a b::MemberBootstrap<'a>,
+        member: &'a b::MembershipCredential,
+        configuration: &'a conduit_mcu_host_runtime::root::Configuration,
+    },
+    Continuation {
+        bootstrap: &'a b::MemberBootstrap<'a>,
+        verified: &'a b::VerifiedContinuationIntent<'a>,
+        configuration: &'a conduit_mcu_host_runtime::root::Configuration,
+        scope: &'scope b::FreshContinuationScope<'work>,
+    },
+}
+impl<'scope, 'work> PresentationOrigin<'_, 'scope, 'work> {
+    fn native<'a>(
+        &'a self,
+        actual: &'a c::HostAdvertisement,
+        policy: Policy<'_>,
+    ) -> Result<crate::play::NativeAuthority<'a, 'scope, 'work>, Refusal<&'static str>> {
+        match self {
+            Self::Online {
+                bootstrap,
+                member,
+                configuration,
+            } => Ok(b::NativePreparationContext {
+                bootstrap,
+                member,
+                actual,
+                image_id: configuration.image_id,
+                configuration_id: configuration.configuration_id,
+                now_millis: crate::runtime::now_ms(),
+            }
+            .into()),
+            Self::Continuation {
+                bootstrap,
+                verified,
+                configuration,
+                scope,
+            } => {
+                let context = conduit_mcu_host_runtime::continuation_native::ContinuationNativeContext::check_installation(
+                    bootstrap, actual, verified, configuration.image_id, configuration.configuration_id, policy,
+                ).map_err(|_| Refusal::Scope)?;
+                Ok(crate::play::NativeAuthority::Continuation { context, scope })
+            }
+        }
+    }
 }
 
 fn observe_held<T: PreparedLocalKernels>(

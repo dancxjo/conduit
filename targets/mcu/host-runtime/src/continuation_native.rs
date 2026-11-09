@@ -86,6 +86,14 @@ impl<'a> ContinuationNativeContext<'a> {
         }
         Ok(())
     }
+    /// Exact Body pinned by the independently verified installed owner intent.
+    pub fn body_id(&self) -> &'a b::BodyId {
+        &self.bootstrap.body_id
+    }
+    /// Original checked Root advertisement; no candidate reconstruction.
+    pub fn actual(&self) -> &'a c::HostAdvertisement {
+        self.actual
+    }
     pub fn verified_intent(&self) -> &b::VerifiedContinuationIntent<'a> {
         self.verified
     }

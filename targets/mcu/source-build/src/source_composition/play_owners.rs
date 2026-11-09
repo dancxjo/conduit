@@ -37,7 +37,7 @@ type Output<'a, 'f> = PreparedDrivers<
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 #[inline(never)]
 pub(super) fn prepare<'a, 'f: 'a>(
-    context: b::NativePreparationContext<'_>,
+    context: NativeAuthority<'_, '_, '_>,
     policy: Policy<'_>,
     residents: &'a mut resident::Initialized,
     software: &'a mut SoftwareInventory<'f, SN>,
@@ -125,9 +125,9 @@ pub(super) fn prepare<'a, 'f: 'a>(
         source::output::NATIVE_KINDS,
         conduit_tm1637_wire::WRITE_KIND,
     )?;
-    let (table, handle, claim) = pulse_issuer
+    let (table, handle, claim) = context
         .issue(
-            context,
+            pulse_issuer,
             policy,
             sampling,
             &NativeFacts::pulse(pulse.as_ref().ok_or("pulse-busy")?),
@@ -149,9 +149,9 @@ pub(super) fn prepare<'a, 'f: 'a>(
     )
     .map_err(|_| "pulse-assignment")?;
     drop(pulse_contract); // Cold schema metadata is not execution custody.
-    let (table, handle, claim) = write_issuer
+    let (table, handle, claim) = context
         .issue(
-            context,
+            write_issuer,
             policy,
             output,
             &NativeFacts::write(write.as_ref().ok_or("write-busy")?),
@@ -194,9 +194,9 @@ pub(super) fn prepare<'a, 'f: 'a>(
             value: c::ConfigurationValue::U64(*period),
         },
     ];
-    let (table, handle, claim) = issuer
+    let (table, handle, claim) = context
         .issue(
-            context,
+            issuer,
             policy,
             sampling,
             &NativeFacts::wait(wait.as_ref().ok_or("wait-busy")?),
@@ -228,9 +228,9 @@ pub(super) fn prepare<'a, 'f: 'a>(
     let appender = match (append_node, contracts.append, recording_operation) {
         (Some(node), Some(contract), Some(op)) => {
             let recording = recording.ok_or("append-busy")?;
-            let (table, handle, claim) = recording_issuer
+            let (table, handle, claim) = context
                 .issue(
-                    context,
+                    recording_issuer,
                     policy,
                     sampling,
                     &NativeFacts::append(recording.as_ref().ok_or("append-busy")?),

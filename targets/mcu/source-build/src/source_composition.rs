@@ -11,6 +11,10 @@ pub fn emit_to(out: &Path) -> std::io::Result<()> {
             "play_recording",
             include_str!("source_composition/play_recording.rs"),
         ),
+        (
+            "play_authority",
+            include_str!("source_composition/play_authority.rs"),
+        ),
         ("play", include_str!("source_composition/play.rs")),
         (
             "play_owners",

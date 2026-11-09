@@ -84,6 +84,10 @@ fn operation<'a>(
         node: NodeId(node),
     }
 }
+mod authority {
+    include!(concat!(env!("OUT_DIR"), "/source_play_authority.rs"));
+}
+pub use authority::NativeAuthority;
 mod owners {
     include!(concat!(env!("OUT_DIR"), "/source_play_owners.rs"));
 }
@@ -91,9 +95,9 @@ mod owners {
 /// checks all four real resident owners before splitting disjoint affine loans.
 #[allow(clippy::too_many_arguments, clippy::type_complexity)]
 #[inline(never)] // Keep preparation temporaries out of the continuing async poll frame.
-pub fn prepare<'a, 'f: 'a, 'w>(
-    workspace: &'w b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>,
-    context: b::NativePreparationContext<'_>,
+pub fn prepare<'a, 'f: 'a, 'w, 'context, 'scope>(
+    workspace: impl Into<Option<&'w b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>>>,
+    context: impl Into<NativeAuthority<'context, 'scope, 'w>>,
     policy: Policy<'_>,
     residents: &'a mut resident::Initialized,
     software: &'a mut SoftwareInventory<'f, SN>,
@@ -128,6 +132,8 @@ pub fn prepare<'a, 'f: 'a, 'w>(
     >,
     Refusal<Refusal<&'static str>>,
 > {
+    let context = context.into();
+    let workspace = workspace.into();
     let append_selected = source::sampling::NATIVE_KINDS
         .iter()
         .any(|(_, kind)| *kind == conduit_resource_snapshot::native_append::APPEND_KIND);
@@ -165,14 +171,13 @@ pub fn prepare<'a, 'f: 'a, 'w>(
             maximum: policy.maximum_retained_bytes,
         });
     }
-    let host = c::AssignedIdentity::from_text(context.actual.host_id.as_str());
-    let boot = c::AssignedIdentity::from_text(context.actual.boot_id.as_str());
+    let host = c::AssignedIdentity::from_text(context.actual().host_id.as_str());
+    let boot = c::AssignedIdentity::from_text(context.actual().boot_id.as_str());
     let sf = source::sampling_layout::fore();
     let mf = source::mask_layout::fore();
     let of = source::output_layout::fore();
-    execution_group::prepare_with_source::<_, _, { crate::config::MAX_ASSIGNMENT_BYTES }, FORE_PORTS>(
+    context.prepare::<_, _, { crate::config::MAX_ASSIGNMENT_BYTES }, FORE_PORTS>(
         workspace,
-        context,
         policy,
         [
             pin!(sampling_layout),
@@ -199,7 +204,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
             stream.update(b"conduit.mcu/authored-recording-stream@1\0");
             for field in [
                 sampling.metadata().body,
-                context.actual.host_id.as_str(),
+                context.actual().host_id.as_str(),
                 source::sampling_layout::SOURCE_DOCUMENT_ID,
                 source::sampling_layout::CHECKED_PLOT_ID,
             ] {
@@ -208,7 +213,7 @@ pub fn prepare<'a, 'f: 'a, 'w>(
             }
             software.prepare_recording_from_approved(
                 sampling,
-                context.actual,
+                context.actual(),
                 stream.finalize().into(),
                 1,
             )?;

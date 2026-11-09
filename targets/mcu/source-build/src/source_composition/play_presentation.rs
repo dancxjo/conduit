@@ -12,10 +12,7 @@ pub(super) struct Presentation<'a, C> {
 #[inline(never)]
 pub(super) fn prepare<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     prepared: &PreparedLocalWorkset<'w, T, 3>,
-    bootstrap: &b::MemberBootstrap<'_>,
-    member: &b::MembershipCredential,
-    configuration: &conduit_mcu_host_runtime::root::Configuration,
-    actual: &c::HostAdvertisement,
+    authority: crate::play::NativeAuthority<'_, '_, '_>,
     policy: Policy<'_>,
     renderer: &'a mut ReadyRenderer<C>,
     issuer: &mut Issuer,
@@ -24,6 +21,8 @@ pub(super) fn prepare<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     face: &LocalPublicationFace,
 ) -> Result<Presentation<'a, C>, Refusal<&'static str>> {
     use crate::workset::generated::{mask_layout as mask, sampling_layout as sample};
+    let actual = authority.actual();
+    let body = authority.body_id();
     let sampling = prepared
         .fragments()
         .iter()
@@ -54,7 +53,7 @@ pub(super) fn prepare<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         })
         .ok_or(Refusal::Back("output-fragment"))?;
     let scopes = Scopes {
-        body: member.body_id.clone(),
+        body: body.clone(),
         active: c::ActivePlayIdentity {
             active_play_id: m.body_play.into(),
             plan_id: m.body_plan.into(),
@@ -69,7 +68,7 @@ pub(super) fn prepare<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         ],
     };
 
-    if m.body != member.body_id.as_str()
+    if m.body != body.as_str()
         || sm.body != m.body
         || sm.wake != m.wake
         || sm.body_plan != m.body_plan
@@ -79,7 +78,7 @@ pub(super) fn prepare<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
     }
     let wake = sampling.wake_id();
     let basis = FaceBasis {
-        body_id: Some(member.body_id.clone()),
+        body_id: Some(body.clone()),
         wake_id: Some(wake),
         source_document_id: Some(sm.source.into()),
         checked_plot_id: Some(sm.checked_plot.into()),
@@ -144,18 +143,10 @@ pub(super) fn prepare<'a, 'w, T: PreparedLocalKernels, C: RendererClock>(
         )
     }
     .map_err(|_| Refusal::Back("renderer-context"))?;
-    let native_context = b::NativePreparationContext {
-        bootstrap,
-        member,
-        actual,
-        image_id: configuration.image_id,
-        configuration_id: configuration.configuration_id,
-        now_millis: crate::runtime::now_ms(),
-    };
     let available = crate::runtime::remaining();
-    let (table, handle, claim) = issuer
+    let (table, handle, claim) = authority
         .issue(
-            native_context,
+            issuer,
             policy,
             approved,
             &NativeFacts::renderer(renderer),
