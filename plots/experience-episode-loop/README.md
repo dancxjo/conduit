@@ -4,6 +4,7 @@ An `EpisodeExperience` carries one trigger and one typed evidence request as
 an atomic input. The composer validates the evidence, waits for the memory
 cell to reflect the previous episode, and sends one bounded request containing
 the trigger, selected experience, and recalled episodes to the model Gear.
+It selects recall by shared terms in the trigger and retained observations.
 The retained episode keeps its observation and model-derived response separate.
 
 The hosted proof submits Pete Situation evidence for battery state, human input,

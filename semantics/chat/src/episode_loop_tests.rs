@@ -322,3 +322,52 @@ fn retained_response_accepts_512_utf8_bytes_and_refuses_513_without_truncating()
         Err(EpisodeRefusal::ResponseBoundExceeded)
     );
 }
+
+#[test]
+fn experience_recall_ranks_observed_terms_and_excludes_model_only_matches() {
+    let mut composer = EpisodeComposer::new();
+    let mut memory = EpisodeMemoryCell::new().unwrap();
+    composer.admit_context(&context(2, "Pete")).unwrap();
+    episode(
+        &mut composer,
+        &mut memory,
+        "hallway switch label",
+        true,
+        "first",
+    );
+    episode(&mut composer, &mut memory, "switch relay", true, "second");
+    episode(
+        &mut composer,
+        &mut memory,
+        "garden temperature",
+        true,
+        "hallway switch label",
+    );
+
+    let trigger = EpisodeObservation::new(
+        "What hallway switch label LABEL?".into(),
+        "query/1".into(),
+        false,
+    )
+    .unwrap();
+    composer
+        .compose_episode(trigger, memory.current(), Some(b"{}"))
+        .unwrap();
+    let request: serde_json::Value = serde_json::from_slice(composer.request()).unwrap();
+    let recalled = request["recalled"].as_array().unwrap();
+    assert_eq!(recalled.len(), 2);
+    assert_eq!(recalled[0]["episode"], 2);
+    assert_eq!(recalled[0]["shared_observation_terms"], 1);
+    assert_eq!(recalled[1]["episode"], 1);
+    assert_eq!(recalled[1]["shared_observation_terms"], 3);
+    let pending = EpisodePending::decode(composer.pending()).unwrap();
+    assert_eq!(
+        pending
+            .recalled()
+            .get()
+            .iter()
+            .map(|item| *item.episode())
+            .collect::<Vec<_>>(),
+        vec![2, 1]
+    );
+}

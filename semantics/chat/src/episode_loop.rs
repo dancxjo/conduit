@@ -13,6 +13,8 @@ use sha2::{Digest, Sha256};
 
 #[path = "episode_prompt.rs"]
 mod episode_prompt;
+#[path = "episode_recall.rs"]
+mod episode_recall;
 use episode_prompt::prompt;
 
 use crate::{
@@ -158,8 +160,12 @@ impl EpisodeComposer {
         let selected_experience = selected_experience
             .as_ref()
             .zip(experience_digest.as_ref().map(|digest| &digest[..]));
-        let memories = memory.memories().get().as_slice();
-        // Keep the newest memories that fit; the pending record names them exactly.
+        let memories = episode_recall::select(
+            observation.content(),
+            memory.memories().get().as_slice(),
+            selected_experience.is_some(),
+        );
+        // The pending record names exactly the memories that fit.
         let mut first = 0;
         let request = loop {
             let prompt = prompt(
@@ -179,9 +185,9 @@ impl EpisodeComposer {
             first += 1;
         };
         let mut recalled = BoundedSequence::new();
-        for memory in &memories[first..] {
+        for candidate in &memories[first..] {
             recalled
-                .push(memory.clone())
+                .push(candidate.memory.clone())
                 .map_err(|_| EpisodeRefusal::Encoding)?;
         }
         let pending = EpisodePending::new(

@@ -276,3 +276,39 @@ fn live_pete_experience_episode_uses_earlier_memory() {
         .to_ascii_uppercase()
         .contains("COPPER KITE"));
 }
+
+#[test]
+fn pete_retrieves_the_matching_episode_past_a_newer_unrelated_one() {
+    let (model, requests) = common::fenced_model();
+    let mut harness = pete_harness(model);
+    let mut incoming = inputs(&[]);
+    incoming.extend([
+        frame_input(frame(1, "The hallway switch label is COPPER KITE.", true)),
+        frame_input(frame(2, "The garden is cool and windy.", true)),
+        frame_input(frame(
+            3,
+            "What exact label did I report for the hallway switch?",
+            false,
+        )),
+    ]);
+    let mut collector = Collector::default();
+    let report = run(
+        &mut harness,
+        &incoming,
+        &mut collector,
+        &RunControl::default(),
+    )
+    .unwrap();
+    assert_eq!(terminal(&report), &TerminalDisposition::Completed);
+    let episodes = records(&collector.0);
+    assert_eq!(episodes.len(), 3);
+    assert!(episodes[1].recalled().get().is_empty());
+    assert_eq!(episodes[2].recalled().get().len(), 1);
+    assert_eq!(*episodes[2].recalled().get()[0].episode(), 1);
+    assert!(episodes[2].response().content().contains("COPPER KITE"));
+
+    let requests = requests.lock().unwrap();
+    let follow_up: serde_json::Value = serde_json::from_str(&requests[2]).unwrap();
+    assert_eq!(follow_up["recalled"][0]["shared_observation_terms"], 3);
+    assert!(!requests[2].contains("garden"));
+}
