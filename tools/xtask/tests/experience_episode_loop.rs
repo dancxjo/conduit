@@ -115,6 +115,49 @@ fn frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFrame {
     .unwrap()
 }
 
+fn create_frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFrame {
+    use conduit_pete::{
+        decode_observation_bundle, lower_charging_sources, lower_group_zero,
+        pete_cognition_battery_from_create, CreatePortableObservation,
+        CREATE_CHARGING_SOURCES_PACKET_ID, CREATE_GROUP_ZERO_PACKET_ID, STREAM_HEADER,
+    };
+
+    let mut packet = [0u8; 26];
+    let charge_mah: u16 = if revision == 1 { 500 } else { 90 };
+    packet[16] = if revision == 1 { 3 } else { 0 };
+    packet[17..19].copy_from_slice(&13_000u16.to_be_bytes());
+    packet[22..24].copy_from_slice(&charge_mah.to_be_bytes());
+    packet[24..26].copy_from_slice(&1_000u16.to_be_bytes());
+    let mut stream = vec![STREAM_HEADER, 29, CREATE_GROUP_ZERO_PACKET_ID];
+    stream.extend(packet);
+    stream.extend([CREATE_CHARGING_SOURCES_PACKET_ID, 2]);
+    let checksum = stream.iter().fold(0u8, |sum, byte| sum.wrapping_add(*byte));
+    stream.push(0u8.wrapping_sub(checksum));
+    let bundle = decode_observation_bundle(&stream).unwrap();
+    let observation = CreatePortableObservation {
+        group_zero: lower_group_zero(&bundle.group_zero).unwrap(),
+        charging_sources: lower_charging_sources(&bundle.charging_sources).unwrap(),
+    };
+    let fixture = frame(revision, message, retain);
+    let battery = pete_cognition_battery_from_create(
+        &observation,
+        PeteCognitionSign::new(format!("create/battery/{revision}")).unwrap(),
+        at(100 * revision - 1),
+    )
+    .unwrap()
+    .unwrap();
+    PeteCognitionFrame::new(
+        battery,
+        fixture.body().clone(),
+        fixture.provenance_revision().clone(),
+        fixture.reference().clone(),
+        revision,
+        *fixture.temporal_policy(),
+        fixture.utterance().clone(),
+    )
+    .unwrap()
+}
+
 fn frame_input(frame: PeteCognitionFrame) -> ExternalForeInput {
     ExternalForeInput {
         front_port_id: "frames".into(),
@@ -172,12 +215,12 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
         PatchbayApplicationPort,
     };
 
-    let (model, _) = common::fenced_model();
+    let (model, requests) = common::fenced_model();
     let mut harness = pete_harness(model);
     let mut incoming = inputs(&[]);
     incoming.extend([
-        frame_input(frame(1, "The switch label is COPPER KITE.", true)),
-        frame_input(frame(2, "What was the switch label?", false)),
+        frame_input(create_frame(1, "The switch label is COPPER KITE.", true)),
+        frame_input(create_frame(2, "What was the switch label?", false)),
     ]);
     let mut collector = Collector::default();
     let control = RunControl::default().with_debug_body(common::context().body_id);
@@ -194,6 +237,22 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
         .unwrap()
         .content()
         .contains("COPPER KITE"));
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 2);
+    for (index, request) in requests.iter().enumerate() {
+        let request: serde_json::Value = serde_json::from_str(request).unwrap();
+        let evidence = &request["selected_experience"]["evidence"];
+        let revision = index + 1;
+        assert_eq!(
+            evidence[0]["sources"][0]["sign"],
+            format!("create/battery/{revision}")
+        );
+        assert_eq!(evidence[0]["observed_at"]["ticks"], 100 * revision - 1);
+        let homeostasis: serde_json::Value =
+            serde_json::from_str(evidence[3]["utf8_content"].as_str().unwrap()).unwrap();
+        assert_eq!(homeostasis["charge_percent"], ["50.0%", "9.0%"][index]);
+        assert_eq!(homeostasis["charging"], revision == 1);
+    }
     let kernel = report.kernel.unwrap();
     let history = kernel.debug_history.unwrap();
     assert!(history.gap.is_none(), "{:?}", history.gap);

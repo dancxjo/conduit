@@ -5,7 +5,7 @@ use conduit_core::{
     PortDescriptor, PortDirection, PortTemporal, TemporalInstant,
 };
 use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog};
-use conduit_robotics::BatteryObservation;
+use conduit_robotics::{BatteryObservation, ChargingState};
 
 use crate::{
     integrate_pete_experience, project_pete_experience_evidence, select_pete_situation, Observed,
@@ -32,6 +32,34 @@ pub enum PeteCognitionRefusal {
     Experience,
     Evidence,
     Homeostasis,
+}
+
+/// Project a correlated Create battery sample using its source Sign and capture time.
+pub fn pete_cognition_battery_from_create(
+    observation: &crate::CreatePortableObservation,
+    sign: PeteCognitionSign,
+    observed_at: conduit_time::NativeTemporalInstant,
+) -> Result<Option<PeteCognitionBattery>, PeteCognitionRefusal> {
+    let sample = observation.group_zero.charging;
+    let Some(battery) = sample
+        .battery()
+        .map_err(|_| PeteCognitionRefusal::InvalidObservation)?
+    else {
+        return Ok(None);
+    };
+    let charging = matches!(
+        sample.state,
+        ChargingState::Reconditioning | ChargingState::Full | ChargingState::Trickle
+    );
+    PeteCognitionBattery::new(
+        battery.charge_permille(),
+        charging,
+        battery.millivolts(),
+        observed_at,
+        sign,
+    )
+    .map(Some)
+    .map_err(|_| PeteCognitionRefusal::InvalidObservation)
 }
 
 pub fn situate_pete_frame(
