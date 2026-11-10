@@ -35,8 +35,10 @@ This remains an unfinished slice of [#3707](https://github.com/dancxjo/conduit/i
 The episode loop is not yet wired to Pete Situation, generic Experiencer
 execution, or selected autobiographical RAG. The explicit evidence projection
 preserves observed and recorded instants when available, including clock basis,
-resolution, and uncertainty. The episode model request still needs a Cord from
-that projection. Current provider failure terminates
+resolution, and uncertainty. Pete's preparation adapter admits Situation facts,
+their explicit relationships, and caller-selected autobiography records into
+one bounded CurrentExperience revision. The episode model request still needs
+a Cord from that projection. Current provider failure terminates
 the dependent Play rather than proving continuing deterministic attention in the
 same Body. Three cognitive cadences, provider-return replanning, bounded
 allocation-free Play implementation, and complete Patchbay causal proof remain

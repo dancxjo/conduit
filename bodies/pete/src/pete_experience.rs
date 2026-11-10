@@ -2,13 +2,16 @@
 
 use conduit_core::SignId;
 use conduit_human::{
-    ExperienceAvailability, ExperienceCertainty, ExperienceDomain, ExperienceItem,
-    ExperienceOrigin, ExperienceRelation, ExperienceRelationKind, ExperienceSourceRef,
-    ExperienceTemporalPolicy,
+    CurrentExperience, ExperienceAvailability, ExperienceCertainty, ExperienceDomain,
+    ExperienceItem, ExperienceLimits, ExperienceOrigin, ExperienceRefusal, ExperienceRelation,
+    ExperienceRelationKind, ExperienceSourceRef, ExperienceTemporalPolicy,
 };
 use serde::Serialize;
 
-use crate::{PeteSituation, PeteSituationFact, SituationFactState};
+use crate::{
+    pete_retained_experience_input, PeteSituation, PeteSituationFact, RetainedExperience,
+    SituationFactState,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PeteExperienceRefusal {
@@ -16,12 +19,68 @@ pub enum PeteExperienceRefusal {
     IndeterminateTime,
     Encoding,
     ContentBound,
+    Admission(ExperienceRefusal),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PeteExperienceInputs {
     pub items: Vec<ExperienceItem>,
     pub relationships: Vec<ExperienceRelation>,
+}
+
+/// Assemble one Experience revision using the Situation's reference clock and
+/// records already selected by the caller. Admission is all-or-nothing.
+pub fn integrate_pete_experience(
+    situation: &PeteSituation,
+    policy: ExperienceTemporalPolicy,
+    selected_memory: &[RetainedExperience],
+) -> Result<CurrentExperience, PeteExperienceRefusal> {
+    use conduit_semantic_catalog::{
+        EXPERIENCE_EVIDENCE_MAX_BYTES, EXPERIENCE_EVIDENCE_MAX_CONTENT_BYTES,
+        EXPERIENCE_EVIDENCE_MAX_IDENTITY_BYTES, EXPERIENCE_EVIDENCE_MAX_ITEMS,
+        EXPERIENCE_EVIDENCE_MAX_RELATIONSHIPS, EXPERIENCE_EVIDENCE_MAX_SOURCES,
+    };
+    let inputs = pete_situation_experiences(situation, policy)?;
+    let maximum_items = EXPERIENCE_EVIDENCE_MAX_ITEMS;
+    if inputs.items.len().saturating_add(selected_memory.len()) > maximum_items {
+        return Err(PeteExperienceRefusal::Admission(
+            ExperienceRefusal::ItemCapacity,
+        ));
+    }
+    let mut current = CurrentExperience::new(
+        ExperienceLimits {
+            maximum_items,
+            maximum_current_items: maximum_items,
+            maximum_recent_items: maximum_items,
+            maximum_stale_items: maximum_items,
+            maximum_historical_items: maximum_items,
+            maximum_items_per_domain: maximum_items,
+            maximum_model_derived_items: maximum_items,
+            maximum_selected_memory_items: maximum_items,
+            maximum_source_refs: EXPERIENCE_EVIDENCE_MAX_SOURCES,
+            maximum_relationships: EXPERIENCE_EVIDENCE_MAX_RELATIONSHIPS,
+            maximum_item_bytes: EXPERIENCE_EVIDENCE_MAX_CONTENT_BYTES,
+            maximum_encoded_bytes: EXPERIENCE_EVIDENCE_MAX_BYTES,
+            maximum_conflict_alternatives: 2,
+            maximum_identity_bytes: EXPERIENCE_EVIDENCE_MAX_IDENTITY_BYTES,
+        },
+        situation.reference.clone(),
+        policy,
+    )
+    .map_err(PeteExperienceRefusal::Admission)?;
+
+    let memories = selected_memory.iter().map(pete_retained_experience_input);
+    for item in inputs.items.into_iter().map(Ok).chain(memories) {
+        current
+            .try_admit(item?)
+            .map_err(|error| PeteExperienceRefusal::Admission(error.refusal))?;
+    }
+    for relation in inputs.relationships {
+        current
+            .relate(relation)
+            .map_err(PeteExperienceRefusal::Admission)?;
+    }
+    Ok(current)
 }
 
 /// Preserve each alternative as its own uncertain item with its own source.

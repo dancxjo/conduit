@@ -569,8 +569,11 @@ The projection admits at most eight selected items, 2,048 content bytes per item
 four source references per item, 128-byte identities, and 65,536 canonical bytes
 per request or context. It preserves content, domain, origin, temporal role,
 availability, certainty, supplied source references, and optional observation and
-recording instants, ordering items by the selection. Duplicate, missing or unselected items, revision/provenance mismatches,
-and invalid epistemic combinations refuse rather than truncate. Revision checks
+recording instants, ordering items by the selection. A selection also carries up
+to eight relationships, each linking two distinct selected items. Duplicate
+relationships or links outside the selection are refused. Duplicate, missing or
+unselected items, revision/provenance mismatches, and invalid epistemic
+combinations also refuse. Revision checks
 are relative to the supplied selection, not attested current Body truth.
 The output is evidence data, not a model request, authenticated observation,
 memory-access grant or action authority.

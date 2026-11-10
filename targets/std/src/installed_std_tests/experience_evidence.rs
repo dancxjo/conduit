@@ -7,8 +7,8 @@ use conduit_core::{
     TerminalDisposition,
 };
 use conduit_human::{
-    ExperienceAvailability, ExperienceEvidenceContext, ExperienceEvidenceSource, ExperienceOrigin,
-    ExperienceTemporalRole,
+    ExperienceAvailability, ExperienceEvidenceContext, ExperienceEvidenceRequest,
+    ExperienceEvidenceSource, ExperienceOrigin, ExperienceTemporalRole,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot, parse_syntax_document,
@@ -55,14 +55,16 @@ fn ordinary_std_offer_plans_lowers_and_executes_explicit_evidence_without_play_g
         b"derived, not observed",
     );
     let ids = ["memory", "inference", "observation"];
-    let request = request(
-        &ids,
-        vec![observed.clone(), inference.clone(), memory.clone()],
+    let selection = selection_with_relationships(&ids, &[("observation", "inference")]);
+    let request = ExperienceEvidenceRequest::new(
+        items(vec![observed.clone(), inference.clone(), memory.clone()]),
+        selection.clone(),
     )
+    .unwrap()
     .into_structured()
     .unwrap();
     let expected =
-        ExperienceEvidenceContext::new(items(vec![memory, inference, observed]), selection(&ids))
+        ExperienceEvidenceContext::new(items(vec![memory, inference, observed]), selection)
             .unwrap()
             .into_structured()
             .unwrap();

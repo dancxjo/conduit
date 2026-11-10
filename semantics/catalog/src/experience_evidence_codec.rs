@@ -8,7 +8,7 @@ use conduit_human::ExperienceEvidenceRefusal as Refusal;
 use crate::{
     EXPERIENCE_EVIDENCE_MAX_BYTES as MAX_BYTES, EXPERIENCE_EVIDENCE_MAX_CONTENT_BYTES,
     EXPERIENCE_EVIDENCE_MAX_IDENTITY_BYTES, EXPERIENCE_EVIDENCE_MAX_ITEMS as MAX_ITEMS,
-    EXPERIENCE_EVIDENCE_MAX_SOURCES,
+    EXPERIENCE_EVIDENCE_MAX_RELATIONSHIPS, EXPERIENCE_EVIDENCE_MAX_SOURCES,
 };
 
 type View<'a> = ValidatedCanonicalStructuredValue<'a>;
@@ -86,6 +86,10 @@ impl BoundedExperienceEvidenceProjection {
         if items[..selected_count].iter().any(Option::is_none) {
             return Err(Refusal::MissingEvidence);
         }
+        validate_relationships(
+            field(selection, "relationships")?,
+            &identities[..selected_count],
+        )?;
         // Check the whole output extent before writing to the preallocated buffer.
         let bytes = self.output_type.len()
             + 5
@@ -118,6 +122,28 @@ impl BoundedExperienceEvidenceProjection {
         debug_assert_eq!(self.output.len(), bytes);
         Ok(&self.output)
     }
+}
+
+fn validate_relationships(relationships: View<'_>, selected: &[&[u8]]) -> Result<(), Refusal> {
+    let length = count(
+        relationships,
+        EXPERIENCE_EVIDENCE_MAX_RELATIONSHIPS,
+        Refusal::RelationshipBound,
+    )?;
+    for index in 0..length {
+        let relation = element(relationships, index)?;
+        let subject = identity(field(relation, "subject")?)?;
+        let object = identity(field(relation, "object")?)?;
+        if subject == object || !selected.contains(&subject) || !selected.contains(&object) {
+            return Err(Refusal::InvalidRelationship);
+        }
+        for prior in 0..index {
+            if element(relationships, prior)?.value_node() == relation.value_node() {
+                return Err(Refusal::InvalidRelationship);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn validate_item(item: View<'_>) -> Result<(), Refusal> {

@@ -98,6 +98,8 @@ fn refusal_detail(refusal: conduit_human::ExperienceEvidenceRefusal) -> u16 {
         SourceBound => 11,
         InvalidEpistemicCombination => 12,
         FutureRevision => 13,
+        RelationshipBound => 14,
+        InvalidRelationship => 15,
     }
 }
 

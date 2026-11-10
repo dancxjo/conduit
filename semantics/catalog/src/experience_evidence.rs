@@ -17,6 +17,7 @@ use conduit_plot::{KindProjection, KindSignature};
 pub const EXPERIENCE_EVIDENCE_KIND: &str = "experience/project-evidence";
 pub const EXPERIENCE_EVIDENCE_REVISION: &str = "conduit.experience/project-evidence@1";
 pub const EXPERIENCE_EVIDENCE_MAX_BYTES: usize = 65_536;
+pub const EXPERIENCE_EVIDENCE_MAX_RELATIONSHIPS: usize = 8;
 pub const EXPERIENCE_EVIDENCE_MAX_ITEMS: usize = 8;
 pub const EXPERIENCE_EVIDENCE_MAX_CONTENT_BYTES: usize = 2_048;
 pub const EXPERIENCE_EVIDENCE_MAX_IDENTITY_BYTES: usize = 128;

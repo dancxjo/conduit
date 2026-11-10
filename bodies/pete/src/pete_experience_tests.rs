@@ -22,37 +22,6 @@ fn observed<T>(value: T, sign: &str, ticks: u64) -> SituationInput<T> {
     })
 }
 
-fn experience(inputs: PeteExperienceInputs) -> CurrentExperience {
-    let mut current = CurrentExperience::new(
-        ExperienceLimits {
-            maximum_items: 8,
-            maximum_current_items: 8,
-            maximum_recent_items: 8,
-            maximum_stale_items: 8,
-            maximum_historical_items: 8,
-            maximum_items_per_domain: 8,
-            maximum_model_derived_items: 8,
-            maximum_selected_memory_items: 8,
-            maximum_source_refs: 4,
-            maximum_relationships: 4,
-            maximum_item_bytes: 2048,
-            maximum_encoded_bytes: 8192,
-            maximum_conflict_alternatives: 2,
-            maximum_identity_bytes: 128,
-        },
-        at(200),
-        ExperienceTemporalPolicy::new(20, 50).unwrap(),
-    )
-    .unwrap();
-    for item in inputs.items {
-        current.try_admit(item).unwrap();
-    }
-    for relation in inputs.relationships {
-        current.relate(relation).unwrap();
-    }
-    current
-}
-
 #[test]
 fn situation_adapter_preserves_stale_and_conflicting_sources() {
     let situation = select_pete_situation(
@@ -98,7 +67,12 @@ fn situation_adapter_preserves_stale_and_conflicting_sources() {
         ExperienceAvailability::SourceUnavailable
     );
     assert!(items.items[3].encoded_content.is_empty());
-    let current = experience(items);
+    let current = integrate_pete_experience(
+        &situation,
+        ExperienceTemporalPolicy::new(20, 50).unwrap(),
+        &[],
+    )
+    .unwrap();
     let request = project_pete_experience_evidence(&current, 7, "provenance/7").unwrap();
     let encoded = request.encode().unwrap();
     let mut projection = conduit_semantic_catalog::BoundedExperienceEvidenceProjection::prepare();
@@ -109,6 +83,20 @@ fn situation_adapter_preserves_stale_and_conflicting_sources() {
         ExperienceTemporalRole::Stale
     );
     assert_eq!(*context.selection().revision(), 7);
+    let relationships = context.selection().relationships().get();
+    assert_eq!(relationships.len(), 1);
+    assert_eq!(
+        *relationships[0].kind(),
+        ExperienceRelationKind::Contradicts
+    );
+    assert_eq!(
+        relationships[0].subject(),
+        context.items().get()[1].identity()
+    );
+    assert_eq!(
+        relationships[0].object(),
+        context.items().get()[2].identity()
+    );
     assert_eq!(context.items().get()[1].observed_at(), &known_at(195));
     assert_eq!(
         context.items().get()[3].observed_at(),
@@ -133,25 +121,21 @@ fn explicit_projection_keeps_memory_separate_from_present_observation() {
         SituationInput::Missing,
     )
     .unwrap();
-    let mut items =
-        pete_situation_experiences(&situation, ExperienceTemporalPolicy::new(20, 50).unwrap())
-            .unwrap();
-    items.items.push(
-        recollected_experience(
-            "memory/episode1",
-            &SelectedRecollection {
-                record_id: "episode/1".into(),
-                content_kind: "value/text".into(),
-                canonical_content: b"The hallway light was on".to_vec(),
-                occurred_at: at(100),
-                recorded_at: at(110),
-                original_sources: vec![ExperienceSourceRef::Sign("light/1".into())],
-                certainty: ExperienceCertainty::Uncertain,
-            },
-        )
-        .unwrap(),
+    let record = remembered_model_result();
+    let policy = ExperienceTemporalPolicy::new(20, 50).unwrap();
+    let current = integrate_pete_experience(&situation, policy, &[record.clone()]).unwrap();
+    assert_eq!(
+        integrate_pete_experience(&situation, policy, &[record.clone(), record.clone()]),
+        Err(PeteExperienceRefusal::Admission(
+            ExperienceRefusal::DuplicateIdentity
+        )),
     );
-    let current = experience(items);
+    assert_eq!(
+        integrate_pete_experience(&situation, policy, &vec![record; 8]),
+        Err(PeteExperienceRefusal::Admission(
+            ExperienceRefusal::ItemCapacity
+        )),
+    );
     let request = project_pete_experience_evidence(&current, 2, "provenance/2").unwrap();
     let encoded = request.encode().unwrap();
     let mut projection = conduit_semantic_catalog::BoundedExperienceEvidenceProjection::prepare();
@@ -168,8 +152,18 @@ fn explicit_projection_keeps_memory_separate_from_present_observation() {
         evidence[0].recorded_at(),
         &ExperienceEvidenceInstant::Unknown
     );
-    assert_eq!(evidence[1].observed_at(), &known_at(100));
-    assert_eq!(evidence[1].recorded_at(), &known_at(110));
+    let remembered_at = |ticks| {
+        ExperienceEvidenceInstant::known(
+            conduit_time::NativeTemporalInstant::try_from(TemporalInstant {
+                clock_basis: conduit_core::UNIX_UTC_CLOCK_BASIS.into(),
+                ..at(ticks)
+            })
+            .unwrap(),
+        )
+        .unwrap()
+    };
+    assert_eq!(evidence[1].observed_at(), &remembered_at(100));
+    assert_eq!(evidence[1].recorded_at(), &remembered_at(110));
     assert_eq!(evidence[1].sources().get().len(), 2);
     assert!(matches!(
         project_pete_experience_evidence(&current, 2, ""),
@@ -177,9 +171,8 @@ fn explicit_projection_keeps_memory_separate_from_present_observation() {
     ));
 }
 
-#[test]
-fn selected_autobiography_keeps_original_model_kind_and_exact_execution_provenance() {
-    let record = RetainedExperience {
+fn remembered_model_result() -> RetainedExperience {
+    RetainedExperience {
         sequence: 0,
         candidate: ExperienceCandidate {
             identity: "episode/1".into(),
@@ -199,7 +192,12 @@ fn selected_autobiography_keeps_original_model_kind_and_exact_execution_provenan
             supersedes: None,
             explicit_remember: true,
         },
-    };
+    }
+}
+
+#[test]
+fn selected_autobiography_keeps_original_model_kind_and_exact_execution_provenance() {
+    let record = remembered_model_result();
     let item = pete_retained_experience_input(&record).unwrap();
     assert_eq!(item.origin, ExperienceOrigin::Remembered);
     assert_eq!(item.temporal_role, ExperienceTemporalRole::Historical);

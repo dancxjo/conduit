@@ -71,6 +71,27 @@ fn projection_preserves_explicit_epistemic_content_and_selection_order() {
 }
 
 #[test]
+fn relationships_cannot_refer_to_unselected_evidence_or_repeat() {
+    let mut projection = BoundedExperienceEvidenceProjection::prepare();
+    for relationships in [
+        &[("a", "outside")][..],
+        &[("a", "a")],
+        &[("a", "b"), ("a", "b")],
+    ] {
+        let selection = selection_with_relationships(&["a", "b"], relationships);
+        let input = ExperienceEvidenceRequest::new(
+            items(vec![observation("a"), observation("b")]),
+            selection,
+        )
+        .unwrap();
+        assert_eq!(
+            projection.execute(&encode(input)),
+            Err(ExperienceEvidenceRefusal::InvalidRelationship)
+        );
+    }
+}
+
+#[test]
 fn exact_selection_rejects_mismatch_duplicate_extra_missing_and_stale_evidence() {
     use ExperienceEvidenceRefusal::*;
     let cases = [

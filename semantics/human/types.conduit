@@ -322,7 +322,14 @@ type ExperienceEvidenceItem = {
 }
 
 type ExperienceEvidenceItems = sequence ExperienceEvidenceItem <= 8
+type ExperienceEvidenceRelationship = {
+    subject: ExperienceEvidenceIdentity
+    object: ExperienceEvidenceIdentity
+    kind: ExperienceRelationKind
+}
+type ExperienceEvidenceRelationships = sequence ExperienceEvidenceRelationship <= 8
 type ExperienceEvidenceSelection = {
+    relationships: ExperienceEvidenceRelationships
     revision: U64
     provenance_revision: ExperienceEvidenceIdentity
     item_identities: ExperienceEvidenceIdentities
@@ -353,6 +360,8 @@ type ExperienceEvidenceRefusal =
     | provenance_mismatch
     | source_bound
     | invalid_epistemic_combination
+    | relationship_bound
+    | invalid_relationship
 
 type VisualEvidenceClass =
     deterministic_derived

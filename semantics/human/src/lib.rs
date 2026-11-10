@@ -54,7 +54,6 @@ mod generated {
         }
     }
 }
-pub use generated::ExperienceEvidenceInstant;
 pub use generated::{
     ChordInfo, ChordPhase, ChordPhaseForm, ControlChordModifier, CoreChordId, CoreChordIdForm,
     CurrentExperienceInspectionError, CurrentExperienceProjection, ExperienceAvailability,
@@ -84,6 +83,9 @@ pub use generated::{
     TouchContactPhase, TouchContactSlot, TouchContacts, TouchFrame, VisualEvidenceClass,
     VisualExperienceRefusal, VisualExperienceRelationKind, VisualImpressionDisposition,
     VisualImpressionDispositionTruncated, VisualImpressionRefusal, VisualObservationRefusal,
+};
+pub use generated::{
+    ExperienceEvidenceInstant, ExperienceEvidenceRelationship, ExperienceEvidenceRelationships,
 };
 
 mod current_experience;

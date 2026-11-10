@@ -6,12 +6,31 @@ pub fn identity(value: &str) -> ExperienceEvidenceIdentity {
 }
 
 pub fn selection(ids: &[&str]) -> ExperienceEvidenceSelection {
+    selection_with_relationships(ids, &[])
+}
+
+pub fn selection_with_relationships(
+    ids: &[&str],
+    contradictions: &[(&str, &str)],
+) -> ExperienceEvidenceSelection {
+    let relationships = contradictions.iter().map(|&(subject, object)| {
+        ExperienceEvidenceRelationship::new(
+            ExperienceRelationKind::Contradicts,
+            identity(object),
+            identity(subject),
+        )
+        .unwrap()
+    });
     ExperienceEvidenceSelection::new(
         ExperienceEvidenceIdentities::new(
             BoundedSequence::try_from_iter(ids.iter().map(|id| identity(id))).unwrap(),
         )
         .unwrap(),
         identity("provenance/7"),
+        ExperienceEvidenceRelationships::new(
+            BoundedSequence::try_from_iter(relationships).unwrap(),
+        )
+        .unwrap(),
         7,
     )
     .unwrap()

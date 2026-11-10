@@ -89,12 +89,26 @@ pub fn project_pete_experience_evidence(
             .map_err(|_| R::Malformed)?,
         );
     }
+    let mut relationships = BoundedSequence::new();
+    for relation in experience.relationships() {
+        relationships
+            .push(
+                ExperienceEvidenceRelationship::new(
+                    relation.kind,
+                    identity(&relation.object_id)?,
+                    identity(&relation.subject_id)?,
+                )
+                .map_err(|_| R::InvalidRelationship)?,
+            )
+            .map_err(|_| R::RelationshipBound)?;
+    }
     let selection = ExperienceEvidenceSelection::new(
         ExperienceEvidenceIdentities::new(
             BoundedSequence::try_from_iter(identities).map_err(|_| R::ItemBound)?,
         )
         .map_err(|_| R::ItemBound)?,
         provenance,
+        ExperienceEvidenceRelationships::new(relationships).map_err(|_| R::RelationshipBound)?,
         revision,
     )
     .map_err(|_| R::Malformed)?;
