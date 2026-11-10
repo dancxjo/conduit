@@ -48,7 +48,7 @@ fn two_episodes_share_one_body_wake_and_play_and_the_second_recalls_the_first() 
     assert!(first.recalled().get().is_empty());
     assert!(requests[0].contains("\"recalled\":[]"));
     assert_eq!(
-        first.response().content(),
+        first.response().unwrap().content(),
         "No memory yet; I notice: The hallway light is on."
     );
 
@@ -58,20 +58,20 @@ fn two_episodes_share_one_body_wake_and_play_and_the_second_recalls_the_first() 
     assert_eq!(recalled.len(), 1);
     assert_eq!(*recalled[0].episode(), 1);
     assert_eq!(recalled[0].observation(), first.observation());
-    assert_eq!(recalled[0].response(), first.response());
+    assert_eq!(recalled[0].response(), first.response().unwrap());
     assert!(requests[1].contains(
         "{\"episode\":1,\"observation\":{\"origin\":\"observation\",\"identity\":\"obs/1\",\"content\":\"The hallway light is on.\"},\"response\":{\"origin\":\"model_derived\",\"content\":\"No memory yet; I notice: The hallway light is on.\""
     ));
     assert_eq!(
-        second.response().content(),
+        second.response().unwrap().content(),
         "I recall The hallway light is on. and now notice: Is the hallway still lit?"
     );
     assert_eq!(
-        second.response().implementation(),
+        second.response().unwrap().implementation(),
         "fenced-fake/episode-model"
     );
-    assert_eq!(second.response().run(), "run/fake-2");
-    assert_eq!(first.response().run(), "run/fake-1");
+    assert_eq!(second.response().unwrap().run(), "run/fake-2");
+    assert_eq!(first.response().unwrap().run(), "run/fake-1");
 
     let kernel = report.kernel.unwrap();
     assert_eq!(
@@ -160,7 +160,10 @@ fn model_text_is_never_promoted_to_observation_or_authority() {
         "unretained text is not recalled"
     );
     assert_eq!(episodes[1].observation().content(), "Calm.");
-    assert!(episodes
-        .iter()
-        .all(|episode| episode.response().implementation() == "fenced-fake/episode-model"));
+    assert!(
+        episodes
+            .iter()
+            .all(|episode| episode.response().unwrap().implementation()
+                == "fenced-fake/episode-model")
+    );
 }

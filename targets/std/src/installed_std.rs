@@ -2939,6 +2939,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     contract.as_str(),
                     placement,
                     input,
+                    (active_play.active_play_id.as_str(), request.request),
                     match &mut local_model {
                         Some(adapter) => Some(&mut **adapter),
                         None => None,

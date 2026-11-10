@@ -15,6 +15,13 @@ The hosted proof registers Pete's Back on the selected Host, submits two frames,
 and checks that the second model turn can use the retained first episode.
 It also checks that a future observation fails before model admission.
 
+The Plot opts into a typed provider-loss outcome on the generation Flow.
+An unavailable model attempt advances the episode count and emits a record
+without response text. The recall ring retains earlier successful episodes.
+The next frame gets its own model attempt, with one call in flight and no
+automatic retry of the lost attempt. A hosted fault-injection check verifies
+that a later frame resumes recall in the same Play.
+
 ```sh
 cargo xtask check pete-cognition
 cargo xtask check pete-cognition-live
@@ -22,5 +29,5 @@ cargo xtask check pete-cognition-live
 
 The live check uses installed Ollama models on loopback. The proof supplies
 frame inputs through the Fore. Live sensor and homeostasis sources, durable
-autobiographical feedback, provider-loss recovery, and Patchbay causal
-inspection remain part of [#3707](https://github.com/dancxjo/conduit/issues/3707).
+autobiographical feedback, recovery across Host or Plan replacement, and Patchbay
+causal inspection remain part of [#3707](https://github.com/dancxjo/conduit/issues/3707).

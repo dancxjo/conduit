@@ -61,6 +61,7 @@ pub(super) fn execute(
     contract: &str,
     placement: &PlannedGear,
     input: &[u8],
+    attempt: (&str, conduit_kernel::RequestId),
     local_model: Option<&mut (dyn HostedLocalModelAdapter + 'static)>,
     output: &mut Vec<u8>,
 ) -> Result<ModelHostCompletion, String> {
@@ -107,7 +108,17 @@ pub(super) fn execute(
             },
         });
     }
-    Ok(match adapter.execute(placement, input, output) {
+    let terminal = adapter.execute(placement, input, output);
+    if terminal == LocalModelAdapterTerminal::ProviderLost
+        && placement.kind_id.as_str() == conduit_ai::LLM_GENERATE_FLOW_KIND
+        && super::local_model_back::configuration_count(
+            placement,
+            conduit_ai::PROVIDER_LOSS_AS_RESULT_PARAMETER,
+        ) == Ok(1)
+    {
+        return provider_loss_result(placement, attempt, input.len(), output);
+    }
+    Ok(match terminal {
         LocalModelAdapterTerminal::Produced | LocalModelAdapterTerminal::Truncated => {
             ModelHostCompletion::Output
         }
@@ -119,6 +130,54 @@ pub(super) fn execute(
             ModelHostCompletion::InvalidStructuredResult
         }
     })
+}
+
+fn provider_loss_result(
+    placement: &PlannedGear,
+    (play_id, request): (&str, conduit_kernel::RequestId),
+    input_bytes: usize,
+    output: &mut Vec<u8>,
+) -> Result<ModelHostCompletion, String> {
+    use conduit_ai::*;
+    use sha2::{Digest, Sha256};
+    let attempt = format!(
+        "host-attempt/{:x}",
+        Sha256::digest(
+            format!(
+                "{}:{}:{}",
+                play_id,
+                placement.placement_id.as_str(),
+                request.0
+            )
+            .as_bytes()
+        )
+    );
+    let result = ModelDerivedResult {
+        provenance: ModelResultProvenance::ModelDerived,
+        payload_kind: GENERATED_RESULT_VALUE_KIND.into(),
+        payload: Vec::new(),
+        implementation_identity: placement.implementation_id.as_str().into(),
+        request_identity: attempt.clone(),
+        run_identity: attempt,
+        confidence: None,
+        disposition: ModelResultDisposition::ProviderLost,
+        determinism: LlmDeterminismProfile::ProviderNondeterministic,
+        accounting: ModelWorkAccounting {
+            input_bytes: input_bytes as u64,
+            context_items: 0,
+            output_bytes: 0,
+            work_units: 0,
+            history_items: 0,
+        },
+    };
+    let encoded = serde_json::to_vec(&result).map_err(|error| error.to_string())?;
+    let limit = super::local_model_back::configuration_count(placement, "maximum-output-bytes")?;
+    if encoded.len() as u64 > limit {
+        return Ok(ModelHostCompletion::ProviderLost);
+    }
+    output.clear();
+    output.extend_from_slice(&encoded);
+    Ok(ModelHostCompletion::Output)
 }
 
 #[cfg(test)]

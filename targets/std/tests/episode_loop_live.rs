@@ -57,8 +57,11 @@ fn installed_ollama_episode_loop_recalls_the_hallway_switch_label() {
         panic!("expected one selected memory in the second episode");
     };
     assert_eq!(memory.observation(), first.observation());
-    assert_eq!(memory.response(), first.response());
-    assert_ne!(first.response().run(), second.response().run());
+    assert_eq!(memory.response(), first.response().unwrap());
+    assert_ne!(
+        first.response().unwrap().run(),
+        second.response().unwrap().run()
+    );
     let kernel = report.kernel.as_ref().expect("installed kernel execution");
     for kind in [
         KernelEventKind::HostCallRequested,
@@ -79,17 +82,21 @@ fn installed_ollama_episode_loop_recalls_the_hallway_switch_label() {
         kernel.active_play_id.as_str()
     );
     for episode in &episodes {
-        assert_eq!(episode.response().implementation(), &implementation);
+        assert_eq!(
+            episode.response().unwrap().implementation(),
+            &implementation
+        );
         println!(
             "Episode {} ({}): {}",
             episode.episode(),
-            episode.response().run(),
-            episode.response().content()
+            episode.response().unwrap().run(),
+            episode.response().unwrap().content()
         );
     }
     assert!(
         second
             .response()
+            .unwrap()
             .content()
             .to_ascii_uppercase()
             .contains("COPPER KITE"),
@@ -114,11 +121,12 @@ fn installed_ollama_episode_loop_recalls_the_hallway_switch_label() {
     assert!(unprimed.recalled().get().is_empty());
     println!(
         "Same question in a fresh Play: {}",
-        unprimed.response().content()
+        unprimed.response().unwrap().content()
     );
     assert!(
         !unprimed
             .response()
+            .unwrap()
             .content()
             .to_ascii_uppercase()
             .contains("COPPER KITE"),

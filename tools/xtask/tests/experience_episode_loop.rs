@@ -183,7 +183,7 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
         second.recalled().get()[0].observation(),
         first.observation()
     );
-    assert!(second.response().content().contains("COPPER KITE"));
+    assert!(second.response().unwrap().content().contains("COPPER KITE"));
 
     let requests = harness.requests.lock().unwrap();
     assert_eq!(requests.len(), 2);
@@ -249,9 +249,10 @@ fn live_pete_experience_episode_uses_earlier_memory() {
         second.recalled().get()[0].observation(),
         first.observation()
     );
-    println!("With recall: {}", second.response().content());
+    println!("With recall: {}", second.response().unwrap().content());
     assert!(second
         .response()
+        .unwrap()
         .content()
         .to_ascii_uppercase()
         .contains("COPPER KITE"));
@@ -269,9 +270,10 @@ fn live_pete_experience_episode_uses_earlier_memory() {
     assert_eq!(terminal(&control_report), &TerminalDisposition::Completed);
     let control = records(&control.0);
     assert!(control[0].recalled().get().is_empty());
-    println!("Fresh Play: {}", control[0].response().content());
+    println!("Fresh Play: {}", control[0].response().unwrap().content());
     assert!(!control[0]
         .response()
+        .unwrap()
         .content()
         .to_ascii_uppercase()
         .contains("COPPER KITE"));
@@ -305,10 +307,62 @@ fn pete_retrieves_the_matching_episode_past_a_newer_unrelated_one() {
     assert!(episodes[1].recalled().get().is_empty());
     assert_eq!(episodes[2].recalled().get().len(), 1);
     assert_eq!(*episodes[2].recalled().get()[0].episode(), 1);
-    assert!(episodes[2].response().content().contains("COPPER KITE"));
+    assert!(episodes[2]
+        .response()
+        .unwrap()
+        .content()
+        .contains("COPPER KITE"));
 
     let requests = requests.lock().unwrap();
     let follow_up: serde_json::Value = serde_json::from_str(&requests[2]).unwrap();
     assert_eq!(follow_up["recalled"][0]["shared_observation_terms"], 3);
     assert!(!requests[2].contains("garden"));
+}
+
+#[test]
+fn pete_records_provider_loss_and_resumes_in_the_same_play() {
+    use conduit_chat::EpisodeOutcome;
+    use conduit_std_host::hosted_local_model::LocalModelAdapterTerminal;
+
+    let (model, requests) =
+        common::fenced_model_with_terminal(Some((2, LocalModelAdapterTerminal::ProviderLost)));
+    let mut harness = pete_harness(model);
+    let mut incoming = inputs(&[]);
+    incoming.extend([
+        frame_input(frame(1, "The hallway switch label is COPPER KITE.", true)),
+        frame_input(frame(2, "The garden gate is closed.", true)),
+        frame_input(frame(3, "What was the hallway switch label?", false)),
+    ]);
+    let mut collector = Collector::default();
+    let report = run(
+        &mut harness,
+        &incoming,
+        &mut collector,
+        &RunControl::default(),
+    )
+    .unwrap();
+    assert_eq!(terminal(&report), &TerminalDisposition::Completed);
+    let episodes = records(&collector.0);
+    let [first, lost, resumed] = episodes.as_slice() else {
+        panic!("expected one record for each completed attempt");
+    };
+    assert_eq!(first.body_id(), resumed.body_id());
+    assert_eq!(first.wake_id(), resumed.wake_id());
+    assert_eq!(*lost.episode(), 2);
+    assert!(lost.response().is_none());
+    assert!(!*lost.retained());
+    let EpisodeOutcome::ProviderLost(outcome) = lost.outcome() else {
+        panic!("expected typed provider loss");
+    };
+    assert!(outcome.attempt().starts_with("host-attempt/"));
+    assert!(!outcome.implementation().is_empty());
+    assert_eq!(*resumed.episode(), 3);
+    assert_eq!(resumed.recalled().get().len(), 1);
+    assert_eq!(*resumed.recalled().get()[0].episode(), 1);
+    assert!(resumed
+        .response()
+        .unwrap()
+        .content()
+        .contains("COPPER KITE"));
+    assert_eq!(requests.lock().unwrap().len(), 3);
 }

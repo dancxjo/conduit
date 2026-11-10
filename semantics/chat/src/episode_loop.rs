@@ -18,8 +18,8 @@ mod episode_recall;
 use episode_prompt::prompt;
 
 use crate::{
-    EpisodeMemory, EpisodeMemoryState, EpisodeModelResponse, EpisodeObservation, EpisodePending,
-    EpisodeRecall, EpisodeRecord, EpisodeRefusal,
+    EpisodeMemory, EpisodeMemoryState, EpisodeModelResponse, EpisodeObservation, EpisodeOutcome,
+    EpisodePending, EpisodeRecall, EpisodeRecord, EpisodeRefusal,
 };
 
 pub const EPISODE_COMPOSE_KIND: &str = "body/episode-compose";
@@ -260,14 +260,15 @@ impl EpisodeRetainer {
         }
         let pending = EpisodePending::decode(encoded_pending)
             .map_err(|_| EpisodeRefusal::PendingMalformed)?;
-        let response = decode_response(encoded_result)?;
-        let retained = *pending.observation().retain();
+        let outcome = decode_outcome(encoded_result)?;
+        let retained =
+            *pending.observation().retain() && matches!(outcome, EpisodeOutcome::Produced(_));
         let encoded = EpisodeRecord::new(
             pending.body_id().clone(),
             *pending.episode(),
             pending.observation().clone(),
+            outcome,
             pending.recalled().clone(),
-            response,
             retained,
             pending.wake_id().clone(),
             *pending.wake_sequence(),
@@ -341,7 +342,10 @@ impl EpisodeMemoryCell {
             let memory = EpisodeMemory::new(
                 *record.episode(),
                 record.observation().clone(),
-                record.response().clone(),
+                record
+                    .response()
+                    .ok_or(EpisodeRefusal::ResponseNotProduced)?
+                    .clone(),
             )
             .map_err(|_| EpisodeRefusal::Encoding)?;
             memories
@@ -392,7 +396,7 @@ pub fn initial_episode_memory() -> Vec<u8> {
         .expect("the empty episode memory is a valid bounded value")
 }
 
-fn decode_response(encoded: &[u8]) -> Result<EpisodeModelResponse, EpisodeRefusal> {
+fn decode_outcome(encoded: &[u8]) -> Result<EpisodeOutcome, EpisodeRefusal> {
     use conduit_ai::{ModelDerivedResult, ModelResultDisposition, ModelResultProvenance};
     if encoded.len() > MAXIMUM_EPISODE_RESULT_BYTES {
         return Err(EpisodeRefusal::ResponseBoundExceeded);
@@ -411,6 +415,13 @@ fn decode_response(encoded: &[u8]) -> Result<EpisodeModelResponse, EpisodeRefusa
     let truncated = match result.disposition {
         ModelResultDisposition::Produced => false,
         ModelResultDisposition::Truncated => true,
+        ModelResultDisposition::ProviderLost => {
+            return EpisodeOutcome::provider_lost(
+                result.request_identity,
+                result.implementation_identity,
+            )
+            .map_err(|_| EpisodeRefusal::ResponseBoundExceeded);
+        }
         _ => return Err(EpisodeRefusal::ResponseNotProduced),
     };
     let content =
@@ -421,5 +432,15 @@ fn decode_response(encoded: &[u8]) -> Result<EpisodeModelResponse, EpisodeRefusa
         result.run_identity,
         truncated,
     )
+    .and_then(EpisodeOutcome::produced)
     .map_err(|_| EpisodeRefusal::ResponseBoundExceeded)
+}
+
+impl EpisodeRecord {
+    pub fn response(&self) -> Option<&EpisodeModelResponse> {
+        match self.outcome() {
+            EpisodeOutcome::Produced(outcome) => Some(outcome.response()),
+            EpisodeOutcome::ProviderLost(_) => None,
+        }
+    }
 }

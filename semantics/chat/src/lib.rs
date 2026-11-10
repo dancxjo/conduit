@@ -16,13 +16,13 @@ pub use generated::{
     BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, ConversationRequestEvidence,
     DeliveryAuthority, DeliveryEvidence, DeliveryRequest, DeliveryState, DeliveryUpdate,
     EpisodeExperience, EpisodeMemory, EpisodeMemoryState, EpisodeModelResponse, EpisodeObservation,
-    EpisodePending, EpisodeRecall, EpisodeRecord, EpisodeRefusal, LiveConversationFlowProjection,
-    LiveConversationProjectionError, LiveConversationStage, LiveConversationStageKind,
-    LiveConversationStageState, LiveConversationStages, MessageAttachment, MessageAttachmentSlot,
-    MessageMetadataEntry, MessageMetadataSlot, MessageOptionalDisplayName, MessageOptionalSender,
-    MessageOptionalSubject, MessageRecipient, MessageRecipientSlot, NotificationEvent,
-    PortableMessage, PresenceEvent, PresenceState, RecognitionEvidenceStatus,
-    RecognitionEvidenceView, SpeechCommitEvidenceView,
+    EpisodeOutcome, EpisodePending, EpisodeRecall, EpisodeRecord, EpisodeRefusal,
+    LiveConversationFlowProjection, LiveConversationProjectionError, LiveConversationStage,
+    LiveConversationStageKind, LiveConversationStageState, LiveConversationStages,
+    MessageAttachment, MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot,
+    MessageOptionalDisplayName, MessageOptionalSender, MessageOptionalSubject, MessageRecipient,
+    MessageRecipientSlot, NotificationEvent, PortableMessage, PresenceEvent, PresenceState,
+    RecognitionEvidenceStatus, RecognitionEvidenceView, SpeechCommitEvidenceView,
 };
 
 mod body_chat;

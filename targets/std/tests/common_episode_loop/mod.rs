@@ -234,11 +234,17 @@ pub fn experience_episode_harness_with_model(
 }
 
 pub fn fenced_model() -> (Box<dyn HostedLocalModelAdapter>, Arc<Mutex<Vec<String>>>) {
+    fenced_model_with_terminal(None)
+}
+
+pub fn fenced_model_with_terminal(
+    terminal_on_call: Option<(usize, LocalModelAdapterTerminal)>,
+) -> (Box<dyn HostedLocalModelAdapter>, Arc<Mutex<Vec<String>>>) {
     let requests = Arc::new(Mutex::new(Vec::new()));
     let model = FencedFakeEpisodeModel {
         offer: offer(),
         requests: requests.clone(),
-        terminal_on_call: None,
+        terminal_on_call,
     };
     (Box::new(model), requests)
 }

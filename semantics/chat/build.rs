@@ -61,7 +61,10 @@ fn main() {
                 "SpeechCommitEvidenceView".into(),
             ]
             .into(),
-            serde_variant_exclusions: BTreeSet::from(["MessageAttachmentSlot".into()]),
+            serde_variant_exclusions: BTreeSet::from([
+                "MessageAttachmentSlot".into(),
+                "EpisodeOutcome".into(),
+            ]),
             ..RustBindingOptions::default()
         },
     )

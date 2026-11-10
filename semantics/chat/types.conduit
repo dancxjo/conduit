@@ -277,6 +277,16 @@ type EpisodePending = {
     recalled: EpisodeRecall
 }
 
+# Provider loss is terminal evidence about an attempt, with no model text.
+type EpisodeOutcome =
+    produced {
+        response: EpisodeModelResponse
+    }
+    | provider_lost {
+        attempt: Text <= 128B not in [""]
+        implementation: Text <= 128B not in [""]
+    }
+
 # The completed episode, including exactly which retained memories were recalled
 # into its model request.
 type EpisodeRecord = {
@@ -286,8 +296,9 @@ type EpisodeRecord = {
     wake_sequence: U64
     observation: EpisodeObservation
     recalled: EpisodeRecall
-    response: EpisodeModelResponse
+    outcome: EpisodeOutcome
     retained: Boolean
+    where !.retained || (.outcome is produced)
 }
 
 type EpisodeRefusal =

@@ -310,7 +310,11 @@ fn retained_response_accepts_512_utf8_bytes_and_refuses_513_without_truncating()
         .retain(&pending, &result(&fits, ModelResultDisposition::Produced))
         .unwrap();
     assert_eq!(
-        EpisodeRecord::decode(record).unwrap().response().content(),
+        EpisodeRecord::decode(record)
+            .unwrap()
+            .response()
+            .unwrap()
+            .content(),
         &fits
     );
     let too_long = alloc::format!("{fits}x");
