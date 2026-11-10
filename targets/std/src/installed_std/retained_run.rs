@@ -85,6 +85,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
             direct_spoken_mask: None,
             durable_state: None,
         },
+        None,
     )
     .map(|run| run.report)
 }

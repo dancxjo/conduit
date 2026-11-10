@@ -15,8 +15,10 @@ cargo xtask check pete-cognition
 cargo xtask check pete-cognition-live
 ```
 
-The live proof uses an already installed `gemma3:latest` on loopback Ollama. The
-Situation and Experience values enter through the Fore in this proof. Live
+The live proof uses an already installed `gemma3:latest` on loopback Ollama. This
+Plot takes prepared Experience values. The [Pete cognition
+Plot](../pete-cognition/README.md) accepts typed observation frames and runs
+Situation selection inside the Play. Live
 sensor and homeostasis wiring, durable autobiographical retrieval and feedback,
 provider-loss recovery, and Patchbay inspection remain open in
 [#3707](https://github.com/dancxjo/conduit/issues/3707).

@@ -192,9 +192,9 @@ pub fn harness_with_model(model: Box<dyn HostedLocalModelAdapter>) -> Harness {
         PROGRAM,
         "episode-loop",
         &[
-            ("context", PortDirection::Input),
-            ("observations", PortDirection::Input),
-            ("episodes", PortDirection::Output),
+            ("context", PortDirection::Input, 32_768),
+            ("observations", PortDirection::Input, 32_768),
+            ("episodes", PortDirection::Output, 32_768),
         ],
         StdHostComposition::minimal(),
     )
@@ -221,12 +221,26 @@ pub fn experience_episode_harness_with_model(
         program,
         "experience-episode-loop",
         &[
-            ("context", PortDirection::Input),
-            ("experiences", PortDirection::Input),
-            ("episodes", PortDirection::Output),
+            ("context", PortDirection::Input, 32_768),
+            (
+                "experiences",
+                PortDirection::Input,
+                conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
+            ),
+            ("episodes", PortDirection::Output, 32_768),
         ],
         StdHostComposition::minimal(),
     )
+}
+
+pub fn fenced_model() -> (Box<dyn HostedLocalModelAdapter>, Arc<Mutex<Vec<String>>>) {
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let model = FencedFakeEpisodeModel {
+        offer: offer(),
+        requests: requests.clone(),
+        terminal_on_call: None,
+    };
+    (Box::new(model), requests)
 }
 
 pub fn evidence_harness(program: &str) -> Harness {
@@ -250,8 +264,8 @@ pub fn evidence_harness_with_model(
         program,
         "experience-response",
         &[
-            ("evidence", PortDirection::Input),
-            ("responses", PortDirection::Output),
+            ("evidence", PortDirection::Input, 65_536),
+            ("responses", PortDirection::Output, 2_560),
         ],
         StdHostComposition::minimal().with_experience_evidence(),
     )
@@ -261,10 +275,24 @@ fn plan_with_model(
     model: Box<dyn HostedLocalModelAdapter>,
     program: &str,
     entry: &str,
-    fore: &[(&str, PortDirection)],
+    fore: &[(&str, PortDirection, u32)],
     composition: StdHostComposition,
 ) -> Harness {
-    let host = StdHost::new_with_local_model(
+    plan_host(
+        model_host(model, composition),
+        program,
+        entry,
+        fore,
+        composition.experience_evidence,
+        |_, _| Ok(()),
+    )
+}
+
+pub fn model_host(
+    model: Box<dyn HostedLocalModelAdapter>,
+    composition: StdHostComposition,
+) -> StdHost {
+    StdHost::new_with_local_model(
         StdHostConfig {
             host_id: HostId::from("host/episode-loop"),
             boot_id: BootId::from("boot/episode-loop"),
@@ -273,13 +301,24 @@ fn plan_with_model(
         composition,
         model,
     )
-    .unwrap();
+    .unwrap()
+}
+
+pub fn plan_host(
+    host: StdHost,
+    program: &str,
+    entry: &str,
+    fore: &[(&str, PortDirection, u32)],
+    experience_evidence: bool,
+    install: impl FnOnce(&mut StartupCatalog, &mut ProfileCatalog) -> Result<(), String>,
+) -> Harness {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile).unwrap();
     conduit_chat::install_episode_loop_catalog(&mut startup, &mut profile).unwrap();
-    if composition.experience_evidence {
+    install(&mut startup, &mut profile).unwrap();
+    if experience_evidence {
         conduit_semantic_catalog::install_experience_evidence_catalogs(&mut startup, &mut profile)
             .unwrap();
     }
@@ -292,7 +331,7 @@ fn plan_with_model(
     let boundaries = fore
         .iter()
         .copied()
-        .map(|(name, direction)| {
+        .map(|(name, direction, byte_capacity)| {
             (
                 ForeBoundaryKey {
                     direction,
@@ -302,12 +341,7 @@ fn plan_with_model(
                 // One queued item per Fore: later observations wait upstream.
                 ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: match name {
-                        "evidence" => 65_536,
-                        "experiences" => conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
-                        "responses" => 2_560,
-                        _ => 32_768,
-                    },
+                    byte_capacity,
                 },
             )
         })
@@ -331,7 +365,7 @@ fn plan_with_model(
     .unwrap();
     assert_eq!(plan.fragments.len(), 1);
     let fragment = plan.fragments[0].clone();
-    let expected: &[(&str, &str)] = if composition.experience_evidence {
+    let expected: &[(&str, &str)] = if experience_evidence {
         &[
             (
                 conduit_semantic_catalog::EXPERIENCE_MODEL_REQUEST_KIND,
@@ -363,7 +397,9 @@ fn plan_with_model(
         ]
     };
     for &(mut kind, mut implementation) in expected {
-        if entry == "experience-episode-loop" && kind == conduit_chat::EPISODE_COMPOSE_KIND {
+        if matches!(entry, "experience-episode-loop" | "pete-cognition")
+            && kind == conduit_chat::EPISODE_COMPOSE_KIND
+        {
             kind = conduit_chat::EPISODE_EXPERIENCE_COMPOSE_KIND;
             implementation = conduit_std_offers::EPISODE_EXPERIENCE_COMPOSE_IMPLEMENTATION;
         }

@@ -142,6 +142,7 @@ pub(super) fn catalogs(
     conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profile)?;
     conduit_face::install_spoken_mask_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;
+    conduit_pete::install_pete_cognition_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_memory_catalog(&mut startup, &mut profile)?;
     conduit_data::install_data_text_catalogs(&mut startup, &mut profile)?;
     startup.insert_value_kind_alias("SaveRequest", conduit_core::kind_id("data/save-request@1"))?;

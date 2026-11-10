@@ -1,0 +1,28 @@
+type PeteCognitionSign = Text <= 64B not in [""]
+type PeteCognitionBattery = {
+    sign: PeteCognitionSign
+    observed_at: TemporalInstant
+    charge_permille: U16 in 0..=1000
+    millivolts: U16
+}
+type PeteCognitionUtterance = {
+    sign: PeteCognitionSign
+    observed_at: TemporalInstant
+    content: Text <= 256B not in [""]
+    retain: Boolean
+}
+type PeteCognitionSafety = {
+    sign: PeteCognitionSign
+    observed_at: TemporalInstant
+    motion_available: Boolean
+    safety_inhibited: Boolean
+}
+type PeteCognitionFrame = {
+    battery: PeteCognitionBattery
+    body: PeteCognitionSafety
+    utterance: PeteCognitionUtterance
+    reference: TemporalInstant
+    revision: U64 in 1..
+    provenance_revision: Text <= 128B not in [""]
+    temporal_policy: ExperienceTemporalPolicy
+}

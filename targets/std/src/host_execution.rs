@@ -323,8 +323,11 @@ impl StdHost {
         } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
-        let installed_standard =
-            installed_std::supports_with_native(&fragment, self.native_source.as_ref());
+        let installed_standard = installed_std::supports_with_adapters(
+            &fragment,
+            self.native_source.as_ref(),
+            self.hosted_frame.as_ref(),
+        );
         if !installed_standard && !is_installed_kernel_signal_profile(&fragment) {
             return Err("fragment does not match the installed std kernel profile".to_string());
         }
@@ -388,6 +391,7 @@ impl StdHost {
                         direct_spoken_mask,
                         durable_state,
                     },
+                    self.hosted_frame.as_ref(),
                 )
             } else {
                 if control.requested_stop().is_some() {

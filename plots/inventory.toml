@@ -44,8 +44,14 @@ browser_safe_not_applicable = "the episode loop requires a typed Body context an
 slug = "experience-episode-loop"
 title = "Experience Episode Loop"
 entry = "experience-episode-loop"
-deterministic = { package = "conduit-std-host", test = "experience_episode_loop", case = "pete_situation_evidence_and_episode_recall_reach_one_model_turn", plan_play_evidence = true }
+deterministic = { package = "xtask", test = "experience_episode_loop", case = "pete_situation_evidence_and_episode_recall_reach_one_model_turn", plan_play_evidence = true }
 browser_safe_not_applicable = "the experience episode loop requires an installed model realization"
+[[plots]]
+slug = "pete-cognition"
+title = "Pete Cognition"
+entry = "pete-cognition"
+deterministic = { package = "xtask", test = "experience_episode_loop", case = "pete_frames_reach_situation_and_recall_in_one_play", plan_play_evidence = true }
+browser_safe_not_applicable = "Pete cognition requires an installed model realization and a selected hosted frame Back"
 [[plots]]
 slug = "experience-response"
 title = "Experience Response"

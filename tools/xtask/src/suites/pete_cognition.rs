@@ -2,6 +2,8 @@
 use crate::process::Step;
 
 pub const STEPS: &[Step] = &[
+    Step::new("pete-cognition.ownership", "Check that foundational crates do not depend on Pete", "cargo",
+        &["test", "--locked", "-p", "conduit-pete", "--test", "ownership"]),
     Step::new("pete-cognition.adapters", "Check Pete's typed experience adapters", "cargo",
         &["test", "--locked", "-p", "conduit-pete", "--lib", "pete_"]),
     Step::new("pete-cognition.evidence", "Check bounded explicit evidence projection", "cargo",
@@ -13,26 +15,44 @@ pub const STEPS: &[Step] = &[
     Step::new("pete-cognition.experience-response", "Send selected evidence to an ordinary model Gear across revisions", "cargo",
         &["test", "--locked", "-p", "conduit-std-host", "--test", "experience_response"]),
     Step::new("pete-cognition.installed-episodes", "Exercise two episodes and failures through the installed std kernel with a fenced fake model", "cargo",
-        &["test", "--locked", "-p", "conduit-std-host", "--test", "episode_loop_execution", "--test", "episode_loop_failure", "--test", "experience_episode_loop"]),
+        &["test", "--locked", "-p", "conduit-std-host", "--test", "episode_loop_execution", "--test", "episode_loop_failure"]),
+    Step::new("pete-cognition.pete-frames", "Run typed Pete frames through Situation and recall", "cargo",
+        &["test", "--locked", "-p", "xtask", "--test", "experience_episode_loop"]),
 ];
 
-pub const LIVE: &[Step] = &[Step::new(
-    "pete-cognition.live-episodes",
-    "Run two linked episodes through the installed Ollama model Back",
-    "cargo",
-    &[
-        "test",
-        "--locked",
-        "-p",
-        "conduit-std-host",
-        "--test",
-        "episode_loop_live",
-        "--test",
-        "experience_response",
-        "--test",
-        "experience_episode_loop",
-        "--",
-        "--ignored",
-        "--nocapture",
-    ],
-)];
+pub const LIVE: &[Step] = &[
+    Step::new(
+        "pete-cognition.live-episodes",
+        "Run two linked episodes through the installed Ollama model Back",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-std-host",
+            "--test",
+            "episode_loop_live",
+            "--test",
+            "experience_response",
+            "--",
+            "--ignored",
+            "--nocapture",
+        ],
+    ),
+    Step::new(
+        "pete-cognition.live-pete-frames",
+        "Run Pete's typed frames and recall with the installed model",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "xtask",
+            "--test",
+            "experience_episode_loop",
+            "--",
+            "--ignored",
+            "--nocapture",
+        ],
+    ),
+];

@@ -175,6 +175,7 @@ pub(super) enum InstalledBack {
     PatternComparison(PatternComparisonBack),
     ExperienceEvidence(super::experience_evidence_back::ExperienceEvidenceBack),
     EpisodeCompose(super::episode_loop_back::EpisodeComposeBack),
+    HostedFrame(super::hosted_frame_back::FrameStepBack),
     EpisodeRetain(super::episode_loop_back::EpisodeRetainBack),
     EpisodeMemory(super::episode_memory_back::EpisodeMemoryBack),
     SequenceNormalization(SequenceNormalizationBack),

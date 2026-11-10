@@ -47,6 +47,7 @@ mod flow_pressure_plot_tests;
 mod flow_state_backs;
 mod generated_speech_commit_back;
 mod generated_validation_backs;
+pub(crate) mod hosted_frame_back;
 mod house_prompt_back;
 mod http;
 mod http_host;
@@ -67,7 +68,7 @@ pub(crate) use near_back::{
 };
 mod committed_fore;
 mod native_source_dispatch;
-pub(crate) use native_source_dispatch::supports_with_native;
+pub(crate) use native_source_dispatch::supports_with_adapters;
 mod fore_outputs;
 pub use committed_fore::{CommittedForeScope, CommittedForeValue};
 pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
@@ -286,6 +287,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     _output: &mut W,
     timer: &mut T,
     lifecycle: RunLifecycle<'_, '_, '_>,
+    hosted_frame: Option<&crate::HostedFrameBack>,
 ) -> Result<crate::state_value::RetainedStdRun, String> {
     timer.observe_kernel_phase(crate::KernelTimingPhase::PreparationStarted);
     let RunLifecycle {
@@ -321,9 +323,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
-    if !supports_with_native(
+    if !supports_with_adapters(
         fragment,
         native_source.as_ref().map(|(_, source)| &**source),
+        hosted_frame,
     ) || active_nodes == 0
         || active_nodes > MAX_NODES
         || active_cords == 0
@@ -377,6 +380,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .filter(|source| source.matches(placement))
         {
             source.budget()
+        } else if let Some(frame) = hosted_frame.filter(|frame| frame.matches(placement)) {
+            frame.budget()
         } else {
             preparation::back_budget(placement)?
         };
@@ -453,6 +458,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         native_call
             .as_ref()
             .map(|source| (source.node, source.input_bytes())),
+        hosted_frame,
     )?;
     let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
     for state in &lowered.states {

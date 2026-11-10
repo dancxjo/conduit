@@ -148,6 +148,7 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+pub use installed_std::hosted_frame_back::HostedFrameBack;
 pub mod llm_spoken_mask;
 #[cfg(all(
     feature = "native-model-backing",
@@ -590,6 +591,7 @@ pub struct StdHost {
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
+    hosted_frame: Option<HostedFrameBack>,
     speech_recognition: Option<hosted_speech_recognition::WhisperSpeechAdapter>,
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     base_registry: conduit_core::BaseRegistry,
@@ -959,6 +961,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1034,6 +1037,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry,
@@ -1053,6 +1057,23 @@ impl StdHost {
             #[cfg(unix)]
             terminal_attachment: None,
         })
+    }
+
+    /// Initialize a model Host with one additional pure application Back.
+    pub fn new_with_local_model_and_frame_back(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
+        back: HostedFrameBack,
+    ) -> Result<Self, String> {
+        let mut host = Self::new_with_local_model_capabilities(
+            config,
+            composition,
+            adapter,
+            vec![back.offer().clone()],
+        )?;
+        host.hosted_frame = Some(back);
+        Ok(host)
     }
 
     pub fn new_with_local_model(
@@ -1085,6 +1106,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: Some(adapter),
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1135,6 +1157,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1185,6 +1208,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1235,6 +1259,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1270,6 +1295,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1329,6 +1355,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1383,6 +1410,7 @@ impl StdHost {
             midi_input: None,
             midi_output: Some(midi_output),
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1426,6 +1454,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1482,6 +1511,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),

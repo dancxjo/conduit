@@ -227,6 +227,7 @@ macro_rules! installed_step_dispatch {
 installed_step_dispatch!(
     ExperienceEvidence,
     EpisodeCompose,
+    HostedFrame,
     EpisodeRetain,
     EpisodeMemory,
     Creche,

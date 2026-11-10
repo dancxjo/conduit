@@ -20,6 +20,7 @@ pub(super) fn prepare_operations(
         retained,
         durable_body,
         None,
+        None,
     )
 }
 
@@ -31,6 +32,7 @@ pub(super) fn prepare_operations_with_native(
     mut retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
     durable_body: Option<&conduit_body::BodyId>,
     native_source: Option<(conduit_kernel::NodeId, u32)>,
+    hosted_frame: Option<&crate::HostedFrameBack>,
 ) -> Result<[InstalledBack; MAX_NODES], String> {
     if lowered.identity.plan_id != fragment.plan_id
         || lowered.identity.fragment_id != fragment.fragment_id
@@ -100,6 +102,13 @@ pub(super) fn prepare_operations_with_native(
                     crate::state_value::TypedStateBack::prepare_for_play(fragment, state, play)?,
                 ))
             };
+        } else if let Some(frame) = hosted_frame.filter(|frame| {
+            fragment
+                .placements
+                .iter()
+                .any(|gear| gear.placement_id == node.placement_id && frame.matches(gear))
+        }) {
+            operations[usize::from(node.node.0)] = InstalledBack::HostedFrame(frame.prepare());
         } else {
             operations[usize::from(node.node.0)] =
                 prepare_ordinary_operation(fragment, &node.placement_id, values)?;

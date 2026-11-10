@@ -1,5 +1,8 @@
 //! Ordinary Conduit realizations for Pete's Create hardware.
 
+mod cognition;
+pub use cognition::*;
+
 mod create_dock;
 mod create_dock_kernel_operations;
 mod create_dock_plan_validation;
