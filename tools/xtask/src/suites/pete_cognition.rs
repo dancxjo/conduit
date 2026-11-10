@@ -13,7 +13,7 @@ pub const STEPS: &[Step] = &[
     Step::new("pete-cognition.experience-response", "Send selected evidence to an ordinary model Gear across revisions", "cargo",
         &["test", "--locked", "-p", "conduit-std-host", "--test", "experience_response"]),
     Step::new("pete-cognition.installed-episodes", "Exercise two episodes and failures through the installed std kernel with a fenced fake model", "cargo",
-        &["test", "--locked", "-p", "conduit-std-host", "--test", "episode_loop_execution", "--test", "episode_loop_failure"]),
+        &["test", "--locked", "-p", "conduit-std-host", "--test", "episode_loop_execution", "--test", "episode_loop_failure", "--test", "experience_episode_loop"]),
 ];
 
 pub const LIVE: &[Step] = &[Step::new(
@@ -29,6 +29,8 @@ pub const LIVE: &[Step] = &[Step::new(
         "episode_loop_live",
         "--test",
         "experience_response",
+        "--test",
+        "experience_episode_loop",
         "--",
         "--ignored",
         "--nocapture",

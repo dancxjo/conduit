@@ -13,10 +13,10 @@ use conduit_core::{
 use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog};
 
 use crate::{
-    initial_episode_memory, EpisodeMemoryState, EpisodeObservation, EpisodePending, EpisodeRecord,
-    EPISODE_COMPOSE_KIND, EPISODE_COMPOSE_REVISION, EPISODE_MEMORY_KIND, EPISODE_MEMORY_REVISION,
-    EPISODE_RETAIN_KIND, EPISODE_RETAIN_REVISION, MAXIMUM_BODY_CHAT_CONTEXT_BYTES,
-    MAXIMUM_EPISODE_MEMORY_BYTES,
+    initial_episode_memory, EpisodeExperience, EpisodeMemoryState, EpisodeObservation,
+    EpisodePending, EpisodeRecord, EPISODE_COMPOSE_KIND, EPISODE_COMPOSE_REVISION,
+    EPISODE_MEMORY_KIND, EPISODE_MEMORY_REVISION, EPISODE_RETAIN_KIND, EPISODE_RETAIN_REVISION,
+    MAXIMUM_BODY_CHAT_CONTEXT_BYTES, MAXIMUM_EPISODE_MEMORY_BYTES,
 };
 
 /// Admission queue bound shared by the episode kinds; it admits the largest
@@ -122,6 +122,24 @@ pub fn episode_compose_semantic_contract() -> Kind {
 }
 
 /// One pending episode plus its exact model-derived result becomes one record.
+pub const EPISODE_EXPERIENCE_COMPOSE_KIND: &str = "body/episode-compose-experience";
+pub const MAXIMUM_EPISODE_EXPERIENCE_BYTES: usize = 131_072;
+
+pub fn episode_experience_type() -> StructuredInfoType {
+    EpisodeExperience::semantic_type().expect("native episode experience Type")
+}
+
+pub fn episode_experience_compose_semantic_contract() -> Kind {
+    let mut contract = episode_compose_semantic_contract();
+    contract.kind_id = kind_id(EPISODE_EXPERIENCE_COMPOSE_KIND);
+    contract.kind_contract_revision = "conduit.body/episode-compose-experience@1".into();
+    contract.inputs[0].port_id = port_id("experience");
+    contract.inputs[0].value_kind = type_kind(episode_experience_type());
+    contract.limits.max_queue_bytes = MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32;
+    contract
+}
+
+/// One pending episode pairs with one model-derived response.
 pub fn episode_retain_semantic_contract() -> Kind {
     use PortDirection::{Input, Output};
     kind(
@@ -188,6 +206,7 @@ pub fn install_episode_loop_catalog(
 ) -> Result<(), String> {
     for (name, value_type) in [
         ("EpisodeObservation", episode_observation_type()),
+        ("EpisodeExperience", episode_experience_type()),
         ("EpisodeMemoryState", episode_memory_state_type()),
         ("EpisodePending", episode_pending_type()),
         ("EpisodeRecord", episode_record_type()),
@@ -198,6 +217,7 @@ pub fn install_episode_loop_catalog(
     }
     for contract in [
         episode_compose_semantic_contract(),
+        episode_experience_compose_semantic_contract(),
         episode_retain_semantic_contract(),
         episode_memory_semantic_contract(),
     ] {

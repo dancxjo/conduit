@@ -157,13 +157,13 @@ fn oversized_rendering_refuses_before_model_admission() {
 }
 
 #[test]
-#[ignore = "requires a running loopback Ollama with gemma3:1b already installed"]
+#[ignore = "requires a running loopback Ollama with gemma3:latest already installed"]
 fn live_model_uses_selected_experience() {
     use conduit_ai::{LocalModelKindProfile, ModelDerivedResult};
     use conduit_std_host::hosted_local_model::OllamaDiscovery;
-    let adapter = OllamaDiscovery::discover_at("http://127.0.0.1:11434", "gemma3:1b")
+    let adapter = OllamaDiscovery::discover_at("http://127.0.0.1:11434", "gemma3:latest")
         .unwrap()
-        .initialize(2048, vec![LocalModelKindProfile::GenerateFlow])
+        .initialize(6144, vec![LocalModelKindProfile::GenerateFlow])
         .unwrap();
     let mut harness = common::evidence_harness_with_model(PROGRAM, Box::new(adapter));
     let memory = evidence::item(

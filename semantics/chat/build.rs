@@ -1,4 +1,7 @@
-use conduit_plot::rust_binding::{generate_rust_bindings_with_forms, RustBindingOptions};
+use conduit_plot::rust_binding::{
+    generate_rust_bindings_with_forms_and_external_bindings,
+    semantic_core::StructuredInfoTypeShape, ExternalNativeRustBinding, RustBindingOptions,
+};
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{collections::BTreeSet, env, fs, path::PathBuf};
 
@@ -13,14 +16,28 @@ fn main() {
             ),
         )
         .expect("resource references are one exact portable leaf");
+    let evidence = conduit_human::ExperienceEvidenceRequest::semantic_type()
+        .expect("evidence request Type checks");
+    let StructuredInfoTypeShape::Record { schema, .. } = evidence.shape() else {
+        panic!("evidence request is a named record");
+    };
+    let evidence_identity = schema.as_str().to_owned();
+    catalog
+        .insert_structured_type("ExperienceEvidenceRequest", evidence.clone())
+        .expect("evidence request Type installs once");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
         &catalog,
     )
     .expect("chat semantic Types must check");
-    let generated = generate_rust_bindings_with_forms(
+    let generated = generate_rust_bindings_with_forms_and_external_bindings(
         &checked.native_types,
         &checked.type_forms,
+        &[evidence],
+        &[ExternalNativeRustBinding {
+            semantic_identity: &evidence_identity,
+            rust_type_path: "conduit_human::ExperienceEvidenceRequest",
+        }],
         &RustBindingOptions {
             derive_serde_for_variants: true,
             record_constructor_orders: [(

@@ -200,6 +200,35 @@ pub fn harness_with_model(model: Box<dyn HostedLocalModelAdapter>) -> Harness {
     )
 }
 
+pub fn experience_episode_harness(program: &str) -> Harness {
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let model = FencedFakeEpisodeModel {
+        offer: offer(),
+        requests: requests.clone(),
+        terminal_on_call: None,
+    };
+    let mut harness = experience_episode_harness_with_model(program, Box::new(model));
+    harness.requests = requests;
+    harness
+}
+
+pub fn experience_episode_harness_with_model(
+    program: &str,
+    model: Box<dyn HostedLocalModelAdapter>,
+) -> Harness {
+    plan_with_model(
+        model,
+        program,
+        "experience-episode-loop",
+        &[
+            ("context", PortDirection::Input),
+            ("experiences", PortDirection::Input),
+            ("episodes", PortDirection::Output),
+        ],
+        StdHostComposition::minimal(),
+    )
+}
+
 pub fn evidence_harness(program: &str) -> Harness {
     let requests = Arc::new(Mutex::new(Vec::new()));
     let model = FencedFakeEpisodeModel {
@@ -275,6 +304,7 @@ fn plan_with_model(
                     item_capacity: 1,
                     byte_capacity: match name {
                         "evidence" => 65_536,
+                        "experiences" => conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
                         "responses" => 2_560,
                         _ => 32_768,
                     },
@@ -332,7 +362,11 @@ fn plan_with_model(
             ),
         ]
     };
-    for &(kind, implementation) in expected {
+    for &(mut kind, mut implementation) in expected {
+        if entry == "experience-episode-loop" && kind == conduit_chat::EPISODE_COMPOSE_KIND {
+            kind = conduit_chat::EPISODE_EXPERIENCE_COMPOSE_KIND;
+            implementation = conduit_std_offers::EPISODE_EXPERIENCE_COMPOSE_IMPLEMENTATION;
+        }
         let placement = fragment
             .placements
             .iter()

@@ -1,6 +1,7 @@
 use conduit_core::{Back, BackOfferBuilder, CapabilityOffer, Kind};
 
 pub const EPISODE_COMPOSE_IMPLEMENTATION: &str = "std/body-episode-compose@1";
+pub const EPISODE_EXPERIENCE_COMPOSE_IMPLEMENTATION: &str = "std/body-episode-compose-experience@1";
 pub const EPISODE_RETAIN_IMPLEMENTATION: &str = "std/body-episode-retain@1";
 pub const EPISODE_MEMORY_IMPLEMENTATION: &str = "std/body-episode-memory@1";
 
@@ -26,6 +27,14 @@ pub fn episode_compose_offer() -> CapabilityOffer {
         conduit_chat::episode_compose_semantic_contract(),
         "body-episode-compose",
         EPISODE_COMPOSE_IMPLEMENTATION,
+    )
+}
+
+pub fn episode_experience_compose_offer() -> CapabilityOffer {
+    pure_offer(
+        conduit_chat::episode_experience_compose_semantic_contract(),
+        "body-episode-compose-experience",
+        EPISODE_EXPERIENCE_COMPOSE_IMPLEMENTATION,
     )
 }
 

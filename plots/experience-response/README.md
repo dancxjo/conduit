@@ -12,5 +12,5 @@ hosted proof. The model Back admits one call in flight.
 
 Run `cargo xtask check pete-cognition` to exercise two revisions through the
 installed hosted kernel and a fenced fake model. `cargo xtask check pete-cognition-live` also checks a selected historical fact through the local
-Ollama Back with an installed `gemma3:1b`. This Plot accepts prepared evidence. Pete's runtime Situation, autobiography feedback, and provider-loss
+Ollama Back with an installed `gemma3:latest`. This Plot accepts prepared evidence. Pete's runtime Situation, autobiography feedback, and provider-loss
 recovery still require wiring in the continuing Body.

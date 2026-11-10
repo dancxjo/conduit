@@ -39,9 +39,10 @@ resolution, and uncertainty. Pete's preparation adapter admits Situation facts,
 their explicit relationships, and caller-selected autobiography records into
 one bounded CurrentExperience revision. The [Experience Response
 Plot](../experience-response/README.md) can send selected evidence to a bounded
-model in a Flow. The episode loop still needs to consume that evidence. Current provider failure terminates
-the dependent Play rather than proving continuing deterministic attention in the
-same Body. Three cognitive cadences, provider-return replanning, bounded
+model in a Flow. The [Experience Episode Loop](../experience-episode-loop/README.md)
+pairs the trigger with typed evidence and includes both in the same model turn.
+Current provider failure terminates the dependent Play. Deterministic attention
+during provider loss in the same Body still needs a proof. Three cognitive cadences, provider-return replanning, bounded
 allocation-free Play implementation, and complete Patchbay causal proof remain
 required. Play-scoped ring retention does not establish durable autobiography.
 

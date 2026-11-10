@@ -236,6 +236,12 @@ type EpisodeObservation = {
     retain: Boolean
 }
 
+# The producer binds one trigger and its selected experience atomically.
+type EpisodeExperience = {
+    observation: EpisodeObservation
+    evidence: ExperienceEvidenceRequest
+}
+
 # Model-derived words with the exact implementation and run that produced them.
 type EpisodeModelResponse = {
     content: Text <= 512B not in [""]

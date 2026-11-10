@@ -41,6 +41,12 @@ entry = "episode-loop"
 deterministic = { package = "conduit-std-host", test = "episode_loop_execution", case = "two_episodes_share_one_body_wake_and_play_and_the_second_recalls_the_first", plan_play_evidence = true }
 browser_safe_not_applicable = "the episode loop requires a typed Body context and an admitted model realization; the deterministic oracle uses a fenced fake model provider, not real LLM evidence"
 [[plots]]
+slug = "experience-episode-loop"
+title = "Experience Episode Loop"
+entry = "experience-episode-loop"
+deterministic = { package = "conduit-std-host", test = "experience_episode_loop", case = "pete_situation_evidence_and_episode_recall_reach_one_model_turn", plan_play_evidence = true }
+browser_safe_not_applicable = "the experience episode loop requires an installed model realization"
+[[plots]]
 slug = "experience-response"
 title = "Experience Response"
 entry = "experience-response"

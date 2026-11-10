@@ -13,11 +13,20 @@ use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
+use conduit_semantic_catalog::{
+    BoundedExperienceEvidenceProjection, EXPERIENCE_MODEL_REQUEST_MAX_BYTES,
+};
 
 pub(super) static COMPOSE_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::EPISODE_COMPOSE_IMPLEMENTATION,
     budget: compose_budget,
     prepare: prepare_compose,
+};
+pub(super) static EXPERIENCE_COMPOSE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::EPISODE_EXPERIENCE_COMPOSE_IMPLEMENTATION,
+    budget: experience_compose_budget,
+    prepare: prepare_experience_compose,
 };
 pub(super) static RETAIN_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::EPISODE_RETAIN_IMPLEMENTATION,
@@ -42,6 +51,7 @@ pub(super) const RESPONSE_WITHOUT_EPISODE: u16 = 22;
 
 pub(super) struct EpisodeComposeBack {
     composer: EpisodeComposer,
+    experience: Option<ExperiencePreparation>,
     staged: bool,
     observations_closed: bool,
     context_closed: bool,
@@ -82,8 +92,12 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeComposeBack {
             if !io.output_ready(REQUEST) || !io.output_ready(PENDING_OUT) {
                 return StepOutcome::Await;
             }
-            if let Err(refusal) = self.composer.compose(observation, memory) {
-                return refused(refusal);
+            let composed = match &mut self.experience {
+                Some(preparation) => preparation.compose(&mut self.composer, observation, memory),
+                None => self.composer.compose(observation, memory).map_err(refused),
+            };
+            if let Err(outcome) = composed {
+                return outcome;
             }
             let request = self.composer.request().len() as u32;
             let pending = self.composer.pending().len() as u32;
@@ -145,6 +159,48 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeComposeBack {
         self.composer.cancel();
         self.complete = true;
     }
+}
+
+struct ExperiencePreparation {
+    projection: BoundedExperienceEvidenceProjection,
+    prompt: Box<[u8; EXPERIENCE_MODEL_REQUEST_MAX_BYTES]>,
+}
+
+impl ExperiencePreparation {
+    fn compose(
+        &mut self,
+        composer: &mut EpisodeComposer,
+        bytes: &[u8],
+        memory: &[u8],
+    ) -> Result<(), StepOutcome> {
+        let malformed = || refused(EpisodeRefusal::ObservationMalformed);
+        if bytes.len() > conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES {
+            return Err(malformed());
+        }
+        let input = conduit_chat::EpisodeExperience::decode(bytes).map_err(|_| malformed())?;
+        let evidence = input.evidence().clone().encode().map_err(|_| malformed())?;
+        let context = self
+            .projection
+            .execute(&evidence)
+            .map_err(experience_refused)?;
+        let length =
+            super::experience_model_request::render_context(context, self.prompt.as_mut(), None)
+                .map_err(experience_refused)?;
+        composer
+            .compose_episode(
+                input.observation().clone(),
+                memory,
+                Some(&self.prompt[..length]),
+            )
+            .map_err(refused)
+    }
+}
+
+fn experience_refused(refusal: conduit_human::ExperienceEvidenceRefusal) -> StepOutcome {
+    fail(
+        FailureCode::InvalidInput,
+        100 + super::experience_evidence_back::refusal_detail(refusal),
+    )
 }
 
 pub(super) struct EpisodeRetainBack {
@@ -280,13 +336,27 @@ pub(super) fn exact_pure_gear(
 
 fn compose_budget(gear: &PlannedGear) -> Result<BackBudget, String> {
     exact_pure_gear(gear, &conduit_std_offers::episode_compose_offer())?;
-    Ok(BackBudget {
+    Ok(compose_storage(0, MAXIMUM_EPISODE_RECORD_BYTES))
+}
+
+fn experience_compose_budget(gear: &PlannedGear) -> Result<BackBudget, String> {
+    exact_pure_gear(
+        gear,
+        &conduit_std_offers::episode_experience_compose_offer(),
+    )?;
+    let maximum = conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES;
+    Ok(compose_storage(maximum, maximum))
+}
+
+fn compose_storage(input_bytes: usize, maximum_value_bytes: usize) -> BackBudget {
+    BackBudget {
         value_items: 2,
-        value_bytes: (MAXIMUM_EPISODE_PROMPT_BYTES + MAXIMUM_EPISODE_RECORD_BYTES) as u32,
-        maximum_value_bytes: MAXIMUM_EPISODE_RECORD_BYTES as u32,
+        value_bytes: (input_bytes + MAXIMUM_EPISODE_PROMPT_BYTES + MAXIMUM_EPISODE_RECORD_BYTES)
+            as u32,
+        maximum_value_bytes: maximum_value_bytes as u32,
         host_requests: 0,
         sign_items: 16,
-    })
+    }
 }
 
 fn retain_budget(gear: &PlannedGear) -> Result<BackBudget, String> {
@@ -305,13 +375,31 @@ fn prepare_compose(
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     compose_budget(gear)?;
-    Ok(InstalledBack::EpisodeCompose(EpisodeComposeBack {
+    Ok(InstalledBack::EpisodeCompose(new_composer(None)))
+}
+
+fn prepare_experience_compose(
+    gear: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    experience_compose_budget(gear)?;
+    Ok(InstalledBack::EpisodeCompose(new_composer(Some(
+        ExperiencePreparation {
+            projection: BoundedExperienceEvidenceProjection::prepare(),
+            prompt: Box::new([0; EXPERIENCE_MODEL_REQUEST_MAX_BYTES]),
+        },
+    ))))
+}
+
+fn new_composer(experience: Option<ExperiencePreparation>) -> EpisodeComposeBack {
+    EpisodeComposeBack {
         composer: EpisodeComposer::new(),
+        experience,
         staged: false,
         observations_closed: false,
         context_closed: false,
         complete: false,
-    }))
+    }
 }
 
 fn prepare_retain(

@@ -127,7 +127,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ExperienceEvidenceBack {
 }
 
 // Stable diagnostic identities on the ordinary kernel failure Sign.
-fn refusal_detail(refusal: conduit_human::ExperienceEvidenceRefusal) -> u16 {
+pub(super) fn refusal_detail(refusal: conduit_human::ExperienceEvidenceRefusal) -> u16 {
     use conduit_human::ExperienceEvidenceRefusal::*;
     match refusal {
         Malformed => 1,
