@@ -7,7 +7,8 @@ use crate::prelude::*;
 use crate::{CheckedGear, ExpandedCanonicalPlot, ExpandedGearProvenance, Span};
 use conduit_core::{
     ExternalEffectBehavior, PureExpressionFacts, PureExpressionRefusal, ReplayBehavior,
-    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
+    SemanticDependence, SemanticWorkKnowledge, SuspensionBehavior, TemporalStateBehavior,
+    VariabilityBehavior,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -47,6 +48,7 @@ pub struct GearEffectFacts<'a> {
     gear: &'a CheckedGear,
     origin: &'a ExpandedGearProvenance,
     facts: Result<PureExpressionFacts, PureExpressionRefusal>,
+    knowledge: SemanticWorkKnowledge,
     retained_declaration: Option<&'a crate::CheckedRetainedValue>,
 }
 impl GearEffectFacts<'_> {
@@ -61,6 +63,10 @@ impl GearEffectFacts<'_> {
             .as_ref()
             .map_err(|refusal| self.diagnostic(*refusal))
     }
+    /// Each independent checked law, retaining unknown/duplicate axes separately.
+    pub fn knowledge(&self) -> &SemanticWorkKnowledge {
+        &self.knowledge
+    }
     /// The checked declaration, not a current runtime value or State authority.
     pub fn retained_declaration(&self) -> Option<&crate::CheckedRetainedValue> {
         self.retained_declaration
@@ -70,7 +76,9 @@ impl GearEffectFacts<'_> {
         if self.retained_declaration.is_some() {
             return Ok(TemporalStateBehavior::Retained);
         }
-        self.facts().map(|facts| facts.temporal_state)
+        self.knowledge
+            .temporal_state
+            .map_err(|r| self.diagnostic(r))
     }
     fn diagnostic(&self, refusal: PureExpressionRefusal) -> EffectInferenceRefusal {
         EffectInferenceRefusal::SemanticFact {
@@ -152,16 +160,24 @@ impl ExpandedCanonicalPlot {
                     gear.gear_id.as_str().into(),
                 ));
             }
+            let mut knowledge = gear.semantic_contract.work_knowledge();
+            // Preserve complete-contract admission independently of the
+            // Source-owned KEEP fact exposed for partial inspection.
+            let facts = knowledge.complete().map(|mut facts| {
+                if retained_declaration.is_some() {
+                    facts.temporal_state = TemporalStateBehavior::Retained;
+                }
+                facts
+            });
+            if retained_declaration.is_some() {
+                knowledge.temporal_state = Ok(TemporalStateBehavior::Retained);
+            }
             leaves.push(GearEffectFacts {
                 gear,
                 origin,
                 retained_declaration,
-                facts: gear.semantic_contract.work_facts().map(|mut facts| {
-                    if retained_declaration.is_some() {
-                        facts.temporal_state = TemporalStateBehavior::Retained;
-                    }
-                    facts
-                }),
+                facts,
+                knowledge,
             });
         }
         if self.provenance.len() != leaves.len() {
