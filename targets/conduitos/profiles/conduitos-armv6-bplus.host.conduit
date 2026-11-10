@@ -1,0 +1,11 @@
+host conduitos-armv6-bplus {
+  schema = 1
+  target = {architecture: "armv6", machine: "raspberry-pi-model-b-plus-v1.2", board: "raspberry-pi-model-b-plus-v1.2"}
+  base = {kind: "serial/text", implementation: "raspberry-pi/pl011@1"}
+  base = {kind: "display/scanout", implementation: "display/linear-framebuffer@1"}
+  base = {kind: "audio/pcm-output", implementation: "raspberry-pi/pwm-jack@1"}
+  need = {id: "surface/main", class: "face/surface", slots: 4, bytes: 33554432}
+  need = {id: "mask/memory", class: "conduit.resource/runtime-memory@1", slots: 1048576, bytes: 1048576}
+  need = {id: "mask/show", class: "face.resource/show@1", slots: 1, bytes: 1}
+  limits = {static_memory_bytes: 33554432, heap_arena_bytes: 67108864, queue_items: 1024, buffered_bytes: 8388608, active_instances: 128, operation_slots: 64, timer_slots: 32, line_sessions: 8, evidence_items: 1024}
+}

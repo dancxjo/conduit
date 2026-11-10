@@ -7,6 +7,32 @@ The make package keeps two intentions distinct. Raspberry Pi OS Bookworm 64-bit 
 The browser may download either reviewed release and bind it into a body spore. It does not thereby gain package-manager credentials or raw block-device authority. Package installation and removable-media writing require separate explicit local helpers, while physical boot and UART evidence remain separate proof classes. Shared ConduitOS runtime code remains in `targets/conduitos`; Pi machine make does not pass through Limine or EFI.
 
 
+## Original Model B+ ConduitOS product
+
+The B+ image selects `conduitos-armv6-bplus.host.conduit` through the normal
+ConduitOS Make pipeline. Its machine adapters provide PL011 serial, VideoCore
+firmware framebuffer scanout, and BCM2835 PWM PCM output on the 3.5 mm jack.
+The shared ConduitOS Face renders the initial read-only Crèche. The existing
+`plots/startup-chime/main.conduit` is checked, planned, and played through the
+production scheduler and admitted native audio Host Call. The Body currently
+has boot-scoped lifecycle evidence; cross-boot retention and local input are
+not claimed by this profile.
+
+```sh
+cargo xtask make conduitos image --arch armv6 --board rpi-b-plus-v1.2 --locked
+cargo xtask make conduitos flash --arch armv6 --board rpi-b-plus-v1.2 --device /dev/sda --confirm-device /dev/sda --locked
+cargo xtask make conduitos rpi-physical-proof --product --board rpi-b-plus-v1.2 --serial-device /dev/ttyUSB0 --timeout-seconds 300 --locked
+```
+
+Replace device paths with the inspected local devices. FLASH erases the selected
+whole removable device, refuses mounted partitions, and verifies the written
+bytes. Start the UART collector before powering the Pi. Use a 3.3 V TTL adapter
+at 115200 baud, with common ground and Pi GPIO14/TX connected to adapter RX.
+The collector binds boot evidence to the flashed image and records framebuffer
+Show and PCM completion separately from a person's confirmation of visible
+HDMI output and audible sound. These are local physical checks, not release
+acceptance or GPU acceleration evidence.
+
 ## Raspberry Pi OS native release prerequisites
 
 The reviewed Raspberry Pi OS package is cross-compiled from a Linux development

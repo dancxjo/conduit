@@ -10952,6 +10952,7 @@ dependencies = [
  "conduit-host-conduitos-make",
  "conduit-host-esp32-make",
  "conduit-host-make",
+ "conduit-host-raspberry-pi",
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
