@@ -538,7 +538,14 @@ fn live_pete_experience_episode_uses_earlier_memory() {
         .contains("COPPER KITE"));
 
     let mut incoming = inputs(&[]);
-    incoming.push(frame_input(frame(2, question, false)));
+    incoming.extend([
+        frame_input(frame(2, question, false)),
+        frame_input(frame(
+            3,
+            "What is your current battery charge as a percentage?",
+            false,
+        )),
+    ]);
     let mut control = Collector::default();
     let control_report = run(
         &mut harness,
@@ -550,13 +557,31 @@ fn live_pete_experience_episode_uses_earlier_memory() {
     assert_eq!(terminal(&control_report), &TerminalDisposition::Completed);
     let control = records(&control.0);
     assert!(control[0].recalled().get().is_empty());
-    println!("Fresh Play: {}", control[0].response().unwrap().content());
-    assert!(!control[0]
-        .response()
-        .unwrap()
-        .content()
-        .to_ascii_uppercase()
-        .contains("COPPER KITE"));
+    let charge = control[1].response().unwrap().content();
+    println!("Body question: {charge}");
+    let fresh = control[0].response().unwrap().content();
+    println!("Fresh Play: {fresh}");
+    let fresh = fresh.trim().to_ascii_lowercase();
+    assert!(
+        ["i do not know", "i don't know", "i don’t know"]
+            .iter()
+            .any(|prefix| fresh.starts_with(prefix)),
+        "{fresh}"
+    );
+    for unrelated in ["copper kite", "battery", "charge", "volt", "%", "13000"] {
+        assert!(!fresh.contains(unrelated), "{fresh}");
+    }
+    let compact_charge: String = charge.chars().filter(|c| !c.is_whitespace()).collect();
+    let percentages: Vec<_> = compact_charge
+        .split_inclusive('%')
+        .filter_map(|part| part.strip_suffix('%'))
+        .map(|part| {
+            part.rsplit(|c: char| !c.is_ascii_digit() && c != '.' && c != '-')
+                .next()
+                .unwrap()
+        })
+        .collect();
+    assert!(matches!(percentages.as_slice(), ["9" | "9.0"]), "{charge}");
 }
 
 #[test]
