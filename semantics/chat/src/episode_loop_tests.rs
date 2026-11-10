@@ -291,3 +291,34 @@ fn kind_contracts_declare_the_memory_cell_as_the_only_initialized_delay() {
     assert_eq!(*empty.completed(), 0);
     assert!(empty.memories().get().is_empty());
 }
+
+#[test]
+fn retained_response_accepts_512_utf8_bytes_and_refuses_513_without_truncating() {
+    let mut composer = EpisodeComposer::new();
+    composer.admit_context(&context(2, "Pete")).unwrap();
+    let memory = EpisodeMemoryCell::new().unwrap();
+    composer
+        .compose(
+            &observation("obs/boundary", "A light.", true),
+            memory.current(),
+        )
+        .unwrap();
+    let pending = composer.pending().to_vec();
+    let mut retainer = EpisodeRetainer::new();
+    let fits = "é".repeat(256);
+    let record = retainer
+        .retain(&pending, &result(&fits, ModelResultDisposition::Produced))
+        .unwrap();
+    assert_eq!(
+        EpisodeRecord::decode(record).unwrap().response().content(),
+        &fits
+    );
+    let too_long = alloc::format!("{fits}x");
+    assert_eq!(
+        retainer.retain(
+            &pending,
+            &result(&too_long, ModelResultDisposition::Produced)
+        ),
+        Err(EpisodeRefusal::ResponseBoundExceeded)
+    );
+}

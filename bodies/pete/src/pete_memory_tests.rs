@@ -137,3 +137,17 @@ fn temporal_queries_delegate_to_the_generic_temporal_contract() {
         Ok(selected(&["late"]))
     );
 }
+
+#[test]
+fn first_recall_and_oversized_identity_refuse_without_panicking() {
+    let mut memory = BoundedAutobiography::new(4).unwrap();
+    assert_eq!(
+        memory.select_temporal(100, &TemporalRetrievalIntent::LatestEvidence, true),
+        Err(MemoryQueryRefusal::Temporal(
+            TemporalEvidenceSelectionRefusal::EmptyCandidates
+        ))
+    );
+    let oversized = candidate(&"x".repeat(257), ExperienceKind::ObservedSign);
+    assert_eq!(memory.retain(oversized, true), Err(MemoryRefusal::TooLarge));
+    assert!(memory.records(true).unwrap().is_empty());
+}

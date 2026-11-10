@@ -38,6 +38,8 @@ mod parser_scorer;
 mod phone_gestures;
 #[path = "../suites/physical_values.rs"]
 mod physical_values;
+#[path = "../suites/pete_cognition.rs"]
+mod pete_cognition;
 #[path = "../suites/print_pool.rs"]
 mod print_pool;
 #[path = "../suites/privilege_inventory.rs"]
@@ -149,6 +151,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::PhoneGestures => run_suite(phone_gestures::STEPS, &root, opts),
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),
         CheckSuite::ParserScorerReproduce => run_suite(parser_scorer::REPRODUCE, &root, opts),
+        CheckSuite::PeteCognition => run_suite(pete_cognition::STEPS, &root, opts),
         CheckSuite::PrintPool => run_suite(print_pool::STEPS, &root, opts),
         CheckSuite::DspSharedCompositions => run_suite(dsp_shared_compositions::STEPS, &root, opts),
         CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
