@@ -69,4 +69,3 @@ plot usb-hub-input-configuration-output (
 plot usb-hub-input-descriptor-output (
     input: UsbHidDescriptorTransfer...| <= 4096B >> result: UsbHidDescriptorTransfer...| <= 4096B
 ) = (.)
-
