@@ -5,6 +5,7 @@ use conduit_core::{
     StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
 };
 mod encoder;
+mod exact;
 use conduit_kernel::{
     scheduler::{
         AssignedAbnormalTransduction, AssignedCancellationTransduction,
@@ -14,6 +15,7 @@ use conduit_kernel::{
     Failure, FailureCode, PortId,
 };
 use encoder::PairEncoder;
+pub use exact::FlowZipExactBack;
 
 pub struct FlowZipBack {
     left: Vec<u8>,
@@ -371,5 +373,7 @@ fn fail(detail: u16) -> StepOutcome {
     })
 }
 
+#[cfg(test)]
+mod exact_tests;
 #[cfg(test)]
 mod tests;

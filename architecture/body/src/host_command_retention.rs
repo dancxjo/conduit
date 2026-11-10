@@ -24,6 +24,24 @@ pub struct RetainedHostCommandStamp {
     expires_at: u64,
 }
 
+impl RetainedHostCommandStamp {
+    /// Match the original attributed attempt, not merely an identical payload.
+    /// A fresh challenge for the same bytes cannot replace admitted custody.
+    /// The command must first be reborrowed under current independent facts.
+    pub fn check_command(
+        &self,
+        command: &AttributedHostCommand<'_, '_>,
+    ) -> Result<(), HostCommandRetentionRefusal> {
+        if host_command_attribution_transcript(command.challenge(), command.payload())
+            .map_err(|_| HostCommandRetentionRefusal::Context)?
+            != self.transcript
+        {
+            return Err(HostCommandRetentionRefusal::Context);
+        }
+        Ok(())
+    }
+}
+
 /// One fixed, caller-funded input buffer. Retained bytes are immutable. Root must
 /// still perform policy/admission/retirement checks before interpreting it, and
 /// must own its consumption separately from transport delivery acknowledgments.

@@ -12,8 +12,8 @@ mod conversation_catalog;
 pub(crate) struct CanonicalSource {
     pub(crate) source: String,
     pub(crate) syntax: conduit_plot::SyntaxDocument,
-    pub(crate) startup: StartupCatalog,
-    profiles: ProfileCatalog,
+    pub(crate) startup: &'static StartupCatalog,
+    profiles: &'static ProfileCatalog,
 }
 
 pub(crate) fn load(path: &Path) -> Result<CanonicalSource, String> {
@@ -24,14 +24,21 @@ pub(crate) fn load(path: &Path) -> Result<CanonicalSource, String> {
         ));
     }
     let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    parse(&source)
+    parse_owned(source)
 }
 
 // Used by the library entrance; the binary compiles this module independently.
 #[allow(dead_code)]
 pub(crate) fn parse(source: &str) -> Result<CanonicalSource, String> {
-    let (mut startup, mut profiles) = standard_catalogs()?;
-    let mut syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
+    parse_owned(source.into())
+}
+
+/// Take immutable capture ownership; callers separately fund checking and retention.
+/// The bytes and descriptive identity never grant adoption or execution authority.
+pub(crate) fn parse_owned(source: String) -> Result<CanonicalSource, String> {
+    let standard = shared_standard_catalogs()?;
+    let (mut startup, mut profiles) = (&standard.0, &standard.1);
+    let mut syntax = conduit_plot::parse_syntax_document_with_glyph_notations(&source, startup);
     // Canonical paths remain present in direct invocations, Type references or
     // explicit `with` declarations. Kind aliases resolve only to exact installed
     // paths, so their declarations retain the dependency. Quoted text and
@@ -40,11 +47,12 @@ pub(crate) fn parse(source: &str) -> Result<CanonicalSource, String> {
         token.kind == conduit_plot::CstTokenKind::Lexeme
             && (token.text == "audio/dsp" || token.text.starts_with("audio/dsp/"))
     }) {
-        (startup, profiles) = dsp_catalogs()?;
-        syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
+        let dsp = shared_dsp_catalogs()?;
+        (startup, profiles) = (&dsp.0, &dsp.1);
+        syntax = conduit_plot::parse_syntax_document_with_glyph_notations(&source, startup);
     }
     Ok(CanonicalSource {
-        source: source.into(),
+        source,
         syntax,
         startup,
         profiles,
@@ -67,7 +75,7 @@ impl CanonicalSource {
     // installed owner binary.
     #[allow(dead_code)]
     pub(crate) fn authoring_catalog(&self) -> &ProfileCatalog {
-        &self.profiles
+        self.profiles
     }
 
     pub(crate) fn check(&self) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
@@ -76,8 +84,8 @@ impl CanonicalSource {
         }
         let checked = conduit_plot::check_syntax_document_with_literal_constructors(
             &self.syntax,
-            &self.startup,
-            &self.profiles,
+            self.startup,
+            self.profiles,
         )
         .map_err(|diagnostic| format!("{}: {}", diagnostic.code, diagnostic.message))?;
         conduit_speech::ipa_constructors::validate_source(&self.syntax, &checked)
@@ -113,11 +121,11 @@ impl CanonicalSource {
         let dsp = dsp_source_backs_for(&checked)?;
         if recursive {
             let mut backs = dsp.cloned().unwrap_or_default();
-            conduit_text::install_morse_backs(&self.startup, &self.profiles, &mut backs)?;
+            conduit_text::install_morse_backs(self.startup, self.profiles, &mut backs)?;
             return conduit_plot::expand_canonical_plot_with_backs(
                 &checked,
                 entry,
-                &self.profiles,
+                self.profiles,
                 &backs,
             )
             .map_err(|diagnostic| diagnostic.to_string());
@@ -126,10 +134,10 @@ impl CanonicalSource {
             Some(backs) => conduit_plot::expand_canonical_plot_with_backs(
                 &checked,
                 entry,
-                &self.profiles,
+                self.profiles,
                 backs,
             ),
-            None => conduit_plot::expand_canonical_plot(&checked, entry, &self.profiles),
+            None => conduit_plot::expand_canonical_plot(&checked, entry, self.profiles),
         }
         .map_err(|diagnostic| diagnostic.to_string())
     }
@@ -157,9 +165,9 @@ fn dsp_source_backs_for(
     static BACKS: std::sync::OnceLock<Result<CanonicalBackCatalog, String>> =
         std::sync::OnceLock::new();
     match BACKS.get_or_init(|| {
-        let (_, profiles) = dsp_catalogs()?;
+        let (_, profiles) = shared_dsp_catalogs()?;
         let mut backs = CanonicalBackCatalog::new();
-        conduit_semantic_catalog::install_dsp_source_backs(&profiles, &mut backs)?;
+        conduit_semantic_catalog::install_dsp_source_backs(profiles, &mut backs)?;
         Ok(backs)
     }) {
         Ok(backs) => Ok(Some(backs)),
@@ -168,18 +176,28 @@ fn dsp_source_backs_for(
 }
 
 pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
-    // These catalogs contain only this executable's compiled semantic contracts.
-    // Check them once, then give each Source its own mutable copy. Host offers,
-    // authority and each authored document are still admitted independently.
-    static CATALOGS: std::sync::OnceLock<Result<(StartupCatalog, ProfileCatalog), String>> =
-        std::sync::OnceLock::new();
-    CATALOGS.get_or_init(|| prepare_catalogs(false)).clone()
+    shared_standard_catalogs().cloned()
 }
 
-fn dsp_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
+// The executable owns these immutable definitions once. Borrowing them supplies
+// no Ready offer, Source permission or workspace grant; Root must separately
+// retain and fund this shared backing for every dependent operation.
+fn shared_standard_catalogs() -> Result<&'static (StartupCatalog, ProfileCatalog), String> {
     static CATALOGS: std::sync::OnceLock<Result<(StartupCatalog, ProfileCatalog), String>> =
         std::sync::OnceLock::new();
-    CATALOGS.get_or_init(|| prepare_catalogs(true)).clone()
+    CATALOGS
+        .get_or_init(|| prepare_catalogs(false))
+        .as_ref()
+        .map_err(Clone::clone)
+}
+
+fn shared_dsp_catalogs() -> Result<&'static (StartupCatalog, ProfileCatalog), String> {
+    static CATALOGS: std::sync::OnceLock<Result<(StartupCatalog, ProfileCatalog), String>> =
+        std::sync::OnceLock::new();
+    CATALOGS
+        .get_or_init(|| prepare_catalogs(true))
+        .as_ref()
+        .map_err(Clone::clone)
 }
 
 fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog), String> {
@@ -441,7 +459,7 @@ mod tests {
             "plot browser-mask (\n    >> face: Face\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n}\n",
         )
         .unwrap();
-        let checked = conduit_plot::check_syntax_document(&source.syntax, &source.startup).unwrap();
+        let checked = conduit_plot::check_syntax_document(&source.syntax, source.startup).unwrap();
         let front = &checked.plots[0].runtime_front;
 
         assert_eq!(

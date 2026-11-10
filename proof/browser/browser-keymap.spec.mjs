@@ -2,14 +2,33 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
+// Observe settlement as page state: Chromium can collect the protocol's
+// awaited promise even when the page retains the underlying start promise.
+// Start once; subsequent polling only reads the correlated result.
+async function startSource(page, source) {
+  await page.evaluate(source => {
+    const observation = { status: "pending", identity: null, error: null };
+    globalThis.__conduitKeymapStart = observation;
+    observation.promise = globalThis.__conduitKeymapProof.start(source).then(
+      identity => { observation.identity = identity; observation.status = "fulfilled"; },
+      error => { observation.error = String(error?.stack ?? error); observation.status = "rejected"; },
+    );
+  }, source);
+  await expect.poll(() => page.evaluate(() => globalThis.__conduitKeymapStart.status))
+    .not.toBe("pending");
+  const { identity, error } = await page.evaluate(() => {
+    const { identity, error } = globalThis.__conduitKeymapStart;
+    return { identity, error };
+  });
+  if (error) throw new Error(error);
+  return identity;
+}
+
 async function start(page, path, transform = source => source) {
   const source = transform(await readFile(path, "utf8"));
   await page.goto("/proof/browser/browser-keymap.test.html");
   await expect(page.locator("#status")).toHaveText("ready");
-  const identity = await page.evaluate(source => {
-    globalThis.__conduitKeymapStart = globalThis.__conduitKeymapProof.start(source);
-    return globalThis.__conduitKeymapStart;
-  }, source);
+  const identity = await startSource(page, source);
   await expect(page.locator("#status")).toHaveText("listening");
   if (source.includes("input/saved-choice")) {
     await expect(page.locator("[data-saved-choice-status]")).toContainText("Saved in this browser");
@@ -36,6 +55,14 @@ async function stop(page, activePlay) {
   expect(evidence.keyCount).toBeGreaterThan(0);
   expect(evidence.manifestations).toBeGreaterThan(0);
 }
+
+test("start observation preserves an actual Source admission refusal", async ({ page }) => {
+  await page.goto("/proof/browser/browser-keymap.test.html");
+  await expect(page.locator("#status")).toHaveText("ready");
+  await expect(startSource(page, "plot broken { missing: fixture/missing() }"))
+    .rejects.toThrow(/Plot start refused:.*refused-before-play/);
+  expect(await page.evaluate(() => globalThis.__conduitKeymapStart.status)).toBe("rejected");
+});
 
 test("default authored US International keymap handles real browser AltGr dead keys through text/edit", async ({ page }) => {
   const failures = [];
@@ -229,10 +256,7 @@ test("two composed keymap gears in one Plot keep pending dead keys independent u
     });
     globalThis.twoKeymapObserver.observe(document.querySelector("#message"), { childList: true });
   });
-  const { activePlay } = await page.evaluate(source => {
-    globalThis.twoKeymapStart = globalThis.__conduitKeymapProof.start(source);
-    return globalThis.twoKeymapStart;
-  }, source);
+  const { activePlay } = await startSource(page, source);
   const faces = () => page.evaluate(() => globalThis.twoKeymapFaces);
   await expect.poll(faces).toEqual({ "Acute layout": "", "Grave layout": "" });
   await page.locator("#surface").focus();

@@ -336,3 +336,6 @@ pub use audio_analysis::*;
 
 mod pcm_packing;
 pub use pcm_packing::*;
+
+mod source_check;
+pub use source_check::*;

@@ -1,0 +1,22 @@
+plot increment (
+ >> input: I32
+ output: I32 >>
+) = (. + 1)
+
+plot nested (
+ >> input: I32
+ output: I32 >>
+) {
+ operation: increment()
+ input >> operation.input
+ operation.output >> output
+}.
+
+plot ordinary-effects-proof (
+ >> input: I32
+ output: I32 >>
+) {
+ operation: nested()
+ input >> operation.input
+ operation.output >> output
+}.

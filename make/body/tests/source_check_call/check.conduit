@@ -1,0 +1,11 @@
+# The authoring context supplies the checked S1 Types. The selected Host must
+# independently own the immutable Source/context and offer this operation.
+# A report describes that Source; it does not install or execute it.
+plot check-source (
+    >> request: SourceCheckRequest...|
+    reply: SourceCheckReply...| >>
+) {
+    checker: language/source-check
+    request >> checker.request
+    checker.reply >> reply
+}

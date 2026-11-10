@@ -7,6 +7,9 @@ use super::{
 use alloc::vec;
 use conduit_core::*;
 
+mod offer;
+pub use offer::capability_offer;
+
 pub const I2C_IMPLEMENTATION: &str = "conduitos/i2c-transaction@1";
 pub const I2C_EXECUTION_PROFILE: &str = "conduitos/i2c-cooperative-bounded@1";
 pub const I2C_ATTACHMENT_CLASS: &str = "machine/i2c-attachment";
@@ -99,36 +102,7 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
         {
             return Err(I2cInstallationRefusal::Advertisement);
         }
-        let kind = contract.kind();
-        let capability = conduit_core::capability_offer_from_parts! {
-            semantic_contract: kind.semantic_contract(),
-            startup_parameters: kind.startup_parameters.clone(),
-            shorthand: kind.shorthand.clone(),
-            capability_id: CapabilityId::from("conduitos/i2c-transaction@1"),
-            kind_id: kind.kind_id.clone(),
-            kind_contract_revision: kind.kind_contract_revision.clone(),
-            implementation: ImplementationOffer {
-                execution_profile_id: ExecutionProfileId::from(I2C_EXECUTION_PROFILE),
-                implementation_id: ImplementationId::from(I2C_IMPLEMENTATION),
-                artifact_id: self.identity.artifact_id.clone(),
-            },
-            inputs: kind.inputs.clone(),
-            outputs: kind.outputs.clone(),
-            host_calls: vec![HostCallRequirement {
-                contract_id: HostCallContractId::from(I2C_CALL),
-                target_kind: Some(kind.kind_id.clone()),
-                maximum_in_flight: 1,
-                maximum_input_bytes: I2C_MAXIMUM_BYTES,
-                maximum_output_bytes: I2C_MAXIMUM_BYTES,
-            }],
-            resource_requirements: vec![resource_requirement(I2C_ATTACHMENT_CLASS, 1)],
-            authority_requirements: vec![AuthorityRequirement {
-                contract_id: AuthorityContractId::from(I2C_AUTHORITY),
-                host_call_contract_id: HostCallContractId::from(I2C_CALL),
-                subject_kind: kind.kind_id.clone(),
-            }],
-            limits: kind.limits.clone(),
-        };
+        let capability = capability_offer(contract, &self.identity.artifact_id)?;
         let resource = resource_offer(
             self.identity.resource_pool_id.as_str(),
             I2C_ATTACHMENT_CLASS,

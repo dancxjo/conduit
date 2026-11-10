@@ -4,8 +4,10 @@ use super::{StorageError, ValueRef, ValueStorage};
 mod compact_f32;
 mod native_values;
 mod owned_compact_f32;
+mod preparation;
 mod sign_storage;
 mod value_admission;
+pub use preparation::ValueStorePreparationError;
 
 struct HostedValueSlot {
     generation: u16,
@@ -110,10 +112,22 @@ impl HostedValueStore {
                 bytes: Vec::with_capacity(capacity as usize),
             });
         }
+        Ok(Self::from_prepared_slots(
+            slots,
+            maximum_value_bytes as usize,
+            byte_capacity,
+        ))
+    }
+
+    fn from_prepared_slots(
+        slots: Vec<HostedValueSlot>,
+        maximum_value_bytes: usize,
+        byte_capacity: u32,
+    ) -> Self {
         let uniform_slots = slots
             .windows(2)
             .all(|pair| pair[0].bytes.capacity() == pair[1].bytes.capacity());
-        Ok(Self {
+        Self {
             slots,
             native_words: Vec::new(),
             compact_f32_lengths: Vec::new(),
@@ -122,13 +136,13 @@ impl HostedValueStore {
             uniform_slots,
             free_search_start: 0,
             has_retired_slots: false,
-            maximum_value_bytes: maximum_value_bytes as usize,
+            maximum_value_bytes,
             byte_capacity,
             used_items: 0,
             used_bytes: 0,
             #[cfg(test)]
             slot_probes: 0,
-        })
+        }
     }
 
     /// Actual reserved backing storage, including slot metadata. This differs
@@ -184,6 +198,9 @@ impl HostedValueStore {
 }
 
 impl ValueStorage for HostedValueStore {
+    fn preflight_canonical_store(&self, byte_len: u32) -> Result<(), StorageError> {
+        self.preflight_canonical_publication(byte_len)
+    }
     fn preflight_owned_compact_f32_outputs(
         &self,
         requests: &[(crate::scheduler::CompactF32Layout, u16)],

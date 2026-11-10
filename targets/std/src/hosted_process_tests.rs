@@ -147,3 +147,40 @@ fn pipe_failure_invalidates_apparent_success() {
     record_pipe_failure(&mut terminal, io::Error::from(io::ErrorKind::BrokenPipe));
     assert!(matches!(terminal, Some(ProcessTerminal::ProviderLost(_))));
 }
+
+#[test]
+#[cfg(unix)]
+fn selected_large_startup_cannot_block_deadline_or_cancellation() {
+    let input = vec![0; 256 * 1024];
+    let arguments = [OsString::from("-c"), OsString::from("sleep 30 & wait")];
+    for cancel in [false, true] {
+        let children = || std::fs::read_to_string("/proc/thread-self/children");
+        let before = children().ok();
+        let started = Instant::now();
+        let report = run_process_with_input_bound(
+            &ProcessRequest {
+                program: Path::new("/bin/sh"),
+                arguments: &arguments,
+                environment: &[],
+                stdin: &input,
+                maximum_stdout_bytes: 64,
+                maximum_stderr_bytes: 32,
+                timeout: Duration::from_millis(80),
+                require_process_group: true,
+            },
+            input.len(),
+            || cancel && started.elapsed() >= Duration::from_millis(20),
+        )
+        .unwrap();
+        assert!(report.launched);
+        assert!(if cancel {
+            matches!(report.terminal, ProcessTerminal::Cancelled)
+        } else {
+            matches!(report.terminal, ProcessTerminal::TimedOut)
+        });
+        assert!(started.elapsed() < Duration::from_secs(2));
+        if let Some(before) = before {
+            assert_eq!(children().unwrap(), before);
+        }
+    }
+}

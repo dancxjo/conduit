@@ -216,6 +216,17 @@ pub(in super::super) fn exercise(
     let checked = native_workset::checked(NativePlot::MemoryLantern)
         .map_err(|error| refusal(error.as_str()))?;
     let source = NativePlot::MemoryLantern.source();
+    let request_id = request["after"]["last_request_id"]
+        .as_str()
+        .filter(|identity| !identity.is_empty())
+        .ok_or_else(|| refusal("Source handoff lacks its accepted request identity"))?;
+    journey_input::wait_for_record(
+        serial,
+        child,
+        "source-editor-journey-timeout",
+        "source-editor-journey",
+        |text| observation::journey_observed(text, request_id),
+    )?;
     let loaded = journey(serial)?;
     if receipt["source"] != json!(resident)
         || receipt["expanded_plot_id"] != json!(checked.expanded_plot_id)

@@ -29,14 +29,14 @@ impl CanonicalSource {
             return conduit_plot::expand_canonical_plot_for_authoring(
                 checked,
                 entry,
-                &self.profiles,
+                self.profiles,
             )
             .map_err(|diagnostic| diagnostic.to_string());
         };
         conduit_plot::expand_canonical_plot_for_authoring_with_backs(
             checked,
             entry,
-            &self.profiles,
+            self.profiles,
             backs,
         )
         .map_err(|diagnostic| diagnostic.to_string())
@@ -45,6 +45,28 @@ impl CanonicalSource {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn owned_capture_keeps_its_original_source_allocation() {
+        let captured = String::from(include_str!("../../../../plots/clock/main.conduit"));
+        let original = captured.as_ptr();
+        let source = super::super::parse_owned(captured).unwrap();
+        assert_eq!(source.source.as_ptr(), original);
+        assert!(source.expand_entry_for_authoring().is_ok());
+    }
+
+    #[test]
+    fn canonical_sources_share_immutable_catalogs_without_sharing_syntax() {
+        let first =
+            super::super::parse(include_str!("../../../../plots/clock/main.conduit")).unwrap();
+        let second =
+            super::super::parse(include_str!("../../../../plots/clock/main.conduit")).unwrap();
+        assert!(core::ptr::eq(first.startup, second.startup));
+        assert!(core::ptr::eq(first.profiles, second.profiles));
+        assert_ne!(first.source.as_ptr(), second.source.as_ptr());
+        assert!(first.expand_entry_for_authoring().is_ok());
+        assert!(second.expand_entry_for_authoring().is_ok());
+    }
+
     #[test]
     fn malformed_source_preserves_checker_diagnostic_before_entry_selection() {
         let source = super::super::parse("plot unfinished (").unwrap();

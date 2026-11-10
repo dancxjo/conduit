@@ -1,13 +1,14 @@
 use crate::{CatalogueRead, CatalogueTable, DiagnosticSpan};
 use alloc::{string::String, vec::Vec};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 pub const MAX_CHECK_LABEL_BYTES: usize = 256;
 pub const MAX_CHECK_DIAGNOSTICS: usize = 16;
 pub const MAX_CHECK_DEPENDENCIES: usize = 1024;
 pub const MAX_CHECK_DIAGNOSTIC_BYTES: usize = 16 * 1024;
 pub const MAX_CHECK_DEPENDENCY_BYTES: usize = 128 * 1024;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SourceSnapshotRevision {
     pub owner: String,
     pub generation: u64,
@@ -16,7 +17,8 @@ pub struct SourceSnapshotRevision {
 }
 /// Names refer to the owner's exact immutable catalogues, never to ambient
 /// defaults. All five revisions are required, even for empty input sets.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct CheckContextRevision {
     pub grammar_edition: String,
     pub catalog: String,
@@ -43,7 +45,8 @@ impl CheckContextRevision {
         Ok(())
     }
 }
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SourceCheckLimits {
     pub diagnostics: usize,
     pub diagnostic_bytes: usize,
@@ -72,7 +75,8 @@ impl SourceCheckLimits {
         Ok(())
     }
 }
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SourceCheckRequest {
     pub snapshot: SourceSnapshotRevision,
     pub context: CheckContextRevision,

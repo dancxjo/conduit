@@ -1,3 +1,5 @@
+#[path = "tests/preparation.rs"]
+mod preparation;
 use super::*;
 #[test]
 fn full_hosted_store_refuses_without_inspecting_slots_and_reopens_on_release() {

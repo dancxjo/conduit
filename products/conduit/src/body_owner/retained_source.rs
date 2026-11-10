@@ -1,5 +1,5 @@
 //! Root-owned acquisition of the installed Body's retained Source.
-use conduit_body::ResidentPlot;
+use conduit_body::{BodyBiographyEvidence, ResidentPlot};
 use conduit_plot::{canonical_source_document_id, ExpandedAuthoringPlot};
 use conduit_std_host::source_file::CapturedSourceFile;
 use std::{fs::File, io::ErrorKind, path::Path};
@@ -20,11 +20,58 @@ pub(super) fn checked(root: &Path) -> Result<Option<ExpandedAuthoringPlot>, Stri
     }
 }
 
+/// Immutable Root-owned capture. It contains no checked candidate and grants no
+/// Source operation or execution authority. Capture/JSON workspace is still the
+/// caller's responsibility; compiler preparation can be admitted separately.
+pub(super) struct CapturedRetainedWorkset {
+    biography: BodyBiographyEvidence,
+    inventory: CapturedInventory,
+}
+enum CapturedInventory {
+    Complete(super::state::WorksetSources),
+    Single(CapturedSourceFile),
+}
+impl CapturedRetainedWorkset {
+    /// Compile only the already captured bytes, without reopening Source paths.
+    /// The exact complete resident workset remains the acceptance boundary.
+    pub(super) fn expand(self) -> Result<Vec<RetainedPlotSource>, String> {
+        let captured = match self.inventory {
+            CapturedInventory::Complete(sources) => return sources.into_expanded(&self.biography),
+            CapturedInventory::Single(captured) => captured,
+        };
+        let source = crate::plot_source::parse_owned(captured.into_source())?;
+        let checked = source.expand_entry_for_authoring()?;
+        let resident = ResidentPlot::new(
+            checked.expanded.source_document_id.clone(),
+            checked.expanded.checked_plot_id.clone(),
+        );
+        if !self.biography.body.workset.plots().contains(&resident) {
+            return Err("retained checked Plot differs from the installed Body workset".into());
+        }
+        if self.biography.body.workset.plots().len() != 1 {
+            return Err("retained Source does not cover the complete Body workset".into());
+        }
+        Ok(vec![RetainedPlotSource {
+            source,
+            plot: checked,
+        }])
+    }
+}
+
 pub(super) fn workset(root: &Path) -> Result<Option<Vec<RetainedPlotSource>>, String> {
+    capture(root)?
+        .map(CapturedRetainedWorkset::expand)
+        .transpose()
+}
+
+pub(super) fn capture(root: &Path) -> Result<Option<CapturedRetainedWorkset>, String> {
     let biography = super::state::load(root)?;
     if let Some(biography) = &biography {
-        if let Some(plots) = super::state::checked_workset_sources(root, biography)? {
-            return Ok(Some(plots));
+        if let Some(sources) = super::state::capture_workset_sources(root, biography)? {
+            return Ok(Some(CapturedRetainedWorkset {
+                biography: biography.clone(),
+                inventory: CapturedInventory::Complete(sources),
+            }));
         }
     }
     let file = match File::open(root.join("body/source.conduit")) {
@@ -45,25 +92,10 @@ pub(super) fn workset(root: &Path) -> Result<Option<Vec<RetainedPlotSource>>, St
     {
         return Err("retained Source bytes differ from the installed Body workset".into());
     }
-    // Content membership is not checked-Plot identity. Recheck the same captured
-    // bytes through the ordinary product entrance and require the exact pair.
-    // No Source pathname is reopened after selection.
-    let source = crate::plot_source::parse(captured.source())?;
-    let checked = source.expand_entry_for_authoring()?;
-    let resident = ResidentPlot::new(
-        checked.expanded.source_document_id.clone(),
-        checked.expanded.checked_plot_id.clone(),
-    );
-    if !biography.body.workset.plots().contains(&resident) {
-        return Err("retained checked Plot differs from the installed Body workset".into());
-    }
-    if biography.body.workset.plots().len() != 1 {
-        return Err("retained Source does not cover the complete Body workset".into());
-    }
-    Ok(Some(vec![RetainedPlotSource {
-        source,
-        plot: checked,
-    }]))
+    Ok(Some(CapturedRetainedWorkset {
+        biography,
+        inventory: CapturedInventory::Single(captured),
+    }))
 }
 
 #[cfg(test)]

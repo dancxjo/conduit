@@ -1,7 +1,7 @@
 //! Checked Face controls for the installed owner's interval ticker.
 //! An interval change replaces the Body workset only while lulled; a start
 //! seals a new Plan and Play, and a stop requests a real terminal receipt.
-use super::{debug, state, Owner};
+use super::{debug, Owner};
 use conduit_body::{BodyState, ResidentPlot};
 use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
 use conduit_face::{
@@ -9,6 +9,35 @@ use conduit_face::{
     FaceInteraction, FaceProperty, FacePropertyValue, FaceText, MaskShow, UTF8_TEXT_VALUE_KIND,
 };
 use std::path::Path;
+
+/// Affine custody minted only by the clock's finite Source policy below.
+/// No public proposal, serialized identity or arbitrary Source can construct it.
+pub(super) struct AuthorizedClockRevision {
+    expected: conduit_body::BodyBiographyEvidence,
+    owner: (
+        conduit_core::HostId,
+        conduit_core::BootId,
+        conduit_core::OfferGeneration,
+    ),
+    source: crate::plot_source::CanonicalSource,
+    checked: conduit_plot::ExpandedAuthoringPlot,
+}
+impl AuthorizedClockRevision {
+    pub(super) fn into_parts(
+        self,
+    ) -> (
+        conduit_body::BodyBiographyEvidence,
+        (
+            conduit_core::HostId,
+            conduit_core::BootId,
+            conduit_core::OfferGeneration,
+        ),
+        crate::plot_source::CanonicalSource,
+        conduit_plot::ExpandedAuthoringPlot,
+    ) {
+        (self.expected, self.owner, self.source, self.checked)
+    }
+}
 
 const INITIAL_SOURCE: &str = include_str!("../../../../plots/clock/main.conduit");
 const INTERVALS_MS: [u64; 4] = [250, 500, 1_000, 2_000];
@@ -37,6 +66,7 @@ pub(super) fn source_for(interval_ms: u64) -> String {
     )
 }
 
+#[cfg(test)]
 fn supported_interval(source: &str) -> Option<u64> {
     if source == INITIAL_SOURCE {
         return Some(1_000);
@@ -297,7 +327,7 @@ impl Owner {
         let interval_ms = interval_text
             .parse::<u64>()
             .map_err(|_| "clock interval is not a decimal millisecond count".to_string())?;
-        self.replace_lulled_clock_interval(root, interval_ms)?;
+        self.replace_authorized_clock_interval(root, interval_ms)?;
         Ok(serde_json::json!({
             "schema":"conduit.body/clock-interval-changed@1",
             "body_id":self.session.evidence().body_id,
@@ -316,7 +346,17 @@ impl Owner {
     /// This is a workset change, not a timer-setting side channel. Returning
     /// success leaves the Body lulled: a subsequent start creates a new Plan
     /// and Play from the retained new checked source.
+    #[cfg(test)]
     pub(crate) fn replace_lulled_clock_interval(
+        &mut self,
+        root: &Path,
+        interval_ms: u64,
+    ) -> Result<(), String> {
+        // Trusted reference fixture; production enters through admitted Face actions.
+        self.replace_authorized_clock_interval(root, interval_ms)
+    }
+
+    fn replace_authorized_clock_interval(
         &mut self,
         root: &Path,
         interval_ms: u64,
@@ -333,67 +373,37 @@ impl Owner {
         if self.session.evidence().body.workset.len() != 1 {
             return Err("reviewed clock interval change requires the single-clock workset".into());
         }
-        let old_bytes = super::super::super::bounded_read(
-            &root.join("body/source.conduit"),
-            super::super::MAXIMUM_SOURCE,
-        )?;
-        let old_source = std::str::from_utf8(&old_bytes)
-            .map_err(|_| "retained clock source is not UTF-8".to_string())?;
-        let old_interval = supported_interval(old_source)
-            .ok_or("retained Plot is not the reviewed clock source")?;
-        if old_interval == interval_ms {
-            return Err("clock already has that interval".into());
-        }
-        let old_checked = crate::plot_source::parse(old_source)?.expand_entry_for_authoring()?;
+        self.ensure_execution_retained(root)?;
+        let old_checked = super::super::checked_retained_source(root)?
+            .ok_or("retained clock Source is unavailable")?;
         let old_resident = ResidentPlot::new(
             old_checked.expanded.source_document_id,
             old_checked.expanded.checked_plot_id,
         );
+        let old_interval = recognized_interval(&old_resident)
+            .ok_or("retained Plot is not the reviewed clock source")?;
+        if old_interval == interval_ms {
+            return Err("clock already has that interval".into());
+        }
         if self.resident.as_ref() != Some(&old_resident) {
             return Err("retained clock source differs from the Body workset".into());
         }
         let next_source = source_for(interval_ms);
-        let next_checked = crate::plot_source::parse(&next_source)?.expand_entry_for_authoring()?;
-        let next_resident = ResidentPlot::new(
-            next_checked.expanded.source_document_id.clone(),
-            next_checked.expanded.checked_plot_id.clone(),
-        );
-        // Exact current offers must be capable of planning the replacement
-        // before any retained workset change. This is preparation, not an
-        // admitted new Plan or an implicit retry on later host change.
-        self.plan_partition(&next_checked, &next_resident)?;
+        let canonical = crate::plot_source::parse(&next_source)?;
+        let next_checked = canonical.expand_entry_for_authoring()?;
+        let expected = self.session.evidence().clone();
         let advertised = self.host.advertisement();
-        let mut staged = self.session.clone();
-        let revision = staged.evidence().body.workload_revision;
-        staged
-            .remove_plot(
-                revision,
-                &old_resident,
-                &advertised.host_id,
-                &advertised.boot_id,
-            )
-            .map_err(debug)?;
-        staged
-            .admit_plot(
-                revision
-                    .checked_add(1)
-                    .ok_or("clock workload revision exhausted")?,
-                next_resident.clone(),
-                &advertised.host_id,
-                &advertised.boot_id,
-            )
-            .map_err(debug)?;
-        state::retain_session(
-            root,
-            &mut staged,
-            self.last_execution.as_ref(),
-            self.admissions.as_ref(),
-            Some(next_source.as_bytes()),
-            None,
-        )?;
-        self.session = staged;
-        self.resident = Some(next_resident);
-        self.resident_name = Some(next_checked.expanded.name);
+        let authorization = AuthorizedClockRevision {
+            expected,
+            owner: (
+                advertised.host_id.clone(),
+                advertised.boot_id.clone(),
+                advertised.offer_generation,
+            ),
+            source: canonical,
+            checked: next_checked,
+        };
+        self.commit_authorized_clock_revision(root, authorization)?;
         self.clock_interval_ms = Some(interval_ms);
         Ok(())
     }
@@ -411,5 +421,76 @@ mod tests {
         }
         assert_eq!(supported_interval("plot clock-demo {}"), None);
         assert_eq!(supported_interval(&source_for(3_000)), None);
+    }
+    #[test]
+    fn private_approval_refuses_foreign_host_boot_and_offer_generation() {
+        use super::super::service_workset_tests::fixture;
+        let (root, mut owner) = fixture();
+        let expected = owner.session.evidence().clone();
+        let before = std::fs::read(root.join("body/biography.json")).unwrap();
+        for changed in 0..3 {
+            let source = crate::plot_source::parse(&source_for(500)).unwrap();
+            let checked = source.expand_entry_for_authoring().unwrap();
+            let ad = owner.host.advertisement();
+            let mut origin = (ad.host_id.clone(), ad.boot_id.clone(), ad.offer_generation);
+            match changed {
+                0 => origin.0 = "foreign/host".into(),
+                1 => origin.1 = "foreign/boot".into(),
+                _ => origin.2 = conduit_core::OfferGeneration(ad.offer_generation.0 + 1),
+            }
+            // Deliberately malformed private token: this module alone can
+            // construct it. Public proposal Info cannot take this entrance.
+            let approval = AuthorizedClockRevision {
+                expected: expected.clone(),
+                owner: origin,
+                source,
+                checked,
+            };
+            assert!(owner
+                .commit_authorized_clock_revision(&root, approval)
+                .unwrap_err()
+                .contains("another Host/Boot or offer generation"));
+            assert_eq!(owner.session.evidence(), &expected);
+            assert_eq!(
+                std::fs::read(root.join("body/biography.json")).unwrap(),
+                before
+            );
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn consumed_approval_cannot_overwrite_a_later_workset_basis() {
+        use super::super::service_workset_tests::{fixture, SOURCE};
+        let (root, mut owner) = fixture();
+        let expected = owner.session.evidence().clone();
+        let source = crate::plot_source::parse(&source_for(500)).unwrap();
+        let checked = source.expand_entry_for_authoring().unwrap();
+        let ad = owner.host.advertisement();
+        let approval = AuthorizedClockRevision {
+            expected: expected.clone(),
+            owner: (ad.host_id.clone(), ad.boot_id.clone(), ad.offer_generation),
+            source,
+            checked,
+        };
+        let retained = crate::plot_source::parse(SOURCE).unwrap();
+        let alpha = retained.expand_named_for_authoring("alpha").unwrap();
+        // Independent trusted fixture transition advances the real biography.
+        owner
+            .commit_admitted_workset_revision(&root, &expected, &[(&retained, &alpha)])
+            .unwrap();
+        let current = owner.session.evidence().clone();
+        let before = std::fs::read(root.join("body/biography.json")).unwrap();
+        assert!(owner
+            .commit_authorized_clock_revision(&root, approval)
+            .unwrap_err()
+            .contains("current owner basis"));
+        assert_eq!(owner.session.evidence(), &current);
+        assert_eq!(
+            std::fs::read(root.join("body/biography.json")).unwrap(),
+            before
+        );
+        assert!(owner.session.realization().is_none());
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

@@ -1,7 +1,7 @@
 //! Fail-closed derivation for semantic Kind use inside pure expressions.
 
 mod semantic_work;
-pub use semantic_work::semantic_work_facts;
+pub use semantic_work::{semantic_work_facts, semantic_work_knowledge, SemanticWorkKnowledge};
 
 use crate::{
     Back, ExternalEffectBehavior, Kind, KindId, KindIdentity, KindSemanticLaw, PlannedGear,
@@ -21,6 +21,14 @@ pub struct PureExpressionFacts {
     pub suspension: SuspensionBehavior,
     pub variability: VariabilityBehavior,
     pub replay: ReplayBehavior,
+}
+
+impl PureExpressionFacts {
+    /// Check semantic expression eligibility only. This neither admits a Back
+    /// nor grants execution, resource or Host Call authority.
+    pub fn require_pure_expression(&self) -> Result<(), PureExpressionRefusal> {
+        require_recomputable_semantics(self)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

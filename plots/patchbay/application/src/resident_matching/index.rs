@@ -19,10 +19,12 @@ impl<'a> ContentIndex<'a> {
         })
     }
 }
-/// Fixed u16 offsets into one immutable borrowed slice. No content is cloned.
+/// Packed fingerprint/u16 offsets into one immutable borrowed slice.
+/// Fingerprints only select candidates; full key and value equality decide membership.
+/// Integer sorting avoids repeatedly traversing long shared identity prefixes.
 pub(super) struct Index<'a, T, const N: usize> {
     values: &'a [T],
-    order: [u16; N],
+    order: [u32; N],
     key: fn(&T) -> (&str, &str),
 }
 impl<'a, T: PartialEq, const N: usize> Index<'a, T, N> {
@@ -32,23 +34,32 @@ impl<'a, T: PartialEq, const N: usize> Index<'a, T, N> {
         }
         let mut order = [0; N];
         for (i, item) in order[..values.len()].iter_mut().enumerate() {
-            *item = i as u16;
+            *item = (u32::from(fingerprint(key(&values[i]))) << 16) | i as u32;
         }
-        order[..values.len()].sort_unstable_by(|&a, &b| {
-            key(&values[usize::from(a)]).cmp(&key(&values[usize::from(b)]))
-        });
+        order[..values.len()].sort_unstable();
         Some(Self { values, order, key })
     }
     pub fn contains(&self, value: &T) -> bool {
         let key = (self.key)(value);
         let order = &self.order[..self.values.len()];
-        let first = order.partition_point(|&i| (self.key)(&self.values[usize::from(i)]) < key);
+        let fingerprint = u32::from(fingerprint(key));
+        let first = order.partition_point(|&entry| entry >> 16 < fingerprint);
         order[first..]
             .iter()
-            .map(|&i| &self.values[usize::from(i)])
-            .take_while(|candidate| (self.key)(candidate) == key)
-            .any(|candidate| candidate == value)
+            .take_while(|&&entry| entry >> 16 == fingerprint)
+            .map(|&entry| &self.values[usize::from(entry as u16)])
+            .any(|candidate| (self.key)(candidate) == key && candidate == value)
     }
+}
+// A collision is harmless: contains always checks the original borrowed content.
+fn fingerprint(key: (&str, &str)) -> u16 {
+    let mut hash = 2_166_136_261u32;
+    for part in [key.0, key.1] {
+        for byte in part.bytes().chain(core::iter::once(255)) {
+            hash = (hash ^ u32::from(byte)).wrapping_mul(16_777_619);
+        }
+    }
+    (hash ^ (hash >> 16)) as u16
 }
 #[cfg(test)]
 mod tests {
@@ -66,12 +77,32 @@ mod tests {
             .map(|i| (alloc::format!("{i:04}"), 0u8))
             .collect::<alloc::vec::Vec<_>>();
         let index = Index::<_, 1024>::new(&values, key).unwrap();
+        assert_eq!(KEYS.load(Ordering::Relaxed), values.len());
         KEYS.store(0, Ordering::Relaxed);
         for value in &values {
             assert!(index.contains(value));
         }
-        assert!(KEYS.load(Ordering::Relaxed) <= 16 * values.len());
-        assert!(core::mem::size_of::<ContentIndex<'_>>() <= 15 * 1024);
+        assert!(KEYS.load(Ordering::Relaxed) <= 4 * values.len());
+        assert!(core::mem::size_of::<ContentIndex<'_>>() <= 29 * 1024);
+    }
+    #[test]
+    fn fingerprint_collisions_preserve_exact_keys_and_values() {
+        let first = ("key/124", "", 3);
+        let collision = ("key/336", "", 9);
+        assert_eq!(
+            fingerprint((first.0, first.1)),
+            fingerprint((collision.0, collision.1))
+        );
+        let values = [first, collision, ("key/124", "", 7)];
+        let index = Index::<_, 3>::new(&values, |v| (v.0, v.1)).unwrap();
+        for key in ["key/124", "key/336", "absent"] {
+            for value in 0..12 {
+                let query = (key, "", value);
+                assert_eq!(index.contains(&query), values.contains(&query));
+            }
+        }
+        let one = Index::<_, 1>::new(&values[..1], |v| (v.0, v.1)).unwrap();
+        assert!(!one.contains(&("key/336", "", 3)));
     }
     #[test]
     fn bounded_index_matches_linear_equality_for_shuffled_repeated_keys() {

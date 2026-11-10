@@ -423,6 +423,11 @@ pub trait ValueStorage {
     fn byte_capacity(&self) -> u32;
     fn used_items(&self) -> u16;
     fn used_bytes(&self) -> u32;
+    /// Read-only canonical publication preflight. Unsupported profiles refuse;
+    /// this is not a reservation across intervening mutation or an await.
+    fn preflight_canonical_store(&self, _byte_len: u32) -> Result<(), StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError>;
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError>;
     fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError>;
@@ -531,7 +536,7 @@ pub use owned_compact_output::{PendingCompactF32Publication, PreparedCompactF32O
 mod hosted;
 
 #[cfg(feature = "alloc")]
-pub use hosted::Store as HostedValueStore;
+pub use hosted::{Store as HostedValueStore, ValueStorePreparationError};
 
 mod remote_sign;
 use remote_sign::RemoteLifecycleSign;

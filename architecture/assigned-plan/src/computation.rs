@@ -1,4 +1,4 @@
-//! Allocation-free admission of resident, Make-validated computation artifacts.
+//! Allocation-free admission of Make-validated computation/reference artifacts.
 //! This validates exact encoded configuration, not evaluator heap/work or authority.
 use crate::{read_identity, read_u16, sha256, AssignedIdentity, AssignedPlanRefusal};
 
@@ -13,8 +13,11 @@ pub struct AssignedComputationRequirement {
 }
 impl AssignedComputationRequirement {
     pub fn from_text(node: u16, key: &str, text: &str) -> Result<Self, AssignedPlanRefusal> {
-        if !matches!(key, "program" | "selector") || !canonical_hex(text.as_bytes()) {
+        if !matches!(key, "program" | "selector" | "reference") || !canonical_hex(text.as_bytes()) {
             return Err(AssignedPlanRefusal::MalformedRecord);
+        }
+        if key == "reference" && text.len() > 1024 {
+            return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
         }
         Ok(Self {
             node,
@@ -67,14 +70,25 @@ impl<'a> Validation<'a> {
             .map_err(|_| AssignedPlanRefusal::MalformedRecord)?;
         let ordinary_text =
             || text.len() <= 128 && !text.trim().is_empty() && !text.chars().any(char::is_control);
-        let Some(profile) = self.profile else {
-            return Ok(ordinary_text());
-        };
         let key = read_identity(payload, 2)?;
+        let reference = key == AssignedIdentity::from_text("reference");
+        let Some(profile) = self.profile else {
+            return if reference {
+                Err(AssignedPlanRefusal::UnknownComputation)
+            } else {
+                Ok(ordinary_text())
+            };
+        };
         if key != AssignedIdentity::from_text("program")
             && key != AssignedIdentity::from_text("selector")
+            && !reference
         {
             return Ok(ordinary_text());
+        }
+        // Exact references remain independently pinned and funded; this
+        // neither enlarges ordinary text nor grants access to content.
+        if reference && text.len() > 1024 {
+            return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
         }
         if text.len() > usize::from(profile.maximum_text_bytes) {
             return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
@@ -123,3 +137,7 @@ fn canonical_hex(bytes: &[u8]) -> bool {
             .iter()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(b))
 }
+
+#[cfg(test)]
+#[path = "reference_artifact_tests.rs"]
+mod reference_tests;

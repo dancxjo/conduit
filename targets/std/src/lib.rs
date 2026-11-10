@@ -1,4 +1,5 @@
 mod selected_native_source;
+pub mod source_check;
 pub mod source_file;
 use conduit_core::{
     BaseImplementationId, HostAdvertisement, HostId, Observation, OfferGeneration, Plan,
