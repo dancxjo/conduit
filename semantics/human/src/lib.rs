@@ -57,7 +57,11 @@ mod generated {
 pub use generated::{
     ChordInfo, ChordPhase, ChordPhaseForm, ControlChordModifier, CoreChordId, CoreChordIdForm,
     CurrentExperienceInspectionError, CurrentExperienceProjection, ExperienceAvailability,
-    ExperienceBodyInput, ExperienceCertainty, ExperienceDomain, ExperienceHumanInput,
+    ExperienceBodyInput, ExperienceCertainty, ExperienceDomain, ExperienceEvidenceContent,
+    ExperienceEvidenceContext, ExperienceEvidenceIdentities, ExperienceEvidenceIdentity,
+    ExperienceEvidenceItem, ExperienceEvidenceItems, ExperienceEvidenceRefusal,
+    ExperienceEvidenceRequest, ExperienceEvidenceSelection, ExperienceEvidenceSource,
+    ExperienceEvidenceSourceImplementationRun, ExperienceEvidenceSources, ExperienceHumanInput,
     ExperienceHypothesisInput, ExperienceInferenceInput, ExperienceMemoryInput, ExperienceOrigin,
     ExperienceRefusal, ExperienceRelationKind, ExperienceSourceRefusal, ExperienceSourceStatus,
     ExperienceTemporalPolicy, ExperienceTemporalRefusal, ExperienceTemporalRole,

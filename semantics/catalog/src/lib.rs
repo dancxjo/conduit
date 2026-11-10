@@ -52,6 +52,10 @@ pub use diverse_structured_info::*;
 mod experience_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use experience_catalog::*;
+mod experience_evidence;
+pub use experience_evidence::*;
+mod experience_evidence_codec;
+pub use experience_evidence_codec::*;
 #[cfg(feature = "plot-catalog")]
 mod purpose_catalog;
 #[cfg(feature = "plot-catalog")]

@@ -557,6 +557,36 @@ It is not:
 It should be representable as ordinary portable plots/gears and placeable by the
 same plan machinery as other work.
 
+### Explicit evidence projection: first implementation slice of #3707
+
+The `experience/project-evidence` Kind accepts one native
+`ExperienceEvidenceRequest` and emits an inspectable `ExperienceEvidenceContext`.
+Both selection and evidence content arrive explicitly through the request Cord;
+identities authorize no lookup. This does not change `CurrentExperienceProjection`,
+whose item identities alone do not supply model context.
+
+The projection admits at most eight selected items, 2,048 content bytes per item,
+four source references per item, 128-byte identities, and 65,536 canonical bytes
+per request or context. It preserves content, domain, origin, temporal role,
+availability, certainty and supplied source references, ordering items by the
+selection. Duplicate, missing or unselected items, revision/provenance mismatches,
+and invalid epistemic combinations refuse rather than truncate. Revision checks
+are relative to the supplied selection, not attested current Body truth.
+The output is evidence data, not a model request, authenticated observation,
+memory-access grant or action authority.
+
+The ordinary std Host Back prepares its buffers before Play, waits without
+consuming input under downstream pressure, and cancels without emitting context.
+Deterministic tests exercise the production offer, checking, planning, lowering
+and installed kernel execution, including zero post-Play-start allocations:
+[semantic contract tests](../../semantics/catalog/tests/experience_evidence.rs)
+and [hosted execution tests](../../targets/std/src/installed_std_tests/experience_evidence.rs).
+This is a one-request projection proof, not continuous cognition acceptance.
+The Situation adapters, convergence execution bindings, autobiographical
+retention/retrieval loop, three-timescale continuing Body, model-provider loss
+and complete Patchbay causal tracing remain open under
+[#3707](https://github.com/dancxjo/conduit/issues/3707).
+
 ---
 
 ## 12. Generalize the old perception-to-situation lesson

@@ -281,6 +281,72 @@ type CurrentExperienceProjection = {
     provenance_revision: Text
 }
 
+# An explicit selection, not a replacement for CurrentExperienceProjection.
+# Evidence is supplied through the Cord; identities never authorize a lookup.
+type ExperienceEvidenceIdentity = Text <= 128B not in [""]
+type ExperienceEvidenceContent = Bytes <= 2048B
+type ExperienceEvidenceIdentities = sequence ExperienceEvidenceIdentity <= 8
+type ExperienceEvidenceSource =
+    source ExperienceEvidenceIdentity
+    | sign ExperienceEvidenceIdentity
+    | human_statement ExperienceEvidenceIdentity
+    | memory_record ExperienceEvidenceIdentity
+    | resource ResourceRef
+    | implementation_run {
+        implementation: ExperienceEvidenceIdentity
+        provider_instance: ExperienceEvidenceIdentity
+        artifact: ExperienceEvidenceIdentity
+        run: ExperienceEvidenceIdentity
+    }
+
+type ExperienceEvidenceSources = sequence ExperienceEvidenceSource <= 4
+type ExperienceEvidenceItem = {
+    identity: ExperienceEvidenceIdentity
+    revision: U64
+    provenance_revision: ExperienceEvidenceIdentity
+    content_kind: ExperienceEvidenceIdentity
+    encoded_content: ExperienceEvidenceContent
+    domain: ExperienceDomain
+    origin: ExperienceOrigin
+    temporal_role: ExperienceTemporalRole
+    availability: ExperienceAvailability
+    certainty: ExperienceCertainty
+    sources: ExperienceEvidenceSources
+}
+
+type ExperienceEvidenceItems = sequence ExperienceEvidenceItem <= 8
+type ExperienceEvidenceSelection = {
+    revision: U64
+    provenance_revision: ExperienceEvidenceIdentity
+    item_identities: ExperienceEvidenceIdentities
+}
+
+type ExperienceEvidenceRequest = {
+    selection: ExperienceEvidenceSelection
+    evidence: ExperienceEvidenceItems
+}
+
+# Inspectable evidence only, never model instructions or authority.
+type ExperienceEvidenceContext = {
+    selection: ExperienceEvidenceSelection
+    items: ExperienceEvidenceItems
+}
+
+type ExperienceEvidenceRefusal =
+    malformed
+    | byte_bound
+    | item_bound
+    | identity_bound
+    | duplicate_selection
+    | duplicate_evidence
+    | unselected_evidence
+    | missing_evidence
+    | stale_revision
+    | future_revision
+    | provenance_mismatch
+    | source_bound
+    | invalid_epistemic_combination
+
 type VisualEvidenceClass =
     deterministic_derived
     | statistical_candidate

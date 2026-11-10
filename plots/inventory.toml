@@ -35,6 +35,12 @@ entry = "body-chat"
 deterministic = { package = "conduit-chat", test = "body_chat", case = "canonical_body_chat_is_an_ordinary_checked_plot" }
 browser_safe_not_applicable = "the portable body conversation requires a current body supervisor and an admitted model realization"
 [[plots]]
+slug = "episode-loop"
+title = "Episode Loop"
+entry = "episode-loop"
+deterministic = { package = "conduit-std-host", test = "episode_loop_execution", case = "two_episodes_share_one_body_wake_and_play_and_the_second_recalls_the_first", plan_play_evidence = true }
+browser_safe_not_applicable = "the episode loop requires a typed Body context and an admitted model realization; the deterministic oracle uses a fenced fake model provider, not real LLM evidence"
+[[plots]]
 slug = "house-conversation"
 title = "House Conversation"
 entry = "house-conversation"

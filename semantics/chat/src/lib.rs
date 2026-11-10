@@ -15,17 +15,29 @@ pub use generated::{
     BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleForm,
     BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, ConversationRequestEvidence,
     DeliveryAuthority, DeliveryEvidence, DeliveryRequest, DeliveryState, DeliveryUpdate,
-    LiveConversationFlowProjection, LiveConversationProjectionError, LiveConversationStage,
-    LiveConversationStageKind, LiveConversationStageState, LiveConversationStages,
-    MessageAttachment, MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot,
-    MessageOptionalDisplayName, MessageOptionalSender, MessageOptionalSubject, MessageRecipient,
-    MessageRecipientSlot, NotificationEvent, PortableMessage, PresenceEvent, PresenceState,
-    RecognitionEvidenceStatus, RecognitionEvidenceView, SpeechCommitEvidenceView,
+    EpisodeMemory, EpisodeMemoryState, EpisodeModelResponse, EpisodeObservation, EpisodePending,
+    EpisodeRecall, EpisodeRecord, EpisodeRefusal, LiveConversationFlowProjection,
+    LiveConversationProjectionError, LiveConversationStage, LiveConversationStageKind,
+    LiveConversationStageState, LiveConversationStages, MessageAttachment, MessageAttachmentSlot,
+    MessageMetadataEntry, MessageMetadataSlot, MessageOptionalDisplayName, MessageOptionalSender,
+    MessageOptionalSubject, MessageRecipient, MessageRecipientSlot, NotificationEvent,
+    PortableMessage, PresenceEvent, PresenceState, RecognitionEvidenceStatus,
+    RecognitionEvidenceView, SpeechCommitEvidenceView,
 };
 
 mod body_chat;
 pub use body_chat::*;
 mod conversation_request_evidence;
+#[cfg(feature = "conversation-flow")]
+mod episode_loop;
+#[cfg(feature = "conversation-flow")]
+pub use episode_loop::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_loop_catalog;
+#[cfg(feature = "plot-catalog")]
+pub use episode_loop_catalog::*;
+#[cfg(all(test, feature = "plot-catalog"))]
+mod episode_loop_tests;
 #[cfg(feature = "conversation-flow")]
 mod live_conversation_flow;
 #[cfg(feature = "conversation-flow")]
