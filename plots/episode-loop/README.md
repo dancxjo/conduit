@@ -20,6 +20,17 @@ execution with a **fenced fake model**. The fake proves causal dependence of the
 second request on the first retained episode; it proves no real LLM behavior.
 The evidence projection never resolves source identities or grants memory access.
 
+The opt-in hosted proof runs the same Plot with the production Ollama Back.
+It requires a running loopback Ollama with `gemma3:1b` already installed.
+
+```sh
+cargo xtask check pete-cognition-live
+```
+
+The second episode asks for a label supplied only by the first episode. The
+proof checks the retained observation and the model's use of its label. It then
+asks the same question in a fresh Play as a control for the recall.
+
 This remains an unfinished slice of [#3707](https://github.com/dancxjo/conduit/issues/3707).
 The episode loop is not yet wired to Pete Situation, generic Experiencer
 execution, or selected autobiographical RAG. The explicit evidence projection

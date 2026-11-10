@@ -94,6 +94,8 @@ pub enum CheckSuite {
     PrintPool,
     /// Check typed cognition adapters, evidence and installed episodes using a fenced fake model.
     PeteCognition,
+    /// Run the episode-loop proof against an already installed local Ollama model.
+    PeteCognitionLive,
     /// Check the finite parser action artifact and numerical admission.
     ParserScorer,
     /// Download pinned corpus into temporary storage and reproduce the parser artifact.

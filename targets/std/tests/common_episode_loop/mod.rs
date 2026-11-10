@@ -1,9 +1,8 @@
 //! Shared harness for the basic episode loop proof: ordinary source -> check
 //! -> expand -> Plan -> one kernel Play on the std Host.
 //!
-//! The model provider here is an explicitly fenced deterministic fake. It
-//! proves the installed loop, bounds, provenance, and terminal truth; it is
-//! not evidence about any real language model.
+//! Deterministic conformance uses the fenced fake. The opt-in hosted proof
+//! supplies the production local model adapter to the same installed graph.
 #![allow(dead_code)]
 
 use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
@@ -173,6 +172,17 @@ pub struct Harness {
 
 pub fn harness(terminal_on_call: Option<(usize, LocalModelAdapterTerminal)>) -> Harness {
     let requests = Arc::new(Mutex::new(Vec::new()));
+    let model = FencedFakeEpisodeModel {
+        offer: offer(),
+        requests: requests.clone(),
+        terminal_on_call,
+    };
+    let mut harness = harness_with_model(Box::new(model));
+    harness.requests = requests;
+    harness
+}
+
+pub fn harness_with_model(model: Box<dyn HostedLocalModelAdapter>) -> Harness {
     let host = StdHost::new_with_local_model(
         StdHostConfig {
             host_id: HostId::from("host/episode-loop"),
@@ -180,11 +190,7 @@ pub fn harness(terminal_on_call: Option<(usize, LocalModelAdapterTerminal)>) -> 
             offer_generation: OfferGeneration(1),
         },
         StdHostComposition::minimal(),
-        Box::new(FencedFakeEpisodeModel {
-            offer: offer(),
-            requests: requests.clone(),
-            terminal_on_call,
-        }),
+        model,
     )
     .unwrap();
     let mut startup = StartupCatalog::new();
@@ -266,7 +272,7 @@ pub fn harness(terminal_on_call: Option<(usize, LocalModelAdapterTerminal)>) -> 
     }
     Harness {
         host,
-        requests,
+        requests: Arc::default(),
         fragment,
         plan_id: plan.plan_id.as_str().into(),
     }
