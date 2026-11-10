@@ -47,6 +47,12 @@ entry = "experience-episode-loop"
 deterministic = { package = "xtask", test = "experience_episode_loop", case = "pete_situation_evidence_and_episode_recall_reach_one_model_turn", plan_play_evidence = true }
 browser_safe_not_applicable = "the experience episode loop requires an installed model realization"
 [[plots]]
+slug = "pete-cognition-resumable"
+title = "Resumable Pete Cognition"
+entry = "pete-cognition-resumable"
+deterministic = { package = "xtask", test = "experience_episode_loop", case = "pete_recalls_a_committed_checkpoint_in_a_replacement_play", plan_play_evidence = true }
+browser_safe_not_applicable = "the hosted proof uses the synchronized Body and Wake checkpoint journal"
+[[plots]]
 slug = "pete-cognition"
 title = "Pete Cognition"
 entry = "pete-cognition"

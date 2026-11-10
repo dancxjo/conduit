@@ -216,6 +216,7 @@ const FACTORIES: &[&BackFactory] = &[
     &super::episode_loop_back::EXPERIENCE_COMPOSE_FACTORY,
     &super::episode_loop_back::RETAIN_FACTORY,
     &super::episode_memory_back::MEMORY_FACTORY,
+    &super::episode_memory_back::RESUMABLE_MEMORY_FACTORY,
     &super::creche_back::FACTORY,
     &super::ieee_back::FACTORY,
     &super::near_back::FACTORY,

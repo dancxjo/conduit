@@ -198,6 +198,38 @@ pub fn episode_memory_semantic_contract() -> Kind {
     contract
 }
 
+pub const EPISODE_RESUMABLE_MEMORY_KIND: &str = "body/episode-memory-resume";
+
+pub fn episode_resumable_memory_contract(initial: &[u8]) -> Result<Kind, crate::EpisodeRefusal> {
+    crate::EpisodeMemoryCell::from_checkpoint(initial)?;
+    let mut contract = episode_memory_semantic_contract();
+    contract.kind_id = kind_id(EPISODE_RESUMABLE_MEMORY_KIND);
+    contract.kind_contract_revision = "conduit.body/episode-memory-resume@1".into();
+    for law in &mut contract.semantic_laws {
+        if let KindSemanticLaw::InitializedState(law) = law {
+            law.initial = initial.to_vec();
+            law.current.maximum_bytes = crate::MAXIMUM_EPISODE_CHECKPOINT_BYTES as u32;
+        }
+    }
+    Ok(contract)
+}
+
+pub fn install_episode_resumable_memory_catalog(
+    initial: &[u8],
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    let contract = episode_resumable_memory_contract(initial)
+        .map_err(|error| alloc::format!("episode checkpoint: {error:?}"))?;
+    startup.insert(KindSignature {
+        kind: contract.kind_id.as_str().into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert_kind(contract)
+        .map_err(|error| error.to_string())
+}
+
 /// Install after [`crate::install_body_chat_catalog`], which owns the
 /// `BodyConversationContext` alias.
 pub fn install_episode_loop_catalog(

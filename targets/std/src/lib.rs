@@ -210,6 +210,7 @@ pub use kernel_preparation::{
     RegionServiceConfig, RegionServiceRetirement, RegionWorkerCommand, RegionWorkerError,
     RegionWorkerEvidence, RegionWorkerReply,
 };
+pub mod episode_checkpoint;
 mod kernel_signal;
 mod local_model_observation;
 mod local_model_pool_member;
@@ -1071,6 +1072,26 @@ impl StdHost {
             composition,
             adapter,
             vec![back.offer().clone()],
+        )?;
+        host.hosted_frame = Some(back);
+        Ok(host)
+    }
+
+    /// Initialize a replacement model Host with an exact Episode State seed.
+    pub fn new_with_local_model_frame_and_episode_checkpoint(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
+        back: HostedFrameBack,
+        checkpoint: &[u8],
+    ) -> Result<Self, String> {
+        let memory = conduit_std_offers::episode_resumable_memory_offer(checkpoint)
+            .map_err(|error| format!("episode checkpoint: {error:?}"))?;
+        let mut host = Self::new_with_local_model_capabilities(
+            config,
+            composition,
+            adapter,
+            vec![back.offer().clone(), memory],
         )?;
         host.hosted_frame = Some(back);
         Ok(host)

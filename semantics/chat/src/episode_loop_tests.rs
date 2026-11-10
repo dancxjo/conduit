@@ -375,3 +375,37 @@ fn experience_recall_ranks_observed_terms_and_excludes_model_only_matches() {
         vec![2, 1]
     );
 }
+
+#[test]
+fn episode_checkpoint_keeps_its_wake_and_byte_bound() {
+    let mut original = EpisodeComposer::new();
+    original.admit_context(&context(2, "Pete")).unwrap();
+    let mut memory = EpisodeMemoryCell::from_checkpoint(&initial_episode_memory()).unwrap();
+    let answer = "x".repeat(512);
+    for index in 1..=6 {
+        let seen = alloc::format!("checkpoint episode {index}");
+        episode(&mut original, &mut memory, &seen, true, &answer);
+        assert!(memory.current().len() <= MAXIMUM_EPISODE_CHECKPOINT_BYTES);
+    }
+    let restored = EpisodeMemoryCell::from_checkpoint(memory.current()).unwrap();
+    let state = EpisodeMemoryState::decode(restored.current()).unwrap();
+    assert_eq!(*state.completed(), 6);
+    assert_eq!(*state.memories().get().iter().last().unwrap().episode(), 6);
+
+    let input = observation("follow-up", "checkpoint episode", false);
+    let mut replacement = EpisodeComposer::new();
+    replacement.admit_context(&context(3, "Pete")).unwrap();
+    assert_eq!(
+        replacement.compose(&input, restored.current()),
+        Err(EpisodeRefusal::ContextChangedIdentity)
+    );
+    let mut replacement = EpisodeComposer::new();
+    replacement.admit_context(&context(2, "Pete")).unwrap();
+    replacement.compose(&input, restored.current()).unwrap();
+    assert_eq!(
+        *EpisodePending::decode(replacement.pending())
+            .unwrap()
+            .episode(),
+        7
+    );
+}

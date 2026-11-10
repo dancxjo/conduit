@@ -28,6 +28,8 @@ cargo xtask check pete-cognition-live
 ```
 
 The live check uses installed Ollama models on loopback. The proof supplies
-frame inputs through the Fore. Live sensor and homeostasis sources, durable
-autobiographical feedback, recovery across Host or Plan replacement, and Patchbay
-causal inspection remain part of [#3707](https://github.com/dancxjo/conduit/issues/3707).
+frame inputs through the Fore. The [resumable Plot](../pete-cognition-resumable/README.md)
+also exercises a Body and Wake checkpoint across a replacement Host Boot,
+Plan, and Play. Live sensor and homeostasis sources, broader autobiographical
+retrieval, and Patchbay causal inspection remain part of
+[#3707](https://github.com/dancxjo/conduit/issues/3707).

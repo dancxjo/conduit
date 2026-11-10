@@ -403,11 +403,17 @@ pub fn plan_host(
         ]
     };
     for &(mut kind, mut implementation) in expected {
-        if matches!(entry, "experience-episode-loop" | "pete-cognition")
-            && kind == conduit_chat::EPISODE_COMPOSE_KIND
+        if matches!(
+            entry,
+            "experience-episode-loop" | "pete-cognition" | "pete-cognition-resumable"
+        ) && kind == conduit_chat::EPISODE_COMPOSE_KIND
         {
             kind = conduit_chat::EPISODE_EXPERIENCE_COMPOSE_KIND;
             implementation = conduit_std_offers::EPISODE_EXPERIENCE_COMPOSE_IMPLEMENTATION;
+        }
+        if entry == "pete-cognition-resumable" && kind == conduit_chat::EPISODE_MEMORY_KIND {
+            kind = conduit_chat::EPISODE_RESUMABLE_MEMORY_KIND;
+            implementation = conduit_std_offers::EPISODE_RESUMABLE_MEMORY_IMPLEMENTATION;
         }
         let placement = fragment
             .placements

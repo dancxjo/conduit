@@ -19,39 +19,74 @@ const PETE_PROGRAM: &str = include_str!("../../../plots/pete-cognition/main.cond
 fn pete_harness(
     model: Box<dyn conduit_std_host::hosted_local_model::HostedLocalModelAdapter>,
 ) -> common::Harness {
-    let host = conduit_std_host::StdHost::new_with_local_model_and_frame_back(
-        conduit_std_host::StdHostConfig {
-            host_id: "host/pete-cognition".into(),
-            boot_id: "boot/pete-cognition".into(),
-            offer_generation: conduit_core::OfferGeneration(1),
+    pete_harness_for(model, PETE_PROGRAM, "pete-cognition", None)
+}
+
+fn pete_harness_for(
+    model: Box<dyn conduit_std_host::hosted_local_model::HostedLocalModelAdapter>,
+    program: &str,
+    entry: &str,
+    checkpoint: Option<&[u8]>,
+) -> common::Harness {
+    let config = conduit_std_host::StdHostConfig {
+        host_id: "host/pete-cognition".into(),
+        boot_id: if checkpoint.is_some_and(|bytes| bytes != conduit_chat::initial_episode_memory())
+        {
+            "boot/pete-cognition-replacement".into()
+        } else {
+            "boot/pete-cognition".into()
         },
-        StdHostComposition::minimal(),
-        model,
-        HostedFrameBack::new(
-            conduit_pete::pete_cognition_situate_offer(),
-            conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
-            conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
-            conduit_pete::situate_pete_frame_bytes,
-        )
-        .unwrap(),
+        offer_generation: conduit_core::OfferGeneration(1),
+    };
+    let back = HostedFrameBack::new(
+        conduit_pete::pete_cognition_situate_offer(),
+        conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
+        conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
+        conduit_pete::situate_pete_frame_bytes,
     )
     .unwrap();
-    common::plan_host(
-        host,
-        PETE_PROGRAM,
-        "pete-cognition",
-        &[
-            ("context", PortDirection::Input, 32_768),
-            (
-                "frames",
-                PortDirection::Input,
-                conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
-            ),
-            ("episodes", PortDirection::Output, 32_768),
-        ],
-        false,
-        conduit_pete::install_pete_cognition_catalog,
-    )
+    let composition = StdHostComposition::minimal();
+    let host = match checkpoint {
+        Some(checkpoint) => {
+            conduit_std_host::StdHost::new_with_local_model_frame_and_episode_checkpoint(
+                config,
+                composition,
+                model,
+                back,
+                checkpoint,
+            )
+        }
+        None => conduit_std_host::StdHost::new_with_local_model_and_frame_back(
+            config,
+            composition,
+            model,
+            back,
+        ),
+    }
+    .unwrap();
+    let mut ports = vec![
+        ("context", PortDirection::Input, 32_768),
+        (
+            "frames",
+            PortDirection::Input,
+            conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
+        ),
+        ("episodes", PortDirection::Output, 32_768),
+    ];
+    if checkpoint.is_some() {
+        ports.push((
+            "checkpoints",
+            PortDirection::Output,
+            conduit_chat::MAXIMUM_EPISODE_CHECKPOINT_BYTES as u32,
+        ));
+    }
+    common::plan_host(host, program, entry, &ports, false, |startup, profile| {
+        conduit_pete::install_pete_cognition_catalog(startup, profile)?;
+        if let Some(initial) = checkpoint {
+            conduit_chat::install_episode_resumable_memory_catalog(initial, startup, profile)?;
+        }
+        Ok(())
+    })
 }
 
 fn at(ticks: u64) -> NativeTemporalInstant {
@@ -365,4 +400,121 @@ fn pete_records_provider_loss_and_resumes_in_the_same_play() {
         .content()
         .contains("COPPER KITE"));
     assert_eq!(requests.lock().unwrap().len(), 3);
+}
+
+#[test]
+fn pete_recalls_a_committed_checkpoint_in_a_replacement_play() {
+    use conduit_chat::{initial_episode_memory, EpisodeMemoryState};
+    use conduit_std_host::episode_checkpoint::EpisodeCheckpointResidence;
+    use conduit_std_host::{ExternalForeDelivery, ExternalForeOutputAdapter};
+
+    const RESUMABLE: &str = include_str!("../../../plots/pete-cognition-resumable/main.conduit");
+    struct DurableOutput<'a> {
+        journal: &'a EpisodeCheckpointResidence,
+        episodes: Vec<ExternalForeDelivery>,
+    }
+    impl ExternalForeOutputAdapter for DurableOutput<'_> {
+        fn deliver(&mut self, output: ExternalForeDelivery) -> Result<(), String> {
+            if output.front_port_id.as_str() == "checkpoints" {
+                self.journal.commit(&output.bytes)?;
+            } else {
+                self.episodes.push(output);
+            }
+            Ok(())
+        }
+    }
+    let directory =
+        std::env::temp_dir().join(format!("conduit-pete-checkpoint-{}", std::process::id()));
+    std::fs::create_dir(&directory).unwrap();
+    struct Cleanup(std::path::PathBuf);
+    impl Drop for Cleanup {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    let directory = Cleanup(directory);
+    let context = common::context();
+    let journal = EpisodeCheckpointResidence::open(&directory.0, &context).unwrap();
+    let (model, _) = common::fenced_model();
+    let empty = journal.recover_seed().unwrap();
+    assert_eq!(empty, initial_episode_memory());
+    let mut harness = pete_harness_for(model, RESUMABLE, "pete-cognition-resumable", Some(&empty));
+    let mut incoming = inputs(&[]);
+    incoming.push(frame_input(frame(
+        1,
+        "The hallway switch label is COPPER KITE.",
+        true,
+    )));
+    let mut collector = DurableOutput {
+        journal: &journal,
+        episodes: Vec::new(),
+    };
+    let first = run(
+        &mut harness,
+        &incoming,
+        &mut collector,
+        &RunControl::default(),
+    )
+    .unwrap();
+    assert_eq!(terminal(&first), &TerminalDisposition::Completed);
+    drop(collector);
+    drop(journal);
+
+    let journal = EpisodeCheckpointResidence::open(&directory.0, &context).unwrap();
+    let restored = journal.recover_seed().unwrap();
+    assert_eq!(
+        *EpisodeMemoryState::decode(&restored).unwrap().completed(),
+        1
+    );
+    let first_plan = harness.plan_id.clone();
+    let (model, _) = common::fenced_model();
+    let mut harness = pete_harness_for(
+        model,
+        RESUMABLE,
+        "pete-cognition-resumable",
+        Some(&restored),
+    );
+    let mut incoming = inputs(&[]);
+    incoming.push(frame_input(frame(
+        2,
+        "What was the hallway switch label?",
+        false,
+    )));
+    assert_ne!(first_plan, harness.plan_id);
+    let mut collector = DurableOutput {
+        journal: &journal,
+        episodes: Vec::new(),
+    };
+    let second = run(
+        &mut harness,
+        &incoming,
+        &mut collector,
+        &RunControl::default(),
+    )
+    .unwrap();
+    assert_eq!(terminal(&second), &TerminalDisposition::Completed);
+    let first_play = first.kernel.unwrap().active_play_id;
+    let second_play = second.kernel.unwrap().active_play_id;
+    assert_ne!(first_play, second_play);
+    let episodes = records(&collector.episodes);
+    assert_eq!(
+        *EpisodeMemoryState::decode(&journal.recover_seed().unwrap())
+            .unwrap()
+            .completed(),
+        2
+    );
+    assert_eq!(episodes.len(), 1);
+    let episode = &episodes[0];
+    assert_eq!(*episode.episode(), 2);
+    assert_eq!(*episode.recalled().get()[0].episode(), 1);
+    assert!(episode
+        .response()
+        .unwrap()
+        .content()
+        .contains("COPPER KITE"));
+    println!(
+        "CONDUIT_PLOT_EVIDENCE={{\"plan_id\":\"{}\",\"play_id\":\"{}\",\"workload_revision\":null}}",
+        harness.plan_id,
+        second_play.as_str()
+    );
 }

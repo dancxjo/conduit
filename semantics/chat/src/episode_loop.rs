@@ -18,8 +18,9 @@ mod episode_recall;
 use episode_prompt::prompt;
 
 use crate::{
-    EpisodeMemory, EpisodeMemoryState, EpisodeModelResponse, EpisodeObservation, EpisodeOutcome,
-    EpisodePending, EpisodeRecall, EpisodeRecord, EpisodeRefusal,
+    EpisodeMemory, EpisodeMemoryOwner, EpisodeMemoryState, EpisodeModelResponse,
+    EpisodeObservation, EpisodeOutcome, EpisodePending, EpisodeRecall, EpisodeRecord,
+    EpisodeRefusal,
 };
 
 pub const EPISODE_COMPOSE_KIND: &str = "body/episode-compose";
@@ -32,6 +33,7 @@ pub const EPISODE_PROMPT_SCHEMA: &str = "conduit.body/episode-prompt@1";
 pub const MAXIMUM_EPISODE_RECALL: usize = 4;
 pub const MAXIMUM_EPISODE_PROMPT_BYTES: usize = 4_096;
 pub const MAXIMUM_EPISODE_OBSERVATION_BYTES: usize = 1_024;
+pub const MAXIMUM_EPISODE_CHECKPOINT_BYTES: usize = 4096;
 pub const MAXIMUM_EPISODE_MEMORY_BYTES: usize = 8_192;
 pub const MAXIMUM_EPISODE_RECORD_BYTES: usize = 8_192;
 pub const MAXIMUM_EPISODE_RESULT_BYTES: usize =
@@ -52,7 +54,7 @@ struct EpisodeBody {
 pub struct EpisodeComposer {
     body: Option<EpisodeBody>,
     begun: u64,
-    staged: bool,
+    staged: Option<u64>,
     request: Vec<u8>,
     pending: Vec<u8>,
 }
@@ -68,7 +70,7 @@ impl EpisodeComposer {
         Self {
             body: None,
             begun: 0,
-            staged: false,
+            staged: None,
             request: Vec::with_capacity(MAXIMUM_EPISODE_PROMPT_BYTES),
             pending: Vec::with_capacity(MAXIMUM_EPISODE_RECORD_BYTES),
         }
@@ -110,13 +112,18 @@ impl EpisodeComposer {
         &self,
         encoded_memory: &[u8],
     ) -> Result<EpisodeMemoryState, EpisodeRefusal> {
-        if encoded_memory.len() > MAXIMUM_EPISODE_MEMORY_BYTES {
-            return Err(EpisodeRefusal::MemoryMalformed);
-        }
-        let memory = EpisodeMemoryState::decode(encoded_memory)
-            .map_err(|_| EpisodeRefusal::MemoryMalformed)?;
-        if *memory.completed() != self.begun {
+        let memory = decode_memory(encoded_memory)?;
+        if self.begun != 0 && *memory.completed() != self.begun {
             return Err(EpisodeRefusal::MemoryOutOfOrder);
+        }
+        if let EpisodeMemoryOwner::Bound(owner) = memory.owner() {
+            let body = self.body.as_ref().ok_or(EpisodeRefusal::ContextMissing)?;
+            if owner.body_id() != &body.body_id
+                || owner.wake_id() != &body.wake_id
+                || *owner.wake_sequence() != body.wake_sequence
+            {
+                return Err(EpisodeRefusal::ContextChangedIdentity);
+            }
         }
         Ok(memory)
     }
@@ -128,7 +135,7 @@ impl EpisodeComposer {
         encoded_observation: &[u8],
         encoded_memory: &[u8],
     ) -> Result<(), EpisodeRefusal> {
-        self.staged = false;
+        self.staged = None;
         if encoded_observation.len() > MAXIMUM_EPISODE_OBSERVATION_BYTES {
             return Err(EpisodeRefusal::ObservationMalformed);
         }
@@ -144,10 +151,13 @@ impl EpisodeComposer {
         encoded_memory: &[u8],
         selected_experience: Option<&[u8]>,
     ) -> Result<(), EpisodeRefusal> {
-        self.staged = false;
+        self.staged = None;
         let memory = self.check_memory(encoded_memory)?;
         let body = self.body.as_ref().ok_or(EpisodeRefusal::ContextMissing)?;
-        let episode = self.begun.checked_add(1).ok_or(EpisodeRefusal::Encoding)?;
+        let episode = memory
+            .completed()
+            .checked_add(1)
+            .ok_or(EpisodeRefusal::Encoding)?;
         if selected_experience.is_some_and(|evidence| evidence.len() > MAXIMUM_EPISODE_PROMPT_BYTES)
         {
             return Err(EpisodeRefusal::PromptBoundExceeded);
@@ -207,7 +217,7 @@ impl EpisodeComposer {
         self.request.extend_from_slice(&request);
         self.pending.clear();
         self.pending.extend_from_slice(&pending);
-        self.staged = true;
+        self.staged = Some(episode);
         Ok(())
     }
 
@@ -221,13 +231,13 @@ impl EpisodeComposer {
 
     /// Apply the staged episode after its outputs have been committed.
     pub fn commit(&mut self) {
-        if core::mem::take(&mut self.staged) {
-            self.begun += 1;
+        if let Some(episode) = self.staged.take() {
+            self.begun = episode;
         }
     }
 
     pub fn cancel(&mut self) {
-        self.staged = false;
+        self.staged = None;
     }
 }
 
@@ -296,6 +306,7 @@ pub struct EpisodeMemoryCell {
     state: EpisodeMemoryState,
     staged: Option<EpisodeMemoryState>,
     current: Vec<u8>,
+    maximum_bytes: usize,
 }
 
 impl EpisodeMemoryCell {
@@ -312,11 +323,24 @@ impl EpisodeMemoryCell {
             state,
             staged: None,
             current,
+            maximum_bytes: MAXIMUM_EPISODE_MEMORY_BYTES,
         })
     }
 
     pub fn current(&self) -> &[u8] {
         &self.current
+    }
+
+    pub fn from_checkpoint(encoded: &[u8]) -> Result<Self, EpisodeRefusal> {
+        let state = decode_episode_checkpoint(encoded)?;
+        let mut current = Vec::with_capacity(MAXIMUM_EPISODE_CHECKPOINT_BYTES);
+        current.extend_from_slice(encoded);
+        Ok(Self {
+            state,
+            staged: None,
+            current,
+            maximum_bytes: MAXIMUM_EPISODE_CHECKPOINT_BYTES,
+        })
     }
 
     /// Stage the next Current for the exact next completed episode.
@@ -330,7 +354,16 @@ impl EpisodeMemoryCell {
         if Some(*record.episode()) != self.state.completed().checked_add(1) {
             return Err(EpisodeRefusal::MemoryOutOfOrder);
         }
-        let mut memories = BoundedSequence::new();
+        let owner = EpisodeMemoryOwner::bound(
+            record.body_id().clone(),
+            record.wake_id().clone(),
+            *record.wake_sequence(),
+        )
+        .map_err(|_| EpisodeRefusal::MemoryMalformed)?;
+        if *self.state.completed() != 0 && self.state.owner() != &owner {
+            return Err(EpisodeRefusal::ContextChangedIdentity);
+        }
+        let mut memories = BoundedSequence::<_, MAXIMUM_EPISODE_RECALL>::new();
         let kept = self.state.memories().get().as_slice();
         let skip = usize::from(*record.retained() && kept.len() == MAXIMUM_EPISODE_RECALL);
         for memory in &kept[skip..] {
@@ -352,18 +385,12 @@ impl EpisodeMemoryCell {
                 .push(memory)
                 .map_err(|_| EpisodeRefusal::Encoding)?;
         }
-        let next = EpisodeMemoryState::new(
+        let (next, encoded) = fit_memory(
             *record.episode(),
-            EpisodeRecall::new(memories).map_err(|_| EpisodeRefusal::Encoding)?,
-        )
-        .map_err(|_| EpisodeRefusal::Encoding)?;
-        let encoded = next
-            .clone()
-            .encode()
-            .map_err(|_| EpisodeRefusal::Encoding)?;
-        if encoded.len() > MAXIMUM_EPISODE_MEMORY_BYTES {
-            return Err(EpisodeRefusal::Encoding);
-        }
+            &owner,
+            memories.as_slice(),
+            self.maximum_bytes,
+        )?;
         self.current.clear();
         self.current.extend_from_slice(&encoded);
         self.staged = Some(next);
@@ -381,10 +408,60 @@ impl EpisodeMemoryCell {
     }
 }
 
+fn fit_memory(
+    completed: u64,
+    owner: &EpisodeMemoryOwner,
+    memories: &[EpisodeMemory],
+    maximum_bytes: usize,
+) -> Result<(EpisodeMemoryState, Vec<u8>), EpisodeRefusal> {
+    for skipped in 0..=memories.len() {
+        let kept = BoundedSequence::try_from_iter(memories[skipped..].iter().cloned())
+            .map_err(|_| EpisodeRefusal::Encoding)?;
+        let next = EpisodeMemoryState::new(
+            completed,
+            EpisodeRecall::new(kept).map_err(|_| EpisodeRefusal::Encoding)?,
+            owner.clone(),
+        )
+        .map_err(|_| EpisodeRefusal::Encoding)?;
+        let encoded = next
+            .clone()
+            .encode()
+            .map_err(|_| EpisodeRefusal::Encoding)?;
+        if encoded.len() <= maximum_bytes {
+            return Ok((next, encoded));
+        }
+    }
+    Err(EpisodeRefusal::Encoding)
+}
+
+pub fn decode_episode_checkpoint(bytes: &[u8]) -> Result<EpisodeMemoryState, EpisodeRefusal> {
+    if bytes.len() > MAXIMUM_EPISODE_CHECKPOINT_BYTES {
+        return Err(EpisodeRefusal::MemoryMalformed);
+    }
+    decode_memory(bytes)
+}
+
+fn decode_memory(bytes: &[u8]) -> Result<EpisodeMemoryState, EpisodeRefusal> {
+    if bytes.len() > MAXIMUM_EPISODE_MEMORY_BYTES {
+        return Err(EpisodeRefusal::MemoryMalformed);
+    }
+    let memory = EpisodeMemoryState::decode(bytes).map_err(|_| EpisodeRefusal::MemoryMalformed)?;
+    let mut previous = 0;
+    for item in memory.memories().get() {
+        let episode = *item.episode();
+        if episode <= previous || episode > *memory.completed() {
+            return Err(EpisodeRefusal::MemoryMalformed);
+        }
+        previous = episode;
+    }
+    Ok(memory)
+}
+
 fn empty_memory() -> Result<EpisodeMemoryState, EpisodeRefusal> {
     EpisodeMemoryState::new(
         0,
         EpisodeRecall::new(BoundedSequence::new()).map_err(|_| EpisodeRefusal::Encoding)?,
+        EpisodeMemoryOwner::Unbound,
     )
     .map_err(|_| EpisodeRefusal::Encoding)
 }

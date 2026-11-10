@@ -130,6 +130,18 @@ impl FileDurableStateResidence {
         Ok((RecoveryDisposition::Recovered { generation }, response))
     }
 
+    /// Recover the committed value with the same validated generation and digest.
+    pub fn recover_value(
+        &self,
+    ) -> Result<(RecoveryDisposition, Option<Vec<u8>>), DurableStateRefusal> {
+        let (disposition, mut encoded) = self.recover()?;
+        let value = match disposition {
+            RecoveryDisposition::Absent => None,
+            RecoveryDisposition::Recovered { .. } => Some(encoded.split_off(RECOVERY_HEADER_BYTES)),
+        };
+        Ok((disposition, value))
+    }
+
     /// Synchronize and publish one exact next generation.
     pub fn commit(&self, generation: u64, value: &[u8]) -> Result<[u8; 41], DurableStateRefusal> {
         if value.len() > self.binding.maximum_value_bytes as usize {

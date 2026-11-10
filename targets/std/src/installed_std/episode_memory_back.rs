@@ -18,6 +18,12 @@ pub(super) static MEMORY_FACTORY: BackFactory = BackFactory {
     prepare,
 };
 
+pub(super) static RESUMABLE_MEMORY_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::EPISODE_RESUMABLE_MEMORY_IMPLEMENTATION,
+    budget: resume_budget,
+    prepare: prepare_resume,
+};
+
 const UPDATE: PortId = PortId(0);
 const CURRENT: PortId = PortId(0);
 
@@ -92,13 +98,24 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeMemoryBack {
 
 fn budget(gear: &PlannedGear) -> Result<BackBudget, String> {
     exact_pure_gear(gear, &conduit_std_offers::episode_memory_offer())?;
-    Ok(BackBudget {
-        value_items: 1,
-        value_bytes: MAXIMUM_EPISODE_MEMORY_BYTES as u32,
+    Ok(memory_budget(1))
+}
+
+fn resume_budget(gear: &PlannedGear) -> Result<BackBudget, String> {
+    let offer = conduit_std_offers::episode_resumable_memory_offer(initial_checkpoint(gear)?)
+        .map_err(|error| format!("episode checkpoint: {error:?}"))?;
+    exact_pure_gear(gear, &offer)?;
+    Ok(memory_budget(1))
+}
+
+fn memory_budget(items: u16) -> BackBudget {
+    BackBudget {
+        value_items: items,
+        value_bytes: u32::from(items) * MAXIMUM_EPISODE_MEMORY_BYTES as u32,
         maximum_value_bytes: MAXIMUM_EPISODE_MEMORY_BYTES as u32,
         host_requests: 0,
         sign_items: 16,
-    })
+    }
 }
 
 fn prepare(
@@ -106,7 +123,30 @@ fn prepare(
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     budget(gear)?;
-    let cell = EpisodeMemoryCell::new().map_err(|_| "empty episode memory is unencodable")?;
+    memory_back(EpisodeMemoryCell::new())
+}
+
+fn prepare_resume(
+    gear: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    resume_budget(gear)?;
+    memory_back(EpisodeMemoryCell::from_checkpoint(initial_checkpoint(
+        gear,
+    )?))
+}
+
+fn initial_checkpoint(gear: &PlannedGear) -> Result<&[u8], String> {
+    conduit_core::initialized_state_boundary(&gear.inputs, &gear.outputs, &gear.semantic_contract)
+        .map_err(str::to_owned)?
+        .map(|law| law.initial.as_slice())
+        .ok_or_else(|| "missing exact episode checkpoint initializer".into())
+}
+
+fn memory_back(
+    cell: Result<EpisodeMemoryCell, conduit_chat::EpisodeRefusal>,
+) -> Result<InstalledBack, String> {
+    let cell = cell.map_err(|error| format!("initial episode memory: {error:?}"))?;
     Ok(InstalledBack::EpisodeMemory(EpisodeMemoryBack {
         cell,
         initial_sent: false,

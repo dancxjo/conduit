@@ -53,3 +53,15 @@ pub fn episode_memory_offer() -> CapabilityOffer {
         EPISODE_MEMORY_IMPLEMENTATION,
     )
 }
+
+pub const EPISODE_RESUMABLE_MEMORY_IMPLEMENTATION: &str = "std/body-episode-memory-resume@1";
+
+pub fn episode_resumable_memory_offer(
+    initial: &[u8],
+) -> Result<CapabilityOffer, conduit_chat::EpisodeRefusal> {
+    Ok(pure_offer(
+        conduit_chat::episode_resumable_memory_contract(initial)?,
+        "body-episode-memory-resume",
+        EPISODE_RESUMABLE_MEMORY_IMPLEMENTATION,
+    ))
+}

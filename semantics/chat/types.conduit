@@ -261,9 +261,19 @@ type EpisodeRecall = sequence EpisodeMemory <= 4
 
 # The explicit memory cell's Current: how many episodes have completed and the
 # bounded selected memories retained from them.
+type EpisodeMemoryOwner =
+    unbound
+    | bound {
+        body_id: Text <= 256B not in [""]
+        wake_id: Text <= 256B not in [""]
+        wake_sequence: U64
+    }
+
 type EpisodeMemoryState = {
     completed: U64
     memories: EpisodeRecall
+    owner: EpisodeMemoryOwner
+    where (.completed == 0) == (.owner is unbound)
 }
 
 # One begun episode awaiting its model response. Body and Wake identity come

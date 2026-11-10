@@ -123,6 +123,11 @@ pub(super) fn catalogs(
     conduit_tongues::install_house_conversation_plot_catalog(&mut startup, &mut profile)?;
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
     conduit_chat::install_episode_loop_catalog(&mut startup, &mut profile)?;
+    conduit_chat::install_episode_resumable_memory_catalog(
+        &conduit_chat::initial_episode_memory(),
+        &mut startup,
+        &mut profile,
+    )?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profile)?;
