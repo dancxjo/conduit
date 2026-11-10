@@ -5,6 +5,11 @@ and reference instant with explicit source signs. The Pete Situation Gear
 selects the Situation and constructs the bounded Experience input for the
 episode composer. The model and memory cell run in the same ordinary Play.
 
+Situation selection also feeds fresh battery and safety readings through Pete's
+homeostasis reducer. The result is labeled as deterministic derived evidence,
+with the exact input signs and policy identity. Stale readings remain visible
+as observations and leave current energy or motion unknown.
+
 The composer retrieves from the four retained episodes using distinct shared
 ASCII words of at least four characters, with a small common-word filter.
 It searches retained observations. It includes the selected responses as

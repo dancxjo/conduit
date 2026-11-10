@@ -334,6 +334,7 @@ impl CurrentExperience {
                 item.origin,
                 ExperienceOrigin::Observation
                     | ExperienceOrigin::HumanReported
+                    | ExperienceOrigin::DeterministicDerived
                     | ExperienceOrigin::ModelDerived
             )
         {

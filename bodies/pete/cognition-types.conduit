@@ -3,6 +3,7 @@ type PeteCognitionBattery = {
     sign: PeteCognitionSign
     observed_at: TemporalInstant
     charge_permille: U16 in 0..=1000
+    charging: Boolean
     millivolts: U16
 }
 type PeteCognitionUtterance = {

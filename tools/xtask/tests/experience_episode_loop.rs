@@ -104,7 +104,7 @@ fn frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFrame {
     let now = at(100 * revision);
     let sign = |kind| PeteCognitionSign::new(format!("{kind}/{revision}")).unwrap();
     PeteCognitionFrame::new(
-        PeteCognitionBattery::new(670, 13_000, now.clone(), sign("battery")).unwrap(),
+        PeteCognitionBattery::new(90, false, 13_000, now.clone(), sign("battery")).unwrap(),
         PeteCognitionSafety::new(false, now.clone(), true, sign("body")).unwrap(),
         "pete/wake/2".into(),
         now.clone(),
@@ -240,6 +240,29 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
     assert_eq!(selected["evidence"][2]["identity"], "pete/body/body/2");
     assert_eq!(selected["evidence"][2]["observed_at"]["ticks"], 200);
     assert_eq!(second["recalled"][0]["response"]["origin"], "model_derived");
+    let derived = &selected["evidence"][3];
+    assert_eq!(derived["identity"], "pete/homeostasis");
+    assert_eq!(
+        derived["classifications"]["origin"],
+        "deterministic_derived"
+    );
+    assert_eq!(
+        derived["sources"],
+        serde_json::json!([
+            {"sign": "battery/2"}, {"sign": "body/2"}
+        ])
+    );
+    let homeostasis: serde_json::Value =
+        serde_json::from_str(derived["utf8_content"].as_str().unwrap()).unwrap();
+    assert_eq!(homeostasis["energy"], "critical");
+    assert_eq!(homeostasis["motion"], "inhibited");
+    assert_eq!(homeostasis["thermal"], "unknown");
+    assert_eq!(homeostasis["charging"], false);
+    assert_eq!(homeostasis["charge_percent"], "9.0%");
+    assert!(homeostasis["policy_identity"]
+        .as_str()
+        .unwrap()
+        .starts_with("sha256:"));
     let kernel = report.kernel.unwrap();
     println!(
         "CONDUIT_PLOT_EVIDENCE={{\"plan_id\":\"{}\",\"play_id\":\"{}\",\"workload_revision\":null}}",
@@ -517,4 +540,33 @@ fn pete_recalls_a_committed_checkpoint_in_a_replacement_play() {
         harness.plan_id,
         second_play.as_str()
     );
+}
+
+#[test]
+fn stale_battery_and_safety_do_not_become_current_homeostatic_facts() {
+    let frame = frame(1, "What is the current body state?", false);
+    let later = PeteCognitionFrame::new(
+        frame.battery().clone(),
+        frame.body().clone(),
+        frame.provenance_revision().clone(),
+        at(200),
+        *frame.revision(),
+        *frame.temporal_policy(),
+        frame.utterance().clone(),
+    )
+    .unwrap();
+    let episode = conduit_pete::situate_pete_frame(&later).unwrap();
+    let evidence = episode.evidence().evidence().get();
+    assert_eq!(
+        *evidence[0].temporal_role(),
+        conduit_human::ExperienceTemporalRole::Stale
+    );
+    let homeostasis = &evidence[3];
+    assert!(homeostasis.sources().get().is_empty());
+    let content: serde_json::Value =
+        serde_json::from_slice(homeostasis.encoded_content().get().as_slice()).unwrap();
+    assert_eq!(content["energy"], "unknown");
+    assert_eq!(content["motion"], "unknown");
+    assert!(content["charging"].is_null());
+    assert!(content["charge_percent"].is_null());
 }

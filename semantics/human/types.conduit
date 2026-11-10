@@ -152,6 +152,7 @@ type ExperienceDomain =
 type ExperienceOrigin =
     observation
     | human_reported
+    | deterministic_derived
     | remembered
     | model_derived
     | imagined

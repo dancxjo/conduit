@@ -31,6 +31,7 @@ pub enum PeteCognitionRefusal {
     Situation,
     Experience,
     Evidence,
+    Homeostasis,
 }
 
 pub fn situate_pete_frame(
@@ -44,32 +45,44 @@ pub fn situate_pete_frame(
     let body = frame.body();
     let utterance = frame.utterance();
     let policy = *frame.temporal_policy();
+    let battery_observation = Observed {
+        value: BatteryObservation::new(*battery.charge_permille(), *battery.millivolts())
+            .map_err(|_| R::InvalidObservation)?,
+        sign_id: battery.sign().get().as_str().into(),
+        observed_at: instant(battery.observed_at())?,
+    };
+    let safety_observation = Observed {
+        value: PeteBodyState {
+            motion_available: *body.motion_available(),
+            safety_inhibited: *body.safety_inhibited(),
+        },
+        sign_id: body.sign().get().as_str().into(),
+        observed_at: instant(body.observed_at())?,
+    };
     let situation = select_pete_situation(
         instant(frame.reference())?,
         *policy.maximum_current_age_ticks(),
-        SituationInput::Observed(Observed {
-            value: BatteryObservation::new(*battery.charge_permille(), *battery.millivolts())
-                .map_err(|_| R::InvalidObservation)?,
-            sign_id: battery.sign().get().as_str().into(),
-            observed_at: instant(battery.observed_at())?,
-        }),
+        SituationInput::Observed(battery_observation.clone()),
         SituationInput::Observed(Observed {
             value: utterance.content().clone(),
             sign_id: utterance.sign().get().as_str().into(),
             observed_at: instant(utterance.observed_at())?,
         }),
-        SituationInput::Observed(Observed {
-            value: PeteBodyState {
-                motion_available: *body.motion_available(),
-                safety_inhibited: *body.safety_inhibited(),
-            },
-            sign_id: body.sign().get().as_str().into(),
-            observed_at: instant(body.observed_at())?,
-        }),
+        SituationInput::Observed(safety_observation.clone()),
     )
     .map_err(|_| R::Situation)?;
-    let experience =
+    let mut experience =
         integrate_pete_experience(&situation, policy, &[]).map_err(|_| R::Experience)?;
+    let homeostasis = super::cognition_homeostasis::homeostatic_evidence(
+        &situation,
+        &battery_observation,
+        *battery.charging(),
+        policy,
+        &safety_observation,
+    )?;
+    experience
+        .try_admit(homeostasis)
+        .map_err(|_| R::Experience)?;
     let evidence = project_pete_experience_evidence(
         &experience,
         *frame.revision(),
@@ -97,6 +110,7 @@ pub fn situate_pete_frame_bytes(bytes: &[u8]) -> Result<Vec<u8>, u16> {
         PeteCognitionRefusal::Situation => 3,
         PeteCognitionRefusal::Experience => 4,
         PeteCognitionRefusal::Evidence => 5,
+        PeteCognitionRefusal::Homeostasis => 6,
     })?;
     episode.encode().map_err(|_| 5)
 }

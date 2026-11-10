@@ -6,6 +6,10 @@ the Body and Wake checkpoint journal. The existing scheduler emits the initial
 memory and advances it on each completed episode. The checkpoint Fore lets
 the host persist each committed state using the synchronized file residence.
 
+Each frame carries battery charge and charging state. The Situation Gear uses
+the reviewed homeostasis policy to add derived energy and safety context while
+preserving the raw observations.
+
 The checkpoint holds the completed episode count and at most four selected
 observations and responses, within 4 KiB. Oldest entries are evicted as needed
 to fit. Recovery checks the owner and count before any recalled history can enter

@@ -1,6 +1,7 @@
 //! Ordinary Conduit realizations for Pete's Create hardware.
 
 mod cognition;
+mod cognition_homeostasis;
 pub use cognition::*;
 
 mod create_dock;
