@@ -17,6 +17,14 @@ pub fn project_pete_experience_evidence(
         return Err(R::ItemBound);
     }
     let provenance = identity(provenance_revision)?;
+    let instant = |value: Option<&conduit_core::TemporalInstant>| match value {
+        Some(value) => ExperienceEvidenceInstant::known(
+            conduit_time::NativeTemporalInstant::try_from(value.clone())
+                .map_err(|_| R::Malformed)?,
+        )
+        .map_err(|_| R::Malformed),
+        None => Ok(ExperienceEvidenceInstant::Unknown),
+    };
     let mut evidence = Vec::with_capacity(experience.items().len());
     let mut identities = Vec::with_capacity(experience.items().len());
     for item in experience.items() {
@@ -67,8 +75,10 @@ pub fn project_pete_experience_evidence(
                 )
                 .map_err(|_| R::ByteBound)?,
                 id,
+                instant(item.observed_at.as_ref())?,
                 item.origin,
                 provenance.clone(),
+                instant(item.recorded_at.as_ref())?,
                 revision,
                 ExperienceEvidenceSources::new(
                     BoundedSequence::try_from_iter(sources).map_err(|_| R::SourceBound)?,

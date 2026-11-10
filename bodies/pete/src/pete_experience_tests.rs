@@ -109,6 +109,18 @@ fn situation_adapter_preserves_stale_and_conflicting_sources() {
         ExperienceTemporalRole::Stale
     );
     assert_eq!(*context.selection().revision(), 7);
+    assert_eq!(context.items().get()[1].observed_at(), &known_at(195));
+    assert_eq!(
+        context.items().get()[3].observed_at(),
+        &ExperienceEvidenceInstant::Unknown
+    );
+}
+
+fn known_at(ticks: u64) -> ExperienceEvidenceInstant {
+    ExperienceEvidenceInstant::known(
+        conduit_time::NativeTemporalInstant::try_from(at(ticks)).unwrap(),
+    )
+    .unwrap()
 }
 
 #[test]
@@ -141,13 +153,23 @@ fn explicit_projection_keeps_memory_separate_from_present_observation() {
     );
     let current = experience(items);
     let request = project_pete_experience_evidence(&current, 2, "provenance/2").unwrap();
-    let evidence = request.evidence().get();
+    let encoded = request.encode().unwrap();
+    let mut projection = conduit_semantic_catalog::BoundedExperienceEvidenceProjection::prepare();
+    let context = ExperienceEvidenceContext::decode(projection.execute(&encoded).unwrap()).unwrap();
+    let evidence = context.items().get();
     assert_eq!(*evidence[0].origin(), ExperienceOrigin::HumanReported);
     assert_eq!(*evidence[1].origin(), ExperienceOrigin::Remembered);
     assert_eq!(
         *evidence[1].temporal_role(),
         ExperienceTemporalRole::Historical
     );
+    assert_eq!(evidence[0].observed_at(), &known_at(195));
+    assert_eq!(
+        evidence[0].recorded_at(),
+        &ExperienceEvidenceInstant::Unknown
+    );
+    assert_eq!(evidence[1].observed_at(), &known_at(100));
+    assert_eq!(evidence[1].recorded_at(), &known_at(110));
     assert_eq!(evidence[1].sources().get().len(), 2);
     assert!(matches!(
         project_pete_experience_evidence(&current, 2, ""),

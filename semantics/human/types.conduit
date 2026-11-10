@@ -300,6 +300,11 @@ type ExperienceEvidenceSource =
     }
 
 type ExperienceEvidenceSources = sequence ExperienceEvidenceSource <= 4
+type ExperienceEvidenceInstant =
+    unknown
+    | known {
+        instant: TemporalInstant
+    }
 type ExperienceEvidenceItem = {
     identity: ExperienceEvidenceIdentity
     revision: U64
@@ -312,6 +317,8 @@ type ExperienceEvidenceItem = {
     availability: ExperienceAvailability
     certainty: ExperienceCertainty
     sources: ExperienceEvidenceSources
+    observed_at: ExperienceEvidenceInstant
+    recorded_at: ExperienceEvidenceInstant
 }
 
 type ExperienceEvidenceItems = sequence ExperienceEvidenceItem <= 8

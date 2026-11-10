@@ -33,8 +33,10 @@ pub fn item(
         ExperienceDomain::HumanUtterance,
         ExperienceEvidenceContent::new(BoundedBytes::new(content).unwrap()).unwrap(),
         identity(id),
+        ExperienceEvidenceInstant::Unknown,
         origin,
         identity(provenance),
+        ExperienceEvidenceInstant::Unknown,
         revision,
         ExperienceEvidenceSources::new(
             BoundedSequence::try_from_iter(vec![ExperienceEvidenceSource::source(identity(
@@ -72,8 +74,10 @@ pub fn with_sources(
         *item.domain(),
         item.encoded_content().clone(),
         item.identity().clone(),
+        item.observed_at().clone(),
         *item.origin(),
         item.provenance_revision().clone(),
+        item.recorded_at().clone(),
         *item.revision(),
         ExperienceEvidenceSources::new(BoundedSequence::try_from_iter(sources).unwrap()).unwrap(),
         *item.temporal_role(),

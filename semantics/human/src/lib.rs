@@ -54,6 +54,7 @@ mod generated {
         }
     }
 }
+pub use generated::ExperienceEvidenceInstant;
 pub use generated::{
     ChordInfo, ChordPhase, ChordPhaseForm, ControlChordModifier, CoreChordId, CoreChordIdForm,
     CurrentExperienceInspectionError, CurrentExperienceProjection, ExperienceAvailability,
