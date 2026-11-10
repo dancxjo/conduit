@@ -13,5 +13,6 @@ pub(super) fn append(
 ) {
     if composition.experience_evidence {
         offers.push(conduit_std_offers::experience_evidence_offer());
+        offers.push(conduit_std_offers::experience_model_request_offer());
     }
 }

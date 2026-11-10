@@ -7,6 +7,7 @@ use conduit_kernel::{
 };
 use conduit_semantic_catalog::{
     BoundedExperienceEvidenceProjection, EXPERIENCE_EVIDENCE_MAX_BYTES,
+    EXPERIENCE_MODEL_REQUEST_MAX_BYTES,
 };
 
 pub(super) static FACTORY: BackFactory = BackFactory {
@@ -15,7 +16,15 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     prepare,
 };
 
+pub(super) static MODEL_REQUEST_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::EXPERIENCE_MODEL_REQUEST_IMPLEMENTATION,
+    budget: model_budget,
+    prepare: prepare_model,
+};
+
 pub(super) struct ExperienceEvidenceBack {
+    model_request: Option<Box<[u8; EXPERIENCE_MODEL_REQUEST_MAX_BYTES]>>,
+    model_request_len: usize,
     projection: BoundedExperienceEvidenceProjection,
     staged: bool,
     complete: bool,
@@ -24,6 +33,8 @@ pub(super) struct ExperienceEvidenceBack {
 impl ExperienceEvidenceBack {
     pub(super) fn new() -> Self {
         Self {
+            model_request: None,
+            model_request_len: 0,
             projection: BoundedExperienceEvidenceProjection::prepare(),
             staged: false,
             complete: false,
@@ -34,6 +45,19 @@ impl ExperienceEvidenceBack {
 impl<const PORTS: usize> StepBack<PORTS> for ExperienceEvidenceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, bytes: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.complete {
+            return StepOutcome::Complete;
+        }
+        if self.model_request.is_some()
+            && io.input(PortId(0)).is_none()
+            && io.input_closed(PortId(0))
+        {
+            if io.consume_closed(PortId(0)).is_err() {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidLifecycle,
+                    detail: 0,
+                });
+            }
+            self.complete = true;
             return StepOutcome::Complete;
         }
         // Do not consume a request or perform work while downstream is pressured.
@@ -52,9 +76,27 @@ impl<const PORTS: usize> StepBack<PORTS> for ExperienceEvidenceBack {
                 })
             }
         };
-        if io.consume(PortId(0)).is_err()
-            || io.send_prepared(PortId(0), output.len() as u32).is_err()
-        {
+        let length = match self.model_request.as_mut() {
+            Some(buffer) => {
+                match super::experience_model_request::render(output, buffer.as_mut()) {
+                    Ok(length) => {
+                        self.model_request_len = length;
+                        length
+                    }
+                    Err(refusal) => {
+                        return StepOutcome::Fail(Failure {
+                            code: FailureCode::InvalidInput,
+                            detail: refusal_detail(refusal),
+                        })
+                    }
+                }
+            }
+            None => output.len(),
+        };
+        if !io.output_ready_for(PortId(0), length as u32) {
+            return StepOutcome::Await;
+        }
+        if io.consume(PortId(0)).is_err() || io.send_prepared(PortId(0), length as u32).is_err() {
             return StepOutcome::Fail(Failure {
                 code: FailureCode::WorkBudgetExhausted,
                 detail: 0,
@@ -65,13 +107,16 @@ impl<const PORTS: usize> StepBack<PORTS> for ExperienceEvidenceBack {
     }
 
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (self.staged && port == PortId(0)).then(|| self.projection.output())
+        (self.staged && port == PortId(0)).then(|| match &self.model_request {
+            Some(buffer) => &buffer[..self.model_request_len],
+            None => self.projection.output(),
+        })
     }
 
     fn step_committed(&mut self) {
         if self.staged {
             self.staged = false;
-            self.complete = true;
+            self.complete = self.model_request.is_none();
         }
     }
 
@@ -104,7 +149,17 @@ fn refusal_detail(refusal: conduit_human::ExperienceEvidenceRefusal) -> u16 {
 }
 
 fn budget(gear: &PlannedGear) -> Result<BackBudget, String> {
-    let expected = conduit_std_offers::experience_evidence_offer();
+    exact_budget(gear, conduit_std_offers::experience_evidence_offer())
+}
+
+fn model_budget(gear: &PlannedGear) -> Result<BackBudget, String> {
+    exact_budget(gear, conduit_std_offers::experience_model_request_offer())
+}
+
+fn exact_budget(
+    gear: &PlannedGear,
+    expected: conduit_core::CapabilityOffer,
+) -> Result<BackBudget, String> {
     if gear.kind_id != expected.kind_id
         || gear.kind_contract_revision != expected.kind_contract_revision
         || gear.capability_id != expected.capability_id
@@ -144,4 +199,14 @@ fn prepare(
     Ok(InstalledBack::ExperienceEvidence(
         ExperienceEvidenceBack::new(),
     ))
+}
+
+fn prepare_model(
+    gear: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    model_budget(gear)?;
+    let mut back = ExperienceEvidenceBack::new();
+    back.model_request = Some(Box::new([0; EXPERIENCE_MODEL_REQUEST_MAX_BYTES]));
+    Ok(InstalledBack::ExperienceEvidence(back))
 }

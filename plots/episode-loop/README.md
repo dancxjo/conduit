@@ -37,8 +37,9 @@ execution, or selected autobiographical RAG. The explicit evidence projection
 preserves observed and recorded instants when available, including clock basis,
 resolution, and uncertainty. Pete's preparation adapter admits Situation facts,
 their explicit relationships, and caller-selected autobiography records into
-one bounded CurrentExperience revision. The episode model request still needs
-a Cord from that projection. Current provider failure terminates
+one bounded CurrentExperience revision. The [Experience Response
+Plot](../experience-response/README.md) can send selected evidence to a bounded
+model in a Flow. The episode loop still needs to consume that evidence. Current provider failure terminates
 the dependent Play rather than proving continuing deterministic attention in the
 same Body. Three cognitive cadences, provider-return replanning, bounded
 allocation-free Play implementation, and complete Patchbay causal proof remain

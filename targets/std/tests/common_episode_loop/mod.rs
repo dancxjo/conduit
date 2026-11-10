@@ -62,13 +62,17 @@ impl HostedLocalModelAdapter for FencedFakeEpisodeModel {
             }
         }
         let prompt: serde_json::Value = serde_json::from_slice(input).unwrap();
-        let now = prompt["observation"]["content"].as_str().unwrap();
-        let answer = match prompt["recalled"].as_array().unwrap().last() {
-            None => format!("No memory yet; I notice: {now}"),
-            Some(memory) => format!(
-                "I recall {} and now notice: {now}",
-                memory["observation"]["content"].as_str().unwrap()
-            ),
+        let answer = if let Some(evidence) = prompt["evidence"].as_array() {
+            format!("{} selected evidence items", evidence.len())
+        } else {
+            let now = prompt["observation"]["content"].as_str().unwrap();
+            match prompt["recalled"].as_array().unwrap().last() {
+                None => format!("No memory yet; I notice: {now}"),
+                Some(memory) => format!(
+                    "I recall {} and now notice: {now}",
+                    memory["observation"]["content"].as_str().unwrap()
+                ),
+            }
         };
         let contract = conduit_ai::llm_contract(placement.kind_id.as_str()).unwrap();
         let payload = answer.into_bytes();
@@ -183,13 +187,61 @@ pub fn harness(terminal_on_call: Option<(usize, LocalModelAdapterTerminal)>) -> 
 }
 
 pub fn harness_with_model(model: Box<dyn HostedLocalModelAdapter>) -> Harness {
+    plan_with_model(
+        model,
+        PROGRAM,
+        "episode-loop",
+        &[
+            ("context", PortDirection::Input),
+            ("observations", PortDirection::Input),
+            ("episodes", PortDirection::Output),
+        ],
+        StdHostComposition::minimal(),
+    )
+}
+
+pub fn evidence_harness(program: &str) -> Harness {
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let model = FencedFakeEpisodeModel {
+        offer: offer(),
+        requests: requests.clone(),
+        terminal_on_call: None,
+    };
+    let mut harness = evidence_harness_with_model(program, Box::new(model));
+    harness.requests = requests;
+    harness
+}
+
+pub fn evidence_harness_with_model(
+    program: &str,
+    model: Box<dyn HostedLocalModelAdapter>,
+) -> Harness {
+    plan_with_model(
+        model,
+        program,
+        "experience-response",
+        &[
+            ("evidence", PortDirection::Input),
+            ("responses", PortDirection::Output),
+        ],
+        StdHostComposition::minimal().with_experience_evidence(),
+    )
+}
+
+fn plan_with_model(
+    model: Box<dyn HostedLocalModelAdapter>,
+    program: &str,
+    entry: &str,
+    fore: &[(&str, PortDirection)],
+    composition: StdHostComposition,
+) -> Harness {
     let host = StdHost::new_with_local_model(
         StdHostConfig {
             host_id: HostId::from("host/episode-loop"),
             boot_id: BootId::from("boot/episode-loop"),
             offer_generation: OfferGeneration(1),
         },
-        StdHostComposition::minimal(),
+        composition,
         model,
     )
     .unwrap();
@@ -198,34 +250,38 @@ pub fn harness_with_model(model: Box<dyn HostedLocalModelAdapter>) -> Harness {
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile).unwrap();
     conduit_chat::install_episode_loop_catalog(&mut startup, &mut profile).unwrap();
-    let syntax = parse_syntax_document(PROGRAM);
-    assert_eq!(syntax.round_trip(), PROGRAM);
+    if composition.experience_evidence {
+        conduit_semantic_catalog::install_experience_evidence_catalogs(&mut startup, &mut profile)
+            .unwrap();
+    }
+    let syntax = parse_syntax_document(program);
+    assert_eq!(syntax.round_trip(), program);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
-    let authoring =
-        expand_canonical_plot_for_authoring(&checked, "episode-loop", &profile).unwrap();
+    let authoring = expand_canonical_plot_for_authoring(&checked, entry, &profile).unwrap();
     let hosts = [host.advertisement().clone()];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
-    let boundaries = [
-        ("context", PortDirection::Input),
-        ("observations", PortDirection::Input),
-        ("episodes", PortDirection::Output),
-    ]
-    .into_iter()
-    .map(|(name, direction)| {
-        (
-            ForeBoundaryKey {
-                direction,
-                front_port_id: conduit_core::port_id(name),
-                track: ConnectionTrack::Payload,
-            },
-            // One queued item per Fore: later observations wait upstream.
-            ConnectionQueueLimits {
-                item_capacity: 1,
-                byte_capacity: 32_768,
-            },
-        )
-    })
-    .collect();
+    let boundaries = fore
+        .iter()
+        .copied()
+        .map(|(name, direction)| {
+            (
+                ForeBoundaryKey {
+                    direction,
+                    front_port_id: conduit_core::port_id(name),
+                    track: ConnectionTrack::Payload,
+                },
+                // One queued item per Fore: later observations wait upstream.
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: match name {
+                        "evidence" => 65_536,
+                        "responses" => 2_560,
+                        _ => 32_768,
+                    },
+                },
+            )
+        })
+        .collect();
     let plan = plan_expanded_authoring_with_options(
         &authoring,
         &hosts,
@@ -245,24 +301,38 @@ pub fn harness_with_model(model: Box<dyn HostedLocalModelAdapter>) -> Harness {
     .unwrap();
     assert_eq!(plan.fragments.len(), 1);
     let fragment = plan.fragments[0].clone();
-    for (kind, implementation) in [
-        (
-            conduit_chat::EPISODE_COMPOSE_KIND,
-            conduit_std_offers::EPISODE_COMPOSE_IMPLEMENTATION,
-        ),
-        (
-            conduit_chat::EPISODE_RETAIN_KIND,
-            conduit_std_offers::EPISODE_RETAIN_IMPLEMENTATION,
-        ),
-        (
-            conduit_chat::EPISODE_MEMORY_KIND,
-            conduit_std_offers::EPISODE_MEMORY_IMPLEMENTATION,
-        ),
-        (
-            conduit_ai::LLM_GENERATE_FLOW_KIND,
-            conduit_ai::LOCAL_MODEL_IMPLEMENTATION,
-        ),
-    ] {
+    let expected: &[(&str, &str)] = if composition.experience_evidence {
+        &[
+            (
+                conduit_semantic_catalog::EXPERIENCE_MODEL_REQUEST_KIND,
+                conduit_std_offers::EXPERIENCE_MODEL_REQUEST_IMPLEMENTATION,
+            ),
+            (
+                conduit_ai::LLM_GENERATE_FLOW_KIND,
+                conduit_ai::LOCAL_MODEL_IMPLEMENTATION,
+            ),
+        ]
+    } else {
+        &[
+            (
+                conduit_chat::EPISODE_COMPOSE_KIND,
+                conduit_std_offers::EPISODE_COMPOSE_IMPLEMENTATION,
+            ),
+            (
+                conduit_chat::EPISODE_RETAIN_KIND,
+                conduit_std_offers::EPISODE_RETAIN_IMPLEMENTATION,
+            ),
+            (
+                conduit_chat::EPISODE_MEMORY_KIND,
+                conduit_std_offers::EPISODE_MEMORY_IMPLEMENTATION,
+            ),
+            (
+                conduit_ai::LLM_GENERATE_FLOW_KIND,
+                conduit_ai::LOCAL_MODEL_IMPLEMENTATION,
+            ),
+        ]
+    };
+    for &(kind, implementation) in expected {
         let placement = fragment
             .placements
             .iter()
