@@ -396,6 +396,7 @@ pub struct StdKernelExecutionReport {
     pub logical_invocations: u64,
     pub kernel_events: u16,
     pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
+    pub debug_history: Option<conduit_kernel::debug_observation::HostedDebugHistory>,
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
     pub face_ids: Vec<conduit_core::FaceId>,

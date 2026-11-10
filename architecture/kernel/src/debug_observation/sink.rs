@@ -123,21 +123,20 @@ where
             *slot = Some((binding.host, 1));
             0
         };
-        let subject = event.cord.map_or_else(
-            || {
-                event
-                    .port
-                    .map_or(DebugSubject::Gear(event.node), |port| DebugSubject::Port {
-                        gear: event.node,
-                        port,
-                    })
+        let related_subject = event.port.map(|port| match event.kind {
+            DebugEventKind::ValueSent => DebugSubject::OutputPort {
+                gear: event.node,
+                port,
             },
+            _ => DebugSubject::Port {
+                gear: event.node,
+                port,
+            },
+        });
+        let subject = event.cord.map_or_else(
+            || related_subject.unwrap_or(DebugSubject::Gear(event.node)),
             DebugSubject::Cord,
         );
-        let related_subject = event.port.map(|port| DebugSubject::Port {
-            gear: event.node,
-            port,
-        });
         let type_identity = event.type_identity.or_else(|| {
             event.port.and_then(|port| {
                 self.port_type_identities

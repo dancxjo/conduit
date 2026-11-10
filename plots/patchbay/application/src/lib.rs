@@ -188,11 +188,34 @@ impl PatchbayActivePlot {
         state: PatchbayActivePlotState,
         focused: bool,
     ) -> Result<Self, PatchbayApplicationRefusal> {
+        let graph = PatchbayGraph::from_expanded(plot).map_err(PatchbayApplicationRefusal::Graph)?;
+        Self::with_graph(graph, title, checked_plot_id, plan_id, state, focused)
+    }
+
+    pub fn project_authoring(
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        title: impl Into<String>,
+        plan_id: PlanId,
+        state: PatchbayActivePlotState,
+        focused: bool,
+    ) -> Result<Self, PatchbayApplicationRefusal> {
+        let graph = PatchbayGraph::from_authoring(plot).map_err(PatchbayApplicationRefusal::Graph)?;
+        Self::with_graph(graph, title, plot.expanded.checked_plot_id.as_str(), plan_id, state, focused)
+    }
+
+    fn with_graph(
+        graph: PatchbayGraph,
+        title: impl Into<String>,
+        checked_plot_id: impl Into<String>,
+        plan_id: PlanId,
+        state: PatchbayActivePlotState,
+        focused: bool,
+    ) -> Result<Self, PatchbayApplicationRefusal> {
         if state == PatchbayActivePlotState::CheckedSource {
             return Err(PatchbayApplicationRefusal::UnknownAction);
         }
         Ok(Self {
-            graph: PatchbayGraph::from_expanded(plot).map_err(PatchbayApplicationRefusal::Graph)?,
+            graph,
             title: title.into(),
             checked_plot_id: checked_plot_id.into(),
             plan_id: Some(plan_id),

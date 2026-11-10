@@ -18,6 +18,38 @@ pub use control::{
 };
 pub use sink::{DebugObserverControl, ObservedSignSink};
 
+#[cfg(feature = "alloc")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostedDebugHistory {
+    pub execution: DebugExecutionIdentity,
+    pub records: alloc::vec::Vec<DebugObservationRecord>,
+    pub gap: Option<DebugObservationGap>,
+}
+
+#[cfg(feature = "alloc")]
+pub(crate) trait HostedDebugObserver: Send {
+    fn observe(&mut self, event: DebugRuntimeEvent<'_>);
+    fn history(&self) -> Option<HostedDebugHistory>;
+}
+
+#[cfg(feature = "alloc")]
+impl<E: crate::SignSink + Send, const N: usize, const P: usize, const R: usize> HostedDebugObserver
+    for ObservedSignSink<E, N, P, R>
+{
+    fn observe(&mut self, event: DebugRuntimeEvent<'_>) {
+        crate::SignSink::observe_debug(self, event);
+    }
+
+    fn history(&self) -> Option<HostedDebugHistory> {
+        let buffer = self.observations()?;
+        Some(HostedDebugHistory {
+            execution: buffer.execution(),
+            records: (0..buffer.len()).filter_map(|index| buffer.record(index).copied()).collect(),
+            gap: buffer.gap(),
+        })
+    }
+}
+
 pub const DEBUG_OBSERVATION_SCHEMA_VERSION: u16 = 2;
 pub const MAX_DEBUG_VALUE_PREVIEW_BYTES: usize = 64;
 
@@ -37,7 +69,10 @@ pub struct DebugNodeBinding {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DebugSubject {
     Gear(NodeId),
+    /// A runtime input Port or a legacy undirected Port binding.
     Port { gear: NodeId, port: PortId },
+    /// Output slots have their own numbering and may overlap input slots.
+    OutputPort { gear: NodeId, port: PortId },
     Cord(CordId),
 }
 

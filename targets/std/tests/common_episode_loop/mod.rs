@@ -172,6 +172,7 @@ pub struct Harness {
     pub requests: Arc<Mutex<Vec<String>>>,
     pub fragment: PlanFragment,
     pub plan_id: String,
+    pub authoring: conduit_plot::ExpandedAuthoringPlot,
 }
 
 pub fn harness(terminal_on_call: Option<(usize, LocalModelAdapterTerminal)>) -> Harness {
@@ -427,6 +428,7 @@ pub fn plan_host(
         requests: Arc::default(),
         fragment,
         plan_id: plan.plan_id.as_str().into(),
+        authoring,
     }
 }
 

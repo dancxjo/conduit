@@ -164,6 +164,228 @@ fn pete_frames_reach_situation_and_recall_in_one_play() {
 }
 
 #[test]
+fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
+    use conduit_kernel::debug_observation::DebugSubject;
+    use conduit_plan_lowering::lowering::lower_plan_fragment;
+    use patchbay_application::{
+        DebuggerTimeline, DebuggerTimelineBinding, PatchbayActivePlot, PatchbayActivePlotState,
+        PatchbayApplicationPort,
+    };
+
+    let (model, _) = common::fenced_model();
+    let mut harness = pete_harness(model);
+    let mut incoming = inputs(&[]);
+    incoming.extend([
+        frame_input(frame(1, "The switch label is COPPER KITE.", true)),
+        frame_input(frame(2, "What was the switch label?", false)),
+    ]);
+    let mut collector = Collector::default();
+    let control = RunControl::default().with_debug_body(common::context().body_id);
+    let report = run(&mut harness, &incoming, &mut collector, &control).unwrap();
+    assert_eq!(terminal(&report), &TerminalDisposition::Completed);
+    let episodes = records(&collector.0);
+    assert_eq!(episodes.len(), 2);
+    assert_eq!(
+        episodes[1].recalled().get()[0].observation(),
+        episodes[0].observation()
+    );
+    assert!(episodes[1]
+        .response()
+        .unwrap()
+        .content()
+        .contains("COPPER KITE"));
+    let kernel = report.kernel.unwrap();
+    let history = kernel.debug_history.unwrap();
+    assert!(history.gap.is_none(), "{:?}", history.gap);
+    assert_eq!(kernel.active_play.host_id, harness.fragment.host_id);
+    let plan_id = harness.fragment.plan_id.clone();
+    assert_eq!(kernel.identity.plan_id, plan_id);
+    let plot = PatchbayActivePlot::project_authoring(
+        &harness.authoring,
+        "Pete cognition",
+        plan_id.clone(),
+        PatchbayActivePlotState::Playing,
+        true,
+    )
+    .unwrap();
+    let patchbay =
+        PatchbayApplicationPort::open_active(vec![plot], plan_id, Some(kernel.active_play_id))
+            .unwrap();
+    let graph = patchbay.graph();
+    let lowered = lower_plan_fragment(&harness.fragment).unwrap();
+    let identity = &lowered.identity;
+    let gear_for = |placement_id: &conduit_core::PlacementId| {
+        let placement = harness
+            .fragment
+            .placements
+            .iter()
+            .find(|p| &p.placement_id == placement_id)
+            .unwrap();
+        graph
+            .gears
+            .iter()
+            .find(|gear| gear.gear_id == placement.gear_id)
+            .unwrap()
+    };
+    let port_for = |placement, direction, id: &str| {
+        let gear = gear_for(placement);
+        let ports = match direction {
+            PortDirection::Input => &gear.inputs,
+            PortDirection::Output => &gear.outputs,
+        };
+        &ports
+            .iter()
+            .find(|port| port.descriptor.port_id.as_str() == id)
+            .unwrap()
+            .identity
+    };
+    let bind = |runtime_subject, visible_subject: &String| DebuggerTimelineBinding {
+        execution: history.execution,
+        runtime_subject,
+        visible_subject: visible_subject.clone(),
+    };
+    let mut bindings = Vec::new();
+    for (node, placement) in &identity.placements {
+        bindings.push(bind(
+            DebugSubject::Gear(*node),
+            &gear_for(placement).identity,
+        ));
+    }
+    for port in &identity.ports {
+        let placement = identity.placement_for_node(port.node).unwrap();
+        bindings.push(bind(
+            match port.direction {
+                PortDirection::Input => DebugSubject::Port {
+                    gear: port.node,
+                    port: port.port,
+                },
+                PortDirection::Output => DebugSubject::OutputPort {
+                    gear: port.node,
+                    port: port.port,
+                },
+            },
+            port_for(placement, port.direction, port.port_id.as_str()),
+        ));
+    }
+    for (cord, connection) in &identity.connections {
+        if identity
+            .fore_endpoints
+            .iter()
+            .any(|endpoint| endpoint.cord == *cord)
+        {
+            continue;
+        }
+        let connection = harness
+            .fragment
+            .connections
+            .iter()
+            .find(|c| &c.connection_id == connection)
+            .unwrap();
+        let source = port_for(
+            &connection.source_placement_id,
+            PortDirection::Output,
+            connection.source_port_id.as_str(),
+        );
+        let sink = port_for(
+            &connection.sink_placement_id,
+            PortDirection::Input,
+            connection.sink_port_id.as_str(),
+        );
+        let graph_cord = graph
+            .cords
+            .iter()
+            .find(|c| &c.source_port == source && &c.sink_port == sink)
+            .unwrap();
+        bindings.push(bind(DebugSubject::Cord(*cord), &graph_cord.identity));
+    }
+    for endpoint in &identity.fore_endpoints {
+        let port = format!(
+            "front/{}/{}",
+            if endpoint.direction == PortDirection::Input {
+                "input"
+            } else {
+                "output"
+            },
+            endpoint.front_port_id.as_str(),
+        );
+        let cord = graph
+            .cords
+            .iter()
+            .find(|cord| cord.source_port == port || cord.sink_port == port)
+            .unwrap();
+        bindings.push(bind(DebugSubject::Cord(endpoint.cord), &cord.identity));
+    }
+    let mut timeline = DebuggerTimeline::new(bindings).unwrap();
+    for record in &history.records {
+        timeline
+            .observe(record)
+            .unwrap_or_else(|error| panic!("{error:?}: {record:?}"));
+    }
+    for cord in &graph.cords {
+        assert!(
+            timeline.events.iter().any(|event| {
+                event.subject == cord.identity
+                    && event
+                        .value
+                        .as_ref()
+                        .is_some_and(|value| value.total_bytes > 0)
+            }),
+            "missing traffic on {}",
+            cord.identity
+        );
+    }
+
+    let response = timeline
+        .events
+        .iter()
+        .rposition(|event| {
+            event.event == "value-sent"
+                && event.subject.ends_with("/front/output/episodes")
+                && event
+                    .value
+                    .as_ref()
+                    .is_some_and(|value| value.total_bytes > 0)
+        })
+        .unwrap();
+    timeline.trace_upstream(response).unwrap();
+    let trace = timeline.trace.as_ref().unwrap();
+    assert!(trace.missing_parent_sequences.is_empty());
+    let mut steps = trace.steps.iter();
+    for (event, port) in [
+        ("value-received", "/model/input/request"),
+        ("value-received", "/retain/input/response"),
+        ("value-received", "/memory/input/update"),
+        ("value-received", "/compose/input/memory"),
+        ("value-received", "/model/input/request"),
+        ("value-received", "/retain/input/response"),
+        ("value-sent", "/front/output/episodes"),
+    ] {
+        assert!(
+            steps
+                .by_ref()
+                .any(|step| step.event == event && step.subject.ends_with(port)),
+            "missing {event} on {port} in {trace:?}"
+        );
+    }
+
+    let situated = timeline.events[..response]
+        .iter()
+        .rposition(|event| {
+            event.event == "value-received" && event.subject.ends_with("/compose/input/experience")
+        })
+        .unwrap();
+    timeline.trace_upstream(situated).unwrap();
+    let trace = timeline.trace.as_ref().unwrap();
+    assert!(trace.missing_parent_sequences.is_empty());
+    assert!(
+        trace.steps.iter().any(|step| {
+            step.event == "value-received" && step.subject.contains("front/input/frames")
+        }),
+        "{trace:?}"
+    );
+}
+
+#[test]
 fn future_frame_is_refused_before_model_admission() {
     let (model, requests) = common::fenced_model();
     let mut harness = pete_harness(model);

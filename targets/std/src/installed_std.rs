@@ -499,7 +499,32 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     sign_items = sign_items
         .checked_add(remote_sign_items)
         .ok_or_else(|| "external Fore Sign capacity overflow".to_string())?;
-    let sign = fore_sign_storage::prepare(sign_items, !lowered.fore_ports.is_empty())?;
+    let mut sign = fore_sign_storage::prepare(sign_items, !lowered.fore_ports.is_empty())?;
+    if let Some(body) = &control.debug_body {
+        use conduit_kernel::debug_observation::{
+            DebugExecutionIdentity, DebugNodeBinding, DebugObservationBuffer, DebugObservationRecord,
+        };
+        use sha2::{Digest, Sha256};
+
+        const RECORDS: usize = 128;
+        let execution = DebugExecutionIdentity {
+            body: Sha256::digest(body.as_str()).into(),
+            plan: Sha256::digest(fragment.plan_id.as_str()).into(),
+            play: Sha256::digest(active_play.active_play_id.as_str()).into(),
+        };
+        let history = DebugObservationBuffer::<RECORDS>::new(
+            execution,
+            RECORDS as u16,
+            (RECORDS * size_of::<DebugObservationRecord>()) as u32,
+            0,
+        )
+        .map_err(|error| format!("prepare debugger history: {error:?}"))?;
+        sign.attach_debug_history::<MAX_NODES, PORTS, RECORDS>(
+            [DebugNodeBinding { plot: 0, host: 0 }; MAX_NODES],
+            history,
+        )
+        .map_err(|error| format!("attach debugger history: {error:?}"))?;
+    }
     let mut external_listener = external_websocket_host::prepare(fragment)?;
     let mut http_host = http_host::InstalledHttpHost::prepare(fragment)?;
     let mut calendar_host = calendar_provider_host::CalendarProviderHost::prepare(fragment)?;
@@ -3771,6 +3796,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             logical_invocations: scheduler.logical_invocations(),
             kernel_events: scheduler.signs().len(),
             kernel_sign: scheduler.signs().events().collect(),
+            debug_history: scheduler.signs().debug_history(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
             face_ids,

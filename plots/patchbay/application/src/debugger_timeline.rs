@@ -3,7 +3,7 @@
 use crate::{
     debugger_face::{event_name, value_face},
     DebuggerExecutionIdentity, DebuggerGapFace, DebuggerValueFace, DebuggerWatchHistoryEntry,
-    DebuggerWatchSet, MAX_DEBUGGER_SUMMARY_BYTES,
+    DebuggerWatchSet,
 };
 use alloc::{borrow::ToOwned, string::String, vec, vec::Vec};
 use conduit_kernel::debug_observation::{
@@ -14,6 +14,8 @@ use serde::{Deserialize, Serialize};
 pub const DEBUGGER_TIMELINE_SCHEMA: &str = "conduit.patchbay.debugger-timeline/v1";
 pub const MAX_DEBUGGER_TIMELINE_EVENTS: usize = 128;
 pub const MAX_DEBUGGER_TIMELINE_BYTES: usize = 64 * 1024;
+// A Cord identity contains both endpoint identities, which can exceed a value summary.
+const MAX_DEBUGGER_TIMELINE_SUBJECT_BYTES: usize = 256;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DebuggerTimelineBinding {
@@ -140,7 +142,7 @@ impl DebuggerTimeline {
         }
         for (index, binding) in bindings.iter().enumerate() {
             if binding.visible_subject.is_empty()
-                || binding.visible_subject.len() > MAX_DEBUGGER_SUMMARY_BYTES
+                || binding.visible_subject.len() > MAX_DEBUGGER_TIMELINE_SUBJECT_BYTES
                 || bindings[..index].iter().any(|prior| {
                     prior.execution == binding.execution
                         && prior.runtime_subject == binding.runtime_subject

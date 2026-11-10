@@ -35,6 +35,18 @@ cargo xtask check pete-cognition-live
 The live check uses installed Ollama models on loopback. The proof supplies
 frame inputs through the Fore. The [resumable Plot](../pete-cognition-resumable/README.md)
 also exercises a Body and Wake checkpoint across a replacement Host Boot,
-Plan, and Play. Live sensor and homeostasis sources, broader autobiographical
-retrieval, and Patchbay causal inspection remain part of
+Plan, and Play.
+
+The Patchbay replay proof collects bounded debugger records from the installed
+Host for the same two-episode Plot. It checks traffic on every authored Cord
+and traces the second response through the first episode's retention and later
+recall. A separate trace follows the frame into Situation and composition.
+The timeline records a single causal parent at each join.
+
+```sh
+cargo test --locked -p xtask --test experience_episode_loop patchbay_replays
+```
+
+Live sensor and homeostasis sources, broader autobiographical retrieval, and
+complete causal inspection of multi-input Gears remain part of
 [#3707](https://github.com/dancxjo/conduit/issues/3707).

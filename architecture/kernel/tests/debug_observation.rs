@@ -170,7 +170,7 @@ fn production_scheduler_emits_exact_bounded_start_value_and_completion_observati
         record.kind == DebugEventKind::ValueSent
             && record.subject == DebugSubject::Cord(CordId(0))
             && record.related_subject
-                == Some(DebugSubject::Port {
+                == Some(DebugSubject::OutputPort {
                     gear: NodeId(0),
                     port: PortId(0),
                 })
