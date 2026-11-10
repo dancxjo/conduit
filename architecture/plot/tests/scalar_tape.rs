@@ -200,6 +200,7 @@ fn tape_scratch_profile_is_bounded_by_the_admitted_instruction_count() {
             0..=4 => 4,
             5..=8 => 8,
             9..=32 => 32,
+            33..=64 => 64,
             _ => 128,
         };
         assert_eq!(scratch, slots * slot_bytes);
@@ -238,4 +239,29 @@ fn scratch_profiles_keep_failed_and_unselected_branch_values_isolated_without_al
     assert_eq!(observed.reallocations, 0);
     assert_eq!(tape.scalar_tape_limits(), limits);
     assert_eq!(tape.output_capacity(), output_capacity);
+}
+
+#[test]
+fn mid_size_tape_preserves_evaluation_with_half_the_maximum_scratch() {
+    let mut scratch = Vec::new();
+    for leaves in [31usize, 33] {
+        let source = format!(
+            "plot sum (\n >> value: U64\n result: U64 >>\n) = ({})\n",
+            balanced_sum(leaves)
+        );
+        let p = program(&source, "sum");
+        let mut tape = PreparedPortableExpressionEvaluator::new_scalar_tape(&p).unwrap();
+        let (instructions, bytes) = tape.scalar_tape_limits().unwrap();
+        assert_eq!(instructions, leaves * 2 - 1);
+        scratch.push(bytes);
+        for value in [0u64, 1, 7] {
+            let input = value.to_le_bytes();
+            let expected = p.evaluate(&input).unwrap();
+            let (_, allocations) = allocation_probe::observe(|| {
+                assert_eq!(tape.evaluate(&input).unwrap(), expected);
+            });
+            assert_eq!(allocations.allocations, 0);
+        }
+    }
+    assert_eq!(scratch[0] * 2, scratch[1]);
 }
