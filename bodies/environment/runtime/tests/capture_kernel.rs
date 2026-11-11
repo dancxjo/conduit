@@ -31,6 +31,44 @@ const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER
 const R: usize = N * P;
 
 #[test]
+fn pulse_contract_revision_explains_the_canonical_seal_change() {
+    let (ready, effects) = pulse::ready(0);
+    let historical = plan::historical_v1_plan_identity(&ready);
+    assert_eq!(
+        (historical.0.as_str(), historical.1.as_str()),
+        (
+            "4c8197aec4f210bd183d4dd62d2649d1d093563d388fea57b7e71f6986066323",
+            "664dab5fadf452d0aa6e039e0e38bf54bf169002dc7fdc7c2b482126b628fc8d"
+        )
+    );
+    let (current, _) = plan::prepare(&ready);
+    let selected = current.fragments[0]
+        .placements
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == PULSE_READ_KIND)
+        .unwrap();
+    assert_eq!(
+        selected.kind_contract_revision.as_str(),
+        "machine/pulse/read@2"
+    );
+    assert_eq!(selected.semantic_contract.value_contracts().len(), 2);
+    assert_eq!(
+        (
+            current.plan_id.as_str(),
+            current.fragments[0].fragment_id.as_str()
+        ),
+        (
+            "afe8a3539cf3d170542aacf40dfecf033310f4f9bc726d0d148dad3d43cd8ed3",
+            "08eca8a7f410de0d1730e804126b5801d258604b859588aa8e58419b74b8b87a"
+        )
+    );
+    assert_eq!(
+        effects.get(),
+        0,
+        "historical comparison performs planning only"
+    );
+}
+#[test]
 fn checked_source_traverses_the_production_kernel_and_closes_after_each_outcome() {
     for scenario in 0..5 {
         run(scenario)
@@ -48,8 +86,8 @@ fn run(scenario: usize) {
                 plan.fragments[0].fragment_id.as_str()
             ),
             (
-                "4c8197aec4f210bd183d4dd62d2649d1d093563d388fea57b7e71f6986066323",
-                "664dab5fadf452d0aa6e039e0e38bf54bf169002dc7fdc7c2b482126b628fc8d"
+                "afe8a3539cf3d170542aacf40dfecf033310f4f9bc726d0d148dad3d43cd8ed3",
+                "08eca8a7f410de0d1730e804126b5801d258604b859588aa8e58419b74b8b87a"
             )
         );
         eprintln!(
