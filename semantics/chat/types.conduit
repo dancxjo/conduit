@@ -244,6 +244,7 @@ type EpisodeExperienceInput = {
 
 # The producer binds one trigger and its selected experience atomically.
 type EpisodeExperience = {
+    reference: TemporalInstant
     observation: EpisodeObservation
     evidence: ExperienceEvidenceRequest
 }

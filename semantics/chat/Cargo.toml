@@ -7,6 +7,7 @@ edition = "2021"
 conduit-ai = { path = "../ai", optional = true, default-features = false }
 conduit-web = { path = "../web", optional = true, default-features = false }
 conduit-human = { path = "../human" }
+conduit-time = { path = "../time", default-features = false }
 conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
@@ -31,6 +32,7 @@ plot-catalog = [
 
 [build-dependencies]
 conduit-human = { path = "../human" }
+conduit-time = { path = "../time", default-features = false }
 conduit-plot = { path = "../../architecture/plot" }
 
 [dev-dependencies]
