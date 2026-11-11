@@ -27,22 +27,40 @@ fn presentation(
 #[test]
 fn retained_key_recovery_uses_latest_basis_but_preserves_old_signed_presentation() {
     let (mut owner, root) = owner_fixture();
-    let (anchor, key, mut ad) = admit_with_key(&mut owner, &root, "host/recover-anchor");
+    let (first, key, mut ad) = admit_with_key(&mut owner, &root, "host/recover-anchor");
     ad.capabilities.clear();
     ad.boot_id = "boot/recover/2".into();
+    let challenge = owner.begin_member_return(&first, &ad).unwrap();
+    let anchor = owner
+        .complete_member_return(&root, &prove(&challenge, &key))
+        .unwrap();
+    owner.pending_member_return = None;
+    ad.boot_id = "boot/recover/3".into();
     let challenge = owner.begin_member_return(&anchor, &ad).unwrap();
     let latest = owner
         .complete_member_return(&root, &prove(&challenge, &key))
         .unwrap();
     owner.pending_member_return = None;
-    // An intermediate credential need not survive hot receipt compaction.
-    owner
-        .admissions
-        .as_mut()
-        .unwrap()
-        .receipts
-        .retain(|r| r.credential == latest);
-    ad.boot_id = "boot/recover/3".into();
+    // The production custody transaction retires only the intermediate anchor,
+    // retaining the first replay fence and latest credential in hot storage.
+    let compacted = state::retire_admissions(
+        &root,
+        &mut owner.session,
+        owner.last_execution.as_ref(),
+        owner.admissions.as_ref().unwrap(),
+    )
+    .unwrap();
+    assert!(compacted.receipts.iter().any(|r| r.credential == first));
+    assert!(compacted.receipts.iter().any(|r| r.credential == latest));
+    assert!(!compacted.receipts.iter().any(|r| r.credential == anchor));
+    assert_eq!(compacted.retired_receipt_count(), 1);
+    owner.admissions = Some(compacted);
+    assert_eq!(
+        state::admissions(&root, &anchor.body_id).unwrap(),
+        owner.admissions
+    );
+    assert!(root.join("body/admission-custody.json").is_file());
+    ad.boot_id = "boot/recover/4".into();
     assert!(owner.begin_member_return(&anchor, &ad).is_err());
     let claim = presentation(&anchor, &ad, &key);
     let challenge = owner
@@ -78,7 +96,7 @@ fn retained_key_recovery_uses_latest_basis_but_preserves_old_signed_presentation
     assert!(owner
         .begin_recovered_member_image_return(&anchor, &ad, claim)
         .is_err());
-    ad.boot_id = "boot/recover/4".into();
+    ad.boot_id = "boot/recover/5".into();
     let next = owner
         .begin_recovered_member_image_return(&anchor, &ad, presentation(&anchor, &ad, &key))
         .unwrap();
