@@ -33,6 +33,9 @@ pub async fn run<'s>(
     crate::runtime::stack_checkpoint(1);
     let mut residents =
         crate::resident::inventory().expect("actual initialized resident inventory");
+    // These immutable flash descriptions survive exclusive initialized-Back loans.
+    // They are not availability evidence or native authority.
+    let return_images = residents.offers();
     let mut routing = initialization::routing();
     let clocks: &[(u16, u64, u64); W] = source::sampling::CLOCKS
         .try_into()
@@ -169,6 +172,7 @@ pub async fn run<'s>(
                     append_status
                         .take()
                         .expect("original prepared status custody"),
+                    crate::play_run::ReturnControl::prepare(root, &issuers, return_images),
                 )
                 .await;
             }
@@ -439,6 +443,7 @@ pub async fn run<'s>(
                             append_status
                                 .take()
                                 .expect("original prepared status custody"),
+                            None, // Retained online command bytes remain immutable.
                         )
                         .await
                     };

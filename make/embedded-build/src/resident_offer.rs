@@ -57,8 +57,8 @@ pub struct Initialized { back:Back, available:bool }
 impl Initialized {
 pub fn prepare()->Result<Self,PreparationRefusal>{Ok(Self{back:prepare_back()?,available:true})}
 /// Lossless descriptive image; availability remains separate.
-pub fn offer_image(&self)->&[u8]{OFFER_IMAGE}
-pub fn available_offer_image(&self)->Option<&[u8]>{self.available.then_some(OFFER_IMAGE)}
+pub fn offer_image(&self)->&'static [u8]{OFFER_IMAGE}
+pub fn available_offer_image(&self)->Option<&'static [u8]>{self.available.then_some(OFFER_IMAGE)}
 pub fn into_back(self)->Back{self.back}
 /// All checks precede the exclusive loan. No second engine is constructed.
 pub fn borrow_assigned(&mut self,selected:conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>)->Result<(u16,BorrowedBack<'_>),conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{

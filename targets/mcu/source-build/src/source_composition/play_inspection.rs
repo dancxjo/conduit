@@ -4,6 +4,32 @@ pub(super) fn encode(
     request: &[u8],
     output: &mut [u8],
 ) -> Result<Option<usize>, ()> {
+    if request == b"H" {
+        #[derive(serde::Serialize)]
+        struct HeapReport {
+            schema: &'static str,
+            assurance: &'static str,
+            phase: &'static str,
+            heap_used_bytes: usize,
+            heap_limit_bytes: usize,
+            remaining_bytes: usize,
+            inspection_buffer_bytes: usize,
+        }
+        return serde_json_core::to_slice(
+            &HeapReport {
+                schema: "conduit.host/playing-heap-inspection@1",
+                assurance: "unsigned-inspection",
+                phase: "playing",
+                heap_used_bytes: crate::runtime::allocator_used(),
+                heap_limit_bytes: crate::config::HEAP_BYTES,
+                remaining_bytes: crate::runtime::remaining(),
+                inspection_buffer_bytes: crate::workset::renderer::RENDERER_FACE_BYTES as usize,
+            },
+            output,
+        )
+        .map(Some)
+        .map_err(|_| ());
+    }
     // Read-only full-object binary inspection; this supplies no authority.
     if request == b"B" {
         return face

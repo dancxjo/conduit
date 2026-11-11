@@ -13,7 +13,7 @@ impl Initialized {
     pub fn prepare() -> Result<Self, PreparationRefusal> {
         Ok(Self)
     }
-    pub fn offers(&self) -> [Option<&[u8]>; 0] {
+    pub fn offers(&self) -> [Option<&'static [u8]>; 0] {
         []
     }
     pub fn available_identity(

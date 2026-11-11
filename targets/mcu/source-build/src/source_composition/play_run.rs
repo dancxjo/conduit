@@ -42,6 +42,10 @@ use observers::{Delivery, OutputExit, OutputObserver, SampleObserver};
 mod inspection_encoder {
     include!(concat!(env!("OUT_DIR"), "/source_play_inspection.rs"));
 }
+mod control {
+    include!(concat!(env!("OUT_DIR"), "/source_play_control.rs"));
+}
+pub(super) use control::ReturnControl;
 fn boundary(fore: c::AssignedForeRequirement) -> OwnedValueBoundary {
     OwnedValueBoundary {
         cord: k::CordId(fore.cord()),
@@ -142,6 +146,7 @@ pub async fn run<'r, 'f>(
     activity: &conduit_mcu_host_runtime::native_runner::NativeActivity,
     append_output: &mut [u8],
     append_status: conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus,
+    mut control: Option<ReturnControl<'_, '_>>,
 ) -> ! {
     crate::runtime::stack_checkpoint(9);
     let inspection = inspection_state(&evidence);
@@ -377,11 +382,13 @@ pub async fn run<'r, 'f>(
             // execution, including carrier interruptions and native failures.
             core::hint::black_box(&arena);
             link.connected().await;
-            let _ = conduit_mcu_host_runtime::execution_inspection::serve_with(
+            let _ = control::serve(
                 &inspection,
+                face,
                 link,
                 &mut response,
-                |request, output| inspection_encoder::encode(face, request, output),
+                &mut control,
+                activity,
             )
             .await;
             link.reset();
