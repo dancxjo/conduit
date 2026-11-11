@@ -22,6 +22,11 @@ impl ConduitOsProductArtifact {
                 binary: "conduitos",
                 rust_target: "x86_64-unknown-none",
             }),
+            "conduitos/armv6/raspberry-pi-model-b-plus-v1.2" => Some(Self {
+                target: "conduitos/armv6/raspberry-pi-model-b-plus-v1.2",
+                binary: "conduitos-armv6-product",
+                rust_target: "armv6-none-eabi",
+            }),
             "conduitos/aarch64/virt" => Some(Self {
                 target: "conduitos/aarch64/virt",
                 binary: "conduitos-aarch64-product",
@@ -67,7 +72,10 @@ fn package_catalog() -> PackageCatalogContribution {
             (
                 "presenter/linear-serial@1".into(),
                 PresenterMetadata {
-                    targets: vec!["conduitos/aarch64/virt".into()],
+                    targets: vec![
+                        "conduitos/aarch64/virt".into(),
+                        "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
+                    ],
                     prerequisites: vec![
                         PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                         PrerequisiteNode::Base("serial/text".into()),
@@ -106,10 +114,6 @@ fn package_catalog() -> PackageCatalogContribution {
             ),
         ]),
         dependencies: BTreeMap::from([
-            (
-                PrerequisiteNode::Base("serial/text".into()),
-                vec![PrerequisiteNode::Driver("conduitos/pl011@1".into())],
-            ),
             (
                 PrerequisiteNode::Facility("network/http1-literal-client".into()),
                 vec![
@@ -199,7 +203,7 @@ impl HostMakePackage for ConduitOsMakePackage {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Anchor(MakeAnchor {
             package_id: "conduitos-image@1".into(),
-            package_revision: 1,
+            package_revision: 2,
             catalog: package_catalog(),
             targets: vec![
                 target("ConduitOS x86_64 PC", "x86_64", "pc"),

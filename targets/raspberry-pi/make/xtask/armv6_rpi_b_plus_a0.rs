@@ -187,6 +187,11 @@ struct LoadSegment {
     memory_bytes: usize,
 }
 
+pub(super) fn product_load_image(bytes: &[u8]) -> Result<Vec<u8>, ConduitosError> {
+    let facts = inspect_elf(bytes)?;
+    flatten_load_image(bytes, &facts.load_segments)
+}
+
 fn inspect_elf(bytes: &[u8]) -> Result<ElfFacts, ConduitosError> {
     if bytes.len() < ELF_HEADER_BYTES
         || &bytes[..4] != b"\x7fELF"
@@ -283,7 +288,7 @@ fn flatten_load_image(bytes: &[u8], segments: &[LoadSegment]) -> Result<Vec<u8>,
     Ok(image)
 }
 
-fn inspect_symbol(elf: &Path, root: &Path) -> Result<(), ConduitosError> {
+pub(super) fn inspect_symbol(elf: &Path, root: &Path) -> Result<(), ConduitosError> {
     let output = Command::new("readelf")
         .args(["-sW"])
         .arg(elf)
