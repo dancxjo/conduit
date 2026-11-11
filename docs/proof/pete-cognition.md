@@ -125,6 +125,33 @@ without applying its legacy latest-item policy. These surfaces still require
 the typed autobiography candidate and outcome adapters before they replace the
 situated Plot's recall path; they do not establish an end-to-end RAG proof.
 
+Related implementation review on 2026-11-11 found
+[#6858](https://github.com/dancxjo/conduit/pull/6858), at
+`41a9595ea38b07cd246cb6cf839300ce764f7b9d`, already supplies an ordinary cadenced
+operator, finite lexical recall, an asynchronous admitted model-effect slot,
+checkpoint continuation across replacement Hosts, and a causal replay surface.
+Its authored reaction/attention/reflection Plots and lexical recall source were
+inspected; its reported live/browser validation was not rerun in this branch.
+Reuse that operator for subsequent integration rather than independently
+recreating its cadence, provider-work and checkpoint mechanisms. This branch's
+generic temporal retrieval and prepared context-selection owners remain distinct
+integration inputs. At this branch's `d295831aca` checkpoint the two PRs shared
+59 changed paths; a working-tree-independent merge analysis found 13 conflicted
+paths, including model contracts, experience codecs, catalog registration, the
+main Plot and the cognition check suite. An unreviewed whole-branch merge is not
+an established combined implementation.
+
+Other open PRs were reviewed for adjacent ownership:
+[#6837](https://github.com/dancxjo/conduit/pull/6837) owns shared Source preparation,
+Root custody, lifecycle continuation and bounded invocation archives, and
+explicitly requests cohesive extraction rather than wholesale merging;
+[#6855](https://github.com/dancxjo/conduit/pull/6855) owns B+ USB/HID acquisition,
+which is adjacent physical input work outside this scripted-input proof; and
+[#6662](https://github.com/dancxjo/conduit/pull/6662) owns environmental and CPU
+History admission regressions on a dependent non-dev base. None was imported by
+this review. These ownership boundaries inform integration; they are not new
+MVP prerequisites or evidence of acceptance in this branch.
+
 The 2026-11-10 draft-branch run `run-1794373833048-189399` accepted with
 `phi4:latest`, model content identity
 `ac896e5b8b34a1f4efa7b14d7520725140d5512484457fab45d2a4ea14c69dba`.
