@@ -349,3 +349,6 @@ pub use pcm_packing::*;
 
 mod source_check;
 pub use source_check::*;
+
+mod startup_chime;
+pub use startup_chime::*;
