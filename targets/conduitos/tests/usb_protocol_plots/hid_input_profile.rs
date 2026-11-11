@@ -157,8 +157,22 @@ fn hid_selection_uses_interface_membership_direction_packet_geometry_and_link_pr
     };
     for (case, tag) in [
         (good, "selected"),
-        (Fixture { boot: true, packet: 8, ..good }, "selected"),
-        (Fixture { boot: true, packet: 16, ..good }, "unsupported-endpoint"),
+        (
+            Fixture {
+                boot: true,
+                packet: 8,
+                ..good
+            },
+            "selected",
+        ),
+        (
+            Fixture {
+                boot: true,
+                packet: 16,
+                ..good
+            },
+            "unsupported-endpoint",
+        ),
         (Fixture { packet: 32, ..good }, "selected"),
         (Fixture { class: 2, ..good }, "no-hid-interface"),
         (
@@ -203,7 +217,15 @@ fn hid_selection_uses_interface_membership_direction_packet_geometry_and_link_pr
             let result = validate_canonical_structured_value(bytes).unwrap();
             let payload = result.variant_payload(tag).unwrap().expect(tag);
             if tag == "selected" {
-                assert_eq!(payload.record_field("boot-keyboard").unwrap().unwrap().primitive_bytes("value/bool").unwrap(), [u8::from(case.boot)]);
+                assert_eq!(
+                    payload
+                        .record_field("boot-keyboard")
+                        .unwrap()
+                        .unwrap()
+                        .primitive_bytes("value/bool")
+                        .unwrap(),
+                    [u8::from(case.boot)]
+                );
                 for (name, expected) in [
                     ("configuration-value", 3),
                     ("interface-number", 11),
