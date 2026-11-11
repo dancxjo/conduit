@@ -174,7 +174,8 @@ impl NativeTarget {
             ("std/x86_64/computer", "conduit-host-hosted/build-native@1", "rustc:1.98.1") => Self {
                 rust_target: Some("x86_64-unknown-linux-gnu"), executable: "conduit-linux-x86_64", cross: false, cxx: false,
             },
-            ("std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3",
+            ("std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3"
+                | "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb",
              "conduit-host-raspberry-pi/build-raspios-native@1",
              "rustc:1.98.1+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu") => Self {
                 rust_target: Some("aarch64-unknown-linux-gnu"), executable: "conduit-linux-aarch64", cross: true, cxx: false,
