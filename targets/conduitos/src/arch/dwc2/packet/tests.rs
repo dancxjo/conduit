@@ -49,6 +49,8 @@ fn zero_length_input_packet_remains_a_real_observation() {
         c.root_packet(packet(true), &mut [0; 8]),
         Err(PacketError::ReceiveEnvelope)
     );
+    assert_eq!(c.io.failures[0].phase, "rx-missing");
+    assert_eq!(c.io.failures[0].receive_status, None);
 }
 #[test]
 fn dispositions_do_not_retry_or_advance_pid() {
@@ -83,6 +85,8 @@ fn malformed_receive_is_drained_and_never_exposed_as_input() {
     );
     assert!(c.io.data.is_empty());
     assert_eq!(bytes, [0xcc; 8]);
+    assert_eq!(c.io.failures[0].phase, "rx-envelope");
+    assert_eq!(c.io.failures[0].receive_status, Some((2 << 17) | (12 << 4)));
 }
 #[test]
 fn deadline_requires_halt_acknowledgement_or_fences_controller() {
