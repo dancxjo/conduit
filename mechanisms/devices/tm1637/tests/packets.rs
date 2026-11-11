@@ -3,7 +3,7 @@
 mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
-use conduit_environment_runtime::display_packets::{DisplayPacketRefusal, PreparedDisplayPackets};
+use conduit_tm1637_protocol::{DisplayPacketRefusal, PreparedDisplayPackets};
 #[test]
 fn source_packets_preserve_registers_and_refuse_invalid_brightness_without_allocating() {
     let mut encoder = PreparedDisplayPackets::prepare().unwrap();
@@ -119,7 +119,7 @@ fn frame_keeps_invalid_brightness_for_the_authored_refusal_fore() {
 }
 
 use conduit_core::{PreparedStructuredComposer, StructuredInfoType};
-use conduit_environment_runtime::display_packets::validate_display_frame;
+use conduit_tm1637_protocol::validate_display_frame;
 
 #[test]
 fn exact_source_frame_validation_is_bounded_and_allocation_free() {
@@ -158,7 +158,7 @@ fn exact_source_frame_validation_is_bounded_and_allocation_free() {
 
 #[test]
 fn frame_only_composer_matches_packet_input_without_recurring_allocations() {
-    use conduit_environment_runtime::display_packets::PreparedDisplayFrame;
+    use conduit_tm1637_protocol::PreparedDisplayFrame;
     let mut frame = PreparedDisplayFrame::prepare().unwrap();
     let mut packets = PreparedDisplayPackets::prepare().unwrap();
     let ((), memory) = allocation_probe::observe(|| {

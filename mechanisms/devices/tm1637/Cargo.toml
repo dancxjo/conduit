@@ -1,0 +1,32 @@
+[package]
+name = "conduit-tm1637-protocol"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[features]
+default = []
+packets = ["dep:conduit-plot"]
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-plot = { path = "../../../architecture/plot", optional = true }
+
+[build-dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-plot = { path = "../../../architecture/plot" }
+
+[dev-dependencies]
+conduit-tm1637-wire = { path = "../../io/tm1637", features = ["host-call"] }
+
+[[test]]
+name = "packets"
+required-features = ["packets"]
+
+[profile.dev.build-override]
+opt-level = 1
+
+[profile.test.build-override]
+opt-level = 1

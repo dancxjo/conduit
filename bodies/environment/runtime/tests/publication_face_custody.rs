@@ -205,12 +205,11 @@ fn retained_reads_share_one_revision_until_the_owner_explicitly_advances_age() {
 #[cfg(feature = "display-mask")]
 #[test]
 fn one_retained_face_resolves_pages_and_typed_frames_without_new_source_events() {
-    use conduit_environment_runtime::{
-        display_mask::PreparedDisplayMask, display_packets::validate_display_frame,
-    };
+    use conduit_environment_runtime::display_mask::PreparedDisplayMask;
     use conduit_seven_segment_mask::{
         DigitWiring, MaskDisposition, MaskUnavailable, SevenSegmentLook, Tm1637Profile, WireBit,
     };
+    use conduit_tm1637_protocol::validate_display_frame;
     let owner = owner();
     let bytes = reading();
     let (mut publisher, reader) = owner.claim().unwrap();
