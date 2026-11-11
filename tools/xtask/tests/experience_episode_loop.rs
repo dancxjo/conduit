@@ -5,8 +5,8 @@ use common::{experience_episode_harness, inputs, records, run, terminal, Collect
 use conduit_core::{ConnectionTrack, PortDirection, TerminalDisposition};
 use conduit_human::ExperienceTemporalPolicy;
 use conduit_pete::{
-    PeteCognitionBattery, PeteCognitionFrame, PeteCognitionSafety, PeteCognitionSign,
-    PeteCognitionUtterance,
+    PeteCognitionBattery, PeteCognitionBatteryInput, PeteCognitionFrame, PeteCognitionSafety,
+    PeteCognitionSign, PeteCognitionUtterance,
 };
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_std_host::{ExternalForeInput, HostedFrameBack, RunControl, StdHostComposition};
@@ -104,7 +104,10 @@ fn frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFrame {
     let now = at(100 * revision);
     let sign = |kind| PeteCognitionSign::new(format!("{kind}/{revision}")).unwrap();
     PeteCognitionFrame::new(
-        Some(PeteCognitionBattery::new(90, false, 13_000, now.clone(), sign("battery")).unwrap()),
+        PeteCognitionBattery::new(90, false, 13_000, now.clone(), sign("battery"))
+            .unwrap()
+            .try_into()
+            .unwrap(),
         Some(PeteCognitionSafety::new(false, now.clone(), true, sign("body")).unwrap()),
         "pete/wake/2".into(),
         now.clone(),
@@ -153,7 +156,7 @@ fn create_frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFram
     .unwrap()
     .unwrap();
     PeteCognitionFrame::new(
-        Some(battery),
+        battery.try_into().unwrap(),
         fixture.body().clone(),
         fixture.provenance_revision().clone(),
         fixture.reference().clone(),
@@ -167,17 +170,32 @@ fn create_frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFram
 #[cfg(target_os = "linux")]
 #[test]
 fn pete_create_serial_samples_enter_one_cognition_play() {
-    assert_pete_create_serial_play(false);
+    assert_pete_create_serial_play(SerialSample::Available);
 }
 
 #[cfg(target_os = "linux")]
 #[test]
 fn pete_continues_when_create_capacity_is_unavailable() {
-    assert_pete_create_serial_play(true);
+    assert_pete_create_serial_play(SerialSample::MissingCapacity);
 }
 
 #[cfg(target_os = "linux")]
-fn assert_pete_create_serial_play(missing_first_capacity: bool) {
+#[test]
+fn pete_continues_after_a_create_read_timeout() {
+    assert_pete_create_serial_play(SerialSample::Timeout);
+}
+
+#[cfg(target_os = "linux")]
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum SerialSample {
+    Available,
+    MissingCapacity,
+    Timeout,
+}
+
+#[cfg(target_os = "linux")]
+fn assert_pete_create_serial_play(first_sample: SerialSample) {
+    let normal = first_sample == SerialSample::Available;
     use conduit_pete::{capture_pete_cognition_battery, UartProfile};
     use conduit_std_host::std_create_uart::{
         monotonic_millis, StdCreateUartBase, StdCreateUartObservation,
@@ -191,7 +209,7 @@ fn assert_pete_create_serial_play(missing_first_capacity: bool) {
     };
 
     let (device, master, slave) = match std::env::var_os("CONDUIT_PETE_CREATE_SERIAL")
-        .filter(|_| !missing_first_capacity)
+        .filter(|_| normal)
     {
         Some(path) => (PathBuf::from(path), None, None),
         None => {
@@ -237,14 +255,16 @@ fn assert_pete_create_serial_play(missing_first_capacity: bool) {
                 let mut commands = [0; 6];
                 master.read_exact(&mut commands).unwrap();
                 assert_eq!(commands, [128, 131, 148, 2, 0, 34]);
-                let capacity = if missing_first_capacity && revision == 1 {
+                let capacity = if first_sample == SerialSample::MissingCapacity && revision == 1 {
                     0
                 } else {
                     1_000
                 };
-                master
-                    .write_all(&create_battery_stream(revision, capacity))
-                    .unwrap();
+                if first_sample != SerialSample::Timeout || revision != 1 {
+                    master
+                        .write_all(&create_battery_stream(revision, capacity))
+                        .unwrap();
+                }
                 let mut pause = [0; 2];
                 master.read_exact(&mut pause).unwrap();
                 assert_eq!(pause, [150, 0]);
@@ -275,8 +295,7 @@ fn assert_pete_create_serial_play(missing_first_capacity: bool) {
         }
     }
 
-    let use_ollama =
-        !missing_first_capacity && std::env::var_os("CONDUIT_PETE_SERIAL_OLLAMA").is_some();
+    let use_ollama = normal && std::env::var_os("CONDUIT_PETE_SERIAL_OLLAMA").is_some();
     let model = if use_ollama {
         ollama_episode_model()
     } else {
@@ -309,14 +328,33 @@ fn assert_pete_create_serial_play(missing_first_capacity: bool) {
         {
             let revision = (index + 1) as u64;
             let sign = |kind| PeteCognitionSign::new(format!("serial/{kind}/{revision}")).unwrap();
-            let battery = capture_pete_cognition_battery(
+            let capture = capture_pete_cognition_battery(
                 &mut provider,
                 sign("battery"),
                 "clock/pete-create-proof".into(),
-                1_000,
+                if first_sample == SerialSample::Timeout && revision == 1 {
+                    50
+                } else {
+                    1_000
+                },
                 monotonic_millis,
-            )
-            .unwrap();
+            );
+            let (battery, tick) = match capture {
+                Ok(Some(battery)) => {
+                    let tick = *battery.observed_at().ticks();
+                    (battery.try_into().unwrap(), Some(tick))
+                }
+                Ok(None) => (PeteCognitionBatteryInput::Missing, None),
+                Err(conduit_pete::CreateCognitionCaptureError::Read {
+                    pause_failure: None,
+                    ..
+                }) => (
+                    PeteCognitionBatteryInput::unavailable(provider.identity().base_id.clone())
+                        .unwrap(),
+                    None,
+                ),
+                Err(error) => panic!("capture Create battery: {error:?}"),
+            };
             let now = NativeTemporalInstant::new(
                 "clock/pete-create-proof".into(),
                 1,
@@ -325,11 +363,7 @@ fn assert_pete_create_serial_play(missing_first_capacity: bool) {
                 0,
             )
             .unwrap();
-            capture_ticks.push(
-                battery
-                    .as_ref()
-                    .map(|battery| *battery.observed_at().ticks()),
-            );
+            capture_ticks.push(tick);
             let input = frame_input(
                 PeteCognitionFrame::new(
                     battery,
@@ -383,7 +417,7 @@ fn assert_pete_create_serial_play(missing_first_capacity: bool) {
         &control,
     );
     let capture_ticks = producer.join().unwrap();
-    if missing_first_capacity {
+    if !normal {
         assert!(capture_ticks[0].is_none());
         assert!(capture_ticks[1].is_some());
     }
@@ -420,6 +454,20 @@ fn assert_pete_create_serial_play(missing_first_capacity: bool) {
             battery.and_then(|item| item["observed_at"]["ticks"].as_u64()),
             capture_ticks[index]
         );
+        if first_sample == SerialSample::Timeout && index == 0 {
+            let unavailable = evidence
+                .iter()
+                .find(|item| item["identity"] == "pete/battery/unavailable")
+                .unwrap();
+            assert_eq!(
+                unavailable["classifications"]["availability"],
+                "source_unavailable"
+            );
+            assert_eq!(
+                unavailable["sources"],
+                serde_json::json!([{"source":"pete/cognition-create"}])
+            );
+        }
         let homeostasis = evidence
             .iter()
             .find(|item| item["identity"] == "pete/homeostasis")
@@ -440,9 +488,7 @@ fn assert_pete_create_serial_play(missing_first_capacity: bool) {
         }
     }
     let snapshot = assert_pete_replay(&harness, &report);
-    if let Some(path) =
-        std::env::var_os("CONDUIT_PETE_REPLAY_SNAPSHOT").filter(|_| !missing_first_capacity)
-    {
+    if let Some(path) = std::env::var_os("CONDUIT_PETE_REPLAY_SNAPSHOT").filter(|_| normal) {
         std::fs::write(path, snapshot.encode().unwrap()).unwrap();
     }
 }

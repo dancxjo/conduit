@@ -18,8 +18,8 @@ mod generated {
 }
 
 pub use generated::{
-    PeteCognitionBattery, PeteCognitionFrame, PeteCognitionSafety, PeteCognitionSign,
-    PeteCognitionUtterance,
+    PeteCognitionBattery, PeteCognitionBatteryInput, PeteCognitionFrame, PeteCognitionSafety,
+    PeteCognitionSign, PeteCognitionUtterance,
 };
 
 pub const PETE_COGNITION_SITUATE_KIND: &str = "pete/situate-experience";
@@ -116,6 +116,20 @@ pub fn capture_pete_cognition_battery<P: crate::CreateUartProvider, E>(
     pete_cognition_battery_from_create(&observation, sign, captured_at).map_err(Error::Observation)
 }
 
+impl TryFrom<PeteCognitionBattery> for PeteCognitionBatteryInput {
+    type Error = conduit_plot::rust_binding::NativeBindingRefusal;
+
+    fn try_from(battery: PeteCognitionBattery) -> Result<Self, Self::Error> {
+        Self::observed(
+            *battery.charge_permille(),
+            *battery.charging(),
+            *battery.millivolts(),
+            battery.observed_at().clone(),
+            battery.sign().clone(),
+        )
+    }
+}
+
 pub fn situate_pete_frame(
     frame: &PeteCognitionFrame,
 ) -> Result<EpisodeExperience, PeteCognitionRefusal> {
@@ -123,7 +137,10 @@ pub fn situate_pete_frame(
     let instant = |instant: &conduit_time::NativeTemporalInstant| {
         TemporalInstant::try_from(instant.clone()).map_err(|_| R::InvalidObservation)
     };
-    let battery = frame.battery();
+    let battery = match frame.battery() {
+        PeteCognitionBatteryInput::Observed(battery) => Some(battery),
+        _ => None,
+    };
     let body = frame.body();
     let utterance = frame.utterance();
     let policy = *frame.temporal_policy();
@@ -154,9 +171,14 @@ pub fn situate_pete_frame(
     let situation = select_pete_situation(
         instant(frame.reference())?,
         *policy.maximum_current_age_ticks(),
-        battery_observation
-            .clone()
-            .map_or(SituationInput::Missing, SituationInput::Observed),
+        match frame.battery() {
+            PeteCognitionBatteryInput::Unavailable(source) => SituationInput::Unavailable {
+                source_identity: source.source_identity().clone(),
+            },
+            _ => battery_observation
+                .clone()
+                .map_or(SituationInput::Missing, SituationInput::Observed),
+        },
         SituationInput::Observed(Observed {
             value: utterance.content().clone(),
             sign_id: utterance.sign().get().as_str().into(),

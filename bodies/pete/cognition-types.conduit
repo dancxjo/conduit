@@ -18,8 +18,15 @@ type PeteCognitionSafety = {
     motion_available: Boolean
     safety_inhibited: Boolean
 }
+type PeteCognitionBatteryInput =
+    missing
+    | observed PeteCognitionBattery
+    | unavailable {
+        source_identity: Text <= 128B not in [""]
+    }
+
 type PeteCognitionFrame = {
-    battery: PeteCognitionBattery?
+    battery: PeteCognitionBatteryInput
     body: PeteCognitionSafety?
     utterance: PeteCognitionUtterance
     reference: TemporalInstant

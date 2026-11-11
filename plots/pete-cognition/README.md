@@ -72,3 +72,7 @@ CONDUIT_PETE_CREATE_SERIAL=/dev/ttyUSB0 \
 The probe starts and pauses a bounded sensor stream for each sample. It
 supplies typed test utterances and carries unknown motion safety when a separate
 safety observation is unavailable.
+
+If a sensor read fails and the stream pauses successfully, the proof records
+unavailable battery evidence with the Create source identity. The Play can
+process the utterance and resume battery observation on a later frame.
