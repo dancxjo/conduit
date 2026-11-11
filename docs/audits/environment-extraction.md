@@ -278,4 +278,5 @@ Focused extraction PR #6867 passed its complete Candidate matrix and merged to
 its later linked/static selector, pack-only quantity codec, typed retention,
 and shared TM1637 realization. Those follow-ups avoid restoring decoded schema
 copies or the removed Body-local display generator when reconciling the focused
-extraction. External dependency versions and checksums match the accepted base.
+extraction. Every external package shared with the accepted base retains its version and
+checksum; additional existing entries fund integration-only runtime features.
