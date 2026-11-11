@@ -8,8 +8,8 @@ use conduit_pete::{
     PeteCognitionFrame, PeteCognitionSign, PeteCognitionUtterance, UartProfile,
 };
 use conduit_planner::{
-    default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
-    ForeBoundaryKey, PlanningOptions,
+    default_expanded_placements, plan_expanded_authoring_with_connection_limits,
+    ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions,
 };
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_std_host::{

@@ -1934,6 +1934,8 @@ dependencies = [
  "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-text",
+ "conduit-time",
+ "conduit-web",
  "serde",
  "serde-json-core",
  "serde_json",

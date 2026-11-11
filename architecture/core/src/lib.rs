@@ -89,6 +89,7 @@ mod temporal;
 mod temporal_civil_conversion;
 mod temporal_clock;
 mod temporal_quantity;
+mod temporal_view;
 mod terminal_info;
 mod value_constraint;
 
@@ -163,6 +164,7 @@ pub use temporal::*;
 pub use temporal_civil_conversion::*;
 pub use temporal_clock::*;
 pub use temporal_quantity::*;
+pub use temporal_view::*;
 pub use terminal_info::*;
 pub use unit::*;
 pub use value_constraint::*;

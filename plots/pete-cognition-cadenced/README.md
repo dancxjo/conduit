@@ -49,6 +49,12 @@ bounded model context, invokes the model, and returns typed episode outcomes thr
 the existing memory cell. Instructions and evidence occupy separate fields in the
 generic typed generation context; the provider adapter preserves those roles.
 The complete encoded context, including its envelope, must fit the 4 KiB bound.
+Reflection captures exact experience/memory bytes, uses the existing temporal
+Flow and context selector, and transmits selected complete history items with
+source/time provenance and explicit omissions. The Plot authors the retrieval
+controls; no kept control cell adds an unrelated lifetime to this finite demo.
+The [shared retrieval contract](../pete-cognition/README.md) describes the
+2 KiB byte-charge history policy and separate prepared transport bounds.
 
 Each internal Cord and Fore has one queued item with an exact finite byte
 reservation. The finite coalescer accepts closing input and does not invent a
