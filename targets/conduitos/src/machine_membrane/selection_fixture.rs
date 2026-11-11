@@ -1,7 +1,7 @@
 //! Shared exact-selection fixture for cooperative Host Call contract tests.
 use alloc::{format, vec};
 use conduit_core::*;
-use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
 pub(crate) fn selected(
     scope: &BaseCapabilityScope,
@@ -115,6 +115,6 @@ pub(crate) fn selected(
     };
     let fragment = seal_plan(identity, vec![fragment]).fragments.remove(0);
     let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
-    let lowered = lower_plan_fragment(&fragment).unwrap();
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&fragment).unwrap();
     (fragment, lowered, active, placement)
 }
