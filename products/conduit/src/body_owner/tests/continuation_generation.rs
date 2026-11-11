@@ -1,12 +1,41 @@
 //! Owner export generation gate with real admission and sealed-file verification.
 //! This fixture deliberately lacks original IMAGE-funded retained Source custody:
 //! reaching that refusal is not positive signed-export or execution evidence.
-use super::member_leave::{admit_with_key, owner_fixture};
+use super::member_leave::{admit_advertisement, owner_fixture};
 use super::*;
 use crate::durable_host::{self as installed, source_continuation as output};
 use conduit_body::{continuation_recipe as recipe, ContinuationBundleEntry};
 use sha2::{Digest, Sha256};
 use std::{fs, path::Path};
+
+fn admit_compact_member(
+    owner: &mut Owner,
+    root: &Path,
+    name: &str,
+) -> (
+    conduit_body::MembershipCredential,
+    conduit_core::HostAdvertisement,
+) {
+    let host = StdHost::new_with_config(StdHostConfig {
+        host_id: name.into(),
+        boot_id: format!("boot/{name}/1").into(),
+        offer_generation: OfferGeneration(1),
+    });
+    let checked = source();
+    let mut advertisement = host.advertisement().clone();
+    // Select the actual offered subset before the signed admission and current
+    // observation. Never mutate accepted offers or enlarge the file bound.
+    advertisement.capabilities.retain(|offer| {
+        checked
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id == offer.kind_id)
+    });
+    assert!(!advertisement.capabilities.is_empty());
+    let (credential, _, advertisement) = admit_advertisement(owner, root, name, advertisement);
+    (credential, advertisement)
+}
 
 fn sealed_selection(
     root: &Path,
@@ -74,6 +103,11 @@ fn sealed_selection(
     };
     installed::write_json_atomic(&root.join("manifest.json"), &manifest).unwrap();
     installed::write_json_atomic(&root.join("member.json"), member).unwrap();
+    assert!(
+        fs::metadata(root.join("member.json")).unwrap().len()
+            <= installed::MAXIMUM_BODY_ADMISSION_BYTES,
+        "fixture member must fit the unchanged production admission file bound"
+    );
     output::OutputSelection {
         host_id: member.credential.host_id.as_str().into(),
         member_basis: root.join("member.json"),
@@ -101,8 +135,8 @@ fn sealed_selection(
 #[test]
 fn member_local_generation_one_passes_global_membership_revision_gate_without_granting_source() {
     let (mut owner, root) = owner_fixture();
-    let (credential, _, ad) = admit_with_key(&mut owner, &root, "host/continuation-member");
-    admit_with_key(&mut owner, &root, "host/continuation-sibling");
+    let (credential, ad) = admit_compact_member(&mut owner, &root, "host/continuation-member");
+    admit_compact_member(&mut owner, &root, "host/continuation-sibling");
     assert!(owner.session.evidence().membership.revision.0 > 1);
     let member = crate::durable_host::owner::MemberPresentationBasis::new(credential, ad).unwrap();
     let selection = sealed_selection(&root, &member);
