@@ -84,6 +84,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
     factory: Factory<'a, 'f>,
     target: &mut Option<crate::play::ContinuationStarted<'a, 'f>>,
     scopes_target: &mut Option<crate::play_service::Scopes>,
+    activity_target: &mut Option<&'a conduit_mcu_host_runtime::native_runner::NativeActivity>,
 ) -> Result<(), &'static str> {
     let Factory {
         residents,
@@ -103,6 +104,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
         diagnostic,
     } = factory;
     let pools = held(equipment)?;
+    *activity_target = Some(&equipment.activity);
     let mut prepared_slot = None;
     let future = async {
         let context = ContinuationNativeContext::check_installation(

@@ -21,6 +21,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
     factory: Factory<'a, 'f>,
     target: &mut Option<crate::play::ContinuationStarted<'a, 'f>>,
     scopes: &mut Option<crate::play_service::Scopes>,
+    activity: &mut Option<&'a conduit_mcu_host_runtime::native_runner::NativeActivity>,
 ) -> Result<(), &'static str> {
     // This small owned Boot text is the only cloned Root identity. Decoder
     // scratch retires before the one-use mutable Root take.
@@ -29,7 +30,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
     }
     let boot = root.actual().boot_id.0.clone();
     let verified = {
-        let mut scratch = alloc::vec![0u8;8192];
+        let mut scratch = scratch_buffer(8192)?;
         root.verify_installed_continuation_boot_digest(
             &installed.acceptance,
             installed.prefix,
@@ -120,8 +121,8 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
         {
             return Err("continuation-scratch-budget");
         }
-        let mut scratch = alloc::vec![0u8;size];
-        let mut decode = alloc::vec![0u8;8192];
+        let mut scratch = scratch_buffer(size)?;
+        let mut decode = scratch_buffer(8192)?;
         let artifact = installed
             .acceptance
             .artifact(
@@ -184,6 +185,16 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
         factory,
         target,
         scopes,
+        activity,
     )
     .await
+}
+
+fn scratch_buffer(length: usize) -> Result<alloc::vec::Vec<u8>, &'static str> {
+    let mut bytes = alloc::vec::Vec::new();
+    bytes
+        .try_reserve_exact(length)
+        .map_err(|_| "continuation-scratch-capacity")?;
+    bytes.resize(length, 0);
+    Ok(bytes)
 }

@@ -8,6 +8,10 @@ pub fn emit_to(out: &Path) -> std::io::Result<()> {
     for (name, source) in [
         ("runtime", include_str!("source_composition/runtime.rs")),
         (
+            "runtime_transactions",
+            include_str!("source_composition/runtime_transactions.rs"),
+        ),
+        (
             "runtime_continuation",
             include_str!("source_composition/runtime_continuation.rs"),
         ),
