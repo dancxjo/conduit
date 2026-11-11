@@ -50,6 +50,10 @@ macro_rules! pin {
         }
     };
 }
+pub type Started<'a,'f> = conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
+    (SamplingBound<'a,'f>,conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,OutputBound<'a,'f>),
+    conduit_mcu_host_runtime::execution_mask::RendererService<'a,crate::renderer::Clock>,
+)>;
 pub const SOURCE_DIGEST: [u8; 32] = source::SOURCE_SHA256;
 pub const PINS: [b::ContinuationBundleEntry<'static>; 3] = [
     pin!(sampling, sampling_layout),

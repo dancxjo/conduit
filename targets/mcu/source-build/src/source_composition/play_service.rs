@@ -12,6 +12,10 @@ use conduit_mcu_host_runtime::{
     execution_workset::{PreparedLocalKernels, PreparedLocalWorkset, StartedLocalWorkset},
 };
 
+mod continuation_start {
+    include!(concat!(env!("OUT_DIR"), "/source_play_continuation_start.rs"));
+}
+pub use continuation_start::start_continuation_into;
 mod presentation {
     include!(concat!(env!("OUT_DIR"), "/source_play_presentation.rs"));
 }
