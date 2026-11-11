@@ -8,7 +8,7 @@ use conduit_mcu_host_runtime::{
     execution_authority::Operation, execution_factory::SoftwareInventory,
     execution_group::NativeContracts,
 };
-pub struct Factory<'a, 'f> {
+pub struct Factory<'a, 'f, 'diagnostic> {
     pub residents: &'a mut crate::resident::generated::Initialized,
     pub software: &'a mut SoftwareInventory<'f, { source::sampling::NODE_COUNT }>,
     pub output_software: &'a mut SoftwareInventory<'f, { source::output::NODE_COUNT }>,
@@ -23,7 +23,7 @@ pub struct Factory<'a, 'f> {
     pub reader: Reader<'a>,
     pub face: &'a LocalPublicationFace,
     pub append_output_bytes: usize,
-    pub diagnostic: &'a mut heapless::String<192>,
+    pub diagnostic: &'diagnostic mut heapless::String<192>,
 }
 fn held(
     equipment: &crate::equipment::Equipment,
@@ -81,7 +81,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
     scope: &'scope b::FreshContinuationScope<'w>,
     resources: &mut c::ResourceAdmissionOwner,
     policy: Policy<'_>,
-    factory: Factory<'a, 'f>,
+    factory: Factory<'a, 'f, '_>,
     target: &mut Option<crate::play::ContinuationStarted<'a, 'f>>,
     scopes_target: &mut Option<crate::play_service::Scopes>,
     activity_target: &mut Option<&'a conduit_mcu_host_runtime::native_runner::NativeActivity>,

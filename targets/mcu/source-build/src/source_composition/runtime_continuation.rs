@@ -18,7 +18,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
     root: &mut Root<'_, { crate::config::MAX_ASSIGNMENT_BYTES }>,
     installed: &Installed<'_>,
     policy: Policy<'_>,
-    factory: Factory<'a, 'f>,
+    factory: Factory<'a, 'f, '_>,
     target: &mut Option<crate::play::ContinuationStarted<'a, 'f>>,
     scopes: &mut Option<crate::play_service::Scopes>,
     activity: &mut Option<&'a conduit_mcu_host_runtime::native_runner::NativeActivity>,
