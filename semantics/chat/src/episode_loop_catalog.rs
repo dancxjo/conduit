@@ -156,7 +156,7 @@ pub fn episode_model_context_contract() -> Kind {
     use PortDirection::{Input, Output};
     kind(
         "body/episode-model-context",
-        "conduit.body/episode-model-context@2",
+        "conduit.body/episode-model-context@3",
         vec![flow(
             "recollection",
             type_kind(episode_recollection_type()),
@@ -263,7 +263,7 @@ pub fn episode_resumable_memory_contract(initial: &[u8]) -> Result<Kind, crate::
     crate::EpisodeMemoryCell::from_checkpoint(initial)?;
     let mut contract = episode_memory_semantic_contract();
     contract.kind_id = kind_id(EPISODE_RESUMABLE_MEMORY_KIND);
-    contract.kind_contract_revision = "conduit.body/episode-memory-resume@2".into();
+    contract.kind_contract_revision = "conduit.body/episode-memory-resume@3".into();
     for law in &mut contract.semantic_laws {
         if let KindSemanticLaw::InitializedState(law) = law {
             law.initial = initial.to_vec();

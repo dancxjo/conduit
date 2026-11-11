@@ -50,8 +50,9 @@ pub const EPISODE_PROMPT_SCHEMA: &str = "conduit.body/episode-prompt@1";
 pub const MAXIMUM_EPISODE_RECALL: usize = 4;
 pub const MAXIMUM_EPISODE_PROMPT_BYTES: usize = 4_096;
 pub const MAXIMUM_EPISODE_OBSERVATION_BYTES: usize = 1_024;
-pub const MAXIMUM_EPISODE_CHECKPOINT_BYTES: usize = 4096;
 pub const MAXIMUM_EPISODE_MEMORY_BYTES: usize = 8_192;
+// Persistence must preserve the resident cell's admitted retention policy.
+pub const MAXIMUM_EPISODE_CHECKPOINT_BYTES: usize = MAXIMUM_EPISODE_MEMORY_BYTES;
 pub const MAXIMUM_EPISODE_RECORD_BYTES: usize = 8_192;
 pub const MAXIMUM_EPISODE_RESULT_BYTES: usize =
     conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES as usize;
@@ -210,7 +211,8 @@ impl EpisodeComposer {
                 selected_experience,
             );
             let encoded = serde_json::to_vec(&prompt).map_err(|_| EpisodeRefusal::Encoding)?;
-            if encoded.len() <= MAXIMUM_EPISODE_PROMPT_BYTES {
+            let context_len = episode_prompt::model_context(prompt)?.len();
+            if encoded.len().max(context_len) <= MAXIMUM_EPISODE_PROMPT_BYTES {
                 break encoded;
             }
             if first == memories.len() {

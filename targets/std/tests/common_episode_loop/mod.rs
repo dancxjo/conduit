@@ -60,7 +60,11 @@ impl HostedLocalModelAdapter for FencedFakeEpisodeModel {
                 return terminal;
             }
         }
-        let prompt: serde_json::Value = serde_json::from_slice(input).unwrap();
+        let text = core::str::from_utf8(input).unwrap();
+        let context = conduit_ai::decode_generation_context(text).unwrap();
+        let prompt: serde_json::Value =
+            serde_json::from_str(context.as_ref().map(|c| c.data().as_str()).unwrap_or(text))
+                .unwrap();
         let answer = if let Some(evidence) = prompt["evidence"].as_array() {
             format!("{} selected evidence items", evidence.len())
         } else {
@@ -385,4 +389,16 @@ pub fn terminal(report: &StdRunReport) -> &TerminalDisposition {
         Some(ObservationKind::PlanTerminal { disposition }) => disposition,
         other => panic!("missing Plan terminal: {other:?}"),
     }
+}
+
+/// Inspect evidence while retaining the exact provider wire in recorded requests.
+pub fn request_data(request: &str) -> serde_json::Value {
+    let context = conduit_ai::decode_generation_context(request).unwrap();
+    serde_json::from_str(
+        context
+            .as_ref()
+            .map(|c| c.data().as_str())
+            .unwrap_or(request),
+    )
+    .unwrap()
 }

@@ -2,8 +2,16 @@
 use crate::process::Step;
 
 pub const STEPS: &[Step] = &[
+    Step::new("pete-cognition.model-context", "Check bounded instruction and evidence separation", "cargo",
+        &["test", "--locked", "-p", "conduit-ai", "--lib", "generation_context"]),
+    Step::new("pete-cognition.model-provenance", "Check that model run identities remain distinct across Host replacement", "cargo",
+        &["test", "--locked", "-p", "conduit-std-host", "--lib", "ollama::run_identity"]),
+    Step::new("pete-cognition.durable-envelope", "Check exact journal profiles, generation publication, and crash recovery", "cargo",
+        &["test", "--locked", "-p", "conduit-std-host", "--lib", "state_value::durable"]),
+    Step::new("pete-cognition.patchbay-projection", "Check Patchbay projection and realization disclosure", "cargo",
+        &["test", "--locked", "-p", "patchbay-application", "--lib"]),
     Step::new("pete-cognition.cadence", "Run reaction, attention, and bounded reflection in one Play under provider delay and loss", "cargo",
-        &["test", "--locked", "-p", "xtask", "--test", "pete_cadence"]),
+        &["test", "--locked", "-p", "xtask", "--test", "pete_cadence", "--test", "pete_cognition_cli"]),
     Step::new("pete-cognition.finite-sampling", "Check finite Current sampling and source closure through the installed kernel", "cargo",
         &["test", "--locked", "-p", "conduit-std-host", "--lib", "current_sample_finite"]),
     Step::new("pete-cognition.ownership", "Check that foundational crates do not depend on Pete", "cargo",
@@ -56,6 +64,8 @@ pub const LIVE: &[Step] = &[
             "xtask",
             "--test",
             "experience_episode_loop",
+            "--test",
+            "pete_cognition_cli",
             "--",
             "--ignored",
             "--nocapture",

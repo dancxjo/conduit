@@ -570,7 +570,7 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
     let requests = requests.lock().unwrap();
     assert_eq!(requests.len(), 2);
     for (index, request) in requests.iter().enumerate() {
-        let request: serde_json::Value = serde_json::from_str(request).unwrap();
+        let request: serde_json::Value = common::request_data(request);
         let recorded: serde_json::Value =
             serde_json::from_str(episodes[index].evidence().as_ref().unwrap()).unwrap();
         assert_eq!(recorded, request["selected_experience"]);
@@ -586,7 +586,7 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
         assert_eq!(homeostasis["charge_percent"], ["50.0%", "9.0%"][index]);
         assert_eq!(homeostasis["charging"], revision == 1);
     }
-    let second: serde_json::Value = serde_json::from_str(&requests[1]).unwrap();
+    let second: serde_json::Value = common::request_data(&requests[1]);
     let historical = &second["recalled"][0]["historical_evidence"];
     assert_eq!(historical["revision"], 1);
     assert_eq!(
@@ -755,7 +755,7 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
 
     let requests = harness.requests.lock().unwrap();
     assert_eq!(requests.len(), 2);
-    let second: serde_json::Value = serde_json::from_str(&requests[1]).unwrap();
+    let second: serde_json::Value = common::request_data(&requests[1]);
     let selected = &second["selected_experience"];
     assert_eq!(selected["revision"], 2);
     assert_eq!(
@@ -945,10 +945,10 @@ fn pete_retrieves_the_matching_episode_past_a_newer_unrelated_one() {
         .contains("COPPER KITE"));
 
     let requests = requests.lock().unwrap();
-    let follow_up: serde_json::Value = serde_json::from_str(&requests[2]).unwrap();
+    let follow_up: serde_json::Value = common::request_data(&requests[2]);
     assert_eq!(follow_up["recalled"][0]["shared_observation_terms"], 3);
     assert!(!requests[2].contains("garden"));
-    let battery_query: serde_json::Value = serde_json::from_str(&requests[3]).unwrap();
+    let battery_query: serde_json::Value = common::request_data(&requests[3]);
     let recalled = battery_query["recalled"].as_array().unwrap();
     assert!(recalled.iter().any(|memory| {
         let item = &memory["historical_evidence"]["evidence"][0];
@@ -986,7 +986,7 @@ fn pete_recalls_the_earlier_battery_percentage_with_its_source() {
     .unwrap();
     assert_eq!(terminal(&report), &TerminalDisposition::Completed);
     let requests = requests.lock().unwrap();
-    let second: serde_json::Value = serde_json::from_str(&requests[1]).unwrap();
+    let second: serde_json::Value = common::request_data(&requests[1]);
     let recalled = &second["recalled"][0]["historical_evidence"];
     assert_eq!(recalled["revision"], 1);
     let body = &recalled["evidence"][0];
@@ -1081,7 +1081,7 @@ fn pete_records_provider_loss_and_resumes_in_the_same_play() {
         *outcome_recall.recalled().get().last().unwrap().episode(),
         2
     );
-    let outcome_prompt: serde_json::Value = serde_json::from_str(&requests[4]).unwrap();
+    let outcome_prompt: serde_json::Value = common::request_data(&requests[4]);
     assert_eq!(
         outcome_prompt["recalled"]
             .as_array()
@@ -1090,7 +1090,7 @@ fn pete_records_provider_loss_and_resumes_in_the_same_play() {
             .unwrap()["model_outcome"]["disposition"],
         "provider_lost"
     );
-    let prompt: serde_json::Value = serde_json::from_str(&requests[3]).unwrap();
+    let prompt: serde_json::Value = common::request_data(&requests[3]);
     assert!(prompt["recalled"][0].get("response").is_none());
     assert_eq!(
         prompt["recalled"][0]["model_outcome"]["origin"],

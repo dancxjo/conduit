@@ -22,6 +22,7 @@ mod discovery;
 mod generation_worker;
 mod protocol;
 mod request;
+mod run_identity;
 mod runtime_state;
 mod work_budget;
 pub use discovery::OllamaDiscovery;
@@ -378,8 +379,8 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                 conduit_ai::LOCAL_MODEL_IMPLEMENTATION,
                 self.offer.identity.model_content_identity
             ),
-            request_identity: format!("request/local-model/{sequence}"),
-            run_identity: format!("run/local-model/{sequence}"),
+            request_identity: run_identity::identity("request", placement, sequence),
+            run_identity: run_identity::identity("run", placement, sequence),
             confidence: None,
             disposition: if truncated {
                 ModelResultDisposition::Truncated

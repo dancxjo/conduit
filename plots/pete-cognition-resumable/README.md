@@ -11,7 +11,7 @@ the reviewed homeostasis policy to add derived energy and safety context while
 preserving the raw observations.
 
 The checkpoint holds the completed episode count and at most four selected
-observations and actual attempt outcomes, within 4 KiB. Oldest entries are evicted as needed
+observations and actual attempt outcomes, within the same 8 KiB bound as resident memory. Oldest entries are evicted as needed
 to fit. Recovery checks the owner and count before any recalled history can enter
 a model request. A replacement Play continues the episode count in the same Wake.
 Recovery upgrades the previous successful-only checkpoint profiles. Selected

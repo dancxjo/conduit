@@ -127,3 +127,8 @@ The second invocation starts a replacement Play with the same Body and Wake.
 Episode numbers continue from the last committed checkpoint. One process at a
 time can use a checkpoint directory. The command waits for the episode and its
 checkpoint before submitting another utterance.
+
+For independent attention updates and explicit reflection positions, use the
+[three-Form composition](../pete-cognition-cadenced/README.md) with
+`--reflection-after`. Its source, model bounds, checkpoint retention, and
+Patchbay trace are verified by the same cognition checks.

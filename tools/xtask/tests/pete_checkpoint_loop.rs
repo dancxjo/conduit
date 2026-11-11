@@ -172,3 +172,149 @@ fn assert_checkpoint_recall(provider_lost: bool, live_recovery: bool) {
         second_play.as_str()
     );
 }
+
+#[test]
+fn pete_checkpoint_keeps_an_answering_experience_after_retaining_its_followup_question() {
+    const SOURCE: &str = include_str!("../../../plots/pete-cognition-resumable/main.conduit");
+    let initial = conduit_chat::initial_episode_memory();
+    let mut harness = pete_harness_for(
+        common::fenced_model().0,
+        SOURCE,
+        "pete-cognition-resumable",
+        Some(&initial),
+    );
+    let mut incoming = inputs(&[]);
+    incoming.extend([
+        frame_input(frame(1, "The hallway switch label is COPPER KITE.", true)),
+        frame_input(frame(2, "What was the hallway switch label?", true)),
+    ]);
+    let mut collector = Collector::default();
+    let report = run(
+        &mut harness,
+        &incoming,
+        &mut collector,
+        &RunControl::default(),
+    )
+    .unwrap();
+    assert_eq!(terminal(&report), &TerminalDisposition::Completed);
+    let checkpoint = collector
+        .0
+        .iter()
+        .rev()
+        .find(|item| item.front_port_id.as_str() == "checkpoints")
+        .unwrap()
+        .bytes
+        .to_vec();
+    let state = conduit_chat::decode_episode_checkpoint(&checkpoint).unwrap();
+    assert_eq!(
+        state
+            .memories()
+            .get()
+            .iter()
+            .map(|memory| *memory.episode())
+            .collect::<Vec<_>>(),
+        vec![1, 2]
+    );
+    let first_plan = harness.plan_id;
+    let mut resumed = pete_harness_for(
+        common::fenced_model().0,
+        SOURCE,
+        "pete-cognition-resumable",
+        Some(&checkpoint),
+    );
+    assert_ne!(first_plan, resumed.plan_id);
+    let mut incoming = inputs(&[]);
+    incoming.push(frame_input(frame(
+        3,
+        "What was the hallway switch label?",
+        false,
+    )));
+    let mut collector = Collector::default();
+    let report = run(
+        &mut resumed,
+        &incoming,
+        &mut collector,
+        &RunControl::default(),
+    )
+    .unwrap();
+    assert_eq!(terminal(&report), &TerminalDisposition::Completed);
+    let episode = collector
+        .0
+        .iter()
+        .find(|item| item.front_port_id.as_str() == "episodes")
+        .unwrap();
+    let episode = conduit_chat::EpisodeRecord::decode(&episode.bytes).unwrap();
+    assert_eq!(*episode.episode(), 3);
+    assert!(episode
+        .recalled()
+        .get()
+        .iter()
+        .any(|memory| *memory.episode() == 1));
+}
+
+#[test]
+fn pete_checkpoint_upgrades_the_previous_current_schema_residence_without_losing_provenance() {
+    use conduit_std_host::{
+        episode_checkpoint::EpisodeCheckpointResidence,
+        state_value::{DurableStateBinding, FileDurableStateResidence},
+    };
+    const SOURCE: &str = include_str!("../../../plots/pete-cognition-resumable/main.conduit");
+    let initial = conduit_chat::initial_episode_memory();
+    let mut harness = pete_harness_for(
+        common::fenced_model().0,
+        SOURCE,
+        "pete-cognition-resumable",
+        Some(&initial),
+    );
+    let mut incoming = inputs(&[]);
+    incoming.push(frame_input(frame(
+        1,
+        "The hallway label is COPPER KITE.",
+        true,
+    )));
+    let mut collector = Collector::default();
+    run(
+        &mut harness,
+        &incoming,
+        &mut collector,
+        &RunControl::default(),
+    )
+    .unwrap();
+    let checkpoint = collector
+        .0
+        .iter()
+        .rev()
+        .find(|item| item.front_port_id.as_str() == "checkpoints")
+        .unwrap()
+        .bytes
+        .to_vec();
+    assert!(checkpoint.len() <= 4096);
+    let context = common::context();
+    let directory = std::env::temp_dir().join(format!(
+        "conduit-episode-current-profile-upgrade-{}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&directory).unwrap();
+    let previous = FileDurableStateResidence::open(
+        &directory,
+        DurableStateBinding {
+            body: context.body_id.as_str().into(),
+            state: format!("body/episode-checkpoint/{}", context.wake_id.as_str()).into(),
+            value_kind: conduit_chat::episode_memory_state_type()
+                .profile()
+                .unwrap()
+                .value_kind()
+                .clone(),
+            maximum_value_bytes: 4096,
+        },
+    )
+    .unwrap();
+    previous.commit(1, &checkpoint).unwrap();
+    let current = EpisodeCheckpointResidence::open(&directory, &context).unwrap();
+    assert_eq!(current.recover_seed().unwrap(), checkpoint);
+    drop(current);
+    let reopened = EpisodeCheckpointResidence::open(&directory, &context).unwrap();
+    assert_eq!(reopened.recover_seed().unwrap(), checkpoint);
+    drop(reopened);
+    std::fs::remove_dir_all(directory).unwrap();
+}

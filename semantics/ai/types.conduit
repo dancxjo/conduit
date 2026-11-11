@@ -1838,3 +1838,9 @@ type EvaluationPolicy =
     none
     | every_steps U64
     | at_completion
+
+# Instructions and evidence remain distinct at the provider boundary.
+type GenerationContext = {
+    data: Text <= 1MiB not in [""]
+    instruction: Text <= 1024B not in [""]
+}

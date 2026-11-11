@@ -215,7 +215,8 @@ fn property_belongs_to_aspect(
             | "line"
             | "base"
             | "base-instance-id"
-    ) || name.starts_with("resource-");
+    ) || name.starts_with("resource-")
+        || name.starts_with("maximum-");
     let playing =
         matches!(name, "active-play-id" | "play-state" | "pressure") || name.starts_with("sign-");
 
@@ -230,4 +231,48 @@ fn property_belongs_to_aspect(
 
 fn ordinal(index: usize) -> Result<u16, String> {
     u16::try_from(index).map_err(|_| "Face item ordinal exceeds u16".to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn bounded_realization_limits_belong_to_plan_and_pressure_to_play() {
+        for name in [
+            "maximum-in-flight",
+            "maximum-input-bytes",
+            "maximum-queue-items",
+        ] {
+            let property = FaceProperty {
+                subject: "gear/model".into(),
+                name: name.into(),
+                value: conduit_face::FacePropertyValue::Count(1),
+            };
+            assert!(property_belongs_to_aspect(
+                &property,
+                FaceAspect::Plan,
+                Some(FaceRole::Gear)
+            ));
+            assert!(!property_belongs_to_aspect(
+                &property,
+                FaceAspect::Structure,
+                Some(FaceRole::Gear)
+            ));
+        }
+        let property = FaceProperty {
+            subject: "cord/current".into(),
+            name: "pressure".into(),
+            value: conduit_face::FacePropertyValue::Text("policy: coalesce-latest".into()),
+        };
+        assert!(property_belongs_to_aspect(
+            &property,
+            FaceAspect::Play,
+            Some(FaceRole::Cord)
+        ));
+        assert!(!property_belongs_to_aspect(
+            &property,
+            FaceAspect::Plan,
+            Some(FaceRole::Cord)
+        ));
+    }
 }

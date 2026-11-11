@@ -22,6 +22,11 @@ use conduit_std_host::{
 };
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 use std::{collections::BTreeMap, path::PathBuf, sync::mpsc};
+mod cadenced;
+mod output;
+mod planning;
+use output::EpisodeOutput;
+use planning::{authoring, checkpoint_context, context, plan};
 
 #[derive(Args, Debug)]
 pub(super) struct StdCognitionArgs {
@@ -31,7 +36,7 @@ pub(super) struct StdCognitionArgs {
     /// One human utterance per episode, in order.
     #[arg(long, required = true)]
     utterance: Vec<String>,
-    /// Retain the supplied utterances for recall within this Play.
+    /// Retain reflected utterances for recall within this Play.
     #[arg(long)]
     retain: bool,
     /// Write a new browser Patchbay replay for the completed Play.
@@ -43,6 +48,9 @@ pub(super) struct StdCognitionArgs {
     /// Resume the same Body and Wake from this checkpoint directory.
     #[arg(long)]
     checkpoint_dir: Option<PathBuf>,
+    /// Reflect after these 1-based utterance positions, in increasing order.
+    #[arg(long)]
+    reflection_after: Vec<usize>,
 }
 
 const SOURCE: &str = include_str!("../../../../plots/pete-cognition/main.conduit");
@@ -60,12 +68,23 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
     {
         return Err("supply 1 to 16 nonblank utterances of at most 256 UTF-8 bytes each".into());
     }
+    if !args.reflection_after.is_empty() {
+        cadenced::validate_positions(&args.reflection_after, args.utterance.len())?;
+    }
     if dry_run {
         println!(
-            "Pete cognition will submit {} utterances to one Play.",
-            args.utterance.len()
+            "Pete cognition will submit {} utterances and {} reflection triggers to one Play.",
+            args.utterance.len(),
+            if args.reflection_after.is_empty() {
+                args.utterance.len()
+            } else {
+                args.reflection_after.len()
+            }
         );
         return Ok(());
+    }
+    if !args.reflection_after.is_empty() {
+        return cadenced::run(args);
     }
     let mut provider = args
         .serial_path
@@ -203,14 +222,7 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
         let closed = input.close();
         result.and(closed)
     });
-    let mut output = EpisodeOutput {
-        delivered,
-        archive,
-        journal,
-        checkpoint_episode: completed,
-        delivered_episode: completed,
-        acknowledged_episode: completed,
-    };
+    let mut output = EpisodeOutput::new(Some(delivered), archive, journal, completed);
     let report = host.run_external_plot_live_to(
         fragment.clone(),
         &queue,
@@ -219,7 +231,7 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
         &mut ThreadTimer,
         &control,
     );
-    let acknowledged_episode = output.acknowledged_episode;
+    let acknowledged_episode = output.acknowledged_episode();
     drop(output);
     let input_result = producer
         .join()
@@ -256,129 +268,28 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
     Ok(())
 }
 
-struct EpisodeOutput {
-    delivered: mpsc::Sender<()>,
-    archive: Option<std::fs::File>,
-    journal: Option<EpisodeCheckpointResidence>,
-    checkpoint_episode: u64,
-    delivered_episode: u64,
-    acknowledged_episode: u64,
-}
-
-impl ExternalForeOutputAdapter for EpisodeOutput {
-    fn deliver(&mut self, delivery: ExternalForeDelivery) -> Result<(), String> {
-        if delivery.front_port_id.as_str() == "checkpoints" {
-            let journal = self.journal.as_ref().ok_or("unexpected Pete checkpoint")?;
-            let memory = conduit_chat::decode_episode_checkpoint(&delivery.bytes)
-                .map_err(|error| format!("decode Pete checkpoint: {error:?}"))?;
-            journal.commit(&delivery.bytes)?;
-            self.checkpoint_episode = *memory.completed();
-            self.acknowledge();
-            return Ok(());
-        }
-        let episode = conduit_chat::EpisodeRecord::decode(&delivery.bytes)
-            .map_err(|error| format!("decode Pete episode: {error:?}"))?;
-        if let Some(archive) = &mut self.archive {
-            archive_episode(archive, &episode, &delivery.bytes)?;
-        }
-        match episode.response() {
-            Some(response) => println!("{}", response.content()),
-            None => eprintln!(
-                "Episode {} ended without a model response.",
-                episode.episode()
-            ),
-        }
-        self.delivered_episode = *episode.episode();
-        self.acknowledge();
-        Ok(())
-    }
-}
-
-impl EpisodeOutput {
-    fn acknowledge(&mut self) {
-        let complete = if self.journal.is_some() {
-            self.checkpoint_episode.min(self.delivered_episode)
-        } else {
-            self.delivered_episode
-        };
-        if complete > self.acknowledged_episode {
-            self.acknowledged_episode = complete;
-            let _ = self.delivered.send(());
-        }
-    }
-}
-
-fn archive_episode(
-    archive: &mut std::fs::File,
-    episode: &conduit_chat::EpisodeRecord,
-    canonical: &[u8],
-) -> Result<(), String> {
-    use conduit_chat::EpisodeOutcome;
-    use std::io::Write;
-
-    let evidence = episode
-        .evidence()
-        .as_deref()
-        .map(serde_json::from_str::<serde_json::Value>)
-        .transpose()
-        .map_err(|error| format!("decode archived episode evidence: {error}"))?;
-    let outcome = match episode.outcome() {
-        EpisodeOutcome::Produced(outcome) => {
-            let response = outcome.response();
-            serde_json::json!({
-                "kind": "produced",
-                "origin": "model_derived",
-                "content": response.content(),
-                "implementation": response.implementation(),
-                "run": response.run(),
-                "truncated": response.truncated(),
-            })
-        }
-        EpisodeOutcome::ProviderLost(outcome) => serde_json::json!({
-            "kind": "provider_lost",
-            "attempt": outcome.attempt(),
-            "implementation": outcome.implementation(),
-        }),
-    };
-    let recalled: Vec<_> = episode
-        .recalled()
-        .get()
-        .iter()
-        .map(|item| item.episode())
-        .collect();
-    let mut line = serde_json::to_vec(&serde_json::json!({
-        "schema": "conduit.pete/episode-archive-row@1",
-        "body_id": episode.body_id(),
-        "wake_id": episode.wake_id(),
-        "wake_sequence": episode.wake_sequence(),
-        "episode": episode.episode(),
-        "observation": {
-            "identity": episode.observation().identity(),
-            "content": episode.observation().content(),
-        },
-        "retained": episode.retained(),
-        "recalled_episodes": recalled,
-        "evidence": evidence,
-        "outcome": outcome,
-        "canonical_episode_bytes": canonical,
-    }))
-    .map_err(|error| format!("encode archived episode: {error}"))?;
-    line.push(b'\n');
-    archive
-        .write_all(&line)
-        .and_then(|()| archive.sync_data())
-        .map_err(|error| format!("commit Pete episode archive row: {error}"))
-}
-
 fn frame(
     provider: Option<&mut StdCreateUartBase>,
     revision: u64,
     utterance: String,
     retain: bool,
 ) -> Result<PeteCognitionFrame, String> {
+    frame_with_namespace(provider, revision, utterance, retain, "")
+}
+fn frame_with_namespace(
+    provider: Option<&mut StdCreateUartBase>,
+    revision: u64,
+    utterance: String,
+    retain: bool,
+    namespace: &str,
+) -> Result<PeteCognitionFrame, String> {
     let sign = |kind| {
-        PeteCognitionSign::new(format!("pete/{kind}/{revision}"))
-            .map_err(|error| format!("Pete source Sign: {error:?}"))
+        PeteCognitionSign::new(if namespace.is_empty() {
+            format!("pete/{kind}/{revision}")
+        } else {
+            format!("pete/{kind}/{revision}/{namespace}")
+        })
+        .map_err(|error| format!("Pete source Sign: {error:?}"))
     };
     let utterance_at = now()?;
     let battery = match provider {
@@ -405,7 +316,11 @@ fn frame(
     PeteCognitionFrame::new(
         battery,
         None,
-        "pete/cognition-cli".into(),
+        if namespace.is_empty() {
+            "pete/cognition-cli".into()
+        } else {
+            format!("pete/cognition-cli/{namespace}")
+        },
         now()?,
         revision,
         conduit_human::ExperienceTemporalPolicy::new(5_000, 10_000)
@@ -425,174 +340,4 @@ fn now() -> Result<NativeTemporalInstant, String> {
         0,
     )
     .map_err(|error| format!("capture instant: {error:?}"))
-}
-
-fn context(
-    authoring: &conduit_plot::ExpandedAuthoringPlot,
-) -> Result<BodyConversationContext, String> {
-    let body = Body::born(
-        authoring.expanded.source_document_id.clone(),
-        authoring.expanded.checked_plot_id.clone(),
-        1,
-        format!("sign/pete/born/{}", std::process::id()).into(),
-    )
-    .map_err(|error| format!("birth Pete: {error:?}"))?;
-    let (_, wake) = body
-        .wake(2, format!("sign/pete/wake/{}", std::process::id()).into())
-        .map_err(|error| format!("wake Pete: {error:?}"))?;
-    Ok(BodyConversationContext {
-        schema: "conduit.body/conversation-context-value@2".into(),
-        display_name: "Pete".into(),
-        body_id: wake.body_id.clone(),
-        wake_id: wake.wake_id.clone(),
-        wake_sequence: 2,
-        basis: BodyConversationContextBasis {
-            body_id: wake.body_id,
-            wake_id: wake.wake_id,
-            wake_sequence: 2,
-            revision: 1,
-        },
-        hosts: vec![],
-        active_plots: vec![authoring.expanded.name.clone()],
-        current_plan_id: None,
-        active_play_id: None,
-        lines: vec![],
-        recent_sign_ids: vec![],
-    })
-}
-
-fn checkpoint_context(
-    root: &std::path::Path,
-    authoring: &conduit_plot::ExpandedAuthoringPlot,
-) -> Result<(BodyConversationContext, std::fs::File), String> {
-    use std::io::{Read, Write};
-
-    let io_error = |error| format!("Pete checkpoint directory {}: {error}", root.display());
-    std::fs::create_dir_all(root).map_err(io_error)?;
-    let lock = std::fs::OpenOptions::new()
-        .create(true)
-        .truncate(false)
-        .read(true)
-        .write(true)
-        .open(root.join("operator.lock"))
-        .map_err(io_error)?;
-    lock.try_lock()
-        .map_err(|error| format!("lock Pete checkpoint directory {}: {error}", root.display()))?;
-    let path = root.join("context.json");
-    let context = match std::fs::File::open(&path) {
-        Ok(file) => {
-            let mut bytes = Vec::new();
-            file.take(32_769)
-                .read_to_end(&mut bytes)
-                .map_err(io_error)?;
-            if bytes.len() > 32_768 {
-                return Err("Pete checkpoint context exceeds its byte bound".into());
-            }
-            serde_json::from_slice(&bytes)
-                .map_err(|error| format!("decode Pete checkpoint context: {error}"))?
-        }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            let context = context(authoring)?;
-            let candidate = root.join("context.pending");
-            let bytes = serde_json::to_vec(&context).map_err(|error| error.to_string())?;
-            let mut file = std::fs::File::create(&candidate).map_err(io_error)?;
-            file.write_all(&bytes)
-                .and_then(|()| file.sync_all())
-                .map_err(io_error)?;
-            std::fs::rename(candidate, path).map_err(io_error)?;
-            std::fs::File::open(root)
-                .and_then(|directory| directory.sync_all())
-                .map_err(io_error)?;
-            context
-        }
-        Err(error) => return Err(io_error(error)),
-    };
-    Ok((context, lock))
-}
-
-fn authoring(checkpoint: Option<&[u8]>) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
-    let mut startup = conduit_plot::StartupCatalog::new();
-    let mut profile = conduit_plot::ProfileCatalog::new();
-    conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
-    conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
-    conduit_chat::install_episode_loop_catalog(&mut startup, &mut profile)?;
-    conduit_pete::install_pete_cognition_catalog(&mut startup, &mut profile)?;
-    let (source, entry) = match checkpoint {
-        Some(checkpoint) => {
-            conduit_chat::install_episode_resumable_memory_catalog(
-                checkpoint,
-                &mut startup,
-                &mut profile,
-            )?;
-            (RESUMABLE_SOURCE, "pete-cognition-resumable")
-        }
-        None => (SOURCE, "pete-cognition"),
-    };
-    let syntax = conduit_plot::parse_syntax_document(source);
-    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
-        .map_err(|error| format!("check Pete Plot: {error:?}"))?;
-    conduit_plot::expand_canonical_plot_for_authoring(&checked, entry, &profile)
-        .map_err(|error| format!("expand Pete Plot: {error:?}"))
-}
-
-fn plan(
-    host: &StdHost,
-    authoring: &conduit_plot::ExpandedAuthoringPlot,
-    resumable: bool,
-) -> Result<PlanFragment, String> {
-    let hosts = [host.advertisement().clone()];
-    let placements = default_expanded_placements(&authoring.expanded, &hosts)
-        .map_err(|error| format!("place Pete Plot: {error:?}"))?;
-    let boundaries = [
-        ("context", PortDirection::Input, 32_768),
-        (
-            "frames",
-            PortDirection::Input,
-            conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
-        ),
-        ("episodes", PortDirection::Output, 32_768),
-    ]
-    .into_iter()
-    .chain(resumable.then_some((
-        "checkpoints",
-        PortDirection::Output,
-        conduit_chat::MAXIMUM_EPISODE_CHECKPOINT_BYTES as u32,
-    )))
-    .map(|(name, direction, byte_capacity)| {
-        (
-            ForeBoundaryKey {
-                direction,
-                front_port_id: name.into(),
-                track: ConnectionTrack::Payload,
-            },
-            ConnectionQueueLimits {
-                item_capacity: 1,
-                byte_capacity,
-            },
-        )
-    })
-    .collect();
-    let mut plan = plan_expanded_authoring_with_options(
-        authoring,
-        &hosts,
-        &placements,
-        &[BaseImplementationId::from("conduit.base/local@1")],
-        PlanningOptions {
-            connection_bases: &BTreeMap::new(),
-            line_candidates: &BTreeMap::new(),
-            connection_item_capacity: 1,
-            connection_byte_capacity: 16_384,
-            authority_grants: &[],
-            protected_resource_grants: &[],
-            line_offers: &[],
-        },
-        &boundaries,
-    )
-    .map_err(|error| format!("plan Pete Plot: {error:?}"))?;
-    if plan.fragments.len() != 1 {
-        return Err("Pete cognition requires one local fragment".into());
-    }
-    plan.fragments
-        .pop()
-        .ok_or_else(|| "Pete Plan lost its fragment".into())
 }

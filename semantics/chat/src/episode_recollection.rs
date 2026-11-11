@@ -78,7 +78,7 @@ pub fn episode_recollection_request(bytes: &[u8]) -> Result<Vec<u8>, EpisodeRefu
             historical_evidence: memory.evidence().as_deref().map(parse).transpose()?,
         });
     }
-    let request = serde_json::to_vec(&prompt(
+    let request = super::episode_prompt::model_context(prompt(
         &body,
         *pending.episode(),
         pending.observation(),
@@ -86,8 +86,7 @@ pub fn episode_recollection_request(bytes: &[u8]) -> Result<Vec<u8>, EpisodeRefu
         evidence
             .as_ref()
             .zip(digest.as_ref().map(|digest| &digest[..])),
-    ))
-    .map_err(|_| EpisodeRefusal::Encoding)?;
+    ))?;
     if request.len() > MAXIMUM_EPISODE_PROMPT_BYTES {
         return Err(EpisodeRefusal::PromptBoundExceeded);
     }

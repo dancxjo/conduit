@@ -358,9 +358,21 @@ fn experience_recall_ranks_observed_terms_and_excludes_model_only_matches() {
         .compose_episode(trigger, memory.current(), Some(b"{}"))
         .unwrap();
     let selected = composer.recollection().unwrap();
+    let wire = episode_recollection_request(&selected).unwrap();
+    assert!(wire.len() <= MAXIMUM_EPISODE_PROMPT_BYTES);
+    let context = conduit_ai::decode_generation_context(core::str::from_utf8(&wire).unwrap())
+        .unwrap()
+        .unwrap();
+    let mut original: serde_json::Value = serde_json::from_slice(composer.request()).unwrap();
+    let instruction = original
+        .as_object_mut()
+        .unwrap()
+        .remove("instruction")
+        .unwrap();
+    assert_eq!(instruction.as_str().unwrap(), context.instruction());
     assert_eq!(
-        episode_recollection_request(&selected).unwrap(),
-        composer.request()
+        original,
+        serde_json::from_str::<serde_json::Value>(context.data()).unwrap()
     );
     let selected = crate::EpisodeRecollection::decode(&selected).unwrap();
     let malformed = crate::EpisodeRecollection::new(

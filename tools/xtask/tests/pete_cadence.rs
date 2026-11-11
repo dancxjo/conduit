@@ -157,9 +157,10 @@ fn pete_cadence_runs_three_forms_and_reflects_less_often_than_events() {
         &mut harness,
         &incoming,
         &mut collector,
-        &RunControl::default(),
+        &RunControl::default().with_debug_body(common::context().body_id),
     )
     .unwrap();
+    replay::assert_replay(&harness, &report);
     assert_eq!(common::terminal(&report), &TerminalDisposition::Completed);
     let count = |name| {
         collector
@@ -387,3 +388,8 @@ fn pete_cadence_keeps_reacting_and_attending_during_slow_provider_loss() {
 
 #[path = "pete_cadence/cancellation.rs"]
 mod cancellation;
+
+#[path = "../src/commands/pete_replay.rs"]
+mod pete_replay;
+#[path = "pete_cadence/replay.rs"]
+mod replay;

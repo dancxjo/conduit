@@ -19,7 +19,7 @@ pub struct EpisodeCheckpointResidence {
 impl EpisodeCheckpointResidence {
     pub fn open(root: &Path, context: &BodyConversationContext) -> Result<Self, String> {
         let wake = context.wake_id.as_str().to_owned();
-        let journal = FileDurableStateResidence::open(
+        let journal = FileDurableStateResidence::open_prepared(
             root,
             DurableStateBinding {
                 body: context.body_id.as_str().into(),
@@ -31,6 +31,7 @@ impl EpisodeCheckpointResidence {
                     .clone(),
                 maximum_value_bytes: MAXIMUM_EPISODE_CHECKPOINT_BYTES as u32,
             },
+            MAXIMUM_EPISODE_CHECKPOINT_BYTES as u32,
         )
         .map_err(|error| format!("open episode residence: {error:?}"))?;
         let residence = Self {
@@ -55,6 +56,13 @@ impl EpisodeCheckpointResidence {
         type Migrate = fn(&[u8]) -> Result<Vec<u8>, conduit_chat::EpisodeRefusal>;
         for (profile, migrate) in [
             (
+                episode_memory_state_type(),
+                (|bytes: &[u8]| {
+                    decode_episode_checkpoint(bytes)?;
+                    Ok(bytes.to_vec())
+                }) as Migrate,
+            ),
+            (
                 episode_checkpoint_v2_type(),
                 migrate_episode_checkpoint_v2 as Migrate,
             ),
@@ -64,6 +72,8 @@ impl EpisodeCheckpointResidence {
             ),
         ] {
             let mut binding = self.journal.binding().clone();
+            // Previous current-schema and legacy-schema journals admitted 4 KiB.
+            binding.maximum_value_bytes = 4096;
             binding.value_kind = profile
                 .profile()
                 .map_err(|error| format!("previous episode memory profile: {error:?}"))?

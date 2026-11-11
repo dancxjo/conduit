@@ -1,4 +1,6 @@
 //! Project the recorded cognition Play into a portable Patchbay snapshot.
+#[path = "pete_replay/realization.rs"]
+mod realization;
 use conduit_body::BodyConversationContext;
 use conduit_browser_patchbay_workbench::RendererSnapshot;
 use conduit_core::{PlanFragment, PortDirection};
@@ -246,6 +248,7 @@ fn pete_replay_snapshot(
             disclosures: &mut disclosures,
         },
     );
+    realization::append(fragment, patchbay, &mut properties)?;
     let face = Face::new_with_semantics(
         1,
         FaceBasis {
