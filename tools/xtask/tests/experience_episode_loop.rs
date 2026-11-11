@@ -302,7 +302,7 @@ fn assert_pete_create_serial_play(missing_first_capacity: bool) {
         let mut capture_ticks = Vec::new();
         for (index, message) in [
             "The hallway switch label is COPPER KITE.",
-            "What exact label did I report for the hallway switch?",
+            "What was the switch label?",
         ]
         .into_iter()
         .enumerate()
