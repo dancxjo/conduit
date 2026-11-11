@@ -7,10 +7,24 @@ publish = false
 [workspace]
 
 [dependencies]
+conduit-plot = { path = "../../../architecture/plot", default-features = false, optional = true }
 conduit-core = { path = "../../../architecture/core" }
 conduit-kernel = { path = "../../../architecture/kernel" }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }
-conduit-time = { path = "../../../semantics/time", default-features = false }
+conduit-time = { path = "../../../semantics/time", default-features = false, optional = true }
+
+[features]
+default = ["wait"]
+wait = ["dep:conduit-time"]
+clock-at = []
+clock-at-catalog = ["clock-at", "dep:conduit-plot"]
+
+[build-dependencies]
+conduit-plot = { path = "../../../architecture/plot", default-features = false }
 
 [dev-dependencies]
 conduit-embedded-build = { path = "../../../make/embedded-build" }
+
+[[test]]
+name = "wait_owner"
+required-features = ["wait"]

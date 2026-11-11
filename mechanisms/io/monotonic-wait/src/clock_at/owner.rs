@@ -3,13 +3,13 @@ use super::{
     codec::{ClockDisposition, PreparedClockCodec},
     contract::*,
 };
-use crate::machine_membrane::selected_operation::{
-    SelectedOperationContract, SelectedOperationPlan, bind_selected_operation,
-};
 use alloc::format;
 use conduit_core::*;
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
+use conduit_plan_lowering::selected_operation::{
+    bind_selected_operation, SelectedOperationContract, SelectedOperationPlan,
+};
 
 pub const MAXIMUM_POLL_STEPS: u64 = 4096;
 
@@ -51,9 +51,7 @@ struct Pending {
     remaining: u64,
 }
 pub struct MonotonicClockHostCall<P> {
-    table: BaseCapabilityTable,
-    handle: BaseCapabilityHandle,
-    claim: BaseOperationClaim,
+    operation: BoundBaseOperation,
     provider: P,
     node: NodeId,
     next_request: u32,
@@ -75,19 +73,7 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
         provider: P,
         selection: ClockCallSelection<'_>,
     ) -> Result<Self, ClockCallRefusal> {
-        let mut entries = table.inspections();
-        let entry = entries.next().ok_or(ClockCallRefusal::Possession)?;
-        if entries.next().is_some()
-            || entry.scope.maximum_in_flight != 1
-            || entry.scope.maximum_work_units < MAXIMUM_POLL_STEPS
-            || entry.scope.maximum_parameter_bytes < CLOCK_MAXIMUM_BYTES
-            || entry.scope.maximum_result_bytes < CLOCK_MAXIMUM_BYTES
-            || claim.parameter_bytes != CLOCK_MAXIMUM_BYTES
-            || claim.work_units != MAXIMUM_POLL_STEPS
-        {
-            return Err(ClockCallRefusal::Possession);
-        }
-        drop(entries);
+        checked_possession(&table, &claim)?;
         let node = bind_selected_operation(
             &table,
             &claim,
@@ -106,19 +92,31 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
             },
         )
         .map_err(|_| ClockCallRefusal::WrongBinding)?;
-        Ok(Self {
-            table,
-            handle,
-            claim,
+        let codec =
+            PreparedClockCodec::new(selection.contract).map_err(ClockCallRefusal::Canonical)?;
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| ClockCallRefusal::Capability(reason))?;
+        Ok(Self::from_bound(operation, provider, node, codec))
+    }
+    pub(super) fn from_bound(
+        operation: BoundBaseOperation,
+        provider: P,
+        node: NodeId,
+        codec: PreparedClockCodec,
+    ) -> Self {
+        Self {
+            operation,
             provider,
             node,
             next_request: 0,
             pending: None,
-            codec: PreparedClockCodec::new(selection.contract)
-                .map_err(ClockCallRefusal::Canonical)?,
+            codec,
             last_observed: None,
             cancelled: false,
-        })
+        }
+    }
+    pub fn inspection(&self) -> &CapabilityInspection {
+        self.operation.inspection()
     }
     pub fn start(
         &mut self,
@@ -146,8 +144,8 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
             .deadline(input)
             .map_err(ClockCallRefusal::Canonical)?;
         let lease = self
-            .table
-            .authorize(&self.handle, &self.claim)
+            .operation
+            .authorize()
             .map_err(ClockCallRefusal::Capability)?;
         self.next_request = next;
         self.pending = Some(Pending {
@@ -200,12 +198,15 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
             Err(reason) => self.codec.refused(reason),
         };
         let bytes = encoded.as_ref().map_or(0, |value| value.len() as u32);
-        self.table
-            .complete(&mut self.handle, pending.lease, bytes)
+        self.operation
+            .complete(pending.lease, bytes)
             .map_err(ClockCallRefusal::Capability)?;
         encoded.map(Some).map_err(ClockCallRefusal::Canonical)
     }
-    pub(crate) fn observe_monotonic(
+    /// Owned descriptive observation: formatting the basis and cloning Host/Boot
+    /// identities allocate. Callers must separately fund that storage; MCU's
+    /// allocation-free deadline service uses start/poll canonical output instead.
+    pub fn observe_monotonic(
         &mut self,
         node: NodeId,
         call: HostCallId,
@@ -217,15 +218,16 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
         if self.pending.is_some() {
             return Err(ClockCallRefusal::Pending);
         }
+        let scope = &self.operation.inspection().scope;
         let basis = format!(
             "{}/{}/{}",
-            self.claim.base_instance_id.as_str(),
-            self.claim.base_provider_generation,
-            self.claim.resource_generation_id.0
+            scope.base_instance_id.as_str(),
+            scope.base_provider_generation,
+            scope.resource_generation_id.0
         );
         let clock = MonotonicClockIdentity::new(
-            self.claim.host_id.clone(),
-            self.claim.boot_id.clone(),
+            scope.host_id.clone(),
+            scope.boot_id.clone(),
             basis,
             TemporalScale::Milliseconds,
             1,
@@ -233,12 +235,12 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
         )
         .map_err(ClockCallRefusal::Temporal)?;
         let lease = self
-            .table
-            .authorize(&self.handle, &self.claim)
+            .operation
+            .authorize()
             .map_err(ClockCallRefusal::Capability)?;
         let sampled = self.provider.sample_now();
-        self.table
-            .complete(&mut self.handle, lease, 0)
+        self.operation
+            .complete(lease, 0)
             .map_err(ClockCallRefusal::Capability)?;
         let now = sampled.map_err(ClockCallRefusal::Provider)?;
         if self.last_observed.is_some_and(|last| now < last) {
@@ -250,8 +252,8 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
     }
     pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), ClockCallRefusal> {
         self.check_binding(node, call)?;
-        self.table
-            .revoke(&self.handle)
+        self.operation
+            .revoke()
             .map_err(ClockCallRefusal::Capability)?;
         self.pending = None;
         self.cancelled = true;
@@ -265,6 +267,26 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
             Ok(())
         }
     }
+}
+
+pub(super) fn checked_possession(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+) -> Result<(), ClockCallRefusal> {
+    let mut entries = table.inspections();
+    let entry = entries.next().ok_or(ClockCallRefusal::Possession)?;
+    if entries.next().is_some()
+        || entry.scope.maximum_in_flight != 1
+        || entry.scope.maximum_work_units < MAXIMUM_POLL_STEPS
+        || entry.scope.maximum_parameter_bytes < CLOCK_MAXIMUM_BYTES
+        || entry.scope.maximum_result_bytes < CLOCK_MAXIMUM_BYTES
+        || claim.parameter_bytes != CLOCK_MAXIMUM_BYTES
+        || claim.work_units != MAXIMUM_POLL_STEPS
+    {
+        return Err(ClockCallRefusal::Possession);
+    }
+    drop(entries);
+    Ok(())
 }
 
 #[cfg(test)]

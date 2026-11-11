@@ -1,17 +1,18 @@
 //! Preparation-only contract derived from reviewed Conduit Types.
 
-use alloc::{vec, vec::Vec};
+use alloc::vec;
 use conduit_core::{
-    CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection, PortTemporal,
-    PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType, kind_id, port_id,
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal, PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType,
 };
-use conduit_plot::{ProfileCatalog, StartupCatalog, check_syntax_document, parse_syntax_document};
+#[cfg(feature = "clock-at-catalog")]
+use conduit_plot::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
 
 pub const CLOCK_KIND: &str = "machine/clock/at";
 pub const CLOCK_CALL: &str = "conduit.host/monotonic-clock-at@1";
 pub const CLOCK_MAXIMUM_BYTES: u32 = 512;
 pub const CLOCK_TYPES: &str =
-    include_str!("../../../../plots/device-protocols/clock-types.conduit");
+    include_str!("../../../../../plots/device-protocols/clock-types.conduit");
 
 /// Exact schemas, prepared before Play. A definition is not an available Back,
 /// selected endpoint, resource reservation or authority to observe or wait on a clock.
@@ -19,7 +20,6 @@ pub struct MonotonicClockContract {
     request: StructuredInfoType,
     result: StructuredInfoType,
     kind: Kind,
-    types: Vec<conduit_plot::CheckedNativeType>,
 }
 
 impl MonotonicClockContract {
@@ -34,22 +34,14 @@ impl MonotonicClockContract {
     }
 
     pub fn prepare() -> Result<Self, StructuredInfoRefusal> {
-        let syntax = parse_syntax_document(CLOCK_TYPES);
-        if !syntax.diagnostics.is_empty() {
-            return Err(StructuredInfoRefusal::WrongType);
-        }
-        let checked = check_syntax_document(&syntax, &StartupCatalog::new())
-            .map_err(|_| StructuredInfoRefusal::WrongType)?;
-        let find = |name| {
-            checked
-                .native_types
-                .iter()
-                .find(|ty| ty.name == name)
-                .map(|ty| ty.value_type.clone())
-                .ok_or(StructuredInfoRefusal::WrongType)
-        };
-        let request = find("MonotonicClockRequest")?;
-        let result = find("MonotonicClockResult")?;
+        let request = StructuredInfoType::from_canonical_bytes(include_bytes!(concat!(
+            env!("OUT_DIR"),
+            "/clock-request.type"
+        )))?;
+        let result = StructuredInfoType::from_canonical_bytes(include_bytes!(concat!(
+            env!("OUT_DIR"),
+            "/clock-result.type"
+        )))?;
         let port = |name: &str, ty: &StructuredInfoType, direction| {
             Ok(PortDescriptor {
                 port_id: port_id(name),
@@ -80,7 +72,6 @@ impl MonotonicClockContract {
             request,
             result,
             kind,
-            types: checked.native_types,
         })
     }
 
@@ -90,14 +81,18 @@ impl MonotonicClockContract {
         PreparedStructuredValueValidator::new(&self.request, CLOCK_MAXIMUM_BYTES as usize)
     }
 
+    #[cfg(feature = "clock-at-catalog")]
     pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
+        let checked =
+            check_syntax_document(&parse_syntax_document(CLOCK_TYPES), &StartupCatalog::new())
+                .expect("reviewed clock Type definitions");
         let mut startup = StartupCatalog::new();
         for (name, path) in [
             ("MonotonicClockRequest", "machine/clock/at/request"),
             ("MonotonicClockResult", "machine/clock/at/result"),
         ] {
-            let ty = self
-                .types
+            let ty = checked
+                .native_types
                 .iter()
                 .find(|ty| ty.name == name)
                 .expect("checked clock Type");

@@ -45,9 +45,9 @@ fn authority(clock: bool, grant: &AuthorityGrant) -> BaseCapabilityAuthority {
         (
             "clock",
             crate::monotonic_clock::installation::CLOCK_IMPLEMENTATION,
-            crate::monotonic_clock::contract::CLOCK_CALL,
-            crate::monotonic_clock::owner::MAXIMUM_POLL_STEPS,
-            crate::monotonic_clock::contract::CLOCK_MAXIMUM_BYTES,
+            conduit_monotonic_wait::clock_at::contract::CLOCK_CALL,
+            conduit_monotonic_wait::clock_at::owner::MAXIMUM_POLL_STEPS,
+            conduit_monotonic_wait::clock_at::contract::CLOCK_MAXIMUM_BYTES,
         )
     } else {
         (

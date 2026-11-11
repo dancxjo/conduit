@@ -1,7 +1,6 @@
 //! One Body execution path over the ordinary protocol kernel, with optional clock.
 use crate::{
     i2c_base::I2cProvider,
-    monotonic_clock::owner::MonotonicDeadlineProvider,
     protocol_host_calls::ProtocolCallRefusal,
     protocol_play::{PreparedProtocolPlay, PreparedTimedProtocolPlay},
 };
@@ -9,6 +8,7 @@ use alloc::boxed::Box;
 use conduit_composite::{KernelCompositeHost, KernelCompositeStatus};
 use conduit_core::{PortId, ValuePayload};
 use conduit_kernel::scheduler::RemoteIngressOutcome;
+use conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider;
 
 pub(super) enum ProtocolKernel<P, C> {
     WithClock(Box<PreparedTimedProtocolPlay<P, C>>),

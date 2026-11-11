@@ -1,13 +1,8 @@
-//! One retained canonical value. A staged copy becomes visible only after the
-//! production kernel commits the input consumption. Readers borrow that value.
+//! The application's channel meaning wraps shared finite typed retention.
 use super::{PublicationChannel, PublicationContract, PublicationSequence};
-use crate::canonical_input::PreparedCanonicalInput;
-use alloc::{vec, vec::Vec};
 use conduit_core::StructuredInfoRefusal;
-use conduit_kernel::{
-    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
-    Failure, FailureCode, PortId,
-};
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+use conduit_typed_retention::PreparedTypedRetention;
 
 pub struct PublicationSnapshot<'a> {
     pub channel: PublicationChannel,
@@ -16,16 +11,7 @@ pub struct PublicationSnapshot<'a> {
 }
 pub struct PublicationBack {
     channel: PublicationChannel,
-    validator: PreparedCanonicalInput,
-    current: Vec<u8>,
-    pending: Vec<u8>,
-    maximum_events: u32,
-    sequence: u64,
-    events: u32,
-    order: PublicationSequence,
-    length: usize,
-    staged: bool,
-    cancelled: bool,
+    retained: PreparedTypedRetention<'static>,
 }
 impl PublicationBack {
     pub fn prepare(
@@ -33,111 +19,45 @@ impl PublicationBack {
         maximum_events: u32,
         order: PublicationSequence,
     ) -> Result<Self, StructuredInfoRefusal> {
-        // Every valid canonical value fits this Type-derived bound. Retain the
-        // channel ceiling too; tightening storage does not narrow its domain.
+        let schema = contract.channel().linked_type_bytes();
+        // Independently linked bytes must describe the exact prepared contract.
+        // This comparison is transient preparation, not retained schema backing.
+        if contract.value_type().canonical_bytes()?.as_slice() != schema {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
         let bytes = crate::canonical_storage::bytes(
             contract.value_type(),
             contract.channel().maximum_bytes(),
         )?;
         Ok(Self {
             channel: contract.channel(),
-            validator: PreparedCanonicalInput::with_static_schema(
-                contract.value_type(),
-                contract.channel().linked_type_bytes(),
-                bytes,
-            )?,
-            current: Vec::with_capacity(bytes),
-            pending: vec![0; bytes],
-            maximum_events,
-            sequence: 0,
-            events: 0,
-            order,
-            length: 0,
-            staged: false,
-            cancelled: false,
+            retained: PreparedTypedRetention::prepare(schema, bytes, maximum_events, order)?,
         })
     }
     pub fn snapshot(&self) -> Option<PublicationSnapshot<'_>> {
-        (self.sequence != 0).then_some(PublicationSnapshot {
+        self.retained.snapshot().map(|value| PublicationSnapshot {
             channel: self.channel,
-            sequence: self.sequence,
-            canonical: &self.current,
+            sequence: value.sequence,
+            canonical: value.canonical,
         })
     }
-    fn discard_staged(&mut self) {
-        if self.staged {
-            self.order.release();
-            self.staged = false;
-        }
-    }
     pub fn maximum_events(&self) -> u32 {
-        self.maximum_events
+        self.retained.maximum_events()
+    }
+    /// Two value buffers only; separately fund inline Self, shared order,
+    /// schema residence and allocator metadata.
+    pub fn value_storage_bytes(&self) -> Option<usize> {
+        self.retained.value_storage_bytes()
     }
 }
 impl<const P: usize> StepBack<P> for PublicationBack {
     fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
-        self.discard_staged();
-        if self.cancelled {
-            return fail(FailureCode::Cancelled, 1);
-        }
-        if io.input_abnormal(PortId(0)).is_some() {
-            return fail(FailureCode::InvalidInput, 1);
-        }
-        let Some(reference) = io.input(PortId(0)) else {
-            return if io.input_closed(PortId(0)) {
-                if io.consume_closed(PortId(0)).is_err() {
-                    fail(FailureCode::InvalidLifecycle, 1)
-                } else {
-                    StepOutcome::Complete
-                }
-            } else {
-                StepOutcome::Await
-            };
-        };
-        if self.events >= self.maximum_events {
-            return fail(FailureCode::InvalidInput, 2);
-        }
-        let Some(bytes) = input.input(PortId(0)) else {
-            return fail(FailureCode::InvalidInput, 3);
-        };
-        if bytes.len() != reference.byte_len as usize || self.validator.validate(bytes).is_err() {
-            return fail(FailureCode::InvalidInput, 4);
-        }
-        if io.consume_fuel(1).is_err() {
-            return fail(FailureCode::InvalidLifecycle, 2);
-        }
-        if !self.order.reserve() {
-            return fail(FailureCode::InvalidInput, 5);
-        }
-        self.pending[..bytes.len()].copy_from_slice(bytes);
-        self.length = bytes.len();
-        if io.consume(PortId(0)).is_err() {
-            self.order.release();
-            return fail(FailureCode::InvalidLifecycle, 3);
-        }
-        self.staged = true;
-        StepOutcome::Progress
+        self.retained.step(io, input)
     }
     fn step_committed(&mut self) {
-        if self.staged && !self.cancelled {
-            self.current.clear();
-            self.current.extend_from_slice(&self.pending[..self.length]);
-            self.sequence = self.order.commit();
-            self.events += 1;
-            self.staged = false;
-        }
+        <PreparedTypedRetention<'static> as StepBack<P>>::step_committed(&mut self.retained);
     }
     fn cancel(&mut self) {
-        self.cancelled = true;
-        self.discard_staged();
-    }
-}
-fn fail(code: FailureCode, detail: u16) -> StepOutcome {
-    StepOutcome::Fail(Failure { code, detail })
-}
-
-impl Drop for PublicationBack {
-    fn drop(&mut self) {
-        self.discard_staged();
+        <PreparedTypedRetention<'static> as StepBack<P>>::cancel(&mut self.retained);
     }
 }

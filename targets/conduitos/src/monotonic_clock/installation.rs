@@ -1,11 +1,11 @@
 //! Ready native ownership projected into ordinary planning, then consumed by Play.
-use super::{
+use alloc::vec;
+use conduit_core::*;
+use conduit_monotonic_wait::clock_at::{
     contract::{CLOCK_CALL, CLOCK_MAXIMUM_BYTES, MonotonicClockContract},
     owner::MonotonicDeadlineProvider,
     owner::{ClockCallRefusal, ClockCallSelection, MonotonicClockHostCall},
 };
-use alloc::vec;
-use conduit_core::*;
 
 pub const CLOCK_IMPLEMENTATION: &str = "conduitos/monotonic-clock-at@1";
 pub const CLOCK_EXECUTION_PROFILE: &str = "conduitos/monotonic-clock-bounded@1";

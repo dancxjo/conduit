@@ -1,5 +1,5 @@
 use super::*;
-use crate::monotonic_clock::codec::ClockDisposition;
+use conduit_monotonic_wait::clock_at::codec::ClockDisposition;
 struct Provider;
 impl MonotonicDeadlineProvider for Provider {
     fn poll_until(&mut self, _: u64) -> Result<Option<u64>, ClockDisposition> {

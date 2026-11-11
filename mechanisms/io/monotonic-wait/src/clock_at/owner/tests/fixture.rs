@@ -32,7 +32,7 @@ pub(super) fn selected() -> (
     ActivePlayIdentity,
     PlacementId,
 ) {
-    crate::machine_membrane::selection_fixture::selected(
+    super::selection_fixture::selected(
         &scope(),
         MonotonicClockContract::prepare().unwrap().kind(),
         CLOCK_CALL,
@@ -48,7 +48,39 @@ pub(super) fn bind(
     active: &ActivePlayIdentity,
     placement: &PlacementId,
 ) -> Result<MonotonicClockHostCall<Provider>, ClockCallRefusal> {
-    let mut scope = scope();
+    let (table, handle, claim) = authorization(scope(), fragment, active, [7; 32]);
+    unsafe {
+        MonotonicClockHostCall::bind_selected(
+            table,
+            handle,
+            claim,
+            Provider::default(),
+            ClockCallSelection {
+                contract: &MonotonicClockContract::prepare().unwrap(),
+                fragment,
+                lowered,
+                active,
+                placement,
+            },
+        )
+    }
+}
+
+pub(super) fn owner() -> MonotonicClockHostCall<Provider> {
+    let (fragment, lowered, active, placement) = selected();
+    bind(&fragment, &lowered, &active, &placement).unwrap()
+}
+
+pub(super) fn authorization(
+    mut scope: BaseCapabilityScope,
+    fragment: &PlanFragment,
+    active: &ActivePlayIdentity,
+    seed: [u8; 32],
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
     let authority = BaseCapabilityAuthority {
@@ -94,31 +126,12 @@ pub(super) fn bind(
         scope.boot_id.clone(),
         scope.base_instance_id.clone(),
         4,
-        [7; 32],
+        seed,
         1,
     )
     .unwrap();
     let handle = table
         .issue(CapabilityIssueRequest { scope, authority })
         .unwrap();
-    unsafe {
-        MonotonicClockHostCall::bind_selected(
-            table,
-            handle,
-            claim,
-            Provider::default(),
-            ClockCallSelection {
-                contract: &MonotonicClockContract::prepare().unwrap(),
-                fragment,
-                lowered,
-                active,
-                placement,
-            },
-        )
-    }
-}
-
-pub(super) fn owner() -> MonotonicClockHostCall<Provider> {
-    let (fragment, lowered, active, placement) = selected();
-    bind(&fragment, &lowered, &active, &placement).unwrap()
+    (table, handle, claim)
 }

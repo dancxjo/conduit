@@ -1,9 +1,6 @@
 //! Shared-kernel lifecycle for the exact selected native clock transaction.
-use super::{
-    contract::{CLOCK_CALL, CLOCK_MAXIMUM_BYTES, MonotonicClockContract},
-    installation::{
-        CLOCK_AUTHORITY, CLOCK_EXECUTION_PROFILE, CLOCK_IMPLEMENTATION, CLOCK_RESOURCE_CLASS,
-    },
+use super::installation::{
+    CLOCK_AUTHORITY, CLOCK_EXECUTION_PROFILE, CLOCK_IMPLEMENTATION, CLOCK_RESOURCE_CLASS,
 };
 use alloc::{boxed::Box, string::String};
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
@@ -11,6 +8,9 @@ use conduit_core::*;
 use conduit_kernel::{
     HostedValueStore,
     scheduler::{HostCallBack, StepBack},
+};
+use conduit_monotonic_wait::clock_at::contract::{
+    CLOCK_CALL, CLOCK_MAXIMUM_BYTES, MonotonicClockContract,
 };
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 

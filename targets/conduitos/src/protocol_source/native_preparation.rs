@@ -9,16 +9,17 @@ use crate::{
         contract::I2cContract,
         installation::{I2C_IMPLEMENTATION, I2cInstallationRefusal, ReadyI2cBase},
     },
-    monotonic_clock::{
-        contract::MonotonicClockContract,
-        installation::{CLOCK_IMPLEMENTATION, ClockInstallationRefusal, ReadyClockBase},
-        owner::MonotonicDeadlineProvider,
+    monotonic_clock::installation::{
+        CLOCK_IMPLEMENTATION, ClockInstallationRefusal, ReadyClockBase,
     },
     protocol_play::{ClockAdmission, I2cAdmission},
 };
 use alloc::{boxed::Box, collections::BTreeMap, vec};
 use conduit_body::{BodyLifecycleSession, BodyLifecycleSessionError};
 use conduit_core::*;
+use conduit_monotonic_wait::clock_at::{
+    contract::MonotonicClockContract, owner::MonotonicDeadlineProvider,
+};
 use conduit_planner::PlanningOptions;
 
 /// Possession enters from the native Root, never from Source or planner metadata.

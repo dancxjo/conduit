@@ -2070,6 +2070,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
+ "conduit-typed-retention",
 ]
 
 [[package]]
@@ -2374,6 +2375,7 @@ dependencies = [
  "conduit-core",
  "conduit-kernel",
  "conduit-plan-lowering",
+ "conduit-plot",
  "conduit-time",
 ]
 
@@ -3072,6 +3074,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-typed-retention"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+]
+
+[[package]]
 name = "conduit-web"
 version = "0.1.0"
 dependencies = [
@@ -3142,6 +3152,7 @@ dependencies = [
  "conduit-human",
  "conduit-i2c-transaction",
  "conduit-kernel",
+ "conduit-monotonic-wait",
  "conduit-observatory",
  "conduit-plan-lowering",
  "conduit-planner",

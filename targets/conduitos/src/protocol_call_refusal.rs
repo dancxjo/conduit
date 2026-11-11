@@ -32,15 +32,15 @@ pub enum ProtocolCallRefusal {
     Expression(ExpressionCallRefusal),
     Selector(SelectorCallRefusal),
     I2c(I2cCallRefusal),
-    Clock(crate::monotonic_clock::owner::ClockCallRefusal),
+    Clock(conduit_monotonic_wait::clock_at::owner::ClockCallRefusal),
 }
 
 impl ProtocolCallRefusal {
     pub fn failure(&self) -> Failure {
-        use crate::monotonic_clock::owner::ClockCallRefusal as Clock;
         use ExpressionCallRefusal as Expression;
         use I2cCallRefusal as I2c;
         use SelectorCallRefusal as Selector;
+        use conduit_monotonic_wait::clock_at::owner::ClockCallRefusal as Clock;
         let (code, detail) = match self {
             #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
             Self::EthernetFrame(error) => {

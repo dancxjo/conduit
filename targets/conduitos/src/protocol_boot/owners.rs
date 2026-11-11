@@ -108,11 +108,11 @@ pub unsafe fn admit(
         ),
         OperationAuthority {
             contract: crate::monotonic_clock::installation::CLOCK_AUTHORITY,
-            call: crate::monotonic_clock::contract::CLOCK_CALL,
+            call: conduit_monotonic_wait::clock_at::contract::CLOCK_CALL,
             kind: "machine/clock/at",
             capability: "conduitos/monotonic-clock-at@1",
-            bytes: crate::monotonic_clock::contract::CLOCK_MAXIMUM_BYTES,
-            work: crate::monotonic_clock::owner::MAXIMUM_POLL_STEPS,
+            bytes: conduit_monotonic_wait::clock_at::contract::CLOCK_MAXIMUM_BYTES,
+            work: conduit_monotonic_wait::clock_at::owner::MAXIMUM_POLL_STEPS,
             operations: request.maximum_clock_operations,
         },
     );
