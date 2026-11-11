@@ -1376,6 +1376,7 @@ type LocalModelKindProfile =
     generate
     | stream_generate
     | generate_flow
+    | generate_recoverable_flow
     | classify_finite_labels
     | extract_validated_info
     | embed_finite_vector

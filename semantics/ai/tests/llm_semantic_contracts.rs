@@ -5,8 +5,9 @@ use conduit_ai::{
     LlmImplementationControl, LlmTerminalOutcome, LlmWorkBounds, ModelDerivedResult, ModelFailure,
     ModelRefusal, ModelResultDisposition, ModelResultInvalidity, ModelResultProvenance,
     ModelWorkAccounting, LLM_CLASSIFY_KIND, LLM_COMPOSE_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND,
-    LLM_GENERATE_FLOW_KIND, LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_JUDGE_KIND,
-    LLM_PRESENT_KIND, LLM_PROPOSE_KIND, LLM_STREAM_GENERATE_KIND,
+    LLM_GENERATE_FLOW_KIND, LLM_GENERATE_KIND, LLM_GENERATE_RECOVERABLE_FLOW_KIND,
+    LLM_INTERPRET_KIND, LLM_JUDGE_KIND, LLM_PRESENT_KIND, LLM_PROPOSE_KIND,
+    LLM_STREAM_GENERATE_KIND,
 };
 use conduit_core::PortDirection;
 use conduit_core::PortTemporal;
@@ -118,6 +119,7 @@ fn machine_readable_semantic_contracts_have_exact_distinct_fronts() {
     let expected = [
         LLM_GENERATE_KIND,
         LLM_GENERATE_FLOW_KIND,
+        LLM_GENERATE_RECOVERABLE_FLOW_KIND,
         LLM_CLASSIFY_KIND,
         LLM_EXTRACT_KIND,
         LLM_EMBED_KIND,
@@ -279,4 +281,62 @@ fn exact_revision_and_front_compatibility_rejects_mutation() {
     mutated.result_payload_kind = conduit_core::kind_id("llm/wrong-result@1");
     assert!(!expected.is_exactly_compatible_with(&mutated));
     assert!(expected.is_exactly_compatible_with(&expected));
+}
+
+#[test]
+fn recoverable_generation_keeps_work_contract_and_exposes_exact_terminal_envelope() {
+    let ordinary = llm_contract(LLM_GENERATE_FLOW_KIND).unwrap();
+    let recoverable = llm_contract(LLM_GENERATE_RECOVERABLE_FLOW_KIND).unwrap();
+    assert_eq!(
+        recoverable.kind_contract_revision.as_str(),
+        "conduit.llm/generate-recoverable-flow@1"
+    );
+    assert_eq!(recoverable.inputs, ordinary.inputs);
+    assert_eq!(recoverable.bounds, ordinary.bounds);
+    assert_eq!(recoverable.limits, ordinary.limits);
+    assert_eq!(
+        recoverable.result_payload_kind,
+        ordinary.result_payload_kind
+    );
+    assert_eq!(recoverable.terminal_outcomes, ordinary.terminal_outcomes);
+    assert_eq!(
+        recoverable.outputs[0].value_kind,
+        ordinary.outputs[0].value_kind
+    );
+    assert_eq!(
+        recoverable.outputs[0].temporal,
+        PortTemporal::Flow { closes: true }
+    );
+    assert_eq!(
+        recoverable.outputs[0].abnormal_kind,
+        Some(conduit_core::kind_id(conduit_core::TERMINAL_INFO_ID))
+    );
+    assert!(ordinary.outputs[0].abnormal_kind.is_none());
+    assert!(!recoverable.is_exactly_compatible_with(&ordinary));
+    let kind = recoverable.into_capability_contract();
+    kind.validate().unwrap();
+    let terminal = kind
+        .value_contracts()
+        .iter()
+        .find(|value| {
+            value.location
+                == conduit_core::FrontValueLocation::OutputAbnormal(conduit_core::port_id("result"))
+        })
+        .unwrap();
+    assert_eq!(
+        terminal.contract.maximum_bytes,
+        conduit_core::TERMINAL_INFO_ENCODED_LEN as u32
+    );
+    let loss = conduit_core::TerminalInfo::new(
+        conduit_core::TerminalCategory::ProviderOrResourceLoss,
+        [9; 32],
+    );
+    assert_eq!(
+        loss.category(),
+        conduit_core::TerminalCategory::ProviderOrResourceLoss
+    );
+    assert_eq!(
+        conduit_ai::LocalModelKindProfile::GenerateRecoverableFlow.kind(),
+        LLM_GENERATE_RECOVERABLE_FLOW_KIND
+    );
 }

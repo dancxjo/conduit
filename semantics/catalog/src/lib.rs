@@ -582,3 +582,8 @@ pub use resonator_projection_preparation::*;
 mod resonator_projection_report;
 #[cfg(feature = "plot-catalog")]
 pub use resonator_projection_report::*;
+
+mod experience_autobiography_recovery;
+pub use experience_autobiography_recovery::*;
+mod experience_autobiography_recovery_codec;
+pub use experience_autobiography_recovery_codec::*;

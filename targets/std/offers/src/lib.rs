@@ -349,3 +349,6 @@ pub use pcm_packing::*;
 
 mod source_check;
 pub use source_check::*;
+
+mod experience_autobiography_recovery;
+pub use experience_autobiography_recovery::*;

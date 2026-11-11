@@ -17,6 +17,7 @@ pub(super) fn append(
         offers.push(conduit_std_offers::experience_integration_offer());
         offers.push(conduit_std_offers::experience_prompt_offer());
         offers.push(conduit_std_offers::experience_autobiography_retain_offer());
+        offers.push(conduit_std_offers::experience_autobiography_recovery_offer());
         offers.push(conduit_std_offers::experience_autobiography_recall_offer());
     }
 }

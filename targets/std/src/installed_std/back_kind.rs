@@ -178,6 +178,9 @@ pub(super) enum InstalledBack {
         super::experience_autobiography_recall_back::ExperienceAutobiographyRecallBack,
     ),
     ExperienceAutobiography(super::experience_autobiography_back::ExperienceAutobiographyBack),
+    ExperienceAutobiographyRecovery(
+        super::experience_autobiography_recovery_back::ExperienceAutobiographyRecoveryBack,
+    ),
     ExperiencePrompt(super::experience_prompt_back::ExperiencePromptBack),
     ExperienceIntegration(super::experience_integration_back::ExperienceIntegrationBack),
     ExperienceEvidence(super::experience_evidence_back::ExperienceEvidenceBack),

@@ -8,6 +8,21 @@ pub const PETE_COGNITION_PLOT_SOURCE: &str =
 pub const PETE_AUTOBIOGRAPHICAL_COGNITION_PLOT_SOURCE: &str =
     include_str!("../../../plots/pete-cognition/autobiographical.conduit");
 
+pub const PETE_RESILIENT_COGNITION_PLOT_SOURCE: &str =
+    include_str!("../../../plots/pete-cognition/resilient.conduit");
+
+pub fn install_pete_resilient_cognition_catalogs(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    install_pete_autobiographical_cognition_catalogs(startup, profile)?;
+    conduit_semantic_catalog::install_experience_autobiography_recovery_catalogs(startup, profile)?;
+    startup.insert_value_kind_alias(
+        "PeteModelLoss",
+        conduit_core::kind_id(conduit_core::TERMINAL_INFO_ID),
+    )
+}
+
 pub fn install_pete_autobiographical_cognition_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
@@ -107,5 +122,24 @@ mod tests {
             .gears
             .iter()
             .any(|gear| gear.kind_id.as_str() == conduit_core::STATE_VALUE_KIND));
+    }
+    #[test]
+    fn resilient_plot_routes_typed_model_loss_into_explicit_autobiography_feedback() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_pete_resilient_cognition_catalogs(&mut startup, &mut profile).unwrap();
+        let parsed = parse_syntax_document(PETE_RESILIENT_COGNITION_PLOT_SOURCE);
+        assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+        let checked = check_syntax_document(&parsed, &startup).unwrap();
+        let authored =
+            expand_canonical_plot_for_authoring(&checked, "pete-resilient-cognition", &profile)
+                .unwrap();
+        assert_eq!(authored.expanded.gears.len(), 7);
+        assert_eq!(authored.output_bindings.len(), 3);
+        assert!(authored
+            .expanded
+            .connections
+            .iter()
+            .any(|c| c.track == conduit_core::ConnectionTrack::AbnormalTerminal));
     }
 }

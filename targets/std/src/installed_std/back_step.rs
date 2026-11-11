@@ -237,6 +237,7 @@ installed_step_dispatch!(
     ExperienceIntegration,
     ExperiencePrompt,
     ExperienceAutobiography,
+    ExperienceAutobiographyRecovery,
     ExperienceAutobiographyRecall,
     EpisodeCompose,
     EpisodeRetain,

@@ -10,6 +10,8 @@ use crate::{LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome,
 pub const LLM_GENERATE_KIND: &str = "llm/generate";
 pub const LLM_STREAM_GENERATE_KIND: &str = "llm/generate-stream";
 pub const LLM_GENERATE_FLOW_KIND: &str = "llm/generate-flow";
+/// Closing generation Flow with an explicit portable abnormal result terminal.
+pub const LLM_GENERATE_RECOVERABLE_FLOW_KIND: &str = "llm/generate-recoverable-flow";
 pub const LLM_CLASSIFY_KIND: &str = "llm/classify";
 pub const LLM_EXTRACT_KIND: &str = "llm/extract";
 pub const LLM_EMBED_KIND: &str = "llm/embed";
@@ -24,7 +26,7 @@ pub const MAXIMUM_LLM_CONTEXT_ITEMS: u64 = 128;
 pub const MAXIMUM_LLM_OUTPUT_BYTES: u64 = 65_536;
 pub const MAXIMUM_LLM_WORK_UNITS: u64 = 1_000_000;
 pub const MAXIMUM_LLM_HISTORY_ITEMS: u64 = 64;
-pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 11;
+pub const MAXIMUM_LLM_CATALOG_KINDS: usize = 12;
 
 pub const GENERATION_REQUEST_VALUE_KIND: &str = "llm/generation-request@1";
 pub const GENERATED_RESULT_VALUE_KIND: &str = "llm/generated-result@1";
@@ -102,6 +104,7 @@ impl LlmSemanticContract {
 
     pub fn into_capability_contract(self) -> conduit_core::Kind {
         let bounds = self.bounds;
+        let recoverable = self.kind_id.as_str() == LLM_GENERATE_RECOVERABLE_FLOW_KIND;
         conduit_core::Kind {
             startup_parameters: [
                 "maximum-input-bytes",
@@ -129,7 +132,23 @@ impl LlmSemanticContract {
                 bound("maximum-work-units", bounds.maximum_work_units()),
                 bound("maximum-history-items", bounds.maximum_history_items()),
             ],
-            semantic_laws: Default::default(),
+            semantic_laws: if recoverable {
+                vec![conduit_core::KindSemanticLaw::ValueContracts(vec![
+                    conduit_core::FrontValueContract {
+                        location: conduit_core::FrontValueLocation::OutputAbnormal(port_id(
+                            "result",
+                        )),
+                        contract: conduit_core::CheckedValueContract::new(
+                            kind_id(conduit_core::TERMINAL_INFO_ID),
+                            conduit_core::TERMINAL_INFO_ENCODED_LEN as u32,
+                            vec![],
+                        )
+                        .expect("portable terminal has one exact bounded envelope"),
+                    },
+                ])]
+            } else {
+                Default::default()
+            },
             limits: self.limits,
         }
     }
@@ -158,6 +177,7 @@ pub fn llm_semantic_catalog() -> [LlmSemanticContract; MAXIMUM_LLM_CATALOG_KINDS
             GENERATION_REQUEST_VALUE_KIND,
             GENERATED_RESULT_VALUE_KIND,
         ),
+        recoverable_flow_contract(),
         contract(
             LLM_CLASSIFY_KIND,
             CLASSIFICATION_REQUEST,
@@ -217,6 +237,18 @@ fn flow_contract(kind: &str, request_kind: &str, result_kind: &str) -> LlmSemant
         result_kind,
         PortTemporal::Flow { closes: true },
     )
+}
+
+/// Provider loss on this result Fore is represented by an ordinary
+/// TerminalInfo with ProviderOrResourceLoss, rather than a model-authored fact.
+fn recoverable_flow_contract() -> LlmSemanticContract {
+    let mut contract = flow_contract(
+        LLM_GENERATE_RECOVERABLE_FLOW_KIND,
+        GENERATION_REQUEST_VALUE_KIND,
+        GENERATED_RESULT_VALUE_KIND,
+    );
+    contract.outputs[0].abnormal_kind = Some(kind_id(conduit_core::TERMINAL_INFO_ID));
+    contract
 }
 
 fn contract_with_temporal(

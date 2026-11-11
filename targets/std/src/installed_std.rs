@@ -31,6 +31,7 @@ mod episode_loop_back;
 mod episode_memory_back;
 mod experience_autobiography_back;
 mod experience_autobiography_recall_back;
+mod experience_autobiography_recovery_back;
 mod experience_evidence_back;
 #[cfg(test)]
 mod experience_evidence_back_tests;
