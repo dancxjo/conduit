@@ -44,6 +44,8 @@ pub(crate) use checkpoint_once::tests::published_fixture as published_todo_test_
 mod continuing;
 #[path = "execution_retention.rs"]
 mod execution_retention;
+#[path = "runtime_face.rs"]
+mod runtime_face;
 pub(crate) use continuing::RunWorker;
 #[path = "admission_retirement.rs"]
 mod admission_retirement;
@@ -255,6 +257,8 @@ pub(crate) struct Owner {
     /// Bounded projection cache from the configured initial Form and the exact
     /// current Thermostat scan Fore. The kernel owns its retained accumulator.
     thermostat_live: Option<thermostat_face::ThermostatLive>,
+    /// Latest opaque kernel-committed contribution for the exact current Play.
+    runtime_face: Option<conduit_std_host::body_execution::CommittedFaceContribution>,
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
@@ -374,6 +378,7 @@ impl Owner {
             llm_spoken_route: None,
             face_wardrobe: None,
             thermostat_live: None,
+            runtime_face: None,
             todo_live: None,
             todo_verified: None,
             notebook: None,
@@ -414,6 +419,7 @@ impl Owner {
             llm_spoken_route: None,
             face_wardrobe: None,
             thermostat_live: None,
+            runtime_face: None,
             todo_live: None,
             todo_verified: None,
             notebook: None,
@@ -496,6 +502,9 @@ impl Owner {
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Face, String> {
         self.require_workset_recovered()?;
+        if let Some(face) = self.project_runtime_face()? {
+            return Ok(face);
+        }
         if let Some(live) = &self.creche_live {
             if let Some(face) = live.controller.face()? {
                 if face.basis.active_play_id.as_ref() == self.current_play_id()
@@ -528,6 +537,7 @@ impl Owner {
         self.project_creche_products(face)
     }
     pub(crate) fn lull(&mut self) -> Result<(), String> {
+        self.runtime_face = None;
         if let Some(realization) = self.session.realization() {
             let play = realization.play.clone();
             let host = self.host.advertisement();

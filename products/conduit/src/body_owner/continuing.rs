@@ -10,6 +10,8 @@ use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
 pub(super) use report::RunReport;
 #[path = "continuing/fore.rs"]
 mod fore;
+#[path = "continuing/spawn.rs"]
+mod spawn;
 pub(crate) use fore::ImageIngress;
 use fore::ReceiptFore;
 pub(super) use fore::{boundaries_for_plots, boundaries_for_plots_with_local};
@@ -38,6 +40,7 @@ pub(crate) struct RunWorker {
     started: Receiver<(BodyPlayIdentity, Wake)>,
     acknowledge: Option<SyncSender<Result<(), String>>>,
     thread: Option<JoinHandle<WorkerOutcome>>,
+    runtime_faces: super::runtime_face::RuntimeFaceReceiver,
     creche_controller: Receiver<conduit::creche_encounter::CrecheEncounterController>,
     creche_custody: Option<super::creche_route_custody::CrecheRouteCustody>,
 }
@@ -254,115 +257,6 @@ impl Owner {
         self.spawn_prepared_worker(root, maximum_millis, has_fore, creche_binding, ingress)
     }
 
-    fn spawn_prepared_worker(
-        &mut self,
-        root: &Path,
-        maximum_millis: u64,
-        has_fore: bool,
-        creche_binding: Option<conduit::creche_encounter::CrecheBodyBinding>,
-        ingress: Option<ImageIngress>,
-    ) -> Result<RunWorker, String> {
-        self.persist(root)?;
-        state::require_execution_capacity(root)?;
-        let proposed = self
-            .session
-            .realization()
-            .expect("Plan just committed")
-            .clone();
-        let mut creche = self.take_creche_execution(creche_binding);
-        let creche_custody = creche.as_ref().map(|run| run.custody.clone());
-        let (creche_tx, creche_rx) = mpsc::sync_channel(1);
-        let host = self.host.take_for_play()?;
-        let control = RunControl::default();
-        let worker_control = control.clone();
-        let (started_tx, started_rx) = mpsc::sync_channel(1);
-        let (ack_tx, ack_rx) = mpsc::sync_channel(1);
-        let thread = thread::Builder::new()
-            .name("conduit-body-play".into())
-            .stack_size(BODY_PLAY_STACK_BYTES)
-            .spawn(move || {
-                let mut host = host;
-                let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
-                let mut fore = ReceiptFore::new();
-                let mut timer = DeadlineTimer {
-                    until: Instant::now() + Duration::from_millis(maximum_millis),
-                    control: worker_control.clone(),
-                };
-                let result = thread::scope(|scope| {
-                    let (finished, receiver) = mpsc::sync_channel::<()>(1);
-                    let deadline_control = worker_control.clone();
-                    scope.spawn(move || {
-                        if receiver
-                            .recv_timeout(Duration::from_millis(maximum_millis))
-                            .is_err()
-                        {
-                            let _ = deadline_control.request_stop(
-                                RunControlRequestId::new("owner/service-deadline")
-                                    .expect("bounded request"),
-                            );
-                        }
-                    });
-                    let request = BodyRunRequest {
-                        wake: &proposed.wake,
-                        plan: &proposed.plan,
-                        control: &worker_control,
-                        keyboard: None,
-                    };
-                    let started = |play: &BodyPlayIdentity, wake: &Wake| {
-                        started_tx
-                            .send((play.clone(), wake.clone()))
-                            .map_err(|_| "Body owner start observer disconnected".to_string())?;
-                        ack_rx
-                            .recv()
-                            .map_err(|_| "Body owner start acknowledgement lost".to_string())?
-                    };
-                    let result = match creche.as_mut() {
-                        Some(run) => run
-                            .run(
-                                &mut host,
-                                request,
-                                &mut output,
-                                &mut timer,
-                                &creche_tx,
-                                started,
-                            ),
-                        None if ingress.is_some() => host
-                            .run_selected_image_body_plan_with_retained_input_to_with_start(
-                                request, &ingress.as_ref().expect("selected ingress").input,
-                                &mut output, &mut timer, &mut fore, started,
-                            ).map(RunReport::Image),
-                        None if host.image_identity().is_some() => host
-                            .run_selected_image_body_plan_with_output_to_with_start(
-                                request,
-                                &mut output,
-                                &mut timer,
-                                has_fore.then_some(&mut fore as &mut dyn conduit_std_host::body_execution::BodyForeOutputAdapter),
-                                started,
-                            )
-                            .map(RunReport::Image),
-                        None if has_fore => host.run_body_plan_with_fore_to_with_start(
-                            request, &[], false, &mut fore, &mut output, &mut timer, started,
-                        ).map(RunReport::Reference),
-                        None => host
-                            .run_body_plan_to_with_start(request, &mut output, &mut timer, started)
-                            .map(RunReport::Reference),
-                    };
-                    let _ = finished.send(());
-                    result
-                });
-                (host, result, output.0, fore, creche.map(|run| run.factory), ingress)
-            })
-            .expect("failure to launch the only Body Play worker stops the owner service");
-        Ok(RunWorker {
-            control,
-            started: started_rx,
-            acknowledge: Some(ack_tx),
-            thread: Some(thread),
-            creche_controller: creche_rx,
-            creche_custody,
-        })
-    }
-
     fn retain_started(
         &mut self,
         root: &Path,
@@ -382,6 +276,7 @@ impl Owner {
             None,
         )?;
         self.session = next;
+        self.runtime_face = None;
         Ok(())
     }
 
@@ -466,6 +361,7 @@ impl RunWorker {
             }
             Err(TryRecvError::Empty | TryRecvError::Disconnected) => {}
         }
+        self.runtime_faces.progress(owner)?;
         if owner.current_play_id().is_some() {
             if let Some(live) = &owner.creche_live {
                 live.controller.start_production_if_reviewed()?;
@@ -489,6 +385,7 @@ impl RunWorker {
                 owner.creche_products = Some(products);
             }
         }
+        owner.runtime_face = None;
         owner.retain_finished(root, result, output, fore)?;
         Ok(true)
     }

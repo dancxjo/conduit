@@ -107,6 +107,7 @@ impl Owner {
             resident_name: None,
             clock_interval_ms: None,
             last_execution: None,
+            runtime_face: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
             local_fore_adapters: None,
