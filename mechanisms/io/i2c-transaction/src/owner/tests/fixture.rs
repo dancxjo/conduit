@@ -91,9 +91,22 @@ pub(super) fn authorization(
 }
 
 pub(super) fn authorization_for_play(
+    scope: BaseCapabilityScope,
+    plan: &PlanId,
+    play: &ActivePlayId,
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
+    authorization_for_play_seed(scope, plan, play, [7; 32])
+}
+
+pub(super) fn authorization_for_play_seed(
     mut scope: BaseCapabilityScope,
     plan: &PlanId,
     play: &ActivePlayId,
+    seed: [u8; 32],
 ) -> (
     BaseCapabilityTable,
     BaseCapabilityHandle,
@@ -144,7 +157,7 @@ pub(super) fn authorization_for_play(
         scope.boot_id.clone(),
         scope.base_instance_id.clone(),
         4,
-        [7; 32],
+        seed,
         1,
     )
     .unwrap();

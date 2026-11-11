@@ -11,6 +11,8 @@ use conduit_plan_lowering::{
 /// Exclusive preparation custody, not a reservation or permission to Start.
 /// Dropping this ticket releases codecs and capability storage while leaving
 /// the same ready controller in its original slot. Binding cannot allocate.
+/// The ticket owns the move-only table and bearer: no API can revoke, exhaust,
+/// replace or mutate that grant between successful preparation and transfer.
 pub struct PreparedAssignedI2c<'a, P: I2cProvider> {
     prepared: PreparedI2cBinding,
     table: BaseCapabilityTable,
@@ -209,6 +211,9 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
             .as_ref()
             .ok_or(I2cCallRefusal::Possession)?
             .prepare_assigned(&table, &claim, contract, selected, fore)?;
+        // Assignment identity cannot substitute for the original opaque bearer.
+        // This non-effectful check happens before provider-slot custody moves.
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(I2cCallRefusal::Capability)?;
         Ok(PreparedAssignedI2c {
             prepared,
             table,
