@@ -34,33 +34,43 @@ impl MemberReturnAcknowledgement {
         retained: &MembershipCredential,
         actual: &HostAdvertisement,
     ) -> Result<(), Refusal> {
-        let credential = &self.credential;
-        let finite = |id: &str| !id.is_empty() && id.len() <= MAX_LIFECYCLE_ID_BYTES;
         if self.kind != "Admitted"
             || self.schema != MEMBER_RETURN_SCHEMA
-            || credential.body_id != retained.body_id
-            || credential.part_id != retained.part_id
-            || credential.host_id != retained.host_id
-            || credential.host_id != actual.host_id
-            || credential.boot_id != actual.boot_id
             || self.advertisement != *actual
-            || actual.protocol_version != PROTOCOL_VERSION
-            || actual.offer_generation.0 == 0
-            || ![
-                credential.body_id.as_str(),
-                credential.part_id.as_str(),
-                credential.credential_id.as_str(),
-                actual.host_id.as_str(),
-                actual.boot_id.as_str(),
-                actual.profile.as_str(),
-            ]
-            .into_iter()
-            .all(finite)
         {
             return Err(Refusal::ReceiptBasis);
         }
-        Ok(())
+        validate_relationship(&self.credential, retained, actual)
     }
+}
+
+pub(crate) fn validate_relationship(
+    credential: &MembershipCredential,
+    retained: &MembershipCredential,
+    actual: &HostAdvertisement,
+) -> Result<(), Refusal> {
+    let finite = |id: &str| !id.is_empty() && id.len() <= MAX_LIFECYCLE_ID_BYTES;
+    if credential.body_id != retained.body_id
+        || credential.part_id != retained.part_id
+        || credential.host_id != retained.host_id
+        || credential.host_id != actual.host_id
+        || credential.boot_id != actual.boot_id
+        || actual.protocol_version != PROTOCOL_VERSION
+        || actual.offer_generation.0 == 0
+        || ![
+            credential.body_id.as_str(),
+            credential.part_id.as_str(),
+            credential.credential_id.as_str(),
+            actual.host_id.as_str(),
+            actual.boot_id.as_str(),
+            actual.profile.as_str(),
+        ]
+        .into_iter()
+        .all(finite)
+    {
+        return Err(Refusal::ReceiptBasis);
+    }
+    Ok(())
 }
 /// Caller must check committed Core state; this function authenticates bytes only.
 pub fn attest_member_return_acknowledgement(

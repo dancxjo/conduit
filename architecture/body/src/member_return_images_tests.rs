@@ -1,6 +1,6 @@
 use super::*;
-use crate::MAX_LIFECYCLE_ID_BYTES;
 use crate::SpawnInvitationSecret;
+use crate::MAX_LIFECYCLE_ID_BYTES;
 use alloc::vec;
 use conduit_core::{OfferGeneration, PROTOCOL_VERSION};
 fn fixture() -> (
@@ -127,7 +127,9 @@ fn duplicate_excessive_or_invalid_return_basis_cannot_be_attested() {
     let (retained, mut projection, owner, key) = fixture();
     projection.capability_images[1] = projection.capability_images[0];
     assert!(projection.validate().is_err());
-    projection.capability_images = (0..17).map(|i| [i; 32]).collect();
+    projection.capability_images = (0..=MAX_MEMBER_RETURN_IMAGES)
+        .map(|i| [i as u8; 32])
+        .collect();
     assert!(projection.validate().is_err());
     projection.capability_images.clear();
     let ack = MemberReturnImageAcknowledgement::new(retained, projection);
@@ -216,4 +218,88 @@ fn grant_scope_duplicates_and_finite_identifier_limits_refuse() {
         excessive.authority_grants.push(grant);
     }
     assert!(excessive.validate().is_err());
+}
+
+#[test]
+fn caller_funded_transcript_preserves_existing_signature_bytes() {
+    let (mut retained, mut projection, _, _) = fixture();
+    for text in [
+        "plain",
+        "quote\"slash\\newline\n",
+        "unicode/温度",
+        "control\u{0001}",
+    ] {
+        retained.credential_id =
+            serde_json::from_value(serde_json::Value::String(text.into())).unwrap();
+        projection.context.profile = text.into();
+        let mut scratch = [0; 8192];
+        assert_eq!(
+            member_return_image_transcript(&retained, &projection).unwrap(),
+            member_return_image_transcript_into(&retained, projection.borrowed(), &mut scratch)
+                .unwrap()
+        );
+    }
+    assert!(
+        member_return_image_transcript_into(&retained, projection.borrowed(), &mut [0; 8]).is_err()
+    );
+}
+
+#[test]
+fn incremental_acknowledgement_preserves_semantic_projection_checks() {
+    use serde::de::DeserializeSeed;
+    let (retained, projection, _, _) = fixture();
+    let mut current = retained.clone();
+    current.boot_id = projection.context.boot_id.clone();
+    let ack = MemberReturnImageAcknowledgement::new(current, projection.clone());
+    let original = serde_json::to_value(&ack).unwrap();
+    let check = |value: &serde_json::Value| {
+        let bytes = serde_json::to_vec(value).unwrap();
+        let mut decoder = serde_json::Deserializer::from_slice(&bytes);
+        let result = MemberReturnImageAcknowledgementSeed {
+            retained: &retained,
+            actual: projection.borrowed(),
+        }
+        .deserialize(&mut decoder);
+        let owned = serde_json::from_slice::<MemberReturnImageAcknowledgement>(&bytes)
+            .ok()
+            .filter(|ack| ack.validate_for(&retained, &projection).is_ok());
+        let mut core_decoder = serde_json_core::de::Deserializer::new(&bytes, None);
+        let core_result = MemberReturnImageAcknowledgementSeed {
+            retained: &retained,
+            actual: projection.borrowed(),
+        }
+        .deserialize(&mut core_decoder);
+        assert_eq!(core_result.is_ok(), owned.is_some());
+        if core_result.is_ok() {
+            assert_eq!(core_decoder.end().unwrap(), bytes.len());
+        }
+        assert_eq!(result.is_ok(), owned.is_some());
+        if let Ok(credential) = result {
+            assert_eq!(credential, owned.unwrap().credential);
+        }
+    };
+    // serde_json::Value emits sorted object keys rather than struct declaration
+    // order. Omitted optional Host fields retain their ordinary defaults.
+    check(&original);
+    let mut omitted = original.clone();
+    omitted["projection"]["context"]
+        .as_object_mut()
+        .unwrap()
+        .remove("declared_name");
+    check(&omitted);
+    for field in ["kind", "schema", "credential", "context", "images", "extra"] {
+        let mut changed = original.clone();
+        match field {
+            "kind" => changed["kind"] = "Advertise".into(),
+            "schema" => changed["schema"] = "other".into(),
+            "credential" => changed["credential"]["boot_id"] = "boot/other".into(),
+            "context" => changed["projection"]["context"]["boot_id"] = "boot/other".into(),
+            "images" => changed["projection"]["capability_images"]
+                .as_array_mut()
+                .unwrap()
+                .reverse(),
+            _ => changed["projection"]["unexpected"] = true.into(),
+        }
+        check(&changed);
+    }
 }

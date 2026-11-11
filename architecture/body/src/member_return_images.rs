@@ -32,7 +32,15 @@ pub struct HostAdvertisementImageProjection {
     /// Attribution does not establish freshness or opaque native possession.
     pub authority_grants: Vec<AuthorityGrant>,
 }
-impl HostAdvertisementImageProjection {
+/// A view of the original native descriptions; constructing this view neither
+/// copies descriptions nor issues native authority.
+#[derive(Clone, Copy, Serialize)]
+pub struct BorrowedHostAdvertisementImageProjection<'a> {
+    pub context: &'a HostAdvertisement,
+    pub capability_images: &'a [[u8; 32]],
+    pub authority_grants: &'a [AuthorityGrant],
+}
+impl BorrowedHostAdvertisementImageProjection<'_> {
     pub fn validate(&self) -> Result<(), R> {
         if !self.context.capabilities.is_empty()
             || self.context.resources.len() > MAX_CANDIDATE_RESOURCES
@@ -46,8 +54,37 @@ impl HostAdvertisementImageProjection {
         {
             return Err(R::ReceiptBasis);
         }
-        crate::authority_grant_descriptions::validate(&self.context, &self.authority_grants)
+        crate::authority_grant_descriptions::validate(self.context, self.authority_grants)
             .map_err(|_| R::ReceiptBasis)
+    }
+}
+
+/// The exact existing signature transcript, encoded into caller-funded storage.
+/// The scratch can be reused for the subsequent presentation and acknowledgement.
+pub fn member_return_image_transcript_into(
+    credential: &MembershipCredential,
+    projection: BorrowedHostAdvertisementImageProjection<'_>,
+    scratch: &mut [u8],
+) -> Result<[u8; 32], R> {
+    projection.validate()?;
+    let used =
+        serde_json_core::to_slice(&(credential, projection), scratch).map_err(|_| R::Encoding)?;
+    let mut hash = Sha256::new();
+    hash.update(b"conduit.body/member-return-image-presentation@2");
+    hash.update(&scratch[..used]);
+    Ok(hash.finalize().into())
+}
+
+impl HostAdvertisementImageProjection {
+    pub fn borrowed(&self) -> BorrowedHostAdvertisementImageProjection<'_> {
+        BorrowedHostAdvertisementImageProjection {
+            context: &self.context,
+            capability_images: &self.capability_images,
+            authority_grants: &self.authority_grants,
+        }
+    }
+    pub fn validate(&self) -> Result<(), R> {
+        self.borrowed().validate()
     }
 }
 
@@ -171,3 +208,7 @@ impl SignedPortableAdmissionReceipt {
 #[cfg(test)]
 #[path = "member_return_images_tests.rs"]
 mod tests;
+
+#[path = "member_return_images_borrowed.rs"]
+mod borrowed;
+pub use borrowed::MemberReturnImageAcknowledgementSeed;
