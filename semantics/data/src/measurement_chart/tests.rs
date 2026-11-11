@@ -145,7 +145,7 @@ fn truncated_oversize_badversion_badutf8_and_trailing_encoding_refuse() {
     );
 }
 #[test]
-fn bounds_are_explicit_and_one_chart_input_is_authored_with_title() {
+fn bounds_are_explicit_and_one_chart_input_is_authored_with_label() {
     assert_eq!(MAXIMUM_MEASUREMENT_CHART_BYTES, 4366);
     assert!(measurement_chart_decode_workspace_bytes() > MAXIMUM_MEASUREMENT_CHART_BYTES);
     let chart = MeasurementChart::new(
@@ -160,8 +160,8 @@ fn bounds_are_explicit_and_one_chart_input_is_authored_with_title() {
     assert_eq!(kind.inputs.len(), 1);
     assert_eq!(kind.inputs[0].port_id.as_str(), "chart");
     assert!(kind.outputs.is_empty());
-    assert_eq!(kind.startup_parameters[0].name, "title");
-    assert_eq!(kind.configuration[0].key, "title");
+    assert_eq!(kind.startup_parameters[0].name, "label");
+    assert_eq!(kind.configuration[0].key, "label");
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
     crate::install_measurement_chart_catalog(&mut startup, &mut profiles).unwrap();
@@ -169,7 +169,7 @@ fn bounds_are_explicit_and_one_chart_input_is_authored_with_title() {
         r#"plot chart (
     >> chart: MeasurementChart...|
 ) {
-    show: face/measurement-chart(title = "Conditions")
+    show: face/measurement-chart(label = "Conditions")
     chart >> show.chart
 }"#,
     );

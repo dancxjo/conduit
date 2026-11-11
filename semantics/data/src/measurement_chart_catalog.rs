@@ -15,7 +15,7 @@ pub fn install_measurement_chart_catalog(
         kind: MEASUREMENT_CHART_FACE_KIND.into(),
         startup_parameters: vec![
             StartupParameterSignature {
-                name: "title".into(),
+                name: "label".into(),
                 value_type: "Text".into(),
                 default: None,
             },
@@ -32,7 +32,6 @@ pub fn install_measurement_chart_catalog(
 }
 pub fn measurement_chart_face_semantic_contract() -> Kind {
     let mut configuration = data_label_configuration();
-    configuration[0].key = "title".into();
     configuration.push(conduit_core::KindConfigurationField {
         key: "maximum-updates".into(),
         default_value: ConfigurationValue::U64(1024),
@@ -42,7 +41,6 @@ pub fn measurement_chart_face_semantic_contract() -> Kind {
         },
     });
     let mut startup_parameters = data_label_startup_front();
-    startup_parameters[0].name = "title".into();
     startup_parameters.push(FrontStartupParameter {
         name: "maximum-updates".into(),
         value_type: kind_id(COUNT_INFO_ID),
