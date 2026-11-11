@@ -1,0 +1,13 @@
+[package]
+name = "conduit-environment-face"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+conduit-body = { path = "../../architecture/body", default-features = false }
+conduit-core = { path = "../../architecture/core" }
+conduit-face = { path = "../face", default-features = false }
+
+[dev-dependencies]
+conduit-seven-segment-mask = { path = "../../plots/seven-segment-mask" }
