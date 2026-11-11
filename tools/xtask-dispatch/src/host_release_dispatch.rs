@@ -1,6 +1,8 @@
 //! Parse and execute the dependency-light Host release entrance.
 use super::host_release;
 use std::path::PathBuf;
+mod artifact;
+pub(super) use artifact::run_host_release_artifact;
 
 pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
     let mut values = options.iter();

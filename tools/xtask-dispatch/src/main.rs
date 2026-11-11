@@ -211,6 +211,18 @@ fn main() {
         }
         return;
     }
+    if let Some(options) = host_release_artifact_options(&arguments) {
+        #[cfg(feature = "host-release")]
+        {
+            if let Err(error) = host_release_dispatch::run_host_release_artifact(options) {
+                eprintln!("xtask error: {error}");
+                std::process::exit(1);
+            }
+            return;
+        }
+        #[cfg(not(feature = "host-release"))]
+        launch_host_release_command("release-artifact", options);
+    }
     if let Some(options) = host_release_options(&arguments) {
         #[cfg(feature = "host-release")]
         {
@@ -364,8 +376,26 @@ fn host_release_options(arguments: &[String]) -> Option<&[String]> {
     }
 }
 
+fn host_release_artifact_options(arguments: &[String]) -> Option<&[String]> {
+    match arguments {
+        [host, action, options @ ..] if host == "host" && action == "release-artifact" => {
+            Some(options)
+        }
+        [make, host, action, options @ ..]
+            if make == "make" && host == "host" && action == "release-artifact" =>
+        {
+            Some(options)
+        }
+        _ => None,
+    }
+}
+
 #[cfg(not(feature = "host-release"))]
 fn launch_host_release(options: &[String]) -> ! {
+    launch_host_release_command("release", options)
+}
+#[cfg(not(feature = "host-release"))]
+fn launch_host_release_command(action: &str, options: &[String]) -> ! {
     // Windows cannot replace the dispatcher executable while it is running.
     // Compile the feature-bearing Host release binary in an isolated target.
     let requested_target = std::env::var_os("CARGO_TARGET_DIR");
@@ -382,7 +412,7 @@ fn launch_host_release(options: &[String]) -> ! {
             "host-release",
             "--",
             "host",
-            "release",
+            action,
         ])
         .args(options);
     if let Some(target) = requested_target {
@@ -401,45 +431,5 @@ fn launch_host_release(options: &[String]) -> ! {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::host_release_options;
-
-    fn arguments(values: &[&str]) -> Vec<String> {
-        values.iter().map(|value| (*value).to_string()).collect()
-    }
-
-    #[test]
-    fn host_release_dispatch_accepts_supported_make_entrance() {
-        let arguments = arguments(&[
-            "make",
-            "host",
-            "release",
-            "--platform",
-            "windows",
-            "--output",
-            "target/releases",
-        ]);
-
-        assert_eq!(host_release_options(&arguments), Some(&arguments[3..]));
-    }
-
-    #[test]
-    fn host_release_dispatch_retains_internal_direct_entrance() {
-        let arguments = arguments(&[
-            "host",
-            "release",
-            "--platform",
-            "macos",
-            "--output",
-            "target/releases",
-        ]);
-
-        assert_eq!(host_release_options(&arguments), Some(&arguments[2..]));
-    }
-
-    #[test]
-    fn unrelated_make_commands_stay_on_the_full_dispatcher() {
-        let arguments = arguments(&["make", "conduitos", "release"]);
-        assert_eq!(host_release_options(&arguments), None);
-    }
-}
+#[path = "main_tests.rs"]
+mod tests;
