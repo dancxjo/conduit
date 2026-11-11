@@ -485,4 +485,32 @@ fn public_shape_signed_return_measures_whole_transaction() {
     assert_eq!(accepted.credential, ack.credential);
     assert_eq!(link.next, incoming.len());
     std::println!("signed-transaction public_shape_outer={} fixture_ack={} images={} grants={} input=9216 output=4096 dynamic_peak={} allocations={} future_bytes={}", outer.len(), document.len(), images.len(), ack.projection.authority_grants.len(), cost.peak_bytes, cost.allocations, future_bytes);
+    let references: Vec<_> = ack.projection.authority_grants.iter().collect();
+    let mut borrowed_link = BorrowedMessages {
+        incoming: &incoming,
+        next: 0,
+        sent: 0,
+    };
+    let ((borrowed, borrowed_future), borrowed_cost) = return_allocation_probe::observe(|| {
+        let mut input = vec![0; 9 * 1024];
+        let mut output = vec![0; 4096];
+        let exchange = transaction.exchange_with_grants(
+            &mut borrowed_link,
+            images.iter().map(Vec::as_slice),
+            &references,
+            &mut input,
+            &mut output,
+        );
+        let extent = core::mem::size_of_val(&exchange);
+        (ready(exchange).unwrap(), extent)
+    });
+    assert_eq!(borrowed.credential, accepted.credential);
+    assert_eq!(borrowed.receipt_digest, accepted.receipt_digest);
+    assert_eq!(borrowed_link.next, link.next);
+    assert_eq!(borrowed_link.sent, link.sent);
+    assert!(borrowed_cost.peak_bytes < cost.peak_bytes);
+    std::println!("borrowed-grants reference_backing={} dynamic_peak={} allocations={} future_bytes={} saved_peak={}", references.capacity() * core::mem::size_of::<&conduit_core::AuthorityGrant>(), borrowed_cost.peak_bytes, borrowed_cost.allocations, borrowed_future, cost.peak_bytes - borrowed_cost.peak_bytes);
 }
+
+#[path = "member_control_tests.rs"]
+mod member_control_tests;

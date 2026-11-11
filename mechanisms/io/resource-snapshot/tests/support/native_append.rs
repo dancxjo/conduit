@@ -7,7 +7,7 @@ use std::{
     rc::Rc,
 };
 #[path = "../../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs"]
-mod selection_fixture;
+pub(super) mod selection_fixture;
 #[derive(Clone)]
 pub(super) struct Storage {
     bytes: Rc<RefCell<Vec<u8>>>,

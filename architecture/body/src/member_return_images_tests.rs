@@ -303,3 +303,57 @@ fn incremental_acknowledgement_preserves_semantic_projection_checks() {
         check(&changed);
     }
 }
+
+#[test]
+fn referenced_original_grants_preserve_transcript_and_acknowledgement_laws() {
+    use serde::de::DeserializeSeed;
+    let (retained, mut projection, _, _) = fixture();
+    projection.authority_grants.push(grant(&projection));
+    let references: Vec<_> = projection.authority_grants.iter().collect();
+    let borrowed = BorrowedHostAdvertisementImageProjection {
+        context: &projection.context,
+        capability_images: &projection.capability_images,
+        authority_grants: &references,
+    };
+    let mut scratch = [0; 8192];
+    assert_eq!(
+        member_return_image_transcript(&retained, &projection).unwrap(),
+        member_return_image_transcript_into(&retained, borrowed, &mut scratch).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_vec(&projection).unwrap(),
+        serde_json::to_vec(&borrowed).unwrap()
+    );
+    let mut current = retained.clone();
+    current.boot_id = projection.context.boot_id.clone();
+    let ack = MemberReturnImageAcknowledgement::new(current.clone(), projection.clone());
+    let original = serde_json::to_value(&ack).unwrap();
+    for altered in [false, true] {
+        let mut value = original.clone();
+        if altered {
+            value["projection"]["authority_grants"][0]["grant_id"] = "grant/substitute".into();
+        }
+        let bytes = serde_json::to_vec(&value).unwrap();
+        let mut decoder = serde_json_core::de::Deserializer::new(&bytes, None);
+        let result = MemberReturnImageAcknowledgementSeed {
+            retained: &retained,
+            actual: borrowed,
+        }
+        .deserialize(&mut decoder);
+        assert_eq!(result.is_ok(), !altered);
+        if let Ok(credential) = result {
+            assert_eq!(credential, current);
+            assert_eq!(decoder.end().unwrap(), bytes.len());
+        }
+    }
+    let duplicate = [
+        &projection.authority_grants[0],
+        &projection.authority_grants[0],
+    ];
+    assert!(BorrowedHostAdvertisementImageProjection {
+        authority_grants: &duplicate,
+        ..borrowed
+    }
+    .validate()
+    .is_err());
+}

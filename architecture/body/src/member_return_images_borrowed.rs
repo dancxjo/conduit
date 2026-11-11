@@ -35,11 +35,13 @@ impl<'de> Deserialize<'de> for FieldName {
 /// Parse the existing acknowledgement semantics, retaining only its credential.
 /// Object field order and HostAdvertisement defaults remain serde's ordinary
 /// semantics. Images and grants are checked one at a time in their signed order.
-pub struct MemberReturnImageAcknowledgementSeed<'a> {
+pub struct MemberReturnImageAcknowledgementSeed<'a, G = AuthorityGrant> {
     pub retained: &'a MembershipCredential,
-    pub actual: BorrowedHostAdvertisementImageProjection<'a>,
+    pub actual: BorrowedHostAdvertisementImageProjection<'a, G>,
 }
-impl<'de> DeserializeSeed<'de> for MemberReturnImageAcknowledgementSeed<'_> {
+impl<'de, G: Borrow<AuthorityGrant>> DeserializeSeed<'de>
+    for MemberReturnImageAcknowledgementSeed<'_, G>
+{
     type Value = MembershipCredential;
     fn deserialize<D: serde::Deserializer<'de>>(self, d: D) -> Result<Self::Value, D::Error> {
         self.actual
@@ -48,7 +50,7 @@ impl<'de> DeserializeSeed<'de> for MemberReturnImageAcknowledgementSeed<'_> {
         d.deserialize_map(self)
     }
 }
-impl<'de> Visitor<'de> for MemberReturnImageAcknowledgementSeed<'_> {
+impl<'de, G: Borrow<AuthorityGrant>> Visitor<'de> for MemberReturnImageAcknowledgementSeed<'_, G> {
     type Value = MembershipCredential;
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("member return acknowledgement")
@@ -98,14 +100,14 @@ impl<'de> Visitor<'de> for MemberReturnImageAcknowledgementSeed<'_> {
         Ok(credential)
     }
 }
-struct ProjectionSeed<'a>(BorrowedHostAdvertisementImageProjection<'a>);
-impl<'de> DeserializeSeed<'de> for ProjectionSeed<'_> {
+struct ProjectionSeed<'a, G>(BorrowedHostAdvertisementImageProjection<'a, G>);
+impl<'de, G: Borrow<AuthorityGrant>> DeserializeSeed<'de> for ProjectionSeed<'_, G> {
     type Value = ();
     fn deserialize<D: serde::Deserializer<'de>>(self, d: D) -> Result<(), D::Error> {
         d.deserialize_map(self)
     }
 }
-impl<'de> Visitor<'de> for ProjectionSeed<'_> {
+impl<'de, G: Borrow<AuthorityGrant>> Visitor<'de> for ProjectionSeed<'_, G> {
     type Value = ();
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str("image projection")
@@ -126,7 +128,7 @@ impl<'de> Visitor<'de> for ProjectionSeed<'_> {
                 }
                 "authority_grants" if !grants => {
                     grants = true;
-                    map.next_value_seed(EqualSequence(self.0.authority_grants, PhantomData))?;
+                    map.next_value_seed(EqualGrants(self.0.authority_grants))?;
                 }
                 _ => return Err(de::Error::custom("unknown or duplicate projection field")),
             }
@@ -152,6 +154,31 @@ impl<'de, T: Deserialize<'de> + PartialEq> Visitor<'de> for EqualSequence<'_, T>
     fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<(), S::Error> {
         for expected in self.0 {
             if seq.next_element::<T>()?.as_ref() != Some(expected) {
+                return Err(de::Error::custom("description mismatch"));
+            }
+        }
+        if seq.next_element::<de::IgnoredAny>()?.is_some() {
+            return Err(de::Error::custom("extra description"));
+        }
+        Ok(())
+    }
+}
+
+struct EqualGrants<'a, G>(&'a [G]);
+impl<'de, G: Borrow<AuthorityGrant>> DeserializeSeed<'de> for EqualGrants<'_, G> {
+    type Value = ();
+    fn deserialize<D: serde::Deserializer<'de>>(self, d: D) -> Result<(), D::Error> {
+        d.deserialize_seq(self)
+    }
+}
+impl<'de, G: Borrow<AuthorityGrant>> Visitor<'de> for EqualGrants<'_, G> {
+    type Value = ();
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("exact original grant descriptions")
+    }
+    fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<(), S::Error> {
+        for expected in self.0 {
+            if seq.next_element::<AuthorityGrant>()?.as_ref() != Some(expected.borrow()) {
                 return Err(de::Error::custom("description mismatch"));
             }
         }

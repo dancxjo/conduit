@@ -210,6 +210,12 @@ unsafe impl<P: SynchronousHostCall> SynchronousHostCall for Interrupt<P> {
     fn maximum_output_bytes(&self) -> u32 {
         self.inner.maximum_output_bytes()
     }
+    fn call_bounds(&self, call: HostCallId) -> Option<CallBounds> {
+        self.inner.call_bounds(call)
+    }
+    fn acknowledge_result(&mut self, r: HostCallRequest, output: &[u8]) -> Result<(), CallFailure> {
+        self.inner.acknowledge_result(r, output)
+    }
     fn invoke(&mut self, r: HostCallRequest, i: &[u8], o: &mut [u8]) -> Result<usize, CallFailure> {
         let result = self.inner.invoke(r, i, o);
         self.fail.set(true);
@@ -414,3 +420,9 @@ mod native_factory_appender;
 
 #[path = "native_sync/tm1637_failure.rs"]
 mod tm1637_failure;
+
+#[path = "native_sync/record_service.rs"]
+mod record_service;
+
+#[path = "native_sync/allocations.rs"]
+mod allocations;

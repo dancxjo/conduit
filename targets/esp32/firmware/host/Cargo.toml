@@ -8,6 +8,7 @@ publish = false
 default = []
 native-host = []
 [dependencies]
+conduit-tm1637-protocol = { path = "../../../../mechanisms/devices/tm1637" }
 conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
 sha2 = { version = "0.10", default-features = false }
 conduit-esp32-snapshot-nor = { path = "../../snapshot-nor" }
