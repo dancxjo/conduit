@@ -268,9 +268,9 @@ fn worker_dispatch_observes_sequence_advanced_while_idle() {
         .unwrap();
     adapter.next_request_sequence = 9;
     let mut output = Vec::new();
-    // Malformed typed input is refused before provider access, but still crosses
+    // Invalid UTF-8 is refused before provider access, but still crosses
     // the real prepared dispatch/completion slot and exercises sequence custody.
-    assert_eq!(adapter.begin_generation(&flow, b"x", &mut output), None);
+    assert_eq!(adapter.begin_generation(&flow, &[0xff], &mut output), None);
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
     let terminal = loop {
         if let Some(terminal) = adapter.poll_generation(&mut output) {
@@ -282,7 +282,7 @@ fn worker_dispatch_observes_sequence_advanced_while_idle() {
         );
         std::thread::yield_now();
     };
-    assert_ne!(terminal, LocalModelAdapterTerminal::ProviderLost);
+    assert_eq!(terminal, LocalModelAdapterTerminal::Failed);
     assert_eq!(adapter.next_request_sequence, 9);
     assert_eq!(adapter.generation_worker.as_ref().unwrap().next_sequence, 9);
 }
