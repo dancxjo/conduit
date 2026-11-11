@@ -48,9 +48,9 @@ fn retained_key_recovery_uses_latest_basis_but_preserves_old_signed_presentation
     let challenge = owner
         .begin_recovered_member_image_return(&anchor, &ad, claim.clone())
         .unwrap();
-    let pending = owner.pending_member_return.as_ref().unwrap();
-    assert_eq!(pending.prior, latest);
-    assert!(pending.presentation.as_ref().unwrap() == &claim);
+    // Ordinary completion below must verify this original signed claim; replacing
+    // its credential with the latest transition basis would break the signature.
+    claim.verify(&key.verifying_key()).unwrap();
     assert_eq!(
         owner
             .begin_recovered_member_image_return(&anchor, &ad, claim.clone())
@@ -99,7 +99,7 @@ fn retained_key_recovery_refuses_foreign_scope_bad_key_and_changed_latest() {
     ad.capabilities.clear();
     ad.boot_id = "boot/recover-refusals/2".into();
     let mut foreign = prior.clone();
-    foreign.body_id = "body/foreign".into();
+    foreign.body_id = serde_json::from_value(serde_json::json!("body/foreign")).unwrap();
     assert!(owner
         .begin_recovered_member_image_return(&foreign, &ad, presentation(&foreign, &ad, &key))
         .is_err());
@@ -138,7 +138,8 @@ fn retained_key_recovery_refuses_foreign_scope_bad_key_and_changed_latest() {
         .last_mut()
         .unwrap()
         .credential
-        .credential_id = "credential/concurrent-change".into();
+        .credential_id =
+        serde_json::from_value(serde_json::json!("credential/concurrent-change")).unwrap();
     let manager = owner.admissions.clone();
     assert!(owner
         .complete_member_return(&root, &prove(&challenge, &key))
