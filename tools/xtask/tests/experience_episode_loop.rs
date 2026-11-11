@@ -241,6 +241,9 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
     assert_eq!(requests.len(), 2);
     for (index, request) in requests.iter().enumerate() {
         let request: serde_json::Value = serde_json::from_str(request).unwrap();
+        let recorded: serde_json::Value =
+            serde_json::from_str(episodes[index].evidence().as_ref().unwrap()).unwrap();
+        assert_eq!(recorded, request["selected_experience"]);
         let evidence = &request["selected_experience"]["evidence"];
         let revision = index + 1;
         assert_eq!(
@@ -715,6 +718,9 @@ fn pete_records_provider_loss_and_resumes_in_the_same_play() {
     assert_eq!(*lost.episode(), 2);
     assert!(lost.response().is_none());
     assert!(!*lost.retained());
+    let evidence: serde_json::Value =
+        serde_json::from_str(lost.evidence().as_ref().unwrap()).unwrap();
+    assert_eq!(evidence["revision"], 2);
     let EpisodeOutcome::ProviderLost(outcome) = lost.outcome() else {
         panic!("expected typed provider loss");
     };

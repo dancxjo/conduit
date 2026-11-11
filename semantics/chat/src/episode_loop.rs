@@ -162,6 +162,11 @@ impl EpisodeComposer {
         {
             return Err(EpisodeRefusal::PromptBoundExceeded);
         }
+        let evidence = selected_experience
+            .map(core::str::from_utf8)
+            .transpose()
+            .map_err(|_| EpisodeRefusal::Encoding)?
+            .map(String::from);
         let experience_digest = selected_experience.map(Sha256::digest);
         let selected_experience: Option<serde_json::Value> = selected_experience
             .map(serde_json::from_slice)
@@ -203,6 +208,7 @@ impl EpisodeComposer {
         let pending = EpisodePending::new(
             body.body_id.clone(),
             episode,
+            evidence,
             observation,
             EpisodeRecall::new(recalled).map_err(|_| EpisodeRefusal::Encoding)?,
             body.wake_id.clone(),
@@ -276,6 +282,7 @@ impl EpisodeRetainer {
         let encoded = EpisodeRecord::new(
             pending.body_id().clone(),
             *pending.episode(),
+            pending.evidence().clone(),
             pending.observation().clone(),
             outcome,
             pending.recalled().clone(),

@@ -283,6 +283,7 @@ type EpisodePending = {
     body_id: Text <= 256B not in [""]
     wake_id: Text <= 256B not in [""]
     wake_sequence: U64
+    evidence: Text <= 4096B?
     observation: EpisodeObservation
     recalled: EpisodeRecall
 }
@@ -304,6 +305,7 @@ type EpisodeRecord = {
     body_id: Text <= 256B not in [""]
     wake_id: Text <= 256B not in [""]
     wake_sequence: U64
+    evidence: Text <= 4096B?
     observation: EpisodeObservation
     recalled: EpisodeRecall
     outcome: EpisodeOutcome
