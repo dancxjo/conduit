@@ -129,7 +129,7 @@ impl PreparedEpisodeRetrievalProjection {
             let response = field(produced, "response")?;
             put(
                 out,
-                br#"{"disposition":"produced","provenance":"model_derived"#,
+                br#"{"disposition":"produced","provenance":"model_derived""#,
             )?;
             if selection.is_none() {
                 put(out, br#", "content":"#)?;

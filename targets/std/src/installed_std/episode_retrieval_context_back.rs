@@ -42,8 +42,22 @@ impl EpisodeRetrievalContextBack {
         self.context.select(&snapshot, outcome).map_err(|_| 20u16)?;
         self.request
             .compose(&snapshot, &self.context)
-            .map_err(|_| 30u16)?;
+            .map_err(request_refusal)?;
         Ok(())
+    }
+}
+fn request_refusal(reason: conduit_chat::EpisodeRetrievalRequestRefusal) -> u16 {
+    use conduit_chat::EpisodeRetrievalRequestRefusal as R;
+    match reason {
+        R::InstructionBound => 31,
+        R::SnapshotMismatch => 32,
+        R::CurrentProjection(_) => 33,
+        R::InvalidCurrentJson => 34,
+        R::InvalidFragmentJson => 35,
+        R::MalformedExperience => 36,
+        R::ByteBound => 37,
+        R::PendingBound => 38,
+        R::MalformedPending => 39,
     }
 }
 impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalContextBack {
