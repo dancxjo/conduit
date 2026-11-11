@@ -94,7 +94,7 @@ mod tests {
             capability_id: offer.capability_id.clone(),
         }];
         planned_gear_from_parts! {
-            semantic_contract: offer.semantic_contract, realization_properties: offer.realization_properties,
+            realization_properties: offer.realization_properties, semantic_contract: offer.semantic_contract,
             placement_id: "placement/chime".into(), gear_id: "chime".into(),
             kind_id: offer.kind_id, kind_contract_revision: offer.kind_contract_revision,
             execution_profile_id: offer.implementation.execution_profile_id,

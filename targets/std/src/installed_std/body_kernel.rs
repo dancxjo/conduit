@@ -47,6 +47,7 @@ pub(crate) use native_source::NativeBodySource;
 pub(crate) mod memory;
 
 pub(crate) struct BodyKernel<'a> {
+    startup_gates: Vec<super::startup_source_back::StartupGate>,
     terminal_events: Option<Vec<KernelEvent>>,
     error_diagnostic: Option<diagnostic::Diagnostic>,
     cleanup_diagnostic: Option<diagnostic::Diagnostic>,
@@ -1347,3 +1348,21 @@ mod parsec_live_fore_tests;
 #[cfg(test)]
 #[path = "body_kernel/parsec_instruction_source_tests.rs"]
 mod parsec_instruction_source_tests;
+
+impl BodyKernel<'_> {
+    pub(crate) fn bind_startup(
+        &self,
+        startup: Option<&conduit_body::BodyStartup>,
+    ) -> Result<(), String> {
+        if self.startup_gates.is_empty() {
+            return Ok(());
+        }
+        let startup =
+            startup.ok_or("body/wake requires the exact durable Started acknowledgment")?;
+        let eligible = startup.eligible(conduit_body::StartupScope::Wake);
+        for gate in &self.startup_gates {
+            gate.bind(eligible)?;
+        }
+        Ok(())
+    }
+}

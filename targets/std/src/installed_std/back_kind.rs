@@ -217,6 +217,7 @@ pub(super) enum InstalledBack {
     AudioPlay(AudioPlayBack),
     AudioTone(AudioToneBack),
     StartupChime(conduit_semantic_catalog::StartupChimeBack),
+    StartupSource(super::startup_source_back::StartupSourceBack),
     WavArtifact(WavArtifactBack),
     PcmProfileConversion(PcmProfileConversionBack),
     MidiOutput(MidiOutputBack),

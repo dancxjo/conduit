@@ -47,6 +47,8 @@ mod creche;
 #[cfg(test)]
 mod creche_tests;
 mod execution;
+mod startup;
+pub use startup::{BodyStartedAcknowledgment, CommittedBodyStartup};
 mod fore;
 mod fore_custody;
 pub use fore_custody::{
@@ -402,5 +404,36 @@ mod tests {
                 reason: BodyTimeRefusal::DifferentClock,
             }
         );
+    }
+}
+
+impl StdHost {
+    /// The callback returns exact retained startup evidence only after durable
+    /// Started publication. Source binding happens after it, before effects.
+    pub fn run_body_plan_with_committed_startup_to<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        fore: Option<&mut dyn BodyForeOutputAdapter>,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<CommittedBodyStartup, String>,
+    {
+        self.run_body_plan_to_with_start_and_clock_and_creche(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            fore.map(|f| (&[][..], false, f)),
+            None,
+            None,
+            None,
+            None,
+            started,
+            None,
+        )
     }
 }

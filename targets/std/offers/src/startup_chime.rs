@@ -34,3 +34,21 @@ pub fn startup_chime_offer() -> CapabilityOffer {
     )
     .build()
 }
+
+pub const BODY_WAKE_IMPLEMENTATION: &str = "std/kernel-body-wake@1";
+pub fn body_wake_offer() -> CapabilityOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::body_wake_contract(false)
+            .into_semantic_contract(conduit_semantic_catalog::BODY_WAKE_REVISION),
+        Back {
+            capability_id: "body-wake".into(),
+            execution_profile_id: "std/retained-body-wake@1".into(),
+            implementation_id: BODY_WAKE_IMPLEMENTATION.into(),
+            artifact_id: "conduit-std-host/body-startup@1".into(),
+            host_calls: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build()
+}

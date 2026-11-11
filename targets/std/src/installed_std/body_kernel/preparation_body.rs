@@ -280,8 +280,16 @@ impl<'a> BodyKernel<'a> {
                     })
                 }),
         )?;
+        let startup_gates = drivers
+            .iter()
+            .filter_map(|back| match back {
+                InstalledBack::StartupSource(source) => Some(source.gate.clone()),
+                _ => None,
+            })
+            .collect();
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
+            startup_gates,
             terminal_events: None,
             error_diagnostic: None,
             cleanup_diagnostic: None,

@@ -66,6 +66,7 @@ mod near_back;
 mod numerical_back;
 mod pcm_clip_frames_back;
 mod startup_chime_back;
+mod startup_source_back;
 mod temporal_evidence_back;
 pub(crate) use ieee_back::{offer as ieee_offer, owns_offer as owns_ieee_offer};
 pub(crate) use near_back::{
