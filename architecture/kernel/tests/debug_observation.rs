@@ -241,6 +241,7 @@ fn pressure_overwrites_only_debug_history_and_exposes_the_exact_gap() {
                 value: Some(b"abcdef"),
                 fault_code: None,
                 causal_parent_sequence: None,
+                additional_parent_sequences: Default::default(),
                 invocation_sequence: None,
             })
             .unwrap();
@@ -279,6 +280,7 @@ fn stale_unknown_malformed_and_nonmonotonic_inputs_refuse_without_replacing_hist
             value: None,
             fault_code: None,
             causal_parent_sequence: None,
+            additional_parent_sequences: Default::default(),
             invocation_sequence: None,
         })
         .unwrap();
@@ -295,6 +297,7 @@ fn stale_unknown_malformed_and_nonmonotonic_inputs_refuse_without_replacing_hist
         value: None,
         fault_code: None,
         causal_parent_sequence: None,
+        additional_parent_sequences: Default::default(),
         invocation_sequence: None,
     };
     assert_eq!(

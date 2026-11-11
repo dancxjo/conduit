@@ -46,6 +46,8 @@ pub struct DebuggerTimelineEvent {
     pub fault_code: Option<u16>,
     #[serde(default)]
     pub causal_parent_sequence: Option<u64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub additional_parent_sequences: Vec<u64>,
     #[serde(default)]
     pub invocation_sequence: Option<u64>,
 }
@@ -203,6 +205,11 @@ impl DebuggerTimeline {
             value: value_face(record),
             fault_code: record.fault_code,
             causal_parent_sequence: record.causal_parent_sequence,
+            additional_parent_sequences: record
+                .additional_parent_sequences
+                .into_iter()
+                .flatten()
+                .collect(),
             invocation_sequence: record.invocation_sequence,
         };
         self.retained_bytes = self.retained_bytes.saturating_add(event.retained_bytes());
@@ -299,22 +306,28 @@ impl DebuggerTimeline {
         let origin_sequence = origin.sequence;
         let mut steps = Vec::new();
         let mut missing_parent_sequences = Vec::new();
-        let mut current = index;
-        loop {
+        let mut pending = vec![index];
+        let mut seen = vec![false; self.events.len()];
+        while let Some(current) = pending.pop() {
+            if seen[current] {
+                continue;
+            }
+            seen[current] = true;
             let event = &self.events[current];
             steps.push(trace_step(current, event));
-            let Some(parent) = event.causal_parent_sequence else {
-                break;
-            };
-            let Some(parent_index) = self.events.iter().position(|candidate| {
-                candidate.execution == execution && candidate.sequence == parent
-            }) else {
-                missing_parent_sequences.push(parent);
-                break;
-            };
-            current = parent_index;
+            for parent in event.parents() {
+                if let Some(parent_index) = self.events[..current].iter().position(|candidate| {
+                    candidate.execution == execution && candidate.sequence == parent
+                }) {
+                    pending.push(parent_index);
+                } else {
+                    missing_parent_sequences.push(parent);
+                }
+            }
         }
-        steps.reverse();
+        steps.sort_unstable_by_key(|step| step.event_index);
+        missing_parent_sequences.sort_unstable();
+        missing_parent_sequences.dedup();
         self.trace = Some(DebuggerCausalTrace {
             direction: DebuggerTraceDirection::Upstream,
             execution,
@@ -338,9 +351,7 @@ impl DebuggerTimeline {
         let mut steps = vec![trace_step(index, origin)];
         for (candidate_index, candidate) in self.events.iter().enumerate().skip(index + 1) {
             if candidate.execution == execution
-                && candidate
-                    .causal_parent_sequence
-                    .is_some_and(|parent| known.contains(&parent))
+                && candidate.parents().any(|parent| known.contains(&parent))
             {
                 known.push(candidate.sequence);
                 steps.push(trace_step(candidate_index, candidate));
@@ -452,8 +463,15 @@ fn trace_step(index: usize, event: &DebuggerTimelineEvent) -> DebuggerTraceStep 
 }
 
 impl DebuggerTimelineEvent {
+    fn parents(&self) -> impl Iterator<Item = u64> + '_ {
+        self.causal_parent_sequence
+            .into_iter()
+            .chain(self.additional_parent_sequences.iter().copied())
+    }
+
     pub fn retained_bytes(&self) -> usize {
-        128 + self.subject.len()
+        128 + self.additional_parent_sequences.len() * core::mem::size_of::<u64>()
+            + self.subject.len()
             + self.related_subject.as_ref().map_or(0, String::len)
             + self.event.len()
             + self.value.as_ref().map_or(0, |value| value.summary.len())

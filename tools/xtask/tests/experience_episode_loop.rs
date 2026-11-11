@@ -440,20 +440,25 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
         );
     }
 
-    let situated = timeline.events[..response]
-        .iter()
-        .rposition(|event| {
-            event.event == "value-received" && event.subject.ends_with("/compose/input/experience")
-        })
-        .unwrap();
-    timeline.trace_upstream(situated).unwrap();
-    let trace = timeline.trace.as_ref().unwrap();
-    assert!(trace.missing_parent_sequences.is_empty());
-    assert!(
-        trace.steps.iter().any(|step| {
-            step.event == "value-received" && step.subject.contains("front/input/frames")
-        }),
-        "{trace:?}"
+    for port in ["/compose/input/experience", "/retain/input/pending"] {
+        let input = timeline.events[..response]
+            .iter()
+            .rposition(|event| event.event == "value-received" && event.subject.ends_with(port))
+            .unwrap();
+        assert!(
+            trace.steps.iter().any(|step| step.event_index == input),
+            "missing second episode input {port} in {trace:?}"
+        );
+    }
+    assert_eq!(
+        trace
+            .steps
+            .iter()
+            .filter(|step| {
+                step.event == "value-received" && step.subject.contains("front/input/frames")
+            })
+            .count(),
+        2
     );
 }
 

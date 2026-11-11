@@ -77,6 +77,7 @@ fn record(
         preview,
         fault_code: (kind == DebugEventKind::Fault).then_some(17),
         causal_parent_sequence: None,
+        additional_parent_sequences: Default::default(),
         invocation_sequence: None,
     }
 }

@@ -44,13 +44,16 @@ impl<E: crate::SignSink + Send, const N: usize, const P: usize, const R: usize> 
         let buffer = self.observations()?;
         Some(HostedDebugHistory {
             execution: buffer.execution(),
-            records: (0..buffer.len()).filter_map(|index| buffer.record(index).copied()).collect(),
+            records: (0..buffer.len())
+                .filter_map(|index| buffer.record(index).copied())
+                .collect(),
             gap: buffer.gap(),
         })
     }
 }
 
 pub const DEBUG_OBSERVATION_SCHEMA_VERSION: u16 = 2;
+pub const MAX_DEBUG_ADDITIONAL_PARENTS: usize = 8;
 pub const MAX_DEBUG_VALUE_PREVIEW_BYTES: usize = 64;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -70,9 +73,15 @@ pub struct DebugNodeBinding {
 pub enum DebugSubject {
     Gear(NodeId),
     /// A runtime input Port or a legacy undirected Port binding.
-    Port { gear: NodeId, port: PortId },
+    Port {
+        gear: NodeId,
+        port: PortId,
+    },
     /// Output slots have their own numbering and may overlap input slots.
-    OutputPort { gear: NodeId, port: PortId },
+    OutputPort {
+        gear: NodeId,
+        port: PortId,
+    },
     Cord(CordId),
 }
 
@@ -118,6 +127,8 @@ pub struct DebugObservationRecord {
     pub fault_code: Option<u16>,
     /// Exact retained observation sequence that directly caused this event.
     pub causal_parent_sequence: Option<u64>,
+    /// Other observed input Ports in the same batch of Gear work.
+    pub additional_parent_sequences: [Option<u64>; MAX_DEBUG_ADDITIONAL_PARENTS],
     /// Gear-lifetime observation identity containing this event.
     pub invocation_sequence: Option<u64>,
 }
@@ -165,6 +176,13 @@ impl DebugObservationRecord {
             .causal_parent_sequence
             .is_some_and(|parent| parent >= self.sequence)
             || self
+                .additional_parent_sequences
+                .iter()
+                .flatten()
+                .any(|parent| {
+                    *parent >= self.sequence || Some(*parent) == self.causal_parent_sequence
+                })
+            || self
                 .invocation_sequence
                 .is_some_and(|invocation| invocation > self.sequence)
         {
@@ -209,5 +227,6 @@ pub struct DebugObservationInput<'a> {
     pub value: Option<&'a [u8]>,
     pub fault_code: Option<u16>,
     pub causal_parent_sequence: Option<u64>,
+    pub additional_parent_sequences: [Option<u64>; MAX_DEBUG_ADDITIONAL_PARENTS],
     pub invocation_sequence: Option<u64>,
 }

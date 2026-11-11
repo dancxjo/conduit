@@ -39,14 +39,14 @@ Plan, and Play.
 
 The Patchbay replay proof collects bounded debugger records from the installed
 Host for the same two-episode Plot. It checks traffic on every authored Cord
-and traces the second response through the first episode's retention and later
-recall. A separate trace follows the frame into Situation and composition.
-The timeline records a single causal parent at each join.
+and traces the second response through both input frames, first-episode
+retention, later recall, and the inputs to the compose and retain Gears.
+Patchbay follows a bounded set of observed input events at each join.
 
 ```sh
 cargo test --locked -p xtask --test experience_episode_loop patchbay_replays
 ```
 
-Live sensor and homeostasis sources, broader autobiographical retrieval, and
-complete causal inspection of multi-input Gears remain part of
+Live sensor and homeostasis sources and browser inspection of the resulting
+Play remain part of
 [#3707](https://github.com/dancxjo/conduit/issues/3707).
