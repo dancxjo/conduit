@@ -8,6 +8,7 @@ use conduit_mcu_host_runtime::{
     execution_authority::Operation, execution_factory::SoftwareInventory,
     execution_group::NativeContracts,
 };
+use core::fmt::Write;
 pub struct Factory<'a, 'f, 'diagnostic> {
     pub residents: &'a mut crate::resident::generated::Initialized,
     pub software: &'a mut SoftwareInventory<'f, { source::sampling::NODE_COUNT }>,
@@ -103,9 +104,13 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
         append_output_bytes,
         diagnostic,
     } = factory;
-    let pools = held(equipment)?;
+    let pools = held(equipment).map_err(|error| {
+        stage(diagnostic, "held", scope);
+        refusal(diagnostic, "continuation-held-pools", error)
+    })?;
     *activity_target = Some(&equipment.activity);
     let mut prepared_slot = None;
+    stage(diagnostic, "source", scope);
     let future = async {
         let context = ContinuationNativeContext::check_installation(
             bootstrap,
@@ -115,7 +120,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
             configuration.configuration_id,
             policy,
         )
-        .map_err(|_| "continuation-native-context")?;
+        .map_err(|error| refusal(diagnostic, "continuation-native-context", error))?;
         let prepared = crate::play::prepare(
             None::<&b::HostCommandInput<{ crate::config::MAX_ASSIGNMENT_BYTES }>>,
             crate::play::NativeAuthority::Continuation { context, scope },
@@ -140,12 +145,13 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
             contracts,
             diagnostic,
         )
-        .map_err(|_| "continuation-source-preparation")?;
+        .map_err(|error| refusal(diagnostic, "continuation-source-preparation", error))?;
         prepared_slot = Some(prepared);
         Ok::<(), &'static str>(())
     };
     conduit_mcu_host_runtime::poll_boundary::separate(core::pin::pin!(future)).await?;
     let mut presentation_slot = None;
+    stage(diagnostic, "renderer", scope);
     let future = async {
         let context = ContinuationNativeContext::check_installation(
             bootstrap,
@@ -155,7 +161,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
             configuration.configuration_id,
             policy,
         )
-        .map_err(|_| "continuation-renderer-context")?;
+        .map_err(|error| refusal(diagnostic, "continuation-renderer-context", error))?;
         presentation_slot = Some(
             crate::play_service::prepare_presentation(
                 prepared_slot
@@ -169,11 +175,12 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
                 reader,
                 face,
             )
-            .map_err(|_| "continuation-renderer-preparation")?,
+            .map_err(|error| refusal(diagnostic, "continuation-renderer-preparation", error))?,
         );
         Ok::<(), &'static str>(())
     };
     conduit_mcu_host_runtime::poll_boundary::separate(core::pin::pin!(future)).await?;
+    stage(diagnostic, "start", scope);
     let future = async {
         crate::play_service::start_continuation_into(
             prepared_slot.take().ok_or("continuation-prepared-empty")?,
@@ -195,7 +202,29 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
             target,
             scopes_target,
         )
-        .map_err(|_| "continuation-authenticated-start")
+        .map_err(|error| refusal(diagnostic, "continuation-authenticated-start", error))
     };
     conduit_mcu_host_runtime::poll_boundary::separate(core::pin::pin!(future)).await
+}
+
+fn stage(detail: &mut heapless::String<192>, stage: &str, scope: &b::FreshContinuationScope<'_>) {
+    detail.clear();
+    let documents: usize = (0..scope.fragment_count())
+        .filter_map(|index| scope.document(index))
+        .map(<[u8]>::len)
+        .sum();
+    let _ = write!(
+        detail,
+        "{stage} free={} workspace={} docs={documents} ",
+        remaining(),
+        crate::config::MAX_ASSIGNMENT_BYTES
+    );
+}
+fn refusal(
+    detail: &mut heapless::String<192>,
+    reason: &'static str,
+    error: impl core::fmt::Debug,
+) -> &'static str {
+    let _ = write!(detail, " after={} error={error:?}", remaining());
+    reason
 }
