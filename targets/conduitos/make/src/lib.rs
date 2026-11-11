@@ -209,7 +209,7 @@ impl HostMakePackage for ConduitOsMakePackage {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Anchor(MakeAnchor {
             package_id: "conduitos-image@1".into(),
-            package_revision: 2,
+            package_revision: 3,
             catalog: package_catalog(),
             targets: vec![
                 target("ConduitOS x86_64 PC", "x86_64", "pc"),

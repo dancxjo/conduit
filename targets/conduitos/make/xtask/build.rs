@@ -340,10 +340,7 @@ fn execute_with_features(
     }
     if features.contains(&"aarch64-rpi-3b-plus") {
         let make = make.ok_or_else(|| {
-            ConduitosError::refusal(
-                "rpi3-make-record-missing",
-                "exact product Make required".into(),
-            )
+            ConduitosError::refusal("rpi3-make-record-missing", "exact product Make required")
         })?;
         return super::rpi3_image::build(
             opts,

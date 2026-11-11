@@ -171,5 +171,5 @@ fn io_error(error: impl std::fmt::Display) -> ConduitosError {
     ConduitosError::refusal("rpi3-artifact-error", error.to_string())
 }
 fn refusal(reason: &'static str) -> ConduitosError {
-    ConduitosError::refusal(reason, TARGET.into())
+    ConduitosError::refusal(reason, TARGET)
 }
