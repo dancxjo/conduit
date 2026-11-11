@@ -108,6 +108,9 @@ impl RetainedReturn<'_, '_> {
         // offer catalog, duplicate image buffer or new resource pool is made.
         let mut total = 0usize;
         let mut hashes = Vec::new();
+        hashes
+            .try_reserve_exact(conduit_body::MAX_MEMBER_RETURN_IMAGES)
+            .map_err(|_| Refusal::Bounds)?;
         for bytes in images.clone() {
             if hashes.len() >= conduit_body::MAX_MEMBER_RETURN_IMAGES || bytes.is_empty() {
                 return Err(Refusal::Bounds);
