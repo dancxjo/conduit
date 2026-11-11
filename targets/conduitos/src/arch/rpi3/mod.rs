@@ -59,13 +59,14 @@ pub fn initialize_machine() {
         let value = read32(GPIO_BASE + 4) & !((7 << 12) | (7 << 15));
         write32(GPIO_BASE + 4, value | (4 << 12) | (4 << 15));
         write32(GPIO_BASE + 0x94, 0);
-        delay(150);
+        delay_us(1);
         write32(GPIO_BASE + 0x98, (1 << 14) | (1 << 15));
-        delay(150);
+        delay_us(1);
         write32(GPIO_BASE + 0x98, 0);
         write32(UART + 0x24, 1);
         write32(UART + 0x28, 40);
         write32(UART + 0x2c, (1 << 4) | (3 << 5));
+        write32(UART + 0x38, 0);
         write32(UART + 0x44, 0x7ff);
         write32(UART + 0x30, 1 | (1 << 8) | (1 << 9));
     }
@@ -242,8 +243,14 @@ fn invalidate_mailbox(address: usize, bytes: usize) {
     }
     drain_writes();
 }
-fn delay(cycles: u32) {
-    for _ in 0..cycles {
+fn delay_us(duration: u32) {
+    // The GPIO pull latch needs the peripheral-clock interval, not 150 cycles
+    // of a potentially much faster A53. Linux's BCM2835 pinctrl uses 1 us.
+    let start = read_counter() as u32;
+    for _ in 0..1_000_000 {
+        if (read_counter() as u32).wrapping_sub(start) >= duration {
+            return;
+        }
         core::hint::spin_loop();
     }
 }
