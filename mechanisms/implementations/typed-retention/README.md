@@ -25,7 +25,32 @@ cancellation without allocation. These fixtures do not claim a checked or
 admitted Body, planned Line, native-law witness or actual hardware. No
 environmental package is a dependency.
 
-Validation is intentionally stronger than the old Body-local canonical-envelope
-check: malformed primitive leaves refuse through Core's existing borrowed
-validator. Adapter adoption must qualify that difference explicitly rather than
-presenting it as a byte-for-byte extraction of the older validator.
+Both the earlier Body-local checker and the prepared borrowed validator call
+Core's primitive-leaf validation. Malformed leaves remain refused; this does not
+introduce a stricter public Type contract. Native-law witnesses remain separate.
+
+## Environmental adapter qualification
+
+The application adapter retains its channel, exact linked-schema comparison and
+Type-derived preparation ceiling, and delegates storage/commit/cancel to this
+helper. Its channel Kind identities and local order API remain unchanged. The
+old duplicate buffer/order implementations are removed. This is no durable
+recording or admission claim.
+
+CPU64 before/after preparation measurements:
+
+| Scope | Before | After |
+| --- | ---: | ---: |
+| Inline application Back | 120 B | 120 B |
+| Reading value buffers | 4548 B | 4548 B |
+| Capture-timeout value buffers | 448 B | 448 B |
+| Each empty outcome's value buffers | 42 B | 42 B |
+| Preparation allocations per channel | 4 | 4 |
+| Preparation reallocations | 0 | 0 |
+
+Scoped preparation peak and requested bytes also remain identical per channel.
+The contract and shared order are prepared outside this measurement. Immutable
+schema residence, allocator metadata, kernel storage, firmware flash, stack and
+physical Root peaks are not included. Genericity here removes duplicated code;
+it does not claim a measured hardware memory reduction. Raw before/after logs
+and their comparison remain in the task's external evidence area.

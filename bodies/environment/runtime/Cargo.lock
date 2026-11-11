@@ -172,6 +172,7 @@ dependencies = [
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
+ "conduit-typed-retention",
  "ed25519-dalek",
  "serde",
  "serde_json",
@@ -370,6 +371,14 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-typed-retention"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]
