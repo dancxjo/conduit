@@ -1,9 +1,7 @@
 //! The real successful Source/Form result must fit its ordinary planned Cord.
 use conduit_core as c;
-use conduit_environment_runtime::{
-    observation::{ObservationContract, PreparedSourceFrameDecoder},
-    publication::{PublicationChannel, PublicationContract},
-};
+use conduit_dht11_observation::{ObservationContract, PreparedSourceFrameDecoder};
+use conduit_environment_runtime::publication::{PublicationChannel, PublicationContract};
 
 #[test]
 fn complete_sensor_result_fits_the_default_checked_publication_connection() {

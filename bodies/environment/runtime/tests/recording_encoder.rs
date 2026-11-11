@@ -3,10 +3,8 @@ mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core as c;
-use conduit_environment_runtime::{
-    observation::{ObservationContract, PreparedObservationQuantityForms},
-    recording::*,
-};
+use conduit_dht11_observation::{ObservationContract, PreparedObservationQuantityForms};
+use conduit_environment_runtime::recording::*;
 use conduit_kernel::{self as k, scheduler::*};
 use std::sync::{
     atomic::{AtomicU64, Ordering},
