@@ -118,13 +118,7 @@ mod tests {
                 3 => invalid.resources[0].units = 2,
                 4 => invalid.execution_profile_id = "foreign/profile".into(),
                 5 => invalid.host_calls[0].maximum_output_bytes = 1,
-                _ => invalid.semantic_contract.outputs.push(PortDescriptor {
-                    port_id: "invented".into(),
-                    direction: PortDirection::Output,
-                    value_kind: BOOL_INFO_ID.into(),
-                    temporal: PortTemporal::Flow { closes: true },
-                    abnormal_kind: None,
-                }),
+                _ => invalid.semantic_contract.laws.clear(),
             }
             assert!(budget(&invalid).is_err(), "case {case}");
         }
