@@ -184,6 +184,9 @@ pub async fn run<'s>(
     let mut last_refusal = None;
     loop {
         let result = match root.receive_request(link).await {
+            Ok(Request::InstallContinuation) if remaining() < 3 * 8192 => {
+                Err(conduit_mcu_host_runtime::root::Refusal::Preparation)
+            }
             Ok(Request::InstallContinuation) => {
                 let mut candidate = alloc::vec![0u8;8192];
                 let mut selected = alloc::vec![0u8;8192];
