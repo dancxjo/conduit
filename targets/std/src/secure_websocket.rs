@@ -173,9 +173,9 @@ pub struct SecureWebSocketLine {
     input_deadline_guard: Option<SocketDeadlineGuard>,
 }
 
-/// Enforce one absolute lifetime across accept, TLS/WebSocket handshake, and
-/// every later frame. The watchdog owns only a clone of this exact socket and
-/// is joined when the Line ends; it cannot affect another accepted Line.
+/// Enforce one absolute socket lifetime, including trickled input. The server
+/// retains it across accepted input; the client cancels and joins it after its
+/// connection handshake. It owns only a clone of this exact socket.
 struct SocketDeadlineGuard {
     cancel: mpsc::Sender<()>,
     watchdog: Option<thread::JoinHandle<()>>,
@@ -246,6 +246,9 @@ impl SecureWebSocketClientLine {
         {
             return Err(SecureWebSocketError::InvalidConfiguration);
         }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or(SecureWebSocketError::InvalidConfiguration)?;
         let request = url
             .into_client_request()
             .map_err(|_| SecureWebSocketError::InvalidConfiguration)?;
@@ -265,17 +268,29 @@ impl SecureWebSocketClientLine {
             .dangerous()
             .with_custom_certificate_verifier(Arc::new(verifier))
             .with_no_client_auth();
-        let stream = TcpStream::connect_timeout(&address, timeout)
+        let remaining = client_connection_remaining(deadline)?;
+        let stream = TcpStream::connect_timeout(&address, remaining)
             .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
         stream
             .set_nodelay(true)
             .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
+        let remaining = client_connection_remaining(deadline)?;
         stream
-            .set_read_timeout(Some(timeout))
+            .set_read_timeout(Some(remaining))
             .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
         stream
-            .set_write_timeout(Some(timeout))
+            .set_write_timeout(Some(remaining))
             .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
+        // Per-read timeouts cannot bound TLS or WebSocket peers that keep
+        // supplying partial records. TCP connect and both handshakes share
+        // this original deadline; progress never replenishes it.
+        let deadline_guard = SocketDeadlineGuard::start(&stream, deadline).map_err(|error| {
+            if error == SecureWebSocketError::AcceptDeadline {
+                SecureWebSocketError::Transport(ErrorKind::TimedOut)
+            } else {
+                error
+            }
+        })?;
         let connection = ClientConnection::new(Arc::new(client_config), server_name)
             .map_err(|_| SecureWebSocketError::Tls)?;
         let tls = StreamOwned::new(connection, stream);
@@ -289,6 +304,20 @@ impl SecureWebSocketClientLine {
                 SecureWebSocketError::Handshake
             }
         })?;
+        // The connection attempt has ended. Join the watchdog before exposing
+        // this socket: its subsequent admitted session has its own lifetime.
+        drop(deadline_guard);
+        socket
+            .get_ref()
+            .sock
+            .set_read_timeout(Some(timeout))
+            .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
+        socket
+            .get_ref()
+            .sock
+            .set_write_timeout(Some(timeout))
+            .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
+        client_connection_remaining(deadline)?;
         Ok(Self {
             socket,
             maximum_message_bytes,
@@ -319,6 +348,13 @@ impl SecureWebSocketClientLine {
     pub fn close(&mut self) -> Result<(), SecureWebSocketError> {
         close(&mut self.socket)
     }
+}
+
+fn client_connection_remaining(deadline: Instant) -> Result<Duration, SecureWebSocketError> {
+    deadline
+        .checked_duration_since(Instant::now())
+        .filter(|remaining| !remaining.is_zero())
+        .ok_or(SecureWebSocketError::Transport(ErrorKind::TimedOut))
 }
 
 #[derive(Debug)]
