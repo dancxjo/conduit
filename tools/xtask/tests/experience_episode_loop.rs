@@ -919,6 +919,8 @@ fn live_pete_experience_episode_uses_earlier_memory() {
     let fresh = control[0].response().unwrap().content();
     println!("Fresh Play: {fresh}");
     let fresh = fresh.trim().to_ascii_lowercase();
+    // The authored persona may identify its speaker before the answer.
+    let fresh = fresh.strip_prefix("pete:").unwrap_or(&fresh).trim_start();
     assert!(
         ["i do not know", "i don't know", "i don’t know"]
             .iter()
