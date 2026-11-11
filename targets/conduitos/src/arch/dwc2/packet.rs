@@ -166,7 +166,10 @@ impl<I: RegisterIo> Controller<I> {
         let active = self.io.read(CHARACTER) & ENABLE != 0;
         if !halted || active {
             match self.halt_packet(characteristic, periodic) {
-                Ok(true) if result.is_ok() => result = Err(PacketError::ReceiveEnvelope),
+                Ok(true) if result.is_ok() => {
+                    self.observe_failure("halt-rx-residue", Some(PacketError::ReceiveEnvelope));
+                    result = Err(PacketError::ReceiveEnvelope);
+                }
                 Ok(_) => {}
                 Err(()) => {
                     self.observe_failure("halt", result.err());
@@ -227,6 +230,11 @@ impl<I: RegisterIo> Controller<I> {
                 }
                 if data || count != 0 {
                     if !valid {
+                        self.observe_receive_failure(
+                            "rx-envelope",
+                            Some(PacketError::ReceiveEnvelope),
+                            Some(status),
+                        );
                         return Err(PacketError::ReceiveEnvelope);
                     }
                     received = Some(count);
@@ -254,7 +262,12 @@ impl<I: RegisterIo> Controller<I> {
                 // PIO OUT completion accounts for the submitted packet.
                 // HCTSIZ.XFERSIZE can retain the programmed byte count.
                 return if input {
-                    received.ok_or(PacketError::ReceiveEnvelope)
+                    if let Some(count) = received {
+                        Ok(count)
+                    } else {
+                        self.observe_failure("rx-missing", Some(PacketError::ReceiveEnvelope));
+                        Err(PacketError::ReceiveEnvelope)
+                    }
                 } else {
                     Ok(bytes.len())
                 };
