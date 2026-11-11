@@ -1118,3 +1118,7 @@ mod admission_custody;
 
 #[path = "tests/remote_preparation.rs"]
 mod remote_preparation;
+
+#[cfg(target_os = "linux")]
+#[path = "tests/continuation_generation.rs"]
+mod continuation_generation;
