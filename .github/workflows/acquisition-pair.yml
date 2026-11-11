@@ -60,28 +60,40 @@ jobs:
         run: |
           node tools/ci/pipeline/acquisition/compare.mjs restored target/benchmark
           test "$CACHE_HIT" != true
-      - name: Diagnose CI resolver without exposing proxy values
+      - name: Test scoped Ubuntu name-resolution recovery
         run: |
           node <<'JS'
           const {spawnSync}=require('node:child_process');
-          const fs=require('node:fs');
-          const names=['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','http_proxy','https_proxy','all_proxy','NO_PROXY','no_proxy'];
-          console.log(JSON.stringify({proxyConfigured:Object.fromEntries(names.map(name=>[name,Boolean(process.env[name])]))}));
-          for(const host of ['archive.ubuntu.com','security.ubuntu.com','github.com']){
-            for(const [user,program,args] of [
-              ['runner','timeout',['6','getent','ahostsv4',host]],
-              ['root','sudo',['-n','timeout','6','getent','ahostsv4',host]],
-              ['apt','sudo',['-n','-u','_apt','timeout','6','getent','ahostsv4',host]],
-            ]){
-              const result=spawnSync(program,args,{encoding:'utf8',timeout:8000});
-              console.log(JSON.stringify({user,host,status:result.status,error:result.error?.code,stdout:result.stdout,stderr:result.stderr}));
+          const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),net=require('node:net');
+          const rows=[];
+          for(const host of ['archive.ubuntu.com','security.ubuntu.com']){
+            const normal=spawnSync('timeout',['4','getent','ahostsv4',host],{encoding:'utf8',timeout:6000});
+            console.log(JSON.stringify({host,normalStatus:normal.status}));
+            if(normal.status===0)continue;
+            const reply=spawnSync('curl',['--silent','--show-error','--fail','--max-time','10','--header','accept: application/dns-json','https://cloudflare-dns.com/dns-query?name='+host+'&type=A&cd=0'],{encoding:'utf8',timeout:12000,maxBuffer:65536});
+            if(reply.status!==0)throw Error('HTTPS DNS lookup failed: '+reply.stderr);
+            const wire=JSON.parse(reply.stdout);
+            const questions=wire.Question;
+            if(wire.Status!==0||wire.TC===true||wire.CD===true||!Array.isArray(questions)||questions.length!==1||questions[0].name.replace(/\.$/,'').toLowerCase()!==host||questions[0].type!==1)throw Error('DNS response does not bind the requested host');
+            const addresses=(wire.Answer||[]).filter(item=>item.type===1&&item.name.replace(/\.$/,'').toLowerCase()===host).map(item=>item.data);
+            if(!addresses.length||addresses.length>16||addresses.some(ip=>net.isIP(ip)!==4))throw Error('Invalid bounded address set');
+            console.log(JSON.stringify({host,httpsDnsAddresses:addresses}));
+            rows.push(...addresses.map(ip=>ip+' '+host));
+          }
+          if(rows.length){
+            if(!fs.lstatSync('/etc/hosts').isFile())throw Error('Hosts path is not a regular file');
+            const directory=fs.mkdtempSync(path.join(os.tmpdir(),'conduit-ubuntu-dns-'));
+            const backup=path.join(directory,'hosts');
+            fs.writeFileSync(backup,fs.readFileSync('/etc/hosts'),{mode:0o600});
+            fs.appendFileSync(process.env.GITHUB_ENV,'CONDUIT_DNS_BACKUP='+backup+'\n');
+            const append=spawnSync('sudo',['-n','tee','-a','/etc/hosts'],{encoding:'utf8',input:'\n# Scoped Conduit Ubuntu acquisition DNS recovery\n'+rows.join('\n')+'\n',timeout:10000});
+            if(append.status!==0)throw Error('Cannot install temporary host resolution: '+append.stderr);
+            for(const host of ['archive.ubuntu.com','security.ubuntu.com']){
+              const check=spawnSync('timeout',['4','getent','ahostsv4',host],{encoding:'utf8',timeout:6000});
+              console.log(JSON.stringify({host,recoveredStatus:check.status}));
+              if(check.status!==0)throw Error('Temporary resolution did not recover');
             }
           }
-          for(const filename of ['/etc/resolv.conf',fs.realpathSync('/etc/resolv.conf')]){
-            console.log(JSON.stringify({resolverFile:filename,mode:(fs.statSync(filename).mode&0o777).toString(8)}));
-          }
-          const result=spawnSync('curl',['--silent','--show-error','--fail','--head','--max-time','10','--output','/dev/null','https://archive.ubuntu.com/ubuntu/dists/noble/InRelease'],{encoding:'utf8',timeout:12000});
-          console.log(JSON.stringify({curlArchiveStatus:result.status,error:result.error?.code,stderr:result.stderr}));
           JS
       - name: Acquire and verify real tools
         env:
@@ -96,6 +108,20 @@ jobs:
           key: acquisition-benchmark-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.key.outputs.key }}
       - name: Record cache save
         run: node tools/ci/pipeline/acquisition/compare.mjs saved target/benchmark
+      - name: Restore runner host resolution
+        if: always()
+        run: |
+          node <<'JS'
+          const fs=require('node:fs'),path=require('node:path');
+          const {spawnSync}=require('node:child_process');
+          const backup=process.env.CONDUIT_DNS_BACKUP;
+          if(backup){
+            if(!path.dirname(backup).startsWith('/tmp/conduit-ubuntu-dns-')||path.basename(backup)!=='hosts'||!fs.lstatSync(backup).isFile())throw Error('Unexpected backup');
+            const result=spawnSync('sudo',['-n','cp','--',backup,'/etc/hosts'],{encoding:'utf8',timeout:10000});
+            if(result.status!==0)throw Error('Cannot restore host resolution: '+result.stderr);
+            fs.rmSync(path.dirname(backup),{recursive:true});
+          }
+          JS
       - name: Retain measurements and real command logs
         if: always()
         uses: actions/upload-artifact@v7.0.1
@@ -145,6 +171,41 @@ jobs:
         run: |
           node tools/ci/pipeline/acquisition/compare.mjs restored target/benchmark
           test "$CACHE_HIT" = true
+      - name: Test scoped Ubuntu name-resolution recovery
+        run: |
+          node <<'JS'
+          const {spawnSync}=require('node:child_process');
+          const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),net=require('node:net');
+          const rows=[];
+          for(const host of ['archive.ubuntu.com','security.ubuntu.com']){
+            const normal=spawnSync('timeout',['4','getent','ahostsv4',host],{encoding:'utf8',timeout:6000});
+            console.log(JSON.stringify({host,normalStatus:normal.status}));
+            if(normal.status===0)continue;
+            const reply=spawnSync('curl',['--silent','--show-error','--fail','--max-time','10','--header','accept: application/dns-json','https://cloudflare-dns.com/dns-query?name='+host+'&type=A&cd=0'],{encoding:'utf8',timeout:12000,maxBuffer:65536});
+            if(reply.status!==0)throw Error('HTTPS DNS lookup failed: '+reply.stderr);
+            const wire=JSON.parse(reply.stdout);
+            const questions=wire.Question;
+            if(wire.Status!==0||wire.TC===true||wire.CD===true||!Array.isArray(questions)||questions.length!==1||questions[0].name.replace(/\.$/,'').toLowerCase()!==host||questions[0].type!==1)throw Error('DNS response does not bind the requested host');
+            const addresses=(wire.Answer||[]).filter(item=>item.type===1&&item.name.replace(/\.$/,'').toLowerCase()===host).map(item=>item.data);
+            if(!addresses.length||addresses.length>16||addresses.some(ip=>net.isIP(ip)!==4))throw Error('Invalid bounded address set');
+            console.log(JSON.stringify({host,httpsDnsAddresses:addresses}));
+            rows.push(...addresses.map(ip=>ip+' '+host));
+          }
+          if(rows.length){
+            if(!fs.lstatSync('/etc/hosts').isFile())throw Error('Hosts path is not a regular file');
+            const directory=fs.mkdtempSync(path.join(os.tmpdir(),'conduit-ubuntu-dns-'));
+            const backup=path.join(directory,'hosts');
+            fs.writeFileSync(backup,fs.readFileSync('/etc/hosts'),{mode:0o600});
+            fs.appendFileSync(process.env.GITHUB_ENV,'CONDUIT_DNS_BACKUP='+backup+'\n');
+            const append=spawnSync('sudo',['-n','tee','-a','/etc/hosts'],{encoding:'utf8',input:'\n# Scoped Conduit Ubuntu acquisition DNS recovery\n'+rows.join('\n')+'\n',timeout:10000});
+            if(append.status!==0)throw Error('Cannot install temporary host resolution: '+append.stderr);
+            for(const host of ['archive.ubuntu.com','security.ubuntu.com']){
+              const check=spawnSync('timeout',['4','getent','ahostsv4',host],{encoding:'utf8',timeout:6000});
+              console.log(JSON.stringify({host,recoveredStatus:check.status}));
+              if(check.status!==0)throw Error('Temporary resolution did not recover');
+            }
+          }
+          JS
       - name: Acquire and verify real tools
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -156,6 +217,20 @@ jobs:
           path: target/cold
       - name: Compare identities and real preparation costs
         run: node tools/ci/pipeline/acquisition/compare.mjs compare target/cold/benchmark/benchmark.json target/benchmark/benchmark.json target/benchmark/comparison.json
+      - name: Restore runner host resolution
+        if: always()
+        run: |
+          node <<'JS'
+          const fs=require('node:fs'),path=require('node:path');
+          const {spawnSync}=require('node:child_process');
+          const backup=process.env.CONDUIT_DNS_BACKUP;
+          if(backup){
+            if(!path.dirname(backup).startsWith('/tmp/conduit-ubuntu-dns-')||path.basename(backup)!=='hosts'||!fs.lstatSync(backup).isFile())throw Error('Unexpected backup');
+            const result=spawnSync('sudo',['-n','cp','--',backup,'/etc/hosts'],{encoding:'utf8',timeout:10000});
+            if(result.status!==0)throw Error('Cannot restore host resolution: '+result.stderr);
+            fs.rmSync(path.dirname(backup),{recursive:true});
+          }
+          JS
       - name: Retain measurements and real command logs
         if: always()
         uses: actions/upload-artifact@v7.0.1
