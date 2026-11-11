@@ -30,7 +30,7 @@ fn combined_source_keeps_original_append_abi_and_independent_read_pair() {
     );
 }
 #[test]
-fn pairwise_closure_is_canonical_and_no_authored_cancellation_is_promised() {
+fn all_inputs_close_together_and_no_authored_cancellation_is_promised() {
     let service = definition();
     let profiles: alloc::vec::Vec<_> = service
         .semantic_laws
@@ -48,7 +48,11 @@ fn pairwise_closure_is_canonical_and_no_authored_cancellation_is_promised() {
     for profile in profiles {
         assert_eq!(
             profile.normal_close,
-            NormalCloseTransduction::PropagateAfterDrain
+            NormalCloseTransduction::FlushThenPropagateWhenAllClose(FiniteTerminalEmission {
+                maximum_items: 2,
+                maximum_bytes: crate::append_result::APPEND_RESULT_BYTES
+                    + crate::read_result::READ_RESULT_BYTES as u32
+            })
         );
         assert_eq!(
             profile.cancellation,

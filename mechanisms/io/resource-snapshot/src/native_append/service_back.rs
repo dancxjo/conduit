@@ -2,7 +2,11 @@
 //! This owns no media, grants, or admission proof. The caller must fund the
 //! fixed read response backing and bind this exact shape before installation.
 use conduit_kernel::{
-    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    scheduler::{
+        AssignedAbnormalTransduction, AssignedCancellationTransduction,
+        AssignedFiniteTerminalEmission, AssignedNormalCloseTransduction,
+        AssignedTerminalTransduction, StepBack, StepInputBytes, StepIo, StepOutcome,
+    },
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
 };
 
@@ -23,7 +27,6 @@ pub struct RecordServiceShape {
 pub enum RecordServiceBackRefusal {
     InvalidShape,
     InsufficientReadBacking,
-    InvalidDeclaredReadCancellation,
 }
 #[derive(Clone, Copy)]
 enum Commit {
@@ -36,7 +39,6 @@ enum Commit {
     },
     Append,
     Drain,
-    Close(usize),
 }
 
 pub struct RecordServiceBack<const PORTS: usize, const READ_BYTES: usize> {
@@ -48,8 +50,8 @@ pub struct RecordServiceBack<const PORTS: usize, const READ_BYTES: usize> {
     read_len: Option<usize>,
     closed: [bool; 2],
     candidate: Option<Commit>,
+    candidate_close: Option<usize>,
     cancelled: bool,
-    declared_read_cancellation: bool,
 }
 impl<const PORTS: usize, const READ_BYTES: usize> RecordServiceBack<PORTS, READ_BYTES> {
     /// PORTS is the selected node's input/output table width, not a capacity
@@ -65,6 +67,11 @@ impl<const PORTS: usize, const READ_BYTES: usize> RecordServiceBack<PORTS, READ_
         }) || shape.append.input == shape.read.input
             || shape.append.output == shape.read.output
             || shape.append.call == shape.read.call
+            || shape
+                .append
+                .maximum_output_bytes
+                .checked_add(shape.read.maximum_output_bytes)
+                .is_none()
         {
             return Err(RecordServiceBackRefusal::InvalidShape);
         }
@@ -84,35 +91,53 @@ impl<const PORTS: usize, const READ_BYTES: usize> RecordServiceBack<PORTS, READ_
             read_len: None,
             closed: [false; 2],
             candidate: None,
+            candidate_close: None,
             cancelled: false,
-            declared_read_cancellation: false,
         })
     }
-    /// Opt in only for a selected read operation whose output is the declared
-    /// resource read-result type. Its binder/provider must prove that semantic
-    /// mapping independently; numeric shape alone does not establish a Kind.
-    /// The genuine kernel Cancelled outcome remains Cancelled in its Signs.
-    pub fn new_with_declared_read_cancellation(
-        shape: RecordServiceShape,
-    ) -> Result<Self, RecordServiceBackRefusal> {
-        let mut back = Self::new(shape)?;
-        let cancelled = crate::read_result::cancelled();
-        if crate::read_result::decode(cancelled) != Ok(crate::read_result::ReadResult::Cancelled)
-            || cancelled.len() > READ_BYTES
-            || cancelled.len() as u64 > u64::from(shape.read.maximum_output_bytes)
-        {
-            return Err(RecordServiceBackRefusal::InvalidDeclaredReadCancellation);
+    // Consume at most one exposed terminal truth in the same transaction as a
+    // response/request. A last close may enter the finite flush phase while the
+    // single retained read response awaits its output; it never cancels a call.
+    fn stage_close(&mut self, io: &mut StepIo<PORTS>) -> Result<bool, ()> {
+        for operation in 0..2 {
+            let input = self.operations[operation].input;
+            if !self.closed[operation] && io.input_closed(input) {
+                io.consume_closed(input).map_err(|_| ())?;
+                self.candidate_close = Some(operation);
+                return Ok(self.closed[1 - operation]);
+            }
         }
-        back.declared_read_cancellation = true;
-        Ok(back)
+        Ok(self.closed == [true; 2])
     }
 }
 impl<const READ_BYTES: usize, const PORTS: usize> StepBack<PORTS>
     for RecordServiceBack<PORTS, READ_BYTES>
 {
+    fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; PORTS] {
+        let mut profiles = [None; PORTS];
+        for op in &self.operations {
+            profiles[usize::from(op.input.0)] = Some(AssignedTerminalTransduction {
+                input: op.input,
+                output: op.output,
+                normal_close: AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(
+                    AssignedFiniteTerminalEmission {
+                        maximum_items: 2,
+                        maximum_bytes: self.operations[0].maximum_output_bytes
+                            + self.operations[1].maximum_output_bytes,
+                    },
+                ),
+                abnormal: AssignedAbnormalTransduction::NotAccepted,
+                cancellation: AssignedCancellationTransduction::NotCancellable,
+            });
+        }
+        profiles
+    }
+    // Cancellation is terminal for the service. Transport pressure or loss of
+    // a remote observer must not be translated into cancellation of local Play.
     fn step(&mut self, io: &mut StepIo<PORTS>, bytes: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         // Rejected Steps must not publish candidate state on a later attempt.
         self.candidate = None;
+        self.candidate_close = None;
         if self.cancelled {
             return fail(FailureCode::Cancelled);
         }
@@ -155,21 +180,15 @@ impl<const READ_BYTES: usize, const PORTS: usize> StepBack<PORTS>
                         }
                         self.candidate = Some(Commit::Append);
                     }
-                    return StepOutcome::Progress;
-                }
-                (HostCallDisposition::Cancelled, None, None)
-                    if operation == 1 && self.declared_read_cancellation =>
-                {
-                    if self.read_len.is_some() {
-                        return fail(FailureCode::InvalidLifecycle);
-                    }
-                    let data = crate::read_result::cancelled();
-                    self.read_response[..data.len()].copy_from_slice(data);
-                    if io.consume_host_completion().is_err() {
-                        return fail(FailureCode::InvalidLifecycle);
-                    }
-                    self.candidate = Some(Commit::Read { len: data.len() });
-                    return StepOutcome::Progress;
+                    let all_closed = match self.stage_close(io) {
+                        Ok(all) => all,
+                        Err(()) => return fail(FailureCode::InvalidLifecycle),
+                    };
+                    return if operation == 0 && all_closed && self.read_len.is_none() {
+                        StepOutcome::Complete
+                    } else {
+                        StepOutcome::Progress
+                    };
                 }
                 (HostCallDisposition::Cancelled, _, _) => return fail(FailureCode::Cancelled),
                 (_, _, Some(failure)) => return StepOutcome::Fail(failure),
@@ -188,7 +207,11 @@ impl<const READ_BYTES: usize, const PORTS: usize> StepBack<PORTS>
                     return fail(FailureCode::InvalidLifecycle);
                 }
                 self.candidate = Some(Commit::Drain);
-                return StepOutcome::Progress;
+                return match self.stage_close(io) {
+                    Ok(true) => StepOutcome::Complete,
+                    Ok(false) => StepOutcome::Progress,
+                    Err(()) => fail(FailureCode::InvalidLifecycle),
+                };
             }
         }
         for offset in 0..2 {
@@ -213,24 +236,24 @@ impl<const READ_BYTES: usize, const PORTS: usize> StepBack<PORTS>
                 return fail(FailureCode::InvalidLifecycle);
             }
             self.candidate = Some(Commit::Request { request, operation });
+            if self.stage_close(io).is_err() {
+                return fail(FailureCode::InvalidLifecycle);
+            }
             return StepOutcome::Progress;
         }
-        for operation in 0..2 {
-            let op = self.operations[operation];
-            if !self.closed[operation] && io.input_closed(op.input) {
-                if io.consume_closed(op.input).is_err() {
-                    return fail(FailureCode::InvalidLifecycle);
-                }
-                self.candidate = Some(Commit::Close(operation));
-                return StepOutcome::Progress;
-            }
-        }
-        if self.closed == [true; 2] && self.read_len.is_none() {
+        let all_closed = match self.stage_close(io) {
+            Ok(all) => all,
+            Err(()) => return fail(FailureCode::InvalidLifecycle),
+        };
+        if all_closed && self.read_len.is_none() {
             StepOutcome::Complete
+        } else if self.candidate_close.is_some() {
+            StepOutcome::Progress
         } else {
             StepOutcome::Await
         }
     }
+
     fn step_committed(&mut self) {
         match self.candidate.take() {
             Some(Commit::Request { request, operation }) => {
@@ -244,8 +267,10 @@ impl<const READ_BYTES: usize, const PORTS: usize> StepBack<PORTS>
             }
             Some(Commit::Append) => self.pending = None,
             Some(Commit::Drain) => self.read_len = None,
-            Some(Commit::Close(operation)) => self.closed[operation] = true,
             None => {}
+        }
+        if let Some(operation) = self.candidate_close.take() {
+            self.closed[operation] = true;
         }
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
@@ -260,6 +285,7 @@ impl<const READ_BYTES: usize, const PORTS: usize> StepBack<PORTS>
         self.pending = None;
         self.read_len = None;
         self.candidate = None;
+        self.candidate_close = None;
     }
 }
 fn fail(code: FailureCode) -> StepOutcome {

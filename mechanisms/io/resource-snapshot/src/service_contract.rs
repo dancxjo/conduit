@@ -42,6 +42,16 @@ pub fn definition() -> Kind {
                 profile.input_port_id = port_id(READ_INPUT);
                 profile.output_port_id = port_id(READ_OUTPUT);
             }
+            profile.normal_close =
+                NormalCloseTransduction::FlushThenPropagateWhenAllClose(FiniteTerminalEmission {
+                    maximum_items: 2,
+                    maximum_bytes: crate::append_result::APPEND_RESULT_BYTES
+                        .checked_add(
+                            u32::try_from(crate::read_result::READ_RESULT_BYTES)
+                                .expect("finite read flush"),
+                        )
+                        .expect("finite service flush"),
+                });
             transductions.push(profile);
         }
     }

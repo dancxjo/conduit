@@ -50,6 +50,11 @@ impl<const READ_BYTES: usize> Observed<READ_BYTES> {
     }
 }
 impl<const READ_BYTES: usize> StepBack<2> for Observed<READ_BYTES> {
+    fn terminal_transductions(
+        &self,
+    ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; 2] {
+        <RecordServiceBack<2, READ_BYTES> as StepBack<2>>::terminal_transductions(&self.back)
+    }
     fn step(&mut self, io: &mut StepIo<2>, bytes: &StepInputBytes<'_, 2>) -> StepOutcome {
         let outcome = self.back.step(io, bytes);
         self.observe();
@@ -146,14 +151,14 @@ impl<const READ_BYTES: usize> Fixture<READ_BYTES> {
             }
         });
         let mut bindings = FixedHostCallBindings::<2>::new(2);
-        for call in [HostCallId(0), HostCallId(1)] {
+        for operation in &back.back.operations {
             bindings
                 .install(
                     NodeId(0),
                     HostCallBinding {
-                        call,
-                        maximum_input_bytes: 8,
-                        maximum_output_bytes: READ_BYTES as u32,
+                        call: operation.call,
+                        maximum_input_bytes: operation.maximum_input_bytes,
+                        maximum_output_bytes: operation.maximum_output_bytes,
                     },
                 )
                 .unwrap();
@@ -197,10 +202,13 @@ impl<const READ_BYTES: usize> Fixture<READ_BYTES> {
         self.sequences[operation] += 1;
     }
     fn step(&mut self) {
-        assert!(matches!(
-            self.kernel.step().unwrap(),
-            SchedulerStatus::Progress { .. }
-        ));
+        let status = self.kernel.step().unwrap();
+        assert!(
+            matches!(status, SchedulerStatus::Progress { .. }),
+            "{status:?}, view={:?}, closed={:?}",
+            self.view.get(),
+            self.kernel.drivers()[0].back.closed
+        );
     }
     fn request(&mut self, operation: usize, id: u32) -> HostCallRequest {
         self.step();
@@ -409,3 +417,6 @@ fn constructor_refuses_aliases_out_of_table_and_unfunded_response() {
 
 #[path = "tests/cancellation.rs"]
 mod cancellation;
+
+#[path = "tests/terminal.rs"]
+mod terminal;
