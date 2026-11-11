@@ -86,7 +86,7 @@ fn exchange(
     candidate: &RendezvousCandidate,
 ) -> Result<MembershipCredential, String> {
     let timeout = Duration::from_millis(u64::from(candidate.attempt_timeout_millis.min(3_000)));
-    let mut line = SecureWebSocketClientLine::connect_pinned(
+    let mut line = SecureWebSocketClientLine::connect_pinned_for_exchange(
         route_address(&candidate.reachability)?,
         &candidate.reachability,
         &candidate.authentication.server_identity,

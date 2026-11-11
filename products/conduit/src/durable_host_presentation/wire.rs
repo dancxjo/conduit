@@ -568,10 +568,14 @@ fn signed_return_exchange(
     String,
 > {
     use crate::durable_host::routed_join::{MemberReturnFrame, MEMBER_RETURN_SCHEMA};
+    let deadline = Instant::now()
+        + Duration::from_millis(u64::from(candidate.attempt_timeout_millis.min(3_000)));
     let mut line = connect(
         candidate,
         Duration::from_millis(u64::from(candidate.attempt_timeout_millis.min(3_000))),
     )?;
+    line.replace_io_deadline(deadline)
+        .map_err(|e| format!("member return I/O deadline:{e:?}"))?;
     send(
         &mut line,
         &MemberReturnFrame::Advertise {

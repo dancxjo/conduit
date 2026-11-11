@@ -128,10 +128,14 @@ impl MemberRoute {
             );
         }
         let deadline = started + Duration::from_secs(60);
+        let authentication_deadline =
+            started + Duration::from_millis(u64::from(candidate.attempt_timeout_millis.min(3_000)));
         let mut line = connect(
             candidate,
             Duration::from_millis(u64::from(candidate.attempt_timeout_millis.min(3_000))),
         )?;
+        line.replace_io_deadline(authentication_deadline.min(deadline))
+            .map_err(|e| format!("member authentication deadline:{e:?}"))?;
         line.set_read_timeout(Some(
             deadline
                 .saturating_duration_since(Instant::now())
@@ -328,7 +332,12 @@ impl Carrier {
         let frame = self.receive(overall)?;
         self.presence
             .accept(&frame, sequence, anchor, overall, Instant::now())
-            .map_err(String::from)
+            .map_err(String::from)?;
+        // Only a validated owner receipt can replace the socket watchdog.
+        // Partial frames or raw traffic never renew this admitted lease.
+        self.line
+            .replace_io_deadline(self.presence.deadline.min(overall))
+            .map_err(|e| format!("member presence I/O deadline:{e:?}"))
     }
 
     fn face(
