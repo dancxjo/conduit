@@ -80,7 +80,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
 
     fn prepare_background_generation(&mut self, placements: &[PlannedGear]) -> Result<(), String> {
         if let Some(mut previous) = self.generation_worker.take() {
-            self.next_request_sequence = previous.retire();
+            self.next_request_sequence = self.next_request_sequence.max(previous.retire());
         }
         if placements
             .iter()
@@ -106,7 +106,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
     fn poll_generation(&mut self, output: &mut Vec<u8>) -> Option<LocalModelAdapterTerminal> {
         let worker = self.generation_worker.as_mut()?;
         let terminal = worker.poll(output);
-        self.next_request_sequence = worker.next_sequence;
+        self.next_request_sequence = self.next_request_sequence.max(worker.next_sequence);
         terminal
     }
     fn cancel_generation(&mut self) {
