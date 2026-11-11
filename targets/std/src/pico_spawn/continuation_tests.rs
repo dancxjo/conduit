@@ -154,7 +154,7 @@ fn original_deadline_includes_sends_and_late_response() {
 }
 #[test]
 fn partial_failed_sends_and_excessive_chunk_count_never_retry() {
-    for failed in [0, 1, 5] {
+    for failed in 0..=chunks(&[42; PREFIX_BYTES], FRAME_BYTES).len() {
         let mut frames = fake(vec![]);
         frames.fail_send = Some(failed);
         assert_eq!(
