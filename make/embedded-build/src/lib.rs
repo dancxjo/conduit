@@ -5,8 +5,19 @@
 //! no Source parsing, planning, capability selection, firmware work, transport,
 //! or trigger. The opt-in computation profile validates canonical program metadata
 //! under explicit artifact ceilings. Unsupported facts fail closed.
+//!
+//! Fabrication may also supply an already checked document, an explicit profile
+//! catalog and selected software definitions. Those helpers preserve ordinary
+//! expansion and offer identities; they install no default application catalog
+//! and establish no initialized provider, resource grant or execution authority.
 
+mod checked_workset;
 mod offer_image;
+mod selected_software;
+pub use checked_workset::{prepare_checked_workset, CheckedWorksetBounds};
+pub use selected_software::{
+    prepare_selected_software, PreparedSoftwareOffer, SelectedSoftwareBounds, SelectedSoftwareOffer,
+};
 mod resident_back;
 mod resident_source;
 pub use resident_source::{generate_source_resident_library, prepare_source_resident_library};
