@@ -253,6 +253,7 @@ type EpisodeModelResponse = {
 # One retained episode: observed evidence and model-derived response stay apart.
 type EpisodeMemory = {
     episode: U64
+    evidence: Text <= 4096B?
     observation: EpisodeObservation
     response: EpisodeModelResponse
 }

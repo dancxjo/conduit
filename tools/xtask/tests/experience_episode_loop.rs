@@ -256,6 +256,16 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
         assert_eq!(homeostasis["charge_percent"], ["50.0%", "9.0%"][index]);
         assert_eq!(homeostasis["charging"], revision == 1);
     }
+    let second: serde_json::Value = serde_json::from_str(&requests[1]).unwrap();
+    let historical = &second["recalled"][0]["historical_evidence"];
+    assert_eq!(historical["revision"], 1);
+    assert_eq!(
+        historical["evidence"][0]["sources"][0]["sign"],
+        "utterance/1"
+    );
+    let recorded: serde_json::Value =
+        serde_json::from_str(episodes[1].recalled().get()[0].evidence().as_ref().unwrap()).unwrap();
+    assert_eq!(recorded, *historical);
     let kernel = report.kernel.unwrap();
     let history = kernel.debug_history.unwrap();
     assert!(history.gap.is_none(), "{:?}", history.gap);
@@ -659,6 +669,11 @@ fn pete_retrieves_the_matching_episode_past_a_newer_unrelated_one() {
             "What exact label did I report for the hallway switch?",
             false,
         )),
+        frame_input(frame(
+            4,
+            "What was the earlier reading in millivolts?",
+            false,
+        )),
     ]);
     let mut collector = Collector::default();
     let report = run(
@@ -670,7 +685,7 @@ fn pete_retrieves_the_matching_episode_past_a_newer_unrelated_one() {
     .unwrap();
     assert_eq!(terminal(&report), &TerminalDisposition::Completed);
     let episodes = records(&collector.0);
-    assert_eq!(episodes.len(), 3);
+    assert_eq!(episodes.len(), 4);
     assert!(episodes[1].recalled().get().is_empty());
     assert_eq!(episodes[2].recalled().get().len(), 1);
     assert_eq!(*episodes[2].recalled().get()[0].episode(), 1);
@@ -684,6 +699,15 @@ fn pete_retrieves_the_matching_episode_past_a_newer_unrelated_one() {
     let follow_up: serde_json::Value = serde_json::from_str(&requests[2]).unwrap();
     assert_eq!(follow_up["recalled"][0]["shared_observation_terms"], 3);
     assert!(!requests[2].contains("garden"));
+    let battery_query: serde_json::Value = serde_json::from_str(&requests[3]).unwrap();
+    let recalled = battery_query["recalled"].as_array().unwrap();
+    assert!(recalled.iter().any(|memory| {
+        let item = &memory["historical_evidence"]["evidence"][0];
+        item["origin"] == "observation"
+            && item["identity"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("pete/battery/"))
+    }));
 }
 
 #[test]
@@ -842,6 +866,13 @@ fn pete_recalls_a_committed_checkpoint_in_a_replacement_play() {
     let episode = &episodes[0];
     assert_eq!(*episode.episode(), 2);
     assert_eq!(*episode.recalled().get()[0].episode(), 1);
+    let historical: serde_json::Value =
+        serde_json::from_str(episode.recalled().get()[0].evidence().as_ref().unwrap()).unwrap();
+    assert_eq!(historical["revision"], 1);
+    assert_eq!(
+        historical["evidence"][0]["sources"][0]["sign"],
+        "utterance/1"
+    );
     assert!(episode
         .response()
         .unwrap()

@@ -3,10 +3,12 @@ use alloc::vec::Vec;
 
 use crate::EpisodeMemory;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(super) struct RecallCandidate<'a> {
     pub(super) memory: &'a EpisodeMemory,
     pub(super) shared_terms: Option<usize>,
+    pub(super) trigger_terms: usize,
+    pub(super) historical_evidence: Option<serde_json::Value>,
 }
 
 pub(super) fn select<'a>(
@@ -20,6 +22,8 @@ pub(super) fn select<'a>(
             .map(|memory| RecallCandidate {
                 memory,
                 shared_terms: None,
+                trigger_terms: 0,
+                historical_evidence: None,
             })
             .collect();
     }
@@ -34,17 +38,54 @@ pub(super) fn select<'a>(
     }
     let mut candidates = Vec::with_capacity(memories.len());
     for memory in memories {
-        let shared_terms = terms
-            .iter()
-            .filter(|term| {
-                keywords(memory.observation().content())
-                    .any(|observed| observed.eq_ignore_ascii_case(term))
-            })
-            .count();
+        let score = |text: &str| {
+            terms
+                .iter()
+                .filter(|term| keywords(text).any(|word| word.eq_ignore_ascii_case(term)))
+                .count()
+        };
+        let evidence = memory
+            .evidence()
+            .as_deref()
+            .and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok());
+        let best_item = evidence.as_ref().and_then(|snapshot| {
+            snapshot["evidence"]
+                .as_array()?
+                .iter()
+                .filter(|item| {
+                    matches!(
+                        item["origin"].as_str(),
+                        Some("observation" | "human_reported" | "deterministic_derived")
+                    )
+                })
+                .filter_map(|item| {
+                    let score = score(item["utf8_content"].as_str()?);
+                    (score > 0).then_some((score, item))
+                })
+                .max_by_key(|(score, _)| *score)
+                .map(|(score, item)| {
+                    let mut item = item.clone();
+                    if let Some(fields) = item.as_object_mut() {
+                        fields.remove("observed_at");
+                    }
+                    (
+                        score,
+                        serde_json::json!({
+                            "revision": snapshot["revision"],
+                            "provenance_revision": snapshot["provenance_revision"],
+                            "evidence": [item],
+                        }),
+                    )
+                })
+        });
+        let trigger_terms = score(memory.observation().content());
+        let shared_terms = trigger_terms.max(best_item.as_ref().map_or(0, |(score, _)| *score));
         if shared_terms > 0 {
             candidates.push(RecallCandidate {
                 memory,
                 shared_terms: Some(shared_terms),
+                trigger_terms,
+                historical_evidence: best_item.map(|(_, evidence)| evidence),
             });
         }
     }
@@ -65,4 +106,29 @@ fn keywords(text: &str) -> impl Iterator<Item = &str> {
                 .iter()
                 .any(|common| common.eq_ignore_ascii_case(term))
         })
+}
+
+/// Keep the evidence and its source context, dropping rendering fields that
+/// are unnecessary for a historical model turn.
+pub(super) fn compact_evidence(evidence: &str) -> Option<alloc::string::String> {
+    let snapshot: serde_json::Value = serde_json::from_str(evidence).ok()?;
+    let items: Vec<_> = snapshot["evidence"]
+        .as_array()?
+        .iter()
+        .filter_map(|item| {
+            Some(serde_json::json!({
+                "identity": item["identity"],
+                "origin": item["classifications"]["origin"],
+                "temporal_role": item["classifications"]["temporal_role"],
+                "utf8_content": item["utf8_content"].as_str()?,
+                "sources": item["sources"],
+                "observed_at": item["observed_at"],
+            }))
+        })
+        .collect();
+    Some(alloc::string::ToString::to_string(&serde_json::json!({
+        "revision": snapshot["revision"],
+        "provenance_revision": snapshot["provenance_revision"],
+        "evidence": items,
+    })))
 }

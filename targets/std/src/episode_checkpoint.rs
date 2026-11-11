@@ -7,6 +7,10 @@ use conduit_chat::{
 };
 use std::path::Path;
 
+// Exact structured profile used by checkpoints before EpisodeMemory carried evidence.
+const PRE_EVIDENCE_CHECKPOINT_KIND: &str =
+    "structured-info/profile-6ef4de183666f3723fc1021db14c2b39ab7ea236d4ea3cd4bea9f40fbd329556@1";
+
 /// An application-selected Body and Wake journal. The Plot and scheduler
 /// remain responsible for producing each committed checkpoint.
 pub struct EpisodeCheckpointResidence {
@@ -32,6 +36,28 @@ impl EpisodeCheckpointResidence {
             },
         )
         .map_err(|error| format!("open episode residence: {error:?}"))?;
+        if matches!(
+            journal
+                .recover_value()
+                .map_err(|error| format!("recover episode checkpoint: {error:?}"))?
+                .0,
+            RecoveryDisposition::Absent
+        ) {
+            let mut previous_binding = journal.binding().clone();
+            previous_binding.value_kind = PRE_EVIDENCE_CHECKPOINT_KIND.into();
+            let previous = FileDurableStateResidence::open(root, previous_binding)
+                .map_err(|error| format!("open previous episode residence: {error:?}"))?;
+            if previous
+                .recover_value()
+                .map_err(|error| format!("recover previous episode checkpoint: {error:?}"))?
+                .1
+                .is_some()
+            {
+                return Err(
+                    "episode checkpoint predates evidence retention and requires migration".into(),
+                );
+            }
+        }
         Ok(Self {
             journal,
             wake,

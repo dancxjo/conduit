@@ -7,7 +7,10 @@
 //! memories, and model-derived responses remain distinct typed facts.
 //! Retention is selected only by the observation's typed `retain` field.
 
-use alloc::{string::String, vec::Vec};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 use sha2::{Digest, Sha256};
 
@@ -175,7 +178,7 @@ impl EpisodeComposer {
         let selected_experience = selected_experience
             .as_ref()
             .zip(experience_digest.as_ref().map(|digest| &digest[..]));
-        let memories = episode_recall::select(
+        let mut memories = episode_recall::select(
             observation.content(),
             memory.memories().get().as_slice(),
             selected_experience.is_some(),
@@ -197,12 +200,25 @@ impl EpisodeComposer {
             if first == memories.len() {
                 return Err(EpisodeRefusal::PromptBoundExceeded);
             }
-            first += 1;
+            if let Some(candidate) = memories[first..]
+                .iter_mut()
+                .find(|candidate| candidate.trigger_terms > 0 && candidate.historical_evidence.is_some())
+            {
+                candidate.historical_evidence = None;
+                candidate.shared_terms = Some(candidate.trigger_terms);
+            } else {
+                first += 1;
+            }
         };
         let mut recalled = BoundedSequence::new();
         for candidate in &memories[first..] {
             recalled
-                .push(candidate.memory.clone())
+                .push(EpisodeMemory::new(
+                    *candidate.memory.episode(),
+                    candidate.historical_evidence.as_ref().map(serde_json::Value::to_string),
+                    candidate.memory.observation().clone(),
+                    candidate.memory.response().clone(),
+                ).map_err(|_| EpisodeRefusal::Encoding)?)
                 .map_err(|_| EpisodeRefusal::Encoding)?;
         }
         let pending = EpisodePending::new(
@@ -381,6 +397,7 @@ impl EpisodeMemoryCell {
         if *record.retained() {
             let memory = EpisodeMemory::new(
                 *record.episode(),
+                record.evidence().as_deref().and_then(episode_recall::compact_evidence),
                 record.observation().clone(),
                 record
                     .response()
