@@ -34,6 +34,22 @@ pub(super) fn set_hdmi_mode(mode: PreferredTiming) -> Result<(), &'static str> {
     ]);
     mailbox::call(&mut message.0)?;
     let response = message.0[4];
+    {
+        use core::fmt::Write;
+        let mut text = crate::sign_format::FixedText::new();
+        let _ = writeln!(
+            text,
+            "CONDUIT_HDMI_TIMING_SET width={} height={} clock_khz={} htotal={} vtotal={} refresh_hz={} response={:#x}",
+            mode.width,
+            mode.height,
+            mode.pixel_clock_khz,
+            mode.htotal,
+            mode.vtotal,
+            refresh,
+            response
+        );
+        super::super::present(text.as_bytes());
+    }
     if response & 0x8000_0000 == 0 || response & 0x7fff_ffff > 36 {
         return Err("bcm2835-hdmi-mode-refused");
     }

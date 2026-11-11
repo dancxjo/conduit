@@ -8,9 +8,15 @@ mod startup;
 pub(super) fn prepare_graphics(
     ids: &BootIdentities,
     offer: &HostOffer<'_>,
+    initial: Option<arch::FirmwareScanout>,
 ) -> Option<FirmwareFace<arch::FirmwareScanout>> {
     let result = (|| {
-        let display = arch::FirmwareScanout::prepare()?;
+        let mut display = match initial {
+            Some(display) => display.refresh_preferred_mode()?,
+            None => arch::FirmwareScanout::prepare()?,
+        };
+        conduitos::display::boot_canvas::prefill(&mut display).map_err(|e| e.as_str())?;
+        arch::present(b"CONDUIT_BOOT_STAGE final-canvas-periwinkle\n");
         let (physical, bytes) = display.physical_range();
         let (firmware, preferred) = display.mode_observation();
         let (clock, timing_set) = display.timing_set_observation();
@@ -79,12 +85,31 @@ pub(super) fn prepare_graphics(
 }
 
 /// The product Root retains native input custody through all refusal paths.
-/// USB plots establish port power before scanout samples a USB-powered panel's
-/// EDID. Pointer delivery starts only after the ordinary shared Mask is ready.
+/// Root commits an initialized boot canvas before USB power can light a panel.
+/// EDID and the final mode are negotiated after USB power; the ordinary shared
+/// Mask is admitted before pointer delivery starts.
 pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
     use conduitos::raspberry_pi_usb_input::RaspberryPiUsbInput;
     use core::fmt::Write;
-    arch::present(b"CONDUIT_BOOT_STAGE usb-before-display\n");
+    let mut initial = if EMBEDDED_MAKE.includes(conduitos::make::IMPL_NATIVE_PRESENTER) {
+        match (|| {
+            let mut display = arch::FirmwareScanout::prepare_initial()?;
+            conduitos::display::boot_canvas::prefill(&mut display).map_err(|e| e.as_str())?;
+            arch::present(b"CONDUIT_BOOT_STAGE boot-canvas-periwinkle-before-usb\n");
+            Ok::<_, &'static str>(display)
+        })() {
+            Ok(display) => Some(display),
+            Err(reason) => {
+                arch::present(b"CONDUIT_BOOT_CANVAS_UNAVAILABLE ");
+                arch::present(reason.as_bytes());
+                arch::present(b"\n");
+                None
+            }
+        }
+    } else {
+        None
+    };
+    arch::present(b"CONDUIT_BOOT_STAGE usb-after-initial-canvas\n");
     let mut input = match RaspberryPiUsbInput::prepare(ids) {
         Ok(input) => Some(input),
         Err(reason) => {
@@ -107,7 +132,7 @@ pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
             {
                 _audio = startup::play(ids, offer);
             }
-            graphic = prepare_graphics(ids, offer);
+            graphic = prepare_graphics(ids, offer, initial.take());
             graphics_prepared = true;
             arch::present(if cfg!(feature = "aarch64-rpi-3b-plus") {
                 b"CONDUIT_BOOT_STAGE rpi3-product-ready\n"
