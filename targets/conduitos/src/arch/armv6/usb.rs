@@ -22,7 +22,11 @@ impl RegisterIo for Registers {
     fn packet_failure(&mut self, failure: crate::arch::dwc2::PacketFailure) {
         use core::fmt::Write;
         let mut text = crate::sign_format::FixedText::new();
-        let _ = writeln!(text, "CONDUIT_USB_PACKET_FAILURE us={} {failure:x?}", read_counter());
+        let _ = writeln!(
+            text,
+            "CONDUIT_USB_PACKET_FAILURE us={} {failure:x?}",
+            read_counter()
+        );
         super::present(text.as_bytes());
     }
     fn now_us(&mut self) -> u32 {

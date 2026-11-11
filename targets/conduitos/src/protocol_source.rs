@@ -318,7 +318,11 @@ pub(crate) fn preparation_stage(stage: &str) {
         crate::arch::early_write(text.as_bytes());
         #[cfg(target_arch = "arm")]
         {
-            let _ = writeln!(text, "CONDUIT_PREPARATION_TIME us={}", crate::arch::read_counter());
+            let _ = writeln!(
+                text,
+                "CONDUIT_PREPARATION_TIME us={}",
+                crate::arch::read_counter()
+            );
             crate::arch::present(text.as_bytes());
         }
     }
