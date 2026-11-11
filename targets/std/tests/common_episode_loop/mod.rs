@@ -65,7 +65,31 @@ impl HostedLocalModelAdapter for FencedFakeEpisodeModel {
         let prompt: serde_json::Value =
             serde_json::from_str(context.as_ref().map(|c| c.data().as_str()).unwrap_or(text))
                 .unwrap();
-        let answer = if let Some(evidence) = prompt["evidence"].as_array() {
+        let answer = if prompt["schema"] == conduit_chat::EPISODE_RETRIEVAL_DATA_SCHEMA {
+            let now = prompt["observation"]["content"].as_str().unwrap();
+            match prompt["recalled"].as_array().unwrap().last() {
+                None => format!("No memory yet; I notice: {now}"),
+                Some(memory) => {
+                    let items = memory["historical_evidence"]["evidence"]
+                        .as_array()
+                        .unwrap();
+                    let selected = items
+                        .iter()
+                        .find(|item| item["origin"] == "human_reported")
+                        .unwrap_or(&items[0]);
+                    let raw = selected["utf8_content"].as_str().unwrap();
+                    let decoded = serde_json::from_str::<serde_json::Value>(raw)
+                        .unwrap_or_else(|_| serde_json::Value::String(raw.into()));
+                    format!(
+                        "I recall {} and now notice: {now}",
+                        decoded
+                            .as_str()
+                            .map(str::to_owned)
+                            .unwrap_or_else(|| decoded.to_string())
+                    )
+                }
+            }
+        } else if let Some(evidence) = prompt["evidence"].as_array() {
             format!("{} selected evidence items", evidence.len())
         } else {
             let now = prompt["observation"]["content"].as_str().unwrap();
@@ -402,3 +426,5 @@ pub fn request_data(request: &str) -> serde_json::Value {
     )
     .unwrap()
 }
+
+pub mod model_projection;

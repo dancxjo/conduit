@@ -180,9 +180,47 @@ test('required source failure refuses both cold and warm acquisition before inst
     const { state, options } = fixture(t);
     if (warm) acquireApt(['tool'], options);
     state.present = false; state.calls = []; state.requiredFailure = true;
+    options.recoverDns = () => { throw new Error('must not recover unrelated failures'); };
     assert.throws(() => acquireApt(['tool'], options), /required source unavailable/);
     assert.ok(!state.calls.some(([, args]) => args.includes('install')));
   }
+});
+
+test('DNS recovery retains signed metadata checks and spans the complete acquisition', t => {
+  for (const trusted of [true, false]) {
+    const { state, options } = fixture(t);
+    state.trusted = trusted;
+    let updates = 0, active = false, restored = 0;
+    const run = options.privileged;
+    options.privileged = (program, args, config) => {
+      if (program === 'apt-get' && args.includes('update') && ++updates === 1) throw new Error("Temporary failure resolving 'archive.ubuntu.com'");
+      if (program === 'apt-get' && args.includes('install')) assert.equal(active, true);
+      return run(program, args, config);
+    };
+    options.recoverDns = () => {
+      active = true;
+      return { identity: { schema: 'test-dns-recovery' }, restore() { active = false; restored++; } };
+    };
+    if (trusted) assert.equal(acquireApt(['tool'], options).cache, 'miss');
+    else assert.throws(() => acquireApt(['tool'], options), /not authenticated/);
+    assert.equal(updates, 2);
+    assert.equal(restored, 1);
+    assert.equal(active, false);
+    assert.equal(state.present, trusted);
+  }
+});
+
+test('a second DNS failure is terminal and still releases the recovery lease', t => {
+  const { options } = fixture(t);
+  let updates = 0, recoveries = 0, restored = 0;
+  const run = options.privileged;
+  options.privileged = (program, args, config) => {
+    if (program === 'apt-get' && args.includes('update')) { updates++; throw new Error("Temporary failure resolving 'security.ubuntu.com'"); }
+    return run(program, args, config);
+  };
+  options.recoverDns = () => { recoveries++; return { restore() { restored++; } }; };
+  assert.throws(() => acquireApt(['tool'], options), /Temporary failure/);
+  assert.deepEqual([updates, recoveries, restored], [2, 1, 1]);
 });
 test('selected signing keys and runner profile bind cache identity; unrelated sources do not', t => {
   const { state, options, root } = fixture(t);

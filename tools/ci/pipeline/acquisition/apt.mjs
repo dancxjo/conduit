@@ -2,6 +2,7 @@
 import { assertAptResolution } from './apt-resolution.mjs';
 import { aptScope } from './apt-scope.mjs';
 import { emitAptFailureDiagnostics, privilegedCommand } from './apt-failure-diagnostics.mjs';
+import { recoverUbuntuDns, ubuntuDnsFailure } from './ubuntu-dns.mjs';
 import { recordOperation, recordTool } from './metrics.mjs';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -79,6 +80,7 @@ export function acquireApt(requested, options = {}) {
   // Each attempt authenticates fresh indices; neither host sources nor host
   // lists can contribute a candidate or authenticate a cached package.
   const attempt = mkdtempSync(path.join(directory, 'scope-'));
+  let dns;
   try {
     chmodSync(attempt, 0o755);
     const sourceFile = path.join(attempt, 'ubuntu.sources');
@@ -94,9 +96,13 @@ export function acquireApt(requested, options = {}) {
     };
     try {
       privileged('apt-get', [...aptOptions, 'update']);
-    } catch (failure) {
+    } catch (error) {
       try { (options.failureDiagnostics ?? emitAptFailureDiagnostics)(); } catch {}
-      throw failure;
+      if (!ubuntuDnsFailure(error)) throw error;
+      dns = (options.recoverDns ?? recoverUbuntuDns)();
+      if (!dns) throw error;
+      report.dnsRecovery = dns.identity;
+      privileged('apt-get', [...aptOptions, 'update']);
     }
     let manifest;
     if (existsSync(manifestPath)) {
@@ -149,6 +155,7 @@ export function acquireApt(requested, options = {}) {
     writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
     return finish();
   } finally {
-    privileged('rm', ['-rf', '--', attempt]);
+    try { dns?.restore(); }
+    finally { privileged('rm', ['-rf', '--', attempt]); }
   }
 }

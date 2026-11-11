@@ -6,6 +6,8 @@ mod current_sample_finite;
 pub use current_sample_finite::*;
 mod value_pair;
 pub use value_pair::*;
+mod temporal_evidence;
+pub use temporal_evidence::*;
 mod experience_evidence;
 pub use experience_evidence::*;
 mod episode_loop;

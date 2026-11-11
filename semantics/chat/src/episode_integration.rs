@@ -18,7 +18,12 @@ pub fn integrate_episode_experience(
         selection.provenance_revision().get(),
     )
     .map_err(ExperienceIntegrationError::Evidence)?;
-    EpisodeExperience::new(evidence, input.observation().clone()).map_err(|_| {
+    EpisodeExperience::new(
+        evidence,
+        input.observation().clone(),
+        batch.reference().clone(),
+    )
+    .map_err(|_| {
         ExperienceIntegrationError::Evidence(conduit_human::ExperienceEvidenceRefusal::Malformed)
     })
 }

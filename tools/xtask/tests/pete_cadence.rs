@@ -184,6 +184,20 @@ fn pete_cadence_runs_three_forms_and_reflects_less_often_than_events() {
     assert_eq!(*episodes[1].recalled().get()[0].episode(), 1);
     assert_eq!(episodes[0].body_id(), episodes[1].body_id());
     assert_eq!(episodes[0].wake_id(), episodes[1].wake_id());
+    assert!(episodes[0]
+        .response()
+        .unwrap()
+        .content()
+        .starts_with("No memory yet"));
+    assert!(episodes[1]
+        .response()
+        .unwrap()
+        .content()
+        .contains("COPPER KITE"));
+    assert_ne!(
+        episodes[0].response().unwrap().content(),
+        episodes[1].response().unwrap().content()
+    );
     println!(
         "CONDUIT_PLOT_EVIDENCE={}",
         serde_json::json!({
