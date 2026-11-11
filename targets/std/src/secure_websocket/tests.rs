@@ -260,6 +260,50 @@ fn native_client_completed_handshake_cancels_connection_watchdog() {
 }
 
 #[test]
+fn native_client_exchange_deadline_also_ends_trickled_response_frames() {
+    let (config, binding) = pinned_server();
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        stream
+            .set_read_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        let connection = ServerConnection::new(config).unwrap();
+        let mut socket = tungstenite::accept(StreamOwned::new(connection, stream)).unwrap();
+        // One valid server binary frame, deliberately incomplete until well
+        // after the attempt cutoff, despite continuously arriving TLS records.
+        socket.get_mut().write_all(&[0x82, 64]).unwrap();
+        socket.get_mut().flush().unwrap();
+        for _ in 0..64 {
+            if socket.get_mut().write_all(&[1]).is_err() || socket.get_mut().flush().is_err() {
+                break;
+            }
+            thread::sleep(Duration::from_millis(20));
+        }
+    });
+    let started = Instant::now();
+    let mut client = SecureWebSocketClientLine::connect_pinned_for_exchange(
+        address,
+        &format!("wss://localhost:{}/conduit", address.port()),
+        "localhost",
+        binding,
+        Duration::from_millis(300),
+        128,
+    )
+    .unwrap();
+    let result = client.receive_binary(&mut [0; 128]);
+    let elapsed = started.elapsed();
+    drop(client);
+    server.join().unwrap();
+    assert!(result.is_err());
+    assert!(
+        elapsed < Duration::from_secs(1),
+        "exchange took {elapsed:?}"
+    );
+}
+
+#[test]
 fn pinned_tls_partial_frame_survives_poll_timeout() {
     use std::sync::mpsc;
     let CertifiedKey { cert, signing_key } =

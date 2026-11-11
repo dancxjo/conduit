@@ -225,6 +225,7 @@ impl Drop for SocketDeadlineGuard {
 pub struct SecureWebSocketClientLine {
     socket: WebSocket<StreamOwned<ClientConnection, TcpStream>>,
     maximum_message_bytes: usize,
+    _exchange_deadline: Option<SocketDeadlineGuard>,
 }
 
 impl SecureWebSocketClientLine {
@@ -235,6 +236,48 @@ impl SecureWebSocketClientLine {
         certificate_binding_sha256: [u8; 32],
         timeout: Duration,
         maximum_message_bytes: u32,
+    ) -> Result<Self, SecureWebSocketError> {
+        Self::connect(
+            address,
+            url,
+            server_identity,
+            certificate_binding_sha256,
+            timeout,
+            maximum_message_bytes,
+            false,
+        )
+    }
+
+    /// One discovery/request exchange shares its connection attempt's original
+    /// absolute deadline, including later partial frames and control traffic.
+    /// This does not admit a continuing session or replenish that deadline.
+    pub fn connect_pinned_for_exchange(
+        address: SocketAddr,
+        url: &str,
+        server_identity: &str,
+        certificate_binding_sha256: [u8; 32],
+        timeout: Duration,
+        maximum_message_bytes: u32,
+    ) -> Result<Self, SecureWebSocketError> {
+        Self::connect(
+            address,
+            url,
+            server_identity,
+            certificate_binding_sha256,
+            timeout,
+            maximum_message_bytes,
+            true,
+        )
+    }
+
+    fn connect(
+        address: SocketAddr,
+        url: &str,
+        server_identity: &str,
+        certificate_binding_sha256: [u8; 32],
+        timeout: Duration,
+        maximum_message_bytes: u32,
+        retain_exchange_deadline: bool,
     ) -> Result<Self, SecureWebSocketError> {
         let maximum_message_bytes = usize::try_from(maximum_message_bytes)
             .map_err(|_| SecureWebSocketError::InvalidConfiguration)?;
@@ -304,9 +347,15 @@ impl SecureWebSocketClientLine {
                 SecureWebSocketError::Handshake
             }
         })?;
-        // The connection attempt has ended. Join the watchdog before exposing
-        // this socket: its subsequent admitted session has its own lifetime.
-        drop(deadline_guard);
+        // A separately admitted session owns its subsequent lifetime. A short
+        // discovery exchange instead keeps the same absolute cutoff through
+        // its response; unaccepted bytes cannot replenish the attempt.
+        let exchange_deadline = if retain_exchange_deadline {
+            Some(deadline_guard)
+        } else {
+            drop(deadline_guard);
+            None
+        };
         socket
             .get_ref()
             .sock
@@ -321,6 +370,7 @@ impl SecureWebSocketClientLine {
         Ok(Self {
             socket,
             maximum_message_bytes,
+            _exchange_deadline: exchange_deadline,
         })
     }
 
