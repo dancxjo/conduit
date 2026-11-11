@@ -100,7 +100,7 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
         self.generation_worker
             .as_mut()
             .map_or(Some(LocalModelAdapterTerminal::Refused), |worker| {
-                worker.begin(placement, input)
+                worker.begin(placement, input, self.next_request_sequence)
             })
     }
     fn poll_generation(&mut self, output: &mut Vec<u8>) -> Option<LocalModelAdapterTerminal> {
