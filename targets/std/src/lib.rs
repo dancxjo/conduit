@@ -35,6 +35,7 @@ mod composition_test_offers;
 #[cfg(feature = "confined-gear")]
 pub mod confined_gear;
 mod copy_task;
+mod current_sampling;
 mod deadline_reactor;
 #[cfg(feature = "local-model-proof")]
 pub mod distributed_house_plan;

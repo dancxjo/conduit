@@ -1,5 +1,7 @@
 //! Exact implementation offers owned by the hosted std Host.
 
+mod current_sample_finite;
+pub use current_sample_finite::*;
 mod value_pair;
 pub use value_pair::*;
 mod experience_evidence;
