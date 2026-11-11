@@ -152,3 +152,23 @@ The extraction is complete only when shared production layers no longer import
 the environmental application, its authored files determine application
 composition, and the resulting installed Plots/Plans/Plays and shared Masks are
 verified. A directory relocation or an isolated green test is not that gate.
+
+## Active-draft reconciliation
+
+The isolated integration is based on exact committed draft
+`a28a11877c7bd3424b41de1284e098f990f1d7cc`, rather than replacing that draft
+with current-dev implementations. It preserves inert Face backing and rebinding,
+owned and linked/static canonical selection, allocation-free quantity packing,
+static schema composition, retained-backing accounting and the DHT11 `@2`
+ValueContracts. The device-local private storage ceiling preserves the existing
+canonical bound/refusal and conversion order; it introduces no Body dependency.
+
+The draft product device catalog, MCU Source builder and execution runtime now
+consume the shared DHT11 realization directly. The execution runtime consumes
+the shared selector, including its static constructor. The draft's selector
+custody test moves with that helper. Remaining recording, publication and
+application display policy dependencies are retained explicitly: this is not a
+claim that the production compiler is yet independent of the Body runtime.
+
+No live owner, device, shared build cache or deployed Source identity is changed
+by this reconciliation. SDL startup and contact renewal remain separately owned.

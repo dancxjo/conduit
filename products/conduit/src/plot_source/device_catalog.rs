@@ -7,11 +7,11 @@ pub(super) fn install(
     conduit_pulse_capture::PulseReadContract::prepare()
         .map_err(debug)?
         .install(startup, profiles)?;
-    conduit_environment_runtime::observation::ObservationContract::prepare()
+    conduit_dht11_observation::ObservationContract::prepare()
         .map_err(debug)?
         .install(startup, profiles)?;
     conduit_environment_runtime::recording::LogContract::prepare(
-        &conduit_environment_runtime::observation::ObservationContract::prepare().map_err(debug)?,
+        &conduit_dht11_observation::ObservationContract::prepare().map_err(debug)?,
     )
     .map_err(debug)?
     .install(startup, profiles)?;

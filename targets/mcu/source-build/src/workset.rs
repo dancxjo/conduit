@@ -96,11 +96,11 @@ pub fn compile(
     conduit_pulse_capture::PulseReadContract::prepare()
         .map_err(debug)?
         .install(&mut startup, &mut profiles)?;
-    conduit_environment_runtime::observation::ObservationContract::prepare()
+    conduit_dht11_observation::ObservationContract::prepare()
         .map_err(debug)?
         .install(&mut startup, &mut profiles)?;
     conduit_environment_runtime::recording::LogContract::prepare(
-        &conduit_environment_runtime::observation::ObservationContract::prepare().map_err(debug)?,
+        &conduit_dht11_observation::ObservationContract::prepare().map_err(debug)?,
     )
     .map_err(debug)?
     .install(&mut startup, &mut profiles)?;
@@ -377,17 +377,13 @@ mod tests {
             include_str!("../../../../bodies/environment/profiles/sampling.conduit"),
             include_str!("../../../../bodies/environment/profiles/appliance.conduit"),
             include_str!("../../../../plots/device-protocols/tm1637.conduit"),
-            include_str!("../../../../bodies/environment/profiles/display-output.conduit"),
+            include_str!("../../../../plots/device-protocols/tm1637-output.conduit"),
             include_str!("../../../../plots/seven-segment-mask/main.conduit"),
         ]
         .join("\n");
         let digest = format!("{:x}", Sha256::digest(source.as_bytes()));
-        let entries = [
-            "environmental-appliance",
-            "seven-segment",
-            "environment-display-output",
-        ]
-        .map(String::from);
+        let entries =
+            ["environmental-appliance", "seven-segment", "tm1637-output"].map(String::from);
         let bounds = Some(MaskBounds {
             face_bytes: 8192,
             show_bytes: 8192,

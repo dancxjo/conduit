@@ -18,6 +18,7 @@ base-serial = []
 base-protected-file = []
 
 [dependencies]
+conduit-dht11-observation = { path = "../../mechanisms/devices/dht11" }
 base64 = { version = "0.22.1", default-features = false }
 conduit-commons-plot = { path = "../../plots/commons" }
 clap = { version = "4", features = ["derive"] }

@@ -16,6 +16,7 @@ mod forms {
 mod back;
 mod packed;
 mod source_frame;
+mod storage_ceiling;
 #[cfg(feature = "kernel-step")]
 pub use back::ObservationBack;
 pub use packed::{PreparedObservationQuantityForms, PreparedObservationQuantityPacker};
@@ -62,7 +63,7 @@ impl ObservationContract {
                     location: c::FrontValueLocation::Input(c::port_id("decoded")),
                     contract: c::CheckedValueContract::new(
                         input.profile()?.value_kind().clone(),
-                        crate::canonical_storage::bytes(&input, 1024)? as u32,
+                        storage_ceiling::bytes(&input, 1024)? as u32,
                         vec![],
                     )
                     .map_err(|_| R::MalformedCanonicalEncoding)?,
@@ -71,7 +72,7 @@ impl ObservationContract {
                     location: c::FrontValueLocation::Output(c::port_id("result")),
                     contract: c::CheckedValueContract::new(
                         output.profile()?.value_kind().clone(),
-                        crate::canonical_storage::bytes(&output, MAXIMUM_BYTES as usize)? as u32,
+                        storage_ceiling::bytes(&output, MAXIMUM_BYTES as usize)? as u32,
                         vec![],
                     )
                     .map_err(|_| R::MalformedCanonicalEncoding)?,

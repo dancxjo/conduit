@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 [dependencies]
+conduit-dht11-observation = { path = "../../../mechanisms/devices/dht11" }
 conduit-body = { path = "../../../architecture/body", default-features = false }
 conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
