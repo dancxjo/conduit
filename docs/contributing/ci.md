@@ -240,7 +240,7 @@ package requiring a vendor repository is unsupported and fails resolution.
 
 Each acquisition uses private source configuration and fresh indices, leaving
 host sources and lists untouched. Unrelated vendor outages cannot affect that
-scope. Required archive update failures remain fatal, including on cache hits;
+scope. Unrecovered required archive update failures remain fatal, including on cache hits;
 unauthenticated, weak, insecure, and downgraded repositories remain forbidden.
 The archive cache identity includes the exact selected sources, signing-key
 content, runner image, architecture, requested packages, and installed baseline.
@@ -252,6 +252,14 @@ APT may classify a same-version reinstall with different metadata as a downgrade
 that exact version is allowed only after this guard and repository authentication. If a cached
 version is no longer authenticated, acquisition refuses; this is not a
 historical apt snapshot.
+
+On GitHub-hosted Linux runners, an Ubuntu DNS resolution failure can trigger
+one scoped recovery using bounded HTTPS DNS lookups for the two official hosts.
+Temporary host entries cover the authenticated APT transaction and are removed
+on success or failure, preserving other host entries. The acquisition report
+records recovery. Local and self-hosted runs do not enable it automatically.
+Repository URLs, TLS checks, signing keys, fresh indices, package hashes and
+the no-removal/no-version-decrease guard remain unchanged.
 
 The original vendor outage for [#4984](https://github.com/dancxjo/conduit/issues/4984)
 remains in its [failed acquisition job](https://github.com/dancxjo/conduit/actions/runs/37180737785/job/111376354133)

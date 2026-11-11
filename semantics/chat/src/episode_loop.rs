@@ -23,6 +23,7 @@ mod episode_recall;
 use crate::episode_outcome::decode_outcome;
 pub use episode_checkpoint_v1::{episode_checkpoint_v1_type, migrate_episode_checkpoint_v1};
 use episode_prompt::prompt;
+pub(crate) use episode_recall::shared_terms;
 #[path = "episode_recollection.rs"]
 mod episode_recollection;
 #[path = "episode_retention.rs"]
@@ -367,10 +368,9 @@ impl EpisodeMemoryCell {
         if *record.retained() {
             let memory = EpisodeMemory::new(
                 *record.episode(),
-                record
-                    .evidence()
-                    .as_deref()
-                    .and_then(episode_recall::compact_evidence),
+                record.evidence().as_deref().and_then(|evidence| {
+                    episode_recall::compact_evidence(evidence, record.observation().content())
+                }),
                 record.observation().clone(),
                 record.outcome().clone(),
             )

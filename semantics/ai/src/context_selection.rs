@@ -13,6 +13,13 @@ use crate::{
     MAXIMUM_HYBRID_OUTPUT_CANDIDATES, MAXIMUM_RAG_IDENTITY_BYTES,
 };
 
+mod borrowed;
+pub use borrowed::*;
+mod prepared;
+pub use prepared::*;
+#[cfg(test)]
+mod borrowed_tests;
+
 pub const MAXIMUM_CONTEXT_SELECTION_WORK_UNITS: u32 = 1_048_576;
 pub const MAXIMUM_CONTEXT_BYTES: u32 = 1_048_576;
 pub const MAXIMUM_CONTEXT_SELECTION_TOKENS: u32 = 262_144;
@@ -68,79 +75,54 @@ impl ContextSelectionPolicy {
         &self,
         candidates: &[ContextCandidate],
     ) -> Result<StructuredContext, ContextSelectionRefusal> {
-        self.validate(candidates)?;
-        let mut ordered = candidates.to_vec();
-        ordered.sort_by(|left, right| match self.ordering() {
-            ContextOrderingPolicy::Reranked => left
-                .reranked
-                .reranked_rank
-                .cmp(&right.reranked.reranked_rank),
-            ContextOrderingPolicy::ChronologicalOldestFirst => temporal_instant(left)
-                .cmp(&temporal_instant(right))
-                .then_with(|| {
-                    left.reranked
-                        .reranked_rank
-                        .cmp(&right.reranked.reranked_rank)
-                }),
-        });
-        let mut items = Vec::new();
-        let mut omissions = Vec::new();
-        let mut used = SelectedContextCost {
-            bytes: 0,
-            tokens: 0,
-            work_units: 0,
-        };
-        let mut groups: Vec<String> = Vec::new();
-        for candidate in ordered {
-            let identity = candidate.reranked.candidate.chunk.identity;
-            if *self.redundancy() == ContextRedundancyPolicy::OnePerReviewedGroup {
-                let group = candidate
-                    .redundancy_group
-                    .as_ref()
-                    .ok_or(ContextSelectionRefusal::MissingRedundancyGroup)?;
-                if groups.contains(group) {
-                    omissions.push(ContextOmission {
-                        chunk_identity: identity,
-                        reason: ContextOmissionReason::ReviewedRedundancy,
-                    });
-                    continue;
-                }
-                groups.push(group.clone());
-            }
-            let cost = SelectedContextCost {
-                bytes: extracted_value_bytes(&candidate.reranked.candidate.chunk.value)?,
-                tokens: candidate.token_count,
-                work_units: 1,
-            };
-            let reason = budget_refusal(self, &used, &cost, items.len())?;
-            if let Some(reason) = reason {
-                omissions.push(ContextOmission {
-                    chunk_identity: identity,
-                    reason,
-                });
-                continue;
-            }
-            used.bytes += cost.bytes;
-            used.tokens += cost.tokens;
-            used.work_units += cost.work_units;
+        if candidates.is_empty() {
+            return Err(ContextSelectionRefusal::EmptyCandidates);
+        }
+        if candidates.len() > MAXIMUM_HYBRID_OUTPUT_CANDIDATES as usize {
+            return Err(ContextSelectionRefusal::CandidateLimitExceeded);
+        }
+        let views: Vec<_> = candidates
+            .iter()
+            .map(BorrowedContextCandidate::from_owned)
+            .collect();
+        let mut selector = PreparedContextSelector::prepare(
+            candidates
+                .len()
+                .clamp(1, MAXIMUM_HYBRID_OUTPUT_CANDIDATES as usize),
+        )?;
+        let mut selected =
+            alloc::vec![usize::MAX;candidates.len().min(*self.maximum_items()as usize)];
+        let mut omitted = alloc::vec![None;candidates.len()];
+        let result = selector.select(self, &views, &mut selected, &mut omitted)?;
+        let mut items = Vec::with_capacity(result.selected_len);
+        for index in &selected[..result.selected_len] {
+            let candidate = &candidates[*index];
             items.push(SelectedContextItem {
-                reranked: candidate.reranked,
-                reranking_policy_identity: candidate.reranking_policy_identity,
+                reranked: candidate.reranked.clone(),
+                reranking_policy_identity: candidate.reranking_policy_identity.clone(),
                 reranking_proof_class: candidate.reranking_proof_class,
-                temporal: candidate.temporal,
-                redundancy_group: candidate.redundancy_group,
-                rationale: match self.ordering() {
-                    ContextOrderingPolicy::Reranked => SelectedContextRationale::Reranked,
-                    ContextOrderingPolicy::ChronologicalOldestFirst => {
-                        SelectedContextRationale::TemporalChronology
-                    }
+                temporal: candidate.temporal.clone(),
+                redundancy_group: candidate.redundancy_group.clone(),
+                rationale: result.rationale,
+                budget: SelectedContextCost {
+                    bytes: extracted_value_bytes(&candidate.reranked.candidate.chunk.value)?,
+                    tokens: candidate.token_count,
+                    work_units: 1,
                 },
-                budget: cost,
             });
         }
-        if items.is_empty() {
-            return Err(ContextSelectionRefusal::NoSelectedContext);
-        }
+        let omissions = omitted[..result.omitted_len]
+            .iter()
+            .flatten()
+            .map(|omission| ContextOmission {
+                chunk_identity: candidates[omission.candidate_index]
+                    .reranked
+                    .candidate
+                    .chunk
+                    .identity,
+                reason: omission.reason,
+            })
+            .collect::<Vec<_>>();
         Ok(StructuredContext {
             policy_identity: self.identity().clone(),
             token_accounting_profile: self.token_accounting_profile().clone(),
@@ -153,109 +135,15 @@ impl ContextSelectionPolicy {
                 ContextSelectionDisposition::omitted(
                     ContextOmissions::new(
                         BoundedSequence::try_from_iter(omissions)
-                            .expect("context policy limits omissions to 1,024 candidates"),
+                            .expect("validated omission bound"),
                     )
-                    .expect("a nonempty bounded omission set is valid"),
+                    .expect("nonempty omissions"),
                 )
-                .expect("a checked omission set makes a valid disposition")
+                .expect("checked omissions")
             },
-            used,
+            used: result.used,
         })
     }
-
-    fn validate(&self, candidates: &[ContextCandidate]) -> Result<(), ContextSelectionRefusal> {
-        if candidates.is_empty() {
-            return Err(ContextSelectionRefusal::EmptyCandidates);
-        }
-        if candidates.len() > MAXIMUM_HYBRID_OUTPUT_CANDIDATES as usize {
-            return Err(ContextSelectionRefusal::CandidateLimitExceeded);
-        }
-        for (index, candidate) in candidates.iter().enumerate() {
-            validate_identity(&candidate.reranking_policy_identity)?;
-            candidate
-                .reranked
-                .candidate
-                .chunk
-                .validate()
-                .map_err(|_| ContextSelectionRefusal::InvalidCandidate)?;
-            if candidate.token_count == 0 {
-                return Err(ContextSelectionRefusal::EmptyTokenCost);
-            }
-            if candidate.reranked.reranked_rank == 0
-                || usize::from(candidate.reranked.reranked_rank) > candidates.len()
-                || candidate.reranked.original_rank == 0
-                || candidate.reranked.candidate.contributions.is_empty()
-            {
-                return Err(ContextSelectionRefusal::InvalidCandidate);
-            }
-            if candidates[index + 1..].iter().any(|other| {
-                other.reranked.candidate.chunk.identity
-                    == candidate.reranked.candidate.chunk.identity
-                    || other.reranked.reranked_rank == candidate.reranked.reranked_rank
-            }) {
-                return Err(ContextSelectionRefusal::DuplicateCandidate);
-            }
-            if let Some(group) = &candidate.redundancy_group {
-                validate_identity(group)?;
-            }
-            if *self.ordering() == ContextOrderingPolicy::ChronologicalOldestFirst
-                && candidate.temporal.is_none()
-            {
-                return Err(ContextSelectionRefusal::MissingTemporalEvidence);
-            }
-            validate_temporal(candidate)?;
-        }
-        Ok(())
-    }
-}
-
-fn validate_temporal(candidate: &ContextCandidate) -> Result<(), ContextSelectionRefusal> {
-    let Some(temporal) = &candidate.temporal else {
-        if candidate
-            .reranked
-            .candidate
-            .contributions
-            .iter()
-            .any(|path| path.temporal_evidence_identity.is_some())
-        {
-            return Err(ContextSelectionRefusal::MissingTemporalEvidence);
-        }
-        return Ok(());
-    };
-    validate_identity(&temporal.evidence_identity)?;
-    temporal
-        .provenance
-        .validate()
-        .map_err(|_| ContextSelectionRefusal::InvalidTemporalEvidence)?;
-    let relation = temporal
-        .provenance
-        .relation(temporal.source)
-        .map_err(|_| ContextSelectionRefusal::InvalidTemporalEvidence)?;
-    if relation != temporal.context.relation
-        || temporal.source != temporal.context.source
-        || temporal.context.validity == TemporalValidity::UnknownWhetherCurrent
-            && temporal.provenance.valid_from.is_some()
-        || !candidate
-            .reranked
-            .candidate
-            .contributions
-            .iter()
-            .any(|path| {
-                path.temporal_evidence_identity.as_deref()
-                    == Some(temporal.evidence_identity.as_str())
-            })
-    {
-        return Err(ContextSelectionRefusal::TemporalEvidenceNotContributed);
-    }
-    Ok(())
-}
-
-fn temporal_instant(candidate: &ContextCandidate) -> u64 {
-    candidate
-        .temporal
-        .as_ref()
-        .and_then(|temporal| temporal.provenance.source_instant(temporal.source).ok())
-        .unwrap_or(u64::MAX)
 }
 
 fn budget_refusal(

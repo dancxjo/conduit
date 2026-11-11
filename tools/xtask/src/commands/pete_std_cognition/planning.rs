@@ -99,6 +99,7 @@ fn authoring_source(
 ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
+    conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
     conduit_chat::install_episode_loop_catalog(&mut startup, &mut profile)?;
@@ -246,7 +247,55 @@ fn plan_with_mode(
         )
     })
     .collect();
-    let mut plan = plan_expanded_authoring_with_options(
+    let offer = |gear: &conduit_core::GearId| {
+        let choice = placements.by_gear.get(gear).expect("selected Gear");
+        hosts
+            .iter()
+            .find(|host| host.host_id == choice.host_id)
+            .unwrap()
+            .capabilities
+            .iter()
+            .find(|cap| cap.capability_id == choice.capability_id)
+            .unwrap()
+    };
+    let connection_limits = authoring
+        .expanded
+        .connections
+        .iter()
+        .map(|cord| {
+            let source = authoring
+                .expanded
+                .gears
+                .iter()
+                .find(|gear| gear.gear_id == cord.source_gear_id)
+                .unwrap();
+            let maximum =
+                if source.kind_id.as_str() == conduit_chat::EPISODE_RETRIEVAL_PRODUCER_KIND {
+                    match cord.source_port_id.as_str() {
+                        "capture" => conduit_chat::MAXIMUM_EPISODE_RETRIEVAL_CAPTURE_BYTES as u32,
+                        "window" => conduit_ai::TEMPORAL_EVIDENCE_FLOW_MAX_BYTES as u32,
+                        _ => 16384,
+                    }
+                } else {
+                    16384
+                };
+            (
+                (
+                    cord.source_gear_id.clone(),
+                    cord.source_port_id.clone(),
+                    cord.sink_gear_id.clone(),
+                    cord.sink_port_id.clone(),
+                ),
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: maximum
+                        .min(offer(&cord.source_gear_id).limits.max_queue_bytes)
+                        .min(offer(&cord.sink_gear_id).limits.max_queue_bytes),
+                },
+            )
+        })
+        .collect();
+    let mut plan = plan_expanded_authoring_with_connection_limits(
         authoring,
         &hosts,
         &placements,
@@ -260,6 +309,7 @@ fn plan_with_mode(
             protected_resource_grants: &[],
             line_offers: &[],
         },
+        &connection_limits,
         &boundaries,
     )
     .map_err(|error| format!("plan Pete Plot: {error:?}"))?;

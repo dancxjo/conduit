@@ -154,7 +154,8 @@ fn assert_checkpoint_recall(provider_lost: bool, live_recovery: bool) {
     );
     let historical: serde_json::Value =
         serde_json::from_str(episode.recalled().get()[0].evidence().as_ref().unwrap()).unwrap();
-    assert_eq!(historical["revision"], 1);
+    let historical = &historical["historical_evidence"];
+    assert_eq!(historical["original_provenance"]["revision"], 1);
     assert_eq!(
         historical["evidence"][0]["sources"][0]["sign"],
         "utterance/1"
