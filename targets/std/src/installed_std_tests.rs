@@ -13,6 +13,7 @@ mod bool_face_conformance;
 mod calendar_proposal_conformance;
 mod calendar_provider_conformance;
 mod data_text_conformance;
+mod experience_evidence;
 mod external_fore_conformance;
 mod face_composition;
 mod final_normalized_pattern_conformance;

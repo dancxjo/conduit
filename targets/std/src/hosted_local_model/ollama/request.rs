@@ -15,8 +15,14 @@ impl OllamaLocalModelAdapter {
             "think": false,
             "stream": false,
             "keep_alive": "5m",
-            "options": { "num_predict": maximum_tokens }
+            "options": { "num_predict": maximum_tokens, "temperature": 0 }
         });
+        if let Some(context) = conduit_ai::decode_generation_context(input)
+            .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?
+        {
+            request["system"] = json!(context.instruction());
+            request["prompt"] = json!(context.data());
+        }
         if structured {
             request["format"] = json!("json");
         }

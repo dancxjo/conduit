@@ -1,0 +1,72 @@
+# Event reaction, standing attention, and explicitly triggered reflection share
+# one Play. Only the reflection Form depends on a model. Current replacements
+# coalesce in a single slot; reflection triggers use bounded backpressure.
+plot pete-reaction (
+    >> frames: PeteCognitionFrame...|
+    updates: EpisodeExperienceInput...| >>
+    reacted: EpisodeExperienceInput...| >>
+) {
+    situate: pete/situate-experience-inputs
+    frames >> situate.frame
+    situate.inputs >> updates
+    situate.inputs >> when(.observation.retain) >> reacted
+}
+
+plot pete-attention (
+    >> inputs: EpisodeExperienceInput...|
+    current: $EpisodeExperience <= 128KiB >>
+) {
+    experience: experience/integrate-episode
+    latest: flow/coalesce-latest-finite
+    inputs >> experience.inputs
+    experience.experience >> latest.in
+    latest.out >> current
+}
+
+plot pete-reflection (
+    >> context: BodyConversationContext...|
+    >> current: $EpisodeExperience <= 128KiB
+    >> triggers: U64...| <= 8B
+    episodes: EpisodeRecord... >>
+) {
+    sample: current/sample/finite
+    recall: body/episode-recall-experience
+    contextualize: body/episode-model-context
+    model: llm/generate-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0, provider-loss-as-result = 1)
+    retain: body/episode-retain
+    memory: body/episode-memory
+
+    context >> recall.context
+    current >> sample.current
+    triggers >> sample.trigger
+    sample.value >> recall.experience
+    memory.current >> recall.memory
+    recall.recollection >> contextualize.recollection
+    contextualize.request >> model.request
+    recall.pending >> retain.pending
+    model.result >> retain.response
+    retain.episode >> memory.update
+    retain.episode >> episodes
+}
+
+plot pete-cognition (
+    >> context: BodyConversationContext...|
+    >> frames: PeteCognitionFrame...|
+    >> reflections: U64...| <= 8B
+    reactions: EpisodeExperienceInput...| >>
+    attention: $EpisodeExperience <= 128KiB >>
+    episodes: EpisodeRecord... >>
+) {
+    reaction: pete-reaction
+    attend: pete-attention
+    reflect: pete-reflection
+
+    frames >> reaction.frames
+    reaction.reacted >> reactions
+    reaction.updates >> attend.inputs
+    attend.current >> attention
+    attend.current >> reflect.current
+    context >> reflect.context
+    reflections >> reflect.triggers
+    reflect.episodes >> episodes
+}

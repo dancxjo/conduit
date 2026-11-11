@@ -10,7 +10,7 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     prepare,
 };
 
-fn exact_contracts(
+pub(super) fn exact_contracts(
     placement: &PlannedGear,
 ) -> Result<(&CheckedValueContract, &CheckedValueContract), String> {
     let contracts = placement.semantic_contract.value_contracts();

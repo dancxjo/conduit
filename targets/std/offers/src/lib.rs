@@ -1,7 +1,15 @@
 //! Exact implementation offers owned by the hosted std Host.
 
+mod flow_coalesce_finite;
+pub use flow_coalesce_finite::*;
+mod current_sample_finite;
+pub use current_sample_finite::*;
 mod value_pair;
 pub use value_pair::*;
+mod experience_evidence;
+pub use experience_evidence::*;
+mod episode_loop;
+pub use episode_loop::*;
 
 mod flow_state;
 pub use flow_state::*;

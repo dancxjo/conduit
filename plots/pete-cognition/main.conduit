@@ -1,0 +1,31 @@
+# One Body's basic episode loop: observe, recall selected memory, ask a bounded
+# model, and retain the selected episode for later recall in the same Play.
+# Observations and model-derived responses remain distinct typed facts; the
+# memory cell is the loop's only declared delay.
+plot pete-cognition (
+    >> context: BodyConversationContext...|
+    >> frames: PeteCognitionFrame...|
+    episodes: EpisodeRecord... >>
+) {
+    situate: pete/situate-experience-inputs
+    experience: experience/integrate-episode
+    recall: body/episode-recall-experience
+    contextualize: body/episode-model-context
+    # The model result includes serialized provenance and accounting. The
+    # retainer separately checks its 512-byte response text Type.
+    model: llm/generate-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0, provider-loss-as-result = 1)
+    retain: body/episode-retain
+    memory: body/episode-memory
+
+    context >> recall.context
+    frames >> situate.frame
+    situate.inputs >> experience.inputs
+    experience.experience >> recall.experience
+    memory.current >> recall.memory
+    recall.recollection >> contextualize.recollection
+    contextualize.request >> model.request
+    recall.pending >> retain.pending
+    model.result >> retain.response
+    retain.episode >> memory.update
+    retain.episode >> episodes
+}

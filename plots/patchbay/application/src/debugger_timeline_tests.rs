@@ -44,6 +44,7 @@ fn record(
         preview,
         fault_code: None,
         causal_parent_sequence: None,
+        additional_parent_sequences: Default::default(),
         invocation_sequence: None,
     }
 }
@@ -241,10 +242,39 @@ fn causal_trace_follows_exact_observed_parents_and_exposes_missing_history() {
         vec![1, 2, 3]
     );
 
-    let mut missing = record(identity, 5, DebugSubject::Cord(CordId(1)), "fault");
+    let mut joined = record(identity, 5, DebugSubject::Cord(CordId(1)), "42");
+    joined.causal_parent_sequence = Some(3);
+    joined.additional_parent_sequences[0] = Some(4);
+    timeline.observe(&joined).unwrap();
+    timeline.trace_upstream(5).unwrap();
+    assert_eq!(
+        timeline
+            .trace
+            .as_ref()
+            .unwrap()
+            .steps
+            .iter()
+            .map(|step| step.sequence)
+            .collect::<Vec<_>>(),
+        vec![0, 1, 2, 3, 4, 5]
+    );
+    timeline.trace_downstream(4).unwrap();
+    assert_eq!(
+        timeline
+            .trace
+            .as_ref()
+            .unwrap()
+            .steps
+            .iter()
+            .map(|step| step.sequence)
+            .collect::<Vec<_>>(),
+        vec![4, 5]
+    );
+
+    let mut missing = record(identity, 6, DebugSubject::Cord(CordId(1)), "fault");
     missing.causal_parent_sequence = Some(99);
     timeline.observe(&missing).unwrap();
-    timeline.trace_upstream(5).unwrap();
+    timeline.trace_upstream(6).unwrap();
     assert_eq!(
         timeline.trace.as_ref().unwrap().missing_parent_sequences,
         vec![99]

@@ -26,19 +26,7 @@ pub struct DurableStateBinding {
     pub maximum_value_bytes: u32,
 }
 
-impl DurableStateBinding {
-    pub fn validate(&self) -> Result<(), DurableStateRefusal> {
-        if self.body.is_empty()
-            || self.state.as_str().is_empty()
-            || self.value_kind.as_str().is_empty()
-            || self.maximum_value_bytes == 0
-            || self.maximum_value_bytes > MAXIMUM_DURABLE_STATE_BYTES
-        {
-            return Err(DurableStateRefusal::InvalidBinding);
-        }
-        Ok(())
-    }
-}
+mod binding_profile;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Generation {

@@ -36,6 +36,8 @@ where
     next_host_sequences: [Option<(u16, u64)>; NODES],
     invocation_sequences: [Option<u64>; NODES],
     latest_node_sequences: [Option<u64>; NODES],
+    inputs_since_output: [[Option<u64>; PORTS]; NODES],
+    output_started: [bool; NODES],
     latest_sent_sequences: [Option<(crate::CordId, u64)>; RECORDS],
 }
 
@@ -60,6 +62,8 @@ where
             next_host_sequences: [None; NODES],
             invocation_sequences: [None; NODES],
             latest_node_sequences: [None; NODES],
+            inputs_since_output: [[None; PORTS]; NODES],
+            output_started: [false; NODES],
             latest_sent_sequences: [None; RECORDS],
         }
     }
@@ -123,21 +127,20 @@ where
             *slot = Some((binding.host, 1));
             0
         };
-        let subject = event.cord.map_or_else(
-            || {
-                event
-                    .port
-                    .map_or(DebugSubject::Gear(event.node), |port| DebugSubject::Port {
-                        gear: event.node,
-                        port,
-                    })
+        let related_subject = event.port.map(|port| match event.kind {
+            DebugEventKind::ValueSent => DebugSubject::OutputPort {
+                gear: event.node,
+                port,
             },
+            _ => DebugSubject::Port {
+                gear: event.node,
+                port,
+            },
+        });
+        let subject = event.cord.map_or_else(
+            || related_subject.unwrap_or(DebugSubject::Gear(event.node)),
             DebugSubject::Cord,
         );
-        let related_subject = event.port.map(|port| DebugSubject::Port {
-            gear: event.node,
-            port,
-        });
         let type_identity = event.type_identity.or_else(|| {
             event.port.and_then(|port| {
                 self.port_type_identities
@@ -155,11 +158,29 @@ where
                     .find(|(known, _)| *known == cord)
                     .map(|(_, sequence)| *sequence)
             }),
-            DebugEventKind::ValueSent | DebugEventKind::GearCompleted | DebugEventKind::Fault => {
+            DebugEventKind::ValueSent => self.inputs_since_output[node]
+                .iter()
+                .flatten()
+                .copied()
+                .max()
+                .or(self.latest_node_sequences[node]),
+            DebugEventKind::GearCompleted | DebugEventKind::Fault => {
                 self.latest_node_sequences[node]
             }
             DebugEventKind::GearStarted | DebugEventKind::Unsupported(_) => None,
         };
+        let mut additional_parent_sequences = [None; super::MAX_DEBUG_ADDITIONAL_PARENTS];
+        if event.kind == DebugEventKind::ValueSent {
+            for (slot, sequence) in additional_parent_sequences.iter_mut().zip(
+                self.inputs_since_output[node]
+                    .iter()
+                    .flatten()
+                    .copied()
+                    .filter(|sequence| Some(*sequence) != causal_parent_sequence),
+            ) {
+                *slot = Some(sequence);
+            }
+        }
         let invocation_sequence = self.invocation_sequences[node];
         if let Some(observations) = &mut self.observations {
             if let Ok(record) = observations.admit(DebugObservationInput {
@@ -174,13 +195,26 @@ where
                 value: event.value,
                 fault_code: event.fault_code,
                 causal_parent_sequence,
+                additional_parent_sequences,
                 invocation_sequence,
             }) {
                 if event.kind == DebugEventKind::GearStarted {
                     self.invocation_sequences[node] = Some(record.sequence);
                 }
+                if event.kind == DebugEventKind::ValueReceived {
+                    if self.output_started[node] {
+                        self.inputs_since_output[node].fill(None);
+                        self.output_started[node] = false;
+                    }
+                    if let Some(slot) = event.port.and_then(|port| {
+                        self.inputs_since_output[node].get_mut(usize::from(port.0))
+                    }) {
+                        *slot = Some(record.sequence);
+                    }
+                }
                 self.latest_node_sequences[node] = Some(record.sequence);
                 if event.kind == DebugEventKind::ValueSent {
+                    self.output_started[node] = true;
                     if let Some(cord) = event.cord {
                         if let Some((_, sequence)) = self
                             .latest_sent_sequences

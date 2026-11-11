@@ -2,7 +2,7 @@ use conduit_browser_patchbay_workbench::{
     body_workbench_fixture_plots, body_workbench_fixture_snapshot,
     body_workbench_snapshot_with_plots, cross_host_demonstration_snapshot, demonstration_snapshot,
     llm_documentary_snapshot, llm_embodiment_snapshot, load_plot_sources, text_lab_split_snapshot,
-    BrowserBodyWorkbenchEntrance, PatchbayHtmlServer, PlotSource,
+    BrowserBodyWorkbenchEntrance, PatchbayHtmlServer, PlotSource, RendererSnapshot,
 };
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -199,6 +199,25 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
 }
 
 fn main() -> Result<(), String> {
+    let mut arguments = std::env::args().skip(1);
+    if arguments.next().as_deref() == Some("--replay-snapshot") {
+        use std::io::Read;
+
+        let path = arguments
+            .next()
+            .filter(|_| arguments.next().is_none())
+            .ok_or("--replay-snapshot requires one snapshot path")?;
+        let mut bytes = Vec::new();
+        std::fs::File::open(path)
+            .map_err(|error| error.to_string())?
+            .take((conduit_browser_patchbay_workbench::MAX_SNAPSHOT_BYTES + 1) as u64)
+            .read_to_end(&mut bytes)
+            .map_err(|error| error.to_string())?;
+        let snapshot = RendererSnapshot::decode(&bytes, 0).map_err(|error| error.to_string())?;
+        let server =
+            PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?;
+        return serve(server);
+    }
     let arguments = parse_arguments(std::env::args().skip(1))?;
     let selected_browser_mask = arguments.selected_browser_mask;
     let server = if arguments.one_plot_two_fronts {
@@ -266,6 +285,10 @@ fn main() -> Result<(), String> {
     } else {
         server
     };
+    serve(server)
+}
+
+fn serve(server: PatchbayHtmlServer) -> Result<(), String> {
     println!(
         "PATCHBAY_HTML_URL=http://{}",
         server.local_addr().map_err(|error| error.to_string())?

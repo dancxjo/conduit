@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
+conduit-chat = { path = "../../semantics/chat", features = ["plot-catalog"] }
 conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog"] }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-create-oi = { path = "../../mechanisms/devices/create-oi" }
@@ -32,3 +33,8 @@ sha2 = "0.10"
 
 [dev-dependencies]
 conduit-embedded-build = { path = "../../make/embedded-build" }
+
+[build-dependencies]
+conduit-human = { path = "../../semantics/human" }
+conduit-plot = { path = "../../architecture/plot" }
+conduit-time = { path = "../../semantics/time", default-features = false }
