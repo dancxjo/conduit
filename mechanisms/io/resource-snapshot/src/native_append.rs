@@ -4,6 +4,7 @@
 mod assigned;
 #[path = "native_append/installation.rs"]
 mod installation;
+pub mod service_back;
 use crate::{append::*, nor::NorStorage};
 pub use assigned::PreparedAssignedAppender;
 use conduit_core as c;
