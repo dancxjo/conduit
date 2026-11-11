@@ -1,14 +1,13 @@
 use super::*;
 
 fn fixture() -> (MemberContact, MembershipCredential) {
-    let credential = MembershipCredential {
-        credential_id: "credential/member".into(),
-        body_id: "body/contact".into(),
-        part_id: "part/member".into(),
-        host_id: "host/member".into(),
-        boot_id: "boot/member/1".into(),
-        issued_at_millis: 1,
-    };
+    // Descriptive wire fixture only: this test never admits or publishes a Part.
+    let credential: MembershipCredential = serde_json::from_value(serde_json::json!({
+        "credential_id": "credential/member", "body_id": "body/contact",
+        "part_id": "part/member", "host_id": "host/member",
+        "boot_id": "boot/member/1", "issued_at_millis": 1
+    }))
+    .unwrap();
     let contact = MemberContact {
         schema: SCHEMA.into(),
         body_id: credential.body_id.clone(),
@@ -40,7 +39,7 @@ fn standing_contact_has_no_execution_grant_and_requires_exact_scope_and_bounds()
     assert!(encoded.get("expires_at_millis").is_none());
     assert!(encoded.get("invitation").is_none());
     let mut wrong = credential.clone();
-    wrong.part_id = "part/other".into();
+    wrong.part_id = serde_json::from_value(serde_json::json!("part/other")).unwrap();
     assert!(contact.validate(&wrong).is_err());
     for (attempts, timeout, delay) in [
         (0, 3_000, 1_000),

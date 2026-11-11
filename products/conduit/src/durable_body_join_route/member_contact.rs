@@ -88,6 +88,7 @@ impl MemberContact {
         })
     }
 
+    #[cfg(any(test, all(target_os = "linux", feature = "native-display")))]
     fn validate_evidence(&self, encounter: &MemberEncounter, now: u64) -> Result<(), String> {
         let candidate = &encounter.candidate;
         if encounter.schema != MEMBER_ROUTE_SCHEMA
@@ -110,6 +111,7 @@ impl MemberContact {
     }
 }
 
+#[cfg(all(target_os = "linux", feature = "native-display"))]
 fn selected_contact(state: &Path) -> Result<Option<MemberContact>, String> {
     let path = state.join(CONTACT_PATH);
     match std::fs::symlink_metadata(&path) {
@@ -147,11 +149,13 @@ pub(crate) fn install_member_contact(
     super::super::write_json_atomic(&state.join(CONTACT_PATH), &contact)
 }
 
+#[cfg(all(target_os = "linux", feature = "native-display"))]
 pub(crate) fn reconnect_delay(state: &Path) -> Result<Option<Duration>, String> {
     Ok(selected_contact(state)?
         .map(|contact| Duration::from_millis(contact.reconnect_after_millis)))
 }
 
+#[cfg(all(target_os = "linux", feature = "native-display"))]
 pub(crate) fn load_and_resolve_member_contact(
     state: &Path,
 ) -> Result<Option<MemberEncounter>, String> {
@@ -170,10 +174,12 @@ pub(crate) fn load_and_resolve_member_contact(
     Err(last)
 }
 
+#[cfg(all(target_os = "linux", feature = "native-display"))]
 fn resolve(contact: &MemberContact) -> Result<MemberEncounter, String> {
     resolve_at(contact, contact.address()?)
 }
 
+#[cfg(any(test, all(target_os = "linux", feature = "native-display")))]
 fn resolve_at(contact: &MemberContact, address: SocketAddr) -> Result<MemberEncounter, String> {
     let timeout = Duration::from_millis(u64::from(contact.attempt_timeout_millis));
     let deadline = std::time::Instant::now() + timeout;
