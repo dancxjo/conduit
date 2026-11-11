@@ -68,7 +68,7 @@ pub fn generate_resident_library(
     }
     code.push_str("})}\n");
     code.push_str(&format!(
-        "/// Lossless document images of unbound initialized owners only.\n/// This does not publish a Host generation.\npub fn offers(&self)->[Option<&[u8]>;{}]{{[\n",
+        "/// Lossless document images of unbound initialized owners only.\n/// This does not publish a Host generation.\npub fn offers(&self)->[Option<&'static [u8]>;{}]{{[\n",
         images.len()
     ));
     for index in 0..images.len() {

@@ -70,6 +70,10 @@ pub fn emit_to(out: &Path) -> std::io::Result<()> {
         ),
         ("play_run", include_str!("source_composition/play_run.rs")),
         (
+            "play_control",
+            include_str!("source_composition/play_control.rs"),
+        ),
+        (
             "play_observers",
             include_str!("source_composition/play_observers.rs"),
         ),
