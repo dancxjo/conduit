@@ -46,7 +46,10 @@ impl StdHost {
             return Err("live Fore queue differs from the sealed fragment or stop control".into());
         }
         let result = self.run_fragment_owned_with_keyboard_to(
-            fragment, output, timer, control,
+            fragment,
+            output,
+            timer,
+            control,
             HostRunInputs {
                 keyboard: None,
                 indicator: None,

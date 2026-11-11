@@ -188,7 +188,8 @@ impl PatchbayActivePlot {
         state: PatchbayActivePlotState,
         focused: bool,
     ) -> Result<Self, PatchbayApplicationRefusal> {
-        let graph = PatchbayGraph::from_expanded(plot).map_err(PatchbayApplicationRefusal::Graph)?;
+        let graph =
+            PatchbayGraph::from_expanded(plot).map_err(PatchbayApplicationRefusal::Graph)?;
         Self::with_graph(graph, title, checked_plot_id, plan_id, state, focused)
     }
 
@@ -199,8 +200,16 @@ impl PatchbayActivePlot {
         state: PatchbayActivePlotState,
         focused: bool,
     ) -> Result<Self, PatchbayApplicationRefusal> {
-        let graph = PatchbayGraph::from_authoring(plot).map_err(PatchbayApplicationRefusal::Graph)?;
-        Self::with_graph(graph, title, plot.expanded.checked_plot_id.as_str(), plan_id, state, focused)
+        let graph =
+            PatchbayGraph::from_authoring(plot).map_err(PatchbayApplicationRefusal::Graph)?;
+        Self::with_graph(
+            graph,
+            title,
+            plot.expanded.checked_plot_id.as_str(),
+            plan_id,
+            state,
+            focused,
+        )
     }
 
     fn with_graph(

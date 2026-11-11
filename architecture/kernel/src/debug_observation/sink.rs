@@ -164,7 +164,9 @@ where
                 .copied()
                 .max()
                 .or(self.latest_node_sequences[node]),
-            DebugEventKind::GearCompleted | DebugEventKind::Fault => self.latest_node_sequences[node],
+            DebugEventKind::GearCompleted | DebugEventKind::Fault => {
+                self.latest_node_sequences[node]
+            }
             DebugEventKind::GearStarted | DebugEventKind::Unsupported(_) => None,
         };
         let mut additional_parent_sequences = [None; super::MAX_DEBUG_ADDITIONAL_PARENTS];

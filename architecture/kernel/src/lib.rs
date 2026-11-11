@@ -1043,7 +1043,10 @@ impl HostedSignLog {
         let inner = FixedSignLog::<1>::new(size_of::<KernelEvent>() as u32)
             .expect("one Sign fits in a one-Sign log");
         let mut observer = ObservedSignSink::<_, N, P, R>::detached(
-            inner, history.execution(), bindings, [[None; P]; N],
+            inner,
+            history.execution(),
+            bindings,
+            [[None; P]; N],
         );
         observer.attach(history)?;
         self.debug_observer = Some(alloc::boxed::Box::new(observer));
