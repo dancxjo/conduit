@@ -171,6 +171,53 @@ impl FileDurableStateResidence {
         Ok(receipt(generation, value_digest))
     }
 
+    /// Publish a verified import into an empty residence without replacing a
+    /// checkpoint that another opener has already published.
+    pub(crate) fn import_generation(
+        &self,
+        generation: u64,
+        value: &[u8],
+    ) -> Result<(), DurableStateRefusal> {
+        use std::sync::atomic::{AtomicU64, Ordering};
+
+        static NEXT_IMPORT: AtomicU64 = AtomicU64::new(0);
+        let encoded = encode_generation(&self.binding, generation, value)?;
+        let (path, mut file) = loop {
+            let serial = NEXT_IMPORT.fetch_add(1, Ordering::Relaxed);
+            let path = self
+                .directory
+                .join(format!("import-{}-{serial}", std::process::id()));
+            match OpenOptions::new().write(true).create_new(true).open(&path) {
+                Ok(file) => break (path, file),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(_) => return Err(DurableStateRefusal::Lost),
+            }
+        };
+        let result = (|| {
+            file.write_all(&encoded)
+                .and_then(|()| file.sync_all())
+                .map_err(|_| DurableStateRefusal::Lost)?;
+            match fs::hard_link(&path, self.current_path()) {
+                Ok(()) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+                    match self.read_current_generation()? {
+                        Some((current, hash))
+                            if current > generation
+                                || (current == generation && hash == digest(value)) => {}
+                        _ => return Err(DurableStateRefusal::ConflictingDigest),
+                    }
+                }
+                Err(_) => return Err(DurableStateRefusal::Lost),
+            }
+            File::open(&self.directory)
+                .and_then(|directory| directory.sync_all())
+                .map_err(|_| DurableStateRefusal::Lost)
+        })();
+        drop(file);
+        let _ = fs::remove_file(path);
+        result
+    }
+
     fn write_candidate(&self, generation: u64, value: &[u8]) -> Result<(), DurableStateRefusal> {
         let encoded = encode_generation(&self.binding, generation, value)?;
         let mut candidate = OpenOptions::new()
@@ -331,6 +378,27 @@ mod tests {
             "conduit-durable-state-{label}-{}-{nonce}",
             std::process::id()
         ))
+    }
+
+    #[test]
+    fn imported_generation_is_idempotent_and_allows_the_next_commit() {
+        let root = tempfile::tempdir().unwrap();
+        let residence = FileDurableStateResidence::open(root.path(), binding()).unwrap();
+        residence.import_generation(5, b"migrated").unwrap();
+        residence.import_generation(5, b"migrated").unwrap();
+        assert_eq!(
+            residence.import_generation(5, b"different"),
+            Err(DurableStateRefusal::ConflictingDigest)
+        );
+        residence.commit(6, b"next episode").unwrap();
+        residence.import_generation(5, b"migrated").unwrap();
+        assert_eq!(
+            residence.recover_value().unwrap(),
+            (
+                RecoveryDisposition::Recovered { generation: 6 },
+                Some(b"next episode".to_vec())
+            )
+        );
     }
 
     fn child(mode: &str, root: &Path) -> ! {

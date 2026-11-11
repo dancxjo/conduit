@@ -71,5 +71,24 @@ fn main() {
     .expect("chat semantic Types and Forms must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
-    fs::write(output, generated.source).expect("write generated chat bindings");
+    fs::write(&output, generated.source).expect("write generated chat bindings");
+    println!("cargo:rerun-if-changed=episode_checkpoint_v1.conduit");
+    let legacy = check_syntax_document(
+        &parse_syntax_document(include_str!("episode_checkpoint_v1.conduit")),
+        &StartupCatalog::new(),
+    )
+    .expect("previous episode checkpoint Types must check");
+    let generated = generate_rust_bindings_with_forms_and_external_bindings(
+        &legacy.native_types,
+        &legacy.type_forms,
+        &[],
+        &[],
+        &RustBindingOptions::default(),
+    )
+    .expect("previous episode checkpoint bindings");
+    fs::write(
+        output.with_file_name("episode_checkpoint_v1.rs"),
+        generated.source,
+    )
+    .expect("write previous episode checkpoint bindings");
 }

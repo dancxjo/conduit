@@ -18,6 +18,9 @@ use sha2::{Digest, Sha256};
 mod episode_prompt;
 #[path = "episode_recall.rs"]
 mod episode_recall;
+#[path = "episode_checkpoint_v1.rs"]
+mod episode_checkpoint_v1;
+pub use episode_checkpoint_v1::{episode_checkpoint_v1_type, migrate_episode_checkpoint_v1};
 use episode_prompt::prompt;
 
 use crate::{
