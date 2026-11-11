@@ -17,13 +17,14 @@ use conduit_core::{
     ConfigurationValue, StructuredSelector, ASSIGNED_HOST_CALL, ASSIGNED_NATIVE_CALL_BYTES,
     ASSIGNED_PLAN_COUNT_KINDS, ASSIGNED_PLAN_HEADER_BYTES,
 };
-use conduit_environment_runtime::{CaptureBack, PreparedCaptureSelector};
+use conduit_environment_runtime::CaptureBack;
 use conduit_kernel::{
     scheduler::{FixedScheduler, SchedulerStatus},
     *,
 };
 use conduit_plot::PortableExpressionProgram;
 use conduit_pulse_capture::*;
+use conduit_semantic_catalog::PreparedCanonicalSelector;
 const N: usize = 13;
 const C: usize = 12;
 const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -98,7 +99,7 @@ fn run(scenario: usize) {
         core::array::from_fn(|i| lowered.cords[i].spec)
     );
     let observed: [Observed; 4] = core::array::from_fn(|_| Observed::new());
-    let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
+    let mut selectors: [Option<PreparedCanonicalSelector>; N] = core::array::from_fn(|_| None);
     let mut pulse_node = None;
     let mut build_back = |i: usize| {
         let node = &lowered.nodes[i];
@@ -147,7 +148,7 @@ fn run(scenario: usize) {
             )
         } else {
             selectors[i] = Some(
-                PreparedCaptureSelector::prepare(
+                PreparedCanonicalSelector::prepare(
                     StructuredSelector::from_canonical_hex(text).unwrap(),
                     1024,
                     1024,

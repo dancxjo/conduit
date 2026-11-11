@@ -372,6 +372,7 @@ dependencies = [
  "conduit-rp2040-network-realization",
  "conduit-rp2040-pulse-capture",
  "conduit-rp2040-tm1637",
+ "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
