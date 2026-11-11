@@ -1,6 +1,7 @@
 //! Actual wire/selected owner/kernel dispatch proof with inert GPIO only.
 use conduit_core::*;
 use conduit_kernel::{scheduler::*, *};
+use conduit_kernel::{CordId, HostCallId, NodeId, PortId, RequestId};
 use conduit_mcu_host_runtime::{execution::StoredExecutionKernel, native_dispatch};
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
 use conduit_tm1637_wire::{owner::*, *};
