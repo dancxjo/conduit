@@ -23,9 +23,17 @@ impl PreparedChimeOutput {
         let base = selected
             .checked_base_entry()
             .ok_or("startup chime requires a checked playback Base")?;
+        let expected_base = conduit_core::BaseProviderBinding {
+            base_id: base.base_id,
+            provider_instance_id: base.provider_instance_id,
+            provider_generation: base.provider_generation,
+            implementation_id: base.implementation_id,
+            mechanism_family: base.mechanism_family,
+            enforcement_class: base.enforcement_class,
+        };
         if selected.boot_id != placement.boot_id
             || selected.offer_generation != placement.offer_generation
-            || placement.base.as_ref() != Some(&base.binding())
+            || placement.base.as_ref() != Some(&expected_base)
             || placement.resources.len() != 1
             || placement.resources[0].pool_id != selected.pool_id()
             || placement.realization_characteristics
