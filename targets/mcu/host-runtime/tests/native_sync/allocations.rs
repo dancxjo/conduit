@@ -1,7 +1,7 @@
 //! Per-thread allocation attempts during already-prepared synchronous dispatch.
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
-thread_local! {
+std::thread_local! {
     static TRACK: Cell<bool> = const { Cell::new(false) };
     static ATTEMPTS: Cell<usize> = const { Cell::new(0) };
 }

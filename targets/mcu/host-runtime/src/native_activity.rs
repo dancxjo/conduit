@@ -3,7 +3,13 @@
 //! Every timing-sensitive provider and blocking actor must share this instance.
 //! `Cell` deliberately makes it !Sync: no interrupt/core may access it concurrently.
 //! Guards may span cooperative awaits; dropping a cancelled future releases them.
-use core::cell::Cell;
+use super::CooperativeYield;
+use core::{
+    cell::Cell,
+    future::{poll_fn, Future},
+    pin::pin,
+    task::Poll,
+};
 
 #[derive(Default)]
 pub struct NativeActivity {
@@ -15,6 +21,33 @@ impl NativeActivity {
         Self {
             timing: Cell::new(0),
             blocking: Cell::new(false),
+        }
+    }
+    /// Poll already-authorized work only in synchronous blocking windows.
+    /// Each guard is dropped before a pending carrier or cooperative yield can
+    /// suspend. This supplies timing exclusion, not resource admission, work
+    /// bounds, cancellation, or permission to invoke any provider.
+    ///
+    /// The caller's `pause` must yield/wake or otherwise permit timing providers
+    /// to progress; an immediately-ready no-op cannot resolve timing contention.
+    pub async fn with_blocking_polls<F: Future, Y: CooperativeYield>(
+        &self,
+        future: F,
+        yield_to_host: &Y,
+    ) -> F::Output {
+        let mut future = pin!(future);
+        loop {
+            let result = poll_fn(|cx| {
+                let Some(_guard) = self.try_blocking() else {
+                    return Poll::Ready(None);
+                };
+                future.as_mut().poll(cx).map(Some)
+            })
+            .await;
+            match result {
+                Some(output) => return output,
+                None => yield_to_host.pause().await,
+            }
         }
     }
     /// Multiple timing operations may coexist; blocking work excludes them all.
