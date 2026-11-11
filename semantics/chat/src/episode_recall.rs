@@ -175,15 +175,27 @@ pub(super) fn compact_evidence(evidence: &str, observation: &str) -> Option<allo
         .enumerate()
         .all(|(index, field)| fields[index] == *field)
     });
+    let ranges =
+        crate::episode_retrieval_projection::raw_items::locate_validated_items(evidence.as_bytes())
+            .ok()?;
     let items: Vec<_> = snapshot["evidence"]
         .as_array()?
         .iter()
-        .filter_map(|item| {
+        .enumerate()
+        .filter_map(|(index, item)| {
             let content = if item["json_string_ref"] == "observation.content" {
                 serde_json::to_string(observation).ok()?
+            } else if item.get("json_content").is_some() {
+                let (start, end) = *ranges.get(index)?;
+                crate::episode_retrieval_projection::raw_items::text_field(
+                    evidence.as_bytes().get(start..end)?, "json_content"
+                ).ok()?.into()
             } else { item["utf8_content"].as_str()?.into() };
             Some(serde_json::json!({
                 "identity": item["identity"],
+                "domain": if compact_columns { &item["classifications"][0] } else { &item["classifications"]["domain"] },
+                "availability": if compact_columns { &item["classifications"][2] } else { &item["classifications"]["availability"] },
+                "certainty": if compact_columns { &item["classifications"][3] } else { &item["classifications"]["certainty"] },
                 "origin": if compact_columns { &item["classifications"][1] } else { &item["classifications"]["origin"] },
                 "temporal_role": if compact_columns { &item["classifications"][4] } else { &item["classifications"]["temporal_role"] },
                 "utf8_content": content,
@@ -226,6 +238,39 @@ pub(super) fn asks_about_past(query: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::string::ToString;
+
+    #[test]
+    fn retained_json_content_preserves_the_original_lexeme() {
+        let evidence = r#"{"evidence":[{"identity":"one","json_content":{"z": 1e+2, "a":"\u0041"},"classifications":{"origin":"observation"}}]}"#;
+        let compact: serde_json::Value =
+            serde_json::from_str(&compact_evidence(evidence, "unused").unwrap()).unwrap();
+        assert_eq!(
+            compact["evidence"][0]["utf8_content"],
+            r#"{"z": 1e+2, "a":"\u0041"}"#
+        );
+    }
+
+    #[test]
+    fn retained_named_classifications_preserve_known_and_unknown_fields() {
+        for classifications in [
+            serde_json::json!({"domain":"human_utterance","origin":"observation","availability":"present","certainty":"certain","temporal_role":"current"}),
+            serde_json::json!({"origin":"observation","temporal_role":"current"}),
+        ] {
+            let evidence = serde_json::json!({"evidence":[{"identity":"one","classifications":classifications,"utf8_content":"report","sources":[]}]}).to_string();
+            let compact: serde_json::Value =
+                serde_json::from_str(&compact_evidence(&evidence, "report").unwrap()).unwrap();
+            for field in [
+                "domain",
+                "origin",
+                "availability",
+                "certainty",
+                "temporal_role",
+            ] {
+                assert_eq!(compact["evidence"][0][field], classifications[field]);
+            }
+        }
+    }
 
     #[test]
     fn episode_loop_recall_keeps_coupled_measurement_fields() {

@@ -6,6 +6,9 @@ pub fn expanded_model_evidence(input: &Value, observation: &str) -> Value {
     let classification = input["classification_fields"].as_array();
     let time = input["time_fields"].as_array();
     for item in output["evidence"].as_array_mut().unwrap() {
+        if let Some(content) = item.as_object_mut().unwrap().remove("json_content") {
+            item["utf8_content"] = Value::String(serde_json::to_string(&content).unwrap());
+        }
         if item["json_string_ref"] == "observation.content" {
             item["utf8_content"] = Value::String(serde_json::to_string(observation).unwrap());
             item.as_object_mut().unwrap().remove("json_string_ref");
@@ -17,6 +20,11 @@ pub fn expanded_model_evidence(input: &Value, observation: &str) -> Value {
             if item[name].is_array() {
                 item[name] = expand(&item[name], time.unwrap());
             }
+        }
+        if item.get("recorded_at").is_none()
+            && input.get("recorded_at_default").is_some_and(Value::is_null)
+        {
+            item["recorded_at"] = Value::Null;
         }
         if item["recorded_at"] == "same_as_observed_at" {
             item["recorded_at"] = item["observed_at"].clone();

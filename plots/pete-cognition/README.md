@@ -36,12 +36,18 @@ not increases to the four-entry, 8 KiB autobiographical memory.
 
 The model data uses the versioned `episode-retrieval-request@2` format. Repeated
 classification and instant field names are declared once beside exact column
-values. An exact repeated utterance can refer to `observation.content`; its
+values. A declared null default keeps unknown recorded times unknown. Valid
+JSON content can travel as an exact `json_content` lexeme;
+retention restores the original UTF-8 text without normalizing whitespace,
+number spelling, or escapes. An exact repeated utterance can refer to
+`observation.content`; its
 JSON-string encoding is resolved during retention. The native record keeps the
 same transmitted current projection, original observation and complete actual
 outcome. Model history carries the actual disposition and identifies its Host
 source; complete attempt/run provenance stays in the paired native audit.
-Retained time columns remain attached to their values across checkpoint recovery.
+Resident memory preserves known domain, origin, availability, certainty, and
+temporal role; missing legacy classifications remain unknown. Retained time
+columns remain attached to their values across checkpoint recovery.
 Retrieval uses the supplied frame reference as its as-of instant.
 
 Situation selection also feeds fresh battery and safety readings through Pete's

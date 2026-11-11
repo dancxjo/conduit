@@ -46,6 +46,7 @@ fn render_context_profile(
     raw(&mut out, b"{")?;
     if compact {
         raw(&mut out, br#""classification_fields":["domain","origin","availability","certainty","temporal_role"],"#)?;
+        raw(&mut out, br#""recorded_at_default":null,"#)?;
         raw(&mut out, br#""time_fields":["clock_basis","scale","ticks","resolution_ticks","uncertainty_ticks"],"#)?;
     }
     if let Some(instruction) = instruction {
@@ -118,6 +119,19 @@ fn evidence(
         // generation data and the paired native pending record. No lookup or
         // input-supplied reference is evaluated. Retention resolves it exactly.
         raw(out, br#","json_string_ref":"observation.content""#)?;
+    } else if compact
+        && content
+            .first()
+            .is_some_and(|byte| !byte.is_ascii_whitespace())
+        && content
+            .last()
+            .is_some_and(|byte| !byte.is_ascii_whitespace())
+        && conduit_web::validate_json_text(content).is_ok()
+    {
+        // The exact JSON lexeme is already valid data. Keep it verbatim rather
+        // than escaping a second string envelope; retention restores its bytes.
+        raw(out, b",\"json_content\":")?;
+        raw(out, content)?;
     } else if let Ok(content) = std::str::from_utf8(content) {
         raw(out, b",\"utf8_content\":")?;
         json(out, content)?;
@@ -127,12 +141,21 @@ fn evidence(
     }
     raw(out, b",\"observed_at\":")?;
     instant(out, field(view, "observed_at")?, compact)?;
-    raw(out, b",\"recorded_at\":")?;
     let recorded = field(view, "recorded_at")?;
-    if compact && same_instant(recorded, field(view, "observed_at")?)? {
-        raw(out, br#""same_as_observed_at""#)?;
-    } else {
-        instant(out, recorded, compact)?;
+    // Unknown recorded times use the document's explicit null default. Known
+    // values, including equal observed/recorded instants, remain explicit.
+    if !compact
+        || recorded
+            .variant_payload("known")
+            .map_err(|_| Refusal::Malformed)?
+            .is_some()
+    {
+        raw(out, b",\"recorded_at\":")?;
+        if compact && same_instant(recorded, field(view, "observed_at")?)? {
+            raw(out, br#""same_as_observed_at""#)?;
+        } else {
+            instant(out, recorded, compact)?;
+        }
     }
     raw(out, b",\"sources\":")?;
     collection(out, field(view, "sources")?, source)?;

@@ -30,6 +30,22 @@ fn pete_harness_for(
     entry: &str,
     checkpoint: Option<&[u8]>,
 ) -> common::Harness {
+    pete_harness_with_transform(
+        model,
+        program,
+        entry,
+        checkpoint,
+        conduit_pete::prepare_pete_experience_input_bytes,
+    )
+}
+
+fn pete_harness_with_transform(
+    model: Box<dyn conduit_std_host::hosted_local_model::HostedLocalModelAdapter>,
+    program: &str,
+    entry: &str,
+    checkpoint: Option<&[u8]>,
+    transform: fn(&[u8]) -> Result<Vec<u8>, u16>,
+) -> common::Harness {
     let config = conduit_std_host::StdHostConfig {
         host_id: "host/pete-cognition".into(),
         boot_id: if checkpoint.is_some_and(|bytes| bytes != conduit_chat::initial_episode_memory())
@@ -44,7 +60,7 @@ fn pete_harness_for(
         conduit_pete::pete_cognition_inputs_offer(),
         conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
         conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
-        conduit_pete::prepare_pete_experience_input_bytes,
+        transform,
     )
     .unwrap();
     let composition = StdHostComposition::minimal();
@@ -1189,3 +1205,6 @@ fn stale_battery_and_safety_do_not_become_current_homeostatic_facts() {
     assert!(content["charging"].is_null());
     assert!(content["charge_percent"].is_null());
 }
+
+#[path = "experience_episode_loop/provenance.rs"]
+mod retained_provenance;
