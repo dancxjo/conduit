@@ -7,11 +7,11 @@ host blue-wroom32 {
   schema = 1
   # Recording has finite preparation ceilings; physical heap/work bounds stay below.
   # The measured full native Show fits its separately checked 2048-byte envelope.
-  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 65536}
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 65535}
   # Whole-workset kernels and value payloads alone exceed 46 KiB on Blue;
-  # admit at most 64 KiB within the unchanged physical heap, not 38 KiB.
+  # admit at most 64 KiB minus one byte (the wire ceiling) within the unchanged physical heap, not 38 KiB.
   # Explicit local continuation opt-in: signed installed intent plus fresh full admission required.
-  execution = {authorizer: "seed-owner", maximum_active_worksets: 1, continuation: {assignment_bytes: 18432, runtime_bytes: 65536, durable_bytes: 655360, operation_slots: 16, active_worksets: 1}}
+  execution = {authorizer: "seed-owner", maximum_active_worksets: 1, continuation: {assignment_bytes: 18432, runtime_bytes: 65535, durable_bytes: 655360, operation_slots: 16, active_worksets: 1}}
   target = {architecture: "xtensa-lx6", machine: "hw-463-esp-wroom-32", board: "hw-463-esp-wroom-32", make_descriptor: "sha256:3015c678e54e8ae4dc1d0552a30ebdcb118b5c55dfa372252a8a5b86847dc255"}
   # Finite flash residence; these bytes are not a RAM need or write permission.
   base = {kind: "resource/nor-record-residence", implementation: "esp32/nor-record-append@1", initialization: {prefix_bytes: 8192, slots: 1264}}
