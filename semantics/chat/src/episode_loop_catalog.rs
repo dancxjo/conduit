@@ -325,5 +325,6 @@ pub fn install_episode_loop_catalog(
             .insert_kind(contract)
             .map_err(|error| error.to_string())?;
     }
+    crate::install_episode_retrieval_catalog(startup, profile)?;
     Ok(())
 }

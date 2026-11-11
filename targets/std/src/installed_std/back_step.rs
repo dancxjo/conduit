@@ -227,6 +227,7 @@ macro_rules! installed_step_dispatch {
 installed_step_dispatch!(
     TemporalEvidence,
     ExperienceEvidence,
+    EpisodeRetrievalProducer,
     EpisodeCompose,
     HostedFrame,
     EpisodeRetain,

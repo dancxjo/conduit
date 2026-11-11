@@ -7,6 +7,10 @@
 extern crate alloc;
 
 #[cfg(feature = "plot-catalog")]
+mod episode_retrieval_catalog;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_catalog::*;
+#[cfg(feature = "plot-catalog")]
 mod episode_retrieval_packet;
 #[cfg(feature = "plot-catalog")]
 pub use episode_retrieval_packet::*;
