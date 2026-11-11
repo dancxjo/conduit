@@ -264,3 +264,6 @@ fn rejected_kernel_completion_retains_unacknowledged_service_custody() {
             .kernel_committed
     );
 }
+
+#[path = "factory_service.rs"]
+mod factory_service;

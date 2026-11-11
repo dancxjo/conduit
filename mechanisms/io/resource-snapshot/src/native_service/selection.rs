@@ -19,6 +19,52 @@ impl<'a, S: NorStorage> PreparedRecordService<'a, S> {
     }
 }
 impl<S: NorStorage> PreparedRecordService<'_, S> {
+    pub fn node(&self) -> NodeId {
+        self.selected.node
+    }
+    /// Exact checked routes, in append/read operation order. No owner transfer.
+    pub fn routes(
+        &self,
+    ) -> [conduit_plan_lowering::selected_operation_set::SelectedServiceRoute; 2] {
+        [
+            self.selected.routes[0].expect("checked append route"),
+            self.selected.routes[1].expect("checked read route"),
+        ]
+    }
+    /// Ready codec/identity/grant heap plus opaque operation backing. Inline
+    /// state, physical provider backing and allocator overhead are separate.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.slot
+            .as_ref()?
+            .retained_backing_bytes()?
+            .checked_add(self.operation_backing_bytes()?)
+    }
+    pub fn prepare_back<const PORTS: usize, const READ_BYTES: usize>(
+        &self,
+    ) -> Result<
+        crate::native_append::service_back::RecordServiceBack<PORTS, READ_BYTES>,
+        ServiceRefusal,
+    > {
+        use crate::native_append::service_back::{
+            RecordServiceBack, RecordServiceOperation, RecordServiceShape,
+        };
+        let operation =
+            |route: conduit_plan_lowering::selected_operation_set::SelectedServiceRoute| {
+                RecordServiceOperation {
+                    input: route.input,
+                    output: route.output,
+                    call: route.call,
+                    maximum_input_bytes: route.maximum_input_bytes,
+                    maximum_output_bytes: route.maximum_output_bytes,
+                }
+            };
+        let routes = self.routes();
+        RecordServiceBack::new(RecordServiceShape {
+            append: operation(routes[0]),
+            read: operation(routes[1]),
+        })
+        .map_err(|_| ServiceRefusal::WrongBinding)
+    }
     pub fn operation_backing_bytes(&self) -> Option<usize> {
         self.operations.iter().try_fold(0usize, |total, op| {
             total.checked_add(op.retained_backing_bytes()?)

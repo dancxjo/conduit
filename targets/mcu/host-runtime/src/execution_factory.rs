@@ -8,6 +8,10 @@ pub use appender::{
     PreparedWithOptionalAppender,
 };
 
+#[path = "execution_factory_service.rs"]
+mod service;
+pub use service::{BoxedRecordServiceBack, CallsWithRecordService, PreparedWithRecordService};
+
 #[path = "execution_factory_drivers.rs"]
 mod drivers;
 
@@ -27,19 +31,36 @@ use conduit_tm1637_wire::{
     installation::PreparedAssignedWrite, owner::WriteHostCall, OpenDrain, WriteBack,
 };
 
-pub enum Driver<'a, R> {
+/// Uninhabited default keeps existing Driver inventories free of extra state.
+pub enum NoExtraBack {}
+impl<const PORTS: usize> StepBack<PORTS> for NoExtraBack {
+    fn step(&mut self, _: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        match *self {}
+    }
+}
+pub enum Driver<'a, R, X = NoExtraBack> {
     Resident(R),
     Software(SoftwareBack<'a>),
     Native(HostCallBack),
     Write(WriteBack),
+    Extra(X),
 }
-impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
+impl<R: StepBack<P>, X: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R, X> {
+    fn terminal_transductions(
+        &self,
+    ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P] {
+        match self {
+            Self::Extra(back) => back.terminal_transductions(),
+            _ => [None; P],
+        }
+    }
     fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
         match self {
             Self::Resident(back) => back.step(io, input),
             Self::Software(back) => back.step(io, input),
             Self::Native(back) => back.step(io, input),
             Self::Write(back) => back.step(io, input),
+            Self::Extra(back) => back.step(io, input),
         }
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
@@ -48,6 +69,7 @@ impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
             Self::Software(back) => <SoftwareBack as StepBack<P>>::prepared_output(back, port),
             Self::Native(back) => <HostCallBack as StepBack<P>>::prepared_output(back, port),
             Self::Write(back) => <WriteBack as StepBack<P>>::prepared_output(back, port),
+            Self::Extra(back) => back.prepared_output(port),
         }
     }
     fn step_committed(&mut self) {
@@ -56,6 +78,7 @@ impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
             Self::Software(back) => <SoftwareBack as StepBack<P>>::step_committed(back),
             Self::Native(back) => <HostCallBack as StepBack<P>>::step_committed(back),
             Self::Write(back) => <WriteBack as StepBack<P>>::step_committed(back),
+            Self::Extra(back) => back.step_committed(),
         }
     }
     fn cancel(&mut self) {
@@ -64,6 +87,7 @@ impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
             Self::Software(back) => <SoftwareBack as StepBack<P>>::cancel(back),
             Self::Native(back) => <HostCallBack as StepBack<P>>::cancel(back),
             Self::Write(back) => <WriteBack as StepBack<P>>::cancel(back),
+            Self::Extra(back) => back.cancel(),
         }
     }
 }

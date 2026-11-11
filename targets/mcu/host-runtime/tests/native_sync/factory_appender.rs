@@ -6,9 +6,9 @@ use conduit_mcu_host_runtime::{
         Driver, PreparedCalls, PreparedDrivers, PreparedResidents, SoftwareInventory,
     },
 };
-struct Residents<const E: usize> {
-    nodes: [Option<u16>; E],
-    backing: usize,
+pub(super) struct Residents<const E: usize> {
+    pub(super) nodes: [Option<u16>; E],
+    pub(super) backing: usize,
 }
 // SAFETY: CPU fixture binds exactly its declared slots without allocation/effects.
 unsafe impl<const E: usize> PreparedResidents<E> for Residents<E> {
