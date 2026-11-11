@@ -44,7 +44,7 @@ fn fixture() -> Fixture {
     ])
     .replace("COPPER", "C\\u004fPPER")
     .replace('🙂', "\\ud83d\\ude42");
-    let question = document(&["What was the hallway label?"]);
+    let question = document(&["What was the hallway label? Reply with the label only."]);
     let unrelated = document(&["The garden gate is closed."]);
     f.memory = memory_with_evidence(
         &[
@@ -57,7 +57,10 @@ fn fixture() -> Fixture {
     );
     f.source = source(&f.memory);
     f.policy = policy().encode().unwrap();
-    set_query(&mut f, "What was the hallway label?");
+    set_query(
+        &mut f,
+        "What was the hallway label? Reply with the label only.",
+    );
     f
 }
 fn current(_: &[u8], output: &mut [u8]) -> Result<usize, EpisodeCurrentProjectionRefusal> {

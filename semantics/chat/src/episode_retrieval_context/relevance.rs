@@ -36,10 +36,9 @@ impl PreparedEpisodeRetrievalContext {
                     decode_text(raw_items::text_field(item, "identity").map_err(R::Projection)?)?;
                 // A retained question supplies its provenance, not an answer to
                 // that same question. Factual reports rank ahead of questions.
-                let score = if content
-                    .as_str()
-                    .trim_end_matches(['\"', '\\', ' '])
-                    .ends_with('?')
+                let origin =
+                    decode_text(raw_items::text_field(item, "origin").map_err(R::Projection)?)?;
+                let score = if origin.as_str() == "human_reported" && content.as_str().contains('?')
                 {
                     0
                 } else {
