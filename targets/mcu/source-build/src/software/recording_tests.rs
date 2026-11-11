@@ -96,12 +96,12 @@ fn initialized_recording_owner_is_unbound_until_scope_and_binding_allocates_noth
 fn authored_observation_selection_emits_scoped_recording_constructor_and_exact_contract() {
     let source = format!(
         "{}\n{}\n{}\n{}\n{}\n{}\n{}",
-        include_str!("../../../../plots/device-protocols/pulse-types.conduit"),
-        include_str!("../../../../plots/device-protocols/dht11-capture.conduit"),
-        include_str!("../../../../plots/device-protocols/dht11.conduit"),
-        include_str!("../../../../plots/device-protocols/dht11-read.conduit"),
-        include_str!("../../../../plots/device-protocols/dht11-observe.conduit"),
-        include_str!("../../../../bodies/environment/profiles/sampling.conduit"),
+        include_str!("../../../../../plots/device-protocols/pulse-types.conduit"),
+        include_str!("../../../../../plots/device-protocols/dht11-capture.conduit"),
+        include_str!("../../../../../plots/device-protocols/dht11.conduit"),
+        include_str!("../../../../../plots/device-protocols/dht11-read.conduit"),
+        include_str!("../../../../../plots/device-protocols/dht11-observe.conduit"),
+        include_str!("../../../../../bodies/environment/profiles/sampling.conduit"),
         r#"plot recorded-sampling (
             record: Bytes...| >>
         ) {
