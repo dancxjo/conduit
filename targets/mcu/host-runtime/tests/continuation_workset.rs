@@ -11,13 +11,13 @@ use conduit_mcu_host_runtime::{
 use std::cell::Cell;
 #[path = "../../../../architecture/body/tests/continuation_scope/reference.rs"]
 mod reference;
-struct Ticket<'a>(&'a Cell<usize>);
+struct Ticket<'a>(&'a Cell<usize>, usize);
 // SAFETY: inert CPU ticket has no external backing or effects, and its only
 // binding operation counts the affine transfer after the public Start gate.
 unsafe impl PreparedLocalKernels for Ticket<'_> {
     type Bound = ();
     fn retained_backing_bytes(&self) -> Option<usize> {
-        Some(0)
+        Some(self.1)
     }
     unsafe fn bind(self) {
         self.0.set(self.0.get() + 1);
@@ -53,10 +53,19 @@ fn checked_continuation_uses_atomic_admission_distinct_origin_and_one_use_start(
                 secret: [3; 32],
             },
         };
+        let declared: Vec<u32> = (0..scope.fragment_count())
+            .map(|index| {
+                let (_, projection) =
+                    b::decode_body_fragment_document(scope.document(index).unwrap()).unwrap();
+                u32::from(u16::from_le_bytes(projection[12..14].try_into().unwrap()))
+            })
+            .collect();
+        let declared_sum: u32 = declared.iter().sum();
+        assert!(declared_sum < intent.ceilings.runtime_bytes);
         let preparation = b::HostPreparationDelegation {
             authorizer: b::HostPreparationAuthorizer::SeedOwner,
             maximum_assignment_bytes: intent.ceilings.assignment_bytes,
-            maximum_runtime_state_bytes: intent.ceilings.runtime_bytes,
+            maximum_runtime_state_bytes: declared_sum,
         };
         let execution = b::HostExecutionDelegation {
             authorizer: b::HostExecutionAuthorizer::SeedOwner,
@@ -79,7 +88,17 @@ fn checked_continuation_uses_atomic_admission_distinct_origin_and_one_use_start(
         )
         .unwrap();
         let binds = Cell::new(0);
-        let prepare = || {
+        let factory_calls = Cell::new(0);
+        let prepare_with = |policy: Policy<'_>, backing| {
+            let context = ContinuationNativeContext::check_installation(
+                &bootstrap,
+                actual,
+                verified,
+                intent.image_id,
+                intent.configuration_id,
+                policy,
+            )
+            .unwrap();
             PreparedLocalWorkset::<_, 3>::prepare_continuation_selected::<0, ()>(
                 scope,
                 context,
@@ -109,11 +128,77 @@ fn checked_continuation_uses_atomic_admission_distinct_origin_and_one_use_start(
                 |fragments, _| {
                     assert_eq!(fragments.len(), 3);
                     assert!(fragments.iter().all(|f| scope.matches_fragment(f)));
-                    Ok(Ticket(&binds))
+                    factory_calls.set(factory_calls.get() + 1);
+                    Ok(Ticket(&binds, backing))
                 },
             )
-            .unwrap()
         };
+        let metadata = core::mem::size_of::<[b::DelegatedBodyFragment<'_>; 3]>();
+        let physical_backing = declared_sum as usize + 1;
+        assert!(physical_backing + metadata < intent.ceilings.runtime_bytes as usize);
+        assert!(
+            prepare_with(policy, physical_backing).is_ok(),
+            "whole prepared backing may exceed the separately checked declared ASG state"
+        );
+        let calls_before = factory_calls.get();
+        let aggregate_limited = b::HostPreparationDelegation {
+            maximum_runtime_state_bytes: declared_sum - 1,
+            ..preparation
+        };
+        assert!(prepare_with(
+            Policy {
+                preparation: Some(&aggregate_limited),
+                ..policy
+            },
+            0
+        )
+        .is_err());
+        assert_eq!(
+            factory_calls.get(),
+            calls_before,
+            "aggregate ASG overflow refuses before factory"
+        );
+        let largest_fragment = *declared.iter().max().unwrap();
+        assert!(largest_fragment > 1);
+        let fragment_limited = b::HostPreparationDelegation {
+            maximum_runtime_state_bytes: largest_fragment - 1,
+            ..preparation
+        };
+        assert!(prepare_with(
+            Policy {
+                preparation: Some(&fragment_limited),
+                ..policy
+            },
+            0
+        )
+        .is_err());
+        assert_eq!(
+            factory_calls.get(),
+            calls_before,
+            "single ASG overflow refuses before factory"
+        );
+        assert!(
+            matches!(
+                prepare_with(policy, intent.ceilings.runtime_bytes as usize),
+                Err(Refusal::Capacity { .. })
+            ),
+            "signed whole backing ceiling remains enforced"
+        );
+        assert!(
+            matches!(
+                prepare_with(
+                    Policy {
+                        maximum_retained_bytes: physical_backing,
+                        ..policy
+                    },
+                    physical_backing
+                ),
+                Err(Refusal::Capacity { .. })
+            ),
+            "physical arena remains independently enforced"
+        );
+        assert_eq!(binds.get(), 0, "no preparation test can bind a ticket");
+        let prepare = || prepare_with(policy, 0).unwrap();
         let mut resources = c::ResourceAdmissionOwner::new(actual.clone());
         let before = resources.clone();
         assert!(prepare().admit::<()>(&mut resources, &[], 0).is_err());

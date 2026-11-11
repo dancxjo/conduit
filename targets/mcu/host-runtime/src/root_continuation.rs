@@ -327,7 +327,6 @@ impl<const N: usize> Root<'_, N> {
         let artifact = artifact::decode(candidate, scratch).map_err(E::Artifact)?;
         self.check_artifact_credential(&artifact, credential)?;
         if artifact.intent.ceilings.assignment_bytes > preparation.maximum_assignment_bytes
-            || artifact.intent.ceilings.runtime_bytes > preparation.maximum_runtime_state_bytes
             || artifact.intent.ceilings.active_worksets
                 > u32::from(execution.maximum_active_worksets)
         {

@@ -69,7 +69,7 @@ fn signed_cross_boot_intent_selects_actual_native_description_only_with_opt_in()
     let preparation = b::HostPreparationDelegation {
         authorizer: b::HostPreparationAuthorizer::SeedOwner,
         maximum_assignment_bytes: 4096,
-        maximum_runtime_state_bytes: 4096,
+        maximum_runtime_state_bytes: 1024,
     };
     let execution = b::HostExecutionDelegation {
         authorizer: b::HostExecutionAuthorizer::SeedOwner,
@@ -82,6 +82,20 @@ fn signed_cross_boot_intent_selects_actual_native_description_only_with_opt_in()
         active_worksets: 0,
         maximum_retained_bytes: 4096,
     };
+    let mut undersized = execution;
+    undersized.continuation.as_mut().unwrap().runtime_bytes -= 1;
+    assert!(ContinuationNativeContext::check_installation(
+        &bootstrap,
+        &actual,
+        &verified,
+        "image/1",
+        "configuration/1",
+        Policy {
+            execution: Some(&undersized),
+            ..policy
+        }
+    )
+    .is_err());
     let context = ContinuationNativeContext::check_installation(
         &bootstrap,
         &actual,

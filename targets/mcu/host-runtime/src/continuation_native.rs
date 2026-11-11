@@ -61,7 +61,6 @@ impl<'a> ContinuationNativeContext<'a> {
             || c.operation_slots > max.operation_slots
             || c.active_worksets > max.active_worksets
             || c.assignment_bytes > preparation.maximum_assignment_bytes
-            || c.runtime_bytes > preparation.maximum_runtime_state_bytes
             || !self.bootstrap.matches_native(
                 self.actual.host_id.as_str(),
                 self.image_id,

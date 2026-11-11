@@ -19,7 +19,7 @@ mod reference;
 static PREP: b::HostPreparationDelegation = b::HostPreparationDelegation {
     authorizer: b::HostPreparationAuthorizer::SeedOwner,
     maximum_assignment_bytes: 24576,
-    maximum_runtime_state_bytes: 24576,
+    maximum_runtime_state_bytes: 12288,
 };
 static EXEC: b::HostExecutionDelegation = b::HostExecutionDelegation {
     authorizer: b::HostExecutionAuthorizer::SeedOwner,
