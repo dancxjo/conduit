@@ -49,6 +49,7 @@ pub struct PreparedEpisodeRetrievalContext {
     id_lengths: [usize; ITEMS],
     groups: [Group; EPISODES],
     selected: [usize; EPISODES],
+    chunk_identities: [[u8; 32]; EPISODES],
     omissions: [Option<BorrowedContextOmission>; EPISODES],
     group_count: usize,
     result: Option<BorrowedContextSelection>,
@@ -77,6 +78,7 @@ impl PreparedEpisodeRetrievalContext {
             id_lengths: [0; ITEMS],
             groups: [Group::default(); EPISODES],
             selected: [usize::MAX; EPISODES],
+            chunk_identities: [[0; 32]; EPISODES],
             omissions: [None; EPISODES],
             group_count: 0,
             result: None,
@@ -107,6 +109,11 @@ impl PreparedEpisodeRetrievalContext {
         self.selected[..self.result.map_or(0, |r| r.selected_len)]
             .iter()
             .map(|i| self.fragments[*i].as_slice())
+    }
+    pub fn selected_chunk_identities(&self) -> impl Iterator<Item = [u8; 32]> + '_ {
+        self.selected[..self.result.map_or(0, |r| r.selected_len)]
+            .iter()
+            .map(|index| self.chunk_identities[*index])
     }
     pub fn omissions(&self) -> impl Iterator<Item = (u64, ContextOmissionReason)> + '_ {
         self.omissions
@@ -189,18 +196,39 @@ impl PreparedEpisodeRetrievalContext {
             g.indices[g.len] = index;
             g.len += 1;
         }
+        let mut profiles = [[0; 128]; EPISODES];
+        let mut profile_lengths = [0; EPISODES];
         for (index, group) in self.groups[..self.group_count].iter().enumerate() {
+            let mut items = [0; 8];
+            for (slot, key_index) in items.iter_mut().zip(&group.indices[..group.len]) {
+                *slot = keys[*key_index].item;
+            }
             let projection = self
                 .projector
-                .render(snapshot, group.episode)
+                .render_selected(snapshot, group.episode, &items[..group.len])
                 .map_err(R::Projection)?;
             self.fragments[index].extend_from_slice(projection);
+            profile_lengths[index] = selection_profile(
+                &snapshot.identity(),
+                &items[..group.len],
+                &mut profiles[index],
+            )
+            .len();
         }
         let window =
             validate_canonical_structured_value(self.window.output()).map_err(|_| R::Malformed)?;
         let entries = field(window, "candidates")?;
         let mut contributions = [[None; 8]; EPISODES];
         let mut views = [None; EPISODES];
+        let mut transform_profiles = [[""]; EPISODES];
+        for (index, slot) in transform_profiles
+            .iter_mut()
+            .enumerate()
+            .take(self.group_count)
+        {
+            slot[0] = core::str::from_utf8(&profiles[index][..profile_lengths[index]])
+                .map_err(|_| R::Malformed)?;
+        }
         for (index, group) in self.groups[..self.group_count].iter().enumerate() {
             for (slot, source) in contributions[index]
                 .iter_mut()
@@ -239,10 +267,11 @@ impl PreparedEpisodeRetrievalContext {
                 span_start: start,
                 span_end: end,
                 extraction_profile: "extract/episode-native-record@1",
-                transform_profiles: &["render/episode-history-json@1"],
+                transform_profiles: &transform_profiles[index],
                 parent_chunk: None,
             };
             let digest = lineage.identity_digest().map_err(R::Context)?;
+            self.chunk_identities[index] = digest;
             views[index] = Some(BorrowedContextCandidate {
                 chunk: BorrowedContextChunk::PreparedDigest {
                     identity: digest,
@@ -271,7 +300,7 @@ impl PreparedEpisodeRetrievalContext {
             *slot = view.ok_or(R::Malformed)?;
         }
         self.selector
-            .select(
+            .select_optional(
                 &self.policy,
                 &candidates[..self.group_count],
                 &mut self.selected,

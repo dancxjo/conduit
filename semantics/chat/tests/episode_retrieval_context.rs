@@ -157,11 +157,16 @@ fn policy_mismatch_bad_results_and_insufficient_budget_clear_prior_selection() {
         .execute(window.build(&snapshot).unwrap(), &small.intent)
         .unwrap();
     let mut bounded = PreparedEpisodeRetrievalContext::prepare(tiny).unwrap();
+    let selected = bounded.select(&snapshot, output).unwrap().unwrap();
+    assert_eq!(selected.selected_len, 0);
+    assert_eq!(selected.omitted_len, 1);
     assert_eq!(
-        bounded.select(&snapshot, output),
-        Err(EpisodeRetrievalContextRefusal::Context(
-            ContextSelectionRefusal::NoSelectedContext
-        ))
+        bounded.selected_snapshot_identity(),
+        Some(snapshot.identity())
+    );
+    assert_eq!(
+        bounded.omissions().collect::<Vec<_>>(),
+        vec![(1, ContextOmissionReason::ByteBudget)]
     );
     assert_eq!(bounded.selected_fragments().count(), 0);
 }
@@ -186,4 +191,62 @@ fn no_temporal_selection_keeps_the_scoped_reason_and_omissions() {
     );
     assert_eq!(context.temporal_omissions().count(), 2);
     assert_eq!(snapshot.record_count(), 2);
+}
+
+#[test]
+fn whole_archive_retains_custody_without_promoting_unselected_or_future_items() {
+    let policy = policy(4, 4096);
+    let mut f = fixture(&[evidence(&[10, 120, 20])], &policy);
+    f.intent = TemporalRetrievalIntent::LatestEvidence.encode().unwrap();
+    let capture = PreparedEpisodeRetrievalSnapshot::prepare();
+    let snapshot = capture.capture(f.input()).unwrap();
+    let mut window = PreparedEpisodeRetrievalWindow::prepare();
+    let mut temporal = BoundedTemporalEvidenceFlow::prepare();
+    let output = temporal
+        .execute(window.build(&snapshot).unwrap(), &f.intent)
+        .unwrap();
+    let mut context = PreparedEpisodeRetrievalContext::prepare(policy).unwrap();
+    context.select(&snapshot, output).unwrap();
+    let fragment = context.selected_fragments().next().unwrap().to_vec();
+    let value: serde_json::Value = serde_json::from_slice(&fragment).unwrap();
+    assert_eq!(
+        value["temporal_selection"]["item_indices"],
+        serde_json::json!([2])
+    );
+    assert_eq!(value["archive_scope"], "raw_episode_for_custody");
+    assert_eq!(
+        value["historical_evidence"]["evidence"]
+            .as_array()
+            .unwrap()
+            .len(),
+        3
+    );
+    assert_eq!(
+        context.temporal_omissions().collect::<Vec<_>>(),
+        vec![EpisodeTemporalOmission {
+            episode: 1,
+            item: Some(1),
+            reason: EpisodeTemporalOmissionReason::FutureSource,
+        }]
+    );
+    let identity = context.selected_chunk_identities().next().unwrap();
+    // Same exact source record, different selection parameters: both rendered
+    // membership and its transform-bound chunk identity must change.
+    f.intent = TemporalRetrievalIntent::EventOrdering.encode().unwrap();
+    let snapshot = capture.capture(f.input()).unwrap();
+    let output = temporal
+        .execute(window.build(&snapshot).unwrap(), &f.intent)
+        .unwrap();
+    context.select(&snapshot, output).unwrap();
+    let value: serde_json::Value =
+        serde_json::from_slice(context.selected_fragments().next().unwrap()).unwrap();
+    assert_eq!(
+        value["temporal_selection"]["item_indices"],
+        serde_json::json!([0, 2])
+    );
+    assert_ne!(
+        identity,
+        context.selected_chunk_identities().next().unwrap()
+    );
+    assert_ne!(fragment, context.selected_fragments().next().unwrap());
 }

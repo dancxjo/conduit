@@ -1,4 +1,29 @@
 use super::*;
+/// The rendered fragment depends on selected original ordinals, not merely the
+/// source record. Bind those parameters to its transform identity as well.
+pub(super) fn selection_profile<'a>(
+    snapshot: &[u8; 32],
+    items: &[u16],
+    output: &'a mut [u8; 128],
+) -> &'a str {
+    use sha2::{Digest, Sha256};
+    const PREFIX: &[u8] = b"render/episode-history-selected@1/";
+    let mut hash = Sha256::new();
+    hash.update(PREFIX);
+    hash.update(snapshot);
+    hash.update((items.len() as u16).to_le_bytes());
+    for item in items {
+        hash.update(item.to_le_bytes());
+    }
+    let digest = hash.finalize();
+    output[..PREFIX.len()].copy_from_slice(PREFIX);
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    for (index, byte) in digest.iter().enumerate() {
+        output[PREFIX.len() + index * 2] = HEX[(byte >> 4) as usize];
+        output[PREFIX.len() + index * 2 + 1] = HEX[(byte & 15) as usize];
+    }
+    core::str::from_utf8(&output[..PREFIX.len() + 64]).expect("ASCII transform profile")
+}
 pub(super) fn field<'a>(
     v: ValidatedCanonicalStructuredValue<'a>,
     key: &str,

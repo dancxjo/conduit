@@ -162,3 +162,35 @@ fn rendering_actual_raw_evidence_allocates_nothing() {
     assert!(result.is_ok());
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
 }
+
+#[test]
+fn selected_membership_is_bounded_to_unique_original_ordinals_and_refuses_atomically() {
+    let fixture = fixture(Some(
+        r#"{"evidence":[{"identity":"first"},{"identity":"second"}]}"#,
+    ));
+    let snapshot = PreparedEpisodeRetrievalSnapshot::prepare()
+        .capture(fixture.input())
+        .unwrap();
+    let mut projection = PreparedEpisodeRetrievalProjection::prepare();
+    let (result, allocation) =
+        allocation_probe::observe(|| projection.render_selected(&snapshot, 1, &[1]).map(|_| ()));
+    assert!(result.is_ok());
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    let parsed: serde_json::Value = serde_json::from_slice(projection.output()).unwrap();
+    assert_eq!(
+        parsed["temporal_selection"]["item_indices"],
+        serde_json::json!([1])
+    );
+    for items in [&[][..], &[0, 0], &[2]] {
+        assert_eq!(
+            projection.render_selected(&snapshot, 1, items).err(),
+            Some(EpisodeRetrievalProjectionRefusal::InvalidSelection)
+        );
+        assert!(projection.output().is_empty());
+    }
+    assert_eq!(
+        projection.render_selected(&snapshot, 2, &[0]).err(),
+        Some(EpisodeRetrievalProjectionRefusal::InvalidSelection)
+    );
+    assert!(projection.output().is_empty());
+}

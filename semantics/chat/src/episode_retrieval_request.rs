@@ -106,7 +106,23 @@ where
         for byte in snapshot.identity() {
             put(out, &[HEX[(byte >> 4) as usize], HEX[(byte & 15) as usize]])?
         }
-        put(out, br#"", "observation":{"identity":"#)?;
+        put(out, br#"", "reference":"#)?;
+        instant(out, input.reference)?;
+        put(out, br#", "retrieved_at":"#)?;
+        instant(out, input.retrieved)?;
+        put(out, br#", "clock_semantics":"#)?;
+        string(
+            out,
+            match input.clock_basis {
+                conduit_ai::BorrowedTemporalClockBasis::UnixEpochMilliseconds => {
+                    b"unix_epoch_milliseconds"
+                }
+                conduit_ai::BorrowedTemporalClockBasis::MonotonicMilliseconds(_) => {
+                    b"named_monotonic_milliseconds"
+                }
+            },
+        )?;
+        put(out, br#", "observation":{"identity":"#)?;
         string(out, leaf(field(observation, "identity")?)?)?;
         put(out, br#", "content":"#)?;
         string(out, leaf(field(observation, "content")?)?)?;
@@ -126,8 +142,22 @@ where
             }
             put(out, fragment)?;
         }
-        put(out, b"]}}")
+        put(out, b"],")?;
+        diagnostics(out, context)?;
+        put(out, b"}}")
     }
+}
+fn instant(out: &mut Vec<u8>, instant: conduit_core::BorrowedTemporalInstant<'_>) -> Result<(), R> {
+    // Snapshot admission has already established this exact ms/unit profile.
+    put(out, br#"{"ticks":"#)?;
+    integer(out, instant.ticks)?;
+    put(out, br#", "scale":"milliseconds","clock_basis":"#)?;
+    string(out, instant.clock_basis.as_bytes())?;
+    put(out, br#", "resolution_ticks":"#)?;
+    integer(out, instant.resolution_ticks)?;
+    put(out, br#", "uncertainty_ticks":"#)?;
+    integer(out, instant.uncertainty_ticks)?;
+    put(out, b"}")
 }
 type View<'a> = ValidatedCanonicalStructuredValue<'a>;
 fn field<'a>(view: View<'a>, name: &str) -> Result<View<'a>, R> {
@@ -146,4 +176,89 @@ fn leaf(view: View<'_>) -> Result<&[u8], R> {
         return Err(R::MalformedExperience);
     }
     Ok(&node[5..])
+}
+
+// These are actual selector outcomes, not an inference from recalled.len().
+fn diagnostics(
+    out: &mut Vec<u8>,
+    context: &crate::PreparedEpisodeRetrievalContext,
+) -> Result<(), R> {
+    use crate::{
+        EpisodeRetrievalResolution as Resolution, EpisodeTemporalOmissionReason as Temporal,
+    };
+    use conduit_ai::ContextOmissionReason as Context;
+    put(out, br#""retrieval":{"temporal_resolution":"#)?;
+    match context.temporal_resolution() {
+        Some(resolution) => string(
+            out,
+            match resolution {
+                Resolution::Selected => b"selected",
+                Resolution::NoHistory => b"no_history",
+                Resolution::NeedEarlierHistory => b"need_earlier_history",
+                Resolution::BoundaryUnavailable => b"boundary_unavailable",
+            },
+        )?,
+        None => put(out, b"null")?,
+    }
+    put(out, br#", "context_selection":"#)?;
+    string(
+        out,
+        match context.selection() {
+            None => b"no_temporal_selection",
+            Some(selection) if selection.selected_len == 0 => b"all_omitted_current_only",
+            Some(selection) if selection.omitted_len > 0 => b"selected_with_omissions",
+            Some(_) => b"selected",
+        },
+    )?;
+    put(out, br#", "temporal_omission_count":"#)?;
+    integer(out, context.temporal_omissions().count() as u64)?;
+    put(out, br#", "temporal_omissions":["#)?;
+    for (index, omission) in context.temporal_omissions().enumerate() {
+        if index != 0 {
+            put(out, b",")?;
+        }
+        put(out, br#"{"episode":"#)?;
+        integer(out, omission.episode)?;
+        put(out, br#", "item":"#)?;
+        match omission.item {
+            Some(item) => integer(out, u64::from(item))?,
+            None => put(out, b"null")?,
+        }
+        put(out, br#", "reason":"#)?;
+        string(
+            out,
+            match omission.reason {
+                Temporal::MissingEvidence => b"missing_evidence",
+                Temporal::MissingObservedTime => b"missing_observed_time",
+                Temporal::UnsupportedTime => b"unsupported_time",
+                Temporal::ClockMismatch => b"clock_mismatch",
+                Temporal::InvalidInterval => b"invalid_interval",
+                Temporal::FutureSource => b"future_source",
+            },
+        )?;
+        put(out, b"}")?;
+    }
+    put(out, br#"], "context_omission_count":"#)?;
+    integer(out, context.omissions().count() as u64)?;
+    put(out, br#", "context_omissions":["#)?;
+    for (index, (episode, reason)) in context.omissions().enumerate() {
+        if index != 0 {
+            put(out, b",")?;
+        }
+        put(out, br#"{"episode":"#)?;
+        integer(out, episode)?;
+        put(out, br#", "reason":"#)?;
+        string(
+            out,
+            match reason {
+                Context::ReviewedRedundancy => b"reviewed_redundancy",
+                Context::ItemBudget => b"item_budget",
+                Context::ByteBudget => b"byte_budget",
+                Context::TokenBudget => b"token_budget",
+                Context::WorkBudget => b"work_budget",
+            },
+        )?;
+        put(out, b"}")?;
+    }
+    put(out, b"]}")
 }

@@ -42,10 +42,33 @@ impl PreparedContextSelector {
         selected: &mut [usize],
         omitted: &mut [Option<BorrowedContextOmission>],
     ) -> Result<BorrowedContextSelection, ContextSelectionRefusal> {
+        self.select_with_empty(policy, candidates, selected, omitted, false)
+    }
+    /// Preserve real omission reasons when valid candidates exhaust the budgets.
+    /// An empty successful result means context was omitted, never that history
+    /// was absent. Empty/invalid input still refuses and clears caller slots.
+    /// Like `select`, this performs no execution allocations.
+    pub fn select_optional(
+        &mut self,
+        policy: &ContextSelectionPolicy,
+        candidates: &[BorrowedContextCandidate<'_>],
+        selected: &mut [usize],
+        omitted: &mut [Option<BorrowedContextOmission>],
+    ) -> Result<BorrowedContextSelection, ContextSelectionRefusal> {
+        self.select_with_empty(policy, candidates, selected, omitted, true)
+    }
+    fn select_with_empty(
+        &mut self,
+        policy: &ContextSelectionPolicy,
+        candidates: &[BorrowedContextCandidate<'_>],
+        selected: &mut [usize],
+        omitted: &mut [Option<BorrowedContextOmission>],
+        allow_empty: bool,
+    ) -> Result<BorrowedContextSelection, ContextSelectionRefusal> {
         selected.fill(usize::MAX);
         omitted.fill(None);
         self.order.clear();
-        let result = self.execute(policy, candidates, selected, omitted);
+        let result = self.execute(policy, candidates, selected, omitted, allow_empty);
         if result.is_err() {
             selected.fill(usize::MAX);
             omitted.fill(None);
@@ -58,6 +81,7 @@ impl PreparedContextSelector {
         candidates: &[BorrowedContextCandidate<'_>],
         selected: &mut [usize],
         omitted: &mut [Option<BorrowedContextOmission>],
+        allow_empty: bool,
     ) -> Result<BorrowedContextSelection, ContextSelectionRefusal> {
         if candidates.is_empty() {
             return Err(ContextSelectionRefusal::EmptyCandidates);
@@ -163,7 +187,7 @@ impl PreparedContextSelector {
             selected[selected_len] = index;
             selected_len += 1;
         }
-        if selected_len == 0 {
+        if selected_len == 0 && !allow_empty {
             return Err(ContextSelectionRefusal::NoSelectedContext);
         }
         Ok(BorrowedContextSelection {

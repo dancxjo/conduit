@@ -11,17 +11,20 @@ pub enum EpisodeRetrievalProjectionRefusal {
     Snapshot(crate::EpisodeRetrievalSnapshotRefusal),
     MalformedRecord,
     InvalidEvidenceJson,
+    InvalidSelection,
     ByteBound,
 }
 use EpisodeRetrievalProjectionRefusal as R;
 type View<'a> = ValidatedCanonicalStructuredValue<'a>;
 pub struct PreparedEpisodeRetrievalProjection {
     output: Vec<u8>,
+    parser: crate::PreparedEpisodeRetrievalEvidence,
 }
 impl PreparedEpisodeRetrievalProjection {
     pub fn prepare() -> Self {
         Self {
             output: Vec::with_capacity(MAXIMUM_EPISODE_RETRIEVAL_PROJECTION_BYTES),
+            parser: crate::PreparedEpisodeRetrievalEvidence::new(),
         }
     }
     pub fn output(&self) -> &[u8] {
@@ -34,7 +37,22 @@ impl PreparedEpisodeRetrievalProjection {
         episode: u64,
     ) -> Result<&[u8], R> {
         self.output.clear();
-        if let Err(error) = self.render_inner(snapshot, episode) {
+        if let Err(error) = self.render_inner(snapshot, episode, None) {
+            self.output.clear();
+            return Err(error);
+        }
+        Ok(&self.output)
+    }
+    /// Project a complete archive with explicit original evidence membership.
+    /// Unselected archive items retain custody only, not temporal eligibility.
+    pub fn render_selected(
+        &mut self,
+        snapshot: &crate::BorrowedEpisodeRetrievalSnapshot<'_>,
+        episode: u64,
+        items: &[u16],
+    ) -> Result<&[u8], R> {
+        self.output.clear();
+        if let Err(error) = self.render_inner(snapshot, episode, Some(items)) {
             self.output.clear();
             return Err(error);
         }
@@ -44,6 +62,7 @@ impl PreparedEpisodeRetrievalProjection {
         &mut self,
         snapshot: &crate::BorrowedEpisodeRetrievalSnapshot<'_>,
         episode: u64,
+        selection: Option<&[u16]>,
     ) -> Result<(), R> {
         let record = snapshot.original_record(episode).map_err(R::Snapshot)?;
         let out = &mut self.output;
@@ -51,8 +70,35 @@ impl PreparedEpisodeRetrievalProjection {
         integer(out, episode)?;
         put(
             out,
-            br#", "evidence_scope":"historical_snapshot","original_observation":{"identity":"#,
+            br#", "evidence_scope":"historical_snapshot","archive_scope":"raw_episode_for_custody","temporal_selection":"#,
         )?;
+        if let Some(items) = selection {
+            let evidence =
+                variant(field(record, "evidence")?, "some")?.ok_or(R::InvalidSelection)?;
+            let parsed = self
+                .parser
+                .parse(leaf(evidence)?)
+                .map_err(|_| R::InvalidEvidenceJson)?;
+            if items.is_empty()
+                || items.len() > parsed.items().len()
+                || items.iter().enumerate().any(|(i, item)| {
+                    *item as usize >= parsed.items().len() || items[i + 1..].contains(item)
+                })
+            {
+                return Err(R::InvalidSelection);
+            }
+            put(out, br#"{"scope":"only_listed_original_items","representative_time_scope":"earliest_selected_observed_at_only","item_indices":["#)?;
+            for (index, item) in items.iter().enumerate() {
+                if index != 0 {
+                    put(out, b",")?;
+                }
+                integer(out, *item as u64)?;
+            }
+            put(out, b"]}")?;
+        } else {
+            put(out, b"null")?;
+        }
+        put(out, br#", "original_observation":{"identity":"#)?;
         let observation = field(record, "observation")?;
         string(out, leaf(field(observation, "identity")?)?)?;
         put(out, br#", "content":"#)?;

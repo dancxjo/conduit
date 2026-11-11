@@ -113,6 +113,15 @@ fn exact_packet_current_projection_and_actual_history_keep_separate_roles() {
     let data: serde_json::Value = serde_json::from_str(decoded.data()).unwrap();
     assert_eq!(data["body_id"], "body/one");
     assert_eq!(data["wake_sequence"], 3);
+    assert_eq!(data["reference"]["ticks"], 100);
+    assert_eq!(data["retrieved_at"]["ticks"], 99);
+    assert_eq!(data["reference"]["clock_basis"], "clock/one");
+    assert_eq!(data["reference"]["scale"], "milliseconds");
+    assert_eq!(data["clock_semantics"], "named_monotonic_milliseconds");
+    assert_eq!(
+        data["recalled"][0]["historical_evidence"]["evidence"][0]["observed_at"]["ticks"],
+        10
+    );
     assert_eq!(data["observation"]["content"], "What happened?");
     assert!(data["observation"].get("origin").is_none());
     assert_eq!(
@@ -232,4 +241,175 @@ fn escaped_trigger_cannot_replace_trusted_instruction() {
     assert!(data.get("instruction").is_none());
     assert!(PreparedEpisodeRetrievalRequest::prepare("", empty_current).is_err());
     assert!(PreparedEpisodeRetrievalRequest::prepare(&"x".repeat(1025), empty_current).is_err());
+}
+
+#[test]
+fn model_data_reports_nonselected_temporal_results_and_real_omissions() {
+    for earliest in [false, true] {
+        let mut f = fixture();
+        if earliest {
+            f.intent = TemporalRetrievalIntent::EarliestEvidence.encode().unwrap();
+        } else {
+            f.memory = memory(&[1, 2], "body/one", "wake/one");
+            f.source = source(&f.memory);
+        }
+        let capture = PreparedEpisodeRetrievalSnapshot::prepare();
+        let snapshot = capture.capture(f.input()).unwrap();
+        let context = context(&snapshot, &f.intent);
+        let mut request =
+            PreparedEpisodeRetrievalRequest::prepare("Answer", empty_current).unwrap();
+        let (result, allocations) =
+            allocation_probe::observe(|| request.compose(&snapshot, &context).map(|_| ()));
+        result.unwrap();
+        assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
+        let wire: serde_json::Value = serde_json::from_slice(request.output()).unwrap();
+        let data = &wire["data"];
+        assert_eq!(data["recalled"], serde_json::json!([]));
+        let diagnostics = &data["retrieval"];
+        assert_eq!(
+            diagnostics["temporal_resolution"],
+            if earliest {
+                "need_earlier_history"
+            } else {
+                "no_history"
+            }
+        );
+        assert_eq!(
+            diagnostics["temporal_omission_count"],
+            if earliest { 0 } else { 2 }
+        );
+        if !earliest {
+            assert_eq!(diagnostics["temporal_omissions"][0]["episode"], 1);
+            assert_eq!(
+                diagnostics["temporal_omissions"][0]["reason"],
+                "missing_evidence"
+            );
+            assert!(diagnostics["temporal_omissions"][0]["item"].is_null());
+        }
+        assert_eq!(diagnostics["context_omission_count"], 0);
+    }
+}
+
+#[test]
+fn model_data_names_actual_context_budget_omitted_episode() {
+    let mut f = fixture();
+    let constrained = ContextSelectionPolicy::new(
+        "policy/history@1".into(),
+        EPISODE_CONTEXT_BYTE_CHARGE_PROFILE.into(),
+        ContextRedundancyPolicy::OnePerReviewedGroup,
+        ContextOrderingPolicy::ChronologicalOldestFirst,
+        1,
+        2400,
+        2400,
+        4,
+    )
+    .unwrap();
+    f.policy = constrained.clone().encode().unwrap();
+    let capture = PreparedEpisodeRetrievalSnapshot::prepare();
+    let snapshot = capture.capture(f.input()).unwrap();
+    let mut window = PreparedEpisodeRetrievalWindow::prepare();
+    let mut flow = BoundedTemporalEvidenceFlow::prepare();
+    let outcome = flow
+        .execute(window.build(&snapshot).unwrap(), &f.intent)
+        .unwrap();
+    let mut context = PreparedEpisodeRetrievalContext::prepare(constrained).unwrap();
+    context.select(&snapshot, outcome).unwrap();
+    let mut request = PreparedEpisodeRetrievalRequest::prepare("Answer", empty_current).unwrap();
+    let wire: serde_json::Value =
+        serde_json::from_slice(request.compose(&snapshot, &context).unwrap()).unwrap();
+    let diagnostics = &wire["data"]["retrieval"];
+    assert_eq!(diagnostics["temporal_resolution"], "selected");
+    assert_eq!(diagnostics["context_omission_count"], 1);
+    assert_eq!(
+        diagnostics["context_omissions"],
+        serde_json::json!([{"episode":2,"reason":"item_budget"}])
+    );
+}
+
+#[test]
+fn diagnostics_are_not_dropped_to_fit_full_wire() {
+    let mut f = fixture();
+    let evidence = serde_json::json!({"evidence": vec![serde_json::json!({"observed_at":null});8]})
+        .to_string();
+    f.memory = memory_with_evidence(
+        &[
+            (1, Some(&evidence)),
+            (2, Some(&evidence)),
+            (3, Some(&evidence)),
+            (4, Some(&evidence)),
+        ],
+        "body/one",
+        "wake/one",
+    );
+    f.source = source(&f.memory);
+    let capture = PreparedEpisodeRetrievalSnapshot::prepare();
+    let snapshot = capture.capture(f.input()).unwrap();
+    let context = context(&snapshot, &f.intent);
+    assert_eq!(context.temporal_omissions().count(), 32);
+    let mut request =
+        PreparedEpisodeRetrievalRequest::prepare("Answer", |_packet: &[u8], scratch: &mut [u8]| {
+            scratch[..2000].fill(b'x');
+            scratch[0] = b'"';
+            scratch[1999] = b'"';
+            Ok(2000)
+        })
+        .unwrap();
+    assert_eq!(
+        request.compose(&snapshot, &context).err(),
+        Some(EpisodeRetrievalRequestRefusal::ByteBound)
+    );
+    assert!(request.output().is_empty());
+}
+
+#[test]
+fn all_history_omitted_by_budget_still_produces_truthful_current_only_context() {
+    let mut f = fixture();
+    let constrained = ContextSelectionPolicy::new(
+        "policy/history@1".into(),
+        EPISODE_CONTEXT_BYTE_CHARGE_PROFILE.into(),
+        ContextRedundancyPolicy::OnePerReviewedGroup,
+        ContextOrderingPolicy::ChronologicalOldestFirst,
+        4,
+        1,
+        2400,
+        4,
+    )
+    .unwrap();
+    f.policy = constrained.clone().encode().unwrap();
+    let capture = PreparedEpisodeRetrievalSnapshot::prepare();
+    let snapshot = capture.capture(f.input()).unwrap();
+    let mut window = PreparedEpisodeRetrievalWindow::prepare();
+    let mut flow = BoundedTemporalEvidenceFlow::prepare();
+    let outcome = flow
+        .execute(window.build(&snapshot).unwrap(), &f.intent)
+        .unwrap();
+    let mut context = PreparedEpisodeRetrievalContext::prepare(constrained).unwrap();
+    let selected = context.select(&snapshot, outcome).unwrap().unwrap();
+    assert_eq!(selected.selected_len, 0);
+    assert_eq!(selected.omitted_len, 2);
+    let mut request = PreparedEpisodeRetrievalRequest::prepare("Answer", empty_current).unwrap();
+    let (result, allocations) =
+        allocation_probe::observe(|| request.compose(&snapshot, &context).map(|_| ()));
+    result.unwrap();
+    assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
+    let decoded = decode_generation_context(core::str::from_utf8(request.output()).unwrap())
+        .unwrap()
+        .unwrap();
+    let data: serde_json::Value = serde_json::from_str(decoded.data()).unwrap();
+    assert_eq!(data["recalled"], serde_json::json!([]));
+    assert_eq!(
+        data["current_experience"]["evidence"],
+        serde_json::json!([])
+    );
+    assert_eq!(data["retrieval"]["temporal_resolution"], "selected");
+    assert_eq!(
+        data["retrieval"]["context_selection"],
+        "all_omitted_current_only"
+    );
+    assert_eq!(
+        data["retrieval"]["context_omissions"],
+        serde_json::json!([
+            {"episode":1,"reason":"byte_budget"}, {"episode":2,"reason":"byte_budget"}
+        ])
+    );
 }

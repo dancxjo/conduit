@@ -654,3 +654,139 @@ fn prepared_digest_checks_parent_profiles_and_preserves_explicit_value_costs() {
         Err(ContextSelectionRefusal::InvalidCandidate)
     );
 }
+
+#[test]
+fn optional_selection_preserves_real_empty_budget_omissions_and_legacy_clear() {
+    let values = [candidate(1, 20, "long"), candidate(2, 21, "x")];
+    let views = values.each_ref().map(BorrowedContextCandidate::from_owned);
+    let mut selector = PreparedContextSelector::prepare(2).unwrap();
+    let mut selected = [0; 2];
+    let mut omitted = [None; 2];
+    for (bytes, tokens, expected) in [
+        (
+            1,
+            1,
+            [
+                ContextOmissionReason::ByteBudget,
+                ContextOmissionReason::TokenBudget,
+            ],
+        ),
+        (100, 1, [ContextOmissionReason::TokenBudget; 2]),
+    ] {
+        let p = policy(
+            ContextOrderingPolicy::Reranked,
+            ContextRedundancyPolicy::KeepAll,
+            2,
+            bytes,
+            tokens,
+            2,
+        );
+        let result = crate::temporal_evidence_selection::assert_without_allocations(|| {
+            selector.select_optional(&p, &views, &mut selected, &mut omitted)
+        })
+        .unwrap();
+        assert_eq!(result.selected_len, 0);
+        assert_eq!(result.omitted_len, 2);
+        assert_eq!(
+            result.disposition,
+            BorrowedContextSelectionDisposition::Omitted
+        );
+        assert_eq!(
+            result.used,
+            SelectedContextCost {
+                bytes: 0,
+                tokens: 0,
+                work_units: 0
+            }
+        );
+        assert_eq!(selected, [usize::MAX; 2]);
+        for (index, reason) in expected.into_iter().enumerate() {
+            assert_eq!(
+                omitted[index],
+                Some(BorrowedContextOmission {
+                    candidate_index: index,
+                    reason
+                })
+            );
+        }
+        let legacy = crate::temporal_evidence_selection::assert_without_allocations(|| {
+            selector.select(&p, &views, &mut selected, &mut omitted)
+        });
+        assert_eq!(legacy, Err(ContextSelectionRefusal::NoSelectedContext));
+        assert_eq!(selected, [usize::MAX; 2]);
+        assert_eq!(omitted, [None; 2]);
+    }
+    let p = policy(
+        ContextOrderingPolicy::Reranked,
+        ContextRedundancyPolicy::KeepAll,
+        2,
+        100,
+        100,
+        2,
+    );
+    let mut invalid = views;
+    invalid[0].token_count = 0;
+    for candidates in [&invalid[..], &[][..]] {
+        selected.fill(0);
+        omitted.fill(Some(BorrowedContextOmission {
+            candidate_index: 0,
+            reason: ContextOmissionReason::ByteBudget,
+        }));
+        assert!(
+            crate::temporal_evidence_selection::assert_without_allocations(
+                || selector.select_optional(&p, candidates, &mut selected, &mut omitted)
+            )
+            .is_err()
+        );
+        assert_eq!(selected, [usize::MAX; 2]);
+        assert_eq!(omitted, [None; 2]);
+    }
+}
+
+#[test]
+fn optional_positive_selection_matches_existing_item_work_and_byte_policy() {
+    let values = [candidate(1, 30, "one"), candidate(2, 31, "two")];
+    let views = values.each_ref().map(BorrowedContextCandidate::from_owned);
+    let mut selector = PreparedContextSelector::prepare(2).unwrap();
+    let mut selected = [usize::MAX; 2];
+    let mut omitted = [None; 2];
+    // Positive native item/work limits admit at least the first unit-cost item;
+    // these budgets cannot alone produce an empty valid selection.
+    for (items, bytes, work) in [(1, 100, 2), (2, 100, 1), (2, 3, 2), (2, 100, 2)] {
+        let p = policy(
+            ContextOrderingPolicy::Reranked,
+            ContextRedundancyPolicy::KeepAll,
+            items,
+            bytes,
+            100,
+            work,
+        );
+        let legacy = selector
+            .select(&p, &views, &mut selected, &mut omitted)
+            .unwrap();
+        let legacy_selected = selected;
+        let legacy_omitted = omitted;
+        let optional = crate::temporal_evidence_selection::assert_without_allocations(|| {
+            selector.select_optional(&p, &views, &mut selected, &mut omitted)
+        })
+        .unwrap();
+        assert_eq!(optional, legacy);
+        assert_eq!(selected, legacy_selected);
+        assert_eq!(omitted, legacy_omitted);
+    }
+    let all_bytes = policy(
+        ContextOrderingPolicy::Reranked,
+        ContextRedundancyPolicy::KeepAll,
+        2,
+        1,
+        100,
+        2,
+    );
+    let result = selector
+        .select_optional(&all_bytes, &views, &mut selected, &mut omitted)
+        .unwrap();
+    assert_eq!(result.selected_len, 0);
+    assert!(omitted
+        .iter()
+        .all(|o| o.unwrap().reason == ContextOmissionReason::ByteBudget));
+}
