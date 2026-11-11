@@ -24,22 +24,6 @@ pub fn plan_host(
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let authoring = expand_canonical_plot_for_authoring(&checked, entry, &profile).unwrap();
     for gear in &authoring.expanded.gears {
-        if gear.kind_id.as_str() == conduit_core::STATE_VALUE_KIND {
-            let conduit_core::ConfigurationValue::Structured(initial) = &gear
-                .configuration
-                .iter()
-                .find(|entry| entry.key == "initial")
-                .unwrap()
-                .value
-            else {
-                panic!("native keep initializer")
-            };
-            let initial =
-                conduit_core::StructuredInfoValue::from_canonical_bytes(initial.canonical_value())
-                    .unwrap();
-            host.install_play_state_value(initial.value_type(), &initial)
-                .unwrap();
-        }
         if gear.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
             let conduit_core::ConfigurationValue::Text(encoded) = &gear
                 .configuration

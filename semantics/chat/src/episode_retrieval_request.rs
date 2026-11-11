@@ -107,25 +107,25 @@ where
             br#"{"schema":"conduit.ai/generation-context@1","instruction":"#,
         )?;
         put(out, &self.instruction)?;
-        put(out, br#", "data":{"schema":"#)?;
+        put(out, br#","data":{"schema":"#)?;
         string(out, EPISODE_RETRIEVAL_DATA_SCHEMA.as_bytes())?;
-        put(out, br#", "body_id":"#)?;
+        put(out, br#","body_id":"#)?;
         string(out, input.expected.body_id.as_bytes())?;
-        put(out, br#", "wake_id":"#)?;
+        put(out, br#","wake_id":"#)?;
         string(out, input.expected.wake_id.as_bytes())?;
-        put(out, br#", "wake_sequence":"#)?;
+        put(out, br#","wake_sequence":"#)?;
         integer(out, input.expected.wake_sequence)?;
-        put(out, br#", "snapshot_identity":"#)?;
+        put(out, br#","snapshot_identity":"#)?;
         put(out, b"\"")?;
         const HEX: &[u8; 16] = b"0123456789abcdef";
         for byte in snapshot.identity() {
             put(out, &[HEX[(byte >> 4) as usize], HEX[(byte & 15) as usize]])?
         }
-        put(out, br#"", "reference":"#)?;
+        put(out, br#"","reference":"#)?;
         instant(out, input.reference)?;
-        put(out, br#", "retrieved_at":"#)?;
+        put(out, br#","retrieved_at":"#)?;
         instant(out, input.retrieved)?;
-        put(out, br#", "clock_semantics":"#)?;
+        put(out, br#","clock_semantics":"#)?;
         string(
             out,
             match input.clock_basis {
@@ -137,11 +137,11 @@ where
                 }
             },
         )?;
-        put(out, br#", "observation":{"identity":"#)?;
+        put(out, br#","observation":{"identity":"#)?;
         string(out, leaf(field(observation, "identity")?)?)?;
-        put(out, br#", "content":"#)?;
+        put(out, br#","content":"#)?;
         string(out, leaf(field(observation, "content")?)?)?;
-        put(out, br#", "retain":"#)?;
+        put(out, br#","retain":"#)?;
         match leaf(field(observation, "retain")?)? {
             [0] => put(out, b"false")?,
             [1] => put(out, b"true")?,
@@ -149,7 +149,7 @@ where
         }
         put(out, br#"},"current_experience":"#)?;
         put(out, current)?;
-        put(out, br#", "recalled":["#)?;
+        put(out, br#","recalled":["#)?;
         for (index, fragment) in context.selected_fragments().enumerate() {
             conduit_web::validate_json_text(fragment).map_err(|_| R::InvalidFragmentJson)?;
             if index != 0 {
@@ -168,11 +168,11 @@ fn instant(out: &mut Vec<u8>, instant: conduit_core::BorrowedTemporalInstant<'_>
     // Snapshot admission has already established this exact ms/unit profile.
     put(out, br#"{"ticks":"#)?;
     integer(out, instant.ticks)?;
-    put(out, br#", "scale":"milliseconds","clock_basis":"#)?;
+    put(out, br#","scale":"milliseconds","clock_basis":"#)?;
     string(out, instant.clock_basis.as_bytes())?;
-    put(out, br#", "resolution_ticks":"#)?;
+    put(out, br#","resolution_ticks":"#)?;
     integer(out, instant.resolution_ticks)?;
-    put(out, br#", "uncertainty_ticks":"#)?;
+    put(out, br#","uncertainty_ticks":"#)?;
     integer(out, instant.uncertainty_ticks)?;
     put(out, b"}")
 }
@@ -217,7 +217,7 @@ fn diagnostics(
         )?,
         None => put(out, b"null")?,
     }
-    put(out, br#", "context_selection":"#)?;
+    put(out, br#","context_selection":"#)?;
     string(
         out,
         match context.selection() {
@@ -227,21 +227,21 @@ fn diagnostics(
             Some(_) => b"selected",
         },
     )?;
-    put(out, br#", "temporal_omission_count":"#)?;
+    put(out, br#","temporal_omission_count":"#)?;
     integer(out, context.temporal_omissions().count() as u64)?;
-    put(out, br#", "temporal_omissions":["#)?;
+    put(out, br#","temporal_omissions":["#)?;
     for (index, omission) in context.temporal_omissions().enumerate() {
         if index != 0 {
             put(out, b",")?;
         }
         put(out, br#"{"episode":"#)?;
         integer(out, omission.episode)?;
-        put(out, br#", "item":"#)?;
+        put(out, br#","item":"#)?;
         match omission.item {
             Some(item) => integer(out, u64::from(item))?,
             None => put(out, b"null")?,
         }
-        put(out, br#", "reason":"#)?;
+        put(out, br#","reason":"#)?;
         string(
             out,
             match omission.reason {
@@ -255,16 +255,16 @@ fn diagnostics(
         )?;
         put(out, b"}")?;
     }
-    put(out, br#"], "context_omission_count":"#)?;
+    put(out, br#"],"context_omission_count":"#)?;
     integer(out, context.omissions().count() as u64)?;
-    put(out, br#", "context_omissions":["#)?;
+    put(out, br#","context_omissions":["#)?;
     for (index, (episode, reason)) in context.omissions().enumerate() {
         if index != 0 {
             put(out, b",")?;
         }
         put(out, br#"{"episode":"#)?;
         integer(out, episode)?;
-        put(out, br#", "reason":"#)?;
+        put(out, br#","reason":"#)?;
         string(
             out,
             match reason {

@@ -55,7 +55,7 @@ pub fn episode_retrieval_producer_contract() -> Kind {
     context.port_id = port_id("context");
     let mut memory = port("memory", crate::episode_memory_state_type(), Input, false);
     memory.temporal = PortTemporal::Flow { closes: false };
-    contract(
+    let mut kind = contract(
         EPISODE_RETRIEVAL_PRODUCER_KIND,
         vec![
             port("experience", crate::episode_experience_type(), Input, false),
@@ -94,8 +94,63 @@ pub fn episode_retrieval_producer_contract() -> Kind {
                 false,
             ),
         ],
-    )
+    );
+    kind.kind_contract_revision = "conduit.body/episode-retrieval-window@2".into();
+    kind.outputs.push(port(
+        "intent_current",
+        conduit_ai::TemporalRetrievalIntent::semantic_type().unwrap(),
+        Output,
+        true,
+    ));
+    let defaults = [
+        (
+            "intent",
+            conduit_ai::TemporalRetrievalIntent::EventOrdering
+                .encode()
+                .unwrap(),
+        ),
+        (
+            "policy",
+            conduit_ai::ContextSelectionPolicy::new(
+                "configuration/required".into(),
+                crate::EPISODE_CONTEXT_BYTE_CHARGE_PROFILE.into(),
+                conduit_ai::ContextRedundancyPolicy::KeepAll,
+                conduit_ai::ContextOrderingPolicy::Reranked,
+                1,
+                1,
+                1,
+                1,
+            )
+            .unwrap()
+            .encode()
+            .unwrap(),
+        ),
+        (
+            "clock",
+            crate::EpisodeRetrievalClockClass::MonotonicMilliseconds
+                .encode()
+                .unwrap(),
+        ),
+    ];
+    for (name, bytes) in defaults {
+        let value = StructuredInfoValue::from_canonical_bytes(&bytes).unwrap();
+        let profile = value.value_type().profile().unwrap().value_kind().clone();
+        kind.startup_parameters.push(FrontStartupParameter {
+            name: name.into(),
+            value_type: profile.clone(),
+            has_default: false,
+        });
+        kind.configuration.push(KindConfigurationField {
+            key: name.into(),
+            default_value: ConfigurationValue::Structured(
+                StructuredConfigurationValue::new(profile.clone(), bytes).unwrap(),
+            ),
+            rule: KindConfigurationRule::Structured { profile },
+        });
+    }
+    kind
 }
+
 pub fn episode_retrieval_context_contract() -> Kind {
     use PortDirection::*;
     let mut kind = contract(
@@ -209,7 +264,18 @@ pub fn install_episode_retrieval_catalog(
                     },
                 ]
             } else {
-                vec![]
+                [
+                    ("intent", "TemporalRetrievalIntent"),
+                    ("policy", "ContextSelectionPolicy"),
+                    ("clock", "EpisodeRetrievalClockClass"),
+                ]
+                .into_iter()
+                .map(|(name, value_type)| StartupParameterSignature {
+                    name: name.into(),
+                    value_type: value_type.into(),
+                    default: None,
+                })
+                .collect()
             },
         })?;
         profile.insert_kind(kind).map_err(|e| e.to_string())?;

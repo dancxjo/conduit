@@ -16,6 +16,7 @@ const POLICY: PortId = PortId(4);
 const CLOCK: PortId = PortId(5);
 const WINDOW: PortId = PortId(0);
 const CAPTURE: PortId = PortId(1);
+const INTENT_CURRENT: PortId = PortId(2);
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::EPISODE_RETRIEVAL_PRODUCER_IMPLEMENTATION,
     budget,
@@ -95,7 +96,10 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalProducerBack {
             if self.current.iter().any(Vec::is_empty) {
                 return StepOutcome::Await;
             }
-            if !io.output_ready(WINDOW) || !io.output_ready(CAPTURE) {
+            if !io.output_ready(WINDOW)
+                || !io.output_ready(CAPTURE)
+                || !io.output_ready(INTENT_CURRENT)
+            {
                 return StepOutcome::Await;
             }
             if self
@@ -115,7 +119,10 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalProducerBack {
                 self.producer.window().len() as u32,
                 self.producer.capture().len() as u32,
             );
-            if !io.output_ready_for(WINDOW, window) || !io.output_ready_for(CAPTURE, capture) {
+            if !io.output_ready_for(WINDOW, window)
+                || !io.output_ready_for(CAPTURE, capture)
+                || !io.output_ready_for(INTENT_CURRENT, self.current[0].len() as u32)
+            {
                 self.producer.cancel();
                 return StepOutcome::Await;
             }
@@ -126,6 +133,9 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalProducerBack {
             }
             if io.send_prepared(WINDOW, window).is_err()
                 || io.send_prepared(CAPTURE, capture).is_err()
+                || io
+                    .send_prepared(INTENT_CURRENT, self.current[0].len() as u32)
+                    .is_err()
             {
                 return failure(2);
             }
@@ -173,6 +183,7 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalProducerBack {
         match port {
             WINDOW => Some(self.producer.window()),
             CAPTURE => Some(self.producer.capture()),
+            INTENT_CURRENT => Some(&self.current[0]),
             _ => None,
         }
     }
@@ -193,13 +204,16 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalProducerBack {
     }
 }
 fn budget(gear: &PlannedGear) -> Result<BackBudget, String> {
+    let mut identity = gear.clone();
+    identity.configuration.clear();
     super::episode_loop_back::exact_pure_gear(
-        gear,
+        &identity,
         &conduit_std_offers::episode_retrieval_producer_offer(),
     )?;
+    configuration(gear)?;
     Ok(BackBudget {
-        value_items: 2,
-        value_bytes: (MAX + conduit_ai::TEMPORAL_EVIDENCE_FLOW_MAX_BYTES) as u32,
+        value_items: 3,
+        value_bytes: (MAX + conduit_ai::TEMPORAL_EVIDENCE_FLOW_MAX_BYTES + 4096) as u32,
         maximum_value_bytes: MAX as u32,
         host_requests: 0,
         sign_items: 16,
@@ -214,7 +228,7 @@ fn prepare(
         EpisodeRetrievalProducerBack {
             producer: Box::new(PreparedEpisodeRetrievalProducer::prepare()),
             staged: false,
-            current: core::array::from_fn(|_| Vec::with_capacity(4096)),
+            current: configuration(gear)?,
             candidate: Vec::with_capacity(4096),
             candidate_slot: None,
             context_closed: false,
@@ -226,3 +240,42 @@ fn prepare(
 
 #[cfg(test)]
 mod tests;
+
+fn configuration(gear: &PlannedGear) -> Result<[Vec<u8>; 3], String> {
+    use conduit_core::ConfigurationValue;
+    use conduit_plot::rust_binding::NativeRustBinding;
+    if gear.configuration.len() != 3 {
+        return Err("retrieval producer requires intent, policy, clock".into());
+    }
+    let mut current = core::array::from_fn(|_| Vec::with_capacity(4096));
+    for (index, key) in ["intent", "policy", "clock"].into_iter().enumerate() {
+        let entry = gear
+            .configuration
+            .iter()
+            .find(|c| c.key == key)
+            .ok_or("retrieval control missing")?;
+        let ConfigurationValue::Structured(value) = &entry.value else {
+            return Err("retrieval control must be native".into());
+        };
+        let bytes = value.canonical_value();
+        if bytes.len() > 4096 {
+            return Err("retrieval control exceeds prepared bound".into());
+        }
+        match index {
+            0 => {
+                conduit_ai::TemporalRetrievalIntent::decode(bytes)
+                    .map_err(|_| "invalid retrieval intent")?;
+            }
+            1 => {
+                conduit_ai::ContextSelectionPolicy::decode(bytes)
+                    .map_err(|_| "invalid context policy")?;
+            }
+            _ => {
+                conduit_chat::EpisodeRetrievalClockClass::decode(bytes)
+                    .map_err(|_| "invalid clock class")?;
+            }
+        }
+        current[index].extend_from_slice(bytes);
+    }
+    Ok(current)
+}

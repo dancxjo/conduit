@@ -91,7 +91,6 @@ pub(super) fn run(args: StdCognitionArgs) -> Result<(), String> {
         Some(checkpoint) => planning::authoring_cadenced(Some(checkpoint))?,
         None => initial_authoring,
     };
-    planning::install_play_states(&mut host, &authoring)?;
     let fragment = planning::plan_cadenced(&mut host, &authoring, checkpoint.is_some())?;
     let mut inputs = Vec::with_capacity(1 + args.utterance.len() + args.reflection_after.len());
     inputs.push(ExternalForeInput {

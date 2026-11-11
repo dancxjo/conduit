@@ -49,7 +49,7 @@ fn admit_currents(back: &mut EpisodeRetrievalProducerBack, f: &common::Fixture) 
     }
 }
 #[test]
-fn both_outputs_and_all_captured_inputs_commit_atomically_under_pressure() {
+fn window_capture_and_intent_commit_atomically_under_pressure() {
     let f = common::Fixture::new();
     let input = [
         Some(f.experience.as_slice()),
@@ -78,7 +78,7 @@ fn both_outputs_and_all_captured_inputs_commit_atomically_under_pressure() {
     let mut ready = StepIo::test_frame(
         refs,
         [false; 6],
-        [Some(65536), Some(MAX as u32), None, None, None, None],
+        [Some(65536), Some(MAX as u32), Some(4096), None, None, None],
         None,
         16,
     );
@@ -86,6 +86,10 @@ fn both_outputs_and_all_captured_inputs_commit_atomically_under_pressure() {
     for p in [EXPERIENCE, MEMORY] {
         assert!(ready.test_consumed(p));
     }
+    assert_eq!(
+        StepBack::<6>::prepared_output(&back, INTENT_CURRENT),
+        Some(f.intent.as_slice())
+    );
     let capture = StepBack::<6>::prepared_output(&back, CAPTURE)
         .unwrap()
         .to_vec();
@@ -101,7 +105,7 @@ fn both_outputs_and_all_captured_inputs_commit_atomically_under_pressure() {
     let mut duplicate = StepIo::test_frame(
         refs,
         [false; 6],
-        [Some(65536), Some(MAX as u32), None, None, None, None],
+        [Some(65536), Some(MAX as u32), Some(4096), None, None, None],
         None,
         16,
     );
@@ -135,7 +139,7 @@ fn cancellation_revokes_staged_capture_and_terminal_memory_must_complete() {
     let mut io = StepIo::test_frame(
         [None; 6],
         [false; 6],
-        [Some(65536), Some(MAX as u32), None, None, None, None],
+        [Some(65536), Some(MAX as u32), Some(4096), None, None, None],
         None,
         16,
     );
@@ -165,7 +169,7 @@ fn one_current_profile_supports_two_windows_without_republication() {
         let mut io = StepIo::test_frame(
             refs,
             [false; 6],
-            [Some(65536), Some(MAX as u32), None, None, None, None],
+            [Some(65536), Some(MAX as u32), Some(4096), None, None, None],
             None,
             16,
         );
