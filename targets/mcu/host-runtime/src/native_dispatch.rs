@@ -7,6 +7,8 @@
 //! Clock waits instead retain an exact request and eight owned input bytes;
 //! they release the kernel loan, then recheck it when publishing completion.
 use crate::execution::StoredExecutionKernel;
+#[path = "native_write_failure.rs"]
+pub mod write_failure;
 use conduit_kernel::{scheduler::*, *};
 use conduit_monotonic_wait::{MonotonicWaitHostCall, MonotonicWaitProvider, WaitCallRefusal};
 use conduit_pulse_capture::owner::{PulseCallRefusal, PulseHostCall, PulseReadProvider};
@@ -172,7 +174,12 @@ pub fn write<
                 | WriteCallRefusal::Possession
                 | WriteCallRefusal::WrongBinding,
             ) => denied(),
-            Err(_) => outcome(false),
+            Err(reason) => {
+                let mut failed = outcome(false);
+                failed.failure.as_mut().expect("failed outcome").detail =
+                    write_failure::detail(&reason);
+                failed
+            }
         }
     };
     kernel.complete_host_call(request.node, request.request, completion)?;
