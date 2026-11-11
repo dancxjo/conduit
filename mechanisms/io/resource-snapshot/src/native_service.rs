@@ -8,6 +8,8 @@ use crate::{
 };
 use conduit_core as c;
 use conduit_kernel::{HostCallId, NodeId, RequestId};
+mod assigned;
+pub use assigned::PreparedAssignedRecordService;
 mod execution;
 mod installation;
 mod selection;
