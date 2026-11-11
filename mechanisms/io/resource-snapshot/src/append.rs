@@ -2,6 +2,8 @@
 //! authority, erasure, reclamation, recording semantics or delivery cursor.
 use crate::nor::{NorRefusal, NorStorage};
 use conduit_core::semantic_digest;
+mod read_window;
+pub use read_window::RecordReadWindow;
 pub const RECORD_UNIT_BYTES: usize = 256;
 pub const RECORD_SLOT_BYTES: u32 = 512;
 pub const MAXIMUM_RECORD_PAYLOAD_BYTES: usize = 200;
