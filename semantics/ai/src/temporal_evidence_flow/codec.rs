@@ -45,6 +45,30 @@ impl BoundedTemporalEvidenceFlow {
     pub fn output(&self) -> &[u8] {
         &self.output
     }
+    /// Admit an independent Current update before any window arrives. This
+    /// shares the execution codec and never constructs an owned intent.
+    pub fn validate_intent(&self, intent: &[u8]) -> Result<(), R> {
+        if intent.len() > MAX {
+            return Err(R::ByteBound);
+        }
+        let intent = validate_canonical_structured_value(intent).map_err(|_| R::Malformed)?;
+        if intent.type_bytes() != self.intent_type {
+            return Err(R::Malformed);
+        }
+        match decode_intent(intent)? {
+            BorrowedTemporalRetrievalIntent::EvidenceWithin { start, end } if start > end => Err(
+                R::Selection(TemporalEvidenceSelectionRefusal::InvalidIntent),
+            ),
+            _ => Ok(()),
+        }
+    }
+    /// Heap storage prepared before Play; selection indices are fixed inline.
+    pub fn allocation_capacity(&self) -> usize {
+        self.window_type.capacity()
+            + self.intent_type.capacity()
+            + self.outcome_type.capacity()
+            + self.output.capacity()
+    }
     pub fn execute(&mut self, window: &[u8], intent: &[u8]) -> Result<&[u8], R> {
         self.output.clear();
         if let Err(error) = self.select(window, intent) {

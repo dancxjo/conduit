@@ -475,3 +475,318 @@ fn owned_admission_refuses_empty_and_oversized_before_allocating_views() {
         ContextSelectionRefusal::CandidateLimitExceeded
     );
 }
+
+#[test]
+fn prepared_digest_matches_owned_identity_and_selection_without_allocating() {
+    let values = [candidate(1, 11, "hello"), candidate(2, 12, "world")];
+    let original = &values[0].reranked.candidate.chunk;
+    let encoded = original.lineage.source.resource.encode().unwrap();
+    let lineage = BorrowedContextLineage {
+        source: BorrowedContextSource::Encoded(&encoded),
+        span_unit: SourceSpanUnit::Bytes,
+        span_start: 0,
+        span_end: 5,
+        extraction_profile: original.lineage.extraction_profile.get(),
+        transform_profiles: &[],
+        parent_chunk: None,
+    };
+    let expected = original.lineage.identity().unwrap();
+    let mut views = values.each_ref().map(BorrowedContextCandidate::from_owned);
+    let p = policy(
+        ContextOrderingPolicy::Reranked,
+        ContextRedundancyPolicy::KeepAll,
+        2,
+        100,
+        100,
+        100,
+    );
+    let owned_result = p.select(&values).unwrap();
+    let mut selector = PreparedContextSelector::prepare(2).unwrap();
+    let mut selected = [usize::MAX; 2];
+    let mut omitted = [None; 2];
+    let (digest, validation, bytes, result) =
+        crate::temporal_evidence_selection::assert_without_allocations(|| {
+            let digest = lineage.identity_digest().unwrap();
+            let raw = BorrowedContextChunk::PreparedDigest {
+                identity: digest,
+                lineage,
+                value: BorrowedContextValue::Text(b"hello"),
+            };
+            views[0].chunk = raw;
+            (
+                raw.identity_digest(),
+                raw.validate(),
+                raw.byte_cost(),
+                selector.select(&p, &views, &mut selected, &mut omitted),
+            )
+        });
+    assert_eq!(digest, expected.digest());
+    assert_eq!(validation, Ok(()));
+    assert_eq!(bytes, Ok(5));
+    assert_eq!(result.unwrap().used, owned_result.used);
+    assert_eq!(selected, [0, 1]);
+    // This explicit materialization is intentionally outside allocation tracking.
+    assert_eq!(views[0].chunk.identity(), expected);
+    assert_eq!(
+        BorrowedContextChunk::Owned(original).identity_digest(),
+        digest
+    );
+    assert_eq!(
+        BorrowedContextChunk::Explicit {
+            identity: expected,
+            lineage,
+            value: BorrowedContextValue::Text(b"hello")
+        }
+        .identity_digest(),
+        digest
+    );
+
+    views[1].chunk = views[0].chunk;
+    let duplicate = crate::temporal_evidence_selection::assert_without_allocations(|| {
+        selector.select(&p, &views, &mut selected, &mut omitted)
+    });
+    assert_eq!(duplicate, Err(ContextSelectionRefusal::DuplicateCandidate));
+    assert_eq!(selected, [usize::MAX; 2]);
+    views[0].chunk = BorrowedContextChunk::PreparedDigest {
+        identity: [99; 32],
+        lineage,
+        value: BorrowedContextValue::Text(b"hello"),
+    };
+    assert_eq!(
+        crate::temporal_evidence_selection::assert_without_allocations(|| views[0]
+            .chunk
+            .validate()),
+        Err(ContextSelectionRefusal::InvalidCandidate)
+    );
+}
+
+#[test]
+fn prepared_digest_checks_parent_profiles_and_preserves_explicit_value_costs() {
+    let values = [candidate(1, 3, "hello")];
+    let original = &values[0].reranked.candidate.chunk;
+    let mut owned = original.lineage.clone();
+    owned.parent_chunk = Some(original.identity);
+    owned.transform_profiles = TransformProfiles::new(
+        BoundedSequence::try_from_iter([
+            RagIdentity::new("transform/a".into()).unwrap(),
+            RagIdentity::new("transform/b".into()).unwrap(),
+        ])
+        .unwrap(),
+    )
+    .unwrap();
+    let expected = owned.identity().unwrap();
+    let profiles = ["transform/a", "transform/b"];
+    let lineage = BorrowedContextLineage {
+        source: BorrowedContextSource::Owned(&owned.source.resource),
+        span_unit: SourceSpanUnit::Bytes,
+        span_start: 0,
+        span_end: 5,
+        extraction_profile: owned.extraction_profile.get(),
+        transform_profiles: &profiles,
+        parent_chunk: Some(original.identity),
+    };
+    let parts: &[&[u8]] = &[b"abc", b"de"];
+    let metadata = [("key", "value"), ("other", "text")];
+    for value in [
+        BorrowedContextValue::Text(b"hello"),
+        BorrowedContextValue::StructuredItems(parts),
+        BorrowedContextValue::ResourceMetadata(&metadata),
+    ] {
+        let explicit = BorrowedContextChunk::Explicit {
+            identity: expected,
+            lineage,
+            value,
+        };
+        let prepared = BorrowedContextChunk::PreparedDigest {
+            identity: expected.digest(),
+            lineage,
+            value,
+        };
+        let (digest, valid, cost) =
+            crate::temporal_evidence_selection::assert_without_allocations(|| {
+                (
+                    lineage.identity_digest(),
+                    prepared.validate(),
+                    prepared.byte_cost(),
+                )
+            });
+        assert_eq!(digest, Ok(expected.digest()));
+        assert_eq!(valid, Ok(()));
+        assert_eq!(cost, explicit.byte_cost());
+    }
+    for invalid in [
+        BorrowedContextLineage {
+            span_end: 0,
+            ..lineage
+        },
+        BorrowedContextLineage {
+            extraction_profile: "",
+            ..lineage
+        },
+        BorrowedContextLineage {
+            transform_profiles: &["same", "same"],
+            ..lineage
+        },
+        BorrowedContextLineage {
+            source: BorrowedContextSource::Encoded(b"not a resource"),
+            ..lineage
+        },
+    ] {
+        assert_eq!(
+            crate::temporal_evidence_selection::assert_without_allocations(
+                || invalid.identity_digest()
+            ),
+            Err(ContextSelectionRefusal::InvalidCandidate)
+        );
+    }
+    let changed_parent = BorrowedContextLineage {
+        parent_chunk: None,
+        ..lineage
+    };
+    assert_ne!(changed_parent.identity_digest().unwrap(), expected.digest());
+    assert_eq!(
+        BorrowedContextChunk::PreparedDigest {
+            identity: expected.digest(),
+            lineage: changed_parent,
+            value: BorrowedContextValue::Text(b"hello")
+        }
+        .validate(),
+        Err(ContextSelectionRefusal::InvalidCandidate)
+    );
+}
+
+#[test]
+fn optional_selection_preserves_real_empty_budget_omissions_and_legacy_clear() {
+    let values = [candidate(1, 20, "long"), candidate(2, 21, "x")];
+    let views = values.each_ref().map(BorrowedContextCandidate::from_owned);
+    let mut selector = PreparedContextSelector::prepare(2).unwrap();
+    let mut selected = [0; 2];
+    let mut omitted = [None; 2];
+    for (bytes, tokens, expected) in [
+        (
+            1,
+            1,
+            [
+                ContextOmissionReason::ByteBudget,
+                ContextOmissionReason::TokenBudget,
+            ],
+        ),
+        (100, 1, [ContextOmissionReason::TokenBudget; 2]),
+    ] {
+        let p = policy(
+            ContextOrderingPolicy::Reranked,
+            ContextRedundancyPolicy::KeepAll,
+            2,
+            bytes,
+            tokens,
+            2,
+        );
+        let result = crate::temporal_evidence_selection::assert_without_allocations(|| {
+            selector.select_optional(&p, &views, &mut selected, &mut omitted)
+        })
+        .unwrap();
+        assert_eq!(result.selected_len, 0);
+        assert_eq!(result.omitted_len, 2);
+        assert_eq!(
+            result.disposition,
+            BorrowedContextSelectionDisposition::Omitted
+        );
+        assert_eq!(
+            result.used,
+            SelectedContextCost {
+                bytes: 0,
+                tokens: 0,
+                work_units: 0
+            }
+        );
+        assert_eq!(selected, [usize::MAX; 2]);
+        for (index, reason) in expected.into_iter().enumerate() {
+            assert_eq!(
+                omitted[index],
+                Some(BorrowedContextOmission {
+                    candidate_index: index,
+                    reason
+                })
+            );
+        }
+        let legacy = crate::temporal_evidence_selection::assert_without_allocations(|| {
+            selector.select(&p, &views, &mut selected, &mut omitted)
+        });
+        assert_eq!(legacy, Err(ContextSelectionRefusal::NoSelectedContext));
+        assert_eq!(selected, [usize::MAX; 2]);
+        assert_eq!(omitted, [None; 2]);
+    }
+    let p = policy(
+        ContextOrderingPolicy::Reranked,
+        ContextRedundancyPolicy::KeepAll,
+        2,
+        100,
+        100,
+        2,
+    );
+    let mut invalid = views;
+    invalid[0].token_count = 0;
+    for candidates in [&invalid[..], &[][..]] {
+        selected.fill(0);
+        omitted.fill(Some(BorrowedContextOmission {
+            candidate_index: 0,
+            reason: ContextOmissionReason::ByteBudget,
+        }));
+        assert!(
+            crate::temporal_evidence_selection::assert_without_allocations(
+                || selector.select_optional(&p, candidates, &mut selected, &mut omitted)
+            )
+            .is_err()
+        );
+        assert_eq!(selected, [usize::MAX; 2]);
+        assert_eq!(omitted, [None; 2]);
+    }
+}
+
+#[test]
+fn optional_positive_selection_matches_existing_item_work_and_byte_policy() {
+    let values = [candidate(1, 30, "one"), candidate(2, 31, "two")];
+    let views = values.each_ref().map(BorrowedContextCandidate::from_owned);
+    let mut selector = PreparedContextSelector::prepare(2).unwrap();
+    let mut selected = [usize::MAX; 2];
+    let mut omitted = [None; 2];
+    // Positive native item/work limits admit at least the first unit-cost item;
+    // these budgets cannot alone produce an empty valid selection.
+    for (items, bytes, work) in [(1, 100, 2), (2, 100, 1), (2, 3, 2), (2, 100, 2)] {
+        let p = policy(
+            ContextOrderingPolicy::Reranked,
+            ContextRedundancyPolicy::KeepAll,
+            items,
+            bytes,
+            100,
+            work,
+        );
+        let legacy = selector
+            .select(&p, &views, &mut selected, &mut omitted)
+            .unwrap();
+        let legacy_selected = selected;
+        let legacy_omitted = omitted;
+        let optional = crate::temporal_evidence_selection::assert_without_allocations(|| {
+            selector.select_optional(&p, &views, &mut selected, &mut omitted)
+        })
+        .unwrap();
+        assert_eq!(optional, legacy);
+        assert_eq!(selected, legacy_selected);
+        assert_eq!(omitted, legacy_omitted);
+    }
+    let all_bytes = policy(
+        ContextOrderingPolicy::Reranked,
+        ContextRedundancyPolicy::KeepAll,
+        2,
+        1,
+        100,
+        2,
+    );
+    let result = selector
+        .select_optional(&all_bytes, &views, &mut selected, &mut omitted)
+        .unwrap();
+    assert_eq!(result.selected_len, 0);
+    assert!(omitted
+        .iter()
+        .all(|o| o.unwrap().reason == ContextOmissionReason::ByteBudget));
+}
