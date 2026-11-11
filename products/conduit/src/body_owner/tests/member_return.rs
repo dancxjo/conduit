@@ -20,6 +20,10 @@ fn member_return_replaces_current_boot_only_after_proof_and_durable_commit() {
     let before = owner.session.evidence().clone();
     let manager = owner.admissions.clone();
     let offers = owner.current_offer_summary();
+    let old_member =
+        crate::durable_host::owner::MemberPresentationBasis::new(prior.clone(), old.clone())
+            .unwrap();
+    owner.require_current_native_member(&old_member).unwrap();
     assert!(owner.begin_member_return(&prior, &old).is_err());
     let mut replacement = old.clone();
     replacement.boot_id = "boot/restarting/2".into();
@@ -29,6 +33,7 @@ fn member_return_replaces_current_boot_only_after_proof_and_durable_commit() {
     assert_eq!(owner.admissions, manager);
     assert_eq!(owner.current_offer_summary(), offers);
     assert_eq!(state::load(&root).unwrap().unwrap(), before);
+    owner.require_current_native_member(&old_member).unwrap();
     let proof = prove(&challenge, &key);
     let mut forged = proof.clone();
     forged.signature[0] ^= 1;
@@ -36,6 +41,7 @@ fn member_return_replaces_current_boot_only_after_proof_and_durable_commit() {
     assert_eq!(owner.session.evidence(), &before);
     assert_eq!(owner.admissions, manager);
     assert_eq!(owner.current_offer_summary(), offers);
+    owner.require_current_native_member(&old_member).unwrap();
     let blocked = root.join("replacement-commit-blocked");
     std::fs::write(&blocked, b"occupied").unwrap();
     assert!(owner.complete_member_return(&blocked, &proof).is_err());
@@ -43,10 +49,12 @@ fn member_return_replaces_current_boot_only_after_proof_and_durable_commit() {
     assert_eq!(owner.admissions, manager);
     assert_eq!(owner.current_offer_summary(), offers);
     assert_eq!(state::load(&root).unwrap().unwrap(), before);
+    owner.require_current_native_member(&old_member).unwrap();
     let returned = owner.complete_member_return(&root, &proof).unwrap();
     assert_eq!(returned.part_id, prior.part_id);
     assert_eq!(returned.host_id, prior.host_id);
     assert_eq!(returned.boot_id, replacement.boot_id);
+    assert!(owner.require_current_native_member(&old_member).is_err());
     assert!(owner.require_observed_member_offer(&old).is_err());
     assert!(owner.require_observed_member_offer(&replacement).is_ok());
     let committed = owner.session.evidence().clone();
