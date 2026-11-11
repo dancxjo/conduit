@@ -194,7 +194,7 @@ fn no_temporal_selection_keeps_the_scoped_reason_and_omissions() {
 }
 
 #[test]
-fn whole_archive_retains_custody_without_promoting_unselected_or_future_items() {
+fn only_selected_complete_items_reach_the_model_and_the_archive_stays_local() {
     let policy = policy(4, 4096);
     let mut f = fixture(&[evidence(&[10, 120, 20])], &policy);
     f.intent = TemporalRetrievalIntent::LatestEvidence.encode().unwrap();
@@ -213,14 +213,21 @@ fn whole_archive_retains_custody_without_promoting_unselected_or_future_items() 
         value["temporal_selection"]["item_indices"],
         serde_json::json!([2])
     );
-    assert_eq!(value["archive_scope"], "raw_episode_for_custody");
+    assert_eq!(value["archive_scope"], "selected_complete_items_only");
     assert_eq!(
         value["historical_evidence"]["evidence"]
             .as_array()
             .unwrap()
             .len(),
-        3
+        1
     );
+    assert_eq!(
+        value["historical_evidence"]["evidence"][0]["observed_at"]["ticks"],
+        20
+    );
+    // Original bytes retain all three items in the local immutable capture.
+    assert_eq!(snapshot.record_count(), 1);
+    assert_eq!(snapshot.input().memory, f.memory);
     assert_eq!(
         context.temporal_omissions().collect::<Vec<_>>(),
         vec![EpisodeTemporalOmission {

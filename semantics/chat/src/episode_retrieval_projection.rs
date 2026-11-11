@@ -5,6 +5,8 @@ use conduit_core::ValidatedCanonicalStructuredValue;
 #[path = "episode_retrieval_projection/writer.rs"]
 mod writer;
 use writer::*;
+#[path = "episode_retrieval_projection/raw_items.rs"]
+mod raw_items;
 pub const MAXIMUM_EPISODE_RETRIEVAL_PROJECTION_BYTES: usize = 4096;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EpisodeRetrievalProjectionRefusal {
@@ -43,8 +45,8 @@ impl PreparedEpisodeRetrievalProjection {
         }
         Ok(&self.output)
     }
-    /// Project a complete archive with explicit original evidence membership.
-    /// Unselected archive items retain custody only, not temporal eligibility.
+    /// Project only complete selected original evidence objects. Unselected
+    /// archive items and unknown root fields remain in local snapshot custody.
     pub fn render_selected(
         &mut self,
         snapshot: &crate::BorrowedEpisodeRetrievalSnapshot<'_>,
@@ -65,13 +67,20 @@ impl PreparedEpisodeRetrievalProjection {
         selection: Option<&[u16]>,
     ) -> Result<(), R> {
         let record = snapshot.original_record(episode).map_err(R::Snapshot)?;
+        let mut selected_metadata = None;
         let out = &mut self.output;
         put(out, br#"{"origin":"remembered","episode":"#)?;
         integer(out, episode)?;
         put(
             out,
-            br#", "evidence_scope":"historical_snapshot","archive_scope":"raw_episode_for_custody","temporal_selection":"#,
+            br#", "evidence_scope":"historical_snapshot","archive_scope":"#,
         )?;
+        if selection.is_some() {
+            put(out, br#""selected_complete_items_only""#)?;
+        } else {
+            put(out, br#""raw_episode_for_custody""#)?;
+        }
+        put(out, br#", "temporal_selection":"#)?;
         if let Some(items) = selection {
             let evidence =
                 variant(field(record, "evidence")?, "some")?.ok_or(R::InvalidSelection)?;
@@ -95,6 +104,7 @@ impl PreparedEpisodeRetrievalProjection {
                 integer(out, *item as u64)?;
             }
             put(out, b"]}")?;
+            selected_metadata = Some(parsed);
         } else {
             put(out, b"null")?;
         }
@@ -142,8 +152,39 @@ impl PreparedEpisodeRetrievalProjection {
         let evidence = field(record, "evidence")?;
         if let Some(value) = variant(evidence, "some")? {
             let raw = leaf(value)?;
-            conduit_web::validate_json_text(raw).map_err(|_| R::InvalidEvidenceJson)?;
-            put(out, raw)?;
+            if let Some(items) = selection {
+                let metadata = selected_metadata.as_ref().ok_or(R::InvalidSelection)?;
+                let ranges = raw_items::locate_validated_items(raw)?;
+                put(out, br#"{"evidence":["#)?;
+                for (index, item) in items.iter().enumerate() {
+                    if index != 0 {
+                        put(out, b",")?;
+                    }
+                    let (start, end) = ranges[*item as usize];
+                    if start == end {
+                        return Err(R::InvalidSelection);
+                    }
+                    put(out, raw.get(start..end).ok_or(R::InvalidEvidenceJson)?)?;
+                }
+                put(out, br#"],"original_provenance":{"#)?;
+                let mut separator = false;
+                if let Some(revision) = metadata.revision {
+                    put(out, br#""revision":"#)?;
+                    integer(out, revision)?;
+                    separator = true;
+                }
+                if let Some(provenance) = metadata.provenance_revision {
+                    if separator {
+                        put(out, b",")?;
+                    }
+                    put(out, br#""provenance_revision":"#)?;
+                    string(out, provenance.as_str().as_bytes())?;
+                }
+                put(out, b"}}")?;
+            } else {
+                conduit_web::validate_json_text(raw).map_err(|_| R::InvalidEvidenceJson)?;
+                put(out, raw)?;
+            }
         } else if variant(evidence, "none")?.is_some() {
             put(out, b"null")?
         } else {

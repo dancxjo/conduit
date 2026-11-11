@@ -194,3 +194,89 @@ fn selected_membership_is_bounded_to_unique_original_ordinals_and_refuses_atomic
     );
     assert!(projection.output().is_empty());
 }
+
+#[test]
+fn selected_projection_contains_only_complete_original_objects_in_selected_order() {
+    let first = r#"{ "identity":"first", "utf8_content":"selected first", "unknown": {"nested":[1,{"evidence":["not root"]}]} }"#;
+    let omitted = r#"{"identity":"future","utf8_content":"UNSELECTED_FUTURE_SECRET","sources":[{"clock":"other/clock"}]}"#;
+    let third = r#"{ "identity":"third", "utf8_content":"{\"voltage\":13,\"unit\":\"V\",\"uncertainty\":0.1,\"calibration\":\"meter/2\"}\n\u03bb\ud83d\ude42", "sources": [ {"sign":"source/3", "future_source_field":{"raw":"\\u1234"}} ], "future_item_field":{"a": [true, null]} }"#;
+    let raw = format!(
+        r#"{{"nested":{{"evidence":[{{"utf8_content":"NOT_ROOT"}}]}},"extra\ud83d\ude42":true,"revision":7,"provenance_revision":"r/\u03bb","evid\u0065nce": [ {first}, {omitted}, {third} ],"root_private":"ROOT_SECRET"}}"#
+    );
+    let fixture = fixture(Some(&raw));
+    let snapshot = PreparedEpisodeRetrievalSnapshot::prepare()
+        .capture(fixture.input())
+        .unwrap();
+    let mut projection = PreparedEpisodeRetrievalProjection::prepare();
+    let (result, allocation) = allocation_probe::observe(|| {
+        projection
+            .render_selected(&snapshot, 1, &[2, 0])
+            .map(|_| ())
+    });
+    assert!(result.is_ok());
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    let output = projection.output();
+    assert!(output
+        .windows(first.len())
+        .any(|bytes| bytes == first.as_bytes()));
+    assert!(output
+        .windows(third.len())
+        .any(|bytes| bytes == third.as_bytes()));
+    let text = std::str::from_utf8(output).unwrap();
+    for private in [
+        "UNSELECTED_FUTURE_SECRET",
+        "ROOT_SECRET",
+        "NOT_ROOT",
+        "other/clock",
+    ] {
+        assert!(!text.contains(private), "exposed {private}");
+    }
+    let parsed: serde_json::Value = serde_json::from_slice(output).unwrap();
+    assert_eq!(parsed["archive_scope"], "selected_complete_items_only");
+    assert_eq!(
+        parsed["temporal_selection"]["item_indices"],
+        serde_json::json!([2, 0])
+    );
+    let evidence = &parsed["historical_evidence"];
+    assert_eq!(evidence["evidence"].as_array().unwrap().len(), 2);
+    assert_eq!(evidence["evidence"][0]["identity"], "third");
+    assert_eq!(evidence["evidence"][1]["identity"], "first");
+    assert_eq!(evidence["original_provenance"]["revision"], 7);
+    assert_eq!(
+        evidence["original_provenance"]["provenance_revision"],
+        "r/λ"
+    );
+    assert!(evidence.get("root_private").is_none());
+    // Generic rendering still exposes the unchanged full archive by explicit request.
+    let archive = projection.render(&snapshot, 1).unwrap();
+    assert!(archive
+        .windows(raw.len())
+        .any(|bytes| bytes == raw.as_bytes()));
+}
+
+#[test]
+fn selected_projection_pressure_and_malformed_input_clear_prior_output() {
+    let raw = format!(
+        r#"{{"evidence":[{{"identity":"large","unknown":"{}"}}]}}"#,
+        "x".repeat(3800)
+    );
+    let large = fixture(Some(&raw));
+    let good = fixture(Some(r#"{"evidence":[{"identity":"small"}]}"#));
+    let prepared = PreparedEpisodeRetrievalSnapshot::prepare();
+    let snapshot = prepared.capture(good.input()).unwrap();
+    let mut projection = PreparedEpisodeRetrievalProjection::prepare();
+    projection.render_selected(&snapshot, 1, &[0]).unwrap();
+    let snapshot = prepared.capture(large.input()).unwrap();
+    assert_eq!(
+        projection.render_selected(&snapshot, 1, &[0]).err(),
+        Some(EpisodeRetrievalProjectionRefusal::ByteBound)
+    );
+    assert!(projection.output().is_empty());
+    let malformed = fixture(Some(r#"{"evidence":[{"identity":"x"}],"revision":-1}"#));
+    let snapshot = prepared.capture(malformed.input()).unwrap();
+    assert_eq!(
+        projection.render_selected(&snapshot, 1, &[0]).err(),
+        Some(EpisodeRetrievalProjectionRefusal::InvalidEvidenceJson)
+    );
+    assert!(projection.output().is_empty());
+}

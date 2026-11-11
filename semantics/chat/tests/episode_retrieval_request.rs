@@ -145,6 +145,89 @@ fn exact_packet_current_projection_and_actual_history_keep_separate_roles() {
         "source/one"
     );
 }
+
+#[test]
+fn native_producer_capture_and_existing_temporal_flow_feed_the_bounded_request_without_allocating()
+{
+    use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
+    use conduit_chat::{
+        encode_body_conversation_context, EpisodeRetrievalClockClass,
+        PreparedEpisodeRetrievalPacket, PreparedEpisodeRetrievalProducer,
+    };
+    use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
+    let body = Body::born(
+        SourceDocumentId::from("source/adapter-seam"),
+        CheckedPlotId::from("checked/adapter-seam"),
+        1,
+        SignId::from("sign/adapter-born"),
+    )
+    .unwrap();
+    let (_, wake) = body.wake(3, SignId::from("sign/adapter-wake")).unwrap();
+    let body_context = encode_body_conversation_context(&BodyConversationContext {
+        schema: "conduit.body/conversation-context-value@2".into(),
+        display_name: "Pete".into(),
+        body_id: wake.body_id.clone(),
+        wake_id: wake.wake_id.clone(),
+        wake_sequence: 3,
+        basis: BodyConversationContextBasis {
+            body_id: wake.body_id.clone(),
+            wake_id: wake.wake_id.clone(),
+            wake_sequence: 3,
+            revision: 1,
+        },
+        hosts: vec![],
+        active_plots: vec![],
+        current_plan_id: None,
+        active_play_id: None,
+        lines: vec![],
+        recent_sign_ids: vec![],
+    })
+    .unwrap();
+    let mut f = fixture();
+    let first = evidence(10);
+    let second = evidence(20);
+    f.memory = memory_with_evidence(
+        &[(1, Some(&first)), (2, Some(&second))],
+        wake.body_id.as_str(),
+        wake.wake_id.as_str(),
+    );
+    let mut producer = PreparedEpisodeRetrievalProducer::prepare();
+    producer.admit_context(&body_context).unwrap();
+    let clock = EpisodeRetrievalClockClass::MonotonicMilliseconds
+        .encode()
+        .unwrap();
+    let mut packet = PreparedEpisodeRetrievalPacket::prepare();
+    let mut flow = BoundedTemporalEvidenceFlow::prepare();
+    let mut context = PreparedEpisodeRetrievalContext::prepare(policy()).unwrap();
+    let mut request = PreparedEpisodeRetrievalRequest::prepare(
+        "Answer from the supplied evidence",
+        empty_current,
+    )
+    .unwrap();
+    let (_, allocation) = allocation_probe::observe(|| {
+        producer
+            .stage(&f.experience, &f.memory, &f.intent, &f.policy, &clock)
+            .unwrap();
+        let outcome = flow.execute(producer.window(), &f.intent).unwrap();
+        let (snapshot, display_name) = packet.decode(producer.capture()).unwrap();
+        assert_eq!(display_name, "Pete");
+        assert_eq!(snapshot.input().experience, f.experience);
+        assert_eq!(snapshot.input().memory, f.memory);
+        context.select(&snapshot, outcome).unwrap();
+        request.compose(&snapshot, &context).unwrap();
+    });
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    let decoded = decode_generation_context(core::str::from_utf8(request.output()).unwrap())
+        .unwrap()
+        .unwrap();
+    let data: serde_json::Value = serde_json::from_str(decoded.data()).unwrap();
+    assert_eq!(data["body_id"], wake.body_id.as_str());
+    assert_eq!(data["wake_id"], wake.wake_id.as_str());
+    assert_eq!(data["reference"]["ticks"], 100);
+    assert_eq!(data["retrieved_at"]["ticks"], 100);
+    assert_eq!(data["retrieval"]["context_selection"], "selected");
+    assert_eq!(data["recalled"].as_array().unwrap().len(), 2);
+}
 #[test]
 fn stale_context_refuses_before_projector_and_discards_previous_output() {
     let f = fixture();
@@ -222,6 +305,7 @@ fn escaped_trigger_cannot_replace_trusted_instruction() {
     f.experience = EpisodeExperience::new(
         old.evidence().clone(),
         EpisodeObservation::new(text.into(), "trigger/evil".into(), true).unwrap(),
+        old.reference().clone(),
     )
     .unwrap()
     .encode()

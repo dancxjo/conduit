@@ -3,6 +3,8 @@
 //! this module never substitutes a new fact projection or a second lookup.
 use alloc::vec::Vec;
 use conduit_core::{validate_canonical_structured_value, ValidatedCanonicalStructuredValue};
+#[path = "episode_retrieval_request/pending.rs"]
+mod pending;
 #[path = "episode_retrieval_request/writer.rs"]
 mod writer;
 use writer::*;
@@ -22,6 +24,8 @@ pub enum EpisodeRetrievalRequestRefusal {
     InvalidFragmentJson,
     MalformedExperience,
     ByteBound,
+    PendingBound,
+    MalformedPending,
 }
 use EpisodeRetrievalRequestRefusal as R;
 /// The projector is a trusted prepared profile, not input-supplied code. It
@@ -33,6 +37,7 @@ pub struct PreparedEpisodeRetrievalRequest<P> {
     projector: P,
     scratch: [u8; MAXIMUM_EPISODE_RETRIEVAL_REQUEST_BYTES],
     output: Vec<u8>,
+    pending: pending::PreparedEpisodeRetrievalPending,
 }
 impl<P> PreparedEpisodeRetrievalRequest<P>
 where
@@ -49,10 +54,15 @@ where
             projector,
             scratch: [0; MAXIMUM_EPISODE_RETRIEVAL_REQUEST_BYTES],
             output: Vec::with_capacity(MAXIMUM_EPISODE_RETRIEVAL_REQUEST_BYTES),
+            pending: pending::PreparedEpisodeRetrievalPending::prepare(),
         })
     }
     pub fn output(&self) -> &[u8] {
         &self.output
+    }
+    /// Exact native pending episode paired atomically with `output`.
+    pub fn pending(&self) -> &[u8] {
+        self.pending.output()
     }
     /// Full-wire overflow refuses atomically. Context selection must separately
     /// reserve room for current evidence, instruction, and envelope overhead.
@@ -62,8 +72,10 @@ where
         context: &crate::PreparedEpisodeRetrievalContext,
     ) -> Result<&[u8], R> {
         self.output.clear();
+        self.pending.clear();
         if let Err(error) = self.compose_inner(snapshot, context) {
             self.output.clear();
+            self.pending.clear();
             return Err(error);
         }
         Ok(&self.output)
@@ -144,7 +156,9 @@ where
         }
         put(out, b"],")?;
         diagnostics(out, context)?;
-        put(out, b"}}")
+        put(out, b"}}")?;
+        self.pending.encode(snapshot, context, current)?;
+        Ok(())
     }
 }
 fn instant(out: &mut Vec<u8>, instant: conduit_core::BorrowedTemporalInstant<'_>) -> Result<(), R> {
