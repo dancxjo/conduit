@@ -357,3 +357,69 @@ fn referenced_original_grants_preserve_transcript_and_acknowledgement_laws() {
     .validate()
     .is_err());
 }
+
+#[test]
+fn finite_ack_text_preserves_existing_acceptance_and_general_host_fallback() {
+    use serde::de::DeserializeSeed;
+    let (retained, mut projection, _, _) = fixture();
+    projection.authority_grants.push(grant(&projection));
+    for rich in [false, true] {
+        let mut expected = projection.clone();
+        if rich {
+            expected
+                .context
+                .resources
+                .push(conduit_core::ResourceOffer {
+                    pool_id: "pool/compute".into(),
+                    class_id: "class/compute".into(),
+                    capacity_units: 1,
+                    compute: Some(conduit_core::ComputePoolContract {
+                        service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
+                        architecture_base_id: "base/compute".into(),
+                        architecture_base_kind: conduit_core::ArchitectureBaseKind::HostedOs,
+                        topology_groups: vec![],
+                        protected_preemption: None,
+                    }),
+                    content: None,
+                });
+        }
+        assert_eq!(
+            conduit_core::bounded_host_advertisement_comparison_supported(&expected.context),
+            !rich
+        );
+        let mut current = retained.clone();
+        current.boot_id = expected.context.boot_id.clone();
+        let ack = MemberReturnImageAcknowledgement::new(current, expected.clone());
+        let original = serde_json::to_value(&ack).unwrap();
+        for case in 0..6 {
+            let mut value = original.clone();
+            match case {
+                1 => {
+                    value["credential"]["credential_id"] =
+                        "x".repeat(MAX_LIFECYCLE_ID_BYTES + 1).into()
+                }
+                2 => {
+                    value["projection"]["authority_grants"][0]["grant_id"] =
+                        "x".repeat(MAX_LIFECYCLE_ID_BYTES + 1).into()
+                }
+                3 => value["credential"]["future"] = serde_json::json!({"ignored":[1,null]}),
+                4 => value["projection"]["authority_grants"][0]["future"] = true.into(),
+                5 => value["credential"]["credential_id"] = "".into(),
+                _ => {}
+            }
+            let bytes = serde_json::to_vec(&value).unwrap();
+            let accepted = serde_json::from_slice::<MemberReturnImageAcknowledgement>(&bytes)
+                .is_ok_and(|ack| ack.validate_for(&retained, &expected).is_ok());
+            let mut decoder = serde_json_core::de::Deserializer::new(&bytes, None);
+            let result = MemberReturnImageAcknowledgementSeed {
+                retained: &retained,
+                actual: expected.borrowed(),
+            }
+            .deserialize(&mut decoder);
+            assert_eq!(result.is_ok(), accepted, "rich={rich}, case={case}");
+            if result.is_ok() {
+                assert_eq!(decoder.end().unwrap(), bytes.len());
+            }
+        }
+    }
+}
