@@ -6,10 +6,11 @@ use crate::{
     construction::ApplianceSource,
     observation::ObservationContract,
     publication::{PublicationChannel, PublicationContract, PublicationSequence},
-    CaptureBack, PreparedCaptureSelector,
+    CaptureBack,
 };
 use alloc::{format, vec, vec::Vec};
 use conduit_core as c;
+use conduit_semantic_catalog::PreparedCanonicalSelector;
 
 #[path = "software_offers.rs"]
 mod offers;
@@ -30,7 +31,7 @@ pub enum SoftwareRefusal {
 }
 pub struct PreparedSoftwareOperation {
     pub driver: ApplianceBack,
-    pub selector: Option<PreparedCaptureSelector>,
+    pub selector: Option<PreparedCanonicalSelector>,
 }
 struct ReadyOperation {
     gear: c::GearId,
@@ -432,7 +433,7 @@ fn initialize_portable(
         let value = c::StructuredSelector::from_canonical_hex(encoded).map_err(init)?;
         let kind = conduit_semantic_catalog::structured_selector_contract(&value, temporal);
         selector = Some(
-            PreparedCaptureSelector::prepare(value, BYTES as usize, BYTES as usize)
+            PreparedCanonicalSelector::prepare(value, BYTES as usize, BYTES as usize)
                 .map_err(init)?,
         );
         calls.push(c::HostCallRequirement {
