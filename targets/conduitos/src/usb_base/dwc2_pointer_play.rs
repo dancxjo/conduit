@@ -52,9 +52,8 @@ impl<I: RegisterIo> Dwc2PointerPlay<I> {
     ) -> Result<(Self, PointerPlaySchemas), PointerPlayRefusal> {
         use PointerPlayRefusal as E;
         let package = usb_hid_absolute_package().map_err(E::Source)?;
-        let bytes = serde_json::to_vec(&package).map_err(|_| E::Binding)?;
-        let entry =
-            PreparedProtocolEntry::prepare(&bytes, "usb-hid-absolute-device").map_err(E::Source)?;
+        let entry = PreparedProtocolEntry::prepare_package(package, "usb-hid-absolute-device")
+            .map_err(E::Source)?;
         let schemas = PointerPlaySchemas {
             initialize: entry
                 .input_schema(&port_id("initialize"))
