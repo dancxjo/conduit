@@ -2,7 +2,7 @@
 
 use super::StdHostComposition;
 use crate::installed_std;
-use conduit_core::{resource_offer, ResourceOffer};
+use conduit_core::{ResourceOffer, resource_offer};
 use conduit_signal::signal_resource_offers;
 
 pub(super) fn offers(
@@ -41,6 +41,13 @@ pub(super) fn offers(
         ));
     }
     if composition.data {
+        resources.push(resource_offer(
+            // One simultaneous bounded projection. Further providers require
+            // an independently configured larger Host budget, never grant growth.
+            "std/hosted-preparation",
+            conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS,
+            crate::hosted_measurement::measurement_plot_workspace_bytes(),
+        ));
         resources.push(resource_offer(
             "std/text-data-generations",
             conduit_std_offers::DATA_TEXT_GENERATION_RESOURCE_CLASS,

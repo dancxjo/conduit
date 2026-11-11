@@ -1,11 +1,11 @@
 //! Local multi-partition composition of the existing kernel and Host effects.
 use super::{
-    fore_sign_storage, kernel_preparation::KernelTables, preparation, simple_face_host,
     InstalledBack, InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
+    fore_sign_storage, kernel_preparation::KernelTables, preparation, simple_face_host,
 };
 use crate::{
-    body_execution::BodyForeOutputAdapter, hosted_keyboard::HostedKeyboardAdapter,
     BodyLiveForeQueue, ExternalForeDelivery, ExternalForeInput, RunControl, TimerAdapter,
+    body_execution::BodyForeOutputAdapter, hosted_keyboard::HostedKeyboardAdapter,
 };
 use conduit_body::BodyPlotPlan;
 use conduit_core::{
@@ -13,14 +13,14 @@ use conduit_core::{
     CancellationReason, FailureReason, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::{
-    scheduler::{HostCallRequest, SchedulerStatus},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome, HostedValueStore,
     KernelEvent,
+    scheduler::{HostCallRequest, SchedulerStatus},
 };
 use conduit_plan_lowering::{
-    activation_fragment::{lower_fragment_activations, LoweredFragmentActivations},
-    fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds},
-    lowering::{KernelIdentityMap, LoweredHostCall, FIXED_KERNEL_STORAGE_PROFILE},
+    activation_fragment::{LoweredFragmentActivations, lower_fragment_activations},
+    fragment_set::{FragmentSetBounds, lower_local_fragment_set_from_plans},
+    lowering::{FIXED_KERNEL_STORAGE_PROFILE, KernelIdentityMap, LoweredHostCall},
 };
 use std::io::Write;
 
@@ -677,6 +677,13 @@ impl<'a> BodyKernel<'a> {
                         == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
                     {
                         self.begin_creche(request, creche.as_deref_mut())?;
+                        continue;
+                    }
+                    if super::measurement_plot_back::complete(
+                        operation,
+                        request,
+                        &mut self.scheduler,
+                    )? {
                         continue;
                     }
                     if scalar_math::complete(operation, request, &mut self.scheduler)? {

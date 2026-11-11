@@ -1,4 +1,4 @@
-//! Closed cooperative tick, one-shot immediate-Source and single-Crèche kernel receipts. Shared immutable Body/workset inputs
+//! Closed cooperative tick, one-shot Source, finite projection and Crèche receipts. Shared immutable Body/workset inputs
 //! retain their existing owner; this accounts newly owned execution backing.
 use super::*;
 
@@ -69,6 +69,7 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
+        InstalledBack::MeasurementPlot(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::Creche(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::Inactive | InstalledBack::SelectedNativeSource(_) => Ok(0),
         _ => Err("IMAGE memory receipt lacks a complete owned Back accounting".into()),
@@ -111,6 +112,7 @@ impl BodyKernel<'_> {
             crate::kernel_preparation::ImageMemoryLease::owned_backing_bytes(),
         )?;
         let mut ticks = 0;
+        let mut measurements = 0;
         let mut sources = 0;
         let mut creches = 0;
         for (index, driver) in self.scheduler.drivers().iter().enumerate() {
@@ -141,6 +143,9 @@ impl BodyKernel<'_> {
                 )?;
                 creches += 1;
             }
+            if matches!(driver, InstalledBack::MeasurementPlot(_)) {
+                measurements += 1;
+            }
             if matches!(driver, InstalledBack::Tick(_)) {
                 ticks += 1;
             }
@@ -149,17 +154,19 @@ impl BodyKernel<'_> {
         if sources > 1
             || creches > 1
             || (creches == 1 && (ticks != 0 || sources != 0))
-            || (ticks == 0 && sources == 0 && creches == 0)
+            || measurements > 1
+            || (measurements == 1 && (ticks != 0 || sources != 0 || creches != 0))
+            || (ticks == 0 && sources == 0 && creches == 0 && measurements == 0)
             || (self.creche.is_some() != (creches == 1))
             || (self.native_source.is_some() != (sources == 1))
         {
             return Err(
-                "IMAGE memory receipt requires exact tick, immediate Source or single Crèche ownership".into(),
+                "IMAGE memory receipt requires exact tick, one-shot Source, single projection or Crèche ownership".into(),
             );
         }
         add(
             &mut bytes,
-            if sources == 1 || creches == 1 {
+            if sources == 1 || creches == 1 || measurements == 1 {
                 self.fore.finite_one_shot_backing_bytes()
             } else {
                 self.fore.tick_backing_bytes()
