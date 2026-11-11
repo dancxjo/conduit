@@ -16,10 +16,39 @@ pub(super) fn render_context(
     buffer: &mut [u8],
     instruction: Option<&str>,
 ) -> Result<usize, Refusal> {
+    render_context_profile(context, buffer, instruction, false, None)
+}
+pub(super) fn render_compact_context(
+    context: &[u8],
+    buffer: &mut [u8],
+    observation: &[u8],
+) -> Result<usize, Refusal> {
+    let mut quoted = [0; 4096];
+    let mut cursor = Cursor::new(quoted.as_mut_slice());
+    json(
+        &mut cursor,
+        core::str::from_utf8(observation).map_err(|_| Refusal::Malformed)?,
+    )?;
+    let length = cursor.position() as usize;
+    render_context_profile(context, buffer, None, true, Some(&quoted[..length]))
+}
+
+fn render_context_profile(
+    context: &[u8],
+    buffer: &mut [u8],
+    instruction: Option<&str>,
+    compact: bool,
+    observation: Option<&[u8]>,
+) -> Result<usize, Refusal> {
     let context = validate_canonical_structured_value(context).map_err(|_| Refusal::Malformed)?;
     let selection = field(context, "selection")?;
     let mut out = Cursor::new(buffer);
     raw(&mut out, b"{")?;
+    if compact {
+        raw(&mut out, br#""classification_fields":["domain","origin","availability","certainty","temporal_role"],"#)?;
+        raw(&mut out, br#""recorded_at_default":null,"#)?;
+        raw(&mut out, br#""time_fields":["clock_basis","scale","ticks","resolution_ticks","uncertainty_ticks"],"#)?;
+    }
     if let Some(instruction) = instruction {
         raw(&mut out, b"\"instruction\":")?;
         json(&mut out, instruction)?;
@@ -30,7 +59,9 @@ pub(super) fn render_context(
     raw(&mut out, b",\"provenance_revision\":")?;
     json(&mut out, text(field(selection, "provenance_revision")?)?)?;
     raw(&mut out, b",\"evidence\":")?;
-    collection(&mut out, field(context, "items")?, evidence)?;
+    collection(&mut out, field(context, "items")?, |out, item| {
+        evidence(out, item, compact, observation)
+    })?;
     raw(&mut out, b",\"relationships\":")?;
     collection(&mut out, field(selection, "relationships")?, |out, view| {
         record(out, view, &["subject", "object"], &["kind"])
@@ -39,26 +70,56 @@ pub(super) fn render_context(
     Ok(out.position() as usize)
 }
 
-fn evidence(out: &mut Output<'_>, view: View<'_>) -> Result<(), Refusal> {
+fn evidence(
+    out: &mut Output<'_>,
+    view: View<'_>,
+    compact: bool,
+    observation: Option<&[u8]>,
+) -> Result<(), Refusal> {
     raw(out, b"{\"identity\":")?;
     json(out, text(field(view, "identity")?)?)?;
     raw(out, b",\"content_kind\":")?;
     json(out, text(field(view, "content_kind")?)?)?;
     raw(out, b",\"classifications\":")?;
-    record(
-        out,
-        view,
-        &[],
-        &[
+    if compact {
+        raw(out, b"[")?;
+        for (index, name) in [
             "domain",
             "origin",
             "availability",
             "certainty",
             "temporal_role",
-        ],
-    )?;
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            if index != 0 {
+                raw(out, b",")?;
+            }
+            json(out, tag(field(view, name)?)?)?;
+        }
+        raw(out, b"]")?;
+    } else {
+        record(
+            out,
+            view,
+            &[],
+            &[
+                "domain",
+                "origin",
+                "availability",
+                "certainty",
+                "temporal_role",
+            ],
+        )?;
+    }
     let content = leaf(field(view, "encoded_content")?)?;
-    if let Ok(content) = std::str::from_utf8(content) {
+    if content.len() >= 32 && observation == Some(content) {
+        // The complete string already occurs at this fixed path in both the
+        // generation data and the paired native pending record. No lookup or
+        // input-supplied reference is evaluated. Retention resolves it exactly.
+        raw(out, br#","json_string_ref":"observation.content""#)?;
+    } else if let Ok(content) = std::str::from_utf8(content) {
         raw(out, b",\"utf8_content\":")?;
         json(out, content)?;
     } else {
@@ -66,15 +127,45 @@ fn evidence(out: &mut Output<'_>, view: View<'_>) -> Result<(), Refusal> {
         json(out, content)?;
     }
     raw(out, b",\"observed_at\":")?;
-    instant(out, field(view, "observed_at")?)?;
-    raw(out, b",\"recorded_at\":")?;
-    instant(out, field(view, "recorded_at")?)?;
+    instant(out, field(view, "observed_at")?, compact)?;
+    let recorded = field(view, "recorded_at")?;
+    // Unknown recorded times use the document's explicit null default. Known
+    // values, including equal observed/recorded instants, remain explicit.
+    if !compact
+        || recorded
+            .variant_payload("known")
+            .map_err(|_| Refusal::Malformed)?
+            .is_some()
+    {
+        raw(out, b",\"recorded_at\":")?;
+        if compact && same_instant(recorded, field(view, "observed_at")?)? {
+            raw(out, br#""same_as_observed_at""#)?;
+        } else {
+            instant(out, recorded, compact)?;
+        }
+    }
     raw(out, b",\"sources\":")?;
     collection(out, field(view, "sources")?, source)?;
     raw(out, b"}")
 }
 
-fn instant(out: &mut Output<'_>, view: View<'_>) -> Result<(), Refusal> {
+fn same_instant(left: View<'_>, right: View<'_>) -> Result<bool, Refusal> {
+    match (
+        left.variant_payload("known")
+            .map_err(|_| Refusal::Malformed)?,
+        right
+            .variant_payload("known")
+            .map_err(|_| Refusal::Malformed)?,
+    ) {
+        (Some(left), Some(right)) => {
+            Ok(field(left, "instant")?.value_node() == field(right, "instant")?.value_node())
+        }
+        (None, None) => Ok(true),
+        _ => Ok(false),
+    }
+}
+
+fn instant(out: &mut Output<'_>, view: View<'_>, compact: bool) -> Result<(), Refusal> {
     let Some(known) = view
         .variant_payload("known")
         .map_err(|_| Refusal::Malformed)?
@@ -82,6 +173,17 @@ fn instant(out: &mut Output<'_>, view: View<'_>) -> Result<(), Refusal> {
         return raw(out, b"null");
     };
     let instant = field(known, "instant")?;
+    if compact {
+        raw(out, b"[")?;
+        json(out, text(field(instant, "clock_basis")?)?)?;
+        raw(out, b",")?;
+        json(out, tag(field(instant, "scale")?)?)?;
+        for name in ["ticks", "resolution_ticks", "uncertainty_ticks"] {
+            raw(out, b",")?;
+            json(out, &number(field(instant, name)?)?)?;
+        }
+        return raw(out, b"]");
+    }
     raw(out, b"{\"clock_basis\":")?;
     json(out, text(field(instant, "clock_basis")?)?)?;
     raw(out, b",\"scale\":")?;

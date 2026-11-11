@@ -27,28 +27,9 @@ pub(super) fn select<'a>(
             })
             .collect();
     }
-    let mut terms = Vec::new();
-    for term in keywords(query).map(normalize_keyword) {
-        if !terms
-            .iter()
-            .any(|previous: &&str| previous.eq_ignore_ascii_case(term))
-        {
-            terms.push(term);
-        }
-    }
     let mut candidates = Vec::with_capacity(memories.len());
     for memory in memories {
-        let score = |text: &str, identity: &str| {
-            terms
-                .iter()
-                .filter(|term| {
-                    keywords(text)
-                        .chain(keywords(identity))
-                        .map(normalize_keyword)
-                        .any(|word| word.eq_ignore_ascii_case(term))
-                })
-                .count()
-        };
+        let score = |text: &str, identity: &str| shared_terms(query, text, identity);
         let evidence = memory
             .evidence()
             .as_deref()
@@ -139,6 +120,24 @@ fn project_historical_item(
     projected
 }
 
+/// The existing bounded ASCII lexical law, usable over borrowed exact packets.
+/// The query and candidate are already bounded by their owning contracts.
+pub(crate) fn shared_terms(query: &str, text: &str, identity: &str) -> usize {
+    keywords(query)
+        .map(normalize_keyword)
+        .enumerate()
+        .filter(|(index, term)| {
+            !keywords(query)
+                .map(normalize_keyword)
+                .take(*index)
+                .any(|earlier| earlier.eq_ignore_ascii_case(term))
+                && keywords(text)
+                    .chain(keywords(identity))
+                    .map(normalize_keyword)
+                    .any(|word| word.eq_ignore_ascii_case(term))
+        })
+        .count()
+}
 fn normalize_keyword(word: &str) -> &str {
     if word.eq_ignore_ascii_case("percentage") {
         "percent"
@@ -162,27 +161,50 @@ fn keywords(text: &str) -> impl Iterator<Item = &str> {
 
 /// Keep the evidence and its source context, dropping rendering fields that
 /// are unnecessary for a historical model turn.
-pub(super) fn compact_evidence(evidence: &str) -> Option<alloc::string::String> {
+pub(super) fn compact_evidence(evidence: &str, observation: &str) -> Option<alloc::string::String> {
     let snapshot: serde_json::Value = serde_json::from_str(evidence).ok()?;
+    let compact_columns = snapshot.get("classification_fields").is_some_and(|fields| {
+        [
+            "domain",
+            "origin",
+            "availability",
+            "certainty",
+            "temporal_role",
+        ]
+        .iter()
+        .enumerate()
+        .all(|(index, field)| fields[index] == *field)
+    });
     let items: Vec<_> = snapshot["evidence"]
         .as_array()?
         .iter()
         .filter_map(|item| {
+            let content = if item["json_string_ref"] == "observation.content" {
+                serde_json::to_string(observation).ok()?
+            } else { item["utf8_content"].as_str()?.into() };
             Some(serde_json::json!({
                 "identity": item["identity"],
-                "origin": item["classifications"]["origin"],
-                "temporal_role": item["classifications"]["temporal_role"],
-                "utf8_content": item["utf8_content"].as_str()?,
+                "domain": if compact_columns { &item["classifications"][0] } else { &item["classifications"]["domain"] },
+                "availability": if compact_columns { &item["classifications"][2] } else { &item["classifications"]["availability"] },
+                "certainty": if compact_columns { &item["classifications"][3] } else { &item["classifications"]["certainty"] },
+                "origin": if compact_columns { &item["classifications"][1] } else { &item["classifications"]["origin"] },
+                "temporal_role": if compact_columns { &item["classifications"][4] } else { &item["classifications"]["temporal_role"] },
+                "utf8_content": content,
                 "sources": item["sources"],
                 "observed_at": item["observed_at"],
             }))
         })
         .collect();
-    Some(alloc::string::ToString::to_string(&serde_json::json!({
+    let mut compact = serde_json::json!({
         "revision": snapshot["revision"],
         "provenance_revision": snapshot["provenance_revision"],
         "evidence": items,
-    })))
+    });
+    // A tuple's columns are part of its time provenance, not display metadata.
+    if let Some(fields) = snapshot.get("time_fields") {
+        compact["time_fields"] = fields.clone();
+    }
+    Some(alloc::string::ToString::to_string(&compact))
 }
 
 pub(super) fn asks_model_outcome(query: &str) -> bool {
@@ -207,6 +229,28 @@ pub(super) fn asks_about_past(query: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::string::ToString;
+
+    #[test]
+    fn retained_named_classifications_preserve_known_and_unknown_fields() {
+        for classifications in [
+            serde_json::json!({"domain":"human_utterance","origin":"observation","availability":"present","certainty":"certain","temporal_role":"current"}),
+            serde_json::json!({"origin":"observation","temporal_role":"current"}),
+        ] {
+            let evidence = serde_json::json!({"evidence":[{"identity":"one","classifications":classifications,"utf8_content":"report","sources":[]}]}).to_string();
+            let compact: serde_json::Value =
+                serde_json::from_str(&compact_evidence(&evidence, "report").unwrap()).unwrap();
+            for field in [
+                "domain",
+                "origin",
+                "availability",
+                "certainty",
+                "temporal_role",
+            ] {
+                assert_eq!(compact["evidence"][0][field], classifications[field]);
+            }
+        }
+    }
 
     #[test]
     fn episode_loop_recall_keeps_coupled_measurement_fields() {

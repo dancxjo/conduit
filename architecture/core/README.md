@@ -72,6 +72,7 @@ depends on semantic, application, target, or proof packages.
 | `quantity_configuration.rs` | generic value mechanism | Checked exact Quantity, physical Unit and temperature-difference startup values with separate bounded source evidence. |
 | `structured_info.rs` and children | generic value mechanism | Finite canonical structured type/value, selection, inspection, transport, and profile machinery. |
 | `temporal.rs` | generic value mechanism | Exact finite temporal identity, instant, relation, and offset-only civil primitives without clocks or timezone databases. |
+| `temporal_view.rs` | generic value mechanism | Allocation-free borrowed canonical instant validation and exact temporal correspondence, without clock authenticity or domain scheduling policy. |
 | `temporal_clock.rs` | generic mechanism | Explicit host/boot monotonic-clock identity and wall-clock correlation truth. |
 | `body_time.rs` | generic mechanism | Bounded Host-local to BodyTime correlation, drift estimation, non-regressing reconciliation, and physical interval relation. |
 | `body_time_exchange.rs` | generic mechanism | Four-stamp peer exchange and exact Body, Host, Boot, policy, and generation checks. |

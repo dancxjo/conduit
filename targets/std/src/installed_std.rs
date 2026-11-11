@@ -31,6 +31,8 @@ mod episode_context_back;
 mod episode_integration_back;
 mod episode_loop_back;
 mod episode_memory_back;
+mod episode_retrieval_context_back;
+mod episode_retrieval_producer_back;
 mod experience_evidence_back;
 #[cfg(test)]
 mod experience_evidence_back_tests;
@@ -63,6 +65,7 @@ mod ipa_constructor_back;
 mod near_back;
 mod numerical_back;
 mod pcm_clip_frames_back;
+mod temporal_evidence_back;
 pub(crate) use ieee_back::{offer as ieee_offer, owns_offer as owns_ieee_offer};
 pub(crate) use near_back::{
     admitted as prepare_near_value, offers as near_offers, owns_offer as owns_near_offer,

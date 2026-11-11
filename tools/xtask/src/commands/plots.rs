@@ -356,7 +356,8 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
         maximum_plots,
         plots,
     };
-    let bytes = serde_json::to_vec_pretty(&catalog).map_err(|error| error.to_string())?;
+    // Keep every exact Source and catalog field within the installed wire bound.
+    let bytes = serde_json::to_vec(&catalog).map_err(|error| error.to_string())?;
     if bytes.len() > WORKSPACE_CATALOG_BYTES {
         return Err(format!(
             "reviewed Workspace Plot catalog is {} bytes, above its {WORKSPACE_CATALOG_BYTES}-byte bound",
