@@ -184,6 +184,16 @@ pub(super) enum Request {
         presentation: Option<Box<conduit_body::MemberReturnImagePresentation>>,
         images: Vec<Vec<u8>>,
     },
+    /// Explicit protected recovery from the owner's durable Part/key custody.
+    /// The supplied credential is a scope hint, never the transition authority.
+    BodyMemberRecoverReturnBegin {
+        protocol: u16,
+        token: Vec<u8>,
+        credential: MembershipCredential,
+        advertisement: Box<HostAdvertisement>,
+        presentation: Box<conduit_body::MemberReturnImagePresentation>,
+        images: Vec<Vec<u8>>,
+    },
     BodyMemberReturnComplete {
         protocol: u16,
         token: Vec<u8>,

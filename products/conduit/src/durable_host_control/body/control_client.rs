@@ -128,6 +128,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyMemberCarrierRetire { token, .. }
         | Request::BodyReturn { token, .. }
         | Request::BodyMemberReturnBegin { token, .. }
+        | Request::BodyMemberRecoverReturnBegin { token, .. }
         | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }

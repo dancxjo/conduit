@@ -599,6 +599,10 @@ pub(crate) enum BodyCommand {
         /// This changes carriage only; owner pins and signed return are unchanged.
         #[arg(long)]
         forwarded_tty: bool,
+        /// Recover a fresh Boot using the owner's latest durable Part/key custody.
+        /// Normal strict credential checking remains the default.
+        #[arg(long)]
+        recover_retained_key: bool,
         /// Public retained credential, physical profile, member key and owner pin.
         basis: PathBuf,
         #[arg(long)]
@@ -644,6 +648,13 @@ mod public_surface_tests {
         ];
         assert!(Cli::try_parse_from(args).is_err());
         assert!(Cli::try_parse_from(args.into_iter().chain(["--authorize-return"])).is_ok());
+        assert!(Cli::try_parse_from(args.into_iter().chain(["--recover-retained-key"])).is_err());
+        assert!(Cli::try_parse_from(args.into_iter().chain([
+            "--authorize-return",
+            "--recover-retained-key",
+            "--forwarded-tty",
+        ]))
+        .is_ok());
     }
 
     #[test]

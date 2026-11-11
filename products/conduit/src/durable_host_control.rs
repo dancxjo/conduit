@@ -146,8 +146,8 @@ pub(crate) use body::{
     retire_carrier,
 };
 pub(crate) use body::{
-    begin_image_member_return, begin_member_return, complete_member_return, leave_member,
-    return_member,
+    begin_image_member_return, begin_member_return, begin_recovered_image_member_return,
+    complete_member_return, leave_member, return_member,
 };
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
@@ -1465,6 +1465,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyMemberCarrierRetire { token, .. }
         | Request::BodyReturn { token, .. }
         | Request::BodyMemberReturnBegin { token, .. }
+        | Request::BodyMemberRecoverReturnBegin { token, .. }
         | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
@@ -1890,6 +1891,25 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 &credential,
                 &advertisement,
                 presentation.map(|p| *p),
+                &images,
+            )
+            .map(|challenge| Response::BodyMemberReturnChallenge {
+                protocol: PROTOCOL,
+                challenge: Box::new(challenge),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberRecoverReturnBegin {
+            protocol,
+            credential,
+            advertisement,
+            presentation,
+            images,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_recovered_member_return_begin(
+                &credential,
+                &advertisement,
+                *presentation,
                 &images,
             )
             .map(|challenge| Response::BodyMemberReturnChallenge {

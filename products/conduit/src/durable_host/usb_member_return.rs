@@ -10,6 +10,7 @@ pub(crate) fn return_usb(
     state: &Path,
     authorized: bool,
     carrier: ProvisioningCarrier,
+    recover_retained_key: bool,
 ) -> Result<(), String> {
     if !authorized {
         return Err("USB member return requires --authorize-return".into());
@@ -30,12 +31,21 @@ pub(crate) fn return_usb(
     let observed = socket
         .request_member_return(&basis, timeout)
         .map_err(|e| format!("observe actual returning member: {e:?}"))?;
-    let challenge = crate::durable_host_control::begin_image_member_return(
-        state,
-        observed.presentation.clone(),
-        observed.images.clone(),
-        observed.advertisement.clone(),
-    )?;
+    let challenge = if recover_retained_key {
+        crate::durable_host_control::begin_recovered_image_member_return(
+            state,
+            observed.presentation.clone(),
+            observed.images.clone(),
+            observed.advertisement.clone(),
+        )?
+    } else {
+        crate::durable_host_control::begin_image_member_return(
+            state,
+            observed.presentation.clone(),
+            observed.images.clone(),
+            observed.advertisement.clone(),
+        )?
+    };
     let proof = socket
         .prove_member_return(&basis, &observed.advertisement, &challenge, timeout)
         .map_err(|e| format!("actual member continuity proof: {e:?}"))?;

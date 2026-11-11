@@ -112,7 +112,7 @@ pub(super) fn return_selected_member(
         selected.carrier,
         &selected.receipt_output,
         &basis,
-        peer,
+        selected.recover_retained_key,
     )
 }
 
@@ -124,10 +124,15 @@ pub(super) fn return_selected_basis(
     carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
     receipt_output: &Path,
     basis: &conduit_std_host::pico_spawn::PicoMemberReturnBasis,
-    peer: &conduit_body::FederationPeer,
+    recover_retained_key: bool,
 ) -> Result<(), String> {
     use conduit_body::MemberReturnImageAcknowledgement;
     use std::time::Duration;
+    // Resolve the actual owner again instead of trusting a copied peer argument.
+    let peer = owner.member_carrier_peer()?;
+    if basis.owner != peer {
+        return Err("selected return owner differs from the installed member pin".into());
+    }
     let mut receipt = membership_receipt_custody::reserve(receipt_output)?;
     let timeout = Duration::from_secs(5);
     let mut socket = carrier
@@ -144,11 +149,19 @@ pub(super) fn return_selected_basis(
     if resolved != observed.advertisement {
         return Err("selected member image resolution differs from observed advertisement".into());
     }
-    let challenge = owner.begin_member_image_return(
-        &basis.credential,
-        &observed.advertisement,
-        Some(observed.presentation.clone()),
-    )?;
+    let challenge = if recover_retained_key {
+        owner.begin_recovered_member_image_return(
+            &basis.credential,
+            &observed.advertisement,
+            observed.presentation.clone(),
+        )?
+    } else {
+        owner.begin_member_image_return(
+            &basis.credential,
+            &observed.advertisement,
+            Some(observed.presentation.clone()),
+        )?
+    };
     let proof = socket
         .prove_member_return(basis, &observed.advertisement, &challenge, timeout)
         .map_err(|e| format!("selected member continuity proof: {e:?}"))?;
@@ -161,11 +174,11 @@ pub(super) fn return_selected_basis(
             ),
             images: observed.images,
         },
-        peer,
+        &peer,
     )?;
     signed
         .verify_image_return(
-            peer,
+            &peer,
             &basis.member_verifying_key,
             &basis.credential,
             &observed.presentation.projection,
@@ -284,6 +297,6 @@ pub(super) fn admit_selected_member(
         selected.carrier,
         &selected.return_receipt_output,
         &return_basis,
-        peer,
+        false,
     )
 }

@@ -141,6 +141,10 @@ mod residents;
 struct UsbReturnSelection {
     #[serde(default)]
     carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
+    /// Explicit local File authority to recover a fresh Boot from the stored key.
+    /// The incoming retained credential remains a hint; strict is the default.
+    #[serde(default)]
+    recover_retained_key: bool,
     part_id: conduit_body::PartId,
     port: std::path::PathBuf,
     basis: std::path::PathBuf,
