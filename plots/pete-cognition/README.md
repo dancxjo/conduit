@@ -100,3 +100,17 @@ The optional episode archive writes one JSON line per delivered episode,
 including the evidence, recalled episode numbers, and actual model outcome.
 Each line also carries the canonical typed record bytes, including the recalled
 evidence. The command synchronizes a row before submitting the next utterance.
+
+To retain memory across invocations, reuse a checkpoint directory:
+
+```sh
+cargo xtask prove pete std-cognition --checkpoint-dir target/pete-memory --retain \
+  --utterance 'The hallway switch label is COPPER KITE.'
+cargo xtask prove pete std-cognition --checkpoint-dir target/pete-memory \
+  --utterance 'What exact label did I report for the hallway switch?'
+```
+
+The second invocation starts a replacement Play with the same Body and Wake.
+Episode numbers continue from the last committed checkpoint. One process at a
+time can use a checkpoint directory. The command waits for the episode and its
+checkpoint before submitting another utterance.
