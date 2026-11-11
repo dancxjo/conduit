@@ -17,7 +17,7 @@ function fixture(t) {
   writeFileSync(path.join(root, 'etc/apt/sources.list'), 'deb https://azure.archive.ubuntu.com/ubuntu noble main\n');
   mkdirSync(path.join(root, 'usr/share/keyrings'), { recursive: true });
   writeFileSync(path.join(root, 'usr/share/keyrings/ubuntu-archive-keyring.gpg'), 'fixture signing keys');
-  const state = { present: false, calls: [], trusted: true, baseline: '', identities: [] };
+  const state = { present: false, calls: [], trusted: true, baseline: '', identities: [], diagnostics: 0 };
   const run = (program, args, config = {}) => {
     state.calls.push([program, args]);
     if (program === 'rm') { rmSync(args.at(-1), { recursive: true, force: true }); return ''; }
@@ -46,7 +46,7 @@ function fixture(t) {
     if (program === 'apt-get') {
       const source = args.find(arg => arg.startsWith('Dir::Etc::sourcelist=')).split('=').slice(1).join('=');
       assert.doesNotMatch(readFileSync(source, 'utf8'), /microsoft|vendor/);
-      if (args.includes('update') && state.requiredFailure) throw new Error('required source unavailable');
+      if (args.includes('update') && state.requiredFailure) throw state.requiredFailure instanceof Error ? state.requiredFailure : new Error('required source unavailable');
       if (args.includes('--simulate')) return state.resolution ?? 'Inst tool (1.2 Ubuntu [amd64])\n';
       if (args.includes('--download-only')) {
         const archives = args.find(value => value.startsWith('Dir::Cache::archives=')).split('=').slice(1).join('=');
@@ -59,7 +59,7 @@ function fixture(t) {
     }
     throw new Error(`Unexpected command ${program}`);
   };
-  const options = { root, cacheRoot: path.join(root, 'cache'), run, privileged: run, imageVersion: 'test-image', report() {}, recordTool(name, identity) { state.identities.push({ name, ...identity }); } };
+  const options = { root, cacheRoot: path.join(root, 'cache'), run, privileged: run, failureDiagnostics() { state.diagnostics += 1; }, imageVersion: 'test-image', report() {}, recordTool(name, identity) { state.identities.push({ name, ...identity }); } };
   return { state, options, root };
 }
 test('already installed merged packages skip every privileged command', t => {
@@ -197,7 +197,10 @@ test('DNS recovery retains signed metadata checks and spans the complete acquisi
       if (program === 'apt-get' && args.includes('install')) assert.equal(active, true);
       return run(program, args, config);
     };
+    let diagnostics = 0;
+    options.failureDiagnostics = () => { diagnostics++; throw new Error('diagnostic unavailable'); };
     options.recoverDns = () => {
+      assert.equal(diagnostics, 1);
       active = true;
       return { identity: { schema: 'test-dns-recovery' }, restore() { active = false; restored++; } };
     };
@@ -312,4 +315,17 @@ test('authentication enumerates archive records even when an installed same-vers
     assert.ok(args.includes('--all-versions'));
     assert.equal(args.at(-1), 'tool:amd64');
   }
+});
+
+test('failed update diagnostics cannot replace its original refusal', t => {
+  const { state, options } = fixture(t);
+  const original = new Error('required source unavailable'); state.requiredFailure = original;
+  options.failureDiagnostics = () => { state.diagnostics += 1; throw new Error('diagnostic-secret'); };
+  assert.throws(() => acquireApt(['tool'], options), error => error === original);
+  assert.equal(state.diagnostics, 1);
+});
+test('successful acquisition does no failure diagnostic work', t => {
+  const { state, options } = fixture(t);
+  acquireApt(['tool'], options);
+  assert.equal(state.diagnostics, 0);
 });
