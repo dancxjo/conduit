@@ -45,3 +45,6 @@ fn overflow_refuses_without_losing_existing_timing() {
     assert!(activity.try_blocking().is_none());
     assert_eq!(activity.timing.get(), usize::MAX);
 }
+
+#[path = "native_activity_windows_tests.rs"]
+mod windows;
