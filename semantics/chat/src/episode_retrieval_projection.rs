@@ -111,8 +111,12 @@ impl PreparedEpisodeRetrievalProjection {
         put(out, br#", "original_observation":{"identity":"#)?;
         let observation = field(record, "observation")?;
         string(out, leaf(field(observation, "identity")?)?)?;
-        put(out, br#", "content":"#)?;
-        string(out, leaf(field(observation, "content")?)?)?;
+        // The complete trigger stays in the native audit record. It is not
+        // automatically eligible merely because another item was selected.
+        if selection.is_none() {
+            put(out, br#", "content":"#)?;
+            string(out, leaf(field(observation, "content")?)?)?;
+        }
         put(out, br#", "retain":"#)?;
         match leaf(field(observation, "retain")?)? {
             [0] => put(out, b"false")?,
@@ -125,9 +129,12 @@ impl PreparedEpisodeRetrievalProjection {
             let response = field(produced, "response")?;
             put(
                 out,
-                br#"{"disposition":"produced","provenance":"model_derived","content":"#,
+                br#"{"disposition":"produced","provenance":"model_derived"#,
             )?;
-            string(out, leaf(field(response, "content")?)?)?;
+            if selection.is_none() {
+                put(out, br#", "content":"#)?;
+                string(out, leaf(field(response, "content")?)?)?;
+            }
             put(out, br#", "implementation":"#)?;
             string(out, leaf(field(response, "implementation")?)?)?;
             put(out, br#", "run":"#)?;

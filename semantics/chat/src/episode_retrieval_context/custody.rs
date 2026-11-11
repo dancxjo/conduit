@@ -7,7 +7,7 @@ pub(super) fn selection_profile<'a>(
     output: &'a mut [u8; 128],
 ) -> &'a str {
     use sha2::{Digest, Sha256};
-    const PREFIX: &[u8] = b"render/episode-history-selected@1/";
+    const PREFIX: &[u8] = b"render/episode-history-selected@2/";
     let mut hash = Sha256::new();
     hash.update(PREFIX);
     hash.update(snapshot);

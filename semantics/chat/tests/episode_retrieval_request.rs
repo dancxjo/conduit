@@ -573,3 +573,73 @@ fn all_history_omitted_by_budget_still_produces_truthful_current_only_context() 
         ])
     );
 }
+
+#[test]
+fn selected_context_does_not_leak_trigger_or_prior_model_words_from_a_selected_episode() {
+    use conduit_chat::{
+        EpisodeMemory, EpisodeMemoryState, EpisodeModelResponse, EpisodeOutcome, EpisodeRecall,
+    };
+    use conduit_plot::rust_binding::BoundedSequence;
+    let mut f = fixture();
+    let old = EpisodeMemoryState::decode(&f.memory).unwrap();
+    let rows = old.memories().get().iter().map(|memory| {
+        if *memory.episode() != 2 {
+            return memory.clone();
+        }
+        EpisodeMemory::new(
+            2,
+            memory.evidence().clone(),
+            EpisodeObservation::new(
+                "UNSELECTED_TRIGGER_SECRET".into(),
+                memory.observation().identity().clone(),
+                true,
+            )
+            .unwrap(),
+            EpisodeOutcome::produced(
+                EpisodeModelResponse::new(
+                    "UNSELECTED_MODEL_SECRET".into(),
+                    "model/audit".into(),
+                    "run/audit".into(),
+                    false,
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap()
+    });
+    f.memory = EpisodeMemoryState::new(
+        *old.completed(),
+        EpisodeRecall::new(BoundedSequence::try_from_iter(rows).unwrap()).unwrap(),
+        old.owner().clone(),
+    )
+    .unwrap()
+    .encode()
+    .unwrap();
+    f.source = source(&f.memory);
+    let snapshot = PreparedEpisodeRetrievalSnapshot::prepare()
+        .capture(f.input())
+        .unwrap();
+    let context = context(&snapshot, &f.intent);
+    let mut request =
+        PreparedEpisodeRetrievalRequest::prepare("Use only selected evidence", empty_current)
+            .unwrap();
+    request.compose(&snapshot, &context).unwrap();
+    for secret in ["UNSELECTED_TRIGGER_SECRET", "UNSELECTED_MODEL_SECRET"] {
+        assert!(!request
+            .output()
+            .windows(secret.len())
+            .any(|bytes| bytes == secret.as_bytes()));
+    }
+    let pending = conduit_chat::EpisodePending::decode(request.pending()).unwrap();
+    let audit = pending
+        .recalled()
+        .get()
+        .iter()
+        .find(|memory| *memory.episode() == 2)
+        .unwrap();
+    assert_eq!(audit.observation().content(), "UNSELECTED_TRIGGER_SECRET");
+    let transmitted = audit.evidence().as_ref().unwrap();
+    assert!(!transmitted.contains("UNSELECTED_TRIGGER_SECRET"));
+    assert!(!transmitted.contains("UNSELECTED_MODEL_SECRET"));
+}

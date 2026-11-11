@@ -8,6 +8,7 @@ mod pending;
 #[path = "episode_retrieval_request/writer.rs"]
 mod writer;
 use writer::*;
+pub const EPISODE_RETRIEVAL_DATA_SCHEMA: &str = "conduit.chat/episode-retrieval-request@1";
 pub const MAXIMUM_EPISODE_RETRIEVAL_REQUEST_BYTES: usize = 4096;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EpisodeCurrentProjectionRefusal {
@@ -106,7 +107,9 @@ where
             br#"{"schema":"conduit.ai/generation-context@1","instruction":"#,
         )?;
         put(out, &self.instruction)?;
-        put(out, br#", "data":{"body_id":"#)?;
+        put(out, br#", "data":{"schema":"#)?;
+        string(out, EPISODE_RETRIEVAL_DATA_SCHEMA.as_bytes())?;
+        put(out, br#", "body_id":"#)?;
         string(out, input.expected.body_id.as_bytes())?;
         put(out, br#", "wake_id":"#)?;
         string(out, input.expected.wake_id.as_bytes())?;
