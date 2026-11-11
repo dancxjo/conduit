@@ -12,6 +12,8 @@ mod assigned;
 pub use assigned::PreparedAssignedRecordService;
 mod execution;
 mod installation;
+mod offer;
+pub use offer::capability_offer;
 mod selection;
 pub use installation::ReadyRecordService;
 pub use selection::PreparedRecordService;
