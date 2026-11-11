@@ -51,3 +51,31 @@ acknowledged Show, cold reboot, output loss and maintained maintenance access
 remain acceptance gates under #6325. Shared interactive owner/member bootstrap
 and input routing remain required to finish optional boot into the full GUI.
 This adapter and preparation command alone are not a completed appliance image.
+
+A member that must reconnect after finite encounters can explicitly select a
+**standing contact**. On its running Body owner, use the ordinary `body
+member-route` command with `--continuing`, the member's public credential, a
+numeric `wss://IP:PORT` locator, and the reviewed TLS certificate/key. Redirect
+its one contact document to a private file. On the stopped member install it:
+
+```sh
+conduit body member-contact --descriptor /private/member-contact.json \
+  --state-dir /private/host-state --authorize-route
+```
+
+The owner listener must remain running. The contact is retained planning policy,
+not an invitation, current presence, initialized Line or execution grant. Every
+connection still performs the existing signed return/current-member proof and
+exact native Mask admission. The native service retires a carrier before its
+finite frame/deadline budget is exhausted, obtains fresh pinned evidence, and
+authenticates the replacement without clearing historical pixels. Attempts and
+I/O leases are bounded, including partial TLS/WebSocket traffic. Numeric locators
+avoid unbounded DNS during that loop; an address change needs explicit contact
+replacement. Owner Host/Boot/key changes also require explicit reselection.
+
+After physical verification, boot-to-display uses the reviewed system unit.
+For tty1, preserve existing states, disable the ordinary user Host service,
+disable `getty@tty1.service`, and enable `conduit-direct-display.service` rather
+than leaving competing boot units enabled. The account and DRM/session
+prerequisites above still apply; these commands do not add keyboard interaction
+or turn historical pixels into a current Show.

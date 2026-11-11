@@ -315,8 +315,10 @@ pub(crate) fn serve_body_member_contact(
     // accepted connection must not manufacture a later challenge deadline.
     let mut issued: Option<MemberEncounter> = None;
     loop {
-        let mut line = match listener.accept_with_timeout(Duration::from_secs(ttl_seconds.min(60)))
-        {
+        // Anonymous connection/handshake/input gets only the attempt budget.
+        // Existing authenticated presence installs its own separately funded
+        // finite I/O lease after proof; raw bytes cannot hold this slot for60s.
+        let mut line = match listener.accept_with_timeout(Duration::from_secs(ttl_seconds.min(3))) {
             Ok(line) => line,
             Err(SecureWebSocketError::AcceptDeadline) => continue,
             // A malformed peer cannot permanently kill an operator-selected service.
