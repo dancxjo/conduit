@@ -8,6 +8,7 @@
 
 extern crate alloc;
 mod active_scope;
+mod assigned_configuration;
 pub mod assigned_play_scope;
 #[cfg(feature = "body-plan-binding")]
 pub mod body_fragment_scope;
@@ -21,10 +22,10 @@ pub mod fragment_set;
 pub mod lowering;
 pub mod shared_pool_runtime;
 
+pub mod selected_assigned_operation_set;
 /// Exact single-call native selection validation before Play.
 pub mod selected_operation;
 pub mod selected_operation_set;
-pub mod selected_assigned_operation_set;
 
 pub mod resident_inventory;
 pub mod selected_assigned_expression;

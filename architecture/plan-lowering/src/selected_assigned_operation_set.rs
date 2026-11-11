@@ -2,9 +2,10 @@
 //! Success proves NO reservation or physical custody. Original Ready owners
 //! must validate providers/original grants; complete live resource admission and
 //! the ordinary Start ledger check remain mandatory before their transfer.
+use crate::assigned_configuration as configuration_check;
 use crate::{
     assigned_play_scope::AssignedPlayScope,
-    selected_assigned_operation::{AssignedOperationInput, SelectedAssignedOperationPlan},
+    selected_assigned_operation::SelectedAssignedOperationPlan,
     selected_operation_set::{
         SelectedOperationSet, SelectedOperationSetRefusal as E, SelectedServiceContract,
         SelectedServiceRoute, MAXIMUM_SELECTED_OPERATIONS,
@@ -12,8 +13,6 @@ use crate::{
 };
 use conduit_core as c;
 use conduit_kernel::{HostCallId, PortId};
-#[path = "assigned_configuration.rs"]
-mod configuration_check;
 
 /// Independently retained native/implementation facts, not received IDs.
 /// Each authority corresponds to the trusted call and actual operation order.

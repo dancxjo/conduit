@@ -1,10 +1,9 @@
 //! Exact single cooperative native operation from an explicitly admitted assigned
 //! projection. Serialized facts do not replace a locally issued opaque capability.
+use crate::assigned_configuration as configuration_check;
 use crate::selected_operation::{
     matching_scope, SelectedCallRefusal as E, SelectedOperationContract,
 };
-#[path = "assigned_configuration.rs"]
-mod configuration_check;
 #[path = "assigned_operation_input.rs"]
 mod input;
 use conduit_core as c;
