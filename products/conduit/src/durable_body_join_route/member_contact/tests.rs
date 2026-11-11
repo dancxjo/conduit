@@ -90,18 +90,21 @@ fn tls_discovery_case(wrong_nonce: bool) {
     let private = root.join("key.pem");
     std::fs::write(&certificate, cert.pem()).unwrap();
     std::fs::write(&private, signing_key.serialize_pem()).unwrap();
+    let reservation = std::net::TcpListener::bind("0.0.0.0:0").unwrap();
+    let port = reservation.local_addr().unwrap().port();
+    drop(reservation);
     let listener = SecureWebSocketListener::bind(
-        "127.0.0.1:0".parse().unwrap(),
+        std::net::SocketAddr::from(([0, 0, 0, 0], port)),
         &certificate,
         &private,
         MAXIMUM_ROUTE_FRAME_BYTES as u32,
         true,
     )
     .unwrap();
-    contact.reachability = format!("wss://{}", listener.local_addr().unwrap());
+    let address = std::net::SocketAddr::from(([127, 0, 0, 1], port));
+    contact.reachability = format!("wss://{address}");
     contact.authentication.transport_binding_sha256 = listener.certificate_binding_sha256();
     contact.authentication.server_identity = "127.0.0.1".into();
-    let address = listener.local_addr().unwrap();
     let expected = contact.clone();
     let worker = std::thread::spawn(move || {
         let mut line = listener
