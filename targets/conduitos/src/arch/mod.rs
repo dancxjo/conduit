@@ -387,3 +387,7 @@ mod rpi3_memory_tests;
     any(feature = "aarch64-orange-pi-5", feature = "aarch64-jetson-nano")
 ))]
 compile_error!("select exactly one AArch64 board feature");
+
+#[cfg(test)]
+#[path = "rpi3/firmware_gpio.rs"]
+mod rpi3_firmware_gpio_tests;

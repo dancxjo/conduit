@@ -18,6 +18,7 @@ const SCANOUT_END: u32 = 0x3f00_0000;
 mod audio;
 #[path = "../armv6/entropy.rs"]
 mod entropy;
+mod firmware_gpio;
 #[path = "../armv6/framebuffer.rs"]
 mod framebuffer;
 #[path = "../armv6/mailbox.rs"]
@@ -196,20 +197,28 @@ fn release_usb_hub() -> Result<(), &'static str> {
     let HubReset::FirmwareGpio(pin) = BOARD.hub_reset() else {
         return Err("rpi3-hub-reset-profile");
     };
-    let mut message = Message(UnsafeCell::new([
-        32,
-        0,
-        0x38041,
-        8,
-        8,
-        128 + u32::from(pin),
-        1,
-        0,
-    ]));
-    let words = message.0.get_mut();
-    mailbox::call(words)?;
-    if words[4] != 0x8000_0008 || words[6] != 1 {
-        return Err("rpi3-hub-reset-refused");
+    use core::fmt::Write;
+    for set in [true, false] {
+        let mut message = Message(UnsafeCell::new(firmware_gpio::request(pin, set)));
+        let words = message.0.get_mut();
+        mailbox::call(words)?;
+        let mut text = crate::sign_format::FixedText::new();
+        let _ = writeln!(
+            text,
+            "CONDUIT_RPI3_HUB_GPIO set={set} pin={} response={:#x} status={:#x} state={:#x}",
+            128 + u32::from(pin),
+            words[4],
+            words[5],
+            words[6]
+        );
+        present(text.as_bytes());
+        if !firmware_gpio::accepted(words, set) {
+            return Err(if set {
+                "rpi3-hub-reset-refused"
+            } else {
+                "rpi3-hub-reset-readback-refused"
+            });
+        }
     }
     Ok(())
 }
