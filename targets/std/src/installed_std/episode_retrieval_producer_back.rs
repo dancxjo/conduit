@@ -24,6 +24,9 @@ pub(super) static FACTORY: BackFactory = BackFactory {
 pub(super) struct EpisodeRetrievalProducerBack {
     producer: PreparedEpisodeRetrievalProducer,
     staged: bool,
+    current: [Vec<u8>; 3],
+    candidate: Vec<u8>,
+    candidate_slot: Option<usize>,
     context_closed: bool,
     experience_closed: bool,
     complete: bool,
@@ -57,6 +60,23 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalProducerBack {
                 failure(2)
             };
         }
+        // Current ports carry replacements, not a fresh packet for every
+        // episode. A committed replacement wins a tie with a sampled experience.
+        for (index, port) in [INTENT, POLICY, CLOCK].into_iter().enumerate() {
+            if let Some(value) = bytes.input(port) {
+                if value.len() > 4096 {
+                    return failure(5);
+                }
+                self.candidate.clear();
+                self.candidate.extend_from_slice(value);
+                self.candidate_slot = Some(index);
+                return if io.consume(port).is_ok() {
+                    StepOutcome::Progress
+                } else {
+                    failure(2)
+                };
+            }
+        }
         if let Some(experience) = bytes.input(EXPERIENCE) {
             if !self.producer.has_context() {
                 return if self.context_closed {
@@ -72,17 +92,21 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalProducerBack {
                     StepOutcome::Await
                 };
             };
-            let (Some(intent), Some(policy), Some(clock)) =
-                (bytes.input(INTENT), bytes.input(POLICY), bytes.input(CLOCK))
-            else {
+            if self.current.iter().any(Vec::is_empty) {
                 return StepOutcome::Await;
-            };
+            }
             if !io.output_ready(WINDOW) || !io.output_ready(CAPTURE) {
                 return StepOutcome::Await;
             }
             if self
                 .producer
-                .stage(experience, memory, intent, policy, clock)
+                .stage(
+                    experience,
+                    memory,
+                    &self.current[0],
+                    &self.current[1],
+                    &self.current[2],
+                )
                 .is_err()
             {
                 return failure(4);
@@ -95,7 +119,7 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalProducerBack {
                 self.producer.cancel();
                 return StepOutcome::Await;
             }
-            for input in [EXPERIENCE, MEMORY, INTENT, POLICY, CLOCK] {
+            for input in [EXPERIENCE, MEMORY] {
                 if io.consume(input).is_err() {
                     return failure(2);
                 }
@@ -153,12 +177,17 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalProducerBack {
         }
     }
     fn step_committed(&mut self) {
+        if let Some(index) = self.candidate_slot.take() {
+            core::mem::swap(&mut self.current[index], &mut self.candidate);
+        }
         if core::mem::take(&mut self.staged) {
             self.producer.commit();
         }
     }
     fn cancel(&mut self) {
         self.producer.cancel();
+        self.candidate_slot = None;
+        self.candidate.clear();
         self.staged = false;
         self.complete = true;
     }
@@ -185,6 +214,9 @@ fn prepare(
         EpisodeRetrievalProducerBack {
             producer: PreparedEpisodeRetrievalProducer::prepare(),
             staged: false,
+            current: core::array::from_fn(|_| Vec::with_capacity(4096)),
+            candidate: Vec::with_capacity(4096),
+            candidate_slot: None,
             context_closed: false,
             experience_closed: false,
             complete: false,
