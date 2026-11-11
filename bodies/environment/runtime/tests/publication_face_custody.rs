@@ -3,8 +3,8 @@
 mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+use conduit_dht11_observation::{ObservationContract, PreparedSourceFrameDecoder};
 use conduit_environment_runtime::{
-    observation::{ObservationContract, PreparedSourceFrameDecoder},
     publication::{PublicationChannel as Channel, PublicationSnapshot},
     publication_face_custody::{CustodyRefusal as E, LocalPublicationFace},
     retained_publication_face::RetainedPublicationFace,

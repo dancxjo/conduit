@@ -46,7 +46,7 @@ pub(super) fn prepare_back<'a>(
         },
         Role::Observation => Back::Native(
             CaptureBack::observation(
-                &conduit_environment_runtime::observation::ObservationContract::prepare().unwrap(),
+                &conduit_dht11_observation::ObservationContract::prepare().unwrap(),
             )
             .unwrap(),
         ),

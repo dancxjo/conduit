@@ -99,6 +99,22 @@ compatibility claim is introduced, and installed firmware is not rewritten by
 this source extraction. The existing environmental display-output proof entrance
 now includes the shared package alongside application frame/packet checks.
 
+The DHT11 observation realization moves to `mechanisms/devices/dht11` as a
+`no_std` shared device package. The protocol and quantity Forms remain authored
+in the existing device `.conduit` files. Optional kernel-step and source-capture
+features retain the original conversion Back and checked request geometry;
+neither installs a physical provider. Application publication borrows the one
+shared immutable result schema. Device-only Forms/frame tests move with the
+implementation while the Face/Mask integration remains with the application.
+Direct consumers replace the Body-local observation module; no forwarding
+module hides an unconverted caller.
+
+The inspected integration draft has additional packing/static-storage APIs not
+present on `dev`. Preserve those at adoption, just as for the Face and selector
+extractions. This does not generalize the DHT11 contract into a promise that
+every environmental sensor has the same fields or encoding; other devices
+provide their own truthful observation realization.
+
 ## Authored construction gap
 
 The inspected `make/body/src/construction_source.rs` accepts Body identity and
