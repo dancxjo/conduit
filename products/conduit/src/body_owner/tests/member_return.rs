@@ -495,3 +495,6 @@ fn original_member_grants_publish_only_after_signed_fresh_durable_return() {
         );
     }
 }
+
+#[path = "member_return/recovery.rs"]
+mod recovery;
