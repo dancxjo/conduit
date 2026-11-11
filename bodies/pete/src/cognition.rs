@@ -1,5 +1,7 @@
 //! Portable frame and bounded Situation-to-Experience adapter for Pete.
-use conduit_chat::{episode_experience_type, EpisodeExperience, EpisodeObservation};
+use conduit_chat::{
+    episode_experience_type, EpisodeExperience, EpisodeExperienceInput, EpisodeObservation,
+};
 use conduit_core::{
     kind_id, port_id, Back, BackOfferBuilder, CapabilityLimits, CapabilityOffer, Kind,
     PortDescriptor, PortDirection, PortTemporal, TemporalInstant,
@@ -8,8 +10,7 @@ use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog};
 use conduit_robotics::{BatteryObservation, ChargingState};
 
 use crate::{
-    integrate_pete_experience, project_pete_experience_evidence, select_pete_situation, Observed,
-    PeteBodyState, SituationInput,
+    pete_situation_experiences, select_pete_situation, Observed, PeteBodyState, SituationInput,
 };
 
 #[allow(dead_code)]
@@ -21,6 +22,10 @@ pub use generated::{
     PeteCognitionBattery, PeteCognitionBatteryInput, PeteCognitionFrame, PeteCognitionSafety,
     PeteCognitionSign, PeteCognitionUtterance,
 };
+
+#[path = "cognition_inputs.rs"]
+mod inputs;
+pub use inputs::*;
 
 pub const PETE_COGNITION_SITUATE_KIND: &str = "pete/situate-experience";
 pub const MAXIMUM_PETE_COGNITION_FRAME_BYTES: usize = 16_384;
@@ -133,6 +138,21 @@ impl TryFrom<PeteCognitionBattery> for PeteCognitionBatteryInput {
 pub fn situate_pete_frame(
     frame: &PeteCognitionFrame,
 ) -> Result<EpisodeExperience, PeteCognitionRefusal> {
+    let input = prepare_pete_experience_input(frame)?;
+    conduit_chat::integrate_episode_experience(
+        &input,
+        conduit_semantic_catalog::experience_evidence_limits(),
+    )
+    .map_err(|error| match error {
+        conduit_human::ExperienceIntegrationError::Evidence(_) => PeteCognitionRefusal::Evidence,
+        conduit_human::ExperienceIntegrationError::Admission(_) => PeteCognitionRefusal::Experience,
+    })
+}
+
+/// Prepare sourced generic inputs. CurrentExperience admission belongs to its Gear.
+pub fn prepare_pete_experience_input(
+    frame: &PeteCognitionFrame,
+) -> Result<EpisodeExperienceInput, PeteCognitionRefusal> {
     use PeteCognitionRefusal as R;
     let instant = |instant: &conduit_time::NativeTemporalInstant| {
         TemporalInstant::try_from(instant.clone()).map_err(|_| R::InvalidObservation)
@@ -189,8 +209,7 @@ pub fn situate_pete_frame(
             .map_or(SituationInput::Missing, SituationInput::Observed),
     )
     .map_err(|_| R::Situation)?;
-    let mut experience =
-        integrate_pete_experience(&situation, policy, &[]).map_err(|_| R::Experience)?;
+    let mut inputs = pete_situation_experiences(&situation, policy).map_err(|_| R::Experience)?;
     let homeostasis = super::cognition_homeostasis::homeostatic_evidence(
         &situation,
         battery_observation
@@ -200,11 +219,10 @@ pub fn situate_pete_frame(
         policy,
         safety_observation.as_ref(),
     )?;
-    experience
-        .try_admit(homeostasis)
-        .map_err(|_| R::Experience)?;
-    let evidence = project_pete_experience_evidence(
-        &experience,
+    inputs.items.push(homeostasis);
+    let evidence = conduit_human::prepare_experience_evidence(
+        &inputs.items,
+        &inputs.relationships,
         *frame.revision(),
         frame.provenance_revision(),
     )
@@ -215,7 +233,10 @@ pub fn situate_pete_frame(
         *utterance.retain(),
     )
     .map_err(|_| R::InvalidObservation)?;
-    EpisodeExperience::new(evidence, trigger).map_err(|_| R::Evidence)
+    let input =
+        conduit_human::ExperienceIntegrationInput::new(evidence, policy, frame.reference().clone())
+            .map_err(|_| R::Evidence)?;
+    EpisodeExperienceInput::new(input, trigger).map_err(|_| R::Evidence)
 }
 
 /// Byte boundary for a Host that has selected the exact frame Back.
@@ -298,5 +319,12 @@ pub fn install_pete_cognition_catalog(
     })?;
     profile
         .insert_kind(pete_cognition_situate_contract())
+        .map_err(|error| error.to_string())?;
+    startup.insert(KindSignature {
+        kind: PETE_COGNITION_INPUTS_KIND.into(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert_kind(pete_cognition_inputs_contract())
         .map_err(|error| error.to_string())
 }

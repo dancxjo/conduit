@@ -4,21 +4,21 @@ use clap::Args;
 use conduit_body::{Body, BodyConversationContext, BodyConversationContextBasis};
 use conduit_core::{BaseImplementationId, ConnectionTrack, PlanFragment, PortDirection};
 use conduit_pete::{
-    CreateCognitionCaptureError, PeteCognitionBatteryInput, PeteCognitionFrame, PeteCognitionSign,
-    PeteCognitionUtterance, UartProfile, capture_pete_cognition_battery,
+    capture_pete_cognition_battery, CreateCognitionCaptureError, PeteCognitionBatteryInput,
+    PeteCognitionFrame, PeteCognitionSign, PeteCognitionUtterance, UartProfile,
 };
 use conduit_planner::{
-    ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions, default_expanded_placements,
-    plan_expanded_authoring_with_options,
+    default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
+    ForeBoundaryKey, PlanningOptions,
 };
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_std_host::{
+    episode_checkpoint::EpisodeCheckpointResidence,
+    hosted_local_model::OllamaDiscovery,
+    std_create_uart::{monotonic_millis, StdCreateUartBase, StdCreateUartObservation},
     BodyLiveForeAdmission, BodyLiveForeQueue, ExternalForeDelivery, ExternalForeInput,
     ExternalForeOutputAdapter, HostedFrameBack, RunControl, StdHost, StdHostComposition,
     StdHostConfig, ThreadTimer,
-    episode_checkpoint::EpisodeCheckpointResidence,
-    hosted_local_model::OllamaDiscovery,
-    std_create_uart::{StdCreateUartBase, StdCreateUartObservation, monotonic_millis},
 };
 use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
 use std::{collections::BTreeMap, path::PathBuf, sync::mpsc};
@@ -84,10 +84,10 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
         .initialize(6144, vec![conduit_ai::LocalModelKindProfile::GenerateFlow])
         .map_err(|error| format!("initialize Ollama: {error:?}"))?;
     let back = HostedFrameBack::new(
-        conduit_pete::pete_cognition_situate_offer(),
+        conduit_pete::pete_cognition_inputs_offer(),
         conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
         conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
-        conduit_pete::situate_pete_frame_bytes,
+        conduit_pete::prepare_pete_experience_input_bytes,
     )?;
     let initial = args
         .checkpoint_dir

@@ -432,6 +432,11 @@ pub fn plan_host(
             .placements
             .iter()
             .any(|placement| placement.implementation_id.as_str()
+                == conduit_std_offers::EPISODE_EXPERIENCE_INTEGRATION_IMPLEMENTATION));
+        assert!(fragment
+            .placements
+            .iter()
+            .any(|placement| placement.implementation_id.as_str()
                 == conduit_std_offers::EPISODE_MODEL_CONTEXT_IMPLEMENTATION));
     }
     Harness {

@@ -3,7 +3,7 @@
 use conduit_core::SignId;
 use conduit_human::{
     CurrentExperience, ExperienceAvailability, ExperienceCertainty, ExperienceDomain,
-    ExperienceItem, ExperienceLimits, ExperienceOrigin, ExperienceRefusal, ExperienceRelation,
+    ExperienceItem, ExperienceOrigin, ExperienceRefusal, ExperienceRelation,
     ExperienceRelationKind, ExperienceSourceRef, ExperienceTemporalPolicy,
 };
 use serde::Serialize;
@@ -35,35 +35,15 @@ pub fn integrate_pete_experience(
     policy: ExperienceTemporalPolicy,
     selected_memory: &[RetainedExperience],
 ) -> Result<CurrentExperience, PeteExperienceRefusal> {
-    use conduit_semantic_catalog::{
-        EXPERIENCE_EVIDENCE_MAX_BYTES, EXPERIENCE_EVIDENCE_MAX_CONTENT_BYTES,
-        EXPERIENCE_EVIDENCE_MAX_IDENTITY_BYTES, EXPERIENCE_EVIDENCE_MAX_ITEMS,
-        EXPERIENCE_EVIDENCE_MAX_RELATIONSHIPS, EXPERIENCE_EVIDENCE_MAX_SOURCES,
-    };
     let inputs = pete_situation_experiences(situation, policy)?;
-    let maximum_items = EXPERIENCE_EVIDENCE_MAX_ITEMS;
+    let maximum_items = conduit_semantic_catalog::EXPERIENCE_EVIDENCE_MAX_ITEMS;
     if inputs.items.len().saturating_add(selected_memory.len()) > maximum_items {
         return Err(PeteExperienceRefusal::Admission(
             ExperienceRefusal::ItemCapacity,
         ));
     }
     let mut current = CurrentExperience::new(
-        ExperienceLimits {
-            maximum_items,
-            maximum_current_items: maximum_items,
-            maximum_recent_items: maximum_items,
-            maximum_stale_items: maximum_items,
-            maximum_historical_items: maximum_items,
-            maximum_items_per_domain: maximum_items,
-            maximum_model_derived_items: maximum_items,
-            maximum_selected_memory_items: maximum_items,
-            maximum_source_refs: EXPERIENCE_EVIDENCE_MAX_SOURCES,
-            maximum_relationships: EXPERIENCE_EVIDENCE_MAX_RELATIONSHIPS,
-            maximum_item_bytes: EXPERIENCE_EVIDENCE_MAX_CONTENT_BYTES,
-            maximum_encoded_bytes: EXPERIENCE_EVIDENCE_MAX_BYTES,
-            maximum_conflict_alternatives: 2,
-            maximum_identity_bytes: EXPERIENCE_EVIDENCE_MAX_IDENTITY_BYTES,
-        },
+        conduit_semantic_catalog::experience_evidence_limits(),
         situation.reference.clone(),
         policy,
     )

@@ -6,6 +6,8 @@ pub const STEPS: &[Step] = &[
         &["test", "--locked", "-p", "conduit-pete", "--test", "ownership"]),
     Step::new("pete-cognition.adapters", "Check Pete's typed experience adapters", "cargo",
         &["test", "--locked", "-p", "conduit-pete", "--lib", "pete_"]),
+    Step::new("pete-cognition.experience-integration", "Check generic batch admission, exact provenance, and freshness refusals", "cargo",
+        &["test", "--locked", "-p", "conduit-human", "--test", "experience_integration"]),
     Step::new("pete-cognition.evidence", "Check bounded explicit evidence projection", "cargo",
         &["test", "--locked", "-p", "conduit-semantic-catalog", "--features", "plot-catalog", "--test", "experience_evidence"]),
     Step::new("pete-cognition.installed-evidence", "Check the installed allocation-free evidence projection Back", "cargo",

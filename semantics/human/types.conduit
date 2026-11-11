@@ -341,6 +341,13 @@ type ExperienceEvidenceRequest = {
     evidence: ExperienceEvidenceItems
 }
 
+# A complete finite revision to admit through CurrentExperience.
+type ExperienceIntegrationInput = {
+    evidence: ExperienceEvidenceRequest
+    reference: TemporalInstant
+    policy: ExperienceTemporalPolicy
+}
+
 # Inspectable evidence only, never model instructions or authority.
 type ExperienceEvidenceContext = {
     selection: ExperienceEvidenceSelection

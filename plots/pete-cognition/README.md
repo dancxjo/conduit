@@ -2,15 +2,15 @@
 
 Each typed frame supplies a battery reading, human utterance, safety state,
 and reference instant with explicit source signs. The Pete Situation Gear
-selects the Situation and constructs the bounded Experience input for the
-recall Gear. The model and memory cell run in the same ordinary Play.
+selects the Situation and prepares an `EpisodeExperienceInput` for the generic
+`experience/integrate-episode` Gear. That Gear admits the whole revision through
+the existing `CurrentExperience` reducer, checking freshness, sources, capacities,
+and relationships before publishing the episode's selected Experience.
 
-The Plot invokes Situation selection and Experience integration through
-`pete/situate-experience`. `body/episode-recall-experience` selects retained
-episodes and publishes an `EpisodeRecollection` with the selected evidence,
-scores, and pending episode. `body/episode-model-context` renders that selection
-for the model. Experience integration through an explicit generic Experiencer
-Gear remains implementation work for the cognition MVP.
+`body/episode-recall-experience` selects retained episodes and publishes an
+`EpisodeRecollection` with the selected evidence, scores, and pending episode.
+`body/episode-model-context` renders that selection for the model. The model,
+retainer, and memory cell run in the same ordinary Play.
 
 Situation selection also feeds fresh battery and safety readings through Pete's
 homeostasis reducer. The result is labeled as deterministic derived evidence,

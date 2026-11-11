@@ -28,6 +28,7 @@ mod creche_back;
 mod deadline_host;
 mod distance_frequency_back;
 mod episode_context_back;
+mod episode_integration_back;
 mod episode_loop_back;
 mod episode_memory_back;
 mod experience_evidence_back;

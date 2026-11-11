@@ -173,6 +173,31 @@ pub fn episode_model_context_contract() -> Kind {
     )
 }
 
+/// Integrate sourced inputs through CurrentExperience before retrieval.
+pub fn episode_experience_input_type() -> StructuredInfoType {
+    crate::EpisodeExperienceInput::semantic_type().expect("native experience input Type")
+}
+pub fn episode_experience_integration_contract() -> Kind {
+    use PortDirection::{Input, Output};
+    kind(
+        "experience/integrate-episode",
+        "conduit.experience/integrate-episode@1",
+        vec![flow(
+            "inputs",
+            type_kind(episode_experience_input_type()),
+            Input,
+            true,
+        )],
+        vec![flow(
+            "experience",
+            type_kind(episode_experience_type()),
+            Output,
+            true,
+        )],
+        MAXIMUM_EPISODE_EXPERIENCE_BYTES,
+    )
+}
+
 /// One pending episode pairs with one model-derived response.
 pub fn episode_retain_semantic_contract() -> Kind {
     use PortDirection::{Input, Output};
@@ -273,6 +298,7 @@ pub fn install_episode_loop_catalog(
     for (name, value_type) in [
         ("EpisodeObservation", episode_observation_type()),
         ("EpisodeExperience", episode_experience_type()),
+        ("EpisodeExperienceInput", episode_experience_input_type()),
         ("EpisodeMemoryState", episode_memory_state_type()),
         ("EpisodePending", episode_pending_type()),
         ("EpisodeRecollection", episode_recollection_type()),
@@ -287,6 +313,7 @@ pub fn install_episode_loop_catalog(
         episode_experience_compose_semantic_contract(),
         episode_recall_experience_contract(),
         episode_model_context_contract(),
+        episode_experience_integration_contract(),
         episode_retain_semantic_contract(),
         episode_memory_semantic_contract(),
     ] {

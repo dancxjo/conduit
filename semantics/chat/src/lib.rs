@@ -15,17 +15,19 @@ pub use generated::{
     BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleForm,
     BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, ConversationRequestEvidence,
     DeliveryAuthority, DeliveryEvidence, DeliveryRequest, DeliveryState, DeliveryUpdate,
-    EpisodeExperience, EpisodeMemory, EpisodeMemoryOwner, EpisodeMemoryState, EpisodeModelResponse,
-    EpisodeObservation, EpisodeOutcome, EpisodePending, EpisodeRecall, EpisodeRecallScores,
-    EpisodeRecollection, EpisodeRecord, EpisodeRefusal, LiveConversationFlowProjection,
-    LiveConversationProjectionError, LiveConversationStage, LiveConversationStageKind,
-    LiveConversationStageState, LiveConversationStages, MessageAttachment, MessageAttachmentSlot,
-    MessageMetadataEntry, MessageMetadataSlot, MessageOptionalDisplayName, MessageOptionalSender,
-    MessageOptionalSubject, MessageRecipient, MessageRecipientSlot, NotificationEvent,
-    PortableMessage, PresenceEvent, PresenceState, RecognitionEvidenceStatus,
-    RecognitionEvidenceView, SpeechCommitEvidenceView,
+    EpisodeExperience, EpisodeExperienceInput, EpisodeMemory, EpisodeMemoryOwner,
+    EpisodeMemoryState, EpisodeModelResponse, EpisodeObservation, EpisodeOutcome, EpisodePending,
+    EpisodeRecall, EpisodeRecallScores, EpisodeRecollection, EpisodeRecord, EpisodeRefusal,
+    LiveConversationFlowProjection, LiveConversationProjectionError, LiveConversationStage,
+    LiveConversationStageKind, LiveConversationStageState, LiveConversationStages,
+    MessageAttachment, MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot,
+    MessageOptionalDisplayName, MessageOptionalSender, MessageOptionalSubject, MessageRecipient,
+    MessageRecipientSlot, NotificationEvent, PortableMessage, PresenceEvent, PresenceState,
+    RecognitionEvidenceStatus, RecognitionEvidenceView, SpeechCommitEvidenceView,
 };
 
+mod episode_integration;
+pub use episode_integration::*;
 mod body_chat;
 pub use body_chat::*;
 mod conversation_request_evidence;

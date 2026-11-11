@@ -236,6 +236,12 @@ type EpisodeObservation = {
     retain: Boolean
 }
 
+# Correlate one trigger with a batch awaiting generic Experience admission.
+type EpisodeExperienceInput = {
+    observation: EpisodeObservation
+    integration: ExperienceIntegrationInput
+}
+
 # The producer binds one trigger and its selected experience atomically.
 type EpisodeExperience = {
     observation: EpisodeObservation

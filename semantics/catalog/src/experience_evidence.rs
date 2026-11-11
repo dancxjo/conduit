@@ -127,3 +127,23 @@ pub fn install_experience_evidence_catalogs(
     }
     Ok(())
 }
+
+/// Fixed profile shared by the generic batch integrator and Pete's preparation API.
+pub fn experience_evidence_limits() -> conduit_human::ExperienceLimits {
+    conduit_human::ExperienceLimits {
+        maximum_items: EXPERIENCE_EVIDENCE_MAX_ITEMS,
+        maximum_current_items: EXPERIENCE_EVIDENCE_MAX_ITEMS,
+        maximum_recent_items: EXPERIENCE_EVIDENCE_MAX_ITEMS,
+        maximum_stale_items: EXPERIENCE_EVIDENCE_MAX_ITEMS,
+        maximum_historical_items: EXPERIENCE_EVIDENCE_MAX_ITEMS,
+        maximum_items_per_domain: EXPERIENCE_EVIDENCE_MAX_ITEMS,
+        maximum_model_derived_items: EXPERIENCE_EVIDENCE_MAX_ITEMS,
+        maximum_selected_memory_items: EXPERIENCE_EVIDENCE_MAX_ITEMS,
+        maximum_source_refs: EXPERIENCE_EVIDENCE_MAX_SOURCES,
+        maximum_relationships: EXPERIENCE_EVIDENCE_MAX_RELATIONSHIPS,
+        maximum_item_bytes: EXPERIENCE_EVIDENCE_MAX_CONTENT_BYTES,
+        maximum_encoded_bytes: EXPERIENCE_EVIDENCE_MAX_BYTES,
+        maximum_conflict_alternatives: 2,
+        maximum_identity_bytes: EXPERIENCE_EVIDENCE_MAX_IDENTITY_BYTES,
+    }
+}

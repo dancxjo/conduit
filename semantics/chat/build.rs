@@ -25,6 +25,15 @@ fn main() {
     catalog
         .insert_structured_type("ExperienceEvidenceRequest", evidence.clone())
         .expect("evidence request Type installs once");
+    let integration = conduit_human::ExperienceIntegrationInput::semantic_type()
+        .expect("experience integration Type checks");
+    let StructuredInfoTypeShape::Record { schema, .. } = integration.shape() else {
+        panic!("experience integration is a named record");
+    };
+    let integration_identity = schema.as_str().to_owned();
+    catalog
+        .insert_structured_type("ExperienceIntegrationInput", integration.clone())
+        .expect("experience integration Type installs once");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
         &catalog,
@@ -33,11 +42,17 @@ fn main() {
     let generated = generate_rust_bindings_with_forms_and_external_bindings(
         &checked.native_types,
         &checked.type_forms,
-        &[evidence],
-        &[ExternalNativeRustBinding {
-            semantic_identity: &evidence_identity,
-            rust_type_path: "conduit_human::ExperienceEvidenceRequest",
-        }],
+        &[evidence, integration],
+        &[
+            ExternalNativeRustBinding {
+                semantic_identity: &evidence_identity,
+                rust_type_path: "conduit_human::ExperienceEvidenceRequest",
+            },
+            ExternalNativeRustBinding {
+                semantic_identity: &integration_identity,
+                rust_type_path: "conduit_human::ExperienceIntegrationInput",
+            },
+        ],
         &RustBindingOptions {
             derive_serde_for_variants: true,
             record_constructor_orders: [(

@@ -679,6 +679,7 @@ fn add_local_model_offers(
         conduit_std_offers::episode_experience_compose_offer(),
         conduit_std_offers::episode_recall_experience_offer(),
         conduit_std_offers::episode_model_context_offer(),
+        conduit_std_offers::episode_experience_integration_offer(),
         conduit_std_offers::episode_retain_offer(),
         conduit_std_offers::episode_memory_offer(),
         conduit_std_offers::model_result_to_text_std_offer(),

@@ -83,3 +83,13 @@ pub fn episode_model_context_offer() -> CapabilityOffer {
         EPISODE_MODEL_CONTEXT_IMPLEMENTATION,
     )
 }
+
+pub const EPISODE_EXPERIENCE_INTEGRATION_IMPLEMENTATION: &str =
+    "std/experience-integrate-episode@1";
+pub fn episode_experience_integration_offer() -> CapabilityOffer {
+    pure_offer(
+        conduit_chat::episode_experience_integration_contract(),
+        "experience-integrate-episode",
+        EPISODE_EXPERIENCE_INTEGRATION_IMPLEMENTATION,
+    )
+}

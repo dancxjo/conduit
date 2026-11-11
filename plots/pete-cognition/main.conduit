@@ -7,7 +7,8 @@ plot pete-cognition (
     >> frames: PeteCognitionFrame...|
     episodes: EpisodeRecord... >>
 ) {
-    situate: pete/situate-experience
+    situate: pete/situate-experience-inputs
+    experience: experience/integrate-episode
     recall: body/episode-recall-experience
     contextualize: body/episode-model-context
     # The model result includes serialized provenance and accounting. The
@@ -18,7 +19,8 @@ plot pete-cognition (
 
     context >> recall.context
     frames >> situate.frame
-    situate.episode >> recall.experience
+    situate.inputs >> experience.inputs
+    experience.experience >> recall.experience
     memory.current >> recall.memory
     recall.recollection >> contextualize.recollection
     contextualize.request >> model.request

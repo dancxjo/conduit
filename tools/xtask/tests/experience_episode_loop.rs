@@ -41,10 +41,10 @@ fn pete_harness_for(
         offer_generation: conduit_core::OfferGeneration(1),
     };
     let back = HostedFrameBack::new(
-        conduit_pete::pete_cognition_situate_offer(),
+        conduit_pete::pete_cognition_inputs_offer(),
         conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
         conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
-        conduit_pete::situate_pete_frame_bytes,
+        conduit_pete::prepare_pete_experience_input_bytes,
     )
     .unwrap();
     let composition = StdHostComposition::minimal();
@@ -531,8 +531,8 @@ fn pete_frames_reach_situation_and_recall_in_one_play() {
     let mut harness = pete_harness(model);
     harness.requests = requests;
     assert!(harness.fragment.placements.iter().any(|gear| {
-        gear.kind_id.as_str() == conduit_pete::PETE_COGNITION_SITUATE_KIND
-            && gear.implementation_id.as_str() == "std/pete-situate-experience@1"
+        gear.kind_id.as_str() == conduit_pete::PETE_COGNITION_INPUTS_KIND
+            && gear.implementation_id.as_str() == "std/pete-situate-experience-inputs@1"
     }));
     assert_recall(
         harness,
@@ -665,7 +665,11 @@ fn assert_pete_replay(
         );
     }
 
-    for port in ["/recall/input/experience", "/retain/input/pending"] {
+    for port in [
+        "/experience/input/inputs",
+        "/recall/input/experience",
+        "/retain/input/pending",
+    ] {
         let input = timeline.events[..response]
             .iter()
             .rposition(|event| event.event == "value-received" && event.subject.ends_with(port))
