@@ -1,7 +1,7 @@
 //! Checked Source and ordinary planning; no MCU or installed Body is claimed.
 #[path = "display_support/fixture.rs"]
 mod fixture;
-use conduit_environment_make::{DisplayOutputSource, PreparedDisplayOutput};
+use conduit_tm1637_output_make::{DisplayOutputSource, PreparedDisplayOutput};
 #[test]
 fn authored_output_keeps_typed_frame_refusal_and_exact_electrical_selection() {
     let source = DisplayOutputSource::compile().unwrap();
@@ -45,7 +45,6 @@ fn authored_output_keeps_typed_frame_refusal_and_exact_electrical_selection() {
 fn payload_extent_comes_from_all_checked_types_and_refuses_unproved_ports() {
     let mut source = DisplayOutputSource::compile().unwrap();
     let extent = source.maximum_value_bytes().unwrap();
-    assert!(extent >= conduit_environment_runtime::display_packets::DISPLAY_FRAME_BYTES as u32);
     assert!(extent < conduit_tm1637_wire::MAXIMUM_BYTES);
     assert_eq!(extent, 651);
     let original = source.plot.expanded.gears[0].inputs[0].value_kind.clone();

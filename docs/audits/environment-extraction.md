@@ -25,7 +25,7 @@ that an initialized Back, resource grant, Plan or Play exists.
 
 ## Remaining responsibilities
 
-| Present location | Responsibility and disposition | Existing acceptance owner |
+| Checkpoint location | Responsibility and disposition | Existing acceptance owner |
 | --- | --- | --- |
 | `runtime/src/observation*`, `runtime/build_observation_source.rs` | DHT11 observation contracts, Forms and quantity packing. Keep device decoding with `plots/device-protocols` and the selected device implementation; expose semantic observations through shared contracts. Do not make the product compiler import a Body to learn a device Kind. | #6457; existing device protocol/catalog implementation |
 | `runtime/src/publication*`, `canonical_storage.rs` | Bounded retained values, event sequencing and commit staging. Separate generic typed retention from the four environmental outcome channels. Reuse kernel commit/pressure/cancellation; no publication scheduler. | #6457, #6341; shared data/kernel owners |
@@ -82,6 +82,22 @@ replace its static preparation with a decoded Type tree or infer that the new
 owned-helper tests qualify that separate path. The std selector realization's
 placement/authority checks and its different prepared-storage policy are outside
 this slice.
+
+TM1637 output planning is another distinct shared responsibility. It moves from
+the environmental Make library into
+`mechanisms/implementations/tm1637-output-make`; its authored Plot is now
+`plots/device-protocols/tm1637-output.conduit`. Its input remains a typed frame,
+not a temperature or a page-selection instruction. The same ordinary planner
+selects actual Host offers, exact local Fore and independently supplied write
+authority. Its tests retain shared expression/selector implementations directly,
+so neither production nor test dependencies require the environmental runtime.
+The environmental Make package retains only its application specification proof.
+
+The Plot's name changes from `environment-display-output` to `tm1637-output`;
+newly prepared Source/Plan identities change accordingly. No alias or identity
+compatibility claim is introduced, and installed firmware is not rewritten by
+this source extraction. The existing environmental display-output proof entrance
+now includes the shared package alongside application frame/packet checks.
 
 ## Authored construction gap
 

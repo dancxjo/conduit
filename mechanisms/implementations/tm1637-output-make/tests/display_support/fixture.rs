@@ -1,6 +1,6 @@
 //! CPU-only pins/authority/offers; the prepared portable software is retained.
 use conduit_core as c;
-use conduit_environment_make::DisplayOutputSource;
+use conduit_tm1637_output_make::DisplayOutputSource;
 use conduit_tm1637_wire::{installation::*, owner::WriteAttachment, WriteContract};
 pub(crate) struct NoPins;
 impl conduit_tm1637_wire::OpenDrain for NoPins {
@@ -18,13 +18,15 @@ impl conduit_tm1637_wire::OpenDrain for NoPins {
         panic!("planning has no effects")
     }
 }
-use conduit_environment_runtime::CaptureBack;
-use conduit_semantic_catalog::PreparedCanonicalSelector;
+use conduit_semantic_catalog::{
+    PreparedCanonicalSelector, PreparedExpressionBack, StructuredSelectorBack,
+};
 pub struct Fixture {
     pub host: c::HostAdvertisement,
     pub grant: c::AuthorityGrant,
     _pins: ReadyWriteBase<NoPins>,
-    _software: Vec<CaptureBack>,
+    _expressions: Vec<PreparedExpressionBack>,
+    _selector_backs: Vec<StructuredSelectorBack>,
     _selectors: Vec<PreparedCanonicalSelector>,
 }
 pub fn fixture(source: &DisplayOutputSource) -> Fixture {
@@ -43,7 +45,8 @@ pub fn fixture(source: &DisplayOutputSource) -> Fixture {
     let pins = ready(&host.host_id, &host.boot_id);
     pins.append_to_advertisement(&mut host, &WriteContract::prepare().unwrap())
         .unwrap();
-    let mut software = Vec::new();
+    let mut expressions = Vec::new();
+    let mut selector_backs = Vec::new();
     let mut selectors = Vec::new();
     for (index, gear) in source
         .plot
@@ -72,10 +75,10 @@ pub fn fixture(source: &DisplayOutputSource) -> Fixture {
                 )
                 .unwrap(),
             );
-            software.push(CaptureBack::selector(1024));
+            selector_backs.push(StructuredSelectorBack::new(1024));
         } else {
-            software.push(
-                CaptureBack::expression(
+            expressions.push(
+                PreparedExpressionBack::prepare_with_temporal(
                     &conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap(),
                     c::PortTemporal::Flow { closes: true },
                 )
@@ -135,7 +138,8 @@ pub fn fixture(source: &DisplayOutputSource) -> Fixture {
         host,
         grant,
         _pins: pins,
-        _software: software,
+        _expressions: expressions,
+        _selector_backs: selector_backs,
         _selectors: selectors,
     }
 }
