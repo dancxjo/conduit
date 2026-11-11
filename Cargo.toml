@@ -1,5 +1,6 @@
 [workspace]
 members = [
+	"mechanisms/devices/dht11",
 	# Universal architectural substrate.
 	"architecture/body",
 	"architecture/assigned-plan",

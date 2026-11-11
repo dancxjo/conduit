@@ -12,7 +12,6 @@ pub mod display_mask;
 pub mod display_packets;
 #[cfg(feature = "member-receipts")]
 pub mod member_receipts;
-pub mod observation;
 pub mod publication;
 #[cfg(feature = "face-projection")]
 pub mod publication_face_custody;
@@ -33,14 +32,14 @@ pub enum CaptureBack {
     Expression(Box<PreparedExpressionBack>),
     Selector(StructuredSelectorBack),
     Pulse(conduit_kernel::scheduler::HostCallBack),
-    Observation(Box<observation::ObservationBack>),
+    Observation(Box<conduit_dht11_observation::ObservationBack>),
 }
 impl CaptureBack {
     pub fn observation(
-        contract: &observation::ObservationContract,
+        contract: &conduit_dht11_observation::ObservationContract,
     ) -> Result<Self, conduit_core::StructuredInfoRefusal> {
         Ok(Self::Observation(Box::new(
-            observation::ObservationBack::prepare(contract)?,
+            conduit_dht11_observation::ObservationBack::prepare(contract)?,
         )))
     }
     pub fn expression(
@@ -74,9 +73,9 @@ impl<const P: usize> StepBack<P> for CaptureBack {
             Self::Expression(back) => {
                 <PreparedExpressionBack as StepBack<P>>::prepared_output(back, port)
             }
-            Self::Observation(back) => {
-                <observation::ObservationBack as StepBack<P>>::prepared_output(back, port)
-            }
+            Self::Observation(back) => <conduit_dht11_observation::ObservationBack as StepBack<
+                P,
+            >>::prepared_output(back, port),
             _ => None,
         }
     }
@@ -85,12 +84,14 @@ impl<const P: usize> StepBack<P> for CaptureBack {
             <PreparedExpressionBack as StepBack<P>>::step_committed(back)
         }
         if let Self::Observation(back) = self {
-            <observation::ObservationBack as StepBack<P>>::step_committed(back);
+            <conduit_dht11_observation::ObservationBack as StepBack<P>>::step_committed(back);
         }
     }
     fn cancel(&mut self) {
         match self {
-            Self::Observation(back) => <observation::ObservationBack as StepBack<P>>::cancel(back),
+            Self::Observation(back) => {
+                <conduit_dht11_observation::ObservationBack as StepBack<P>>::cancel(back)
+            }
             Self::Expression(back) => <PreparedExpressionBack as StepBack<P>>::cancel(back),
             Self::Selector(back) => <StructuredSelectorBack as StepBack<P>>::cancel(back),
             Self::Pulse(back) => {

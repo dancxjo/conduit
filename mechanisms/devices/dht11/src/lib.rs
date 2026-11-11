@@ -1,5 +1,7 @@
+#![no_std]
 //! The authored Forms lift decoder coordinates into first-class quantities.
 //! Checksum/range/negative decoding stays in the protocol Source.
+extern crate alloc;
 use alloc::vec;
 use conduit_core::{
     self as c, validate_canonical_structured_value as validate,
@@ -10,15 +12,19 @@ use conduit_core::{
 mod forms {
     include!(concat!(env!("OUT_DIR"), "/observation-forms.rs"));
 }
+#[cfg(feature = "kernel-step")]
 mod back;
 mod packed;
 mod source_frame;
+#[cfg(feature = "kernel-step")]
 pub use back::ObservationBack;
 pub use packed::{PreparedObservationQuantityForms, PreparedObservationQuantityPacker};
 pub use source_frame::{PreparedSourceFrameDecoder, SourceFrameRefusal};
 pub const KIND: &str = "device/dht11-observation";
 pub const MAXIMUM_BYTES: u32 = 4096;
-
+/// Immutable checked result schema, shared by typed publication consumers.
+pub static RESULT_TYPE_BYTES: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/observation-result.type"));
 pub struct ObservationContract {
     input: Type,
     observation: Type,
@@ -33,10 +39,7 @@ impl ObservationContract {
             env!("OUT_DIR"),
             "/observation.type"
         )))?;
-        let output = Type::from_canonical_bytes(include_bytes!(concat!(
-            env!("OUT_DIR"),
-            "/observation-result.type"
-        )))?;
+        let output = Type::from_canonical_bytes(RESULT_TYPE_BYTES)?;
         let port = |name, ty: &Type, direction| -> Result<_, R> {
             Ok(c::PortDescriptor {
                 port_id: c::port_id(name),
@@ -189,7 +192,7 @@ impl PreparedObservationCodec {
             )?,
             result: Composer::with_static_schema(
                 &contract.output,
-                include_bytes!(concat!(env!("OUT_DIR"), "/observation-result.type")),
+                RESULT_TYPE_BYTES,
                 MAXIMUM_BYTES as usize,
             )?,
         })

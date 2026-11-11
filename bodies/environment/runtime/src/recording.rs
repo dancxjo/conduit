@@ -1,7 +1,7 @@
 //! Bounded immutable JSON content for the existing Resource snapshot Fore.
 //! This encoder grants no storage authority, chooses no generation and makes no
 //! durable-acceptance claim. Root must admit and complete publication separately.
-use crate::observation::{
+use conduit_dht11_observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
     PreparedObservationQuantityPacker,
 };

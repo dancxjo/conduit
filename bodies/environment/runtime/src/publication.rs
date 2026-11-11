@@ -18,7 +18,7 @@ pub enum PublicationChannel {
 impl PublicationChannel {
     pub(crate) fn linked_type_bytes(self) -> &'static [u8] {
         match self {
-            Self::Reading => include_bytes!(concat!(env!("OUT_DIR"), "/observation-result.type")),
+            Self::Reading => conduit_dht11_observation::RESULT_TYPE_BYTES,
             Self::CaptureTimeout => include_bytes!(concat!(env!("OUT_DIR"), "/pulse-capture.type")),
             Self::ProviderFailure | Self::GeometryRefusal => {
                 include_bytes!(concat!(env!("OUT_DIR"), "/empty.type"))
@@ -35,7 +35,7 @@ impl PublicationChannel {
         }
         let value = c::validate_canonical_structured_value(bytes)?;
         let expected: &[u8] = match self {
-            Self::Reading => include_bytes!(concat!(env!("OUT_DIR"), "/observation-result.type")),
+            Self::Reading => conduit_dht11_observation::RESULT_TYPE_BYTES,
             Self::CaptureTimeout => include_bytes!(concat!(env!("OUT_DIR"), "/pulse-capture.type")),
             Self::ProviderFailure | Self::GeometryRefusal => {
                 return value.primitive_bytes(c::EMPTY_INFO_ID).map(|_| ());
@@ -87,9 +87,11 @@ pub struct PublicationContract {
 impl PublicationContract {
     pub fn prepare(channel: PublicationChannel) -> Result<Self, c::StructuredInfoRefusal> {
         let value_type = match channel {
-            PublicationChannel::Reading => super::observation::ObservationContract::prepare()?
-                .result_type()
-                .clone(),
+            PublicationChannel::Reading => {
+                conduit_dht11_observation::ObservationContract::prepare()?
+                    .result_type()
+                    .clone()
+            }
             PublicationChannel::CaptureTimeout => c::StructuredInfoType::from_canonical_bytes(
                 include_bytes!(concat!(env!("OUT_DIR"), "/pulse-capture.type")),
             )?,

@@ -62,8 +62,7 @@ pub fn prepare(out: &std::path::Path) {
     // freestanding test. Runtime must own the real resources and reseal a new Boot.
     let ready =
         unsafe { ReadyPulseBase::new(pulse::identity(), attachment, pulse::Provider) }.unwrap();
-    let contract =
-        conduit_environment_runtime::observation::ObservationContract::prepare().unwrap();
+    let contract = conduit_dht11_observation::ObservationContract::prepare().unwrap();
     let (model, lowered) = plan::prepare_with_cadence(
         &ready,
         contract.kind().clone(),
@@ -144,7 +143,7 @@ pub fn prepare(out: &std::path::Path) {
             ));
             continue;
         }
-        if node.kind_id == conduit_environment_runtime::observation::KIND {
+        if node.kind_id == conduit_dht11_observation::KIND {
             code.push_str("Role::Observation,\n");
             continue;
         }

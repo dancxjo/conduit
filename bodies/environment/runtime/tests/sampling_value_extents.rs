@@ -1,5 +1,6 @@
 #![cfg(feature = "construction")]
-use conduit_environment_runtime::{construction::compile, observation::ObservationContract};
+use conduit_dht11_observation::ObservationContract;
+use conduit_environment_runtime::construction::compile;
 
 #[test]
 fn all_authored_payload_ports_have_independent_type_ceilings() {
