@@ -88,7 +88,9 @@ pub fn flow_coalesce_latest_contract(
 pub fn reviewed_flow_pressure_policy(kind_id: &KindId) -> Option<DeliveryPressurePolicy> {
     match kind_id.as_str() {
         FLOW_BACKPRESSURE_KIND => Some(DeliveryPressurePolicy::PreserveOrder),
-        FLOW_COALESCE_LATEST_KIND => Some(DeliveryPressurePolicy::CoalesceLatest),
+        FLOW_COALESCE_LATEST_KIND | super::FLOW_COALESCE_FINITE_KIND => {
+            Some(DeliveryPressurePolicy::CoalesceLatest)
+        }
         _ => None,
     }
 }

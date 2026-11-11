@@ -1,4 +1,7 @@
-use conduit_plot::rust_binding::{generate_rust_bindings_with_forms, RustBindingOptions};
+use conduit_plot::rust_binding::{
+    generate_rust_bindings_with_forms_and_external_bindings,
+    semantic_core::StructuredInfoTypeShape, ExternalNativeRustBinding, RustBindingOptions,
+};
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{collections::BTreeSet, env, fs, path::PathBuf};
 
@@ -13,14 +16,43 @@ fn main() {
             ),
         )
         .expect("resource references are one exact portable leaf");
+    let evidence = conduit_human::ExperienceEvidenceRequest::semantic_type()
+        .expect("evidence request Type checks");
+    let StructuredInfoTypeShape::Record { schema, .. } = evidence.shape() else {
+        panic!("evidence request is a named record");
+    };
+    let evidence_identity = schema.as_str().to_owned();
+    catalog
+        .insert_structured_type("ExperienceEvidenceRequest", evidence.clone())
+        .expect("evidence request Type installs once");
+    let integration = conduit_human::ExperienceIntegrationInput::semantic_type()
+        .expect("experience integration Type checks");
+    let StructuredInfoTypeShape::Record { schema, .. } = integration.shape() else {
+        panic!("experience integration is a named record");
+    };
+    let integration_identity = schema.as_str().to_owned();
+    catalog
+        .insert_structured_type("ExperienceIntegrationInput", integration.clone())
+        .expect("experience integration Type installs once");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
         &catalog,
     )
     .expect("chat semantic Types must check");
-    let generated = generate_rust_bindings_with_forms(
+    let generated = generate_rust_bindings_with_forms_and_external_bindings(
         &checked.native_types,
         &checked.type_forms,
+        &[evidence, integration],
+        &[
+            ExternalNativeRustBinding {
+                semantic_identity: &evidence_identity,
+                rust_type_path: "conduit_human::ExperienceEvidenceRequest",
+            },
+            ExternalNativeRustBinding {
+                semantic_identity: &integration_identity,
+                rust_type_path: "conduit_human::ExperienceIntegrationInput",
+            },
+        ],
         &RustBindingOptions {
             derive_serde_for_variants: true,
             record_constructor_orders: [(
@@ -44,12 +76,43 @@ fn main() {
                 "SpeechCommitEvidenceView".into(),
             ]
             .into(),
-            serde_variant_exclusions: BTreeSet::from(["MessageAttachmentSlot".into()]),
+            serde_variant_exclusions: BTreeSet::from([
+                "MessageAttachmentSlot".into(),
+                "EpisodeOutcome".into(),
+            ]),
             ..RustBindingOptions::default()
         },
     )
     .expect("chat semantic Types and Forms must generate exact Rust bindings");
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
-    fs::write(output, generated.source).expect("write generated chat bindings");
+    fs::write(&output, generated.source).expect("write generated chat bindings");
+
+    for (name, source) in [
+        (
+            "episode_checkpoint_v1",
+            include_str!("episode_checkpoint_v1.conduit"),
+        ),
+        (
+            "episode_checkpoint_v2",
+            include_str!("episode_checkpoint_v2.conduit"),
+        ),
+    ] {
+        println!("cargo:rerun-if-changed={name}.conduit");
+        let legacy = check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new())
+            .expect("previous episode checkpoint Types must check");
+        let generated = generate_rust_bindings_with_forms_and_external_bindings(
+            &legacy.native_types,
+            &legacy.type_forms,
+            &[],
+            &[],
+            &RustBindingOptions::default(),
+        )
+        .expect("previous episode checkpoint bindings");
+        fs::write(
+            output.with_file_name(format!("{name}.rs")),
+            generated.source,
+        )
+        .expect("write previous episode checkpoint bindings");
+    }
 }

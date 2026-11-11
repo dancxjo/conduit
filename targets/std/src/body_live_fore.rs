@@ -13,6 +13,7 @@ use std::{
 };
 
 mod document;
+mod fragment;
 mod numerical;
 mod parsec;
 mod submission;
@@ -42,6 +43,7 @@ pub struct BodyLiveForeStatus {
 #[derive(Debug, Clone)]
 pub struct BodyLiveForeQueue {
     plan_id: PlanId,
+    fragment_id: Option<conduit_core::FragmentId>,
     port: PlannedForePort,
     maximum_items: u16,
     control: RunControl,
@@ -113,6 +115,7 @@ impl BodyLiveForeQueue {
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            fragment_id: None,
             port: (*port).clone(),
             maximum_items,
             control,
@@ -188,6 +191,7 @@ impl BodyLiveForeQueue {
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            fragment_id: None,
             port: (*port).clone(),
             maximum_items,
             control,
@@ -287,6 +291,7 @@ impl BodyLiveForeQueue {
         let slots = vec![Vec::with_capacity(command.byte_capacity as usize)];
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            fragment_id: None,
             port: (*command).clone(),
             maximum_items: 1,
             control,
@@ -322,11 +327,10 @@ impl BodyLiveForeQueue {
         Ok(())
     }
 
-    /// Wait for the runner's successful start callback before a checkpoint
-    /// command is eligible. The caller may request cancellation separately.
+    /// Wait for the runner's start before a seeded queue accepts input.
     pub fn wait_until_play_started(&self) -> Result<(), String> {
         if self.initial.is_none() {
-            return Err("start wait is only available for a waiting checkpoint".into());
+            return Err("start wait is only available for a seeded live Fore".into());
         }
         loop {
             let observed = self.control.activity_generation();
@@ -335,7 +339,7 @@ impl BodyLiveForeQueue {
                 return Ok(());
             }
             if state.play_terminal || self.control.stop_requested() {
-                return Err("waiting checkpoint Play ended before start".into());
+                return Err("live Fore Play ended before start".into());
             }
             drop(state);
             self.control.wait_for_activity_or_stop(observed);

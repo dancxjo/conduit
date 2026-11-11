@@ -15,6 +15,9 @@ pub use generated::{
     BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleForm,
     BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, ConversationRequestEvidence,
     DeliveryAuthority, DeliveryEvidence, DeliveryRequest, DeliveryState, DeliveryUpdate,
+    EpisodeExperience, EpisodeExperienceInput, EpisodeMemory, EpisodeMemoryOwner,
+    EpisodeMemoryState, EpisodeModelResponse, EpisodeObservation, EpisodeOutcome, EpisodePending,
+    EpisodeRecall, EpisodeRecallScores, EpisodeRecollection, EpisodeRecord, EpisodeRefusal,
     LiveConversationFlowProjection, LiveConversationProjectionError, LiveConversationStage,
     LiveConversationStageKind, LiveConversationStageState, LiveConversationStages,
     MessageAttachment, MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot,
@@ -23,9 +26,22 @@ pub use generated::{
     RecognitionEvidenceStatus, RecognitionEvidenceView, SpeechCommitEvidenceView,
 };
 
+mod episode_integration;
+mod episode_outcome;
+pub use episode_integration::*;
 mod body_chat;
 pub use body_chat::*;
 mod conversation_request_evidence;
+#[cfg(feature = "conversation-flow")]
+mod episode_loop;
+#[cfg(feature = "conversation-flow")]
+pub use episode_loop::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_loop_catalog;
+#[cfg(feature = "plot-catalog")]
+pub use episode_loop_catalog::*;
+#[cfg(all(test, feature = "plot-catalog"))]
+mod episode_loop_tests;
 #[cfg(feature = "conversation-flow")]
 mod live_conversation_flow;
 #[cfg(feature = "conversation-flow")]

@@ -44,6 +44,8 @@ mod structured_selector;
 pub use structured_selector::*;
 mod structured_values;
 pub use structured_values::*;
+mod flow_coalesce_finite;
+pub use flow_coalesce_finite::*;
 mod flow_pressure;
 pub use flow_pressure::*;
 mod diverse_structured_info;
@@ -52,6 +54,10 @@ pub use diverse_structured_info::*;
 mod experience_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use experience_catalog::*;
+mod experience_evidence;
+pub use experience_evidence::*;
+mod experience_evidence_codec;
+pub use experience_evidence_codec::*;
 #[cfg(feature = "plot-catalog")]
 mod purpose_catalog;
 #[cfg(feature = "plot-catalog")]

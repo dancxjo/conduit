@@ -13,12 +13,13 @@ impl FiniteWorkBudget {
         input_bytes: usize,
     ) -> Result<Self, LocalModelAdapterTerminal> {
         use LocalModelAdapterTerminal::Refused;
-        const KEYS: [&str; 5] = [
+        const KEYS: [&str; 6] = [
             "maximum-input-bytes",
             "maximum-context-items",
             "maximum-output-bytes",
             "maximum-work-units",
             "maximum-history-items",
+            conduit_ai::PROVIDER_LOSS_AS_RESULT_PARAMETER,
         ];
         if placement.configuration.len() > KEYS.len()
             || placement

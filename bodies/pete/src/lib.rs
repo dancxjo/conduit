@@ -1,5 +1,9 @@
 //! Ordinary Conduit realizations for Pete's Create hardware.
 
+mod cognition;
+mod cognition_homeostasis;
+pub use cognition::*;
+
 mod create_dock;
 mod create_dock_kernel_operations;
 mod create_dock_plan_validation;
@@ -34,6 +38,9 @@ mod imu_calibration_service;
 mod imu_observation;
 mod imu_play;
 mod pete_deployment;
+mod pete_experience;
+mod pete_experience_context;
+mod pete_experience_memory;
 mod pete_memory;
 mod pete_model_context;
 mod pete_recollection;
@@ -73,6 +80,9 @@ pub use imu_calibration_service::*;
 pub use imu_observation::*;
 pub use imu_play::*;
 pub use pete_deployment::*;
+pub use pete_experience::*;
+pub use pete_experience_context::*;
+pub use pete_experience_memory::*;
 pub use pete_memory::*;
 pub use pete_model_context::*;
 pub use pete_recollection::*;

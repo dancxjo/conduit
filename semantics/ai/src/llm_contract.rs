@@ -9,6 +9,7 @@ use crate::{LlmDeterminismProfile, LlmImplementationControl, LlmTerminalOutcome,
 
 pub const LLM_GENERATE_KIND: &str = "llm/generate";
 pub const LLM_STREAM_GENERATE_KIND: &str = "llm/generate-stream";
+pub const PROVIDER_LOSS_AS_RESULT_PARAMETER: &str = "provider-loss-as-result";
 pub const LLM_GENERATE_FLOW_KIND: &str = "llm/generate-flow";
 pub const LLM_CLASSIFY_KIND: &str = "llm/classify";
 pub const LLM_EXTRACT_KIND: &str = "llm/extract";
@@ -102,7 +103,8 @@ impl LlmSemanticContract {
 
     pub fn into_capability_contract(self) -> conduit_core::Kind {
         let bounds = self.bounds;
-        conduit_core::Kind {
+        let recoverable_flow = self.kind_id.as_str() == LLM_GENERATE_FLOW_KIND;
+        let mut contract = conduit_core::Kind {
             startup_parameters: [
                 "maximum-input-bytes",
                 "maximum-context-items",
@@ -131,7 +133,20 @@ impl LlmSemanticContract {
             ],
             semantic_laws: Default::default(),
             limits: self.limits,
+        };
+        if recoverable_flow {
+            contract
+                .startup_parameters
+                .push(conduit_core::FrontStartupParameter {
+                    name: PROVIDER_LOSS_AS_RESULT_PARAMETER.into(),
+                    value_type: kind_id("value/count"),
+                    has_default: true,
+                });
+            let mut policy = bound(PROVIDER_LOSS_AS_RESULT_PARAMETER, 1);
+            policy.default_value = ConfigurationValue::U64(0);
+            contract.configuration.push(policy);
         }
+        contract
     }
 }
 
@@ -294,15 +309,19 @@ pub fn install_llm_semantic_catalog(
     for contract in llm_semantic_catalog() {
         let kind = contract.kind_id.as_str().to_string();
         let bounds = contract.bounds;
+        let mut startup_parameters = vec![
+            parameter("maximum-input-bytes", bounds.maximum_input_bytes()),
+            parameter("maximum-context-items", bounds.maximum_context_items()),
+            parameter("maximum-output-bytes", bounds.maximum_output_bytes()),
+            parameter("maximum-work-units", bounds.maximum_work_units()),
+            parameter("maximum-history-items", bounds.maximum_history_items()),
+        ];
+        if kind == LLM_GENERATE_FLOW_KIND {
+            startup_parameters.push(parameter(PROVIDER_LOSS_AS_RESULT_PARAMETER, 0));
+        }
         startup.insert(KindSignature {
-            kind: kind.clone(),
-            startup_parameters: vec![
-                parameter("maximum-input-bytes", bounds.maximum_input_bytes()),
-                parameter("maximum-context-items", bounds.maximum_context_items()),
-                parameter("maximum-output-bytes", bounds.maximum_output_bytes()),
-                parameter("maximum-work-units", bounds.maximum_work_units()),
-                parameter("maximum-history-items", bounds.maximum_history_items()),
-            ],
+            kind,
+            startup_parameters,
         })?;
         profile
             .insert_kind(contract.into_capability_contract())
