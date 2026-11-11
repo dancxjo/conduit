@@ -3,13 +3,13 @@ extern crate alloc;
 use crate::{membership::AcceptedMembership, transport::DocumentTransport};
 use alloc::vec::Vec;
 use conduit_body::{
-    BorrowedAdmissionReceiptAttestation, BorrowedPartReturnChallenge, BorrowedPartReturnProof,
-    HostAdvertisementImageProjection, MemberBootstrap, MemberReturnImageAcknowledgement,
-    MembershipCredential, MEMBER_RETURN_IMAGES_SCHEMA,
+    BorrowedAdmissionReceiptAttestation, BorrowedHostAdvertisementImageProjection,
+    BorrowedPartReturnChallenge, BorrowedPartReturnProof, MemberBootstrap,
+    MemberReturnImageAcknowledgementSeed, MembershipCredential, MEMBER_RETURN_IMAGES_SCHEMA,
 };
 use conduit_core::{AuthorityGrant, HostAdvertisement};
 use ed25519_dalek::{Signer, SigningKey};
-use serde::Serialize;
+use serde::{de::DeserializeSeed, Serialize};
 use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -27,7 +27,7 @@ struct Presentation<'a> {
     kind: &'static str,
     schema: &'static str,
     credential: &'a MembershipCredential,
-    projection: &'a HostAdvertisementImageProjection,
+    projection: BorrowedHostAdvertisementImageProjection<'a>,
     signature: &'a [u8],
 }
 /// Root retains native publication/authorization custody before this exchange.
@@ -80,26 +80,29 @@ impl RetainedReturn<'_, '_> {
             }
             hashes.push(Sha256::digest(bytes).into());
         }
-        let projection = HostAdvertisementImageProjection {
-            // Native Root checks the current headroom only after the image
-            // references are allocated, preserving the original custody order.
-            authority_grants: authority_grants()?,
-            context: self.actual.clone(),
-            capability_images: hashes,
+        let grants = authority_grants()?;
+        let projection = BorrowedHostAdvertisementImageProjection {
+            authority_grants: &grants,
+            context: self.actual,
+            capability_images: &hashes,
         };
         projection.validate().map_err(|_| Refusal::Scope)?;
         let signature = self
             .key
             .sign(
-                &conduit_body::member_return_image_transcript(self.retained, &projection)
-                    .map_err(|_| Refusal::Encoding)?,
+                &conduit_body::member_return_image_transcript_into(
+                    self.retained,
+                    projection,
+                    input,
+                )
+                .map_err(|_| Refusal::Encoding)?,
             )
             .to_bytes();
         let presentation = Presentation {
             kind: "Advertise",
             schema: MEMBER_RETURN_IMAGES_SCHEMA,
             credential: self.retained,
-            projection: &projection,
+            projection,
             signature: &signature,
         };
         // Reuse the original caller-owned command arena for the signed
@@ -117,7 +120,7 @@ impl RetainedReturn<'_, '_> {
                 .map_err(|_| Refusal::Transport)?;
             offset = next;
         }
-        for (bytes, digest) in images.zip(&projection.capability_images) {
+        for (bytes, digest) in images.zip(projection.capability_images) {
             let mut offset = 0;
             while offset < bytes.len() {
                 let (n, next) =
@@ -179,15 +182,19 @@ impl RetainedReturn<'_, '_> {
                 &self.key.verifying_key().to_bytes(),
             )
             .map_err(|_| Refusal::Attestation)?;
-        let (ack, used) = serde_json_core::from_slice::<MemberReturnImageAcknowledgement>(raw)
-            .map_err(|_| Refusal::Encoding)?;
+        let mut decoder = serde_json_core::de::Deserializer::new(raw, None);
+        let credential = MemberReturnImageAcknowledgementSeed {
+            retained: self.retained,
+            actual: projection,
+        }
+        .deserialize(&mut decoder)
+        .map_err(|_| Refusal::Receipt)?;
+        let used = decoder.end().map_err(|_| Refusal::Encoding)?;
         if used != raw.len() {
             return Err(Refusal::Encoding);
         }
-        ack.validate_for(self.retained, &projection)
-            .map_err(|_| Refusal::Receipt)?;
         let accepted = AcceptedMembership {
-            credential: ack.credential,
+            credential,
             receipt_digest: Sha256::digest(raw).into(),
         };
         input.fill(0);

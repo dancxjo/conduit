@@ -313,3 +313,176 @@ fn excess_images_refuse_before_native_grant_copy_or_transport() {
     assert!(!copied.get());
     assert!(link.sent.is_empty());
 }
+
+// A borrowed test carrier never allocates or releases prebuilt message owners
+// inside the measured transaction. Sent frames are counted, not copied.
+struct BorrowedMessages<'a> {
+    incoming: &'a [Vec<u8>],
+    next: usize,
+    sent: usize,
+}
+impl MessageTransport for BorrowedMessages<'_> {
+    type Error = ();
+    async fn receive<'a>(&mut self, output: &'a mut [u8]) -> Result<&'a [u8], ()> {
+        let bytes = self.incoming.get(self.next).ok_or(())?;
+        let out = output.get_mut(..bytes.len()).ok_or(())?;
+        out.copy_from_slice(bytes);
+        self.next += 1;
+        Ok(out)
+    }
+    async fn send(&mut self, _: &[u8]) -> Result<(), ()> {
+        self.sent += 1;
+        Ok(())
+    }
+}
+impl DocumentTransport for BorrowedMessages<'_> {
+    async fn receive_document(
+        &mut self,
+        document: &mut conduit_wire::BorrowedBoundedDocumentAssembly<'_>,
+    ) -> Result<(), ()> {
+        loop {
+            let bytes = self.incoming.get(self.next).ok_or(())?;
+            self.next += 1;
+            if document.push(bytes).map_err(|_| ())? {
+                return Ok(());
+            }
+        }
+    }
+}
+mod return_allocation_probe {
+    use std::thread_local;
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../../architecture/plot/tests/common/allocation_probe.rs"
+    ));
+}
+#[global_allocator]
+static RETURN_ALLOCATOR: return_allocation_probe::Allocator = return_allocation_probe::Allocator;
+
+#[test]
+fn signed_return_transaction_measures_all_dynamic_owners() {
+    let (bootstrap, actual, member, owner) = fixture();
+    let incoming: Vec<_> = messages(&bootstrap, &actual, &member, &owner)
+        .incoming
+        .into_iter()
+        .collect();
+    let mut link = BorrowedMessages {
+        incoming: &incoming,
+        next: 0,
+        sent: 0,
+    };
+    let transaction = RetainedReturn {
+        bootstrap: &bootstrap,
+        actual: &actual,
+        image_id: "image/1",
+        key: &member,
+        retained: bootstrap.admission.credential().unwrap(),
+    };
+    let ((accepted, future_bytes), cost) = return_allocation_probe::observe(|| {
+        let mut input = vec![0; 9 * 1024];
+        let mut output = vec![0; 4096];
+        let exchange = transaction.exchange(
+            &mut link,
+            core::iter::once(IMAGE),
+            || Ok(Vec::new()),
+            &mut input,
+            &mut output,
+        );
+        let future_bytes = core::mem::size_of_val(&exchange);
+        (ready(exchange).unwrap(), future_bytes)
+    });
+    assert_eq!(accepted.credential.boot_id, actual.boot_id);
+    assert!(link.sent > 0);
+    std::println!("signed-transaction fixture_images=1 grants=0 input=9216 output=4096 dynamic_peak={} allocations={} future_bytes={}",cost.peak_bytes,cost.allocations,future_bytes);
+}
+
+#[test]
+#[ignore = "requires CONDUIT_PUBLIC_RETURN_RECEIPT public wire calibration input"]
+fn public_shape_signed_return_measures_whole_transaction() {
+    use ed25519_dalek::Signer;
+    let path = std::env::var_os("CONDUIT_PUBLIC_RETURN_RECEIPT").expect("public receipt path");
+    let outer = std::fs::read(path).unwrap();
+    let capture: SignedPortableAdmissionReceipt = serde_json::from_slice(&outer).unwrap();
+    let mut ack: MemberReturnImageAcknowledgement =
+        serde_json::from_str(&capture.receipt_json).unwrap();
+    // Preserve the public current context, grant descriptions and credential
+    // lengths. Only immutable image bytes and signing keys are CPU test fixtures;
+    // this does not claim to replay the private member's live authentication.
+    let images: Vec<Vec<u8>> = (0..ack.projection.capability_images.len())
+        .map(|i| vec![i as u8])
+        .collect();
+    ack.projection.capability_images = images
+        .iter()
+        .map(|bytes| Sha256::digest(bytes).into())
+        .collect();
+    let (mut bootstrap, _, member, owner) = fixture();
+    let actual = &ack.projection.context;
+    bootstrap.body_id = ack.credential.body_id.clone();
+    bootstrap.host_id = actual.host_id.as_str().into();
+    bootstrap.configuration_id = actual.profile.as_str().into();
+    bootstrap.admission = MemberBootstrapMaterial::Retained {
+        credential: ack.credential.clone(),
+        secret: [3; 32],
+    };
+    let challenge = BorrowedPartReturnChallenge {
+        admission_id: "admission/return",
+        body_id: ack.credential.body_id.as_str(),
+        part_id: ack.credential.part_id.as_str(),
+        host_id: actual.host_id.as_str(),
+        boot_id: actual.boot_id.as_str(),
+        offer_generation: actual.offer_generation.0,
+        nonce: [8; 32],
+        issued_at_millis: 100,
+        expires_at_millis: 200,
+    };
+    let signed = attest_member_return_image_acknowledgement(
+        &ack,
+        bootstrap.owner.clone(),
+        member.verifying_key().to_bytes(),
+        |t| owner.sign(t).to_bytes(),
+    )
+    .unwrap();
+    let document = signed.receipt_json.as_bytes();
+    let digest = Sha256::digest(document).into();
+    let mut incoming = vec![
+        serde_json::to_vec(&challenge).unwrap(),
+        serde_json::to_vec(&signed.transport_metadata().unwrap()).unwrap(),
+    ];
+    let mut offset = 0;
+    while offset < document.len() {
+        let mut frame = [0; 4096];
+        let (n, next) =
+            conduit_wire::encode_bounded_document_chunk(&mut frame, document, offset, &digest)
+                .unwrap();
+        incoming.push(frame[..n].to_vec());
+        offset = next;
+    }
+    let mut link = BorrowedMessages {
+        incoming: &incoming,
+        next: 0,
+        sent: 0,
+    };
+    let transaction = RetainedReturn {
+        bootstrap: &bootstrap,
+        actual,
+        image_id: "image/1",
+        key: &member,
+        retained: bootstrap.admission.credential().unwrap(),
+    };
+    let ((accepted, future_bytes), cost) = return_allocation_probe::observe(|| {
+        let mut input = vec![0; 9 * 1024];
+        let mut output = vec![0; 4096];
+        let exchange = transaction.exchange(
+            &mut link,
+            images.iter().map(Vec::as_slice),
+            || Ok(ack.projection.authority_grants.clone()),
+            &mut input,
+            &mut output,
+        );
+        let future_bytes = core::mem::size_of_val(&exchange);
+        (ready(exchange).unwrap(), future_bytes)
+    });
+    assert_eq!(accepted.credential, ack.credential);
+    assert_eq!(link.next, incoming.len());
+    std::println!("signed-transaction public_shape_outer={} fixture_ack={} images={} grants={} input=9216 output=4096 dynamic_peak={} allocations={} future_bytes={}", outer.len(), document.len(), images.len(), ack.projection.authority_grants.len(), cost.peak_bytes, cost.allocations, future_bytes);
+}
