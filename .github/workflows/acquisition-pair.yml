@@ -60,6 +60,29 @@ jobs:
         run: |
           node tools/ci/pipeline/acquisition/compare.mjs restored target/benchmark
           test "$CACHE_HIT" != true
+      - name: Diagnose CI resolver without exposing proxy values
+        run: |
+          node <<'JS'
+          const {spawnSync}=require('node:child_process');
+          const fs=require('node:fs');
+          const names=['HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','http_proxy','https_proxy','all_proxy','NO_PROXY','no_proxy'];
+          console.log(JSON.stringify({proxyConfigured:Object.fromEntries(names.map(name=>[name,Boolean(process.env[name])]))}));
+          for(const host of ['archive.ubuntu.com','security.ubuntu.com','github.com']){
+            for(const [user,program,args] of [
+              ['runner','timeout',['6','getent','ahostsv4',host]],
+              ['root','sudo',['-n','timeout','6','getent','ahostsv4',host]],
+              ['apt','sudo',['-n','-u','_apt','timeout','6','getent','ahostsv4',host]],
+            ]){
+              const result=spawnSync(program,args,{encoding:'utf8',timeout:8000});
+              console.log(JSON.stringify({user,host,status:result.status,error:result.error?.code,stdout:result.stdout,stderr:result.stderr}));
+            }
+          }
+          for(const filename of ['/etc/resolv.conf',fs.realpathSync('/etc/resolv.conf')]){
+            console.log(JSON.stringify({resolverFile:filename,mode:(fs.statSync(filename).mode&0o777).toString(8)}));
+          }
+          const result=spawnSync('curl',['--silent','--show-error','--fail','--head','--max-time','10','--output','/dev/null','https://archive.ubuntu.com/ubuntu/dists/noble/InRelease'],{encoding:'utf8',timeout:12000});
+          console.log(JSON.stringify({curlArchiveStatus:result.status,error:result.error?.code,stderr:result.stderr}));
+          JS
       - name: Acquire and verify real tools
         env:
           GITHUB_TOKEN: ${{ github.token }}
