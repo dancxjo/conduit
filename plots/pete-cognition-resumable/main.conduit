@@ -10,8 +10,12 @@ plot pete-cognition-resumable (
 ) {
     situate: pete/situate-experience-inputs
     experience: experience/integrate-episode
-    recall: body/episode-recall-experience
-    contextualize: body/episode-model-context
+    recall: body/episode-retrieval-window
+    intent: keep TemporalRetrievalIntent(event_ordering(empty)) <= 4096B for this play
+    policy: keep ContextSelectionPolicy({ identity: "pete/selected-history@1", token_accounting_profile: "conduit.chat/episode-context-bytes@1", redundancy: keep_all(empty), ordering: reranked(empty), maximum_items: 4, maximum_bytes: 768, maximum_tokens: 768, maximum_work_units: 64 }) <= 4096B for this play
+    clock_class: keep EpisodeRetrievalClockClass(monotonic_milliseconds(empty)) <= 4096B for this play
+    retrieve: retrieval/temporal-select-flow
+    contextualize: body/episode-retrieval-context
     # The model result includes serialized provenance and accounting. The
     # retainer separately checks its 512-byte response text Type.
     model: llm/generate-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0, provider-loss-as-result = 1)
@@ -24,9 +28,15 @@ plot pete-cognition-resumable (
     experience.experience >> recall.experience
     memory.current >> recall.memory
     memory.current >> checkpoints
-    recall.recollection >> contextualize.recollection
+    intent.current >> recall.intent
+    intent.current >> retrieve.intent
+    policy.current >> recall.policy
+    clock_class.current >> recall.clock
+    recall.window >> retrieve.window
+    recall.capture >> contextualize.capture
+    retrieve.outcome >> contextualize.outcome
     contextualize.request >> model.request
-    recall.pending >> retain.pending
+    contextualize.pending >> retain.pending
     model.result >> retain.response
     retain.episode >> memory.update
     retain.episode >> episodes
