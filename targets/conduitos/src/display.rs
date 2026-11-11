@@ -2,6 +2,7 @@
 
 #[cfg(feature = "native-compositor-core")]
 mod coverage;
+pub mod edid;
 mod font;
 mod geometry;
 pub(crate) use geometry::validate_framebuffer_geometry;

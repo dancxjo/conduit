@@ -173,6 +173,11 @@ impl<D: PixelTarget> FirmwareFace<D> {
             evidence,
         })
     }
+    /// Root may inspect its retained scanout provider without transferring
+    /// write ownership or granting a second presenter.
+    pub fn scanout(&self) -> &D {
+        &self._display
+    }
     pub fn framebuffer_basis(&self) -> &conduit_observatory::FramebufferBasis {
         &self.basis
     }

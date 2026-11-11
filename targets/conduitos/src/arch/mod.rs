@@ -183,6 +183,19 @@ pub use loongarch64::{
 #[cfg(target_arch = "loongarch64")]
 pub const ARCHITECTURE: &str = "loongarch64";
 
+#[cfg(all(target_arch = "arm", feature = "armv6-product"))]
+pub use armv6::{FirmwareScanout, HardwareEntropy};
+
+#[cfg(all(
+    target_arch = "arm",
+    feature = "armv6-product",
+    feature = "native-startup-chime"
+))]
+pub use armv6::PwmAudio;
+
+#[cfg(target_arch = "arm")]
+pub use armv6::present as early_write;
+
 // ARMv6 owns the BCM2835 machine implementation; emulator evidence remains
 // distinct from physical board proof.
 #[cfg(target_arch = "arm")]

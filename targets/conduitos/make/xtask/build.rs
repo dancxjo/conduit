@@ -113,8 +113,11 @@ fn execute_profile_with_features(
         timers = manifest.bounds.timer_slots,
         evidence = manifest.bounds.evidence_items,
     );
-    fs::write(&generated, source)
-        .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
+    if fs::read_to_string(&generated).ok().as_deref() != Some(source.as_str()) {
+        fs::write(&generated, source).map_err(|error| {
+            ConduitosError::refusal("build-output-unavailable", error.to_string())
+        })?;
+    }
     execute_with_features(
         arch,
         opts,
@@ -128,6 +131,23 @@ fn execute_profile_with_features(
         artifact_role,
         product_artifact,
     )
+}
+
+pub(super) fn execute_armv6_product(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+    let manifest = resolve_embedded_profile(
+        ConduitosArch::Armv6,
+        include_str!("../../profiles/conduitos-armv6-bplus.host.conduit"),
+    )?;
+    let paths = Paths::new(ConduitosArch::Armv6)?;
+    fs::create_dir_all(&paths.target)
+        .map_err(|e| ConduitosError::refusal("build-output-unavailable", e.to_string()))?;
+    fs::write(
+        paths.target.join("armv6-product-manifest.json"),
+        serde_json::to_vec_pretty(&manifest)
+            .map_err(|e| ConduitosError::refusal("product-manifest-encoding", e.to_string()))?,
+    )
+    .map_err(|e| ConduitosError::refusal("build-output-unavailable", e.to_string()))?;
+    execute_profile(&manifest, opts)
 }
 
 fn runtime_arena_ceiling(manifest: &BuildManifest) -> u64 {
@@ -319,6 +339,15 @@ fn execute_with_features(
         return aarch64_a0::execute(opts);
     }
     if arch == ConduitosArch::Armv6 {
+        if let Some(make) = make {
+            return super::armv6_product::execute(
+                opts,
+                make.generated,
+                make.build_id,
+                make.image_binding,
+                features,
+            );
+        }
         return armv6_rpi_b_plus_a0::execute(Default::default(), opts);
     }
     if arch == ConduitosArch::Riscv64 && product_artifact.is_none() {

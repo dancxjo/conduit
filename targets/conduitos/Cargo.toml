@@ -172,6 +172,13 @@ test = false
 bench = false
 required-features = ["loongarch64-a4"]
 
+[[bin]]
+name = "conduitos-armv6-product"
+path = "src/bin/armv6_product.rs"
+test = false
+bench = false
+required-features = ["armv6-product"]
+
 [features]
 default = []
 # Compile pure ConduitOS description and planning surfaces for hosted repository
@@ -212,6 +219,8 @@ aarch64-jetson-nano = ["aarch64-board"]
 armv6-rpi-b-plus-a0 = []
 armv6-rpi-b-plus-a2 = []
 armv6-rpi-b-plus-a3 = []
+armv6-product = ["native-compositor-core"]
+native-startup-chime = []
 ia32-a0 = []
 ia32-a2 = []
 ia32-a3 = []

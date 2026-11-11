@@ -52,6 +52,7 @@ fn main() {
     println!("cargo:rerun-if-changed=proof/appliances/armv6-rpi-b-plus/linker/a0.ld");
     println!("cargo:rerun-if-changed=proof/appliances/armv6-rpi-b-plus/linker/a2.ld");
     println!("cargo:rerun-if-changed=proof/appliances/armv6-rpi-b-plus/linker/a3.ld");
+    println!("cargo:rerun-if-changed=firmware/linker/armv6_product.ld");
     println!("cargo:rerun-if-env-changed=CONDUITOS_BUILD_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_MAKE_RECORD");
@@ -119,6 +120,11 @@ fn main() {
         }
     }
     let manifest = std::env::var("CARGO_MANIFEST_DIR").expect("Cargo sets manifest directory");
+    if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("arm") {
+        println!(
+            "cargo:rustc-link-arg-bin=conduitos-armv6-product=-T{manifest}/firmware/linker/armv6_product.ld"
+        );
+    }
     if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("x86_64")
         && std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("none")
     {

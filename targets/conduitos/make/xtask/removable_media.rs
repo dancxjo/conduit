@@ -1,7 +1,8 @@
 //! Shared whole-device safety boundary for physical ConduitOS media writes.
 
 use std::{
-    fs,
+    fs::{self, File, OpenOptions},
+    io::{self, Read, Seek, Write},
     os::unix::fs::FileTypeExt,
     path::{Path, PathBuf},
     process::Command,
@@ -85,6 +86,19 @@ pub(super) fn write_and_verify(
         ));
     }
     require_unmounted(&device.path)?;
+    let mut options = OpenOptions::new();
+    options.read(true).write(true);
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        // Linux O_EXCL on a block device refuses a mounted/in-use medium.
+        options.custom_flags(0x80);
+    }
+    match options.open(&device.path) {
+        Ok(mut output) => return write_authorized(image, image_bytes, &mut output),
+        Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {}
+        Err(error) => return Err(refusal("flash-device-open-failed", error)),
+    }
     require_noninteractive_privilege()?;
     run(
         Command::new("sudo")
@@ -107,6 +121,64 @@ pub(super) fn write_and_verify(
             .arg(&device.path),
         "flash-byte-verification-failed",
     )
+}
+
+fn write_authorized(
+    image: &Path,
+    image_bytes: u64,
+    output: &mut File,
+) -> Result<(), ConduitosError> {
+    let mut input = File::open(image).map_err(|e| refusal("flash-image-unavailable", e))?;
+    if input
+        .metadata()
+        .map_err(|e| refusal("flash-image-unavailable", e))?
+        .len()
+        != image_bytes
+    {
+        return Err(refusal(
+            "flash-image-size-changed",
+            "image extent changed before write",
+        ));
+    }
+    output
+        .rewind()
+        .map_err(|e| refusal("flash-write-failed", e))?;
+    let copied = io::copy(&mut (&mut input).take(image_bytes), output)
+        .map_err(|e| refusal("flash-write-failed", e))?;
+    if copied != image_bytes {
+        return Err(refusal(
+            "flash-write-failed",
+            "image truncated during write",
+        ));
+    }
+    output
+        .flush()
+        .and_then(|_| output.sync_all())
+        .map_err(|e| refusal("flash-write-failed", e))?;
+    input
+        .rewind()
+        .map_err(|e| refusal("flash-byte-verification-failed", e))?;
+    output
+        .rewind()
+        .map_err(|e| refusal("flash-byte-verification-failed", e))?;
+    let mut expected = [0_u8; 8192];
+    let mut observed = [0_u8; 8192];
+    let mut remaining = image_bytes;
+    while remaining != 0 {
+        let count = remaining.min(expected.len() as u64) as usize;
+        input
+            .read_exact(&mut expected[..count])
+            .and_then(|_| output.read_exact(&mut observed[..count]))
+            .map_err(|e| refusal("flash-byte-verification-failed", e))?;
+        if expected[..count] != observed[..count] {
+            return Err(refusal(
+                "flash-byte-verification-failed",
+                "written bytes differ from image",
+            ));
+        }
+        remaining -= count as u64;
+    }
+    Ok(())
 }
 
 fn require_unmounted(device: &Path) -> Result<(), ConduitosError> {
@@ -194,5 +266,33 @@ mod tests {
         };
         let error = write_and_verify(Path::new("Cargo.toml"), 1, &device).unwrap_err();
         assert!(error.to_string().contains("flash-device-too-small"));
+    }
+
+    #[test]
+    fn authorized_writer_checks_extent_before_writing_and_preserves_the_unselected_tail() {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let directory =
+            std::env::temp_dir().join(format!("conduit-flash-test-{}-{nonce}", std::process::id()));
+        fs::create_dir(&directory).unwrap();
+        let image = directory.join("image");
+        let medium = directory.join("medium");
+        fs::write(&image, [1_u8; 16]).unwrap();
+        fs::write(&medium, [0xaa_u8; 32]).unwrap();
+        let mut output = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&medium)
+            .unwrap();
+        assert!(write_authorized(&image, 15, &mut output).is_err());
+        assert_eq!(fs::read(&medium).unwrap(), [0xaa_u8; 32]);
+        write_authorized(&image, 16, &mut output).unwrap();
+        let written = fs::read(&medium).unwrap();
+        assert_eq!(&written[..16], &[1_u8; 16]);
+        assert_eq!(&written[16..], &[0xaa_u8; 16]);
+        drop(output);
+        fs::remove_dir_all(directory).unwrap();
     }
 }
