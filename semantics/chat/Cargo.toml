@@ -60,3 +60,15 @@ required-features = ["plot-catalog"]
 [[test]]
 name = "episode_retrieval_window"
 required-features = ["plot-catalog"]
+
+[[test]]
+name = "episode_retrieval_context"
+required-features = ["plot-catalog"]
+
+[[test]]
+name = "episode_retrieval_projection"
+required-features = ["plot-catalog"]
+
+[[test]]
+name = "episode_retrieval_request"
+required-features = ["plot-catalog"]

@@ -1,4 +1,6 @@
-//! Borrowed candidate custody. No source dereference or allocation is performed.
+//! Borrowed candidate custody. Validation, raw digests and byte costs allocate
+//! nothing and never dereference sources. Explicit owned identity materialization
+//! through `BorrowedContextChunk::identity` may allocate for prepared digests.
 use super::*;
 use conduit_core::{BorrowedTemporalInstant, BoundedResourceRef, TemporalScale};
 use sha2::{Digest, Sha256};
@@ -26,6 +28,12 @@ pub enum BorrowedContextValue<'a> {
 #[derive(Clone, Copy)]
 pub enum BorrowedContextChunk<'a> {
     Owned(&'a crate::Chunk<ExtractedSourceValue>),
+    /// Raw identity custody for execution without generated owned constructors.
+    PreparedDigest {
+        identity: [u8; 32],
+        lineage: BorrowedContextLineage<'a>,
+        value: BorrowedContextValue<'a>,
+    },
     Explicit {
         identity: crate::ChunkIdentity,
         lineage: BorrowedContextLineage<'a>,
@@ -33,15 +41,30 @@ pub enum BorrowedContextChunk<'a> {
     },
 }
 impl BorrowedContextChunk<'_> {
+    /// Materialize the owned identity. `PreparedDigest` calls the generated
+    /// constructor and may allocate; execution should use `identity_digest`.
     pub fn identity(&self) -> crate::ChunkIdentity {
         match self {
             Self::Owned(chunk) => chunk.identity,
             Self::Explicit { identity, .. } => *identity,
+            Self::PreparedDigest { identity, .. } => crate::ChunkIdentity::from_digest(*identity),
+        }
+    }
+    /// Return the supplied identity digest without allocation or admission.
+    /// Call `validate` to check it against the complete extraction lineage.
+    pub fn identity_digest(&self) -> [u8; 32] {
+        match self {
+            Self::Owned(chunk) => chunk.identity.digest(),
+            Self::Explicit { identity, .. } => identity.digest(),
+            Self::PreparedDigest { identity, .. } => *identity,
         }
     }
     pub fn validate(&self) -> Result<(), ContextSelectionRefusal> {
         match self {
             Self::Explicit {
+                identity, lineage, ..
+            } => validate_lineage(identity.digest(), *lineage),
+            Self::PreparedDigest {
                 identity, lineage, ..
             } => validate_lineage(*identity, *lineage),
             Self::Owned(chunk) => {
@@ -55,7 +78,7 @@ impl BorrowedContextChunk<'_> {
                     *slot = profile.get();
                 }
                 validate_lineage(
-                    chunk.identity,
+                    chunk.identity.digest(),
                     BorrowedContextLineage {
                         source: BorrowedContextSource::Owned(&owned.source.resource),
                         span_unit: owned.span.unit(),
@@ -72,7 +95,7 @@ impl BorrowedContextChunk<'_> {
     pub fn byte_cost(&self) -> Result<u32, ContextSelectionRefusal> {
         let length = match self {
             Self::Owned(chunk) => return extracted_value_bytes(&chunk.value),
-            Self::Explicit { value, .. } => match value {
+            Self::Explicit { value, .. } | Self::PreparedDigest { value, .. } => match value {
                 BorrowedContextValue::Text(bytes) => bytes.len(),
                 BorrowedContextValue::StructuredItems(items) => {
                     sum_lengths(items.iter().map(|item| item.len()))?
@@ -91,78 +114,85 @@ impl BorrowedContextChunk<'_> {
     }
 }
 fn validate_lineage(
-    identity: crate::ChunkIdentity,
+    identity: [u8; 32],
     lineage: BorrowedContextLineage<'_>,
 ) -> Result<(), ContextSelectionRefusal> {
-    let (source, version, extent) = match lineage.source {
-        BorrowedContextSource::Owned(resource) => {
-            resource
-                .validate()
-                .map_err(|_| ContextSelectionRefusal::InvalidCandidate)?;
-            (
-                resource.identity.digest(),
-                resource.lifetime.version.digest(),
-                resource.extent,
-            )
-        }
-        BorrowedContextSource::Encoded(encoded) => {
-            let resource = BoundedResourceRef::validate_encoded(encoded)
-                .map_err(|_| ContextSelectionRefusal::InvalidCandidate)?;
-            (
-                resource.identity.digest(),
-                resource.version.digest(),
-                resource.extent,
-            )
-        }
-    };
-    let limit = match lineage.span_unit {
-        crate::SourceSpanUnit::Bytes => extent.bytes,
-        crate::SourceSpanUnit::Items => extent
-            .items
-            .ok_or(ContextSelectionRefusal::InvalidCandidate)?,
-    };
-    if lineage.span_start >= lineage.span_end
-        || lineage.span_end > limit
-        || lineage.transform_profiles.len() > crate::MAXIMUM_TRANSFORM_LINEAGE
-    {
-        return Err(ContextSelectionRefusal::InvalidCandidate);
-    }
-    validate_identity(lineage.extraction_profile)
-        .map_err(|_| ContextSelectionRefusal::InvalidCandidate)?;
-    for (index, profile) in lineage.transform_profiles.iter().enumerate() {
-        validate_identity(profile).map_err(|_| ContextSelectionRefusal::InvalidCandidate)?;
-        if lineage.transform_profiles[index + 1..].contains(profile) {
-            return Err(ContextSelectionRefusal::InvalidCandidate);
-        }
-    }
-    let mut digest = Sha256::new();
-    digest.update(b"conduit.ai/rag-chunk-lineage@1\0");
-    digest.update(source);
-    digest.update(version);
-    digest.update([if lineage.span_unit == crate::SourceSpanUnit::Bytes {
-        0
-    } else {
-        1
-    }]);
-    digest.update(lineage.span_start.to_le_bytes());
-    digest.update(lineage.span_end.to_le_bytes());
-    hash_string(&mut digest, lineage.extraction_profile);
-    digest.update((lineage.transform_profiles.len() as u16).to_le_bytes());
-    for profile in lineage.transform_profiles {
-        hash_string(&mut digest, profile);
-    }
-    match lineage.parent_chunk {
-        None => digest.update([0]),
-        Some(parent) => {
-            digest.update([1]);
-            digest.update(parent.digest());
-        }
-    }
-    let expected: [u8; 32] = digest.finalize().into();
-    if identity.digest() != expected {
+    if identity != lineage.identity_digest()? {
         return Err(ContextSelectionRefusal::InvalidCandidate);
     }
     Ok(())
+}
+impl BorrowedContextLineage<'_> {
+    /// Validate inert source metadata, span and profile lineage and compute the
+    /// existing chunk identity hash. No source access or owned constructor runs.
+    pub fn identity_digest(&self) -> Result<[u8; 32], ContextSelectionRefusal> {
+        let lineage = *self;
+        let (source, version, extent) = match lineage.source {
+            BorrowedContextSource::Owned(resource) => {
+                resource
+                    .validate()
+                    .map_err(|_| ContextSelectionRefusal::InvalidCandidate)?;
+                (
+                    resource.identity.digest(),
+                    resource.lifetime.version.digest(),
+                    resource.extent,
+                )
+            }
+            BorrowedContextSource::Encoded(encoded) => {
+                let resource = BoundedResourceRef::validate_encoded(encoded)
+                    .map_err(|_| ContextSelectionRefusal::InvalidCandidate)?;
+                (
+                    resource.identity.digest(),
+                    resource.version.digest(),
+                    resource.extent,
+                )
+            }
+        };
+        let limit = match lineage.span_unit {
+            crate::SourceSpanUnit::Bytes => extent.bytes,
+            crate::SourceSpanUnit::Items => extent
+                .items
+                .ok_or(ContextSelectionRefusal::InvalidCandidate)?,
+        };
+        if lineage.span_start >= lineage.span_end
+            || lineage.span_end > limit
+            || lineage.transform_profiles.len() > crate::MAXIMUM_TRANSFORM_LINEAGE
+        {
+            return Err(ContextSelectionRefusal::InvalidCandidate);
+        }
+        validate_identity(lineage.extraction_profile)
+            .map_err(|_| ContextSelectionRefusal::InvalidCandidate)?;
+        for (index, profile) in lineage.transform_profiles.iter().enumerate() {
+            validate_identity(profile).map_err(|_| ContextSelectionRefusal::InvalidCandidate)?;
+            if lineage.transform_profiles[index + 1..].contains(profile) {
+                return Err(ContextSelectionRefusal::InvalidCandidate);
+            }
+        }
+        let mut digest = Sha256::new();
+        digest.update(b"conduit.ai/rag-chunk-lineage@1\0");
+        digest.update(source);
+        digest.update(version);
+        digest.update([if lineage.span_unit == crate::SourceSpanUnit::Bytes {
+            0
+        } else {
+            1
+        }]);
+        digest.update(lineage.span_start.to_le_bytes());
+        digest.update(lineage.span_end.to_le_bytes());
+        hash_string(&mut digest, lineage.extraction_profile);
+        digest.update((lineage.transform_profiles.len() as u16).to_le_bytes());
+        for profile in lineage.transform_profiles {
+            hash_string(&mut digest, profile);
+        }
+        match lineage.parent_chunk {
+            None => digest.update([0]),
+            Some(parent) => {
+                digest.update([1]);
+                digest.update(parent.digest());
+            }
+        }
+        Ok(digest.finalize().into())
+    }
 }
 
 fn hash_string(digest: &mut Sha256, value: &str) {

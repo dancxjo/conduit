@@ -85,7 +85,7 @@ impl PreparedContextSelector {
                 return Err(ContextSelectionRefusal::InvalidCandidate);
             }
             if candidates[index + 1..].iter().any(|other| {
-                other.chunk.identity() == candidate.chunk.identity()
+                other.chunk.identity_digest() == candidate.chunk.identity_digest()
                     || other.reranked_rank == candidate.reranked_rank
             }) {
                 return Err(ContextSelectionRefusal::DuplicateCandidate);

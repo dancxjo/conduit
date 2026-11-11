@@ -7,6 +7,18 @@
 extern crate alloc;
 
 #[cfg(feature = "plot-catalog")]
+mod episode_retrieval_context;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_projection;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_context::*;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_projection::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_request;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_request::*;
+#[cfg(feature = "plot-catalog")]
 mod episode_retrieval_evidence;
 #[cfg(feature = "plot-catalog")]
 mod episode_retrieval_snapshot;

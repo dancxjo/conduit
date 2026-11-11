@@ -38,6 +38,14 @@ pub struct EpisodeRetrievalCandidateKey {
     pub episode: u64,
     pub item: u16,
 }
+impl EpisodeRetrievalCandidateKey {
+    /// Write this window-local candidate name without constructing owned text.
+    pub fn write_identity<'a>(&self, output: &'a mut [u8; 64]) -> &'a str {
+        let (bytes, length) = encoding::candidate_identity(*self);
+        *output = bytes;
+        core::str::from_utf8(&output[..length]).expect("ASCII candidate identity")
+    }
+}
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum EpisodeRetrievalResolution {
     Selected,
