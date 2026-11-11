@@ -1,6 +1,6 @@
 # The Mask supplies mapped registers. This Plot owns command encoding; the
 # selected output Back owns electrical effects and exact resource authority.
-plot environment-display-output (
+plot tm1637-output (
     >> frame: Tm1637Frame...|
     invalid_brightness: Tm1637Absence...| >>
 ) {

@@ -2824,6 +2824,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-tm1637-output-make"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plan-lowering",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-semantic-catalog",
+ "conduit-tm1637-wire",
+]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-todo-face"
 version = "0.1.0"
 dependencies = [
