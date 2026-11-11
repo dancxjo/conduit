@@ -103,7 +103,7 @@ fn member_local_generation_one_passes_global_membership_revision_gate_without_gr
     let (mut owner, root) = owner_fixture();
     let (credential, _, ad) = admit_with_key(&mut owner, &root, "host/continuation-member");
     admit_with_key(&mut owner, &root, "host/continuation-sibling");
-    assert!(owner.session.evidence().membership.revision > 1);
+    assert!(owner.session.evidence().membership.revision.0 > 1);
     let member = crate::durable_host::owner::MemberPresentationBasis::new(credential, ad).unwrap();
     let selection = sealed_selection(&root, &member);
     assert_eq!(selection.membership_generation, 1);
