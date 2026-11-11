@@ -1,5 +1,10 @@
 # Environmental Face contribution
 
+This host-neutral `no_std` domain package is shared by environmental Bodies,
+recording projections and device proofs. It is not owned by one Body, Host or
+display. Application composition stays in authored Plots; this package supplies
+the existing bounded semantic projection, not a scheduler or a hardware provider.
+
 `contribution` accepts the observation's first-class `Quantity` values and
 contributes ordinary universal Face properties. Temperature uses the
 `Temperature` value contract; relative humidity uses `Ratio` and an exact

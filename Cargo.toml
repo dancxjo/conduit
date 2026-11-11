@@ -21,6 +21,7 @@ members = [
 	"semantics/chat",
 	"semantics/data",
 	"semantics/education",
+	"semantics/environment-face",
 	"semantics/finance",
 	"semantics/human",
 	"semantics/language",
@@ -125,6 +126,7 @@ members = [
 	"tools/xtask",
 ]
 exclude = [
+	"plots/seven-segment-mask",
 	"targets/conduitos/mask-service",
 	"targets/conduitos/tls-service",
 	"targets/conduitos/network-service",

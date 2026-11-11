@@ -960,7 +960,7 @@ pub const PROVE_BODY_RENAME_STEPS: &[Step] = &[
         &[
             "test",
             "--manifest-path",
-            "bodies/environment/face/Cargo.toml",
+            "semantics/environment-face/Cargo.toml",
             "--target-dir",
             "target",
             "--locked",

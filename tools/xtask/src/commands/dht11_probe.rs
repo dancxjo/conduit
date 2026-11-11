@@ -180,7 +180,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "test",
                     "--locked",
                     "--manifest-path",
-                    "bodies/environment/face/Cargo.toml",
+                    "semantics/environment-face/Cargo.toml",
                 ])
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
