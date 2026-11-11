@@ -188,6 +188,7 @@ dependencies = [
  "conduit-pulse-capture",
  "conduit-semantic-catalog",
  "conduit-time",
+ "conduit-typed-retention",
 ]
 
 [[package]]
@@ -452,6 +453,14 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-typed-retention"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]
