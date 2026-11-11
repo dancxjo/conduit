@@ -30,3 +30,25 @@ pub unsafe fn cold_prefix(
     // possession and lifetime exclusion above; all byte patterns are valid u8.
     Ok(unsafe { &*(DURABLE.address() as *const [u8; PREFIX_BYTES]) })
 }
+
+/// Bounded cold decode/verification scratch retires before Source preparation.
+/// The result is original Root-verified accepted state, never a fresh receipt.
+pub fn accept<const N: usize>(
+    root: &mut conduit_mcu_host_runtime::root::Root<'_, N>,
+    prefix: &[u8; PREFIX_BYTES],
+) -> Result<
+    conduit_mcu_host_runtime::root::InstalledContinuationAcceptance,
+    conduit_mcu_host_runtime::root::ContinuationAcceptanceRefusal,
+> {
+    use conduit_mcu_host_runtime::root::ContinuationAcceptanceRefusal as E;
+    let mut scratch = alloc::vec::Vec::new();
+    scratch
+        .try_reserve_exact(PREFIX_BYTES)
+        .map_err(|_| E::Bounds)?;
+    scratch.resize(PREFIX_BYTES, 0);
+    let scratch: &mut [u8; PREFIX_BYTES] =
+        scratch.as_mut_slice().try_into().map_err(|_| E::Bounds)?;
+    let accepted = root.read_continuation_acceptance(prefix, scratch)?;
+    root.restore_continuation_acceptance(&accepted)?;
+    Ok(accepted)
+}

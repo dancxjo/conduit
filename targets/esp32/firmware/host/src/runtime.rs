@@ -54,9 +54,20 @@ pub async fn run(
         conduit_esp32_snapshot_nor::DURABLE_END - conduit_esp32_snapshot_nor::DURABLE_START,
     )
     .expect("checked durable partition extent");
-    let storage = conduit_esp32_snapshot_nor::hardware::prepare(flash, slot)
+    let mut storage = conduit_esp32_snapshot_nor::hardware::prepare(flash, slot)
         .map_err(|(_, refusal)| refusal)
         .expect("actual sole flash owner");
+    // This declared 8 KiB retained prefix is additional IMAGE-heap funding,
+    // not an enlarged Source preparation grant. No electrical actors exist yet.
+    let prefix = if crate::config::EXECUTION
+        .and_then(|p| p.continuation)
+        .is_some()
+    {
+        crate::installed_continuation::read_owned(&mut storage)
+            .expect("actual cold continuation read")
+    } else {
+        None
+    };
     let equipment =
         crate::equipment::Equipment::new(&actual, &seed.body_id, equipment.0, equipment.1, storage);
     equipment
@@ -76,8 +87,17 @@ pub async fn run(
             },
         )
         .expect("original checked Root");
+    // The owned prefix remains in this future throughout Play. Decode scratch
+    // is allocated only inside accept and retires before Source preparation.
+    let installed = prefix
+        .as_ref()
+        .map(|owned| shared::continuation::Installed {
+            acceptance: crate::installed_continuation::accept(root, owned.bytes())
+                .expect("invalid or uncertain installed continuation"),
+            prefix: owned.bytes(),
+        });
     let mut link = Link::new(carrier);
-    let future = core::pin::pin!(shared::run(root, equipment, arena, &mut link));
+    let future = core::pin::pin!(shared::run(root, equipment, arena, &mut link, installed));
     conduit_mcu_host_runtime::poll_boundary::separate(future).await
 }
 mod shared {

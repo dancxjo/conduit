@@ -1,12 +1,13 @@
 # Physical construction; Root must initialize and admit the exact workset.
 # Shared Source declares 18624 Mask bytes; these are representation ceilings,
-# not extra arena RAM. Assignment input remains 16KiB, heap108KiB is explicitly backed by secondary96KiB + primary12KiB; static224KiB includes both.
+# not extra arena RAM. Assignment input remains 18KiB; heap116KiB includes the retained8KiB continuation prefix, explicitly backed by secondary96KiB + primary20KiB; static224KiB includes both.
 host blue-wroom32 {
   schema = 1
   # Recording has finite preparation ceilings; physical heap/work bounds stay below.
   # The measured full native Show fits its separately checked 2048-byte envelope.
   preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 38912}
-  execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
+  # Explicit local continuation opt-in: signed installed intent plus fresh full admission required.
+  execution = {authorizer: "seed-owner", maximum_active_worksets: 1, continuation: {assignment_bytes: 18432, runtime_bytes: 38912, durable_bytes: 655360, operation_slots: 16, active_worksets: 1}}
   target = {architecture: "xtensa-lx6", machine: "hw-463-esp-wroom-32", board: "hw-463-esp-wroom-32", make_descriptor: "sha256:3015c678e54e8ae4dc1d0552a30ebdcb118b5c55dfa372252a8a5b86847dc255"}
   # Finite flash residence; these bytes are not a RAM need or write permission.
   base = {kind: "resource/nor-record-residence", implementation: "esp32/nor-record-append@1", initialization: {prefix_bytes: 8192, slots: 1264}}
@@ -19,5 +20,5 @@ host blue-wroom32 {
   base = {kind: "face/renderer", implementation: "esp32/seven-segment-renderer@1", initialization: {face_bytes: 3072, show_bytes: 2048, resource_bytes: 24576, maximum_frames: 65535, page_period_ms: 2000, show_lifetime_ms: 120000, temperature_unit: "fahrenheit"}}
   need = {id: "pool/resident-step-work", class: "kernel/cooperative-step-work@1", slots: 5000, bytes: 16384}
   # Recording adds two finite cord-value slots; byte/work/arena grants stay explicit above.
-  limits = {static_memory_bytes: 229376, heap_arena_bytes: 110592, queue_items: 18, buffered_bytes: 24576, active_instances: 32, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
+  limits = {static_memory_bytes: 229376, heap_arena_bytes: 118784, queue_items: 18, buffered_bytes: 24576, active_instances: 32, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
 }

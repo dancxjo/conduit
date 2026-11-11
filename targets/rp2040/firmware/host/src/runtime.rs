@@ -24,6 +24,19 @@ pub async fn run(
     let arena = image_memory
         .reserve_remaining()
         .expect("whole original IMAGE arena");
+    let prefix = if crate::config::EXECUTION_DELEGATION
+        .and_then(|p| p.continuation)
+        .is_some()
+    {
+        // SAFETY: sole original FLASH owner, before Equipment. This runtime
+        // only exposes recording beyond the reserved prefix; installation is
+        // external ROM maintenance with all borrowers terminated by reset.
+        let bytes = unsafe { crate::installed_continuation::cold_prefix(&flash) }
+            .expect("cold immutable continuation geometry");
+        (!bytes.iter().all(|byte| *byte == 0xff)).then_some(bytes)
+    } else {
+        None
+    };
     let mut storage = RootStorage::<{ crate::config::MAX_ASSIGNMENT_BYTES }>::new();
     let mut equipment = None;
     stack_checkpoint(23);
@@ -32,7 +45,12 @@ pub async fn run(
     let equipment = equipment
         .take()
         .expect("original initialized equipment slot");
-    let future = core::pin::pin!(shared::run(root, equipment, arena, link));
+    let installed = prefix.map(|prefix| shared::continuation::Installed {
+        acceptance: crate::installed_continuation::accept(root, prefix)
+            .expect("invalid or uncertain installed continuation"),
+        prefix,
+    });
+    let future = core::pin::pin!(shared::run(root, equipment, arena, link, installed));
     conduit_mcu_host_runtime::poll_boundary::separate(future).await
 }
 // Construct directly into caller-owned Root/Equipment slots. Cold initialization

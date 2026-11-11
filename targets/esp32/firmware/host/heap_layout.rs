@@ -1,7 +1,8 @@
 //! Checked internal-DRAM construction policy for this ESP32 BSP only.
 //! The requested IMAGE total is split, never enlarged by discovered free RAM.
 pub const SECONDARY_BYTES: u64 = 98_304;
-pub const PRIMARY_BYTES: u64 = 12_288;
+// The additional 8 KiB funds the retained continuation prefix explicitly.
+pub const PRIMARY_BYTES: u64 = 20_480;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HeapLayout {
     pub secondary: u64,
@@ -43,7 +44,14 @@ mod tests {
                 primary: 4_096
             })
         );
-        for total in [0, 98_305, 110_608, u64::MAX] {
+        assert_eq!(
+            checked(118_784),
+            Some(HeapLayout {
+                secondary: 98_304,
+                primary: 20_480
+            })
+        );
+        for total in [0, 98_305, 118_800, u64::MAX] {
             assert_eq!(checked(total), None);
         }
     }

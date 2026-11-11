@@ -6,7 +6,8 @@ host pico-w-house-yellow {
   # Recording has finite preparation ceilings; physical heap/work bounds stay below.
   # The measured full native Show fits its separately checked 2048-byte envelope.
   preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 38912}
-  execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
+  # Explicit local continuation opt-in: signed installed intent plus fresh full admission required.
+  execution = {authorizer: "seed-owner", maximum_active_worksets: 1, continuation: {assignment_bytes: 18432, runtime_bytes: 38912, durable_bytes: 589824, operation_slots: 16, active_worksets: 1}}
   target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
   # Finite flash residence; these bytes are not a RAM need or write permission.
   base = {kind: "resource/nor-record-residence", implementation: "rp2040/nor-record-append@1", initialization: {prefix_bytes: 8192, slots: 1136}}
