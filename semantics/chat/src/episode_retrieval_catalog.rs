@@ -174,7 +174,7 @@ pub fn episode_retrieval_context_contract() -> Kind {
             port("pending", crate::episode_pending_type(), Output, false),
         ],
     );
-    kind.kind_contract_revision = "conduit.body/episode-retrieval-context@2".into();
+    kind.kind_contract_revision = "conduit.body/episode-retrieval-context@3".into();
     let profile = conduit_ai::ContextSelectionPolicy::semantic_type()
         .unwrap()
         .profile()
