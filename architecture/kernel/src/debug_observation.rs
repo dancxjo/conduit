@@ -18,7 +18,42 @@ pub use control::{
 };
 pub use sink::{DebugObserverControl, ObservedSignSink};
 
+#[cfg(feature = "alloc")]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostedDebugHistory {
+    pub execution: DebugExecutionIdentity,
+    pub records: alloc::vec::Vec<DebugObservationRecord>,
+    pub gap: Option<DebugObservationGap>,
+}
+
+#[cfg(feature = "alloc")]
+pub(crate) trait HostedDebugObserver: Send {
+    fn observe(&mut self, event: DebugRuntimeEvent<'_>);
+    fn history(&self) -> Option<HostedDebugHistory>;
+}
+
+#[cfg(feature = "alloc")]
+impl<E: crate::SignSink + Send, const N: usize, const P: usize, const R: usize> HostedDebugObserver
+    for ObservedSignSink<E, N, P, R>
+{
+    fn observe(&mut self, event: DebugRuntimeEvent<'_>) {
+        crate::SignSink::observe_debug(self, event);
+    }
+
+    fn history(&self) -> Option<HostedDebugHistory> {
+        let buffer = self.observations()?;
+        Some(HostedDebugHistory {
+            execution: buffer.execution(),
+            records: (0..buffer.len())
+                .filter_map(|index| buffer.record(index).copied())
+                .collect(),
+            gap: buffer.gap(),
+        })
+    }
+}
+
 pub const DEBUG_OBSERVATION_SCHEMA_VERSION: u16 = 2;
+pub const MAX_DEBUG_ADDITIONAL_PARENTS: usize = 8;
 pub const MAX_DEBUG_VALUE_PREVIEW_BYTES: usize = 64;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -37,7 +72,16 @@ pub struct DebugNodeBinding {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DebugSubject {
     Gear(NodeId),
-    Port { gear: NodeId, port: PortId },
+    /// A runtime input Port or a legacy undirected Port binding.
+    Port {
+        gear: NodeId,
+        port: PortId,
+    },
+    /// Output slots have their own numbering and may overlap input slots.
+    OutputPort {
+        gear: NodeId,
+        port: PortId,
+    },
     Cord(CordId),
 }
 
@@ -83,6 +127,8 @@ pub struct DebugObservationRecord {
     pub fault_code: Option<u16>,
     /// Exact retained observation sequence that directly caused this event.
     pub causal_parent_sequence: Option<u64>,
+    /// Other observed input Ports in the same batch of Gear work.
+    pub additional_parent_sequences: [Option<u64>; MAX_DEBUG_ADDITIONAL_PARENTS],
     /// Gear-lifetime observation identity containing this event.
     pub invocation_sequence: Option<u64>,
 }
@@ -130,6 +176,13 @@ impl DebugObservationRecord {
             .causal_parent_sequence
             .is_some_and(|parent| parent >= self.sequence)
             || self
+                .additional_parent_sequences
+                .iter()
+                .flatten()
+                .any(|parent| {
+                    *parent >= self.sequence || Some(*parent) == self.causal_parent_sequence
+                })
+            || self
                 .invocation_sequence
                 .is_some_and(|invocation| invocation > self.sequence)
         {
@@ -174,5 +227,6 @@ pub struct DebugObservationInput<'a> {
     pub value: Option<&'a [u8]>,
     pub fault_code: Option<u16>,
     pub causal_parent_sequence: Option<u64>,
+    pub additional_parent_sequences: [Option<u64>; MAX_DEBUG_ADDITIONAL_PARENTS],
     pub invocation_sequence: Option<u64>,
 }

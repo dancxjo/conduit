@@ -6,11 +6,13 @@ edition = "2021"
 [dependencies]
 unicode-normalization = { version = "0.1", default-features = false }
 conduit-core = { path = "../../architecture/core" }
+conduit-time = { path = "../time", default-features = false }
 conduit-plot = { path = "../../architecture/plot" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 sha2 = { version = "0.10", default-features = false }
 
 [build-dependencies]
+conduit-time = { path = "../time", default-features = false }
 conduit-plot = { path = "../../architecture/plot" }
 
 [dev-dependencies]

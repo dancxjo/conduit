@@ -1,0 +1,37 @@
+# Exact Types used by checkpoints before evidence retention.
+
+type EpisodeObservation = {
+    identity: Text <= 64B not in [""]
+    content: Text <= 256B not in [""]
+    retain: Boolean
+}
+
+type EpisodeModelResponse = {
+    content: Text <= 512B not in [""]
+    implementation: Text <= 128B not in [""]
+    run: Text <= 128B not in [""]
+    truncated: Boolean
+}
+
+type EpisodeMemory = {
+    episode: U64
+    observation: EpisodeObservation
+    response: EpisodeModelResponse
+}
+
+type EpisodeRecall = sequence EpisodeMemory <= 4
+
+type EpisodeMemoryOwner =
+    unbound
+    | bound {
+        body_id: Text <= 256B not in [""]
+        wake_id: Text <= 256B not in [""]
+        wake_sequence: U64
+    }
+
+type EpisodeMemoryState = {
+    completed: U64
+    memories: EpisodeRecall
+    owner: EpisodeMemoryOwner
+    where (.completed == 0) == (.owner is unbound)
+}

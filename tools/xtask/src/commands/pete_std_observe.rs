@@ -35,6 +35,9 @@ pub struct PeteArgs {
 
 #[derive(Subcommand, Debug)]
 enum PeteProofCommand {
+    /// Run bounded utterances through Pete's ordinary cognition Play.
+    #[command(name = "std-cognition")]
+    Cognition(super::pete_std_cognition::StdCognitionArgs),
     /// Observe one bounded correlated Create sensor frame without actuation.
     #[command(name = "std-observe")]
     Observe(StdObserveArgs),
@@ -149,6 +152,9 @@ struct StartLocalOdometry {
 
 pub fn run(args: PeteArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
+        PeteProofCommand::Cognition(args) => {
+            Ok(super::pete_std_cognition::run(args, opts.dry_run)?)
+        }
         PeteProofCommand::Observe(args) => run_std_observe(args, opts),
         PeteProofCommand::Speaker(args) => pete_std_speaker::run(args, opts),
         PeteProofCommand::Indicator(args) => pete_std_indicator::run(args, opts),

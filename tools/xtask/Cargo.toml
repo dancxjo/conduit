@@ -81,5 +81,7 @@ conduit-wire = { path = "../../architecture/wire" }
 
 conduit-thermostat-plot = { path = "../../plots/thermostat/model" }
 
+conduit-browser-patchbay-workbench = { path = "../../targets/browser/patchbay-workbench" }
+
 [dev-dependencies]
 libc = "0.2"

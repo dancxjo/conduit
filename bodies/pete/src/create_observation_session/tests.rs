@@ -87,6 +87,32 @@ fn exact_session_starts_reads_correlated_observation_and_pauses() {
 }
 
 #[test]
+fn cognition_battery_leaves_an_unavailable_capacity_absent() {
+    let mut payload = group_zero();
+    payload[24..26].copy_from_slice(&0u16.to_be_bytes());
+    let packet = decode_sensor_packet(CREATE_GROUP_ZERO_PACKET_ID, &payload).unwrap();
+    let sources = decode_sensor_packet(CREATE_CHARGING_SOURCES_PACKET_ID, &[0]).unwrap();
+    let observation = CreatePortableObservation {
+        group_zero: lower_group_zero(&packet).unwrap(),
+        charging_sources: lower_charging_sources(&sources).unwrap(),
+    };
+    let instant = conduit_time::NativeTemporalInstant::new(
+        "clock/create".into(),
+        1,
+        conduit_time::NativeTemporalScale::Milliseconds,
+        10,
+        0,
+    )
+    .unwrap();
+    let sign = crate::PeteCognitionSign::new("sign/create/1".into()).unwrap();
+    assert!(
+        crate::pete_cognition_battery_from_create(&observation, sign, instant)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
 fn session_uses_bounded_create_stream_synchronization() {
     let mut bytes = vec![0xaa, 0xbb, 0xcc];
     bytes.extend_from_slice(&frame());

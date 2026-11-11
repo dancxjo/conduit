@@ -43,6 +43,7 @@ pub struct RejectedRunControlRequest {
 #[derive(Debug, Clone, Default)]
 pub struct RunControl {
     state: Arc<(Mutex<RunControlState>, Condvar)>,
+    pub(crate) debug_body: Option<conduit_body::BodyId>,
 }
 
 #[derive(Debug, Default)]
@@ -54,6 +55,12 @@ struct RunControlState {
 }
 
 impl RunControl {
+    /// Opt into bounded debugger metadata for this installed run.
+    pub fn with_debug_body(mut self, body: conduit_body::BodyId) -> Self {
+        self.debug_body = Some(body);
+        self
+    }
+
     pub fn request_stop(
         &self,
         request_id: RunControlRequestId,

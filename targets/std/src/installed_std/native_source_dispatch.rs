@@ -36,13 +36,15 @@ pub(super) fn complete(
     Ok(())
 }
 
-pub(crate) fn supports_with_native(
+pub(crate) fn supports_with_adapters(
     fragment: &PlanFragment,
     source: Option<&crate::selected_native_source::InitializedNativeSource>,
+    frame: Option<&crate::HostedFrameBack>,
 ) -> bool {
     !fragment.placements.is_empty()
         && fragment.placements.iter().all(|gear| {
             source.is_some_and(|source| source.matches(gear))
+                || frame.is_some_and(|frame| frame.matches(gear))
                 || catalog::factory(&gear.implementation_id).is_some()
                 || gear.implementation_id.as_str()
                     == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION

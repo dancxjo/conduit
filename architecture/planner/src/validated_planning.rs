@@ -350,7 +350,10 @@ pub(crate) fn plan_borrowed_plot_with_connection_limits(
                 .and_then(|port| port.abnormal_kind.clone()),
             track: connection.track,
             temporal: connection.temporal,
-            pressure_policy: if source_plan.kind_id.as_str() == "flow/coalesce-latest" {
+            pressure_policy: if matches!(
+                source_plan.kind_id.as_str(),
+                "flow/coalesce-latest" | "flow/coalesce-latest-finite"
+            ) {
                 DeliveryPressurePolicy::CoalesceLatest
             } else {
                 DeliveryPressurePolicy::PreserveOrder
