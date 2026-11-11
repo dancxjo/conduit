@@ -95,6 +95,7 @@ fn experience_classifications_round_trip_through_exact_native_types() {
     for value in [
         ExperienceOrigin::Observation,
         ExperienceOrigin::HumanReported,
+        ExperienceOrigin::DeterministicDerived,
         ExperienceOrigin::Remembered,
         ExperienceOrigin::ModelDerived,
         ExperienceOrigin::Imagined,

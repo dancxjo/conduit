@@ -660,6 +660,26 @@ type TemporalEvidenceSelection =
     | need_earlier_history
     | boundary_unavailable
 
+# An explicit finite retrieval window may honestly contain no retained history.
+type TemporalEvidenceWindowCandidates = sequence TemporalEvidenceCandidate <= 128
+type TemporalEvidenceWindow = {
+    identity: TemporalEvidenceIdentity
+    reference: TemporalReference
+    candidates: TemporalEvidenceWindowCandidates
+    earliest_history_complete: Boolean
+}
+type TemporalEvidenceFlowSelection =
+    selected {
+        identities: TemporalEvidenceIdentities
+    }
+    | no_history
+    | need_earlier_history
+    | boundary_unavailable
+type TemporalEvidenceOutcome = {
+    window_identity: TemporalEvidenceIdentity
+    selection: TemporalEvidenceFlowSelection
+}
+
 type TemporalReference = {
     reference_at: U64
     clock_basis: ClockBasis
@@ -1838,3 +1858,9 @@ type EvaluationPolicy =
     none
     | every_steps U64
     | at_completion
+
+# Instructions and evidence remain distinct at the provider boundary.
+type GenerationContext = {
+    data: Text <= 1MiB not in [""]
+    instruction: Text <= 1024B not in [""]
+}

@@ -1,172 +1,72 @@
 //! Finite boundary-oriented selection over exact temporal evidence.
 
-use alloc::{vec, vec::Vec};
 use conduit_plot::rust_binding::BoundedSequence;
 
 use crate::{
-    TemporalEvidenceBatch, TemporalEvidenceCandidate, TemporalEvidenceIdentities,
-    TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal, TemporalRetrievalIntent,
+    TemporalEvidenceBatch, TemporalEvidenceIdentities, TemporalEvidenceSelection,
+    TemporalEvidenceSelectionRefusal, TemporalRetrievalIntent,
 };
 
 pub const MAXIMUM_TEMPORAL_EVIDENCE_CANDIDATES: usize = 128;
 pub const MAXIMUM_TEMPORAL_EVIDENCE_IDENTITY_BYTES: usize = 256;
+
+mod borrowed;
+pub use borrowed::*;
 
 impl TemporalEvidenceBatch {
     pub fn select(
         &self,
         intent: &TemporalRetrievalIntent,
     ) -> Result<TemporalEvidenceSelection, TemporalEvidenceSelectionRefusal> {
-        self.validate(intent)?;
-        if matches!(intent, TemporalRetrievalIntent::EarliestEvidence)
-            && !self.earliest_history_complete
-        {
-            return Ok(TemporalEvidenceSelection::NeedEarlierHistory);
-        }
-
-        let mut matches = Vec::new();
-        for candidate in self.candidates.get() {
-            let instant = candidate
-                .provenance
-                .source_instant(candidate.source)
-                .map_err(|_| TemporalEvidenceSelectionRefusal::MissingSourceTime)?;
-            if candidate_matches(candidate, instant, intent) {
-                matches.push((instant, candidate.identity.clone()));
+        let mut output = TemporalEvidenceIndexSelection::new();
+        borrowed::select_indices(
+            BorrowedTemporalReference::from(&self.reference),
+            self.candidates.get().len(),
+            |index| {
+                BorrowedTemporalEvidenceCandidate::from(&self.candidates.get().as_slice()[index])
+            },
+            intent.into(),
+            self.earliest_history_complete,
+            false,
+            &mut output,
+        )?;
+        match output.status() {
+            TemporalEvidenceSelectionStatus::NeedEarlierHistory => {
+                Ok(TemporalEvidenceSelection::NeedEarlierHistory)
             }
-        }
-        matches.sort_by(|left, right| {
-            left.0
-                .cmp(&right.0)
-                .then_with(|| left.1.get().cmp(right.1.get()))
-        });
-
-        if matches.is_empty() {
-            return Ok(
-                if needs_earlier_history(intent) && !self.earliest_history_complete {
-                    TemporalEvidenceSelection::NeedEarlierHistory
-                } else {
-                    TemporalEvidenceSelection::BoundaryUnavailable
-                },
-            );
-        }
-
-        let identities = match intent {
-            TemporalRetrievalIntent::EarliestEvidence
-            | TemporalRetrievalIntent::DurationSince(_) => {
-                vec![matches[0].1.clone()]
+            TemporalEvidenceSelectionStatus::BoundaryUnavailable => {
+                Ok(TemporalEvidenceSelection::BoundaryUnavailable)
             }
-            TemporalRetrievalIntent::LatestEvidence => {
-                vec![matches[matches.len() - 1].1.clone()]
+            TemporalEvidenceSelectionStatus::NoHistory => {
+                unreachable!("owned empty batches refuse")
             }
-            _ => matches.into_iter().map(|(_, identity)| identity).collect(),
-        };
-        Ok(TemporalEvidenceSelection::selected(
-            TemporalEvidenceIdentities::new(
-                BoundedSequence::try_from_iter(identities)
-                    .expect("selection cannot exceed the checked 128-candidate batch"),
-            )
-            .expect("selection always contains at least one identity"),
-        )
-        .expect("a checked identity sequence is a valid selection"))
-    }
-
-    fn validate(
-        &self,
-        intent: &TemporalRetrievalIntent,
-    ) -> Result<(), TemporalEvidenceSelectionRefusal> {
-        self.reference
-            .validate()
-            .map_err(|_| TemporalEvidenceSelectionRefusal::InvalidReference)?;
-        intent
-            .validate()
-            .map_err(|_| TemporalEvidenceSelectionRefusal::InvalidIntent)?;
-        if self.candidates.get().is_empty() {
-            return Err(TemporalEvidenceSelectionRefusal::EmptyCandidates);
-        }
-        if self.candidates.get().len() > MAXIMUM_TEMPORAL_EVIDENCE_CANDIDATES {
-            return Err(TemporalEvidenceSelectionRefusal::TooManyCandidates);
-        }
-        for (index, candidate) in self.candidates.get().iter().enumerate() {
-            if candidate.identity.get().is_empty() {
-                return Err(TemporalEvidenceSelectionRefusal::EmptyIdentity);
+            TemporalEvidenceSelectionStatus::Selected => {
+                let identities = output
+                    .indices()
+                    .iter()
+                    .map(|&index| self.candidates.get().as_slice()[index].identity.clone());
+                Ok(TemporalEvidenceSelection::selected(
+                    TemporalEvidenceIdentities::new(
+                        BoundedSequence::try_from_iter(identities)
+                            .expect("checked candidate bound"),
+                    )
+                    .expect("nonempty selection"),
+                )
+                .expect("checked identities"))
             }
-            if candidate.identity.get().len() > MAXIMUM_TEMPORAL_EVIDENCE_IDENTITY_BYTES {
-                return Err(TemporalEvidenceSelectionRefusal::IdentityTooLarge);
-            }
-            if self.candidates.get().as_slice()[index + 1..]
-                .iter()
-                .any(|other| other.identity == candidate.identity)
-            {
-                return Err(TemporalEvidenceSelectionRefusal::DuplicateIdentity);
-            }
-            candidate
-                .provenance
-                .validate()
-                .map_err(|_| TemporalEvidenceSelectionRefusal::InvalidProvenance)?;
-            if candidate.provenance.reference_at != self.reference.reference_at
-                || candidate.provenance.clock_basis != self.reference.clock_basis
-            {
-                return Err(TemporalEvidenceSelectionRefusal::ReferenceMismatch);
-            }
-            candidate
-                .provenance
-                .source_instant(candidate.source)
-                .map_err(|_| TemporalEvidenceSelectionRefusal::MissingSourceTime)?;
-        }
-        Ok(())
-    }
-}
-
-fn candidate_matches(
-    candidate: &TemporalEvidenceCandidate,
-    instant: u64,
-    intent: &TemporalRetrievalIntent,
-) -> bool {
-    match intent {
-        TemporalRetrievalIntent::EarliestEvidence
-        | TemporalRetrievalIntent::LatestEvidence
-        | TemporalRetrievalIntent::EventOrdering => true,
-        TemporalRetrievalIntent::StateValidAt(payload) => {
-            let query_instant = *payload.instant();
-            candidate
-                .provenance
-                .valid_from
-                .is_some_and(|start| start <= query_instant)
-                && candidate
-                    .provenance
-                    .valid_until
-                    .is_none_or(|end| query_instant <= end)
-        }
-        TemporalRetrievalIntent::Transition(payload) => {
-            candidate.transition == Some(*payload.direction())
-        }
-        TemporalRetrievalIntent::DurationSince(payload) => {
-            candidate.boundary == Some(*payload.boundary())
-        }
-        TemporalRetrievalIntent::EvidenceWithin(payload) => {
-            *payload.window().start() <= instant && instant <= *payload.window().end()
         }
     }
-}
-
-fn needs_earlier_history(intent: &TemporalRetrievalIntent) -> bool {
-    matches!(
-        intent,
-        TemporalRetrievalIntent::EarliestEvidence
-            | TemporalRetrievalIntent::StateValidAt(_)
-            | TemporalRetrievalIntent::Transition(_)
-            | TemporalRetrievalIntent::DurationSince(_)
-            | TemporalRetrievalIntent::EvidenceWithin(_)
-    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
-        ClockBasis, EntityBoundary, TemporalEvidenceCandidates, TemporalEvidenceIdentity,
-        TemporalProvenance, TemporalReference, TemporalSource, TemporalValidity,
+        ClockBasis, EntityBoundary, TemporalEvidenceCandidate, TemporalEvidenceCandidates,
+        TemporalEvidenceIdentity, TemporalProvenance, TemporalReference, TemporalSource,
+        TemporalValidity,
     };
-    use alloc::{format, string::String, vec};
+    use alloc::{format, string::String, vec, vec::Vec};
     use conduit_plot::rust_binding::NativeRustBinding;
 
     fn provenance(event_at: u64, valid_until: Option<u64>) -> TemporalProvenance {
@@ -184,7 +84,7 @@ mod tests {
         }
     }
 
-    fn candidate(identity: &str, event_at: u64) -> TemporalEvidenceCandidate {
+    pub(super) fn candidate(identity: &str, event_at: u64) -> TemporalEvidenceCandidate {
         TemporalEvidenceCandidate {
             identity: TemporalEvidenceIdentity::new(identity.into()).unwrap(),
             provenance: provenance(event_at, None),
@@ -195,7 +95,10 @@ mod tests {
         }
     }
 
-    fn batch(candidates: Vec<TemporalEvidenceCandidate>, complete: bool) -> TemporalEvidenceBatch {
+    pub(super) fn batch(
+        candidates: Vec<TemporalEvidenceCandidate>,
+        complete: bool,
+    ) -> TemporalEvidenceBatch {
         TemporalEvidenceBatch {
             reference: TemporalReference {
                 reference_at: 1_000,
@@ -346,4 +249,15 @@ mod tests {
             Err(TemporalEvidenceSelectionRefusal::MissingSourceTime)
         );
     }
+}
+
+#[cfg(test)]
+#[path = "temporal_evidence_selection/borrowed_tests.rs"]
+mod borrowed_tests;
+
+/// Shared thread-scoped unit-test allocation assertion; one test allocator owns
+/// the AI unit-test binary, including other bounded semantic implementations.
+#[cfg(test)]
+pub(crate) fn assert_without_allocations<T>(operation: impl FnOnce() -> T) -> T {
+    borrowed_tests::assert_without_allocations(operation)
 }

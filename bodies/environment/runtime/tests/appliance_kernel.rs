@@ -21,19 +21,21 @@ mod appliance_support;
 )]
 #[path = "support/pulse.rs"]
 mod pulse;
+#[path = "support/pulse_budget.rs"]
+mod pulse_budget;
 #[path = "appliance_support/software.rs"]
 mod software_tests;
 use conduit_core as c;
 use conduit_environment_runtime::appliance::ApplianceBack as Driver;
 use conduit_environment_runtime::{
     construction::compile, publication::PublicationChannel as Channel, CaptureBack,
-    PreparedCaptureSelector,
 };
 use conduit_kernel::{
     self as k,
     scheduler::{FixedScheduler, SchedulerStatus},
     ValueStorage,
 };
+use conduit_semantic_catalog::PreparedCanonicalSelector;
 const N: usize = 15;
 const C: usize = 14;
 const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -109,7 +111,7 @@ fn run(scenario: usize, overnight: bool) {
     }
     assert_eq!((lowered.nodes.len(), lowered.cords.len()), (N, C));
     let (mut owner, pulse_node) =
-        pulse::bind_budget(ready, &plan, &lowered, count.try_into().unwrap()).unwrap();
+        pulse_budget::bind_budget(ready, &plan, &lowered, count.try_into().unwrap()).unwrap();
     let nodes = core::array::from_fn(|i| {
         let rich = lowered.node_specs[i];
         assert!(rich.input_cords[P..].iter().all(Option::is_none));
@@ -163,7 +165,7 @@ fn run(scenario: usize, overnight: bool) {
         let wait = values
             .store(&c::encode_monotonic_duration(period_ms))
             .unwrap();
-        let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
+        let mut selectors: [Option<PreparedCanonicalSelector>; N] = core::array::from_fn(|_| None);
         let mut drivers: [Option<Driver>; N] = core::array::from_fn(|_| None);
         for placement in &plan.fragments[0].startup_order {
             let i = usize::from(lowered.identity.node_for_placement(placement).unwrap().0);

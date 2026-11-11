@@ -152,9 +152,8 @@ fn native_wire_counts_preserve_absent_null_exact_zero_and_invalid_numbers() {
     }
 }
 
-#[test]
-fn actual_finite_adapter_refuses_unadmitted_input_before_provider_access() {
-    let mut adapter = OllamaLocalModelAdapter {
+fn finite_adapter_fixture() -> OllamaLocalModelAdapter {
+    OllamaLocalModelAdapter {
         offer: LocalModelOffer {
             identity: LocalModelIdentity {
                 runtime_name: "fixture".into(),
@@ -193,7 +192,13 @@ fn actual_finite_adapter_refuses_unadmitted_input_before_provider_access() {
         model_name: "fixture".into(),
         next_request_sequence: 7,
         active_stream: None,
-    };
+        generation_worker: None,
+    }
+}
+
+#[test]
+fn actual_finite_adapter_refuses_unadmitted_input_before_provider_access() {
+    let mut adapter = finite_adapter_fixture();
     let mut output = b"old output".to_vec();
     let gear = placement();
     assert_eq!(
@@ -210,4 +215,74 @@ fn actual_finite_adapter_refuses_unadmitted_input_before_provider_access() {
     );
     assert!(output.is_empty());
     assert_eq!(adapter.next_request_sequence, 7);
+}
+
+#[test]
+fn worker_repreparation_keeps_attempts_completed_by_other_model_operations() {
+    let mut adapter = finite_adapter_fixture();
+    adapter
+        .offer
+        .supported_profiles
+        .push(LocalModelKindProfile::GenerateFlow);
+    // Preparation-only finite worker fixture: no request is dispatched and no
+    // provider is contacted. Placement dispatch is tested through installed Plays.
+    let mut flow = placement();
+    flow.kind_id = conduit_ai::LLM_GENERATE_FLOW_KIND.into();
+    set(&mut flow, "maximum-input-bytes", 8);
+    set(&mut flow, "maximum-output-bytes", 1024);
+    adapter
+        .prepare_background_generation(core::slice::from_ref(&flow))
+        .unwrap();
+    // A completed non-Flow operation advances the owner after the worker's last
+    // observation. Retiring that worker must not make earlier run IDs reusable.
+    adapter.next_request_sequence += 2;
+    let later = adapter.next_request_sequence;
+    adapter
+        .prepare_background_generation(core::slice::from_ref(&flow))
+        .unwrap();
+    assert_eq!(adapter.next_request_sequence, later);
+    assert_eq!(
+        adapter.generation_worker.as_ref().unwrap().next_sequence,
+        later
+    );
+    adapter.next_request_sequence += 1;
+    let final_sequence = adapter.next_request_sequence;
+    adapter.prepare_background_generation(&[]).unwrap();
+    assert_eq!(adapter.next_request_sequence, final_sequence);
+    assert!(adapter.generation_worker.is_none());
+}
+
+#[test]
+fn worker_dispatch_observes_sequence_advanced_while_idle() {
+    let mut adapter = finite_adapter_fixture();
+    adapter
+        .offer
+        .supported_profiles
+        .push(LocalModelKindProfile::GenerateFlow);
+    let mut flow = placement();
+    flow.kind_id = conduit_ai::LLM_GENERATE_FLOW_KIND.into();
+    set(&mut flow, "maximum-input-bytes", 8);
+    set(&mut flow, "maximum-output-bytes", 1024);
+    adapter
+        .prepare_background_generation(core::slice::from_ref(&flow))
+        .unwrap();
+    adapter.next_request_sequence = 9;
+    let mut output = Vec::new();
+    // Invalid UTF-8 is refused before provider access, but still crosses
+    // the real prepared dispatch/completion slot and exercises sequence custody.
+    assert_eq!(adapter.begin_generation(&flow, &[0xff], &mut output), None);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    let terminal = loop {
+        if let Some(terminal) = adapter.poll_generation(&mut output) {
+            break terminal;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "worker did not complete"
+        );
+        std::thread::yield_now();
+    };
+    assert_eq!(terminal, LocalModelAdapterTerminal::Failed);
+    assert_eq!(adapter.next_request_sequence, 9);
+    assert_eq!(adapter.generation_worker.as_ref().unwrap().next_sequence, 9);
 }

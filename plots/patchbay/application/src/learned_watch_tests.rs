@@ -55,6 +55,7 @@ fn setup() -> DebuggerWatchSet {
             },
             fault_code: None,
             causal_parent_sequence: None,
+            additional_parent_sequences: Default::default(),
             invocation_sequence: Some(40),
         })
         .unwrap();

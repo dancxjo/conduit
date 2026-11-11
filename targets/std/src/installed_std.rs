@@ -27,6 +27,16 @@ mod count_backs;
 mod creche_back;
 mod deadline_host;
 mod distance_frequency_back;
+mod episode_context_back;
+mod episode_integration_back;
+mod episode_loop_back;
+mod episode_memory_back;
+mod episode_retrieval_context_back;
+mod episode_retrieval_producer_back;
+mod experience_evidence_back;
+#[cfg(test)]
+mod experience_evidence_back_tests;
+mod experience_model_request;
 mod external_fore_feeder;
 mod external_websocket;
 mod external_websocket_host;
@@ -41,6 +51,7 @@ mod flow_pressure_plot_tests;
 mod flow_state_backs;
 mod generated_speech_commit_back;
 mod generated_validation_backs;
+pub(crate) mod hosted_frame_back;
 mod house_prompt_back;
 mod http;
 mod http_host;
@@ -54,6 +65,7 @@ mod ipa_constructor_back;
 mod near_back;
 mod numerical_back;
 mod pcm_clip_frames_back;
+mod temporal_evidence_back;
 pub(crate) use ieee_back::{offer as ieee_offer, owns_offer as owns_ieee_offer};
 pub(crate) use near_back::{
     admitted as prepare_near_value, offers as near_offers, owns_offer as owns_near_offer,
@@ -61,7 +73,7 @@ pub(crate) use near_back::{
 };
 mod committed_fore;
 mod native_source_dispatch;
-pub(crate) use native_source_dispatch::supports_with_native;
+pub(crate) use native_source_dispatch::supports_with_adapters;
 mod fore_outputs;
 pub use committed_fore::{CommittedForeScope, CommittedForeValue};
 pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
@@ -79,6 +91,7 @@ mod keyboard_input_completion;
 mod keyboard_input_host;
 mod layout_backs;
 mod local_model_back;
+mod local_model_pending;
 mod local_vision_back;
 mod logic_backs;
 mod math_backs;
@@ -110,10 +123,12 @@ pub(crate) use retained_run::DurableStateRun;
 pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
 mod combine_latest_back;
 mod current_sample_back;
+mod current_sample_finite_back;
 mod data_text_back;
 mod data_text_host;
 mod face_composition;
 mod face_construction_host;
+mod flow_coalesce_finite_back;
 mod flow_collect_back;
 mod flow_join_by_key_back;
 mod flow_zip_back;
@@ -296,6 +311,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         spoken_mask,
         direct_spoken_mask,
         durable_state,
+        hosted_frame,
     } = lifecycle;
     let InstalledRunHost {
         #[cfg(target_os = "linux")]
@@ -306,7 +322,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         midi_input,
         midi_output,
         keyboard,
-        mut local_model,
+        local_model,
         mut vector_search,
         mut model_work,
         mut calendar,
@@ -315,9 +331,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
-    if !supports_with_native(
+    if !supports_with_adapters(
         fragment,
         native_source.as_ref().map(|(_, source)| &**source),
+        hosted_frame,
     ) || active_nodes == 0
         || active_nodes > MAX_NODES
         || active_cords == 0
@@ -345,7 +362,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let supplied_inputs = external_fore
         .as_ref()
         .map_or(&[][..], |binding| binding.inputs);
-    let mut fore_inputs = if let Some(config) = external_fore.as_ref().and_then(|run| run.stream) {
+    let live_fore = external_fore.as_ref().and_then(|run| run.live);
+    let mut fore_inputs = if let Some(queue) = live_fore {
+        external_fore_feeder::PreparedForeInputs::prepare_live(&planned_inputs, queue)?
+    } else if let Some(config) = external_fore.as_ref().and_then(|run| run.stream) {
         external_fore_feeder::PreparedForeInputs::prepare_stream(
             &planned_inputs,
             supplied_inputs,
@@ -371,6 +391,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .filter(|source| source.matches(placement))
         {
             source.budget()
+        } else if let Some(frame) = hosted_frame.filter(|frame| frame.matches(placement)) {
+            frame.budget()
         } else {
             preparation::back_budget(placement)?
         };
@@ -444,9 +466,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         &active_play,
         retained,
         durable_state.as_ref().map(|state| state.body),
-        native_call
-            .as_ref()
-            .map(|source| (source.node, source.input_bytes())),
+        preparation::NativePreparation {
+            native_source: native_call
+                .as_ref()
+                .map(|source| (source.node, source.input_bytes())),
+            hosted_frame,
+        },
     )?;
     let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
     for state in &lowered.states {
@@ -487,7 +512,33 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     sign_items = sign_items
         .checked_add(remote_sign_items)
         .ok_or_else(|| "external Fore Sign capacity overflow".to_string())?;
-    let sign = fore_sign_storage::prepare(sign_items, !lowered.fore_ports.is_empty())?;
+    let mut sign = fore_sign_storage::prepare(sign_items, !lowered.fore_ports.is_empty())?;
+    if let Some(body) = &control.debug_body {
+        use conduit_kernel::debug_observation::{
+            DebugExecutionIdentity, DebugNodeBinding, DebugObservationBuffer,
+            DebugObservationRecord,
+        };
+        use sha2::{Digest, Sha256};
+
+        const RECORDS: usize = 128;
+        let execution = DebugExecutionIdentity {
+            body: Sha256::digest(body.as_str()).into(),
+            plan: Sha256::digest(fragment.plan_id.as_str()).into(),
+            play: Sha256::digest(active_play.active_play_id.as_str()).into(),
+        };
+        let history = DebugObservationBuffer::<RECORDS>::new(
+            execution,
+            RECORDS as u16,
+            (RECORDS * size_of::<DebugObservationRecord>()) as u32,
+            0,
+        )
+        .map_err(|error| format!("prepare debugger history: {error:?}"))?;
+        sign.attach_debug_history::<MAX_NODES, PORTS, RECORDS>(
+            [DebugNodeBinding { plot: 0, host: 0 }; MAX_NODES],
+            history,
+        )
+        .map_err(|error| format!("attach debugger history: {error:?}"))?;
+    }
     let mut external_listener = external_websocket_host::prepare(fragment)?;
     let mut http_host = http_host::InstalledHttpHost::prepare(fragment)?;
     let mut calendar_host = calendar_provider_host::CalendarProviderHost::prepare(fragment)?;
@@ -715,6 +766,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         Vec::with_capacity(conduit_ai::MODEL_WORK_MAXIMUM_OUTPUT_BYTES as usize);
     let mut installed_model_work =
         model_work_pending::InstalledModelWorkHost::new(model_work.take());
+    let mut installed_local_model = local_model_pending::InstalledLocalModelHost::prepare(
+        local_model,
+        &fragment.placements,
+        active_play.active_play_id.as_str(),
+    )?;
     let mut local_model_output = Vec::with_capacity(conduit_ai::MAXIMUM_LLM_OUTPUT_BYTES as usize);
     let mut vector_search_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
@@ -854,8 +910,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     timer.observe_kernel_phase(crate::KernelTimingPhase::PlayStarted);
     #[cfg(test)]
     let play_start_probe = crate::allocation_probe::begin();
+    if let Some(queue) = live_fore {
+        queue.mark_play_started();
+    }
     let mut accepted_stop = None;
     let terminal_disposition = loop {
+        let live_observed = fore_inputs.activity_generation();
         if let Some(source) = native_call.as_mut() {
             native_source_dispatch::poll(
                 source,
@@ -907,6 +967,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         if accepted_stop.is_none() {
             if let Some(request_id) = control.requested_stop() {
                 installed_model_work.cancel_all();
+                installed_local_model.cancel_all();
                 if let Some(source) = native_call.as_mut() {
                     source.cancel();
                 }
@@ -996,6 +1057,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if let Some(adapter) = &mut vector_search {
                     adapter.cancel();
                 }
+            } else if cancelled_operation.contract_id.as_str() == conduit_ai::LOCAL_MODEL_OPERATION
+            {
+                installed_local_model.cancel(cancellation);
             } else if matches!(
                 cancelled_operation.contract_id.as_str(),
                 conduit_ai::MODEL_WORK_OPERATION | crate::hosted_model_infer::MODEL_INFER_OPERATION
@@ -1005,6 +1069,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
         }
+        installed_local_model.poll(
+            &mut scheduler,
+            &fragment.placements,
+            &mut local_model_output,
+            || control.stop_requested(),
+        )?;
         installed_model_work.poll(&mut scheduler, &mut model_work_output, || {
             control.stop_requested()
         })?;
@@ -2923,16 +2993,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .placements
                     .get(usize::from(request.node.0))
                     .ok_or_else(|| "model request has no exact placement".to_string())?;
-                let completion = model_host::execute(
-                    contract.as_str(),
+                let completion = installed_local_model.execute(
+                    request,
+                    lowered_operation.binding.maximum_output_bytes,
                     placement,
                     input,
-                    match &mut local_model {
-                        Some(adapter) => Some(&mut **adapter),
-                        None => None,
-                    },
                     &mut local_model_output,
                 )?;
+                host_calls.record(request)?;
+                let Some(completion) = completion else {
+                    continue;
+                };
                 let output = if completion.has_output() {
                     let value = scheduler
                         .store_host_value(&local_model_output)
@@ -2944,7 +3015,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 } else {
                     None
                 };
-                host_calls.record(request)?;
                 scheduler
                     .complete_host_call(request.node, request.request, completion.outcome(output))
                     .map_err(|error| format!("complete model operation: {error:?}"))?;
@@ -3497,7 +3567,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if completed_midi_input {
                     continue;
                 }
-                let completed_deadline = if installed_model_work.is_pending()
+                let completed_deadline = if installed_local_model.is_pending()
+                    || installed_model_work.is_pending()
                     || native_call
                         .as_ref()
                         .is_some_and(|source| source.is_pending())
@@ -3511,6 +3582,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 }
                 if !deadlines.is_empty()
                     || pending_midi_input
+                    || installed_local_model.is_pending()
                     || installed_model_work.is_pending()
                     || native_call
                         .as_ref()
@@ -3520,6 +3592,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 {
                     std::thread::park_timeout(Duration::from_millis(1));
                     continue;
+                }
+                if accepted_stop.is_none() {
+                    if let Some(observed) = live_observed {
+                        if fore_inputs.wait_for_activity(observed)? {
+                            continue;
+                        }
+                    }
                 }
                 return Err(format!(
                     "installed kernel became idle before completion: {:?}",
@@ -3758,6 +3837,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             logical_invocations: scheduler.logical_invocations(),
             kernel_events: scheduler.signs().len(),
             kernel_sign: scheduler.signs().events().collect(),
+            debug_history: scheduler.signs().debug_history(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
             face_ids,

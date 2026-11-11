@@ -34,6 +34,8 @@ package_test_shard!(
         "conduit-rp2040-flash-layout",
         "conduit-emergency-keyword-spotter",
         "conduit-linear-framebuffer-make",
+        "conduit-tm1637-output-make",
+        "conduit-typed-retention",
         "conduit-linux-display",
         "conduit-rp2040-pio-audio-extension",
         "conduit-workspace-make",
@@ -47,6 +49,7 @@ package_test_shard!(
         "conduit-human",
         "conduit-core",
         "conduit-create-oi",
+        "conduit-dht11-observation",
         "conduit-i2c-transaction",
         "conduit-mpu6050",
         "conduit-ssd1306",
@@ -67,6 +70,7 @@ package_test_shard!(
         "conduit-semantic-catalog",
         "conduit-midi",
         "conduit-face",
+        "conduit-environment-face",
         "conduit-protected-line",
         "conduit-resource-snapshot",
         "conduit-process",
@@ -90,7 +94,7 @@ package_test_shard!(
     ],
     [
         "--features",
-        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline,conduit-language/parser-model,conduit-semantic-catalog/prepared-expression-session"
+        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline,conduit-language/parser-model,conduit-semantic-catalog/prepared-expression-session,conduit-dht11-observation/kernel-step,conduit-dht11-observation/source-capture"
     ]
 );
 

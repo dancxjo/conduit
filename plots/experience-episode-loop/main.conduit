@@ -1,0 +1,25 @@
+# One Body's basic episode loop: observe, recall selected memory, ask a bounded
+# model, and retain the selected episode for later recall in the same Play.
+# Observations and model-derived responses remain distinct typed facts; the
+# memory cell is the loop's only declared delay.
+plot experience-episode-loop (
+    >> context: BodyConversationContext...|
+    >> experiences: EpisodeExperience...|
+    episodes: EpisodeRecord... >>
+) {
+    compose: body/episode-compose-experience
+    # The model result includes serialized provenance and accounting. The
+    # retainer separately checks its 512-byte response text Type.
+    model: llm/generate-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0)
+    retain: body/episode-retain
+    memory: body/episode-memory
+
+    context >> compose.context
+    experiences >> compose.experience
+    memory.current >> compose.memory
+    compose.request >> model.request
+    compose.pending >> retain.pending
+    model.result >> retain.response
+    retain.episode >> memory.update
+    retain.episode >> episodes
+}

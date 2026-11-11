@@ -200,8 +200,16 @@ impl PatchbayHtmlServer {
                 Ok((stream, _)) => stream,
                 Err(error) => return Err(self.delivery_failure(ServerError::Io(error))),
             };
-            if let Err(error) = self.handle(stream) {
-                return Err(self.delivery_failure(error));
+            match self.handle(stream) {
+                Ok(()) => {}
+                Err(ServerError::Io(error))
+                    if matches!(
+                        error.kind(),
+                        std::io::ErrorKind::BrokenPipe
+                            | std::io::ErrorKind::ConnectionReset
+                            | std::io::ErrorKind::ConnectionAborted
+                    ) => {}
+                Err(error) => return Err(self.delivery_failure(error)),
             }
         }
     }

@@ -8,11 +8,11 @@ use crate::{
 };
 use alloc::{vec, vec::Vec};
 use conduit_core as c;
-use conduit_environment_runtime::PreparedCaptureSelector;
 use conduit_kernel::{
     self as k,
     scheduler::{FixedScheduler, SchedulerStatus},
 };
+use conduit_semantic_catalog::PreparedCanonicalSelector;
 
 use conduit_pulse_capture::{installation::*, owner::*, *};
 use conduit_rp2040_pulse_capture::PicoPulseCapture;
@@ -247,7 +247,7 @@ pub async fn run(
     drop(plan);
     let (values, wait) = preparation::prepare_values();
     let mut observed = preparation::observation_witnesses();
-    let mut selectors: Vec<Option<PreparedCaptureSelector>> = (0..N).map(|_| None).collect();
+    let mut selectors: Vec<Option<PreparedCanonicalSelector>> = (0..N).map(|_| None).collect();
     progress(link, "prepare-backs").await;
     let mut prepared = preparation::vacant_backs();
     for i in startup {

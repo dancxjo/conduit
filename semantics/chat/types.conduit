@@ -226,3 +226,141 @@ type PresenceEvent = {
     state: PresenceState
     subject_identity: Text <= 4096B
 }
+
+# One explicit observation offered to a Body's bounded episode loop. Its
+# content is observation evidence only. `retain` is the typed retention
+# selection; model output can never select retention or become an observation.
+type EpisodeObservation = {
+    identity: Text <= 64B not in [""]
+    content: Text <= 256B not in [""]
+    retain: Boolean
+}
+
+# Correlate one trigger with a batch awaiting generic Experience admission.
+type EpisodeExperienceInput = {
+    observation: EpisodeObservation
+    integration: ExperienceIntegrationInput
+}
+
+# The producer binds one trigger and its selected experience atomically.
+type EpisodeExperience = {
+    reference: TemporalInstant
+    observation: EpisodeObservation
+    evidence: ExperienceEvidenceRequest
+}
+
+# Model-derived words with the exact implementation and run that produced them.
+type EpisodeModelResponse = {
+    content: Text <= 512B not in [""]
+    implementation: Text <= 128B not in [""]
+    run: Text <= 128B not in [""]
+    truncated: Boolean
+}
+
+# One selected episode preserves its observation and actual attempt outcome.
+type EpisodeMemory = {
+    episode: U64
+    evidence: Text <= 4096B?
+    observation: EpisodeObservation
+    outcome: EpisodeOutcome
+}
+
+type EpisodeRecall = sequence EpisodeMemory <= 4
+
+# The explicit memory cell's Current: how many episodes have completed and the
+# bounded selected memories retained from them.
+type EpisodeMemoryOwner =
+    unbound
+    | bound {
+        body_id: Text <= 256B not in [""]
+        wake_id: Text <= 256B not in [""]
+        wake_sequence: U64
+    }
+
+type EpisodeMemoryState = {
+    completed: U64
+    memories: EpisodeRecall
+    owner: EpisodeMemoryOwner
+    where (.completed == 0) == (.owner is unbound)
+}
+
+# One begun episode awaiting its model response. Body and Wake identity come
+# from the typed context. Recalled records name selected episodes; their evidence
+# is the exact transmitted fragment. Original observation/outcome fields remain
+# audit custody and do not automatically enter the model request.
+type EpisodePending = {
+    episode: U64
+    body_id: Text <= 256B not in [""]
+    wake_id: Text <= 256B not in [""]
+    wake_sequence: U64
+    evidence: Text <= 4096B?
+    observation: EpisodeObservation
+    recalled: EpisodeRecall
+}
+
+# Selected historical records and scores crossing the retrieval/context Cord.
+type EpisodeRecallScores = sequence U64 <= 4
+type EpisodeRecollection = {
+    display_name: Text <= 128B not in [""]
+    pending: EpisodePending
+    scores: EpisodeRecallScores
+}
+
+# Provider loss is terminal evidence about an attempt, with no model text.
+type EpisodeOutcome =
+    produced {
+        response: EpisodeModelResponse
+    }
+    | provider_lost {
+        attempt: Text <= 128B not in [""]
+        implementation: Text <= 128B not in [""]
+    }
+
+# The completed episode, including exactly which retained memories were recalled
+# into its model request.
+type EpisodeRecord = {
+    episode: U64
+    body_id: Text <= 256B not in [""]
+    wake_id: Text <= 256B not in [""]
+    wake_sequence: U64
+    evidence: Text <= 4096B?
+    observation: EpisodeObservation
+    recalled: EpisodeRecall
+    outcome: EpisodeOutcome
+    retained: Boolean
+}
+
+type EpisodeRefusal =
+    context_missing
+    | context_malformed
+    | context_changed_identity
+    | observation_malformed
+    | memory_malformed
+    | memory_out_of_order
+    | pending_malformed
+    | response_malformed
+    | response_not_produced
+    | response_bound_exceeded
+    | prompt_bound_exceeded
+    | encoding
+
+# The clock class is supplied explicitly by the authored retrieval profile.
+# Its label comes from the atomically sampled TemporalInstant.
+type EpisodeRetrievalClockClass =
+    monotonic_milliseconds
+    | unix_epoch_milliseconds
+
+# Exact canonical packets retained until temporal/context selection resolves.
+# Each embedded packet is checked against its native Type before use; the byte
+# representation preserves the original snapshot rather than a reconstructed one.
+type EpisodeRetrievalCapture = {
+    body_id: Text <= 256B not in [""]
+    clock_class: EpisodeRetrievalClockClass
+    context_policy: Bytes <= 4096B
+    display_name: Text <= 128B not in [""]
+    experience: Bytes <= 131072B
+    intent: Bytes <= 4096B
+    memory: Bytes <= 8192B
+    wake_id: Text <= 256B not in [""]
+    wake_sequence: U64
+}

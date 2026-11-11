@@ -103,6 +103,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-dht11-observation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+ "conduit-pulse-capture",
+]
+
+[[package]]
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
@@ -137,6 +147,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-dht11-observation",
  "conduit-embedded-build",
  "conduit-environment-face",
  "conduit-face",
@@ -149,6 +160,7 @@ dependencies = [
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
+ "conduit-typed-retention",
  "ed25519-dalek",
  "serde",
  "serde_json",
@@ -177,6 +189,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+ "conduit-time",
  "serde",
  "sha2",
  "unicode-normalization",
@@ -338,6 +351,14 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-typed-retention"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]

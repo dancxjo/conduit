@@ -1,6 +1,12 @@
 #![no_std]
 
 extern crate alloc;
+mod temporal_evidence_flow;
+pub use generated::{
+    TemporalEvidenceFlowSelection, TemporalEvidenceFlowSelectionSelected, TemporalEvidenceOutcome,
+    TemporalEvidenceWindow, TemporalEvidenceWindowCandidates,
+};
+pub use temporal_evidence_flow::*;
 #[cfg(feature = "hosted-catalog-cache")]
 extern crate std;
 
@@ -10,6 +16,8 @@ extern crate std;
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
+pub use generated::GenerationContext;
+mod generation_context;
 pub use generated::{
     AnswerClaimSupport, AnswerSpan, BaseProofClass, BatchOrder, CandidateLifecycle,
     CheckpointPolicy, ChunkIdentity, Citation, CitationIndices, ClassificationLabel,
@@ -91,6 +99,7 @@ pub use generated::{
     VectorSearchExecutionProofClass, VectorSearchOfferInvalidity, VectorSearchProofClass,
     WeightedSamples, WiredHouseContextItem,
 };
+pub use generation_context::{decode_generation_context, encode_generation_context};
 
 mod bases;
 pub use bases::*;

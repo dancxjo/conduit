@@ -44,60 +44,23 @@ pub enum TemporalRelationError {
 }
 
 impl TemporalInstant {
-    pub fn validate(&self) -> Result<(), TemporalRelationError> {
-        if self.clock_basis.is_empty()
-            || self.clock_basis.len() > MAXIMUM_TEMPORAL_IDENTITY_BYTES
-            || self.resolution_ticks == 0
-        {
-            Err(TemporalRelationError::InvalidInstant)
-        } else {
-            Ok(())
+    pub fn borrowed(&self) -> crate::BorrowedTemporalInstant<'_> {
+        crate::BorrowedTemporalInstant {
+            ticks: self.ticks,
+            scale: self.scale,
+            clock_basis: &self.clock_basis,
+            resolution_ticks: self.resolution_ticks,
+            uncertainty_ticks: self.uncertainty_ticks,
         }
     }
-
+    pub fn validate(&self) -> Result<(), TemporalRelationError> {
+        self.borrowed().validate()
+    }
     pub fn relation_to(
         &self,
         reference: &TemporalInstant,
     ) -> Result<TemporalRelation, TemporalRelationError> {
-        self.validate()?;
-        reference.validate()?;
-        if self.clock_basis != reference.clock_basis || self.scale != reference.scale {
-            return Err(TemporalRelationError::Incomparable);
-        }
-        let source = self.interval()?;
-        let target = reference.interval()?;
-        if source.1 < target.0 {
-            return Ok(TemporalRelation::Past {
-                minimum_ticks: target.0 - source.1,
-                maximum_ticks: target.1 - source.0,
-            });
-        }
-        if source.0 > target.1 {
-            return Ok(TemporalRelation::Future {
-                minimum_ticks: source.0 - target.1,
-                maximum_ticks: source.1 - target.0,
-            });
-        }
-        if self.ticks == reference.ticks
-            && self.uncertainty_ticks == 0
-            && reference.uncertainty_ticks == 0
-        {
-            Ok(TemporalRelation::Present)
-        } else {
-            Ok(TemporalRelation::Indeterminate)
-        }
-    }
-
-    fn interval(&self) -> Result<(u64, u64), TemporalRelationError> {
-        let lower = self
-            .ticks
-            .checked_sub(self.uncertainty_ticks)
-            .ok_or(TemporalRelationError::IntervalOverflow)?;
-        let upper = self
-            .ticks
-            .checked_add(self.uncertainty_ticks)
-            .ok_or(TemporalRelationError::IntervalOverflow)?;
-        Ok((lower, upper))
+        self.borrowed().relation_to(&reference.borrowed())
     }
 }
 

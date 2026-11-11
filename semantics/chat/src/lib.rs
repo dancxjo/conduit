@@ -6,6 +6,43 @@
 
 extern crate alloc;
 
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_catalog;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_catalog::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_context;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_projection;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_context::*;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_projection::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_request;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_request::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_packet;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_packet::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_producer;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_producer::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_evidence;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_snapshot;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_window;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_evidence::*;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_snapshot::*;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_window::*;
+
 #[allow(dead_code, clippy::large_enum_variant, clippy::too_many_arguments)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
@@ -15,17 +52,34 @@ pub use generated::{
     BodyChatHistoryItem, BodyChatMessage, BodyChatRefusal, BodyChatRole, BodyChatRoleForm,
     BodyConversationalSummary, ChatConnectionState, ChatStateRefusal, ConversationRequestEvidence,
     DeliveryAuthority, DeliveryEvidence, DeliveryRequest, DeliveryState, DeliveryUpdate,
-    LiveConversationFlowProjection, LiveConversationProjectionError, LiveConversationStage,
-    LiveConversationStageKind, LiveConversationStageState, LiveConversationStages,
-    MessageAttachment, MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot,
-    MessageOptionalDisplayName, MessageOptionalSender, MessageOptionalSubject, MessageRecipient,
-    MessageRecipientSlot, NotificationEvent, PortableMessage, PresenceEvent, PresenceState,
-    RecognitionEvidenceStatus, RecognitionEvidenceView, SpeechCommitEvidenceView,
+    EpisodeExperience, EpisodeExperienceInput, EpisodeMemory, EpisodeMemoryOwner,
+    EpisodeMemoryState, EpisodeModelResponse, EpisodeObservation, EpisodeOutcome, EpisodePending,
+    EpisodeRecall, EpisodeRecallScores, EpisodeRecollection, EpisodeRecord, EpisodeRefusal,
+    EpisodeRetrievalCapture, EpisodeRetrievalClockClass, LiveConversationFlowProjection,
+    LiveConversationProjectionError, LiveConversationStage, LiveConversationStageKind,
+    LiveConversationStageState, LiveConversationStages, MessageAttachment, MessageAttachmentSlot,
+    MessageMetadataEntry, MessageMetadataSlot, MessageOptionalDisplayName, MessageOptionalSender,
+    MessageOptionalSubject, MessageRecipient, MessageRecipientSlot, NotificationEvent,
+    PortableMessage, PresenceEvent, PresenceState, RecognitionEvidenceStatus,
+    RecognitionEvidenceView, SpeechCommitEvidenceView,
 };
 
+mod episode_integration;
+mod episode_outcome;
+pub use episode_integration::*;
 mod body_chat;
 pub use body_chat::*;
 mod conversation_request_evidence;
+#[cfg(feature = "conversation-flow")]
+mod episode_loop;
+#[cfg(feature = "conversation-flow")]
+pub use episode_loop::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_loop_catalog;
+#[cfg(feature = "plot-catalog")]
+pub use episode_loop_catalog::*;
+#[cfg(all(test, feature = "plot-catalog"))]
+mod episode_loop_tests;
 #[cfg(feature = "conversation-flow")]
 mod live_conversation_flow;
 #[cfg(feature = "conversation-flow")]

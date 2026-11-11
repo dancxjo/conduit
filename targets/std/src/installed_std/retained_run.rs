@@ -29,6 +29,7 @@ pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
     pub spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
     pub direct_spoken_mask: Option<crate::direct_spoken_mask_runtime::DirectSpokenMaskPreparation>,
     pub durable_state: Option<DurableStateRun<'a>>,
+    pub hosted_frame: Option<&'a crate::HostedFrameBack>,
 }
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
@@ -84,6 +85,7 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
             spoken_mask: None,
             direct_spoken_mask: None,
             durable_state: None,
+            hosted_frame: None,
         },
     )
     .map(|run| run.report)

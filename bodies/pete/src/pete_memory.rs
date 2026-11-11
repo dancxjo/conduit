@@ -133,7 +133,7 @@ impl BoundedAutobiography {
         if !write_authorized {
             return Err(MemoryRefusal::AuthorityRefused);
         }
-        validate(&candidate)?;
+        validate_experience_candidate(&candidate)?;
         if !candidate.explicit_remember
             && !matches!(
                 candidate.kind,
@@ -211,6 +211,11 @@ impl BoundedAutobiography {
                 MemoryRefusal::ProviderUnavailable => MemoryQueryRefusal::ProviderUnavailable,
                 _ => MemoryQueryRefusal::AuthorityRefused,
             })?;
+        if records.is_empty() {
+            return Err(MemoryQueryRefusal::Temporal(
+                TemporalEvidenceSelectionRefusal::EmptyCandidates,
+            ));
+        }
         let candidates = records
             .iter()
             .map(|record| TemporalEvidenceCandidate {
@@ -259,9 +264,14 @@ impl BoundedAutobiography {
     }
 }
 
-fn validate(candidate: &ExperienceCandidate) -> Result<(), MemoryRefusal> {
+pub(crate) fn validate_experience_candidate(
+    candidate: &ExperienceCandidate,
+) -> Result<(), MemoryRefusal> {
     if candidate.identity.is_empty() {
         return Err(MemoryRefusal::EmptyIdentity);
+    }
+    if candidate.identity.len() > conduit_ai::MAXIMUM_TEMPORAL_EVIDENCE_IDENTITY_BYTES {
+        return Err(MemoryRefusal::TooLarge);
     }
     if candidate.content.is_empty() {
         return Err(MemoryRefusal::EmptyContent);

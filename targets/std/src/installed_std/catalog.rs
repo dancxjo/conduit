@@ -210,6 +210,19 @@ use super::whisper_speech_back::{
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
+    &super::temporal_evidence_back::FACTORY,
+    &super::experience_evidence_back::FACTORY,
+    &super::experience_evidence_back::MODEL_REQUEST_FACTORY,
+    &super::episode_loop_back::COMPOSE_FACTORY,
+    &super::episode_loop_back::EXPERIENCE_COMPOSE_FACTORY,
+    &super::episode_loop_back::RECALL_EXPERIENCE_FACTORY,
+    &super::episode_context_back::FACTORY,
+    &super::episode_retrieval_producer_back::FACTORY,
+    &super::episode_retrieval_context_back::FACTORY,
+    &super::episode_integration_back::FACTORY,
+    &super::episode_loop_back::RETAIN_FACTORY,
+    &super::episode_memory_back::MEMORY_FACTORY,
+    &super::episode_memory_back::RESUMABLE_MEMORY_FACTORY,
     &super::creche_back::FACTORY,
     &super::ieee_back::FACTORY,
     &super::near_back::FACTORY,
@@ -319,6 +332,8 @@ const FACTORIES: &[&BackFactory] = &[
     &FLOW_TEE_SCALAR_FACTORY,
     &STATE_SELECT_SCALAR_FACTORY,
     &CURRENT_SAMPLE_FACTORY,
+    &super::current_sample_finite_back::FACTORY,
+    &super::flow_coalesce_finite_back::FACTORY,
     &COMBINE_LATEST_FACTORY,
     &TODO_COMBINE_FACTORY,
     &THERMOSTAT_COMBINE_FACTORY,
