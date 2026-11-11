@@ -47,10 +47,17 @@ mod creche;
 #[cfg(test)]
 mod creche_tests;
 mod execution;
+mod face_route;
 mod fore;
 mod fore_custody;
 pub use fore_custody::{
     BodyForeDeliveryStage, BodyForePendingOutput, BodyForePendingOutputMetadata,
+};
+
+pub(crate) mod face_contribution;
+pub use face_contribution::{
+    BodyFaceContributionObserver, CommittedFaceContribution, FaceContributionRefusal,
+    FaceContributionScope, ReturnedFaceContribution,
 };
 
 mod parsec_terminal;

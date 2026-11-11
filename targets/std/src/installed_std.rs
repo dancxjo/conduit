@@ -97,6 +97,7 @@ mod logic_backs;
 mod math_backs;
 mod math_host;
 mod measurement_plot_back;
+pub(crate) mod measurement_chart_face_back;
 mod microphone_clip_back;
 mod microphone_host;
 mod midi_input_back;

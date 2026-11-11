@@ -36,6 +36,7 @@ impl StdHost {
             None,
             started,
             None,
+            None,
         )
     }
 
@@ -63,6 +64,7 @@ impl StdHost {
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
         mut started: F,
         mut image_result: Option<&mut Option<crate::kernel_preparation::ImageMemoryLease>>,
+        face_observer: Option<&mut dyn BodyFaceContributionObserver>,
     ) -> Result<BodyRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
@@ -76,6 +78,7 @@ impl StdHost {
                 || live.is_some()
                 || checkpoint.is_some()
                 || terminal.is_some()
+                || face_observer.is_some()
                 || creche.as_ref().is_some_and(|owner| !owner.image_prepared()))
         {
             return Err("selected IMAGE owned-memory profile supports qualified finite local Backs only; keyboard/activation/BodyTime attachments unsupported".into());
@@ -165,6 +168,13 @@ impl StdHost {
             )?
         };
         kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
+        kernel.attach_chart_face(
+            request.wake,
+            request.plan,
+            &prospective_play,
+            &self.advertisement,
+            face_observer.is_some(),
+        )?;
         if let Some(terminal) = &terminal {
             kernel.attach_parsec_terminal(
                 request.plan,
@@ -276,6 +286,7 @@ impl StdHost {
                 admitted_clock_quality,
                 terminal,
                 creche.as_deref_mut(),
+                face_observer,
             );
             if let Some(queue) = live_queue {
                 queue.mark_play_terminal();

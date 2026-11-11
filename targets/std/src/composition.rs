@@ -3,10 +3,10 @@
 //! A family controls which implementation code contributes offers to this host
 //! image. The resulting `HostAdvertisement` remains the only runtime promise.
 
-use crate::StdHostConfig;
 use crate::installed_std;
+use crate::StdHostConfig;
 use conduit_core::{
-    HostAdvertisement, HostProfileId, PROTOCOL_VERSION, PlannerCapabilityOffer, PlannerProfileId,
+    HostAdvertisement, HostProfileId, PlannerCapabilityOffer, PlannerProfileId, PROTOCOL_VERSION,
 };
 
 mod experience_evidence;
@@ -317,6 +317,12 @@ pub(super) fn build_advertisement(
     }
     if composition.data {
         capabilities.push(crate::hosted_measurement::measurement_plot_std_offer());
+        capabilities.push(
+            crate::measurement_chart_offer::measurement_chart_face_std_offer(
+                crate::installed_std::measurement_chart_face_back::workspace_bytes(),
+            )
+            .expect("explicit finite chart Face workspace"),
+        );
         capabilities.extend([
             conduit_std_offers::data_save_text_std_offer(),
             conduit_std_offers::data_load_text_std_offer(),

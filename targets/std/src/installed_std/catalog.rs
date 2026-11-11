@@ -50,7 +50,7 @@ use super::house_prompt_back::FACTORY as HOUSE_PROMPT_FACTORY;
 use super::http::{HTTP_CLIENT_FACTORY, HTTP_SERVER_FACTORY};
 use super::image_text_back::FACTORY as IMAGE_TEXT_FACTORY;
 use super::image_text_record_back::FACTORY as IMAGE_TEXT_RECORD_FACTORY;
-use super::input_semantic_backs::{CHORDS_FACTORY, KEY_EVENT_TEE_FACTORY, KEYMAP_FACTORY};
+use super::input_semantic_backs::{CHORDS_FACTORY, KEYMAP_FACTORY, KEY_EVENT_TEE_FACTORY};
 use super::instrument_map_back::FACTORY as INSTRUMENT_MAP_FACTORY;
 use super::json_backs::{JSON_COLLECTION_STEP_FACTORY, JSON_DECODE_FACTORY, JSON_ENCODE_FACTORY};
 use super::json_summary_back::JSON_BOOLEAN_SUMMARY_FACTORY;
@@ -211,6 +211,7 @@ use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
     &super::measurement_plot_back::FACTORY,
+    &super::measurement_chart_face_back::FACTORY,
     &super::temporal_evidence_back::FACTORY,
     &super::experience_evidence_back::FACTORY,
     &super::experience_evidence_back::MODEL_REQUEST_FACTORY,

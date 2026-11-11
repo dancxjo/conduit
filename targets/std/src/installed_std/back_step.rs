@@ -1,10 +1,10 @@
 //! Direct finite-Step dispatch for every Back installed in the std profile.
 
 use super::back_kind::InstalledBack;
-use conduit_kernel::RequestId;
 use conduit_kernel::scheduler::{
     AssignedTerminalTransduction, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
+use conduit_kernel::RequestId;
 
 macro_rules! installed_step_dispatch {
     ($( $(#[$attribute:meta])* $variant:ident ),+ $(,)?) => {
@@ -236,6 +236,7 @@ installed_step_dispatch!(
     Creche,
     SelectedNativeSource,
     MeasurementPlot,
+    MeasurementChartFace,
     DistanceFrequency,
     PcmClipFrames,
     AudioTimeAnalysis,
