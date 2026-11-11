@@ -131,7 +131,7 @@ where
             &routes,
         )?;
         for node in 0..NODES {
-            if (node < active_nodes && actual[node] != contracts[node])
+            if actual[node] != contracts[node]
                 || (node >= active_nodes && contracts[node].iter().any(Option::is_some))
             {
                 return Err(SchedulerError::InvalidPlan.into());
