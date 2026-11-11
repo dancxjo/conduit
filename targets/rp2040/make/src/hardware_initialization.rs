@@ -29,6 +29,21 @@ pub fn retained_wifi_initialization_contract() -> BaseInitializationContract {
     }
 }
 
+/// Absence selects no radio initialization or firmware assets. A present base
+/// must still satisfy the exact retained-radio construction contract.
+pub fn retained_wifi_selected(checked: &CheckedHostConfiguration) -> Result<bool, String> {
+    if !checked
+        .configuration()
+        .bases
+        .iter()
+        .any(|base| base.kind == WIFI_BASE_KIND)
+    {
+        return Ok(false);
+    }
+    check_retained_wifi_construction(checked)?;
+    Ok(true)
+}
+
 pub fn check_retained_wifi_construction(checked: &CheckedHostConfiguration) -> Result<(), String> {
     selected_values(
         checked,

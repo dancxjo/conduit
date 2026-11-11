@@ -15,7 +15,7 @@ host pico-w-house-yellow {
   base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
   base = {kind: "sensor/environment", implementation: "rp2040/dht11@1", initialization: {data: 3, start_low_us: 20000, maximum_transaction_us: 50000}}
   base = {kind: "display/segmented", implementation: "rp2040/tm1637@1", initialization: {clk: 7, dio: 6, brightness: 3, layout: "seven4", half_period_us: 50, settled_us: 100, maximum_clock_rise_us: 1000, maximum_transaction_us: 100000, pull: "up"}}
-  base = {kind: "network/wifi", implementation: "rp2040/cyw43-retained@1", initialization: {credential_source: "private-flash-network-journal", maximum_sockets: 4}}
+  # This offline USB profile does not initialize or retain a network radio.
   # Finite initialized renderer support; whole-workset admission still uses
   # the separately reviewed IMAGE arena; Root still reserves before effects.
   # Finite Face/Show envelopes also bound opaque Value queue planning.

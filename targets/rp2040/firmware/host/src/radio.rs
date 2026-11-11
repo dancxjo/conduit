@@ -1,9 +1,10 @@
 //! Pico W fixed onboard radio wiring, reused from the qualified target adapter.
+use crate::radio_irqs::RadioIrqs;
 use cyw43::Control;
 use cyw43_pio::PioSpi;
 use embassy_executor::Spawner;
 use embassy_rp::{
-    bind_interrupts, dma,
+    dma,
     gpio::{Level, Output},
     peripherals::{DMA_CH0, DMA_CH1, PIN_23, PIN_24, PIN_25, PIN_29, PIO0},
     pio::Pio,
@@ -11,12 +12,6 @@ use embassy_rp::{
 };
 use embassy_time::{with_timeout, Duration};
 use static_cell::StaticCell;
-#[cfg(not(sensor_dht11))]
-bind_interrupts!(pub(crate) struct RadioIrqs { PIO0_IRQ_0=>embassy_rp::pio::InterruptHandler<PIO0>; DMA_IRQ_0=>dma::InterruptHandler<DMA_CH0>,dma::InterruptHandler<DMA_CH1>; });
-// The radio and capture use distinct owned channels, but the chip exposes one
-// shared DMA interrupt. Bind that vector once with every installed handler.
-#[cfg(sensor_dht11)]
-bind_interrupts!(pub(crate) struct RadioIrqs { PIO0_IRQ_0=>embassy_rp::pio::InterruptHandler<PIO0>; DMA_IRQ_0=>dma::InterruptHandler<DMA_CH0>,dma::InterruptHandler<DMA_CH1>,dma::InterruptHandler<embassy_rp::peripherals::DMA_CH2>; });
 static STATE: StaticCell<cyw43::State> = StaticCell::new();
 const RADIO_PHASE_TIMEOUT: Duration = Duration::from_secs(10);
 #[derive(Debug)]

@@ -54,7 +54,10 @@ mod play_run;
 mod play_service;
 #[cfg(sensor_dht11)]
 mod pulse_owner;
+#[cfg(retained_wifi)]
 mod radio;
+#[cfg(any(retained_wifi, sensor_dht11))]
+mod radio_irqs;
 #[cfg(sensor_dht11)]
 mod renderer;
 mod resident;
@@ -69,6 +72,7 @@ mod tm1637_owner;
 mod tm1637_pins;
 mod transport;
 mod usb_identity;
+#[cfg(retained_wifi)]
 mod wifi;
 #[cfg(sensor_dht11)]
 mod workset;
@@ -128,7 +132,7 @@ fn initialize(spawner: Spawner) -> Boot {
     stack_probe::initialize();
     stack_probe::checkpoint(19);
     let p = embassy_rp::init(Default::default());
-    let (serial, credentials, flash) = {
+    let (serial, mut flash) = {
         let mut flash = credential_source::Device::new_blocking(p.FLASH);
         let mut uid = [0; 8];
         let serial = flash
@@ -136,9 +140,10 @@ fn initialize(spawner: Spawner) -> Boot {
             .ok()
             .and_then(|_| usb_identity::serial(uid))
             .and_then(|bytes| core::str::from_utf8(SERIAL.init(bytes)).ok());
-        let credentials = credential_source::restore(&mut flash);
-        (serial, credentials, flash)
+        (serial, flash)
     };
+    #[cfg(retained_wifi)]
+    let credentials = credential_source::restore(&mut flash);
     #[cfg(not(sensor_dht11))]
     drop(flash);
     // Initialize checked equipment. The GPIO profile performs no measurement
@@ -147,6 +152,7 @@ fn initialize(spawner: Spawner) -> Boot {
     stack_probe::checkpoint(20);
     resident::initialize();
     stack_probe::checkpoint(21);
+    #[cfg(retained_wifi)]
     spawner.spawn(
         wifi::run(
             spawner,

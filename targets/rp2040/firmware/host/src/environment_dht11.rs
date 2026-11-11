@@ -20,7 +20,7 @@ pub fn initialize(
     crate::pulse_owner::initialize(conduit_rp2040_pulse_capture::PicoPulseCapture::new(
         &mut pio.common,
         pio.sm0,
-        embassy_rp::dma::Channel::new(dma, crate::radio::RadioIrqs),
+        embassy_rp::dma::Channel::new(dma, crate::radio_irqs::RadioIrqs),
         data,
         program,
     ));

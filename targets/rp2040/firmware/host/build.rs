@@ -20,8 +20,12 @@ fn main() {
         conduit_host_make::parse_host_configuration_conduit(&source).expect("Host Source syntax");
     let checked = conduit_host_make::check_host_configuration(configuration, &catalog, &packages)
         .expect("checked Host Source");
-    conduit_host_rp2040::check_retained_wifi_construction(&checked)
-        .expect("checked retained network attachment");
+    println!("cargo:rustc-check-cfg=cfg(retained_wifi)");
+    if conduit_host_rp2040::retained_wifi_selected(&checked)
+        .expect("checked optional retained network attachment")
+    {
+        println!("cargo:rustc-cfg=retained_wifi");
+    }
     println!("cargo:rustc-check-cfg=cfg(display_tm1637)");
     let tm = checked
         .resolved_bases()
