@@ -16,34 +16,69 @@ pub(super) static FACTORY: BackFactory = BackFactory {
 };
 pub(super) struct TemporalEvidenceBack {
     selector: BoundedTemporalEvidenceFlow,
+    intent: Vec<u8>,
+    candidate: Vec<u8>,
+    intent_staged: bool,
     staged: bool,
     complete: bool,
+}
+impl TemporalEvidenceBack {
+    fn prepare() -> Self {
+        Self {
+            selector: BoundedTemporalEvidenceFlow::prepare(),
+            intent: Vec::with_capacity(MAX),
+            candidate: Vec::with_capacity(MAX),
+            intent_staged: false,
+            staged: false,
+            complete: false,
+        }
+    }
+    pub(super) fn allocation_capacity(&self) -> usize {
+        self.selector.allocation_capacity() + self.intent.capacity() + self.candidate.capacity()
+    }
 }
 impl<const PORTS: usize> StepBack<PORTS> for TemporalEvidenceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, bytes: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.complete {
             return StepOutcome::Complete;
         }
-        let Some(window) = bytes.input(WINDOW) else {
-            if io.input_closed(WINDOW) {
-                if io.consume_closed(WINDOW).is_err() {
-                    return failure(1);
-                }
-                if bytes.input(INTENT).is_some() && io.consume(INTENT).is_err() {
-                    return failure(1);
-                }
-                self.complete = true;
-                return StepOutcome::Complete;
+        if bytes.input(WINDOW).is_none() && io.input_closed(WINDOW) {
+            if io.consume_closed(WINDOW).is_err() {
+                return failure(1);
             }
+            if bytes.input(INTENT).is_some() && io.consume(INTENT).is_err() {
+                return failure(1);
+            }
+            self.complete = true;
+            return StepOutcome::Complete;
+        }
+        // Current packets are replacements, not values replayed per window.
+        // Commit a simultaneous replacement first and leave the Flow untouched.
+        if let Some(intent) = bytes.input(INTENT) {
+            if io
+                .input(INTENT)
+                .is_none_or(|reference| reference.byte_len as usize != intent.len())
+            {
+                return failure(1);
+            }
+            if let Err(reason) = self.selector.validate_intent(intent) {
+                return failure(refusal_detail(reason));
+            }
+            self.candidate.clear();
+            self.candidate.extend_from_slice(intent);
+            if io.consume(INTENT).is_err() {
+                return failure(1);
+            }
+            self.intent_staged = true;
+            return StepOutcome::Progress;
+        }
+        let Some(window) = bytes.input(WINDOW) else {
             return StepOutcome::Await;
         };
-        if !io.output_ready(OUTCOME) {
+        if self.intent.is_empty() || !io.output_ready(OUTCOME) {
             return StepOutcome::Await;
         }
-        let Some(intent) = bytes.input(INTENT) else {
-            return StepOutcome::Await;
-        };
-        let output = match self.selector.execute(window, intent) {
+        let output = match self.selector.execute(window, &self.intent) {
             Ok(output) => output,
             Err(reason) => return failure(refusal_detail(reason)),
         };
@@ -51,10 +86,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TemporalEvidenceBack {
         if !io.output_ready_for(OUTCOME, length) {
             return StepOutcome::Await;
         }
-        if io.consume(WINDOW).is_err()
-            || io.consume(INTENT).is_err()
-            || io.send_prepared(OUTCOME, length).is_err()
-        {
+        if io.consume(WINDOW).is_err() || io.send_prepared(OUTCOME, length).is_err() {
             return failure(3);
         }
         self.staged = true;
@@ -64,9 +96,17 @@ impl<const PORTS: usize> StepBack<PORTS> for TemporalEvidenceBack {
         (self.staged && port == OUTCOME).then(|| self.selector.output())
     }
     fn step_committed(&mut self) {
+        if self.intent_staged {
+            core::mem::swap(&mut self.intent, &mut self.candidate);
+            self.candidate.clear();
+            self.intent_staged = false;
+        }
         self.staged = false;
     }
     fn cancel(&mut self) {
+        self.intent.clear();
+        self.candidate.clear();
+        self.intent_staged = false;
         self.staged = false;
         self.complete = true;
     }
@@ -116,11 +156,9 @@ fn prepare(
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     budget(gear)?;
-    Ok(InstalledBack::TemporalEvidence(TemporalEvidenceBack {
-        selector: BoundedTemporalEvidenceFlow::prepare(),
-        staged: false,
-        complete: false,
-    }))
+    Ok(InstalledBack::TemporalEvidence(
+        TemporalEvidenceBack::prepare(),
+    ))
 }
 #[cfg(test)]
 mod tests;
