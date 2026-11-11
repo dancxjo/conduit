@@ -254,3 +254,45 @@ fn late_receive_data_is_drained_but_never_promoted_to_success() {
     assert!(c.io.rx.is_empty() && c.io.data.is_empty());
     assert!(c.is_quiescent());
 }
+
+#[test]
+fn captured_in_completion_reuses_byte_count_without_another_payload() {
+    let mut c = controller();
+    // Pi 3B+ capture: GRXSTSP 0x70080 is completion metadata, not data.
+    c.io.rx.extend([0x50080, 0x70080]);
+    c.io.data.extend([0x02000112, 0x40020009]);
+    let mut bytes = [0xcc; 64];
+    let request = RootPacket {
+        maximum_packet: 64,
+        ..packet(true)
+    };
+    assert_eq!(c.root_packet(request, &mut bytes), Ok(8));
+    assert_eq!(&bytes[..8], &[18, 1, 0, 2, 9, 0, 2, 64]);
+    assert!(bytes[8..].iter().all(|&byte| byte == 0xcc));
+    assert!(c.io.rx.is_empty() && c.io.data.is_empty());
+    assert!(c.io.failures.is_empty());
+    assert!(c.is_quiescent());
+}
+#[test]
+fn halt_metadata_stale_count_does_not_drain_nonexistent_payload() {
+    let mut c = controller();
+    c.io.finish = 1;
+    c.io.running = true;
+    c.io.rx.extend([0x70080, (7 << 17) | (8 << 4)]);
+    assert_eq!(c.halt_packet(64, false), Ok(false));
+    assert!(c.io.rx.is_empty() && c.io.data.is_empty());
+}
+#[test]
+fn foreign_or_unknown_completion_metadata_is_not_owned_input() {
+    for status in [0x70081, 9 << 17] {
+        let mut c = controller();
+        c.io.rx.push_back(status);
+        let mut bytes = [0xcc; 8];
+        assert_eq!(
+            c.root_packet(packet(true), &mut bytes),
+            Err(PacketError::ReceiveEnvelope)
+        );
+        assert_eq!(bytes, [0xcc; 8]);
+        assert_eq!(c.io.failures[0].receive_status, Some(status));
+    }
+}
