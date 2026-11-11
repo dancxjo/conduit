@@ -177,6 +177,8 @@ On the exact five-commit extraction, bounded hosted checks passed:
   source-capture coverage.
 - `thumbv6m-none-eabi` compilation: DHT11 observation with all features;
   environmental Face and semantic catalog with default features disabled.
+- The changed standalone environmental runtime consumer compiles with all
+  features and its unchanged lock, using the same bounded local target cache.
 - All 6 workspace-shard unit guards, including exact-once workspace coverage.
 - The supported `cargo xtask ci pipeline evidence-retention` guard.
 
