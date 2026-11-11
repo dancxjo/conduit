@@ -59,7 +59,7 @@ pub(super) fn run(
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit());
     let mut child = command.spawn()?;
-    let result = (|| {
+    let result: Result<PathBuf, Box<dyn std::error::Error>> = (|| {
         let stdout = child.stdout.take().ok_or("Cargo stdout custody absent")?;
         let mut reader = BufReader::new(stdout);
         let mut line = Vec::new();
