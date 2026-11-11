@@ -155,9 +155,9 @@ pub(super) fn admit(
                         .checked_sub(inset)
                         .ok_or(FaceSceneError::InvalidExtent)?;
                     let text_width = field_clusters::text_width(&item, width, insets, scale)?;
-                    let (end, height) = measure_prefix(
+                    let (end, height) = measure_item_prefix(
+                        &item,
                         remaining,
-                        item.role,
                         text_width,
                         if after_heading && chunk == 0 && !advanced {
                             maximum_height.min(flow.bottom.saturating_sub(
@@ -176,9 +176,9 @@ pub(super) fn admit(
                         typography,
                     )
                     .or_else(|_| {
-                        measure_prefix(
+                        measure_item_prefix(
+                            &item,
                             remaining,
-                            item.role,
                             text_width,
                             maximum_height,
                             scale,
@@ -234,6 +234,7 @@ pub(super) fn admit(
                 paint: item.paint,
                 control: item.control,
                 subject_index: item.subject_index,
+                chart_subject: crate::native_face_scene::measurement_chart::subject(item.part),
                 region: item.region,
                 region_inset: if flow.span.is_some() { flow.edge } else { 0 },
                 page: flow.page,

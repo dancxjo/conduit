@@ -150,9 +150,9 @@ fn arrange_content(
                 return Err(FaceSceneError::DocumentBound);
             }
             let (end, measured) =
-                measure_prefix(
+                measure_item_prefix(
+                    &item,
                     remaining,
-                    item.role,
                     text_width,
                     if after_heading && chunk == 0 {
                         maximum_height.min(height.saturating_sub(
@@ -165,9 +165,9 @@ fn arrange_content(
                     context.typography,
                 )
                 .or_else(|_| {
-                    measure_prefix(
+                    measure_item_prefix(
+                        &item,
                         remaining,
-                        item.role,
                         text_width,
                         maximum_height,
                         context.scale,
@@ -223,6 +223,7 @@ fn arrange_content(
                     paint: item.paint,
                     control: item.control,
                     subject_index: item.subject_index,
+                    chart_subject: crate::native_face_scene::measurement_chart::subject(item.part),
                     region: item.region,
                     region_inset: 0,
                     page: 0,
