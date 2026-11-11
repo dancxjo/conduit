@@ -2,7 +2,9 @@
 use super::*;
 
 pub(super) type BoundDriverSlots<'f, B, P, T, W, const N: usize, const A: usize> =
-    ([Option<Driver<'f, B>>; N], Calls<P, T, W, A>);
+    BoundDriverSlotsWithExtra<'f, B, NoExtraBack, P, T, W, N, A>;
+pub(super) type BoundDriverSlotsWithExtra<'f, B, X, P, T, W, const N: usize, const A: usize> =
+    ([Option<Driver<'f, B, X>>; N], Calls<P, T, W, A>);
 
 impl<
         'a,
@@ -119,7 +121,16 @@ impl<
     where
         R::Back: StepBack<PORTS>,
     {
-        let mut drivers: [Option<Driver<'f, R::Back>>; N] = core::array::from_fn(|_| None);
+        self.bind_slots_with_extra::<PORTS, NoExtraBack>()
+    }
+    #[inline(always)]
+    pub(super) fn bind_slots_with_extra<const PORTS: usize, X: StepBack<PORTS>>(
+        self,
+    ) -> BoundDriverSlotsWithExtra<'f, R::Back, X, P, T, W, N, A>
+    where
+        R::Back: StepBack<PORTS>,
+    {
+        let mut drivers: [Option<Driver<'f, R::Back, X>>; N] = core::array::from_fn(|_| None);
         for (expected, selected) in self.resident_nodes.into_iter().zip(self.residents.bind()) {
             match (expected, selected) {
                 (Some(node), Some((actual, back))) if node == actual => {

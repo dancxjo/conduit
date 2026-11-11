@@ -209,7 +209,25 @@ impl<
         };
         let mut targets = [empty_target; T];
         let mut target_count = 0;
-        let mut calls = k::FixedHostCallBindings::<H>::new(1);
+        // The assigned records are already Core-checked above. Preserve the
+        // existing stride-one representation for zero/single-call images; a
+        // multi-operation node selects its actual maximum call ID plus one.
+        // This never enlarges the caller's funded H-slot table, including sparse
+        // IDs and partial node rows: install still checks each actual slot.
+        let mut calls_per_node = 1u16;
+        for record in input.records()? {
+            let record = record?;
+            if record.tag == c::ASSIGNED_HOST_CALL {
+                let stride = u16_at(record.payload, 2)?
+                    .checked_add(1)
+                    .ok_or(E::Capacity)?;
+                calls_per_node = calls_per_node.max(stride);
+                if usize::from(calls_per_node) > H {
+                    return Err(E::Capacity);
+                }
+            }
+        }
+        let mut calls = k::FixedHostCallBindings::<H>::new(calls_per_node);
         let mut startup_order = [k::NodeId(u16::MAX); N];
         let mut startup_positions = [usize::MAX; N];
         let mut startup_count = 0;

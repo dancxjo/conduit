@@ -8,6 +8,26 @@ pub struct PreparedAssignedRecordService<'a, S> {
     resource_index: u16,
 }
 impl<S: NorStorage> PreparedAssignedRecordService<'_, S> {
+    pub fn node(&self) -> NodeId {
+        self.prepared.node()
+    }
+    pub fn routes(
+        &self,
+    ) -> [conduit_plan_lowering::selected_operation_set::SelectedServiceRoute; 2] {
+        self.prepared.routes()
+    }
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.prepared.retained_backing_bytes()
+    }
+    /// Prepare the actual two-call Back without withdrawing the Ready owner.
+    pub fn prepare_back<const PORTS: usize, const READ_BYTES: usize>(
+        &self,
+    ) -> Result<
+        crate::native_append::service_back::RecordServiceBack<PORTS, READ_BYTES>,
+        ServiceRefusal,
+    > {
+        self.prepared.prepare_back()
+    }
     pub fn resource_binding(&self) -> &c::ResourceBinding {
         self.resource
     }
