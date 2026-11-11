@@ -230,7 +230,7 @@ pub(super) fn run(
         progress,
     };
     let mut clock_output = Vec::new();
-    let result = host.run_body_plan_with_fore_to(
+    let result = host.run_body_plan_with_observed_fore_to(
         BodyRunRequest {
             wake: &wake,
             plan: &plan,

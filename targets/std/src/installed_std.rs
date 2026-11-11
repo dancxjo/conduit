@@ -253,13 +253,13 @@ use conduit_core::{
 };
 use conduit_kernel::scheduler::{FixedScheduler, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
-    SignSink, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedValueStore, SignSink, ValueStorage,
 };
 use conduit_plan_lowering::lowering::KernelExecutionIdentityMap;
 use std::io::Write;
 use std::time::Duration;
 
+mod debug_sign_sink;
 mod storage_profile;
 pub(crate) use facade::*;
 use storage_profile::{
@@ -271,7 +271,7 @@ const PROOF_PCM_CLIP_SOURCE_OPERATION: &str = "conduit.host/proof-recorded-pcm-c
 pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
     InstalledBack,
     HostedValueStore,
-    HostedSignLog,
+    debug_sign_sink::InstalledSignSink,
     MAX_NODES,
     MAX_CORDS,
     PORTS,

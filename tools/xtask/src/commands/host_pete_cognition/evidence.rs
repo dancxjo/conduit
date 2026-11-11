@@ -35,6 +35,7 @@ pub(super) struct Receipt {
     pub failure: Option<String>,
     pub criteria: Vec<Criterion>,
     pub causal_export: String,
+    pub debugger_export: serde_json::Value,
     pub artifacts: Vec<String>,
 }
 pub(super) fn write_preparation(
@@ -150,6 +151,19 @@ pub(super) fn write_run(
     }
     let causal_export = causal(output, plan, report)?;
     artifacts.push("causal-inspection.json".into());
+    let debugger_export = match report {
+        Some(report) => match super::debugger::export(output, plan, report) {
+            Ok(summary) => {
+                artifacts.extend([
+                    "debugger-timeline.json".into(),
+                    "debugger-upstream-trace.json".into(),
+                ]);
+                serde_json::to_value(summary)?
+            }
+            Err(error) => json!({"refusal": error.to_string(), "rendered_browser_verified": false}),
+        },
+        None => json!({"refusal":"no Body run report", "rendered_browser_verified":false}),
+    };
     let state = capture
         .states
         .last()
@@ -179,6 +193,7 @@ pub(super) fn write_run(
         failure,
         criteria,
         causal_export,
+        debugger_export,
         artifacts,
     };
     json_file(output, "receipt.json", &receipt)?;

@@ -138,7 +138,14 @@ fn temporal_source(item: &serde_json::Value) -> &serde_json::Value {
         .find(|source| source["role"] == "temporal_context")
         .expect("readable typed temporal source")
 }
-fn run(lose: bool) {
+fn run(
+    lose: bool,
+    observe: bool,
+) -> (
+    crate::body_execution::BodyRunReport,
+    Vec<Vec<u8>>,
+    Vec<ExperienceAutobiographyState>,
+) {
     let initial = conduit_semantic_catalog::initial_experience_autobiography_state()
         .into_structured()
         .unwrap();
@@ -216,21 +223,33 @@ fn run(lose: bool) {
         progress,
     };
     let mut output = Vec::new();
-    let report = host
-        .run_body_plan_with_fore_to(
-            BodyRunRequest {
-                wake: &wake,
-                plan: &plan,
-                control: &control,
-                keyboard: None,
-            },
-            &frames(),
+    let inputs = frames();
+    let request = BodyRunRequest {
+        wake: &wake,
+        plan: &plan,
+        control: &control,
+        keyboard: None,
+    };
+    let report = if observe {
+        host.run_body_plan_with_observed_fore_to(
+            request,
+            &inputs,
             true,
             &mut capture,
             &mut output,
             &mut clock,
         )
-        .unwrap();
+    } else {
+        host.run_body_plan_with_fore_to(
+            request,
+            &inputs,
+            true,
+            &mut capture,
+            &mut output,
+            &mut clock,
+        )
+    }
+    .unwrap();
     assert!(
         matches!(report.terminal, TerminalDisposition::Cancelled { .. }),
         "{:?}: {:?}",
@@ -330,12 +349,13 @@ fn run(lose: bool) {
     }
     assert_eq!(clock.after_feedback, 3);
     assert!(String::from_utf8(output).unwrap().contains("Clock tick"));
+    (report, capture.responses, capture.states)
 }
 #[test]
 fn native_frames_derive_situations_and_recall_immutable_temporal_history_in_one_body_play() {
     std::thread::Builder::new()
         .stack_size(8 * 1024 * 1024)
-        .spawn(|| run(false))
+        .spawn(|| run(false, false))
         .unwrap()
         .join()
         .unwrap();
@@ -344,7 +364,74 @@ fn native_frames_derive_situations_and_recall_immutable_temporal_history_in_one_
 fn situated_model_loss_preserves_timed_history_and_independent_clock() {
     std::thread::Builder::new()
         .stack_size(8 * 1024 * 1024)
-        .spawn(|| run(true))
+        .spawn(|| run(true, false))
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+#[test]
+fn bounded_debug_observation_preserves_body_results_and_records_actual_cord_parents() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            use conduit_kernel::debug_observation::DebugEventKind;
+            let (plain, plain_responses, plain_states) = run(false, false);
+            let (observed, responses, states) = run(false, true);
+            assert!(plain.debug_observations.is_none());
+            assert_eq!(plain.terminal, observed.terminal);
+            assert_eq!(plain.kernel_events, observed.kernel_events);
+            assert_eq!(plain_responses, responses);
+            assert_eq!(plain_states, states);
+            let history = observed.debug_observations.as_ref().unwrap();
+            assert!(history.refusal.is_none());
+            assert_eq!(
+                history.execution.body,
+                conduit_core::semantic_digest(
+                    "conduit.debug/body@1",
+                    observed.play.body_id.as_str().as_bytes()
+                )
+            );
+            assert_eq!(
+                history.execution.plan,
+                conduit_core::semantic_digest(
+                    "conduit.debug/body-plan@1",
+                    observed.play.plan_id.as_str().as_bytes()
+                )
+            );
+            assert_eq!(
+                history.execution.play,
+                conduit_core::semantic_digest(
+                    "conduit.debug/body-play@1",
+                    observed.play.active_play_id.as_str().as_bytes()
+                )
+            );
+            assert!(!history.records.is_empty());
+            assert!(history.records.len() <= 128);
+            for record in &history.records {
+                record.validate_for(history.execution, 64).unwrap();
+                if let Some(kind) = record.type_identity {
+                    assert!((kind as usize) < history.type_names.len());
+                }
+            }
+            let received = history.records.iter().find(|record| {
+                record.kind == DebugEventKind::ValueReceived
+                    && record.causal_parent_sequence.is_some_and(|parent| {
+                        history.records.iter().any(|sent| {
+                            sent.sequence == parent
+                                && sent.kind == DebugEventKind::ValueSent
+                                && sent.subject == record.subject
+                        })
+                    })
+            });
+            assert!(
+                received.is_some(),
+                "observer must capture actual send/receive parents"
+            );
+            if history.records[0].sequence != 0 {
+                assert!(history.gap.unwrap().dropped_records > 0);
+            }
+        })
         .unwrap()
         .join()
         .unwrap();

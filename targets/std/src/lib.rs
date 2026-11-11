@@ -24,6 +24,7 @@ pub mod bluetooth_gatt;
 pub mod body_causal_evidence;
 pub mod body_clock_line;
 pub mod body_coordination;
+pub mod body_debug_observation;
 pub mod body_execution;
 mod boot_identity;
 pub mod browser_admission;

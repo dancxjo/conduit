@@ -57,8 +57,44 @@ preemptible inference, overlapping inference/clock work, or whole-run allocation
 freedom. The clock continues after cognition completes.
 
 Causal inspection exports actual retained Body evidence and reports projection
-or trace refusals. It neither synthesizes debugger parent sequences nor proves
-rendered Patchbay inspection. Existing RAG integration, physical acquisition,
+or trace refusals. The command now also opts into the existing kernel debugger
+observer through `StdHost::run_body_plan_with_observed_fore_to`. Its independently
+prepared 128-record buffer retains at most 64 preview bytes per value. Exact
+Body/Plan/Play identities are domain-separated digests of the actual execution
+identities; node/Plot and Cord/type bindings come from the same lowered Plans.
+Observation attaches after physical bindings and detaches after cleanup.
+
+`debugger-timeline.json` projects actual records through Patchbay's existing
+DebuggerTimeline; `debugger-upstream-trace.json` follows actual retained parent
+pointers. Both preserve collector gaps and timeline evictions. Input/output
+port-number collisions have explicit combined-direction labels and retain the
+full exact identity table; Cord types remain distinct. No parent is reconstructed
+from log ordering. The current optional profile requires canonical, one-slot
+Cords because its kernel observer correlates the latest send per Cord. Wider
+queues refuse debugger preparation instead of claiming false FIFO parents;
+ordinary execution keeps its existing queue profiles.
+
+The 2026-11-10 observed run `run-1794374757017-199943` retained 71 actual debugger
+records, with no observer refusal, collector drop, or timeline eviction. Its
+receipt SHA-256 is
+`f64ea4c8d0ae39556b99efae3c06e9c95d0d72fa6a5f094171802105b9de2afe`;
+the timeline SHA-256 is
+`6e0693b2cb06ac159e5d46783e23766d051d35df3efbf0ad42af4b11127bba71`.
+The final response is sequence 52. Its pointer chain follows State, recall,
+integration, projection, prompt, model and retention but does not include the
+Situation input at fan-in. The summary therefore marks the full cognition chain
+and rendered browser proof **unverified**. The existing mandatory-Sign causal DAG
+is exported separately; it must be matched to the actual final output and
+rendered with the real graph before claiming complete Patchbay verification.
+
+This observed run completed both model responses and retained both episodes;
+the second response recalled cobalt-blue and attributed the report to the human.
+The first response overstated the human report as “confirmed.” The raw inference
+is retained unchanged and stays ModelDerived; receipt acceptance does not certify
+that wording. A prior 64-token run truncated the second response and failed its
+acceptance check. Recoverable generation now permits up to 128 decoder tokens
+within the existing envelope reservation and exact output/work limits. Existing
+model kinds keep their previous decoder ceilings. Existing RAG integration, physical acquisition,
 homeostasis and the three cadences, provider readmission/state-preserving replan,
 and complete Patchbay proof remain separate acceptance work under #3707.
 

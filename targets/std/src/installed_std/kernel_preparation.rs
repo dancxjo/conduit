@@ -128,6 +128,36 @@ impl KernelTables {
         values: HostedValueStore,
         sign: HostedSignLog,
     ) -> Result<Box<InstalledScheduler>, String> {
+        self.install_with_sign(
+            drivers,
+            values,
+            super::debug_sign_sink::InstalledSignSink::Plain(sign),
+            None,
+        )
+    }
+
+    pub(super) fn install_observed(
+        self: Box<Self>,
+        drivers: [InstalledBack; MAX_NODES],
+        values: HostedValueStore,
+        sign: HostedSignLog,
+        scope: super::debug_sign_sink::InstalledDebugScope,
+    ) -> Result<Box<InstalledScheduler>, String> {
+        let (sign, history) = super::debug_sign_sink::InstalledSignSink::observed(sign, scope)?;
+        self.install_with_sign(drivers, values, sign, Some(history))
+    }
+
+    fn install_with_sign(
+        self: Box<Self>,
+        drivers: [InstalledBack; MAX_NODES],
+        values: HostedValueStore,
+        sign: super::debug_sign_sink::InstalledSignSink,
+        history: Option<
+            conduit_kernel::debug_observation::DebugObservationBuffer<
+                { super::debug_sign_sink::DEBUG_RECORDS },
+            >,
+        >,
+    ) -> Result<Box<InstalledScheduler>, String> {
         if self.chains.len() != self.expected_fusions {
             return Err("selected fusion requires exact installed Back preparation".into());
         }
@@ -154,6 +184,13 @@ impl KernelTables {
                 scheduler.bind_execution_chain(&chain.nodes)
             };
             result.map_err(|error| format!("bind std fusion: {error:?}"))?;
+        }
+        if let Some(history) = history {
+            // Attach after physical bindings exist so the kernel can refuse
+            // profiles that cannot provide canonical observation safely.
+            scheduler
+                .attach_debug_observer(history)
+                .map_err(|error| format!("attach std scheduler debugger: {error:?}"))?;
         }
         Ok(scheduler)
     }

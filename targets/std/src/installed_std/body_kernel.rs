@@ -28,6 +28,7 @@ mod creche_route;
 use creche_route::CrecheRoute;
 mod clock_observation;
 mod data_text;
+mod debug_observation;
 mod fore_route;
 mod model_route;
 mod parsec_acknowledged_map;
@@ -46,6 +47,10 @@ pub(crate) struct BodyKernel<'a> {
     model: model_route::ModelRoute<'a>,
     creche: Option<CrecheRoute>,
     scheduler: Box<InstalledScheduler>,
+    debug_types: Option<(
+        conduit_kernel::debug_observation::DebugExecutionIdentity,
+        Vec<String>,
+    )>,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
@@ -76,6 +81,7 @@ pub(crate) struct BodyKernelResult {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub events: Vec<KernelEvent>,
+    pub debug_observations: Option<crate::body_debug_observation::BodyDebugHistory>,
     pub scan_child_signs:
         Result<Vec<conduit_composite::ScanChildSignReceipt>, conduit_composite::BoundedScanError>,
     pub scan_cancellation_failed: bool,
@@ -187,6 +193,7 @@ impl<'a> BodyKernel<'a> {
             has_fore_output,
             None,
             None,
+            None,
             #[cfg(target_os = "linux")]
             None,
         )
@@ -201,6 +208,7 @@ impl<'a> BodyKernel<'a> {
         sequential_fore: bool,
         has_fore_output: bool,
         host: &conduit_core::HostAdvertisement,
+        debug: Option<conduit_kernel::debug_observation::DebugExecutionIdentity>,
         #[cfg(target_os = "linux")] selected_file: Option<
             &'a crate::text_file::SelectedTextFileResidence,
         >,
@@ -215,11 +223,13 @@ impl<'a> BodyKernel<'a> {
             has_fore_output,
             None,
             sources.as_ref(),
+            debug,
             #[cfg(target_os = "linux")]
             selected_file,
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_live_on_host(
         partitions: &[BodyPlotPlan],
         has_keyboard: bool,
@@ -227,6 +237,7 @@ impl<'a> BodyKernel<'a> {
         queue: &BodyLiveForeQueue,
         control: &RunControl,
         host: &conduit_core::HostAdvertisement,
+        debug: Option<conduit_kernel::debug_observation::DebugExecutionIdentity>,
         #[cfg(target_os = "linux")] selected_file: Option<
             &'a crate::text_file::SelectedTextFileResidence,
         >,
@@ -247,6 +258,7 @@ impl<'a> BodyKernel<'a> {
             true,
             Some(queue),
             sources.as_ref(),
+            debug,
             #[cfg(target_os = "linux")]
             selected_file,
         )
@@ -262,6 +274,7 @@ impl<'a> BodyKernel<'a> {
         has_fore_output: bool,
         live: Option<&BodyLiveForeQueue>,
         parsec_sources: Option<&std::sync::Arc<crate::flow_activation::ParsecSourcePlans>>,
+        debug: Option<conduit_kernel::debug_observation::DebugExecutionIdentity>,
         #[cfg(target_os = "linux")] selected_file: Option<
             &'a crate::text_file::SelectedTextFileResidence,
         >,
@@ -521,11 +534,22 @@ impl<'a> BodyKernel<'a> {
                 }),
         )?;
         let model = model_route::ModelRoute::prepare(&fragments, &lowered.partitions)?;
-        let scheduler = tables.install(drivers, values, signs)?;
+        let (scheduler, debug_types) = match debug {
+            Some(execution) => {
+                let (scope, types) =
+                    debug_observation::prepare(execution, &fragments, &lowered.partitions)?;
+                (
+                    tables.install_observed(drivers, values, signs, scope)?,
+                    Some((execution, types)),
+                )
+            }
+            None => (tables.install(drivers, values, signs)?, None),
+        };
         Ok(Self {
             model,
             creche: None,
             scheduler,
+            debug_types,
             face_labels,
             input_origin: None,
             fore,
@@ -1524,6 +1548,7 @@ impl<'a> BodyKernel<'a> {
         );
         let each_output_completion_failed = self.scheduler.drivers().iter().any(|driver| matches!(driver,InstalledBack::BodyEach(each) if each.output_completion_failed()));
         let (fore_deliveries, fore_pending_output) = self.fore.into_custody();
+        let debug_observations = debug_observation::finish(&mut self.scheduler, self.debug_types);
         BodyKernelResult {
             terminal,
             failure,
@@ -1532,6 +1557,7 @@ impl<'a> BodyKernel<'a> {
             partitions: self.partitions,
             requests: self.requests,
             events: self.scheduler.signs().events().collect(),
+            debug_observations,
             scan_child_signs,
             scan_cancellation_failed,
             scan_output_completion_failed,

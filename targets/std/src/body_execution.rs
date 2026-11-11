@@ -44,6 +44,7 @@ mod creche_tests;
 mod execution;
 mod fore;
 mod fore_custody;
+mod observed;
 pub use fore_custody::{
     BodyForeDeliveryStage, BodyForePendingOutput, BodyForePendingOutputMetadata,
 };
@@ -117,6 +118,9 @@ pub struct BodyRunReport {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub kernel_events: Vec<KernelEvent>,
+    /// Optional debugger projection, separately requested and bounded. Its
+    /// refusal or gap is not an execution or mandatory Sign disposition.
+    pub debug_observations: Option<crate::body_debug_observation::BodyDebugHistory>,
     /// Receipt-correlated child Signs; a refusal remains distinct from an
     /// empty child stream and never borrows the parent's Sign identity.
     pub scan_child_signs:

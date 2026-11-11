@@ -34,6 +34,7 @@ impl StdHost {
             checkpoint,
             terminal,
             None,
+            false,
             started,
         )
     }
@@ -60,6 +61,7 @@ impl StdHost {
         checkpoint: Option<(&Path, crate::todo_durable_resource::CheckpointIdentity)>,
         terminal: Option<parsec_terminal::ParsecTerminalAttachment<'a>>,
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
+        observe_debug: bool,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
@@ -67,6 +69,14 @@ impl StdHost {
     {
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         let prospective_play = self.prospective_body_play(request.wake, request.plan)?;
+        let debug = observe_debug
+            .then(|| {
+                crate::body_debug_observation::body_debug_execution_identity(
+                    request.plan,
+                    &prospective_play,
+                )
+            })
+            .transpose()?;
         let admitted_clock_quality = if let Some(requirement) = &request.plan.body_time_requirement
         {
             let correlation = correlation.ok_or_else(|| {
@@ -104,6 +114,7 @@ impl StdHost {
                 queue,
                 request.control,
                 &self.advertisement,
+                debug,
                 #[cfg(target_os = "linux")]
                 self.selected_text_file.as_ref(),
             )?
@@ -116,6 +127,7 @@ impl StdHost {
                 sequential_fore,
                 has_fore_output,
                 &self.advertisement,
+                debug,
                 #[cfg(target_os = "linux")]
                 self.selected_text_file.as_ref(),
             )?
@@ -219,6 +231,7 @@ impl StdHost {
                 partitions: result.partitions,
                 requests: result.requests,
                 kernel_events: result.events,
+                debug_observations: result.debug_observations,
                 scan_child_signs: result.scan_child_signs,
                 scan_cancellation_failed: result.scan_cancellation_failed,
                 scan_output_completion_failed: result.scan_output_completion_failed,
