@@ -349,3 +349,7 @@ pub use continuation::{
     ContinuationAcceptanceRefusal, ContinuationParts, InstalledContinuationAcceptance,
     PreparedContinuationInstall,
 };
+
+#[path = "root_control.rs"]
+mod control;
+pub use control::MemberControl;

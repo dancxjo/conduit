@@ -511,3 +511,6 @@ fn public_shape_signed_return_measures_whole_transaction() {
     assert!(borrowed_cost.peak_bytes < cost.peak_bytes);
     std::println!("borrowed-grants reference_backing={} dynamic_peak={} allocations={} future_bytes={} saved_peak={}", references.capacity() * core::mem::size_of::<&conduit_core::AuthorityGrant>(), borrowed_cost.peak_bytes, borrowed_cost.allocations, borrowed_future, cost.peak_bytes - borrowed_cost.peak_bytes);
 }
+
+#[path = "member_control_tests.rs"]
+mod member_control_tests;
