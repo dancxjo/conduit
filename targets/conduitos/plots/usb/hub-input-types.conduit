@@ -12,6 +12,7 @@ type UsbHubInputStart = {
 # 10 short descriptor. State is bounded and has the shared cell's terminal flag.
 type UsbHubInputState = {
     phase: U8
+    boot-keyboard: Boolean
     child-hub-used: Boolean
     parent-active: Boolean
     parent-hub-address: U8
@@ -86,4 +87,26 @@ type UsbHubInputResult =
     | refused {
         port: U8
         reason: UsbHubInputRefusal
+    }
+
+# A successfully configured boot keyboard. This is wire evidence only; Root
+# must independently admit the actual endpoint before input can be delivered.
+type UsbHubKeyboardReady = {
+    address: U8
+    hub-address: U8
+    translator-port: U8
+    low-speed: Boolean
+    endpoint: U8
+    maximum-packet: U64
+    interval-ms: U64
+}
+
+# Source selects the next class work; Root only carries the selected payload.
+# A boot keyboard has no absolute-pointer layout. Its Source-authored
+# continuation acknowledges retained discovery without invoking that decoder.
+type UsbHubDescriptorWork =
+    descriptor UsbHidDescriptorTransfer
+    | keyboard {
+        input: UsbHubKeyboardReady
+        continuation: UsbAbsoluteHidLayoutResult
     }

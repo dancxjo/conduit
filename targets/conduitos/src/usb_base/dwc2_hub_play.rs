@@ -28,6 +28,8 @@ pub(crate) enum HubPlayRefusal {
     Pipe(PurePipeRefusal),
     Value(StructuredInfoRefusal),
 }
+#[path = "dwc2_hub_play/class_work.rs"]
+mod class_work;
 struct Output {
     port: PortId,
     value: ValuePayload,
@@ -57,6 +59,7 @@ pub(crate) struct Dwc2HubPlay<I, P> {
     finished: bool,
     complete: bool,
     result: Vec<u8>,
+    class_work: class_work::ClassWork,
 }
 impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
     /// Call only during preparation. The two native Plays already retain their
@@ -182,6 +185,10 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
         let request =
             PreparedStructuredComposer::new(contract.request_type(), 4096).map_err(E::Value)?;
         crate::protocol_source::preparation_stage("usb-hub-kernel");
+        let class_work = class_work::ClassWork::prepare(
+            descriptor.input_value_kind().clone(),
+            layout.value_kind.clone(),
+        );
         let run =
             PreparedUsbSourceKernel::prepare_pure(artifact, Default::default()).map_err(E::Call)?;
         crate::protocol_source::preparation_stage("usb-hub-ready");
@@ -216,7 +223,11 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
             finished: false,
             complete: false,
             result: Vec::with_capacity(4096),
+            class_work,
         })
+    }
+    pub(crate) fn keyboard(&self) -> Option<&[u8]> {
+        self.class_work.keyboard()
     }
     pub(crate) fn start(&mut self) -> Result<(), HubPlayRefusal> {
         use HubPlayRefusal as E;
@@ -347,7 +358,27 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
                 "configuration-decode" => {
                     self.configuration.submit(&output.value).map_err(E::Pipe)?
                 }
-                "descriptor-decode" => self.descriptor.submit(&output.value).map_err(E::Pipe)?,
+                "descriptor-decode" => {
+                    match self.class_work.route(&output.value.encoded).map_err(
+                        |error| match error {
+                            class_work::Refusal::Binding => E::Binding,
+                            class_work::Refusal::Value(error) => E::Value(error),
+                        },
+                    )? {
+                        class_work::Work::Descriptor(payload) => {
+                            self.descriptor.submit(payload).map_err(E::Pipe)?
+                        }
+                        class_work::Work::KeyboardRetained(payload) => {
+                            accepted(self.run.kernel_mut().admit_input(
+                                &self.layout,
+                                self.layout_sequence,
+                                payload,
+                            ))?;
+                            self.layout_sequence =
+                                self.layout_sequence.checked_add(1).ok_or(E::Binding)?;
+                        }
+                    }
+                }
                 "wait" => {
                     if self.waiting {
                         return Err(E::Binding);

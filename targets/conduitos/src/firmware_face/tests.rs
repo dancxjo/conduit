@@ -232,7 +232,7 @@ fn native_face_refuses_finite_surfaces_invalid_issuer_and_failed_scanout() {
 mod scanout_tests;
 
 #[test]
-fn admitted_pointer_uses_shared_history_and_mask_without_enabling_owner_actions() {
+fn admitted_pointer_uses_shared_history_and_current_interactive_mask() {
     let ids = identities();
     let make = make();
     let attempts = Arc::new(AtomicU32::new(0));
@@ -282,5 +282,69 @@ fn admitted_pointer_uses_shared_history_and_mask_without_enabling_owner_actions(
                 ..sample
             })
             .is_err()
+    );
+}
+
+#[test]
+fn admitted_keyboard_edits_name_through_current_mask_and_creche_owner() {
+    let ids = identities();
+    let make = make();
+    let mut frame = FirmwareFace::prepare(
+        Display {
+            attempts: Arc::new(AtomicU32::new(0)),
+            fail: false,
+        },
+        &ids,
+        &offer(&ids, &make),
+        &make,
+        [7; 32],
+    )
+    .unwrap();
+    let event = crate::keyboard_bridge::portable_key_event(4, true, 0).unwrap();
+    assert_eq!(
+        frame.observe_key(event),
+        Err("firmware-keyboard-not-admitted")
+    );
+    // CPU fixture only: this trusted Root handoff asserts no native possession.
+    unsafe { frame.admit_keyboard() }.unwrap();
+    let revision = frame._door.revision();
+    frame.observe_key(event).unwrap();
+    assert_eq!(
+        frame._door.revision(),
+        revision,
+        "local editing is not owner acceptance"
+    );
+    frame
+        .observe_key(crate::keyboard_bridge::portable_key_event(4, false, 0).unwrap())
+        .unwrap();
+    frame
+        .observe_key(crate::keyboard_bridge::portable_key_event(40, true, 0).unwrap())
+        .unwrap();
+    assert!(frame._door.revision() > revision);
+    let scene = frame._mask.scene().unwrap();
+    assert!(!scene.frame().unwrap().hits.is_empty());
+    assert!(
+        !scene
+            .frame()
+            .unwrap()
+            .scene
+            .commands()
+            .iter()
+            .any(|command| command.payload().contains("Read only"))
+    );
+    frame.retire_keyboard().unwrap();
+    assert_eq!(
+        frame.observe_key(event),
+        Err("firmware-keyboard-not-admitted")
+    );
+    assert!(
+        frame
+            ._mask
+            .scene()
+            .unwrap()
+            .frame()
+            .unwrap()
+            .hits
+            .is_empty()
     );
 }

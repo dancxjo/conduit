@@ -119,6 +119,9 @@ impl<I: RegisterIo> Dwc2PointerSession<I> {
             sample: None,
         })
     }
+    pub(crate) fn controller(&mut self) -> &mut crate::arch::dwc2::Controller<I> {
+        self.play.controller()
+    }
     pub(crate) fn start(&mut self) -> Result<(), PointerSessionRefusal> {
         use PointerSessionRefusal as E;
         self.play.kernel_mut().start().map_err(|_| E::Binding)?;

@@ -13,7 +13,8 @@ use crate::{
 };
 use alloc::format;
 use conduit_core::*;
-pub(super) type Entropy = CryptographicEntropyBase<arch::HardwareEntropy, 3>;
+// One issuer each for control, clock, pointer and the independent keyboard.
+pub(super) type Entropy = CryptographicEntropyBase<arch::HardwareEntropy, 4>;
 pub(super) fn usb_identity(ids: &BootIdentities, role: &str) -> UsbNativeIdentity {
     let boot = identity::hex(&ids.boot);
     UsbNativeIdentity {

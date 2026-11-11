@@ -1,6 +1,14 @@
 //! One named report fixture executes native admission and normal mouse plots.
 use super::*;
 use crate::arch::dwc2::{EndpointRoute, TransactionTranslator, TransferType, test_io};
+use crate::{
+    protocol_source::*,
+    usb_base::{
+        endpoint_read_contract::*, endpoint_read_factory::*, installation::UsbNativeIdentity,
+    },
+};
+use alloc::vec::Vec;
+use conduit_core::*;
 fn native() -> (UsbNativeIdentity, NativeProtocolIssuer) {
     let identity = UsbNativeIdentity {
         host_id: "fixture/pointer-play-host".into(),
@@ -374,4 +382,51 @@ fn dwc2_pointer_session_carries_source_history_through_press_and_release_without
     });
     assert_eq!((reads, samples), (3, 2));
     assert_eq!(allocations, 0);
+}
+
+#[test]
+fn shared_keyboard_source_delivers_press_and_release_through_existing_ingress() {
+    use crate::usb_base::dwc2_keyboard_session::Dwc2KeyboardSession;
+    let (identity, issuer) = native();
+    let mut controller = test_io::prepared();
+    let io = test_io::registers(&mut controller);
+    io.writes.reserve(1024);
+    io.script
+        .push_back(completion(Some(&[0, 0, 4, 0, 0, 0, 0, 0])));
+    io.script.push_back(completion(Some(&[0; 8])));
+    let route = RootEndpointRoute {
+        slot: 1,
+        generation: 1,
+        endpoint_generation: 1,
+        endpoint: EndpointRoute {
+            address: 11,
+            endpoint: 1,
+            maximum_packet: 8,
+            transfer_type: TransferType::Interrupt,
+            translator: None,
+        },
+    };
+    let mut keyboard =
+        unsafe { Dwc2KeyboardSession::prepare(&controller, route, &identity, issuer) }.unwrap();
+    let mut events = Vec::with_capacity(2);
+    let allocations = crate::test_allocations::allocations(|| {
+        for expected in 0..2 {
+            assert!(keyboard.ready());
+            keyboard.read().unwrap();
+            for _ in 0..4096 {
+                keyboard.step(&mut controller).unwrap();
+                if let Some(event) = keyboard.take() {
+                    events.push(event);
+                }
+                if keyboard.ready() {
+                    break;
+                }
+            }
+            assert!(keyboard.ready(), "read {expected} did not drain");
+        }
+    });
+    assert_eq!(allocations, 0);
+    assert_eq!(events.len(), 2);
+    assert_eq!(events[0].encode(), [4, 0, 0]);
+    assert_eq!(events[1].encode(), [4, 1, 0]);
 }

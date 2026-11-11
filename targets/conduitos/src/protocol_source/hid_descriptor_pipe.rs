@@ -103,6 +103,9 @@ impl PreparedHidDescriptorPipe {
         self.pass.start()?;
         self.driver.start().map_err(PurePipeRefusal::Call)
     }
+    pub fn input_value_kind(&self) -> &KindId {
+        &self.incoming.value_kind
+    }
     pub fn submit(&mut self, value: &ValuePayload) -> Result<(), PurePipeRefusal> {
         use PurePipeRefusal as E;
         if self.remaining_submissions == 0 {

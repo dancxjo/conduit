@@ -50,7 +50,7 @@ plot usb-hub-input (
     >> topology: UsbConfigurationTopologyResult...| <= 4096B
     >> layout: UsbAbsoluteHidLayoutResult...| <= 4096B
     configuration-decode: UsbConfigurationTransfer...| <= 4096B >>
-    descriptor-decode: UsbHidDescriptorTransfer...| <= 4096B >>
+    descriptor-decode: UsbHubDescriptorWork...| <= 4096B >>
     exchange: UsbHubInputControl...| <= 4096B >>
     wait: U64...| >>
     result: UsbHubInputResult...| <= 4096B >>

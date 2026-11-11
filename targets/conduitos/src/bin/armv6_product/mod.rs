@@ -147,9 +147,14 @@ pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
                         if let Some(graphic) = graphic.as_mut() {
                             // SAFETY: the actual selected endpoint owner is
                             // retained above, and loss retires delivery below.
-                            unsafe { graphic.admit_pointer() }?;
+                            if input.pointer_ready() {
+                                unsafe { graphic.admit_pointer() }?;
+                            }
+                            if input.keyboard_ready() {
+                                unsafe { graphic.admit_keyboard() }?;
+                            }
                         }
-                        input.start_pointer()?;
+                        input.start_input()?;
                         started = true;
                     }
                     if let Some(sample) = input.step()? {
@@ -169,11 +174,30 @@ pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
                         );
                         arch::present(text.as_bytes());
                     }
+                    if !input.keyboard_ready() {
+                        if let Some(graphic) = graphic.as_mut() {
+                            graphic.retire_keyboard()?;
+                        }
+                    }
+                    if let Some(event) = input.take_key() {
+                        if let Some(graphic) = graphic.as_mut() {
+                            graphic.observe_key(event)?;
+                        }
+                        let mut text = conduitos::sign_format::FixedText::new();
+                        let _ = writeln!(
+                            &mut text,
+                            "CONDUIT_KEYBOARD_EVENT usage={} transition={:?}",
+                            event.usage(),
+                            event.transition()
+                        );
+                        arch::present(text.as_bytes());
+                    }
                     Ok::<_, &'static str>(())
                 })();
                 if let Err(reason) = outcome {
                     refused = true;
                     if let Some(graphic) = graphic.as_mut() {
+                        let _ = graphic.retire_keyboard();
                         let _ = graphic.retire_pointer();
                     }
                     arch::present(b"CONDUIT_POINTER_UNAVAILABLE ");

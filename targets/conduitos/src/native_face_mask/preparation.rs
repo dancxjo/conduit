@@ -419,7 +419,7 @@ impl super::NativeFaceMask {
     /// The containing Root retains a current independently admitted physical
     /// input owner. Data or a copied readiness record cannot justify this.
     /// A fresh Show must be presented before delivering any input.
-    pub(crate) unsafe fn admit_local_pointer_for_root(
+    pub(crate) unsafe fn admit_local_input_for_root(
         &mut self,
     ) -> Result<(), super::NativeFaceMaskError> {
         if self.session.is_some() || self.scene.is_some() || self.surface_admitted {
@@ -428,7 +428,7 @@ impl super::NativeFaceMask {
         self.local_input_available = true;
         Ok(())
     }
-    pub(crate) fn retire_local_pointer_for_root(&mut self) {
+    pub(crate) fn retire_local_input_for_root(&mut self) {
         self.local_input_available = false;
     }
 }

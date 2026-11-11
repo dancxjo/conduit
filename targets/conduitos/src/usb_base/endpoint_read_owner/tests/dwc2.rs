@@ -134,3 +134,73 @@ fn dwc2_pending_tt_cannot_be_discarded_by_revocation_or_channel_halt() {
     );
     assert!(host.retains_submission());
 }
+
+#[test]
+fn two_endpoint_contexts_share_one_controller_without_sharing_report_ordinals() {
+    use crate::usb_base::dwc2_endpoint_context::Dwc2EndpointReadContext;
+    let first_owner = owner();
+    let mut second_owner = owner();
+    second_owner.attachment.slot = 2;
+    let first_node = first_owner.binding_node();
+    let second_node = second_owner.binding_node();
+    let mut first_route = route();
+    first_route.endpoint.translator = None;
+    let mut second_route = first_route;
+    second_route.slot = 2;
+    second_route.endpoint.address = 3;
+    let mut controller = test_io::prepared();
+    let io = test_io::registers(&mut controller);
+    io.writes.reserve(512);
+    for value in [1, 2, 3, 4] {
+        io.script
+            .push_back((3, vec![(2 << 17) | (8 << 4)], vec![value, 0]));
+    }
+    // Named CPU fixture: independent admitted owners borrow the same original
+    // controller sequentially. This proves no physical attachment authority.
+    let mut first =
+        unsafe { Dwc2EndpointReadContext::bind_admitted(&controller, first_owner, first_route) }
+            .unwrap();
+    let mut second =
+        unsafe { Dwc2EndpointReadContext::bind_admitted(&controller, second_owner, second_route) }
+            .unwrap();
+    let input = fixture::input_length(8);
+    let allocations = crate::test_allocations::allocations(|| {
+        for ordinal in 0_u64..2 {
+            for (context, node) in [(&mut first, first_node), (&mut second, second_node)] {
+                let output = context
+                    .execute(
+                        &mut controller,
+                        node,
+                        HostCallId(0),
+                        RequestId(ordinal as u32),
+                        &input,
+                    )
+                    .unwrap();
+                let value = conduit_core::validate_canonical_structured_value(output).unwrap();
+                let completed = value.variant_payload("completed").unwrap().unwrap();
+                assert_eq!(
+                    completed
+                        .record_field("ordinal")
+                        .unwrap()
+                        .unwrap()
+                        .primitive_bytes("value/u64")
+                        .unwrap(),
+                    ordinal.to_le_bytes()
+                );
+                assert!(!context.retains_submission());
+            }
+        }
+    });
+    assert_eq!(allocations, 0);
+    let pids: Vec<_> = test_io::registers(&mut controller)
+        .writes
+        .iter()
+        .filter(|(register, _)| *register == 0x510)
+        .map(|(_, value)| (value >> 29) & 3)
+        .collect();
+    assert_eq!(
+        pids,
+        [0, 0, 2, 2],
+        "each endpoint advances DATA0 to DATA1 independently"
+    );
+}

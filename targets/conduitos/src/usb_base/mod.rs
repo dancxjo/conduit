@@ -66,7 +66,31 @@ pub(crate) mod dwc2_control;
         all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
     )
 ))]
+pub(crate) mod dwc2_endpoint_context;
+#[cfg(any(
+    test,
+    any(
+        all(target_arch = "arm", feature = "armv6-product"),
+        all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+    )
+))]
 pub(crate) mod dwc2_endpoint_read;
+#[cfg(any(
+    test,
+    any(
+        all(target_arch = "arm", feature = "armv6-product"),
+        all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+    )
+))]
+pub(crate) mod dwc2_hid_play;
+#[cfg(any(
+    test,
+    any(
+        all(target_arch = "arm", feature = "armv6-product"),
+        all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+    )
+))]
+pub(crate) mod dwc2_keyboard_session;
 
 pub mod control_source_plan;
 
@@ -88,7 +112,9 @@ pub(crate) mod dwc2_bus_route;
 ))]
 pub(crate) mod dwc2_control_play;
 
+#[cfg_attr(test, allow(dead_code))]
 #[cfg(any(
+    test,
     all(target_arch = "arm", feature = "armv6-product"),
     all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
 ))]

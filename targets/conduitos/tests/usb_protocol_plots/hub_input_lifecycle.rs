@@ -14,6 +14,7 @@ struct Exchange {
     packet: u8,
     translator: u8,
     translator_hub: u8,
+    low_speed: bool,
     reply: Vec<u8>,
 }
 fn exchange(word: u64, address: u8, packet: u8, translator: u8, reply: &[u8]) -> Exchange {
@@ -23,6 +24,7 @@ fn exchange(word: u64, address: u8, packet: u8, translator: u8, reply: &[u8]) ->
         packet,
         translator,
         translator_hub: if translator == 0 { 0 } else { 1 },
+        low_speed: false,
         reply: reply.to_vec(),
     }
 }
@@ -186,6 +188,15 @@ fn nested_hub_prefix() -> Vec<Exchange> {
     tree
 }
 fn run_fixture(fixture: Vec<Exchange>, delays: &[u64], expected_address: u8, expected_hub: u8) {
+    run_fixture_with_keyboard(fixture, delays, expected_address, expected_hub, None);
+}
+fn run_fixture_with_keyboard(
+    fixture: Vec<Exchange>,
+    delays: &[u64],
+    expected_address: u8,
+    expected_hub: u8,
+    expected_keyboard: Option<u8>,
+) {
     let package = usb_hub_input_package().unwrap();
     let bytes = serde_json::to_vec(&package).unwrap();
     eprintln!(
@@ -197,7 +208,11 @@ fn run_fixture(fixture: Vec<Exchange>, delays: &[u64], expected_address: u8, exp
     drop(package);
     let entry = PreparedProtocolEntry::prepare(&bytes, "usb-hub-input").unwrap();
     let expanded = &entry.expanded().expanded;
-    assert!(expanded.gears.len() <= 64);
+    assert!(
+        expanded.gears.len() <= 64,
+        "{} hub stages",
+        expanded.gears.len()
+    );
     assert!(
         !expanded
             .gears
@@ -304,6 +319,14 @@ fn run_fixture(fixture: Vec<Exchange>, delays: &[u64], expected_address: u8, exp
             .canonical_bytes()
             .unwrap(),
     };
+    let mut descriptor_request = ValuePayload {
+        value_kind: descriptor.input_value_kind().clone(),
+        encoded: Vec::with_capacity(4096),
+    };
+    let mut layout_feedback = ValuePayload {
+        value_kind: layout_input.value_kind.clone(),
+        encoded: Vec::with_capacity(4096),
+    };
     let mut response = ValuePayload {
         value_kind: received.value_kind.clone(),
         encoded: Vec::with_capacity(4096),
@@ -320,6 +343,7 @@ fn run_fixture(fixture: Vec<Exchange>, delays: &[u64], expected_address: u8, exp
     let mut layout_sequence = 0;
     let mut result = false;
     let mut complete = false;
+    let mut keyboard = None;
     let allocations = super::allocation::allocations(|| {
         configuration.start().unwrap();
         descriptor.start().unwrap();
@@ -382,6 +406,16 @@ fn run_fixture(fixture: Vec<Exchange>, delays: &[u64], expected_address: u8, exp
                                 "call {call}"
                             );
                             assert_eq!(byte(value, "hub-address"), expected.translator_hub);
+                            assert_eq!(
+                                value
+                                    .record_field("low-speed")
+                                    .unwrap()
+                                    .unwrap()
+                                    .primitive_bytes("value/bool")
+                                    .unwrap(),
+                                [u8::from(expected.low_speed)],
+                                "call {call}"
+                            );
                             let request = value.record_field("request").unwrap().unwrap();
                             assert_eq!(
                                 request
@@ -411,7 +445,32 @@ fn run_fixture(fixture: Vec<Exchange>, delays: &[u64], expected_address: u8, exp
                             call += 1;
                         }
                         "configuration-decode" => configuration.submit(&output[index]).unwrap(),
-                        "descriptor-decode" => descriptor.submit(&output[index]).unwrap(),
+                        "descriptor-decode" => {
+                            let work = validate_canonical_structured_value(&output[index].encoded)
+                                .unwrap();
+                            if let Some(value) = work.variant_payload("descriptor").unwrap() {
+                                copy_view(&mut descriptor_request.encoded, value);
+                                descriptor.submit(&descriptor_request).unwrap();
+                            } else {
+                                let selected = work.variant_payload("keyboard").unwrap().unwrap();
+                                let ready = selected.record_field("input").unwrap().unwrap();
+                                assert!(keyboard.is_none());
+                                keyboard = Some(byte(ready, "address"));
+                                assert_eq!(byte(ready, "endpoint"), 1);
+                                copy_view(
+                                    &mut layout_feedback.encoded,
+                                    selected.record_field("continuation").unwrap().unwrap(),
+                                );
+                                run.kernel_mut()
+                                    .admit_input(
+                                        &layout_input.port_id,
+                                        layout_sequence,
+                                        &layout_feedback,
+                                    )
+                                    .unwrap();
+                                layout_sequence += 1;
+                            }
+                        }
                         "wait" => {
                             assert_eq!(
                                 output[index].encoded.as_slice(),
@@ -477,6 +536,7 @@ fn run_fixture(fixture: Vec<Exchange>, delays: &[u64], expected_address: u8, exp
             }
         }
     });
+    assert_eq!(keyboard, expected_keyboard);
     assert_eq!(call, fixture.len());
     assert_eq!(wait, delays.len());
     assert!(
@@ -484,4 +544,14 @@ fn run_fixture(fixture: Vec<Exchange>, delays: &[u64], expected_address: u8, exp
         "one supported endpoint and normal closure"
     );
     assert_eq!(allocations, 0);
+}
+
+#[path = "hub_keyboard.rs"]
+mod keyboard;
+
+fn copy_view(output: &mut Vec<u8>, value: ValidatedCanonicalStructuredValue<'_>) {
+    assert!(value.type_bytes().len() + value.value_node().len() <= output.capacity());
+    output.clear();
+    output.extend_from_slice(value.type_bytes());
+    output.extend_from_slice(value.value_node());
 }

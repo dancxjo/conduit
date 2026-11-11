@@ -24,7 +24,7 @@ mod home;
 mod home_projection;
 mod joining;
 mod patchbay_face;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 mod presenter;
 mod projection;
 mod reading;
@@ -37,7 +37,7 @@ pub use arrival::ArrivalInput;
 pub use home::{HomeInput, HomeView};
 pub use joining::PendingJoinView;
 mod semantics;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 pub use presenter::{FrontDoorPresenter, PresenterError};
 use semantics::lifecycle_summary;
 

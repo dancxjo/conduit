@@ -69,6 +69,7 @@ pub mod flow_zip;
 ))]
 pub mod front_door;
 pub mod functional_offers;
+pub mod hid_key_transition;
 #[cfg(target_arch = "x86_64")]
 pub mod hotplug_guest;
 #[cfg(any(test, feature = "native-http-client"))]
@@ -78,6 +79,7 @@ pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;
 pub mod keyboard_bridge;
+pub mod keyboard_ingress;
 #[cfg(target_arch = "x86_64")]
 pub mod keyboard_input;
 pub mod keyboard_offer;
@@ -217,7 +219,6 @@ mod pure_protocol_owner;
 pub mod pure_protocol_play;
 pub mod serial_base;
 pub mod service_memory;
-#[cfg(target_arch = "x86_64")]
 pub mod source_keyboard_batch;
 pub mod source_pointer_sample;
 
@@ -469,6 +470,20 @@ pub mod compositor_semantic_recovery_proof;
 
 // The firmware lifecycle owner requires the product front door and Make owner.
 // Hosted compositor consumers use the portable Mask without that boot owner.
+#[cfg(all(
+    feature = "native-compositor-core",
+    any(
+        test,
+        target_arch = "x86_64",
+        feature = "ia32-product",
+        feature = "aarch64-product",
+        feature = "riscv64-product",
+        feature = "loongarch64-product",
+        feature = "aarch64-board",
+        feature = "armv6-product"
+    )
+))]
+mod creche_arrival;
 #[cfg(all(
     feature = "native-compositor-core",
     any(

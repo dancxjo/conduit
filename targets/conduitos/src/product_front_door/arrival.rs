@@ -53,22 +53,8 @@ pub(super) fn birth_and_arrive(
     display: &mut impl PixelTarget,
     make: &MakeRecord,
 ) -> Result<(), &'static str> {
-    journey
-        .birth_from_creche(selection)
-        .map_err(|e| e.as_str())?;
-    let tutorial =
-        native_workset::resident(native_workset::NativePlot::Tour).map_err(|e| e.as_str())?;
-    if journey
-        .biography()
-        .is_some_and(|evidence| evidence.body.workset.contains(&tutorial))
-    {
-        journey
-            .select_plot(&tutorial, journey.revision())
-            .map_err(|e| e.as_str())?;
-    }
-    door.observe_product(journey).map_err(|e| e.as_str())?;
-    door.close_creche().map_err(|e| e.as_str())?;
-    let receipt = presenter.present(door, display).map_err(|e| e.as_str())?;
+    let receipt =
+        crate::creche_arrival::birth_and_arrive(selection, door, journey, presenter, display)?;
     emit_journey_sign(&journey.projection(), make, &receipt);
     super::workspace_view_sign::emit(door, journey, &receipt)?;
     arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT body-born-lulled\n");

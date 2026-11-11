@@ -1,7 +1,7 @@
 # Data routing and request words for the finite hub input lifecycle.
 plot usb-hub-input-control (
     input: UsbHubInputState...| <= 4096B >> result: UsbHubInputControl...| <= 4096B
-) = ({ address: .address, maximum-packet: .maximum-packet, hub-address: .translator-port == 0 ? 0 : .hub-address, translator-port: .translator-port, low-speed: .translator-port != 0 && .low-speed, request: { setup: (.phase < 20 ? (.phase < 8 ? (.phase < 4 ? (.phase < 2 ? (.phase == 0 ? 0x0008000001000680 : 0) : (.phase == 2 ? 0x0000000000000500 | (value/u64(.hub-address) * 65536) : 0)) : (.phase < 6 ? (.phase == 4 ? 0x0009000002000680 : 0) : (.phase == 6 ? 0x0000000002000680 | (.total-length * 281474976710656) : 0))) : (.phase < 12 ? (.phase < 10 ? (.phase == 8 ? 0x0000000000000900 | (value/u64(.configuration-value) * 65536) : 0) : (.phase == 10 ? 0x00090000290006a0 : 0)) : (.phase < 16 ? (.phase == 12 ? 0x0000000000080323 | (value/u64(.port) * 4294967296) : 0) : (.phase < 18 ? (.phase == 16 ? 0x00040000000000a3 | (value/u64(.port) * 4294967296) : 0) : (.phase == 18 ? 0x0000000000040323 | (value/u64(.port) * 4294967296) : 0))))) : (.phase < 28 ? (.phase < 24 ? (.phase < 22 ? (.phase == 20 ? 0x00040000000000a3 | (value/u64(.port) * 4294967296) : 0) : (.phase == 22 ? 0x0000000000140123 | (value/u64(.port) * 4294967296) : 0)) : (.phase < 25 ? (.phase == 24 ? 0x0000000000100123 | (value/u64(.port) * 4294967296) : 0) : (.phase < 26 ? (.phase == 25 ? 0x0000000000080123 | (value/u64(.port) * 4294967296) : 0) : (.phase == 26 ? 0x0008000001000680 : 0)))) : (.phase < 32 ? (.phase < 30 ? (.phase == 28 ? 0x0000000000000500 | (value/u64(.first-child-address + .port - 1) * 65536) : 0) : (.phase == 30 ? 0x0009000002000680 : 0)) : (.phase < 36 ? (.phase == 32 ? 0x0000000002000680 | (.total-length * 281474976710656) : 0) : (.phase < 38 ? (.phase == 36 ? 0x0000000000000900 | (value/u64(.configuration-value) * 65536) : 0) : (.phase == 38 ? 0x0100000022000681 | (value/u64(.interface-number) * 4294967296) : 0)))))), output: [] } })
+) = ({ address: .address, maximum-packet: .maximum-packet, hub-address: .translator-port == 0 ? 0 : .hub-address, translator-port: .translator-port, low-speed: .translator-port != 0 && .low-speed, request: { setup: (.phase < 20 ? (.phase < 8 ? (.phase < 4 ? (.phase < 2 ? (.phase == 0 ? 0x0008000001000680 : 0) : (.phase == 2 ? 0x0000000000000500 | (value/u64(.hub-address) * 65536) : 0)) : (.phase < 6 ? (.phase == 4 ? 0x0009000002000680 : 0) : (.phase == 6 ? 0x0000000002000680 | (.total-length * 281474976710656) : 0))) : (.phase < 12 ? (.phase < 10 ? (.phase == 8 ? 0x0000000000000900 | (value/u64(.configuration-value) * 65536) : 0) : (.phase == 10 ? 0x00090000290006a0 : 0)) : (.phase < 16 ? (.phase == 12 ? 0x0000000000080323 | (value/u64(.port) * 4294967296) : 0) : (.phase < 18 ? (.phase == 16 ? 0x00040000000000a3 | (value/u64(.port) * 4294967296) : 0) : (.phase == 18 ? 0x0000000000040323 | (value/u64(.port) * 4294967296) : 0))))) : (.phase < 28 ? (.phase < 24 ? (.phase < 22 ? (.phase == 20 ? 0x00040000000000a3 | (value/u64(.port) * 4294967296) : 0) : (.phase == 22 ? 0x0000000000140123 | (value/u64(.port) * 4294967296) : 0)) : (.phase < 25 ? (.phase == 24 ? 0x0000000000100123 | (value/u64(.port) * 4294967296) : 0) : (.phase < 26 ? (.phase == 25 ? 0x0000000000080123 | (value/u64(.port) * 4294967296) : 0) : (.phase == 26 ? 0x0008000001000680 : 0)))) : (.phase < 32 ? (.phase < 30 ? (.phase == 28 ? 0x0000000000000500 | (value/u64(.first-child-address + .port - 1) * 65536) : 0) : (.phase == 30 ? 0x0009000002000680 : 0)) : (.phase < 36 ? (.phase == 32 ? 0x0000000002000680 | (.total-length * 281474976710656) : 0) : (.phase < 38 ? (.phase == 36 ? 0x0000000000000900 | (value/u64(.configuration-value) * 65536) : 0) : (.phase == 38 ? (.boot-keyboard ? 0x0000000000000b21 : 0x0100000022000681) | (value/u64(.interface-number) * 4294967296) : 0)))))), output: [] } })
 
 plot usb-hub-input-delay (
     input: UsbHubInputState...| <= 4096B >> result: U64...| <= 8B
@@ -16,8 +16,8 @@ plot usb-hub-input-configuration-frame (
 ) = ({ wire: .wire, actual: value/u64(.actual) })
 
 plot usb-hub-input-layout-frame (
-    input: UsbHubInputState...| <= 4096B >> result: UsbHidDescriptorTransfer...| <= 4096B
-) = ({ wire: .wire, actual: value/u64(.actual) })
+    input: UsbHubInputState...| <= 4096B >> result: UsbHubDescriptorWork...| <= 4096B
+) = (.boot-keyboard ? keyboard({ input: { address: .address, hub-address: .translator-port == 0 ? 0 : .hub-address, translator-port: .translator-port, low-speed: .translator-port != 0 && .low-speed, endpoint: .endpoint, maximum-packet: .input-packet, interval-ms: .interval-ms }, continuation: unsupported(empty) }) : descriptor({ wire: .wire, actual: value/u64(.actual) }))
 
 plot usb-hub-input-prefix-frame (
     input: UsbHubInputState...| <= 4096B >> result: UsbNineOctetDescriptorFrame...| <= 4096B
@@ -67,5 +67,5 @@ plot usb-hub-input-configuration-output (
 ) = (.)
 
 plot usb-hub-input-descriptor-output (
-    input: UsbHidDescriptorTransfer...| <= 4096B >> result: UsbHidDescriptorTransfer...| <= 4096B
+    input: UsbHubDescriptorWork...| <= 4096B >> result: UsbHubDescriptorWork...| <= 4096B
 ) = (.)
