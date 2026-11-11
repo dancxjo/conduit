@@ -48,6 +48,7 @@ members = [
 	"mechanisms/io/resource-snapshot",
 	"mechanisms/io/i2c-transaction",
 	"mechanisms/devices/create-oi",
+	"mechanisms/devices/dht11",
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
 	"mechanisms/implementations/linear-framebuffer-make",
@@ -127,6 +128,7 @@ members = [
 	"tools/xtask",
 ]
 exclude = [
+	"mechanisms/io/pulse-capture",
 	"mechanisms/io/tm1637",
 	"plots/seven-segment-mask",
 	"targets/conduitos/mask-service",

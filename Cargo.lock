@@ -1989,6 +1989,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-dht11-observation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+ "conduit-pulse-capture",
+]
+
+[[package]]
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
@@ -2472,6 +2482,14 @@ dependencies = [
  "noise-rust-crypto",
  "serde_json",
  "x25519-dalek",
+]
+
+[[package]]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
 ]
 
 [[package]]

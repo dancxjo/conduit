@@ -7,9 +7,9 @@ static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core::{
     self as c, PreparedStructuredComposer as Composer, StructuredInfoTypeShape as Shape,
 };
-use conduit_environment_runtime::{
-    observation::{ObservationContract, PreparedSourceFrameDecoder},
-    publication::{PublicationChannel as Channel, PublicationContract},
+use conduit_dht11_observation::{ObservationContract, PreparedSourceFrameDecoder};
+use conduit_environment_runtime::publication::{
+    PublicationChannel as Channel, PublicationContract,
 };
 #[test]
 fn linked_validation_preserves_all_channel_contracts_and_refuses_truncation_without_allocation() {

@@ -4,12 +4,12 @@
 use crate::{
     appliance::ApplianceBack,
     construction::ApplianceSource,
-    observation::ObservationContract,
     publication::{PublicationChannel, PublicationContract, PublicationSequence},
     CaptureBack,
 };
 use alloc::{format, vec, vec::Vec};
 use conduit_core as c;
+use conduit_dht11_observation::ObservationContract;
 use conduit_semantic_catalog::PreparedCanonicalSelector;
 
 #[path = "software_offers.rs"]
@@ -388,7 +388,7 @@ fn initialize(
             conduit_time::tick_trigger_semantic_contract(),
             ApplianceBack::Trigger(conduit_time::TickTriggerBack::default()),
         )
-    } else if gear.kind_id.as_str() == crate::observation::KIND {
+    } else if gear.kind_id.as_str() == conduit_dht11_observation::KIND {
         let contract = ObservationContract::prepare().map_err(init)?;
         (
             contract.kind().clone(),
