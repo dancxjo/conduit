@@ -436,3 +436,41 @@ fn usb_configuration_proof_owns_its_finite_profile_and_requires_keyboard_closure
         .retain(|item| item != SCRIPTED_KEYBOARD_PROOF);
     assert!(lower(&missing_keyboard).is_err());
 }
+
+#[test]
+fn rpi3_direct_boot_reuses_product_closure_with_an_exact_aarch64_board_feature() {
+    let profile = manifest(include_str!(
+        "../../../profiles/conduitos-rpi3-bplus.host.conduit"
+    ));
+    let selected = lower(&profile).unwrap();
+    assert!(selected.cargo_features.contains(&"aarch64-rpi-3b-plus"));
+    assert!(!selected.cargo_features.contains(&"armv6-product"));
+    assert!(!selected.cargo_features.contains(&"aarch64-product"));
+    for implementation in [
+        conduitos::make::IMPL_USB_TRANSPORT,
+        conduitos::make::IMPL_STARTUP_CHIME,
+        conduitos::make::IMPL_NATIVE_PRESENTER,
+    ] {
+        assert_ne!(selected.implementations & implementation, 0);
+    }
+    let backend = super::super::target_backend::select(&profile.target).unwrap();
+    assert_eq!(backend.boot_entry, "kernel8.img");
+    assert!(backend.require_machine_boot().is_err());
+    let artifact =
+        conduit_host_conduitos_make::ConduitOsProductArtifact::for_target(&profile.target).unwrap();
+    assert_eq!(artifact.binary, "conduitos-aarch64-rpi3-product");
+    assert_eq!(artifact.rust_target, "aarch64-unknown-none");
+    let mut missing_call = profile.clone();
+    missing_call
+        .host_calls
+        .retain(|call| call != "conduit.host/usb-control@1");
+    assert!(lower(&missing_call).is_err());
+    let mut wrong_driver = profile;
+    wrong_driver
+        .base_selections
+        .iter_mut()
+        .find(|base| base.kind == "usb/host-controller")
+        .unwrap()
+        .driver = "conduitos/xhci@1".into();
+    assert!(lower(&wrong_driver).is_err());
+}

@@ -13,6 +13,7 @@ struct Exchange {
     address: u8,
     packet: u8,
     translator: u8,
+    translator_hub: u8,
     reply: Vec<u8>,
 }
 fn exchange(word: u64, address: u8, packet: u8, translator: u8, reply: &[u8]) -> Exchange {
@@ -21,6 +22,7 @@ fn exchange(word: u64, address: u8, packet: u8, translator: u8, reply: &[u8]) ->
         address,
         packet,
         translator,
+        translator_hub: if translator == 0 { 0 } else { 1 },
         reply: reply.to_vec(),
     }
 }
@@ -103,7 +105,72 @@ fn byte(value: ValidatedCanonicalStructuredValue<'_>, name: &str) -> u8 {
 }
 #[test]
 fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_or_allocations() {
-    let bytes = serde_json::to_vec(&usb_hub_input_package().unwrap()).unwrap();
+    run_fixture(fixture(), &[2, 2, 50, 2], 3, 1);
+}
+#[test]
+fn nested_high_speed_hub_routes_the_same_waveshare_report_through_its_own_translator() {
+    let mut tree = nested_hub_prefix();
+    for mut item in fixture().into_iter().skip(6) {
+        if item.address == 1 {
+            item.address = 2;
+        } else if item.address == 3 {
+            item.address = 10;
+        }
+        if item.setup == 0x0000000000030500_u64.to_le_bytes() {
+            item.setup = 0x00000000000a0500_u64.to_le_bytes();
+        }
+        if item.translator != 0 {
+            item.translator_hub = 2;
+        }
+        tree.push(item);
+    }
+    run_fixture(tree, &[2, 2, 50, 2, 2, 50, 2], 10, 2);
+}
+#[test]
+fn empty_child_hub_resumes_the_parent_without_reusing_device_addresses() {
+    let mut tree = nested_hub_prefix();
+    tree.push(exchange(0x0000000100080323, 2, 64, 0, &[]));
+    tree.push(exchange(0x0000000200080323, 2, 64, 0, &[]));
+    tree.push(exchange(0x00040001000000a3, 2, 64, 0, &[0, 1, 0, 0]));
+    tree.push(exchange(0x00040002000000a3, 2, 64, 0, &[0, 1, 0, 0]));
+    tree.extend(fixture().into_iter().skip(9));
+    run_fixture(tree, &[2, 2, 50, 2, 2, 50, 2], 3, 1);
+}
+fn nested_hub_prefix() -> Vec<Exchange> {
+    let original = fixture();
+    let mut tree: Vec<_> = fixture().into_iter().take(8).collect();
+    // Root port 1 contains a high-speed child hub, not an input device.
+    tree.push(exchange(0x00040001000000a3, 1, 64, 0, &[1, 5, 1, 0]));
+    tree.push(exchange(0x0000000100040323, 1, 64, 0, &[]));
+    tree.push(exchange(0x00040001000000a3, 1, 64, 0, &[3, 5, 16, 0]));
+    tree.push(exchange(0x0000000100140123, 1, 64, 0, &[]));
+    tree.push(exchange(0x0000000100100123, 1, 64, 0, &[]));
+    tree.push(exchange(
+        0x0008000001000680,
+        0,
+        64,
+        0,
+        &[18, 1, 0, 2, 9, 0, 2, 64],
+    ));
+    tree.push(exchange(0x0000000000020500, 0, 64, 0, &[]));
+    // The already addressed hub is configured once, then its descriptor and
+    // ports use its own address; default-address traffic remains exclusive.
+    tree.push(exchange(0x0009000002000680, 2, 64, 0, &original[2].reply));
+    tree.push(exchange(0x0019000002000680, 2, 64, 0, &original[3].reply));
+    tree.push(exchange(0x0000000000010900, 2, 64, 0, &[]));
+    tree.push(exchange(0x00090000290006a0, 2, 64, 0, &original[5].reply));
+    tree
+}
+fn run_fixture(fixture: Vec<Exchange>, delays: &[u64], expected_address: u8, expected_hub: u8) {
+    let package = usb_hub_input_package().unwrap();
+    let bytes = serde_json::to_vec(&package).unwrap();
+    eprintln!(
+        "hub fixture: source_bytes={} package_bytes={} exchanges={}",
+        package.source.len(),
+        bytes.len(),
+        fixture.len()
+    );
+    drop(package);
     let entry = PreparedProtocolEntry::prepare(&bytes, "usb-hub-input").unwrap();
     let expanded = &entry.expanded().expanded;
     assert!(expanded.gears.len() <= 64);
@@ -220,8 +287,6 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
     };
     let control = ControlContract::prepare().unwrap();
     let mut encoder = PreparedControlResultEncoder::new(&control).unwrap();
-    let fixture = fixture();
-    let delays = [2_u64, 2, 50, 2];
     let mut call = 0;
     let mut wait = 0;
     let mut topology_sequence = 0;
@@ -289,10 +354,7 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
                                 expected.translator,
                                 "call {call}"
                             );
-                            assert_eq!(
-                                byte(value, "hub-address"),
-                                if expected.translator == 0 { 0 } else { 1 }
-                            );
+                            assert_eq!(byte(value, "hub-address"), expected.translator_hub);
                             let request = value.record_field("request").unwrap().unwrap();
                             assert_eq!(
                                 request
@@ -340,7 +402,8 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
                                 .variant_payload("input")
                                 .unwrap()
                                 .expect("supported contact profile");
-                            assert_eq!(byte(ready, "address"), 3);
+                            assert_eq!(byte(ready, "address"), expected_address);
+                            assert_eq!(byte(ready, "hub-address"), expected_hub);
                             assert_eq!(byte(ready, "translator-port"), 2);
                             assert_eq!(byte(ready, "endpoint"), 3);
                             let layout = ready.record_field("layout").unwrap().unwrap();

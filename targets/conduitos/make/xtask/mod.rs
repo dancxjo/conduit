@@ -127,6 +127,10 @@ mod riscv64_domain_proof;
 mod riscv64_emulator;
 mod riscv64_firmware;
 mod riscv64_product_boot;
+#[path = "../../../raspberry-pi/make/xtask/rpi3_flash.rs"]
+mod rpi3_flash;
+#[path = "../../../raspberry-pi/make/xtask/rpi3_image.rs"]
+mod rpi3_image;
 mod run;
 mod screen_free_three_host_proof;
 mod serial_observation;
@@ -437,6 +441,8 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 build::execute_architecture_proof(target.arch, opts).map(|_| ())
             }
         }
+        ConduitosCommand::Rpi3Image => rpi3_image::execute(opts),
+        ConduitosCommand::Rpi3Flash(args) => rpi3_flash::execute(&args, opts),
         ConduitosCommand::Image(target) => {
             target.arch.require_boot_backend()?;
             require_make_target(target.arch, target.board)?;

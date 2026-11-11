@@ -50,25 +50,64 @@ pub mod isochronous_schedule;
 
 pub mod isochronous;
 
-#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+#[cfg(any(
+    test,
+    any(
+        all(target_arch = "arm", feature = "armv6-product"),
+        all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+    )
+))]
 pub(crate) mod dwc2_control;
 
-#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+#[cfg(any(
+    test,
+    any(
+        all(target_arch = "arm", feature = "armv6-product"),
+        all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+    )
+))]
 pub(crate) mod dwc2_endpoint_read;
 
 pub mod control_source_plan;
 
-#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+#[cfg(any(
+    test,
+    any(
+        all(target_arch = "arm", feature = "armv6-product"),
+        all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+    )
+))]
 pub(crate) mod dwc2_bus_route;
 
-#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+#[cfg(any(
+    test,
+    any(
+        all(target_arch = "arm", feature = "armv6-product"),
+        all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+    )
+))]
 pub(crate) mod dwc2_control_play;
 
-#[cfg(all(target_arch = "arm", feature = "armv6-product"))]
+#[cfg(any(
+    all(target_arch = "arm", feature = "armv6-product"),
+    all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+))]
 pub(crate) mod dwc2_hub_play;
 
-#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+#[cfg(any(
+    test,
+    any(
+        all(target_arch = "arm", feature = "armv6-product"),
+        all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+    )
+))]
 pub(crate) mod dwc2_pointer_play;
 
-#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+#[cfg(any(
+    test,
+    any(
+        all(target_arch = "arm", feature = "armv6-product"),
+        all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+    )
+))]
 pub(crate) mod dwc2_pointer_session;

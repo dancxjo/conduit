@@ -107,6 +107,10 @@ pub(super) enum ConduitosCommand {
     Build(TargetArgs),
     /// Package one bounded architecture proof appliance into its pinned boot image.
     Image(TargetArgs),
+    /// Build the direct-firmware AArch64 Raspberry Pi 3 Model B+ product SD image.
+    Rpi3Image,
+    /// Build, flash and byte-verify the exact Raspberry Pi 3 Model B+ product.
+    Rpi3Flash(rpi3_flash::FlashArgs),
     /// Build canonical bootable media for one normal ConduitOS product Host.
     Live(LiveArgs),
     /// Boot the canonical live artifact without building a parallel demo image.

@@ -82,10 +82,10 @@ pub(super) fn prepare_graphics(
 /// USB plots establish port power before scanout samples a USB-powered panel's
 /// EDID. Pointer delivery starts only after the ordinary shared Mask is ready.
 pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
-    use conduitos::armv6_usb_input::BPlusUsbInput;
+    use conduitos::raspberry_pi_usb_input::RaspberryPiUsbInput;
     use core::fmt::Write;
     arch::present(b"CONDUIT_BOOT_STAGE usb-before-display\n");
-    let mut input = match BPlusUsbInput::prepare(ids) {
+    let mut input = match RaspberryPiUsbInput::prepare(ids) {
         Ok(input) => Some(input),
         Err(reason) => {
             arch::present(b"CONDUIT_USB_INPUT_UNAVAILABLE ");
@@ -101,14 +101,19 @@ pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
     let mut started = false;
     let mut refused = false;
     loop {
-        if !graphics_prepared && (refused || input.as_ref().is_none_or(BPlusUsbInput::ready)) {
+        if !graphics_prepared && (refused || input.as_ref().is_none_or(RaspberryPiUsbInput::ready))
+        {
             #[cfg(feature = "native-startup-chime")]
             {
                 _audio = startup::play(ids, offer);
             }
             graphic = prepare_graphics(ids, offer);
             graphics_prepared = true;
-            arch::present(b"CONDUIT_BOOT_STAGE armv6-product-ready\n");
+            arch::present(if cfg!(feature = "aarch64-rpi-3b-plus") {
+                b"CONDUIT_BOOT_STAGE rpi3-product-ready\n"
+            } else {
+                b"CONDUIT_BOOT_STAGE armv6-product-ready\n"
+            });
         }
         if !refused {
             if let Some(input) = input.as_mut() {
@@ -152,7 +157,7 @@ pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
                 }
             }
         }
-        if refused || input.as_ref().is_none_or(BPlusUsbInput::needs_tick) {
+        if refused || input.as_ref().is_none_or(RaspberryPiUsbInput::needs_tick) {
             // The native Root owns this one-shot machine wake path. Protocol
             // waits themselves complete only through the admitted clock Play.
             arch::timer_arm();

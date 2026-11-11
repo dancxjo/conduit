@@ -278,7 +278,7 @@ pub(super) fn execute_native_latency(
     )
 }
 
-fn resolve_embedded_profile(
+pub(super) fn resolve_embedded_profile(
     arch: ConduitosArch,
     source: &str,
 ) -> Result<BuildManifest, ConduitosError> {
@@ -337,6 +337,21 @@ fn execute_with_features(
     }
     if arch == ConduitosArch::Aarch64 && make.is_none() {
         return aarch64_a0::execute(opts);
+    }
+    if features.contains(&"aarch64-rpi-3b-plus") {
+        let make = make.ok_or_else(|| {
+            ConduitosError::refusal(
+                "rpi3-make-record-missing",
+                "exact product Make required".into(),
+            )
+        })?;
+        return super::rpi3_image::build(
+            opts,
+            make.generated,
+            make.build_id,
+            make.image_binding,
+            features,
+        );
     }
     if arch == ConduitosArch::Armv6 {
         if let Some(make) = make {

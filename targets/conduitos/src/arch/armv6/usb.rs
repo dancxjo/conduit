@@ -1,11 +1,11 @@
 //! BCM2835 ownership, power and ordered MMIO adapter for class-neutral DWC2.
 //! Hub/device/HID exchanges belong to the shared reviewed protocol plots.
-use super::{GPIO_BASE, mailbox, read_counter, read32, write32};
+use super::{mailbox, read_counter, read32, write32};
 use crate::arch::dwc2::{Controller, ControllerFacts, RegisterIo};
 use core::sync::atomic::{AtomicBool, Ordering};
-const USB_BASE: usize = 0x2098_0000;
+const USB_BASE: usize = super::PERIPHERAL_BASE + 0x98_0000;
 static OWNED: AtomicBool = AtomicBool::new(false);
-#[repr(C, align(16))]
+#[repr(C, align(64))]
 struct PowerMessage([u32; 8]);
 pub(crate) struct Registers {
     _owned: (),
@@ -49,13 +49,7 @@ impl UsbHost {
         if power.0[4] != 0x8000_0008 || power.0[5] != 3 || power.0[6] & 3 != 1 {
             return Err("bcm2835-usb-power-refused");
         }
-        // B+ LAN_RUN is internal board wiring, not a discovered device policy.
-        // Establish the high latch before output mode to avoid a reset glitch.
-        unsafe {
-            write32(GPIO_BASE + 0x1c, 1 << 31);
-            let select = read32(GPIO_BASE + 0x0c) & !(7 << 3);
-            write32(GPIO_BASE + 0x0c, select | (1 << 3));
-        }
+        super::release_usb_hub()?;
         let mut controller = Controller::new(Registers { _owned: () });
         let facts = controller.prepare().map_err(|error| error.as_str())?;
         Ok(Self { controller, facts })

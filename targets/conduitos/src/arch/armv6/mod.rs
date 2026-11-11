@@ -25,7 +25,10 @@ pub use framebuffer::FirmwareScanout;
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
 
-const GPIO_BASE: usize = 0x2020_0000;
+const PERIPHERAL_BASE: usize = super::raspberry_pi::Board::BPlus.peripheral_base();
+const GPIO_BASE: usize = PERIPHERAL_BASE + 0x20_0000;
+const SCANOUT_START: u32 = 0x1c00_0000;
+const SCANOUT_END: u32 = 0x2000_0000;
 const UART0_BASE: usize = 0x2020_1000;
 const SYSTEM_TIMER_BASE: usize = 0x2000_3000;
 const INTERRUPT_BASE: usize = 0x2000_b000;
@@ -282,3 +285,45 @@ fn present_hex(value: u32) {
 }
 
 const _: usize = FACT_CAPACITY;
+
+// Shared VideoCore peripherals call CPU-specific visibility mechanisms.
+fn drain_writes() {
+    unsafe {
+        core::arch::asm!("mcr p15, 0, {0}, c7, c10, 4", in(reg) 0_u32, options(nostack));
+    }
+}
+fn invalidate_mailbox(address: usize, bytes: usize) {
+    for line in ((address & !31)..address + bytes).step_by(32) {
+        unsafe {
+            core::arch::asm!("mcr p15, 0, {0}, c7, c6, 1", in(reg) line, options(nostack));
+        }
+    }
+    drain_writes();
+}
+fn prepare_audio_pins() {
+    let [left, right] = super::raspberry_pi::Board::BPlus.audio_pins();
+    let fsel = GPIO_BASE + usize::from(left / 10) * 4;
+    let (left, right) = (u32::from(left % 10) * 3, u32::from(right % 10) * 3);
+    unsafe {
+        let value = read32(fsel) & !((7 << left) | (7 << right));
+        write32(fsel, value | (4 << left) | (4 << right));
+    }
+}
+fn release_usb_hub() -> Result<(), &'static str> {
+    let super::raspberry_pi::HubReset::Gpio(pin) = super::raspberry_pi::Board::BPlus.hub_reset()
+    else {
+        return Err("bplus-hub-reset-profile");
+    };
+    unsafe {
+        write32(GPIO_BASE + 0x1c, 1 << pin);
+        let fsel = GPIO_BASE + usize::from(pin / 10) * 4;
+        let shift = u32::from(pin % 10) * 3;
+        let select = read32(fsel) & !(7 << shift);
+        write32(fsel, select | (1 << shift));
+    }
+    Ok(())
+}
+
+fn prepare_mailbox(_address: usize, _bytes: usize) {
+    drain_writes();
+}

@@ -1,5 +1,8 @@
 //! Complete integer and SIMD state preservation across a Nano IRQ.
-core::arch::global_asm!(include_str!("vectors.S"));
+core::arch::global_asm!(
+    include_str!("vectors.S"),
+    include_str!("../aarch64/board_vectors.S")
+);
 unsafe extern "C" {
     static conduitos_nano_vectors: u8;
 }

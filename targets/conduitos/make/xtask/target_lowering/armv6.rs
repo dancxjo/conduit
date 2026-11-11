@@ -255,3 +255,12 @@ mod tests {
         assert!(lower_armv6_bplus(&changed).is_err());
     }
 }
+
+pub(crate) fn lower_rpi3(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
+    let mut inputs = lower_armv6_bplus(manifest)?;
+    inputs
+        .cargo_features
+        .retain(|feature| *feature != "armv6-product");
+    inputs.cargo_features.push("aarch64-rpi-3b-plus");
+    Ok(inputs)
+}

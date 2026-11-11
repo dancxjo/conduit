@@ -302,7 +302,10 @@ pub(crate) fn preparation_stage(stage: &str) {
         target_os = "none",
         any(
             target_arch = "x86_64",
-            all(target_arch = "arm", feature = "armv6-product")
+            any(
+                all(target_arch = "arm", feature = "armv6-product"),
+                all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+            )
         )
     ))]
     {
@@ -316,7 +319,10 @@ pub(crate) fn preparation_stage(stage: &str) {
         );
         #[cfg(target_arch = "x86_64")]
         crate::arch::early_write(text.as_bytes());
-        #[cfg(target_arch = "arm")]
+        #[cfg(any(
+            target_arch = "arm",
+            all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+        ))]
         {
             let _ = writeln!(
                 text,
@@ -330,7 +336,10 @@ pub(crate) fn preparation_stage(stage: &str) {
         target_os = "none",
         any(
             target_arch = "x86_64",
-            all(target_arch = "arm", feature = "armv6-product")
+            any(
+                all(target_arch = "arm", feature = "armv6-product"),
+                all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+            )
         )
     )))]
     let _ = stage;

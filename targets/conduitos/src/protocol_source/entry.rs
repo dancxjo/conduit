@@ -24,7 +24,13 @@ impl PreparedProtocolEntry {
         if entry.is_empty() || entry.len() > MAXIMUM_SOURCE_BYTES {
             return Err(ProtocolSourceRefusal::Bounds);
         }
-        #[cfg(all(target_os = "none", target_arch = "arm", feature = "armv6-product"))]
+        #[cfg(all(
+            target_os = "none",
+            any(
+                all(target_arch = "arm", feature = "armv6-product"),
+                all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+            )
+        ))]
         preparation_stage(entry);
         let package = ProtocolSourcePackage::decode(bytes)?;
         preparation_stage("decoded");
@@ -41,7 +47,13 @@ impl PreparedProtocolEntry {
             return Err(ProtocolSourceRefusal::Bounds);
         }
         package.validate_bounds()?;
-        #[cfg(all(target_os = "none", target_arch = "arm", feature = "armv6-product"))]
+        #[cfg(all(
+            target_os = "none",
+            any(
+                all(target_arch = "arm", feature = "armv6-product"),
+                all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+            )
+        ))]
         preparation_stage(entry);
         let bytes = serde_json::to_vec(&package).map_err(|_| ProtocolSourceRefusal::Encoding)?;
         if bytes.len() > MAXIMUM_PACKAGE_BYTES {

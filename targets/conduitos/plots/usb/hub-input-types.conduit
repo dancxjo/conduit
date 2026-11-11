@@ -1,4 +1,5 @@
-# One high-speed root hub, with a finite downstream address reservation.
+# A high-speed root hub and at most one high-speed child hub.
+# Each hub has at most seven ports; their child address ranges are disjoint.
 # Addresses and port numbers here are USB wire facts. They grant no native
 # controller, attachment, endpoint or electrical authority.
 type UsbHubInputStart = {
@@ -11,6 +12,13 @@ type UsbHubInputStart = {
 # 10 short descriptor. State is bounded and has the shared cell's terminal flag.
 type UsbHubInputState = {
     phase: U8
+    child-hub-used: Boolean
+    parent-active: Boolean
+    parent-hub-address: U8
+    parent-first-child-address: U8
+    parent-hub-packet: U8
+    parent-port: U8
+    parent-ports: U8
     terminal: Boolean
     reason: U8
     last-failure: U8

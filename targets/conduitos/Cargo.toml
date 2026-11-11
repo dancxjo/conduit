@@ -179,6 +179,13 @@ test = false
 bench = false
 required-features = ["armv6-product"]
 
+[[bin]]
+name = "conduitos-aarch64-rpi3-product"
+path = "src/bin/aarch64_rpi3_product.rs"
+test = false
+bench = false
+required-features = ["aarch64-rpi-3b-plus"]
+
 [features]
 default = []
 # Compile pure ConduitOS description and planning surfaces for hosted repository
@@ -216,6 +223,7 @@ aarch64-product = []
 aarch64-board = []
 aarch64-orange-pi-5 = ["aarch64-board"]
 aarch64-jetson-nano = ["aarch64-board"]
+aarch64-rpi-3b-plus = ["aarch64-board", "native-compositor-core"]
 armv6-rpi-b-plus-a0 = []
 armv6-rpi-b-plus-a2 = []
 armv6-rpi-b-plus-a3 = []

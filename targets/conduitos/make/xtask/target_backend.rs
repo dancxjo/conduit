@@ -23,6 +23,20 @@ pub(crate) struct TargetBackend {
 
 const BACKENDS: &[TargetBackend] = &[
     TargetBackend {
+        target: "conduitos/aarch64/raspberry-pi-3-model-b-plus-rev-1.3",
+        arch: ConduitosArch::Aarch64,
+        kernel_file: "conduitos-rpi3.elf",
+        kernel_role: "freestanding-kernel",
+        image_file: "conduitos-rpi-3b-plus.img",
+        image_role: "final-bootable-image",
+        architecture: "aarch64",
+        machine: "BCM2837B0/Cortex-A53",
+        firmware: "Raspberry Pi VideoCore",
+        boot_entry: "kernel8.img",
+        machine_boot_proof: false,
+        lower: target_lowering::lower_rpi3,
+    },
+    TargetBackend {
         target: "conduitos/armv6/raspberry-pi-model-b-plus-v1.2",
         arch: ConduitosArch::Armv6,
         kernel_file: "conduitos",

@@ -129,7 +129,7 @@ plot usb-hub-input (
     join-control.paired >> when(.0.phase == 16 || .0.phase == 20) >> usb-hub-input-port-reply() >> decode-status.result
     decode-status.status >> join-status.right
     cell.current >> when(!.terminal && .phase == 34) >> join-profile.left
-    join-topology.paired >> when(.0.port != 0) >> when(.1 is configuration) >> usb-hub-input-profile-input() >> decode-profile.input
+    join-topology.paired >> when(.0.port != 0 && !.0.child-hub) >> when(.1 is configuration) >> usb-hub-input-profile-input() >> decode-profile.input
     decode-profile.result >> join-profile.right
     join-control.paired >> step-control
     join-device.paired >> step-device

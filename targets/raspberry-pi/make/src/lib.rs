@@ -3,10 +3,11 @@ use conduit_host_make::{
     PostBuildAction, SporeOutputKind, TargetDescriptor,
 };
 
-pub const MAKE_PACKAGE_REVISION: u32 = 6;
+pub const MAKE_PACKAGE_REVISION: u32 = 7;
 
 pub const B_PLUS_TARGET: &str = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
 pub const B_PLUS_LINUX_TARGET: &str = "std/armv6/raspberry-pi-model-b-plus-v1.2";
+pub const PI3_CONDUITOS_TARGET: &str = "conduitos/aarch64/raspberry-pi-3-model-b-plus-rev-1.3";
 pub const PI3_AARCH64_TARGET: &str = "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3";
 pub const PI5_AARCH64_TARGET: &str = "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb";
 pub const ZERO_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-v1";
@@ -65,6 +66,19 @@ fn bare_metal_target(label: &str, machine: &str) -> TargetDescriptor {
             evidence_items: 65_536,
         },
     }
+}
+
+fn three_b_plus_target() -> TargetDescriptor {
+    let mut target = bare_metal_target(
+        "Raspberry Pi 3 Model B+ rev 1.3 · ConduitOS",
+        "raspberry-pi-model-b-plus-v1.2",
+    );
+    target.architecture = "aarch64".into();
+    target.machine = "raspberry-pi-3-model-b-plus-rev-1.3".into();
+    target.board = Some(target.machine.clone());
+    target.toolchain_identity = "rustc:1.98.1+aarch64-unknown-none+cortex-a53+rust-lld".into();
+    // Retain the admitted product bounds while the faster machine is proven.
+    target
 }
 
 fn raspberry_pi_os_target(
@@ -148,6 +162,7 @@ impl HostMakePackage for RaspberryPiMakePackage {
             package_revision: MAKE_PACKAGE_REVISION,
             catalog: Default::default(),
             targets: vec![
+                three_b_plus_target(),
                 b_plus_linux_target(),
                 aarch64_linux_target(
                     "Raspberry Pi 3 Model B+ rev 1.3 · Linux 64-bit",
@@ -185,7 +200,7 @@ impl HostMakePackage for RaspberryPiMakePackage {
                     base_kind: "usb/host-controller".into(),
                     implementation_id: "raspberry-pi/dwc2@1".into(),
                     implementation_revision: 1,
-                    target_patterns: vec![B_PLUS_TARGET.into()],
+                    target_patterns: vec![B_PLUS_TARGET.into(), PI3_CONDUITOS_TARGET.into()],
                     prerequisites: Vec::new(),
                     build_feature: Some("base-dwc2".into()),
                 },
@@ -193,7 +208,7 @@ impl HostMakePackage for RaspberryPiMakePackage {
                     base_kind: "audio/pcm-output".into(),
                     implementation_id: "raspberry-pi/pwm-jack@1".into(),
                     implementation_revision: 1,
-                    target_patterns: vec![B_PLUS_TARGET.into()],
+                    target_patterns: vec![B_PLUS_TARGET.into(), PI3_CONDUITOS_TARGET.into()],
                     prerequisites: Vec::new(),
                     build_feature: Some("base-pwm-audio".into()),
                 },
@@ -203,6 +218,7 @@ impl HostMakePackage for RaspberryPiMakePackage {
                     implementation_revision: 1,
                     target_patterns: vec![
                         B_PLUS_TARGET.into(),
+                        PI3_CONDUITOS_TARGET.into(),
                         ZERO_TARGET.into(),
                         ZERO_W_TARGET.into(),
                         ZERO_WH_TARGET.into(),
@@ -233,6 +249,39 @@ impl HostMakePackage for RaspberryPiMakePackage {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn three_b_plus_direct_boot_is_distinct_from_its_linux_host() {
+        let MakeContribution::Anchor(anchor) = RaspberryPiMakePackage.contribution() else {
+            panic!("expected Pi anchor");
+        };
+        let native = anchor
+            .targets
+            .iter()
+            .find(|target| target.key() == PI3_CONDUITOS_TARGET)
+            .unwrap();
+        let linux = anchor
+            .targets
+            .iter()
+            .find(|target| target.key() == PI3_AARCH64_TARGET)
+            .unwrap();
+        assert_eq!(native.architecture, "aarch64");
+        assert_eq!(native.os, None);
+        assert_eq!(native.host_core, "host-core/conduitos@1");
+        assert_eq!(native.default_output, SporeOutputKind::SdImage);
+        assert_eq!(linux.default_output, SporeOutputKind::NativeBundle);
+        for implementation in [
+            "raspberry-pi/pl011@1",
+            "raspberry-pi/pwm-jack@1",
+            "raspberry-pi/dwc2@1",
+        ] {
+            assert!(anchor
+                .offers
+                .iter()
+                .any(|offer| offer.implementation_id == implementation
+                    && offer.target_patterns.contains(&PI3_CONDUITOS_TARGET.into())));
+        }
+    }
 
     #[test]
     fn aarch64_profiles_preserve_exact_board_and_finite_bounds() {

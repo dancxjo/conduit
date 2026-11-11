@@ -3,7 +3,11 @@
 //! Shared ConduitOS code depends on this surface. Architecture facts never flow
 //! upward into authored meaning or semantic implementation identity.
 
-#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+#[cfg(any(
+    test,
+    all(target_arch = "arm", feature = "armv6-product"),
+    all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+))]
 #[allow(dead_code)] // Mechanism preparation alone does not offer a USB Base.
 pub(crate) mod dwc2;
 
@@ -343,9 +347,43 @@ compile_error!("select exactly one AArch64 board feature");
 #[cfg(all(
     target_arch = "aarch64",
     feature = "aarch64-board",
-    not(any(feature = "aarch64-orange-pi-5", feature = "aarch64-jetson-nano"))
+    not(any(
+        feature = "aarch64-orange-pi-5",
+        feature = "aarch64-jetson-nano",
+        feature = "aarch64-rpi-3b-plus"
+    ))
 ))]
 compile_error!("aarch64-board is an internal feature; select an exact board");
 
 #[cfg(all(target_arch = "arm", feature = "armv6-product"))]
 pub(crate) use armv6::usb::{Registers as BcmUsbRegisters, UsbHost as BcmUsbHost};
+
+#[cfg(any(
+    test,
+    target_arch = "arm",
+    all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+))]
+#[allow(dead_code)] // Exact board facts may be checked before a physical adapter exists.
+pub(crate) mod raspberry_pi;
+
+#[cfg(all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus"))]
+mod rpi3;
+#[cfg(all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus"))]
+pub use rpi3::present as early_write;
+#[cfg(all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus"))]
+pub(crate) use rpi3::usb::{Registers as BcmUsbRegisters, UsbHost as BcmUsbHost};
+#[cfg(all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus"))]
+pub use rpi3::{
+    Clock, FirmwareScanout, HardwareEntropy, Idle, Interrupts, PwmAudio, Serial, Timer,
+    disable_interrupts, enable_interrupts, firmware_board_revision, initialize_machine,
+    interruptible_idle, pop_interrupt, present, read_counter, timer_arm,
+};
+#[cfg(test)]
+#[path = "rpi3/memory.rs"]
+mod rpi3_memory_tests;
+#[cfg(all(
+    target_arch = "aarch64",
+    feature = "aarch64-rpi-3b-plus",
+    any(feature = "aarch64-orange-pi-5", feature = "aarch64-jetson-nano")
+))]
+compile_error!("select exactly one AArch64 board feature");

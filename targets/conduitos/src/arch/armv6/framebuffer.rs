@@ -12,7 +12,7 @@ mod response;
 #[path = "framebuffer_timing.rs"]
 mod timing;
 
-#[repr(C, align(16))]
+#[repr(C, align(64))]
 struct Message<const WORDS: usize>([u32; WORDS]);
 
 pub struct FirmwareScanout {
@@ -64,7 +64,13 @@ impl FirmwareScanout {
             0x10006, 8, 0, 0, 0, 0,
         ]);
         mailbox::call(&mut message.0)?;
-        let (physical, bytes, format) = response::validate(&message.0, width, height)?;
+        let (physical, bytes, format) = response::validate_in_window(
+            &message.0,
+            width,
+            height,
+            super::SCANOUT_START,
+            super::SCANOUT_END,
+        )?;
         let address =
             NonNull::new(physical as *mut u8).ok_or("bcm2835-framebuffer-address-invalid")?;
         // Firmware grants this sole Root the reserved buffer; identity-mapped
@@ -132,9 +138,7 @@ impl PixelTarget for FirmwareScanout {
         self.raw.write_span(x, y, pixels)
     }
     fn commit_frame(&mut self) -> Result<(), DisplayError> {
-        unsafe {
-            core::arch::asm!("mcr p15, 0, {0}, c7, c10, 4",in(reg) 0_u32,options(nostack));
-        }
+        super::drain_writes();
         Ok(())
     }
 }

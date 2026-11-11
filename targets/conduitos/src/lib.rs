@@ -496,5 +496,9 @@ mod service_zero_storage_tests;
 #[path = "arch/armv6/framebuffer_response.rs"]
 mod bcm2835_framebuffer_response_tests;
 
-#[cfg(all(target_arch = "arm", feature = "armv6-product"))]
-pub mod armv6_usb_input;
+#[cfg(any(
+    all(target_arch = "arm", feature = "armv6-product"),
+    all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+))]
+#[path = "armv6_usb_input.rs"]
+pub mod raspberry_pi_usb_input;

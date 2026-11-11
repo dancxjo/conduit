@@ -5,8 +5,8 @@ use crate::{
     pcm_output::{PcmOutput, PcmProvider},
 };
 use core::sync::atomic::{AtomicBool, Ordering};
-const PWM: usize = 0x2020_c000;
-const CLOCK: usize = 0x2010_10a0;
+const PWM: usize = super::PERIPHERAL_BASE + 0x20_c000;
+const CLOCK: usize = super::PERIPHERAL_BASE + 0x10_10a0;
 const PASSWORD: u32 = 0x5a00_0000;
 const RANGE: u32 = 200;
 const MAX_FRAMES: u32 = 96_000;
@@ -41,9 +41,7 @@ impl PwmAudio {
         }
         wait_clock(true)?;
         unsafe {
-            let fsel = super::GPIO_BASE + 0x10;
-            let value = read32(fsel) & !((7 << 0) | (7 << 15));
-            write32(fsel, value | (4 << 0) | (4 << 15)); // GPIO40 PWM0, GPIO45 PWM1 (ALT0).
+            super::prepare_audio_pins();
             write32(PWM + 0x10, RANGE);
             write32(PWM + 0x20, RANGE);
             write32(PWM + 0x14, RANGE / 2);

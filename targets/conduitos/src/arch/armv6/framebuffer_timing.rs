@@ -1,7 +1,7 @@
 //! Firmware HDMI mode programming from checked EDID timing facts.
 use super::mailbox;
 use crate::display::edid::PreferredTiming;
-#[repr(C, align(16))]
+#[repr(C, align(64))]
 struct Message([u32; 15]);
 pub(super) fn set_hdmi_mode(mode: PreferredTiming) -> Result<(), &'static str> {
     if mode.pixel_clock_khz == 0 || mode.pixel_clock_khz > 162_000 {

@@ -17,7 +17,7 @@ use super::{
     ConduitosArch, ConduitosError,
 };
 
-const FIRMWARE_COMMIT: &str = "06df1d1a5cc34cc32a4d748239dc1523711fae8b";
+pub(super) const FIRMWARE_COMMIT: &str = "06df1d1a5cc34cc32a4d748239dc1523711fae8b";
 const IMAGE_BYTES: u64 = 64 * 1024 * 1024;
 const SECTOR_BYTES: u64 = 512;
 const PARTITION_START_SECTOR: u32 = 2048;
@@ -294,7 +294,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
     Ok(())
 }
 
-fn prepare_firmware(paths: &Paths) -> Result<PathBuf, ConduitosError> {
+pub(super) fn prepare_firmware(paths: &Paths) -> Result<PathBuf, ConduitosError> {
     let vendor = paths
         .root
         .join("target/conduitos/vendor")
@@ -340,7 +340,7 @@ fn prepare_firmware(paths: &Paths) -> Result<PathBuf, ConduitosError> {
     Ok(vendor)
 }
 
-fn write_partitioned_image(path: &Path) -> Result<(), ConduitosError> {
+pub(super) fn write_partitioned_image(path: &Path) -> Result<(), ConduitosError> {
     let mut file =
         File::create(path).map_err(|error| refusal("image-output-unavailable", error))?;
     file.set_len(IMAGE_BYTES)
@@ -359,7 +359,7 @@ fn write_partitioned_image(path: &Path) -> Result<(), ConduitosError> {
         .map_err(|error| refusal("image-output-unavailable", error))
 }
 
-fn verify_image(image: &Path, stage: &Path, target: &Path) -> Result<(), ConduitosError> {
+pub(super) fn verify_partition_layout(image: &Path) -> Result<(), ConduitosError> {
     let bytes = fs::read(image).map_err(|error| refusal("image-verification-failed", error))?;
     if bytes.len() as u64 != IMAGE_BYTES
         || bytes[440..444] != [0x43, 0x4e, 0x44, 0x54]
@@ -373,6 +373,11 @@ fn verify_image(image: &Path, stage: &Path, target: &Path) -> Result<(), Conduit
             "MBR identity, partition bounds, or image size is not exact",
         ));
     }
+    Ok(())
+}
+
+fn verify_image(image: &Path, stage: &Path, target: &Path) -> Result<(), ConduitosError> {
+    verify_partition_layout(image)?;
     let extracted = target.join("rpi-image-verify");
     recreate_directory(&extracted, "image-verification-failed")?;
     for name in image_files() {
@@ -406,10 +411,13 @@ fn recreate_directory(path: &Path, reason: &'static str) -> Result<(), Conduitos
     fs::create_dir_all(path).map_err(|error| refusal(reason, error))
 }
 
-fn set_fixed_timestamps(stage: &Path) -> Result<(), ConduitosError> {
+pub(super) fn set_fixed_timestamps(stage: &Path) -> Result<(), ConduitosError> {
+    set_fixed_timestamps_for(stage, &image_files())
+}
+pub(super) fn set_fixed_timestamps_for(stage: &Path, files: &[&str]) -> Result<(), ConduitosError> {
     let mut command = Command::new("touch");
     command.args(["--date", &format!("@{SOURCE_DATE_EPOCH}")]);
-    for name in image_files() {
+    for name in files {
         command.arg(stage.join(name));
     }
     run(&mut command, "image-staging-failed")

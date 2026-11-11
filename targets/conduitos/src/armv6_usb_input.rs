@@ -1,4 +1,4 @@
-//! Original B+ native Root: retained hardware, checked USB plots, shared mouse input.
+//! Raspberry Pi native Root: retained hardware, checked USB plots, shared mouse input.
 //! All USB/class/report meaning lives in the portable protocol Source stages.
 use crate::{
     arch,
@@ -19,13 +19,15 @@ use crate::{
 use alloc::{boxed::Box, format};
 use conduit_core::*;
 use conduit_semantic_catalog::NormalizedPointerSample;
+#[path = "armv6_usb_input/admission.rs"]
 mod admission;
+#[path = "armv6_usb_input/clock.rs"]
 mod clock;
 type Hub = Dwc2HubPlay<arch::BcmUsbRegisters, clock::Counter>;
 type Pointer = Dwc2PointerSession<arch::BcmUsbRegisters>;
 /// Neither this owner nor its fenced native transfers may be dropped on a
 /// timeout/loss path. Product Root retains it until physical retirement.
-pub struct BPlusUsbInput {
+pub struct RaspberryPiUsbInput {
     ids: BootIdentities,
     entropy: admission::Entropy,
     hub: Option<Box<Hub>>,
@@ -35,18 +37,24 @@ pub struct BPlusUsbInput {
     interval_ms: u64,
     next_read_ms: u64,
 }
-impl BPlusUsbInput {
+impl RaspberryPiUsbInput {
     pub fn prepare(ids: &BootIdentities) -> Result<Self, &'static str> {
-        if !EMBEDDED_MAKE.includes(IMPL_USB_TRANSPORT)
-            || EMBEDDED_MAKE.target != "conduitos/armv6/raspberry-pi-model-b-plus-v1.2"
-        {
+        let expected_target = if cfg!(feature = "aarch64-rpi-3b-plus") {
+            "conduitos/aarch64/raspberry-pi-3-model-b-plus-rev-1.3"
+        } else {
+            "conduitos/armv6/raspberry-pi-model-b-plus-v1.2"
+        };
+        if !EMBEDDED_MAKE.includes(IMPL_USB_TRANSPORT) || EMBEDDED_MAKE.target != expected_target {
             return Err("usb-not-selected-by-make");
         }
-        if !matches!(
-            arch::firmware_board_revision(),
-            Some(0x10 | 0x13 | 0x900032)
-        ) {
-            return Err("usb-board-not-original-b-plus");
+        let board = if cfg!(feature = "aarch64-rpi-3b-plus") {
+            arch::raspberry_pi::Board::ThreeBPlus
+        } else {
+            arch::raspberry_pi::Board::BPlus
+        };
+        if !arch::firmware_board_revision().is_some_and(|revision| board.accepts_revision(revision))
+        {
+            return Err("usb-board-does-not-match-make");
         }
         let host = arch::BcmUsbHost::prepare()?;
         let facts = host.facts();
@@ -67,7 +75,7 @@ impl BPlusUsbInput {
         // SAFETY: this Root owns the original prepared controller, complete
         // reserved bus namespace, electrical permission and native PIO storage.
         let issuer = unsafe { admission::usb_issuer(&identity, false, &mut entropy) }?;
-        let reservation = unsafe { BusControlReservation::admit_owned_bus(1, 2, 7) }
+        let reservation = unsafe { BusControlReservation::admit_owned_hub_tree(1, 2) }
             .ok_or("usb-bus-reservation")?;
         let route = RootControlRoute {
             slot: 1,

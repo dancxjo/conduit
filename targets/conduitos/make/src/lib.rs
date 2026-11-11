@@ -22,6 +22,11 @@ impl ConduitOsProductArtifact {
                 binary: "conduitos",
                 rust_target: "x86_64-unknown-none",
             }),
+            "conduitos/aarch64/raspberry-pi-3-model-b-plus-rev-1.3" => Some(Self {
+                target: "conduitos/aarch64/raspberry-pi-3-model-b-plus-rev-1.3",
+                binary: "conduitos-aarch64-rpi3-product",
+                rust_target: "aarch64-unknown-none",
+            }),
             "conduitos/armv6/raspberry-pi-model-b-plus-v1.2" => Some(Self {
                 target: "conduitos/armv6/raspberry-pi-model-b-plus-v1.2",
                 binary: "conduitos-armv6-product",
@@ -75,6 +80,7 @@ fn package_catalog() -> PackageCatalogContribution {
                     targets: vec![
                         "conduitos/aarch64/virt".into(),
                         "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
+                        "conduitos/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
                     ],
                     prerequisites: vec![
                         PrerequisiteNode::HostCall("conduit.host/present@1".into()),
