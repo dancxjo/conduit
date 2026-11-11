@@ -175,10 +175,14 @@ fn prepare(
     Ok(InstalledBack::EpisodeRetrievalContext(
         EpisodeRetrievalContextBack {
             packet: Box::new(PreparedEpisodeRetrievalPacket::prepare()),
-            context: PreparedEpisodeRetrievalContext::prepare(policy)
-                .map_err(|error| format!("prepare context selection: {error:?}"))?,
-            request: PreparedEpisodeRetrievalRequest::prepare(instruction, projector::prepare())
-                .map_err(|error| format!("prepare bounded retrieval request: {error:?}"))?,
+            context: Box::new(
+                PreparedEpisodeRetrievalContext::prepare(policy)
+                    .map_err(|error| format!("prepare context selection: {error:?}"))?,
+            ),
+            request: Box::new(
+                PreparedEpisodeRetrievalRequest::prepare(instruction, projector::prepare())
+                    .map_err(|error| format!("prepare bounded retrieval request: {error:?}"))?,
+            ),
             staged: false,
             closed: [false; 2],
             complete: false,
