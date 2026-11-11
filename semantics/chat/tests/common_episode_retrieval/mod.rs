@@ -35,6 +35,14 @@ impl Fixture {
                 true,
             )
             .unwrap(),
+            conduit_time::NativeTemporalInstant::new(
+                "clock/one".into(),
+                1,
+                conduit_time::NativeTemporalScale::Milliseconds,
+                100,
+                0,
+            )
+            .unwrap(),
         )
         .unwrap();
         let intent = conduit_ai::TemporalRetrievalIntent::EventOrdering

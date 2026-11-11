@@ -19,6 +19,14 @@ mod episode_retrieval_request;
 #[cfg(feature = "plot-catalog")]
 pub use episode_retrieval_request::*;
 #[cfg(feature = "plot-catalog")]
+mod episode_retrieval_packet;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_packet::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_producer;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_producer::*;
+#[cfg(feature = "plot-catalog")]
 mod episode_retrieval_evidence;
 #[cfg(feature = "plot-catalog")]
 mod episode_retrieval_snapshot;
@@ -43,12 +51,13 @@ pub use generated::{
     EpisodeExperience, EpisodeExperienceInput, EpisodeMemory, EpisodeMemoryOwner,
     EpisodeMemoryState, EpisodeModelResponse, EpisodeObservation, EpisodeOutcome, EpisodePending,
     EpisodeRecall, EpisodeRecallScores, EpisodeRecollection, EpisodeRecord, EpisodeRefusal,
-    LiveConversationFlowProjection, LiveConversationProjectionError, LiveConversationStage,
-    LiveConversationStageKind, LiveConversationStageState, LiveConversationStages,
-    MessageAttachment, MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot,
-    MessageOptionalDisplayName, MessageOptionalSender, MessageOptionalSubject, MessageRecipient,
-    MessageRecipientSlot, NotificationEvent, PortableMessage, PresenceEvent, PresenceState,
-    RecognitionEvidenceStatus, RecognitionEvidenceView, SpeechCommitEvidenceView,
+    EpisodeRetrievalCapture, EpisodeRetrievalClockClass, LiveConversationFlowProjection,
+    LiveConversationProjectionError, LiveConversationStage, LiveConversationStageKind,
+    LiveConversationStageState, LiveConversationStages, MessageAttachment, MessageAttachmentSlot,
+    MessageMetadataEntry, MessageMetadataSlot, MessageOptionalDisplayName, MessageOptionalSender,
+    MessageOptionalSubject, MessageRecipient, MessageRecipientSlot, NotificationEvent,
+    PortableMessage, PresenceEvent, PresenceState, RecognitionEvidenceStatus,
+    RecognitionEvidenceView, SpeechCommitEvidenceView,
 };
 
 mod episode_integration;
