@@ -1,6 +1,7 @@
 /** Signed-repository acquisition with a content-verified, baseline-specific deb cache. */
 import { assertAptResolution } from './apt-resolution.mjs';
 import { aptScope } from './apt-scope.mjs';
+import { emitAptFailureDiagnostics, privilegedCommand } from './apt-failure-diagnostics.mjs';
 import { recoverUbuntuDns, ubuntuDnsFailure } from './ubuntu-dns.mjs';
 import { recordOperation, recordTool } from './metrics.mjs';
 import { spawnSync } from 'node:child_process';
@@ -31,7 +32,10 @@ export function acquireApt(requested, options = {}) {
   const started = Date.now();
   const run = options.run ?? execute;
   const root = options.root ?? '/';
-  const privileged = options.privileged ?? ((program, args, config) => process.getuid?.() === 0 ? run(program, args, config) : run('sudo', [program, ...args], config));
+  const privileged = options.privileged ?? ((program, args, config) => {
+    const command = privilegedCommand(program, args);
+    return run(command.program, command.args, config);
+  });
   const packages = [...new Set(requested)].sort();
   if (!packages.length || packages.some(name => !/^[a-z0-9][a-z0-9+.-]*(?::[a-z0-9-]+)?$/.test(name))) throw new Error('Invalid APT package list');
   const arch = run('dpkg', ['--print-architecture']).trim();
@@ -93,6 +97,7 @@ export function acquireApt(requested, options = {}) {
     try {
       privileged('apt-get', [...aptOptions, 'update']);
     } catch (error) {
+      try { (options.failureDiagnostics ?? emitAptFailureDiagnostics)(); } catch {}
       if (!ubuntuDnsFailure(error)) throw error;
       dns = (options.recoverDns ?? recoverUbuntuDns)();
       if (!dns) throw error;
