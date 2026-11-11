@@ -290,6 +290,7 @@ impl<'a> BodyKernel<'a> {
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
             startup_gates,
+            startup_outputs: Vec::new(),
             terminal_events: None,
             error_diagnostic: None,
             cleanup_diagnostic: None,

@@ -48,6 +48,10 @@ pub(crate) mod memory;
 
 pub(crate) struct BodyKernel<'a> {
     startup_gates: Vec<super::startup_source_back::StartupGate>,
+    startup_outputs: Vec<(
+        conduit_kernel::NodeId,
+        crate::hosted_audio::startup_chime::PreparedChimeOutput,
+    )>,
     terminal_events: Option<Vec<KernelEvent>>,
     error_diagnostic: Option<diagnostic::Diagnostic>,
     cleanup_diagnostic: Option<diagnostic::Diagnostic>,
@@ -692,6 +696,28 @@ impl<'a> BodyKernel<'a> {
                                     format_args!("Body request value: {error:?}"),
                                 )
                             })?;
+                    if operation.contract_id.as_str() == conduit_std_offers::STARTUP_CHIME_OPERATION
+                    {
+                        let Some(InstalledBack::StartupChime(back)) =
+                            self.scheduler.drivers().get(usize::from(request.node.0))
+                        else {
+                            return Err(
+                                "startup Host Call does not belong to the exact selected Back"
+                                    .into(),
+                            );
+                        };
+                        let output = self
+                            .startup_outputs
+                            .iter_mut()
+                            .find(|(node, _)| *node == request.node)
+                            .map(|(_, output)| output)
+                            .ok_or("startup Host Call has no prepared checked speaker")?;
+                        let outcome = output.execute(input, back.pcm(), control);
+                        self.scheduler
+                            .complete_host_call(request.node, request.request, outcome)
+                            .map_err(|error| format!("startup Host Call completion: {error:?}"))?;
+                        continue;
+                    }
                     if data_text::is_file(&operation.contract_id) {
                         let source = self
                             .data_text_hosts
@@ -1363,6 +1389,64 @@ impl BodyKernel<'_> {
         for gate in &self.startup_gates {
             gate.bind(eligible)?;
         }
+        Ok(())
+    }
+}
+
+impl BodyKernel<'_> {
+    pub(crate) fn prepare_startup_outputs(
+        &mut self,
+        parts: &[BodyPlotPlan],
+        selected: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+    ) -> Result<(), String> {
+        let count = parts
+            .iter()
+            .flat_map(|p| &p.plan.fragments)
+            .flat_map(|f| &f.placements)
+            .filter(|p| {
+                p.implementation_id.as_str() == conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+            })
+            .count();
+        if count == 0 {
+            return Ok(());
+        }
+        let mut outputs = Vec::new();
+        outputs
+            .try_reserve_exact(count)
+            .map_err(|_| "startup output preparation capacity")?;
+        for part in parts {
+            for fragment in &part.plan.fragments {
+                let map = self
+                    .partitions
+                    .iter()
+                    .find(|m| {
+                        m.fragment_id == fragment.fragment_id && m.plan_id == fragment.plan_id
+                    })
+                    .ok_or("startup fragment identity missing")?;
+                for placement in &fragment.placements {
+                    if placement.implementation_id.as_str()
+                        != conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+                    {
+                        continue;
+                    }
+                    super::startup_chime_back::validate(placement)?;
+                    let node = map
+                        .node_for_placement(&placement.placement_id)
+                        .ok_or("startup placement missing")?;
+                    if usize::from(node.0) >= MAX_NODES || outputs.iter().any(|(id, _)| *id == node)
+                    {
+                        return Err("duplicate or unbounded startup speaker placement".into());
+                    }
+                    outputs.push((
+                        node,
+                        crate::hosted_audio::startup_chime::PreparedChimeOutput::prepare(
+                            placement, selected,
+                        )?,
+                    ));
+                }
+            }
+        }
+        self.startup_outputs = outputs;
         Ok(())
     }
 }

@@ -1,12 +1,57 @@
 //! Installation boundary for the shared canonical optional sound sink.
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::PlannedGear;
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
+pub(super) struct StdStartupChimeBack {
+    sink: conduit_semantic_catalog::StartupChimeBack,
+    pcm: Box<[u8]>,
+}
+impl StdStartupChimeBack {
+    pub(super) fn pcm(&self) -> &[u8] {
+        &self.pcm
+    }
+    pub(super) fn retained_backing_bytes(&self) -> usize {
+        self.pcm.len()
+    }
+}
+impl<const PORTS: usize> StepBack<PORTS> for StdStartupChimeBack {
+    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        self.sink.step(io, inputs)
+    }
+    fn cancel(&mut self) {
+        <conduit_semantic_catalog::StartupChimeBack as StepBack<PORTS>>::cancel(&mut self.sink);
+    }
+}
+fn render_pcm() -> Result<Box<[u8]>, String> {
+    let mut pcm = Vec::new();
+    pcm.try_reserve_exact(crate::hosted_audio::startup_chime::PCM_BYTES)
+        .map_err(|_| "startup PCM preparation capacity")?;
+    let mut renderer = conduit_synth::StartupChime::new();
+    let mut block = [0i16; 256];
+    while !renderer.is_finished() {
+        let n = renderer
+            .render(&mut block)
+            .map_err(|_| "startup PCM rendering")?;
+        if n == 0 {
+            return Err("startup PCM made no progress".into());
+        }
+        for sample in &block[..n] {
+            let bytes = sample.to_le_bytes();
+            pcm.extend_from_slice(&bytes);
+            pcm.extend_from_slice(&bytes);
+        }
+    }
+    if pcm.len() != crate::hosted_audio::startup_chime::PCM_BYTES {
+        return Err("startup PCM length differs from canonical score".into());
+    }
+    Ok(pcm.into_boxed_slice())
+}
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION,
     budget,
     prepare,
 };
-fn validate(placement: &PlannedGear) -> Result<(), String> {
+pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
     let offer = conduit_std_offers::startup_chime_offer();
     let exact = placement.kind_id == offer.kind_id
         && placement.kind_contract_revision == offer.kind_contract_revision
@@ -65,9 +110,10 @@ fn prepare(
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     validate(placement)?;
-    Ok(InstalledBack::StartupChime(
-        conduit_semantic_catalog::StartupChimeBack::new(),
-    ))
+    Ok(InstalledBack::StartupChime(StdStartupChimeBack {
+        sink: conduit_semantic_catalog::StartupChimeBack::new(),
+        pcm: render_pcm()?,
+    }))
 }
 
 #[cfg(test)]

@@ -166,6 +166,7 @@ impl StdHost {
                 self.selected_text_file.as_ref(),
             )?
         };
+        kernel.prepare_startup_outputs(&request.plan.plots, self.playback.as_ref())?;
         kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
         if let Some(terminal) = &terminal {
             kernel.attach_parsec_terminal(

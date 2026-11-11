@@ -22,7 +22,10 @@ impl HostedPlaybackSelection {
             mechanism_family: "std.base/alsa-playback@1".into(),
             enforcement_class: BaseEnforcementClass::Cooperative,
             lifecycle: BaseLifecycle::Ready,
-            capabilities: vec![conduit_std_offers::audio_play_alsa_hw_offer()],
+            capabilities: vec![
+                conduit_std_offers::audio_play_alsa_hw_offer(),
+                conduit_std_offers::startup_chime_offer(),
+            ],
             resources: vec![conduit_core::resource_offer(
                 self.pool_id().as_str(),
                 conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS,

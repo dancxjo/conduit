@@ -335,6 +335,7 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         json_encode_std_offer(),
         json_decode_std_offer(),
         audio_tone_offer(),
+        body_wake_offer(),
     ]
 }
 

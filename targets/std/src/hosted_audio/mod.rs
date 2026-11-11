@@ -13,6 +13,7 @@ mod executable_identity;
 mod fake;
 mod proof;
 mod staged;
+pub(crate) mod startup_chime;
 #[cfg(test)]
 pub(crate) use fake::FakePlaybackBehavior;
 
