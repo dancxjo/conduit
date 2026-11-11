@@ -72,33 +72,7 @@ pub(super) fn select<'a>(
                 })
                 .max_by_key(|(score, _)| *score)
                 .map(|(item_score, item)| {
-                    let structured_origin = matches!(
-                        item["origin"].as_str(),
-                        Some("observation" | "deterministic_derived")
-                    );
-                    let mut item = item.clone();
-                    if let Some(fields) = item.as_object_mut() {
-                        fields.remove("observed_at");
-                        if let Some(content) =
-                            fields.get_mut("utf8_content").filter(|_| structured_origin)
-                        {
-                            if let Some(projected) = content
-                                .as_str()
-                                .and_then(|text| {
-                                    serde_json::from_str::<serde_json::Value>(text).ok()
-                                })
-                                .and_then(|mut value| {
-                                    let fields = value.as_object_mut()?;
-                                    fields.retain(|key, _| score(key, "") > 0);
-                                    (!fields.is_empty()).then_some(value)
-                                })
-                            {
-                                *content = serde_json::Value::String(
-                                    alloc::string::ToString::to_string(&projected),
-                                );
-                            }
-                        }
-                    }
+                    let item = project_historical_item(item, score("percent", "") > 0);
                     (
                         item_score,
                         serde_json::json!({
@@ -124,6 +98,36 @@ pub(super) fn select<'a>(
     candidates
         .sort_unstable_by_key(|candidate| (candidate.shared_terms, *candidate.memory.episode()));
     candidates
+}
+
+fn project_historical_item(item: &serde_json::Value, asks_for_percentage: bool) -> serde_json::Value {
+    let mut projected = item.clone();
+    if let Some(fields) = projected.as_object_mut() {
+        // Other readings can depend on coupled fields such as value, unit,
+        // uncertainty, or calibration. Keep their content together.
+        if asks_for_percentage
+            && item["identity"] == "pete/homeostasis"
+            && item["origin"] == "deterministic_derived"
+        {
+            let charge = item["utf8_content"]
+                .as_str()
+                .and_then(|text| serde_json::from_str::<serde_json::Value>(text).ok())
+                .and_then(|body| {
+                    body["charge_percent"]
+                        .as_str()
+                        .map(alloc::string::String::from)
+                });
+            if let Some(charge) = charge {
+                let reading = serde_json::json!({ "charge_percent": charge });
+                fields.insert(
+                    "utf8_content".into(),
+                    serde_json::Value::String(alloc::string::ToString::to_string(&reading)),
+                );
+            }
+        }
+        fields.remove("observed_at");
+    }
+    projected
 }
 
 fn normalize_keyword(word: &str) -> &str {
@@ -170,4 +174,23 @@ pub(super) fn compact_evidence(evidence: &str) -> Option<alloc::string::String> 
         "provenance_revision": snapshot["provenance_revision"],
         "evidence": items,
     })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn episode_loop_recall_keeps_coupled_measurement_fields() {
+        let content = r#"{"voltage":13,"unit":"V","uncertainty":0.1,"calibration":"meter/2"}"#;
+        let item = serde_json::json!({
+            "identity": "pete/battery/4",
+            "origin": "observation",
+            "utf8_content": content,
+            "sources": [{"sign":"battery/4"}],
+        });
+        let recalled = project_historical_item(&item, true);
+        assert_eq!(recalled["utf8_content"], content);
+        assert_eq!(recalled["sources"], item["sources"]);
+    }
 }
