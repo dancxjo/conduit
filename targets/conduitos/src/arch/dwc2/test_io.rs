@@ -75,13 +75,7 @@ impl RegisterIo for Io {
                 }
                 self.finish
             }
-            CHARACTER => {
-                if self.running {
-                    ENABLE
-                } else {
-                    0
-                }
-            }
+            CHARACTER if self.running => ENABLE,
             _ => 0,
         }
     }
