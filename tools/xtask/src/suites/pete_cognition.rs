@@ -2,6 +2,10 @@
 use crate::process::Step;
 
 pub const STEPS: &[Step] = &[
+    Step::new("pete-cognition.temporal-flow", "Check native retrieval windows, typed intent, explicit outcomes and prepared allocation bounds", "cargo",
+        &["test", "--locked", "-p", "conduit-ai", "--test", "temporal_evidence_flow"]),
+    Step::new("pete-cognition.temporal-flow-back", "Check installed retrieval pressure, multiple windows, cancellation and closure", "cargo",
+        &["test", "--locked", "-p", "conduit-std-host", "--lib", "temporal_evidence_back"]),
     Step::new("pete-cognition.temporal-retrieval", "Check shared bounded temporal retrieval and allocation-free borrowed selection", "cargo",
         &["test", "--locked", "-p", "conduit-ai", "--lib", "temporal_evidence_selection"]),
     Step::new("pete-cognition.context-selection", "Check prepared context selection, exact lineage and finite omission accounting", "cargo",

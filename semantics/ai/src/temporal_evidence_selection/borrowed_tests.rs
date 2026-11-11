@@ -33,6 +33,18 @@ fn compare(batch: &crate::TemporalEvidenceBatch, intent: &TemporalRetrievalInten
         &mut selected,
     )
     .unwrap();
+    let mut primitive = TemporalEvidenceIndexSelection::new();
+    let result = assert_without_allocations(|| {
+        select_borrowed_temporal_evidence_into(
+            (&batch.reference).into(),
+            &candidates,
+            intent.into(),
+            batch.earliest_history_complete,
+            &mut primitive,
+        )
+    });
+    result.unwrap();
+    assert_eq!(primitive, selected);
     let owned = batch.select(intent).unwrap();
     match owned {
         TemporalEvidenceSelection::Selected(v) => {
@@ -296,4 +308,23 @@ pub(super) fn assert_without_allocations<T>(operation: impl FnOnce() -> T) -> T 
     let (result, allocation) = allocation_probe::observe(operation);
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
     result
+}
+
+#[test]
+fn primitive_reversed_window_refuses_before_empty_or_candidate_processing() {
+    let data = batch(vec![candidate("a", 100)], true);
+    let item = BorrowedTemporalEvidenceCandidate::from(&data.candidates.get().as_slice()[0]);
+    let reference = (&data.reference).into();
+    let intent = BorrowedTemporalRetrievalIntent::EvidenceWithin { start: 20, end: 10 };
+    let mut output = TemporalEvidenceIndexSelection::new();
+    for candidates in [&[item][..], &[][..]] {
+        let result = assert_without_allocations(|| {
+            select_borrowed_temporal_evidence_into(reference, candidates, intent, true, &mut output)
+        });
+        assert_eq!(
+            result,
+            Err(crate::TemporalEvidenceSelectionRefusal::InvalidIntent)
+        );
+        assert!(output.indices().is_empty());
+    }
 }

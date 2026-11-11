@@ -8,6 +8,34 @@ use crate::{
     TransitionDirection,
 };
 
+/// Primitive intent view for native codecs; constructing it never allocates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BorrowedTemporalRetrievalIntent {
+    EarliestEvidence,
+    LatestEvidence,
+    StateValidAt(u64),
+    Transition(TransitionDirection),
+    DurationSince(EntityBoundary),
+    EventOrdering,
+    EvidenceWithin { start: u64, end: u64 },
+}
+impl From<&TemporalRetrievalIntent> for BorrowedTemporalRetrievalIntent {
+    fn from(value: &TemporalRetrievalIntent) -> Self {
+        match value {
+            TemporalRetrievalIntent::EarliestEvidence => Self::EarliestEvidence,
+            TemporalRetrievalIntent::LatestEvidence => Self::LatestEvidence,
+            TemporalRetrievalIntent::StateValidAt(v) => Self::StateValidAt(*v.instant()),
+            TemporalRetrievalIntent::Transition(v) => Self::Transition(*v.direction()),
+            TemporalRetrievalIntent::DurationSince(v) => Self::DurationSince(*v.boundary()),
+            TemporalRetrievalIntent::EventOrdering => Self::EventOrdering,
+            TemporalRetrievalIntent::EvidenceWithin(v) => Self::EvidenceWithin {
+                start: *v.window().start(),
+                end: *v.window().end(),
+            },
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BorrowedTemporalClockBasis<'a> {
     UnixEpochMilliseconds,
@@ -145,6 +173,23 @@ pub fn select_temporal_evidence_into(
     earliest_history_complete: bool,
     output: &mut TemporalEvidenceIndexSelection,
 ) -> Result<(), R> {
+    select_borrowed_temporal_evidence_into(
+        reference,
+        candidates,
+        intent.into(),
+        earliest_history_complete,
+        output,
+    )
+}
+/// The fully borrowed selector, including primitive intent. Reversed query
+/// windows refuse before empty-history handling, matching owned validation.
+pub fn select_borrowed_temporal_evidence_into(
+    reference: BorrowedTemporalReference<'_>,
+    candidates: &[BorrowedTemporalEvidenceCandidate<'_>],
+    intent: BorrowedTemporalRetrievalIntent,
+    earliest_history_complete: bool,
+    output: &mut TemporalEvidenceIndexSelection,
+) -> Result<(), R> {
     select_indices(
         reference,
         candidates.len(),
@@ -159,13 +204,16 @@ pub(super) fn select_indices<'a>(
     reference: BorrowedTemporalReference<'_>,
     count: usize,
     candidate: impl Fn(usize) -> BorrowedTemporalEvidenceCandidate<'a>,
-    intent: &TemporalRetrievalIntent,
+    intent: BorrowedTemporalRetrievalIntent,
     complete: bool,
     allow_empty: bool,
     output: &mut TemporalEvidenceIndexSelection,
 ) -> Result<(), R> {
     *output = TemporalEvidenceIndexSelection::new();
-    intent.validate().map_err(|_| R::InvalidIntent)?;
+    if matches!(intent, BorrowedTemporalRetrievalIntent::EvidenceWithin {start,end} if start > end)
+    {
+        return Err(R::InvalidIntent);
+    }
     if count == 0 {
         return if allow_empty {
             Ok(())
@@ -198,7 +246,7 @@ pub(super) fn select_indices<'a>(
         }
         p.source_instant(c.source)?;
     }
-    if matches!(intent, TemporalRetrievalIntent::EarliestEvidence) && !complete {
+    if matches!(intent, BorrowedTemporalRetrievalIntent::EarliestEvidence) && !complete {
         output.status = TemporalEvidenceSelectionStatus::NeedEarlierHistory;
         return Ok(());
     }
@@ -230,9 +278,9 @@ pub(super) fn select_indices<'a>(
     } else {
         selected.status = TemporalEvidenceSelectionStatus::Selected;
         match intent {
-            TemporalRetrievalIntent::EarliestEvidence
-            | TemporalRetrievalIntent::DurationSince(_) => selected.len = 1,
-            TemporalRetrievalIntent::LatestEvidence => {
+            BorrowedTemporalRetrievalIntent::EarliestEvidence
+            | BorrowedTemporalRetrievalIntent::DurationSince(_) => selected.len = 1,
+            BorrowedTemporalRetrievalIntent::LatestEvidence => {
                 selected.indices[0] = selected.indices[selected.len - 1];
                 selected.len = 1
             }
@@ -245,34 +293,30 @@ pub(super) fn select_indices<'a>(
 fn matches_candidate(
     c: BorrowedTemporalEvidenceCandidate<'_>,
     instant: u64,
-    intent: &TemporalRetrievalIntent,
+    intent: BorrowedTemporalRetrievalIntent,
 ) -> bool {
     match intent {
-        TemporalRetrievalIntent::EarliestEvidence
-        | TemporalRetrievalIntent::LatestEvidence
-        | TemporalRetrievalIntent::EventOrdering => true,
-        TemporalRetrievalIntent::StateValidAt(v) => {
-            c.provenance
-                .valid_from
-                .is_some_and(|start| start <= *v.instant())
-                && c.provenance
-                    .valid_until
-                    .is_none_or(|end| *v.instant() <= end)
+        BorrowedTemporalRetrievalIntent::EarliestEvidence
+        | BorrowedTemporalRetrievalIntent::LatestEvidence
+        | BorrowedTemporalRetrievalIntent::EventOrdering => true,
+        BorrowedTemporalRetrievalIntent::StateValidAt(v) => {
+            c.provenance.valid_from.is_some_and(|start| start <= v)
+                && c.provenance.valid_until.is_none_or(|end| v <= end)
         }
-        TemporalRetrievalIntent::Transition(v) => c.transition == Some(*v.direction()),
-        TemporalRetrievalIntent::DurationSince(v) => c.boundary == Some(*v.boundary()),
-        TemporalRetrievalIntent::EvidenceWithin(v) => {
-            *v.window().start() <= instant && instant <= *v.window().end()
+        BorrowedTemporalRetrievalIntent::Transition(v) => c.transition == Some(v),
+        BorrowedTemporalRetrievalIntent::DurationSince(v) => c.boundary == Some(v),
+        BorrowedTemporalRetrievalIntent::EvidenceWithin { start, end } => {
+            start <= instant && instant <= end
         }
     }
 }
-fn needs_earlier(intent: &TemporalRetrievalIntent) -> bool {
+fn needs_earlier(intent: BorrowedTemporalRetrievalIntent) -> bool {
     matches!(
         intent,
-        TemporalRetrievalIntent::EarliestEvidence
-            | TemporalRetrievalIntent::StateValidAt(_)
-            | TemporalRetrievalIntent::Transition(_)
-            | TemporalRetrievalIntent::DurationSince(_)
-            | TemporalRetrievalIntent::EvidenceWithin(_)
+        BorrowedTemporalRetrievalIntent::EarliestEvidence
+            | BorrowedTemporalRetrievalIntent::StateValidAt(_)
+            | BorrowedTemporalRetrievalIntent::Transition(_)
+            | BorrowedTemporalRetrievalIntent::DurationSince(_)
+            | BorrowedTemporalRetrievalIntent::EvidenceWithin { .. }
     )
 }

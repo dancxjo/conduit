@@ -14,6 +14,32 @@ pub const PETE_RESILIENT_COGNITION_PLOT_SOURCE: &str =
 pub const PETE_SITUATED_COGNITION_PLOT_SOURCE: &str =
     include_str!("../../../plots/pete-cognition/situated.conduit");
 
+pub const PETE_TEMPORAL_RETRIEVAL_PLOT_SOURCE: &str =
+    include_str!("../../../plots/pete-cognition/retrieval.conduit");
+
+pub fn install_pete_temporal_retrieval_catalogs(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    conduit_ai::install_temporal_evidence_flow_catalog(startup, profile)?;
+    if startup.signature("state/latest").is_none() {
+        startup.insert(conduit_plot::KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })?;
+    }
+    let initial = conduit_ai::TemporalRetrievalIntent::LatestEvidence
+        .into_structured()
+        .map_err(|error| format!("initial retrieval intent: {error:?}"))?;
+    conduit_semantic_catalog::state_value::install_state_value_kind(
+        "TemporalRetrievalIntent",
+        initial.value_type(),
+        &initial,
+        startup,
+        profile,
+    )
+}
+
 pub fn install_pete_situated_cognition_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
@@ -79,6 +105,28 @@ mod tests {
     use conduit_plot::{
         check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     };
+
+    #[test]
+    fn temporal_retrieval_intent_is_authored_as_ordinary_state() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_pete_temporal_retrieval_catalogs(&mut startup, &mut profile).unwrap();
+        let parsed = parse_syntax_document(PETE_TEMPORAL_RETRIEVAL_PLOT_SOURCE);
+        assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+        let checked = check_syntax_document(&parsed, &startup).unwrap();
+        let expanded = expand_canonical_plot_for_authoring(
+            &checked,
+            "pete-memory-temporal-retrieval",
+            &profile,
+        )
+        .unwrap();
+        assert_eq!(expanded.expanded.gears.len(), 2);
+        assert!(expanded
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == conduit_ai::TEMPORAL_EVIDENCE_FLOW_KIND));
+    }
 
     #[test]
     fn cognitive_plot_connects_explicit_experience_to_the_existing_bounded_model_fore() {

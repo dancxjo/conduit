@@ -25,7 +25,7 @@ impl TemporalEvidenceBatch {
             |index| {
                 BorrowedTemporalEvidenceCandidate::from(&self.candidates.get().as_slice()[index])
             },
-            intent,
+            intent.into(),
             self.earliest_history_complete,
             false,
             &mut output,

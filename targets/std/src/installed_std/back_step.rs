@@ -236,6 +236,7 @@ installed_step_dispatch!(
     ExperienceEvidence,
     ExperienceIntegration,
     ExperiencePrompt,
+    TemporalEvidence,
     ExperienceSituation,
     ExperienceAutobiography,
     ExperienceAutobiographyRecovery,

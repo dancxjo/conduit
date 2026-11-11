@@ -109,8 +109,21 @@ zero allocation during prepared selection. The borrowed temporal API has an
 explicit first-history `NoHistory` result; the owned API retains its existing
 empty-batch refusal. Temporal selection retains the existing source-timestamp
 ordering, with uncertainty preserved as metadata. These are semantic preparation
-checks, included in `cargo xtask check pete-cognition`; they do not establish
-installed retrieval Gears or replace the situated Plot's current recall policy.
+checks, included in `cargo xtask check pete-cognition`.
+
+The ordinary `retrieval/temporal-select-flow` Gear has an installed std Back.
+A native window carries its identity, explicit reference,
+at most 128 candidates and a history-completeness declaration. A separate typed
+Current intent selects the existing temporal policy; the outcome retains the
+window identity and distinguishes selection, no history, incomplete history and
+an unavailable boundary. The prepared canonical codec accepts all seven intents
+without owned reconstruction or allocation during execution. The
+[retrieval Plot](../../plots/pete-cognition/retrieval.conduit) authors latest
+evidence intent as ordinary typed State. Recall also has an explicit-selection
+entry point that resolves a supplied episode/item against the supplied state,
+without applying its legacy latest-item policy. These surfaces still require
+the typed autobiography candidate and outcome adapters before they replace the
+situated Plot's recall path; they do not establish an end-to-end RAG proof.
 
 The 2026-11-10 draft-branch run `run-1794373833048-189399` accepted with
 `phi4:latest`, model content identity

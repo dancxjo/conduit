@@ -314,3 +314,30 @@ fn unselected_historical_or_current_evidence_cannot_drive_recall() {
     );
     assert!(recall.update().is_empty() && recall.pending().is_empty());
 }
+
+#[test]
+fn explicit_selection_resolves_the_supplied_episode_without_latest_fallback() {
+    let memory = state(vec![(1, observation("first")), (2, observation("second"))]);
+    let current = event(vec![observation("now")], true);
+    let mut recall = BoundedExperienceAutobiographyRecall::prepare();
+    COUNTING.with(|flag| flag.set(true));
+    let result = recall.execute_selected(&current, &memory, Some((1, 0)));
+    COUNTING.with(|flag| flag.set(false));
+    result.unwrap();
+    ALLOCATIONS.with(|count| assert_eq!(count.replace(0), 0));
+    let request = replace_request(recall.update());
+    assert_eq!(
+        request.evidence().get().as_slice()[1].identity().get(),
+        "recall/1/first"
+    );
+    recall.execute_selected(&current, &memory, None).unwrap();
+    assert_eq!(replace_request(recall.update()).evidence().get().len(), 1);
+    for choice in [(3, 0), (1, 8)] {
+        assert_eq!(
+            recall.execute_selected(&current, &memory, Some(choice)),
+            Err(ExperienceAutobiographyRecallRefusal::InvalidHistory)
+        );
+        assert!(recall.update().is_empty());
+        assert!(recall.pending().is_empty());
+    }
+}
