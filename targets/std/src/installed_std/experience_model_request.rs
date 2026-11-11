@@ -119,19 +119,6 @@ fn evidence(
         // generation data and the paired native pending record. No lookup or
         // input-supplied reference is evaluated. Retention resolves it exactly.
         raw(out, br#","json_string_ref":"observation.content""#)?;
-    } else if compact
-        && content
-            .first()
-            .is_some_and(|byte| !byte.is_ascii_whitespace())
-        && content
-            .last()
-            .is_some_and(|byte| !byte.is_ascii_whitespace())
-        && conduit_web::validate_json_text(content).is_ok()
-    {
-        // The exact JSON lexeme is already valid data. Keep it verbatim rather
-        // than escaping a second string envelope; retention restores its bytes.
-        raw(out, b",\"json_content\":")?;
-        raw(out, content)?;
     } else if let Ok(content) = std::str::from_utf8(content) {
         raw(out, b",\"utf8_content\":")?;
         json(out, content)?;

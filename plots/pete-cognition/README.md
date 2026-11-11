@@ -36,11 +36,8 @@ not increases to the four-entry, 8 KiB autobiographical memory.
 
 The model data uses the versioned `episode-retrieval-request@2` format. Repeated
 classification and instant field names are declared once beside exact column
-values. A declared null default keeps unknown recorded times unknown. Valid
-JSON content can travel as an exact `json_content` lexeme;
-retention restores the original UTF-8 text without normalizing whitespace,
-number spelling, or escapes. An exact repeated utterance can refer to
-`observation.content`; its
+values. A declared null default keeps unknown recorded times unknown. An exact
+repeated utterance can refer to `observation.content`; its
 JSON-string encoding is resolved during retention. The native record keeps the
 same transmitted current projection, original observation and complete actual
 outcome. Model history carries the actual disposition and identifies its Host
@@ -79,8 +76,7 @@ The live check uses installed Ollama models on loopback. The typed-frame tests
 accept `CONDUIT_PETE_LIVE_MODEL` and `CONDUIT_PETE_LIVE_MEMORY_MIB` to select an
 already installed model and its explicit memory admission; their defaults remain
 `gemma3:latest` and 6144 MiB. Model answer quality is configuration-specific, and
-these options change neither the assertions nor the cognition bounds. The proof supplies
-frame inputs through the Fore. The [resumable Plot](../pete-cognition-resumable/README.md)
+these options change neither the assertions nor the cognition bounds. The proof supplies frame inputs through the Fore. The [resumable Plot](../pete-cognition-resumable/README.md)
 also exercises a Body and Wake checkpoint across a replacement Host Boot,
 Plan, and Play.
 

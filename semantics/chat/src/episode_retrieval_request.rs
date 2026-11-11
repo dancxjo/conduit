@@ -211,10 +211,10 @@ fn diagnostics(
         Some(profile) => string(out, profile.as_bytes())?,
         None => put(out, b"null")?,
     }
-    put(out, br#", "relevance_omitted_items":"#)?;
+    put(out, br#","relevance_omitted_items":"#)?;
     integer(out, context.relevance_omitted_items() as u64)?;
     if !context.irrelevant_episodes().is_empty() {
-        put(out, br#", "irrelevant_episodes":["#)?;
+        put(out, br#","irrelevant_episodes":["#)?;
         for (index, episode) in context.irrelevant_episodes().iter().enumerate() {
             if index != 0 {
                 put(out, b",")?;
@@ -223,7 +223,7 @@ fn diagnostics(
         }
         put(out, b"]")?;
     }
-    put(out, br#", "temporal":"#)?;
+    put(out, br#","temporal":"#)?;
     match context.temporal_resolution() {
         Some(resolution) => string(
             out,

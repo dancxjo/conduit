@@ -6,9 +6,6 @@ pub fn expanded_model_evidence(input: &Value, observation: &str) -> Value {
     let classification = input["classification_fields"].as_array();
     let time = input["time_fields"].as_array();
     for item in output["evidence"].as_array_mut().unwrap() {
-        if let Some(content) = item.as_object_mut().unwrap().remove("json_content") {
-            item["utf8_content"] = Value::String(serde_json::to_string(&content).unwrap());
-        }
         if item["json_string_ref"] == "observation.content" {
             item["utf8_content"] = Value::String(serde_json::to_string(observation).unwrap());
             item.as_object_mut().unwrap().remove("json_string_ref");
