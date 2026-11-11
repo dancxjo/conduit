@@ -5,7 +5,7 @@ use crate::durable_host::routed_join::MaskSelection;
 use crate::durable_host_control::DurableHostRuntime;
 use conduit_linux_display::Scanout;
 use std::{
-    path::Path,
+    path::{Path, PathBuf},
     time::{Duration, Instant},
 };
 
@@ -17,6 +17,9 @@ pub(in crate::durable_host) struct NativePresentation {
     next_refresh: Instant,
     refreshes: u8,
     play_sequence: u64,
+    state: PathBuf,
+    status: RuntimeStatus,
+    reconnect_delay: Option<Duration>,
 }
 
 enum NativeOwner {
@@ -72,32 +75,84 @@ impl NativePresentation {
             return Err("native presentation has no initialized selected Mask".into());
         }
         let installation = super::super::read_installation(&state.join("installation.json"))?;
-        let (owner, snapshot) = if installation.joined_body_state.is_some() {
-            let (route, snapshot) = wire::member_carrier_client::MemberRoute::connect_initialized(
-                runtime,
-                status,
-                state,
-                wire::load_member_encounter(state)?,
-            )?;
-            (NativeOwner::Member(route), snapshot)
+        let reconnect_delay = crate::durable_host::routed_join::reconnect_delay(state)?;
+        let connection = if installation.joined_body_state.is_some() {
+            member_connection(runtime, status, state)
         } else {
             let invitation = super::super::pending_seed::original_invitation(state)?;
-            let (route, snapshot) = wire::OwnerRoute::admit_initialized(
+            wire::OwnerRoute::admit_initialized(
                 runtime,
                 status,
                 state,
                 invitation,
                 MaskSelection::Native,
-            )?;
-            (NativeOwner::Joining(route), snapshot)
+            )
+            .map(|(route, snapshot)| (NativeOwner::Joining(route), snapshot))
         };
-        let owner_acknowledged = present(runtime, output, &owner, snapshot, 1)?;
+        let owner = match connection {
+            Ok((owner, snapshot)) => {
+                present(runtime, output, &owner, snapshot, 1)?.then_some(owner)
+            }
+            Err(error) if reconnect_delay.is_some() => {
+                // The retained contact is operator-selected planning policy,
+                // not a current owner, route, Face or executable permission.
+                eprintln!("native member contact unavailable; no current Show: {error}");
+                None
+            }
+            Err(error) => return Err(error),
+        };
+        let next_delay = if owner.is_some() {
+            REFRESH_PERIOD
+        } else {
+            reconnect_delay.unwrap_or(REFRESH_PERIOD)
+        };
         Ok(Self {
-            owner: owner_acknowledged.then_some(owner),
-            next_refresh: Instant::now() + REFRESH_PERIOD,
+            owner,
+            next_refresh: Instant::now() + next_delay,
             refreshes: 0,
             play_sequence: 1,
+            state: state.into(),
+            status: RuntimeStatus {
+                schema: status.schema.clone(),
+                host_id: status.host_id.clone(),
+                boot_id: status.boot_id.clone(),
+                offer_generation: status.offer_generation,
+                process_id: status.process_id,
+                release_bundle_sha256: status.release_bundle_sha256.clone(),
+                body_id: status.body_id.clone(),
+            },
+            reconnect_delay,
         })
+    }
+
+    fn reconnect(
+        &mut self,
+        runtime: &mut DurableHostRuntime,
+        output: &mut Scanout<'_>,
+    ) -> Result<(), String> {
+        let delay = self
+            .reconnect_delay
+            .ok_or("native continuing contact absent")?;
+        let connection = member_connection(runtime, &mut self.status, &self.state);
+        self.next_refresh = Instant::now() + delay;
+        match connection {
+            Ok((owner, snapshot)) => {
+                self.play_sequence = self
+                    .play_sequence
+                    .checked_add(1)
+                    .ok_or("native child Play sequence exhausted")?;
+                // Kernel/output failures remain terminal. Only an unavailable
+                // authenticated contact is retried by this explicit policy.
+                if present(runtime, output, &owner, snapshot, self.play_sequence)? {
+                    self.owner = Some(owner);
+                    self.next_refresh = Instant::now() + REFRESH_PERIOD;
+                }
+            }
+            Err(error) => eprintln!(
+                "native member contact unavailable; previous pixels are historical: {error}"
+            ),
+        }
+        Ok(())
     }
 
     pub(in crate::durable_host) fn poll(
@@ -105,9 +160,24 @@ impl NativePresentation {
         runtime: &mut DurableHostRuntime,
         output: &mut Scanout<'_>,
     ) -> Result<(), String> {
+        if self.reconnect_delay.is_some()
+            && matches!(&self.owner, Some(NativeOwner::Member(route)) if route.renewal_due())
+        {
+            // Retire the old carrier before allocating/authenticating the new
+            // one. There is never overlap or an enlarged presence lease.
+            drop(self.owner.take());
+            self.next_refresh = Instant::now();
+        }
+        if self.owner.is_none() {
+            if self.reconnect_delay.is_some() && Instant::now() >= self.next_refresh {
+                self.reconnect(runtime, output)?;
+            }
+            return Ok(());
+        }
         if let Some(owner) = self.owner.as_mut() {
             if let Err(error) = owner.poll_presence() {
                 self.owner = None;
+                self.next_refresh = Instant::now() + self.reconnect_delay.unwrap_or(REFRESH_PERIOD);
                 eprintln!("native carrier lost; displayed Show is historical: {error}");
                 return Ok(());
             }
@@ -133,6 +203,7 @@ impl NativePresentation {
             Ok(snapshot) => snapshot,
             Err(error) => {
                 self.owner = None;
+                self.next_refresh = Instant::now() + self.reconnect_delay.unwrap_or(REFRESH_PERIOD);
                 eprintln!("native owner encounter lost; displayed Show is historical: {error}");
                 return Ok(());
             }
@@ -149,6 +220,20 @@ impl NativePresentation {
         self.next_refresh = Instant::now() + REFRESH_PERIOD;
         Ok(())
     }
+}
+
+fn member_connection(
+    runtime: &mut DurableHostRuntime,
+    status: &mut RuntimeStatus,
+    state: &Path,
+) -> Result<(NativeOwner, wire::Snapshot), String> {
+    let encounter = match crate::durable_host::routed_join::load_and_resolve_member_contact(state)?
+    {
+        Some(fresh) => fresh,
+        None => wire::load_member_encounter(state)?,
+    };
+    wire::member_carrier_client::MemberRoute::connect_initialized(runtime, status, state, encounter)
+        .map(|(route, snapshot)| (NativeOwner::Member(route), snapshot))
 }
 
 fn present(

@@ -28,6 +28,16 @@ pub(in crate::durable_host::presentation) struct MemberRoute {
 }
 
 impl MemberRoute {
+    /// Retire this finite carrier before exhausting its admitted frame/deadline
+    /// budget. A replacement must authenticate independently; this extends none
+    /// of the old presence, route or Show authority.
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    pub(in crate::durable_host::presentation) fn renewal_due(&self) -> bool {
+        renewal_due(self.deadline, Instant::now(), self.carrier.borrow().frames)
+            || crate::durable_host::current_time_millis().map_or(true, |now| {
+                self.descriptor_expiry.saturating_sub(now) <= 3_000
+            })
+    }
     #[cfg(all(target_os = "linux", feature = "native-display"))]
     pub(in crate::durable_host::presentation) fn connect_initialized(
         runtime: &mut crate::durable_host_control::DurableHostRuntime,
@@ -257,6 +267,32 @@ impl MemberRoute {
             .close()
             .map_err(|e| format!("member carrier close:{e:?}"))
     }
+}
+
+#[cfg(any(test, all(target_os = "linux", feature = "native-display")))]
+fn renewal_due(deadline: Instant, now: Instant, frames: usize) -> bool {
+    frames >= 96 || deadline.saturating_duration_since(now) <= Duration::from_secs(3)
+}
+
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+impl Drop for MemberRoute {
+    fn drop(&mut self) {
+        let carrier = self.carrier.get_mut();
+        carrier.closed = true;
+        // Closing a transport does not withdraw the member's attachment.
+        let _ = carrier.line.close();
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn finite_member_carrier_renews_before_exhaustion_without_extending_deadline() {
+    let now = Instant::now();
+    let deadline = now + Duration::from_secs(60);
+    assert!(!renewal_due(deadline, now, 95));
+    assert!(renewal_due(deadline, now, 96));
+    assert!(renewal_due(deadline, now + Duration::from_secs(57), 0));
+    assert!(renewal_due(deadline, now + Duration::from_secs(61), 0));
 }
 
 impl Carrier {
