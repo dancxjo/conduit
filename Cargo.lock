@@ -10941,6 +10941,7 @@ dependencies = [
  "conduit-audio",
  "conduit-body",
  "conduit-body-make",
+ "conduit-browser-patchbay-workbench",
  "conduit-browser-runtime",
  "conduit-chat",
  "conduit-core",

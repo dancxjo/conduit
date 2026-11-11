@@ -280,9 +280,18 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
         true,
     )
     .unwrap();
-    let patchbay =
-        PatchbayApplicationPort::open_active(vec![plot], plan_id, Some(kernel.active_play_id))
-            .unwrap();
+    let patchbay = PatchbayApplicationPort::open_active(
+        vec![plot],
+        plan_id,
+        Some(kernel.active_play_id.clone()),
+    )
+    .unwrap();
+    let mut snapshot = pete_replay_snapshot(
+        &harness,
+        &patchbay,
+        kernel.active_play_id,
+        report.observations.last().unwrap().sign_id.clone(),
+    );
     let graph = patchbay.graph();
     let lowered = lower_plan_fragment(&harness.fragment).unwrap();
     let identity = &lowered.identity;
@@ -314,7 +323,18 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
     let bind = |runtime_subject, visible_subject: &String| DebuggerTimelineBinding {
         execution: history.execution,
         runtime_subject,
-        visible_subject: visible_subject.clone(),
+        visible_subject: snapshot
+            .face
+            .properties
+            .iter()
+            .find(|property| {
+                property.name == "semantic-id"
+                    && property.value
+                        == conduit_face::FacePropertyValue::Identity(visible_subject.clone())
+            })
+            .unwrap_or_else(|| panic!("Face is missing {visible_subject}"))
+            .subject
+            .clone(),
     };
     let mut bindings = Vec::new();
     for (node, placement) in &identity.placements {
@@ -396,7 +416,7 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
     for cord in &graph.cords {
         assert!(
             timeline.events.iter().any(|event| {
-                event.subject == cord.identity
+                event.subject.strip_prefix("cord/") == Some(cord.identity.as_str())
                     && event
                         .value
                         .as_ref()
@@ -460,6 +480,93 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
             .count(),
         2
     );
+    snapshot.attach_timeline(timeline).unwrap();
+    let bytes = snapshot.encode().unwrap();
+    conduit_browser_patchbay_workbench::RendererSnapshot::decode(&bytes, 1).unwrap();
+    if let Some(path) = std::env::var_os("CONDUIT_PETE_REPLAY_SNAPSHOT") {
+        std::fs::write(path, bytes).unwrap();
+    }
+}
+
+fn pete_replay_snapshot(
+    harness: &common::Harness,
+    patchbay: &patchbay_application::PatchbayApplicationPort,
+    active_play_id: conduit_core::ActivePlayId,
+    terminal_sign: conduit_core::SignId,
+) -> conduit_browser_patchbay_workbench::RendererSnapshot {
+    use conduit_browser_patchbay_workbench::RendererSnapshot;
+    use conduit_face::{Face, FaceBasis, FaceProperty, FacePropertyValue, FaceRole, FaceSubject};
+    use conduit_patchbay_workbench::{
+        prepare_renderer_execution, RendererAdapterIdentity, RendererAdapterKind,
+    };
+    use patchbay_application::{graph_face, PatchbayNavigationProjection};
+
+    let context = common::context();
+    let body = format!("body/{}", context.body_id.as_str());
+    let graph = patchbay.graph();
+    let plot = format!("plot/{}", graph.checked_plot_id.as_str());
+    let mut subjects = vec![FaceSubject {
+        identity: body.clone(),
+        role: FaceRole::Body,
+        name: "Pete".into(),
+    }];
+    let mut properties = vec![FaceProperty {
+        subject: plot.clone(),
+        name: "host-id".into(),
+        value: FacePropertyValue::Identity(harness.fragment.host_id.as_str().into()),
+    }];
+    let mut relationships = Vec::new();
+    let mut texts = Vec::new();
+    let mut disclosures = Vec::new();
+    graph_face::append(
+        graph,
+        &body,
+        &mut graph_face::Content {
+            subjects: &mut subjects,
+            relationships: &mut relationships,
+            properties: &mut properties,
+            texts: &mut texts,
+            disclosures: &mut disclosures,
+        },
+    );
+    let face = Face::new_with_semantics(
+        1,
+        FaceBasis {
+            body_id: Some(context.body_id),
+            wake_id: Some(context.wake_id),
+            source_document_id: Some(graph.source_document_id.clone()),
+            checked_plot_id: Some(graph.checked_plot_id.clone()),
+            expanded_plot_id: Some(graph.expanded_plot_id.clone()),
+            plan_id: Some(harness.fragment.plan_id.clone()),
+            active_play_id: Some(active_play_id),
+            sign_ids: vec![terminal_sign],
+        },
+        subjects,
+        relationships,
+        properties,
+        texts,
+        Vec::new(),
+        disclosures,
+    )
+    .unwrap();
+    let mut navigation = PatchbayNavigationProjection::for_embodied(&face).unwrap();
+    navigation.cursor.place = conduit_face::FacePlace::Program;
+    navigation.cursor.aspect = conduit_face::FaceAspect::Signs;
+    navigation.cursor.focus = Some(plot);
+    let execution = prepare_renderer_execution(
+        face,
+        RendererAdapterKind::HtmlDomSvg,
+        RendererAdapterIdentity {
+            host_id: "host/patchbay-pete-replay".into(),
+            boot_id: "boot/patchbay-pete-replay".into(),
+            target_subject: "patchbay/pete-replay".into(),
+        },
+        "sign/patchbay-pete-replay".into(),
+    )
+    .unwrap();
+    let mut snapshot = RendererSnapshot::from_execution(execution).unwrap();
+    snapshot.attach_navigation(navigation).unwrap();
+    snapshot
 }
 
 #[test]

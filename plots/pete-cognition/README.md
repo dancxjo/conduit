@@ -44,9 +44,13 @@ retention, later recall, and the inputs to the compose and retain Gears.
 Patchbay follows a bounded set of observed input events at each join.
 
 ```sh
-cargo test --locked -p xtask --test experience_episode_loop patchbay_replays
+CONDUIT_PETE_REPLAY_SNAPSHOT="$PWD/target/pete-replay.json" \
+  cargo test --locked -p xtask --test experience_episode_loop patchbay_replays
+cargo run --locked -p conduit-browser-patchbay-workbench -- \
+  --replay-snapshot target/pete-replay.json
 ```
 
-Live sensor and homeostasis sources and browser inspection of the resulting
-Play remain part of
+Open the printed loopback URL, then open Inspect to see the recorded Play in
+the Signs view.
+Live sensor and homeostasis sources remain part of
 [#3707](https://github.com/dancxjo/conduit/issues/3707).
