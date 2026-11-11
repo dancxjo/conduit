@@ -165,6 +165,12 @@ locked Playwright 1.62.0. The screenshots show actual ModelDerived words and
 per-Gear causal Signs in an explicitly historical view. Earlier failed browser
 attempts remain alongside the accepted evidence.
 
+After synchronization with `dev` at `6e7f9c8a22`, the same proof passed again in
+`patchbay-browser-1794380473888-291817`. Its browser receipt SHA-256 is
+`b1e20f3df635e05c2828f1180563a6970a82a6a1c90c75f84b17aad66597a749`.
+The six upstream target-preparation tests and strict browser-runtime Clippy also
+passed; this does not claim a physical Raspberry Pi execution.
+
 The browser proof compares every original event's sequence, parent, execution,
 value and gap; all 42 Sign identities and metadata; all 51 exact causal edges;
 and selected Host/Boot/implementation facts. It exercises the timeline trace and
