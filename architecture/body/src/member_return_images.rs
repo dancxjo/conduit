@@ -7,7 +7,11 @@ use crate::{
 };
 use alloc::{string::String, vec::Vec};
 use conduit_core::{AuthorityGrant, HostAdvertisement};
-use serde::{Deserialize, Serialize};
+use core::borrow::Borrow;
+use serde::{
+    ser::{SerializeSeq, SerializeStruct},
+    Deserialize, Serialize,
+};
 use sha2::{Digest, Sha256};
 
 pub const MEMBER_RETURN_IMAGES_SCHEMA: &str = "conduit.body/member-return-images@2";
@@ -34,13 +38,40 @@ pub struct HostAdvertisementImageProjection {
 }
 /// A view of the original native descriptions; constructing this view neither
 /// copies descriptions nor issues native authority.
-#[derive(Clone, Copy, Serialize)]
-pub struct BorrowedHostAdvertisementImageProjection<'a> {
+pub struct BorrowedHostAdvertisementImageProjection<'a, G = AuthorityGrant> {
     pub context: &'a HostAdvertisement,
     pub capability_images: &'a [[u8; 32]],
-    pub authority_grants: &'a [AuthorityGrant],
+    pub authority_grants: &'a [G],
 }
-impl BorrowedHostAdvertisementImageProjection<'_> {
+impl<G: Borrow<AuthorityGrant>> Serialize for BorrowedHostAdvertisementImageProjection<'_, G> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut state = serializer.serialize_struct("HostAdvertisementImageProjection", 3)?;
+        state.serialize_field("context", self.context)?;
+        state.serialize_field("capability_images", self.capability_images)?;
+        state.serialize_field(
+            "authority_grants",
+            &GrantDescriptions(self.authority_grants),
+        )?;
+        state.end()
+    }
+}
+struct GrantDescriptions<'a, G>(&'a [G]);
+impl<G: Borrow<AuthorityGrant>> Serialize for GrantDescriptions<'_, G> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut sequence = serializer.serialize_seq(Some(self.0.len()))?;
+        for grant in self.0 {
+            sequence.serialize_element(grant.borrow())?;
+        }
+        sequence.end()
+    }
+}
+impl<G> Copy for BorrowedHostAdvertisementImageProjection<'_, G> {}
+impl<G> Clone for BorrowedHostAdvertisementImageProjection<'_, G> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+impl<G: Borrow<AuthorityGrant>> BorrowedHostAdvertisementImageProjection<'_, G> {
     pub fn validate(&self) -> Result<(), R> {
         if !self.context.capabilities.is_empty()
             || self.context.resources.len() > MAX_CANDIDATE_RESOURCES
@@ -61,9 +92,9 @@ impl BorrowedHostAdvertisementImageProjection<'_> {
 
 /// The exact existing signature transcript, encoded into caller-funded storage.
 /// The scratch can be reused for the subsequent presentation and acknowledgement.
-pub fn member_return_image_transcript_into(
+pub fn member_return_image_transcript_into<G: Borrow<AuthorityGrant>>(
     credential: &MembershipCredential,
-    projection: BorrowedHostAdvertisementImageProjection<'_>,
+    projection: BorrowedHostAdvertisementImageProjection<'_, G>,
     scratch: &mut [u8],
 ) -> Result<[u8; 32], R> {
     projection.validate()?;

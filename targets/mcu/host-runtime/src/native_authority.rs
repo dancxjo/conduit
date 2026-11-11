@@ -222,17 +222,20 @@ impl<const W: usize> Issuers<W> {
             .chain(self.waits.iter())
             .try_fold(0usize, |n, i| n.checked_add(i.retained_backing_bytes()?))
     }
+    /// Read the retained original descriptions in the same order as publication.
+    /// Borrowing preserves the Issuers' custody and issues no native token.
+    pub fn grants(&self) -> impl Iterator<Item = &AuthorityGrant> + Clone {
+        core::iter::once(&self.recording)
+            .chain(core::iter::once(&self.pulse))
+            .chain(core::iter::once(&self.write))
+            .chain(core::iter::once(&self.renderer))
+            .chain(self.waits.iter())
+            .filter_map(|issuer| issuer.grant())
+    }
     /// Copies only retained original grants after funding the exact containing
     /// vector and fallible text allocations. Descriptions create no new tokens.
     pub fn copy_grants(&self, maximum_bytes: usize) -> Result<Vec<AuthorityGrant>, Refusal> {
-        let issuers = || {
-            core::iter::once(&self.recording)
-                .chain(core::iter::once(&self.pulse))
-                .chain(core::iter::once(&self.write))
-                .chain(core::iter::once(&self.renderer))
-                .chain(self.waits.iter())
-        };
-        let count = issuers().filter(|i| i.grant().is_some()).count();
+        let count = self.grants().count();
         let mut budget = maximum_bytes;
         let bytes = count
             .checked_mul(core::mem::size_of::<AuthorityGrant>())
@@ -252,7 +255,7 @@ impl<const W: usize> Issuers<W> {
                     .ok_or(Refusal::Bounds)?,
             )
             .ok_or(Refusal::Bounds)?;
-        for grant in issuers().filter_map(|i| i.grant()) {
+        for grant in self.grants() {
             let mut copy = |text: &str| -> Result<String, Refusal> {
                 if text.len() > budget {
                     return Err(Refusal::Bounds);

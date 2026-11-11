@@ -8,6 +8,7 @@ use conduit_body::{
     MemberReturnImageAcknowledgementSeed, MembershipCredential, MEMBER_RETURN_IMAGES_SCHEMA,
 };
 use conduit_core::{AuthorityGrant, HostAdvertisement};
+use core::borrow::Borrow;
 use ed25519_dalek::{Signer, SigningKey};
 use serde::{de::DeserializeSeed, Serialize};
 use sha2::{Digest, Sha256};
@@ -23,11 +24,12 @@ pub enum Refusal {
     Receipt,
 }
 #[derive(Serialize)]
-struct Presentation<'a> {
+#[serde(bound(serialize = "G: Borrow<AuthorityGrant>"))]
+struct Presentation<'a, G> {
     kind: &'static str,
     schema: &'static str,
     credential: &'a MembershipCredential,
-    projection: BorrowedHostAdvertisementImageProjection<'a>,
+    projection: BorrowedHostAdvertisementImageProjection<'a, G>,
     signature: &'a [u8],
 }
 /// Root retains native publication/authorization custody before this exchange.
@@ -53,6 +55,42 @@ impl RetainedReturn<'_, '_> {
         T: DocumentTransport,
         I: Iterator<Item = &'i [u8]> + Clone,
         G: FnOnce() -> Result<Vec<AuthorityGrant>, Refusal>,
+    {
+        self.exchange_inner(link, images, authority_grants, input, output)
+            .await
+    }
+    /// Borrow the original grant descriptions instead of cloning their owned
+    /// strings. The references convey descriptive evidence, never native tokens.
+    pub async fn exchange_with_grants<'i, T, I, G>(
+        &self,
+        link: &mut T,
+        images: I,
+        grants: &[G],
+        input: &mut [u8],
+        output: &mut [u8],
+    ) -> Result<AcceptedMembership, Refusal>
+    where
+        T: DocumentTransport,
+        I: Iterator<Item = &'i [u8]> + Clone,
+        G: Borrow<AuthorityGrant>,
+    {
+        self.exchange_inner(link, images, || Ok(grants), input, output)
+            .await
+    }
+    async fn exchange_inner<'i, T, I, G, B, F>(
+        &self,
+        link: &mut T,
+        images: I,
+        authority_grants: F,
+        input: &mut [u8],
+        output: &mut [u8],
+    ) -> Result<AcceptedMembership, Refusal>
+    where
+        T: DocumentTransport,
+        I: Iterator<Item = &'i [u8]> + Clone,
+        G: Borrow<AuthorityGrant>,
+        B: AsRef<[G]>,
+        F: FnOnce() -> Result<B, Refusal>,
     {
         if self.retained.body_id != self.bootstrap.body_id
             || self.retained.host_id != self.actual.host_id
@@ -82,7 +120,7 @@ impl RetainedReturn<'_, '_> {
         }
         let grants = authority_grants()?;
         let projection = BorrowedHostAdvertisementImageProjection {
-            authority_grants: &grants,
+            authority_grants: grants.as_ref(),
             context: self.actual,
             capability_images: &hashes,
         };
