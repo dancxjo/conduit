@@ -45,7 +45,8 @@ Patchbay follows a bounded set of observed input events at each join.
 
 ```sh
 CONDUIT_PETE_REPLAY_SNAPSHOT="$PWD/target/pete-replay.json" \
-  cargo test --locked -p xtask --test experience_episode_loop patchbay_replays
+  cargo test --locked -p xtask --test experience_episode_loop \
+  pete_create_serial_samples_enter_one_cognition_play
 cargo run --locked -p conduit-browser-patchbay-workbench -- \
   --replay-snapshot target/pete-replay.json
 ```
@@ -58,8 +59,9 @@ Live sensor and homeostasis sources remain part of
 The Linux serial proof waits for the cognition Play to start, then uses the
 std Create UART Base to read and submit the first correlated sample. After the
 first episode is delivered, it captures and submits the second sample into the
-same Play. The proof uses a pseudo-terminal by default. To select a physical Create explicitly, pass its
-device path:
+same Play. The proof uses a pseudo-terminal by default. Set
+`CONDUIT_PETE_SERIAL_OLLAMA=1` to use the installed Ollama model in that same
+Play. To select a physical Create, pass its device path.
 
 ```sh
 CONDUIT_PETE_CREATE_SERIAL=/dev/ttyUSB0 \

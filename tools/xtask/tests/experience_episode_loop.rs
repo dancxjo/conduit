@@ -255,9 +255,14 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
         }
     }
 
-    let (model, requests) = common::fenced_model();
+    let use_ollama = std::env::var_os("CONDUIT_PETE_SERIAL_OLLAMA").is_some();
+    let model = if use_ollama {
+        ollama_episode_model()
+    } else {
+        common::fenced_model().0
+    };
     let mut harness = pete_harness(model);
-    let control = RunControl::default();
+    let control = RunControl::default().with_debug_body(common::context().body_id);
     let seed = inputs(&[]).pop().unwrap();
     let queue = BodyLiveForeQueue::for_local_flow_fragment(
         &harness.fragment,
@@ -275,8 +280,8 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
         producer_queue.wait_until_play_started().unwrap();
         let mut capture_ticks = Vec::new();
         for (index, message) in [
-            "The switch label is COPPER KITE.",
-            "What was the switch label?",
+            "The hallway switch label is COPPER KITE.",
+            "What exact label did I report for the hallway switch?",
         ]
         .into_iter()
         .enumerate()
@@ -320,7 +325,11 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
             );
             if index == 0 {
                 first_episode
-                    .recv_timeout(std::time::Duration::from_secs(5))
+                    .recv_timeout(std::time::Duration::from_secs(if use_ollama {
+                        90
+                    } else {
+                        5
+                    }))
                     .unwrap();
             }
         }
@@ -355,12 +364,17 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
         episodes[1].recalled().get()[0].observation(),
         episodes[0].observation()
     );
-    let requests = requests.lock().unwrap();
-    for (index, request) in requests.iter().enumerate() {
-        let request: serde_json::Value = serde_json::from_str(request).unwrap();
-        let evidence = request["selected_experience"]["evidence"]
-            .as_array()
-            .unwrap();
+    assert_eq!(episodes[0].body_id(), episodes[1].body_id());
+    assert_eq!(episodes[0].wake_id(), episodes[1].wake_id());
+    let response = episodes[1].response().unwrap().content();
+    assert!(
+        response.to_ascii_uppercase().contains("COPPER KITE"),
+        "{response}"
+    );
+    for (index, episode) in episodes.iter().enumerate() {
+        let recorded: serde_json::Value =
+            serde_json::from_str(episode.evidence().as_ref().unwrap()).unwrap();
+        let evidence = recorded["evidence"].as_array().unwrap();
         let battery = evidence
             .iter()
             .find(|item| {
@@ -382,6 +396,10 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
             serde_json::from_str(homeostasis["utf8_content"].as_str().unwrap()).unwrap();
         assert_eq!(state["motion"], "unknown");
         assert!(state["charge_percent"].is_string());
+    }
+    let snapshot = assert_pete_replay(&harness, &report);
+    if let Some(path) = std::env::var_os("CONDUIT_PETE_REPLAY_SNAPSHOT") {
+        std::fs::write(path, snapshot.encode().unwrap()).unwrap();
     }
 }
 
@@ -435,13 +453,6 @@ fn pete_frames_reach_situation_and_recall_in_one_play() {
 
 #[test]
 fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
-    use conduit_kernel::debug_observation::DebugSubject;
-    use conduit_plan_lowering::lowering::lower_plan_fragment;
-    use patchbay_application::{
-        DebuggerTimeline, DebuggerTimelineBinding, PatchbayActivePlot, PatchbayActivePlotState,
-        PatchbayApplicationPort,
-    };
-
     let (model, requests) = common::fenced_model();
     let mut harness = pete_harness(model);
     let mut incoming = inputs(&[]);
@@ -493,8 +504,22 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
     let recorded: serde_json::Value =
         serde_json::from_str(episodes[1].recalled().get()[0].evidence().as_ref().unwrap()).unwrap();
     assert_eq!(recorded, *historical);
-    let kernel = report.kernel.unwrap();
-    let history = kernel.debug_history.unwrap();
+    assert_pete_replay(&harness, &report);
+}
+
+fn assert_pete_replay(
+    harness: &common::Harness,
+    report: &conduit_std_host::StdRunReport,
+) -> conduit_browser_patchbay_workbench::RendererSnapshot {
+    use conduit_kernel::debug_observation::DebugSubject;
+    use conduit_plan_lowering::lowering::lower_plan_fragment;
+    use patchbay_application::{
+        DebuggerTimeline, DebuggerTimelineBinding, PatchbayActivePlot, PatchbayActivePlotState,
+        PatchbayApplicationPort,
+    };
+
+    let kernel = report.kernel.as_ref().unwrap();
+    let history = kernel.debug_history.as_ref().unwrap();
     assert!(history.gap.is_none(), "{:?}", history.gap);
     assert_eq!(kernel.active_play.host_id, harness.fragment.host_id);
     let plan_id = harness.fragment.plan_id.clone();
@@ -514,9 +539,9 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
     )
     .unwrap();
     let mut snapshot = pete_replay_snapshot(
-        &harness,
+        harness,
         &patchbay,
-        kernel.active_play_id,
+        kernel.active_play_id.clone(),
         report.observations.last().unwrap().sign_id.clone(),
     );
     let graph = patchbay.graph();
@@ -710,9 +735,7 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
     snapshot.attach_timeline(timeline).unwrap();
     let bytes = snapshot.encode().unwrap();
     conduit_browser_patchbay_workbench::RendererSnapshot::decode(&bytes, 1).unwrap();
-    if let Some(path) = std::env::var_os("CONDUIT_PETE_REPLAY_SNAPSHOT") {
-        std::fs::write(path, bytes).unwrap();
-    }
+    snapshot
 }
 
 fn pete_replay_snapshot(
@@ -904,9 +927,8 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
     );
 }
 
-#[test]
-#[ignore = "requires a running loopback Ollama with gemma3:latest already installed"]
-fn live_pete_experience_episode_uses_earlier_memory() {
+fn ollama_episode_model() -> Box<dyn conduit_std_host::hosted_local_model::HostedLocalModelAdapter>
+{
     use conduit_ai::LocalModelKindProfile;
     use conduit_std_host::hosted_local_model::OllamaDiscovery;
 
@@ -914,7 +936,13 @@ fn live_pete_experience_episode_uses_earlier_memory() {
         .unwrap()
         .initialize(6144, vec![LocalModelKindProfile::GenerateFlow])
         .unwrap();
-    let mut harness = pete_harness(Box::new(adapter));
+    Box::new(adapter)
+}
+
+#[test]
+#[ignore = "requires a running loopback Ollama with gemma3:latest already installed"]
+fn live_pete_experience_episode_uses_earlier_memory() {
+    let mut harness = pete_harness(ollama_episode_model());
     let question = "What exact label did I report for the hallway switch?";
     let mut incoming = inputs(&[]);
     incoming.extend([
