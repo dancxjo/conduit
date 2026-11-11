@@ -2,7 +2,7 @@
 //!
 //! The loop is ordinary Plot composition: a composer turns one observation plus
 //! the memory cell's Current into a model request, the model answers, a
-//! retainer pairs the answer with the pending episode, and the explicit memory
+//! retainer pairs the actual outcome with the pending episode, and the explicit memory
 //! cell retains the selected episode for later recall. Observations, recalled
 //! memories, and model-derived responses remain distinct typed facts.
 //! Retention is selected only by the observation's typed `retain` field.
@@ -20,10 +20,18 @@ mod episode_checkpoint_v1;
 mod episode_prompt;
 #[path = "episode_recall.rs"]
 mod episode_recall;
+use crate::episode_outcome::decode_outcome;
 pub use episode_checkpoint_v1::{episode_checkpoint_v1_type, migrate_episode_checkpoint_v1};
 use episode_prompt::prompt;
 #[path = "episode_recollection.rs"]
 mod episode_recollection;
+#[path = "episode_retention.rs"]
+mod episode_retention;
+pub use episode_retention::EpisodeRetainer;
+#[path = "episode_checkpoint_v2.rs"]
+mod episode_checkpoint_v2;
+pub use episode_checkpoint_v2::{episode_checkpoint_v2_type, migrate_episode_checkpoint_v2};
+
 pub use episode_recollection::{episode_recollection_request, MAXIMUM_EPISODE_RECOLLECTION_BYTES};
 
 use crate::{
@@ -33,11 +41,11 @@ use crate::{
 };
 
 pub const EPISODE_COMPOSE_KIND: &str = "body/episode-compose";
-pub const EPISODE_COMPOSE_REVISION: &str = "conduit.body/episode-compose@1";
+pub const EPISODE_COMPOSE_REVISION: &str = "conduit.body/episode-compose@2";
 pub const EPISODE_RETAIN_KIND: &str = "body/episode-retain";
-pub const EPISODE_RETAIN_REVISION: &str = "conduit.body/episode-retain@1";
+pub const EPISODE_RETAIN_REVISION: &str = "conduit.body/episode-retain@2";
 pub const EPISODE_MEMORY_KIND: &str = "body/episode-memory";
-pub const EPISODE_MEMORY_REVISION: &str = "conduit.body/episode-memory@1";
+pub const EPISODE_MEMORY_REVISION: &str = "conduit.body/episode-memory@2";
 pub const EPISODE_PROMPT_SCHEMA: &str = "conduit.body/episode-prompt@1";
 pub const MAXIMUM_EPISODE_RECALL: usize = 4;
 pub const MAXIMUM_EPISODE_PROMPT_BYTES: usize = 4_096;
@@ -234,7 +242,7 @@ impl EpisodeComposer {
                             .as_ref()
                             .map(serde_json::Value::to_string),
                         candidate.memory.observation().clone(),
-                        candidate.memory.response().clone(),
+                        candidate.memory.outcome().clone(),
                     )
                     .map_err(|_| EpisodeRefusal::Encoding)?,
                 )
@@ -282,67 +290,8 @@ impl EpisodeComposer {
     }
 }
 
-/// Pairs one pending episode with its exact model-derived result.
-#[derive(Debug)]
-pub struct EpisodeRetainer {
-    record: Vec<u8>,
-}
-
-impl Default for EpisodeRetainer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl EpisodeRetainer {
-    pub fn new() -> Self {
-        Self {
-            record: Vec::with_capacity(MAXIMUM_EPISODE_RECORD_BYTES),
-        }
-    }
-
-    pub fn retain(
-        &mut self,
-        encoded_pending: &[u8],
-        encoded_result: &[u8],
-    ) -> Result<&[u8], EpisodeRefusal> {
-        if encoded_pending.len() > MAXIMUM_EPISODE_RECORD_BYTES {
-            return Err(EpisodeRefusal::PendingMalformed);
-        }
-        let pending = EpisodePending::decode(encoded_pending)
-            .map_err(|_| EpisodeRefusal::PendingMalformed)?;
-        let outcome = decode_outcome(encoded_result)?;
-        let retained =
-            *pending.observation().retain() && matches!(outcome, EpisodeOutcome::Produced(_));
-        let encoded = EpisodeRecord::new(
-            pending.body_id().clone(),
-            *pending.episode(),
-            pending.evidence().clone(),
-            pending.observation().clone(),
-            outcome,
-            pending.recalled().clone(),
-            retained,
-            pending.wake_id().clone(),
-            *pending.wake_sequence(),
-        )
-        .and_then(NativeRustBinding::encode)
-        .map_err(|_| EpisodeRefusal::Encoding)?;
-        if encoded.len() > MAXIMUM_EPISODE_RECORD_BYTES {
-            return Err(EpisodeRefusal::Encoding);
-        }
-        self.record.clear();
-        self.record.extend_from_slice(&encoded);
-        Ok(&self.record)
-    }
-
-    pub fn record(&self) -> &[u8] {
-        &self.record
-    }
-}
-
 /// The explicit, Play-scoped memory cell. Its Current advances once for
-/// every completed episode and keeps at most [`MAXIMUM_EPISODE_RECALL`]
-/// selected memories, evicting the oldest.
+/// every completed episode and keeps at most four selected memories.
 #[derive(Debug)]
 pub struct EpisodeMemoryCell {
     state: EpisodeMemoryState,
@@ -421,10 +370,7 @@ impl EpisodeMemoryCell {
                     .as_deref()
                     .and_then(episode_recall::compact_evidence),
                 record.observation().clone(),
-                record
-                    .response()
-                    .ok_or(EpisodeRefusal::ResponseNotProduced)?
-                    .clone(),
+                record.outcome().clone(),
             )
             .map_err(|_| EpisodeRefusal::Encoding)?;
             memories
@@ -517,53 +463,4 @@ pub fn initial_episode_memory() -> Vec<u8> {
     empty_memory()
         .and_then(|state| state.encode().map_err(|_| EpisodeRefusal::Encoding))
         .expect("the empty episode memory is a valid bounded value")
-}
-
-fn decode_outcome(encoded: &[u8]) -> Result<EpisodeOutcome, EpisodeRefusal> {
-    use conduit_ai::{ModelDerivedResult, ModelResultDisposition, ModelResultProvenance};
-    if encoded.len() > MAXIMUM_EPISODE_RESULT_BYTES {
-        return Err(EpisodeRefusal::ResponseBoundExceeded);
-    }
-    let result: ModelDerivedResult =
-        serde_json::from_slice(encoded).map_err(|_| EpisodeRefusal::ResponseMalformed)?;
-    if serde_json::to_vec(&result).map_err(|_| EpisodeRefusal::Encoding)? != encoded {
-        return Err(EpisodeRefusal::ResponseMalformed);
-    }
-    let contract = conduit_ai::llm_contract(conduit_ai::LLM_GENERATE_FLOW_KIND)
-        .ok_or(EpisodeRefusal::Encoding)?;
-    result
-        .validate(&contract)
-        .map_err(|_| EpisodeRefusal::ResponseMalformed)?;
-    let ModelResultProvenance::ModelDerived = result.provenance;
-    let truncated = match result.disposition {
-        ModelResultDisposition::Produced => false,
-        ModelResultDisposition::Truncated => true,
-        ModelResultDisposition::ProviderLost => {
-            return EpisodeOutcome::provider_lost(
-                result.request_identity,
-                result.implementation_identity,
-            )
-            .map_err(|_| EpisodeRefusal::ResponseBoundExceeded);
-        }
-        _ => return Err(EpisodeRefusal::ResponseNotProduced),
-    };
-    let content =
-        core::str::from_utf8(&result.payload).map_err(|_| EpisodeRefusal::ResponseMalformed)?;
-    EpisodeModelResponse::new(
-        content.into(),
-        result.implementation_identity,
-        result.run_identity,
-        truncated,
-    )
-    .and_then(EpisodeOutcome::produced)
-    .map_err(|_| EpisodeRefusal::ResponseBoundExceeded)
-}
-
-impl EpisodeRecord {
-    pub fn response(&self) -> Option<&EpisodeModelResponse> {
-        match self.outcome() {
-            EpisodeOutcome::Produced(outcome) => Some(outcome.response()),
-            EpisodeOutcome::ProviderLost(_) => None,
-        }
-    }
 }

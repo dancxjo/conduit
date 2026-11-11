@@ -58,7 +58,7 @@ fn two_episodes_share_one_body_wake_and_play_and_the_second_recalls_the_first() 
     assert_eq!(recalled.len(), 1);
     assert_eq!(*recalled[0].episode(), 1);
     assert_eq!(recalled[0].observation(), first.observation());
-    assert_eq!(recalled[0].response(), first.response().unwrap());
+    assert_eq!(recalled[0].response(), first.response());
     assert!(requests[1].contains(
         "{\"episode\":1,\"observation\":{\"origin\":\"observation\",\"identity\":\"obs/1\",\"content\":\"The hallway light is on.\"},\"response\":{\"origin\":\"model_derived\",\"content\":\"No memory yet; I notice: The hallway light is on.\""
     ));

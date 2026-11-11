@@ -19,9 +19,10 @@ as observations and leave current energy or motion unknown.
 
 The recall Gear retrieves from the four retained episodes using distinct shared
 ASCII words of at least four characters, with a small common-word filter.
-It searches retained observations and reports each match score in the model
-request. Pete’s fact context includes recalled observations and historical
-evidence. Typed episode records preserve earlier model-derived responses.
+It searches retained observations, sourced evidence, and typed attempt-outcome
+labels, then reports each match score in the model request. Pete’s fact context
+includes recalled observations, historical evidence, and host-reported model
+outcomes. Typed episode records preserve earlier model-derived responses.
 Higher scores and then newer episodes take precedence under the prompt bound.
 
 The hosted proof registers Pete's Back on the selected Host, submits two frames,
@@ -30,10 +31,14 @@ It also checks that a future observation fails before model admission.
 
 The Plot opts into a typed provider-loss outcome on the generation Flow.
 An unavailable model attempt advances the episode count and emits a record
-without response text. The recall ring retains earlier successful episodes.
-The next frame gets its own model attempt, with one call in flight and no
-automatic retry of the lost attempt. A hosted fault-injection check verifies
-that a later frame resumes recall in the same Play.
+without response text. A selected observation and its exact failed-attempt
+metadata remain in the recall ring. The next frame gets its own model attempt,
+with one call in flight and no automatic retry of the lost attempt. Hosted
+fault-injection checks verify later recall of both earlier successful episodes
+and the observation made during provider loss, including after checkpoint
+recovery. The model context labels the failed attempt as host-reported outcome
+data. The model-context Gear uses bounded English word cues to focus questions
+about past facts and model outcomes.
 
 ```sh
 cargo xtask check pete-cognition

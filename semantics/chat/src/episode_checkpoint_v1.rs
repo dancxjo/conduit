@@ -26,7 +26,7 @@ pub fn migrate_episode_checkpoint_v1(bytes: &[u8]) -> Result<Vec<u8>, EpisodeRef
         )
         .map_err(malformed)?,
     };
-    let mut memories = BoundedSequence::new();
+    let mut memories = BoundedSequence::<_, MAXIMUM_EPISODE_RECALL>::new();
     let mut previous = 0;
     for item in old.memories().get() {
         let episode = *item.episode();
@@ -49,20 +49,25 @@ pub fn migrate_episode_checkpoint_v1(bytes: &[u8]) -> Result<Vec<u8>, EpisodeRef
         )
         .map_err(malformed)?;
         memories
-            .push(EpisodeMemory::new(episode, None, observation, response).map_err(malformed)?)
+            .push(
+                EpisodeMemory::new(
+                    episode,
+                    None,
+                    observation,
+                    EpisodeOutcome::produced(response).map_err(malformed)?,
+                )
+                .map_err(malformed)?,
+            )
             .map_err(|_| EpisodeRefusal::MemoryMalformed)?;
     }
-    let encoded = EpisodeMemoryState::new(
+    fit_memory(
         *old.completed(),
-        EpisodeRecall::new(memories).map_err(malformed)?,
-        owner,
+        &owner,
+        memories.as_slice(),
+        MAXIMUM_EPISODE_CHECKPOINT_BYTES,
     )
-    .and_then(NativeRustBinding::encode)
-    .map_err(malformed)?;
-    if encoded.len() > MAXIMUM_EPISODE_CHECKPOINT_BYTES {
-        return Err(EpisodeRefusal::MemoryMalformed);
-    }
-    Ok(encoded)
+    .map(|(_, encoded)| encoded)
+    .map_err(|_| EpisodeRefusal::MemoryMalformed)
 }
 
 #[cfg(test)]
@@ -109,7 +114,7 @@ mod tests {
         };
         assert_eq!(*item.episode(), 3);
         assert_eq!(item.observation().content(), "COPPER KITE");
-        assert_eq!(item.response().run(), "run/3");
+        assert_eq!(item.response().unwrap().run(), "run/3");
         assert!(item.evidence().is_none());
     }
 }

@@ -83,7 +83,13 @@ pub(super) fn select<'a>(
                     )
                 })
         });
-        let trigger_terms = score(memory.observation().content(), "");
+        let outcome_terms = match memory.outcome() {
+            crate::EpisodeOutcome::Produced(_) => "model attempt outcome produced",
+            crate::EpisodeOutcome::ProviderLost(_) => {
+                "model attempt outcome provider lost unavailable"
+            }
+        };
+        let trigger_terms = score(memory.observation().content(), "").max(score(outcome_terms, ""));
         let shared_terms = trigger_terms.max(best_item.as_ref().map_or(0, |(score, _)| *score));
         if shared_terms > 0 {
             candidates.push(RecallCandidate {
@@ -100,7 +106,10 @@ pub(super) fn select<'a>(
     candidates
 }
 
-fn project_historical_item(item: &serde_json::Value, asks_for_percentage: bool) -> serde_json::Value {
+fn project_historical_item(
+    item: &serde_json::Value,
+    asks_for_percentage: bool,
+) -> serde_json::Value {
     let mut projected = item.clone();
     if let Some(fields) = projected.as_object_mut() {
         // Other readings can depend on coupled fields such as value, unit,
@@ -174,6 +183,25 @@ pub(super) fn compact_evidence(evidence: &str) -> Option<alloc::string::String> 
         "provenance_revision": snapshot["provenance_revision"],
         "evidence": items,
     })))
+}
+
+pub(super) fn asks_model_outcome(query: &str) -> bool {
+    keywords(query)
+        .map(normalize_keyword)
+        .any(|term| term.eq_ignore_ascii_case("outcome"))
+        && keywords(query)
+            .map(normalize_keyword)
+            .any(|term| term.eq_ignore_ascii_case("model") || term.eq_ignore_ascii_case("provider"))
+}
+
+pub(super) fn asks_about_past(query: &str) -> bool {
+    query
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .any(|word| {
+            ["was", "were", "did", "earlier", "previous", "reported"]
+                .iter()
+                .any(|past| word.eq_ignore_ascii_case(past))
+        })
 }
 
 #[cfg(test)]

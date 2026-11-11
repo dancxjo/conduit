@@ -57,7 +57,7 @@ fn installed_ollama_episode_loop_recalls_the_hallway_switch_label() {
         panic!("expected one selected memory in the second episode");
     };
     assert_eq!(memory.observation(), first.observation());
-    assert_eq!(memory.response(), first.response().unwrap());
+    assert_eq!(memory.response(), first.response());
     assert_ne!(
         first.response().unwrap().run(),
         second.response().unwrap().run()

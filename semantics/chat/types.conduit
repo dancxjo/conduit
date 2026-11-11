@@ -256,12 +256,12 @@ type EpisodeModelResponse = {
     truncated: Boolean
 }
 
-# One retained episode: observed evidence and model-derived response stay apart.
+# One selected episode preserves its observation and actual attempt outcome.
 type EpisodeMemory = {
     episode: U64
     evidence: Text <= 4096B?
     observation: EpisodeObservation
-    response: EpisodeModelResponse
+    outcome: EpisodeOutcome
 }
 
 type EpisodeRecall = sequence EpisodeMemory <= 4
@@ -325,7 +325,6 @@ type EpisodeRecord = {
     recalled: EpisodeRecall
     outcome: EpisodeOutcome
     retained: Boolean
-    where !.retained || (.outcome is produced)
 }
 
 type EpisodeRefusal =

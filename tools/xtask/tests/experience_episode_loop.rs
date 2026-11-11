@@ -489,7 +489,7 @@ fn assert_pete_create_serial_play(first_sample: SerialSample) {
             assert_eq!(state["energy"], "unknown");
         }
     }
-    let snapshot = assert_pete_replay(&harness, &report);
+    let snapshot = assert_pete_replay(&harness, &report, 2);
     if let Some(path) = std::env::var_os("CONDUIT_PETE_REPLAY_SNAPSHOT").filter(|_| normal) {
         std::fs::write(path, snapshot.encode().unwrap()).unwrap();
     }
@@ -596,12 +596,13 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
     let recorded: serde_json::Value =
         serde_json::from_str(episodes[1].recalled().get()[0].evidence().as_ref().unwrap()).unwrap();
     assert_eq!(recorded, *historical);
-    assert_pete_replay(&harness, &report);
+    assert_pete_replay(&harness, &report, 2);
 }
 
 fn assert_pete_replay(
     harness: &common::Harness,
     report: &conduit_std_host::StdRunReport,
+    expected_frames: usize,
 ) -> conduit_browser_patchbay_workbench::RendererSnapshot {
     let snapshot = pete_replay::snapshot(
         &harness.fragment,
@@ -676,7 +677,7 @@ fn assert_pete_replay(
             .unwrap();
         assert!(
             trace.steps.iter().any(|step| step.event_index == input),
-            "missing second episode input {port} in {trace:?}"
+            "missing final episode input {port} in {trace:?}"
         );
     }
     assert_eq!(
@@ -687,7 +688,7 @@ fn assert_pete_replay(
                 step.event == "value-received" && step.subject.contains("front/input/frames")
             })
             .count(),
-        2
+        expected_frames
     );
     let bytes = snapshot.encode().unwrap();
     conduit_browser_patchbay_workbench::RendererSnapshot::decode(&bytes, 1).unwrap();
@@ -750,10 +751,7 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
         first.observation()
     );
     assert!(second.response().unwrap().content().contains("COPPER KITE"));
-    assert_eq!(
-        second.recalled().get()[0].response(),
-        first.response().unwrap()
-    );
+    assert_eq!(second.recalled().get()[0].response(), first.response());
 
     let requests = harness.requests.lock().unwrap();
     assert_eq!(requests.len(), 2);
@@ -1021,25 +1019,36 @@ fn pete_records_provider_loss_and_resumes_in_the_same_play() {
         frame_input(frame(1, "The hallway switch label is COPPER KITE.", true)),
         frame_input(frame(2, "The garden gate is closed.", true)),
         frame_input(frame(3, "What was the hallway switch label?", false)),
+        frame_input(frame(4, "What was the garden gate report?", false)),
+        frame_input(frame(
+            5,
+            "What was the earlier model provider outcome?",
+            false,
+        )),
     ]);
     let mut collector = Collector::default();
     let report = run(
         &mut harness,
         &incoming,
         &mut collector,
-        &RunControl::default(),
+        &RunControl::default().with_debug_body(common::context().body_id),
     )
     .unwrap();
     assert_eq!(terminal(&report), &TerminalDisposition::Completed);
+    let snapshot = assert_pete_replay(&harness, &report, 5);
+    if let Some(path) = std::env::var_os("CONDUIT_PETE_LOSS_REPLAY_SNAPSHOT") {
+        std::fs::write(path, snapshot.encode().unwrap()).unwrap();
+    }
+
     let episodes = records(&collector.0);
-    let [first, lost, resumed] = episodes.as_slice() else {
+    let [first, lost, resumed, recalled_loss, outcome_recall] = episodes.as_slice() else {
         panic!("expected one record for each completed attempt");
     };
     assert_eq!(first.body_id(), resumed.body_id());
     assert_eq!(first.wake_id(), resumed.wake_id());
     assert_eq!(*lost.episode(), 2);
     assert!(lost.response().is_none());
-    assert!(!*lost.retained());
+    assert!(*lost.retained());
     let evidence: serde_json::Value =
         serde_json::from_str(lost.evidence().as_ref().unwrap()).unwrap();
     assert_eq!(evidence["revision"], 2);
@@ -1056,132 +1065,49 @@ fn pete_records_provider_loss_and_resumes_in_the_same_play() {
         .unwrap()
         .content()
         .contains("COPPER KITE"));
-    assert_eq!(requests.lock().unwrap().len(), 3);
-}
-
-#[test]
-fn pete_recalls_a_committed_checkpoint_in_a_replacement_play() {
-    use conduit_chat::{initial_episode_memory, EpisodeMemoryState};
-    use conduit_std_host::episode_checkpoint::EpisodeCheckpointResidence;
-    use conduit_std_host::{ExternalForeDelivery, ExternalForeOutputAdapter};
-
-    const RESUMABLE: &str = include_str!("../../../plots/pete-cognition-resumable/main.conduit");
-    struct DurableOutput<'a> {
-        journal: &'a EpisodeCheckpointResidence,
-        episodes: Vec<ExternalForeDelivery>,
-    }
-    impl ExternalForeOutputAdapter for DurableOutput<'_> {
-        fn deliver(&mut self, output: ExternalForeDelivery) -> Result<(), String> {
-            if output.front_port_id.as_str() == "checkpoints" {
-                self.journal.commit(&output.bytes)?;
-            } else {
-                self.episodes.push(output);
-            }
-            Ok(())
-        }
-    }
-    let directory =
-        std::env::temp_dir().join(format!("conduit-pete-checkpoint-{}", std::process::id()));
-    std::fs::create_dir(&directory).unwrap();
-    struct Cleanup(std::path::PathBuf);
-    impl Drop for Cleanup {
-        fn drop(&mut self) {
-            let _ = std::fs::remove_dir_all(&self.0);
-        }
-    }
-    let directory = Cleanup(directory);
-    let context = common::context();
-    let journal = EpisodeCheckpointResidence::open(&directory.0, &context).unwrap();
-    let (model, _) = common::fenced_model();
-    let empty = journal.recover_seed().unwrap();
-    assert_eq!(empty, initial_episode_memory());
-    let mut harness = pete_harness_for(model, RESUMABLE, "pete-cognition-resumable", Some(&empty));
-    let mut incoming = inputs(&[]);
-    incoming.push(frame_input(frame(
-        1,
-        "The hallway switch label is COPPER KITE.",
-        true,
-    )));
-    let mut collector = DurableOutput {
-        journal: &journal,
-        episodes: Vec::new(),
-    };
-    let first = run(
-        &mut harness,
-        &incoming,
-        &mut collector,
-        &RunControl::default(),
-    )
-    .unwrap();
-    assert_eq!(terminal(&first), &TerminalDisposition::Completed);
-    drop(collector);
-    drop(journal);
-
-    let journal = EpisodeCheckpointResidence::open(&directory.0, &context).unwrap();
-    let restored = journal.recover_seed().unwrap();
-    assert_eq!(
-        *EpisodeMemoryState::decode(&restored).unwrap().completed(),
-        1
-    );
-    let first_plan = harness.plan_id.clone();
-    let (model, _) = common::fenced_model();
-    let mut harness = pete_harness_for(
-        model,
-        RESUMABLE,
-        "pete-cognition-resumable",
-        Some(&restored),
-    );
-    let mut incoming = inputs(&[]);
-    incoming.push(frame_input(frame(
-        2,
-        "What was the hallway switch label?",
-        false,
-    )));
-    assert_ne!(first_plan, harness.plan_id);
-    let mut collector = DurableOutput {
-        journal: &journal,
-        episodes: Vec::new(),
-    };
-    let second = run(
-        &mut harness,
-        &incoming,
-        &mut collector,
-        &RunControl::default(),
-    )
-    .unwrap();
-    assert_eq!(terminal(&second), &TerminalDisposition::Completed);
-    let first_play = first.kernel.unwrap().active_play_id;
-    let second_play = second.kernel.unwrap().active_play_id;
-    assert_ne!(first_play, second_play);
-    let episodes = records(&collector.episodes);
-    assert_eq!(
-        *EpisodeMemoryState::decode(&journal.recover_seed().unwrap())
-            .unwrap()
-            .completed(),
-        2
-    );
-    assert_eq!(episodes.len(), 1);
-    let episode = &episodes[0];
-    assert_eq!(*episode.episode(), 2);
-    assert_eq!(*episode.recalled().get()[0].episode(), 1);
-    let historical: serde_json::Value =
-        serde_json::from_str(episode.recalled().get()[0].evidence().as_ref().unwrap()).unwrap();
-    assert_eq!(historical["revision"], 1);
-    assert_eq!(
-        historical["evidence"][0]["sources"][0]["sign"],
-        "utterance/1"
-    );
-    assert!(episode
+    assert_eq!(*recalled_loss.episode(), 4);
+    let selected = &recalled_loss.recalled().get()[0];
+    assert_eq!(*selected.episode(), 2);
+    assert_eq!(selected.outcome(), lost.outcome());
+    assert!(selected.response().is_none());
+    assert!(recalled_loss
         .response()
         .unwrap()
         .content()
-        .contains("COPPER KITE"));
-    println!(
-        "CONDUIT_PLOT_EVIDENCE={{\"plan_id\":\"{}\",\"play_id\":\"{}\",\"workload_revision\":null}}",
-        harness.plan_id,
-        second_play.as_str()
+        .contains("garden gate is closed"));
+    let requests = requests.lock().unwrap();
+    assert_eq!(requests.len(), 5);
+    assert_eq!(
+        *outcome_recall.recalled().get().last().unwrap().episode(),
+        2
+    );
+    let outcome_prompt: serde_json::Value = serde_json::from_str(&requests[4]).unwrap();
+    assert_eq!(
+        outcome_prompt["recalled"]
+            .as_array()
+            .unwrap()
+            .last()
+            .unwrap()["model_outcome"]["disposition"],
+        "provider_lost"
+    );
+    let prompt: serde_json::Value = serde_json::from_str(&requests[3]).unwrap();
+    assert!(prompt["recalled"][0].get("response").is_none());
+    assert_eq!(
+        prompt["recalled"][0]["model_outcome"]["origin"],
+        "host_reported"
+    );
+    assert_eq!(
+        prompt["recalled"][0]["model_outcome"]["disposition"],
+        "provider_lost"
+    );
+    assert_eq!(
+        prompt["recalled"][0]["model_outcome"]["attempt"],
+        outcome.attempt().as_str()
     );
 }
+
+#[path = "pete_checkpoint_loop.rs"]
+mod pete_checkpoint_loop;
 
 #[test]
 fn stale_battery_and_safety_do_not_become_current_homeostatic_facts() {

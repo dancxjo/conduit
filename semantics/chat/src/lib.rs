@@ -27,6 +27,7 @@ pub use generated::{
 };
 
 mod episode_integration;
+mod episode_outcome;
 pub use episode_integration::*;
 mod body_chat;
 pub use body_chat::*;

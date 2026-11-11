@@ -132,7 +132,7 @@ pub fn episode_experience_type() -> StructuredInfoType {
 pub fn episode_experience_compose_semantic_contract() -> Kind {
     let mut contract = episode_compose_semantic_contract();
     contract.kind_id = kind_id(EPISODE_EXPERIENCE_COMPOSE_KIND);
-    contract.kind_contract_revision = "conduit.body/episode-compose-experience@1".into();
+    contract.kind_contract_revision = "conduit.body/episode-compose-experience@2".into();
     contract.inputs[0].port_id = port_id("experience");
     contract.inputs[0].value_kind = type_kind(episode_experience_type());
     contract.limits.max_queue_bytes = MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32;
@@ -147,7 +147,7 @@ pub fn episode_recollection_type() -> StructuredInfoType {
 pub fn episode_recall_experience_contract() -> Kind {
     let mut contract = episode_experience_compose_semantic_contract();
     contract.kind_id = kind_id(EPISODE_RECALL_EXPERIENCE_KIND);
-    contract.kind_contract_revision = "conduit.body/episode-recall-experience@1".into();
+    contract.kind_contract_revision = "conduit.body/episode-recall-experience@2".into();
     contract.outputs[0].port_id = port_id("recollection");
     contract.outputs[0].value_kind = type_kind(episode_recollection_type());
     contract
@@ -156,7 +156,7 @@ pub fn episode_model_context_contract() -> Kind {
     use PortDirection::{Input, Output};
     kind(
         "body/episode-model-context",
-        "conduit.body/episode-model-context@1",
+        "conduit.body/episode-model-context@2",
         vec![flow(
             "recollection",
             type_kind(episode_recollection_type()),
@@ -263,7 +263,7 @@ pub fn episode_resumable_memory_contract(initial: &[u8]) -> Result<Kind, crate::
     crate::EpisodeMemoryCell::from_checkpoint(initial)?;
     let mut contract = episode_memory_semantic_contract();
     contract.kind_id = kind_id(EPISODE_RESUMABLE_MEMORY_KIND);
-    contract.kind_contract_revision = "conduit.body/episode-memory-resume@1".into();
+    contract.kind_contract_revision = "conduit.body/episode-memory-resume@2".into();
     for law in &mut contract.semantic_laws {
         if let KindSemanticLaw::InitializedState(law) = law {
             law.initial = initial.to_vec();

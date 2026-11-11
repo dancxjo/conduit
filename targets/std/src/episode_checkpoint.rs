@@ -2,9 +2,9 @@
 use crate::state_value::{DurableStateBinding, FileDurableStateResidence, RecoveryDisposition};
 use conduit_body::BodyConversationContext;
 use conduit_chat::{
-    decode_episode_checkpoint, episode_checkpoint_v1_type, episode_memory_state_type,
-    initial_episode_memory, migrate_episode_checkpoint_v1, EpisodeMemoryOwner,
-    MAXIMUM_EPISODE_CHECKPOINT_BYTES,
+    decode_episode_checkpoint, episode_checkpoint_v1_type, episode_checkpoint_v2_type,
+    episode_memory_state_type, initial_episode_memory, migrate_episode_checkpoint_v1,
+    migrate_episode_checkpoint_v2, EpisodeMemoryOwner, MAXIMUM_EPISODE_CHECKPOINT_BYTES,
 };
 use std::path::Path;
 
@@ -52,33 +52,50 @@ impl EpisodeCheckpointResidence {
     }
 
     fn migrate_previous(&self, root: &Path) -> Result<(), String> {
-        let mut binding = self.journal.binding().clone();
-        binding.value_kind = episode_checkpoint_v1_type()
-            .profile()
-            .map_err(|error| format!("previous episode memory profile: {error:?}"))?
-            .value_kind()
-            .clone();
-        let previous = FileDurableStateResidence::open(root, binding)
-            .map_err(|error| format!("open previous episode residence: {error:?}"))?;
-        match previous
-            .recover_value()
-            .map_err(|error| format!("recover previous episode checkpoint: {error:?}"))?
-        {
-            (RecoveryDisposition::Absent, None) => Ok(()),
-            (RecoveryDisposition::Recovered { generation }, Some(bytes)) => {
-                let migrated = migrate_episode_checkpoint_v1(&bytes)
-                    .map_err(|error| format!("migrate previous episode checkpoint: {error:?}"))?;
-                if self.generation(&migrated)? != generation {
-                    return Err(
-                        "previous checkpoint generation differs from its episode count".into(),
-                    );
+        type Migrate = fn(&[u8]) -> Result<Vec<u8>, conduit_chat::EpisodeRefusal>;
+        for (profile, migrate) in [
+            (
+                episode_checkpoint_v2_type(),
+                migrate_episode_checkpoint_v2 as Migrate,
+            ),
+            (
+                episode_checkpoint_v1_type(),
+                migrate_episode_checkpoint_v1 as Migrate,
+            ),
+        ] {
+            let mut binding = self.journal.binding().clone();
+            binding.value_kind = profile
+                .profile()
+                .map_err(|error| format!("previous episode memory profile: {error:?}"))?
+                .value_kind()
+                .clone();
+            let previous = FileDurableStateResidence::open(root, binding)
+                .map_err(|error| format!("open previous episode residence: {error:?}"))?;
+            match previous
+                .recover_value()
+                .map_err(|error| format!("recover previous episode checkpoint: {error:?}"))?
+            {
+                (RecoveryDisposition::Absent, None) => continue,
+                (RecoveryDisposition::Recovered { generation }, Some(bytes)) => {
+                    let migrated = migrate(&bytes).map_err(|error| {
+                        format!("migrate previous episode checkpoint: {error:?}")
+                    })?;
+                    if self.generation(&migrated)? != generation {
+                        return Err(
+                            "previous checkpoint generation differs from its episode count".into(),
+                        );
+                    }
+                    return self
+                        .journal
+                        .import_generation(generation, &migrated)
+                        .map_err(|error| {
+                            format!("publish migrated episode checkpoint: {error:?}")
+                        });
                 }
-                self.journal
-                    .import_generation(generation, &migrated)
-                    .map_err(|error| format!("publish migrated episode checkpoint: {error:?}"))
+                _ => return Err("inconsistent previous episode checkpoint recovery".into()),
             }
-            _ => Err("inconsistent previous episode checkpoint recovery".into()),
         }
+        Ok(())
     }
 
     pub fn recover_seed(&self) -> Result<Vec<u8>, String> {

@@ -11,9 +11,12 @@ the reviewed homeostasis policy to add derived energy and safety context while
 preserving the raw observations.
 
 The checkpoint holds the completed episode count and at most four selected
-observations and responses, within 4 KiB. Oldest entries are evicted as needed
+observations and actual attempt outcomes, within 4 KiB. Oldest entries are evicted as needed
 to fit. Recovery checks the owner and count before any recalled history can enter
 a model request. A replacement Play continues the episode count in the same Wake.
+Recovery upgrades the previous successful-only checkpoint profiles. Selected
+observations made during provider loss retain their failure metadata and can
+be recalled after restart.
 
 Run `cargo xtask check pete-cognition` for the proof. It commits the first Play's
 checkpoint, reopens the journal, then selects the recovered bytes in a new
