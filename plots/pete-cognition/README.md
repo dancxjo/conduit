@@ -76,3 +76,16 @@ safety observation is unavailable.
 If a sensor read fails and the stream pauses successfully, the proof records
 unavailable battery evidence with the Create source identity. The Play can
 process the utterance and resume battery observation on a later frame.
+
+Run the same Plot with your own utterances on a std Host:
+
+```sh
+cargo xtask prove pete std-cognition --retain \
+  --utterance 'The hallway switch label is COPPER KITE.' \
+  --utterance 'What was the switch label?'
+```
+
+This command starts one Body and Wake for the supplied utterances and uses
+the installed loopback Ollama model. Pass `--serial-path /dev/ttyUSB0` to
+capture a Create sample for each utterance. Without a serial path, battery
+state is unknown. Responses are printed as the Play delivers episodes.

@@ -32,6 +32,7 @@ pub mod notebook;
 pub mod ollama_embodiment;
 pub mod ollama_planning_advice;
 pub mod palette_icons;
+mod pete_std_cognition;
 pub mod pete_std_create;
 pub mod pete_std_drive;
 pub mod pete_std_indicator;
