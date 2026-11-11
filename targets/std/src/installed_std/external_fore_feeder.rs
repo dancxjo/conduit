@@ -256,7 +256,7 @@ impl LiveForeFeeder {
         match outcome {
             Some(RemoteIngressOutcome::Accepted { sequence }) => {
                 self.queue.acknowledge(sequence)?;
-                if self.queue.initial().is_some() {
+                if self.queue.initial().is_some() && self.queue.port().temporal == PortTemporal::Value {
                     for &(endpoint, cord) in &self.targets {
                         ingress.close(endpoint, cord)?;
                     }
@@ -265,7 +265,7 @@ impl LiveForeFeeder {
                 }
             }
             Some(RemoteIngressOutcome::Full { sequence }) => {
-                if self.queue.initial().is_some() {
+                if self.queue.initial().is_some() && self.queue.port().temporal == PortTemporal::Value {
                     return Err(format!(
                         "waiting checkpoint command ingress pressured at sequence {sequence}"
                     ));

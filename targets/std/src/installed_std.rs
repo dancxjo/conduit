@@ -354,7 +354,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let supplied_inputs = external_fore
         .as_ref()
         .map_or(&[][..], |binding| binding.inputs);
-    let mut fore_inputs = if let Some(config) = external_fore.as_ref().and_then(|run| run.stream) {
+    let live_fore = external_fore.as_ref().and_then(|run| run.live);
+    let mut fore_inputs = if let Some(queue) = live_fore {
+        external_fore_feeder::PreparedForeInputs::prepare_live(&planned_inputs, queue)?
+    } else if let Some(config) = external_fore.as_ref().and_then(|run| run.stream) {
         external_fore_feeder::PreparedForeInputs::prepare_stream(
             &planned_inputs,
             supplied_inputs,
@@ -891,8 +894,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     timer.observe_kernel_phase(crate::KernelTimingPhase::PlayStarted);
     #[cfg(test)]
     let play_start_probe = crate::allocation_probe::begin();
+    if let Some(queue) = live_fore {
+        queue.mark_play_started();
+    }
     let mut accepted_stop = None;
     let terminal_disposition = loop {
+        let live_observed = fore_inputs.activity_generation();
         if let Some(source) = native_call.as_mut() {
             native_source_dispatch::poll(
                 source,
@@ -3558,6 +3565,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 {
                     std::thread::park_timeout(Duration::from_millis(1));
                     continue;
+                }
+                if accepted_stop.is_none() {
+                    if let Some(observed) = live_observed {
+                        if fore_inputs.wait_for_activity(observed)? {
+                            continue;
+                        }
+                    }
                 }
                 return Err(format!(
                     "installed kernel became idle before completion: {:?}",

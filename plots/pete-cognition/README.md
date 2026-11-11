@@ -55,9 +55,10 @@ the Signs view.
 Live sensor and homeostasis sources remain part of
 [#3707](https://github.com/dancxjo/conduit/issues/3707).
 
-The Linux serial proof uses the std Create UART Base to read two correlated
-samples, then delivers their typed frames to one cognition Play. It uses a
-pseudo-terminal by default. To select a physical Create explicitly, pass its
+The Linux serial proof waits for the cognition Play to start, then uses the
+std Create UART Base to read and submit the first correlated sample. After the
+first episode is delivered, it captures and submits the second sample into the
+same Play. The proof uses a pseudo-terminal by default. To select a physical Create explicitly, pass its
 device path:
 
 ```sh

@@ -29,9 +29,45 @@ pub struct ExternalForeRun<'a> {
     pub output: &'a mut dyn ExternalForeOutputAdapter,
     pub sequential: bool,
     pub stream: Option<ExternalForeStreamConfig>,
+    pub live: Option<&'a BodyLiveForeQueue>,
 }
 
 impl StdHost {
+    pub fn run_external_plot_live_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        queue: &BodyLiveForeQueue,
+        output_adapter: &mut dyn ExternalForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+        control: &RunControl,
+    ) -> Result<StdRunReport, String> {
+        if !queue.matches_local_flow_fragment(&fragment, control) {
+            return Err("live Fore queue differs from the sealed fragment or stop control".into());
+        }
+        let result = self.run_fragment_owned_with_keyboard_to(
+            fragment, output, timer, control,
+            HostRunInputs {
+                keyboard: None,
+                indicator: None,
+                retained: None,
+                attach_live: false,
+                external_fore: Some(ExternalForeRun {
+                    inputs: &[],
+                    output: output_adapter,
+                    sequential: true,
+                    stream: None,
+                    live: Some(queue),
+                }),
+                spoken_mask: None,
+                direct_spoken_mask: None,
+                durable_state: None,
+            },
+        );
+        queue.mark_play_terminal();
+        result.map(|run| run.report)
+    }
+
     pub fn run_fragment_to<W: Write, T: TimerAdapter>(
         &mut self,
         fragment: PlanFragment,
@@ -294,6 +330,7 @@ impl StdHost {
                     output: output_adapter,
                     sequential,
                     stream: None,
+                    live: None,
                 }),
                 spoken_mask: None,
                 direct_spoken_mask: None,

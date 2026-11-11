@@ -78,6 +78,7 @@ impl BodyLiveForeQueue {
             .map_err(|error| format!("document step current: {error:?}"))?;
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            fragment_id: None,
             port: edit.clone(),
             maximum_items: 1,
             control,
@@ -165,6 +166,7 @@ impl BodyLiveForeQueue {
             .collect();
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            fragment_id: None,
             port: port.clone(),
             maximum_items: maximum_edits,
             control,

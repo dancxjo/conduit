@@ -232,56 +232,122 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
             master
         })
     });
-    let mut incoming = inputs(&[]);
-    let mut capture_ticks = Vec::new();
-    for (index, message) in [
-        "The switch label is COPPER KITE.",
-        "What was the switch label?",
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let revision = (index + 1) as u64;
-        let sign = |kind| PeteCognitionSign::new(format!("serial/{kind}/{revision}")).unwrap();
-        let battery = capture_pete_cognition_battery(
-            &mut provider,
-            sign("battery"),
-            "clock/pete-create-proof".into(),
-            1_000,
-            monotonic_millis,
-        )
-        .unwrap()
-        .expect("Create supplied a usable capacity estimate");
-        let now = battery.observed_at().clone();
-        capture_ticks.push(*now.ticks());
-        incoming.push(frame_input(
-            PeteCognitionFrame::new(
-                battery,
-                None,
-                "pete/create-proof".into(),
-                now.clone(),
-                revision,
-                ExperienceTemporalPolicy::new(10, 20).unwrap(),
-                PeteCognitionUtterance::new(message.into(), now, revision == 1, sign("utterance"))
-                    .unwrap(),
-            )
-            .unwrap(),
-        ));
+    use conduit_std_host::{
+        BodyLiveForeAdmission, BodyLiveForeQueue, ExternalForeDelivery, ExternalForeOutputAdapter,
+    };
+    struct Output {
+        episodes: Collector,
+        first: Option<std::sync::mpsc::Sender<()>>,
     }
-    if let Some(peer) = peer {
-        peer.join().unwrap();
+    impl ExternalForeOutputAdapter for Output {
+        fn deliver(&mut self, delivery: ExternalForeDelivery) -> Result<(), String> {
+            self.episodes.deliver(delivery)?;
+            if let Some(first) = self.first.take() {
+                first.send(()).map_err(|error| error.to_string())?;
+            }
+            Ok(())
+        }
+    }
+    struct CloseOnDrop(BodyLiveForeQueue);
+    impl Drop for CloseOnDrop {
+        fn drop(&mut self) {
+            let _ = self.0.close();
+        }
     }
 
     let (model, requests) = common::fenced_model();
     let mut harness = pete_harness(model);
-    let mut collector = Collector::default();
-    let report = run(
-        &mut harness,
-        &incoming,
-        &mut collector,
-        &RunControl::default(),
+    let control = RunControl::default();
+    let seed = inputs(&[]).pop().unwrap();
+    let queue = BodyLiveForeQueue::for_local_flow_fragment(
+        &harness.fragment,
+        "frames",
+        seed,
+        control.clone(),
+        1,
+        2,
     )
     .unwrap();
+    let producer_queue = queue.clone();
+    let (first, first_episode) = std::sync::mpsc::channel();
+    let producer = std::thread::spawn(move || {
+        let _close = CloseOnDrop(producer_queue.clone());
+        producer_queue.wait_until_play_started().unwrap();
+        let mut capture_ticks = Vec::new();
+        for (index, message) in [
+            "The switch label is COPPER KITE.",
+            "What was the switch label?",
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let revision = (index + 1) as u64;
+            let sign = |kind| PeteCognitionSign::new(format!("serial/{kind}/{revision}")).unwrap();
+            let battery = capture_pete_cognition_battery(
+                &mut provider,
+                sign("battery"),
+                "clock/pete-create-proof".into(),
+                1_000,
+                monotonic_millis,
+            )
+            .unwrap()
+            .expect("Create supplied a usable capacity estimate");
+            let now = battery.observed_at().clone();
+            capture_ticks.push(*now.ticks());
+            let input = frame_input(
+                PeteCognitionFrame::new(
+                    battery,
+                    None,
+                    "pete/create-proof".into(),
+                    now.clone(),
+                    revision,
+                    ExperienceTemporalPolicy::new(10, 20).unwrap(),
+                    PeteCognitionUtterance::new(
+                        message.into(),
+                        now,
+                        revision == 1,
+                        sign("utterance"),
+                    )
+                    .unwrap(),
+                )
+                .unwrap(),
+            );
+            assert_eq!(
+                producer_queue.submit(&input.bytes).unwrap(),
+                BodyLiveForeAdmission::Accepted {
+                    sequence: index as u64
+                }
+            );
+            if index == 0 {
+                first_episode
+                    .recv_timeout(std::time::Duration::from_secs(5))
+                    .unwrap();
+            }
+        }
+
+        if let Some(peer) = peer {
+            peer.join().unwrap();
+        }
+        capture_ticks
+    });
+    let mut output = Output {
+        episodes: Collector::default(),
+        first: Some(first),
+    };
+    let result = harness.host.run_external_plot_live_to(
+        harness.fragment.clone(),
+        &queue,
+        &mut output,
+        &mut Vec::new(),
+        &mut common::NoopTimer,
+        &control,
+    );
+    let capture_ticks = producer.join().unwrap();
+    let report = result.unwrap();
+    let collector = output.episodes;
+    let status = queue.status();
+    assert_eq!(status.kernel_admitted, 2);
+    assert!(status.kernel_closed && status.play_terminal);
     assert_eq!(terminal(&report), &TerminalDisposition::Completed);
     let episodes = records(&collector.0);
     assert_eq!(episodes.len(), 2);
