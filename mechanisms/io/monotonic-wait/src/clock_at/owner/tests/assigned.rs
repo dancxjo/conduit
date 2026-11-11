@@ -195,13 +195,11 @@ fn exercise(borrowed: bool, fore: bool) {
         .is_err());
         assert_eq!(rejected.as_ref().unwrap().provider.calls, 0);
     }
-    for stale_host in [false, true] {
-        let mut stale = active.clone();
-        if stale_host {
-            stale.host_id = "stale/host".into()
-        } else {
-            stale.boot_id = "stale/boot".into()
-        }
+    let mut stale_host = active.clone();
+    stale_host.host_id = "stale/host".into();
+    let mut stale_boot = active.clone();
+    stale_boot.boot_id = "stale/boot".into();
+    for stale in [&stale_host, &stale_boot] {
         let (table, handle, claim) = issue();
         assert!(prepare(
             &contract,
@@ -210,7 +208,7 @@ fn exercise(borrowed: bool, fore: bool) {
             table,
             handle,
             claim,
-            selected(&stale)
+            selected(stale)
         )
         .is_err());
         assert!(slot.is_some());
@@ -325,11 +323,18 @@ fn exercise(borrowed: bool, fore: bool) {
         owner
             .start(NodeId(0), HostCallId(0), RequestId(0), &input)
             .unwrap();
-        let output = owner
+        let bytes = owner
             .poll(NodeId(0), HostCallId(0), RequestId(0))
             .unwrap()
-            .unwrap()
-            .len();
+            .unwrap();
+        let value = validate_canonical_structured_value(bytes).unwrap();
+        assert_eq!(value.variant_tag().unwrap(), "completed");
+        let instant = value.variant_payload("completed").unwrap().unwrap();
+        assert_eq!(
+            instant.primitive_bytes("value/u64").unwrap(),
+            10u64.to_le_bytes()
+        );
+        let output = bytes.len();
         (owner, output)
     });
     assert!(slot.is_none());
@@ -337,12 +342,23 @@ fn exercise(borrowed: bool, fore: bool) {
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     assert_eq!(owner.provider.calls, 1);
     assert_eq!(owner.inspection().in_flight_operations, 0);
+    // Cancel an actually pending second observation; late provider data cannot
+    // become a new completion, and revocation retires its in-flight lease.
+    owner
+        .start(NodeId(0), HostCallId(0), RequestId(1), &request(20))
+        .unwrap();
+    assert!(owner
+        .poll(NodeId(0), HostCallId(0), RequestId(1))
+        .unwrap()
+        .is_none());
+    assert_eq!(owner.provider.calls, 2);
     owner.revoke(NodeId(0), HostCallId(0)).unwrap();
+    assert_eq!(owner.inspection().in_flight_operations, 0);
     owner.provider.next = Some(20);
     assert_eq!(
-        owner.poll(NodeId(0), HostCallId(0), RequestId(0)),
+        owner.poll(NodeId(0), HostCallId(0), RequestId(1)),
         Err(ClockCallRefusal::Cancelled)
     );
-    assert_eq!(owner.provider.calls, 1);
+    assert_eq!(owner.provider.calls, 2);
     assert!(owner.provider.revoked);
 }
