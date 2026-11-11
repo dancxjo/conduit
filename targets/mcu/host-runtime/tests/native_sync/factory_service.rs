@@ -178,16 +178,23 @@ fn assigned_factory_refusals_preserve_ready_and_charge_all_retained_backing() {
         core::mem::size_of::<RecordServiceBack<2,READ_RESULT_BYTES>>(),
         core::mem::size_of::<Driver<'_,HostCallBack>>(),
         core::mem::size_of::<Driver<'_,HostCallBack,BoxedRecordServiceBack<2,READ_RESULT_BYTES>>>());
+    assert!(PreparedBacks::<2, 2>::requires_terminal_gate(&candidate));
+    assert!(
+        PreparedBacks::<2, 2>::terminal_transductions(&candidate).is_none(),
+        "an arbitrary resident owner must explicitly refuse inspection"
+    );
     drop(candidate);
     assert!(slot.is_some());
     assert_eq!(storage.programs.get(), 0);
 }
 #[test]
 fn original_signed_start_binds_actual_service_once_without_allocation_or_media_effect() {
-    check_signed_start::<2>(true);
-    check_signed_start::<1>(false);
+    check_signed_start::<2>(true, false, false);
+    check_signed_start::<1>(false, false, false);
+    check_signed_start::<2>(false, true, false);
+    check_signed_start::<2>(false, false, true);
 }
-fn check_signed_start<const HOST_CALLS: usize>(can_start: bool) {
+fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, legacy: bool) {
     let f = Fixture::new();
     let storage = fixture::Storage::new();
     let plot = c::seal_plan(
@@ -395,7 +402,29 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool) {
                 )
             }
             .unwrap();
-            PreparedFragment::<_, 1, 1, 2, 4, 4, HOST_CALLS, 64>::prepare(
+            let expected = core::array::from_fn(|node| {
+                core::array::from_fn(|port| {
+                    if mismatch {
+                        None
+                    } else {
+                        generated.kernel().nodes[node].terminal_transductions[port]
+                    }
+                })
+            });
+            if legacy {
+                return PreparedFragment::<_, 1, 1, 2, 4, 4, HOST_CALLS, 64>::prepare(
+                    &approved[0],
+                    profile(),
+                    &[],
+                    &layout,
+                    HostedValueStore::new(8, 837, 4096).unwrap(),
+                    FixedSignLog::<64>::new(64 * core::mem::size_of::<KernelEvent>() as u32)
+                        .unwrap(),
+                    131072,
+                    || Ok::<_, ()>(backs),
+                );
+            }
+            PreparedFragment::<_, 1, 1, 2, 4, 4, HOST_CALLS, 64>::prepare_with_terminal_transductions(
                 &approved[0],
                 profile(),
                 &[],
@@ -404,20 +433,31 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool) {
                 FixedSignLog::<64>::new(64 * core::mem::size_of::<KernelEvent>() as u32).unwrap(),
                 131072,
                 || Ok::<_, ()>(backs),
+                expected,
             )
         },
     );
     let mut prepared_slot = prepared_result
         .map_err(|error| {
             assert!(!can_start, "unexpected prepare failure: {error:?}");
-            assert!(matches!(
-                error,
+            match error {
                 conduit_mcu_host_runtime::execution::Refusal::Back(
                     conduit_mcu_host_runtime::execution::Refusal::Tables(
-                        conduit_kernel::assigned::AssignedKernelRefusal::Capacity
-                    )
-                )
-            ));
+                        conduit_kernel::assigned::AssignedKernelRefusal::Capacity,
+                    ),
+                ) => assert_eq!(HOST_CALLS, 1),
+                conduit_mcu_host_runtime::execution::Refusal::Back(
+                    conduit_mcu_host_runtime::execution::Refusal::TerminalContracts,
+                ) => assert!(legacy),
+                conduit_mcu_host_runtime::execution::Refusal::Back(
+                    conduit_mcu_host_runtime::execution::Refusal::Storage(
+                        conduit_kernel::scheduler::KernelPreparationError::Topology(
+                            conduit_kernel::scheduler::SchedulerError::InvalidPlan,
+                        ),
+                    ),
+                ) => assert!(mismatch),
+                other => panic!("unexpected refusal: {other:?}"),
+            }
         })
         .ok();
     if !can_start {

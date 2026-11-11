@@ -3542,3 +3542,75 @@ fn cord(id: u16, source_node: u16, source_port: u16, sink_node: u16, sink_port: 
         },
     )
 }
+
+#[cfg(feature = "alloc")]
+#[test]
+fn boxed_preparation_installs_each_inputs_checked_contract_before_bind() {
+    let first = RemoteEndpointId(0);
+    let second = RemoteEndpointId(1);
+    let mut routes = FixedRoutes::<1, 1>::new(2);
+    routes.seal().unwrap();
+    let capacity = |slot_start| CordCapacity {
+        slot_start,
+        item_capacity: 1,
+        byte_capacity: 4,
+        pressure_policy: Default::default(),
+    };
+    let driver = TwoInputTerminalBack {
+        recovered_first: false,
+    };
+    let contracts = driver.terminal_transductions();
+    let mut calls = FixedHostCallBindings::<0>::new(1);
+    calls.seal().unwrap();
+    let prepared =
+        FixedScheduler::<_, _, _, 1, 2, 2, 2, 1, 1, 0, 1>::prepare_boxed_with_terminal_transductions(
+            1,
+            2,
+            [node([Some(CordId(0)), Some(CordId(1))])],
+            [
+                CordSpec::remote_ingress(CordId(0), first, (NodeId(0), PortId(0)), capacity(0)),
+                CordSpec::remote_ingress(CordId(1), second, (NodeId(0), PortId(1)), capacity(1)),
+            ],
+            routes,
+            calls,
+            FixedValueStore::<2, 8>::new(8).unwrap(),
+            FixedSignLog::<16>::new_with_remote_storage(
+                (16 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+                8,
+                crate::remote_sign_storage_bytes(8).unwrap(),
+            )
+            .unwrap(),
+            usize::MAX,
+            [contracts],
+            [driver.terminal_transductions()],
+        )
+        .unwrap();
+    let mut scheduler = prepared.bind([driver]);
+    assert_eq!(scheduler.terminal_transductions, [contracts]);
+    let first_terminal = CanonicalValue::new(&[1]).unwrap();
+    let second_terminal = CanonicalValue::new(&[2]).unwrap();
+    scheduler
+        .close_remote_input_abnormal(first, CordId(0), first_terminal)
+        .unwrap();
+    scheduler
+        .close_remote_input_abnormal(second, CordId(1), second_terminal)
+        .unwrap();
+
+    assert!(matches!(
+        scheduler.step().unwrap(),
+        SchedulerStatus::Progress { node: NodeId(0) }
+    ));
+    assert!(scheduler.drivers()[0].recovered_first);
+    let second_outcome = scheduler.step();
+    assert!(
+        matches!(
+            second_outcome,
+            Err(SchedulerError::SemanticAbnormal {
+                node: NodeId(0),
+                port: PortId(0),
+                terminal,
+            }) if terminal == second_terminal
+        ),
+        "unexpected second terminal outcome: {second_outcome:?}"
+    );
+}

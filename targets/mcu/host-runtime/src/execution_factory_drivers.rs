@@ -192,6 +192,16 @@ where
 {
     type Driver = Driver<'f, R::Back>;
     type Calls = Calls<P, T, W, A>;
+    fn terminal_transductions(
+        &self,
+    ) -> Option<[[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; PORTS]; N]> {
+        // Arbitrary generated resident owners have no inspection entrance yet.
+        // Software/native/write variants use StepBack's empty contract.
+        if self.residents.nodes().iter().any(Option::is_some) {
+            return None;
+        }
+        Some([[None; PORTS]; N])
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }

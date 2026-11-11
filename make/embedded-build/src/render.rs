@@ -41,6 +41,7 @@ impl GeneratedEmbeddedPlan {
         render_policies(&mut output, self.cancellation_policy, self.terminal_policy);
         render_budgets(&mut output, self);
         render_nodes(&mut output, self);
+        render_terminal_transductions(&mut output, self);
         render_node_strings(
             &mut output,
             "GENERATED_PLACEMENT_IDS",
@@ -111,6 +112,7 @@ impl GeneratedEmbeddedPlan {
         render_policy_strings(&mut output, self.cancellation_policy, self.terminal_policy);
         render_budgets(&mut output, self);
         render_nodes(&mut output, self);
+        render_terminal_transductions(&mut output, self);
         render_node_strings(
             &mut output,
             "GENERATED_PLACEMENT_IDS",
@@ -821,4 +823,59 @@ fn render_u32_slice(output: &mut String, name: &str, values: impl Iterator<Item 
         values
     )
     .expect("String writes cannot fail");
+}
+
+/// Link exact bounded laws using only the existing no_std kernel vocabulary.
+fn render_terminal_transductions(output: &mut String, plan: &GeneratedEmbeddedPlan) {
+    writeln!(output, "pub const GENERATED_TERMINAL_TRANSDUCTIONS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; {FIXED_KERNEL_STORAGE_PORTS_PER_NODE}]; {}] = [", plan.nodes.len()).unwrap();
+    for node in &plan.nodes {
+        output.push('[');
+        for law in node.terminal_transductions {
+            let expression = terminal_expression(law);
+            write!(output, "{expression},").unwrap();
+        }
+        output.push_str("],\n");
+    }
+    output.push_str("];\n");
+}
+
+pub(super) fn terminal_expression(
+    law: Option<conduit_kernel::scheduler::AssignedTerminalTransduction>,
+) -> String {
+    use conduit_kernel::scheduler::{
+        AssignedAbnormalTransduction as Abnormal, AssignedCancellationTransduction as Cancellation,
+        AssignedNormalCloseTransduction as Normal,
+    };
+    let Some(law) = law else {
+        return "None".to_owned();
+    };
+    let emission = |bound: conduit_kernel::scheduler::AssignedFiniteTerminalEmission| {
+        format!("conduit_kernel::scheduler::AssignedFiniteTerminalEmission {{ maximum_items: {}, maximum_bytes: {} }}", bound.maximum_items, bound.maximum_bytes)
+    };
+    let normal = match law.normal_close {
+        Normal::NotAccepted => "NotAccepted".to_owned(),
+        Normal::PropagateAfterDrain => "PropagateAfterDrain".to_owned(),
+        Normal::Consume => "Consume".to_owned(),
+        Normal::PropagateWhenAllClose => "PropagateWhenAllClose".to_owned(),
+        Normal::FlushThenPropagate(bound) => format!("FlushThenPropagate({})", emission(bound)),
+        Normal::FlushThenPropagateWhenAllClose(bound) => {
+            format!("FlushThenPropagateWhenAllClose({})", emission(bound))
+        }
+        Normal::DomainSpecific { law } => format!("DomainSpecific {{ law: {law:?} }}"),
+    };
+    let abnormal = match law.abnormal {
+        Abnormal::NotAccepted => "NotAccepted".to_owned(),
+        Abnormal::PropagateAfterDrain => "PropagateAfterDrain".to_owned(),
+        Abnormal::Recover => "Recover".to_owned(),
+        Abnormal::FinalizeThenPropagate(bound) => {
+            format!("FinalizeThenPropagate({})", emission(bound))
+        }
+        Abnormal::DomainSpecific { law } => format!("DomainSpecific {{ law: {law:?} }}"),
+    };
+    let cancellation = match law.cancellation {
+        Cancellation::NotCancellable => "NotCancellable".to_owned(),
+        Cancellation::Request { input, disposition_kind } => format!("Request {{ input: conduit_kernel::PortId({}), disposition_kind: {disposition_kind:?} }}", input.0),
+        Cancellation::DomainSpecific { law } => format!("DomainSpecific {{ law: {law:?} }}"),
+    };
+    format!("Some(conduit_kernel::scheduler::AssignedTerminalTransduction {{ input: conduit_kernel::PortId({}), output: conduit_kernel::PortId({}), normal_close: conduit_kernel::scheduler::AssignedNormalCloseTransduction::{normal}, abnormal: conduit_kernel::scheduler::AssignedAbnormalTransduction::{abnormal}, cancellation: conduit_kernel::scheduler::AssignedCancellationTransduction::{cancellation} }})", law.input.0, law.output.0)
 }

@@ -17,11 +17,22 @@ use conduit_kernel::{
 ///
 /// # Safety
 /// `bind` must transfer exactly those checked owners once, allocate nothing,
-/// perform no effects and return drivers in the validated node order. Reported
+/// perform no effects and return drivers in the validated node order. A Some
+/// terminal report must equal those exact drivers' reports, including every
+/// selected and inactive slot, and remain immutable through bind. Reported
 /// backing is reachable retained allocation, never an invented grant.
 pub unsafe trait PreparedBacks<const N: usize, const P: usize> {
     type Driver: StepBack<P>;
     type Calls;
+    /// Exact reports of the same owners later returned by bind. None refuses
+    /// the terminal-aware entrance without withdrawing those owners.
+    fn terminal_transductions(&self) -> Option<[[Option<AssignedTerminalTransduction>; P]; N]> {
+        None
+    }
+    /// Terminal-bearing factories must never use the legacy empty-law entrance.
+    fn requires_terminal_gate(&self) -> bool {
+        false
+    }
     fn retained_backing_bytes(&self) -> Option<usize>;
     fn bind(self) -> ([Self::Driver; N], Self::Calls);
 }
@@ -106,6 +117,7 @@ pub enum Refusal<E> {
     Storage(KernelPreparationError),
     Back(E),
     Bounds,
+    TerminalContracts,
     Capacity {
         required: usize,
         maximum: usize,
@@ -164,6 +176,58 @@ impl<
         maximum_retained_bytes: usize,
         factory: impl FnOnce() -> Result<B, E>,
     ) -> Result<Self, Refusal<E>> {
+        Self::prepare_inner(
+            approved,
+            profile,
+            fore,
+            layout,
+            values,
+            signs,
+            maximum_retained_bytes,
+            factory,
+            None,
+        )
+    }
+
+    /// Expected laws are independently linked from checked lowering, in the
+    /// same pinned Source/node/port order as layout. They are not ASG terminal IDs.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_with_terminal_transductions<E>(
+        approved: &b::DelegatedBodyFragment<'_>,
+        profile: b::AssignedBodyPreparationProfile<'_>,
+        fore: &[c::AssignedForeRequirement],
+        layout: &ResidentLayout<'_>,
+        values: HostedValueStore,
+        signs: L,
+        maximum_retained_bytes: usize,
+        factory: impl FnOnce() -> Result<B, E>,
+        expected: [[Option<AssignedTerminalTransduction>; P]; N],
+    ) -> Result<Self, Refusal<E>> {
+        Self::prepare_inner(
+            approved,
+            profile,
+            fore,
+            layout,
+            values,
+            signs,
+            maximum_retained_bytes,
+            factory,
+            Some(expected),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_inner<E>(
+        approved: &b::DelegatedBodyFragment<'_>,
+        profile: b::AssignedBodyPreparationProfile<'_>,
+        fore: &[c::AssignedForeRequirement],
+        layout: &ResidentLayout<'_>,
+        values: HostedValueStore,
+        signs: L,
+        maximum_retained_bytes: usize,
+        factory: impl FnOnce() -> Result<B, E>,
+        expected: Option<[[Option<AssignedTerminalTransduction>; P]; N]>,
+    ) -> Result<Self, Refusal<E>> {
         let tables = BoundedAssignedKernelTables::<N, C, P, R, T, H>::prepare_with_fore(
             approved.projection(),
             profile.maxima,
@@ -176,6 +240,16 @@ impl<
         let nodes = tables.active_nodes();
         let cords = tables.active_cords();
         let backs = factory().map_err(Refusal::Back)?;
+        let (expected, actual) = match expected {
+            Some(expected) => (
+                expected,
+                backs
+                    .terminal_transductions()
+                    .ok_or(Refusal::TerminalContracts)?,
+            ),
+            None if backs.requires_terminal_gate() => return Err(Refusal::TerminalContracts),
+            None => ([[None; P]; N], [[None; P]; N]),
+        };
         let backing = backs
             .retained_backing_bytes()
             .ok_or(Refusal::Bounds)?
@@ -185,7 +259,7 @@ impl<
         let remaining = maximum_retained_bytes
             .checked_sub(backing)
             .ok_or(Refusal::Bounds)?;
-        let storage = ExecutionKernel::<B::Driver, N, C, P, R, T, H, S, L>::prepare_boxed(
+        let storage = ExecutionKernel::<B::Driver, N, C, P, R, T, H, S, L>::prepare_boxed_with_terminal_transductions(
             nodes,
             cords,
             tables.nodes,
@@ -195,6 +269,8 @@ impl<
             values,
             signs,
             remaining,
+            expected,
+            actual,
         )
         .map_err(Refusal::Storage)?;
         let retained = backing

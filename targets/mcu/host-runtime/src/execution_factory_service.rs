@@ -142,6 +142,17 @@ where
 {
     type Driver = Driver<'f, R::Back, BoxedRecordServiceBack<PORTS, READ_BYTES>>;
     type Calls = CallsWithRecordService<Calls<P, T, W, A>, S>;
+    fn requires_terminal_gate(&self) -> bool {
+        true
+    }
+    fn terminal_transductions(&self) -> Option<[[Option<AssignedTerminalTransduction>; PORTS]; N]> {
+        let mut actual = <PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A> as PreparedBacks<
+            N,
+            PORTS,
+        >>::terminal_transductions(&self.base)?;
+        actual[usize::from(self.service.node().0)] = self.back.terminal_transductions();
+        Some(actual)
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }

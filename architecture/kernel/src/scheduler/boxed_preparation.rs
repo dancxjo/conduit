@@ -78,6 +78,38 @@ where
         signs: E,
         maximum_storage_bytes: usize,
     ) -> Result<PreparedKernelStorage<D, Self, NODES>, KernelPreparationError> {
+        Self::prepare_boxed_with_terminal_transductions(
+            active_nodes,
+            active_cords,
+            node_specs,
+            cord_specs,
+            routes,
+            host_bindings,
+            values,
+            signs,
+            maximum_storage_bytes,
+            [[None; PORTS]; NODES],
+            [[None; PORTS]; NODES],
+        )
+    }
+
+    /// Compare independently lowered laws with the actual borrowed Back reports
+    /// before transfer. The matrix and projected recovery map occupy already
+    /// funded inline scheduler storage; binding performs no semantic checks.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_boxed_with_terminal_transductions(
+        active_nodes: usize,
+        active_cords: usize,
+        node_specs: [NodeSpec<PORTS>; NODES],
+        cord_specs: [CordSpec; CORDS],
+        routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
+        host_bindings: FixedHostCallBindings<HOST_BINDING_SLOTS>,
+        values: S,
+        signs: E,
+        maximum_storage_bytes: usize,
+        contracts: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+        actual: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    ) -> Result<PreparedKernelStorage<D, Self, NODES>, KernelPreparationError> {
         validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
         if PORTS == 0
             || QUEUE_SLOTS == 0
@@ -98,6 +130,14 @@ where
             &cord_specs,
             &routes,
         )?;
+        for node in 0..NODES {
+            if (node < active_nodes && actual[node] != contracts[node])
+                || (node >= active_nodes && contracts[node].iter().any(Option::is_some))
+            {
+                return Err(SchedulerError::InvalidPlan.into());
+            }
+        }
+        let recovery_for_cord = projected_recovery_map(active_cords, &cord_specs, &contracts)?;
         // Evaluate constructors before transferring any affine input owner.
         let ready = ReadySet::new(active_nodes);
         let debug_control = DebugControlState::new();
@@ -135,13 +175,13 @@ where
         }
         let drop_initialized = initialize! {
             node_specs: node_specs,
-            terminal_transductions: [[None; PORTS]; NODES],
+            terminal_transductions: contracts,
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
             unresolved_abnormal: [None; NODES],
             projected_recovery_source: [None; NODES],
-            recovery_for_cord: [None; CORDS],
+            recovery_for_cord: recovery_for_cord,
             quiescence_cord_end: quiescence_cord_end,
             armed_quiescence_count: 0,
             cord_specs: cord_specs,

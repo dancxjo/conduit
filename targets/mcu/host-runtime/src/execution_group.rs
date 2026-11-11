@@ -165,6 +165,62 @@ impl<
         )
     }
 }
+/// Opt-in Source-pinned constructor carrying the independently lowered laws.
+/// The matrix is bounded inline data and moves into funded kernel storage.
+pub struct TerminalFragmentConstruction<
+    'p,
+    B: PreparedBacks<N, P>,
+    const N: usize,
+    const C: usize,
+    const P: usize,
+    const R: usize,
+    const T: usize,
+    const H: usize,
+    const S: usize,
+> {
+    pub fragment: FragmentConstruction<'p, B, N, C, P, R, T, H, S>,
+    pub expected: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]; N],
+}
+impl<
+        'p,
+        B: PreparedBacks<N, P>,
+        const N: usize,
+        const C: usize,
+        const P: usize,
+        const R: usize,
+        const T: usize,
+        const H: usize,
+        const S: usize,
+    > FragmentFactory<'p> for TerminalFragmentConstruction<'p, B, N, C, P, R, T, H, S>
+{
+    type Prepared = PreparedFragment<B, N, C, P, R, T, H, S>;
+    fn profile(&self) -> b::AssignedBodyPreparationProfile<'p> {
+        copy_profile(&self.fragment.profile)
+    }
+    fn entry(&self) -> EntryPin<'p> {
+        self.fragment.entry
+    }
+    fn prepare(
+        self,
+        approved: &b::DelegatedBodyFragment<'_>,
+        fore: &[c::AssignedForeRequirement],
+    ) -> Result<Self::Prepared, Refusal<&'static str>> {
+        let f = self.fragment;
+        f.entry.check(approved)?;
+        check_configuration(approved, f.configuration)?;
+        PreparedFragment::prepare_with_terminal_transductions(
+            approved,
+            f.profile,
+            fore,
+            &f.layout,
+            f.values,
+            f.signs,
+            f.maximum_retained_bytes,
+            || Ok(f.backs),
+            self.expected,
+        )
+    }
+}
 pub struct MaskConstruction<'o, 'p> {
     pub entry: EntryPin<'p>,
     pub configuration: &'p [c::AssignedRecordRequirement],

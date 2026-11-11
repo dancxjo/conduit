@@ -18,6 +18,7 @@ fn renderer_emits_fixed_current_kernel_tables() {
         cancellation_policy: CancellationPolicy::CancelAllAndRejectLateCompletion,
         terminal_policy: TerminalPolicy::RequireAllPlacementsAndConnections,
         nodes: vec![GeneratedStaticNode {
+            terminal_transductions: [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE],
             node: 0,
             placement_id: "pulse".to_owned(),
             kind_id: "flow/pulse".to_owned(),
@@ -63,4 +64,45 @@ fn renderer_emits_fixed_current_kernel_tables() {
     assert!(module.contains("pub const GENERATED_STARTUP_ORDER"));
     assert!(module.contains("CancelAllAndRejectLateCompletion"));
     assert!(!module.contains("ExecutionPlan"));
+}
+
+#[test]
+fn terminal_renderer_preserves_plural_enum_payloads_without_core_types() {
+    use conduit_kernel::scheduler::*;
+    let mut output = String::new();
+    let laws = [
+        AssignedTerminalTransduction {
+            input: conduit_kernel::PortId(0),
+            output: conduit_kernel::PortId(1),
+            normal_close: AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(
+                AssignedFiniteTerminalEmission {
+                    maximum_items: 2,
+                    maximum_bytes: 91,
+                },
+            ),
+            abnormal: AssignedAbnormalTransduction::DomainSpecific { law: [7; 32] },
+            cancellation: AssignedCancellationTransduction::Request {
+                input: conduit_kernel::PortId(2),
+                disposition_kind: [9; 32],
+            },
+        },
+        AssignedTerminalTransduction {
+            input: conduit_kernel::PortId(1),
+            output: conduit_kernel::PortId(1),
+            normal_close: AssignedNormalCloseTransduction::Consume,
+            abnormal: AssignedAbnormalTransduction::Recover,
+            cancellation: AssignedCancellationTransduction::NotCancellable,
+        },
+    ];
+    // Reuse the renderer's expression helper directly, rather than inventing a
+    // second serialization for the bounded laws.
+    for law in laws {
+        output.push_str(&super::render::terminal_expression(Some(law)));
+    }
+    assert!(output.contains("AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(conduit_kernel::scheduler::AssignedFiniteTerminalEmission"));
+    assert!(output.contains("maximum_items: 2, maximum_bytes: 91"));
+    assert!(output
+        .contains("AssignedCancellationTransduction::Request { input: conduit_kernel::PortId(2)"));
+    assert!(output.contains("AssignedAbnormalTransduction::Recover"));
+    assert!(!output.contains("conduit_core"));
 }
