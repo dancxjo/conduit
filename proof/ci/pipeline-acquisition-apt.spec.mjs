@@ -197,7 +197,10 @@ test('DNS recovery retains signed metadata checks and spans the complete acquisi
       if (program === 'apt-get' && args.includes('install')) assert.equal(active, true);
       return run(program, args, config);
     };
+    let diagnostics = 0;
+    options.failureDiagnostics = () => { diagnostics++; throw new Error('diagnostic unavailable'); };
     options.recoverDns = () => {
+      assert.equal(diagnostics, 1);
       active = true;
       return { identity: { schema: 'test-dns-recovery' }, restore() { active = false; restored++; } };
     };
