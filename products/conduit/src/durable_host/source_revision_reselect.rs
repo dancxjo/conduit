@@ -150,14 +150,20 @@ fn commit_selection(
 pub(crate) fn reselect(state_dir: &Path, request_path: &Path) -> Result<(), String> {
     let _host = owner_lock::acquire(state_dir)?;
     let _body = owner_lock::body(state_dir)?;
-    if state_dir
-        .join("body/owner-transaction.json")
-        .try_exists()
-        .map_err(|e| e.to_string())?
-    {
-        return Err(
-            "Source re-selection requires ordinary recovery of the pending Body transaction".into(),
-        );
+    for journal in [
+        "body/owner-transaction.json",
+        "body/admission-transaction.json",
+    ] {
+        if state_dir
+            .join(journal)
+            .try_exists()
+            .map_err(|e| e.to_string())?
+        {
+            return Err(
+                "Source re-selection requires ordinary recovery of the pending Body transaction"
+                    .into(),
+            );
+        }
     }
     let installation = read_installation(&state_dir.join("installation.json"))?;
     let request: Request =

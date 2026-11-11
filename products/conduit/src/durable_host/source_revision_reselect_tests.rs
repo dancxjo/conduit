@@ -266,3 +266,24 @@ fn reselection_commit_preserves_body_keys_compiler_and_failure_keeps_original() 
     );
     fs::remove_dir_all(state.parent().unwrap()).unwrap();
 }
+
+#[test]
+fn reselection_refuses_unrecovered_owner_and_admission_journals() {
+    let (state, _, _, _) = fixture();
+    let original = fs::read(state.join(SELECTION_FILE)).unwrap();
+    fs::create_dir_all(state.join("body")).unwrap();
+    for name in ["owner-transaction.json", "admission-transaction.json"] {
+        let path = state.join("body").join(name);
+        fs::write(&path, b"retained pending transaction fixture").unwrap();
+        assert!(reselect(&state, Path::new("/not-read-before-recovery"))
+            .unwrap_err()
+            .contains("ordinary recovery"));
+        assert_eq!(fs::read(state.join(SELECTION_FILE)).unwrap(), original);
+        assert_eq!(
+            fs::read(&path).unwrap(),
+            b"retained pending transaction fixture"
+        );
+        fs::remove_file(path).unwrap();
+    }
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}
