@@ -17,6 +17,10 @@ use sha2::{Digest, Sha256};
 pub enum Refusal {
     Scope,
     Bounds,
+    /// Fallible backing refusal, distinct from invalid image bounds. Not wire data.
+    Allocation {
+        requested_bytes: usize,
+    },
     Encoding,
     Transport,
     Challenge,
@@ -104,15 +108,31 @@ impl RetainedReturn<'_, '_> {
         {
             return Err(Refusal::Scope);
         }
-        // Hash immutable images once, as on the original MCU path. No decoded
-        // offer catalog, duplicate image buffer or new resource pool is made.
+        // Validate the immutable image inventory before requesting any backing.
+        // Fund the actual count, not the maximum carriage allowance. Cloneable
+        // iterator implementations must still not trigger an infallible grow if
+        // their second traversal differs from the preflight.
+        let mut count = 0usize;
         let mut total = 0usize;
+        for bytes in images.clone() {
+            if count == conduit_body::MAX_MEMBER_RETURN_IMAGES || bytes.is_empty() {
+                return Err(Refusal::Bounds);
+            }
+            total = total.checked_add(bytes.len()).ok_or(Refusal::Bounds)?;
+            if total > 24 * 1024 {
+                return Err(Refusal::Bounds);
+            }
+            count += 1;
+        }
         let mut hashes = Vec::new();
         hashes
-            .try_reserve_exact(conduit_body::MAX_MEMBER_RETURN_IMAGES)
-            .map_err(|_| Refusal::Bounds)?;
+            .try_reserve_exact(count)
+            .map_err(|_| Refusal::Allocation {
+                requested_bytes: count * core::mem::size_of::<[u8; 32]>(),
+            })?;
+        total = 0;
         for bytes in images.clone() {
-            if hashes.len() >= conduit_body::MAX_MEMBER_RETURN_IMAGES || bytes.is_empty() {
+            if hashes.len() == count || bytes.is_empty() {
                 return Err(Refusal::Bounds);
             }
             total = total.checked_add(bytes.len()).ok_or(Refusal::Bounds)?;
@@ -120,6 +140,9 @@ impl RetainedReturn<'_, '_> {
                 return Err(Refusal::Bounds);
             }
             hashes.push(Sha256::digest(bytes).into());
+        }
+        if hashes.len() != count {
+            return Err(Refusal::Bounds);
         }
         let grants = authority_grants()?;
         let projection = BorrowedHostAdvertisementImageProjection {

@@ -35,7 +35,9 @@ fn temporary_hash_and_credential_allocation_pressure_refuses_without_transport_a
         assert_eq!(
             result.err(),
             Some(if denied == 1 {
-                Refusal::Bounds
+                Refusal::Allocation {
+                    requested_bytes: 32,
+                }
             } else {
                 Refusal::Receipt
             })
@@ -105,5 +107,84 @@ fn bounded_host_comparison_preserves_actual_embedded_escape_semantics() {
             let same = result.is_ok() && decoder.end().is_ok_and(|used| used == bytes.len());
             assert_eq!(same, ordinary, "{text:?}, unescape={unescape}");
         }
+    }
+}
+
+#[test]
+fn hash_reservation_funds_actual_inventory_and_refuses_before_transport() {
+    let (bootstrap, actual, member, _) = fixture();
+    let transaction = RetainedReturn {
+        bootstrap: &bootstrap,
+        actual: &actual,
+        image_id: "image/1",
+        key: &member,
+        retained: bootstrap.admission.credential().unwrap(),
+    };
+    for count in [1, 10, 25, 32] {
+        let mut link = BorrowedMessages {
+            incoming: &[],
+            next: 0,
+            sent: 0,
+        };
+        let mut input = [0; 9216];
+        let mut output = [0; 3072];
+        let (result, cost) = return_allocation_probe::observe_refusing(1, || {
+            ready(transaction.exchange_with_grants(
+                &mut link,
+                core::iter::repeat_n(IMAGE, count),
+                &[] as &[conduit_core::AuthorityGrant],
+                &mut input,
+                &mut output,
+            ))
+        });
+        assert_eq!(
+            result.err(),
+            Some(Refusal::Allocation {
+                requested_bytes: count * 32
+            })
+        );
+        assert_eq!(cost.allocation_attempts, 1);
+        assert_eq!(cost.reallocations, 0);
+        assert_eq!(link.sent, 0);
+    }
+}
+
+#[test]
+fn invalid_inventory_refuses_before_any_allocation_or_grant_copy() {
+    let (bootstrap, actual, member, _) = fixture();
+    let transaction = RetainedReturn {
+        bootstrap: &bootstrap,
+        actual: &actual,
+        image_id: "image/1",
+        key: &member,
+        retained: bootstrap.admission.credential().unwrap(),
+    };
+    let oversized = [0u8; 24 * 1024 + 1];
+    let cases = [vec![IMAGE; 33], vec![&[][..]], vec![oversized.as_slice()]];
+    for images in cases {
+        let mut link = BorrowedMessages {
+            incoming: &[],
+            next: 0,
+            sent: 0,
+        };
+        let copied = core::cell::Cell::new(false);
+        let mut input = [0; 9216];
+        let mut output = [0; 3072];
+        let (result, cost) = return_allocation_probe::observe(|| {
+            ready(transaction.exchange(
+                &mut link,
+                images.iter().copied(),
+                || {
+                    copied.set(true);
+                    Ok(vec![])
+                },
+                &mut input,
+                &mut output,
+            ))
+        });
+        assert_eq!(result.err(), Some(Refusal::Bounds));
+        assert_eq!(cost.allocation_attempts, 0);
+        assert!(!copied.get());
+        assert_eq!(link.sent, 0);
     }
 }
