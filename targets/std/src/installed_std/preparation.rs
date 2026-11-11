@@ -4,6 +4,13 @@ use conduit_core::PlanFragment;
 use conduit_kernel::HostedValueStore;
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
+/// Optional prepared native implementations for this exact fragment.
+#[derive(Default)]
+pub(super) struct NativePreparation<'a> {
+    pub native_source: Option<(conduit_kernel::NodeId, u32)>,
+    pub hosted_frame: Option<&'a crate::HostedFrameBack>,
+}
+
 pub(super) fn prepare_operations(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
@@ -19,8 +26,7 @@ pub(super) fn prepare_operations(
         play,
         retained,
         durable_body,
-        None,
-        None,
+        NativePreparation::default(),
     )
 }
 
@@ -31,9 +37,12 @@ pub(super) fn prepare_operations_with_native(
     play: &conduit_core::ActivePlayIdentity,
     mut retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
     durable_body: Option<&conduit_body::BodyId>,
-    native_source: Option<(conduit_kernel::NodeId, u32)>,
-    hosted_frame: Option<&crate::HostedFrameBack>,
+    native: NativePreparation<'_>,
 ) -> Result<[InstalledBack; MAX_NODES], String> {
+    let NativePreparation {
+        native_source,
+        hosted_frame,
+    } = native;
     if lowered.identity.plan_id != fragment.plan_id
         || lowered.identity.fragment_id != fragment.fragment_id
         || play.plan_id != fragment.plan_id

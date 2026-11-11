@@ -430,8 +430,8 @@ impl StdHost {
                         spoken_mask,
                         direct_spoken_mask,
                         durable_state,
+                        hosted_frame: self.hosted_frame.as_ref(),
                     },
-                    self.hosted_frame.as_ref(),
                 )
             } else {
                 if control.requested_stop().is_some() {

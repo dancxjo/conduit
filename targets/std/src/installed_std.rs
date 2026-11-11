@@ -292,7 +292,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     _output: &mut W,
     timer: &mut T,
     lifecycle: RunLifecycle<'_, '_, '_>,
-    hosted_frame: Option<&crate::HostedFrameBack>,
 ) -> Result<crate::state_value::RetainedStdRun, String> {
     timer.observe_kernel_phase(crate::KernelTimingPhase::PreparationStarted);
     let RunLifecycle {
@@ -309,6 +308,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         spoken_mask,
         direct_spoken_mask,
         durable_state,
+        hosted_frame,
     } = lifecycle;
     let InstalledRunHost {
         #[cfg(target_os = "linux")]
@@ -463,10 +463,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         &active_play,
         retained,
         durable_state.as_ref().map(|state| state.body),
-        native_call
-            .as_ref()
-            .map(|source| (source.node, source.input_bytes())),
-        hosted_frame,
+        preparation::NativePreparation {
+            native_source: native_call
+                .as_ref()
+                .map(|source| (source.node, source.input_bytes())),
+            hosted_frame,
+        },
     )?;
     let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
     for state in &lowered.states {
