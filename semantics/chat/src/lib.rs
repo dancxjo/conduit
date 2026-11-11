@@ -6,6 +6,19 @@
 
 extern crate alloc;
 
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_evidence;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_snapshot;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_window;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_evidence::*;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_snapshot::*;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_window::*;
+
 #[allow(dead_code, clippy::large_enum_variant, clippy::too_many_arguments)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
