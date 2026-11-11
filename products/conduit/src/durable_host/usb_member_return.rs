@@ -1,7 +1,7 @@
 //! Owner-authorized USB carriage of existing canonical Part return.
 use super::{bounded_read, membership_receipt_custody};
 use conduit_body::{MemberReturnImageAcknowledgement, MemberReturnProofDocument};
-use conduit_std_host::pico_spawn::{PicoMemberReturnBasis, PicoSpawnSocket};
+use conduit_std_host::pico_spawn::{PicoMemberReturnBasis, ProvisioningCarrier};
 use std::{path::Path, time::Duration};
 pub(crate) fn return_usb(
     port: &Path,
@@ -9,6 +9,7 @@ pub(crate) fn return_usb(
     receipt_output: &Path,
     state: &Path,
     authorized: bool,
+    carrier: ProvisioningCarrier,
 ) -> Result<(), String> {
     if !authorized {
         return Err("USB member return requires --authorize-return".into());
@@ -23,7 +24,8 @@ pub(crate) fn return_usb(
     }
     let mut custody = membership_receipt_custody::reserve(receipt_output)?;
     let timeout = Duration::from_secs(5);
-    let mut socket = PicoSpawnSocket::open(port.to_str().ok_or("USB path is not UTF-8")?)
+    let mut socket = carrier
+        .open(port.to_str().ok_or("USB path is not UTF-8")?)
         .map_err(|e| format!("open member-return carrier: {e:?}"))?;
     let observed = socket
         .request_member_return(&basis, timeout)

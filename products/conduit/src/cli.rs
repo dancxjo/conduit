@@ -595,6 +595,10 @@ pub(crate) enum BodyCommand {
     /// Return an existing Part over the selected bounded USB carrier.
     ReturnUsb {
         port: PathBuf,
+        /// Use an already forwarded raw TTY without physical USB modem controls.
+        /// This changes carriage only; owner pins and signed return are unchanged.
+        #[arg(long)]
+        forwarded_tty: bool,
         /// Public retained credential, physical profile, member key and owner pin.
         basis: PathBuf,
         #[arg(long)]
