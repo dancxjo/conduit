@@ -1,11 +1,11 @@
 //! Prepared Mask/Look interpretation and hardware-profile Frame composition.
 //! Clock input and Face custody remain caller-owned; this is not a scheduler,
 //! caller permit, Body membership, output Line or electrical implementation.
-use crate::display_packets::PreparedDisplayFrame;
 use conduit_face::Face;
 use conduit_seven_segment_mask::{
     PreparedEnvironmentFace, RenderedShow, SevenSegmentLook, TimedSevenSegmentMask, Tm1637Profile,
 };
+use conduit_tm1637_protocol::PreparedDisplayFrame;
 
 pub struct PreparedDisplayMask {
     profile: Tm1637Profile,

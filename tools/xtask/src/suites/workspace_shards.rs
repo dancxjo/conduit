@@ -50,6 +50,7 @@ package_test_shard!(
         "conduit-core",
         "conduit-create-oi",
         "conduit-dht11-observation",
+        "conduit-tm1637-protocol",
         "conduit-i2c-transaction",
         "conduit-mpu6050",
         "conduit-ssd1306",
@@ -94,7 +95,7 @@ package_test_shard!(
     ],
     [
         "--features",
-        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline,conduit-language/parser-model,conduit-semantic-catalog/prepared-expression-session,conduit-dht11-observation/kernel-step,conduit-dht11-observation/source-capture"
+        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline,conduit-language/parser-model,conduit-semantic-catalog/prepared-expression-session,conduit-dht11-observation/kernel-step,conduit-dht11-observation/source-capture,conduit-tm1637-protocol/packets"
     ]
 );
 
