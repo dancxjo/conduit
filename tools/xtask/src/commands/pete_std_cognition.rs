@@ -36,6 +36,9 @@ pub(super) struct StdCognitionArgs {
     /// Write a new browser Patchbay replay for the completed Play.
     #[arg(long)]
     replay_out: Option<PathBuf>,
+    /// Write each delivered typed episode to a new JSON Lines file.
+    #[arg(long)]
+    episodes_out: Option<PathBuf>,
 }
 
 const SOURCE: &str = include_str!("../../../../plots/pete-cognition/main.conduit");
@@ -111,6 +114,16 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
         1,
         args.utterance.len() as u16,
     )?;
+    let archive = args
+        .episodes_out
+        .map(|path| {
+            std::fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&path)
+                .map_err(|error| format!("open Pete episode archive {}: {error}", path.display()))
+        })
+        .transpose()?;
     let input = queue.clone();
     let (delivered, receipt) = mpsc::channel();
     let producer = std::thread::spawn(move || {
@@ -140,7 +153,7 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
         let closed = input.close();
         result.and(closed)
     });
-    let mut output = EpisodeOutput(delivered);
+    let mut output = EpisodeOutput { delivered, archive };
     let report = host.run_external_plot_live_to(
         fragment.clone(),
         &queue,
@@ -150,10 +163,11 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
         &control,
     );
     drop(output);
-    producer
+    let input_result = producer
         .join()
-        .map_err(|_| "Pete input producer panicked")??;
+        .map_err(|_| "Pete input producer panicked")?;
     let report = report?;
+    input_result?;
     let Some(last) = report.observations.last() else {
         return Err("Pete Play did not report a terminal disposition".into());
     };
@@ -179,12 +193,18 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
     Ok(())
 }
 
-struct EpisodeOutput(mpsc::Sender<()>);
+struct EpisodeOutput {
+    delivered: mpsc::Sender<()>,
+    archive: Option<std::fs::File>,
+}
 
 impl ExternalForeOutputAdapter for EpisodeOutput {
     fn deliver(&mut self, delivery: ExternalForeDelivery) -> Result<(), String> {
         let episode = conduit_chat::EpisodeRecord::decode(&delivery.bytes)
             .map_err(|error| format!("decode Pete episode: {error:?}"))?;
+        if let Some(archive) = &mut self.archive {
+            archive_episode(archive, &episode, &delivery.bytes)?;
+        }
         match episode.response() {
             Some(response) => println!("{}", response.content()),
             None => eprintln!(
@@ -192,9 +212,71 @@ impl ExternalForeOutputAdapter for EpisodeOutput {
                 episode.episode()
             ),
         }
-        let _ = self.0.send(());
+        let _ = self.delivered.send(());
         Ok(())
     }
+}
+
+fn archive_episode(
+    archive: &mut std::fs::File,
+    episode: &conduit_chat::EpisodeRecord,
+    canonical: &[u8],
+) -> Result<(), String> {
+    use conduit_chat::EpisodeOutcome;
+    use std::io::Write;
+
+    let evidence = episode
+        .evidence()
+        .as_deref()
+        .map(serde_json::from_str::<serde_json::Value>)
+        .transpose()
+        .map_err(|error| format!("decode archived episode evidence: {error}"))?;
+    let outcome = match episode.outcome() {
+        EpisodeOutcome::Produced(outcome) => {
+            let response = outcome.response();
+            serde_json::json!({
+                "kind": "produced",
+                "origin": "model_derived",
+                "content": response.content(),
+                "implementation": response.implementation(),
+                "run": response.run(),
+                "truncated": response.truncated(),
+            })
+        }
+        EpisodeOutcome::ProviderLost(outcome) => serde_json::json!({
+            "kind": "provider_lost",
+            "attempt": outcome.attempt(),
+            "implementation": outcome.implementation(),
+        }),
+    };
+    let recalled: Vec<_> = episode
+        .recalled()
+        .get()
+        .iter()
+        .map(|item| item.episode())
+        .collect();
+    let mut line = serde_json::to_vec(&serde_json::json!({
+        "schema": "conduit.pete/episode-archive-row@1",
+        "body_id": episode.body_id(),
+        "wake_id": episode.wake_id(),
+        "wake_sequence": episode.wake_sequence(),
+        "episode": episode.episode(),
+        "observation": {
+            "identity": episode.observation().identity(),
+            "content": episode.observation().content(),
+        },
+        "retained": episode.retained(),
+        "recalled_episodes": recalled,
+        "evidence": evidence,
+        "outcome": outcome,
+        "canonical_episode_bytes": canonical,
+    }))
+    .map_err(|error| format!("encode archived episode: {error}"))?;
+    line.push(b'\n');
+    archive
+        .write_all(&line)
+        .and_then(|()| archive.sync_data())
+        .map_err(|error| format!("commit Pete episode archive row: {error}"))
 }
 
 fn frame(

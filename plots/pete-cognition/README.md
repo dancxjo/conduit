@@ -82,6 +82,7 @@ Run the same Plot with your own utterances on a std Host:
 ```sh
 cargo xtask prove pete std-cognition --retain \
   --replay-out target/pete-operator-replay.json \
+  --episodes-out target/pete-operator-episodes.jsonl \
   --utterance 'The hallway switch label is COPPER KITE.' \
   --utterance 'What was the switch label?'
 ```
@@ -94,3 +95,8 @@ state is unknown. Responses are printed as the Play delivers episodes.
 Open the optional replay with the Workbench's `--replay-snapshot` argument.
 The replay opens on the final episode's upstream trace and keeps the same
 Body, Wake, Host, Plan, and Play identities as the operator run.
+
+The optional episode archive writes one JSON line per delivered episode,
+including the evidence, recalled episode numbers, and actual model outcome.
+Each line also carries the canonical typed record bytes, including the recalled
+evidence. The command synchronizes a row before submitting the next utterance.
