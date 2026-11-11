@@ -109,21 +109,20 @@ impl PreparedPureProtocolPipe {
         if status == conduit_composite::KernelCompositeStatus::Cancelled {
             return Err(E::Binding);
         }
-        if !self.ready {
-            if let Some(sequence) = self
+        if !self.ready
+            && let Some(sequence) = self
                 .play
                 .output_into(&self.output, &mut self.result)
                 .map_err(E::Call)?
-            {
-                if !self.working {
-                    return Err(E::Binding);
-                }
-                self.play
-                    .complete_output(&self.output, sequence)
-                    .map_err(E::Call)?;
-                self.working = false;
-                self.ready = true;
+        {
+            if !self.working {
+                return Err(E::Binding);
             }
+            self.play
+                .complete_output(&self.output, sequence)
+                .map_err(E::Call)?;
+            self.working = false;
+            self.ready = true;
         }
         self.complete = status == conduit_composite::KernelCompositeStatus::Complete;
         Ok(())

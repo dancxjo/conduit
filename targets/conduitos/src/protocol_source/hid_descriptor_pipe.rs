@@ -161,21 +161,20 @@ impl PreparedHidDescriptorPipe {
                 .complete_output(&self.work, sequence)
                 .map_err(E::Call)?;
         }
-        if !self.ready {
-            if let Some(sequence) = self
+        if !self.ready
+            && let Some(sequence) = self
                 .driver
                 .output_into(&self.output, &mut self.result)
                 .map_err(E::Call)?
-            {
-                if !self.working {
-                    return Err(E::Binding);
-                }
-                self.driver
-                    .complete_output(&self.output, sequence)
-                    .map_err(E::Call)?;
-                self.working = false;
-                self.ready = true;
+        {
+            if !self.working {
+                return Err(E::Binding);
             }
+            self.driver
+                .complete_output(&self.output, sequence)
+                .map_err(E::Call)?;
+            self.working = false;
+            self.ready = true;
         }
         self.driver_complete = status == conduit_composite::KernelCompositeStatus::Complete;
         Ok(())
