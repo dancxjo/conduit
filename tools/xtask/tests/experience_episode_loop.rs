@@ -947,6 +947,53 @@ fn pete_retrieves_the_matching_episode_past_a_newer_unrelated_one() {
 }
 
 #[test]
+fn pete_recalls_the_earlier_battery_percentage_with_its_source() {
+    let (model, requests) = common::fenced_model();
+    let mut harness = pete_harness(model);
+    let mut incoming = inputs(&[]);
+    incoming.extend([
+        frame_input(create_frame(
+            1,
+            "Please remember the current battery charge reading.",
+            true,
+        )),
+        frame_input(create_frame(
+            2,
+            "What was your battery charge percentage in the previous episode?",
+            false,
+        )),
+    ]);
+    let mut collector = Collector::default();
+    let report = run(
+        &mut harness,
+        &incoming,
+        &mut collector,
+        &RunControl::default(),
+    )
+    .unwrap();
+    assert_eq!(terminal(&report), &TerminalDisposition::Completed);
+    let requests = requests.lock().unwrap();
+    let second: serde_json::Value = serde_json::from_str(&requests[1]).unwrap();
+    let recalled = &second["recalled"][0]["historical_evidence"];
+    assert_eq!(recalled["revision"], 1);
+    let body = &recalled["evidence"][0];
+    assert_eq!(body["origin"], "deterministic_derived");
+    assert_eq!(body["sources"][0]["sign"], "create/battery/1");
+    let content: serde_json::Value =
+        serde_json::from_str(body["utf8_content"].as_str().unwrap()).unwrap();
+    assert_eq!(content["charge_percent"], "50.0%");
+    let current = second["selected_experience"]["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|item| item["identity"] == "pete/homeostasis")
+        .unwrap();
+    let content: serde_json::Value =
+        serde_json::from_str(current["utf8_content"].as_str().unwrap()).unwrap();
+    assert_eq!(content["charge_percent"], "9.0%");
+}
+
+#[test]
 fn pete_records_provider_loss_and_resumes_in_the_same_play() {
     use conduit_chat::EpisodeOutcome;
     use conduit_std_host::hosted_local_model::LocalModelAdapterTerminal;

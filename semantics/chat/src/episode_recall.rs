@@ -28,7 +28,7 @@ pub(super) fn select<'a>(
             .collect();
     }
     let mut terms = Vec::new();
-    for term in keywords(query) {
+    for term in keywords(query).map(normalize_keyword) {
         if !terms
             .iter()
             .any(|previous: &&str| previous.eq_ignore_ascii_case(term))
@@ -38,10 +38,15 @@ pub(super) fn select<'a>(
     }
     let mut candidates = Vec::with_capacity(memories.len());
     for memory in memories {
-        let score = |text: &str| {
+        let score = |text: &str, identity: &str| {
             terms
                 .iter()
-                .filter(|term| keywords(text).any(|word| word.eq_ignore_ascii_case(term)))
+                .filter(|term| {
+                    keywords(text)
+                        .chain(keywords(identity))
+                        .map(normalize_keyword)
+                        .any(|word| word.eq_ignore_ascii_case(term))
+                })
                 .count()
         };
         let evidence = memory
@@ -59,17 +64,43 @@ pub(super) fn select<'a>(
                     )
                 })
                 .filter_map(|item| {
-                    let score = score(item["utf8_content"].as_str()?);
+                    let score = score(
+                        item["utf8_content"].as_str()?,
+                        item["identity"].as_str().unwrap_or(""),
+                    );
                     (score > 0).then_some((score, item))
                 })
                 .max_by_key(|(score, _)| *score)
-                .map(|(score, item)| {
+                .map(|(item_score, item)| {
+                    let structured_origin = matches!(
+                        item["origin"].as_str(),
+                        Some("observation" | "deterministic_derived")
+                    );
                     let mut item = item.clone();
                     if let Some(fields) = item.as_object_mut() {
                         fields.remove("observed_at");
+                        if let Some(content) =
+                            fields.get_mut("utf8_content").filter(|_| structured_origin)
+                        {
+                            if let Some(projected) = content
+                                .as_str()
+                                .and_then(|text| {
+                                    serde_json::from_str::<serde_json::Value>(text).ok()
+                                })
+                                .and_then(|mut value| {
+                                    let fields = value.as_object_mut()?;
+                                    fields.retain(|key, _| score(key, "") > 0);
+                                    (!fields.is_empty()).then_some(value)
+                                })
+                            {
+                                *content = serde_json::Value::String(
+                                    alloc::string::ToString::to_string(&projected),
+                                );
+                            }
+                        }
                     }
                     (
-                        score,
+                        item_score,
                         serde_json::json!({
                             "revision": snapshot["revision"],
                             "provenance_revision": snapshot["provenance_revision"],
@@ -78,7 +109,7 @@ pub(super) fn select<'a>(
                     )
                 })
         });
-        let trigger_terms = score(memory.observation().content());
+        let trigger_terms = score(memory.observation().content(), "");
         let shared_terms = trigger_terms.max(best_item.as_ref().map_or(0, |(score, _)| *score));
         if shared_terms > 0 {
             candidates.push(RecallCandidate {
@@ -93,6 +124,14 @@ pub(super) fn select<'a>(
     candidates
         .sort_unstable_by_key(|candidate| (candidate.shared_terms, *candidate.memory.episode()));
     candidates
+}
+
+fn normalize_keyword(word: &str) -> &str {
+    if word.eq_ignore_ascii_case("percentage") {
+        "percent"
+    } else {
+        word
+    }
 }
 
 fn keywords(text: &str) -> impl Iterator<Item = &str> {
