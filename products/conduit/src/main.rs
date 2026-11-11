@@ -413,14 +413,18 @@ fn main() {
         Some(cli::Command::Body { command: Some(cli::BodyCommand::MemberEncounter {
             state_dir, descriptor, authorize_route,
         }) }) => durable_host::install_member_encounter(&state_dir, &descriptor, authorize_route),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::MemberContact {
+            state_dir, descriptor, authorize_route,
+        }) }) => durable_host::install_member_contact(&state_dir, &descriptor, authorize_route),
         Some(cli::Command::Body { command: Some(cli::BodyCommand::Return {
             state_dir, descriptor, authorize_return,
         }) }) => durable_host::return_installed_member(&state_dir, &descriptor, authorize_return),
         Some(cli::Command::Body { command: Some(cli::BodyCommand::MemberRoute {
             state_dir, member_credential, ttl_seconds, route_bind, route_url,
-            route_tls_cert, route_tls_key, authorize_route,
-        }) }) => durable_host::serve_body_member_route(&state_dir, &member_credential,
-            ttl_seconds, route_bind, &route_url, (&route_tls_cert, &route_tls_key), authorize_route),
+            route_tls_cert, route_tls_key, authorize_route, continuing,
+        }) }) => (if continuing { durable_host::serve_body_member_contact } else { durable_host::serve_body_member_route })(
+            &state_dir, &member_credential, ttl_seconds, route_bind, &route_url,
+            (&route_tls_cert, &route_tls_key), authorize_route),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::BrowserWindow {

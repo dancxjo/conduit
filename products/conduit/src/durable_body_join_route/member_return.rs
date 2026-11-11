@@ -18,6 +18,15 @@ pub(crate) struct MemberEncounter {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "kind", deny_unknown_fields)]
 pub(crate) enum MemberReturnFrame {
+    DescribeContact {
+        schema: String,
+        nonce: [u8; 32],
+    },
+    ContactDescribed {
+        schema: String,
+        nonce: [u8; 32],
+        encounter: Box<MemberEncounter>,
+    },
     Advertise {
         schema: String,
         credential: MembershipCredential,
@@ -134,51 +143,72 @@ pub(crate) fn serve_body_member_route(
             .map_err(|e| format!("member route accept: {e:?}"))?;
         line.set_read_timeout(Some(Duration::from_secs(10)))
             .map_err(|e| format!("member route deadline: {e:?}"))?;
-        let result = receive(&mut line).and_then(|frame| {
-            if matches!(&frame, MemberReturnFrame::Resume { .. }) {
-                super::current_member::serve(state, &encounter, &mut line, frame)
-                    .map(|(member, session)| (member, Some(session)))
-            } else {
-                exchange(state, &encounter, &mut line, frame).map(|member| (member, None))
-            }
-        });
-        let (member, carrier) = match result {
-            Ok(member) => member,
+        let frame = match receive(&mut line) {
+            Ok(frame) => frame,
             Err(error) => {
-                let _ = send(
-                    &mut line,
-                    &MemberReturnFrame::Refused {
-                        schema: MEMBER_RETURN_SCHEMA.into(),
-                        code: error.chars().take(256).collect(),
-                    },
-                );
+                refuse(&mut line, &error);
                 continue;
             }
         };
-        if let Some(session) = carrier {
-            // Presence uses the same retained TLS incarnation. It cannot open
-            // the old finite return grant or authorize a Show without Lines.
-            let result = crate::durable_host::owner::serve_member_presence(
-                state,
-                line,
-                session.clone(),
-                &member,
-            );
-            let cleanup = crate::durable_host_control::retire_carrier(state, session);
-            if let Err(error) = result {
-                eprintln!("member presence ended: {error}");
-            }
-            cleanup?;
-            continue;
-        }
-        if let Some(grant) =
-            face_snapshot::serve_optional_face_snapshot(&mut line, &listener, state, &member)?
-        {
-            return_route::serve(&listener, state, &grant)?;
-        }
+        serve_member_frame(state, &encounter, &listener, line, frame)?;
     }
     Ok(())
 }
+/// One finite connection, shared by finite routes and an explicitly selected contact service.
+pub(super) fn serve_member_frame(
+    state: &Path,
+    encounter: &MemberEncounter,
+    listener: &SecureWebSocketListener,
+    mut line: conduit_std_host::secure_websocket::SecureWebSocketLine,
+    frame: MemberReturnFrame,
+) -> Result<(), String> {
+    let result = if matches!(&frame, MemberReturnFrame::Resume { .. }) {
+        super::current_member::serve(state, encounter, &mut line, frame)
+            .map(|(member, session)| (member, Some(session)))
+    } else {
+        exchange(state, encounter, &mut line, frame).map(|member| (member, None))
+    };
+    let (member, carrier) = match result {
+        Ok(member) => member,
+        Err(error) => {
+            refuse(&mut line, &error);
+            return Ok(());
+        }
+    };
+    if let Some(session) = carrier {
+        let result = crate::durable_host::owner::serve_member_presence(
+            state,
+            line,
+            session.clone(),
+            &member,
+        );
+        let cleanup = crate::durable_host_control::retire_carrier(state, session);
+        if let Err(error) = result {
+            eprintln!("member presence ended: {error}");
+        }
+        return cleanup;
+    }
+    if let Some(grant) =
+        face_snapshot::serve_optional_face_snapshot(&mut line, listener, state, &member)?
+    {
+        return_route::serve(listener, state, &grant)?;
+    }
+    Ok(())
+}
+
+pub(super) fn refuse(
+    line: &mut conduit_std_host::secure_websocket::SecureWebSocketLine,
+    error: &str,
+) {
+    let _ = send(
+        line,
+        &MemberReturnFrame::Refused {
+            schema: MEMBER_RETURN_SCHEMA.into(),
+            code: error.chars().take(256).collect(),
+        },
+    );
+}
+
 fn exchange(
     state: &Path,
     encounter: &MemberEncounter,

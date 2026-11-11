@@ -1193,6 +1193,7 @@ fn make_executable(_path: &Path) -> Result<(), String> {
 }
 
 pub(crate) use routed_join::{return_installed_member, return_on_actual_host, MemberEncounter};
+pub(crate) use routed_join::{install_member_contact, serve_body_member_contact};
 
 #[cfg(test)]
 mod tests {
