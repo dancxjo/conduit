@@ -299,6 +299,33 @@ fn prepare_runtime_with_composition(
                     output,
                 );
             }
+            #[cfg(target_os = "linux")]
+            if let Some(parameters) = installation
+                .selected_host_configuration
+                .as_ref()
+                .map(|selection| selection.text_file_parameters())
+                .transpose()?
+                .flatten()
+            {
+                if creche_factory.is_some() {
+                    return Err(
+                        "immutable Text and Crèche require a combined checked initial construction"
+                            .into(),
+                    );
+                }
+                let checked = installation
+                    .selected_host_configuration
+                    .as_ref()
+                    .ok_or("immutable Text lost selected Source")?
+                    .checked()?;
+                return StdHost::from_selected_timer_and_text_file_image(
+                    config,
+                    image,
+                    &conduit_workspace_make::catalog(),
+                    &checked,
+                    parameters,
+                );
+            }
             if let Some(factory) = &creche_factory {
                 StdHost::from_selected_timer_and_creche_image(
                     config,

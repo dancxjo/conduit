@@ -13,6 +13,7 @@ mod microphone_initialization;
 mod playback_initialization;
 mod recognition_initialization;
 mod source_check_initialization;
+mod text_file_initialization;
 mod tls_listener_initialization;
 pub use builder::*;
 pub use creche_initialization::{
@@ -22,6 +23,9 @@ pub use creche_initialization::{
 pub use linux_builder::*;
 pub use microphone_initialization::{
     alsa_microphone_initialization_contract, ALSA_MICROPHONE_BASE_KIND,
+};
+pub use text_file_initialization::{
+    text_file_initialization_contract, CheckedTextFileInitialization, TEXT_FILE_BASE_KIND,
 };
 pub use tls_listener_initialization::{
     tls_listener_initialization_contract, CheckedTlsListenerInitialization, TLS_LISTENER_BASE_KIND,
@@ -116,8 +120,25 @@ fn package_catalog() -> PackageCatalogContribution {
         conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION.into(),
         source_check_initialization::metadata(),
     );
+    for (write, implementation) in [
+        (true, conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION),
+        (false, conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION),
+    ] {
+        implementations.insert(
+            implementation.into(),
+            text_file_initialization::metadata(write),
+        );
+    }
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION.into(),
+                text_file_initialization_contract(),
+            ),
+            (
+                conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION.into(),
+                text_file_initialization_contract(),
+            ),
             (
                 conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION.into(),
                 source_check_initialization_contract(),
@@ -149,6 +170,10 @@ fn package_catalog() -> PackageCatalogContribution {
         ]),
         implementations,
         dependencies: BTreeMap::from([
+            (
+                PrerequisiteNode::Resource("data/immutable-generation@1".into()),
+                vec![PrerequisiteNode::Base(TEXT_FILE_BASE_KIND.into())],
+            ),
             creche_initialization::resource_dependency(),
             source_check_initialization::resource_dependency(),
             (
@@ -238,23 +263,26 @@ impl HostMakePackage for HostedMakePackage {
                     "macos",
                 ),
             ],
-            offers: vec![
-                creche_initialization::offer(),
-                source_check_initialization::offer(),
-                tls_listener_initialization::offer(),
-                playback_initialization::offer(),
-                recognition_initialization::offer(),
-                microphone_initialization::offer(),
-                microphone_initialization::converted_offer(),
-                offer("clock/monotonic", "hosted/monotonic-clock@1", "base-clock"),
-                offer("serial/text", "hosted/serial@1", "base-serial"),
-                offer(
-                    "storage/protected-file",
-                    "hosted/protected-file@1",
-                    "base-protected-file",
-                ),
-                offer("timer/monotonic", "hosted/monotonic-clock@1", "base-timer"),
-            ],
+            offers: text_file_initialization::offers()
+                .into_iter()
+                .chain(vec![
+                    creche_initialization::offer(),
+                    source_check_initialization::offer(),
+                    tls_listener_initialization::offer(),
+                    playback_initialization::offer(),
+                    recognition_initialization::offer(),
+                    microphone_initialization::offer(),
+                    microphone_initialization::converted_offer(),
+                    offer("clock/monotonic", "hosted/monotonic-clock@1", "base-clock"),
+                    offer("serial/text", "hosted/serial@1", "base-serial"),
+                    offer(
+                        "storage/protected-file",
+                        "hosted/protected-file@1",
+                        "base-protected-file",
+                    ),
+                    offer("timer/monotonic", "hosted/monotonic-clock@1", "base-timer"),
+                ])
+                .collect(),
         })
     }
 }

@@ -124,7 +124,7 @@ impl<'a> PreparedTextFile<'a> {
 pub(crate) struct SelectedTextFileResidence {
     pub(crate) directory: SnapshotDirectory,
     pub(crate) reference: BoundedResourceRef,
-    root_identity: (u64, u64),
+    pub(crate) root_identity: (u64, u64),
 }
 
 impl crate::StdHost {

@@ -183,6 +183,10 @@ impl StdHost {
             prepare: Box::new(prepare),
         };
         source.validate_image(image)?;
+        #[cfg(target_os = "linux")]
+        let text_file = crate::image_initialization::prepare_text_file_from_configuration(
+            &config, image, checked,
+        )?;
         Self::from_selected_source_initial_bases(
             config,
             image,
@@ -190,6 +194,8 @@ impl StdHost {
             source,
             creche_resource,
             None,
+            #[cfg(target_os = "linux")]
+            text_file,
         )
     }
     /// Admit native-definition construction before its metadata factory runs.
@@ -255,6 +261,12 @@ impl StdHost {
             prepare: Box::new(prepare),
         };
         source.validate_image(image)?;
+        #[cfg(target_os = "linux")]
+        let text_file = crate::image_initialization::prepare_text_file_from_configuration(
+            &final_config,
+            image,
+            checked,
+        )?;
         Self::from_selected_source_initial_bases(
             final_config,
             image,
@@ -262,6 +274,8 @@ impl StdHost {
             source,
             creche_resource,
             Some(memory),
+            #[cfg(target_os = "linux")]
+            text_file,
         )
     }
 }

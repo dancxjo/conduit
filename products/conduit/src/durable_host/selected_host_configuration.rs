@@ -21,6 +21,9 @@ mod microphone;
 mod playback;
 #[path = "selected_host_configuration/recognition.rs"]
 mod recognition;
+#[cfg(target_os = "linux")]
+#[path = "selected_host_configuration/text_file.rs"]
+mod text_file;
 pub(crate) use image::check_seed_image;
 const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 
@@ -54,6 +57,7 @@ impl Selection {
                 && !(scanout_prepared && base.kind == "display/scanout")
                 && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
                 && !(source_prepared && base.kind == "creche/encounter")
+                && base.kind != conduit_workspace_make::TEXT_FILE_BASE_KIND
             {
                 return Err(
                     "selected IMAGE cannot initialize this physical equipment or Crèche provider"
@@ -80,6 +84,12 @@ impl Selection {
             return Err("selected scanout requires the Seed's checked IMAGE".into());
         }
         conduit_workspace_make::CheckedScanoutInitialization::from_configuration(&checked).map(Some)
+    }
+    #[cfg(target_os = "linux")]
+    pub(super) fn text_file_parameters(
+        &self,
+    ) -> Result<Option<conduit_workspace_make::CheckedTextFileInitialization>, String> {
+        text_file::parameters(&self.checked()?)
     }
     pub(super) fn host_image(&self) -> Option<&conduit_host_make::HostImage> {
         self.host_image.as_ref()
@@ -206,6 +216,14 @@ impl Selection {
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     host.attach_whisper_clip_recognizer(recognition::initialize(initialization)?)?;
                 }
+                Some(
+                    conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION
+                    | conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION,
+                ) => {
+                    return Err(
+                        "immutable Text residence requires its checked IMAGE before Boot".into(),
+                    );
+                }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
         }
@@ -251,6 +269,13 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                     conduit_workspace_make::CheckedSourceCheckInitialization::from_configuration(
                         &checked,
                     )?;
+                }
+                #[cfg(target_os = "linux")]
+                Some(
+                    conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION
+                    | conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION,
+                ) => {
+                    text_file::parameters(&checked)?;
                 }
                 Some("display/linear-framebuffer@1") => {
                     conduit_workspace_make::CheckedScanoutInitialization::from_configuration(

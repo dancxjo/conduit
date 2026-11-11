@@ -10,13 +10,21 @@ use conduit_host_make::{
 use std::{collections::BTreeSet, io::Write};
 
 mod creche;
+#[cfg(target_os = "linux")]
+mod text_file;
 use creche::prepare_creche_entry;
+#[cfg(target_os = "linux")]
+pub(crate) use text_file::prepare_from_configuration as prepare_text_file_from_configuration;
+#[cfg(target_os = "linux")]
+pub use text_file::PreparedImageTextFile;
 
 const MAXIMUM_IMAGE_BYTES: usize = 64 * 1024;
 const MAXIMUM_TIMER_POOLS: usize = 16;
 
 #[derive(Default)]
 struct InitialBases<'a> {
+    #[cfg(target_os = "linux")]
+    text_file: Option<PreparedImageTextFile>,
     creche: Option<ResourceOffer>,
     source: Option<crate::selected_native_source::InitialNativeSource<'a>>,
     memory: Option<crate::kernel_preparation::StagedImageMemory<'a>>,
@@ -26,6 +34,16 @@ struct InitialBases<'a> {
     native_mask: Option<crate::selected_native_mask::InitialNativeMask>,
 }
 impl InitialBases<'_> {
+    fn has_text_file(&self) -> bool {
+        #[cfg(target_os = "linux")]
+        {
+            self.text_file.is_some()
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            false
+        }
+    }
     fn has_native_mask(&self) -> bool {
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         {
@@ -139,6 +157,7 @@ impl StdHost {
                 source: None,
                 creche: None,
                 memory: None,
+                text_file: None,
             },
         )
     }
@@ -150,12 +169,15 @@ impl StdHost {
         source: crate::selected_native_source::InitialNativeSource<'a>,
         creche: Option<ResourceOffer>,
         memory: Option<crate::kernel_preparation::StagedImageMemory<'a>>,
+        #[cfg(target_os = "linux")] text_file: Option<PreparedImageTextFile>,
     ) -> Result<Self, String> {
         Self::from_selected_initial_bases(
             config,
             image,
             catalog,
             InitialBases {
+                #[cfg(target_os = "linux")]
+                text_file,
                 source: Some(source),
                 creche,
                 memory,
@@ -209,6 +231,10 @@ impl StdHost {
         #[allow(unused_mut)]
         let mut expected_implementations =
             BTreeSet::from([conduit_std_offers::TICK_IMPLEMENTATION.to_owned()]);
+        #[cfg(target_os = "linux")]
+        if let Some(text) = &initial.text_file {
+            expected_implementations.insert(text.entry.implementation_id.as_str().into());
+        }
         if initial.creche.is_some() {
             expected_implementations.insert(CRECHE_IMPLEMENTATION.into());
         }
@@ -253,7 +279,20 @@ impl StdHost {
             .collect::<Vec<_>>();
         if timer.len() != 1
             || manifest.base_selections.iter().any(|base| {
-                !creche_entry.as_ref().is_some_and(|entry| {
+                !{
+                    #[cfg(target_os = "linux")]
+                    {
+                        initial.text_file.as_ref().is_some_and(|text| {
+                            text.entry.base_id.as_str() == base.id
+                                && text.entry.mechanism_family.as_str() == base.kind
+                                && text.entry.implementation_id.as_str() == base.driver
+                        })
+                    }
+                    #[cfg(not(target_os = "linux"))]
+                    {
+                        false
+                    }
+                } && !creche_entry.as_ref().is_some_and(|entry| {
                     entry.base_id.as_str() == base.id
                         && entry.mechanism_family.as_str() == base.kind
                         && entry.implementation_id.as_str() == base.driver
@@ -284,6 +323,7 @@ impl StdHost {
             || budgets.len()
                 > MAXIMUM_TIMER_POOLS
                     + usize::from(initial.creche.is_some())
+                    + usize::from(initial.has_text_file())
                     + usize::from(initial.has_scanout())
                     + 2 * usize::from(initial.has_native_mask())
                     + initial
@@ -297,6 +337,14 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
+            #[cfg(target_os = "linux")]
+            if initial
+                .text_file
+                .as_ref()
+                .is_some_and(|text| text.entry.resources[0].pool_id.as_str() == budget.id)
+            {
+                continue;
+            }
             if initial
                 .creche
                 .as_ref()
@@ -396,6 +444,16 @@ impl StdHost {
             initialized_base_kinds.insert(entry.mechanism_family.as_str().into());
             initialized_driver_kinds.insert(entry.implementation_id.as_str().into());
         }
+        #[cfg(target_os = "linux")]
+        if let Some(text) = &initial.text_file {
+            registry
+                .register(text.entry.clone())
+                .map_err(|error| format!("selected Text registry: {error:?}"))?;
+            candidates.push(text.entry.clone());
+            ready_resource_classes.insert("data/immutable-generation@1".into());
+            initialized_base_kinds.insert(text.entry.mechanism_family.as_str().into());
+            initialized_driver_kinds.insert(text.entry.implementation_id.as_str().into());
+        }
         if let Some(entry) = creche_entry {
             registry
                 .register(entry.clone())
@@ -431,6 +489,7 @@ impl StdHost {
         #[allow(unused_mut)]
         let mut expected_capabilities = 1
             + usize::from(initial.creche.is_some())
+            + usize::from(initial.has_text_file())
             + mask_capabilities.len()
             + initial
                 .source
@@ -468,7 +527,9 @@ impl StdHost {
                     initialized_base_kinds,
                     initialized_driver_kinds,
                     available_facilities: facilities,
-                    authority_ready: has_native_mask || initial.source.is_some(),
+                    authority_ready: has_native_mask
+                        || initial.source.is_some()
+                        || initial.has_text_file(),
                 },
             },
         )
@@ -481,6 +542,10 @@ impl StdHost {
                 host.advertisement.capabilities.len(), host.advertisement.resources.len(), budgets.len()));
         }
         host.base_registry = registry;
+        #[cfg(target_os = "linux")]
+        if let Some(text) = initial.text_file {
+            host.selected_text_file = Some(text.residence);
+        }
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         {
             host.selected_scanout = initial.scanout;
