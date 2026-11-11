@@ -80,8 +80,8 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
             .map_err(E::Pipe)?;
         crate::protocol_source::preparation_stage("usb-hub-package");
         let package = usb_hub_input_package().map_err(E::Source)?;
-        let bytes = serde_json::to_vec(&package).map_err(|_| E::Binding)?;
-        let entry = PreparedProtocolEntry::prepare(&bytes, "usb-hub-input").map_err(E::Source)?;
+        let entry =
+            PreparedProtocolEntry::prepare_package(package, "usb-hub-input").map_err(E::Source)?;
         let seed_type = entry.input_schema(&port_id("begin")).ok_or(E::Binding)?;
         let StructuredInfoTypeShape::Record { fields, .. } = seed_type.shape() else {
             return Err(E::Binding);

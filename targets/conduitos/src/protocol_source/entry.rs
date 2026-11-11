@@ -28,11 +28,40 @@ impl PreparedProtocolEntry {
         preparation_stage(entry);
         let package = ProtocolSourcePackage::decode(bytes)?;
         preparation_stage("decoded");
+        Self::prepare_owned(package, entry, Sha256::digest(bytes))
+    }
+
+    /// Consume an internally assembled package without decoding a second copy.
+    /// Its identity matches the exact canonical JSON bytes used by `prepare`.
+    pub fn prepare_package(
+        package: ProtocolSourcePackage,
+        entry: &str,
+    ) -> Result<Self, ProtocolSourceRefusal> {
+        if entry.is_empty() || entry.len() > MAXIMUM_SOURCE_BYTES {
+            return Err(ProtocolSourceRefusal::Bounds);
+        }
+        package.validate_bounds()?;
+        #[cfg(all(target_os = "none", target_arch = "arm", feature = "armv6-product"))]
+        preparation_stage(entry);
+        let bytes = serde_json::to_vec(&package).map_err(|_| ProtocolSourceRefusal::Encoding)?;
+        if bytes.len() > MAXIMUM_PACKAGE_BYTES {
+            return Err(ProtocolSourceRefusal::Bounds);
+        }
+        let digest = Sha256::digest(&bytes);
+        drop(bytes);
+        preparation_stage("assembled");
+        Self::prepare_owned(package, entry, digest)
+    }
+
+    fn prepare_owned(
+        package: ProtocolSourcePackage,
+        entry: &str,
+        digest: sha2::digest::Output<Sha256>,
+    ) -> Result<Self, ProtocolSourceRefusal> {
         let source = PreparedProtocolSource::prepare(package)?;
         preparation_stage("prepared");
         let expanded = source.expand(entry)?;
         preparation_stage("expanded");
-        let digest = Sha256::digest(bytes);
         Ok(Self {
             source,
             expanded,
@@ -160,6 +189,26 @@ mod tests {
             specializations: vec![],
         })
         .unwrap()
+    }
+
+    #[test]
+    fn owned_package_preserves_encoded_identity_and_checks_bounds() {
+        let bytes = bytes();
+        let encoded = PreparedProtocolEntry::prepare(&bytes, "identity").unwrap();
+        let owned = PreparedProtocolEntry::prepare_package(
+            ProtocolSourcePackage::decode(&bytes).unwrap(),
+            "identity",
+        )
+        .unwrap();
+        assert_eq!(owned.artifact_id(), encoded.artifact_id());
+        assert_eq!(owned.package_digest(), encoded.package_digest());
+        assert_eq!(owned.resident(), encoded.resident());
+        let mut package = ProtocolSourcePackage::decode(&bytes).unwrap();
+        package.source = "x".repeat(MAXIMUM_SOURCE_BYTES + 1);
+        assert!(matches!(
+            PreparedProtocolEntry::prepare_package(package, "identity"),
+            Err(ProtocolSourceRefusal::Bounds)
+        ));
     }
 
     #[test]
