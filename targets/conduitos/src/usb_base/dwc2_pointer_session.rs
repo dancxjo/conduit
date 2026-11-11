@@ -1,5 +1,7 @@
 //! Carry checked mouse context and samples across bounded native read quanta.
 //! This performs no report decoding, coordinate scaling or gesture inference.
+// Runtime refusals retain full diagnostics inline without allocating.
+#![allow(clippy::result_large_err)]
 use super::dwc2_pointer_play::*;
 use crate::{arch::dwc2::RegisterIo, source_pointer_sample::SourcePointerSampleDecoder};
 use alloc::{string::String, vec::Vec};

@@ -1,5 +1,7 @@
 //! Root composition of checked hub policy and independently admitted effects.
 //! Descriptor, hub, HID and retry meaning remains in the retained Source.
+// Runtime refusals retain full diagnostics inline without allocating.
+#![allow(clippy::result_large_err)]
 use super::{
     control_contract::ControlContract,
     dwc2_control::RootControlRoute,
@@ -289,10 +291,10 @@ impl<I: RegisterIo, P: MonotonicDeadlineProvider> Dwc2HubPlay<I, P> {
             .kernel_mut()
             .step()
             .map_err(|e| E::Call(ProtocolCallRefusal::Kernel(e)))?;
-        if let Some(request) = self.run.kernel_mut().next_host_request() {
-            if !self.run.service_pure_call(&request).map_err(E::Call)? {
-                return Err(E::Binding);
-            }
+        if let Some(request) = self.run.kernel_mut().next_host_request()
+            && !self.run.service_pure_call(&request).map_err(E::Call)?
+        {
+            return Err(E::Binding);
         }
         for output in &mut self.outputs {
             let Some(sequence) = self

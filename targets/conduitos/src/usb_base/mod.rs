@@ -64,7 +64,7 @@ pub(crate) mod dwc2_bus_route;
 #[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
 pub(crate) mod dwc2_control_play;
 
-#[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+#[cfg(all(target_arch = "arm", feature = "armv6-product"))]
 pub(crate) mod dwc2_hub_play;
 
 #[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
