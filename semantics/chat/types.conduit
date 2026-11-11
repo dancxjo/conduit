@@ -285,7 +285,9 @@ type EpisodeMemoryState = {
 }
 
 # One begun episode awaiting its model response. Body and Wake identity come
-# from the typed context; `recalled` is exactly what entered the model request.
+# from the typed context. Recalled records name selected episodes; their evidence
+# is the exact transmitted fragment. Original observation/outcome fields remain
+# audit custody and do not automatically enter the model request.
 type EpisodePending = {
     episode: U64
     body_id: Text <= 256B not in [""]
