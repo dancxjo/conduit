@@ -254,3 +254,19 @@ change was followed by this full runtime audit, not only the two focused tests.
 No production behavior, live owner, device firmware or installed Body was changed
 by those baseline repairs. The final log is
 `outputs/extraction-runtime-final-audit-20261111.log` in the task evidence area.
+
+### Shared retention integration
+
+The terminal publication Back now delegates staging and local ordering to the
+shared `conduit-typed-retention` implementation; application channel contracts
+remain in the Body. The duplicate private canonical-input implementation was
+removed and its validation regressions moved into shared tests. Both validators
+already check primitive representations, so this is not a semantic tightening.
+
+In the combined integration source, all 71 environmental runtime tests across
+21 binaries and all 10 shared-helper tests pass. Workspace registration and all
+six shard guards pass. The independent current-dev adapter cohort additionally
+passes strict all-target Clippy and Cortex-M0+ compilation, with byte-identical
+CPU64 inline/buffer/preparation allocation measurements before and after. Those
+measurements are not a new firmware or hardware acceptance claim. Running
+MCU/owner/display artifacts were left unchanged during this source integration.
