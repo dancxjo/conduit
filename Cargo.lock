@@ -2040,6 +2040,7 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-face",
+ "conduit-seven-segment-mask",
 ]
 
 [[package]]
@@ -2958,6 +2959,18 @@ dependencies = [
  "conduit-plot",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-tm1637-output-make"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plan-lowering",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-semantic-catalog",
+ "conduit-tm1637-wire",
 ]
 
 [[package]]
