@@ -12,6 +12,7 @@ use conduit_kernel::{
 pub use crate::host_execution::continuity::StateContinuationRunFailure;
 mod continuity;
 mod durable;
+mod large;
 pub use continuity::{RetainedTypedState, StateContinuityFailure};
 pub(crate) use durable::InstalledDurableStateHost;
 pub use durable::{
@@ -78,11 +79,11 @@ pub struct RetainedStdRun {
     pub states: Vec<RetainedTypedState>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for TypedStateBack {
+impl<const PORTS: usize, const CAPACITY: usize> StepBack<PORTS>
+    for BoundedTypedStateBack<CAPACITY>
+{
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<
-            PORTS,
-        >>::prepared_output(&self.back, port)
+        <StateBack<CAPACITY> as StepBack<PORTS>>::prepared_output(&self.back, port)
     }
 
     fn step(
@@ -93,14 +94,14 @@ impl<const PORTS: usize> StepBack<PORTS> for TypedStateBack {
         let port = self.back.next_port();
         if io.input(port).is_some() {
             let Some(canonical) = input_bytes.input(port) else {
-                <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<PORTS>>::cancel(&mut self.back);
+                <StateBack<CAPACITY> as StepBack<PORTS>>::cancel(&mut self.back);
                 return StepOutcome::Fail(Failure {
                     code: FailureCode::InvalidInput,
                     detail: 9,
                 });
             };
             if let Err(error) = self.validator.validate(canonical) {
-                <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<PORTS>>::cancel(&mut self.back);
+                <StateBack<CAPACITY> as StepBack<PORTS>>::cancel(&mut self.back);
                 let capacity = matches!(
                     error,
                     conduit_core::StructuredInfoRefusal::CanonicalEncodingTooLarge
@@ -115,27 +116,28 @@ impl<const PORTS: usize> StepBack<PORTS> for TypedStateBack {
                 });
             }
         }
-        <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<
-            PORTS,
-        >>::step(&mut self.back, io, input_bytes)
+        <StateBack<CAPACITY> as StepBack<PORTS>>::step(&mut self.back, io, input_bytes)
     }
 
     fn step_committed(&mut self) {
-        <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<
-            PORTS,
-        >>::step_committed(&mut self.back);
+        <StateBack<CAPACITY> as StepBack<PORTS>>::step_committed(&mut self.back);
     }
 
     fn cancel(&mut self) {
-        <StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }> as StepBack<
-            PORTS,
-        >>::cancel(&mut self.back);
+        <StateBack<CAPACITY> as StepBack<PORTS>>::cancel(&mut self.back);
     }
 }
 
-pub struct TypedStateBack {
+/// Existing 4 KiB implementation; continuity retains its original exact profile.
+pub type TypedStateBack =
+    BoundedTypedStateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }>;
+/// Separately selected 64 KiB Play-scoped implementation.
+pub type LargeTypedStateBack =
+    BoundedTypedStateBack<{ conduit_std_offers::STATE_VALUE_LARGE_STD_MAXIMUM_BYTES as usize }>;
+
+pub struct BoundedTypedStateBack<const CAPACITY: usize> {
     binding: Option<continuity::StateExecutionBinding>,
-    back: StateBack<{ conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES as usize }>,
+    back: StateBack<CAPACITY>,
     validator: StateValueValidator,
 }
 
@@ -154,7 +156,7 @@ impl StateValueValidator {
     }
 }
 
-impl TypedStateBack {
+impl<const CAPACITY: usize> BoundedTypedStateBack<CAPACITY> {
     /// Prepare all owned schema/storage before Play. Numeric identities must be
     /// supplied by the host's exact lowering tables, never selected at runtime.
     pub fn prepare(
@@ -190,11 +192,23 @@ impl TypedStateBack {
     ) -> Result<StateValueValidator, String> {
         conduit_semantic_catalog::state_value::validate_state_placement(placement, state)
             .map_err(|error| format!("State semantic admission: {error:?}"))?;
-        if placement.execution_profile_id.as_str() != conduit_std_offers::STATE_VALUE_STD_PROFILE
-            || placement.implementation_id.as_str()
-                != conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
-            || placement.artifact_id.as_str() != conduit_std_offers::STATE_VALUE_STD_ARTIFACT
-            || state.maximum_value_bytes > conduit_std_offers::STATE_VALUE_STD_MAXIMUM_BYTES
+        let (profile, implementation, artifact) = match CAPACITY {
+            4096 => (
+                conduit_std_offers::STATE_VALUE_STD_PROFILE,
+                conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION,
+                conduit_std_offers::STATE_VALUE_STD_ARTIFACT,
+            ),
+            65_536 => (
+                conduit_std_offers::STATE_VALUE_LARGE_STD_PROFILE,
+                conduit_std_offers::STATE_VALUE_LARGE_STD_IMPLEMENTATION,
+                conduit_std_offers::STATE_VALUE_LARGE_STD_ARTIFACT,
+            ),
+            _ => return Err("State capacity has no installed exact profile".into()),
+        };
+        if placement.execution_profile_id.as_str() != profile
+            || placement.implementation_id.as_str() != implementation
+            || placement.artifact_id.as_str() != artifact
+            || state.maximum_value_bytes as usize > CAPACITY
             || !placement.host_calls.is_empty()
             || !placement.resources.is_empty()
             || !placement.authority.is_empty()

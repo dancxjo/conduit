@@ -47,6 +47,8 @@ pub(crate) fn supports_with_native(
                 || gear.implementation_id.as_str()
                     == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
                 || gear.implementation_id.as_str()
+                    == conduit_std_offers::STATE_VALUE_LARGE_STD_IMPLEMENTATION
+                || gear.implementation_id.as_str()
                     == conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
         })
 }

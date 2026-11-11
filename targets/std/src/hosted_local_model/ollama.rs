@@ -103,10 +103,13 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
                 .unwrap_or(1)
                 .clamp(1, 512)
         } else {
-            let token_ceiling = if placement.kind_id.as_str() == conduit_ai::LLM_INTERPRET_KIND {
-                256
-            } else {
-                64
+            let token_ceiling = match placement.kind_id.as_str() {
+                conduit_ai::LLM_INTERPRET_KIND => 256,
+                // Continuing interpretation can attribute both current and
+                // historical sources. Keep the existing envelope reservation
+                // and exact output/work checks; 64 tokens truncated such replies.
+                conduit_ai::LLM_GENERATE_RECOVERABLE_FLOW_KIND => 128,
+                _ => 64,
             };
             maximum_output_bytes
                 .saturating_sub(2_048)
@@ -116,7 +119,9 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
         };
         let maximum_tokens = budget.decoder_tokens(maximum_tokens);
         let (payload, truncated, work_units) = match placement.kind_id.as_str() {
-            conduit_ai::LLM_GENERATE_KIND | conduit_ai::LLM_GENERATE_FLOW_KIND => {
+            conduit_ai::LLM_GENERATE_KIND
+            | conduit_ai::LLM_GENERATE_FLOW_KIND
+            | conduit_ai::LLM_GENERATE_RECOVERABLE_FLOW_KIND => {
                 match self.generate_with_budget(input, maximum_tokens, false, &budget) {
                     Ok((generated, work_units)) => (
                         generated.response.into_bytes(),

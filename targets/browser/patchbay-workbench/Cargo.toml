@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-ai = { path = "../../../semantics/ai" }
+conduit-human = { path = "../../../semantics/human" }
 conduit-browser-mask-offer = { path = "../mask-offer" }
 conduit-body = { path = "../../../architecture/body" }
+conduit-pete = { path = "../../../bodies/pete" }
 conduit-browser-host = { path = "../../../targets/browser/host" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }

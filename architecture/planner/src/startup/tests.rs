@@ -168,3 +168,53 @@ fn initialized_heterogeneous_state_cuts_only_its_declared_update() {
     state.semantic_contract.laws.pop();
     assert_eq!(startup_order(&placements, &connections).unwrap(), None);
 }
+
+#[test]
+fn authored_typed_keep_cuts_next_only_after_exact_initialization_is_validated() {
+    let (mut placements, mut connections) = fixture();
+    let state = placements.iter_mut().find(|p| p.inputs.len() == 2).unwrap();
+    let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
+    let initial = StructuredInfoValue::leaf(ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
+    let kind =
+        conduit_semantic_catalog::state_value::state_value_semantic_contract("Cell", &ty, &initial)
+            .unwrap();
+    state.kind_id = kind.kind_id.clone();
+    state.kind_contract_revision = kind.kind_contract_revision.clone();
+    state.inputs = kind.inputs.clone();
+    state.outputs = kind.outputs.clone();
+    state.semantic_contract = kind.semantic_contract();
+    state.configuration = vec![
+        ConfigurationEntry {
+            key: "initial".into(),
+            value: kind.configuration[0].default_value.clone(),
+        },
+        ConfigurationEntry {
+            key: "retained-duration".into(),
+            value: ConfigurationValue::Text("play".into()),
+        },
+        ConfigurationEntry {
+            key: "maximum-bytes".into(),
+            value: ConfigurationValue::U64(64),
+        },
+    ];
+    state.limits.max_queue_bytes = 64;
+    let id = state.placement_id.clone();
+    connections[0].source_port_id = port_id("current");
+    connections.last_mut().unwrap().sink_port_id = port_id("next");
+    assert!(startup_order(&placements, &connections).unwrap().is_some());
+    assert_eq!(
+        startup_dependencies(&placements, &connections)
+            .unwrap()
+            .len(),
+        1
+    );
+    let state = placements
+        .iter_mut()
+        .find(|p| p.placement_id == id)
+        .unwrap();
+    state.configuration.retain(|entry| entry.key != "initial");
+    assert!(matches!(
+        startup_order(&placements, &connections),
+        Err(PlannerError::InvalidStateContract(_))
+    ));
+}

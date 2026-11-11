@@ -67,6 +67,22 @@ fn starts_from_admitted_host_input(placement: &PlannedGear) -> bool {
 fn delay_inputs(placements: &[PlannedGear]) -> Result<BTreeMap<PlacementId, PortId>, PlannerError> {
     let mut delayed = BTreeMap::new();
     for placement in placements {
+        // An authored typed keep cell owns an exact initializer and a sealed
+        // next/current boundary. Its next writer cannot block initial startup.
+        if placement.kind_id.as_str() == conduit_core::STATE_VALUE_KIND {
+            if let Some(state) = crate::planned_keep_state(placement)? {
+                if state.initial_value.is_none() {
+                    return Err(PlannerError::InvalidStateContract(format!(
+                        "{}: typed keep has no initialization",
+                        placement.placement_id.as_str()
+                    )));
+                }
+                delayed.insert(
+                    placement.placement_id.clone(),
+                    placement.inputs[0].port_id.clone(),
+                );
+            }
+        }
         if let Some(law) = conduit_core::initialized_state_boundary(
             &placement.inputs,
             &placement.outputs,

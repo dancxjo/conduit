@@ -95,6 +95,20 @@ pub(super) fn prepare_operations_with_native(
                         .ok_or("Body-durable State requires an exact Body execution binding")?,
                     values,
                 )?))
+            } else if fragment
+                .placements
+                .iter()
+                .find(|placement| placement.placement_id == node.placement_id)
+                .is_some_and(|placement| {
+                    placement.implementation_id.as_str()
+                        == conduit_std_offers::STATE_VALUE_LARGE_STD_IMPLEMENTATION
+                })
+            {
+                InstalledBack::LargeTypedState(Box::new(
+                    crate::state_value::LargeTypedStateBack::prepare_for_play(
+                        fragment, state, play,
+                    )?,
+                ))
             } else {
                 InstalledBack::TypedState(Box::new(
                     crate::state_value::TypedStateBack::prepare_for_play(fragment, state, play)?,
@@ -184,7 +198,7 @@ pub(crate) fn lower_fragment_with_continuity(
     fragment: &PlanFragment,
     continuity: bool,
 ) -> Result<LoweredPlanFragment, String> {
-    let mut profile = state_storage_profile();
+    let mut profile = state_storage_profile_for_fragments(&[fragment])?;
     if continuity {
         profile = profile.with_owned_state_continuity();
     }
@@ -201,13 +215,61 @@ pub(crate) fn state_storage_profile() -> conduit_plan_lowering::lowering::Kernel
         .expect("the installed State storage profile has fixed positive capacities")
 }
 
+/// Select larger prepared cell storage only for the separately named exact Back.
+/// Every individual cell remains constrained by its own sealed State boundary.
+pub(crate) fn state_storage_profile_for_fragments(
+    fragments: &[&PlanFragment],
+) -> Result<conduit_plan_lowering::lowering::KernelStorageProfile, String> {
+    let mut large = false;
+    for placement in fragments.iter().flat_map(|fragment| &fragment.placements) {
+        if placement.implementation_id.as_str()
+            == conduit_std_offers::STATE_VALUE_LARGE_STD_IMPLEMENTATION
+        {
+            if placement.execution_profile_id.as_str()
+                != conduit_std_offers::STATE_VALUE_LARGE_STD_PROFILE
+                || placement.artifact_id.as_str()
+                    != conduit_std_offers::STATE_VALUE_LARGE_STD_ARTIFACT
+                || placement.limits.max_queue_bytes
+                    != conduit_std_offers::STATE_VALUE_LARGE_STD_MAXIMUM_BYTES
+            {
+                return Err(
+                    "large State storage requires the exact admitted implementation".into(),
+                );
+            }
+            large = true;
+        }
+    }
+    if large {
+        state_storage_profile()
+            .with_state_storage(
+                MAX_NODES as u16,
+                conduit_std_offers::STATE_VALUE_LARGE_STD_MAXIMUM_BYTES,
+            )
+            .map_err(|error| format!("large State storage profile: {error:?}"))
+    } else {
+        Ok(state_storage_profile())
+    }
+}
+
 pub(super) fn back_budget(
     placement: &conduit_core::PlannedGear,
 ) -> Result<super::factory::BackBudget, String> {
     if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
         conduit_semantic_catalog::face_data_label(&placement.configuration)?;
     }
-    if placement.implementation_id.as_str() == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION {
+    if placement.implementation_id.as_str()
+        == conduit_std_offers::STATE_VALUE_LARGE_STD_IMPLEMENTATION
+    {
+        Ok(super::factory::BackBudget {
+            value_items: 2,
+            value_bytes: conduit_std_offers::STATE_VALUE_LARGE_STD_MAXIMUM_BYTES * 2,
+            host_requests: 0,
+            sign_items: 16,
+            maximum_value_bytes: conduit_std_offers::STATE_VALUE_LARGE_STD_MAXIMUM_BYTES,
+        })
+    } else if placement.implementation_id.as_str()
+        == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
+    {
         // Reserve the selected implementation's fixed envelope. Exact authored
         // initialization and the sealed per-cell capacity are checked on prepare.
         Ok(super::factory::BackBudget {

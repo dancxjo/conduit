@@ -9,6 +9,7 @@ use conduit_core::{
     HostAdvertisement, HostProfileId, PlannerCapabilityOffer, PlannerProfileId, PROTOCOL_VERSION,
 };
 
+mod experience_evidence;
 mod math;
 mod resources;
 mod signal;
@@ -16,6 +17,8 @@ mod signal;
 /// Compile/composition-time selection of implementation families included in a std host image.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StdHostComposition {
+    /// Pure bounded projection over explicitly supplied evidence.
+    pub experience_evidence: bool,
     pub signal: bool,
     pub time: bool,
     /// Ordered nominal pulse observation; selected independently of the broad reference image.
@@ -45,6 +48,7 @@ impl StdHostComposition {
     /// The broad reference composition. This is a host image, not the definition of a host.
     pub const fn reference() -> Self {
         Self {
+            experience_evidence: true,
             signal: true,
             time: true,
             pulse_observation: false,
@@ -73,6 +77,7 @@ impl StdHostComposition {
     /// mandatory host-core methods.
     pub const fn minimal() -> Self {
         Self {
+            experience_evidence: false,
             signal: false,
             time: false,
             pulse_observation: false,
@@ -218,6 +223,7 @@ pub(super) fn build_advertisement(
     playback_proof: bool,
 ) -> HostAdvertisement {
     let mut capabilities = Vec::new();
+    experience_evidence::append(composition, &mut capabilities);
     if composition.signal {
         capabilities.extend(signal::offers());
     }

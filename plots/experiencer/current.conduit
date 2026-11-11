@@ -1,0 +1,13 @@
+# Explicit evidence accompanies each committed Experience revision. There is no
+# ambient lookup from the legacy identity-only CurrentExperience projection.
+plot experiencer-current (
+    >> updates: ExperienceIntegrationUpdate...|
+    contexts: ExperienceEvidenceContext...| >>
+) {
+    integrate: experience/integrate-current
+    project: experience/project-evidence-flow
+
+    updates >> integrate.update
+    integrate.request >> project.request
+    project.context >> contexts
+}

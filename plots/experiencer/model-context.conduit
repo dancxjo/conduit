@@ -1,0 +1,15 @@
+# Bounded evidence wording for a separately admitted model Gear. Evidence remains
+# data, with origin, uncertainty, availability and selected source provenance.
+plot experience-model-context (
+    >> updates: ExperienceIntegrationUpdate...|
+    requests: ExperienceModelRequest...| >>
+) {
+    integrate: experience/integrate-current
+    project: experience/project-evidence-flow
+    wording: experience/context-to-prompt
+
+    updates >> integrate.update
+    integrate.request >> project.request
+    project.context >> wording.context
+    wording.request >> requests
+}

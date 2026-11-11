@@ -13,6 +13,6 @@ impl InstalledRemoteFragment {
     /// remote lifecycle identities. Reading does not acknowledge a value or
     /// release any kernel ownership. Callers own any descriptive reconstruction.
     pub fn kernel_signs(&self) -> &HostedSignLog {
-        self.scheduler.signs()
+        self.scheduler.signs().inner()
     }
 }

@@ -210,6 +210,18 @@ use super::whisper_speech_back::{
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
+    &super::experience_integration_back::FACTORY,
+    &super::experience_prompt_back::FACTORY,
+    &super::temporal_evidence_back::FACTORY,
+    &super::experience_situation_back::FACTORY,
+    &super::experience_autobiography_back::FACTORY,
+    &super::experience_autobiography_recovery_back::FACTORY,
+    &super::experience_autobiography_recall_back::FACTORY,
+    &super::experience_evidence_back::FACTORY,
+    &super::experience_evidence_back::FLOW_FACTORY,
+    &super::episode_loop_back::COMPOSE_FACTORY,
+    &super::episode_loop_back::RETAIN_FACTORY,
+    &super::episode_memory_back::MEMORY_FACTORY,
     &super::creche_back::FACTORY,
     &super::ieee_back::FACTORY,
     &super::near_back::FACTORY,
@@ -507,6 +519,8 @@ pub(crate) fn supports(fragment: &PlanFragment) -> bool {
             factory(&placement.implementation_id).is_some()
                 || placement.implementation_id.as_str()
                     == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
+                || placement.implementation_id.as_str()
+                    == conduit_std_offers::STATE_VALUE_LARGE_STD_IMPLEMENTATION
                 || placement.implementation_id.as_str()
                     == conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
         })

@@ -20,7 +20,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::{
     activation_fragment::{lower_fragment_activations, LoweredFragmentActivations},
     fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds},
-    lowering::{KernelIdentityMap, LoweredHostCall, FIXED_KERNEL_STORAGE_PROFILE},
+    lowering::{KernelIdentityMap, LoweredHostCall},
 };
 use std::io::Write;
 
@@ -28,11 +28,14 @@ mod creche_route;
 use creche_route::CrecheRoute;
 mod clock_observation;
 mod data_text;
+mod debug_observation;
 mod fore_route;
+mod model_route;
 mod parsec_acknowledged_map;
 mod parsec_sources;
 mod parsec_terminal_owner;
 mod scalar_math;
+mod state_route;
 pub(crate) use parsec_terminal_owner::QualifiedParsecInstruction;
 mod each_route;
 mod scan_route;
@@ -41,8 +44,13 @@ use clock_observation::KernelClockObservations;
 use fore_route::BodyForeRoute;
 
 pub(crate) struct BodyKernel<'a> {
+    model: model_route::ModelRoute<'a>,
     creche: Option<CrecheRoute>,
     scheduler: Box<InstalledScheduler>,
+    debug_types: Option<(
+        conduit_kernel::debug_observation::DebugExecutionIdentity,
+        Vec<String>,
+    )>,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
@@ -73,6 +81,7 @@ pub(crate) struct BodyKernelResult {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub events: Vec<KernelEvent>,
+    pub debug_observations: Option<crate::body_debug_observation::BodyDebugHistory>,
     pub scan_child_signs:
         Result<Vec<conduit_composite::ScanChildSignReceipt>, conduit_composite::BoundedScanError>,
     pub scan_cancellation_failed: bool,
@@ -184,6 +193,7 @@ impl<'a> BodyKernel<'a> {
             has_fore_output,
             None,
             None,
+            None,
             #[cfg(target_os = "linux")]
             None,
         )
@@ -198,6 +208,7 @@ impl<'a> BodyKernel<'a> {
         sequential_fore: bool,
         has_fore_output: bool,
         host: &conduit_core::HostAdvertisement,
+        debug: Option<conduit_kernel::debug_observation::DebugExecutionIdentity>,
         #[cfg(target_os = "linux")] selected_file: Option<
             &'a crate::text_file::SelectedTextFileResidence,
         >,
@@ -212,11 +223,13 @@ impl<'a> BodyKernel<'a> {
             has_fore_output,
             None,
             sources.as_ref(),
+            debug,
             #[cfg(target_os = "linux")]
             selected_file,
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_live_on_host(
         partitions: &[BodyPlotPlan],
         has_keyboard: bool,
@@ -224,6 +237,7 @@ impl<'a> BodyKernel<'a> {
         queue: &BodyLiveForeQueue,
         control: &RunControl,
         host: &conduit_core::HostAdvertisement,
+        debug: Option<conduit_kernel::debug_observation::DebugExecutionIdentity>,
         #[cfg(target_os = "linux")] selected_file: Option<
             &'a crate::text_file::SelectedTextFileResidence,
         >,
@@ -244,6 +258,7 @@ impl<'a> BodyKernel<'a> {
             true,
             Some(queue),
             sources.as_ref(),
+            debug,
             #[cfg(target_os = "linux")]
             selected_file,
         )
@@ -259,6 +274,7 @@ impl<'a> BodyKernel<'a> {
         has_fore_output: bool,
         live: Option<&BodyLiveForeQueue>,
         parsec_sources: Option<&std::sync::Arc<crate::flow_activation::ParsecSourcePlans>>,
+        debug: Option<conduit_kernel::debug_observation::DebugExecutionIdentity>,
         #[cfg(target_os = "linux")] selected_file: Option<
             &'a crate::text_file::SelectedTextFileResidence,
         >,
@@ -312,7 +328,7 @@ impl<'a> BodyKernel<'a> {
             .collect::<Vec<_>>();
         let lowered = lower_local_fragment_set_from_plans(
             &plans,
-            FIXED_KERNEL_STORAGE_PROFILE,
+            preparation::state_storage_profile_for_fragments(&fragments)?,
             FragmentSetBounds {
                 fragments: conduit_body::MAX_BODY_PLOTS as u16,
                 nodes: MAX_NODES as u16,
@@ -340,6 +356,7 @@ impl<'a> BodyKernel<'a> {
                     return Err("Body keyboard has no admitted adapter".into());
                 }
             } else if !scalar_math::supports(operation)
+                && !model_route::supports(operation)
                 && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
@@ -366,7 +383,11 @@ impl<'a> BodyKernel<'a> {
         for (partition_index, fragment) in fragments.iter().enumerate() {
             for placement in &fragment.placements {
                 let ordinary;
-                let budget = if let Some(scan) = scans.iter().find(|scan| {
+                let state_budget =
+                    state_route::budget(placement, &lowered.partitions[partition_index])?;
+                let budget = if let Some(state) = state_budget.as_ref() {
+                    state
+                } else if let Some(scan) = scans.iter().find(|scan| {
                     scan.partition == partition_index && scan.owner == placement.placement_id
                 }) {
                     &scan.budget
@@ -416,30 +437,32 @@ impl<'a> BodyKernel<'a> {
             fragments.iter().zip(&lowered.partitions).enumerate()
         {
             for node in &part.nodes {
-                drivers[usize::from(node.node.0)] = if let Some(scan) =
-                    scans.iter_mut().find(|scan| {
+                drivers[usize::from(node.node.0)] =
+                    if let Some(state) = state_route::prepare(fragment, part, node)? {
+                        state
+                    } else if let Some(scan) = scans.iter_mut().find(|scan| {
                         scan.partition == partition_index && scan.owner == node.placement_id
                     }) {
-                    InstalledBack::BodyScan(Box::new(
-                        scan.back
-                            .take()
-                            .ok_or("installed scan owner was prepared twice")?,
-                    ))
-                } else if let Some(each) = each.iter_mut().find(|each| {
-                    each.partition == partition_index && each.owner == node.placement_id
-                }) {
-                    InstalledBack::BodyEach(Box::new(
-                        each.back
-                            .take()
-                            .ok_or("installed Each owner was prepared twice")?,
-                    ))
-                } else {
-                    preparation::prepare_ordinary_operation(
-                        fragment,
-                        &node.placement_id,
-                        &mut values,
-                    )?
-                };
+                        InstalledBack::BodyScan(Box::new(
+                            scan.back
+                                .take()
+                                .ok_or("installed scan owner was prepared twice")?,
+                        ))
+                    } else if let Some(each) = each.iter_mut().find(|each| {
+                        each.partition == partition_index && each.owner == node.placement_id
+                    }) {
+                        InstalledBack::BodyEach(Box::new(
+                            each.back
+                                .take()
+                                .ok_or("installed Each owner was prepared twice")?,
+                        ))
+                    } else {
+                        preparation::prepare_ordinary_operation(
+                            fragment,
+                            &node.placement_id,
+                            &mut values,
+                        )?
+                    };
             }
         }
         if each.iter().any(|each| each.back.is_some()) {
@@ -510,10 +533,23 @@ impl<'a> BodyKernel<'a> {
                     })
                 }),
         )?;
-        let scheduler = tables.install(drivers, values, signs)?;
+        let model = model_route::ModelRoute::prepare(&fragments, &lowered.partitions)?;
+        let (scheduler, debug_types) = match debug {
+            Some(execution) => {
+                let (scope, types) =
+                    debug_observation::prepare(execution, &fragments, &lowered.partitions)?;
+                (
+                    tables.install_observed(drivers, values, signs, scope)?,
+                    Some((execution, types)),
+                )
+            }
+            None => (tables.install(drivers, values, signs)?, None),
+        };
         Ok(Self {
+            model,
             creche: None,
             scheduler,
+            debug_types,
             face_labels,
             input_origin: None,
             fore,
@@ -685,10 +721,19 @@ impl<'a> BodyKernel<'a> {
         Ok(())
     }
 
+    /// Borrow the selected provider before admission and Play start.
+    pub(crate) fn attach_local_model(
+        &mut self,
+        provider: Option<&'a mut Box<dyn crate::hosted_local_model::HostedLocalModelAdapter>>,
+    ) -> Result<(), String> {
+        self.model.attach(provider)
+    }
+
     /// Exact finite pure scans and the separately validated live Parsec input
     /// profile have installed Body routes. This admits execution shape only;
     /// Face action grants and current input-map authority remain separate.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
+        self.model.require_supported()?;
         if self.operations.iter().any(|operation| {
             operation.contract_id.as_str()
                 == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
@@ -933,6 +978,12 @@ impl<'a> BodyKernel<'a> {
                         == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
                     {
                         self.begin_creche(request, creche.as_deref_mut())?;
+                        continue;
+                    }
+                    if self
+                        .model
+                        .complete(operation, request, &mut self.scheduler)?
+                    {
                         continue;
                     }
                     if scalar_math::complete(operation, request, &mut self.scheduler)? {
@@ -1497,6 +1548,7 @@ impl<'a> BodyKernel<'a> {
         );
         let each_output_completion_failed = self.scheduler.drivers().iter().any(|driver| matches!(driver,InstalledBack::BodyEach(each) if each.output_completion_failed()));
         let (fore_deliveries, fore_pending_output) = self.fore.into_custody();
+        let debug_observations = debug_observation::finish(&mut self.scheduler, self.debug_types);
         BodyKernelResult {
             terminal,
             failure,
@@ -1505,6 +1557,7 @@ impl<'a> BodyKernel<'a> {
             partitions: self.partitions,
             requests: self.requests,
             events: self.scheduler.signs().events().collect(),
+            debug_observations,
             scan_child_signs,
             scan_cancellation_failed,
             scan_output_completion_failed,
@@ -1566,3 +1619,9 @@ mod parsec_live_fore_tests;
 #[cfg(test)]
 #[path = "body_kernel/parsec_instruction_source_tests.rs"]
 mod parsec_instruction_source_tests;
+
+#[cfg(test)]
+mod model_route_tests;
+
+#[cfg(test)]
+mod autobiography_tests;

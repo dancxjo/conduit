@@ -1813,14 +1813,17 @@ dependencies = [
 name = "conduit-browser-patchbay-workbench"
 version = "0.1.0"
 dependencies = [
+ "conduit-ai",
  "conduit-body",
  "conduit-body-make",
  "conduit-browser-host",
  "conduit-browser-mask-offer",
  "conduit-core",
  "conduit-face",
+ "conduit-human",
  "conduit-kernel",
  "conduit-patchbay-workbench",
+ "conduit-pete",
  "conduit-plan-lowering",
  "conduit-plot",
  "conduit-semantic-catalog",
@@ -2139,6 +2142,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+ "conduit-time",
  "postcard",
  "serde",
  "serde_json",

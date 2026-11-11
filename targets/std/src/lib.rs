@@ -24,6 +24,7 @@ pub mod bluetooth_gatt;
 pub mod body_causal_evidence;
 pub mod body_clock_line;
 pub mod body_coordination;
+pub mod body_debug_observation;
 pub mod body_execution;
 mod boot_identity;
 pub mod browser_admission;
@@ -214,6 +215,7 @@ mod local_model_observation;
 mod local_model_pool_member;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
+mod local_model_state;
 #[cfg(any(test, feature = "local-model-proof"))]
 pub mod local_model_stream_proof;
 mod run_control;
@@ -671,6 +673,9 @@ fn add_local_model_offers(
     advertisement.capabilities.extend([
         conduit_std_offers::house_prompt_std_offer(),
         conduit_std_offers::body_chat_prompt_std_offer(),
+        conduit_std_offers::episode_compose_offer(),
+        conduit_std_offers::episode_retain_offer(),
+        conduit_std_offers::episode_memory_offer(),
         conduit_std_offers::model_result_to_text_std_offer(),
         conduit_std_offers::model_result_flow_to_text_std_offer(),
         conduit_std_offers::generated_chunk_to_text_std_offer(),

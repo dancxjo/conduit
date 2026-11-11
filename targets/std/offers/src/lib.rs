@@ -2,6 +2,20 @@
 
 mod value_pair;
 pub use value_pair::*;
+mod temporal_evidence;
+pub use temporal_evidence::*;
+mod experience_situation;
+pub use experience_situation::*;
+mod experience_autobiography;
+pub use experience_autobiography::*;
+mod experience_prompt;
+pub use experience_prompt::*;
+mod experience_integration;
+pub use experience_integration::*;
+mod experience_evidence;
+pub use experience_evidence::*;
+mod episode_loop;
+pub use episode_loop::*;
 
 mod flow_state;
 pub use flow_state::*;
@@ -339,3 +353,6 @@ pub use pcm_packing::*;
 
 mod source_check;
 pub use source_check::*;
+
+mod experience_autobiography_recovery;
+pub use experience_autobiography_recovery::*;

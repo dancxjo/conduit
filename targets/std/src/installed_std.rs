@@ -27,6 +27,17 @@ mod count_backs;
 mod creche_back;
 mod deadline_host;
 mod distance_frequency_back;
+mod episode_loop_back;
+mod episode_memory_back;
+mod experience_autobiography_back;
+mod experience_autobiography_recall_back;
+mod experience_autobiography_recovery_back;
+mod experience_evidence_back;
+#[cfg(test)]
+mod experience_evidence_back_tests;
+mod experience_integration_back;
+mod experience_prompt_back;
+mod experience_situation_back;
 mod external_fore_feeder;
 mod external_websocket;
 mod external_websocket_host;
@@ -54,6 +65,7 @@ mod ipa_constructor_back;
 mod near_back;
 mod numerical_back;
 mod pcm_clip_frames_back;
+mod temporal_evidence_back;
 pub(crate) use ieee_back::{offer as ieee_offer, owns_offer as owns_ieee_offer};
 pub(crate) use near_back::{
     admitted as prepare_near_value, offers as near_offers, owns_offer as owns_near_offer,
@@ -99,8 +111,10 @@ mod preparation;
 mod prepared_host_calls;
 #[cfg(all(test, unix))]
 mod streaming_speech_tests;
+#[cfg(test)]
+pub(super) use preparation::state_storage_profile;
 pub(super) use preparation::{
-    lower_fragment_with_continuity, state_storage_profile, validate_retained_inputs,
+    lower_fragment_with_continuity, state_storage_profile_for_fragments, validate_retained_inputs,
 };
 mod lifecycle;
 mod retained_run;
@@ -240,13 +254,13 @@ use conduit_core::{
 };
 use conduit_kernel::scheduler::{FixedScheduler, SchedulerStatus};
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedSignLog, HostedValueStore,
-    SignSink, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, HostedValueStore, SignSink, ValueStorage,
 };
 use conduit_plan_lowering::lowering::KernelExecutionIdentityMap;
 use std::io::Write;
 use std::time::Duration;
 
+mod debug_sign_sink;
 mod storage_profile;
 pub(crate) use facade::*;
 use storage_profile::{
@@ -258,7 +272,7 @@ const PROOF_PCM_CLIP_SOURCE_OPERATION: &str = "conduit.host/proof-recorded-pcm-c
 pub(in crate::installed_std) type InstalledScheduler = FixedScheduler<
     InstalledBack,
     HostedValueStore,
-    HostedSignLog,
+    debug_sign_sink::InstalledSignSink,
     MAX_NODES,
     MAX_CORDS,
     PORTS,

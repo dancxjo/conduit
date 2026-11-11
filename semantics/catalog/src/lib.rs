@@ -52,6 +52,30 @@ pub use diverse_structured_info::*;
 mod experience_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use experience_catalog::*;
+mod experience_evidence;
+pub use experience_evidence::*;
+mod experience_evidence_codec;
+pub use experience_evidence_codec::*;
+mod experience_situation;
+pub use experience_situation::*;
+mod experience_situation_codec;
+pub use experience_situation_codec::*;
+mod experience_autobiography;
+pub use experience_autobiography::*;
+mod experience_autobiography_recall;
+pub use experience_autobiography_recall::*;
+mod experience_autobiography_recall_codec;
+pub use experience_autobiography_recall_codec::*;
+mod experience_autobiography_codec;
+pub use experience_autobiography_codec::*;
+mod experience_integration;
+pub use experience_integration::*;
+mod experience_integration_codec;
+pub use experience_integration_codec::*;
+mod experience_prompt;
+pub use experience_prompt::*;
+mod experience_prompt_codec;
+pub use experience_prompt_codec::*;
 #[cfg(feature = "plot-catalog")]
 mod purpose_catalog;
 #[cfg(feature = "plot-catalog")]
@@ -562,3 +586,8 @@ pub use resonator_projection_preparation::*;
 mod resonator_projection_report;
 #[cfg(feature = "plot-catalog")]
 pub use resonator_projection_report::*;
+
+mod experience_autobiography_recovery;
+pub use experience_autobiography_recovery::*;
+mod experience_autobiography_recovery_codec;
+pub use experience_autobiography_recovery_codec::*;

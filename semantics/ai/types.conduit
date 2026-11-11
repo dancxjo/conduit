@@ -660,6 +660,26 @@ type TemporalEvidenceSelection =
     | need_earlier_history
     | boundary_unavailable
 
+# An explicit finite retrieval window may honestly contain no retained history.
+type TemporalEvidenceWindowCandidates = sequence TemporalEvidenceCandidate <= 128
+type TemporalEvidenceWindow = {
+    identity: TemporalEvidenceIdentity
+    reference: TemporalReference
+    candidates: TemporalEvidenceWindowCandidates
+    earliest_history_complete: Boolean
+}
+type TemporalEvidenceFlowSelection =
+    selected {
+        identities: TemporalEvidenceIdentities
+    }
+    | no_history
+    | need_earlier_history
+    | boundary_unavailable
+type TemporalEvidenceOutcome = {
+    window_identity: TemporalEvidenceIdentity
+    selection: TemporalEvidenceFlowSelection
+}
+
 type TemporalReference = {
     reference_at: U64
     clock_basis: ClockBasis
@@ -1376,6 +1396,7 @@ type LocalModelKindProfile =
     generate
     | stream_generate
     | generate_flow
+    | generate_recoverable_flow
     | classify_finite_labels
     | extract_validated_info
     | embed_finite_vector

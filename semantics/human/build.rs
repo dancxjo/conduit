@@ -1,5 +1,8 @@
 mod keymap_layout_build;
-use conduit_plot::rust_binding::{generate_rust_bindings_with_forms, RustBindingOptions};
+use conduit_plot::rust_binding::{
+    generate_rust_bindings_with_forms_and_external_bindings, ExternalNativeRustBinding,
+    RustBindingOptions,
+};
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{collections::BTreeMap, env, fs, path::PathBuf};
 
@@ -15,14 +18,31 @@ fn main() {
             ),
         )
         .expect("resource references are one exact portable leaf");
+    let temporal_instant = conduit_time::NativeTemporalInstant::semantic_type()
+        .expect("time owns the exact temporal instant");
+    catalog
+        .insert_structured_type("TemporalInstant", temporal_instant.clone())
+        .expect("temporal instant imports once");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
         &catalog,
     )
     .expect("human semantic Types must check");
-    let generated = generate_rust_bindings_with_forms(
+    let temporal_identity = match temporal_instant.shape() {
+        conduit_plot::rust_binding::semantic_core::StructuredInfoTypeShape::Record {
+            schema,
+            ..
+        } => schema.as_str().to_owned(),
+        _ => panic!("temporal instant is an owner-defined record"),
+    };
+    let generated = generate_rust_bindings_with_forms_and_external_bindings(
         &checked.native_types,
         &checked.type_forms,
+        &[temporal_instant],
+        &[ExternalNativeRustBinding {
+            semantic_identity: &temporal_identity,
+            rust_type_path: "conduit_time::NativeTemporalInstant",
+        }],
         &RustBindingOptions {
             derive_serde_for_variants: true,
             // Fixed admitted input slots retain inline payloads during Play.
@@ -35,6 +55,9 @@ fn main() {
             .into(),
             serde_record_types: ["InputSurfacePoint".into(), "InteractionValue".into()].into(),
             serde_variant_exclusions: [
+                "ExperienceEvidenceSource".into(),
+                "ExperienceAutobiographyResponse".into(),
+                "ExperienceIntegrationOperation".into(),
                 "ChordInfo".into(),
                 "ControlChordModifier".into(),
                 "CurrentExperienceInspectionError".into(),
@@ -85,6 +108,12 @@ fn main() {
                 ("InteractionValue".into(), "new_native".into()),
             ]),
             serde_variant_orders: BTreeMap::from([
+                (
+                    "ExperienceTemporalRole".into(),
+                    ["current", "historical", "recent", "stale", "indeterminate"]
+                        .map(String::from)
+                        .into(),
+                ),
                 (
                     "ControlChordModifier".into(),
                     ["left", "right", "both"].map(String::from).into(),

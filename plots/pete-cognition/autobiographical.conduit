@@ -1,0 +1,27 @@
+# Selected observations and actual responses become explicit autobiographical
+# state. The next event waits for that committed feedback before recall.
+plot pete-autobiographical-cognition (
+    >> events: ExperienceAutobiographyEvent...|
+    responses: PeteCognitionResponse...| >>
+    autobiography: $ExperienceAutobiographyState >>
+) {
+    memory: keep ExperienceAutobiographyState({completed: 0, records: []}) <= 65536B for this play
+    recall: experience/autobiography-recall
+    experience: experience/integrate-current
+    evidence: experience/project-evidence-flow
+    context: experience/context-to-prompt
+    interpretation: llm/generate-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 512, maximum-work-units = 4096, maximum-history-items = 0)
+    retain: experience/autobiography-retain
+
+    events >> recall.event
+    memory.current >> recall.memory
+    recall.update >> experience.update
+    experience.request >> evidence.request
+    evidence.context >> context.context
+    context.request >> interpretation.request
+    recall.pending >> retain.pending
+    interpretation.result >> retain.result
+    retain.next >> memory.next
+    interpretation.result >> responses
+    memory.current >> autobiography
+}

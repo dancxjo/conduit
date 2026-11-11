@@ -24,6 +24,10 @@ mod host_local_model;
 mod host_local_model_journey;
 #[path = "host_microphone.rs"]
 mod host_microphone;
+#[path = "host_pete_cognition.rs"]
+mod host_pete_cognition;
+#[path = "host_pete_cognition_inspect.rs"]
+mod host_pete_cognition_inspect;
 #[path = "host_release.rs"]
 mod host_release;
 #[path = "host_release_catalog.rs"]
@@ -295,6 +299,11 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             ollama_endpoint,
             runtime_state,
         } => host_local_model::inspect(&model, &ollama_endpoint, runtime_state, opts),
+        HostCommand::ProvePeteCognition(request) => host_pete_cognition::prove(request, opts),
+        HostCommand::InspectPeteCognition {
+            evidence,
+            browser_proof,
+        } => host_pete_cognition_inspect::inspect(&evidence, browser_proof, opts),
         HostCommand::ProveLocalModel {
             model,
             ollama_endpoint,

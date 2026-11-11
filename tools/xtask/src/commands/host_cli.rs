@@ -160,6 +160,16 @@ pub(super) enum HostCommand {
         #[command(flatten)]
         speech: super::host_speech::SpeechOptions,
     },
+    /// Run two scripted observations through one real cognition Body and local model.
+    ProvePeteCognition(super::host_pete_cognition::CognitionProofRequest),
+    /// Inspect an actual retained cognition run as historical Patchbay evidence.
+    InspectPeteCognition {
+        #[arg(long)]
+        evidence: PathBuf,
+        /// Run the pinned, single-worker Chromium proof instead of serving.
+        #[arg(long)]
+        browser_proof: bool,
+    },
     /// Produce a bounded WAV through ordinary real speech Plan/Play, without playback.
     ProveSpeech(super::host_speech_proof::SpeechProofRequest),
     /// Retain explicit Language metadata for one exact eSpeak voice/provider closure.
@@ -304,5 +314,19 @@ mod tests {
         assert!(Cli::try_parse_from(&args).is_err());
         args.extend(["--speech-language-coverage", "/coverage.cov"]);
         assert!(Cli::try_parse_from(&args).is_ok());
+    }
+    #[test]
+    fn pete_cognition_requires_explicit_local_model_and_memory_admission() {
+        assert!(Cli::try_parse_from(["host", "prove-pete-cognition"]).is_err());
+        assert!(Cli::try_parse_from(["host", "prove-pete-cognition", "--model", "local"]).is_err());
+        assert!(Cli::try_parse_from([
+            "host",
+            "prove-pete-cognition",
+            "--model",
+            "local",
+            "--admitted-memory-mib",
+            "8192"
+        ])
+        .is_ok());
     }
 }

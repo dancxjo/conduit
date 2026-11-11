@@ -13,6 +13,8 @@ pub(super) static LOCAL_MODEL_FACTORY: BackFactory = BackFactory {
 
 pub(super) struct LocalModelBack {
     maximum_input_bytes: u32,
+    provider_loss_terminal: Option<conduit_kernel::scheduler::CanonicalValue>,
+    loss_staged: bool,
     pending: Option<RequestId>,
     next_request: u32,
     closed: bool,
@@ -83,6 +85,24 @@ impl<const PORTS: usize> StepBack<PORTS> for LocalModelBack {
                 (HostCallDisposition::Cancelled, _, _) => {
                     return step_fail(FailureCode::Cancelled, 3)
                 }
+                (
+                    HostCallDisposition::Failed,
+                    None,
+                    Some(Failure {
+                        code: FailureCode::HostCallFailed,
+                        detail: 54,
+                    }),
+                ) if self.provider_loss_terminal.is_some() => {
+                    io.consume_host_completion()
+                        .expect("observed provider-loss completion");
+                    self.loss_staged = true;
+                    return StepOutcome::Abnormal {
+                        port: PortId(0),
+                        terminal: self
+                            .provider_loss_terminal
+                            .expect("prepared recoverable contract"),
+                    };
+                }
                 (HostCallDisposition::Failed, _, _) => {
                     return StepOutcome::Fail(outcome.failure.unwrap_or(Failure {
                         code: FailureCode::HostCallFailed,
@@ -130,6 +150,13 @@ impl<const PORTS: usize> StepBack<PORTS> for LocalModelBack {
         StepOutcome::Await
     }
 
+    fn step_committed(&mut self) {
+        if core::mem::take(&mut self.loss_staged) {
+            self.pending = None;
+            self.closed = true;
+        }
+    }
+
     fn retains_host_call_input(
         &self,
         _request: RequestId,
@@ -139,6 +166,7 @@ impl<const PORTS: usize> StepBack<PORTS> for LocalModelBack {
     }
 
     fn cancel(&mut self) {
+        self.loss_staged = false;
         self.pending = None;
         self.input = None;
     }
@@ -157,6 +185,7 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<(), String> {
         placement.kind_id.as_str(),
         conduit_ai::LLM_GENERATE_KIND
             | conduit_ai::LLM_GENERATE_FLOW_KIND
+            | conduit_ai::LLM_GENERATE_RECOVERABLE_FLOW_KIND
             | conduit_ai::LLM_CLASSIFY_KIND
             | conduit_ai::LLM_EXTRACT_KIND
             | conduit_ai::LLM_EMBED_KIND
@@ -207,6 +236,12 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     let maximum_output_bytes =
         u32::try_from(configuration_count(placement, "maximum-output-bytes")?)
             .map_err(|_| "local-model output bound does not fit the kernel".to_string())?;
+    let terminal_bytes =
+        if placement.kind_id.as_str() == conduit_ai::LLM_GENERATE_RECOVERABLE_FLOW_KIND {
+            conduit_core::TERMINAL_INFO_ENCODED_LEN as u32
+        } else {
+            0
+        };
     Ok(BackBudget {
         value_items: if placement.kind_id.as_str() == conduit_ai::LLM_STREAM_GENERATE_KIND {
             conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNKS as u16
@@ -218,7 +253,7 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
                 (conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNKS as u32).saturating_mul(128),
             )
         } else {
-            maximum_output_bytes
+            maximum_output_bytes.max(terminal_bytes)
         },
         host_requests: if placement.kind_id.as_str() == conduit_ai::LLM_STREAM_GENERATE_KIND {
             conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNKS as usize + 1
@@ -230,7 +265,7 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
             if placement.kind_id.as_str() == conduit_ai::LLM_STREAM_GENERATE_KIND {
                 conduit_ai::MAXIMUM_GENERATED_TEXT_CHUNK_VALUE_BYTES as u32
             } else {
-                maximum_output_bytes
+                maximum_output_bytes.max(terminal_bytes)
             },
         ),
     })
@@ -242,12 +277,40 @@ fn prepare(
 ) -> Result<InstalledBack, String> {
     validate(placement)?;
     Ok(InstalledBack::LocalModel(LocalModelBack {
+        provider_loss_terminal: if placement.kind_id.as_str()
+            == conduit_ai::LLM_GENERATE_RECOVERABLE_FLOW_KIND
+        {
+            let digest = conduit_core::terminal_cause_digest(
+                &placement.kind_id,
+                &placement.gear_id,
+                &conduit_core::port_id("result"),
+                &[],
+                None,
+            )
+            .map_err(|error| format!("model terminal origin: {error:?}"))?;
+            Some(
+                conduit_kernel::scheduler::CanonicalValue::new(
+                    &conduit_core::TerminalInfo::new(
+                        conduit_core::TerminalCategory::ProviderOrResourceLoss,
+                        digest,
+                    )
+                    .encode(),
+                )
+                .map_err(|error| format!("model terminal envelope: {error:?}"))?,
+            )
+        } else {
+            None
+        },
+        loss_staged: false,
         maximum_input_bytes: u32::try_from(configuration_count(placement, "maximum-input-bytes")?)
             .map_err(|_| "local-model input bound does not fit the kernel".to_string())?,
         pending: None,
         next_request: 0,
         closed: false,
-        flow: placement.kind_id.as_str() == conduit_ai::LLM_GENERATE_FLOW_KIND,
+        flow: matches!(
+            placement.kind_id.as_str(),
+            conduit_ai::LLM_GENERATE_FLOW_KIND | conduit_ai::LLM_GENERATE_RECOVERABLE_FLOW_KIND
+        ),
         emitted: false,
         stream: placement.kind_id.as_str() == conduit_ai::LLM_STREAM_GENERATE_KIND,
         stream_complete: false,
@@ -274,6 +337,8 @@ mod tests {
     #[test]
     fn streaming_operation_retains_request_until_final_completion() {
         let mut operation = LocalModelBack {
+            provider_loss_terminal: None,
+            loss_staged: false,
             maximum_input_bytes: 64,
             pending: None,
             next_request: 0,
@@ -347,3 +412,6 @@ mod tests {
         ));
     }
 }
+
+#[cfg(test)]
+mod recovery_tests;

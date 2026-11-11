@@ -92,6 +92,8 @@ pub enum CheckSuite {
     DspSharedCompositions,
     /// Prove typed fixture printers with the generic shared-pool scheduler.
     PrintPool,
+    /// Check typed cognition adapters, evidence and installed episodes using a fenced fake model.
+    PeteCognition,
     /// Check the finite parser action artifact and numerical admission.
     ParserScorer,
     /// Download pinned corpus into temporary storage and reproduce the parser artifact.

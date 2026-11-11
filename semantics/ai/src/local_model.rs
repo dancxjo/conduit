@@ -18,8 +18,8 @@ use crate::{
     llm_contract, LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelFailure,
     LocalModelKindProfile, LocalModelLifecycleState, LocalModelOfferInvalidity, LocalModelRefusal,
     LocalModelTerminal, LLM_CLASSIFY_KIND, LLM_EMBED_KIND, LLM_EXTRACT_KIND,
-    LLM_GENERATE_FLOW_KIND, LLM_GENERATE_KIND, LLM_INTERPRET_KIND, LLM_PRESENT_KIND,
-    LLM_STREAM_GENERATE_KIND,
+    LLM_GENERATE_FLOW_KIND, LLM_GENERATE_KIND, LLM_GENERATE_RECOVERABLE_FLOW_KIND,
+    LLM_INTERPRET_KIND, LLM_PRESENT_KIND, LLM_STREAM_GENERATE_KIND,
 };
 
 pub const LOCAL_MODEL_OPERATION: &str = "conduit.host/local-model-inference@1";
@@ -34,7 +34,7 @@ pub const LOCAL_MODEL_EXECUTION_PROFILE: &str = "conduit.llm/local-model-hosted@
 pub const LOCAL_MODEL_ARTIFACT: &str = "conduit-std-host/local-model-adapter@1";
 pub const LOCAL_MODEL_CAPABILITY_PREFIX: &str = "local-model";
 pub const MAXIMUM_LOCAL_MODEL_IDENTITY_BYTES: usize = 256;
-pub const MAXIMUM_LOCAL_MODEL_KINDS: usize = 8;
+pub const MAXIMUM_LOCAL_MODEL_KINDS: usize = 9;
 
 impl LocalModelKindProfile {
     pub const fn kind(self) -> &'static str {
@@ -42,6 +42,7 @@ impl LocalModelKindProfile {
             Self::Generate => LLM_GENERATE_KIND,
             Self::StreamGenerate => LLM_STREAM_GENERATE_KIND,
             Self::GenerateFlow => LLM_GENERATE_FLOW_KIND,
+            Self::GenerateRecoverableFlow => LLM_GENERATE_RECOVERABLE_FLOW_KIND,
             Self::ClassifyFiniteLabels => LLM_CLASSIFY_KIND,
             Self::ExtractValidatedInfo => LLM_EXTRACT_KIND,
             Self::EmbedFiniteVector => LLM_EMBED_KIND,

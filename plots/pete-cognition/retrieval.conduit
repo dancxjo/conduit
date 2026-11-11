@@ -1,0 +1,12 @@
+# Retrieval policy is ordinary typed State, visible beside the retrieval Gear.
+plot pete-memory-temporal-retrieval (
+    >> windows: TemporalEvidenceWindow...|
+    outcomes: TemporalEvidenceOutcome...| >>
+) {
+    intent: keep TemporalRetrievalIntent(latest_evidence(empty)) <= 4096B for this play
+    retrieve: retrieval/temporal-select-flow
+
+    windows >> retrieve.window
+    intent.current >> retrieve.intent
+    retrieve.outcome >> outcomes
+}

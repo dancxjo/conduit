@@ -1,0 +1,35 @@
+# Explicit observations, reference time and freshness policy enter as data.
+# A provider loss is explicit typed feedback. Existing autobiography survives;
+# model-dependent reflection waits for a fresh admitted realization.
+plot pete-situated-cognition (
+    >> observations: ExperienceSituationFrame...|
+    situations: ExperienceEvidenceRequest...| >>
+    responses: PeteCognitionResponse...| >>
+    losses: PeteModelLoss...| >>
+    autobiography: $ExperienceAutobiographyState >>
+) {
+    memory: keep ExperienceAutobiographyState({completed: 0, records: []}) <= 65536B for this play
+    select: experience/situation-current
+    recall: experience/autobiography-recall
+    experience: experience/integrate-current
+    evidence: experience/project-evidence-flow
+    context: experience/context-to-prompt
+    interpretation: llm/generate-recoverable-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 4096, maximum-work-units = 4096, maximum-history-items = 0)
+    retain: experience/autobiography-retain-recoverable
+
+    observations >> select.frame
+    select.event >> recall.event
+    select.situation >> situations
+    memory.current >> recall.memory
+    recall.update >> experience.update
+    experience.request >> evidence.request
+    evidence.context >> context.context
+    context.request >> interpretation.request
+    recall.pending >> retain.pending
+    interpretation.result >> retain.result
+    interpretation.result! >> retain.terminal
+    retain.next >> memory.next
+    retain.loss >> losses
+    retain.response >> responses
+    memory.current >> autobiography
+}

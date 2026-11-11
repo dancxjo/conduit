@@ -254,6 +254,9 @@ impl CurrentExperience {
             ExperienceTemporalRole::Recent => self.limits.maximum_recent_items,
             ExperienceTemporalRole::Stale => self.limits.maximum_stale_items,
             ExperienceTemporalRole::Historical => self.limits.maximum_historical_items,
+            // Unknown age claims no current/recent/stale bucket. The existing
+            // total item ceiling still bounds all indeterminate evidence.
+            ExperienceTemporalRole::Indeterminate => self.limits.maximum_items,
         };
         if self
             .items
@@ -341,10 +344,19 @@ impl CurrentExperience {
                 .observed_at
                 .as_ref()
                 .ok_or(ExperienceRefusal::InvalidTime)?;
-            let classified = self
+            let classified = match self
                 .temporal_policy
                 .classify(observed_at, &self.reference_at)
-                .map_err(ExperienceRefusal::TemporalClassification)?;
+            {
+                Ok(role) => role,
+                Err(crate::ExperienceTemporalRefusal::IndeterminateAge)
+                    if item.temporal_role == ExperienceTemporalRole::Indeterminate
+                        && item.certainty == ExperienceCertainty::Uncertain =>
+                {
+                    ExperienceTemporalRole::Indeterminate
+                }
+                Err(reason) => return Err(ExperienceRefusal::TemporalClassification(reason)),
+            };
             if classified != item.temporal_role {
                 return Err(ExperienceRefusal::TemporalRoleMismatch);
             }

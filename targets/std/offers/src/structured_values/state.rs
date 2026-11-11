@@ -10,6 +10,10 @@ pub const STATE_VALUE_STD_PROFILE: &str = "std/state-value-kernel-4096@1";
 pub const STATE_VALUE_STD_IMPLEMENTATION: &str = "std/kernel-state-value-4096@1";
 pub const STATE_VALUE_STD_ARTIFACT: &str = "conduit-kernel/state-delay@1";
 pub const STATE_VALUE_STD_MAXIMUM_BYTES: u32 = 4096;
+pub const STATE_VALUE_LARGE_STD_PROFILE: &str = "std/state-value-kernel-65536@1";
+pub const STATE_VALUE_LARGE_STD_IMPLEMENTATION: &str = "std/kernel-state-value-65536@1";
+pub const STATE_VALUE_LARGE_STD_ARTIFACT: &str = "conduit-kernel/state-delay-65536@1";
+pub const STATE_VALUE_LARGE_STD_MAXIMUM_BYTES: u32 = 65_536;
 pub const STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES: u32 = conduit_data::MAXIMUM_DATA_TEXT_BYTES;
 pub const STATE_VALUE_DURABLE_STD_PROFILE: &str = "std/state-value-body-durable-4096@1";
 pub const STATE_VALUE_DURABLE_STD_IMPLEMENTATION: &str = "std/state-value-body-durable@2";
@@ -65,6 +69,27 @@ pub fn state_value_std_offer(
         maximum_lifetime: StateLifetime::Play,
     })
     .map_err(|_| StructuredInfoRefusal::WrongType)
+}
+
+/// Select a separate prepared 64 KiB Play-scoped State implementation.
+/// The original 4 KiB offer and its resource admission remain unchanged.
+pub fn state_value_large_std_offer(
+    type_name: &str,
+    value_type: &StructuredInfoType,
+    default_value: &conduit_core::StructuredInfoValue,
+) -> Result<CapabilityOffer, StructuredInfoRefusal> {
+    let mut offer = state_value_std_offer(type_name, value_type, default_value)?;
+    offer.capability_id = CapabilityId::from(format!(
+        "std-state-value-65536-{}",
+        offer.outputs[0].value_kind.as_str()
+    ));
+    offer.implementation = ImplementationOffer {
+        execution_profile_id: ExecutionProfileId::from(STATE_VALUE_LARGE_STD_PROFILE),
+        implementation_id: ImplementationId::from(STATE_VALUE_LARGE_STD_IMPLEMENTATION),
+        artifact_id: ArtifactId::from(STATE_VALUE_LARGE_STD_ARTIFACT),
+    };
+    offer.limits.max_queue_bytes = STATE_VALUE_LARGE_STD_MAXIMUM_BYTES;
+    Ok(offer)
 }
 
 /// Construct the distinct Body-retention offer. The ordinary in-memory offer
@@ -151,6 +176,34 @@ mod tests {
                 maximum_lifetime: StateLifetime::Play,
             })
         );
+    }
+
+    #[test]
+    fn large_offer_names_a_separate_play_only_storage_realization() {
+        let ty =
+            StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID)).unwrap();
+        let initial = conduit_core::StructuredInfoValue::leaf(
+            ty.clone(),
+            conduit_core::InfoBool::FALSE.encode().to_vec(),
+        )
+        .unwrap();
+        let small = state_value_std_offer("Cell", &ty, &initial).unwrap();
+        let large = state_value_large_std_offer("Cell", &ty, &initial).unwrap();
+        assert_ne!(small.capability_id, large.capability_id);
+        assert_ne!(small.implementation, large.implementation);
+        assert_eq!(small.limits.max_queue_bytes, 4096);
+        assert_eq!(large.limits.max_queue_bytes, 65_536);
+        assert_eq!(small.semantic_contract, large.semantic_contract);
+        assert_eq!(small.inputs, large.inputs);
+        assert_eq!(small.outputs, large.outputs);
+        assert_eq!(
+            large.state_retention,
+            Some(StateRetentionSupport {
+                maximum_lifetime: StateLifetime::Play
+            })
+        );
+        assert!(large.host_calls.is_empty());
+        assert!(large.resource_requirements.is_empty());
     }
 
     #[test]

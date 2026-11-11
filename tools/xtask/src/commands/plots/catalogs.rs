@@ -54,6 +54,9 @@ pub(super) fn catalogs(
     conduit_face::install_geometry_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_experience_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_experience_evidence_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_experience_integration_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_experience_prompt_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_purpose_catalogs(&mut startup, &mut profile)?;
     conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_tabular_catalogs(&mut startup, &mut profile)?;
@@ -122,6 +125,7 @@ pub(super) fn catalogs(
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_plot_catalog(&mut startup, &mut profile)?;
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
+    conduit_chat::install_episode_loop_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profile)?;
