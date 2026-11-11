@@ -443,7 +443,7 @@ fn assert_pete_create_serial_play(first_sample: SerialSample) {
         "{response}"
     );
     for (index, episode) in episodes.iter().enumerate() {
-        let recorded = common::expanded_model_evidence(
+        let recorded = common::model_projection::expanded_model_evidence(
             &serde_json::from_str(episode.evidence().as_ref().unwrap()).unwrap(),
             episode.observation().content(),
         );
@@ -576,7 +576,7 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
         let recorded: serde_json::Value =
             serde_json::from_str(episodes[index].evidence().as_ref().unwrap()).unwrap();
         assert_eq!(recorded, request["current_experience"]);
-        let expanded = common::expanded_model_evidence(
+        let expanded = common::model_projection::expanded_model_evidence(
             &request["current_experience"],
             request["observation"]["content"].as_str().unwrap(),
         );
@@ -780,7 +780,7 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
     assert_eq!(requests.len(), 2);
     let second: serde_json::Value = common::request_data(&requests[1]);
     let selected = if second["schema"] == conduit_chat::EPISODE_RETRIEVAL_DATA_SCHEMA {
-        common::expanded_model_evidence(
+        common::model_projection::expanded_model_evidence(
             &second["current_experience"],
             second["observation"]["content"].as_str().unwrap(),
         )
@@ -1035,7 +1035,7 @@ fn pete_recalls_the_earlier_battery_percentage_with_its_source() {
     let content: serde_json::Value =
         serde_json::from_str(body["utf8_content"].as_str().unwrap()).unwrap();
     assert_eq!(content["charge_percent"], "50.0%");
-    let current_evidence = common::expanded_model_evidence(
+    let current_evidence = common::model_projection::expanded_model_evidence(
         &second["current_experience"],
         second["observation"]["content"].as_str().unwrap(),
     );
