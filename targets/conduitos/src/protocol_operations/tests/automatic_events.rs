@@ -4,7 +4,7 @@ use super::*;
 use alloc::vec::Vec;
 pub(super) fn prepare<
     P: crate::i2c_base::I2cProvider,
-    C: crate::monotonic_clock::owner::MonotonicDeadlineProvider,
+    C: conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider,
 >(
     provider: P,
     clock_provider: C,
@@ -19,7 +19,7 @@ pub(super) fn prepare<
 
 pub(super) fn prepare_with_body_edit<
     P: crate::i2c_base::I2cProvider,
-    C: crate::monotonic_clock::owner::MonotonicDeadlineProvider,
+    C: conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider,
 >(
     provider: P,
     clock_provider: C,
@@ -34,9 +34,10 @@ pub(super) fn prepare_with_body_edit<
 ) {
     let i2c = crate::i2c_base::contract::I2cContract::prepare().unwrap();
     let (mut startup, _) = i2c.catalogs();
-    let clock = crate::monotonic_clock::contract::MonotonicClockContract::prepare().unwrap();
+    let clock =
+        conduit_monotonic_wait::clock_at::contract::MonotonicClockContract::prepare().unwrap();
     let clock_types = check_syntax_document(
-        &parse_syntax_document(crate::monotonic_clock::contract::CLOCK_TYPES),
+        &parse_syntax_document(conduit_monotonic_wait::clock_at::contract::CLOCK_TYPES),
         &conduit_plot::StartupCatalog::new(),
     )
     .unwrap();
@@ -293,7 +294,7 @@ pub(super) fn prepare_with_body_edit<
         ),
         (
             crate::monotonic_clock::installation::CLOCK_AUTHORITY,
-            crate::monotonic_clock::contract::CLOCK_CALL,
+            conduit_monotonic_wait::clock_at::contract::CLOCK_CALL,
             "machine/clock/at",
             "conduitos/monotonic-clock-at@1",
         ),
@@ -331,7 +332,7 @@ pub(super) fn prepare_with_body_edit<
             clock_cord.sink_port_id.clone(),
         ))
         .unwrap()
-        .byte_capacity = crate::monotonic_clock::contract::CLOCK_MAXIMUM_BYTES + 1;
+        .byte_capacity = conduit_monotonic_wait::clock_at::contract::CLOCK_MAXIMUM_BYTES + 1;
     let options = PlanningOptions {
         connection_bases: &BTreeMap::new(),
         line_candidates: &BTreeMap::new(),
@@ -378,7 +379,7 @@ pub(super) fn prepare_with_body_edit<
         crate::protocol_source::NativeProtocolPreparationLimits {
             body_play_sequence: 0,
             bus_work_units: 1,
-            clock_work_units: crate::monotonic_clock::owner::MAXIMUM_POLL_STEPS,
+            clock_work_units: conduit_monotonic_wait::clock_at::owner::MAXIMUM_POLL_STEPS,
         },
     );
     if let Ok(play) = &play {
@@ -431,11 +432,11 @@ impl crate::i2c_base::I2cProvider for InertBus {
     fn revoke(&mut self) {}
 }
 pub(super) struct InertClock;
-impl crate::monotonic_clock::owner::MonotonicDeadlineProvider for InertClock {
+impl conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider for InertClock {
     fn poll_until(
         &mut self,
         _: u64,
-    ) -> Result<Option<u64>, crate::monotonic_clock::codec::ClockDisposition> {
+    ) -> Result<Option<u64>, conduit_monotonic_wait::clock_at::codec::ClockDisposition> {
         panic!("planning cannot observe time")
     }
     fn revoke(&mut self) {}

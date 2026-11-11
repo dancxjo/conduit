@@ -54,3 +54,22 @@ CPU integration tests after the assigned-input API update. They traverse the
 production kernel, reject substituted local grants/attachments and replacement
 providers, and check fresh Boot identity. These checks do not establish physical
 timer installation, overnight operation or a completed recorder host.
+
+The optional `clock-at` feature supplies the shared `clock_at` operation for
+`machine/clock/at` and `conduit.host/monotonic-clock-at@1`. Its selected owner
+retains exact Plan/Play possession, one pending lease, prepared canonical codecs,
+and the provider. `start` validates the request before effects; `poll` performs
+one bounded observation, up to the admitted 4096 polls; `revoke` quiesces the
+provider and prevents late completion. Results preserve actual observed time,
+clock refusal classes, and monotonic checks. This supplies no hardware clock or
+authority. Root must separately admit all retained storage and polling work.
+
+Clock-only MCU consumers select `default-features = false, features =
+["clock-at"]`; the existing duration-wait API remains the default `wait` feature.
+Reviewed clock request/result schemas are compiled at build time. Runtime
+clock-at construction decodes those exact finite bytes and needs no parser.
+`clock-at-catalog` additionally enables preparation-time authoring catalogs for
+consumers such as ConduitOS; it is unnecessary for MCU execution. ConduitOS
+retains its platform installation and composite dispatch around this same
+shared operation owner. This does not establish Green integration, physical
+BME280 sampling, HT16K33 output, or a fitted complete MCU workset.

@@ -1,6 +1,6 @@
 //! A physics-only monotonic provider backed by the existing calibrated counter.
 use super::CandidateDeadline;
-use crate::monotonic_clock::{codec::ClockDisposition, owner::MonotonicDeadlineProvider};
+use conduit_monotonic_wait::clock_at::{codec::ClockDisposition, owner::MonotonicDeadlineProvider};
 
 pub struct NativeMonotonicDeadlineClock {
     counter: CandidateDeadline,

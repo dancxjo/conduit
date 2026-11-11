@@ -3,10 +3,11 @@ use super::native_preparation::{
     NativeProtocolPreparationReason, NativeProtocolPreparationRefusal,
 };
 use super::{NativeProtocolIssuer, PreparedProtocolBodyPlay, PreparedProtocolEntry};
-use crate::{i2c_base::I2cProvider, monotonic_clock::owner::MonotonicDeadlineProvider};
+use crate::i2c_base::I2cProvider;
 use alloc::{boxed::Box, collections::BTreeMap, vec};
 use conduit_body::BodyLifecycleSession;
 use conduit_core::*;
+use conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider;
 use conduit_planner::PlanningOptions;
 
 /// Descriptive offers precede planning; opaque possession is issued only for the

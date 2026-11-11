@@ -3,13 +3,13 @@ use super::{
     codec::{ClockDisposition, PreparedClockCodec},
     contract::*,
 };
-use crate::machine_membrane::selected_operation::{
-    SelectedOperationContract, SelectedOperationPlan, bind_selected_operation,
-};
 use alloc::format;
 use conduit_core::*;
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
+use conduit_plan_lowering::selected_operation::{
+    bind_selected_operation, SelectedOperationContract, SelectedOperationPlan,
+};
 
 pub const MAXIMUM_POLL_STEPS: u64 = 4096;
 
@@ -205,7 +205,7 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
             .map_err(ClockCallRefusal::Capability)?;
         encoded.map(Some).map_err(ClockCallRefusal::Canonical)
     }
-    pub(crate) fn observe_monotonic(
+    pub fn observe_monotonic(
         &mut self,
         node: NodeId,
         call: HostCallId,

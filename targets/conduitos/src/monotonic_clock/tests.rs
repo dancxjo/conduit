@@ -1,5 +1,5 @@
-use super::contract::*;
 use conduit_core::*;
+use conduit_monotonic_wait::clock_at::contract::*;
 use conduit_plot::*;
 
 #[test]

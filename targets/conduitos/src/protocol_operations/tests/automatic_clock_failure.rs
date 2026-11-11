@@ -1,7 +1,7 @@
 //! Clock failure is an exact Source refusal and a normally closing lifecycle.
 use super::*;
-use crate::monotonic_clock::codec::ClockDisposition;
 use alloc::sync::Arc;
+use conduit_monotonic_wait::clock_at::codec::ClockDisposition;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 struct ProbeBus(Arc<AtomicUsize>);
@@ -23,7 +23,7 @@ impl crate::i2c_base::I2cProvider for ProbeBus {
     fn revoke(&mut self) {}
 }
 struct FailedClock(ClockDisposition, Arc<AtomicUsize>);
-impl crate::monotonic_clock::owner::MonotonicDeadlineProvider for FailedClock {
+impl conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider for FailedClock {
     fn poll_until(&mut self, deadline: u64) -> Result<Option<u64>, ClockDisposition> {
         assert_eq!(deadline, 0);
         assert_eq!(

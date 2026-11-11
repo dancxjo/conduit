@@ -1,8 +1,7 @@
 //! One kernel with independent retained I2C and monotonic-clock owners.
 use super::*;
-use crate::monotonic_clock::{
-    dispatch::PreparedClockDispatch, installation::ReadyClockBase, owner::MonotonicDeadlineProvider,
-};
+use crate::monotonic_clock::{dispatch::PreparedClockDispatch, installation::ReadyClockBase};
+use conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider;
 
 pub struct ClockAdmission<C> {
     pub ready: ReadyClockBase<C>,

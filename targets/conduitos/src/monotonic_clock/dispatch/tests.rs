@@ -13,7 +13,7 @@ impl MonotonicDeadlineProvider for Provider {
     fn poll_until(
         &mut self,
         deadline: u64,
-    ) -> Result<Option<u64>, super::super::codec::ClockDisposition> {
+    ) -> Result<Option<u64>, conduit_monotonic_wait::clock_at::codec::ClockDisposition> {
         assert!(!self.revoked.load(Ordering::SeqCst));
         self.polls.fetch_add(1, Ordering::SeqCst);
         let now = self.now.load(Ordering::SeqCst);
@@ -92,7 +92,7 @@ impl Execution {
             envelope_id: identity.envelope_id.clone(),
             maximum_parameter_bytes: CLOCK_MAXIMUM_BYTES,
             maximum_result_bytes: CLOCK_MAXIMUM_BYTES,
-            maximum_work_units: super::super::owner::MAXIMUM_POLL_STEPS,
+            maximum_work_units: conduit_monotonic_wait::clock_at::owner::MAXIMUM_POLL_STEPS,
             maximum_in_flight: 1,
             maximum_operations: 2,
         };

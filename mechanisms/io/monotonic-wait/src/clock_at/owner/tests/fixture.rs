@@ -32,7 +32,7 @@ pub(super) fn selected() -> (
     ActivePlayIdentity,
     PlacementId,
 ) {
-    crate::machine_membrane::selection_fixture::selected(
+    super::selection_fixture::selected(
         &scope(),
         MonotonicClockContract::prepare().unwrap().kind(),
         CLOCK_CALL,
