@@ -607,6 +607,9 @@ pub(crate) enum BodyCommand {
     /// Restore private signing custody from the original Seed and admission evidence.
     #[command(hide = true)]
     RestoreMemberKey(crate::durable_host::MemberKeyRecoveryArgs),
+    /// Restore only signing custody from independently pinned original private invitation bytes.
+    #[command(hide = true)]
+    RestoreMemberKeyFromInvitation(crate::durable_host::MemberInvitationRecoveryArgs),
     /// Retain the owner's exact admission receipt as this host's durable membership.
     #[command(hide = true)]
     CompleteJoin {

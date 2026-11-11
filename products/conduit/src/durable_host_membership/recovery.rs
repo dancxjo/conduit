@@ -1,6 +1,8 @@
 //! Explicit stopped-Host recovery from original private construction evidence.
 //! Restores signing custody only; an authenticated owner must still accept return.
 use super::*;
+#[path = "recovery/original_invitation.rs"]
+pub(crate) mod original_invitation;
 use clap::Args as ClapArgs;
 use conduit_body::{PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest};
 use conduit_host_make::DeploymentRealizationReceipt;

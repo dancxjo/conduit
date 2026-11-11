@@ -725,3 +725,6 @@ mod recovery;
 
 #[path = "tests/joined_boot.rs"]
 mod joined_boot;
+
+#[path = "tests/original_invitation.rs"]
+mod original_invitation;
