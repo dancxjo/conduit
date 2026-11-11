@@ -173,6 +173,7 @@ pub(super) enum InstalledBack {
     InstrumentMap(InstrumentMapBack),
     RhythmCompare(RhythmCompareBack),
     PatternComparison(PatternComparisonBack),
+    TemporalEvidence(super::temporal_evidence_back::TemporalEvidenceBack),
     ExperienceEvidence(super::experience_evidence_back::ExperienceEvidenceBack),
     EpisodeCompose(super::episode_loop_back::EpisodeComposeBack),
     HostedFrame(super::hosted_frame_back::FrameStepBack),
