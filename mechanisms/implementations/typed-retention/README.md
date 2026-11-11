@@ -16,10 +16,10 @@ authored initialization and a current/next transition boundary. It also installs
 no durable store, recorder, provider or admission grant. The application supplies
 its own typed contract, channel meaning, exact preparation bounds and scope.
 
-This package is an isolated preparation handoff. Workspace registration and the
-supported xtask proof entrance remain owned by the integration lane. The
-preparation branch also supplies the environmental publication adapter; deployment
-and installed admission remain separate. Component tests drive the production StepBack interface with
+The helper is registered in the workspace's Foundation proof shard. Repository
+validation enters through `cargo xtask ci pipeline unit foundation`. The
+application publication adapter retains its own channel meaning; deployment and
+installed admission remain separate. Component tests drive the production StepBack interface with
 test frames. Additional CPU tests use the actual fixed scheduler and bounded
 input/value/sign stores to exercise consumption, commit, closure, refusal and
 cancellation without allocation. These fixtures do not claim a checked or

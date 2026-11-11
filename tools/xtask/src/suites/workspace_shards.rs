@@ -35,6 +35,7 @@ package_test_shard!(
         "conduit-emergency-keyword-spotter",
         "conduit-linear-framebuffer-make",
         "conduit-tm1637-output-make",
+        "conduit-typed-retention",
         "conduit-linux-display",
         "conduit-rp2040-pio-audio-extension",
         "conduit-workspace-make",
