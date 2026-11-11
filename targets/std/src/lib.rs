@@ -97,6 +97,8 @@ pub use hosted_body_conversation_context::{
 };
 pub mod hosted_calendar;
 pub mod hosted_data;
+pub mod hosted_measurement;
+pub mod measurement_face;
 pub mod hosted_geometry;
 pub mod hosted_history;
 pub mod hosted_http;
