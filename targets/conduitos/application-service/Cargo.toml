@@ -39,3 +39,8 @@ opt-level = 3
 # without changing the 64-RTC operation grant or the linked 2-MiB image window.
 [profile.release.package.patchbay-application]
 opt-level = 3
+
+# Publication verifies the complete immutable Mask Plan inside the same entry.
+# Optimize canonical plan/identity validation without increasing RTC or image grants.
+[profile.release.package.conduit-core]
+opt-level = "s"
