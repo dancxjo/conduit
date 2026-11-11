@@ -29,6 +29,7 @@ use creche_route::CrecheRoute;
 mod clock_observation;
 mod data_text;
 mod fore_route;
+mod model_route;
 mod parsec_acknowledged_map;
 mod parsec_sources;
 mod parsec_terminal_owner;
@@ -41,6 +42,7 @@ use clock_observation::KernelClockObservations;
 use fore_route::BodyForeRoute;
 
 pub(crate) struct BodyKernel<'a> {
+    model: model_route::ModelRoute<'a>,
     creche: Option<CrecheRoute>,
     scheduler: Box<InstalledScheduler>,
     fore: BodyForeRoute<'a>,
@@ -340,6 +342,7 @@ impl<'a> BodyKernel<'a> {
                     return Err("Body keyboard has no admitted adapter".into());
                 }
             } else if !scalar_math::supports(operation)
+                && !model_route::supports(operation)
                 && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
@@ -510,8 +513,10 @@ impl<'a> BodyKernel<'a> {
                     })
                 }),
         )?;
+        let model = model_route::ModelRoute::prepare(&fragments, &lowered.partitions)?;
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
+            model,
             creche: None,
             scheduler,
             face_labels,
@@ -685,10 +690,19 @@ impl<'a> BodyKernel<'a> {
         Ok(())
     }
 
+    /// Borrow the selected provider before admission and Play start.
+    pub(crate) fn attach_local_model(
+        &mut self,
+        provider: Option<&'a mut Box<dyn crate::hosted_local_model::HostedLocalModelAdapter>>,
+    ) -> Result<(), String> {
+        self.model.attach(provider)
+    }
+
     /// Exact finite pure scans and the separately validated live Parsec input
     /// profile have installed Body routes. This admits execution shape only;
     /// Face action grants and current input-map authority remain separate.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
+        self.model.require_supported()?;
         if self.operations.iter().any(|operation| {
             operation.contract_id.as_str()
                 == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
@@ -933,6 +947,12 @@ impl<'a> BodyKernel<'a> {
                         == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
                     {
                         self.begin_creche(request, creche.as_deref_mut())?;
+                        continue;
+                    }
+                    if self
+                        .model
+                        .complete(operation, request, &mut self.scheduler)?
+                    {
                         continue;
                     }
                     if scalar_math::complete(operation, request, &mut self.scheduler)? {
@@ -1566,3 +1586,6 @@ mod parsec_live_fore_tests;
 #[cfg(test)]
 #[path = "body_kernel/parsec_instruction_source_tests.rs"]
 mod parsec_instruction_source_tests;
+
+#[cfg(test)]
+mod model_route_tests;

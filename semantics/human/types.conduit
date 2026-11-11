@@ -332,6 +332,17 @@ type ExperienceEvidenceContext = {
     items: ExperienceEvidenceItems
 }
 
+# Snapshot revisions are integration lineage; original provenance stays in sources.
+type ExperienceIntegrationOperation =
+    upsert ExperienceEvidenceItem
+    | remove ExperienceEvidenceIdentity
+
+type ExperienceIntegrationUpdate = {
+    expected_revision: U64
+    provenance_revision: ExperienceEvidenceIdentity
+    operation: ExperienceIntegrationOperation
+}
+
 type ExperienceEvidenceRefusal =
     malformed
     | byte_bound

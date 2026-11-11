@@ -54,6 +54,9 @@ pub(super) fn catalogs(
     conduit_face::install_geometry_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_experience_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_experience_evidence_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_experience_integration_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_experience_prompt_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_purpose_catalogs(&mut startup, &mut profile)?;
     conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_tabular_catalogs(&mut startup, &mut profile)?;

@@ -2,6 +2,10 @@
 
 mod value_pair;
 pub use value_pair::*;
+mod experience_prompt;
+pub use experience_prompt::*;
+mod experience_integration;
+pub use experience_integration::*;
 mod experience_evidence;
 pub use experience_evidence::*;
 mod episode_loop;

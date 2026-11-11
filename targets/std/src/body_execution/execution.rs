@@ -135,6 +135,7 @@ impl StdHost {
         if let Some(owner) = creche.as_deref_mut() {
             kernel.attach_creche(owner, request.plan, &prospective_play, &self.advertisement)?;
         }
+        kernel.attach_local_model(self.local_model.as_mut())?;
         kernel.require_supported_execution()?;
         let reservations = self.kernel_resources.prepare_and_reserve_plans(
             &self.advertisement,

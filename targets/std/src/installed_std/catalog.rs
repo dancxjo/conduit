@@ -210,7 +210,10 @@ use super::whisper_speech_back::{
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
+    &super::experience_integration_back::FACTORY,
+    &super::experience_prompt_back::FACTORY,
     &super::experience_evidence_back::FACTORY,
+    &super::experience_evidence_back::FLOW_FACTORY,
     &super::episode_loop_back::COMPOSE_FACTORY,
     &super::episode_loop_back::RETAIN_FACTORY,
     &super::episode_memory_back::MEMORY_FACTORY,

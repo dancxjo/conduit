@@ -15,15 +15,28 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     prepare,
 };
 
+pub(super) static FLOW_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::EXPERIENCE_EVIDENCE_FLOW_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+
 pub(super) struct ExperienceEvidenceBack {
+    flow: bool,
     projection: BoundedExperienceEvidenceProjection,
     staged: bool,
     complete: bool,
 }
 
 impl ExperienceEvidenceBack {
+    #[cfg(test)]
     pub(super) fn new() -> Self {
+        Self::for_flow(false)
+    }
+
+    pub(super) fn for_flow(flow: bool) -> Self {
         Self {
+            flow,
             projection: BoundedExperienceEvidenceProjection::prepare(),
             staged: false,
             complete: false,
@@ -41,6 +54,16 @@ impl<const PORTS: usize> StepBack<PORTS> for ExperienceEvidenceBack {
             return StepOutcome::Await;
         }
         let Some(input) = bytes.input(PortId(0)) else {
+            if self.flow && io.input_closed(PortId(0)) {
+                if io.consume_closed(PortId(0)).is_err() {
+                    return StepOutcome::Fail(Failure {
+                        code: FailureCode::InvalidLifecycle,
+                        detail: 0,
+                    });
+                }
+                self.complete = true;
+                return StepOutcome::Complete;
+            }
             return StepOutcome::Await;
         };
         let output = match self.projection.execute(input) {
@@ -52,6 +75,9 @@ impl<const PORTS: usize> StepBack<PORTS> for ExperienceEvidenceBack {
                 })
             }
         };
+        if !io.output_ready_for(PortId(0), output.len() as u32) {
+            return StepOutcome::Await;
+        }
         if io.consume(PortId(0)).is_err()
             || io.send_prepared(PortId(0), output.len() as u32).is_err()
         {
@@ -71,7 +97,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ExperienceEvidenceBack {
     fn step_committed(&mut self) {
         if self.staged {
             self.staged = false;
-            self.complete = true;
+            self.complete = !self.flow;
         }
     }
 
@@ -82,7 +108,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ExperienceEvidenceBack {
 }
 
 // Stable diagnostic identities on the ordinary kernel failure Sign.
-fn refusal_detail(refusal: conduit_human::ExperienceEvidenceRefusal) -> u16 {
+pub(super) fn refusal_detail(refusal: conduit_human::ExperienceEvidenceRefusal) -> u16 {
     use conduit_human::ExperienceEvidenceRefusal::*;
     match refusal {
         Malformed => 1,
@@ -102,7 +128,13 @@ fn refusal_detail(refusal: conduit_human::ExperienceEvidenceRefusal) -> u16 {
 }
 
 fn budget(gear: &PlannedGear) -> Result<BackBudget, String> {
-    let expected = conduit_std_offers::experience_evidence_offer();
+    let expected = if gear.implementation_id.as_str()
+        == conduit_std_offers::EXPERIENCE_EVIDENCE_FLOW_IMPLEMENTATION
+    {
+        conduit_std_offers::experience_evidence_flow_offer()
+    } else {
+        conduit_std_offers::experience_evidence_offer()
+    };
     if gear.kind_id != expected.kind_id
         || gear.kind_contract_revision != expected.kind_contract_revision
         || gear.capability_id != expected.capability_id
@@ -140,6 +172,9 @@ fn prepare(
 ) -> Result<InstalledBack, String> {
     budget(gear)?;
     Ok(InstalledBack::ExperienceEvidence(
-        ExperienceEvidenceBack::new(),
+        ExperienceEvidenceBack::for_flow(
+            gear.implementation_id.as_str()
+                == conduit_std_offers::EXPERIENCE_EVIDENCE_FLOW_IMPLEMENTATION,
+        ),
     ))
 }

@@ -13,5 +13,8 @@ pub(super) fn append(
 ) {
     if composition.experience_evidence {
         offers.push(conduit_std_offers::experience_evidence_offer());
+        offers.push(conduit_std_offers::experience_evidence_flow_offer());
+        offers.push(conduit_std_offers::experience_integration_offer());
+        offers.push(conduit_std_offers::experience_prompt_offer());
     }
 }

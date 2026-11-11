@@ -56,6 +56,14 @@ mod experience_evidence;
 pub use experience_evidence::*;
 mod experience_evidence_codec;
 pub use experience_evidence_codec::*;
+mod experience_integration;
+pub use experience_integration::*;
+mod experience_integration_codec;
+pub use experience_integration_codec::*;
+mod experience_prompt;
+pub use experience_prompt::*;
+mod experience_prompt_codec;
+pub use experience_prompt_codec::*;
 #[cfg(feature = "plot-catalog")]
 mod purpose_catalog;
 #[cfg(feature = "plot-catalog")]

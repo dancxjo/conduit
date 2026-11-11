@@ -16,6 +16,8 @@ use conduit_plot::{KindProjection, KindSignature};
 
 pub const EXPERIENCE_EVIDENCE_KIND: &str = "experience/project-evidence";
 pub const EXPERIENCE_EVIDENCE_REVISION: &str = "conduit.experience/project-evidence@1";
+pub const EXPERIENCE_EVIDENCE_FLOW_KIND: &str = "experience/project-evidence-flow";
+pub const EXPERIENCE_EVIDENCE_FLOW_REVISION: &str = "conduit.experience/project-evidence-flow@1";
 pub const EXPERIENCE_EVIDENCE_MAX_BYTES: usize = 65_536;
 pub const EXPERIENCE_EVIDENCE_MAX_ITEMS: usize = 8;
 pub const EXPERIENCE_EVIDENCE_MAX_CONTENT_BYTES: usize = 2_048;
@@ -67,6 +69,22 @@ pub fn experience_evidence_contract() -> Kind {
     }
 }
 
+/// The same explicit evidence contract for successive revisions in one Play.
+/// Every request produces one context; upstream closure completes the Flow.
+pub fn experience_evidence_flow_contract() -> Kind {
+    let mut contract = experience_evidence_contract();
+    contract.kind_id = kind_id(EXPERIENCE_EVIDENCE_FLOW_KIND);
+    contract.kind_contract_revision = EXPERIENCE_EVIDENCE_FLOW_REVISION.into();
+    for port in contract
+        .inputs
+        .iter_mut()
+        .chain(contract.outputs.iter_mut())
+    {
+        port.temporal = PortTemporal::Flow { closes: true };
+    }
+    contract
+}
+
 pub fn install_experience_evidence_catalogs(
     startup: &mut conduit_plot::StartupCatalog,
     profile: &mut conduit_plot::ProfileCatalog,
@@ -85,20 +103,25 @@ pub fn install_experience_evidence_catalogs(
             .insert_structured_type(name, value_type)
             .map_err(|e| e.to_string())?;
     }
-    let contract = experience_evidence_contract();
-    startup
-        .insert(KindSignature {
-            kind: EXPERIENCE_EVIDENCE_KIND.into(),
-            startup_parameters: Vec::new(),
-        })
-        .map_err(|e| e.to_string())?;
-    profile
-        .insert(KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: vec![],
-        })
-        .map_err(|e| e.to_string())
+    for contract in [
+        experience_evidence_contract(),
+        experience_evidence_flow_contract(),
+    ] {
+        startup
+            .insert(KindSignature {
+                kind: contract.kind_id.as_str().into(),
+                startup_parameters: Vec::new(),
+            })
+            .map_err(|e| e.to_string())?;
+        profile
+            .insert(KindProjection {
+                kind_id: contract.kind_id,
+                kind_contract_revision: contract.kind_contract_revision,
+                inputs: contract.inputs,
+                outputs: contract.outputs,
+                configuration: vec![],
+            })
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
