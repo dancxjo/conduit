@@ -6,6 +6,7 @@
 
 mod alsa_aplay;
 mod base_registration;
+mod default_device;
 mod discovery;
 mod executable_identity;
 #[cfg(test)]
@@ -18,6 +19,7 @@ pub(crate) use fake::FakePlaybackBehavior;
 pub use alsa_aplay::{
     AlsaAplaySession, PlaybackFailure, PlaybackLifecycle, PlaybackMetrics, PlaybackReport,
 };
+pub use default_device::resolve_default_alsa_playback;
 pub use discovery::{discover_alsa_playback, AlsaPlaybackObservation, PlaybackDiscoveryError};
 pub use proof::{run_playback_proof, ExplicitPlaybackAuthorization, PlaybackProofReceipt};
 
