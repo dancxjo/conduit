@@ -99,6 +99,19 @@ continuous acquisition/homeostasis and the three cadences, provider readmission
 with state-preserving replan, and broader continuous-system proof remain
 acceptance work under #3707.
 
+The RAG follow-on now has prepared borrowed paths through the existing temporal
+retrieval and context-selection algorithms. Temporal selection admits at most
+128 candidates and returns fixed-storage indices; context selection prepares
+scratch for at most 1024 candidates and writes indices and omissions into
+caller-owned slots. Owned APIs delegate the same selection algorithms. Tests
+cover exact lineage, ordering, budgets, history boundaries, refusal clearing and
+zero allocation during prepared selection. The borrowed temporal API has an
+explicit first-history `NoHistory` result; the owned API retains its existing
+empty-batch refusal. Temporal selection retains the existing source-timestamp
+ordering, with uncertainty preserved as metadata. These are semantic preparation
+checks, included in `cargo xtask check pete-cognition`; they do not establish
+installed retrieval Gears or replace the situated Plot's current recall policy.
+
 The 2026-11-10 draft-branch run `run-1794373833048-189399` accepted with
 `phi4:latest`, model content identity
 `ac896e5b8b34a1f4efa7b14d7520725140d5512484457fab45d2a4ea14c69dba`.

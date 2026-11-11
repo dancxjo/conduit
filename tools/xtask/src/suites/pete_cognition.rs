@@ -2,6 +2,12 @@
 use crate::process::Step;
 
 pub const STEPS: &[Step] = &[
+    Step::new("pete-cognition.temporal-retrieval", "Check shared bounded temporal retrieval and allocation-free borrowed selection", "cargo",
+        &["test", "--locked", "-p", "conduit-ai", "--lib", "temporal_evidence_selection"]),
+    Step::new("pete-cognition.context-selection", "Check prepared context selection, exact lineage and finite omission accounting", "cargo",
+        &["test", "--locked", "-p", "conduit-ai", "--lib", "context_selection"]),
+    Step::new("pete-cognition.retrieval-conformance", "Preserve existing retrieval and context-selection contracts", "cargo",
+        &["test", "--locked", "-p", "conduit-ai", "--test", "context_selection", "--test", "native_retrieval_family"]),
     Step::new("pete-cognition.inspection-values", "Check bounded historical value snippets and native artifact custody", "cargo",
         &["test", "--locked", "-p", "conduit-browser-patchbay-workbench", "--lib", "pete_cognition"]),
     Step::new("pete-cognition.inspection-signs", "Keep exact subject Signs in Debug and runtime counts in Play", "cargo",
