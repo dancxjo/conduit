@@ -400,6 +400,9 @@ fn signed_return_transaction_measures_all_dynamic_owners() {
 #[ignore = "requires CONDUIT_PUBLIC_RETURN_RECEIPT public wire calibration input"]
 fn public_shape_signed_return_measures_whole_transaction() {
     use ed25519_dalek::Signer;
+    let output_bytes = std::env::var("CONDUIT_PUBLIC_RETURN_OUTPUT_BYTES")
+        .map(|text| text.parse::<usize>().expect("output byte count"))
+        .unwrap_or(4096);
     let path = std::env::var_os("CONDUIT_PUBLIC_RETURN_RECEIPT").expect("public receipt path");
     let outer = std::fs::read(path).unwrap();
     let capture: SignedPortableAdmissionReceipt = serde_json::from_slice(&outer).unwrap();
@@ -450,7 +453,7 @@ fn public_shape_signed_return_measures_whole_transaction() {
     ];
     let mut offset = 0;
     while offset < document.len() {
-        let mut frame = [0; 4096];
+        let mut frame = vec![0; output_bytes];
         let (n, next) =
             conduit_wire::encode_bounded_document_chunk(&mut frame, document, offset, &digest)
                 .unwrap();
@@ -471,7 +474,7 @@ fn public_shape_signed_return_measures_whole_transaction() {
     };
     let ((accepted, future_bytes), cost) = return_allocation_probe::observe(|| {
         let mut input = vec![0; 9 * 1024];
-        let mut output = vec![0; 4096];
+        let mut output = vec![0; output_bytes];
         let exchange = transaction.exchange(
             &mut link,
             images.iter().map(Vec::as_slice),
@@ -484,7 +487,7 @@ fn public_shape_signed_return_measures_whole_transaction() {
     });
     assert_eq!(accepted.credential, ack.credential);
     assert_eq!(link.next, incoming.len());
-    std::println!("signed-transaction public_shape_outer={} fixture_ack={} images={} grants={} input=9216 output=4096 dynamic_peak={} allocations={} future_bytes={}", outer.len(), document.len(), images.len(), ack.projection.authority_grants.len(), cost.peak_bytes, cost.allocations, future_bytes);
+    std::println!("signed-transaction public_shape_outer={} fixture_ack={} images={} grants={} input=9216 output={} dynamic_peak={} allocations={} future_bytes={}", outer.len(), document.len(), images.len(), ack.projection.authority_grants.len(), output_bytes, cost.peak_bytes, cost.allocations, future_bytes);
     let references: Vec<_> = ack.projection.authority_grants.iter().collect();
     let mut borrowed_link = BorrowedMessages {
         incoming: &incoming,
@@ -493,7 +496,7 @@ fn public_shape_signed_return_measures_whole_transaction() {
     };
     let ((borrowed, borrowed_future), borrowed_cost) = return_allocation_probe::observe(|| {
         let mut input = vec![0; 9 * 1024];
-        let mut output = vec![0; 4096];
+        let mut output = vec![0; output_bytes];
         let exchange = transaction.exchange_with_grants(
             &mut borrowed_link,
             images.iter().map(Vec::as_slice),
@@ -514,3 +517,6 @@ fn public_shape_signed_return_measures_whole_transaction() {
 
 #[path = "member_control_tests.rs"]
 mod member_control_tests;
+
+#[path = "member_return_bounded_tests.rs"]
+mod bounded_tests;
