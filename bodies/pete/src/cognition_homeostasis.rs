@@ -16,11 +16,11 @@ pub(super) fn homeostatic_evidence(
     battery: &Observed<conduit_robotics::BatteryObservation>,
     charging: bool,
     temporal_policy: ExperienceTemporalPolicy,
-    body: &Observed<PeteBodyState>,
+    body: Option<&Observed<PeteBodyState>>,
 ) -> Result<ExperienceItem, PeteCognitionRefusal> {
     let bound = situation.maximum_age_ticks;
     let power = (situation.battery.state == SituationFactState::Current).then_some(battery);
-    let safety = (situation.body.state == SituationFactState::Current).then_some(body);
+    let safety = body.filter(|_| situation.body.state == SituationFactState::Current);
     let state = reduce_homeostasis(
         &situation.reference,
         &HomeostasisPolicy::default(),

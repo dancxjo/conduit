@@ -62,6 +62,60 @@ pub fn pete_cognition_battery_from_create(
     .map_err(|_| PeteCognitionRefusal::InvalidObservation)
 }
 
+#[derive(Debug)]
+pub enum CreateCognitionCaptureError<E> {
+    Deadline,
+    Clock(E),
+    Start(crate::CreateObservationFailure),
+    Read {
+        failure: crate::CreateObservationFailure,
+        pause_failure: Option<crate::CreateObservationFailure>,
+    },
+    Pause(crate::CreateObservationFailure),
+    Observation(PeteCognitionRefusal),
+    Time,
+}
+
+/// Capture one correlated sample and pause the stream before publishing it.
+/// The clock must be the provider's monotonic millisecond clock.
+pub fn capture_pete_cognition_battery<P: crate::CreateUartProvider, E>(
+    provider: &mut P,
+    sign: PeteCognitionSign,
+    clock_basis: String,
+    read_timeout_ms: u32,
+    mut monotonic_millis: impl FnMut() -> Result<u64, E>,
+) -> Result<Option<PeteCognitionBattery>, CreateCognitionCaptureError<E>> {
+    use conduit_time::{NativeTemporalInstant, NativeTemporalScale};
+    use CreateCognitionCaptureError as Error;
+
+    if !(1..=5_000).contains(&read_timeout_ms) {
+        return Err(Error::Deadline);
+    }
+    let deadline = monotonic_millis()
+        .map_err(Error::Clock)?
+        .checked_add(u64::from(read_timeout_ms))
+        .ok_or(Error::Deadline)?;
+    let mut session = crate::CreateObservationSession::new();
+    session.start(provider).map_err(Error::Start)?;
+    let observation = session.read(provider, deadline);
+    let captured_at = monotonic_millis();
+    let pause = session.pause(provider);
+    let observation = observation.map_err(|failure| Error::Read {
+        failure,
+        pause_failure: pause.as_ref().err().copied(),
+    })?;
+    pause.map_err(Error::Pause)?;
+    let captured_at = NativeTemporalInstant::new(
+        clock_basis,
+        1,
+        NativeTemporalScale::Milliseconds,
+        captured_at.map_err(Error::Clock)?,
+        0,
+    )
+    .map_err(|_| Error::Time)?;
+    pete_cognition_battery_from_create(&observation, sign, captured_at).map_err(Error::Observation)
+}
+
 pub fn situate_pete_frame(
     frame: &PeteCognitionFrame,
 ) -> Result<EpisodeExperience, PeteCognitionRefusal> {
@@ -79,14 +133,19 @@ pub fn situate_pete_frame(
         sign_id: battery.sign().get().as_str().into(),
         observed_at: instant(battery.observed_at())?,
     };
-    let safety_observation = Observed {
-        value: PeteBodyState {
-            motion_available: *body.motion_available(),
-            safety_inhibited: *body.safety_inhibited(),
-        },
-        sign_id: body.sign().get().as_str().into(),
-        observed_at: instant(body.observed_at())?,
-    };
+    let safety_observation = body
+        .as_ref()
+        .map(|body| {
+            Ok(Observed {
+                value: PeteBodyState {
+                    motion_available: *body.motion_available(),
+                    safety_inhibited: *body.safety_inhibited(),
+                },
+                sign_id: body.sign().get().as_str().into(),
+                observed_at: instant(body.observed_at())?,
+            })
+        })
+        .transpose()?;
     let situation = select_pete_situation(
         instant(frame.reference())?,
         *policy.maximum_current_age_ticks(),
@@ -96,7 +155,9 @@ pub fn situate_pete_frame(
             sign_id: utterance.sign().get().as_str().into(),
             observed_at: instant(utterance.observed_at())?,
         }),
-        SituationInput::Observed(safety_observation.clone()),
+        safety_observation
+            .clone()
+            .map_or(SituationInput::Missing, SituationInput::Observed),
     )
     .map_err(|_| R::Situation)?;
     let mut experience =
@@ -106,7 +167,7 @@ pub fn situate_pete_frame(
         &battery_observation,
         *battery.charging(),
         policy,
-        &safety_observation,
+        safety_observation.as_ref(),
     )?;
     experience
         .try_admit(homeostasis)

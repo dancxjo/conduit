@@ -54,3 +54,18 @@ Open the printed loopback URL, then open Inspect to see the recorded Play in
 the Signs view.
 Live sensor and homeostasis sources remain part of
 [#3707](https://github.com/dancxjo/conduit/issues/3707).
+
+The Linux serial proof uses the std Create UART Base to read two correlated
+samples, then delivers their typed frames to one cognition Play. It uses a
+pseudo-terminal by default. To select a physical Create explicitly, pass its
+device path:
+
+```sh
+CONDUIT_PETE_CREATE_SERIAL=/dev/ttyUSB0 \
+  cargo test --locked -p xtask --test experience_episode_loop \
+  pete_create_serial_samples_enter_one_cognition_play
+```
+
+The probe starts and pauses a bounded sensor stream for each sample. It
+supplies typed test utterances and carries unknown motion safety when a separate
+safety observation is unavailable.

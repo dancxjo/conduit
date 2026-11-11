@@ -20,7 +20,7 @@ type PeteCognitionSafety = {
 }
 type PeteCognitionFrame = {
     battery: PeteCognitionBattery
-    body: PeteCognitionSafety
+    body: PeteCognitionSafety?
     utterance: PeteCognitionUtterance
     reference: TemporalInstant
     revision: U64 in 1..

@@ -105,7 +105,7 @@ fn frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFrame {
     let sign = |kind| PeteCognitionSign::new(format!("{kind}/{revision}")).unwrap();
     PeteCognitionFrame::new(
         PeteCognitionBattery::new(90, false, 13_000, now.clone(), sign("battery")).unwrap(),
-        PeteCognitionSafety::new(false, now.clone(), true, sign("body")).unwrap(),
+        Some(PeteCognitionSafety::new(false, now.clone(), true, sign("body")).unwrap()),
         "pete/wake/2".into(),
         now.clone(),
         revision,
@@ -115,13 +115,10 @@ fn frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFrame {
     .unwrap()
 }
 
-fn create_frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFrame {
+fn create_battery_stream(revision: u64) -> Vec<u8> {
     use conduit_pete::{
-        decode_observation_bundle, lower_charging_sources, lower_group_zero,
-        pete_cognition_battery_from_create, CreatePortableObservation,
         CREATE_CHARGING_SOURCES_PACKET_ID, CREATE_GROUP_ZERO_PACKET_ID, STREAM_HEADER,
     };
-
     let mut packet = [0u8; 26];
     let charge_mah: u16 = if revision == 1 { 500 } else { 90 };
     packet[16] = if revision == 1 { 3 } else { 0 };
@@ -133,7 +130,16 @@ fn create_frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFram
     stream.extend([CREATE_CHARGING_SOURCES_PACKET_ID, 2]);
     let checksum = stream.iter().fold(0u8, |sum, byte| sum.wrapping_add(*byte));
     stream.push(0u8.wrapping_sub(checksum));
-    let bundle = decode_observation_bundle(&stream).unwrap();
+    stream
+}
+
+fn create_frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFrame {
+    use conduit_pete::{
+        decode_observation_bundle, lower_charging_sources, lower_group_zero,
+        pete_cognition_battery_from_create, CreatePortableObservation,
+    };
+
+    let bundle = decode_observation_bundle(&create_battery_stream(revision)).unwrap();
     let observation = CreatePortableObservation {
         group_zero: lower_group_zero(&bundle.group_zero).unwrap(),
         charging_sources: lower_charging_sources(&bundle.charging_sources).unwrap(),
@@ -156,6 +162,161 @@ fn create_frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFram
         fixture.utterance().clone(),
     )
     .unwrap()
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn pete_create_serial_samples_enter_one_cognition_play() {
+    use conduit_pete::{capture_pete_cognition_battery, UartProfile};
+    use conduit_std_host::std_create_uart::{
+        monotonic_millis, StdCreateUartBase, StdCreateUartObservation,
+    };
+    use std::{
+        ffi::CStr,
+        fs::File,
+        io::{Read, Write},
+        os::fd::FromRawFd,
+        path::PathBuf,
+    };
+
+    let (device, master, slave) = match std::env::var_os("CONDUIT_PETE_CREATE_SERIAL") {
+        Some(path) => (PathBuf::from(path), None, None),
+        None => {
+            let mut master = -1;
+            let mut slave = -1;
+            assert_eq!(
+                unsafe {
+                    libc::openpty(
+                        &mut master,
+                        &mut slave,
+                        std::ptr::null_mut(),
+                        std::ptr::null_mut(),
+                        std::ptr::null_mut(),
+                    )
+                },
+                0
+            );
+            let (master, slave) = unsafe { (File::from_raw_fd(master), File::from_raw_fd(slave)) };
+            let mut path = [0; 256];
+            use std::os::fd::AsRawFd;
+            assert_eq!(
+                unsafe { libc::ttyname_r(slave.as_raw_fd(), path.as_mut_ptr(), path.len()) },
+                0
+            );
+            let device = unsafe { CStr::from_ptr(path.as_ptr()) }
+                .to_str()
+                .unwrap()
+                .into();
+            (device, Some(master), Some(slave))
+        }
+    };
+    let mut provider = StdCreateUartBase::open(StdCreateUartObservation {
+        base_id: "pete/cognition-create".into(),
+        device_path: device,
+        profile: UartProfile::CREATE_OI,
+        maximum_write_wait_ms: 250,
+    })
+    .unwrap();
+    drop(slave);
+    let peer = master.map(|mut master| {
+        std::thread::spawn(move || {
+            for revision in 1..=2 {
+                let mut commands = [0; 6];
+                master.read_exact(&mut commands).unwrap();
+                assert_eq!(commands, [128, 131, 148, 2, 0, 34]);
+                master.write_all(&create_battery_stream(revision)).unwrap();
+                let mut pause = [0; 2];
+                master.read_exact(&mut pause).unwrap();
+                assert_eq!(pause, [150, 0]);
+            }
+            master
+        })
+    });
+    let mut incoming = inputs(&[]);
+    let mut capture_ticks = Vec::new();
+    for (index, message) in [
+        "The switch label is COPPER KITE.",
+        "What was the switch label?",
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let revision = (index + 1) as u64;
+        let sign = |kind| PeteCognitionSign::new(format!("serial/{kind}/{revision}")).unwrap();
+        let battery = capture_pete_cognition_battery(
+            &mut provider,
+            sign("battery"),
+            "clock/pete-create-proof".into(),
+            1_000,
+            monotonic_millis,
+        )
+        .unwrap()
+        .expect("Create supplied a usable capacity estimate");
+        let now = battery.observed_at().clone();
+        capture_ticks.push(*now.ticks());
+        incoming.push(frame_input(
+            PeteCognitionFrame::new(
+                battery,
+                None,
+                "pete/create-proof".into(),
+                now.clone(),
+                revision,
+                ExperienceTemporalPolicy::new(10, 20).unwrap(),
+                PeteCognitionUtterance::new(message.into(), now, revision == 1, sign("utterance"))
+                    .unwrap(),
+            )
+            .unwrap(),
+        ));
+    }
+    if let Some(peer) = peer {
+        peer.join().unwrap();
+    }
+
+    let (model, requests) = common::fenced_model();
+    let mut harness = pete_harness(model);
+    let mut collector = Collector::default();
+    let report = run(
+        &mut harness,
+        &incoming,
+        &mut collector,
+        &RunControl::default(),
+    )
+    .unwrap();
+    assert_eq!(terminal(&report), &TerminalDisposition::Completed);
+    let episodes = records(&collector.0);
+    assert_eq!(episodes.len(), 2);
+    assert_eq!(
+        episodes[1].recalled().get()[0].observation(),
+        episodes[0].observation()
+    );
+    let requests = requests.lock().unwrap();
+    for (index, request) in requests.iter().enumerate() {
+        let request: serde_json::Value = serde_json::from_str(request).unwrap();
+        let evidence = request["selected_experience"]["evidence"]
+            .as_array()
+            .unwrap();
+        let battery = evidence
+            .iter()
+            .find(|item| {
+                item["identity"]
+                    .as_str()
+                    .is_some_and(|id| id.starts_with("pete/battery/"))
+            })
+            .unwrap();
+        assert_eq!(battery["observed_at"]["ticks"], capture_ticks[index]);
+        let homeostasis = evidence
+            .iter()
+            .find(|item| item["identity"] == "pete/homeostasis")
+            .unwrap();
+        assert_eq!(
+            homeostasis["sources"],
+            serde_json::json!([{"sign": format!("serial/battery/{}", index + 1)}])
+        );
+        let state: serde_json::Value =
+            serde_json::from_str(homeostasis["utf8_content"].as_str().unwrap()).unwrap();
+        assert_eq!(state["motion"], "unknown");
+        assert!(state["charge_percent"].is_string());
+    }
 }
 
 fn frame_input(frame: PeteCognitionFrame) -> ExternalForeInput {
