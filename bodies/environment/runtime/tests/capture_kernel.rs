@@ -31,17 +31,22 @@ const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER
 const R: usize = N * P;
 
 #[test]
-fn pulse_contract_revision_explains_the_canonical_seal_change() {
+fn pulse_v1_and_v2_have_exact_seals_under_the_current_compiler() {
     let (ready, effects) = pulse::ready(0);
-    let historical = plan::historical_v1_plan_identity(&ready);
+    let historical = plan::pulse_v1_identity_under_current_compiler(&ready);
     assert_eq!(
         (historical.0.as_str(), historical.1.as_str()),
         (
-            "4c8197aec4f210bd183d4dd62d2649d1d093563d388fea57b7e71f6986066323",
-            "664dab5fadf452d0aa6e039e0e38bf54bf169002dc7fdc7c2b482126b628fc8d"
+            "9844ee7e9efce4923f48b0928e2a40f5e0855c13d1a31ad74bd8cd8585b9e653",
+            "6ef34a1706cf5cfa00610cbe11de5df40f45395ff4210754a2ff2165f2a5a678"
         )
     );
     let (current, _) = plan::prepare(&ready);
+    assert_eq!(
+        historical.2, current.source_document_id,
+        "pulse profile changes do not change authored Source bytes"
+    );
+    plan::assert_current_derived_contracts(&current);
     let selected = current.fragments[0]
         .placements
         .iter()
@@ -65,7 +70,7 @@ fn pulse_contract_revision_explains_the_canonical_seal_change() {
     assert_eq!(
         effects.get(),
         0,
-        "historical comparison performs planning only"
+        "current-compiler revision comparison performs planning only"
     );
 }
 #[test]

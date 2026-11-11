@@ -188,7 +188,7 @@ The source checkpoint `21f51ad532747c680c4561d97e847b984638f544` passed:
   environmental Body package.
 
 The complete environmental runtime audit reports 67 passed and 2 failed across
-21 test binaries. Neither failure is waived or repaired by this extraction:
+21 test binaries. At that checkpoint neither failure had been repaired:
 
 1. `capture_kernel::checked_source_traverses_the_production_kernel_and_closes_after_each_outcome`
    expects an obsolete Plan/Fragment snapshot.
@@ -208,5 +208,39 @@ Evidence retained in the task outputs includes
 `extraction-baseline-a28-runtime-tests-20261111.log`,
 `integration-runtime-full-audit-20261111.log` and
 `extraction-baseline-comparison-20261111.json`, alongside the focused test/check
-logs. The integration owner must reconcile the baseline gates in the existing
-#6837 delivery lane. No device or installed Body was changed by these checks.
+logs. No device or installed Body was changed by these checks.
+
+## Baseline-gate follow-up qualification
+
+The test-only follow-up passes both formerly failing test binaries with the
+current compiler: five `capture_kernel` tests and one `local_fore` test. This is
+focused CPU evidence; the complete runtime audit and release acceptance have
+not been rerun or inferred from it.
+
+The capture snapshot predates several reviewed semantic changes. Commit
+`79bf21bec9` advances pure-expression and structured-selector contracts to `@2`
+and publishes exact input/output value bounds; `9fd3adfc99` propagates finite
+contracts through expanded Fore; `a90bc5f9f5` advances the pulse contract to `@2`
+and adds its two value contracts. Raw authored Source remaining unchanged does
+not preserve these compiler- and selected-contract-dependent seals.
+
+The regression controls only pulse `@1` versus `@2` under the **current**
+compiler. Both runs retain three expression `@2` and four selector `@2`
+placements, each with two value contracts, and have identical Source identity.
+The planning-only pulse `@1` case has no pulse semantic laws and pins Plan
+`9844ee7e…` / Fragment `6ef34a17…`; pulse `@2` has two value contracts and pins
+`afe8a353…` / `08eca8a7…`. The tests contain the complete digests and verify zero
+provider effects during comparison. This does not reproduce the October 22
+compiler or its old `4c8197ae…` / `664dab5f…` snapshot. The four existing capture
+execution/custody tests remain strict and pass using the current contract.
+
+Commit `989996bc2b` intentionally retains private Local Fore provenance only
+after complete assigned-table checks. General lowering has not earned that
+provenance. The corrected test compares every public topology, capacity,
+maximum-value, pressure and track field with lowering, while preserving full
+equality between contiguous and borrowed assigned tables. Wrong-pin refusal,
+allocation-free preparation/execution, pressure and cancellation checks pass;
+no provenance constructor or production behavior changed.
+
+Focused qualification is retained in
+`extraction-baseline-repair-qualified-20261111.log` in the task outputs.

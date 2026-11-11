@@ -90,15 +90,16 @@ fn prepare_profile(
 ) -> (Plan, conduit_plan_lowering::lowering::LoweredPlanFragment) {
     prepare_profile_revision(ready, boot, observation_kind, cadence, false)
 }
-/// Historical @1 is reconstructed only to audit canonical planning inputs.
-/// Return identities rather than a Plan, so callers cannot bind or execute it.
+/// Compare only the pulse contract revision under today's compiler. This does
+/// not recreate the historical expression/selector compiler. Return identities
+/// rather than an executable Plan; no legacy provider binding is attempted.
 #[allow(
     dead_code,
     reason = "shared fixture helper used by the capture seal regression"
 )]
-pub fn historical_v1_plan_identity(
+pub fn pulse_v1_identity_under_current_compiler(
     ready: &conduit_pulse_capture::installation::ReadyPulseBase<super::pulse::Provider>,
-) -> (PlanId, FragmentId) {
+) -> (PlanId, FragmentId, SourceDocumentId) {
     let (plan, _) =
         prepare_profile_revision(ready, &super::pulse::identity().boot_id, None, None, true);
     let pulse = plan.fragments[0]
@@ -111,7 +112,36 @@ pub fn historical_v1_plan_identity(
         "machine/pulse/read@1"
     );
     assert!(pulse.semantic_contract.laws.is_empty());
-    (plan.plan_id, plan.fragments[0].fragment_id.clone())
+    assert_current_derived_contracts(&plan);
+    (
+        plan.plan_id,
+        plan.fragments[0].fragment_id.clone(),
+        plan.source_document_id,
+    )
+}
+#[allow(
+    dead_code,
+    reason = "shared fixture helper used by the capture seal regression"
+)]
+pub fn assert_current_derived_contracts(plan: &Plan) {
+    for (revision, expected) in [
+        ("conduitese/pure-expression-operation@2", 3),
+        ("structured-info/selector-operation@2", 4),
+    ] {
+        let selected: Vec<_> = plan.fragments[0]
+            .placements
+            .iter()
+            .filter(|gear| gear.kind_contract_revision.as_str() == revision)
+            .collect();
+        assert_eq!(
+            selected.len(),
+            expected,
+            "current derived contract inventory"
+        );
+        assert!(selected
+            .iter()
+            .all(|gear| gear.semantic_contract.value_contracts().len() == 2));
+    }
 }
 fn prepare_profile_revision(
     ready: &conduit_pulse_capture::installation::ReadyPulseBase<super::pulse::Provider>,
