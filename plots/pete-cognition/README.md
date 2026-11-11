@@ -7,23 +7,50 @@ selects the Situation and prepares an `EpisodeExperienceInput` for the generic
 the existing `CurrentExperience` reducer, checking freshness, sources, capacities,
 and relationships before publishing the episode's selected Experience.
 
-`body/episode-recall-experience` selects retained episodes and publishes an
-`EpisodeRecollection` with the selected evidence, scores, and pending episode.
-`body/episode-model-context` renders that selection for the model. The model,
-retainer, and memory cell run in the same ordinary Play.
+`body/episode-retrieval-window` captures the exact current experience and
+resident memory packets with Body/Wake ownership, the original reference instant,
+and the Plot's explicit intent, clock class and context policy. The existing
+`retrieval/temporal-select-flow` resolves source times; missing, incomparable,
+invalid and future times remain explicit omissions. Episode counters never
+become timestamps.
+
+`body/episode-retrieval-context` verifies that outcome against the same snapshot,
+reuses the episode loop's shared-term retrieval law, uses the existing bounded
+context selector, and atomically publishes the model
+request and native pending episode. Only selected complete historical evidence
+items enter the request. Earlier trigger text, unselected archive items and
+prior model words stay in native custody; original observations and actual
+outcomes remain available for audit. Selection ordinals are not relevance scores.
+The model, retainer and memory cell run in the same ordinary Play.
+
+The Plot authors an event-ordering intent, the explicit shared-term ranking
+profile, a one-episode history limit and a 2 KiB selected-history ceiling. The
+profile selects a matching complete evidence item, prefers factual reports to
+followup questions, and separately ranks typed model-attempt outcomes. Missing
+matches are explicit exclusions; they are not fabricated relevance scores.
+The declared charge is one unit per rendered UTF-8 byte, not measured model
+tokens. Instructions, current evidence, history and omission diagnostics must
+all fit the unchanged 4 KiB model request; overflow refuses atomically. The
+160 KiB capture and 64 KiB temporal-window Cords are prepared transport bounds,
+not increases to the four-entry, 8 KiB autobiographical memory.
+
+The model data uses the versioned `episode-retrieval-request@2` format. Repeated
+classification and instant field names are declared once beside exact column
+values. A declared null default keeps unknown recorded times unknown. An exact
+repeated utterance can refer to `observation.content`; its
+JSON-string encoding is resolved during retention. The native record keeps the
+same transmitted current projection, original observation and complete actual
+outcome. Model history carries the actual disposition and identifies its Host
+source; complete attempt/run provenance stays in the paired native audit.
+Resident memory preserves known domain, origin, availability, certainty, and
+temporal role; missing legacy classifications remain unknown. Retained time
+columns remain attached to their values across checkpoint recovery.
+Retrieval uses the supplied frame reference as its as-of instant.
 
 Situation selection also feeds fresh battery and safety readings through Pete's
 homeostasis reducer. The result is labeled as deterministic derived evidence,
 with the exact input signs and policy identity. Stale readings remain visible
 as observations and leave current energy or motion unknown.
-
-The recall Gear retrieves from the four retained episodes using distinct shared
-ASCII words of at least four characters, with a small common-word filter.
-It searches retained observations, sourced evidence, and typed attempt-outcome
-labels, then reports each match score in the model request. Pete’s fact context
-includes recalled observations, historical evidence, and host-reported model
-outcomes. Typed episode records preserve earlier model-derived responses.
-Higher scores and then newer episodes take precedence under the prompt bound.
 
 The hosted proof registers Pete's Back on the selected Host, submits two frames,
 and checks that the second model turn can use the retained first episode.
@@ -37,16 +64,19 @@ with one call in flight and no automatic retry of the lost attempt. Hosted
 fault-injection checks verify later recall of both earlier successful episodes
 and the observation made during provider loss, including after checkpoint
 recovery. The model context labels the failed attempt as host-reported outcome
-data. The model-context Gear uses bounded English word cues to focus questions
-about past facts and model outcomes.
+data. The Plot supplies the trusted instruction; historical evidence is data and
+cannot replace it.
 
 ```sh
 cargo xtask check pete-cognition
 cargo xtask check pete-cognition-live
 ```
 
-The live check uses installed Ollama models on loopback. The proof supplies
-frame inputs through the Fore. The [resumable Plot](../pete-cognition-resumable/README.md)
+The live check uses installed Ollama models on loopback. The typed-frame tests
+accept `CONDUIT_PETE_LIVE_MODEL` and `CONDUIT_PETE_LIVE_MEMORY_MIB` to select an
+already installed model and its explicit memory admission; their defaults remain
+`gemma3:latest` and 6144 MiB. Model answer quality is configuration-specific, and
+these options change neither the assertions nor the cognition bounds. The proof supplies frame inputs through the Fore. The [resumable Plot](../pete-cognition-resumable/README.md)
 also exercises a Body and Wake checkpoint across a replacement Host Boot,
 Plan, and Play.
 
@@ -55,6 +85,8 @@ Host for the same two-episode Plot. It checks traffic on every authored Cord
 and traces the second response through both input frames, first-episode
 retention, later recall, and the inputs to the recall, contextualize, and retain Gears.
 Patchbay follows a bounded set of observed input events at each join.
+The debugger retains 128 records. Longer runs expose eviction and missing-parent
+gaps; they do not claim an exact trace outside that retained horizon.
 
 ```sh
 CONDUIT_PETE_REPLAY_SNAPSHOT="$PWD/target/pete-replay.json" \

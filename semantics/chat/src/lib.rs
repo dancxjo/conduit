@@ -6,6 +6,43 @@
 
 extern crate alloc;
 
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_catalog;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_catalog::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_context;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_projection;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_context::*;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_projection::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_request;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_request::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_packet;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_packet::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_producer;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_producer::*;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_evidence;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_snapshot;
+#[cfg(feature = "plot-catalog")]
+mod episode_retrieval_window;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_evidence::*;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_snapshot::*;
+#[cfg(feature = "plot-catalog")]
+pub use episode_retrieval_window::*;
+
 #[allow(dead_code, clippy::large_enum_variant, clippy::too_many_arguments)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
@@ -18,12 +55,13 @@ pub use generated::{
     EpisodeExperience, EpisodeExperienceInput, EpisodeMemory, EpisodeMemoryOwner,
     EpisodeMemoryState, EpisodeModelResponse, EpisodeObservation, EpisodeOutcome, EpisodePending,
     EpisodeRecall, EpisodeRecallScores, EpisodeRecollection, EpisodeRecord, EpisodeRefusal,
-    LiveConversationFlowProjection, LiveConversationProjectionError, LiveConversationStage,
-    LiveConversationStageKind, LiveConversationStageState, LiveConversationStages,
-    MessageAttachment, MessageAttachmentSlot, MessageMetadataEntry, MessageMetadataSlot,
-    MessageOptionalDisplayName, MessageOptionalSender, MessageOptionalSubject, MessageRecipient,
-    MessageRecipientSlot, NotificationEvent, PortableMessage, PresenceEvent, PresenceState,
-    RecognitionEvidenceStatus, RecognitionEvidenceView, SpeechCommitEvidenceView,
+    EpisodeRetrievalCapture, EpisodeRetrievalClockClass, LiveConversationFlowProjection,
+    LiveConversationProjectionError, LiveConversationStage, LiveConversationStageKind,
+    LiveConversationStageState, LiveConversationStages, MessageAttachment, MessageAttachmentSlot,
+    MessageMetadataEntry, MessageMetadataSlot, MessageOptionalDisplayName, MessageOptionalSender,
+    MessageOptionalSubject, MessageRecipient, MessageRecipientSlot, NotificationEvent,
+    PortableMessage, PresenceEvent, PresenceState, RecognitionEvidenceStatus,
+    RecognitionEvidenceView, SpeechCommitEvidenceView,
 };
 
 mod episode_integration;

@@ -30,6 +30,22 @@ fn pete_harness_for(
     entry: &str,
     checkpoint: Option<&[u8]>,
 ) -> common::Harness {
+    pete_harness_with_transform(
+        model,
+        program,
+        entry,
+        checkpoint,
+        conduit_pete::prepare_pete_experience_input_bytes,
+    )
+}
+
+fn pete_harness_with_transform(
+    model: Box<dyn conduit_std_host::hosted_local_model::HostedLocalModelAdapter>,
+    program: &str,
+    entry: &str,
+    checkpoint: Option<&[u8]>,
+    transform: fn(&[u8]) -> Result<Vec<u8>, u16>,
+) -> common::Harness {
     let config = conduit_std_host::StdHostConfig {
         host_id: "host/pete-cognition".into(),
         boot_id: if checkpoint.is_some_and(|bytes| bytes != conduit_chat::initial_episode_memory())
@@ -44,7 +60,7 @@ fn pete_harness_for(
         conduit_pete::pete_cognition_inputs_offer(),
         conduit_pete::MAXIMUM_PETE_COGNITION_FRAME_BYTES as u32,
         conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
-        conduit_pete::prepare_pete_experience_input_bytes,
+        transform,
     )
     .unwrap();
     let composition = StdHostComposition::minimal();
@@ -443,8 +459,10 @@ fn assert_pete_create_serial_play(first_sample: SerialSample) {
         "{response}"
     );
     for (index, episode) in episodes.iter().enumerate() {
-        let recorded: serde_json::Value =
-            serde_json::from_str(episode.evidence().as_ref().unwrap()).unwrap();
+        let recorded = common::model_projection::expanded_model_evidence(
+            &serde_json::from_str(episode.evidence().as_ref().unwrap()).unwrap(),
+            episode.observation().content(),
+        );
         let evidence = recorded["evidence"].as_array().unwrap();
         let battery = evidence.iter().find(|item| {
             item["identity"]
@@ -573,8 +591,12 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
         let request: serde_json::Value = common::request_data(request);
         let recorded: serde_json::Value =
             serde_json::from_str(episodes[index].evidence().as_ref().unwrap()).unwrap();
-        assert_eq!(recorded, request["selected_experience"]);
-        let evidence = &request["selected_experience"]["evidence"];
+        assert_eq!(recorded, request["current_experience"]);
+        let expanded = common::model_projection::expanded_model_evidence(
+            &request["current_experience"],
+            request["observation"]["content"].as_str().unwrap(),
+        );
+        let evidence = &expanded["evidence"];
         let revision = index + 1;
         assert_eq!(
             evidence[0]["sources"][0]["sign"],
@@ -588,14 +610,14 @@ fn patchbay_replays_pete_cognition_cords_from_the_installed_play() {
     }
     let second: serde_json::Value = common::request_data(&requests[1]);
     let historical = &second["recalled"][0]["historical_evidence"];
-    assert_eq!(historical["revision"], 1);
+    assert_eq!(historical["original_provenance"]["revision"], 1);
     assert_eq!(
         historical["evidence"][0]["sources"][0]["sign"],
         "utterance/1"
     );
     let recorded: serde_json::Value =
         serde_json::from_str(episodes[1].recalled().get()[0].evidence().as_ref().unwrap()).unwrap();
-    assert_eq!(recorded, *historical);
+    assert_eq!(recorded, second["recalled"][0]);
     assert_pete_replay(&harness, &report, 2);
 }
 
@@ -612,6 +634,21 @@ fn assert_pete_replay(
     )
     .unwrap();
     let timeline = snapshot.timeline.as_ref().unwrap();
+    if expected_frames > 2 {
+        // Continuous history remains bounded. A longer fault exercise must
+        // disclose eviction rather than claim an exact trace beyond its horizon.
+        assert!(timeline.gap.is_some());
+        assert!(
+            timeline.evicted_events > 0
+                || !timeline
+                    .trace
+                    .as_ref()
+                    .unwrap()
+                    .missing_parent_sequences
+                    .is_empty()
+        );
+        return snapshot;
+    }
     assert!(timeline.gap.is_none());
     for cord in snapshot
         .face
@@ -648,12 +685,14 @@ fn assert_pete_replay(
     assert!(trace.missing_parent_sequences.is_empty());
     let mut steps = trace.steps.iter();
     for (event, port) in [
-        ("value-received", "/contextualize/input/recollection"),
+        ("value-received", "/contextualize/input/capture"),
+        ("value-received", "/contextualize/input/outcome"),
         ("value-received", "/model/input/request"),
         ("value-received", "/retain/input/response"),
         ("value-received", "/memory/input/update"),
         ("value-received", "/recall/input/memory"),
-        ("value-received", "/contextualize/input/recollection"),
+        ("value-received", "/contextualize/input/capture"),
+        ("value-received", "/contextualize/input/outcome"),
         ("value-received", "/model/input/request"),
         ("value-received", "/retain/input/response"),
         ("value-sent", "/front/output/episodes"),
@@ -756,7 +795,14 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
     let requests = harness.requests.lock().unwrap();
     assert_eq!(requests.len(), 2);
     let second: serde_json::Value = common::request_data(&requests[1]);
-    let selected = &second["selected_experience"];
+    let selected = if second["schema"] == conduit_chat::EPISODE_RETRIEVAL_DATA_SCHEMA {
+        common::model_projection::expanded_model_evidence(
+            &second["current_experience"],
+            second["observation"]["content"].as_str().unwrap(),
+        )
+    } else {
+        second["selected_experience"].clone()
+    };
     assert_eq!(selected["revision"], 2);
     assert_eq!(
         selected["evidence"][0]["identity"],
@@ -809,9 +855,15 @@ fn ollama_episode_model() -> Box<dyn conduit_std_host::hosted_local_model::Hoste
     use conduit_ai::LocalModelKindProfile;
     use conduit_std_host::hosted_local_model::OllamaDiscovery;
 
-    let adapter = OllamaDiscovery::discover_at("http://127.0.0.1:11434", "gemma3:latest")
+    let model = std::env::var("CONDUIT_PETE_LIVE_MODEL").unwrap_or_else(|_| "gemma3:latest".into());
+    let memory_mib = std::env::var("CONDUIT_PETE_LIVE_MEMORY_MIB")
+        .unwrap_or_else(|_| "6144".into())
+        .parse()
+        .expect("CONDUIT_PETE_LIVE_MEMORY_MIB must be an integer");
+    println!("Live Pete model: {model}; admitted memory: {memory_mib} MiB");
+    let adapter = OllamaDiscovery::discover_at("http://127.0.0.1:11434", &model)
         .unwrap()
-        .initialize(6144, vec![LocalModelKindProfile::GenerateFlow])
+        .initialize(memory_mib, vec![LocalModelKindProfile::GenerateFlow])
         .unwrap();
     Box::new(adapter)
 }
@@ -883,6 +935,8 @@ fn live_pete_experience_episode_uses_earlier_memory() {
     let fresh = control[0].response().unwrap().content();
     println!("Fresh Play: {fresh}");
     let fresh = fresh.trim().to_ascii_lowercase();
+    // The authored persona may identify its speaker before the answer.
+    let fresh = fresh.strip_prefix("pete:").unwrap_or(&fresh).trim_start();
     assert!(
         ["i do not know", "i don't know", "i don’t know"]
             .iter()
@@ -946,7 +1000,17 @@ fn pete_retrieves_the_matching_episode_past_a_newer_unrelated_one() {
 
     let requests = requests.lock().unwrap();
     let follow_up: serde_json::Value = common::request_data(&requests[2]);
-    assert_eq!(follow_up["recalled"][0]["shared_observation_terms"], 3);
+    assert_eq!(
+        follow_up["retrieval"]["relevance_profile"],
+        conduit_chat::EPISODE_SHARED_TERM_PROFILE
+    );
+    assert_eq!(follow_up["recalled"][0]["episode"], 1);
+    assert!(
+        follow_up["recalled"][0]["historical_evidence"]["evidence"][0]["utf8_content"]
+            .as_str()
+            .unwrap()
+            .contains("COPPER KITE")
+    );
     assert!(!requests[2].contains("garden"));
     let battery_query: serde_json::Value = common::request_data(&requests[3]);
     let recalled = battery_query["recalled"].as_array().unwrap();
@@ -988,14 +1052,18 @@ fn pete_recalls_the_earlier_battery_percentage_with_its_source() {
     let requests = requests.lock().unwrap();
     let second: serde_json::Value = common::request_data(&requests[1]);
     let recalled = &second["recalled"][0]["historical_evidence"];
-    assert_eq!(recalled["revision"], 1);
+    assert_eq!(recalled["original_provenance"]["revision"], 1);
     let body = &recalled["evidence"][0];
     assert_eq!(body["origin"], "deterministic_derived");
     assert_eq!(body["sources"][0]["sign"], "create/battery/1");
     let content: serde_json::Value =
         serde_json::from_str(body["utf8_content"].as_str().unwrap()).unwrap();
     assert_eq!(content["charge_percent"], "50.0%");
-    let current = second["selected_experience"]["evidence"]
+    let current_evidence = common::model_projection::expanded_model_evidence(
+        &second["current_experience"],
+        second["observation"]["content"].as_str().unwrap(),
+    );
+    let current = current_evidence["evidence"]
         .as_array()
         .unwrap()
         .iter()
@@ -1087,23 +1155,23 @@ fn pete_records_provider_loss_and_resumes_in_the_same_play() {
             .as_array()
             .unwrap()
             .last()
-            .unwrap()["model_outcome"]["disposition"],
+            .unwrap()["actual_outcome"]["disposition"],
         "provider_lost"
     );
     let prompt: serde_json::Value = common::request_data(&requests[3]);
     assert!(prompt["recalled"][0].get("response").is_none());
+    assert_eq!(prompt["recalled"][0]["actual_outcome"]["source"], "host");
     assert_eq!(
-        prompt["recalled"][0]["model_outcome"]["origin"],
-        "host_reported"
-    );
-    assert_eq!(
-        prompt["recalled"][0]["model_outcome"]["disposition"],
+        prompt["recalled"][0]["actual_outcome"]["disposition"],
         "provider_lost"
     );
-    assert_eq!(
-        prompt["recalled"][0]["model_outcome"]["attempt"],
-        outcome.attempt().as_str()
-    );
+    assert!(prompt["recalled"][0]["actual_outcome"]
+        .get("attempt")
+        .is_none());
+    let EpisodeOutcome::ProviderLost(audited) = selected.outcome() else {
+        panic!("native audit must retain the actual failed attempt");
+    };
+    assert_eq!(audited.attempt(), outcome.attempt());
 }
 
 #[path = "experience_episode_loop/checkpoint.rs"]
@@ -1137,3 +1205,6 @@ fn stale_battery_and_safety_do_not_become_current_homeostatic_facts() {
     assert!(content["charging"].is_null());
     assert!(content["charge_percent"].is_null());
 }
+
+#[path = "experience_episode_loop/provenance.rs"]
+mod retained_provenance;

@@ -297,6 +297,16 @@ Their presence is not an additional physical or release acceptance claim:
   adapter rather than chat semantics. This source-level slice does not yet
   establish the five-host, voice, or ConduitOS experiences described in the
   [body Chat guide](plots/body-chat/README.md).
+- **Pete cognition (#3707):** development Sources connect typed Situation,
+  homeostasis, the generic Experiencer, snapshot-bound temporal and lexical
+  retrieval, bounded model context, actual outcomes and autobiographical
+  feedback in one ordinary Play. Deterministic hosted proof covers sensor
+  acquisition, memory-informed responses, provider loss, checkpoint/Host
+  continuation, independent reaction/attention and causal replay. The model
+  request remains 4 KiB and resident history remains four entries within 8 KiB.
+  [The cognition guide](plots/pete-cognition/README.md) records the authored
+  policies, declared compact codecs, bounds and proof entrances. Integration
+  and final live/browser proof are tracked in [#6861](https://github.com/dancxjo/conduit/pull/6861).
 - **Learned realization lifecycle (#3709):** checkpoint-bearing hosted model
   execution, bounded effect-free shadow comparison, explicit evaluation and
   operator promotion/rollback authority, ordinary replacement-Plan selection,

@@ -34,6 +34,15 @@ fn main() {
     catalog
         .insert_structured_type("ExperienceIntegrationInput", integration.clone())
         .expect("experience integration Type installs once");
+    let instant =
+        conduit_time::NativeTemporalInstant::semantic_type().expect("reference instant Type");
+    let StructuredInfoTypeShape::Record { schema, .. } = instant.shape() else {
+        panic!("reference instant is a named record");
+    };
+    let instant_identity = schema.as_str().to_owned();
+    catalog
+        .insert_structured_type("TemporalInstant", instant.clone())
+        .expect("reference Type installs");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
         &catalog,
@@ -42,8 +51,12 @@ fn main() {
     let generated = generate_rust_bindings_with_forms_and_external_bindings(
         &checked.native_types,
         &checked.type_forms,
-        &[evidence, integration],
+        &[evidence, integration, instant],
         &[
+            ExternalNativeRustBinding {
+                semantic_identity: &instant_identity,
+                rust_type_path: "conduit_time::NativeTemporalInstant",
+            },
             ExternalNativeRustBinding {
                 semantic_identity: &evidence_identity,
                 rust_type_path: "conduit_human::ExperienceEvidenceRequest",
