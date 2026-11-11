@@ -2,6 +2,8 @@
 //! Owned native execution of the existing Tick wait Host Call. This installs
 //! no clock, advertises no availability, issues no authority and starts no Body.
 extern crate alloc;
+#[cfg(test)]
+extern crate std;
 #[cfg(feature = "wait")]
 mod installation;
 #[cfg(feature = "wait")]

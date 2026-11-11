@@ -1,5 +1,10 @@
 use super::*;
+#[path = "../../../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+mod assigned;
 mod fixture;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 #[path = "../../../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs"]
 mod selection_fixture;
 
@@ -98,15 +103,7 @@ fn deadline_completion_uses_observed_time_and_retains_one_pending_lease() {
         .unwrap()
         .is_none());
     assert_eq!(owner.provider.calls, 1);
-    assert_eq!(
-        owner
-            .table
-            .inspections()
-            .next()
-            .unwrap()
-            .in_flight_operations,
-        1
-    );
+    assert_eq!(owner.inspection().in_flight_operations, 1);
     owner.provider.next = Some(12);
     let bytes = owner
         .poll(NodeId(0), HostCallId(0), RequestId(0))
@@ -120,15 +117,7 @@ fn deadline_completion_uses_observed_time_and_retains_one_pending_lease() {
     assert!(
         matches!(payload.shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == 12_u64.to_le_bytes())
     );
-    assert_eq!(
-        owner
-            .table
-            .inspections()
-            .next()
-            .unwrap()
-            .in_flight_operations,
-        0
-    );
+    assert_eq!(owner.inspection().in_flight_operations, 0);
     assert_eq!(
         owner.start(NodeId(0), HostCallId(0), RequestId(0), &request(10)),
         Err(ClockCallRefusal::StaleRequest)
@@ -229,15 +218,7 @@ fn substituted_lowering_stale_play_and_invalid_inputs_never_observe_the_provider
         Err(ClockCallRefusal::Canonical(_))
     ));
     assert_eq!(owner.provider.calls, 0);
-    assert_eq!(
-        owner
-            .table
-            .inspections()
-            .next()
-            .unwrap()
-            .in_flight_operations,
-        0
-    );
+    assert_eq!(owner.inspection().in_flight_operations, 0);
     owner
         .start(NodeId(0), HostCallId(0), RequestId(0), &request(0))
         .unwrap();

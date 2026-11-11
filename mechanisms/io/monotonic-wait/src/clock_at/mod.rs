@@ -5,3 +5,6 @@ pub mod owner;
 
 #[cfg(all(test, feature = "clock-at-catalog"))]
 mod schema_tests;
+
+pub mod assigned;
+pub mod retained;
