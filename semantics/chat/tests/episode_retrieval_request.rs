@@ -229,6 +229,82 @@ fn native_producer_capture_and_existing_temporal_flow_feed_the_bounded_request_w
     assert_eq!(data["recalled"].as_array().unwrap().len(), 2);
 }
 #[test]
+fn competing_episodes_and_items_exclude_unselected_facts_from_model_and_pending_bytes() {
+    let item = |ticks, content| {
+        serde_json::json!({
+            "identity": format!("item/{ticks}"), "origin":"human_reported", "utf8_content":content,
+            "sources":[{"human_statement":"source/competing"}],
+            "observed_at":{"ticks":ticks,"scale":"milliseconds","clock_basis":"clock/one","resolution_ticks":1,"uncertainty_ticks":0}
+        })
+    };
+    let old = serde_json::json!({"revision":1,"evidence":[item(10,"EXCLUDED_OLD_EPISODE_FACT")]})
+        .to_string();
+    let competing = serde_json::json!({"revision":1,"evidence":[
+        item(120,"EXCLUDED_FUTURE_ITEM_FACT"), item(30,"SELECTED_COMPLETE_ITEM_FACT"), item(20,"EXCLUDED_OLDER_ITEM_FACT")
+    ]}).to_string();
+    let mut f = fixture();
+    f.memory = memory_with_evidence(
+        &[(1, Some(&old)), (2, Some(&competing))],
+        "body/one",
+        "wake/one",
+    );
+    f.source = source(&f.memory);
+    f.intent = TemporalRetrievalIntent::LatestEvidence.encode().unwrap();
+    let snapshot = PreparedEpisodeRetrievalSnapshot::prepare()
+        .capture(f.input())
+        .unwrap();
+    let context = context(&snapshot, &f.intent);
+    let mut request =
+        PreparedEpisodeRetrievalRequest::prepare("Use only selected evidence", empty_current)
+            .unwrap();
+    let (_, allocations) =
+        allocation_probe::observe(|| request.compose(&snapshot, &context).map(|_| ()));
+    assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
+    for excluded in [
+        "EXCLUDED_OLD_EPISODE_FACT",
+        "EXCLUDED_FUTURE_ITEM_FACT",
+        "EXCLUDED_OLDER_ITEM_FACT",
+    ] {
+        assert!(f
+            .memory
+            .windows(excluded.len())
+            .any(|bytes| bytes == excluded.as_bytes()));
+        assert!(!request
+            .output()
+            .windows(excluded.len())
+            .any(|bytes| bytes == excluded.as_bytes()));
+        assert!(!request
+            .pending()
+            .windows(excluded.len())
+            .any(|bytes| bytes == excluded.as_bytes()));
+    }
+    let pending = conduit_chat::EpisodePending::decode(request.pending()).unwrap();
+    assert_eq!(pending.recalled().get().len(), 1);
+    assert_eq!(*pending.recalled().get()[0].episode(), 2);
+    let evidence = pending.recalled().get()[0].evidence().as_ref().unwrap();
+    let evidence: serde_json::Value = serde_json::from_str(evidence).unwrap();
+    assert_eq!(
+        evidence["temporal_selection"]["item_indices"],
+        serde_json::json!([1])
+    );
+    assert_eq!(
+        evidence["historical_evidence"]["evidence"][0]["utf8_content"],
+        "SELECTED_COMPLETE_ITEM_FACT"
+    );
+    assert_eq!(
+        evidence["historical_evidence"]["evidence"][0]["origin"],
+        "human_reported"
+    );
+    assert_eq!(evidence["actual_outcome"]["disposition"], "provider_lost");
+    assert_eq!(
+        evidence["historical_evidence"]["evidence"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+}
+#[test]
 fn stale_context_refuses_before_projector_and_discards_previous_output() {
     let f = fixture();
     let capture = PreparedEpisodeRetrievalSnapshot::prepare();
