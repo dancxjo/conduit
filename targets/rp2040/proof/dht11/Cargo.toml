@@ -24,7 +24,7 @@ conduit-rp2040-network-realization = { path = "../../network-realization", optio
 conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637", optional = true }
 conduit-rp2040-tm1637 = { path = "../../tm1637", optional = true }
 conduit-time = { path = "../../../../semantics/time", default-features = false, features = ["kernel-step"], optional = true }
-conduit-environment-face = { path = "../../../../bodies/environment/face", optional = true }
+conduit-environment-face = { path = "../../../../semantics/environment-face", optional = true }
 conduit-face = { path = "../../../../semantics/face", default-features = false, optional = true }
 conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask", optional = true }
 conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", optional = true }

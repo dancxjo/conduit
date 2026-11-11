@@ -18,7 +18,7 @@ postcard = { version = "1", default-features = false, optional = true }
 miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"] }
 
 [dev-dependencies]
-conduit-environment-face = { path = "../../bodies/environment/face" }
+conduit-environment-face = { path = "../environment-face" }
 conduit-std-offers = { path = "../../targets/std/offers" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-planner = { path = "../../architecture/planner" }
