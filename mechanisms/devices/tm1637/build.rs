@@ -1,6 +1,10 @@
 //! Compile the reviewed packet expression once; no Source parser runs in Play.
-use std::{fs, path::Path};
-pub fn emit(out: &Path) {
+use std::fs;
+#[path = "build/display_frame.rs"]
+mod display_frame;
+fn main() {
+    let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+    let out = out.as_path();
     let path = "../../../plots/device-protocols/tm1637.conduit";
     println!("cargo:rerun-if-changed={path}");
     let syntax = conduit_plot::parse_syntax_document(&fs::read_to_string(path).unwrap());

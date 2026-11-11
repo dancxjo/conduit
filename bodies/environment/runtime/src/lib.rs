@@ -8,7 +8,6 @@ mod canonical_storage;
 pub mod construction;
 #[cfg(feature = "display-mask")]
 pub mod display_mask;
-pub mod display_packets;
 #[cfg(feature = "member-receipts")]
 pub mod member_receipts;
 pub mod publication;
