@@ -75,7 +75,9 @@ impl StdHost {
                 || request.plan.body_time_requirement.is_some()
                 || correlation.is_some()
                 || execution_bounds.is_some()
-                || live.is_some()
+                || live
+                    .as_ref()
+                    .is_some_and(|(queue, _)| !queue.has_image_admission())
                 || checkpoint.is_some()
                 || terminal.is_some()
                 || creche.as_ref().is_some_and(|owner| !owner.image_prepared()))
@@ -84,6 +86,11 @@ impl StdHost {
         }
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         let prospective_play = self.prospective_body_play(request.wake, request.plan)?;
+        if selected_memory {
+            if let Some((queue, _)) = &live {
+                queue.verify_image_admission(self, &prospective_play, request.control)?;
+            }
+        }
         let admitted_clock_quality = if let Some(requirement) = &request.plan.body_time_requirement
         {
             let correlation = correlation.ok_or_else(|| {

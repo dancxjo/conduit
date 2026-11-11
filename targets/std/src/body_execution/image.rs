@@ -7,7 +7,9 @@ pub use prepared::{ImageMemoryRetention, ImagePreparedValue, ImageRootPreparatio
 mod creche;
 mod face;
 mod input;
+mod live;
 pub use input::ImageForeInput;
+pub use live::ImageLiveForeQueue;
 
 pub struct ImageBodyRunReport {
     report: BodyRunReport,

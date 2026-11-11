@@ -14,6 +14,7 @@ use std::{
 
 mod document;
 mod fragment;
+pub(crate) mod image;
 mod numerical;
 mod parsec;
 mod submission;
@@ -65,6 +66,8 @@ struct QueueState {
     play_started: bool,
     started_at: Option<Instant>,
     idle_stop: Option<crate::RunControlRequestId>,
+    // Shared queue allocations/binding drop before their original IMAGE lease.
+    image_admission: Option<image::ImageLiveAdmission>,
 }
 
 impl BodyLiveForeQueue {
@@ -133,6 +136,7 @@ impl BodyLiveForeQueue {
                 play_started: false,
                 started_at: None,
                 idle_stop: None,
+                image_admission: None,
             })),
         })
     }
@@ -209,6 +213,7 @@ impl BodyLiveForeQueue {
                 play_started: false,
                 started_at: None,
                 idle_stop: None,
+                image_admission: None,
             })),
         })
     }
@@ -309,6 +314,7 @@ impl BodyLiveForeQueue {
                 play_started: false,
                 started_at: None,
                 idle_stop: None,
+                image_admission: None,
             })),
         })
     }

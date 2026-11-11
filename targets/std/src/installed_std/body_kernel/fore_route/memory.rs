@@ -27,6 +27,20 @@ impl BodyForeRoute<'_> {
     pub(in crate::installed_std::body_kernel) fn finite_one_shot_backing_bytes(
         &self,
     ) -> Option<usize> {
+        self.finite_validation_supported()?;
+        self.local_one_shot_backing_bytes()
+    }
+    /// Only the private original IMAGE-funded live queue qualifies. The shared
+    /// slots/binding retain their original lease; this receipt owns feeder and
+    /// route/output metadata, not producer codec/control/thread allocations.
+    pub(in crate::installed_std::body_kernel) fn image_live_backing_bytes(&self) -> Option<usize> {
+        if self.started {
+            return None;
+        }
+        self.finite_validation_supported()?;
+        self.local_prepared_backing_bytes(self.inputs.image_live_backing_bytes()?)
+    }
+    fn finite_validation_supported(&self) -> Option<()> {
         use conduit_core::PrimitiveInfoKind as P;
         for port in self
             .ports
@@ -58,20 +72,22 @@ impl BodyForeRoute<'_> {
                 return None;
             }
         }
-        self.local_one_shot_backing_bytes()
+        Some(())
     }
     /// Account actual one-shot ingress/output metadata, including nested value
     /// constraints. Input payload bytes retain their separate caller owner.
     pub(in crate::installed_std::body_kernel) fn local_one_shot_backing_bytes(
         &self,
     ) -> Option<usize> {
+        self.local_prepared_backing_bytes(self.inputs.one_shot_backing_bytes()?)
+    }
+    fn local_prepared_backing_bytes(&self, mut bytes: usize) -> Option<usize> {
         if !self.deliveries.is_empty()
             || self.pending_output.is_some()
             || !self.acknowledged_inputs.is_empty()
         {
             return None;
         }
-        let mut bytes = self.inputs.one_shot_backing_bytes()?;
         for n in [
             self.ports
                 .capacity()

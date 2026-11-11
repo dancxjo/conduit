@@ -10,6 +10,7 @@ use conduit_kernel::scheduler::RemoteIngressOutcome;
 use conduit_kernel::{CordId, RemoteEndpointId};
 use conduit_plan_lowering::lowering::LoweredForePort;
 
+mod live_memory;
 mod memory;
 
 pub(super) const MAX_SEQUENCE_ITEMS: u16 = 64;

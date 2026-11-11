@@ -186,7 +186,9 @@ impl BodyKernel<'_> {
         add(
             &mut bytes,
             if sources == 1 || creches == 1 || measurements == 1 || chart_faces == 1 {
-                self.fore.finite_one_shot_backing_bytes()
+                self.fore
+                    .finite_one_shot_backing_bytes()
+                    .or_else(|| self.fore.image_live_backing_bytes())
             } else {
                 self.fore.tick_backing_bytes()
             }
