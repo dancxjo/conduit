@@ -49,6 +49,7 @@ members = [
 	"mechanisms/io/i2c-transaction",
 	"mechanisms/devices/create-oi",
 	"mechanisms/devices/dht11",
+	"mechanisms/devices/tm1637",
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
 	"mechanisms/implementations/linear-framebuffer-make",

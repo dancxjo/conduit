@@ -159,7 +159,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
- "conduit-tm1637-wire",
+ "conduit-tm1637-protocol",
  "conduit-typed-retention",
  "ed25519-dalek",
  "serde",
@@ -344,12 +344,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-tm1637-wire"
+name = "conduit-tm1637-protocol"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-kernel",
- "conduit-plan-lowering",
  "conduit-plot",
 ]
 

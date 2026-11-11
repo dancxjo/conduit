@@ -2856,6 +2856,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-tm1637-protocol"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "conduit-tm1637-wire",
+]
+
+[[package]]
 name = "conduit-tm1637-wire"
 version = "0.1.0"
 dependencies = [
