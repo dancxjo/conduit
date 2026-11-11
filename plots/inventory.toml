@@ -47,6 +47,12 @@ entry = "experience-episode-loop"
 deterministic = { package = "xtask", test = "experience_episode_loop", case = "pete_situation_evidence_and_episode_recall_reach_one_model_turn", plan_play_evidence = true }
 browser_safe_not_applicable = "the experience episode loop requires an installed model realization"
 [[plots]]
+slug = "pete-cognition-cadenced"
+title = "Cadenced Pete Cognition"
+entry = "pete-cognition"
+deterministic = { package = "xtask", test = "pete_cadence", case = "pete_cadence_runs_three_forms_and_reflects_less_often_than_events", plan_play_evidence = true }
+browser_safe_not_applicable = "the cadence Plot requires a selected hosted frame Back and model effect; causal replay is proved separately"
+[[plots]]
 slug = "pete-cognition-resumable"
 title = "Resumable Pete Cognition"
 entry = "pete-cognition-resumable"

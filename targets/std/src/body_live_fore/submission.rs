@@ -29,7 +29,12 @@ impl BodyLiveForeQueue {
         }
         let mut state = self.state.lock().expect("live Fore queue lock poisoned");
         if self.initial.is_some() && !state.play_started {
-            return Err("seeded live Fore input requires a started Play".into());
+            return Err(if self.fragment_id.is_some() {
+                "seeded live Fore input requires a started Play"
+            } else {
+                "waiting checkpoint command requires a started Body Play"
+            }
+            .into());
         }
         if state.close_requested || state.kernel_closed || state.play_terminal {
             return Err("live Fore input is closed".into());

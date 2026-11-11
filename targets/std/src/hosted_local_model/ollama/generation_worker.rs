@@ -60,6 +60,8 @@ impl Worker {
             .name("conduit-model-effect".into())
             .spawn(move || {
                 while let Ok(mut slot) = requests.recv() {
+                    adapter.next_request_sequence =
+                        adapter.next_request_sequence.max(slot.next_sequence);
                     slot.terminal =
                         adapter.execute(&table[slot.placement], &slot.input, &mut slot.output);
                     slot.next_sequence = adapter.next_request_sequence;
@@ -93,6 +95,7 @@ impl Worker {
         &mut self,
         placement: &PlannedGear,
         input: &[u8],
+        next_sequence: u64,
     ) -> Option<LocalModelAdapterTerminal> {
         if self.cancelled {
             let _ = self.poll(&mut Vec::new());
@@ -111,6 +114,7 @@ impl Worker {
         slot.input.extend_from_slice(input);
         slot.output.clear();
         slot.placement = index;
+        slot.next_sequence = next_sequence;
         self.cancelled = false;
         match self.submit.as_ref().unwrap().try_send(slot) {
             Ok(()) => None,
