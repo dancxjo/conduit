@@ -153,7 +153,7 @@ pub fn decode<'a>(
 }
 /// Decode only descriptive artifact bytes from an accepted physical prefix.
 /// This does NOT verify the separate Root acceptance or authorize execution.
-pub(crate) fn decode_installed<'a>(
+pub fn decode_installed<'a>(
     input: &'a [u8],
     scratch: &mut [u8; PREFIX_BYTES],
 ) -> Result<Artifact<'a>, Refusal> {
