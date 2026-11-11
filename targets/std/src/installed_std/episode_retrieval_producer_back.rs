@@ -191,3 +191,6 @@ fn prepare(
         },
     ))
 }
+
+#[cfg(test)]
+mod tests;
