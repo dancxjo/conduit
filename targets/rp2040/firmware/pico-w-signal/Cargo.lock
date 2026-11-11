@@ -359,6 +359,8 @@ dependencies = [
  "conduit-net",
  "conduit-plot",
  "conduit-text",
+ "conduit-time",
+ "conduit-web",
  "serde",
  "serde-json-core",
  "serde_json",

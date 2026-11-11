@@ -244,6 +244,7 @@ type EpisodeExperienceInput = {
 
 # The producer binds one trigger and its selected experience atomically.
 type EpisodeExperience = {
+    reference: TemporalInstant
     observation: EpisodeObservation
     evidence: ExperienceEvidenceRequest
 }
@@ -284,7 +285,9 @@ type EpisodeMemoryState = {
 }
 
 # One begun episode awaiting its model response. Body and Wake identity come
-# from the typed context; `recalled` is exactly what entered the model request.
+# from the typed context. Recalled records name selected episodes; their evidence
+# is the exact transmitted fragment. Original observation/outcome fields remain
+# audit custody and do not automatically enter the model request.
 type EpisodePending = {
     episode: U64
     body_id: Text <= 256B not in [""]
@@ -340,3 +343,24 @@ type EpisodeRefusal =
     | response_bound_exceeded
     | prompt_bound_exceeded
     | encoding
+
+# The clock class is supplied explicitly by the authored retrieval profile.
+# Its label comes from the atomically sampled TemporalInstant.
+type EpisodeRetrievalClockClass =
+    monotonic_milliseconds
+    | unix_epoch_milliseconds
+
+# Exact canonical packets retained until temporal/context selection resolves.
+# Each embedded packet is checked against its native Type before use; the byte
+# representation preserves the original snapshot rather than a reconstructed one.
+type EpisodeRetrievalCapture = {
+    body_id: Text <= 256B not in [""]
+    clock_class: EpisodeRetrievalClockClass
+    context_policy: Bytes <= 4096B
+    display_name: Text <= 128B not in [""]
+    experience: Bytes <= 131072B
+    intent: Bytes <= 4096B
+    memory: Bytes <= 8192B
+    wake_id: Text <= 256B not in [""]
+    wake_sequence: U64
+}
