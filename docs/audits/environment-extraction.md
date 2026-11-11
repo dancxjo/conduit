@@ -64,6 +64,25 @@ pressure sensing, make Face contribution an admitted Plot, or turn two graph
 renderers into one shared Mask path. Those remain explicit follow-up work;
 existing contribution and preparation tests cannot prove those outcomes.
 
+A subsequent slice extracts the owned canonical selector from
+`runtime::PreparedCaptureSelector` into the shared semantic catalog as
+`PreparedCanonicalSelector`. Its preparation and execution algorithms are
+unchanged: preparation owns the exact selector, validation and bounded output;
+selection distinguishes a matched value, an explicit drop, a refused unmatched
+variant and malformed input. Environmental kernel composition, display planning
+proofs and the Pico proof now import the shared helper directly. There is no
+forwarding export from the Body runtime. A musical control-event test exercises
+the helper without the environmental runtime, including allocation-free
+selection, rejection and output pressure.
+
+The integration branch additionally supports linked/static selector storage.
+That optimization is not present on the inspected `dev`; it must be preserved
+and reconciled into the shared helper when adopting this extraction. Do not
+replace its static preparation with a decoded Type tree or infer that the new
+owned-helper tests qualify that separate path. The std selector realization's
+placement/authority checks and its different prepared-storage policy are outside
+this slice.
+
 ## Authored construction gap
 
 The inspected `make/body/src/construction_source.rs` accepts Body identity and

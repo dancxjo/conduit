@@ -18,13 +18,14 @@ impl conduit_tm1637_wire::OpenDrain for NoPins {
         panic!("planning has no effects")
     }
 }
-use conduit_environment_runtime::{CaptureBack, PreparedCaptureSelector};
+use conduit_environment_runtime::CaptureBack;
+use conduit_semantic_catalog::PreparedCanonicalSelector;
 pub struct Fixture {
     pub host: c::HostAdvertisement,
     pub grant: c::AuthorityGrant,
     _pins: ReadyWriteBase<NoPins>,
     _software: Vec<CaptureBack>,
-    _selectors: Vec<PreparedCaptureSelector>,
+    _selectors: Vec<PreparedCanonicalSelector>,
 }
 pub fn fixture(source: &DisplayOutputSource) -> Fixture {
     let mut host = c::HostAdvertisement {
@@ -64,7 +65,7 @@ pub fn fixture(source: &DisplayOutputSource) -> Fixture {
         };
         if selector {
             selectors.push(
-                PreparedCaptureSelector::prepare(
+                PreparedCanonicalSelector::prepare(
                     c::StructuredSelector::from_canonical_hex(encoded).unwrap(),
                     1024,
                     1024,

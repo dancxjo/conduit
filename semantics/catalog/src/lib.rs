@@ -42,6 +42,8 @@ mod json;
 pub use json::*;
 mod structured_selector;
 pub use structured_selector::*;
+mod prepared_canonical_selector;
+pub use prepared_canonical_selector::PreparedCanonicalSelector;
 mod structured_values;
 pub use structured_values::*;
 mod flow_coalesce_finite;

@@ -24,4 +24,5 @@ conduit-plot = { path = "../../../architecture/plot" }
 serde_json = "1"
 
 [dev-dependencies]
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false }
 conduit-environment-runtime = { path = "../runtime" }

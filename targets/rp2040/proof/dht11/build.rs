@@ -57,6 +57,7 @@ fn prepare_source(out: &std::path::Path) {
         "src/usb_link.rs",
         "src/kernel_probe.rs",
         "src/kernel_preparation.rs",
+        "../../../../semantics/catalog/src/prepared_canonical_selector.rs",
         "src/kernel_execution.rs",
         "src/kernel_back.rs",
         "src/kernel_authority.rs",
