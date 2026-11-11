@@ -1,5 +1,7 @@
 #[path = "../../../targets/std/tests/common_episode_loop/mod.rs"]
 mod common;
+#[path = "../src/commands/pete_replay.rs"]
+mod pete_replay;
 
 use common::{experience_episode_harness, inputs, records, run, terminal, Collector};
 use conduit_core::{ConnectionTrack, PortDirection, TerminalDisposition};
@@ -601,164 +603,24 @@ fn assert_pete_replay(
     harness: &common::Harness,
     report: &conduit_std_host::StdRunReport,
 ) -> conduit_browser_patchbay_workbench::RendererSnapshot {
-    use conduit_kernel::debug_observation::DebugSubject;
-    use conduit_plan_lowering::lowering::lower_plan_fragment;
-    use patchbay_application::{
-        DebuggerTimeline, DebuggerTimelineBinding, PatchbayActivePlot, PatchbayActivePlotState,
-        PatchbayApplicationPort,
-    };
-
-    let kernel = report.kernel.as_ref().unwrap();
-    let history = kernel.debug_history.as_ref().unwrap();
-    assert!(history.gap.is_none(), "{:?}", history.gap);
-    assert_eq!(kernel.active_play.host_id, harness.fragment.host_id);
-    let plan_id = harness.fragment.plan_id.clone();
-    assert_eq!(kernel.identity.plan_id, plan_id);
-    let plot = PatchbayActivePlot::project_authoring(
+    let snapshot = pete_replay::snapshot(
+        &harness.fragment,
         &harness.authoring,
-        "Pete cognition",
-        plan_id.clone(),
-        PatchbayActivePlotState::Playing,
-        true,
+        &common::context(),
+        report,
     )
     .unwrap();
-    let patchbay = PatchbayApplicationPort::open_active(
-        vec![plot],
-        plan_id,
-        Some(kernel.active_play_id.clone()),
-    )
-    .unwrap();
-    let mut snapshot = pete_replay_snapshot(
-        harness,
-        &patchbay,
-        kernel.active_play_id.clone(),
-        report.observations.last().unwrap().sign_id.clone(),
-    );
-    let graph = patchbay.graph();
-    let lowered = lower_plan_fragment(&harness.fragment).unwrap();
-    let identity = &lowered.identity;
-    let gear_for = |placement_id: &conduit_core::PlacementId| {
-        let placement = harness
-            .fragment
-            .placements
-            .iter()
-            .find(|p| &p.placement_id == placement_id)
-            .unwrap();
-        graph
-            .gears
-            .iter()
-            .find(|gear| gear.gear_id == placement.gear_id)
-            .unwrap()
-    };
-    let port_for = |placement, direction, id: &str| {
-        let gear = gear_for(placement);
-        let ports = match direction {
-            PortDirection::Input => &gear.inputs,
-            PortDirection::Output => &gear.outputs,
-        };
-        &ports
-            .iter()
-            .find(|port| port.descriptor.port_id.as_str() == id)
-            .unwrap()
-            .identity
-    };
-    let bind = |runtime_subject, visible_subject: &String| DebuggerTimelineBinding {
-        execution: history.execution,
-        runtime_subject,
-        visible_subject: snapshot
-            .face
-            .properties
-            .iter()
-            .find(|property| {
-                property.name == "semantic-id"
-                    && property.value
-                        == conduit_face::FacePropertyValue::Identity(visible_subject.clone())
-            })
-            .unwrap_or_else(|| panic!("Face is missing {visible_subject}"))
-            .subject
-            .clone(),
-    };
-    let mut bindings = Vec::new();
-    for (node, placement) in &identity.placements {
-        bindings.push(bind(
-            DebugSubject::Gear(*node),
-            &gear_for(placement).identity,
-        ));
-    }
-    for port in &identity.ports {
-        let placement = identity.placement_for_node(port.node).unwrap();
-        bindings.push(bind(
-            match port.direction {
-                PortDirection::Input => DebugSubject::Port {
-                    gear: port.node,
-                    port: port.port,
-                },
-                PortDirection::Output => DebugSubject::OutputPort {
-                    gear: port.node,
-                    port: port.port,
-                },
-            },
-            port_for(placement, port.direction, port.port_id.as_str()),
-        ));
-    }
-    for (cord, connection) in &identity.connections {
-        if identity
-            .fore_endpoints
-            .iter()
-            .any(|endpoint| endpoint.cord == *cord)
-        {
-            continue;
-        }
-        let connection = harness
-            .fragment
-            .connections
-            .iter()
-            .find(|c| &c.connection_id == connection)
-            .unwrap();
-        let source = port_for(
-            &connection.source_placement_id,
-            PortDirection::Output,
-            connection.source_port_id.as_str(),
-        );
-        let sink = port_for(
-            &connection.sink_placement_id,
-            PortDirection::Input,
-            connection.sink_port_id.as_str(),
-        );
-        let graph_cord = graph
-            .cords
-            .iter()
-            .find(|c| &c.source_port == source && &c.sink_port == sink)
-            .unwrap();
-        bindings.push(bind(DebugSubject::Cord(*cord), &graph_cord.identity));
-    }
-    for endpoint in &identity.fore_endpoints {
-        let port = format!(
-            "front/{}/{}",
-            if endpoint.direction == PortDirection::Input {
-                "input"
-            } else {
-                "output"
-            },
-            endpoint.front_port_id.as_str(),
-        );
-        let cord = graph
-            .cords
-            .iter()
-            .find(|cord| cord.source_port == port || cord.sink_port == port)
-            .unwrap();
-        bindings.push(bind(DebugSubject::Cord(endpoint.cord), &cord.identity));
-    }
-    let mut timeline = DebuggerTimeline::new(bindings).unwrap();
-    for record in &history.records {
-        timeline
-            .observe(record)
-            .unwrap_or_else(|error| panic!("{error:?}: {record:?}"));
-    }
-    for cord in &graph.cords {
+    let timeline = snapshot.timeline.as_ref().unwrap();
+    assert!(timeline.gap.is_none());
+    for cord in snapshot
+        .face
+        .subjects
+        .iter()
+        .filter(|subject| subject.role == conduit_face::FaceRole::Cord)
+    {
         assert!(
             timeline.events.iter().any(|event| {
-                event.subject.strip_prefix("cord/") == Some(cord.identity.as_str())
+                event.subject == cord.identity
                     && event
                         .value
                         .as_ref()
@@ -781,7 +643,6 @@ fn assert_pete_replay(
                     .is_some_and(|value| value.total_bytes > 0)
         })
         .unwrap();
-    timeline.trace_upstream(response).unwrap();
     let trace = timeline.trace.as_ref().unwrap();
     assert!(trace.missing_parent_sequences.is_empty());
     let mut steps = trace.steps.iter();
@@ -822,90 +683,8 @@ fn assert_pete_replay(
             .count(),
         2
     );
-    snapshot.attach_timeline(timeline).unwrap();
     let bytes = snapshot.encode().unwrap();
     conduit_browser_patchbay_workbench::RendererSnapshot::decode(&bytes, 1).unwrap();
-    snapshot
-}
-
-fn pete_replay_snapshot(
-    harness: &common::Harness,
-    patchbay: &patchbay_application::PatchbayApplicationPort,
-    active_play_id: conduit_core::ActivePlayId,
-    terminal_sign: conduit_core::SignId,
-) -> conduit_browser_patchbay_workbench::RendererSnapshot {
-    use conduit_browser_patchbay_workbench::RendererSnapshot;
-    use conduit_face::{Face, FaceBasis, FaceProperty, FacePropertyValue, FaceRole, FaceSubject};
-    use conduit_patchbay_workbench::{
-        prepare_renderer_execution, RendererAdapterIdentity, RendererAdapterKind,
-    };
-    use patchbay_application::{graph_face, PatchbayNavigationProjection};
-
-    let context = common::context();
-    let body = format!("body/{}", context.body_id.as_str());
-    let graph = patchbay.graph();
-    let plot = format!("plot/{}", graph.checked_plot_id.as_str());
-    let mut subjects = vec![FaceSubject {
-        identity: body.clone(),
-        role: FaceRole::Body,
-        name: "Pete".into(),
-    }];
-    let mut properties = vec![FaceProperty {
-        subject: plot.clone(),
-        name: "host-id".into(),
-        value: FacePropertyValue::Identity(harness.fragment.host_id.as_str().into()),
-    }];
-    let mut relationships = Vec::new();
-    let mut texts = Vec::new();
-    let mut disclosures = Vec::new();
-    graph_face::append(
-        graph,
-        &body,
-        &mut graph_face::Content {
-            subjects: &mut subjects,
-            relationships: &mut relationships,
-            properties: &mut properties,
-            texts: &mut texts,
-            disclosures: &mut disclosures,
-        },
-    );
-    let face = Face::new_with_semantics(
-        1,
-        FaceBasis {
-            body_id: Some(context.body_id),
-            wake_id: Some(context.wake_id),
-            source_document_id: Some(graph.source_document_id.clone()),
-            checked_plot_id: Some(graph.checked_plot_id.clone()),
-            expanded_plot_id: Some(graph.expanded_plot_id.clone()),
-            plan_id: Some(harness.fragment.plan_id.clone()),
-            active_play_id: Some(active_play_id),
-            sign_ids: vec![terminal_sign],
-        },
-        subjects,
-        relationships,
-        properties,
-        texts,
-        Vec::new(),
-        disclosures,
-    )
-    .unwrap();
-    let mut navigation = PatchbayNavigationProjection::for_embodied(&face).unwrap();
-    navigation.cursor.place = conduit_face::FacePlace::Program;
-    navigation.cursor.aspect = conduit_face::FaceAspect::Signs;
-    navigation.cursor.focus = Some(plot);
-    let execution = prepare_renderer_execution(
-        face,
-        RendererAdapterKind::HtmlDomSvg,
-        RendererAdapterIdentity {
-            host_id: "host/patchbay-pete-replay".into(),
-            boot_id: "boot/patchbay-pete-replay".into(),
-            target_subject: "patchbay/pete-replay".into(),
-        },
-        "sign/patchbay-pete-replay".into(),
-    )
-    .unwrap();
-    let mut snapshot = RendererSnapshot::from_execution(execution).unwrap();
-    snapshot.attach_navigation(navigation).unwrap();
     snapshot
 }
 

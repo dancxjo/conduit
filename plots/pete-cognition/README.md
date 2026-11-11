@@ -81,6 +81,7 @@ Run the same Plot with your own utterances on a std Host:
 
 ```sh
 cargo xtask prove pete std-cognition --retain \
+  --replay-out target/pete-operator-replay.json \
   --utterance 'The hallway switch label is COPPER KITE.' \
   --utterance 'What was the switch label?'
 ```
@@ -89,3 +90,7 @@ This command starts one Body and Wake for the supplied utterances and uses
 the installed loopback Ollama model. Pass `--serial-path /dev/ttyUSB0` to
 capture a Create sample for each utterance. Without a serial path, battery
 state is unknown. Responses are printed as the Play delivers episodes.
+
+Open the optional replay with the Workbench's `--replay-snapshot` argument.
+The replay opens on the final episode's upstream trace and keeps the same
+Body, Wake, Host, Plan, and Play identities as the operator run.

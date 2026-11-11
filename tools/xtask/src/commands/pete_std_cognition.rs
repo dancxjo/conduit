@@ -33,6 +33,9 @@ pub(super) struct StdCognitionArgs {
     /// Retain the supplied utterances for recall within this Play.
     #[arg(long)]
     retain: bool,
+    /// Write a new browser Patchbay replay for the completed Play.
+    #[arg(long)]
+    replay_out: Option<PathBuf>,
 }
 
 const SOURCE: &str = include_str!("../../../../plots/pete-cognition/main.conduit");
@@ -87,9 +90,19 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
         Box::new(model),
         back,
     )?;
-    let fragment = plan(&host)?;
-    let seed = context(&fragment)?;
-    let control = RunControl::default();
+    let (fragment, authoring) = plan(&host)?;
+    let context = context(&fragment)?;
+    let seed = ExternalForeInput {
+        front_port_id: "context".into(),
+        track: ConnectionTrack::Payload,
+        bytes: conduit_chat::encode_body_conversation_context(&context)
+            .map_err(|error| format!("encode Pete context: {error:?}"))?,
+    };
+    let replay_out = args.replay_out;
+    let mut control = RunControl::default();
+    if replay_out.is_some() {
+        control = control.with_debug_body(context.body_id.clone());
+    }
     let queue = BodyLiveForeQueue::for_local_flow_fragment(
         &fragment,
         "frames",
@@ -129,7 +142,7 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
     });
     let mut output = EpisodeOutput(delivered);
     let report = host.run_external_plot_live_to(
-        fragment,
+        fragment.clone(),
         &queue,
         &mut output,
         &mut std::io::stderr(),
@@ -144,12 +157,26 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
     let Some(last) = report.observations.last() else {
         return Err("Pete Play did not report a terminal disposition".into());
     };
-    match &last.kind {
+    if !matches!(
+        &last.kind,
         conduit_core::ObservationKind::PlanTerminal {
             disposition: conduit_core::TerminalDisposition::Completed,
-        } => Ok(()),
-        other => Err(format!("Pete Play ended with {other:?}")),
+        }
+    ) {
+        return Err(format!("Pete Play ended with {:?}", last.kind));
     }
+    if let Some(path) = replay_out {
+        use std::io::Write;
+        let snapshot = super::pete_replay::snapshot(&fragment, &authoring, &context, &report)?;
+        let bytes = snapshot.encode().map_err(|error| error.to_string())?;
+        std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .and_then(|mut file| file.write_all(&bytes))
+            .map_err(|error| format!("write Patchbay replay {}: {error}", path.display()))?;
+    }
+    Ok(())
 }
 
 struct EpisodeOutput(mpsc::Sender<()>);
@@ -227,7 +254,7 @@ fn now() -> Result<NativeTemporalInstant, String> {
     .map_err(|error| format!("capture instant: {error:?}"))
 }
 
-fn context(fragment: &PlanFragment) -> Result<ExternalForeInput, String> {
+fn context(fragment: &PlanFragment) -> Result<BodyConversationContext, String> {
     let body = Body::born(
         fragment.source_document_id.clone(),
         fragment.checked_plot_id.clone(),
@@ -238,7 +265,7 @@ fn context(fragment: &PlanFragment) -> Result<ExternalForeInput, String> {
     let (_, wake) = body
         .wake(2, format!("sign/pete/wake/{}", std::process::id()).into())
         .map_err(|error| format!("wake Pete: {error:?}"))?;
-    let bytes = conduit_chat::encode_body_conversation_context(&BodyConversationContext {
+    Ok(BodyConversationContext {
         schema: "conduit.body/conversation-context-value@2".into(),
         display_name: "Pete".into(),
         body_id: wake.body_id.clone(),
@@ -257,15 +284,9 @@ fn context(fragment: &PlanFragment) -> Result<ExternalForeInput, String> {
         lines: vec![],
         recent_sign_ids: vec![],
     })
-    .map_err(|error| format!("encode Pete context: {error:?}"))?;
-    Ok(ExternalForeInput {
-        front_port_id: "context".into(),
-        track: ConnectionTrack::Payload,
-        bytes,
-    })
 }
 
-fn plan(host: &StdHost) -> Result<PlanFragment, String> {
+fn plan(host: &StdHost) -> Result<(PlanFragment, conduit_plot::ExpandedAuthoringPlot), String> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
@@ -327,5 +348,6 @@ fn plan(host: &StdHost) -> Result<PlanFragment, String> {
     }
     plan.fragments
         .pop()
+        .map(|fragment| (fragment, authoring))
         .ok_or_else(|| "Pete Plan lost its fragment".into())
 }
