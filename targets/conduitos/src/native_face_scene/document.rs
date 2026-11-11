@@ -22,7 +22,7 @@ pub(super) struct Item {
     pub icon: Option<conduit_face::FaceIconKey>,
 }
 
-fn item(text: String, role: GraphicsTextRole) -> Item {
+pub(super) fn item(text: String, role: GraphicsTextRole) -> Item {
     Item {
         text,
         part: layout::NativePart::Content,
@@ -272,6 +272,17 @@ pub(super) fn prepare(
                 ));
             }
         }
+        let chart = super::measurement_chart::item(
+            face,
+            face.subjects
+                .iter()
+                .position(|candidate| candidate.identity == subject.identity)
+                .ok_or(FaceSceneError::InvalidFace)?,
+        )?;
+        let has_chart = chart.is_some();
+        if let Some(chart) = chart {
+            append(chart);
+        }
         // Typed values are portable human content, unlike technical properties.
         // Use the canonical formatter; no domain names, unit inference or local
         // sensor cache belongs here. Exactly associated editable current values
@@ -282,6 +293,9 @@ pub(super) fn prepare(
                     && subject.role == FaceRole::TextEntry
                     && property.name == "current-value")
         }) {
+            if has_chart && super::measurement_chart::is_series(property) {
+                continue;
+            }
             if let FacePropertyValue::TypedValue { contract, bytes } = &property.value {
                 let value = conduit_face::display_typed_value(contract, bytes);
                 if subject.role == FaceRole::Info {

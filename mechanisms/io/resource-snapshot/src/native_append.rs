@@ -4,6 +4,7 @@
 mod assigned;
 #[path = "native_append/installation.rs"]
 mod installation;
+pub mod service_back;
 use crate::{append::*, nor::NorStorage};
 pub use assigned::PreparedAssignedAppender;
 use conduit_core as c;
@@ -21,7 +22,7 @@ pub const APPEND_MECHANISM: &str = "resource/nor-record-residence";
 pub const APPEND_CLASS: &str = "machine/nor-record-residence@1";
 pub use crate::append_result::APPEND_RESULT_BYTES;
 #[path = "native_append/result.rs"]
-mod result;
+pub(crate) mod result;
 pub use result::{AppendOutcome, APPEND_ENCODER_MAXIMUM_BACKING_BYTES};
 
 #[derive(Debug, PartialEq, Eq)]

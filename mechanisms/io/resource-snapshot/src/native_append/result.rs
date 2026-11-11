@@ -17,7 +17,7 @@ const UNIT_VALUE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/append-unit.
 /// A future larger Core layout refuses preparation rather than enlarging this.
 pub const APPEND_ENCODER_MAXIMUM_BACKING_BYTES: usize =
     APPEND_RESULT_BYTES as usize * 2 + crate::append_result::APPEND_INDEX_BYTES;
-pub(super) struct Encoder {
+pub(crate) struct Encoder {
     result: PreparedStructuredComposer,
     index: PreparedStructuredComposer,
 }

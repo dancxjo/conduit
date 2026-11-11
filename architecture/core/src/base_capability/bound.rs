@@ -32,6 +32,18 @@ pub struct BoundBaseOperation {
     work_units: u64,
 }
 impl BoundBaseOperation {
+    /// Exact parameter charge retained by this bound claim, which may be
+    /// narrower than its authority scope. Observation grants no extra bytes.
+    pub const fn bound_parameter_bytes(&self) -> u32 {
+        self.parameter_bytes
+    }
+
+    /// Exact per-operation work charge retained by this bound claim, not its
+    /// scope's larger ceiling. Observation neither reserves nor resets work.
+    pub const fn bound_work_units(&self) -> u64 {
+        self.work_units
+    }
+
     /// Owned heap payload of the retained table, excluding inline Self and
     /// allocator overhead. Observation neither authorizes nor retires work.
     pub fn retained_backing_bytes(&self) -> Option<usize> {

@@ -157,11 +157,28 @@ impl NativeFaceScene {
             focus_marked |= focused;
             super::boolean_choice::append(&mut scene, row, self.screen)?;
             super::semantic_icons::append(&mut scene, row, self.screen)?;
-            push(
-                &mut scene,
-                GraphicsCommand::text(row.text_bounds(), self.screen, row.text_paint(), &row.text)
+            if let Some(subject) = row.chart_subject {
+                super::measurement_chart::append(
+                    &mut scene,
+                    &self.face,
+                    subject,
+                    row.text_bounds(),
+                    self.screen,
+                    self.text_scale_percent,
+                    self.typography,
+                )?;
+            } else {
+                push(
+                    &mut scene,
+                    GraphicsCommand::text(
+                        row.text_bounds(),
+                        self.screen,
+                        row.text_paint(),
+                        &row.text,
+                    )
                     .and_then(|command| command.with_text_role(row.role)),
-            )?;
+                )?;
+            }
             if available {
                 let control = row.control.ok_or(FaceSceneError::UnknownControl)?;
                 let action = &self.face.actions[control.action];

@@ -21,9 +21,13 @@ pub(crate) fn append(
         bytes.push(0);
         return Ok(());
     };
-    let [authority] = context.authority.as_slice() else {
+    let authority = selected_authority(&context.authority, call).ok_or_else(unsupported)?;
+    if authority.host_id.as_str() != plan.host_id
+        || authority.boot_id.as_str() != plan.boot_id
+        || authority.capability_id.as_str() != context.capability_id
+    {
         return Err(unsupported());
-    };
+    }
     let [resource] = context.resources.as_slice() else {
         return Err(unsupported());
     };
@@ -74,3 +78,22 @@ pub(crate) fn append(
 fn identity(text: &str) -> AssignedIdentity {
     AssignedIdentity::from_text(text)
 }
+
+/// Select the original authority for this call, not an arbitrary node grant.
+/// This serializes checked facts only; it does not issue or retain a bearer.
+fn selected_authority<'a>(
+    authorities: &'a [conduit_core::AuthorityBinding],
+    call: &GeneratedHostCall,
+) -> Option<&'a conduit_core::AuthorityBinding> {
+    let target = call.target_kind.as_deref()?;
+    let mut matches = authorities.iter().filter(|authority| {
+        authority.host_call_contract_id.as_str() == call.contract_id
+            && authority.subject_kind.as_str() == target
+    });
+    let authority = matches.next()?;
+    matches.next().is_none().then_some(authority)
+}
+
+#[cfg(test)]
+#[path = "assigned_native/tests.rs"]
+mod tests;
