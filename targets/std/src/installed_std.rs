@@ -29,6 +29,8 @@ mod deadline_host;
 mod distance_frequency_back;
 mod episode_loop_back;
 mod episode_memory_back;
+mod experience_autobiography_back;
+mod experience_autobiography_recall_back;
 mod experience_evidence_back;
 #[cfg(test)]
 mod experience_evidence_back_tests;
@@ -106,8 +108,10 @@ mod preparation;
 mod prepared_host_calls;
 #[cfg(all(test, unix))]
 mod streaming_speech_tests;
+#[cfg(test)]
+pub(super) use preparation::state_storage_profile;
 pub(super) use preparation::{
-    lower_fragment_with_continuity, state_storage_profile, validate_retained_inputs,
+    lower_fragment_with_continuity, state_storage_profile_for_fragments, validate_retained_inputs,
 };
 mod lifecycle;
 mod retained_run;

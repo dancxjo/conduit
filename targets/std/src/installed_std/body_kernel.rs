@@ -20,7 +20,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::{
     activation_fragment::{lower_fragment_activations, LoweredFragmentActivations},
     fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds},
-    lowering::{KernelIdentityMap, LoweredHostCall, FIXED_KERNEL_STORAGE_PROFILE},
+    lowering::{KernelIdentityMap, LoweredHostCall},
 };
 use std::io::Write;
 
@@ -34,6 +34,7 @@ mod parsec_acknowledged_map;
 mod parsec_sources;
 mod parsec_terminal_owner;
 mod scalar_math;
+mod state_route;
 pub(crate) use parsec_terminal_owner::QualifiedParsecInstruction;
 mod each_route;
 mod scan_route;
@@ -314,7 +315,7 @@ impl<'a> BodyKernel<'a> {
             .collect::<Vec<_>>();
         let lowered = lower_local_fragment_set_from_plans(
             &plans,
-            FIXED_KERNEL_STORAGE_PROFILE,
+            preparation::state_storage_profile_for_fragments(&fragments)?,
             FragmentSetBounds {
                 fragments: conduit_body::MAX_BODY_PLOTS as u16,
                 nodes: MAX_NODES as u16,
@@ -369,7 +370,11 @@ impl<'a> BodyKernel<'a> {
         for (partition_index, fragment) in fragments.iter().enumerate() {
             for placement in &fragment.placements {
                 let ordinary;
-                let budget = if let Some(scan) = scans.iter().find(|scan| {
+                let state_budget =
+                    state_route::budget(placement, &lowered.partitions[partition_index])?;
+                let budget = if let Some(state) = state_budget.as_ref() {
+                    state
+                } else if let Some(scan) = scans.iter().find(|scan| {
                     scan.partition == partition_index && scan.owner == placement.placement_id
                 }) {
                     &scan.budget
@@ -419,30 +424,32 @@ impl<'a> BodyKernel<'a> {
             fragments.iter().zip(&lowered.partitions).enumerate()
         {
             for node in &part.nodes {
-                drivers[usize::from(node.node.0)] = if let Some(scan) =
-                    scans.iter_mut().find(|scan| {
+                drivers[usize::from(node.node.0)] =
+                    if let Some(state) = state_route::prepare(fragment, part, node)? {
+                        state
+                    } else if let Some(scan) = scans.iter_mut().find(|scan| {
                         scan.partition == partition_index && scan.owner == node.placement_id
                     }) {
-                    InstalledBack::BodyScan(Box::new(
-                        scan.back
-                            .take()
-                            .ok_or("installed scan owner was prepared twice")?,
-                    ))
-                } else if let Some(each) = each.iter_mut().find(|each| {
-                    each.partition == partition_index && each.owner == node.placement_id
-                }) {
-                    InstalledBack::BodyEach(Box::new(
-                        each.back
-                            .take()
-                            .ok_or("installed Each owner was prepared twice")?,
-                    ))
-                } else {
-                    preparation::prepare_ordinary_operation(
-                        fragment,
-                        &node.placement_id,
-                        &mut values,
-                    )?
-                };
+                        InstalledBack::BodyScan(Box::new(
+                            scan.back
+                                .take()
+                                .ok_or("installed scan owner was prepared twice")?,
+                        ))
+                    } else if let Some(each) = each.iter_mut().find(|each| {
+                        each.partition == partition_index && each.owner == node.placement_id
+                    }) {
+                        InstalledBack::BodyEach(Box::new(
+                            each.back
+                                .take()
+                                .ok_or("installed Each owner was prepared twice")?,
+                        ))
+                    } else {
+                        preparation::prepare_ordinary_operation(
+                            fragment,
+                            &node.placement_id,
+                            &mut values,
+                        )?
+                    };
             }
         }
         if each.iter().any(|each| each.back.is_some()) {
@@ -1589,3 +1596,6 @@ mod parsec_instruction_source_tests;
 
 #[cfg(test)]
 mod model_route_tests;
+
+#[cfg(test)]
+mod autobiography_tests;

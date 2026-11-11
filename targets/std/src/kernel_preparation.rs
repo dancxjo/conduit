@@ -6,7 +6,7 @@
 mod exact_profile;
 use exact_profile::validate_exact_profile;
 
-use crate::installed_std::state_storage_profile;
+use crate::installed_std::state_storage_profile_for_fragments;
 use conduit_core::{
     resource_binding_satisfies, HostAdvertisement, Plan, PlanFragment, PlanId, ResourceBinding,
     ResourceHealth, ResourceObservation, SignId, PROTOCOL_VERSION,
@@ -196,7 +196,7 @@ impl KernelResourceLedger {
         fragment: &PlanFragment,
         continuity: bool,
     ) -> Result<KernelResourceReservation, String> {
-        let mut profile = state_storage_profile();
+        let mut profile = state_storage_profile_for_fragments(&[fragment])?;
         if continuity {
             profile = profile.with_owned_state_continuity();
         }
@@ -212,7 +212,7 @@ impl KernelResourceLedger {
         fragment: &PlanFragment,
         continuity: bool,
     ) -> Result<KernelResourceReservation, String> {
-        let mut profile = state_storage_profile();
+        let mut profile = state_storage_profile_for_fragments(&[fragment])?;
         if continuity {
             profile = profile.with_owned_state_continuity();
         }

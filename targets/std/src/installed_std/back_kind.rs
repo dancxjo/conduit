@@ -116,6 +116,7 @@ pub(super) enum InstalledBack {
     SpeechWindowToClip(SpeechWindowToClipBack),
     SpeechResultToEventStream(SpeechResultToEventStreamBack),
     TypedState(Box<crate::state_value::TypedStateBack>),
+    LargeTypedState(Box<crate::state_value::LargeTypedStateBack>),
     DurableState(Box<crate::state_value::InstalledDurableStateBack>),
     KeyboardInput(KeyboardInputBack),
     ButtonInput(super::keyboard_input_back::button::ButtonBack),
@@ -173,6 +174,10 @@ pub(super) enum InstalledBack {
     InstrumentMap(InstrumentMapBack),
     RhythmCompare(RhythmCompareBack),
     PatternComparison(PatternComparisonBack),
+    ExperienceAutobiographyRecall(
+        super::experience_autobiography_recall_back::ExperienceAutobiographyRecallBack,
+    ),
+    ExperienceAutobiography(super::experience_autobiography_back::ExperienceAutobiographyBack),
     ExperiencePrompt(super::experience_prompt_back::ExperiencePromptBack),
     ExperienceIntegration(super::experience_integration_back::ExperienceIntegrationBack),
     ExperienceEvidence(super::experience_evidence_back::ExperienceEvidenceBack),

@@ -56,7 +56,9 @@ mod generated {
 }
 pub use generated::{
     ChordInfo, ChordPhase, ChordPhaseForm, ControlChordModifier, CoreChordId, CoreChordIdForm,
-    CurrentExperienceInspectionError, CurrentExperienceProjection, ExperienceAvailability,
+    CurrentExperienceInspectionError, CurrentExperienceProjection, ExperienceAutobiographyEvent,
+    ExperienceAutobiographyPending, ExperienceAutobiographyRecord, ExperienceAutobiographyRecords,
+    ExperienceAutobiographyResponse, ExperienceAutobiographyState, ExperienceAvailability,
     ExperienceBodyInput, ExperienceCertainty, ExperienceDomain, ExperienceEvidenceContent,
     ExperienceEvidenceContext, ExperienceEvidenceIdentities, ExperienceEvidenceIdentity,
     ExperienceEvidenceItem, ExperienceEvidenceItems, ExperienceEvidenceRefusal,

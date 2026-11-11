@@ -117,7 +117,13 @@ impl<'a> BodyForeRoute<'a> {
             .iter()
             .filter(|port| port.direction == PortDirection::Output)
         {
+            // A Current boundary can publish its initialized snapshot before
+            // any supplied event, then one updated snapshot for each event.
             let count = usize::from(port.item_capacity.max(inputs.input_items()))
+                .checked_add(usize::from(
+                    port.temporal == conduit_core::PortTemporal::Current,
+                ))
+                .ok_or("Body Fore initialized Current capacity overflow")?
                 .checked_add(live.map_or(0, BodyLiveForeQueue::initial_document_outputs))
                 .ok_or("Body Fore initial document delivery capacity overflow")?;
             delivery_capacity = delivery_capacity

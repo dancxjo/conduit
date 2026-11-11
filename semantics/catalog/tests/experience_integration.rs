@@ -231,3 +231,22 @@ fn ordinary_contract_has_closing_flows_and_no_authority() {
     assert_eq!(contract.inputs.len(), 1);
     assert_eq!(contract.outputs.len(), 1);
 }
+
+#[test]
+fn full_snapshot_replaces_prior_items_as_one_committed_revision() {
+    let mut integration = BoundedExperienceIntegration::prepare();
+    integration.execute(&upsert(0, observation("old"))).unwrap();
+    integration.commit();
+    let current = observation("current");
+    let replace = update(
+        1,
+        ExperienceIntegrationOperation::replace_snapshot(items(vec![current.clone()])).unwrap(),
+    );
+    let request = decode(integration.execute(&replace).unwrap());
+    assert_eq!(*request.selection().revision(), 2);
+    assert_eq!(request.evidence().get().len(), 1);
+    assert_eq!(request.evidence().get()[0].identity(), current.identity());
+    assert_eq!(integration.revision(), 1);
+    integration.commit();
+    assert_eq!(integration.revision(), 2);
+}

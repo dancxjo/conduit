@@ -336,11 +336,38 @@ type ExperienceEvidenceContext = {
 type ExperienceIntegrationOperation =
     upsert ExperienceEvidenceItem
     | remove ExperienceEvidenceIdentity
+    | replace_snapshot ExperienceEvidenceItems
 
 type ExperienceIntegrationUpdate = {
     expected_revision: U64
     provenance_revision: ExperienceEvidenceIdentity
     operation: ExperienceIntegrationOperation
+}
+
+# Explicit finite autobiography. Original epistemic classes and source nodes
+# remain nested in observation; actual model envelopes have a distinct origin.
+type ExperienceAutobiographyResponse =
+    model_derived Bytes <= 8192B
+type ExperienceAutobiographyRecord = {
+    episode: U64
+    observation: ExperienceEvidenceRequest
+    response: ExperienceAutobiographyResponse
+}
+type ExperienceAutobiographyRecords = sequence ExperienceAutobiographyRecord <= 2
+type ExperienceAutobiographyState = {
+    completed: U64
+    records: ExperienceAutobiographyRecords
+}
+# Retention selection is typed input, never instructions inside evidence.
+type ExperienceAutobiographyEvent = {
+    observation: ExperienceEvidenceRequest
+    retain: Boolean
+}
+type ExperienceAutobiographyPending = {
+    expected_completed: U64
+    observation: ExperienceEvidenceRequest
+    previous: ExperienceAutobiographyState
+    retain: Boolean
 }
 
 type ExperienceEvidenceRefusal =

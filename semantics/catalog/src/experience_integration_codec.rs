@@ -93,46 +93,62 @@ impl BoundedExperienceIntegration {
         let remove = operation
             .variant_payload("remove")
             .map_err(|_| R::Malformed)?;
-        let id = match (upsert, remove) {
-            (Some(item), None) => field(item, "identity")?,
-            (None, Some(id)) => id,
-            _ => return Err(R::Malformed),
-        };
+        let snapshot = operation
+            .variant_payload("replace_snapshot")
+            .map_err(|_| R::Malformed)?;
         let mut items = [None; MAX_ITEMS];
         let mut count = 0;
-        let mut matched = false;
-        if !self.current.is_empty() {
-            let current =
-                validate_canonical_structured_value(&self.current).map_err(|_| R::Malformed)?;
-            let evidence = field(current, "evidence")?;
-            for index in 0..MAX_ITEMS {
-                let Some(item) = evidence
+        if let Some(snapshot) = snapshot {
+            for (index, slot) in items.iter_mut().enumerate() {
+                let Some(item) = snapshot
                     .collection_index(index as u16)
                     .map_err(|_| R::Malformed)?
                 else {
                     break;
                 };
-                if field(item, "identity")?.value_node() == id.value_node() {
-                    matched = true;
-                    if let Some(replacement) = upsert {
-                        items[count] = Some(replacement);
+                *slot = Some(item);
+                count += 1;
+            }
+        } else {
+            let id = match (upsert, remove) {
+                (Some(item), None) => field(item, "identity")?,
+                (None, Some(id)) => id,
+                _ => return Err(R::Malformed),
+            };
+            let mut matched = false;
+            if !self.current.is_empty() {
+                let current =
+                    validate_canonical_structured_value(&self.current).map_err(|_| R::Malformed)?;
+                let evidence = field(current, "evidence")?;
+                for index in 0..MAX_ITEMS {
+                    let Some(item) = evidence
+                        .collection_index(index as u16)
+                        .map_err(|_| R::Malformed)?
+                    else {
+                        break;
+                    };
+                    if field(item, "identity")?.value_node() == id.value_node() {
+                        matched = true;
+                        if let Some(replacement) = upsert {
+                            items[count] = Some(replacement);
+                            count += 1;
+                        }
+                    } else {
+                        items[count] = Some(item);
                         count += 1;
                     }
-                } else {
-                    items[count] = Some(item);
-                    count += 1;
                 }
             }
-        }
-        if !matched {
-            let Some(item) = upsert else {
-                return Err(R::UnknownIdentity);
-            };
-            if count == MAX_ITEMS {
-                return Err(R::ItemBound);
+            if !matched {
+                let Some(item) = upsert else {
+                    return Err(R::UnknownIdentity);
+                };
+                if count == MAX_ITEMS {
+                    return Err(R::ItemBound);
+                }
+                items[count] = Some(item);
+                count += 1;
             }
-            items[count] = Some(item);
-            count += 1;
         }
         // All writes are checked against prepared capacity; no growth in Play.
         put(&mut self.pending, &self.request_type)?;
