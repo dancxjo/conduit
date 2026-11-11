@@ -227,6 +227,7 @@ dependencies = [
  "portable-atomic-util",
  "postcard",
  "serde",
+ "serde-json-core",
  "serde_json",
  "sha2",
 ]
