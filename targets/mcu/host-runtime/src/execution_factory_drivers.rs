@@ -195,13 +195,22 @@ where
     fn terminal_transductions(
         &self,
     ) -> Option<[[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; PORTS]; N]> {
-        // Arbitrary generated resident owners have no inspection entrance yet.
-        // Software/native/write variants use StepBack's empty contract.
-        if self.residents.nodes().iter().any(Option::is_some) {
-            return None;
+        let nodes = self.residents.nodes();
+        let mut actual = [[None; PORTS]; N];
+        if nodes.iter().all(Option::is_none) {
+            return Some(actual);
         }
-        Some([[None; PORTS]; N])
+        let reports = self.residents.terminal_transductions::<PORTS>()?;
+        for (node, report) in nodes.into_iter().zip(reports) {
+            match (node, report) {
+                (Some(node), Some(report)) => *actual.get_mut(usize::from(node))? = report,
+                (None, None) => {}
+                _ => return None,
+            }
+        }
+        Some(actual)
     }
+
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }

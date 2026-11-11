@@ -48,6 +48,12 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
             "loan_{index}.map(|(node,back)|(node,BorrowedBack::Entry{index}(back))),\n"
         ));
     }
+    code.push_str("]}\npub fn terminal_transductions<const P:usize>(&self)->[Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;P]>;");
+    code.push_str(&entries.to_string());
+    code.push_str("]{[\n");
+    for index in 0..entries {
+        code.push_str(&format!("self.nodes[{index}].map(|_|self.owner.entry_{index}.as_ref().expect(\"exclusively preflighted resident owner\").terminal_transductions::<P>()),\n"));
+    }
     code.push_str("]}\npub fn split(self)->[Option<PreparedResidentEntryLoan<'a>>;");
     code.push_str(&entries.to_string());
     code.push_str("]{let Self{owner,nodes}=self;[\n");
@@ -77,6 +83,10 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
             "PreparedResidentEntryInner::Entry{index}{{node,..}}=>*node,\n"
         ));
     }
+    code.push_str("}}\npub fn terminal_transductions<const P:usize>(&self)->[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;P]{match &self.inner{\n");
+    for index in 0..entries {
+        code.push_str(&format!("PreparedResidentEntryInner::Entry{index}{{owner,..}}=>owner.terminal_transductions::<P>(),\n"));
+    }
     code.push_str("}}\npub fn bind(self)->(u16,BorrowedBack<'a>){match self.inner{\n");
     for index in 0..entries {
         code.push_str(&format!("PreparedResidentEntryInner::Entry{index}{{node,owner}}=>(node,BorrowedBack::Entry{index}(owner.borrow_prechecked())),\n"));
@@ -101,6 +111,7 @@ pub(crate) fn append_back(code: &mut String, entries: usize) {
         "}}}\nimpl<const P:usize>conduit_kernel::scheduler::StepBack<P> for BorrowedBack<'_>{\n",
     );
     for (signature, body) in [
+        ("fn terminal_transductions(&self)->[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;P]", "conduit_kernel::scheduler::StepBack::<P>::terminal_transductions(back)"),
         ("fn step(&mut self,io:&mut conduit_kernel::scheduler::StepIo<P>,input:&conduit_kernel::scheduler::StepInputBytes<'_,P>)->conduit_kernel::scheduler::StepOutcome", "conduit_kernel::scheduler::StepBack::step(back,io,input)"),
         ("fn prepared_output(&self,port:conduit_kernel::PortId)->Option<&[u8]>", "conduit_kernel::scheduler::StepBack::<P>::prepared_output(back,port)"),
         ("fn step_committed(&mut self)", "conduit_kernel::scheduler::StepBack::<P>::step_committed(back)"),

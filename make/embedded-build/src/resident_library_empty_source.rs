@@ -99,6 +99,11 @@ pub struct PreparedResidentLoans<'a> {
     _owner: &'a mut Initialized,
 }
 impl<'a> PreparedResidentLoans<'a> {
+    pub fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> [Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]>; 0] {
+        []
+    }
     pub fn nodes(&self) -> [Option<u16>; 0] {
         []
     }
@@ -143,6 +148,11 @@ pub struct PreparedResidentEntryLoan<'a> {
     _loan: core::marker::PhantomData<&'a mut Initialized>,
 }
 impl<'a> PreparedResidentEntryLoan<'a> {
+    pub fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P] {
+        match self.never {}
+    }
     pub fn node(&self) -> u16 {
         match self.never {}
     }

@@ -50,6 +50,7 @@ impl<R: StepBack<P>, X: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, 
         &self,
     ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P] {
         match self {
+            Self::Resident(back) => back.terminal_transductions(),
             Self::Extra(back) => back.terminal_transductions(),
             _ => [None; P],
         }
@@ -96,9 +97,20 @@ impl<R: StepBack<P>, X: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, 
 /// # Safety
 /// `nodes` must describe exactly the initialized, exclusively borrowed owners
 /// returned by `bind`; binding must be infallible and allocate no memory.
+/// A Some terminal report must match the same selected slots and bound Back
+/// reports exactly, remaining immutable through bind.
 pub unsafe trait PreparedResidents<const E: usize> {
     type Back;
     fn nodes(&self) -> [Option<u16>; E];
+    /// Same selected slots and actual Back profiles returned by bind. Inspection
+    /// changes no availability; None means this inventory cannot be inspected.
+    fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> Option<[Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]>; E]>
+    {
+        None
+    }
+
     fn retained_backing_bytes(&self) -> Option<usize>;
     fn bind(self) -> [Option<(u16, Self::Back)>; E];
 }
@@ -434,9 +446,19 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
 /// # Safety
 /// `node` and `bind` must refer to the same original checked loan; bind is
 /// allocation/effect-free, and dropping an unbound loan preserves availability.
+/// A Some terminal report must exactly match that bound Back and remain
+/// immutable through bind; inspection must not change availability.
 pub unsafe trait PreparedResidentEntry {
     type Back;
     fn node(&self) -> u16;
+    /// A truthful immutable report of this exact loan's bound Back, without
+    /// transferring it or changing its initialized owner's availability.
+    fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]> {
+        None
+    }
+
     fn retained_backing_bytes(&self) -> Option<usize>;
     fn bind(self) -> (u16, Self::Back);
 }
@@ -451,6 +473,18 @@ unsafe impl<L: PreparedResidentEntry, const E: usize> PreparedResidents<E>
     type Back = L::Back;
     fn nodes(&self) -> [Option<u16>; E] {
         core::array::from_fn(|i| self.0[i].as_ref().map(L::node))
+    }
+    fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> Option<[Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]>; E]>
+    {
+        let mut reports = [None; E];
+        for (slot, loan) in reports.iter_mut().zip(&self.0) {
+            if let Some(loan) = loan {
+                *slot = Some(loan.terminal_transductions::<P>()?);
+            }
+        }
+        Some(reports)
     }
     fn retained_backing_bytes(&self) -> Option<usize> {
         self.0

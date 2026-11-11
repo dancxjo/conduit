@@ -189,13 +189,74 @@ fn assigned_factory_refusals_preserve_ready_and_charge_all_retained_backing() {
 }
 #[test]
 fn original_signed_start_binds_actual_service_once_without_allocation_or_media_effect() {
-    check_signed_start::<2>(true, false, false);
-    check_signed_start::<1>(false, false, false);
-    check_signed_start::<2>(false, true, false);
-    check_signed_start::<2>(false, false, true);
+    check_signed_start::<2>(true, None, false);
+    check_signed_start::<1>(false, None, false);
+    check_signed_start::<2>(false, Some(0), false);
+    check_signed_start::<2>(false, Some(1), false);
+    check_signed_start::<2>(false, None, true);
 }
-fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, legacy: bool) {
-    let f = Fixture::new();
+// A terminal-bearing initialized resident owner, independent of expected Plan
+// data. Production expression residents currently support only empty laws.
+struct TerminalResident;
+impl<const P: usize> StepBack<P> for TerminalResident {
+    fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; P] {
+        core::array::from_fn(|port| {
+            (port < 2).then_some(AssignedTerminalTransduction {
+                input: PortId(port as u16),
+                output: PortId(port as u16),
+                normal_close: AssignedNormalCloseTransduction::FlushThenPropagateWhenAllClose(
+                    AssignedFiniteTerminalEmission {
+                        maximum_items: 2,
+                        maximum_bytes: conduit_resource_snapshot::append_result::APPEND_RESULT_BYTES
+                            + READ_RESULT_BYTES as u32,
+                    },
+                ),
+                abnormal: AssignedAbnormalTransduction::NotAccepted,
+                cancellation: AssignedCancellationTransduction::NotCancellable,
+            })
+        })
+    }
+    fn step(&mut self, _: &mut StepIo<P>, _: &StepInputBytes<'_, P>) -> StepOutcome {
+        StepOutcome::Await
+    }
+}
+struct ResidentLoan<'a>(&'a mut Option<TerminalResident>);
+// SAFETY: exclusively borrowed actual owner, exact node/report, inline state;
+// inspection and drop do not withdraw it; bind transfers that same owner once.
+unsafe impl conduit_mcu_host_runtime::execution_factory::PreparedResidentEntry
+    for ResidentLoan<'_>
+{
+    type Back = TerminalResident;
+    fn node(&self) -> u16 {
+        1
+    }
+    fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> Option<[Option<AssignedTerminalTransduction>; P]> {
+        Some(self.0.as_ref()?.terminal_transductions())
+    }
+    fn retained_backing_bytes(&self) -> Option<usize> {
+        Some(0)
+    }
+    fn bind(self) -> (u16, Self::Back) {
+        (1, self.0.take().unwrap())
+    }
+}
+fn check_signed_start<const HOST_CALLS: usize>(
+    can_start: bool,
+    mismatch: Option<usize>,
+    legacy: bool,
+) {
+    let mut f = Fixture::new();
+    let mut resident = f.fragment.placements[0].clone();
+    resident.placement_id = "terminal-resident".into();
+    resident.kind_id = "test/terminal-resident".into();
+    resident.host_calls.clear();
+    resident.resources.clear();
+    resident.authority.clear();
+    resident.base = None;
+    f.fragment.startup_order.push(resident.placement_id.clone());
+    f.fragment.placements.push(resident);
     let storage = fixture::Storage::new();
     let plot = c::seal_plan(
         c::PlotIdentity {
@@ -205,11 +266,12 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, 
         },
         vec![f.fragment.clone()],
     );
+    f.fragment = plot.fragments[0].clone();
     let generated = conduit_embedded_build::generate_fore_native_plan(
         &plot,
         &f.fragment.fragment_id,
         conduit_embedded_build::EmbeddedImageBounds {
-            maximum_nodes: 1,
+            maximum_nodes: 2,
             maximum_cords: 0,
             maximum_routes: 4,
             maximum_route_targets: 4,
@@ -373,7 +435,9 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, 
         counts: view.counts,
     };
     let mut slot = Some(ready(&f, storage.clone()));
-    let mut software = unsafe { SoftwareInventory::new([None], [None], 0, &[]) }.unwrap();
+    let mut resident_ready = Some(TerminalResident);
+    let mut software =
+        unsafe { SoftwareInventory::new([None, None], [None, None], 0, &[]) }.unwrap();
     let prepared_result = PreparedLocalWorkset::<_, 1>::prepare::<16384, 2, _>(
         &input,
         context,
@@ -386,16 +450,15 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, 
                 approved[0].projection(),
                 AssignedPlayScope::Delegated(&approved[0]),
             );
-            let selected = unsafe { software.prepare([false]) }.unwrap();
+            let selected = unsafe { software.prepare([false, false]) }.unwrap();
             // SAFETY: retained only in this original workset; its complete resource
             // admission and authenticated Start below gate sole owner withdrawal.
             let backs = unsafe {
                 PreparedDrivers::with_record_service::<_, 2, READ_RESULT_BYTES>(
-                    super::super::native_factory_appender::Residents::<0> {
-                        nodes: [],
-                        backing: 0,
-                    },
-                    [],
+                    conduit_mcu_host_runtime::execution_factory::PreparedResidentSubset([Some(
+                        ResidentLoan(&mut resident_ready),
+                    )]),
+                    [Some(1)],
                     selected,
                     native(),
                     ticket,
@@ -404,7 +467,7 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, 
             .unwrap();
             let expected = core::array::from_fn(|node| {
                 core::array::from_fn(|port| {
-                    if mismatch {
+                    if mismatch == Some(node) {
                         None
                     } else {
                         generated.kernel().nodes[node].terminal_transductions[port]
@@ -412,7 +475,7 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, 
                 })
             });
             if legacy {
-                return PreparedFragment::<_, 1, 1, 2, 4, 4, HOST_CALLS, 64>::prepare(
+                return PreparedFragment::<_, 2, 1, 2, 4, 4, HOST_CALLS, 64>::prepare(
                     &approved[0],
                     profile(),
                     &[],
@@ -424,7 +487,7 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, 
                     || Ok::<_, ()>(backs),
                 );
             }
-            PreparedFragment::<_, 1, 1, 2, 4, 4, HOST_CALLS, 64>::prepare_with_terminal_transductions(
+            PreparedFragment::<_, 2, 1, 2, 4, 4, HOST_CALLS, 64>::prepare_with_terminal_transductions(
                 &approved[0],
                 profile(),
                 &[],
@@ -455,7 +518,7 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, 
                             conduit_kernel::scheduler::SchedulerError::InvalidPlan,
                         ),
                     ),
-                ) => assert!(mismatch),
+                ) => assert!(mismatch.is_some()),
                 other => panic!("unexpected refusal: {other:?}"),
             }
         })
@@ -468,6 +531,10 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, 
             "underfunded actual call table leaves Ready intact"
         );
         assert_eq!(storage.programs.get(), 0);
+        assert!(
+            resident_ready.is_some(),
+            "refusal preserves the original resident Ready owner"
+        );
         return;
     }
     let prepared = prepared_slot.take().unwrap();
@@ -504,6 +571,10 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, 
         .is_err());
     drop(admitted);
     assert!(slot.is_none());
+    assert!(
+        resident_ready.is_none(),
+        "original Start transfers the inspected resident once"
+    );
     assert_eq!(ledger.admissions().len(), 1);
     assert_eq!(storage.programs.get(), 0);
     let (kernel, mut calls) = started.unwrap().into_kernels();
@@ -511,6 +582,10 @@ fn check_signed_start<const HOST_CALLS: usize>(can_start: bool, mismatch: bool, 
     assert_eq!(calls.service.routes().len(), 2);
     assert!(
         calls.base.pulse.is_none() && calls.base.write.is_none() && calls.base.waits.is_empty()
+    );
+    assert_eq!(
+        kernel.drivers()[1].terminal_transductions(),
+        TerminalResident.terminal_transductions()
     );
     drop(kernel);
     calls.service.revoke().unwrap();

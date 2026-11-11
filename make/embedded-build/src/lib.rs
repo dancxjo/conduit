@@ -75,3 +75,6 @@ mod resident_expression_tests;
 
 mod body_fragment;
 pub use body_fragment::*;
+
+#[cfg(test)]
+mod resident_terminal_tests;
