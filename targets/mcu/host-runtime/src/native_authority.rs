@@ -373,3 +373,6 @@ mod tests {
         .is_err());
     }
 }
+
+#[path = "native_authority_continuation.rs"]
+mod continuation;
