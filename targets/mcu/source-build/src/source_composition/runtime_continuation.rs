@@ -29,20 +29,32 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
         return Err("continuation-decode-budget");
     }
     let boot = root.actual().boot_id.0.clone();
-    let verified = {
+    let (verified, artifact) = {
         let mut scratch = scratch_buffer(8192)?;
-        root.verify_installed_continuation_boot_digest(
-            &installed.acceptance,
-            installed.prefix,
-            scratch
-                .as_mut_slice()
-                .try_into()
-                .map_err(|_| "continuation-decode-bounds")?,
-            &boot,
-            crate::play::continuation::SOURCE_DIGEST,
-            &crate::play::continuation::PINS,
-        )
-        .map_err(|_| "continuation-installed-verification")?
+        let verified = root
+            .verify_installed_continuation_boot_digest(
+                &installed.acceptance,
+                installed.prefix,
+                scratch
+                    .as_mut_slice()
+                    .try_into()
+                    .map_err(|_| "continuation-decode-bounds")?,
+                &boot,
+                crate::play::continuation::SOURCE_DIGEST,
+                &crate::play::continuation::PINS,
+            )
+            .map_err(|_| "continuation-installed-verification")?;
+        let artifact = installed
+            .acceptance
+            .artifact(
+                installed.prefix,
+                scratch
+                    .as_mut_slice()
+                    .try_into()
+                    .map_err(|_| "continuation-decode-bounds")?,
+            )
+            .map_err(|_| "continuation-artifact")?;
+        (verified, artifact)
     };
     let parts = root
         .take_continuation_parts(&installed.acceptance)
@@ -104,8 +116,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
         )
         .map_err(|_| "continuation-material")?;
         let budget = budget
-            .checked_sub(8192)
-            .and_then(|budget| budget.checked_sub(material.retained_backing_bytes()))
+            .checked_sub(material.retained_backing_bytes())
             .ok_or("continuation-material-budget")?;
         let size = [
             source::sampling_layout::PROJECTION_TEMPLATE.len(),
@@ -115,24 +126,10 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
         .into_iter()
         .max()
         .ok_or("continuation-template")?;
-        if size
-            .checked_add(8192)
-            .is_none_or(|bytes| bytes > remaining())
-        {
+        if size > remaining() {
             return Err("continuation-scratch-budget");
         }
         let mut scratch = scratch_buffer(size)?;
-        let mut decode = scratch_buffer(8192)?;
-        let artifact = installed
-            .acceptance
-            .artifact(
-                installed.prefix,
-                decode
-                    .as_mut_slice()
-                    .try_into()
-                    .map_err(|_| "continuation-decode-bounds")?,
-            )
-            .map_err(|_| "continuation-artifact")?;
         artifact
             .with_scope(|full| {
                 material.with_entries(|pins, entries, resources| {
