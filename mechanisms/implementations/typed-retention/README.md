@@ -16,9 +16,10 @@ authored initialization and a current/next transition boundary. It also installs
 no durable store, recorder, provider or admission grant. The application supplies
 its own typed contract, channel meaning, exact preparation bounds and scope.
 
-This package is an isolated preparation handoff. Workspace registration, the
-supported xtask proof entrance and the environmental adapter remain owned by the
-integration lane. Component tests drive the production StepBack interface with
+This package is an isolated preparation handoff. Workspace registration and the
+supported xtask proof entrance remain owned by the integration lane. The
+preparation branch also supplies the environmental publication adapter; deployment
+and installed admission remain separate. Component tests drive the production StepBack interface with
 test frames. Additional CPU tests use the actual fixed scheduler and bounded
 input/value/sign stores to exercise consumption, commit, closure, refusal and
 cancellation without allocation. These fixtures do not claim a checked or
@@ -54,3 +55,10 @@ schema residence, allocator metadata, kernel storage, firmware flash, stack and
 physical Root peaks are not included. Genericity here removes duplicated code;
 it does not claim a measured hardware memory reduction. Raw before/after logs
 and their comparison remain in the task's external evidence area.
+
+The prepared adapter passes all 64 environmental runtime tests with all features.
+The shared package passes ten tests, including three through the actual fixed
+scheduler. Both packages pass strict all-target Clippy (runtime with all
+features), and the runtime adapter checks for `thumbv6m-none-eabi` without default
+features. These are CPU/compile results, not firmware linking, native resource
+admission, hardware memory measurements or accepted release proof.
