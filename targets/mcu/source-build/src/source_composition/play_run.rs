@@ -43,7 +43,6 @@ mod inspection_encoder {
     include!(concat!(env!("OUT_DIR"), "/source_play_inspection.rs"));
 }
 mod control {
-    use super::*;
     include!(concat!(env!("OUT_DIR"), "/source_play_control.rs"));
 }
 pub(super) use control::ReturnControl;
