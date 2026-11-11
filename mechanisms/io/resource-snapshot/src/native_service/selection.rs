@@ -5,6 +5,19 @@ pub struct PreparedRecordService<'a, S> {
     operations: [c::BoundBaseOperation; 2],
     selected: SelectedOperationSet,
 }
+impl<'a, S: NorStorage> PreparedRecordService<'a, S> {
+    pub(super) fn from_checked(
+        slot: &'a mut Option<ReadyRecordService<S>>,
+        operations: [c::BoundBaseOperation; 2],
+        selected: SelectedOperationSet,
+    ) -> Self {
+        Self {
+            slot,
+            operations,
+            selected,
+        }
+    }
+}
 impl<S: NorStorage> PreparedRecordService<'_, S> {
     pub fn operation_backing_bytes(&self) -> Option<usize> {
         self.operations.iter().try_fold(0usize, |total, op| {
@@ -30,6 +43,33 @@ impl<S: NorStorage> PreparedRecordService<'_, S> {
     }
 }
 impl<S: NorStorage> ReadyRecordService<S> {
+    pub(super) fn check_original_operations(
+        &self,
+        operations: &[c::BoundBaseOperation; 2],
+    ) -> Result<(), ServiceRefusal> {
+        for (operation, grant) in operations.iter().zip(&self.originals) {
+            let s = &operation.inspection().scope;
+            let id = &self.identity;
+            if s.authority_grant_id != grant.grant_id
+                || s.authority_contract_id != grant.contract_id
+                || s.operation_contract_id != grant.host_call_contract_id
+                || s.subject_kind != grant.subject_kind
+                || s.capability_id != grant.capability_id
+                || s.host_id != id.host_id
+                || s.boot_id != id.boot_id
+                || s.base_instance_id != id.provider_instance_id
+                || s.base_provider_generation != id.provider_generation
+                || s.implementation_id != id.implementation_id
+                || s.resource_pool_id != id.resource_pool_id
+                || s.resource_generation_id != id.resource_generation_id
+                || s.envelope_id != id.envelope_id
+            {
+                return Err(ServiceRefusal::Possession);
+            }
+        }
+        Ok(())
+    }
+
     /// Rich checked Plan only. Operations and physical owner stay affine on refusal.
     #[allow(clippy::result_large_err)]
     pub fn prepare_selected_retained<'a>(
@@ -59,6 +99,7 @@ impl<S: NorStorage> ReadyRecordService<S> {
                 || base.provider_instance_id != identity.provider_instance_id
                 || base.provider_generation != identity.provider_generation
                 || base.implementation_id != identity.base_implementation_id
+                || base.enforcement_class != c::BaseEnforcementClass::Cooperative
                 || base.mechanism_family.as_str() != crate::native_append::APPEND_MECHANISM
                 || resource.pool_id != identity.resource_pool_id
                 || resource.class_id.as_str() != crate::native_append::APPEND_CLASS
@@ -66,17 +107,7 @@ impl<S: NorStorage> ReadyRecordService<S> {
             {
                 return Err(ServiceRefusal::WrongBinding);
             }
-            for (operation, grant) in operations.iter().zip(&ready.originals) {
-                let scope = &operation.inspection().scope;
-                if scope.authority_grant_id != grant.grant_id
-                    || scope.authority_contract_id != grant.contract_id
-                    || scope.operation_contract_id != grant.host_call_contract_id
-                    || scope.subject_kind != grant.subject_kind
-                    || scope.capability_id != grant.capability_id
-                {
-                    return Err(ServiceRefusal::Possession);
-                }
-            }
+            ready.check_original_operations(&operations)?;
             let kind = crate::service_contract::definition();
             let requirement = c::resource_requirement(crate::native_append::APPEND_CLASS, 1);
             let append_contract =
