@@ -251,3 +251,38 @@ fn worker_repreparation_keeps_attempts_completed_by_other_model_operations() {
     assert_eq!(adapter.next_request_sequence, final_sequence);
     assert!(adapter.generation_worker.is_none());
 }
+
+#[test]
+fn worker_dispatch_observes_sequence_advanced_while_idle() {
+    let mut adapter = finite_adapter_fixture();
+    adapter
+        .offer
+        .supported_profiles
+        .push(LocalModelKindProfile::GenerateFlow);
+    let mut flow = placement();
+    flow.kind_id = conduit_ai::LLM_GENERATE_FLOW_KIND.into();
+    set(&mut flow, "maximum-input-bytes", 8);
+    set(&mut flow, "maximum-output-bytes", 1024);
+    adapter
+        .prepare_background_generation(core::slice::from_ref(&flow))
+        .unwrap();
+    adapter.next_request_sequence = 9;
+    let mut output = Vec::new();
+    // Malformed typed input is refused before provider access, but still crosses
+    // the real prepared dispatch/completion slot and exercises sequence custody.
+    assert_eq!(adapter.begin_generation(&flow, b"x", &mut output), None);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    let terminal = loop {
+        if let Some(terminal) = adapter.poll_generation(&mut output) {
+            break terminal;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "worker did not complete"
+        );
+        std::thread::yield_now();
+    };
+    assert_ne!(terminal, LocalModelAdapterTerminal::ProviderLost);
+    assert_eq!(adapter.next_request_sequence, 9);
+    assert_eq!(adapter.generation_worker.as_ref().unwrap().next_sequence, 9);
+}
