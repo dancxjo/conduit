@@ -16,6 +16,7 @@ source-capture = ["conduit-dht11-observation/source-capture"]
 
 [dependencies]
 conduit-dht11-observation = { path = "../../../mechanisms/devices/dht11", features = ["kernel-step"] }
+conduit-typed-retention = { path = "../../../mechanisms/implementations/typed-retention" }
 conduit-body = { path = "../../../architecture/body", default-features = false, optional = true }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }
 sha2 = { version = "0.10", default-features = false, optional = true }

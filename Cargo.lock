@@ -2936,6 +2936,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-typed-retention"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+]
+
+[[package]]
 name = "conduit-web"
 version = "0.1.0"
 dependencies = [
