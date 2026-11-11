@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [dependencies]
+conduit-tm1637-protocol = { path = "../../../../mechanisms/devices/tm1637" }
 conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
 conduit-rp2040-snapshot-nor = { path = "../../snapshot-nor", features = ["rp2040"] }
 conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }

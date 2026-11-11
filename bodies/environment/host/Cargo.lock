@@ -137,6 +137,7 @@ dependencies = [
 name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-tm1637-protocol",
  "conduit-body",
  "conduit-core",
  "conduit-dht11-observation",
@@ -303,6 +304,14 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-tm1637-protocol"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
 ]
 
 [[package]]

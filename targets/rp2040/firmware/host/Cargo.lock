@@ -260,6 +260,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-dht11-observation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
@@ -297,6 +306,8 @@ dependencies = [
 name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-dht11-observation",
+ "conduit-tm1637-protocol",
  "conduit-core",
  "conduit-environment-face",
  "conduit-face",
@@ -408,6 +419,9 @@ dependencies = [
 name = "conduit-mcu-host-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-semantic-catalog",
+ "conduit-dht11-observation",
+ "conduit-tm1637-protocol",
  "conduit-body",
  "conduit-core",
  "conduit-environment-runtime",
@@ -431,6 +445,7 @@ dependencies = [
 name = "conduit-mcu-source-build"
 version = "0.1.0"
 dependencies = [
+ "conduit-dht11-observation",
  "conduit-body",
  "conduit-core",
  "conduit-embedded-build",
@@ -565,6 +580,7 @@ dependencies = [
 name = "conduit-rp2040-host"
 version = "0.1.0"
 dependencies = [
+ "conduit-tm1637-protocol",
  "aligned",
  "conduit-body",
  "conduit-bosch-env",
@@ -698,6 +714,14 @@ dependencies = [
  "conduit-kernel",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-tm1637-protocol"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
 ]
 
 [[package]]
