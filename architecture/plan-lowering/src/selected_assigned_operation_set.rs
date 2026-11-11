@@ -161,14 +161,8 @@ pub fn check_selected_assigned_operation_set(
             .iter()
             .position(|p| &p.port_id == call.output_port)
             .ok_or(E::WrongBinding)?;
-        // Ordinary lowering enumerates canonical unique Host Call requirements.
-        let ordinal = definition
-            .calls
-            .iter()
-            .filter(|other| other.contract < call.contract)
-            .count();
         routes[index] = Some(SelectedServiceRoute {
-            call: HostCallId(ordinal as u16),
+            call: HostCallId(0), // Filled from the exact independently validated call record below.
             input: PortId(input as u16),
             output: PortId(output as u16),
             maximum_input_bytes: call.input_bytes,
@@ -219,14 +213,23 @@ pub fn check_selected_assigned_operation_set(
             }
             c::ASSIGNED_HOST_CALL => {
                 let numeric = HostCallId(u16_at(d, 2)?);
-                let index = routes[..count]
+                let index = definition
+                    .calls
                     .iter()
-                    .position(|r| r.is_some_and(|r| r.call == numeric))
+                    .position(|call| identity(d, 4).ok() == Some(id(call.contract.as_str())))
                     .ok_or(E::WrongBinding)?;
+                if usize::from(numeric.0) >= count
+                    || routes[..count].iter().enumerate().any(|(i, route)| {
+                        calls[i] && route.is_some_and(|route| route.call == numeric)
+                    })
+                {
+                    return Err(E::WrongBinding);
+                }
                 if calls[index] {
                     return Err(E::WrongBinding);
                 }
                 calls[index] = true;
+                routes[index].as_mut().ok_or(E::WrongBinding)?.call = numeric;
                 let call = &definition.calls[index];
                 let s = &operations[index].inspection().scope;
                 if identity(d, 4)? != id(call.contract.as_str())

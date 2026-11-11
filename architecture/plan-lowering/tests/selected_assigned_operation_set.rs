@@ -125,7 +125,7 @@ fn independently_resealed_wrong_grant_target_call_and_native_pool_refuse() {
     let f = Fixture::new();
     let a = operation(f.scopes[0].clone());
     let r = operation(f.scopes[1].clone());
-    for edit in 0..6 {
+    for edit in 0..7 {
         let bytes = project(&f, |prefix, b| match edit {
             0 => b.grant = AssignedIdentity::from_text("foreign/grant"),
             1 => prefix[20..36].copy_from_slice(&AssignedIdentity::from_text("foreign/target").0),
@@ -193,4 +193,30 @@ fn original_narrow_claim_and_stale_active_identity_refuse() {
     let r = operation(f.scopes[1].clone());
     f.active.play_sequence += 1;
     assert!(check(&f, &bytes, &[&a, &r], false).is_err());
+}
+
+#[test]
+fn actual_numeric_call_mapping_is_not_inferred_from_contract_sort_order() {
+    let f = Fixture::new();
+    let a = operation(f.scopes[0].clone());
+    let r = operation(f.scopes[1].clone());
+    let mut bytes = project(&f, |_, _| {});
+    let mut at = ASSIGNED_PLAN_HEADER_BYTES;
+    while at < bytes.len() {
+        let tag = bytes[at];
+        let len = u16::from_le_bytes(bytes[at + 1..at + 3].try_into().unwrap()) as usize;
+        if tag == ASSIGNED_HOST_CALL {
+            let offset = at + 3 + 2;
+            let original = u16::from_le_bytes(bytes[offset..offset + 2].try_into().unwrap());
+            bytes[offset..offset + 2].copy_from_slice(&(1 - original).to_le_bytes());
+        }
+        at += 3 + len;
+    }
+    let digest = assigned_plan_payload_digest(&bytes[ASSIGNED_PLAN_HEADER_BYTES..]);
+    bytes[93..125].copy_from_slice(&digest);
+    for borrowed in [false, true] {
+        let selected = check(&f, &bytes, &[&a, &r], borrowed).unwrap();
+        assert_eq!(selected.routes[0].unwrap().call.0, 1);
+        assert_eq!(selected.routes[1].unwrap().call.0, 0);
+    }
 }
