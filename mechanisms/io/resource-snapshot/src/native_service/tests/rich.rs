@@ -127,16 +127,10 @@ impl Fixture {
         gear.resources[0].class_id = crate::native_append::APPEND_CLASS.into();
         gear.base.as_mut().unwrap().mechanism_family =
             crate::native_append::APPEND_MECHANISM.into();
-        gear.host_calls = scopes
-            .iter()
-            .map(|s| HostCallRequirement {
-                contract_id: s.operation_contract_id.clone(),
-                target_kind: Some(s.subject_kind.clone()),
-                maximum_in_flight: 1,
-                maximum_input_bytes: s.maximum_parameter_bytes,
-                maximum_output_bytes: s.maximum_result_bytes,
-            })
-            .collect();
+        let capability =
+            crate::native_service::capability_offer(&gear.artifact_id, &gear.implementation_id)
+                .unwrap();
+        gear.host_calls = capability.host_calls.clone();
         gear.authority = scopes
             .iter()
             .map(|s| AuthorityBinding {
@@ -150,7 +144,7 @@ impl Fixture {
             })
             .collect();
         let resource = gear.resources[0].clone();
-        let requirement = resource_requirement(resource.class_id.as_str(), 1);
+        let requirement = capability.resource_requirements[0].clone();
         let fragment = seal_plan(
             PlotIdentity {
                 source_document_id: fragment.source_document_id.clone(),
@@ -168,26 +162,6 @@ impl Fixture {
         }
         let lowered = lower_plan_fragment(&fragment).unwrap();
         let gear = &fragment.placements[0];
-        let capability = BackOfferBuilder::new(
-            kind.clone(),
-            Back {
-                capability_id: gear.capability_id.clone(),
-                execution_profile_id: gear.execution_profile_id.clone(),
-                implementation_id: gear.implementation_id.clone(),
-                artifact_id: gear.artifact_id.clone(),
-                host_calls: gear.host_calls.clone(),
-                resource_requirements: vec![requirement.clone()],
-                authority_requirements: scopes
-                    .iter()
-                    .map(|s| AuthorityRequirement {
-                        contract_id: s.authority_contract_id.clone(),
-                        host_call_contract_id: s.operation_contract_id.clone(),
-                        subject_kind: s.subject_kind.clone(),
-                    })
-                    .collect(),
-            },
-        )
-        .build();
         let host = HostAdvertisement {
             declared_name: None,
             protocol_version: PROTOCOL_VERSION,
