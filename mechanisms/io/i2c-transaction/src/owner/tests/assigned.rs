@@ -8,6 +8,8 @@ use conduit_kernel::HostCallId;
 use conduit_plan_lowering::assigned_play_scope::AssignedPlayScope;
 #[path = "assigned_body_scope.rs"]
 mod body_scope;
+#[path = "assigned_possession.rs"]
+mod possession;
 use conduit_plan_lowering::selected_assigned_operation::{
     AssignedOperationInput, SelectedAssignedForeOperationPlan, SelectedAssignedOperationPlan,
 };
@@ -250,6 +252,9 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
         }
         None => fixture::authorization(scope.clone(), fragment, &active),
     };
+    possession::reject_unusable_grants(&mut slot, &scope, &issue, |slot, table, handle, claim| {
+        bind(slot, table, handle, claim, valid_scope)
+    });
     if let Some(context) = &context {
         // A true Body scope cannot turn a copied claim into local possession.
         let (table, handle, mut claim) = fixture::authorization(scope.clone(), fragment, &active);
