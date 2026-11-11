@@ -36,9 +36,17 @@ pub fn cancelled() -> &'static [u8] {
 }
 
 pub fn decode(bytes: &[u8]) -> Result<ReadResult<'_>, conduit_core::StructuredInfoRefusal> {
-    use conduit_core::{BorrowedStructuredValueValidator, StructuredInfoRefusal as R};
-    let value =
-        BorrowedStructuredValueValidator::new(RESULT_SCHEMA, READ_RESULT_BYTES)?.validate(bytes)?;
+    use conduit_core::{validate_canonical_structured_value, StructuredInfoRefusal as R};
+    if bytes.len() > READ_RESULT_BYTES {
+        return Err(R::CanonicalEncodingTooLarge);
+    }
+    if !bytes.starts_with(RESULT_SCHEMA) {
+        return Err(R::WrongType);
+    }
+    // The exact linked schema is checked above. Borrow the canonical view from
+    // the caller's bytes, so returned payloads outlive this function's temporary
+    // validator without an owned Type tree or an unsafe lifetime extension.
+    let value = validate_canonical_structured_value(bytes)?;
     let tag = value.variant_tag()?;
     let payload = value.variant_payload(tag)?.ok_or(R::WrongType)?;
     let count = |value: conduit_core::ValidatedCanonicalStructuredValue<'_>| {

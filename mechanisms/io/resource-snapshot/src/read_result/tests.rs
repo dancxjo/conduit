@@ -123,11 +123,10 @@ fn decoder_refuses_count_overflow_and_semantically_invalid_order() {
         .to_vec();
     // Locate the exact primitive index through the borrowed canonical traversal,
     // then alter its eight-byte primitive without guessing schema offsets.
-    let value =
+    let validator =
         conduit_core::BorrowedStructuredValueValidator::new(RESULT_SCHEMA, READ_RESULT_BYTES)
-            .unwrap()
-            .validate(&bytes)
             .unwrap();
+    let value = validator.validate(&bytes).unwrap();
     let index = value
         .variant_payload("recorded")
         .unwrap()

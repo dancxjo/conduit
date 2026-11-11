@@ -8,6 +8,7 @@ pub mod append;
 pub mod append_contract;
 pub mod append_result;
 pub mod nor;
+pub mod read_result;
 mod record;
 pub use record::*;
 #[cfg(feature = "native-host-call")]
