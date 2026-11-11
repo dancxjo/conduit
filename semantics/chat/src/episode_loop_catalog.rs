@@ -132,7 +132,7 @@ pub fn episode_experience_type() -> StructuredInfoType {
 pub fn episode_experience_compose_semantic_contract() -> Kind {
     let mut contract = episode_compose_semantic_contract();
     contract.kind_id = kind_id(EPISODE_EXPERIENCE_COMPOSE_KIND);
-    contract.kind_contract_revision = "conduit.body/episode-compose-experience@2".into();
+    contract.kind_contract_revision = "conduit.body/episode-compose-experience@3".into();
     contract.inputs[0].port_id = port_id("experience");
     contract.inputs[0].value_kind = type_kind(episode_experience_type());
     contract.limits.max_queue_bytes = MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32;
@@ -147,7 +147,7 @@ pub fn episode_recollection_type() -> StructuredInfoType {
 pub fn episode_recall_experience_contract() -> Kind {
     let mut contract = episode_experience_compose_semantic_contract();
     contract.kind_id = kind_id(EPISODE_RECALL_EXPERIENCE_KIND);
-    contract.kind_contract_revision = "conduit.body/episode-recall-experience@2".into();
+    contract.kind_contract_revision = "conduit.body/episode-recall-experience@3".into();
     contract.outputs[0].port_id = port_id("recollection");
     contract.outputs[0].value_kind = type_kind(episode_recollection_type());
     contract
@@ -181,7 +181,7 @@ pub fn episode_experience_integration_contract() -> Kind {
     use PortDirection::{Input, Output};
     kind(
         "experience/integrate-episode",
-        "conduit.experience/integrate-episode@1",
+        "conduit.experience/integrate-episode@2",
         vec![flow(
             "inputs",
             type_kind(episode_experience_input_type()),

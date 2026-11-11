@@ -114,12 +114,7 @@ pub fn episode_retrieval_context_contract() -> Kind {
             ),
         ],
         vec![
-            port(
-                "recollection",
-                crate::episode_recollection_type(),
-                Output,
-                false,
-            ),
+            crate::episode_model_context_contract().outputs[0].clone(),
             port("pending", crate::episode_pending_type(), Output, false),
         ],
     )
@@ -128,6 +123,7 @@ pub fn install_episode_retrieval_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
+    conduit_ai::install_temporal_evidence_flow_catalog(startup, profile)?;
     for (name, ty) in [
         (
             "EpisodeRetrievalCapture",
