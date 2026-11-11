@@ -183,6 +183,28 @@ impl RaspberryPiUsbInput {
             let result = hub.result().to_vec();
             let value = validate_canonical_structured_value(&result)
                 .map_err(|_| "usb-enumeration-value")?;
+            if let Some(refused) = value
+                .variant_payload("refused")
+                .map_err(|_| "usb-enumeration-value")?
+            {
+                use core::fmt::Write;
+                let reason_value = field(refused, "reason")?;
+                let reason = reason_value
+                    .variant_tag()
+                    .map_err(|_| "usb-enumeration-value")?;
+                let mut text = crate::sign_format::FixedText::new();
+                let _ = writeln!(
+                    text,
+                    "CONDUIT_USB_ENUMERATION_RESULT port={} reason={reason}",
+                    octet(refused, "port")?
+                );
+                arch::present(text.as_bytes());
+                return Err(if reason == "no-input" {
+                    "usb-no-supported-pointer"
+                } else {
+                    "usb-hub-policy-refused"
+                });
+            }
             let selected = value
                 .variant_payload("input")
                 .map_err(|_| "usb-enumeration-value")?

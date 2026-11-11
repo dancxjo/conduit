@@ -47,6 +47,12 @@ fn in_control_preserves_short_actual_data_and_uses_opposite_status_direction() {
         Ok(3)
     );
     assert_eq!(&input[..4], &[1, 2, 3, 0xcc]);
+    assert_eq!(c.io.controls.len(), 1);
+    let observation = &c.io.controls[0];
+    assert_eq!(observation.route.address, 0);
+    assert_eq!(observation.setup, [0x80, 6, 0, 1, 0, 0, 18, 0]);
+    assert_eq!(observation.outcome, Ok(3));
+    assert_eq!(observation.input, [1, 2, 3]);
     assert_eq!(
         sizes(&c),
         [

@@ -29,6 +29,25 @@ impl RegisterIo for Registers {
         );
         super::present(text.as_bytes());
     }
+    fn control_observation(
+        &mut self,
+        route: crate::arch::dwc2::EndpointRoute,
+        setup: [u8; 8],
+        outcome: Result<usize, crate::arch::dwc2::PacketError>,
+        input: &[u8],
+    ) {
+        use core::fmt::Write;
+        let mut text = crate::sign_format::FixedText::new();
+        let _ = writeln!(
+            text,
+            "CONDUIT_USB_CONTROL us={} address={} packet={} translator={:?} setup={setup:02x?} outcome={outcome:?} input={input:02x?}",
+            read_counter(),
+            route.address,
+            route.maximum_packet,
+            route.translator
+        );
+        super::present(text.as_bytes());
+    }
     fn now_us(&mut self) -> u32 {
         read_counter() as u32
     }

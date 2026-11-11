@@ -20,6 +20,15 @@ pub trait RegisterIo {
     fn now_us(&mut self) -> u32;
     /// Optional bounded observation; must not access FIFO or mutate custody.
     fn packet_failure(&mut self, _failure: PacketFailure) {}
+    /// Opaque completed transfer observation; no extra register/FIFO access.
+    fn control_observation(
+        &mut self,
+        _route: EndpointRoute,
+        _setup: [u8; 8],
+        _outcome: Result<usize, PacketError>,
+        _input: &[u8],
+    ) {
+    }
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Refusal {

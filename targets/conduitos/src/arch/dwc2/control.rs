@@ -25,6 +25,21 @@ impl<I: RegisterIo> Controller<I> {
     pub fn control_on(
         &mut self,
         route: EndpointRoute,
+        setup: [u8; 8],
+        output: &[u8],
+        input: &mut [u8],
+    ) -> Result<usize, PacketError> {
+        let result = self.transfer_control(route, setup, output, input);
+        let observed = match result {
+            Ok(actual) if setup[0] & 0x80 != 0 => &input[..actual],
+            _ => &[],
+        };
+        self.io.control_observation(route, setup, result, observed);
+        result
+    }
+    fn transfer_control(
+        &mut self,
+        route: EndpointRoute,
         mut setup: [u8; 8],
         output: &[u8],
         input: &mut [u8],

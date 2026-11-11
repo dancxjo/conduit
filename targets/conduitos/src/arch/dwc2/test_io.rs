@@ -1,8 +1,15 @@
 use super::packet::*;
 use super::*;
 use std::{collections::VecDeque, vec::Vec};
+pub(crate) struct ControlObservation {
+    pub route: EndpointRoute,
+    pub setup: [u8; 8],
+    pub outcome: Result<usize, PacketError>,
+    pub input: Vec<u8>,
+}
 pub(crate) struct Io {
     pub(crate) writes: Vec<(usize, u32)>,
+    pub(crate) controls: Vec<ControlObservation>,
     pub(crate) rx: VecDeque<u32>,
     pub(crate) data: VecDeque<u32>,
     pub(crate) clock: u32,
@@ -24,6 +31,7 @@ impl Io {
     pub(crate) fn new() -> Self {
         Self {
             writes: Vec::new(),
+            controls: Vec::new(),
             rx: VecDeque::new(),
             data: VecDeque::new(),
             clock: u32::MAX - 5000,
@@ -104,6 +112,20 @@ impl RegisterIo for Io {
                 }
             }
         }
+    }
+    fn control_observation(
+        &mut self,
+        route: EndpointRoute,
+        setup: [u8; 8],
+        outcome: Result<usize, PacketError>,
+        input: &[u8],
+    ) {
+        self.controls.push(ControlObservation {
+            route,
+            setup,
+            outcome,
+            input: input.to_vec(),
+        });
     }
     fn packet_failure(&mut self, failure: PacketFailure) {
         self.failures.push(failure);
