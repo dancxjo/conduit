@@ -62,3 +62,10 @@ scheduler. Both packages pass strict all-target Clippy (runtime with all
 features), and the runtime adapter checks for `thumbv6m-none-eabi` without default
 features. These are CPU/compile results, not firmware linking, native resource
 admission, hardware memory measurements or accepted release proof.
+
+The focused delivery refresh against the shared extraction and current `dev`
+passes 59 environmental runtime tests across 19 binaries, ten helper tests,
+nine workspace shard guards, workspace formatting, the evidence-retention guard,
+and a Cortex-M0+ (`thumbv6m-none-eabi`) check of this shared helper. The earlier
+64-test cohort above predates the device extraction; these are distinct scopes.
+Neither cohort establishes live deployment or durable recording.
