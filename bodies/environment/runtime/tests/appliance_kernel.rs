@@ -21,6 +21,8 @@ mod appliance_support;
 )]
 #[path = "support/pulse.rs"]
 mod pulse;
+#[path = "support/pulse_budget.rs"]
+mod pulse_budget;
 #[path = "appliance_support/software.rs"]
 mod software_tests;
 use conduit_core as c;
@@ -109,7 +111,7 @@ fn run(scenario: usize, overnight: bool) {
     }
     assert_eq!((lowered.nodes.len(), lowered.cords.len()), (N, C));
     let (mut owner, pulse_node) =
-        pulse::bind_budget(ready, &plan, &lowered, count.try_into().unwrap()).unwrap();
+        pulse_budget::bind_budget(ready, &plan, &lowered, count.try_into().unwrap()).unwrap();
     let nodes = core::array::from_fn(|i| {
         let rich = lowered.node_specs[i];
         assert!(rich.input_cords[P..].iter().all(Option::is_none));
