@@ -23,6 +23,7 @@ pub mod shared_pool_runtime;
 
 /// Exact single-call native selection validation before Play.
 pub mod selected_operation;
+pub mod selected_operation_set;
 
 pub mod resident_inventory;
 pub mod selected_assigned_expression;
