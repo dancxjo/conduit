@@ -119,6 +119,7 @@ impl<I: RegisterIo> Dwc2PointerSession<I> {
             sample: None,
         })
     }
+    #[cfg_attr(test, allow(dead_code))] // Used by the native Root sharing the original bus.
     pub(crate) fn controller(&mut self) -> &mut crate::arch::dwc2::Controller<I> {
         self.play.controller()
     }

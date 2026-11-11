@@ -35,6 +35,7 @@ impl<I: RegisterIo> Dwc2PointerPlay<I> {
     }
     /// The caller can borrow this sole bus while retaining independent admitted
     /// endpoint custody. The next transfer still validates physical quiescence.
+    #[cfg_attr(test, allow(dead_code))] // Used by the native Root sharing the original bus.
     pub(crate) fn controller(&mut self) -> &mut Controller<I> {
         &mut self.controller
     }

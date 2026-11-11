@@ -59,8 +59,8 @@ mod tests {
             for y in 0..format.height as usize {
                 let row =
                     &bytes[4 + y * format.pitch as usize..4 + (y + 1) * format.pitch as usize];
-                for value in row[..format.width as usize * 4].chunks_exact(4) {
-                    assert_eq!(value, pixel);
+                for value in row[..format.width as usize * 4].as_chunks::<4>().0 {
+                    assert_eq!(*value, pixel);
                 }
                 assert!(row[format.width as usize * 4..].iter().all(|&b| b == 0x5a));
             }
