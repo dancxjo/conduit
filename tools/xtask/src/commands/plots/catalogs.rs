@@ -148,6 +148,30 @@ pub(super) fn catalogs(
     conduit_face::install_spoken_mask_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_cognition_catalog(&mut startup, &mut profile)?;
+    let experience = conduit_core::CheckedValueContract::new(
+        conduit_chat::episode_experience_type()
+            .profile()
+            .map_err(|error| format!("episode experience profile: {error:?}"))?
+            .value_kind()
+            .clone(),
+        conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
+        Vec::new(),
+    )
+    .map_err(|error| format!("episode experience bound: {error:?}"))?;
+    let reflection =
+        conduit_core::CheckedValueContract::new(conduit_core::kind_id("value/u64"), 8, Vec::new())
+            .map_err(|error| format!("reflection trigger: {error:?}"))?;
+    conduit_semantic_catalog::install_current_sample_finite_kind(
+        &experience,
+        &reflection,
+        &mut startup,
+        &mut profile,
+    )?;
+    conduit_semantic_catalog::install_flow_coalesce_finite_kind(
+        &experience,
+        &mut startup,
+        &mut profile,
+    )?;
     conduit_pete::install_pete_memory_catalog(&mut startup, &mut profile)?;
     conduit_data::install_data_text_catalogs(&mut startup, &mut profile)?;
     startup.insert_value_kind_alias("SaveRequest", conduit_core::kind_id("data/save-request@1"))?;

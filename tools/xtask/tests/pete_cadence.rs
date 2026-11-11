@@ -184,6 +184,14 @@ fn pete_cadence_runs_three_forms_and_reflects_less_often_than_events() {
     assert_eq!(*episodes[1].recalled().get()[0].episode(), 1);
     assert_eq!(episodes[0].body_id(), episodes[1].body_id());
     assert_eq!(episodes[0].wake_id(), episodes[1].wake_id());
+    println!(
+        "CONDUIT_PLOT_EVIDENCE={}",
+        serde_json::json!({
+            "plan_id": harness.plan_id,
+            "play_id": report.kernel.as_ref().unwrap().active_play_id.as_str(),
+            "workload_revision": null,
+        })
+    );
 }
 
 #[derive(Default)]
