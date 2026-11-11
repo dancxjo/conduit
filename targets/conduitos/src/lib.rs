@@ -63,7 +63,8 @@ pub mod flow_zip;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-board"
+    feature = "aarch64-board",
+    feature = "armv6-product"
 ))]
 pub mod front_door;
 pub mod functional_offers;
@@ -100,6 +101,7 @@ pub mod machine_membrane;
     feature = "riscv64-product",
     feature = "loongarch64-product",
     feature = "aarch64-board",
+    feature = "armv6-product",
     feature = "hosted-tools"
 ))]
 pub mod make;
@@ -133,7 +135,8 @@ pub mod offer;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-board"
+    feature = "aarch64-board",
+    feature = "armv6-product"
 ))]
 pub mod offer_make;
 #[cfg(any(target_arch = "x86_64", feature = "hosted-tools"))]
@@ -162,6 +165,7 @@ pub mod pc_speaker_offer;
 pub mod pc_speaker_plan;
 #[cfg(target_arch = "x86_64")]
 pub mod pc_speaker_play;
+pub mod pcm_output;
 pub mod planned_kernel;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod pointer_offer;
@@ -193,6 +197,8 @@ mod service_trap_reader_tests;
 #[path = "ordinary_domain_proof/service_memory/trap_envelope/wire.rs"]
 mod service_trap_wire_tests;
 pub mod spi_base;
+#[cfg(any(test, feature = "native-startup-chime"))]
+pub mod startup_plot;
 // Exercise the Root loan boundary on hosted CPUs without installing a service.
 #[cfg(test)]
 #[path = "protected_runtime/ledger.rs"]
@@ -264,7 +270,8 @@ pub mod face_nucleus;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-board"
+    feature = "aarch64-board",
+    feature = "armv6-product"
 ))]
 pub mod linear_presenter;
 #[cfg(any(
@@ -274,7 +281,8 @@ pub mod linear_presenter;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-board"
+    feature = "aarch64-board",
+    feature = "armv6-product"
 ))]
 mod mask_control;
 #[cfg(any(
@@ -285,7 +293,8 @@ mod mask_control;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-board"
+    feature = "aarch64-board",
+    feature = "armv6-product"
 ))]
 mod native_mask_play;
 #[cfg(any(test, target_arch = "x86_64"))]
@@ -298,7 +307,8 @@ pub mod native_participant;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-board"
+    feature = "aarch64-board",
+    feature = "armv6-product"
 ))]
 mod native_surface_possession;
 #[cfg(any(
@@ -309,7 +319,8 @@ mod native_surface_possession;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-board"
+    feature = "aarch64-board",
+    feature = "armv6-product"
 ))]
 mod native_surface_provider;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
@@ -328,7 +339,8 @@ pub mod product_bases;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-board"
+    feature = "aarch64-board",
+    feature = "armv6-product"
 ))]
 mod product_bindings;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
@@ -340,7 +352,8 @@ pub mod product_front_door;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-board"
+    feature = "aarch64-board",
+    feature = "armv6-product"
 ))]
 pub mod product_journey;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
@@ -455,7 +468,8 @@ pub mod compositor_semantic_recovery_proof;
         feature = "aarch64-product",
         feature = "riscv64-product",
         feature = "loongarch64-product",
-        feature = "aarch64-board"
+        feature = "aarch64-board",
+        feature = "armv6-product"
     )
 ))]
 pub mod firmware_face;
@@ -467,3 +481,7 @@ pub mod firmware_face_evidence;
 #[allow(dead_code, unused_imports)]
 #[path = "arch/x86_64/service_memory/storage.rs"]
 mod service_zero_storage_tests;
+
+#[cfg(test)]
+#[path = "arch/armv6/framebuffer_response.rs"]
+mod bcm2835_framebuffer_response_tests;
