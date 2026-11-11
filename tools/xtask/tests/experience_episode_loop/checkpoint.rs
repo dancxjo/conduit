@@ -21,7 +21,7 @@ fn assert_checkpoint_recall(provider_lost: bool, live_recovery: bool) {
     use conduit_std_host::episode_checkpoint::EpisodeCheckpointResidence;
     use conduit_std_host::{ExternalForeDelivery, ExternalForeOutputAdapter};
 
-    const RESUMABLE: &str = include_str!("../../../plots/pete-cognition-resumable/main.conduit");
+    const RESUMABLE: &str = include_str!("../../../../plots/pete-cognition-resumable/main.conduit");
     struct DurableOutput<'a> {
         journal: &'a EpisodeCheckpointResidence,
         episodes: Vec<ExternalForeDelivery>,
@@ -175,7 +175,7 @@ fn assert_checkpoint_recall(provider_lost: bool, live_recovery: bool) {
 
 #[test]
 fn pete_checkpoint_keeps_an_answering_experience_after_retaining_its_followup_question() {
-    const SOURCE: &str = include_str!("../../../plots/pete-cognition-resumable/main.conduit");
+    const SOURCE: &str = include_str!("../../../../plots/pete-cognition-resumable/main.conduit");
     let initial = conduit_chat::initial_episode_memory();
     let mut harness = pete_harness_for(
         common::fenced_model().0,
@@ -258,7 +258,7 @@ fn pete_checkpoint_upgrades_the_previous_current_schema_residence_without_losing
         episode_checkpoint::EpisodeCheckpointResidence,
         state_value::{DurableStateBinding, FileDurableStateResidence},
     };
-    const SOURCE: &str = include_str!("../../../plots/pete-cognition-resumable/main.conduit");
+    const SOURCE: &str = include_str!("../../../../plots/pete-cognition-resumable/main.conduit");
     let initial = conduit_chat::initial_episode_memory();
     let mut harness = pete_harness_for(
         common::fenced_model().0,

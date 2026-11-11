@@ -1106,7 +1106,7 @@ fn pete_records_provider_loss_and_resumes_in_the_same_play() {
     );
 }
 
-#[path = "pete_checkpoint_loop.rs"]
+#[path = "experience_episode_loop/checkpoint.rs"]
 mod pete_checkpoint_loop;
 
 #[test]
