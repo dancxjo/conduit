@@ -99,6 +99,7 @@ pub mod hosted_calendar;
 pub mod hosted_data;
 pub mod hosted_measurement;
 pub mod measurement_face;
+pub mod measurement_chart_offer;
 pub mod hosted_geometry;
 pub mod hosted_history;
 pub mod hosted_http;
