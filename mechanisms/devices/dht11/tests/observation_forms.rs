@@ -8,7 +8,7 @@ use conduit_core::{
     validate_canonical_structured_value as validate, PreparedStructuredComposer as C, Quantity,
     QuantityFormRefusal as F, StructuredInfoTypeShape as S, Unit,
 };
-use conduit_environment_runtime::observation::{
+use conduit_dht11_observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms as Forms,
 };
 

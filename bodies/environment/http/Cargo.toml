@@ -9,7 +9,7 @@ publish = false
 [dependencies]
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
 conduit-core = { path = "../../../architecture/core" }
-conduit-environment-face = { path = "../face" }
+conduit-environment-face = { path = "../../../semantics/environment-face" }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 heapless = "0.8"
 critical-section = "1.2"

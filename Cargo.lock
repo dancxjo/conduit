@@ -1991,6 +1991,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-dht11-observation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+ "conduit-pulse-capture",
+]
+
+[[package]]
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
@@ -2018,6 +2028,16 @@ dependencies = [
 [[package]]
 name = "conduit-emergency-keyword-spotter"
 version = "0.1.0"
+
+[[package]]
+name = "conduit-environment-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
+ "conduit-seven-segment-mask",
+]
 
 [[package]]
 name = "conduit-face"
@@ -2467,6 +2487,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-purpose"
 version = "0.1.0"
 dependencies = [
@@ -2572,6 +2600,15 @@ dependencies = [
  "conduit-time",
  "conduit-web",
  "serde",
+]
+
+[[package]]
+name = "conduit-seven-segment-mask"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -2804,6 +2841,28 @@ dependencies = [
  "conduit-plot",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-tm1637-output-make"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plan-lowering",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-semantic-catalog",
+ "conduit-tm1637-wire",
+]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
 ]
 
 [[package]]

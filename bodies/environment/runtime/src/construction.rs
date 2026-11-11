@@ -34,7 +34,7 @@ fn compile_invocation(invocation: &str) -> Result<ApplianceSource, String> {
     conduit_pulse_capture::PulseReadContract::prepare()
         .map_err(debug)?
         .install(&mut startup, &mut profiles)?;
-    crate::observation::ObservationContract::prepare()
+    conduit_dht11_observation::ObservationContract::prepare()
         .map_err(debug)?
         .install(&mut startup, &mut profiles)?;
     for kind in [

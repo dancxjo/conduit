@@ -1,0 +1,20 @@
+[package]
+name = "conduit-dht11-observation"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[features]
+default = []
+kernel-step = ["dep:conduit-kernel"]
+source-capture = ["dep:conduit-pulse-capture"]
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-kernel = { path = "../../../architecture/kernel", optional = true }
+conduit-pulse-capture = { path = "../../io/pulse-capture", default-features = false, optional = true }
+
+[build-dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-plot = { path = "../../../architecture/plot" }
