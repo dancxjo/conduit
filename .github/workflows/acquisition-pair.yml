@@ -112,11 +112,11 @@ jobs:
         if: always()
         run: |
           node <<'JS'
-          const fs=require('node:fs'),path=require('node:path');
+          const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
           const {spawnSync}=require('node:child_process');
           const backup=process.env.CONDUIT_DNS_BACKUP;
           if(backup){
-            if(!path.dirname(backup).startsWith('/tmp/conduit-ubuntu-dns-')||path.basename(backup)!=='hosts'||!fs.lstatSync(backup).isFile())throw Error('Unexpected backup');
+            if(path.dirname(path.dirname(backup))!==os.tmpdir()||!/^conduit-ubuntu-dns-[A-Za-z0-9]+$/.test(path.basename(path.dirname(backup)))||path.basename(backup)!=='hosts'||!fs.lstatSync(backup).isFile())throw Error('Unexpected backup');
             const result=spawnSync('sudo',['-n','cp','--',backup,'/etc/hosts'],{encoding:'utf8',timeout:10000});
             if(result.status!==0)throw Error('Cannot restore host resolution: '+result.stderr);
             fs.rmSync(path.dirname(backup),{recursive:true});
@@ -221,11 +221,11 @@ jobs:
         if: always()
         run: |
           node <<'JS'
-          const fs=require('node:fs'),path=require('node:path');
+          const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
           const {spawnSync}=require('node:child_process');
           const backup=process.env.CONDUIT_DNS_BACKUP;
           if(backup){
-            if(!path.dirname(backup).startsWith('/tmp/conduit-ubuntu-dns-')||path.basename(backup)!=='hosts'||!fs.lstatSync(backup).isFile())throw Error('Unexpected backup');
+            if(path.dirname(path.dirname(backup))!==os.tmpdir()||!/^conduit-ubuntu-dns-[A-Za-z0-9]+$/.test(path.basename(path.dirname(backup)))||path.basename(backup)!=='hosts'||!fs.lstatSync(backup).isFile())throw Error('Unexpected backup');
             const result=spawnSync('sudo',['-n','cp','--',backup,'/etc/hosts'],{encoding:'utf8',timeout:10000});
             if(result.status!==0)throw Error('Cannot restore host resolution: '+result.stderr);
             fs.rmSync(path.dirname(backup),{recursive:true});
