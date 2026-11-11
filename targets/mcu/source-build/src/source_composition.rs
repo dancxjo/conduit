@@ -8,6 +8,18 @@ pub fn emit_to(out: &Path) -> std::io::Result<()> {
     for (name, source) in [
         ("runtime", include_str!("source_composition/runtime.rs")),
         (
+            "runtime_continuation",
+            include_str!("source_composition/runtime_continuation.rs"),
+        ),
+        (
+            "runtime_continuation_factory",
+            include_str!("source_composition/runtime_continuation_factory.rs"),
+        ),
+        (
+            "play_continuation_start",
+            include_str!("source_composition/play_continuation_start.rs"),
+        ),
+        (
             "play_initialization",
             include_str!("source_composition/play_initialization.rs"),
         ),

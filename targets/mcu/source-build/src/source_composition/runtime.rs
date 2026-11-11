@@ -17,11 +17,15 @@ const W: usize = crate::equipment::WAIT_SLOTS;
 mod initialization {
     include!(concat!(env!("OUT_DIR"), "/source_play_initialization.rs"));
 }
+pub mod continuation {
+    include!(concat!(env!("OUT_DIR"), "/source_runtime_continuation.rs"));
+}
 pub async fn run<'s>(
     root: &mut Root<'s, { crate::config::MAX_ASSIGNMENT_BYTES }>,
     equipment: crate::equipment::Equipment,
     arena: conduit_mcu_host_runtime::image_memory::ImageMemoryLease<'_>,
     link: &mut crate::transport::Link,
+    installed: Option<continuation::Installed<'_>>,
 ) -> ! {
     crate::runtime::stack_checkpoint(1);
     let mut residents =
@@ -101,13 +105,111 @@ pub async fn run<'s>(
         .expect("funded native contract preparation"),
     );
     crate::runtime::stack_checkpoint(2);
+    if let Some(installed) = installed.as_ref() {
+        let policy = Policy {
+            preparation: crate::config::PREPARATION_DELEGATION.as_ref(),
+            execution: crate::config::EXECUTION_DELEGATION.as_ref(),
+            active_worksets: 0,
+            maximum_retained_bytes: arena.bytes(),
+        };
+        let mut started = None;
+        let mut scopes = None;
+        let mut diagnostic = heapless::String::new();
+        let outcome = continuation::prepare_into(
+            root,
+            installed,
+            policy,
+            continuation::Factory {
+                residents: &mut residents,
+                software,
+                output_software,
+                routing: &mut routing,
+                equipment: &mut equipment,
+                issuers: &mut issuers,
+                operations: &operations,
+                recording: recording_operation.as_ref(),
+                sampling_values: sampling_values.take().expect("original sampling values"),
+                output_values: output_values.take().expect("original output values"),
+                contracts: contracts.take().expect("original native contracts"),
+                reader: reader.take().expect("original Reader"),
+                face: &face,
+                append_output_bytes: append_output.len(),
+                diagnostic: &mut diagnostic,
+            },
+            &mut started,
+            &mut scopes,
+        )
+        .await;
+        match outcome {
+            Ok(()) => {
+                let started = started.take().expect("original continuation Started");
+                let evidence = started.evidence();
+                let (((sample, sample_calls), mask, (output, output_calls)), renderer) =
+                    started.into_kernels();
+                return crate::play_run::run(
+                    sample,
+                    sample_calls,
+                    mask,
+                    output,
+                    output_calls,
+                    renderer,
+                    optional.take().expect("original optional tracking"),
+                    scopes.take().expect("original Scopes"),
+                    evidence,
+                    arena,
+                    &face,
+                    link,
+                    &equipment.activity,
+                    &mut append_output,
+                    append_status
+                        .take()
+                        .expect("original prepared status custody"),
+                )
+                .await;
+            }
+            Err(reason) => loop {
+                core::hint::black_box(&arena);
+                core::hint::black_box(installed);
+                link.connected().await;
+                use conduit_mcu_host_runtime::transport::MessageTransport;
+                let mut input = [0; 128];
+                while link.receive(&mut input).await.is_ok() {
+                    let _ = link.send(reason.as_bytes()).await;
+                }
+                link.reset();
+                Timer::after_millis(10).await;
+            },
+        }
+    }
     let mut last_refusal = None;
     loop {
         let result = match root.receive_request(link).await {
-            // This composition has no installed cold-prefix transaction yet.
-            // Root also refuses the request before intake when policy is absent.
             Ok(Request::InstallContinuation) => {
-                Err(conduit_mcu_host_runtime::root::Refusal::Preparation)
+                let mut candidate = alloc::vec![0u8;8192];
+                let mut selected = alloc::vec![0u8;8192];
+                let mut scratch = alloc::vec![0u8;8192];
+                match with_timeout(
+                    Duration::from_secs(10),
+                    root.receive_continuation_installation(
+                        link,
+                        crate::play::continuation::SOURCE_DIGEST,
+                        &crate::play::continuation::PINS,
+                        installed.as_ref().map(|installed| &installed.acceptance),
+                        candidate
+                            .as_mut_slice()
+                            .try_into()
+                            .expect("fixed candidate"),
+                        selected.as_mut_slice().try_into().expect("fixed selected"),
+                        scratch.as_mut_slice().try_into().expect("fixed scratch"),
+                    ),
+                )
+                .await
+                {
+                    Ok(result) => {
+                        result.map_err(|_| conduit_mcu_host_runtime::root::Refusal::Preparation)
+                    }
+                    Err(_) => Err(conduit_mcu_host_runtime::root::Refusal::Preparation),
+                }
             }
             Ok(Request::Inspect) => {
                 use conduit_mcu_host_runtime::transport::MessageTransport;

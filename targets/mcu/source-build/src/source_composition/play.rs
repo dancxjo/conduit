@@ -39,6 +39,16 @@ use shapes::{
     OutputBound, SamplingBound, FORE_PORTS, OC, OH, ON, OP, OR, OS, OT, SC, SH, SN, SP, SR, SS, ST,
 };
 pub use shapes::{OutputKernel, SamplingKernel, CONDUIT_EXECUTION_KERNEL_BYTES};
+pub const CONTINUATION_FORE_PORTS: usize = FORE_PORTS;
+pub type ContinuationStarted<'a, 'f> =
+    conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
+        (
+            SamplingBound<'a, 'f>,
+            conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
+            OutputBound<'a, 'f>,
+        ),
+        conduit_mcu_host_runtime::execution_mask::RendererService<'a, crate::renderer::Clock>,
+    )>;
 macro_rules! profile {
     ($module:ident,$host:expr,$boot:expr,$fore:expr) => {{
         use crate::workset::generated::$module as f;

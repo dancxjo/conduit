@@ -1,0 +1,189 @@
+// Installed permission and candidate construction; no separate executor.
+use super::*;
+use conduit_body as b;
+use conduit_mcu_host_runtime::continuation_native::ContinuationNativeContext;
+pub struct Installed<'a> {
+    pub acceptance: conduit_mcu_host_runtime::root::InstalledContinuationAcceptance,
+    pub prefix: &'a [u8; 8192],
+}
+mod factory {
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/source_runtime_continuation_factory.rs"
+    ));
+}
+pub(super) use factory::Factory;
+#[allow(clippy::too_many_arguments)]
+pub(super) async fn prepare_into<'a, 'f: 'a>(
+    root: &mut Root<'_, { crate::config::MAX_ASSIGNMENT_BYTES }>,
+    installed: &Installed<'_>,
+    policy: Policy<'_>,
+    factory: Factory<'a, 'f>,
+    target: &mut Option<crate::play::ContinuationStarted<'a, 'f>>,
+    scopes: &mut Option<crate::play_service::Scopes>,
+) -> Result<(), &'static str> {
+    // This small owned Boot text is the only cloned Root identity. Decoder
+    // scratch retires before the one-use mutable Root take.
+    if remaining() < 8192 {
+        return Err("continuation-decode-budget");
+    }
+    let boot = root.actual().boot_id.0.clone();
+    let verified = {
+        let mut scratch = alloc::vec![0u8;8192];
+        root.verify_installed_continuation_boot_digest(
+            &installed.acceptance,
+            installed.prefix,
+            scratch
+                .as_mut_slice()
+                .try_into()
+                .map_err(|_| "continuation-decode-bounds")?,
+            &boot,
+            crate::play::continuation::SOURCE_DIGEST,
+            &crate::play::continuation::PINS,
+        )
+        .map_err(|_| "continuation-installed-verification")?
+    };
+    let parts = root
+        .take_continuation_parts(&installed.acceptance)
+        .map_err(|_| "continuation-root-attempt")?;
+    let bundle = b::check_installed_continuation_bundle(
+        &verified,
+        crate::play::continuation::SOURCE_DIGEST,
+        &crate::play::continuation::PINS,
+    )
+    .map_err(|_| "continuation-bundle")?;
+    let mut documents = [&[][..]; 3];
+    let scope = {
+        let context = ContinuationNativeContext::check_installation(
+            parts.bootstrap,
+            parts.resources.host(),
+            &verified,
+            parts.configuration.image_id,
+            parts.configuration.configuration_id,
+            policy,
+        )
+        .map_err(|_| "continuation-native-context")?;
+        factory
+            .issuers
+            .authorize_continuation(
+                context,
+                policy,
+                factory.equipment.pulse.as_ref().ok_or("pulse-busy")?,
+                factory.equipment.display.as_ref().ok_or("display-busy")?,
+                &factory.equipment.renderer,
+                &factory.equipment.waits,
+                factory.operations,
+                remaining,
+            )
+            .map_err(|_| "continuation-native-authorization")?;
+        match (factory.equipment.recording.selected(), factory.recording) {
+            (false, None) => {}
+            (true, Some(operation)) => factory
+                .equipment
+                .recording
+                .authorize_continuation(
+                    context,
+                    policy,
+                    &mut factory.issuers.recording,
+                    operation,
+                    remaining(),
+                )
+                .map_err(|_| "continuation-recording-authorization")?,
+            _ => return Err("continuation-recording-scope"),
+        }
+        let budget = remaining().min(verified.intent().ceilings.runtime_bytes as usize);
+        let material = crate::play::continuation::Material::prepare(
+            context,
+            policy,
+            factory.equipment,
+            factory.issuers,
+            factory.operations,
+            factory.recording,
+            budget,
+        )
+        .map_err(|_| "continuation-material")?;
+        let budget = budget
+            .checked_sub(8192)
+            .and_then(|budget| budget.checked_sub(material.retained_backing_bytes()))
+            .ok_or("continuation-material-budget")?;
+        let size = [
+            source::sampling_layout::PROJECTION_TEMPLATE.len(),
+            source::mask_layout::PROJECTION_TEMPLATE.len(),
+            source::output_layout::PROJECTION_TEMPLATE.len(),
+        ]
+        .into_iter()
+        .max()
+        .ok_or("continuation-template")?;
+        if size
+            .checked_add(8192)
+            .is_none_or(|bytes| bytes > remaining())
+        {
+            return Err("continuation-scratch-budget");
+        }
+        let mut scratch = alloc::vec![0u8;size];
+        let mut decode = alloc::vec![0u8;8192];
+        let artifact = installed
+            .acceptance
+            .artifact(
+                installed.prefix,
+                decode
+                    .as_mut_slice()
+                    .try_into()
+                    .map_err(|_| "continuation-decode-bounds")?,
+            )
+            .map_err(|_| "continuation-artifact")?;
+        artifact
+            .with_scope(|full| {
+                material.with_entries(|pins, entries, resources| {
+                    let ranges = b::build_continuation_candidate_with_resources_into::<
+                        { crate::play::CONTINUATION_FORE_PORTS },
+                    >(
+                        &verified,
+                        &bundle,
+                        full,
+                        parts.resources.host(),
+                        pins,
+                        entries,
+                        resources,
+                        parts.workspace,
+                        &mut scratch,
+                        budget,
+                    )
+                    .map_err(|_| "continuation-candidate")?;
+                    for (index, document) in documents.iter_mut().enumerate() {
+                        *document = ranges
+                            .document(parts.workspace, index)
+                            .ok_or("continuation-document")?;
+                    }
+                    b::FreshContinuationScope::check_local_replacement::<
+                        { crate::play::CONTINUATION_FORE_PORTS },
+                    >(
+                        &verified,
+                        &bundle,
+                        full,
+                        parts.resources.host(),
+                        pins,
+                        entries,
+                        &documents,
+                        &mut scratch,
+                    )
+                    .map_err(|_| "continuation-fresh-scope")
+                })
+            })
+            .map_err(|_| "continuation-full-scope")??
+    };
+    // Material, projection scratch and all construction loans retire before the
+    // same whole-workset factory withdraws providers and commits original ledger.
+    factory::prepare_into(
+        parts.bootstrap,
+        &verified,
+        parts.configuration,
+        &scope,
+        parts.resources,
+        policy,
+        factory,
+        target,
+        scopes,
+    )
+    .await
+}
