@@ -23,9 +23,9 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     prepare,
 };
 pub(super) struct EpisodeRetrievalContextBack {
-    packet: PreparedEpisodeRetrievalPacket,
-    context: PreparedEpisodeRetrievalContext,
-    request: PreparedEpisodeRetrievalRequest<Projector>,
+    packet: Box<PreparedEpisodeRetrievalPacket>,
+    context: Box<PreparedEpisodeRetrievalContext>,
+    request: Box<PreparedEpisodeRetrievalRequest<Projector>>,
     staged: bool,
     closed: [bool; 2],
     complete: bool,
@@ -174,7 +174,7 @@ fn prepare(
     let (policy, instruction) = configuration(gear)?;
     Ok(InstalledBack::EpisodeRetrievalContext(
         EpisodeRetrievalContextBack {
-            packet: PreparedEpisodeRetrievalPacket::prepare(),
+            packet: Box::new(PreparedEpisodeRetrievalPacket::prepare()),
             context: PreparedEpisodeRetrievalContext::prepare(policy)
                 .map_err(|error| format!("prepare context selection: {error:?}"))?,
             request: PreparedEpisodeRetrievalRequest::prepare(instruction, projector::prepare())

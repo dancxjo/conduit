@@ -22,7 +22,7 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     prepare,
 };
 pub(super) struct EpisodeRetrievalProducerBack {
-    producer: PreparedEpisodeRetrievalProducer,
+    producer: Box<PreparedEpisodeRetrievalProducer>,
     staged: bool,
     current: [Vec<u8>; 3],
     candidate: Vec<u8>,
@@ -212,7 +212,7 @@ fn prepare(
     budget(gear)?;
     Ok(InstalledBack::EpisodeRetrievalProducer(
         EpisodeRetrievalProducerBack {
-            producer: PreparedEpisodeRetrievalProducer::prepare(),
+            producer: Box::new(PreparedEpisodeRetrievalProducer::prepare()),
             staged: false,
             current: core::array::from_fn(|_| Vec::with_capacity(4096)),
             candidate: Vec::with_capacity(4096),

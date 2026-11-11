@@ -17,7 +17,7 @@ fn prepared_back() -> EpisodeRetrievalProducerBack {
     let mut producer = PreparedEpisodeRetrievalProducer::prepare();
     producer.admit_context(&context()).unwrap();
     EpisodeRetrievalProducerBack {
-        producer,
+        producer: Box::new(producer),
         staged: false,
         current: core::array::from_fn(|_| Vec::with_capacity(4096)),
         candidate: Vec::with_capacity(4096),
