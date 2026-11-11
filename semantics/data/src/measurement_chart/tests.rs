@@ -166,7 +166,13 @@ fn bounds_are_explicit_and_one_chart_input_is_authored_with_title() {
     let mut profiles = conduit_plot::ProfileCatalog::new();
     crate::install_measurement_chart_catalog(&mut startup, &mut profiles).unwrap();
     let document = conduit_plot::parse_syntax_document(
-        "plot chart (chart: MeasurementChart...| >>) { show: face/measurement-chart(title = \"Conditions\") chart >> show.chart }",
+        r#"plot chart (
+    >> chart: MeasurementChart...|
+) {
+    show: face/measurement-chart(title = "Conditions")
+    chart >> show.chart
+}"#,
     );
-    assert!(conduit_plot::check_syntax_document(&document, &startup).is_ok());
+    conduit_plot::check_syntax_document(&document, &startup)
+        .unwrap_or_else(|diagnostic| panic!("{diagnostic:?}"));
 }
