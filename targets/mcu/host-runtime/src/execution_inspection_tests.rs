@@ -150,3 +150,72 @@ fn carrier_failure_preserves_observed_execution() {
     assert_eq!(state.fragments[0].get().last, Some(event));
     assert_eq!(state.fragments[0].get().completions, 1);
 }
+
+#[test]
+fn control_refusal_is_bounded_independent_and_clears_without_allocations() {
+    struct Long;
+    impl fmt::Debug for Long {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            f.write_str("x")?;
+            for _ in 0..40 {
+                f.write_str("界")?;
+            }
+            Ok(())
+        }
+    }
+    let state = State::<3>::from_digest([4; 32]);
+    for fragment in [0, 2] {
+        state
+            .record(
+                fragment,
+                KernelEvent {
+                    sequence: fragment as u32 + 1,
+                    node: NodeId(fragment as u16),
+                    port: None,
+                    request: Some(RequestId(fragment as u32 + 1)),
+                    kind: KernelEventKind::HostCallCompleted,
+                },
+            )
+            .unwrap();
+    }
+    state.observe(0, Observation::Drained).unwrap();
+    state.observe_refusal(1, "renderer", &"original").unwrap();
+    let mut before = [0; RESPONSE_BYTES];
+    let n = state.encode(b"?", &mut before).unwrap();
+    let before: serde_json::Value = serde_json::from_slice(&before[..n]).unwrap();
+    let mut refused = [0; RESPONSE_BYTES];
+    let mut cleared = [0; RESPONSE_BYTES];
+    let ((n, m), cost) = crate::member_return_tests::return_allocation_probe::observe(|| {
+        state.observe_control_refusal("member-return", &Long);
+        let n = state.encode(b"?", &mut refused).unwrap();
+        state.clear_control_refusal();
+        let m = state.encode(b"?", &mut cleared).unwrap();
+        (n, m)
+    });
+    assert_eq!((cost.allocation_attempts, cost.reallocations), (0, 0));
+    let report: serde_json::Value = serde_json::from_slice(&refused[..n]).unwrap();
+    assert_eq!(report["control_refusal"]["phase"], "member-return");
+    assert_eq!(report["control_refusal"]["truncated"], true);
+    let text = report["control_refusal"]["error"].as_str().unwrap();
+    assert!(text.len() <= REFUSAL_BYTES);
+    assert!(text.ends_with('界'));
+    for field in [
+        "fragments",
+        "append",
+        "custody_sha256",
+        "start",
+        "assurance",
+    ] {
+        assert_eq!(report[field], before[field]);
+    }
+    let cleared: serde_json::Value = serde_json::from_slice(&cleared[..m]).unwrap();
+    assert!(cleared["control_refusal"].is_null());
+    assert_eq!(cleared, before);
+    let original_fields = core::mem::size_of::<Cell<AppendInspection>>()
+        + 32
+        + 3 * core::mem::size_of::<Cell<Observed>>()
+        + 3 * core::mem::size_of::<Cell<Option<RefusalDetail>>>();
+    let slot = core::mem::size_of::<Cell<Option<RefusalDetail>>>();
+    std::println!("control-inspection abi_pointer_bytes={} state3_bytes={} original_fields_bytes={} control_slot_bytes={}",core::mem::size_of::<usize>(),core::mem::size_of::<State<3>>(),original_fields,slot);
+    assert!(slot <= 128);
+}

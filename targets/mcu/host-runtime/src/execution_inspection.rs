@@ -50,6 +50,20 @@ struct RefusalDetail {
     length: u8,
     truncated: bool,
 }
+impl RefusalDetail {
+    fn formatted(phase: &'static str, error: &impl fmt::Debug) -> Self {
+        let mut detail = Self {
+            phase,
+            text: [0; REFUSAL_BYTES],
+            length: 0,
+            truncated: false,
+        };
+        if write!(&mut detail, "{error:?}").is_err() {
+            detail.truncated = true;
+        }
+        detail
+    }
+}
 impl fmt::Write for RefusalDetail {
     fn write_str(&mut self, value: &str) -> fmt::Result {
         if self.truncated {
@@ -91,6 +105,7 @@ pub struct State<const F: usize> {
     custody: [u8; 32],
     fragments: [Cell<Observed>; F],
     refusals: [Cell<Option<RefusalDetail>>; F],
+    control_refusal: Cell<Option<RefusalDetail>>,
 }
 impl<const F: usize> State<F> {
     pub fn new(started: &StartedEvidence) -> Self {
@@ -102,6 +117,7 @@ impl<const F: usize> State<F> {
             custody,
             fragments: core::array::from_fn(|_| Cell::new(Observed::default())),
             refusals: core::array::from_fn(|_| Cell::new(None)),
+            control_refusal: Cell::new(None),
         }
     }
     /// Call synchronously from the original kernel observer. Re-reading the
@@ -150,17 +166,18 @@ impl<const F: usize> State<F> {
         error: &impl fmt::Debug,
     ) -> Result<(), Refusal> {
         let slot = self.refusals.get(fragment).ok_or(Refusal::Fragment)?;
-        let mut detail = RefusalDetail {
-            phase,
-            text: [0; REFUSAL_BYTES],
-            length: 0,
-            truncated: false,
-        };
-        if write!(&mut detail, "{error:?}").is_err() {
-            detail.truncated = true;
-        }
-        slot.set(Some(detail));
+        slot.set(Some(RefusalDetail::formatted(phase, error)));
         Ok(())
+    }
+    /// Record an actual control-plane refusal independently of every fragment.
+    /// This unsigned slot never changes actor conditions or execution custody.
+    pub fn observe_control_refusal(&self, phase: &'static str, error: &impl fmt::Debug) {
+        self.control_refusal
+            .set(Some(RefusalDetail::formatted(phase, error)));
+    }
+    /// Clear only after the caller observes a successful control transaction.
+    pub fn clear_control_refusal(&self) {
+        self.control_refusal.set(None);
     }
     /// Serialize only fixed retained observations. Legacy [S,fragment,event]
     /// inspection can retrieve last-slot ordinal0; older slots are unavailable.
@@ -197,6 +214,7 @@ impl<const F: usize> State<F> {
             fragments: &fragments,
             selected,
             append: self.append.get(),
+            control_refusal: self.control_refusal.get(),
         };
         serde_json_core::to_slice(&report, output).map_err(|_| Refusal::Capacity)
     }
@@ -210,6 +228,7 @@ struct Report<'a, const F: usize> {
     fragments: &'a Fragments<'a, F>,
     selected: Option<Selected>,
     append: AppendInspection,
+    control_refusal: Option<RefusalDetail>,
 }
 #[derive(Serialize)]
 struct Fragment {
