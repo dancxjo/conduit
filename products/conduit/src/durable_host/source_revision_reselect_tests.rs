@@ -287,3 +287,35 @@ fn reselection_refuses_unrecovered_owner_and_admission_journals() {
     }
     fs::remove_dir_all(state.parent().unwrap()).unwrap();
 }
+
+#[test]
+fn reselection_accepts_pre_adoption_basis_only_when_file_matches_current_workset() {
+    let (state, installation, mut selection, mut request) = fixture();
+    let extra =
+        conduit_body::ResidentPlot::new("source/previous".into(), "checked/previous".into());
+    let mut predecessor = selection.expected.clone();
+    let admitted = predecessor
+        .body
+        .admit_plot(extra.clone(), "sign/predecessor/admit".into())
+        .unwrap();
+    let sequence = predecessor.records.last().unwrap().sequence + 1;
+    predecessor
+        .append_body_lifecycle_events(admitted, &[("sign/predecessor/admit".into(), sequence)])
+        .unwrap();
+    let mut current = predecessor.clone();
+    let committed = current
+        .body
+        .remove_plot(&extra, "sign/current/remove".into())
+        .unwrap();
+    current
+        .append_body_lifecycle_events(committed, &[("sign/current/remove".into(), sequence + 1)])
+        .unwrap();
+    assert_ne!(predecessor.body.workset, current.body.workset);
+    selection.expected = predecessor;
+    let original = serde_json::to_vec(&selection).unwrap();
+    request.original_policy_sha256 = digest(&original);
+    request.expected = current.clone();
+    let (candidate, _) = candidate(&original, &request, &installation, &current).unwrap();
+    verify_capture_and_workset(&candidate, SOURCE).unwrap();
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}

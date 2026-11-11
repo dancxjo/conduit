@@ -38,7 +38,6 @@ fn candidate(
         || installation.release_bundle_sha256 != request.installed_release_bundle_sha256
         || selection.release_bundle_sha256 == installation.release_bundle_sha256
         || selection.expected.body_id != current.body_id
-        || selection.expected.body.workset != current.body.workset
         || &request.expected != current
     {
         return Err("Source re-selection release, Body basis or committed workset changed".into());
@@ -61,6 +60,8 @@ fn candidate(
     let mut original_installation = installation.clone();
     original_installation.release_bundle_sha256 = request.previous_release_bundle_sha256.clone();
     validate_selection(&selection, &original_installation)?;
+    // expected was the pre-adoption CAS basis; it need not have the new workset.
+    // The unchanged captured File must still check to CURRENT committed work below.
     selection.release_bundle_sha256 = installation.release_bundle_sha256.clone();
     selection.expected = current.clone();
     selection.admissions.clear();
