@@ -22,3 +22,8 @@ installation remains separate work under #6295.
 regressions cover all enabled/brightness controls, six mapped registers,
 canonical driver Type and finite length/padding, invalid brightness and zero
 recurring allocations. They do not claim physical delivery.
+
+The `no_std` default supplies only static, build-derived Frame preparation.
+The optional `packets` feature adds the prepared Source expression evaluator;
+it is not retained by Frame-only MCU producers. Electrical ownership remains
+with `conduit-tm1637-wire`. This package has no environmental dependency.

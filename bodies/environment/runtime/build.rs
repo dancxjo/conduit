@@ -1,9 +1,6 @@
 //! Check the authored protocol Types and Forms once on the build host.
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
-mod build_display;
-#[path = "build/display_frame.rs"]
-mod display_frame;
 #[path = "build/sampling_extents.rs"]
 mod sampling_extents;
 fn main() {
@@ -39,7 +36,6 @@ fn main() {
             .unwrap(),
     )
     .unwrap();
-    build_display::emit(&out);
     let recording = "../profiles/recording.conduit";
     println!("cargo:rerun-if-changed={recording}");
     let syntax = parse_syntax_document(&fs::read_to_string(recording).unwrap());

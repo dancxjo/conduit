@@ -300,6 +300,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "conduit-tm1637-protocol",
  "conduit-typed-retention",
 ]
 
@@ -558,6 +559,14 @@ dependencies = [
  "conduit-kernel",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-tm1637-protocol"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
 ]
 
 [[package]]
