@@ -176,6 +176,76 @@ fn two_boots_rebuild_native_and_fore_preserving_all_static_records() {
     }
 }
 #[test]
+fn unchanged_placement_keeps_canonical_fore_across_fresh_boots() {
+    let mut bytes = fixture(true);
+    let fore = fore("placement/unchanged");
+    let connection = assigned_local_fore_connection(
+        fore.direction,
+        fore.front_port,
+        fore.placement,
+        fore.gear_port,
+    );
+    let mut at = ASSIGNED_PLAN_HEADER_BYTES;
+    while at < bytes.len() {
+        let length = usize::from(read_u16(&bytes, at + 1).unwrap());
+        if bytes[at] == ASSIGNED_CORD {
+            bytes[at + 5..at + 21].copy_from_slice(&connection.0);
+        }
+        at += 3 + length;
+    }
+    seal(&mut bytes);
+    let digest = assigned_local_projection_template_digest(&bytes, maxima()).unwrap();
+    let template = AssignedLocalProjectionTemplate::check(&bytes, &digest, maxima()).unwrap();
+    for boot in ["boot/one", "boot/two"] {
+        let mut output = vec![0; bytes.len()];
+        template
+            .instantiate(header(boot), &[native(boot)], &[fore], &mut output)
+            .unwrap();
+        let cord = AssignedPlanRecords::new(&output)
+            .unwrap()
+            .map(Result::unwrap)
+            .find(|record| record.tag == ASSIGNED_CORD)
+            .unwrap();
+        assert_eq!(read_identity(cord.payload, 2).unwrap(), connection);
+        assert_eq!(read_identity(&output, 64).unwrap(), id(boot));
+        assert_eq!(
+            assigned_local_projection_template_digest(&output, maxima()).unwrap(),
+            digest
+        );
+    }
+    // Fresh Boot alone cannot substitute a different named endpoint.
+    for invalid in [
+        FreshAssignedFore {
+            front_port: "wrong-front",
+            ..fore
+        },
+        FreshAssignedFore {
+            endpoint: 99,
+            ..fore
+        },
+    ] {
+        let mut output = vec![0x5a; bytes.len()];
+        assert_eq!(
+            template.instantiate(
+                header("boot/new"),
+                &[native("boot/new")],
+                &[invalid],
+                &mut output
+            ),
+            Err(ProjectionTemplateRefusal::Bindings)
+        );
+        assert!(output.iter().all(|byte| *byte == 0x5a));
+    }
+    let mut stale = header("boot/new");
+    stale.boot = id("old-boot");
+    let mut output = vec![0x5a; bytes.len()];
+    assert_eq!(
+        template.instantiate(stale, &[native("boot/new")], &[fore], &mut output),
+        Err(ProjectionTemplateRefusal::FreshScope)
+    );
+    assert!(output.iter().all(|byte| *byte == 0x5a));
+}
+#[test]
 fn absent_duplicate_extra_wrong_scope_and_short_output_refuse_atomically() {
     let bytes = fixture(true);
     let digest = assigned_local_projection_template_digest(&bytes, maxima()).unwrap();

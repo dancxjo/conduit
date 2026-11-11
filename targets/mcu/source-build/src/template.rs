@@ -277,6 +277,10 @@ fn debug(error: impl core::fmt::Debug) -> String {
 }
 
 #[cfg(test)]
+#[path = "template_continuation_tests.rs"]
+mod continuation_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     #[test]
@@ -426,6 +430,7 @@ mod tests {
             layout.maxima,
         )
         .unwrap();
+        super::continuation_tests::assert_unchanged_fore(&layout, &host, &restarted);
         assert_eq!(layout.records, later.records);
         assert_eq!(layout.configurations, later.configurations);
         assert!(!layout.configurations.is_empty());

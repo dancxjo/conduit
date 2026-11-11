@@ -279,6 +279,8 @@ fn fore_slot<'a>(
     let slot = matches.next().ok_or(ProjectionTemplateRefusal::Bindings)?;
     let input = payload[18] == 1;
     let local = if input { 24 } else { 19 };
+    // Canonical Fore names include placement but no Boot. An unchanged checked
+    // placement preserves its connection; header/native checks enforce freshness.
     if matches.next().is_some()
         || slot.endpoint != crate::read_u16(&record, 0)?
         || slot.direction
@@ -293,12 +295,6 @@ fn fore_slot<'a>(
         || [slot.front_port, slot.placement, slot.gear_port]
             .iter()
             .any(|s| s.is_empty() || s.len() > 4096)
-        || assigned_local_fore_connection(
-            slot.direction,
-            slot.front_port,
-            slot.placement,
-            slot.gear_port,
-        ) == crate::read_identity(payload, 2)?
     {
         return Err(ProjectionTemplateRefusal::Bindings);
     }
