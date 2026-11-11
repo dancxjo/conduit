@@ -29,7 +29,7 @@ fn plan(host: &HostAdvertisement) -> Result<Plan, String> {
 }"#;
     let checked =
         conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("{e:?}"))?;
     let expanded =
         conduit_plot::expand_canonical_plot_for_authoring(&checked, "projection", &profiles)
             .map_err(|e| e.to_string())?;
