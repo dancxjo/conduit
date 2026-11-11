@@ -236,6 +236,9 @@ fn run_fixture(fixture: Vec<Exchange>, delays: &[u64], expected_address: u8, exp
             },
         )
         .unwrap();
+    // Match production: the owned plan must survive retirement of its inputs.
+    drop(placements);
+    drop(hosts);
     let mut configuration = PreparedPureProtocolPipe::prepare(
         usb_configuration_decode_package().unwrap(),
         "usb-configuration-decode",

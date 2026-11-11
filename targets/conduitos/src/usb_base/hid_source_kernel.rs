@@ -121,6 +121,10 @@ impl PreparedUsbSourceKernel {
                 return Err(Error::Unsupported);
             }
         }
+        // Owners retain their admitted values. The borrowed preparation view
+        // is finished; retire its temporary routing graph before the kernel
+        // creates its own lowering and operation storage.
+        drop(lowered);
         let mut registry = KernelOperationRegistry::new();
         registry
             .install(crate::filter_host_call::FilterOperationFactory::default())
