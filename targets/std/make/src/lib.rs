@@ -6,7 +6,11 @@ use conduit_host_make::{
 use std::collections::BTreeMap;
 
 mod builder;
+mod cpu_initialization;
 mod creche_initialization;
+pub use cpu_initialization::{
+    cpu_initialization_contract, CheckedCpuInitialization, CPU_BASE_KIND, CPU_IMPLEMENTATION,
+};
 #[cfg(target_os = "linux")]
 mod linux_builder;
 mod microphone_initialization;
@@ -129,8 +133,19 @@ fn package_catalog() -> PackageCatalogContribution {
             text_file_initialization::metadata(write),
         );
     }
+    for offer in [
+        conduit_std_offers::measurement_plot_std_offer(),
+        conduit_std_offers::measurement_chart_face_std_offer(1)
+            .expect("finite metadata descriptor"),
+    ] {
+        implementations.insert(
+            offer.implementation.implementation_id.as_str().into(),
+            cpu_initialization::operation_metadata(&offer),
+        );
+    }
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (CPU_IMPLEMENTATION.into(), cpu_initialization_contract()),
             (
                 conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION.into(),
                 text_file_initialization_contract(),
@@ -266,6 +281,7 @@ impl HostMakePackage for HostedMakePackage {
             offers: text_file_initialization::offers()
                 .into_iter()
                 .chain(vec![
+                    cpu_initialization::offer(),
                     creche_initialization::offer(),
                     source_check_initialization::offer(),
                     tls_listener_initialization::offer(),

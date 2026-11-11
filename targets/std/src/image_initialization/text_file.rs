@@ -149,12 +149,14 @@ impl StdHost {
     ) -> Result<Self, String> {
         conduit_host_make::verify_configuration_image(checked, image, catalog)?;
         let text_file = PreparedImageTextFile::prepare(&config, image, checked, parameters)?;
+        let cpu = super::cpu::prepare(&config, image, checked)?;
         Self::from_selected_initial_bases(
             config,
             image,
             catalog,
             InitialBases {
                 text_file: Some(text_file),
+                cpu,
                 ..InitialBases::default()
             },
         )

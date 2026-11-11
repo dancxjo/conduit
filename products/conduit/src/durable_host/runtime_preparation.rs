@@ -299,6 +299,30 @@ fn prepare_runtime_with_composition(
                     output,
                 );
             }
+            if installation
+                .selected_host_configuration
+                .as_ref()
+                .map(|selection| selection.has_cpu_initialization())
+                .transpose()?
+                .unwrap_or(false)
+            {
+                if creche_factory.is_some() {
+                    return Err(
+                        "CPU and Crèche require a combined checked initial construction".into(),
+                    );
+                }
+                let checked = installation
+                    .selected_host_configuration
+                    .as_ref()
+                    .ok_or("CPU lost selected Source")?
+                    .checked()?;
+                return StdHost::from_selected_timer_and_cpu_image(
+                    config,
+                    image,
+                    &conduit_workspace_make::catalog(),
+                    &checked,
+                );
+            }
             #[cfg(target_os = "linux")]
             if let Some(parameters) = installation
                 .selected_host_configuration

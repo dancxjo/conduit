@@ -1,0 +1,12 @@
+host raspberry-pi-5-measurement-cpu {
+  schema = 1
+  target = {architecture: "aarch64", machine: "raspberry-pi-5-model-b-rev-1.1-8gb", board: "raspberry-pi-5-model-b-rev-1.1-8gb", os: "linux"}
+  base = {kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}
+  base = {kind: "compute/cpu", implementation: "hosted/cpu-64@1", initialization: {pointer_bits: 64, memory_pool: "memory/measurement", memory_bytes: 2097152}}
+  capability = {kind: "time/tick", pinned_implementation: "std/kernel-time-tick@2"}
+  capability = {kind: "data/measurement-plot", pinned_implementation: "std/measurement-plot@1"}
+  capability = {kind: "face/measurement-chart", pinned_implementation: "std/measurement-chart-face@1"}
+  need = {id: "timer/main", class: "conduit.resource/timer-slot@1", slots: 8, bytes: 512}
+  need = {id: "memory/measurement", class: "conduit.resource/runtime-memory@1", slots: 2097152, bytes: 2097152}
+  limits = {static_memory_bytes: 16777216, heap_arena_bytes: 67108864, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}
+}

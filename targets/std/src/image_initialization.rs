@@ -9,7 +9,11 @@ use conduit_host_make::{
 };
 use std::{collections::BTreeSet, io::Write};
 
+mod cpu;
 mod creche;
+#[cfg(all(test, target_os = "linux", target_pointer_width = "64"))]
+pub(crate) use cpu::test_fixture as cpu_image_test_fixture;
+pub(crate) use cpu::{prepare as prepare_cpu_from_configuration, InitialCpu};
 #[cfg(target_os = "linux")]
 mod text_file;
 use creche::prepare_creche_entry;
@@ -23,6 +27,7 @@ const MAXIMUM_TIMER_POOLS: usize = 16;
 
 #[derive(Default)]
 struct InitialBases<'a> {
+    cpu: Option<InitialCpu>,
     #[cfg(target_os = "linux")]
     text_file: Option<PreparedImageTextFile>,
     creche: Option<ResourceOffer>,
@@ -158,15 +163,18 @@ impl StdHost {
                 creche: None,
                 memory: None,
                 text_file: None,
+                cpu: None,
             },
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn from_selected_source_initial_bases<'a>(
         config: StdHostConfig,
         image: &HostImage,
         catalog: &MakeCatalog,
         source: crate::selected_native_source::InitialNativeSource<'a>,
+        cpu: Option<InitialCpu>,
         creche: Option<ResourceOffer>,
         memory: Option<crate::kernel_preparation::StagedImageMemory<'a>>,
         #[cfg(target_os = "linux")] text_file: Option<PreparedImageTextFile>,
@@ -179,6 +187,7 @@ impl StdHost {
                 #[cfg(target_os = "linux")]
                 text_file,
                 source: Some(source),
+                cpu,
                 creche,
                 memory,
                 #[cfg(all(target_os = "linux", feature = "linux-display"))]
@@ -235,6 +244,14 @@ impl StdHost {
         if let Some(text) = &initial.text_file {
             expected_implementations.insert(text.entry.implementation_id.as_str().into());
         }
+        if let Some(cpu) = &initial.cpu {
+            expected_implementations.extend(
+                cpu.entry
+                    .capabilities
+                    .iter()
+                    .map(|offer| offer.implementation.implementation_id.as_str().to_owned()),
+            );
+        }
         if initial.creche.is_some() {
             expected_implementations.insert(CRECHE_IMPLEMENTATION.into());
         }
@@ -279,7 +296,11 @@ impl StdHost {
             .collect::<Vec<_>>();
         if timer.len() != 1
             || manifest.base_selections.iter().any(|base| {
-                !{
+                !initial.cpu.as_ref().is_some_and(|cpu| {
+                    cpu.entry.base_id.as_str() == base.id
+                        && cpu.entry.mechanism_family.as_str() == base.kind
+                        && cpu.entry.implementation_id.as_str() == base.driver
+                }) && !{
                     #[cfg(target_os = "linux")]
                     {
                         initial.text_file.as_ref().is_some_and(|text| {
@@ -324,6 +345,7 @@ impl StdHost {
                 > MAXIMUM_TIMER_POOLS
                     + usize::from(initial.creche.is_some())
                     + usize::from(initial.has_text_file())
+                    + usize::from(initial.cpu.is_some())
                     + usize::from(initial.has_scanout())
                     + 2 * usize::from(initial.has_native_mask())
                     + initial
@@ -337,6 +359,13 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
+            if initial
+                .cpu
+                .as_ref()
+                .is_some_and(|cpu| cpu.entry.resources[0].pool_id.as_str() == budget.id)
+            {
+                continue;
+            }
             #[cfg(target_os = "linux")]
             if initial
                 .text_file
@@ -429,6 +458,15 @@ impl StdHost {
             initialized_base_kinds.insert("display/scanout".into());
             initialized_driver_kinds.insert("display/linear-framebuffer@1".into());
         }
+        if let Some(cpu) = &initial.cpu {
+            registry
+                .register(cpu.entry.clone())
+                .map_err(|error| format!("selected CPU registry: {error:?}"))?;
+            candidates.push(cpu.entry.clone());
+            ready_resource_classes.insert(RUNTIME_MEMORY_RESOURCE_CLASS.into());
+            initialized_base_kinds.insert(cpu.entry.mechanism_family.as_str().into());
+            initialized_driver_kinds.insert(cpu.entry.implementation_id.as_str().into());
+        }
         if let Some(source) = &initial.source {
             let entry = &source.definition.base;
             registry
@@ -488,6 +526,10 @@ impl StdHost {
         }
         #[allow(unused_mut)]
         let mut expected_capabilities = 1
+            + initial
+                .cpu
+                .as_ref()
+                .map_or(0, |cpu| cpu.entry.capabilities.len())
             + usize::from(initial.creche.is_some())
             + usize::from(initial.has_text_file())
             + mask_capabilities.len()

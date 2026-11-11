@@ -43,3 +43,5 @@ pub fn catalog() -> MakeCatalog {
 mod graphical_host_tests;
 
 pub use conduit_host_hosted::{CheckedTextFileInitialization, TEXT_FILE_BASE_KIND};
+
+pub use conduit_host_hosted::{CheckedCpuInitialization, CPU_BASE_KIND, CPU_IMPLEMENTATION};

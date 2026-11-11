@@ -58,6 +58,7 @@ impl Selection {
                 && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
                 && !(source_prepared && base.kind == "creche/encounter")
                 && base.kind != conduit_workspace_make::TEXT_FILE_BASE_KIND
+                && base.kind != conduit_workspace_make::CPU_BASE_KIND
             {
                 return Err(
                     "selected IMAGE cannot initialize this physical equipment or Crèche provider"
@@ -84,6 +85,19 @@ impl Selection {
             return Err("selected scanout requires the Seed's checked IMAGE".into());
         }
         conduit_workspace_make::CheckedScanoutInitialization::from_configuration(&checked).map(Some)
+    }
+    pub(super) fn has_cpu_initialization(&self) -> Result<bool, String> {
+        let checked = self.checked()?;
+        if !checked
+            .configuration()
+            .bases
+            .iter()
+            .any(|base| base.kind == conduit_workspace_make::CPU_BASE_KIND)
+        {
+            return Ok(false);
+        }
+        conduit_workspace_make::CheckedCpuInitialization::from_configuration(&checked)?;
+        Ok(true)
     }
     #[cfg(target_os = "linux")]
     pub(super) fn text_file_parameters(
@@ -216,6 +230,11 @@ impl Selection {
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     host.attach_whisper_clip_recognizer(recognition::initialize(initialization)?)?;
                 }
+                Some(conduit_workspace_make::CPU_IMPLEMENTATION) => {
+                    return Err(
+                        "selected CPU profile requires its checked IMAGE before Boot".into(),
+                    );
+                }
                 Some(
                     conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION
                     | conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION,
@@ -269,6 +288,9 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                     conduit_workspace_make::CheckedSourceCheckInitialization::from_configuration(
                         &checked,
                     )?;
+                }
+                Some(conduit_workspace_make::CPU_IMPLEMENTATION) => {
+                    conduit_workspace_make::CheckedCpuInitialization::from_configuration(&checked)?;
                 }
                 #[cfg(target_os = "linux")]
                 Some(
