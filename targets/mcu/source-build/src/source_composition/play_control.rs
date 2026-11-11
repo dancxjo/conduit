@@ -52,10 +52,14 @@ impl<'a, 's> ReturnControl<'a, 's> {
         // 1024 image hashes + 1280 credential text + 1792 one grant row. All
         // owners reserve fallibly. This extra headroom is an early check, not a
         // substitute for fallible refusal or whole-device peak qualification.
+        // Use that bounded request sum here: a larger advisory threshold can
+        // refuse an otherwise funded return after the retained Face is populated.
+        // Allocator overhead, fragmentation and other actors still require the
+        // fallible reservations below; this guard reserves no memory.
         let available = crate::runtime::remaining();
-        if available < 8 * 1024 {
+        if available < 4096 {
             return Err(ReturnRefusal::Headroom {
-                required: 8 * 1024,
+                required: 4096,
                 available,
             });
         }
