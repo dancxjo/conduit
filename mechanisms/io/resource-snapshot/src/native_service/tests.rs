@@ -184,3 +184,24 @@ fn report_complete_service_inline_and_retained_heap_charges() {
         owner.retained_backing_bytes().unwrap() > owner.ready.retained_backing_bytes().unwrap()
     );
 }
+
+use crate::append::tests::allocation_probe;
+
+#[test]
+fn prepared_append_read_and_exact_retries_allocate_nothing() {
+    let (mut owner, _) = fixture(false);
+    let record = [42; 200];
+    let index = c::encode_count(0);
+    let mut output = [0; crate::read_result::READ_RESULT_BYTES];
+    let (_, observation) = allocation_probe::observe(|| {
+        let len = owner.invoke(NodeId(3), HostCallId(1), RequestId(0), &record, &mut output).unwrap();
+        assert_eq!(owner.invoke(NodeId(3), HostCallId(1), RequestId(0), &record, &mut output).unwrap(), len);
+        owner.acknowledge_kernel_completion(NodeId(3), HostCallId(1), RequestId(0), &output[..len]).unwrap();
+        let len = owner.invoke(NodeId(3), HostCallId(0), RequestId(1), &index, &mut output).unwrap();
+        assert_eq!(owner.invoke(NodeId(3), HostCallId(0), RequestId(1), &index, &mut output).unwrap(), len);
+        assert_eq!(crate::read_result::decode(&output[..len]).unwrap(), ReadResult::Recorded { index: 0, captured_end: 1, record: &record });
+        owner.acknowledge_kernel_completion(NodeId(3), HostCallId(0), RequestId(1), &output[..len]).unwrap();
+    });
+    assert_eq!(observation.allocation_attempts, 0, "{observation:?}");
+    assert_eq!(observation.reallocations, 0, "{observation:?}");
+}

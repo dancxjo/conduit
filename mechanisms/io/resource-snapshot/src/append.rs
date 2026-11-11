@@ -288,4 +288,4 @@ impl<S: NorStorage> PreparedNorRecordResidence<S> {
     }
 }
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

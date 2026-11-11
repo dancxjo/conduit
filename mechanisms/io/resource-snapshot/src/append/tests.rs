@@ -1,7 +1,7 @@
 use super::*;
 use alloc::{vec, vec::Vec};
 #[path = "../../../../../architecture/plot/tests/common/allocation_probe.rs"]
-mod allocation_probe;
+pub(crate) mod allocation_probe;
 mod read_window_tests;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;

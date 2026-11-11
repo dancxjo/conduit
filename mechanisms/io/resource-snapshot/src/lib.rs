@@ -20,3 +20,6 @@ mod tests;
 
 #[cfg(feature = "native-host-call")]
 pub mod native_append;
+
+#[cfg(feature = "native-host-call")]
+pub mod native_service;
