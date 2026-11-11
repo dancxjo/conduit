@@ -69,7 +69,11 @@ cargo xtask check pete-cognition
 cargo xtask check pete-cognition-live
 ```
 
-The live check uses installed Ollama models on loopback. The proof supplies
+The live check uses installed Ollama models on loopback. The typed-frame tests
+accept `CONDUIT_PETE_LIVE_MODEL` and `CONDUIT_PETE_LIVE_MEMORY_MIB` to select an
+already installed model and its explicit memory admission; their defaults remain
+`gemma3:latest` and 6144 MiB. Model answer quality is configuration-specific, and
+these options change neither the assertions nor the cognition bounds. The proof supplies
 frame inputs through the Fore. The [resumable Plot](../pete-cognition-resumable/README.md)
 also exercises a Body and Wake checkpoint across a replacement Host Boot,
 Plan, and Play.

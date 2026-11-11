@@ -839,9 +839,15 @@ fn ollama_episode_model() -> Box<dyn conduit_std_host::hosted_local_model::Hoste
     use conduit_ai::LocalModelKindProfile;
     use conduit_std_host::hosted_local_model::OllamaDiscovery;
 
-    let adapter = OllamaDiscovery::discover_at("http://127.0.0.1:11434", "gemma3:latest")
+    let model = std::env::var("CONDUIT_PETE_LIVE_MODEL").unwrap_or_else(|_| "gemma3:latest".into());
+    let memory_mib = std::env::var("CONDUIT_PETE_LIVE_MEMORY_MIB")
+        .unwrap_or_else(|_| "6144".into())
+        .parse()
+        .expect("CONDUIT_PETE_LIVE_MEMORY_MIB must be an integer");
+    println!("Live Pete model: {model}; admitted memory: {memory_mib} MiB");
+    let adapter = OllamaDiscovery::discover_at("http://127.0.0.1:11434", &model)
         .unwrap()
-        .initialize(6144, vec![LocalModelKindProfile::GenerateFlow])
+        .initialize(memory_mib, vec![LocalModelKindProfile::GenerateFlow])
         .unwrap();
     Box::new(adapter)
 }
