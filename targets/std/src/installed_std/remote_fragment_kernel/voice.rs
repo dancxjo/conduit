@@ -70,6 +70,7 @@ impl InstalledRemoteFragment {
                     contract,
                     placement,
                     input,
+                    (self.vision_active_play_id.as_str(), request.request),
                     local_model.as_mut().map(|adapter| {
                         &mut **adapter
                             as &mut (dyn crate::hosted_local_model::HostedLocalModelAdapter

@@ -13,6 +13,9 @@ fn prove(challenge: &PartReturnChallenge, key: &SpawnInvitationSecret) -> PartRe
     }
 }
 
+#[path = "member_return/replacement.rs"]
+mod replacement;
+
 #[test]
 fn current_member_offers_follow_authenticated_commit_not_membership_alone() {
     let (mut owner, root) = owner_fixture();

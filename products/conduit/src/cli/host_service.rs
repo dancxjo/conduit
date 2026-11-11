@@ -28,6 +28,13 @@ pub(crate) enum HostServiceCommand {
         #[arg(long)]
         state_dir: PathBuf,
     },
+    /// Explicitly recheck retained File preparation for the installed release; never adopts Source.
+    ReselectSource {
+        /// Reviewed old policy/release digests and exact current Body basis.
+        request: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
     /// Verify and install one reviewed release bundle without replacing durable identity.
     Install {
         manifest: PathBuf,

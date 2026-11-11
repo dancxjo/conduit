@@ -46,6 +46,7 @@ mod composition_test_offers;
 #[cfg(feature = "confined-gear")]
 pub mod confined_gear;
 mod copy_task;
+mod current_sampling;
 mod deadline_reactor;
 #[cfg(feature = "local-model-proof")]
 pub mod distributed_house_plan;
@@ -53,6 +54,7 @@ pub mod distributed_signal;
 pub mod distributed_toggle;
 pub mod numerical_fore;
 mod numerical_host;
+mod pure_filter_installation;
 pub mod relay_client;
 pub mod remote_emergency;
 #[cfg(target_os = "linux")]
@@ -159,6 +161,7 @@ pub mod hosted_wav_artifact;
 #[cfg(test)]
 mod image_binding_tests;
 mod installed_std;
+pub use installed_std::hosted_frame_back::HostedFrameBack;
 pub mod llm_spoken_mask;
 #[cfg(all(
     feature = "native-model-backing",
@@ -220,6 +223,7 @@ pub use kernel_preparation::{
     RegionServiceConfig, RegionServiceRetirement, RegionWorkerCommand, RegionWorkerError,
     RegionWorkerEvidence, RegionWorkerReply,
 };
+pub mod episode_checkpoint;
 mod kernel_signal;
 mod local_model_observation;
 mod local_model_pool_member;
@@ -326,6 +330,7 @@ pub struct StdKernelExecutionReport {
     pub logical_invocations: u64,
     pub kernel_events: u16,
     pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
+    pub debug_history: Option<conduit_kernel::debug_observation::HostedDebugHistory>,
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
     pub face_ids: Vec<conduit_core::FaceId>,
@@ -544,6 +549,7 @@ pub struct StdHost {
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<hosted_midi::MidiOutputSelection>,
     local_model: Option<Box<dyn hosted_local_model::HostedLocalModelAdapter>>,
+    hosted_frame: Option<HostedFrameBack>,
     speech_recognition: Option<hosted_speech_recognition::WhisperSpeechAdapter>,
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     base_registry: conduit_core::BaseRegistry,
@@ -625,6 +631,13 @@ fn add_local_model_offers(
     advertisement.capabilities.extend([
         conduit_std_offers::house_prompt_std_offer(),
         conduit_std_offers::body_chat_prompt_std_offer(),
+        conduit_std_offers::episode_compose_offer(),
+        conduit_std_offers::episode_experience_compose_offer(),
+        conduit_std_offers::episode_recall_experience_offer(),
+        conduit_std_offers::episode_model_context_offer(),
+        conduit_std_offers::episode_experience_integration_offer(),
+        conduit_std_offers::episode_retain_offer(),
+        conduit_std_offers::episode_memory_offer(),
         conduit_std_offers::model_result_to_text_std_offer(),
         conduit_std_offers::model_result_flow_to_text_std_offer(),
         conduit_std_offers::generated_chunk_to_text_std_offer(),
@@ -909,6 +922,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -988,6 +1002,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry,
@@ -1011,6 +1026,43 @@ impl StdHost {
             #[cfg(unix)]
             terminal_attachment: None,
         })
+    }
+
+    /// Initialize a model Host with one additional pure application Back.
+    pub fn new_with_local_model_and_frame_back(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
+        back: HostedFrameBack,
+    ) -> Result<Self, String> {
+        let mut host = Self::new_with_local_model_capabilities(
+            config,
+            composition,
+            adapter,
+            vec![back.offer().clone()],
+        )?;
+        host.hosted_frame = Some(back);
+        Ok(host)
+    }
+
+    /// Initialize a replacement model Host with an exact Episode State seed.
+    pub fn new_with_local_model_frame_and_episode_checkpoint(
+        config: StdHostConfig,
+        composition: StdHostComposition,
+        adapter: Box<dyn hosted_local_model::HostedLocalModelAdapter>,
+        back: HostedFrameBack,
+        checkpoint: &[u8],
+    ) -> Result<Self, String> {
+        let memory = conduit_std_offers::episode_resumable_memory_offer(checkpoint)
+            .map_err(|error| format!("episode checkpoint: {error:?}"))?;
+        let mut host = Self::new_with_local_model_capabilities(
+            config,
+            composition,
+            adapter,
+            vec![back.offer().clone(), memory],
+        )?;
+        host.hosted_frame = Some(back);
+        Ok(host)
     }
 
     pub fn new_with_local_model(
@@ -1043,6 +1095,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: Some(adapter),
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1097,6 +1150,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1151,6 +1205,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1205,6 +1260,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1244,6 +1300,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1307,6 +1364,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1365,6 +1423,7 @@ impl StdHost {
             midi_input: None,
             midi_output: Some(midi_output),
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1412,6 +1471,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
@@ -1472,6 +1532,7 @@ impl StdHost {
             midi_input: None,
             midi_output: None,
             local_model: None,
+            hosted_frame: None,
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),

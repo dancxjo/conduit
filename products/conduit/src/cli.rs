@@ -474,6 +474,15 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         authorize_route: bool,
     },
+    /// Select a standing contact policy; fresh finite evidence and authentication remain required.
+    MemberContact {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        descriptor: PathBuf,
+        #[arg(long)]
+        authorize_route: bool,
+    },
     /// Return an existing member using its private continuity key and actual running Boot.
     Return {
         #[arg(long)]
@@ -485,6 +494,9 @@ pub(crate) enum BodyCommand {
     },
     /// Expose a finite signed-return entrance for one existing member.
     MemberRoute {
+        /// Keep a one-connection contact service; each returned encounter still expires.
+        #[arg(long)]
+        continuing: bool,
         #[arg(long)]
         state_dir: PathBuf,
         /// Public credential selects Body/Part/Host; possession is proved separately.

@@ -416,3 +416,9 @@ pub(crate) use member_return::{
 #[path = "durable_body_join_route/return_client.rs"]
 mod return_client;
 pub(crate) use return_client::{return_installed_member, return_on_actual_host};
+
+#[path = "durable_body_join_route/member_contact.rs"]
+mod member_contact;
+pub(crate) use member_contact::{install_member_contact, serve_body_member_contact};
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+pub(crate) use member_contact::{load_and_resolve_member_contact, reconnect_delay};

@@ -2,7 +2,10 @@
 //! Local control authenticates the caller; the continuity signature authenticates
 //! the member. A route or public credential alone cannot attach a Part.
 use super::{state, Owner};
-use conduit_body::{MembershipCredential, PartReturnChallenge, PartReturnProof};
+use conduit_body::{
+    AuthenticatedHostObservation, BodyLifecycleSession, MembershipCredential, PartReturnChallenge,
+    PartReturnProof,
+};
 use conduit_core::HostAdvertisement;
 use std::{
     path::Path,
@@ -12,6 +15,7 @@ use std::{
 pub(super) struct PendingMemberReturn {
     challenge: PartReturnChallenge,
     prior: MembershipCredential,
+    prior_attachment: Option<AuthenticatedHostObservation>,
     completed: Option<(PartReturnProof, MembershipCredential)>,
     advertisement: HostAdvertisement,
     deadline: Instant,
@@ -20,6 +24,55 @@ pub(super) struct PendingMemberReturn {
 }
 
 impl Owner {
+    /// Conditional replacement is preparation only. The real attachment stays
+    /// current until its continuity key proves the exact new Boot and the
+    /// combined retirement/return commits. Transport loss alone is not leave.
+    fn member_return_preparation(
+        &self,
+        prior: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+    ) -> Result<(BodyLifecycleSession, Option<AuthenticatedHostObservation>), String> {
+        let latest = self.admissions.as_ref().and_then(|manager| {
+            manager
+                .receipts
+                .iter()
+                .rev()
+                .find(|receipt| receipt.credential.part_id == prior.part_id)
+        });
+        if latest.is_none_or(|receipt| receipt.credential != *prior) {
+            return Err("member return credential is stale or unknown".into());
+        }
+        let attachment = self
+            .session
+            .evidence()
+            .membership
+            .parts
+            .iter()
+            .find(|part| part.part_id == prior.part_id)
+            .ok_or("member return Part absent")?
+            .current
+            .clone();
+        let mut next = self.session.clone();
+        if let Some(current) = &attachment {
+            if current.host_id != prior.host_id
+                || current.boot_id != prior.boot_id
+                || advertisement.host_id != prior.host_id
+                || advertisement.boot_id == current.boot_id
+            {
+                return Err("member return does not replace its prior Host Boot".into());
+            }
+            let authority = self.host.advertisement();
+            next.observe_host_lost(
+                &current.host_id,
+                &current.boot_id,
+                &authority.host_id,
+                &authority.boot_id,
+            )
+            .map_err(|error| format!("member return preparation: {error:?}"))?;
+        }
+        Ok((next, attachment))
+    }
+
     /// Release only this completed return slot after its signed durable receipt
     /// has been delivered. Retirement cannot attach a member or create offers.
     #[cfg(target_os = "linux")]
@@ -102,15 +155,8 @@ impl Owner {
             .admissions
             .clone()
             .ok_or("member return has no admission custody")?;
-        if manager
-            .receipts
-            .iter()
-            .rev()
-            .find(|receipt| receipt.credential.part_id == credential.part_id)
-            .is_none_or(|receipt| receipt.credential != *credential)
-        {
-            return Err("member return credential is stale or unknown".into());
-        }
+        let (basis, prior_attachment) =
+            self.member_return_preparation(credential, advertisement)?;
         let at = crate::durable_host::current_time_millis()?;
         let mut nonce = [0; 32];
         getrandom::fill(&mut nonce).map_err(|e| e.to_string())?;
@@ -118,7 +164,7 @@ impl Owner {
         // recreates it against current biography before any durable mutation.
         let challenge = manager
             .begin_return(
-                &self.session.evidence().membership,
+                &basis.evidence().membership,
                 &credential.part_id,
                 advertisement,
                 nonce,
@@ -131,6 +177,7 @@ impl Owner {
             challenge: challenge.clone(),
             advertisement: advertisement.clone(),
             prior: credential.clone(),
+            prior_attachment,
             completed: None,
             attempts: 0,
             presentation,
@@ -189,7 +236,11 @@ impl Owner {
             .admissions
             .clone()
             .ok_or("member return admission custody absent")?;
-        let mut next = self.session.clone();
+        let (mut next, attachment) =
+            self.member_return_preparation(&pending.prior, &pending.advertisement)?;
+        if attachment != pending.prior_attachment {
+            return Err("member return prior attachment changed".into());
+        }
         let challenge = manager
             .begin_return(
                 &next.evidence().membership,
@@ -245,6 +296,7 @@ impl Owner {
             pending.advertisement.clone(),
             grants,
         )?;
+        let prior = pending.prior.clone();
         state::retain_session(
             root,
             &mut next,
@@ -256,6 +308,7 @@ impl Owner {
         self.session = next;
         self.admissions = Some(manager);
         self.current_host_offers = offers;
+        self.retire_native_member_route(&prior);
         self.pending_member_return
             .as_mut()
             .ok_or("member return pending custody lost")?

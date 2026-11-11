@@ -1,0 +1,41 @@
+# Exact checkpoint Types before unsuccessful outcomes became retainable.
+
+type EpisodeObservation = {
+    identity: Text <= 64B not in [""]
+    content: Text <= 256B not in [""]
+    retain: Boolean
+}
+
+type EpisodeModelResponse = {
+    content: Text <= 512B not in [""]
+    implementation: Text <= 128B not in [""]
+    run: Text <= 128B not in [""]
+    truncated: Boolean
+}
+
+# One retained episode: observed evidence and model-derived response stay apart.
+type EpisodeMemory = {
+    episode: U64
+    evidence: Text <= 4096B?
+    observation: EpisodeObservation
+    response: EpisodeModelResponse
+}
+
+type EpisodeRecall = sequence EpisodeMemory <= 4
+
+# The explicit memory cell's Current: how many episodes have completed and the
+# bounded selected memories retained from them.
+type EpisodeMemoryOwner =
+    unbound
+    | bound {
+        body_id: Text <= 256B not in [""]
+        wake_id: Text <= 256B not in [""]
+        wake_sequence: U64
+    }
+
+type EpisodeMemoryState = {
+    completed: U64
+    memories: EpisodeRecall
+    owner: EpisodeMemoryOwner
+    where (.completed == 0) == (.owner is unbound)
+}

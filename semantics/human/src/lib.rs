@@ -57,31 +57,43 @@ mod generated {
 pub use generated::{
     ChordInfo, ChordPhase, ChordPhaseForm, ControlChordModifier, CoreChordId, CoreChordIdForm,
     CurrentExperienceInspectionError, CurrentExperienceProjection, ExperienceAvailability,
-    ExperienceBodyInput, ExperienceCertainty, ExperienceDomain, ExperienceHumanInput,
-    ExperienceHypothesisInput, ExperienceInferenceInput, ExperienceMemoryInput, ExperienceOrigin,
-    ExperienceRefusal, ExperienceRelationKind, ExperienceSourceRefusal, ExperienceSourceStatus,
-    ExperienceTemporalPolicy, ExperienceTemporalRefusal, ExperienceTemporalRole,
-    ExperienceUpdateRefusal, GamepadState, HumanMediaKind, ImageObservationReference,
-    ImageObservationRefusal, ImageRegion, ImageTextContentDigest, ImageTextMetadata,
-    ImageTextMetadataEntries, ImageTextRecord, ImageTextRefusal, InputAxisSlot, InputAxisSlots,
-    InputAxisState, InputButtonPhase, InputButtonSlot, InputButtonSlots, InputButtonState,
-    InputButtonTransition, InputPressure, InputPressurePolicy, InputSurfacePoint,
-    InputSurfaceVector, InteractionApplicationOutcome, InteractionApplicationOutcomeAccepted,
-    InteractionApplicationOutcomeFailed, InteractionApplicationOutcomeRefused,
-    InteractionBoundKind as BoundKind, InteractionCanonicalBytes, InteractionFamily,
-    InteractionFamilyChooseMany, InteractionFamilyChooseOne, InteractionFamilyRelativeAdjustment,
-    InteractionFamilyScalar, InteractionFamilyStructured, InteractionFamilyText,
-    InteractionProposalPayload, InteractionRefusal, InteractionTypeDigest, InteractionValue,
-    InteractionValueKind, InteractionValues, KeyEvent, KeyModifiers, KeyTransition,
-    KeyTransitionForm, KeymapDisposition, KeymapRefusal, OptionAvailability,
-    OptionAvailabilityUnavailable, PointerEvent, RealizationRangePolicy, RotaryDirection,
-    RotaryStep, ScalarQuantization, SourceAvailability, TextFragment, TouchContact,
-    TouchContactPhase, TouchContactSlot, TouchContacts, TouchFrame, VisualEvidenceClass,
-    VisualExperienceRefusal, VisualExperienceRelationKind, VisualImpressionDisposition,
-    VisualImpressionDispositionTruncated, VisualImpressionRefusal, VisualObservationRefusal,
+    ExperienceBodyInput, ExperienceCertainty, ExperienceDomain, ExperienceEvidenceContent,
+    ExperienceEvidenceContext, ExperienceEvidenceIdentities, ExperienceEvidenceIdentity,
+    ExperienceEvidenceItem, ExperienceEvidenceItems, ExperienceEvidenceRefusal,
+    ExperienceEvidenceRequest, ExperienceEvidenceSelection, ExperienceEvidenceSource,
+    ExperienceEvidenceSourceImplementationRun, ExperienceEvidenceSources, ExperienceHumanInput,
+    ExperienceHypothesisInput, ExperienceInferenceInput, ExperienceIntegrationInput,
+    ExperienceMemoryInput, ExperienceOrigin, ExperienceRefusal, ExperienceRelationKind,
+    ExperienceSourceRefusal, ExperienceSourceStatus, ExperienceTemporalPolicy,
+    ExperienceTemporalRefusal, ExperienceTemporalRole, ExperienceUpdateRefusal, GamepadState,
+    HumanMediaKind, ImageObservationReference, ImageObservationRefusal, ImageRegion,
+    ImageTextContentDigest, ImageTextMetadata, ImageTextMetadataEntries, ImageTextRecord,
+    ImageTextRefusal, InputAxisSlot, InputAxisSlots, InputAxisState, InputButtonPhase,
+    InputButtonSlot, InputButtonSlots, InputButtonState, InputButtonTransition, InputPressure,
+    InputPressurePolicy, InputSurfacePoint, InputSurfaceVector, InteractionApplicationOutcome,
+    InteractionApplicationOutcomeAccepted, InteractionApplicationOutcomeFailed,
+    InteractionApplicationOutcomeRefused, InteractionBoundKind as BoundKind,
+    InteractionCanonicalBytes, InteractionFamily, InteractionFamilyChooseMany,
+    InteractionFamilyChooseOne, InteractionFamilyRelativeAdjustment, InteractionFamilyScalar,
+    InteractionFamilyStructured, InteractionFamilyText, InteractionProposalPayload,
+    InteractionRefusal, InteractionTypeDigest, InteractionValue, InteractionValueKind,
+    InteractionValues, KeyEvent, KeyModifiers, KeyTransition, KeyTransitionForm, KeymapDisposition,
+    KeymapRefusal, OptionAvailability, OptionAvailabilityUnavailable, PointerEvent,
+    RealizationRangePolicy, RotaryDirection, RotaryStep, ScalarQuantization, SourceAvailability,
+    TextFragment, TouchContact, TouchContactPhase, TouchContactSlot, TouchContacts, TouchFrame,
+    VisualEvidenceClass, VisualExperienceRefusal, VisualExperienceRelationKind,
+    VisualImpressionDisposition, VisualImpressionDispositionTruncated, VisualImpressionRefusal,
+    VisualObservationRefusal,
+};
+pub use generated::{
+    ExperienceEvidenceInstant, ExperienceEvidenceRelationship, ExperienceEvidenceRelationships,
 };
 
 mod current_experience;
+mod experience_evidence_input;
+mod experience_integration;
+pub use experience_evidence_input::*;
+pub use experience_integration::*;
 mod current_experience_trace;
 mod experience_observation;
 mod experience_sources;

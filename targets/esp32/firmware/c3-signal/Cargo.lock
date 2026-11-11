@@ -258,6 +258,7 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-face",
+ "conduit-human",
  "conduit-net",
  "conduit-plot",
  "conduit-text",
@@ -410,6 +411,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+ "conduit-time",
  "serde",
  "sha2",
  "unicode-normalization",

@@ -80,6 +80,7 @@ impl BodyLiveForeQueue {
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            fragment_id: None,
             port: (*port).clone(),
             maximum_items,
             control,

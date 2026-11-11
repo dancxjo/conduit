@@ -979,6 +979,7 @@ pub struct HostedSignLog {
     remote_len: u16,
     remote_used_bytes: u32,
     retention_gap: Option<SignRetentionGap>,
+    debug_observer: Option<alloc::boxed::Box<dyn debug_observation::HostedDebugObserver>>,
 }
 
 #[cfg(feature = "alloc")]
@@ -1026,7 +1027,35 @@ impl HostedSignLog {
             remote_len: 0,
             remote_used_bytes: 0,
             retention_gap: None,
+            debug_observer: None,
         })
+    }
+
+    pub fn attach_debug_history<const N: usize, const P: usize, const R: usize>(
+        &mut self,
+        bindings: [debug_observation::DebugNodeBinding; N],
+        history: debug_observation::DebugObservationBuffer<R>,
+    ) -> Result<(), debug_observation::DebugObservationRefusal> {
+        use debug_observation::{DebugObservationRefusal, ObservedSignSink};
+
+        if self.debug_observer.is_some() {
+            return Err(DebugObservationRefusal::ObserverAlreadyAttached);
+        }
+        let inner = FixedSignLog::<1>::new(size_of::<KernelEvent>() as u32)
+            .expect("one Sign fits in a one-Sign log");
+        let mut observer = ObservedSignSink::<_, N, P, R>::detached(
+            inner,
+            history.execution(),
+            bindings,
+            [[None; P]; N],
+        );
+        observer.attach(history)?;
+        self.debug_observer = Some(alloc::boxed::Box::new(observer));
+        Ok(())
+    }
+
+    pub fn debug_history(&self) -> Option<debug_observation::HostedDebugHistory> {
+        self.debug_observer.as_ref()?.history()
     }
 
     pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
@@ -1051,8 +1080,15 @@ impl HostedSignLog {
 #[cfg(feature = "alloc")]
 impl SignSink for HostedSignLog {
     fn requires_canonical_debug_values(&self) -> bool {
-        false
+        self.debug_observer.is_some()
     }
+
+    fn observe_debug(&mut self, event: debug_observation::DebugRuntimeEvent<'_>) {
+        if let Some(observer) = &mut self.debug_observer {
+            observer.observe(event);
+        }
+    }
+
     fn item_capacity(&self) -> u16 {
         u16::try_from(self.entries.len()).unwrap_or(u16::MAX)
     }

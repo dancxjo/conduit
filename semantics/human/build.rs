@@ -1,5 +1,8 @@
 mod keymap_layout_build;
-use conduit_plot::rust_binding::{generate_rust_bindings_with_forms, RustBindingOptions};
+use conduit_plot::rust_binding::{
+    generate_rust_bindings_with_forms_and_external_bindings,
+    semantic_core::StructuredInfoTypeShape, ExternalNativeRustBinding, RustBindingOptions,
+};
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{collections::BTreeMap, env, fs, path::PathBuf};
 
@@ -15,14 +18,28 @@ fn main() {
             ),
         )
         .expect("resource references are one exact portable leaf");
+    let temporal_instant =
+        conduit_time::NativeTemporalInstant::semantic_type().expect("temporal instant Type checks");
+    let StructuredInfoTypeShape::Record { schema, .. } = temporal_instant.shape() else {
+        panic!("temporal instant has one named record identity");
+    };
+    let temporal_identity = schema.as_str().to_owned();
+    catalog
+        .insert_structured_type("TemporalInstant", temporal_instant.clone())
+        .expect("temporal instant Type installs once");
     let checked = check_syntax_document(
         &parse_syntax_document(include_str!("types.conduit")),
         &catalog,
     )
     .expect("human semantic Types must check");
-    let generated = generate_rust_bindings_with_forms(
+    let generated = generate_rust_bindings_with_forms_and_external_bindings(
         &checked.native_types,
         &checked.type_forms,
+        &[temporal_instant],
+        &[ExternalNativeRustBinding {
+            semantic_identity: &temporal_identity,
+            rust_type_path: "conduit_time::NativeTemporalInstant",
+        }],
         &RustBindingOptions {
             derive_serde_for_variants: true,
             // Fixed admitted input slots retain inline payloads during Play.
@@ -35,6 +52,8 @@ fn main() {
             .into(),
             serde_record_types: ["InputSurfacePoint".into(), "InteractionValue".into()].into(),
             serde_variant_exclusions: [
+                "ExperienceEvidenceSource".into(),
+                "ExperienceEvidenceInstant".into(),
                 "ChordInfo".into(),
                 "ControlChordModifier".into(),
                 "CurrentExperienceInspectionError".into(),

@@ -60,6 +60,7 @@ impl StdHost {
                     output: output_adapter,
                     sequential: true,
                     stream: Some(config),
+                    live: None,
                 }),
                 spoken_mask: None,
                 direct_spoken_mask: None,

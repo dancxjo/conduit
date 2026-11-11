@@ -18,6 +18,16 @@ use carriage::{admit_selected_member, return_selected_member, submit_selected_pl
 
 const SELECTION_FILE: &str = "source-check-selection.json";
 
+#[cfg(target_os = "linux")]
+#[path = "source_revision_reselect.rs"]
+mod reselection;
+#[cfg(target_os = "linux")]
+pub(crate) use reselection::reselect;
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn reselect(_state_dir: &Path, _request: &Path) -> Result<(), String> {
+    Err("selected bounded Source compiler requires Linux".into())
+}
+
 /// Explicit operator review of one finite transition. This document is consumed
 /// only by the local stopped-service entrance, never through network control.
 #[derive(Clone, Serialize, Deserialize)]

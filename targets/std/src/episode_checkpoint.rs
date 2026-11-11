@@ -1,0 +1,155 @@
+//! Hosted residence for the committed checkpoint Fore of an episode Plot.
+use crate::state_value::{DurableStateBinding, FileDurableStateResidence, RecoveryDisposition};
+use conduit_body::BodyConversationContext;
+use conduit_chat::{
+    decode_episode_checkpoint, episode_checkpoint_v1_type, episode_checkpoint_v2_type,
+    episode_memory_state_type, initial_episode_memory, migrate_episode_checkpoint_v1,
+    migrate_episode_checkpoint_v2, EpisodeMemoryOwner, MAXIMUM_EPISODE_CHECKPOINT_BYTES,
+};
+use std::path::Path;
+
+/// An application-selected Body and Wake journal. The Plot and scheduler
+/// remain responsible for producing each committed checkpoint.
+pub struct EpisodeCheckpointResidence {
+    journal: FileDurableStateResidence,
+    wake: String,
+    wake_sequence: u64,
+}
+
+impl EpisodeCheckpointResidence {
+    pub fn open(root: &Path, context: &BodyConversationContext) -> Result<Self, String> {
+        let wake = context.wake_id.as_str().to_owned();
+        let journal = FileDurableStateResidence::open_prepared(
+            root,
+            DurableStateBinding {
+                body: context.body_id.as_str().into(),
+                state: format!("body/episode-checkpoint/{wake}").into(),
+                value_kind: episode_memory_state_type()
+                    .profile()
+                    .map_err(|error| format!("episode memory profile: {error:?}"))?
+                    .value_kind()
+                    .clone(),
+                maximum_value_bytes: MAXIMUM_EPISODE_CHECKPOINT_BYTES as u32,
+            },
+            MAXIMUM_EPISODE_CHECKPOINT_BYTES as u32,
+        )
+        .map_err(|error| format!("open episode residence: {error:?}"))?;
+        let residence = Self {
+            journal,
+            wake,
+            wake_sequence: context.wake_sequence,
+        };
+        if matches!(
+            residence
+                .journal
+                .recover_value()
+                .map_err(|error| format!("recover episode checkpoint: {error:?}"))?
+                .0,
+            RecoveryDisposition::Absent
+        ) {
+            residence.migrate_previous(root)?;
+        }
+        Ok(residence)
+    }
+
+    fn migrate_previous(&self, root: &Path) -> Result<(), String> {
+        type Migrate = fn(&[u8]) -> Result<Vec<u8>, conduit_chat::EpisodeRefusal>;
+        for (profile, migrate) in [
+            (
+                episode_memory_state_type(),
+                (|bytes: &[u8]| {
+                    decode_episode_checkpoint(bytes)?;
+                    Ok(bytes.to_vec())
+                }) as Migrate,
+            ),
+            (
+                episode_checkpoint_v2_type(),
+                migrate_episode_checkpoint_v2 as Migrate,
+            ),
+            (
+                episode_checkpoint_v1_type(),
+                migrate_episode_checkpoint_v1 as Migrate,
+            ),
+        ] {
+            let mut binding = self.journal.binding().clone();
+            // Previous current-schema and legacy-schema journals admitted 4 KiB.
+            binding.maximum_value_bytes = 4096;
+            binding.value_kind = profile
+                .profile()
+                .map_err(|error| format!("previous episode memory profile: {error:?}"))?
+                .value_kind()
+                .clone();
+            let previous = FileDurableStateResidence::open(root, binding)
+                .map_err(|error| format!("open previous episode residence: {error:?}"))?;
+            match previous
+                .recover_value()
+                .map_err(|error| format!("recover previous episode checkpoint: {error:?}"))?
+            {
+                (RecoveryDisposition::Absent, None) => continue,
+                (RecoveryDisposition::Recovered { generation }, Some(bytes)) => {
+                    let migrated = migrate(&bytes).map_err(|error| {
+                        format!("migrate previous episode checkpoint: {error:?}")
+                    })?;
+                    if self.generation(&migrated)? != generation {
+                        return Err(
+                            "previous checkpoint generation differs from its episode count".into(),
+                        );
+                    }
+                    return self
+                        .journal
+                        .import_generation(generation, &migrated)
+                        .map_err(|error| {
+                            format!("publish migrated episode checkpoint: {error:?}")
+                        });
+                }
+                _ => return Err("inconsistent previous episode checkpoint recovery".into()),
+            }
+        }
+        Ok(())
+    }
+
+    pub fn recover_seed(&self) -> Result<Vec<u8>, String> {
+        match self
+            .journal
+            .recover_value()
+            .map_err(|error| format!("recover episode checkpoint: {error:?}"))?
+        {
+            (RecoveryDisposition::Absent, None) => Ok(initial_episode_memory()),
+            (RecoveryDisposition::Recovered { generation }, Some(bytes)) => {
+                if self.generation(&bytes)? != generation {
+                    return Err("checkpoint generation differs from its episode count".into());
+                }
+                Ok(bytes)
+            }
+            _ => Err("inconsistent episode checkpoint recovery".into()),
+        }
+    }
+
+    pub fn commit(&self, checkpoint: &[u8]) -> Result<(), String> {
+        let generation = self.generation(checkpoint)?;
+        if generation == 0 {
+            if self.recover_seed()? != checkpoint {
+                return Err("empty episode checkpoint cannot replace committed history".into());
+            }
+        } else {
+            self.journal
+                .commit(generation, checkpoint)
+                .map_err(|error| format!("commit episode checkpoint: {error:?}"))?;
+        }
+        Ok(())
+    }
+
+    fn generation(&self, bytes: &[u8]) -> Result<u64, String> {
+        let state = decode_episode_checkpoint(bytes)
+            .map_err(|error| format!("invalid episode checkpoint: {error:?}"))?;
+        if let EpisodeMemoryOwner::Bound(owner) = state.owner() {
+            if owner.body_id() != &self.journal.binding().body
+                || owner.wake_id() != &self.wake
+                || *owner.wake_sequence() != self.wake_sequence
+            {
+                return Err("episode checkpoint belongs to a different Body or Wake".into());
+            }
+        }
+        Ok(*state.completed())
+    }
+}

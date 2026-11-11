@@ -54,6 +54,7 @@ pub(super) fn catalogs(
     conduit_face::install_geometry_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_experience_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_experience_evidence_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_purpose_catalogs(&mut startup, &mut profile)?;
     conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
     conduit_data::install_tabular_catalogs(&mut startup, &mut profile)?;
@@ -122,6 +123,12 @@ pub(super) fn catalogs(
     conduit_tongues::install_house_conversation_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_house_conversation_plot_catalog(&mut startup, &mut profile)?;
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
+    conduit_chat::install_episode_loop_catalog(&mut startup, &mut profile)?;
+    conduit_chat::install_episode_resumable_memory_catalog(
+        &conduit_chat::initial_episode_memory(),
+        &mut startup,
+        &mut profile,
+    )?;
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profile)?;
@@ -141,6 +148,31 @@ pub(super) fn catalogs(
     conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profile)?;
     conduit_face::install_spoken_mask_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;
+    conduit_pete::install_pete_cognition_catalog(&mut startup, &mut profile)?;
+    let experience = conduit_core::CheckedValueContract::new(
+        conduit_chat::episode_experience_type()
+            .profile()
+            .map_err(|error| format!("episode experience profile: {error:?}"))?
+            .value_kind()
+            .clone(),
+        conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES as u32,
+        Vec::new(),
+    )
+    .map_err(|error| format!("episode experience bound: {error:?}"))?;
+    let reflection =
+        conduit_core::CheckedValueContract::new(conduit_core::kind_id("value/u64"), 8, Vec::new())
+            .map_err(|error| format!("reflection trigger: {error:?}"))?;
+    conduit_semantic_catalog::install_current_sample_finite_kind(
+        &experience,
+        &reflection,
+        &mut startup,
+        &mut profile,
+    )?;
+    conduit_semantic_catalog::install_flow_coalesce_finite_kind(
+        &experience,
+        &mut startup,
+        &mut profile,
+    )?;
     conduit_pete::install_pete_memory_catalog(&mut startup, &mut profile)?;
     conduit_data::install_data_text_catalogs(&mut startup, &mut profile)?;
     startup.insert_value_kind_alias("SaveRequest", conduit_core::kind_id("data/save-request@1"))?;

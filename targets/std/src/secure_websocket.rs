@@ -4,13 +4,8 @@
 //! `C1-WS` carrier remains plaintext and loopback-only, while this listener
 //! requires operator-supplied TLS identity and an explicit network bind.
 
-use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
-use rustls::crypto::{verify_tls12_signature, verify_tls13_signature, WebPkiSupportedAlgorithms};
-use rustls::pki_types::{CertificateDer, PrivateKeyDer, ServerName, UnixTime};
-use rustls::{
-    CertificateError, ClientConfig, ClientConnection, DigitallySignedStruct, Error as TlsError,
-    ServerConfig, ServerConnection, SignatureScheme, StreamOwned,
-};
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+use rustls::{ServerConfig, ServerConnection, StreamOwned};
 use sha2::{Digest, Sha256};
 use std::fs::File;
 use std::io::{BufReader, ErrorKind, Read, Write};
@@ -19,11 +14,15 @@ use std::path::Path;
 use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::{Duration, Instant};
-use tungstenite::client::IntoClientRequest;
 use tungstenite::error::Error as TungsteniteError;
 use tungstenite::handshake::HandshakeError;
 use tungstenite::protocol::frame::coding::CloseCode;
 use tungstenite::protocol::{CloseFrame, Message, WebSocket, WebSocketConfig};
+
+mod client;
+#[cfg(test)]
+use client::PinnedServerCertificate;
+pub use client::SecureWebSocketClientLine;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum SecureWebSocketError {
@@ -173,9 +172,9 @@ pub struct SecureWebSocketLine {
     input_deadline_guard: Option<SocketDeadlineGuard>,
 }
 
-/// Enforce one absolute lifetime across accept, TLS/WebSocket handshake, and
-/// every later frame. The watchdog owns only a clone of this exact socket and
-/// is joined when the Line ends; it cannot affect another accepted Line.
+/// Enforce one absolute socket lifetime, including trickled input. The server
+/// retains it across accepted input; the client cancels and joins it after its
+/// connection handshake. It owns only a clone of this exact socket.
 struct SocketDeadlineGuard {
     cancel: mpsc::Sender<()>,
     watchdog: Option<thread::JoinHandle<()>>,
@@ -214,157 +213,6 @@ impl Drop for SocketDeadlineGuard {
         if let Some(watchdog) = self.watchdog.take() {
             let _ = watchdog.join();
         }
-    }
-}
-
-/// Native client for one descriptor-pinned authenticated TLS candidate.
-///
-/// The exact leaf certificate digest is the trust root for this finite
-/// rendezvous attempt. It neither grants Body membership nor replaces the
-/// one-use session proof exchanged above the encrypted carrier.
-pub struct SecureWebSocketClientLine {
-    socket: WebSocket<StreamOwned<ClientConnection, TcpStream>>,
-    maximum_message_bytes: usize,
-}
-
-impl SecureWebSocketClientLine {
-    pub fn connect_pinned(
-        address: SocketAddr,
-        url: &str,
-        server_identity: &str,
-        certificate_binding_sha256: [u8; 32],
-        timeout: Duration,
-        maximum_message_bytes: u32,
-    ) -> Result<Self, SecureWebSocketError> {
-        let maximum_message_bytes = usize::try_from(maximum_message_bytes)
-            .map_err(|_| SecureWebSocketError::InvalidConfiguration)?;
-        if maximum_message_bytes == 0
-            || timeout.is_zero()
-            || address.ip().is_unspecified()
-            || certificate_binding_sha256 == [0; 32]
-            || !url.starts_with("wss://")
-        {
-            return Err(SecureWebSocketError::InvalidConfiguration);
-        }
-        let request = url
-            .into_client_request()
-            .map_err(|_| SecureWebSocketError::InvalidConfiguration)?;
-        if request.uri().host() != Some(server_identity) {
-            return Err(SecureWebSocketError::InvalidConfiguration);
-        }
-        let server_name = ServerName::try_from(server_identity.to_owned())
-            .map_err(|_| SecureWebSocketError::InvalidConfiguration)?;
-        let provider = rustls::crypto::ring::default_provider();
-        let verifier = PinnedServerCertificate {
-            binding_sha256: certificate_binding_sha256,
-            supported: provider.signature_verification_algorithms,
-        };
-        let client_config = ClientConfig::builder_with_provider(provider.into())
-            .with_safe_default_protocol_versions()
-            .map_err(|_| SecureWebSocketError::Tls)?
-            .dangerous()
-            .with_custom_certificate_verifier(Arc::new(verifier))
-            .with_no_client_auth();
-        let stream = TcpStream::connect_timeout(&address, timeout)
-            .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
-        stream
-            .set_nodelay(true)
-            .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
-        stream
-            .set_read_timeout(Some(timeout))
-            .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
-        stream
-            .set_write_timeout(Some(timeout))
-            .map_err(|error| SecureWebSocketError::Transport(error.kind()))?;
-        let connection = ClientConnection::new(Arc::new(client_config), server_name)
-            .map_err(|_| SecureWebSocketError::Tls)?;
-        let tls = StreamOwned::new(connection, stream);
-        let (socket, _) = tungstenite::client::client_with_config(
-            url,
-            tls,
-            Some(bounded_config(maximum_message_bytes)?),
-        )
-        .map_err(|error| match error {
-            HandshakeError::Interrupted(_) | HandshakeError::Failure(_) => {
-                SecureWebSocketError::Handshake
-            }
-        })?;
-        Ok(Self {
-            socket,
-            maximum_message_bytes,
-        })
-    }
-
-    pub fn send_binary(&mut self, bytes: &[u8]) -> Result<(), SecureWebSocketError> {
-        if bytes.len() > self.maximum_message_bytes {
-            return Err(SecureWebSocketError::OversizedMessage);
-        }
-        self.socket
-            .send(Message::Binary(bytes.to_vec().into()))
-            .map_err(map_socket_error)
-    }
-
-    pub fn receive_binary(&mut self, output: &mut [u8]) -> Result<usize, SecureWebSocketError> {
-        receive_binary(&mut self.socket, self.maximum_message_bytes, output)
-    }
-
-    pub fn set_read_timeout(&self, timeout: Option<Duration>) -> Result<(), SecureWebSocketError> {
-        self.socket
-            .get_ref()
-            .sock
-            .set_read_timeout(timeout)
-            .map_err(|error| SecureWebSocketError::Transport(error.kind()))
-    }
-
-    pub fn close(&mut self) -> Result<(), SecureWebSocketError> {
-        close(&mut self.socket)
-    }
-}
-
-#[derive(Debug)]
-struct PinnedServerCertificate {
-    binding_sha256: [u8; 32],
-    supported: WebPkiSupportedAlgorithms,
-}
-
-impl ServerCertVerifier for PinnedServerCertificate {
-    fn verify_server_cert(
-        &self,
-        end_entity: &CertificateDer<'_>,
-        _intermediates: &[CertificateDer<'_>],
-        _server_name: &ServerName<'_>,
-        _ocsp_response: &[u8],
-        _now: UnixTime,
-    ) -> Result<ServerCertVerified, TlsError> {
-        let actual: [u8; 32] = Sha256::digest(end_entity.as_ref()).into();
-        if actual != self.binding_sha256 {
-            return Err(TlsError::InvalidCertificate(
-                CertificateError::ApplicationVerificationFailure,
-            ));
-        }
-        Ok(ServerCertVerified::assertion())
-    }
-
-    fn verify_tls12_signature(
-        &self,
-        message: &[u8],
-        certificate: &CertificateDer<'_>,
-        signed: &DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, TlsError> {
-        verify_tls12_signature(message, certificate, signed, &self.supported)
-    }
-
-    fn verify_tls13_signature(
-        &self,
-        message: &[u8],
-        certificate: &CertificateDer<'_>,
-        signed: &DigitallySignedStruct,
-    ) -> Result<HandshakeSignatureValid, TlsError> {
-        verify_tls13_signature(message, certificate, signed, &self.supported)
-    }
-
-    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
-        self.supported.supported_schemes()
     }
 }
 
