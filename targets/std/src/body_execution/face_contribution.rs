@@ -42,6 +42,7 @@ pub struct FaceContributionScope {
     node: NodeId,
     call: HostCallId,
     maximum_input_bytes: u32,
+    _memory: Option<crate::kernel_preparation::ImageMemoryLease>,
 }
 impl CommittedFaceContribution {
     pub fn scope(&self) -> &FaceContributionScope {
@@ -288,6 +289,7 @@ impl PendingFaceContributionRoute {
             node: context.node,
             call: context.call,
             maximum_input_bytes: required.maximum_input_bytes,
+            _memory: None,
         };
         Ok(Self {
             state: observation.0,
@@ -298,6 +300,18 @@ impl PendingFaceContributionRoute {
     }
     pub(crate) fn is_pending(&self) -> bool {
         self.pending.is_some()
+    }
+    pub(crate) fn attach_image_memory(
+        &mut self,
+        lease: &crate::kernel_preparation::ImageMemoryLease,
+    ) {
+        assert!(
+            self.pending.is_none(),
+            "IMAGE charge attaches before Face execution"
+        );
+        Arc::get_mut(&mut self.scope)
+            .expect("unstarted private Face scope")
+            ._memory = Some(lease.clone());
     }
     pub(crate) fn basis(&self) -> FaceContributionBasis {
         FaceContributionBasis {

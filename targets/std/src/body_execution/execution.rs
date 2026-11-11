@@ -78,7 +78,6 @@ impl StdHost {
                 || live.is_some()
                 || checkpoint.is_some()
                 || terminal.is_some()
-                || face_observer.is_some()
                 || creche.as_ref().is_some_and(|owner| !owner.image_prepared()))
         {
             return Err("selected IMAGE owned-memory profile supports qualified finite local Backs only; keyboard/activation/BodyTime attachments unsupported".into());
@@ -220,6 +219,11 @@ impl StdHost {
                 None,
             )
         };
+        let escaped_face_bytes = if selected_memory {
+            kernel.escaped_face_backing_bytes()?
+        } else {
+            0
+        };
         drop(plans);
         let result = (|| {
             let sequence = self.next_kernel_play_sequence;
@@ -338,7 +342,9 @@ impl StdHost {
         if let (Some(slot), Some(mut lease), Ok(report)) =
             (image_result.as_mut(), memory_lease.take(), result.as_ref())
         {
-            let bytes = crate::installed_std::body_kernel::memory::result_bytes(report)?;
+            let bytes = crate::installed_std::body_kernel::memory::result_bytes(report)?
+                .checked_add(escaped_face_bytes)
+                .ok_or("IMAGE escaped Face result charge overflow")?;
             lease.retain_result(bytes);
             **slot = Some(lease);
         }

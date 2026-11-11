@@ -69,7 +69,11 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
-        InstalledBack::MeasurementPlot(back) => Ok(back.retained_backing_bytes()),
+        InstalledBack::MeasurementPlot(back) => back
+            .retained_backing_bytes()
+            .checked_add(crate::hosted_measurement::measurement_plot_workspace_bytes() as usize)
+            .ok_or_else(|| "measurement projection prepared workspace overflow".into()),
+        InstalledBack::MeasurementChartFace(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::Creche(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::Inactive | InstalledBack::SelectedNativeSource(_) => Ok(0),
         _ => Err("IMAGE memory receipt lacks a complete owned Back accounting".into()),
@@ -81,6 +85,14 @@ impl BodyKernel<'_> {
         lease: &crate::kernel_preparation::ImageMemoryLease,
     ) {
         self.fore.attach_image_memory(lease);
+        if let Some(route) = &mut self.chart_face {
+            route.attach_image_memory(lease);
+        }
+    }
+    pub(crate) fn escaped_face_backing_bytes(&self) -> Result<usize, String> {
+        self.chart_face
+            .as_ref()
+            .map_or(Ok(0), |route| route.escaped_backing_bytes())
     }
     pub(crate) fn prepare_memory<T: TimerAdapter>(
         &mut self,
@@ -115,6 +127,7 @@ impl BodyKernel<'_> {
         let mut measurements = 0;
         let mut sources = 0;
         let mut creches = 0;
+        let mut chart_faces = 0;
         for (index, driver) in self.scheduler.drivers().iter().enumerate() {
             if matches!(driver, InstalledBack::SelectedNativeSource(_)) {
                 let route = self
@@ -143,6 +156,9 @@ impl BodyKernel<'_> {
                 )?;
                 creches += 1;
             }
+            if matches!(driver, InstalledBack::MeasurementChartFace(_)) {
+                chart_faces += 1;
+            }
             if matches!(driver, InstalledBack::MeasurementPlot(_)) {
                 measurements += 1;
             }
@@ -151,12 +167,15 @@ impl BodyKernel<'_> {
             }
             add(&mut bytes, back_bytes(driver)?)?;
         }
-        if sources > 1
+        if chart_faces > 1
+            || (self.chart_face.is_some() != (chart_faces == 1))
+            || (chart_faces == 1 && (creches != 0 || sources != 0 || ticks != 0))
+            || sources > 1
             || creches > 1
             || (creches == 1 && (ticks != 0 || sources != 0))
             || measurements > 1
             || (measurements == 1 && (ticks != 0 || sources != 0 || creches != 0))
-            || (ticks == 0 && sources == 0 && creches == 0 && measurements == 0)
+            || (ticks == 0 && sources == 0 && creches == 0 && measurements == 0 && chart_faces == 0)
             || (self.creche.is_some() != (creches == 1))
             || (self.native_source.is_some() != (sources == 1))
         {
@@ -166,13 +185,17 @@ impl BodyKernel<'_> {
         }
         add(
             &mut bytes,
-            if sources == 1 || creches == 1 || measurements == 1 {
+            if sources == 1 || creches == 1 || measurements == 1 || chart_faces == 1 {
                 self.fore.finite_one_shot_backing_bytes()
             } else {
                 self.fore.tick_backing_bytes()
             }
             .ok_or("IMAGE memory receipt does not support this Fore/input/live contract")?,
         )?;
+        if let Some(route) = &self.chart_face {
+            add(&mut bytes, route.additional_backing_bytes()?)?;
+            add(&mut bytes, route.escaped_backing_bytes()?)?;
+        }
         for host in &self.data_text_hosts {
             add(
                 &mut bytes,

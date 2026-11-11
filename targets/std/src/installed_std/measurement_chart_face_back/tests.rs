@@ -14,20 +14,37 @@ use conduit_core::{ConnectionTrack, HostAdvertisement, Plan, PortDirection, Stru
 use conduit_data::*;
 use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions};
 use std::collections::BTreeMap;
-const SOURCE: &str = r#"plot inspection/charts (
+const SOURCE: &str = concat!(
+    include_str!("../../../../../plots/measurement-inspection/main.conduit"),
+    r#"
+plot inspection/charts (
     >> chart: MeasurementChart...|
 ) {
-    view: face/measurement-chart(label = "Conditions", maximum-updates = 2)
+    view: measurement-inspection("Conditions", 2)
     chart >> view.chart
-}"#;
-fn planned(host: &HostAdvertisement) -> (BodyPlan, Wake) {
+}"#,
+);
+pub(super) fn planned(host: &HostAdvertisement) -> (BodyPlan, Wake) {
+    planned_source(host, SOURCE)
+}
+pub(super) fn planned_for_update_bound(host: &HostAdvertisement, maximum: u32) -> (BodyPlan, Wake) {
+    assert!((1..=4096).contains(&maximum));
+    planned_source(
+        host,
+        &SOURCE.replace(
+            "measurement-inspection(\"Conditions\", 2)",
+            &format!("measurement-inspection(\"Conditions\", {maximum})"),
+        ),
+    )
+}
+fn planned_source(host: &HostAdvertisement, source: &str) -> (BodyPlan, Wake) {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profiles)
         .unwrap();
     install_measurement_plot_catalog(&mut startup, &mut profiles).unwrap();
     let checked =
-        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(SOURCE), &startup)
+        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
             .unwrap();
     let expanded =
         conduit_plot::expand_canonical_plot_for_authoring(&checked, "inspection/charts", &profiles)
@@ -80,7 +97,7 @@ fn planned(host: &HostAdvertisement) -> (BodyPlan, Wake) {
         wake,
     )
 }
-fn input(value: i64) -> ExternalForeInput {
+pub(super) fn input(value: i64) -> ExternalForeInput {
     let entries = ["North", "South", "East", "West"]
         .into_iter()
         .map(|label| {
@@ -109,17 +126,17 @@ fn input(value: i64) -> ExternalForeInput {
         bytes,
     }
 }
-struct Outputs;
+pub(super) struct Outputs;
 impl BodyForeOutputAdapter for Outputs {
     fn deliver(&mut self, _: &ExternalForeDelivery) -> Result<(), String> {
         Err("inspection Plot declares no Fore output".into())
     }
 }
-struct Capture {
-    frames: Vec<CommittedFaceContribution>,
-    pressure: usize,
-    final_pressure: usize,
-    attempts: usize,
+pub(super) struct Capture {
+    pub(super) frames: Vec<CommittedFaceContribution>,
+    pub(super) pressure: usize,
+    pub(super) final_pressure: usize,
+    pub(super) attempts: usize,
 }
 impl BodyFaceContributionObserver for Capture {
     fn contribute(

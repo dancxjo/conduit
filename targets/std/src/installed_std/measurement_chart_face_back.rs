@@ -197,3 +197,7 @@ fn prepare(
 #[cfg(test)]
 #[path = "measurement_chart_face_back/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "measurement_chart_face_back/image_tests.rs"]
+mod image_tests;

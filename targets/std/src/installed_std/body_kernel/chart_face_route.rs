@@ -14,6 +14,7 @@ pub(super) struct ChartFaceRoute {
     node: conduit_kernel::NodeId,
     call: conduit_kernel::HostCallId,
     title: String,
+    maximum_updates: u32,
     route: PendingFaceContributionRoute,
     waiting: Option<HostCallRequest>,
 }
@@ -29,7 +30,23 @@ impl ChartFaceRoute {
             })
             .ok_or_else(|| "chart Face route backing overflow".into())
     }
-
+    pub(super) fn escaped_backing_bytes(&self) -> Result<usize, String> {
+        let per_frame = super::super::measurement_chart_face_back::maximum_fragment_backing_bytes()
+            .checked_add(core::mem::size_of::<
+                crate::body_execution::CommittedFaceContribution,
+            >())
+            .ok_or("chart Face escaped frame backing overflow")?;
+        per_frame
+            .checked_mul(self.maximum_updates as usize)
+            .and_then(|bytes| bytes.checked_add(self.route.additional_backing_bytes()?))
+            .ok_or_else(|| "chart Face finite escaped result backing overflow".into())
+    }
+    pub(super) fn attach_image_memory(
+        &mut self,
+        lease: &crate::kernel_preparation::ImageMemoryLease,
+    ) {
+        self.route.attach_image_memory(lease);
+    }
 }
 impl BodyKernel<'_> {
     pub(crate) fn attach_chart_face(
@@ -69,7 +86,7 @@ impl BodyKernel<'_> {
                 .flat_map(|f| &f.placements)
                 .find(|p| &p.placement_id == placement_id)
                 .ok_or("chart Face Source placement missing")?;
-            let (title, _) =
+            let (title, maximum_updates) =
                 super::super::measurement_chart_face_back::configuration(placement)?;
             let operation = self
                 .operations
@@ -101,6 +118,7 @@ impl BodyKernel<'_> {
                 node,
                 call: operation.call,
                 title: title.to_owned(),
+                maximum_updates,
                 route,
                 waiting: None,
             });

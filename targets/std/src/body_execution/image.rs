@@ -5,6 +5,7 @@ use crate::kernel_preparation::ImageMemoryLease;
 mod prepared;
 pub use prepared::{ImageMemoryRetention, ImagePreparedValue, ImageRootPreparation};
 mod creche;
+mod face;
 mod input;
 pub use input::ImageForeInput;
 
