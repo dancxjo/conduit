@@ -110,16 +110,7 @@ pub fn bind_assigned(
 ) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
     bind_mode(ready, plan, lowered, Some(projection), 1)
 }
-/// Explicit finite CPU Root budget, independent of received assignment bytes.
-pub fn bind_budget(
-    ready: ReadyPulseBase<Provider>,
-    plan: &Plan,
-    lowered: &LoweredPlanFragment,
-    operations: u32,
-) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
-    bind_mode(ready, plan, lowered, None, operations)
-}
-fn bind_mode(
+pub(super) fn bind_mode(
     ready: ReadyPulseBase<Provider>,
     plan: &Plan,
     lowered: &LoweredPlanFragment,

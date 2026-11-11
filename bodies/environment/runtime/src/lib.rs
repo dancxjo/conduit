@@ -3,7 +3,6 @@
 extern crate alloc;
 #[cfg(feature = "appliance")]
 pub mod appliance;
-mod canonical_input;
 mod canonical_storage;
 #[cfg(feature = "construction")]
 pub mod construction;
