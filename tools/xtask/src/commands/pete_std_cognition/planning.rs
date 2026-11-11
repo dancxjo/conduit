@@ -99,6 +99,7 @@ fn authoring_source(
 ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
+    conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
     conduit_chat::install_episode_loop_catalog(&mut startup, &mut profile)?;
