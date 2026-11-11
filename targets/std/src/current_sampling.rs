@@ -15,8 +15,11 @@ impl StdHost {
             &value.value_kind,
             value.maximum_bytes,
         );
+        let finite_current = conduit_std_offers::flow_coalesce_finite_offer(value);
         let mut advertisement = self.advertisement.clone();
-        advertisement.capabilities.extend([current, sample]);
+        advertisement
+            .capabilities
+            .extend([current, finite_current, sample]);
         crate::normalize_capability_offers(&mut advertisement.capabilities)?;
         let resources = KernelResourceLedger::new(&advertisement)?;
         self.advertisement = advertisement;

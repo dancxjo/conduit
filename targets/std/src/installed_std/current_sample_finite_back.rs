@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn finite_sampler_executes_exact_large_values_and_closes_without_an_extra_sample() {
-        let maximum = 65536;
+        let maximum = conduit_std_offers::CURRENT_SAMPLE_FINITE_MAXIMUM_BYTES;
         let value =
             conduit_core::CheckedValueContract::new(kind_id("value/bytes"), maximum, vec![])
                 .unwrap();
@@ -98,16 +98,16 @@ mod tests {
             &mut profile,
         )
         .unwrap();
-        conduit_semantic_catalog::install_flow_pressure_kind(
-            conduit_semantic_catalog::flow_coalesce_latest_contract(&value.value_kind, maximum),
+        conduit_semantic_catalog::install_flow_coalesce_finite_kind(
+            &value,
             &mut startup,
             &mut profile,
         )
         .unwrap();
         let checked = conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(
-            "plot finite-sample (\n >> data: SampleValue...\n >> ticks: SampleTick...|\n samples: SampleValue...| >>\n) {\n latest: flow/coalesce-latest\n sample: current/sample/finite\n data >> latest.in\n latest.out >> sample.current\n ticks >> sample.trigger\n sample.value >> samples\n}\n"
+            "plot finite-sample (\n >> data: SampleValue...| <= 128KiB\n >> ticks: SampleTick...| <= 8B\n samples: SampleValue...| <= 128KiB >>\n) {\n latest: flow/coalesce-latest-finite\n sample: current/sample/finite\n data >> latest.in\n latest.out >> sample.current\n ticks >> sample.trigger\n sample.value >> samples\n}\n"
         ), &startup).unwrap();
-        let mut expanded =
+        let expanded =
             conduit_plot::expand_canonical_plot_for_authoring(&checked, "finite-sample", &profile)
                 .unwrap();
         let mut host = crate::StdHost::new_with_config(crate::StdHostConfig {
@@ -140,14 +140,6 @@ mod tests {
             )
         })
         .collect();
-        // The fixture supplies the trigger envelope explicitly; primitive aliases
-        // do not add a bounded value contract to the authored Fore.
-        let mut contracts = expanded.front.value_contracts().to_vec();
-        contracts.push(conduit_core::FrontValueContract {
-            location: conduit_core::FrontValueLocation::Input(conduit_core::port_id("ticks")),
-            contract: trigger.clone(),
-        });
-        expanded.front = expanded.front.clone().with_value_contracts(contracts);
         let mut plan = conduit_planner::plan_expanded_authoring_with_options(
             &expanded,
             &hosts,
@@ -178,7 +170,7 @@ mod tests {
         let mut forged = gear.clone();
         forged.capability_id = "unselected/sampler".into();
         assert!(budget(&forged).is_err());
-        let payload = vec![0x5a; maximum as usize];
+        let payload = vec![0x5a; 65536];
         let inputs = [
             crate::ExternalForeInput {
                 front_port_id: "data".into(),
@@ -190,10 +182,15 @@ mod tests {
                 track: ConnectionTrack::Payload,
                 bytes: 1u64.to_le_bytes().to_vec(),
             },
+            crate::ExternalForeInput {
+                front_port_id: "ticks".into(),
+                track: ConnectionTrack::Payload,
+                bytes: 2u64.to_le_bytes().to_vec(),
+            },
         ];
         let mut samples = Samples::default();
         let report = host
-            .run_external_plot_to(
+            .run_external_plot_sequence_to(
                 fragment,
                 &inputs,
                 &mut samples,
@@ -201,7 +198,7 @@ mod tests {
                 &mut crate::ThreadTimer,
             )
             .unwrap();
-        assert_eq!(samples.0, vec![payload]);
+        assert_eq!(samples.0, vec![payload.clone(), payload]);
         assert!(matches!(
             &report.observations.last().unwrap().kind,
             conduit_core::ObservationKind::PlanTerminal {

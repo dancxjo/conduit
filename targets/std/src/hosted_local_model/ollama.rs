@@ -19,6 +19,7 @@ const REQUEST_TIMEOUT_SECONDS: &str = "120";
 const WARMUP_MAXIMUM_TOKENS: u64 = 8;
 
 mod discovery;
+mod generation_worker;
 mod protocol;
 mod request;
 mod runtime_state;
@@ -36,6 +37,7 @@ pub struct OllamaLocalModelAdapter {
     model_name: String,
     next_request_sequence: u64,
     active_stream: Option<super::ollama_stream::Session>,
+    generation_worker: Option<generation_worker::Worker>,
 }
 
 impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
@@ -73,6 +75,43 @@ impl HostedLocalModelAdapter for OllamaLocalModelAdapter {
             return Err("current provider version differs from initialized model profile".into());
         }
         Ok(state)
+    }
+
+    fn prepare_background_generation(&mut self, placements: &[PlannedGear]) -> Result<(), String> {
+        if let Some(mut previous) = self.generation_worker.take() {
+            self.next_request_sequence = previous.retire();
+        }
+        if placements
+            .iter()
+            .any(|p| p.kind_id.as_str() == conduit_ai::LLM_GENERATE_FLOW_KIND)
+        {
+            self.generation_worker = Some(generation_worker::Worker::prepare(self, placements)?);
+        }
+        Ok(())
+    }
+    fn begin_generation(
+        &mut self,
+        placement: &PlannedGear,
+        input: &[u8],
+        output: &mut Vec<u8>,
+    ) -> Option<LocalModelAdapterTerminal> {
+        output.clear();
+        self.generation_worker
+            .as_mut()
+            .map_or(Some(LocalModelAdapterTerminal::Refused), |worker| {
+                worker.begin(placement, input)
+            })
+    }
+    fn poll_generation(&mut self, output: &mut Vec<u8>) -> Option<LocalModelAdapterTerminal> {
+        let worker = self.generation_worker.as_mut()?;
+        let terminal = worker.poll(output);
+        self.next_request_sequence = worker.next_sequence;
+        terminal
+    }
+    fn cancel_generation(&mut self) {
+        if let Some(worker) = self.generation_worker.as_mut() {
+            worker.cancel();
+        }
     }
 
     fn execute(

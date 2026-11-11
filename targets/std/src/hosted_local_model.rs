@@ -44,6 +44,25 @@ pub enum LocalModelStreamStep {
 pub trait HostedLocalModelAdapter: Send {
     fn offer(&self) -> &conduit_ai::LocalModelOffer;
 
+    /// Prepare bounded effect storage before Play. This never advances a Gear.
+    fn prepare_background_generation(&mut self, _placements: &[PlannedGear]) -> Result<(), String> {
+        Ok(())
+    }
+
+    /// None leaves the exact kernel Host Call pending; it creates no new request.
+    fn begin_generation(
+        &mut self,
+        placement: &PlannedGear,
+        input: &[u8],
+        output: &mut Vec<u8>,
+    ) -> Option<LocalModelAdapterTerminal> {
+        Some(self.execute(placement, input, output))
+    }
+    fn poll_generation(&mut self, _output: &mut Vec<u8>) -> Option<LocalModelAdapterTerminal> {
+        Some(LocalModelAdapterTerminal::ProviderLost)
+    }
+    fn cancel_generation(&mut self) {}
+
     /// Refresh provider availability without changing the stable offer.
     fn current_pool_health(&self) -> conduit_core::PoolRealizationHealth {
         conduit_core::PoolRealizationHealth::Unavailable

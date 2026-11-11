@@ -88,6 +88,7 @@ mod keyboard_input_completion;
 mod keyboard_input_host;
 mod layout_backs;
 mod local_model_back;
+mod local_model_pending;
 mod local_vision_back;
 mod logic_backs;
 mod math_backs;
@@ -124,6 +125,7 @@ mod data_text_back;
 mod data_text_host;
 mod face_composition;
 mod face_construction_host;
+mod flow_coalesce_finite_back;
 mod flow_collect_back;
 mod flow_join_by_key_back;
 mod flow_zip_back;
@@ -317,7 +319,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         midi_input,
         midi_output,
         keyboard,
-        mut local_model,
+        local_model,
         mut vector_search,
         mut model_work,
         mut calendar,
@@ -759,6 +761,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         Vec::with_capacity(conduit_ai::MODEL_WORK_MAXIMUM_OUTPUT_BYTES as usize);
     let mut installed_model_work =
         model_work_pending::InstalledModelWorkHost::new(model_work.take());
+    let mut installed_local_model = local_model_pending::InstalledLocalModelHost::prepare(
+        local_model,
+        &fragment.placements,
+        active_play.active_play_id.as_str(),
+    )?;
     let mut local_model_output = Vec::with_capacity(conduit_ai::MAXIMUM_LLM_OUTPUT_BYTES as usize);
     let mut vector_search_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
@@ -955,6 +962,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         if accepted_stop.is_none() {
             if let Some(request_id) = control.requested_stop() {
                 installed_model_work.cancel_all();
+                installed_local_model.cancel_all();
                 if let Some(source) = native_call.as_mut() {
                     source.cancel();
                 }
@@ -1044,6 +1052,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if let Some(adapter) = &mut vector_search {
                     adapter.cancel();
                 }
+            } else if cancelled_operation.contract_id.as_str() == conduit_ai::LOCAL_MODEL_OPERATION
+            {
+                installed_local_model.cancel(cancellation);
             } else if matches!(
                 cancelled_operation.contract_id.as_str(),
                 conduit_ai::MODEL_WORK_OPERATION | crate::hosted_model_infer::MODEL_INFER_OPERATION
@@ -1053,6 +1064,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
         }
+        installed_local_model.poll(
+            &mut scheduler,
+            &fragment.placements,
+            &mut local_model_output,
+            || control.stop_requested(),
+        )?;
         installed_model_work.poll(&mut scheduler, &mut model_work_output, || {
             control.stop_requested()
         })?;
@@ -2971,17 +2988,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .placements
                     .get(usize::from(request.node.0))
                     .ok_or_else(|| "model request has no exact placement".to_string())?;
-                let completion = model_host::execute(
-                    contract.as_str(),
+                let completion = installed_local_model.execute(
+                    request,
+                    lowered_operation.binding.maximum_output_bytes,
                     placement,
                     input,
-                    (active_play.active_play_id.as_str(), request.request),
-                    match &mut local_model {
-                        Some(adapter) => Some(&mut **adapter),
-                        None => None,
-                    },
                     &mut local_model_output,
                 )?;
+                host_calls.record(request)?;
+                let Some(completion) = completion else {
+                    continue;
+                };
                 let output = if completion.has_output() {
                     let value = scheduler
                         .store_host_value(&local_model_output)
@@ -2993,7 +3010,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 } else {
                     None
                 };
-                host_calls.record(request)?;
                 scheduler
                     .complete_host_call(request.node, request.request, completion.outcome(output))
                     .map_err(|error| format!("complete model operation: {error:?}"))?;
@@ -3546,7 +3562,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if completed_midi_input {
                     continue;
                 }
-                let completed_deadline = if installed_model_work.is_pending()
+                let completed_deadline = if installed_local_model.is_pending()
+                    || installed_model_work.is_pending()
                     || native_call
                         .as_ref()
                         .is_some_and(|source| source.is_pending())
@@ -3560,6 +3577,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 }
                 if !deadlines.is_empty()
                     || pending_midi_input
+                    || installed_local_model.is_pending()
                     || installed_model_work.is_pending()
                     || native_call
                         .as_ref()

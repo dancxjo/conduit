@@ -44,6 +44,8 @@ mod structured_selector;
 pub use structured_selector::*;
 mod structured_values;
 pub use structured_values::*;
+mod flow_coalesce_finite;
+pub use flow_coalesce_finite::*;
 mod flow_pressure;
 pub use flow_pressure::*;
 mod diverse_structured_info;

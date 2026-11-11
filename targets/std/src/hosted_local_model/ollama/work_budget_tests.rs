@@ -193,6 +193,7 @@ fn actual_finite_adapter_refuses_unadmitted_input_before_provider_access() {
         model_name: "fixture".into(),
         next_request_sequence: 7,
         active_stream: None,
+        generation_worker: None,
     };
     let mut output = b"old output".to_vec();
     let gear = placement();

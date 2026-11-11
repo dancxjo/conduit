@@ -330,6 +330,7 @@ const FACTORIES: &[&BackFactory] = &[
     &STATE_SELECT_SCALAR_FACTORY,
     &CURRENT_SAMPLE_FACTORY,
     &super::current_sample_finite_back::FACTORY,
+    &super::flow_coalesce_finite_back::FACTORY,
     &COMBINE_LATEST_FACTORY,
     &TODO_COMBINE_FACTORY,
     &THERMOSTAT_COMBINE_FACTORY,

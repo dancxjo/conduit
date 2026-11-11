@@ -109,6 +109,16 @@ pub(super) fn execute(
         });
     }
     let terminal = adapter.execute(placement, input, output);
+    finish_terminal(terminal, placement, attempt, input.len(), output)
+}
+
+pub(super) fn finish_terminal(
+    terminal: LocalModelAdapterTerminal,
+    placement: &PlannedGear,
+    attempt: (&str, conduit_kernel::RequestId),
+    input_bytes: usize,
+    output: &mut Vec<u8>,
+) -> Result<ModelHostCompletion, String> {
     if terminal == LocalModelAdapterTerminal::ProviderLost
         && placement.kind_id.as_str() == conduit_ai::LLM_GENERATE_FLOW_KIND
         && super::local_model_back::configuration_count(
@@ -116,7 +126,7 @@ pub(super) fn execute(
             conduit_ai::PROVIDER_LOSS_AS_RESULT_PARAMETER,
         ) == Ok(1)
     {
-        return provider_loss_result(placement, attempt, input.len(), output);
+        return provider_loss_result(placement, attempt, input_bytes, output);
     }
     Ok(match terminal {
         LocalModelAdapterTerminal::Produced | LocalModelAdapterTerminal::Truncated => {

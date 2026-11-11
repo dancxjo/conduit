@@ -2,6 +2,10 @@
 use crate::process::Step;
 
 pub const STEPS: &[Step] = &[
+    Step::new("pete-cognition.cadence", "Run reaction, attention, and bounded reflection in one Play under provider delay and loss", "cargo",
+        &["test", "--locked", "-p", "xtask", "--test", "pete_cadence"]),
+    Step::new("pete-cognition.finite-sampling", "Check finite Current sampling and source closure through the installed kernel", "cargo",
+        &["test", "--locked", "-p", "conduit-std-host", "--lib", "current_sample_finite"]),
     Step::new("pete-cognition.ownership", "Check that foundational crates do not depend on Pete", "cargo",
         &["test", "--locked", "-p", "conduit-pete", "--test", "ownership"]),
     Step::new("pete-cognition.adapters", "Check Pete's typed experience adapters", "cargo",
