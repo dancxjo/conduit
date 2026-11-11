@@ -17,10 +17,6 @@ const LOCKS: &[StandaloneLock] = &[
         lock: "targets/esp32/proof/tm1637/Cargo.lock",
     },
     StandaloneLock {
-        manifest: "bodies/environment/face/Cargo.toml",
-        lock: "bodies/environment/face/Cargo.lock",
-    },
-    StandaloneLock {
         manifest: "bodies/environment/history/Cargo.toml",
         lock: "bodies/environment/history/Cargo.lock",
     },

@@ -2,7 +2,10 @@
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
     for (manifest, test) in [
-        ("bodies/environment/make/Cargo.toml", "display_output"),
+        (
+            "mechanisms/implementations/tm1637-output-make/Cargo.toml",
+            "display_output",
+        ),
         ("bodies/environment/runtime/Cargo.toml", "display_packets"),
         (
             "bodies/environment/runtime/Cargo.toml",

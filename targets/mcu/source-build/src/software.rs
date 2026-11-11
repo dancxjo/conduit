@@ -1,10 +1,8 @@
 //! Immutable implementation definitions from checked expanded Source. Emitting
 //! these bytes creates neither initialized availability nor any Host authority.
 use conduit_core as c;
-use conduit_environment_runtime::{
-    observation::ObservationContract,
-    publication::{PublicationChannel, PublicationContract},
-};
+use conduit_dht11_observation::ObservationContract;
+use conduit_environment_runtime::publication::{PublicationChannel, PublicationContract};
 use conduit_plot as p;
 use sha2::{Digest, Sha256};
 pub const PROFILE: &str = "conduit.mcu/prepared-software@1";
@@ -102,7 +100,7 @@ pub fn compile(
                 SoftwareRole::Trigger,
                 false,
             )
-        } else if gear.kind_id.as_str() == conduit_environment_runtime::observation::KIND {
+        } else if gear.kind_id.as_str() == conduit_dht11_observation::KIND {
             (
                 ObservationContract::prepare()
                     .map_err(|e| format!("observation: {e:?}"))?
@@ -416,10 +414,8 @@ mod recording_tests {
         };
         let contract = ObservationContract::prepare().unwrap();
         let mut forms =
-            conduit_environment_runtime::observation::PreparedObservationQuantityForms::prepare(
-                &contract,
-            )
-            .unwrap();
+            conduit_dht11_observation::PreparedObservationQuantityForms::prepare(&contract)
+                .unwrap();
         let canonical = forms.unpack(&[0; 4]).unwrap().to_vec();
         let mut back = RecordingLogBack::prepare_unbound(&contract, 2, || 100).unwrap();
         let value = ValueRef {

@@ -108,7 +108,33 @@ fn exact_fore_tables_preserve_checked_execution_and_refuse_wrong_resident_pins()
         lowered.node_specs[0].maximum_step_fuel
     );
     for (actual, expected) in tables.cords.iter().zip(&lowered.cords) {
-        assert_eq!(actual, &expected.spec);
+        // Assigned tables additionally retain private checked Fore provenance.
+        // Compare every public lowering field without manufacturing that proof.
+        let expected = &expected.spec;
+        assert_eq!(
+            (
+                actual.cord,
+                actual.source,
+                actual.sink,
+                actual.slot_start,
+                actual.item_capacity,
+                actual.byte_capacity,
+                actual.maximum_value_bytes,
+                actual.pressure_policy,
+                actual.track
+            ),
+            (
+                expected.cord,
+                expected.source,
+                expected.sink,
+                expected.slot_start,
+                expected.item_capacity,
+                expected.byte_capacity,
+                expected.maximum_value_bytes,
+                expected.pressure_policy,
+                expected.track
+            ),
+        );
     }
     for change in 0..5 {
         let mut pins = generated.fore().to_vec();

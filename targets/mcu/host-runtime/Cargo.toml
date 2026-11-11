@@ -7,6 +7,9 @@ publish = false
 [workspace]
 
 [dependencies]
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, optional = true }
+
+conduit-dht11-observation = { path = "../../../mechanisms/devices/dht11", optional = true, features = ["kernel-step"] }
 conduit-core = { path = "../../../architecture/core", default-features = false }
 ed25519-dalek = { version = "2.2", default-features = false }
 sha2 = { version = "0.10", default-features = false }
@@ -29,7 +32,7 @@ conduit-face = { path = "../../../semantics/face", default-features = false, fea
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", features = ["native-kernel"], optional = true }
 
 [features]
-execution = ["dep:conduit-resource-snapshot", "dep:conduit-face", "dep:conduit-seven-segment-mask", "dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:conduit-time", "dep:conduit-environment-runtime", "dep:conduit-pulse-capture", "dep:conduit-tm1637-wire", "dep:conduit-monotonic-wait"]
+execution = ["dep:conduit-semantic-catalog", "dep:conduit-dht11-observation", "dep:conduit-resource-snapshot", "dep:conduit-face", "dep:conduit-seven-segment-mask", "dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:conduit-time", "dep:conduit-environment-runtime", "dep:conduit-pulse-capture", "dep:conduit-tm1637-wire", "dep:conduit-monotonic-wait"]
 
 [dev-dependencies]
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false }

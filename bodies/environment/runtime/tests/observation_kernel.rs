@@ -26,14 +26,14 @@ mod pulse;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use back::{Back, Observed};
 use conduit_core::{validate_canonical_structured_value as validate, ConfigurationValue, Quantity};
-use conduit_environment_runtime::{
-    observation::ObservationContract, CaptureBack, PreparedCaptureSelector,
-};
+use conduit_dht11_observation::ObservationContract;
+use conduit_environment_runtime::CaptureBack;
 use conduit_kernel::{
     scheduler::{FixedScheduler, SchedulerStatus},
     *,
 };
 use conduit_plot::PortableExpressionProgram;
+use conduit_semantic_catalog::PreparedCanonicalSelector;
 const N: usize = 14;
 const C: usize = 13;
 const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -109,7 +109,7 @@ fn run(scenario: usize) {
         tables
     };
     let observed: [Observed; 4] = core::array::from_fn(|_| Observed::new());
-    let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
+    let mut selectors: [Option<PreparedCanonicalSelector>; N] = core::array::from_fn(|_| None);
     let mut prepared: [Option<Back<'_>>; N] = core::array::from_fn(|_| None);
     for placement in &plan.fragments[0].startup_order {
         let i = usize::from(lowered.identity.node_for_placement(placement).unwrap().0);
@@ -142,7 +142,7 @@ fn run(scenario: usize) {
                 }
             } else if gear.kind_id.as_str() == conduit_pulse_capture::PULSE_READ_KIND {
                 Back::Native(CaptureBack::pulse(1024))
-            } else if gear.kind_id.as_str() == conduit_environment_runtime::observation::KIND {
+            } else if gear.kind_id.as_str() == conduit_dht11_observation::KIND {
                 Back::Native(CaptureBack::observation(&contract).unwrap())
             } else if let Some(ConfigurationValue::Text(text)) = gear
                 .configuration
@@ -168,7 +168,7 @@ fn run(scenario: usize) {
                     panic!("checked selector")
                 };
                 selectors[i] = Some(
-                    PreparedCaptureSelector::prepare(
+                    PreparedCanonicalSelector::prepare(
                         conduit_core::StructuredSelector::from_canonical_hex(text).unwrap(),
                         1024,
                         1024,
@@ -396,7 +396,7 @@ fn manifest(
 #[test]
 fn coordinate_overflow_and_wrong_schemas_refuse_without_allocating() {
     use conduit_core::{PreparedStructuredComposer as C, StructuredInfoTypeShape as S};
-    use conduit_environment_runtime::observation::{ObservationRefusal, PreparedObservationCodec};
+    use conduit_dht11_observation::{ObservationRefusal, PreparedObservationCodec};
     let contract = ObservationContract::prepare().unwrap();
     let mut codec = PreparedObservationCodec::prepare(&contract).unwrap();
     let S::Variant { cases, .. } = contract.input_type().shape() else {

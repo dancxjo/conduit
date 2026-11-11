@@ -15,8 +15,7 @@ mod assignment;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 #[test]
 fn overnight_workload_preserves_typed_failures_and_finite_cadence() {
-    let contract =
-        conduit_environment_runtime::observation::ObservationContract::prepare().unwrap();
+    let contract = conduit_dht11_observation::ObservationContract::prepare().unwrap();
     let (ready, effects) = pulse::ready(0);
     for (count, period) in [(0, 60000), (4, 3000), (960, 60000)] {
         let (plan, lowered) = plan::prepare_with_cadence(

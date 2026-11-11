@@ -17,18 +17,62 @@ use conduit_core::{
     ConfigurationValue, StructuredSelector, ASSIGNED_HOST_CALL, ASSIGNED_NATIVE_CALL_BYTES,
     ASSIGNED_PLAN_COUNT_KINDS, ASSIGNED_PLAN_HEADER_BYTES,
 };
-use conduit_environment_runtime::{CaptureBack, PreparedCaptureSelector};
+use conduit_environment_runtime::CaptureBack;
 use conduit_kernel::{
     scheduler::{FixedScheduler, SchedulerStatus},
     *,
 };
 use conduit_plot::PortableExpressionProgram;
 use conduit_pulse_capture::*;
+use conduit_semantic_catalog::PreparedCanonicalSelector;
 const N: usize = 13;
 const C: usize = 12;
 const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const R: usize = N * P;
 
+#[test]
+fn pulse_v1_and_v2_have_exact_seals_under_the_current_compiler() {
+    let (ready, effects) = pulse::ready(0);
+    let historical = plan::pulse_v1_identity_under_current_compiler(&ready);
+    assert_eq!(
+        (historical.0.as_str(), historical.1.as_str()),
+        (
+            "9844ee7e9efce4923f48b0928e2a40f5e0855c13d1a31ad74bd8cd8585b9e653",
+            "6ef34a1706cf5cfa00610cbe11de5df40f45395ff4210754a2ff2165f2a5a678"
+        )
+    );
+    let (current, _) = plan::prepare(&ready);
+    assert_eq!(
+        historical.2, current.source_document_id,
+        "pulse profile changes do not change authored Source bytes"
+    );
+    plan::assert_current_derived_contracts(&current);
+    let selected = current.fragments[0]
+        .placements
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == PULSE_READ_KIND)
+        .unwrap();
+    assert_eq!(
+        selected.kind_contract_revision.as_str(),
+        "machine/pulse/read@2"
+    );
+    assert_eq!(selected.semantic_contract.value_contracts().len(), 2);
+    assert_eq!(
+        (
+            current.plan_id.as_str(),
+            current.fragments[0].fragment_id.as_str()
+        ),
+        (
+            "afe8a3539cf3d170542aacf40dfecf033310f4f9bc726d0d148dad3d43cd8ed3",
+            "08eca8a7f410de0d1730e804126b5801d258604b859588aa8e58419b74b8b87a"
+        )
+    );
+    assert_eq!(
+        effects.get(),
+        0,
+        "current-compiler revision comparison performs planning only"
+    );
+}
 #[test]
 fn checked_source_traverses_the_production_kernel_and_closes_after_each_outcome() {
     for scenario in 0..5 {
@@ -47,8 +91,8 @@ fn run(scenario: usize) {
                 plan.fragments[0].fragment_id.as_str()
             ),
             (
-                "4c8197aec4f210bd183d4dd62d2649d1d093563d388fea57b7e71f6986066323",
-                "664dab5fadf452d0aa6e039e0e38bf54bf169002dc7fdc7c2b482126b628fc8d"
+                "afe8a3539cf3d170542aacf40dfecf033310f4f9bc726d0d148dad3d43cd8ed3",
+                "08eca8a7f410de0d1730e804126b5801d258604b859588aa8e58419b74b8b87a"
             )
         );
         eprintln!(
@@ -98,7 +142,7 @@ fn run(scenario: usize) {
         core::array::from_fn(|i| lowered.cords[i].spec)
     );
     let observed: [Observed; 4] = core::array::from_fn(|_| Observed::new());
-    let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
+    let mut selectors: [Option<PreparedCanonicalSelector>; N] = core::array::from_fn(|_| None);
     let mut pulse_node = None;
     let mut build_back = |i: usize| {
         let node = &lowered.nodes[i];
@@ -147,7 +191,7 @@ fn run(scenario: usize) {
             )
         } else {
             selectors[i] = Some(
-                PreparedCaptureSelector::prepare(
+                PreparedCanonicalSelector::prepare(
                     StructuredSelector::from_canonical_hex(text).unwrap(),
                     1024,
                     1024,

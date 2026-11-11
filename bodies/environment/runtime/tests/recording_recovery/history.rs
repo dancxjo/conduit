@@ -1,9 +1,7 @@
 use super::allocation_probe;
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId};
-use conduit_environment_runtime::{
-    observation::{ObservationContract, PreparedObservationQuantityForms},
-    recording::*,
-};
+use conduit_dht11_observation::{ObservationContract, PreparedObservationQuantityForms};
+use conduit_environment_runtime::recording::*;
 fn context() -> RecordingContext<'static> {
     // Explicit CPU producer identity; no installed Host or durable receipt.
     static HOST: std::sync::LazyLock<HostId> = std::sync::LazyLock::new(|| "sensor/test".into());

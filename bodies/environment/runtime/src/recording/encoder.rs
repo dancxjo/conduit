@@ -61,7 +61,7 @@ impl RecordingEncoderBack {
         let snapshot = PreparedRecordingSnapshot::prepare(context, contract, samples, reference)?;
         let bytes = crate::canonical_storage::bytes(
             contract.observation_type(),
-            crate::observation::MAXIMUM_BYTES as usize,
+            conduit_dht11_observation::MAXIMUM_BYTES as usize,
         )
         .map_err(RecordingRefusal::Canonical)?;
         Ok(Self {
@@ -205,7 +205,10 @@ fn failure_with(code: FailureCode, detail: u16) -> StepOutcome {
         detail: 2300 + detail,
     })
 }
-pub(super) fn io_failure(error: conduit_kernel::scheduler::SchedulerError, detail: u16) -> StepOutcome {
+pub(super) fn io_failure(
+    error: conduit_kernel::scheduler::SchedulerError,
+    detail: u16,
+) -> StepOutcome {
     use conduit_kernel::scheduler::SchedulerError as E;
     let code = match error {
         E::StepFuelExceeded => FailureCode::WorkBudgetExhausted,

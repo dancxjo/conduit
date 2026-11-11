@@ -1,5 +1,10 @@
 # Environmental observation Body
 
+Shared environmental Face semantics live in
+[`semantics/environment-face`](../../semantics/environment-face/README.md).
+The [extraction inventory](../../docs/audits/environment-extraction.md) separates
+the remaining application composition, reusable machinery and proof scaffolding.
+
 The construction specifications are Conduitese, consumed by the existing Host
 and Body checkers:
 

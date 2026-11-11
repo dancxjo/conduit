@@ -9,7 +9,7 @@ publish = false
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
 conduit-face = { path = "../../../semantics/face", default-features = false }
-conduit-environment-face = { path = "../face" }
+conduit-environment-face = { path = "../../../semantics/environment-face" }
 conduit-environment-runtime = { path = "../runtime" }
 
 [dev-dependencies]

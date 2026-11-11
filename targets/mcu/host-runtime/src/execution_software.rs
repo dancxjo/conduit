@@ -1,12 +1,12 @@
 //! Standard prepared software Backs shared by MCU Hosts. Source selects these
 //! implementations; constructors create no offer, admission, authority or Play.
+use conduit_dht11_observation::{ObservationBack, ObservationContract};
+use conduit_semantic_catalog::PreparedCanonicalSelector;
 extern crate alloc;
 use alloc::boxed::Box;
 use conduit_environment_runtime::{
-    observation::{ObservationBack, ObservationContract},
     publication::{PublicationBack, PublicationContract, PublicationSequence, PublicationSnapshot},
     publication_face_custody::{CustodyRefusal, Publisher},
-    PreparedCaptureSelector,
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -219,7 +219,7 @@ fn fail(detail: u16) -> StepOutcome {
 }
 /// Pure checked selection runs as an ordinary StepBack, not a hardware Host Call.
 pub struct SelectorBack {
-    selector: PreparedCaptureSelector,
+    selector: PreparedCanonicalSelector,
     maximum: usize,
     staged: bool,
 }
@@ -237,7 +237,7 @@ impl SelectorBack {
             return Err("selector-bound");
         }
         Ok(Self {
-            selector: PreparedCaptureSelector::prepare(selector, input, output)
+            selector: PreparedCanonicalSelector::prepare(selector, input, output)
                 .map_err(|_| "selector")?,
             maximum: output,
             staged: false,
@@ -256,7 +256,7 @@ impl SelectorBack {
             return Err("selector-bound");
         }
         Ok(Self {
-            selector: PreparedCaptureSelector::prepare_static(canonical, input, output)
+            selector: PreparedCanonicalSelector::prepare_static(canonical, input, output)
                 .map_err(|_| "selector")?,
             maximum: output,
             staged: false,

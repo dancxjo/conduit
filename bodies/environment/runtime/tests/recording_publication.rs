@@ -5,7 +5,8 @@ mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core as c;
-use conduit_environment_runtime::{observation::ObservationContract, recording::*};
+use conduit_dht11_observation::ObservationContract;
+use conduit_environment_runtime::recording::*;
 use conduit_kernel::{self as k, scheduler::*, ValueStorage};
 use std::{cell::Cell, rc::Rc};
 fn context() -> RecordingContext<'static> {

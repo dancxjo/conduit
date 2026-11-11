@@ -242,6 +242,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-dht11-observation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
@@ -292,6 +301,7 @@ name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-dht11-observation",
  "conduit-kernel",
  "conduit-plot",
  "conduit-semantic-catalog",
@@ -363,6 +373,7 @@ version = "0.1.0"
 dependencies = [
  "aligned",
  "conduit-core",
+ "conduit-dht11-observation",
  "conduit-embedded-build",
  "conduit-environment-face",
  "conduit-environment-http",
@@ -377,6 +388,7 @@ dependencies = [
  "conduit-rp2040-network-realization",
  "conduit-rp2040-pulse-capture",
  "conduit-rp2040-tm1637",
+ "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",

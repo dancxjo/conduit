@@ -12,9 +12,10 @@ display-mask = ["dep:conduit-face", "dep:conduit-seven-segment-mask"]
 appliance = ["conduit-kernel/alloc", "dep:conduit-time", "conduit-time/kernel-step", "dep:conduit-pulse-capture"]
 construction = ["appliance", "dep:conduit-planner"]
 face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
-source-capture = ["dep:conduit-pulse-capture"]
+source-capture = ["conduit-dht11-observation/source-capture"]
 
 [dependencies]
+conduit-dht11-observation = { path = "../../../mechanisms/devices/dht11", features = ["kernel-step"] }
 conduit-body = { path = "../../../architecture/body", default-features = false, optional = true }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }
 sha2 = { version = "0.10", default-features = false, optional = true }
@@ -22,7 +23,7 @@ ed25519-dalek = { version = "2.2", default-features = false, optional = true }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", optional = true }
 conduit-time = { path = "../../../semantics/time", default-features = false, optional = true }
 conduit-planner = { path = "../../../architecture/planner", optional = true }
-conduit-environment-face = { path = "../face", optional = true }
+conduit-environment-face = { path = "../../../semantics/environment-face", optional = true }
 conduit-face = { path = "../../../semantics/face", default-features = false, optional = true }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", default-features = false, features = ["plot-catalog"], optional = true }
 conduit-core = { path = "../../../architecture/core" }
@@ -38,7 +39,7 @@ conduit-plot = { path = "../../../architecture/plot" }
 conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"] }
 serde_json = "1"
 conduit-time = { path = "../../../semantics/time", features = ["kernel-step"] }
-conduit-environment-face = { path = "../face" }
+conduit-environment-face = { path = "../../../semantics/environment-face" }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }

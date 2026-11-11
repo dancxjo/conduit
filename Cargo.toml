@@ -1,5 +1,6 @@
 [workspace]
 members = [
+	"mechanisms/devices/dht11",
 	# Universal architectural substrate.
 	"architecture/body",
 	"architecture/assigned-plan",
@@ -21,6 +22,7 @@ members = [
 	"semantics/chat",
 	"semantics/data",
 	"semantics/education",
+	"semantics/environment-face",
 	"semantics/finance",
 	"semantics/human",
 	"semantics/language",
@@ -51,6 +53,7 @@ members = [
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
 	"mechanisms/implementations/linear-framebuffer-make",
+	"mechanisms/implementations/tm1637-output-make",
 	"mechanisms/implementations/emergency-keyword-spotter",
 	"mechanisms/implementations/synth",
 	"mechanisms/implementations/burn-model",
@@ -131,7 +134,6 @@ exclude = [
 	"targets/mcu/host-runtime",
 	"mechanisms/io/monotonic-wait",
 	"bodies/environment/runtime",
-	"bodies/environment/face",
 	"plots/seven-segment-mask",
 	"mechanisms/io/pulse-capture",
 	"mechanisms/io/tm1637",

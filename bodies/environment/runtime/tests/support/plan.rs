@@ -88,11 +88,101 @@ fn prepare_profile(
     observation_kind: Option<Kind>,
     cadence: Option<(Kind, u64, u64)>,
 ) -> (Plan, conduit_plan_lowering::lowering::LoweredPlanFragment) {
+    prepare_profile_revision(ready, boot, observation_kind, cadence, false)
+}
+/// Compare only the pulse contract revision under today's compiler. This does
+/// not recreate the historical expression/selector compiler. Return identities
+/// rather than an executable Plan; no legacy provider binding is attempted.
+#[allow(
+    dead_code,
+    reason = "shared fixture helper used by the capture seal regression"
+)]
+pub fn pulse_v1_identity_under_current_compiler(
+    ready: &conduit_pulse_capture::installation::ReadyPulseBase<super::pulse::Provider>,
+) -> (PlanId, FragmentId, SourceDocumentId) {
+    let (plan, _) =
+        prepare_profile_revision(ready, &super::pulse::identity().boot_id, None, None, true);
+    let pulse = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_pulse_capture::PULSE_READ_KIND)
+        .unwrap();
+    assert_eq!(
+        pulse.kind_contract_revision.as_str(),
+        "machine/pulse/read@1"
+    );
+    assert!(pulse.semantic_contract.laws.is_empty());
+    assert_current_derived_contracts(&plan);
+    (
+        plan.plan_id,
+        plan.fragments[0].fragment_id.clone(),
+        plan.source_document_id,
+    )
+}
+#[allow(
+    dead_code,
+    reason = "shared fixture helper used by the capture seal regression"
+)]
+pub fn assert_current_derived_contracts(plan: &Plan) {
+    for (revision, expected) in [
+        ("conduitese/pure-expression-operation@2", 3),
+        ("structured-info/selector-operation@2", 4),
+    ] {
+        let selected: Vec<_> = plan.fragments[0]
+            .placements
+            .iter()
+            .filter(|gear| gear.kind_contract_revision.as_str() == revision)
+            .collect();
+        assert_eq!(
+            selected.len(),
+            expected,
+            "current derived contract inventory"
+        );
+        assert!(selected
+            .iter()
+            .all(|gear| gear.semantic_contract.value_contracts().len() == 2));
+    }
+}
+fn prepare_profile_revision(
+    ready: &conduit_pulse_capture::installation::ReadyPulseBase<super::pulse::Provider>,
+    boot: &BootId,
+    observation_kind: Option<Kind>,
+    cadence: Option<(Kind, u64, u64)>,
+    historical_v1: bool,
+) -> (Plan, conduit_plan_lowering::lowering::LoweredPlanFragment) {
     let semantic = observation_kind.is_some();
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     let pulse = conduit_pulse_capture::PulseReadContract::prepare().unwrap();
-    pulse.install(&mut startup, &mut profiles).unwrap();
+    let mut pulse_kind = pulse.kind().clone();
+    if historical_v1 {
+        // Exact semantic delta introduced by a90bc5f9f5: revision @2 and two
+        // bounded ValueContracts. Names, Types, offers and hardware remain fixed.
+        pulse_kind.kind_contract_revision = "machine/pulse/read@1".into();
+        pulse_kind.semantic_laws.clear();
+        let absence = StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID))
+            .unwrap()
+            .profile()
+            .unwrap();
+        startup
+            .insert_value_kind_alias("PulseReadAbsence", absence.value_kind().clone())
+            .unwrap();
+        startup
+            .insert(KindSignature {
+                kind: conduit_pulse_capture::PULSE_READ_KIND.into(),
+                startup_parameters: vec![],
+            })
+            .unwrap();
+        startup
+            .insert_fore(
+                conduit_pulse_capture::PULSE_READ_KIND,
+                pulse_kind.checked_front(),
+            )
+            .unwrap();
+        profiles.insert_kind(pulse_kind.clone()).unwrap();
+    } else {
+        pulse.install(&mut startup, &mut profiles).unwrap();
+    }
     if let Some(kind) = observation_kind {
         startup
             .insert(KindSignature {
@@ -322,6 +412,15 @@ fn prepare_profile(
         planner_capabilities: vec![],
     };
     ready.append_to_advertisement(&mut host, &pulse).unwrap();
+    if historical_v1 {
+        let offer = host
+            .capabilities
+            .iter_mut()
+            .find(|offer| offer.kind_id == pulse_kind.kind_id)
+            .unwrap();
+        offer.kind_contract_revision = pulse_kind.kind_contract_revision.clone();
+        offer.semantic_contract = pulse_kind.semantic_contract();
+    }
     let hosts = [host];
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts).unwrap();
     let empty = std::collections::BTreeMap::new();

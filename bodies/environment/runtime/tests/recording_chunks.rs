@@ -4,10 +4,8 @@ mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId};
-use conduit_environment_runtime::{
-    observation::{ObservationContract, PreparedObservationQuantityForms},
-    recording::*,
-};
+use conduit_dht11_observation::{ObservationContract, PreparedObservationQuantityForms};
+use conduit_environment_runtime::recording::*;
 fn chunk(contract: &ObservationContract) -> PreparedRecordingChunk {
     PreparedRecordingChunk::prepare(
         RecordingContext {
