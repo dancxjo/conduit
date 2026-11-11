@@ -17,6 +17,7 @@ pub(crate) struct OutputSelection {
     pub builder_adapter: String,
     pub deployment_adapter: String,
     pub artifact_output: PathBuf,
+    /// Member-local Root acceptance counter, never a Body membership revision.
     pub membership_generation: u64,
     pub intent_generation: u64,
     pub ceilings: conduit_body::ContinuationCeilings,

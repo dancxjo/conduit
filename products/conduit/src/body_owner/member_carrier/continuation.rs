@@ -19,11 +19,9 @@ impl Owner {
         self.require_observed_member_offer(&member.host_advertisement)?;
         if selection.host_id != member.credential.host_id.as_str()
             || recipe.configuration_id != member.host_advertisement.profile.as_str()
-            || self.session.evidence().membership.revision.0 != selection.membership_generation
         {
             return Err(
-                "selected continuation differs from actual accepted member/configuration/revision"
-                    .into(),
+                "selected continuation differs from actual accepted member/configuration".into(),
             );
         }
         let retained = self
@@ -116,7 +114,10 @@ impl Owner {
             part_id: member.credential.part_id.as_str(),
             host_id: member.credential.host_id.as_str(),
             credential_id: member.credential.credential_id.as_str(),
-            membership_generation: self.session.evidence().membership.revision.0,
+            // Root acceptance generations are local to this member, not the
+            // Body membership revision checked by require_current_native_member.
+            // Original Root independently derives the required next generation.
+            membership_generation: selection.membership_generation,
             intent_generation: selection.intent_generation,
             issuer_host: peer.host_id.as_str(),
             issuer_key: peer.verifying_key,
