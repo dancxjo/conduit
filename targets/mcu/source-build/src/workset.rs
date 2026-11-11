@@ -147,10 +147,22 @@ pub fn compile(
         }
     }
 
-    let mut material = Vec::new();
-    for name in entries {
-        let plot =
-            p::expand_canonical_plot_for_authoring(&checked, name, &profiles).map_err(debug)?;
+    // The broad checked-image index ceiling is only a host-tooling artifact
+    // limit. Independent board calibration must still pass before emit_to.
+    let image = conduit_embedded_build::EmbeddedImageBounds::HOST_TOOLING;
+    let names = entries.iter().map(String::as_str).collect::<Vec<_>>();
+    let prepared = conduit_embedded_build::prepare_checked_workset(
+        &checked,
+        &profiles,
+        &names,
+        conduit_embedded_build::CheckedWorksetBounds {
+            maximum_entries: 8,
+            maximum_nodes_per_entry: image.maximum_nodes,
+            maximum_cords_per_entry: image.maximum_cords,
+        },
+    )?;
+    let mut material = Vec::with_capacity(prepared.len());
+    for (name, plot) in entries.iter().zip(prepared) {
         let expanded = &plot.expanded;
         let mut rust = software::emit_rust(expanded, 24 * 1024, 1024 * 1024)?;
         emit_mask_routing_images(expanded, &mut rust, mask)?;

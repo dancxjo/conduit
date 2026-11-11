@@ -5,6 +5,8 @@ use crate::execution::StoredExecutionKernel;
 use conduit_kernel::{scheduler::*, *};
 #[path = "native_sync_append.rs"]
 mod append;
+#[path = "native_sync_service.rs"]
+mod service;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CallFailure {
     Denied,
@@ -19,11 +21,18 @@ pub enum Refusal {
     Acknowledgment(CallFailure),
     Kernel(SchedulerError),
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CallBounds {
+    pub input_bytes: u32,
+    pub output_bytes: u32,
+}
+
 /// Original initialized affine, independently bound native possession.
 /// # Safety
-/// Bounds/node/call remain fixed. Invocation performs only the exact authorized
-/// operation, terminates within admitted work, and allocates nothing. Uncertain
-/// effects are never blindly retried. `acknowledge` means kernel acceptance only;
+/// Bounds/node/accepted calls remain fixed. Per-call bounds never exceed the
+/// maximum input/output bounds reported at construction. Invocation performs only
+/// the exact authorized operation, terminates within admitted work, and allocates
+/// nothing. Uncertain effects are never blindly retried. `acknowledge` means kernel acceptance only;
 /// `revoke` quiesces work and preserves committed/uncertain media custody. Root
 /// separately admits every buffer/provider/window and the actual Start.
 pub unsafe trait SynchronousHostCall {
@@ -31,6 +40,13 @@ pub unsafe trait SynchronousHostCall {
     fn call(&self) -> HostCallId;
     fn maximum_input_bytes(&self) -> u32;
     fn maximum_output_bytes(&self) -> u32;
+    /// Exact immutable route bounds. The default preserves single-call owners.
+    fn call_bounds(&self, call: HostCallId) -> Option<CallBounds> {
+        (call == self.call()).then(|| CallBounds {
+            input_bytes: self.maximum_input_bytes(),
+            output_bytes: self.maximum_output_bytes(),
+        })
+    }
     fn invoke(
         &mut self,
         request: HostCallRequest,
@@ -38,6 +54,15 @@ pub unsafe trait SynchronousHostCall {
         output: &mut [u8],
     ) -> Result<usize, CallFailure>;
     fn acknowledge(&mut self, request: HostCallRequest) -> Result<(), CallFailure>;
+    /// Called only after the kernel accepts this exact result. Multi-operation
+    /// owners can check its bytes without another copy or provider invocation.
+    fn acknowledge_result(
+        &mut self,
+        request: HostCallRequest,
+        _output: &[u8],
+    ) -> Result<(), CallFailure> {
+        self.acknowledge(request)
+    }
     fn revoke(&mut self) -> Result<(), CallFailure>;
 }
 /// Original owner loan plus independently funded output storage. Input is
@@ -46,7 +71,6 @@ pub struct Service<'a, P> {
     owner: &'a mut P,
     output: &'a mut [u8],
     node: NodeId,
-    call: HostCallId,
     input_bytes: u32,
     output_bytes: u32,
 }
@@ -59,7 +83,6 @@ impl<'a, P: SynchronousHostCall> Service<'a, P> {
         }
         Ok(Self {
             node: owner.node(),
-            call: owner.call(),
             input_bytes: owner.maximum_input_bytes(),
             output_bytes,
             owner,
@@ -95,46 +118,56 @@ impl<'a, P: SynchronousHostCall> Service<'a, P> {
         let Some(_window) = activity.try_blocking() else {
             return Ok(Dispatch::Idle);
         };
-        let room = kernel.preflight_host_result_storage(self.output_bytes);
-        let mut pending = false;
-        let Some(request) = kernel.next_host_request_matching(|r| {
-            if r.node != self.node || r.call != self.call {
-                return false;
-            }
-            pending = true;
-            room.is_ok()
-        }) else {
-            return if pending {
-                match room.unwrap_err() {
-                    SchedulerError::Storage(
-                        StorageError::ItemCapacityExceeded | StorageError::ByteCapacityExceeded,
-                    )
-                    | SchedulerError::Sign(
-                        SignError::ItemCapacityExceeded | SignError::ByteCapacityExceeded,
-                    ) => Ok(Dispatch::Pressure),
-                    error => Err(Refusal::Kernel(error)),
+        // Inspect without taking the pending request before exact result preflight.
+        // One pending call per node makes this a bounded two-scan selection.
+        let mut selected = None;
+        kernel.next_host_request_matching(|r| {
+            if r.node == self.node {
+                if let Some(bounds) = self.owner.call_bounds(r.call) {
+                    selected = Some((*r, bounds));
                 }
-            } else {
-                Ok(Dispatch::Idle)
+            }
+            false
+        });
+        let Some((pending, bounds)) = selected else {
+            return Ok(Dispatch::Idle);
+        };
+        if bounds.input_bytes > self.input_bytes || bounds.output_bytes > self.output_bytes {
+            return Err(Refusal::InvalidBounds);
+        }
+        if let Err(error) = kernel.preflight_host_result_storage(bounds.output_bytes) {
+            return match error {
+                SchedulerError::Storage(
+                    StorageError::ItemCapacityExceeded | StorageError::ByteCapacityExceeded,
+                )
+                | SchedulerError::Sign(
+                    SignError::ItemCapacityExceeded | SignError::ByteCapacityExceeded,
+                ) => Ok(Dispatch::Pressure),
+                error => Err(Refusal::Kernel(error)),
             };
+        }
+        let Some(request) = kernel.next_host_request_matching(|r| {
+            r.node == pending.node && r.call == pending.call && r.request == pending.request
+        }) else {
+            return Ok(Dispatch::Idle);
         };
         let result = {
             let input = kernel
                 .host_value(request.input.value)
                 .map_err(Refusal::Kernel)?;
-            if input.len() > self.input_bytes as usize {
+            if input.len() > bounds.input_bytes as usize {
                 Err(CallFailure::Denied)
             } else {
                 self.owner.invoke(
                     request,
                     input,
-                    &mut self.output[..self.output_bytes as usize],
+                    &mut self.output[..bounds.output_bytes as usize],
                 )
             }
         };
         let mut completion = match result {
             Ok(length) => {
-                if length > self.output_bytes as usize {
+                if length > bounds.output_bytes as usize {
                     return Err(Refusal::ProviderResultBound);
                 }
                 let value = kernel
@@ -143,7 +176,7 @@ impl<'a, P: SynchronousHostCall> Service<'a, P> {
                 HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
                     output: Some(
-                        BoundedValueRef::new(value, self.output_bytes)
+                        BoundedValueRef::new(value, bounds.output_bytes)
                             .expect("checked result bound"),
                     ),
                     failure: None,
@@ -172,9 +205,9 @@ impl<'a, P: SynchronousHostCall> Service<'a, P> {
         }
         // Only this actual accepted result boundary permits the owner's ACK.
         // It is not downstream publication, remote commit, or reclamation proof.
-        if result.is_ok() {
+        if let Ok(length) = result {
             self.owner
-                .acknowledge(request)
+                .acknowledge_result(request, &self.output[..length])
                 .map_err(Refusal::Acknowledgment)?;
         }
         Ok(Dispatch::Completed {
