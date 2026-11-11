@@ -75,6 +75,22 @@ pub fn plan_host(
         .connections
         .iter()
         .map(|cord| {
+            let source = authoring
+                .expanded
+                .gears
+                .iter()
+                .find(|gear| gear.gear_id == cord.source_gear_id)
+                .unwrap();
+            let maximum =
+                if source.kind_id.as_str() == conduit_chat::EPISODE_RETRIEVAL_PRODUCER_KIND {
+                    match cord.source_port_id.as_str() {
+                        "capture" => conduit_chat::MAXIMUM_EPISODE_RETRIEVAL_CAPTURE_BYTES as u32,
+                        "window" => conduit_ai::TEMPORAL_EVIDENCE_FLOW_MAX_BYTES as u32,
+                        _ => 16384,
+                    }
+                } else {
+                    16384
+                };
             (
                 (
                     cord.source_gear_id.clone(),
@@ -84,7 +100,7 @@ pub fn plan_host(
                 ),
                 ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: 16384
+                    byte_capacity: maximum
                         .min(offer(&cord.source_gear_id).limits.max_queue_bytes)
                         .min(offer(&cord.sink_gear_id).limits.max_queue_bytes),
                 },
