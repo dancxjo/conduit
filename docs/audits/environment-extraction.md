@@ -172,3 +172,41 @@ claim that the production compiler is yet independent of the Body runtime.
 
 No live owner, device, shared build cache or deployed Source identity is changed
 by this reconciliation. SDL startup and contact renewal remain separately owned.
+
+### Reconciliation validation, 11 November 2026
+
+The source checkpoint `21f51ad532747c680c4561d97e847b984638f544` passed:
+
+- DHT11 device tests: 7; shared selector/catalog tests: 200; environmental Face
+  tests: 11; TM1637 output planning tests: 2.
+- MCU Source-builder library tests: 8, including one checked sampling/Mask/output
+  closure and exact scoped recording constructors.
+- MCU Host runtime compilation with `execution` enabled.
+- `thumbv6m-none-eabi` checks for DHT11 with all features, environmental Face,
+  and the semantic catalog with default features disabled.
+- DHT11 and TM1637 output normal/build/dev dependency inventories contain no
+  environmental Body package.
+
+The complete environmental runtime audit reports 67 passed and 2 failed across
+21 test binaries. Neither failure is waived or repaired by this extraction:
+
+1. `capture_kernel::checked_source_traverses_the_production_kernel_and_closes_after_each_outcome`
+   expects an obsolete Plan/Fragment snapshot.
+2. `local_fore::exact_fore_tables_preserve_checked_execution_and_refuse_wrong_resident_pins`
+   compares decoded retained Local Fore provenance with an unannotated lowered
+   cord.
+
+Both tests were also run, without changing their assertions, in a separate
+checkout of exact base `a28a11877c7bd3424b41de1284e098f990f1d7cc`.
+Both fail there, and their actual/expected assertion payloads are byte-identical
+between baseline and extraction. This proves these observed failures predate
+this extraction; it does not establish their repair or overall release
+acceptance. Cargo resolved already-declared missing standalone lock dependencies
+for that baseline build; its tracked source remained unchanged.
+
+Evidence retained in the task outputs includes
+`extraction-baseline-a28-runtime-tests-20261111.log`,
+`integration-runtime-full-audit-20261111.log` and
+`extraction-baseline-comparison-20261111.json`, alongside the focused test/check
+logs. The integration owner must reconcile the baseline gates in the existing
+#6837 delivery lane. No device or installed Body was changed by these checks.
