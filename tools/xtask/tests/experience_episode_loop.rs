@@ -744,6 +744,10 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
         first.observation()
     );
     assert!(second.response().unwrap().content().contains("COPPER KITE"));
+    assert_eq!(
+        second.recalled().get()[0].response(),
+        first.response().unwrap()
+    );
 
     let requests = harness.requests.lock().unwrap();
     assert_eq!(requests.len(), 2);
@@ -764,7 +768,7 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
     );
     assert_eq!(selected["evidence"][2]["identity"], "pete/body/body/2");
     assert_eq!(selected["evidence"][2]["observed_at"]["ticks"], 200);
-    assert_eq!(second["recalled"][0]["response"]["origin"], "model_derived");
+    assert!(second["recalled"][0].get("response").is_none());
     let derived = &selected["evidence"][3];
     assert_eq!(derived["identity"], "pete/homeostasis");
     assert_eq!(
@@ -837,7 +841,12 @@ fn live_pete_experience_episode_uses_earlier_memory() {
         second.recalled().get()[0].observation(),
         first.observation()
     );
-    println!("With recall: {}", second.response().unwrap().content());
+    let recalled_answer = second.response().unwrap().content();
+    println!("With recall: {recalled_answer}");
+    let normalized = recalled_answer.trim().to_ascii_lowercase();
+    for prefix in ["i do not know", "i don't know", "i don’t know"] {
+        assert!(!normalized.starts_with(prefix), "{recalled_answer}");
+    }
     assert!(second
         .response()
         .unwrap()
