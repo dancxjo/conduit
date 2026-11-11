@@ -159,15 +159,7 @@ fn worst_case_wire_and_prepared_storage_are_explicit_measured_profiles() {
         bytes.len() - 200,
         encoder.backing().unwrap()
     );
-    // This charges every canonical output plus every prepared field-span table;
-    // it is deliberately distinct from inline state and an admitted Root lease.
-    assert!(
-        encoder.backing().unwrap()
-            >= READ_RESULT_BYTES
-                + READ_RECORDED_BYTES
-                + READ_GAP_BYTES
-                + READ_GAP_REASON_BYTES
-                + READ_COUNT_BYTES * 2
-                + READ_BYTES_BYTES
-    );
+    // The one cache is actual retained payload; linked schema and borrowed
+    // traversal carry no heap tables or nested intermediate outputs.
+    assert_eq!(encoder.backing(), Some(READ_RESULT_BYTES));
 }
