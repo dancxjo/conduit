@@ -94,6 +94,7 @@ pub fn bind_selected_operation_set(
         || gear.inputs != kind.inputs
         || gear.outputs != kind.outputs
         || gear.semantic_contract != kind.semantic_contract()
+        || gear.limits != kind.limits
         || gear.configuration != definition.configuration
         || gear.host_id != fragment.host_id
         || gear.boot_id != fragment.boot_id
@@ -126,6 +127,7 @@ pub fn bind_selected_operation_set(
         || offer.inputs != gear.inputs
         || offer.outputs != gear.outputs
         || offer.semantic_contract != gear.semantic_contract
+        || offer.limits != kind.limits
         || offer.implementation.implementation_id != gear.implementation_id
         || offer.host_calls != gear.host_calls
         || offer.resource_requirements.as_slice() != core::slice::from_ref(definition.requirement)

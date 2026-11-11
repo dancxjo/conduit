@@ -252,3 +252,87 @@ fn expected_source_and_current_play_cannot_be_supplied_by_incoming_plan() {
         assert!(f.bind(&[&a, &r]).is_err());
     }
 }
+
+#[test]
+fn resealed_plan_and_actual_offer_limits_must_match_retained_kind() {
+    fn refresh(f: &mut Fixture, host: HostAdvertisement) {
+        f.fragment = seal_plan(
+            PlotIdentity {
+                source_document_id: f.fragment.source_document_id.clone(),
+                checked_plot_id: f.fragment.checked_plot_id.clone(),
+                expanded_plot_id: f.fragment.expanded_plot_id.clone(),
+            },
+            vec![f.fragment.clone()],
+        )
+        .fragments
+        .remove(0);
+        f.active = bind_active_play(
+            &f.fragment.plan_id,
+            &f.fragment.host_id,
+            &f.fragment.boot_id,
+            0,
+        );
+        f.lowered = lower_plan_fragment(&f.fragment).unwrap();
+        for scope in &mut f.scopes {
+            scope.plan_id = f.fragment.plan_id.clone();
+            scope.active_play_id = f.active.active_play_id.clone();
+        }
+        let observation = ResourceObservation {
+            host_id: host.host_id.clone(),
+            boot_id: host.boot_id.clone(),
+            offer_generation: host.offer_generation,
+            pool_id: f.resource.pool_id.clone(),
+            class_id: f.resource.class_id.clone(),
+            health: ResourceHealth::Ready,
+            unreserved_units: 1,
+            utilized_units: 0,
+            sign_id: "current".into(),
+        };
+        f.owner = ResourceAdmissionOwner::new(host);
+        f.owner
+            .admit_planned_placement(
+                f.fragment.plan_id.clone(),
+                &f.fragment.placements[0],
+                &[observation],
+            )
+            .unwrap();
+    }
+    for change_offer in [false, true] {
+        for field in 0..3 {
+            let mut f = Fixture::new();
+            let mut host = f.owner.host().clone();
+            let limits = if change_offer {
+                &mut host.capabilities[0].limits
+            } else {
+                &mut f.fragment.placements[0].limits
+            };
+            match field {
+                0 => limits.max_active_instances += 1,
+                1 => limits.max_queue_items += 1,
+                _ => limits.max_queue_bytes += 1,
+            }
+            // Every other identity, lowering, original operation and actual
+            // capacity-one reservation is refreshed, so stale scope cannot
+            // substitute for the limits check this test intends to exercise.
+            refresh(&mut f, host);
+            let a = operation(f.scopes[0].clone());
+            let r = operation(f.scopes[1].clone());
+            assert_eq!(
+                f.bind(&[&a, &r]),
+                Err(if change_offer {
+                    SelectedOperationSetRefusal::Reservation
+                } else {
+                    SelectedOperationSetRefusal::WrongBinding
+                }),
+                "offer={change_offer}, field={field}"
+            );
+            f.fragment.placements[0].limits = f.kind.limits.clone();
+            let mut host = f.owner.host().clone();
+            host.capabilities[0].limits = f.kind.limits.clone();
+            refresh(&mut f, host);
+            let a = operation(f.scopes[0].clone());
+            let r = operation(f.scopes[1].clone());
+            assert!(f.bind(&[&a, &r]).is_ok());
+        }
+    }
+}
