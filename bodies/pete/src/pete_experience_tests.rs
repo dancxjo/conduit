@@ -123,7 +123,8 @@ fn explicit_projection_keeps_memory_separate_from_present_observation() {
     .unwrap();
     let record = remembered_model_result();
     let policy = ExperienceTemporalPolicy::new(20, 50).unwrap();
-    let current = integrate_pete_experience(&situation, policy, &[record.clone()]).unwrap();
+    let current =
+        integrate_pete_experience(&situation, policy, core::slice::from_ref(&record)).unwrap();
     assert_eq!(
         integrate_pete_experience(&situation, policy, &[record.clone(), record.clone()]),
         Err(PeteExperienceRefusal::Admission(
