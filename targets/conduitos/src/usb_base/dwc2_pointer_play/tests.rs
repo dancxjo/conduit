@@ -1,6 +1,6 @@
 //! One named report fixture executes native admission and normal mouse plots.
 use super::*;
-use crate::arch::dwc2::{EndpointRoute, TransferType, test_io};
+use crate::arch::dwc2::{EndpointRoute, TransactionTranslator, TransferType, test_io};
 fn native() -> (UsbNativeIdentity, NativeProtocolIssuer) {
     let identity = UsbNativeIdentity {
         host_id: "fixture/pointer-play-host".into(),
@@ -290,17 +290,19 @@ fn fixture_layout(layout_type: StructuredInfoType) -> StructuredInfoValue {
 fn dwc2_pointer_session_carries_source_history_through_press_and_release_without_allocating() {
     let (identity, issuer) = native();
     let mut controller = test_io::prepared();
+    let io = test_io::registers(&mut controller);
+    io.clock_step = 10;
+    let split_ack = || (0x22, vec![], vec![]);
+    io.script.extend([split_ack(), (0x12, vec![], vec![])]);
     for (pressed, x, y) in [(true, 1024_u16, 600_u16), (false, 512, 300)] {
         let mut report = [0_u8; 44];
         report[0] = 1;
         report[1] = u8::from(pressed);
         report[3..5].copy_from_slice(&x.to_le_bytes());
         report[5..7].copy_from_slice(&y.to_le_bytes());
-        test_io::registers(&mut controller)
-            .script
-            .push_back(completion(Some(&report)));
+        io.script.extend([split_ack(), completion(Some(&report))]);
     }
-    test_io::registers(&mut controller).writes.reserve(1024);
+    io.writes.reserve(1024);
     let route = RootEndpointRoute {
         slot: 1,
         generation: 1,
@@ -310,7 +312,11 @@ fn dwc2_pointer_session_carries_source_history_through_press_and_release_without
             endpoint: 1,
             maximum_packet: 64,
             transfer_type: TransferType::Interrupt,
-            translator: None,
+            translator: Some(TransactionTranslator {
+                hub_address: 1,
+                port: 2,
+                low_speed: false,
+            }),
         },
     };
     let (play, schemas) =
@@ -344,7 +350,7 @@ fn dwc2_pointer_session_carries_source_history_through_press_and_release_without
     let allocations = crate::test_allocations::allocations(|| {
         session.start().unwrap();
         for _ in 0..4096 {
-            if session.ready() && reads < 2 {
+            if session.ready() && reads < 3 {
                 session.read().unwrap();
                 reads += 1;
             }
@@ -366,6 +372,6 @@ fn dwc2_pointer_session_carries_source_history_through_press_and_release_without
             }
         }
     });
-    assert_eq!((reads, samples), (2, 2));
+    assert_eq!((reads, samples), (3, 2));
     assert_eq!(allocations, 0);
 }
