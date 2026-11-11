@@ -152,6 +152,9 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             prepare_only,
             state_dir,
         } => source_revision::adopt(&state_dir, &selection, prepare_only),
+        HostServiceCommand::ReselectSource { request, state_dir } => {
+            source_revision::reselect(&state_dir, &request)
+        }
         HostServiceCommand::Configure {
             configuration,
             clear,
@@ -1192,8 +1195,8 @@ fn make_executable(_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) use routed_join::{return_installed_member, return_on_actual_host, MemberEncounter};
 pub(crate) use routed_join::{install_member_contact, serve_body_member_contact};
+pub(crate) use routed_join::{return_installed_member, return_on_actual_host, MemberEncounter};
 
 #[cfg(test)]
 mod tests {
