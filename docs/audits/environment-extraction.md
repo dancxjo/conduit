@@ -244,3 +244,13 @@ no provenance constructor or production behavior changed.
 
 Focused qualification is retained in
 `extraction-baseline-repair-qualified-20261111.log` in the task outputs.
+
+The final post-repair runtime audit passes all 70 tests across 21 test binaries
+with all features enabled, including the controlled current-compiler pulse
+revision comparison. The two reproduced baseline gates are now repaired in tests:
+checked assigned Fore provenance remains intact, and the current exact seals are
+pinned without claiming to recreate the historical compiler. The shared fixture
+change was followed by this full runtime audit, not only the two focused tests.
+No production behavior, live owner, device firmware or installed Body was changed
+by those baseline repairs. The final log is
+`outputs/extraction-runtime-final-audit-20261111.log` in the task evidence area.
