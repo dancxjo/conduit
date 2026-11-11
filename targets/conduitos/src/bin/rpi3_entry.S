@@ -16,7 +16,9 @@ conduitos_rpi3_product_entry:
     b conduitos_rpi3_el1
 conduitos_rpi3_el2:
     mrs x0, sctlr_el2
-    tst x0, #5
+    tst x0, #1
+    b.ne conduitos_rpi3_park
+    tst x0, #4
     b.ne conduitos_rpi3_park
     mov x0, #0x80000000
     msr hcr_el2, x0
@@ -37,7 +39,9 @@ conduitos_rpi3_el2:
 conduitos_rpi3_el1:
     // The firmware stub must supply translation/cache-disabled EL1 entry.
     mrs x0, sctlr_el1
-    tst x0, #5
+    tst x0, #1
+    b.ne conduitos_rpi3_park
+    tst x0, #4
     b.ne conduitos_rpi3_park
     msr spsel, #1
     ldr x0, =__bss_start
