@@ -5,7 +5,7 @@ mod allocation_probe;
 mod reference;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
-use conduit_environment_runtime::display_packets::{PreparedDisplayFrame, DISPLAY_FRAME_BYTES};
+use conduit_tm1637_protocol::{PreparedDisplayFrame, DISPLAY_FRAME_BYTES};
 #[test]
 fn every_scalar_byte_matches_independent_composition_without_preparation_or_play_allocation() {
     let input = conduit_core::StructuredInfoType::from_canonical_bytes(include_bytes!(concat!(
