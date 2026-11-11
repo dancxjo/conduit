@@ -142,6 +142,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "conduit-tm1637-protocol",
  "conduit-typed-retention",
 ]
 
