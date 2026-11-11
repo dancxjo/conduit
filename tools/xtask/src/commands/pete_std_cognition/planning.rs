@@ -320,3 +320,29 @@ fn plan_with_mode(
         .pop()
         .ok_or_else(|| "Pete Plan lost its fragment".into())
 }
+
+/// Realize the authored keep values with the existing generic Play State Back.
+pub(super) fn install_play_states(
+    host: &mut StdHost,
+    authoring: &conduit_plot::ExpandedAuthoringPlot,
+) -> Result<(), String> {
+    for gear in &authoring.expanded.gears {
+        if gear.kind_id.as_str() != conduit_core::STATE_VALUE_KIND {
+            continue;
+        }
+        let conduit_core::ConfigurationValue::Structured(initial) = &gear
+            .configuration
+            .iter()
+            .find(|entry| entry.key == "initial")
+            .ok_or("keep initial value missing")?
+            .value
+        else {
+            return Err("keep initial value is not native".into());
+        };
+        let initial =
+            conduit_core::StructuredInfoValue::from_canonical_bytes(initial.canonical_value())
+                .map_err(|error| format!("keep initial value: {error:?}"))?;
+        host.install_play_state_value(initial.value_type(), &initial)?;
+    }
+    Ok(())
+}

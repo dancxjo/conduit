@@ -158,6 +158,7 @@ pub(super) fn run(args: StdCognitionArgs, dry_run: bool) -> Result<(), String> {
         Some(checkpoint) => authoring(Some(checkpoint))?,
         None => initial_authoring,
     };
+    planning::install_play_states(&mut host, &authoring)?;
     let fragment = plan(&host, &authoring, checkpoint.is_some())?;
     let seed = ExternalForeInput {
         front_port_id: "context".into(),
