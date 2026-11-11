@@ -158,6 +158,7 @@ type ExperienceOrigin =
 
 type ExperienceTemporalRole =
     current
+    | indeterminate
     | recent
     | stale
     | historical
@@ -297,6 +298,11 @@ type ExperienceEvidenceSource =
         provider_instance: ExperienceEvidenceIdentity
         artifact: ExperienceEvidenceIdentity
         run: ExperienceEvidenceIdentity
+    }
+    | temporal_context {
+        observed_at: TemporalInstant
+        reference_at: TemporalInstant
+        policy: ExperienceTemporalPolicy
     }
 
 type ExperienceEvidenceSources = sequence ExperienceEvidenceSource <= 4
@@ -656,4 +662,26 @@ type GamepadState = {
     pressure: InputPressure
     sequence: U64
     source_profile: Text
+}
+
+# Explicit temporal selection before memory-informed interpretation. Missing
+# and unavailable sources carry absent time, never a fabricated observation.
+type ExperienceSituationTime =
+    at {
+        instant: TemporalInstant
+    }
+    | absent
+
+type ExperienceSituationObservation = {
+    evidence: ExperienceEvidenceItem
+    time: ExperienceSituationTime
+}
+type ExperienceSituationObservations = sequence ExperienceSituationObservation <= 8
+
+type ExperienceSituationFrame = {
+    reference: TemporalInstant
+    policy: ExperienceTemporalPolicy
+    selection: ExperienceEvidenceSelection
+    observations: ExperienceSituationObservations
+    retain: Boolean
 }

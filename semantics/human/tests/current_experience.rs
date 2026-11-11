@@ -312,3 +312,42 @@ fn admission_rejects_a_caller_claimed_temporal_role() {
         ExperienceRefusal::TemporalRoleMismatch
     );
 }
+
+#[test]
+fn uncertain_age_is_retained_explicitly_without_claiming_a_current_observation() {
+    let mut experience = new_experience(limits());
+    let mut uncertain = item("uncertain", ExperienceDomain::Visual, "sign/uncertain");
+    uncertain.observed_at = Some(TemporalInstant {
+        uncertainty_ticks: 2,
+        ..at(95)
+    });
+    uncertain.temporal_role = ExperienceTemporalRole::Indeterminate;
+    assert_eq!(
+        experience.try_admit(uncertain.clone()).unwrap_err().refusal,
+        ExperienceRefusal::TemporalClassification(ExperienceTemporalRefusal::IndeterminateAge)
+    );
+    uncertain.certainty = ExperienceCertainty::Uncertain;
+    experience.try_admit(uncertain).unwrap();
+    assert_eq!(
+        experience.items()[0].temporal_role,
+        ExperienceTemporalRole::Indeterminate
+    );
+    assert_eq!(
+        experience
+            .current_observations(&kind_id("experience/fact@1"))
+            .count(),
+        0
+    );
+}
+#[test]
+fn indeterminate_role_does_not_renumber_established_serde_variants() {
+    for (role, tag) in [
+        (ExperienceTemporalRole::Current, 0),
+        (ExperienceTemporalRole::Historical, 1),
+        (ExperienceTemporalRole::Recent, 2),
+        (ExperienceTemporalRole::Stale, 3),
+        (ExperienceTemporalRole::Indeterminate, 4),
+    ] {
+        assert_eq!(postcard::to_allocvec(&role).unwrap(), vec![tag]);
+    }
+}

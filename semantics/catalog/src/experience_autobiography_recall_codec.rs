@@ -247,7 +247,7 @@ impl BoundedExperienceAutobiographyRecall {
             ),
             (
                 "temporal_role",
-                &["current", "recent", "stale", "historical"][..],
+                &["current", "recent", "stale", "historical", "indeterminate"][..],
             ),
         ] {
             put(&mut self.wrapper, b",\"original_")?;

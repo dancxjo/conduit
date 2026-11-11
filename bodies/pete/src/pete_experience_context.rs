@@ -10,16 +10,24 @@ pub fn project_pete_experience_evidence(
     revision: u64,
     provenance_revision: &str,
 ) -> Result<ExperienceEvidenceRequest, ExperienceEvidenceRefusal> {
+    project_pete_experience_items(experience.items(), revision, provenance_revision)
+}
+
+pub(crate) fn project_pete_experience_items(
+    items: &[ExperienceItem],
+    revision: u64,
+    provenance_revision: &str,
+) -> Result<ExperienceEvidenceRequest, ExperienceEvidenceRefusal> {
     use ExperienceEvidenceRefusal as R;
     let identity =
         |value: &str| ExperienceEvidenceIdentity::new(value.into()).map_err(|_| R::IdentityBound);
-    if experience.items().len() > conduit_semantic_catalog::EXPERIENCE_EVIDENCE_MAX_ITEMS {
+    if items.len() > conduit_semantic_catalog::EXPERIENCE_EVIDENCE_MAX_ITEMS {
         return Err(R::ItemBound);
     }
     let provenance = identity(provenance_revision)?;
-    let mut evidence = Vec::with_capacity(experience.items().len());
-    let mut identities = Vec::with_capacity(experience.items().len());
-    for item in experience.items() {
+    let mut evidence = Vec::with_capacity(items.len());
+    let mut identities = Vec::with_capacity(items.len());
+    for item in items {
         let mut sources = Vec::with_capacity(item.sources.len());
         for source in &item.sources {
             sources.push(

@@ -273,3 +273,68 @@ fn provenance_references_remain_data_and_duplicate_sources_are_refused() {
         Err(ExperienceEvidenceRefusal::SourceBound)
     );
 }
+
+#[path = "common/experience_temporal.rs"]
+mod temporal;
+#[test]
+fn native_temporal_context_is_preserved_without_resolving_clock_identities() {
+    let value = with_sources(
+        item(
+            "time",
+            ExperienceOrigin::Observation,
+            ExperienceTemporalRole::Indeterminate,
+            ExperienceAvailability::Present,
+            7,
+            "provenance/7",
+            b"uncertain observation",
+        ),
+        vec![temporal::source()],
+    );
+    let input = request(&["time"], vec![value.clone()]).encode().unwrap();
+    let expected = ExperienceEvidenceContext::new(items(vec![value]), selection(&["time"]))
+        .unwrap()
+        .encode()
+        .unwrap();
+    let mut projection = BoundedExperienceEvidenceProjection::prepare();
+    assert_eq!(projection.execute(&input).unwrap(), expected);
+    // Clock-basis mismatch is explicit provenance, not authority to invent a
+    // relationship or reject an honestly indeterminate observation.
+}
+#[test]
+fn duplicate_temporal_context_and_invalid_time_or_policy_refuse() {
+    let source = temporal::source();
+    let duplicate = request(
+        &["time"],
+        vec![with_sources(
+            observation("time"),
+            vec![source.clone(), source.clone()],
+        )],
+    )
+    .encode()
+    .unwrap();
+    let mut projection = BoundedExperienceEvidenceProjection::prepare();
+    assert_eq!(
+        projection.execute(&duplicate),
+        Err(ExperienceEvidenceRefusal::SourceBound)
+    );
+    let valid = request(
+        &["time"],
+        vec![with_sources(observation("time"), vec![source])],
+    )
+    .encode()
+    .unwrap();
+    for (field, value) in [
+        ("maximum_current_age_ticks", 50),
+        ("resolution_ticks", 0),
+        ("uncertainty_ticks", 201),
+    ] {
+        let mut forged = valid.clone();
+        temporal::set_u64(&mut forged, field, value);
+        assert_eq!(
+            projection.execute(&forged),
+            Err(ExperienceEvidenceRefusal::Malformed)
+        );
+        assert!(projection.output().is_empty());
+    }
+    assert!(projection.execute(&valid).is_ok());
+}

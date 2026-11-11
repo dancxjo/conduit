@@ -147,7 +147,7 @@ impl BoundedExperiencePrompt {
                 ),
                 (
                     "temporal_role",
-                    &["current", "recent", "stale", "historical"][..],
+                    &["current", "recent", "stale", "historical", "indeterminate"][..],
                 ),
                 (
                     "availability",
@@ -208,6 +208,29 @@ fn source_json(out: &mut Vec<u8>, source: View<'_>) -> Result<(), R> {
         }
         return put(out, b"}");
     }
+    if let Some(context) = source
+        .variant_payload("temporal_context")
+        .map_err(|_| R::Malformed)?
+    {
+        put(out, b"{\"role\":\"temporal_context\",\"observed_at\":")?;
+        instant_json(out, field(context, "observed_at")?)?;
+        put(out, b",\"reference_at\":")?;
+        instant_json(out, field(context, "reference_at")?)?;
+        put(out, b",\"policy\":{")?;
+        let policy = field(context, "policy")?;
+        for (index, key) in ["maximum_current_age_ticks", "maximum_recent_age_ticks"]
+            .iter()
+            .enumerate()
+        {
+            if index > 0 {
+                put(out, b",")?;
+            }
+            quoted(out, key.as_bytes())?;
+            put(out, b":")?;
+            decimal(out, number(field(policy, key)?)?)?;
+        }
+        return put(out, b"}}");
+    }
     if let Some(resource) = source
         .variant_payload("resource")
         .map_err(|_| R::Malformed)?
@@ -220,6 +243,31 @@ fn source_json(out: &mut Vec<u8>, source: View<'_>) -> Result<(), R> {
         return put(out, b"\"}");
     }
     Err(R::Malformed)
+}
+fn instant_json(out: &mut Vec<u8>, view: View<'_>) -> Result<(), R> {
+    let instant =
+        conduit_core::BorrowedTemporalInstant::from_canonical(view).map_err(|_| R::Malformed)?;
+    put(out, b"{\"clock_basis\":")?;
+    quoted(out, instant.clock_basis.as_bytes())?;
+    put(out, b",\"scale\":")?;
+    let scale = match instant.scale {
+        conduit_core::TemporalScale::Seconds => "seconds",
+        conduit_core::TemporalScale::Milliseconds => "milliseconds",
+        conduit_core::TemporalScale::Microseconds => "microseconds",
+        conduit_core::TemporalScale::Nanoseconds => "nanoseconds",
+    };
+    quoted(out, scale.as_bytes())?;
+    for (key, value) in [
+        ("ticks", instant.ticks),
+        ("resolution_ticks", instant.resolution_ticks),
+        ("uncertainty_ticks", instant.uncertainty_ticks),
+    ] {
+        put(out, b",")?;
+        quoted(out, key.as_bytes())?;
+        put(out, b":")?;
+        decimal(out, value)?;
+    }
+    put(out, b"}")
 }
 fn canonical_name(out: &mut Vec<u8>, value: &[u8]) {
     out.extend_from_slice(&(value.len() as u32).to_le_bytes());

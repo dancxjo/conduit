@@ -2,6 +2,8 @@
 
 mod value_pair;
 pub use value_pair::*;
+mod experience_situation;
+pub use experience_situation::*;
 mod experience_autobiography;
 pub use experience_autobiography::*;
 mod experience_prompt;

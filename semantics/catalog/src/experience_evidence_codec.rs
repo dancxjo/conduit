@@ -155,6 +155,22 @@ fn validate_item(item: View<'_>) -> Result<(), Refusal> {
             for name in ["implementation", "provider_instance", "artifact", "run"] {
                 identity(field(run, name)?)?;
             }
+        } else if let Some(context) = source
+            .variant_payload("temporal_context")
+            .map_err(|_| Refusal::Malformed)?
+        {
+            for name in ["observed_at", "reference_at"] {
+                conduit_core::BorrowedTemporalInstant::from_canonical(field(context, name)?)
+                    .map_err(|_| Refusal::Malformed)?
+                    .interval()
+                    .map_err(|_| Refusal::Malformed)?;
+            }
+            let policy = field(context, "policy")?;
+            if revision(field(policy, "maximum_current_age_ticks")?)?
+                >= revision(field(policy, "maximum_recent_age_ticks")?)?
+            {
+                return Err(Refusal::Malformed);
+            }
         } else if let Some(resource) = source
             .variant_payload("resource")
             .map_err(|_| Refusal::Malformed)?

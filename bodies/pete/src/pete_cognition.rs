@@ -11,6 +11,17 @@ pub const PETE_AUTOBIOGRAPHICAL_COGNITION_PLOT_SOURCE: &str =
 pub const PETE_RESILIENT_COGNITION_PLOT_SOURCE: &str =
     include_str!("../../../plots/pete-cognition/resilient.conduit");
 
+pub const PETE_SITUATED_COGNITION_PLOT_SOURCE: &str =
+    include_str!("../../../plots/pete-cognition/situated.conduit");
+
+pub fn install_pete_situated_cognition_catalogs(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    install_pete_resilient_cognition_catalogs(startup, profile)?;
+    conduit_semantic_catalog::install_experience_situation_catalogs(startup, profile)
+}
+
 pub fn install_pete_resilient_cognition_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
@@ -141,5 +152,19 @@ mod tests {
             .connections
             .iter()
             .any(|c| c.track == conduit_core::ConnectionTrack::AbnormalTerminal));
+    }
+    #[test]
+    fn situated_plot_selects_explicit_time_before_memory_and_model_work() {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        install_pete_situated_cognition_catalogs(&mut startup, &mut profile).unwrap();
+        let parsed = parse_syntax_document(PETE_SITUATED_COGNITION_PLOT_SOURCE);
+        assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+        let checked = check_syntax_document(&parsed, &startup).unwrap();
+        let authored =
+            expand_canonical_plot_for_authoring(&checked, "pete-situated-cognition", &profile)
+                .unwrap();
+        assert_eq!(authored.expanded.gears.len(), 8);
+        assert_eq!(authored.output_bindings.len(), 4);
     }
 }

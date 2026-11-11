@@ -1,5 +1,11 @@
 use super::*;
 pub(super) fn plan(host: &StdHost, cognition: bool, recovery: bool) -> Plan {
+    plan_kind(host, cognition, recovery, false)
+}
+pub(super) fn situated(host: &StdHost) -> Plan {
+    plan_kind(host, true, true, true)
+}
+fn plan_kind(host: &StdHost, cognition: bool, recovery: bool, situated: bool) -> Plan {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_experience_evidence_catalogs(&mut startup, &mut profile)
@@ -16,6 +22,10 @@ pub(super) fn plan(host: &StdHost, cognition: bool, recovery: bool) -> Plan {
     )
     .unwrap();
     install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
+    if situated {
+        conduit_semantic_catalog::install_experience_situation_catalogs(&mut startup, &mut profile)
+            .unwrap();
+    }
     if recovery {
         conduit_semantic_catalog::install_experience_autobiography_recovery_catalogs(
             &mut startup,
@@ -54,7 +64,12 @@ pub(super) fn plan(host: &StdHost, cognition: bool, recovery: bool) -> Plan {
     .unwrap();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
-    let (source, entry) = if recovery && cognition {
+    let (source, entry) = if situated {
+        (
+            include_str!("../../../../../../plots/pete-cognition/situated.conduit"),
+            "pete-situated-cognition",
+        )
+    } else if recovery && cognition {
         (
             include_str!("../../../../../../plots/pete-cognition/resilient.conduit"),
             "pete-resilient-cognition",
@@ -76,12 +91,19 @@ pub(super) fn plan(host: &StdHost, cognition: bool, recovery: bool) -> Plan {
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
     let boundaries = [
         ("events", PortDirection::Input, 65_536),
+        ("observations", PortDirection::Input, 65_536),
+        ("situations", PortDirection::Output, 65_536),
         ("responses", PortDirection::Output, 16_384),
         ("autobiography", PortDirection::Output, 65_536),
         ("losses", PortDirection::Output, 34),
     ]
     .into_iter()
-    .filter(|(name, _, _)| *name != "losses" || recovery)
+    .filter(|(name, _, _)| match *name {
+        "losses" => recovery,
+        "events" => !situated,
+        "observations" | "situations" => situated,
+        _ => true,
+    })
     .map(|(name, direction, bytes)| {
         (
             ForeBoundaryKey {

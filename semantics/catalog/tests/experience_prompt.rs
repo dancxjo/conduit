@@ -207,3 +207,68 @@ fn resource_reference_is_explicitly_inert_exact_hex() {
     let text = core::str::from_utf8(prompt.execute(&input).unwrap()).unwrap();
     assert!(text.contains(&format!("{{\"role\":\"resource\",\"encoding\":\"inert-canonical-resource-hex\",\"value\":\"{expected}\"}}")));
 }
+
+#[allow(dead_code)]
+#[path = "common/experience_temporal.rs"]
+mod temporal;
+#[test]
+fn temporal_context_is_readable_typed_json_with_exact_policy_and_uncertainty() {
+    let input = context(
+        &["time"],
+        vec![with_sources(
+            item(
+                "time",
+                ExperienceOrigin::Observation,
+                ExperienceTemporalRole::Indeterminate,
+                ExperienceAvailability::Present,
+                7,
+                "provenance/7",
+                b"uncertain observation",
+            ),
+            vec![temporal::source()],
+        )],
+    );
+    let mut prompt = BoundedExperiencePrompt::prepare();
+    let rendered = core::str::from_utf8(prompt.execute(&input).unwrap()).unwrap();
+    conduit_web::validate_json_text(rendered.as_bytes()).unwrap();
+    assert!(rendered.contains("\"temporal_role\":\"indeterminate\""));
+    let expected = concat!(
+        r#"{"role":"temporal_context","observed_at":{"clock_basis":"clock/observation\"\u000a","scale":"milliseconds","ticks":100,"resolution_ticks":2,"uncertainty_ticks":7},"#,
+        r#""reference_at":{"clock_basis":"clock/reference","scale":"milliseconds","ticks":200,"resolution_ticks":3,"uncertainty_ticks":11},"#,
+        r#""policy":{"maximum_current_age_ticks":20,"maximum_recent_age_ticks":50}}"#,
+    );
+    assert!(rendered.contains(expected), "{rendered}");
+}
+#[test]
+fn temporal_context_projection_and_prompt_allocate_only_in_preparation() {
+    let input = context(
+        &["time"],
+        vec![with_sources(observation("time"), vec![temporal::source()])],
+    );
+    let oversized = context(
+        &["time"],
+        vec![with_sources(
+            item(
+                "time",
+                ExperienceOrigin::Observation,
+                ExperienceTemporalRole::Indeterminate,
+                ExperienceAvailability::Present,
+                7,
+                "provenance/7",
+                &[0; 2048],
+            ),
+            vec![temporal::source()],
+        )],
+    );
+    let mut prompt = BoundedExperiencePrompt::prepare();
+    ALLOCATIONS.with(|count| count.set(0));
+    COUNTING.with(|flag| flag.set(true));
+    let accepted = prompt.execute(&input).is_ok();
+    let refused = prompt.execute(&oversized) == Err(ExperiencePromptRefusal::ByteBound);
+    let empty = prompt.output().is_empty();
+    let recovered = prompt.execute(&input).is_ok();
+    COUNTING.with(|flag| flag.set(false));
+    assert!(accepted && refused && empty && recovered);
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+    assert!(prompt.output().len() <= EXPERIENCE_PROMPT_MAX_BYTES);
+}

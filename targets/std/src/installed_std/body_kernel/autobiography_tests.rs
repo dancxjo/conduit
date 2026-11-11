@@ -133,6 +133,7 @@ fn offer() -> LocalModelOffer {
 mod planning;
 use planning::plan;
 mod recovery;
+mod situation;
 
 struct Capture {
     responses: Vec<Vec<u8>>,

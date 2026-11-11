@@ -212,6 +212,7 @@ use conduit_core::{ImplementationId, PlanFragment};
 const FACTORIES: &[&BackFactory] = &[
     &super::experience_integration_back::FACTORY,
     &super::experience_prompt_back::FACTORY,
+    &super::experience_situation_back::FACTORY,
     &super::experience_autobiography_back::FACTORY,
     &super::experience_autobiography_recovery_back::FACTORY,
     &super::experience_autobiography_recall_back::FACTORY,

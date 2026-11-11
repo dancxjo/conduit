@@ -162,9 +162,13 @@ fn append_fact<T: Serialize>(
         {
             return Err(PeteExperienceRefusal::InvalidFact);
         }
-        let temporal_role = policy
-            .classify(&source.observed_at, &situation.reference)
-            .map_err(|_| PeteExperienceRefusal::IndeterminateTime)?;
+        let temporal_role = match policy.classify(&source.observed_at, &situation.reference) {
+            Ok(role) => role,
+            Err(conduit_human::ExperienceTemporalRefusal::IndeterminateAge) => {
+                conduit_human::ExperienceTemporalRole::Indeterminate
+            }
+            Err(_) => return Err(PeteExperienceRefusal::IndeterminateTime),
+        };
         let encoded_content =
             serde_json::to_vec(value).map_err(|_| PeteExperienceRefusal::Encoding)?;
         if encoded_content.len() > conduit_human::MAXIMUM_BODY_SELF_STATE_BYTES {
