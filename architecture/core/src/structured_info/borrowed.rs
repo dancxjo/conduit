@@ -1,13 +1,15 @@
 //! Allocation-free validation of self-describing canonical structured values.
 
 use super::{
-    StructuredInfoRefusal, MAXIMUM_STRUCTURED_CANONICAL_BYTES, MAXIMUM_STRUCTURED_COLLECTION_ITEMS,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES, MAXIMUM_STRUCTURED_COLLECTION_ITEMS,
     MAXIMUM_STRUCTURED_INFO_DEPTH, MAXIMUM_STRUCTURED_INFO_NODES, MAXIMUM_STRUCTURED_LEAF_BYTES,
     MAXIMUM_STRUCTURED_NAME_BYTES, MAXIMUM_STRUCTURED_RECORD_FIELDS,
-    MAXIMUM_STRUCTURED_VARIANT_CASES,
+    MAXIMUM_STRUCTURED_VARIANT_CASES, StructuredInfoRefusal,
 };
 use sha2::{Digest, Sha256};
 
+mod composition;
+pub use composition::{BorrowedStructuredValue, PreparedLinkedStructuredComposer};
 mod leaf_sequence;
 mod prepared;
 mod projection;
