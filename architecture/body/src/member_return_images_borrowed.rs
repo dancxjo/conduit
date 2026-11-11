@@ -2,6 +2,9 @@
 use super::*;
 use core::{fmt, marker::PhantomData};
 use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
+#[path = "member_return_images_finite.rs"]
+mod finite;
+use finite::{ExactText, FiniteCredential, FiniteGrant};
 
 // serde-json-core supports identifiers (the same path used by derived
 // struct deserializers), but deliberately does not support String map keys.
@@ -61,18 +64,16 @@ impl<'de, G: Borrow<AuthorityGrant>> Visitor<'de> for MemberReturnImageAcknowled
             match key.0 {
                 "kind" if !kind => {
                     kind = true;
-                    if map.next_value::<String>()? != "Admitted" {
-                        return Err(de::Error::custom("kind"));
-                    }
+                    map.next_value_seed(ExactText("Admitted"))?;
                 }
                 "schema" if !schema => {
                     schema = true;
-                    if map.next_value::<String>()? != MEMBER_RETURN_IMAGES_SCHEMA {
-                        return Err(de::Error::custom("schema"));
-                    }
+                    map.next_value_seed(ExactText(MEMBER_RETURN_IMAGES_SCHEMA))?;
                 }
                 "credential" if credential.is_none() => {
-                    credential = Some(map.next_value::<MembershipCredential>()?)
+                    credential = Some(MembershipCredential::from(
+                        map.next_value::<FiniteCredential>()?,
+                    ))
                 }
                 "projection" if !projection => {
                     map.next_value_seed(ProjectionSeed(self.actual))?;
@@ -118,7 +119,11 @@ impl<'de, G: Borrow<AuthorityGrant>> Visitor<'de> for ProjectionSeed<'_, G> {
             match key.0 {
                 "context" if !context => {
                     context = true;
-                    if map.next_value::<HostAdvertisement>()? != *self.0.context {
+                    if let Some(seed) =
+                        conduit_core::HostAdvertisementEqualitySeed::new(self.0.context)
+                    {
+                        map.next_value_seed(seed)?;
+                    } else if map.next_value::<HostAdvertisement>()? != *self.0.context {
                         return Err(de::Error::custom("context"));
                     }
                 }
@@ -178,7 +183,12 @@ impl<'de, G: Borrow<AuthorityGrant>> Visitor<'de> for EqualGrants<'_, G> {
     }
     fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<(), S::Error> {
         for expected in self.0 {
-            if seq.next_element::<AuthorityGrant>()?.as_ref() != Some(expected.borrow()) {
+            if seq
+                .next_element::<FiniteGrant>()?
+                .map(AuthorityGrant::from)
+                .as_ref()
+                != Some(expected.borrow())
+            {
                 return Err(de::Error::custom("description mismatch"));
             }
         }
