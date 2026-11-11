@@ -278,7 +278,7 @@ impl<C: RendererClock> ReadyRenderer<C> {
             last_clock: 0,
             frames: 0,
             frame_pending: false,
-            last_frame: [0; conduit_environment_runtime::display_packets::DISPLAY_FRAME_BYTES],
+            last_frame: [0; conduit_tm1637_protocol::DISPLAY_FRAME_BYTES],
             last_frame_len: 0,
         };
         if service
@@ -331,7 +331,7 @@ pub struct RendererService<'a, C> {
     last_clock: u64,
     frames: u32,
     frame_pending: bool,
-    last_frame: [u8; conduit_environment_runtime::display_packets::DISPLAY_FRAME_BYTES],
+    last_frame: [u8; conduit_tm1637_protocol::DISPLAY_FRAME_BYTES],
     last_frame_len: usize,
 }
 impl<C: RendererClock> RendererService<'_, C> {

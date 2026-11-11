@@ -2061,6 +2061,7 @@ dependencies = [
 name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-tm1637-protocol",
  "conduit-core",
  "conduit-dht11-observation",
  "conduit-environment-face",
@@ -2318,6 +2319,7 @@ dependencies = [
 name = "conduit-mcu-host-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-tm1637-protocol",
  "conduit-body",
  "conduit-core",
  "conduit-dht11-observation",
@@ -2992,6 +2994,15 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "conduit-tm1637-wire",
+]
+
+[[package]]
+name = "conduit-tm1637-protocol"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
  "conduit-tm1637-wire",
 ]
 

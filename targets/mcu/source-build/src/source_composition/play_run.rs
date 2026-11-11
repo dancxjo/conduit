@@ -27,7 +27,7 @@ use conduit_mcu_host_runtime::{
 use core::cell::RefCell;
 type NativeCalls<const W: usize> =
     Calls<crate::equipment::Capture, crate::equipment::Wire, MonotonicTimer, W>;
-const FRAME_BYTES: usize = conduit_environment_runtime::display_packets::DISPLAY_FRAME_BYTES;
+const FRAME_BYTES: usize = conduit_tm1637_protocol::DISPLAY_FRAME_BYTES;
 struct Yield;
 impl CooperativeYield for Yield {
     async fn pause(&self) {

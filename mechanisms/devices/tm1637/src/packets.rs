@@ -1,5 +1,6 @@
 //! Execute the authored TM1637 packet expression; native GPIO sees only its
 //! finite packet bytes. No native command synthesis, I/O, admission or scheduler.
+use crate::PreparedDisplayFrame;
 use conduit_core::{
     validate_canonical_structured_value as validate, PreparedStructuredComposer as C,
     StructuredInfoRefusal as R, StructuredInfoTypeShape as S,
@@ -8,9 +9,6 @@ use conduit_plot::{
     PortableExpressionEvaluationRefusal, PortableExpressionProgram,
     PortableExpressionProgramRefusal, PreparedPortableExpressionEvaluator,
 };
-#[path = "display_frame.rs"]
-mod frame;
-pub use frame::{validate_display_frame, PreparedDisplayFrame, DISPLAY_FRAME_BYTES};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DisplayPacketRefusal {

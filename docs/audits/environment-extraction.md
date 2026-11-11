@@ -270,3 +270,13 @@ passes strict all-target Clippy and Cortex-M0+ compilation, with byte-identical
 CPU64 inline/buffer/preparation allocation measurements before and after. Those
 measurements are not a new firmware or hardware acceptance claim. Running
 MCU/owner/display artifacts were left unchanged during this source integration.
+
+## Accepted dev delivery reconciliation
+
+Focused extraction PR #6867 passed its complete Candidate matrix and merged to
+`dev` at `3ebde90bccce34a7bc36c8a4e190ce860f4cde60`. This integration retains
+its later linked/static selector, pack-only quantity codec, typed retention,
+and shared TM1637 realization. Those follow-ups avoid restoring decoded schema
+copies or the removed Body-local display generator when reconciling the focused
+extraction. Every external package shared with the accepted base retains its version and
+checksum; additional existing entries fund integration-only runtime features.
