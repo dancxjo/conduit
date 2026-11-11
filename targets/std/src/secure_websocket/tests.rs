@@ -1,6 +1,8 @@
 use super::*;
 use rcgen::{generate_simple_self_signed, CertifiedKey};
-use rustls::pki_types::PrivatePkcs8KeyDer;
+use rustls::client::danger::ServerCertVerifier;
+use rustls::pki_types::{PrivatePkcs8KeyDer, ServerName, UnixTime};
+use rustls::{CertificateError, Error as TlsError};
 use std::fs;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::thread;
