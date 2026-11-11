@@ -2,6 +2,8 @@
 use crate::process::Step;
 
 pub const STEPS: &[Step] = &[
+    Step::new("pete-cognition.live-proof-cli", "Check explicit local provider and memory admission arguments", "cargo",
+        &["test", "--locked", "-p", "xtask", "--bin", "xtask", "pete_cognition_requires_explicit"]),
     Step::new("pete-cognition.lint", "Lint the changed cognition libraries and shared Host route", "cargo",
         &["clippy", "--locked", "-p", "conduit-pete", "-p", "conduit-ai", "-p", "conduit-semantic-catalog", "-p", "conduit-human", "-p", "conduit-std-offers", "-p", "conduit-std-host", "--lib", "--", "-D", "warnings"]),
     Step::new("pete-cognition.temporal", "Check existing temporal and clock relations with shared borrowed machinery", "cargo",

@@ -14,7 +14,7 @@ plot pete-situated-cognition (
     experience: experience/integrate-current
     evidence: experience/project-evidence-flow
     context: experience/context-to-prompt
-    interpretation: llm/generate-recoverable-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 512, maximum-work-units = 4096, maximum-history-items = 0)
+    interpretation: llm/generate-recoverable-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 4096, maximum-work-units = 4096, maximum-history-items = 0)
     retain: experience/autobiography-retain-recoverable
 
     observations >> select.frame

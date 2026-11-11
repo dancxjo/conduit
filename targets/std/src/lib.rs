@@ -214,6 +214,7 @@ mod local_model_observation;
 mod local_model_pool_member;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
+mod local_model_state;
 #[cfg(any(test, feature = "local-model-proof"))]
 pub mod local_model_stream_proof;
 mod run_control;
