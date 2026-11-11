@@ -2,12 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { runInNewContext } from 'node:vm';
-import { emitAptFailureDiagnostics, privilegedCommand, PROXY_NAMES } from '../../tools/ci/pipeline/acquisition/apt-failure-diagnostics.mjs';
+import { emitAptFailureDiagnostics, privilegedCommand, PROXY_NAMES, REPOSITORY_HOSTS } from '../../tools/ci/pipeline/acquisition/apt-failure-diagnostics.mjs';
 
 const secret = 'never-print-this-proxy-credential';
 const resolver = Buffer.from('nameserver 192.0.2.53\n');
 const hash = value => createHash('sha256').update(value).digest('hex');
-function child(script, env, aptResult = {}) {
+function child(script, env, aptResult = {}, lookupResult = {}) {
+  const timers = []; const names = [];
   let stdout = '';
   const fs = {
     constants: {O_RDONLY:0,O_NONBLOCK:2048},
@@ -20,10 +21,18 @@ function child(script, env, aptResult = {}) {
   };
   runInNewContext(script, {
     Buffer,
-    process:{env,stdout:{write(value) {stdout += value;}}},
+    process:{env,stdout:{write(value,callback) {stdout += value; callback?.();}},exit(code) {assert.equal(code,0);}},
+    setTimeout(callback,ms) {assert.equal(ms,1000); const timer={callback};timers.push(timer);return timer;},
+    clearTimeout(timer) {timer.cleared=true;},
     require(name) {
       if (name === 'node:fs') return fs;
       if (name === 'node:crypto') return {createHash};
+      if (name === 'node:dns') return {lookup(host,options,callback) {
+        names.push(host);assert.equal(options.all,true);
+        if (lookupResult.pending) return;
+        if (lookupResult.throws) throw lookupResult.throws;
+        callback(lookupResult.error ?? null,lookupResult.addresses ?? [{family:4,address:secret}]);
+      }};
       assert.equal(name,'node:child_process');
       return {spawnSync(program,args,options) {
         assert.equal(program,'/usr/bin/apt-config'); assert.deepEqual([...args],['dump']);
@@ -32,6 +41,8 @@ function child(script, env, aptResult = {}) {
       }};
     },
   }, {timeout:100});
+  assert.deepEqual(names,[...REPOSITORY_HOSTS]);
+  if (!stdout) for (const timer of timers) if (!timer.cleared) timer.callback();
   return {status:0,stdout,stderr:secret};
 }
 
@@ -58,6 +69,10 @@ test('fixed probes compare the actual sudo boundary without disclosing values', 
     symlink:true,linkSha256:hash(`/private/${secret}`),contentSha256:hash(resolver)});
   assert.deepEqual(observed.unprivileged.aptProxy,
     {status:'ok',http:true,https:false,httpAutoDetect:false,httpsAutoDetect:true});
+  for (const host of REPOSITORY_HOSTS) {
+    assert.deepEqual(observed.unprivileged.lookup[host],{status:'resolved',ipv4:true,ipv6:false});
+    assert.deepEqual(observed.privileged.lookup[host],{status:'resolved',ipv4:true,ipv6:false});
+  }
   assert.equal(lines.length,1);
   assert.doesNotMatch(lines[0],new RegExp(`${secret}|proxy\\.invalid|nameserver|192\\.0\\.2\\.53|https://|UNRELATED_SECRET`));
 });
@@ -108,4 +123,36 @@ test('unknown fields cannot smuggle values through an otherwise valid summary', 
   const observed = emitAptFailureDiagnostics({spawn:() => raw,report:line => lines.push(line)});
   assert.equal(observed.unprivileged.status,'ok');
   assert.doesNotMatch(lines.join(''),new RegExp(`${secret}|fullEnvironment|CREDENTIAL|unexpected`));
+});
+
+for (const [scenario,result,expected] of [
+  ['temporary resolver failure',{error:{code:'EAI_AGAIN',message:secret}}, {status:'failed',code:'EAI_AGAIN'}],
+  ['name not found',{error:{code:'ENOTFOUND',message:secret}}, {status:'failed',code:'ENOTFOUND'}],
+  ['unknown error',{error:{code:secret,message:secret}}, {status:'failed',code:'other'}],
+  ['synchronous resolver exception',{throws:{code:'EPERM',message:secret}}, {status:'failed',code:'EPERM'}],
+  ['deadline',{pending:true}, {status:'timeout'}],
+  ['IPv6 result',{addresses:[{family:6,address:secret}]}, {status:'resolved',ipv4:false,ipv6:true}],
+]) test(`bounded resolver diagnostic: ${scenario}`, () => {
+  const lines=[];
+  const observed=emitAptFailureDiagnostics({uid:1000,report:line=>lines.push(line),
+    spawn(program,args) {return child(program==='sudo'?args[2]:args[1],{},{},result);}});
+  for (const host of REPOSITORY_HOSTS) {
+    assert.deepEqual(observed.unprivileged.lookup[host],expected);
+    assert.deepEqual(observed.privileged.lookup[host],expected);
+  }
+  assert.doesNotMatch(lines.join(''),new RegExp(secret));
+});
+
+test('lookup output cannot expose addresses, unknown hosts or captured error text', () => {
+  const raw={proxy:Object.fromEntries(PROXY_NAMES.map(name=>[name,false])),
+    resolver:{status:'unavailable'},aptProxy:{status:'unavailable'},lookup:{
+      [REPOSITORY_HOSTS[0]]:{status:'resolved',ipv4:true,ipv6:false,address:secret},
+      [REPOSITORY_HOSTS[1]]:{status:'failed',code:secret,message:secret},
+      [secret]:{status:'resolved',address:secret},
+    }};
+  const lines=[];
+  const observed=emitAptFailureDiagnostics({spawn:()=>({status:0,stdout:JSON.stringify(raw)}),report:line=>lines.push(line)});
+  assert.deepEqual(Object.keys(observed.unprivileged.lookup),[...REPOSITORY_HOSTS]);
+  assert.equal(observed.unprivileged.lookup[REPOSITORY_HOSTS[1]].code,'other');
+  assert.doesNotMatch(lines.join(''),new RegExp(`${secret}|address|message`));
 });

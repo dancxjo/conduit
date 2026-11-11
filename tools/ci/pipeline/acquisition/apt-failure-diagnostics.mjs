@@ -5,6 +5,8 @@ export const PROXY_NAMES = Object.freeze([
   'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy',
   'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY',
 ]);
+export const REPOSITORY_HOSTS = Object.freeze(['archive.ubuntu.com', 'security.ubuntu.com']);
+const DNS_ERROR_CODES = Object.freeze(['EAI_AGAIN', 'EAI_FAIL', 'EAI_SYSTEM', 'ENOTFOUND', 'EACCES', 'EPERM', 'ENETUNREACH', 'ETIMEDOUT']);
 const MAXIMUM_OUTPUT = 4096;
 const TIMEOUT_MS = 3000;
 
@@ -55,7 +57,38 @@ try {
       httpsAutoDetect:present('Acquire::https::Proxy-Auto-Detect') || present('Acquire::https::ProxyAutoDetect')};
   }
 } catch {}
-process.stdout.write(JSON.stringify({proxy,resolver,aptProxy}));
+// One OS-resolver lookup per already-approved host, never a mirror or retry.
+const dns = require('node:dns');
+const hosts = ${JSON.stringify(REPOSITORY_HOSTS)};
+const codes = ${JSON.stringify(DNS_ERROR_CODES)};
+const observation = {proxy,resolver,aptProxy,lookup:{}};
+let closed = false;
+let pending = hosts.length;
+function publish() {
+  if (closed) return;
+  closed = true;
+  clearTimeout(deadline);
+  process.stdout.write(JSON.stringify(observation), () => process.exit(0));
+}
+const deadline = setTimeout(() => {
+  for (const host of hosts) if (!Object.hasOwn(observation.lookup,host))
+    observation.lookup[host] = {status:'timeout'};
+  publish();
+},1000);
+for (const host of hosts) {
+  const complete = (error,addresses) => {
+    if (closed || Object.hasOwn(observation.lookup,host)) return;
+    if (error) observation.lookup[host] = {status:'failed',code:codes.includes(error.code) ? error.code : 'other'};
+    else {
+      const ipv4 = Array.isArray(addresses) && addresses.some(item => item?.family === 4);
+      const ipv6 = Array.isArray(addresses) && addresses.some(item => item?.family === 6);
+      observation.lookup[host] = ipv4 || ipv6 ? {status:'resolved',ipv4,ipv6} : {status:'unavailable'};
+    }
+    if (--pending === 0) publish();
+  };
+  try { dns.lookup(host,{all:true},complete); } catch (error) { complete(error); }
+}
+
 `;
 
 function safeProbe(result) {
@@ -89,7 +122,18 @@ function safeProbe(result) {
       if (typeof value.aptProxy[key] !== 'boolean') throw new Error();
       aptProxy[key] = value.aptProxy[key];
     }
-    return { status: 'ok', proxy, resolver, aptProxy };
+    const lookup = Object.fromEntries(REPOSITORY_HOSTS.map(host => {
+      const entry = value.lookup?.[host];
+      let safe = {status:'unavailable'};
+      if (entry?.status === 'timeout') safe = {status:'timeout'};
+      else if (entry?.status === 'failed') safe = {status:'failed',
+        code:DNS_ERROR_CODES.includes(entry.code) ? entry.code : 'other'};
+      else if (entry?.status === 'resolved' && typeof entry.ipv4 === 'boolean'
+          && typeof entry.ipv6 === 'boolean' && (entry.ipv4 || entry.ipv6))
+        safe = {status:'resolved',ipv4:entry.ipv4,ipv6:entry.ipv6};
+      return [host,safe];
+    }));
+    return { status: 'ok', proxy, resolver, aptProxy, lookup };
   } catch { return { status: 'unavailable' }; }
 }
 
@@ -106,7 +150,7 @@ export function emitAptFailureDiagnostics({ spawn = spawnSync, uid = process.get
         env:{...process.env,LC_ALL:'C'}}));
     } catch { return {status:'unavailable'}; }
   };
-  const observation = {schema:'conduit.ci/apt-failure-diagnostics@1', alreadyRoot:uid === 0,
+  const observation = {schema:'conduit.ci/apt-failure-diagnostics@2', alreadyRoot:uid === 0,
     unprivileged:invoke({program:node,args}),
     privileged:invoke(privilegedCommand(node,args,uid))};
   // Reporter failures likewise have no authority to replace the APT refusal.
