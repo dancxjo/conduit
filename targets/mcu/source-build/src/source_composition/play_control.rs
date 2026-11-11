@@ -3,6 +3,14 @@
 use super::*;
 use conduit_mcu_host_runtime::{root::MemberControl, transport::MessageTransport};
 
+#[derive(Debug)]
+enum ReturnRefusal {
+    Unavailable,
+    Headroom { required: usize, available: usize },
+    Protocol(conduit_mcu_host_runtime::root::Refusal),
+    TimedOut,
+}
+
 pub(crate) struct ReturnControl<'a, 's> {
     member: MemberControl<'a, 's>,
     workspace: &'a mut [u8],
@@ -39,13 +47,17 @@ impl<'a, 's> ReturnControl<'a, 's> {
         &mut self,
         link: &mut crate::transport::Link,
         output: &mut [u8],
-    ) -> Result<(), ()> {
+    ) -> Result<(), ReturnRefusal> {
         // The supported decoder requests at most 4096 simultaneous heap bytes:
         // 1024 image hashes + 1280 credential text + 1792 one grant row. All
         // owners reserve fallibly. This extra headroom is an early check, not a
         // substitute for fallible refusal or whole-device peak qualification.
-        if crate::runtime::remaining() < 8 * 1024 {
-            return Err(());
+        let available = crate::runtime::remaining();
+        if available < 8 * 1024 {
+            return Err(ReturnRefusal::Headroom {
+                required: 8 * 1024,
+                available,
+            });
         }
         let native = [
             crate::workset::native_images::PULSE_IMAGE,
@@ -82,7 +94,7 @@ impl<'a, 's> ReturnControl<'a, 's> {
         self.member
             .return_member(link, images, self.grants.as_slice(), self.workspace, output)
             .await
-            .map_err(|_| ())?;
+            .map_err(ReturnRefusal::Protocol)?;
         crate::runtime::observe_receipt(self.member.receipt_digest());
         Ok(())
     }
@@ -104,6 +116,7 @@ pub(super) async fn serve(
         let bytes = link.receive(&mut request).await.map_err(|_| ())?;
         if bytes == conduit_body::PICO_MEMBER_RETURN_IMAGES_REQUEST {
             let Some(control) = control.as_mut() else {
+                state.observe_control_refusal("member-return", &ReturnRefusal::Unavailable);
                 return Err(());
             };
             let result = embassy_time::with_timeout(
@@ -113,7 +126,16 @@ pub(super) async fn serve(
             .await;
             control.clear_scratch();
             response.fill(0);
-            result.map_err(|_| ())??;
+            let failure = match result {
+                Ok(Ok(())) => None,
+                Ok(Err(error)) => Some(error),
+                Err(_) => Some(ReturnRefusal::TimedOut),
+            };
+            if let Some(error) = failure {
+                state.observe_control_refusal("member-return", &error);
+                return Err(());
+            }
+            state.clear_control_refusal();
         } else {
             let count = match inspection_encoder::encode(face, bytes, response)? {
                 Some(count) if count <= response.len() => count,
