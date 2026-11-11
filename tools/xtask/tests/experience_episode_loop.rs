@@ -647,10 +647,12 @@ fn assert_pete_replay(
     assert!(trace.missing_parent_sequences.is_empty());
     let mut steps = trace.steps.iter();
     for (event, port) in [
+        ("value-received", "/contextualize/input/recollection"),
         ("value-received", "/model/input/request"),
         ("value-received", "/retain/input/response"),
         ("value-received", "/memory/input/update"),
-        ("value-received", "/compose/input/memory"),
+        ("value-received", "/recall/input/memory"),
+        ("value-received", "/contextualize/input/recollection"),
         ("value-received", "/model/input/request"),
         ("value-received", "/retain/input/response"),
         ("value-sent", "/front/output/episodes"),
@@ -663,7 +665,7 @@ fn assert_pete_replay(
         );
     }
 
-    for port in ["/compose/input/experience", "/retain/input/pending"] {
+    for port in ["/recall/input/experience", "/retain/input/pending"] {
         let input = timeline.events[..response]
             .iter()
             .rposition(|event| event.event == "value-received" && event.subject.ends_with(port))

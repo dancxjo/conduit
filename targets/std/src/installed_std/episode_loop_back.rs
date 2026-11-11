@@ -28,6 +28,11 @@ pub(super) static EXPERIENCE_COMPOSE_FACTORY: BackFactory = BackFactory {
     budget: experience_compose_budget,
     prepare: prepare_experience_compose,
 };
+pub(super) static RECALL_EXPERIENCE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::EPISODE_RECALL_EXPERIENCE_IMPLEMENTATION,
+    budget: recall_experience_budget,
+    prepare: prepare_recall_experience,
+};
 pub(super) static RETAIN_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::EPISODE_RETAIN_IMPLEMENTATION,
     budget: retain_budget,
@@ -52,6 +57,7 @@ pub(super) const RESPONSE_WITHOUT_EPISODE: u16 = 22;
 pub(super) struct EpisodeComposeBack {
     composer: EpisodeComposer,
     experience: Option<ExperiencePreparation>,
+    recollection: Option<Vec<u8>>,
     staged: bool,
     observations_closed: bool,
     context_closed: bool,
@@ -99,7 +105,20 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeComposeBack {
             if let Err(outcome) = composed {
                 return outcome;
             }
-            let request = self.composer.request().len() as u32;
+            if let Some(recollection) = &mut self.recollection {
+                match self.composer.recollection() {
+                    Ok(bytes) => {
+                        recollection.clear();
+                        recollection.extend_from_slice(&bytes);
+                    }
+                    Err(refusal) => return refused(refusal),
+                }
+            }
+            let request = self
+                .recollection
+                .as_deref()
+                .unwrap_or(self.composer.request())
+                .len() as u32;
             let pending = self.composer.pending().len() as u32;
             if !io.output_ready_for(REQUEST, request) || !io.output_ready_for(PENDING_OUT, pending)
             {
@@ -142,7 +161,11 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeComposeBack {
 
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
         match (self.staged, port) {
-            (true, REQUEST) => Some(self.composer.request()),
+            (true, REQUEST) => Some(
+                self.recollection
+                    .as_deref()
+                    .unwrap_or(self.composer.request()),
+            ),
             (true, PENDING_OUT) => Some(self.composer.pending()),
             _ => None,
         }
@@ -395,6 +418,7 @@ fn new_composer(experience: Option<ExperiencePreparation>) -> EpisodeComposeBack
     EpisodeComposeBack {
         composer: EpisodeComposer::new(),
         experience,
+        recollection: None,
         staged: false,
         observations_closed: false,
         context_closed: false,
@@ -412,4 +436,28 @@ fn prepare_retain(
         staged: false,
         complete: false,
     }))
+}
+
+fn recall_experience_budget(gear: &PlannedGear) -> Result<BackBudget, String> {
+    exact_pure_gear(gear, &conduit_std_offers::episode_recall_experience_offer())?;
+    let mut budget = compose_storage(
+        conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES,
+        conduit_chat::MAXIMUM_EPISODE_EXPERIENCE_BYTES,
+    );
+    budget.value_bytes += conduit_chat::MAXIMUM_EPISODE_RECOLLECTION_BYTES as u32;
+    Ok(budget)
+}
+fn prepare_recall_experience(
+    gear: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    recall_experience_budget(gear)?;
+    let mut back = new_composer(Some(ExperiencePreparation {
+        projection: BoundedExperienceEvidenceProjection::prepare(),
+        prompt: Box::new([0; EXPERIENCE_MODEL_REQUEST_MAX_BYTES]),
+    }));
+    back.recollection = Some(Vec::with_capacity(
+        conduit_chat::MAXIMUM_EPISODE_RECOLLECTION_BYTES,
+    ));
+    Ok(InstalledBack::EpisodeCompose(back))
 }

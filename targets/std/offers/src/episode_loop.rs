@@ -65,3 +65,21 @@ pub fn episode_resumable_memory_offer(
         EPISODE_RESUMABLE_MEMORY_IMPLEMENTATION,
     ))
 }
+
+pub const EPISODE_RECALL_EXPERIENCE_IMPLEMENTATION: &str = "std/body-episode-recall-experience@1";
+pub const EPISODE_MODEL_CONTEXT_IMPLEMENTATION: &str = "std/body-episode-model-context@1";
+
+pub fn episode_recall_experience_offer() -> CapabilityOffer {
+    pure_offer(
+        conduit_chat::episode_recall_experience_contract(),
+        "body-episode-recall-experience",
+        EPISODE_RECALL_EXPERIENCE_IMPLEMENTATION,
+    )
+}
+pub fn episode_model_context_offer() -> CapabilityOffer {
+    pure_offer(
+        conduit_chat::episode_model_context_contract(),
+        "body-episode-model-context",
+        EPISODE_MODEL_CONTEXT_IMPLEMENTATION,
+    )
+}

@@ -289,6 +289,14 @@ type EpisodePending = {
     recalled: EpisodeRecall
 }
 
+# Selected historical records and scores crossing the retrieval/context Cord.
+type EpisodeRecallScores = sequence U64 <= 4
+type EpisodeRecollection = {
+    display_name: Text <= 128B not in [""]
+    pending: EpisodePending
+    scores: EpisodeRecallScores
+}
+
 # Provider loss is terminal evidence about an attempt, with no model text.
 type EpisodeOutcome =
     produced {

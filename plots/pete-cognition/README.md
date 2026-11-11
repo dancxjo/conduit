@@ -3,19 +3,21 @@
 Each typed frame supplies a battery reading, human utterance, safety state,
 and reference instant with explicit source signs. The Pete Situation Gear
 selects the Situation and constructs the bounded Experience input for the
-episode composer. The model and memory cell run in the same ordinary Play.
+recall Gear. The model and memory cell run in the same ordinary Play.
 
-The current Plot invokes Situation selection and Experience integration through
-`pete/situate-experience`. `body/episode-compose-experience` selects retained
-episodes and builds the model request. Wiring the generic Experiencer and RAG
-components as explicit Gears remains implementation work for the cognition MVP.
+The Plot invokes Situation selection and Experience integration through
+`pete/situate-experience`. `body/episode-recall-experience` selects retained
+episodes and publishes an `EpisodeRecollection` with the selected evidence,
+scores, and pending episode. `body/episode-model-context` renders that selection
+for the model. Experience integration through an explicit generic Experiencer
+Gear remains implementation work for the cognition MVP.
 
 Situation selection also feeds fresh battery and safety readings through Pete's
 homeostasis reducer. The result is labeled as deterministic derived evidence,
 with the exact input signs and policy identity. Stale readings remain visible
 as observations and leave current energy or motion unknown.
 
-The composer retrieves from the four retained episodes using distinct shared
+The recall Gear retrieves from the four retained episodes using distinct shared
 ASCII words of at least four characters, with a small common-word filter.
 It searches retained observations and reports each match score in the model
 request. Pete’s fact context includes recalled observations and historical
@@ -46,7 +48,7 @@ Plan, and Play.
 The Patchbay replay proof collects bounded debugger records from the installed
 Host for the same two-episode Plot. It checks traffic on every authored Cord
 and traces the second response through both input frames, first-episode
-retention, later recall, and the inputs to the compose and retain Gears.
+retention, later recall, and the inputs to the recall, contextualize, and retain Gears.
 Patchbay follows a bounded set of observed input events at each join.
 
 ```sh

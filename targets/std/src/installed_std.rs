@@ -27,6 +27,7 @@ mod count_backs;
 mod creche_back;
 mod deadline_host;
 mod distance_frequency_back;
+mod episode_context_back;
 mod episode_loop_back;
 mod episode_memory_back;
 mod experience_evidence_back;
@@ -505,7 +506,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut sign = fore_sign_storage::prepare(sign_items, !lowered.fore_ports.is_empty())?;
     if let Some(body) = &control.debug_body {
         use conduit_kernel::debug_observation::{
-            DebugExecutionIdentity, DebugNodeBinding, DebugObservationBuffer, DebugObservationRecord,
+            DebugExecutionIdentity, DebugNodeBinding, DebugObservationBuffer,
+            DebugObservationRecord,
         };
         use sha2::{Digest, Sha256};
 

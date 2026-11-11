@@ -357,6 +357,26 @@ fn experience_recall_ranks_observed_terms_and_excludes_model_only_matches() {
     composer
         .compose_episode(trigger, memory.current(), Some(b"{}"))
         .unwrap();
+    let selected = composer.recollection().unwrap();
+    assert_eq!(
+        episode_recollection_request(&selected).unwrap(),
+        composer.request()
+    );
+    let selected = crate::EpisodeRecollection::decode(&selected).unwrap();
+    let malformed = crate::EpisodeRecollection::new(
+        selected.display_name().clone(),
+        selected.pending().clone(),
+        crate::EpisodeRecallScores::new(conduit_plot::rust_binding::BoundedSequence::new())
+            .unwrap(),
+    )
+    .unwrap()
+    .encode()
+    .unwrap();
+    assert_eq!(
+        episode_recollection_request(&malformed),
+        Err(EpisodeRefusal::PendingMalformed)
+    );
+
     let request: serde_json::Value = serde_json::from_slice(composer.request()).unwrap();
     let recalled = request["recalled"].as_array().unwrap();
     assert_eq!(recalled.len(), 2);

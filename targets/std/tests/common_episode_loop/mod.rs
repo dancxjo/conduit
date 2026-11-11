@@ -411,6 +411,10 @@ pub fn plan_host(
         {
             kind = conduit_chat::EPISODE_EXPERIENCE_COMPOSE_KIND;
             implementation = conduit_std_offers::EPISODE_EXPERIENCE_COMPOSE_IMPLEMENTATION;
+            if entry.starts_with("pete-cognition") {
+                kind = conduit_chat::EPISODE_RECALL_EXPERIENCE_KIND;
+                implementation = conduit_std_offers::EPISODE_RECALL_EXPERIENCE_IMPLEMENTATION;
+            }
         }
         if entry == "pete-cognition-resumable" && kind == conduit_chat::EPISODE_MEMORY_KIND {
             kind = conduit_chat::EPISODE_RESUMABLE_MEMORY_KIND;
@@ -422,6 +426,13 @@ pub fn plan_host(
             .find(|placement| placement.kind_id.as_str() == kind)
             .unwrap();
         assert_eq!(placement.implementation_id.as_str(), implementation);
+    }
+    if entry.starts_with("pete-cognition") {
+        assert!(fragment
+            .placements
+            .iter()
+            .any(|placement| placement.implementation_id.as_str()
+                == conduit_std_offers::EPISODE_MODEL_CONTEXT_IMPLEMENTATION));
     }
     Harness {
         host,

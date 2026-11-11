@@ -139,6 +139,40 @@ pub fn episode_experience_compose_semantic_contract() -> Kind {
     contract
 }
 
+/// Retrieve selected episodes separately from rendering model context.
+pub const EPISODE_RECALL_EXPERIENCE_KIND: &str = "body/episode-recall-experience";
+pub fn episode_recollection_type() -> StructuredInfoType {
+    crate::EpisodeRecollection::semantic_type().expect("native recollection Type")
+}
+pub fn episode_recall_experience_contract() -> Kind {
+    let mut contract = episode_experience_compose_semantic_contract();
+    contract.kind_id = kind_id(EPISODE_RECALL_EXPERIENCE_KIND);
+    contract.kind_contract_revision = "conduit.body/episode-recall-experience@1".into();
+    contract.outputs[0].port_id = port_id("recollection");
+    contract.outputs[0].value_kind = type_kind(episode_recollection_type());
+    contract
+}
+pub fn episode_model_context_contract() -> Kind {
+    use PortDirection::{Input, Output};
+    kind(
+        "body/episode-model-context",
+        "conduit.body/episode-model-context@1",
+        vec![flow(
+            "recollection",
+            type_kind(episode_recollection_type()),
+            Input,
+            true,
+        )],
+        vec![flow(
+            "request",
+            kind_id(conduit_ai::GENERATION_REQUEST_VALUE_KIND),
+            Output,
+            true,
+        )],
+        crate::MAXIMUM_EPISODE_RECOLLECTION_BYTES,
+    )
+}
+
 /// One pending episode pairs with one model-derived response.
 pub fn episode_retain_semantic_contract() -> Kind {
     use PortDirection::{Input, Output};
@@ -241,6 +275,7 @@ pub fn install_episode_loop_catalog(
         ("EpisodeExperience", episode_experience_type()),
         ("EpisodeMemoryState", episode_memory_state_type()),
         ("EpisodePending", episode_pending_type()),
+        ("EpisodeRecollection", episode_recollection_type()),
         ("EpisodeRecord", episode_record_type()),
     ] {
         startup
@@ -250,6 +285,8 @@ pub fn install_episode_loop_catalog(
     for contract in [
         episode_compose_semantic_contract(),
         episode_experience_compose_semantic_contract(),
+        episode_recall_experience_contract(),
+        episode_model_context_contract(),
         episode_retain_semantic_contract(),
         episode_memory_semantic_contract(),
     ] {

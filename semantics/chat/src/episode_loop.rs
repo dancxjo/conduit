@@ -14,14 +14,17 @@ use alloc::{
 use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 use sha2::{Digest, Sha256};
 
+#[path = "episode_checkpoint_v1.rs"]
+mod episode_checkpoint_v1;
 #[path = "episode_prompt.rs"]
 mod episode_prompt;
 #[path = "episode_recall.rs"]
 mod episode_recall;
-#[path = "episode_checkpoint_v1.rs"]
-mod episode_checkpoint_v1;
 pub use episode_checkpoint_v1::{episode_checkpoint_v1_type, migrate_episode_checkpoint_v1};
 use episode_prompt::prompt;
+#[path = "episode_recollection.rs"]
+mod episode_recollection;
+pub use episode_recollection::{episode_recollection_request, MAXIMUM_EPISODE_RECOLLECTION_BYTES};
 
 use crate::{
     EpisodeMemory, EpisodeMemoryOwner, EpisodeMemoryState, EpisodeModelResponse,
@@ -63,6 +66,7 @@ pub struct EpisodeComposer {
     staged: Option<u64>,
     request: Vec<u8>,
     pending: Vec<u8>,
+    recall_scores: Vec<u64>,
 }
 
 impl Default for EpisodeComposer {
@@ -79,6 +83,7 @@ impl EpisodeComposer {
             staged: None,
             request: Vec::with_capacity(MAXIMUM_EPISODE_PROMPT_BYTES),
             pending: Vec::with_capacity(MAXIMUM_EPISODE_RECORD_BYTES),
+            recall_scores: Vec::with_capacity(MAXIMUM_EPISODE_RECALL),
         }
     }
 
@@ -203,25 +208,36 @@ impl EpisodeComposer {
             if first == memories.len() {
                 return Err(EpisodeRefusal::PromptBoundExceeded);
             }
-            if let Some(candidate) = memories[first..]
-                .iter_mut()
-                .find(|candidate| candidate.trigger_terms > 0 && candidate.historical_evidence.is_some())
-            {
+            if let Some(candidate) = memories[first..].iter_mut().find(|candidate| {
+                candidate.trigger_terms > 0 && candidate.historical_evidence.is_some()
+            }) {
                 candidate.historical_evidence = None;
                 candidate.shared_terms = Some(candidate.trigger_terms);
             } else {
                 first += 1;
             }
         };
+        self.recall_scores.clear();
+        self.recall_scores.extend(
+            memories[first..]
+                .iter()
+                .map(|candidate| candidate.shared_terms.unwrap_or(0) as u64),
+        );
         let mut recalled = BoundedSequence::new();
         for candidate in &memories[first..] {
             recalled
-                .push(EpisodeMemory::new(
-                    *candidate.memory.episode(),
-                    candidate.historical_evidence.as_ref().map(serde_json::Value::to_string),
-                    candidate.memory.observation().clone(),
-                    candidate.memory.response().clone(),
-                ).map_err(|_| EpisodeRefusal::Encoding)?)
+                .push(
+                    EpisodeMemory::new(
+                        *candidate.memory.episode(),
+                        candidate
+                            .historical_evidence
+                            .as_ref()
+                            .map(serde_json::Value::to_string),
+                        candidate.memory.observation().clone(),
+                        candidate.memory.response().clone(),
+                    )
+                    .map_err(|_| EpisodeRefusal::Encoding)?,
+                )
                 .map_err(|_| EpisodeRefusal::Encoding)?;
         }
         let pending = EpisodePending::new(
@@ -400,7 +416,10 @@ impl EpisodeMemoryCell {
         if *record.retained() {
             let memory = EpisodeMemory::new(
                 *record.episode(),
-                record.evidence().as_deref().and_then(episode_recall::compact_evidence),
+                record
+                    .evidence()
+                    .as_deref()
+                    .and_then(episode_recall::compact_evidence),
                 record.observation().clone(),
                 record
                     .response()

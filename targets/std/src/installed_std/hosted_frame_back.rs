@@ -74,12 +74,11 @@ impl HostedFrameBack {
     }
 
     pub(super) fn prepare(&self) -> FrameStepBack {
-        FrameStepBack {
-            maximum_input_bytes: self.maximum_input_bytes as usize,
-            maximum_output_bytes: self.maximum_output_bytes as usize,
-            transform: self.transform,
-            staged: None,
-        }
+        FrameStepBack::for_transform(
+            self.maximum_input_bytes as usize,
+            self.maximum_output_bytes as usize,
+            self.transform,
+        )
     }
 }
 
@@ -88,6 +87,21 @@ pub(super) struct FrameStepBack {
     maximum_output_bytes: usize,
     transform: Transform,
     staged: Option<Vec<u8>>,
+}
+
+impl FrameStepBack {
+    pub(super) fn for_transform(
+        maximum_input_bytes: usize,
+        maximum_output_bytes: usize,
+        transform: Transform,
+    ) -> Self {
+        Self {
+            maximum_input_bytes,
+            maximum_output_bytes,
+            transform,
+            staged: None,
+        }
+    }
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for FrameStepBack {

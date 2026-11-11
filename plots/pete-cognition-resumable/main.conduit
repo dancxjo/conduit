@@ -9,20 +9,22 @@ plot pete-cognition-resumable (
     checkpoints: EpisodeMemoryState... >>
 ) {
     situate: pete/situate-experience
-    compose: body/episode-compose-experience
+    recall: body/episode-recall-experience
+    contextualize: body/episode-model-context
     # The model result includes serialized provenance and accounting. The
     # retainer separately checks its 512-byte response text Type.
     model: llm/generate-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0, provider-loss-as-result = 1)
     retain: body/episode-retain
     memory: body/episode-memory-resume
 
-    context >> compose.context
+    context >> recall.context
     frames >> situate.frame
-    situate.episode >> compose.experience
-    memory.current >> compose.memory
+    situate.episode >> recall.experience
+    memory.current >> recall.memory
     memory.current >> checkpoints
-    compose.request >> model.request
-    compose.pending >> retain.pending
+    recall.recollection >> contextualize.recollection
+    contextualize.request >> model.request
+    recall.pending >> retain.pending
     model.result >> retain.response
     retain.episode >> memory.update
     retain.episode >> episodes
