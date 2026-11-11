@@ -94,6 +94,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-dht11-observation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
@@ -128,9 +137,11 @@ name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-dht11-observation",
  "conduit-kernel",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "conduit-typed-retention",
 ]
 
 [[package]]
@@ -288,6 +299,14 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-typed-retention"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]

@@ -4,9 +4,9 @@ mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core::{PreparedStructuredComposer, Quantity, Unit};
+use conduit_dht11_observation::{ObservationContract, PreparedSourceFrameDecoder};
 use conduit_environment_face::PublicationRefusal;
 use conduit_environment_runtime::{
-    observation::{ObservationContract, PreparedSourceFrameDecoder},
     publication::{PublicationChannel as Channel, PublicationContract, PublicationSnapshot},
     retained_publication_face::{RetainedPublicationFace, RetainedPublicationRefusal as Refusal},
 };

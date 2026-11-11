@@ -26,7 +26,7 @@ impl DisplayOutputSource {
         let source = format!(
             "{}\n{}",
             include_str!("../../../../plots/device-protocols/tm1637.conduit"),
-            include_str!("../../profiles/display-output.conduit")
+            include_str!("../../../../plots/device-protocols/tm1637-output.conduit")
         );
         let syntax = p::parse_syntax_document(&source);
         if !syntax.diagnostics.is_empty() {
@@ -59,12 +59,8 @@ impl DisplayOutputSource {
             absence.profile().map_err(debug)?.value_kind().clone(),
             p::maximum_prepared_canonical_value_bytes(&absence).map_err(debug)?,
         ));
-        let plot = p::expand_canonical_plot_for_authoring(
-            &checked,
-            "environment-display-output",
-            &profiles,
-        )
-        .map_err(debug)?;
+        let plot = p::expand_canonical_plot_for_authoring(&checked, "tm1637-output", &profiles)
+            .map_err(debug)?;
         let source = Self { plot, value_bounds };
         source.maximum_value_bytes()?;
         Ok(source)

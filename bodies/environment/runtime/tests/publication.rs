@@ -313,3 +313,45 @@ fn all_outcomes_share_commit_order_and_cancelled_reservations_return_capacity() 
     commit(&mut replacement);
     assert_eq!(replacement.snapshot().unwrap().sequence, 1);
 }
+
+#[test]
+fn malformed_primitive_leaf_cannot_replace_a_committed_observation() {
+    let contract = PublicationContract::prepare(Channel::Reading).unwrap();
+    let bytes = value(contract.value_type()).canonical_bytes().unwrap();
+    let quantity = c::Quantity::new(20, c::Unit::Celsius).encode();
+    let offset = bytes
+        .windows(quantity.len())
+        .position(|part| part == quantity)
+        .unwrap();
+    let mut malformed = bytes.clone();
+    malformed[offset] = 255; // Unsupported Quantity encoding version, same Type and extent.
+    let validator = c::PreparedStructuredValueValidator::new(
+        contract.value_type(),
+        Channel::Reading.maximum_bytes(),
+    )
+    .unwrap();
+    assert!(validator.validate(&malformed).is_err());
+    let order = PublicationSequence::prepare(2);
+    let mut back = PublicationBack::prepare(&contract, 2, order.clone()).unwrap();
+    assert_eq!(
+        step(&mut back, &bytes, bytes.len() as u32, 8).0,
+        StepOutcome::Progress
+    );
+    commit(&mut back);
+    let ((), memory) = allocation_probe::observe(|| {
+        assert_eq!(
+            step(&mut back, &malformed, malformed.len() as u32, 8),
+            (
+                StepOutcome::Fail(Failure {
+                    code: FailureCode::InvalidInput,
+                    detail: 4
+                }),
+                false,
+            )
+        );
+        commit(&mut back);
+        assert_eq!(back.snapshot().unwrap().canonical, bytes);
+        assert_eq!(order.committed(), 1);
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+}

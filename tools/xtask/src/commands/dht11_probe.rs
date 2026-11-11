@@ -42,6 +42,24 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         return result;
     }
     if arguments == ["recording"] {
+        execute(
+            Command::new("cargo")
+                .current_dir(&root)
+                .args([
+                    "test",
+                    "--locked",
+                    "--manifest-path",
+                    "mechanisms/devices/dht11/Cargo.toml",
+                    "--test",
+                    "observation_forms",
+                ])
+                .env(
+                    "CARGO_TARGET_DIR",
+                    std::env::var_os("CARGO_TARGET_DIR")
+                        .map(std::path::PathBuf::from)
+                        .unwrap_or_else(|| root.join("target")),
+                ),
+        )?;
         return execute(
             Command::new("cargo")
                 .current_dir(&root)
@@ -50,8 +68,6 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "--locked",
                     "--manifest-path",
                     "bodies/environment/runtime/Cargo.toml",
-                    "--test",
-                    "observation_forms",
                     "--test",
                     "recording_chunks",
                     "--test",
@@ -180,7 +196,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "test",
                     "--locked",
                     "--manifest-path",
-                    "bodies/environment/face/Cargo.toml",
+                    "semantics/environment-face/Cargo.toml",
                 ])
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );

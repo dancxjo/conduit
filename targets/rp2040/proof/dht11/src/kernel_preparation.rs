@@ -3,10 +3,11 @@ extern crate alloc;
 use super::{Back, BenchKernel, Observed, Role, C, N, P, R, ROLES};
 use alloc::boxed::Box;
 use conduit_core as c;
-use conduit_environment_runtime::{CaptureBack, PreparedCaptureSelector};
+use conduit_environment_runtime::CaptureBack;
 use conduit_kernel as k;
 use conduit_plot::PortableExpressionProgram;
 use conduit_pulse_capture::installation::PulseNativeIdentity;
+use conduit_semantic_catalog::PreparedCanonicalSelector;
 pub(super) fn identity(boot: &str) -> PulseNativeIdentity {
     PulseNativeIdentity {
         host_id: "fixture/environment".into(),
@@ -27,7 +28,7 @@ pub(super) fn identity(boot: &str) -> PulseNativeIdentity {
 pub(super) fn prepare_back<'a>(
     role: Role,
     observed: &'a [Observed],
-    selector: &mut Option<PreparedCaptureSelector>,
+    selector: &mut Option<PreparedCanonicalSelector>,
     wait: k::ValueRef,
 ) -> Back<'a> {
     match role {
@@ -45,7 +46,7 @@ pub(super) fn prepare_back<'a>(
         },
         Role::Observation => Back::Native(
             CaptureBack::observation(
-                &conduit_environment_runtime::observation::ObservationContract::prepare().unwrap(),
+                &conduit_dht11_observation::ObservationContract::prepare().unwrap(),
             )
             .unwrap(),
         ),
@@ -59,7 +60,7 @@ pub(super) fn prepare_back<'a>(
         ),
         Role::Selector(text) => {
             *selector = Some(
-                PreparedCaptureSelector::prepare(
+                PreparedCanonicalSelector::prepare(
                     c::StructuredSelector::from_canonical_hex(text).unwrap(),
                     1024,
                     1024,
