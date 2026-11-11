@@ -14,6 +14,11 @@ unsafe impl<'a> conduit_mcu_host_runtime::execution_factory::PreparedResidentEnt
     fn node(&self) -> u16 {
         self.node()
     }
+    fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]> {
+        Some(generated::PreparedResidentEntryLoan::terminal_transductions::<P>(self))
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(0)
     }

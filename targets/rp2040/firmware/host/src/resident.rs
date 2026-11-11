@@ -108,6 +108,14 @@ unsafe impl<'a>
     fn nodes(&self) -> [Option<u16>; generated::ENTRY_COUNT] {
         self.nodes()
     }
+    fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> Option<
+        [Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]>;
+            generated::ENTRY_COUNT],
+    > {
+        Some(generated::PreparedResidentLoans::terminal_transductions::<P>(self))
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(0)
     }
@@ -124,6 +132,11 @@ unsafe impl<'a> conduit_mcu_host_runtime::execution_factory::PreparedResidentEnt
     type Back = generated::BorrowedBack<'a>;
     fn node(&self) -> u16 {
         self.node()
+    }
+    fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]> {
+        Some(generated::PreparedResidentEntryLoan::terminal_transductions::<P>(self))
     }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(0)

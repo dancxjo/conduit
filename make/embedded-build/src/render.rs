@@ -10,6 +10,14 @@ use crate::model::{
 };
 
 impl GeneratedEmbeddedPlan {
+    /// Emit only the exact per-input laws retained by checked lowering. These
+    /// immutable tables confer no availability, resource grant or Start.
+    pub fn render_terminal_transductions(&self) -> String {
+        let mut output = String::new();
+        render_terminal_transductions(&mut output, self);
+        output
+    }
+
     /// Render deterministic tables and a typed configuration constructor.
     /// Text configuration allocates only when that constructor is invoked.
     #[must_use]

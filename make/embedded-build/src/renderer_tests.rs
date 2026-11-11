@@ -64,6 +64,7 @@ fn renderer_emits_fixed_current_kernel_tables() {
     assert!(module.contains("pub const GENERATED_STARTUP_ORDER"));
     assert!(module.contains("CancelAllAndRejectLateCompletion"));
     assert!(!module.contains("ExecutionPlan"));
+    assert!(module.contains(&generated.render_terminal_transductions()));
 }
 
 #[test]

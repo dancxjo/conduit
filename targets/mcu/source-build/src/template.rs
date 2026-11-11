@@ -29,6 +29,8 @@ mod continuation;
 pub use continuation::ContinuationPins;
 
 pub struct Layout {
+    /// Independently lowered immutable laws; never supplied by an assignment.
+    pub terminal_transductions_rust: String,
     pub continuation: ContinuationPins,
     /// Inert canonical identity program, not a sealed current-Boot fragment.
     pub fragment_seal_recipe: c::FragmentSealRecipe,
@@ -229,6 +231,7 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     }
     let continuation = continuation::capture(fragment, kernel, generated.fore())?;
     Ok(Layout {
+        terminal_transductions_rust: kernel.render_terminal_transductions(),
         continuation,
         fragment_seal_recipe,
         fragment_seal_to_kernel,
@@ -403,6 +406,8 @@ mod tests {
         restarted.offer_generation = c::OfferGeneration(2);
         let later = make(&restarted, &boundaries).unwrap();
         assert_eq!(layout.nodes, later.nodes);
+        assert_eq!(layout.terminal_transductions_rust, later.terminal_transductions_rust);
+        assert!(layout.terminal_transductions_rust.contains("GENERATED_TERMINAL_TRANSDUCTIONS"));
         assert_eq!(layout.continuation, later.continuation,
             "named Fore/resource pins are immutable across Boot changes");
         assert_eq!(layout.continuation.fore.len(), layout.fore.len());
