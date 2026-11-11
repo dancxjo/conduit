@@ -36,6 +36,7 @@ pub(super) struct Receipt {
     pub criteria: Vec<Criterion>,
     pub causal_export: String,
     pub debugger_export: serde_json::Value,
+    pub final_response_causal_export: serde_json::Value,
     pub artifacts: Vec<String>,
 }
 pub(super) fn write_preparation(
@@ -43,9 +44,13 @@ pub(super) fn write_preparation(
     plan: &BodyPlan,
     inputs: &[ExternalForeInput],
     model: &LocalModelOffer,
+    body: &conduit_body::Body,
+    wake: &conduit_body::Wake,
 ) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all(output)?;
     json_file(output, "body-plan.json", plan)?;
+    json_file(output, "body.json", body)?;
+    json_file(output, "wake.json", wake)?;
     json_file(output, "model-offer.json", model)?;
     for (index, input) in inputs.iter().enumerate() {
         fs::write(
@@ -59,6 +64,7 @@ pub(super) fn write_preparation(
         &json!({
             "schema": "conduit.pete/live-cognition-preparation@1",
             "input_class": "two scripted typed frames; no physical sensing or actuation",
+            "body_snapshot_scope": "historical state at Wake before Play; not a current liveness observation",
             "first_observation": super::plans::FIRST_OBSERVATION,
             "second_observation": super::plans::SECOND_OBSERVATION,
             "body_id": plan.body_id.as_str(), "wake_id": plan.wake_id.as_str(),
@@ -81,6 +87,8 @@ pub(super) fn write_run(
 ) -> Result<Receipt, Box<dyn Error>> {
     let mut artifacts = vec![
         "body-plan.json".into(),
+        "body.json".into(),
+        "wake.json".into(),
         "model-offer.json".into(),
         "preparation.json".into(),
         "input-frame-1.canonical".into(),
@@ -164,6 +172,16 @@ pub(super) fn write_run(
         },
         None => json!({"refusal":"no Body run report", "rendered_browser_verified":false}),
     };
+    let final_response_causal_export = match report {
+        Some(report) => match super::causal_chain::export(output, plan, report) {
+            Ok(summary) => {
+                artifacts.push("causal-final-response.json".into());
+                serde_json::to_value(summary)?
+            }
+            Err(error) => json!({"refusal":error.to_string()}),
+        },
+        None => json!({"refusal":"no Body run report"}),
+    };
     let state = capture
         .states
         .last()
@@ -194,6 +212,7 @@ pub(super) fn write_run(
         criteria,
         causal_export,
         debugger_export,
+        final_response_causal_export,
         artifacts,
     };
     json_file(output, "receipt.json", &receipt)?;

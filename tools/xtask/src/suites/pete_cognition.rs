@@ -2,10 +2,14 @@
 use crate::process::Step;
 
 pub const STEPS: &[Step] = &[
+    Step::new("pete-cognition.inspection-values", "Check bounded historical value snippets and native artifact custody", "cargo",
+        &["test", "--locked", "-p", "conduit-browser-patchbay-workbench", "--lib", "pete_cognition"]),
+    Step::new("pete-cognition.inspection-signs", "Keep exact subject Signs in Debug and runtime counts in Play", "cargo",
+        &["test", "--locked", "-p", "patchbay-application", "--lib", "subject_sign_evidence"]),
     Step::new("pete-cognition.live-proof-cli", "Check explicit local provider and memory admission arguments", "cargo",
         &["test", "--locked", "-p", "xtask", "--bin", "xtask", "pete_cognition_requires_explicit"]),
     Step::new("pete-cognition.lint", "Lint the changed cognition libraries and shared Host route", "cargo",
-        &["clippy", "--locked", "-p", "conduit-pete", "-p", "conduit-ai", "-p", "conduit-semantic-catalog", "-p", "conduit-human", "-p", "conduit-std-offers", "-p", "conduit-std-host", "--lib", "--", "-D", "warnings"]),
+        &["clippy", "--locked", "-p", "conduit-pete", "-p", "conduit-ai", "-p", "conduit-semantic-catalog", "-p", "conduit-human", "-p", "conduit-std-offers", "-p", "conduit-std-host", "-p", "conduit-browser-patchbay-workbench", "--lib", "--", "-D", "warnings"]),
     Step::new("pete-cognition.debug-observer", "Check bounded optional observation and exact Cord typing beside mandatory Signs", "cargo",
         &["test", "--locked", "-p", "conduit-std-host", "--lib", "debug_sign_sink"]),
     Step::new("pete-cognition.debug-profile", "Refuse ambiguous FIFO observation before Play", "cargo",

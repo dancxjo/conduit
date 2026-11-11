@@ -332,6 +332,9 @@ fn run(
         )
         .unwrap()
     );
+    if !lose {
+        super::causal::assert_two_episode_ancestry(&plan, &report);
+    }
     if lose {
         assert_eq!(
             capture.losses[0].category(),

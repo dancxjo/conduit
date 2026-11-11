@@ -80,17 +80,25 @@ impl PatchbayHtmlServer {
                 "debugger subject navigation state unavailable".into(),
             ));
         };
-        let destination = navigation
-            .navigation
-            .places
-            .iter()
-            .find_map(|place| {
-                place
-                    .aspects
-                    .iter()
-                    .find(|aspect| aspect.focusable_subjects.iter().any(|item| item == subject))
-                    .map(|aspect| (place.place, aspect.aspect))
+        let current = (state.cursor().place, state.cursor().aspect);
+        let destinations = || {
+            navigation.navigation.places.iter().flat_map(|place| {
+                place.aspects.iter().filter_map(move |aspect| {
+                    aspect
+                        .focusable_subjects
+                        .iter()
+                        .any(|item| item == subject)
+                        .then_some((place.place, aspect.aspect))
+                })
             })
+        };
+        // Event selection should keep an already admitted Debug/Signs lens.
+        // Preserve that aspect across Places too: a Body timeline can focus a
+        // Program Cord. The first eligible aspect would jump to Structure.
+        let destination = destinations()
+            .find(|destination| *destination == current)
+            .or_else(|| destinations().find(|destination| destination.1 == current.1))
+            .or_else(|| destinations().next())
             .ok_or_else(|| ServerError::Interaction("debugger subject is not navigable".into()))?;
         if state.cursor().place != destination.0 {
             state

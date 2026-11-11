@@ -94,9 +94,10 @@ is retained unchanged and stays ModelDerived; receipt acceptance does not certif
 that wording. A prior 64-token run truncated the second response and failed its
 acceptance check. Recoverable generation now permits up to 128 decoder tokens
 within the existing envelope reservation and exact output/work limits. Existing
-model kinds keep their previous decoder ceilings. Existing RAG integration, physical acquisition,
-homeostasis and the three cadences, provider readmission/state-preserving replan,
-and complete Patchbay proof remain separate acceptance work under #3707.
+model kinds keep their previous decoder ceilings. Existing RAG integration,
+continuous acquisition/homeostasis and the three cadences, provider readmission
+with state-preserving replan, and broader continuous-system proof remain
+acceptance work under #3707.
 
 The 2026-11-10 draft-branch run `run-1794373833048-189399` accepted with
 `phi4:latest`, model content identity
@@ -110,6 +111,69 @@ identified the mug as cobalt-blue. Both responses kept the unobserved battery
 and body state uncertain. This is one provider-nondeterministic run, not a claim
 of general model reliability. Earlier Llama and Gemma runs exposed grounding
 and attribution errors and remain retained alongside it.
+
+## Historical Patchbay inspection
+
+New proof runs retain the actual `body.json` and `wake.json` at Wake before
+Play. The inspector validates these snapshots, the sealed Body Plan, the actual
+Body Play, both authored graphs and exact lowered runtime bindings. It never
+invents per-Plot Play receipts to satisfy the live renderer lifecycle.
+
+```sh
+cargo xtask make host inspect-pete-cognition \
+  --evidence target/conduit-evidence/pete-cognition/run-1794375618863-207784
+```
+
+The command serves a read-only historical view and prints its local URL. Add
+`--browser-proof` to build the same inspector and run the locked Chromium proof
+with one worker and zero retries. It requires the locked dependencies under
+`proof/browser` and their pinned Chromium installation. Each browser attempt
+writes a fresh directory beneath the selected run; failed attempts are retained.
+
+The view includes both actual Plot graphs, exact selected Host/Boot and
+implementation facts, the Body-wide Plan/Play, all retained debugger events,
+and structured causal Signs. `causal-final-response.json` selects the last
+actual retention response routing event through its exact output binding. Its
+mandatory-Sign DAG keeps fan-in branches distinct from the observer's
+single-parent playback. The exporter checks exact execution metadata, all eight
+stages, both external frame consumptions and both model results, and ordered
+first retention → State update/current → later recall → final response ancestry.
+One-slot queues are required for this correlation. A query-root Sign is not an
+abnormal semantic terminal.
+
+Recorded native evidence and model results appear as historical Info. Missing
+observations stay unknown, human reports retain their origin, model words stay
+ModelDerived, and native temporal sources remain explicit. Bounded UTF-8
+snippets include truncation and artifact digest facts; full artifacts remain
+unchanged. The historical page hides Plan/Play execution controls. Its browser
+Manifestation is distinct from the recorded Body Play.
+
+The 2026-11-10 run `run-1794375618863-207784` produced two complete Phi responses
+and retained both episodes. Its final response DAG contains 42 nodes and 51
+edges, with all eight stages and the ordered two-episode feedback chain present,
+exact identities and no missing branches. Receipt SHA-256:
+`bf2aab875cde38b8ad5bd544a166543e7bb164a39cea708ff7cf7183c692c4b8`.
+Final-response DAG SHA-256:
+`f1ccb36f15092552903f47a842e825cfbfa62827e4eec4340d35b462979b7fa2`.
+
+The pinned Chromium proof passed for that run in
+`patchbay-browser-1794378257440-257627` (one worker, zero retries). Browser receipt
+SHA-256: `baf1281ce86c2e2d68e4338f904f8410d0f6d435b3bbc0cce7853b20816c9d05`.
+The receipt binds the inspector executable, source artifacts, both captured PNGs,
+both exact snapshots and capture declarations. Chromium was 151.0.7922.34 under
+locked Playwright 1.62.0. The screenshots show actual ModelDerived words and
+per-Gear causal Signs in an explicitly historical view. Earlier failed browser
+attempts remain alongside the accepted evidence.
+
+The browser proof compares every original event's sequence, parent, execution,
+value and gap; all 42 Sign identities and metadata; all 51 exact causal edges;
+and selected Host/Boot/implementation facts. It exercises the timeline trace and
+inspects the actual second ModelDerived response. Screenshots and ordinary
+capture declarations retain renderer provenance. A browser receipt separately
+records the verified presentation and source artifact hashes; immutable input
+summaries do not certify their own future rendering. This is historical
+inspection of this scripted-input Play, not continuous physical acquisition or a
+general guarantee of model wording.
 
 Run deterministic contract checks with `cargo xtask check pete-cognition`.
 Keep raw run artifacts ignored under `target/`; do not commit them as fixtures.

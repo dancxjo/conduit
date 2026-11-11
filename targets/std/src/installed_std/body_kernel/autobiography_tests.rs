@@ -132,6 +132,7 @@ fn offer() -> LocalModelOffer {
 }
 mod planning;
 use planning::plan;
+mod causal;
 mod recovery;
 mod situation;
 

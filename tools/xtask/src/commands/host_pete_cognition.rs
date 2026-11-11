@@ -4,6 +4,8 @@ use clap::Args;
 use conduit_ai::LocalModelKindProfile;
 use conduit_std_host::hosted_local_model::OllamaDiscovery;
 use std::path::{Component, PathBuf};
+#[path = "host_pete_cognition/causal_chain.rs"]
+mod causal_chain;
 #[path = "host_pete_cognition/debugger.rs"]
 mod debugger;
 #[path = "host_pete_cognition/evidence.rs"]

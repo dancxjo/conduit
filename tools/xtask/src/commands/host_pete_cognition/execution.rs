@@ -191,10 +191,9 @@ pub(super) fn run(
             format!("sign/live-cognition-clock-admitted/{run_identity}").into(),
         )
         .map_err(|e| format!("admit live proof clock: {e:?}"))?;
-    let wake = body
+    let (body, wake) = body
         .wake(1, format!("sign/live-cognition-wake/{run_identity}").into())
-        .map_err(|e| format!("wake live proof Body: {e:?}"))?
-        .1;
+        .map_err(|e| format!("wake live proof Body: {e:?}"))?;
     let plan = BodyPlan::seal(
         &wake,
         partitions
@@ -210,7 +209,7 @@ pub(super) fn run(
     )
     .map_err(|e| format!("seal live proof Body Plan: {e:?}"))?;
     let inputs = plans::inputs()?;
-    evidence::write_preparation(output, &plan, &inputs, &model)?;
+    evidence::write_preparation(output, &plan, &inputs, &model, &body, &wake)?;
     let progress = Arc::new(AtomicBool::new(false));
     let control = RunControl::default();
     let mut capture = Capture {

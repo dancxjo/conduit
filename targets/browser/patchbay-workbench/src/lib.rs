@@ -11,6 +11,7 @@ mod cross_host;
 mod demo;
 mod front_door;
 mod learned_demo;
+mod pete_cognition;
 mod plot_sources;
 mod server;
 mod snapshot;
@@ -30,6 +31,7 @@ pub use demo::{
 };
 pub use front_door::{front_door_snapshot, one_plot_two_fronts_snapshot};
 pub use learned_demo::learned_demonstration_snapshot;
+pub use pete_cognition::snapshot_from_pete_cognition_run;
 pub use plot_sources::{
     load_plot_sources, PlotSource, PlotSourceError, MAX_ADDITIONAL_PLOTS, MAX_PLOT_LABEL_BYTES,
 };

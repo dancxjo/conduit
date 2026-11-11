@@ -162,6 +162,14 @@ pub(super) enum HostCommand {
     },
     /// Run two scripted observations through one real cognition Body and local model.
     ProvePeteCognition(super::host_pete_cognition::CognitionProofRequest),
+    /// Inspect an actual retained cognition run as historical Patchbay evidence.
+    InspectPeteCognition {
+        #[arg(long)]
+        evidence: PathBuf,
+        /// Run the pinned, single-worker Chromium proof instead of serving.
+        #[arg(long)]
+        browser_proof: bool,
+    },
     /// Produce a bounded WAV through ordinary real speech Plan/Play, without playback.
     ProveSpeech(super::host_speech_proof::SpeechProofRequest),
     /// Retain explicit Language metadata for one exact eSpeak voice/provider closure.

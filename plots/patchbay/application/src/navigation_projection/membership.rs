@@ -216,11 +216,16 @@ fn property_belongs_to_aspect(
             | "base"
             | "base-instance-id"
     ) || name.starts_with("resource-");
-    let playing =
-        matches!(name, "active-play-id" | "play-state" | "pressure") || name.starts_with("sign-");
+    let playing = matches!(
+        name,
+        "active-play-id" | "play-state" | "pressure" | "sign-count"
+    );
+    let signs = name.starts_with("sign-") && name != "sign-count";
 
     if planned {
         aspect == FaceAspect::Plan
+    } else if signs {
+        aspect == FaceAspect::Signs
     } else if playing {
         aspect == FaceAspect::Play
     } else {
@@ -230,4 +235,38 @@ fn property_belongs_to_aspect(
 
 fn ordinal(index: usize) -> Result<u16, String> {
     u16::try_from(index).map_err(|_| "Face item ordinal exceeds u16".to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_face::FacePropertyValue;
+    #[test]
+    fn subject_sign_evidence_is_visible_in_debug_and_runtime_count_stays_in_play() {
+        let evidence = FaceProperty {
+            subject: "gear/model".into(),
+            name: "sign-0".into(),
+            value: FacePropertyValue::Identity("sign/exact".into()),
+        };
+        let count = FaceProperty {
+            subject: "gear/model".into(),
+            name: "sign-count".into(),
+            value: FacePropertyValue::Count(4),
+        };
+        assert!(property_belongs_to_aspect(
+            &evidence,
+            FaceAspect::Signs,
+            Some(FaceRole::Gear)
+        ));
+        assert!(!property_belongs_to_aspect(
+            &evidence,
+            FaceAspect::Play,
+            Some(FaceRole::Gear)
+        ));
+        assert!(property_belongs_to_aspect(
+            &count,
+            FaceAspect::Play,
+            Some(FaceRole::Gear)
+        ));
+    }
 }
