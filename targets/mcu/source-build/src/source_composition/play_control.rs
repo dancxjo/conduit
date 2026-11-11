@@ -18,6 +18,11 @@ impl<'a, 's> ReturnControl<'a, 's> {
         issuers: &'a conduit_mcu_host_runtime::native_authority::Issuers<WAIT_SLOTS>,
         resident_images: [Option<&'static [u8]>; crate::resident::generated::ENTRY_COUNT],
     ) -> Option<Self> {
+        // Only this Core-checked plain description shape has bounded ACK
+        // decoding here. General Hosts may use the ordinary owned decoder.
+        if !c::bounded_host_advertisement_comparison_supported(root.actual()) {
+            return None;
+        }
         let (member, workspace) = root.member_control_with_workspace().ok()?;
         let mut grants = heapless::Vec::new();
         for grant in issuers.grants() {
@@ -35,10 +40,11 @@ impl<'a, 's> ReturnControl<'a, 's> {
         link: &mut crate::transport::Link,
         output: &mut [u8],
     ) -> Result<(), ()> {
-        // Refuse before temporary decoded/cryptographic work. This conservative
-        // cold-phase ceiling does not enlarge the installed heap or a grant.
-        // Actual whole-MCU peak remains a required deployment qualification.
-        if crate::runtime::remaining() < 16 * 1024 {
+        // The supported decoder requests at most 4096 simultaneous heap bytes:
+        // 1024 image hashes + 1280 credential text + 1792 one grant row. All
+        // owners reserve fallibly. This extra headroom is an early check, not a
+        // substitute for fallible refusal or whole-device peak qualification.
+        if crate::runtime::remaining() < 8 * 1024 {
             return Err(());
         }
         let native = [
