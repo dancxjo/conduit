@@ -1,5 +1,7 @@
 use super::*;
 mod fixture;
+#[path = "../../../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs"]
+mod selection_fixture;
 
 #[derive(Default)]
 struct Provider {
@@ -64,17 +66,15 @@ fn request(deadline: u64) -> alloc::vec::Vec<u8> {
     };
     StructuredInfoValue::record(
         contract.request_type().clone(),
-        alloc::vec![
-            StructuredFieldValue::new(
-                "deadline",
-                StructuredInfoValue::leaf(
-                    fields[0].value_type().clone(),
-                    deadline.to_le_bytes().to_vec(),
-                )
-                .unwrap()
+        alloc::vec![StructuredFieldValue::new(
+            "deadline",
+            StructuredInfoValue::leaf(
+                fields[0].value_type().clone(),
+                deadline.to_le_bytes().to_vec(),
             )
-            .unwrap(),
-        ],
+            .unwrap()
+        )
+        .unwrap(),],
     )
     .unwrap()
     .canonical_bytes()
@@ -93,12 +93,10 @@ fn deadline_completion_uses_observed_time_and_retains_one_pending_lease() {
     owner
         .start(NodeId(0), HostCallId(0), RequestId(0), &request(10))
         .unwrap();
-    assert!(
-        owner
-            .poll(NodeId(0), HostCallId(0), RequestId(0))
-            .unwrap()
-            .is_none()
-    );
+    assert!(owner
+        .poll(NodeId(0), HostCallId(0), RequestId(0))
+        .unwrap()
+        .is_none());
     assert_eq!(owner.provider.calls, 1);
     assert_eq!(
         owner
@@ -181,12 +179,10 @@ fn finite_poll_budget_and_revocation_prevent_unbounded_or_late_completion() {
         .start(NodeId(0), HostCallId(0), RequestId(0), &request(10))
         .unwrap();
     for _ in 0..MAXIMUM_POLL_STEPS {
-        assert!(
-            owner
-                .poll(NodeId(0), HostCallId(0), RequestId(0))
-                .unwrap()
-                .is_none()
-        );
+        assert!(owner
+            .poll(NodeId(0), HostCallId(0), RequestId(0))
+            .unwrap()
+            .is_none());
     }
     assert_eq!(
         tag(owner

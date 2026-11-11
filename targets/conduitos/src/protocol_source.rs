@@ -336,10 +336,10 @@ fn install_clock(
     profile: &mut ProfileCatalog,
 ) -> Result<(), ProtocolSourceRefusal> {
     use ProtocolSourceRefusal as Error;
-    let clock = crate::monotonic_clock::contract::MonotonicClockContract::prepare()
+    let clock = conduit_monotonic_wait::clock_at::contract::MonotonicClockContract::prepare()
         .map_err(Error::Contract)?;
     let types = check_syntax_document(
-        &parse_syntax_document(crate::monotonic_clock::contract::CLOCK_TYPES),
+        &parse_syntax_document(conduit_monotonic_wait::clock_at::contract::CLOCK_TYPES),
         &StartupCatalog::new(),
     )
     .map_err(Error::Source)?;

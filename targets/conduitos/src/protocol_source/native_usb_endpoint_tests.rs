@@ -19,7 +19,7 @@ impl MonotonicDeadlineProvider for NoClock {
     fn poll_until(
         &mut self,
         _: u64,
-    ) -> Result<Option<u64>, crate::monotonic_clock::codec::ClockDisposition> {
+    ) -> Result<Option<u64>, conduit_monotonic_wait::clock_at::codec::ClockDisposition> {
         panic!("no clock")
     }
     fn revoke(&mut self) {}

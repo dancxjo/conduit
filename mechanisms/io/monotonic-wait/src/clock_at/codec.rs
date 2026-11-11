@@ -1,5 +1,5 @@
 //! Prepared exact clock request decoding and bounded result construction.
-use super::contract::{CLOCK_MAXIMUM_BYTES, MonotonicClockContract};
+use super::contract::{MonotonicClockContract, CLOCK_MAXIMUM_BYTES};
 use alloc::vec::Vec;
 use conduit_core::*;
 

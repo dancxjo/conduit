@@ -237,6 +237,7 @@ loongarch64-a4 = []
 loongarch64-product = []
 
 [dependencies]
+conduit-monotonic-wait = { path = "../../mechanisms/io/monotonic-wait", default-features = false, features = ["clock-at-catalog"] }
 conduit-i2c-transaction = { path = "../../mechanisms/io/i2c-transaction", features = ["operation-factory"] }
 conduit-commons-plot = { path = "../../plots/commons" }
 conduit-birth-plot = { path = "../../plots/birth" }

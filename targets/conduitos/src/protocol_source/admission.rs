@@ -291,7 +291,7 @@ impl PreparedProtocolArtifact {
     >
     where
         P: crate::i2c_base::I2cProvider,
-        C: crate::monotonic_clock::owner::MonotonicDeadlineProvider,
+        C: conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider,
     {
         crate::protocol_play::PreparedTimedProtocolPlay::prepare(
             self.artifact.into_definition(),

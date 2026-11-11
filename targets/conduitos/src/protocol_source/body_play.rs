@@ -2,10 +2,10 @@
 use super::PreparedProtocolArtifact;
 use crate::{
     i2c_base::I2cProvider,
-    monotonic_clock::owner::MonotonicDeadlineProvider,
     protocol_host_calls::ProtocolCallRefusal,
     protocol_play::{ClockAdmission, I2cAdmission},
 };
+use conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider;
 mod kernel;
 #[path = "body_play/storage_preparation.rs"]
 pub(super) mod storage_preparation;

@@ -24,11 +24,11 @@ impl crate::i2c_base::I2cProvider for WrongIdentityBus {
     fn revoke(&mut self) {}
 }
 struct ObservedClock(Arc<AtomicUsize>);
-impl crate::monotonic_clock::owner::MonotonicDeadlineProvider for ObservedClock {
+impl conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider for ObservedClock {
     fn poll_until(
         &mut self,
         deadline: u64,
-    ) -> Result<Option<u64>, crate::monotonic_clock::codec::ClockDisposition> {
+    ) -> Result<Option<u64>, conduit_monotonic_wait::clock_at::codec::ClockDisposition> {
         assert_eq!(
             deadline, 0,
             "bus completion requests an immediate observed timestamp"

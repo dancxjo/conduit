@@ -13,11 +13,11 @@ impl crate::i2c_base::I2cProvider for AbsentI2c {
         match *self {}
     }
 }
-impl crate::monotonic_clock::owner::MonotonicDeadlineProvider for AbsentClock {
+impl conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider for AbsentClock {
     fn poll_until(
         &mut self,
         _: u64,
-    ) -> Result<Option<u64>, crate::monotonic_clock::codec::ClockDisposition> {
+    ) -> Result<Option<u64>, conduit_monotonic_wait::clock_at::codec::ClockDisposition> {
         match *self {}
     }
     fn revoke(&mut self) {

@@ -1,10 +1,11 @@
 //! Retain one admitted clock dispatch while the sole kernel owns its lifecycle.
-use super::{contract::*, factory::ClockOperationFactory, installation::*, owner::*};
+use super::{factory::ClockOperationFactory, installation::*};
 use crate::protocol_host_calls::ProtocolCallRefusal;
 use alloc::vec::Vec;
 use conduit_composite::*;
 use conduit_core::*;
 use conduit_kernel::{HostCallDisposition, HostCallId, HostCallOutcome, NodeId, RequestId};
+use conduit_monotonic_wait::clock_at::{contract::*, owner::*};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 
 pub struct PreparedClockDispatch<P> {
