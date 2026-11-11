@@ -27,7 +27,7 @@ use tungstenite::protocol::{Message, WebSocket};
 pub struct SecureWebSocketClientLine {
     pub(super) socket: WebSocket<StreamOwned<ClientConnection, TcpStream>>,
     maximum_message_bytes: usize,
-    _exchange_deadline: Option<SocketDeadlineGuard>,
+    _io_deadline: Option<SocketDeadlineGuard>,
 }
 
 impl SecureWebSocketClientLine {
@@ -172,7 +172,7 @@ impl SecureWebSocketClientLine {
         Ok(Self {
             socket,
             maximum_message_bytes,
-            _exchange_deadline: exchange_deadline,
+            _io_deadline: exchange_deadline,
         })
     }
 
@@ -195,6 +195,16 @@ impl SecureWebSocketClientLine {
             .sock
             .set_read_timeout(timeout)
             .map_err(|error| SecureWebSocketError::Transport(error.kind()))
+    }
+
+    /// Bound the established socket by a separately authorized finite lease,
+    /// including partial frames and blocked writes. The caller must validate
+    /// renewal authority before replacing this deadline, never on raw input.
+    /// Failure to prepare the new guard leaves the old guard in place.
+    pub fn replace_io_deadline(&mut self, deadline: Instant) -> Result<(), SecureWebSocketError> {
+        let guard = SocketDeadlineGuard::start(&self.socket.get_ref().sock, deadline)?;
+        self._io_deadline = Some(guard);
+        Ok(())
     }
 
     pub fn close(&mut self) -> Result<(), SecureWebSocketError> {

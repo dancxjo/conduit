@@ -7,6 +7,9 @@ use std::fs;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::thread;
 
+#[path = "tests/io_deadline.rs"]
+mod io_deadline;
+
 #[test]
 fn secure_remote_listener_cannot_rebrand_loopback() {
     let result = SecureWebSocketListener::bind(
