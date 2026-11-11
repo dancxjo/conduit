@@ -2,16 +2,10 @@
 // reauthorized, no command bytes are replaced, and no Play is started here.
 use super::*;
 use conduit_mcu_host_runtime::{root::MemberControl, transport::MessageTransport};
-use core::{
-    future::{poll_fn, Future},
-    pin::pin,
-    task::Poll,
-};
 
 pub(crate) struct ReturnControl<'a, 's> {
     member: MemberControl<'a, 's>,
     workspace: &'a mut [u8],
-    output: &'a mut [u8],
     grants: heapless::Vec<&'a c::AuthorityGrant, 32>,
     resident_images: [Option<&'static [u8]>; crate::resident::generated::ENTRY_COUNT],
 }
@@ -23,7 +17,6 @@ impl<'a, 's> ReturnControl<'a, 's> {
         >,
         issuers: &'a conduit_mcu_host_runtime::native_authority::Issuers<WAIT_SLOTS>,
         resident_images: [Option<&'static [u8]>; crate::resident::generated::ENTRY_COUNT],
-        output: &'a mut [u8],
     ) -> Option<Self> {
         let (member, workspace) = root.member_control_with_workspace().ok()?;
         let mut grants = heapless::Vec::new();
@@ -33,12 +26,15 @@ impl<'a, 's> ReturnControl<'a, 's> {
         Some(Self {
             member,
             workspace,
-            output,
             grants,
             resident_images,
         })
     }
-    async fn return_member(&mut self, link: &mut crate::transport::Link) -> Result<(), ()> {
+    async fn return_member(
+        &mut self,
+        link: &mut crate::transport::Link,
+        output: &mut [u8],
+    ) -> Result<(), ()> {
         // Refuse before temporary decoded/cryptographic work. This conservative
         // cold-phase ceiling does not enlarge the installed heap or a grant.
         // Actual whole-MCU peak remains a required deployment qualification.
@@ -78,13 +74,7 @@ impl<'a, 's> ReturnControl<'a, 's> {
                     .copied(),
             );
         self.member
-            .return_member(
-                link,
-                images,
-                self.grants.as_slice(),
-                self.workspace,
-                self.output,
-            )
+            .return_member(link, images, self.grants.as_slice(), self.workspace, output)
             .await
             .map_err(|_| ())?;
         crate::runtime::observe_receipt(self.member.receipt_digest());
@@ -92,32 +82,6 @@ impl<'a, 's> ReturnControl<'a, 's> {
     }
     fn clear_scratch(&mut self) {
         self.workspace.fill(0);
-        self.output.fill(0);
-    }
-}
-
-// Hold timing exclusion for one synchronous poll only, never while waiting for
-// the carrier. A live timing-sensitive call defers control by a bounded timer.
-async fn with_native_windows<F: Future>(
-    future: F,
-    activity: &conduit_mcu_host_runtime::native_runner::NativeActivity,
-) -> F::Output {
-    let mut future = pin!(future);
-    loop {
-        let outcome = poll_fn(|cx| {
-            let Some(_window) = activity.try_blocking() else {
-                return Poll::Ready(None);
-            };
-            match future.as_mut().poll(cx) {
-                Poll::Ready(result) => Poll::Ready(Some(result)),
-                Poll::Pending => Poll::Pending,
-            }
-        })
-        .await;
-        if let Some(result) = outcome {
-            return result;
-        }
-        embassy_time::Timer::after_millis(1).await;
     }
 }
 
@@ -138,10 +102,11 @@ pub(super) async fn serve(
             };
             let result = embassy_time::with_timeout(
                 embassy_time::Duration::from_secs(10),
-                with_native_windows(control.return_member(link), activity),
+                activity.with_blocking_polls(control.return_member(link, response), &Yield),
             )
             .await;
             control.clear_scratch();
+            response.fill(0);
             result.map_err(|_| ())??;
         } else {
             let count = match inspection_encoder::encode(face, bytes, response)? {

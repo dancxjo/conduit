@@ -172,12 +172,7 @@ pub async fn run<'s>(
                     append_status
                         .take()
                         .expect("original prepared status custody"),
-                    crate::play_run::ReturnControl::prepare(
-                        root,
-                        &issuers,
-                        return_images,
-                        &mut response,
-                    ),
+                    crate::play_run::ReturnControl::prepare(root, &issuers, return_images),
                 )
                 .await;
             }
