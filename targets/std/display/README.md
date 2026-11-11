@@ -79,3 +79,14 @@ disable `getty@tty1.service`, and enable `conduit-direct-display.service` rather
 than leaving competing boot units enabled. The account and DRM/session
 prerequisites above still apply; these commands do not add keyboard interaction
 or turn historical pixels into a current Show.
+
+PAM may move application output into the login session scope, so a unit-only
+journal query can omit acknowledged Shows. Read the current process explicitly:
+
+```sh
+display_pid=$(systemctl show -p MainPID --value conduit-direct-display.service)
+journalctl -b "_PID=$display_pid" --no-pager
+```
+
+Check for acknowledged native Mask Shows from that current process; repeat the
+PID lookup after a restart. Service-manager `active` alone does not prove output.
