@@ -3,8 +3,11 @@
 Source audit, 11 November 2026. This is a decomposition and dependency audit,
 not hardware, installed Play, recorder, or release acceptance.
 
-The comparison is current `dev` at `5e0d01d0a156cd17002a9714e1a33677547889c8`
+The original inventory compares `dev` at `5e0d01d0a156cd17002a9714e1a33677547889c8`
 and the environmental integration checkpoint at `a28a11877c7bd3424b41de1284e098f990f1d7cc`.
+The focused shared-package delivery is based on current `dev`
+`a464d6d5189b57a3d42b2fab6e36f9103efd1429`; its five extraction commits
+apply without API reconciliation or changes to that base's semantics.
 The latter is draft work under #6837; its capabilities and dependencies must not
 be attributed to `dev`. SDL extraction is independently owned and is not part
 of this change.
@@ -152,3 +155,35 @@ The extraction is complete only when shared production layers no longer import
 the environmental application, its authored files determine application
 composition, and the resulting installed Plots/Plans/Plays and shared Masks are
 verified. A directory relocation or an isolated green test is not that gate.
+
+
+## Focused current-dev qualification
+
+This delivery contains only the shared Face, canonical selector, TM1637 output
+preparation/Plot, and DHT11 observation moves described above, with their actual
+consumers, workspace registration, proof entrances and standalone lock updates.
+It does not contain the preservation draft's MCU continuation, native startup,
+Source reselection, linked selector/packing APIs or newer `@2` pulse/expression
+contracts. Current-dev runtime golden assertions are unchanged. The separate
+draft's historical baseline failures and their repairs are not claims about
+this source tree.
+
+On the exact five-commit extraction, bounded hosted checks passed:
+
+- Default shared-package tests: DHT11 observation 4, environmental Face 10,
+  semantic catalog 325 (199 unit and 126 integration), TM1637 output Make 2:
+  341 tests total, with no failing doc tests.
+- DHT11 observation with all features: 5 tests, including optional kernel and
+  source-capture coverage.
+- `thumbv6m-none-eabi` compilation: DHT11 observation with all features;
+  environmental Face and semantic catalog with default features disabled.
+- All 6 workspace-shard unit guards, including exact-once workspace coverage.
+- The supported `cargo xtask ci pipeline evidence-retention` guard.
+
+Normal/build/dev dependency inventories for DHT11 observation and TM1637 output
+Make contain no environmental Body package. Raw receipts are retained outside
+Git in the task outputs as `dev-extraction-*-20261111` logs and inventories.
+The complete standalone environmental runtime suite was not rerun on this
+current-dev extraction under the available disk headroom. These focused CPU and
+cross-compilation checks do not prove device operation, installed Play or
+accepted release publication.
