@@ -53,7 +53,11 @@ impl UsbNativeIdentity {
         )
     }
 
-    #[cfg(any(test, all(target_arch = "arm", feature = "armv6-product")))]
+    #[cfg(any(
+        test,
+        all(target_arch = "arm", feature = "armv6-product"),
+        all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+    ))]
     pub(crate) fn append_endpoint_to_advertisement(
         &self,
         advertisement: &mut HostAdvertisement,

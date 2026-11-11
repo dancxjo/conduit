@@ -1,6 +1,5 @@
 use std::{
-    fs::{self, File},
-    io::{Seek, SeekFrom, Write},
+    fs,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -9,6 +8,10 @@ use serde::Serialize;
 
 use crate::cli::GlobalOpts;
 
+use super::rpi_media::{
+    set_fixed_timestamps_for, verify_partition_layout, write_partitioned_image, FAT_OFFSET_BYTES,
+    IMAGE_BYTES, PARTITION_SECTORS, PARTITION_START_SECTOR,
+};
 use super::{
     armv6_rpi_b_plus_a0,
     armv6_rpi_board::Armv6RpiBoard,
@@ -18,12 +21,6 @@ use super::{
 };
 
 pub(super) const FIRMWARE_COMMIT: &str = "06df1d1a5cc34cc32a4d748239dc1523711fae8b";
-const IMAGE_BYTES: u64 = 64 * 1024 * 1024;
-const SECTOR_BYTES: u64 = 512;
-const PARTITION_START_SECTOR: u32 = 2048;
-const PARTITION_SECTORS: u32 = (IMAGE_BYTES / SECTOR_BYTES) as u32 - PARTITION_START_SECTOR;
-const FAT_OFFSET_BYTES: u64 = PARTITION_START_SECTOR as u64 * SECTOR_BYTES;
-const SOURCE_DATE_EPOCH: &str = "1786233600";
 // Keep the standard firmware pair selected: gpu_mem=16 requests start_cd.elf
 // and fixup_cd.dat, which this image does not bundle. PL011 uses divisors
 // for a 3 MHz input clock, so pin the firmware clock before entering ARM.
@@ -168,23 +165,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
 
     let image = image_path(&paths, board);
     write_partitioned_image(&image)?;
-    run(
-        Command::new("mkfs.vfat")
-            .args([
-                "--invariant",
-                "--offset=2048",
-                "-F",
-                "32",
-                "-h",
-                "2048",
-                "-i",
-                "434e4454",
-                "-n",
-                "CONDUITOS",
-            ])
-            .arg(&image),
-        "fat-filesystem-creation-failed",
-    )?;
+    super::rpi_media::format_fat(&image)?;
     for name in image_files() {
         run(
             Command::new("mcopy")
@@ -340,42 +321,6 @@ pub(super) fn prepare_firmware(paths: &Paths) -> Result<PathBuf, ConduitosError>
     Ok(vendor)
 }
 
-pub(super) fn write_partitioned_image(path: &Path) -> Result<(), ConduitosError> {
-    let mut file =
-        File::create(path).map_err(|error| refusal("image-output-unavailable", error))?;
-    file.set_len(IMAGE_BYTES)
-        .map_err(|error| refusal("image-output-unavailable", error))?;
-    let mut mbr = [0_u8; 512];
-    mbr[440..444].copy_from_slice(&[0x43, 0x4e, 0x44, 0x54]);
-    let partition = &mut mbr[446..462];
-    partition[1..4].copy_from_slice(&[0x20, 0x21, 0x00]);
-    partition[4] = 0x0c;
-    partition[5..8].copy_from_slice(&[0xfe, 0xff, 0xff]);
-    partition[8..12].copy_from_slice(&PARTITION_START_SECTOR.to_le_bytes());
-    partition[12..16].copy_from_slice(&PARTITION_SECTORS.to_le_bytes());
-    mbr[510..512].copy_from_slice(&[0x55, 0xaa]);
-    file.seek(SeekFrom::Start(0))
-        .and_then(|_| file.write_all(&mbr))
-        .map_err(|error| refusal("image-output-unavailable", error))
-}
-
-pub(super) fn verify_partition_layout(image: &Path) -> Result<(), ConduitosError> {
-    let bytes = fs::read(image).map_err(|error| refusal("image-verification-failed", error))?;
-    if bytes.len() as u64 != IMAGE_BYTES
-        || bytes[440..444] != [0x43, 0x4e, 0x44, 0x54]
-        || bytes[450] != 0x0c
-        || bytes[454..458] != PARTITION_START_SECTOR.to_le_bytes()
-        || bytes[458..462] != PARTITION_SECTORS.to_le_bytes()
-        || bytes[510..512] != [0x55, 0xaa]
-    {
-        return Err(refusal(
-            "image-verification-failed",
-            "MBR identity, partition bounds, or image size is not exact",
-        ));
-    }
-    Ok(())
-}
-
 fn verify_image(image: &Path, stage: &Path, target: &Path) -> Result<(), ConduitosError> {
     verify_partition_layout(image)?;
     let extracted = target.join("rpi-image-verify");
@@ -414,15 +359,6 @@ fn recreate_directory(path: &Path, reason: &'static str) -> Result<(), Conduitos
 pub(super) fn set_fixed_timestamps(stage: &Path) -> Result<(), ConduitosError> {
     set_fixed_timestamps_for(stage, &image_files())
 }
-pub(super) fn set_fixed_timestamps_for(stage: &Path, files: &[&str]) -> Result<(), ConduitosError> {
-    let mut command = Command::new("touch");
-    command.args(["--date", &format!("@{SOURCE_DATE_EPOCH}")]);
-    for name in files {
-        command.arg(stage.join(name));
-    }
-    run(&mut command, "image-staging-failed")
-}
-
 const fn image_files() -> [&'static str; 6] {
     [
         "LICENCE.broadcom",

@@ -110,7 +110,31 @@ fn hub_input_policy_runs_complete_bounded_enumeration_without_native_authority_o
 #[test]
 fn nested_high_speed_hub_routes_the_same_waveshare_report_through_its_own_translator() {
     let mut tree = nested_hub_prefix();
-    for mut item in fixture().into_iter().skip(6) {
+    tree.push(exchange(0x0000000100080323, 2, 64, 0, &[]));
+    tree.push(exchange(0x0000000200080323, 2, 64, 0, &[]));
+    // A synthetic vendor-class Ethernet-like function occupies child port 1.
+    // Its bulk endpoints must not become pointer authority. This consumes the
+    // fourth prepared configuration context when the touch device is found.
+    tree.push(exchange(0x00040001000000a3, 2, 64, 0, &[1, 5, 1, 0]));
+    tree.push(exchange(0x0000000100040323, 2, 64, 0, &[]));
+    tree.push(exchange(0x00040001000000a3, 2, 64, 0, &[3, 5, 16, 0]));
+    tree.push(exchange(0x0000000100140123, 2, 64, 0, &[]));
+    tree.push(exchange(0x0000000100100123, 2, 64, 0, &[]));
+    tree.push(exchange(
+        0x0008000001000680,
+        0,
+        64,
+        0,
+        &[18, 1, 0, 2, 0xff, 0, 0, 64],
+    ));
+    tree.push(exchange(0x0000000000090500, 0, 64, 0, &[]));
+    let other_config = [
+        9, 2, 32, 0, 1, 1, 0, 0x80, 50, 9, 4, 0, 0, 2, 0xff, 0, 0, 0, 7, 5, 0x81, 2, 0, 2, 0, 7, 5,
+        2, 2, 0, 2, 0,
+    ];
+    tree.push(exchange(0x0009000002000680, 9, 64, 0, &other_config[..9]));
+    tree.push(exchange(0x0020000002000680, 9, 64, 0, &other_config));
+    for mut item in fixture().into_iter().skip(9) {
         if item.address == 1 {
             item.address = 2;
         } else if item.address == 3 {
@@ -124,7 +148,7 @@ fn nested_high_speed_hub_routes_the_same_waveshare_report_through_its_own_transl
         }
         tree.push(item);
     }
-    run_fixture(tree, &[2, 2, 50, 2, 2, 50, 2], 10, 2);
+    run_fixture(tree, &[2, 2, 50, 2, 2, 50, 2, 50, 2], 10, 2);
 }
 #[test]
 fn empty_child_hub_resumes_the_parent_without_reusing_device_addresses() {

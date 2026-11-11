@@ -73,8 +73,8 @@ impl FirmwareScanout {
         )?;
         let address =
             NonNull::new(physical as *mut u8).ok_or("bcm2835-framebuffer-address-invalid")?;
-        // Firmware grants this sole Root the reserved buffer; identity-mapped
-        // Normal NC GPU RAM and disabled data caching expose stores to scanout.
+        // Firmware grants this sole Root the reserved buffer. The CPU adapter
+        // maps it as identity-mapped Normal NC RAM, independent of cached ARM RAM.
         let raw = unsafe { RawDisplay::new_word_writable(address, bytes as usize, format) }
             .map_err(|error| error.as_str())?;
         Ok(Self {

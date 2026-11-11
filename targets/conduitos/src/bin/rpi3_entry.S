@@ -43,6 +43,13 @@ conduitos_rpi3_el1:
     b.ne conduitos_rpi3_park
     tst x0, #4
     b.ne conduitos_rpi3_park
+    mov x0, #0x800
+    movk x0, #0x30d0, lsl #16
+    msr sctlr_el1, x0
+    isb
+    ic iallu
+    dsb sy
+    isb
     msr spsel, #1
     ldr x0, =__bss_start
     ldr x1, =__bss_end

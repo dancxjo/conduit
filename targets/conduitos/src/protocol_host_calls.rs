@@ -12,9 +12,19 @@ use crate::{
     structured_selector_host_call,
 };
 use alloc::{boxed::Box, vec::Vec};
-use conduit_composite::{AdmittedKernelCompositeHostRequest, KernelCompositeHost};
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
+))]
+use conduit_composite::AdmittedKernelCompositeHostRequest;
+use conduit_composite::KernelCompositeHost;
 use conduit_core::*;
-use conduit_kernel::{HostCallId, NodeId};
+use conduit_kernel::HostCallId;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
+))]
+use conduit_kernel::NodeId;
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 
 pub use crate::protocol_call_refusal::ProtocolCallRefusal;

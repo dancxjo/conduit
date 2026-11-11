@@ -226,14 +226,18 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
             start_session
                 .started(&host, &boot, play, wake)
                 .map_err(ProtocolBodyRefusal::Lifecycle)?;
-            let mut kernel = prepare_kernel(artifact).map_err(ProtocolBodyRefusal::Call)?;
+            let kernel = prepare_kernel(artifact).map_err(ProtocolBodyRefusal::Call)?;
             #[cfg(any(
                 target_arch = "x86_64",
                 all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
-            kernel
-                .bind_storage_body(storage_preparation.clone())
-                .map_err(ProtocolBodyRefusal::Call)?;
+            let kernel = {
+                let mut kernel = kernel;
+                kernel
+                    .bind_storage_body(storage_preparation.clone())
+                    .map_err(ProtocolBodyRefusal::Call)?;
+                kernel
+            };
             Ok::<_, ProtocolBodyRefusal>((start_session, kernel, host, boot, storage_preparation))
         })();
         match prepared {

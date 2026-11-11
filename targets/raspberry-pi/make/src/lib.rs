@@ -162,7 +162,6 @@ impl HostMakePackage for RaspberryPiMakePackage {
             package_revision: MAKE_PACKAGE_REVISION,
             catalog: Default::default(),
             targets: vec![
-                three_b_plus_target(),
                 b_plus_linux_target(),
                 aarch64_linux_target(
                     "Raspberry Pi 3 Model B+ rev 1.3 · Linux 64-bit",
@@ -191,6 +190,7 @@ impl HostMakePackage for RaspberryPiMakePackage {
                     "Raspberry Pi Model B+ v1.2",
                     "raspberry-pi-model-b-plus-v1.2",
                 ),
+                three_b_plus_target(),
                 bare_metal_target("Raspberry Pi Zero v1", "raspberry-pi-zero-v1"),
                 bare_metal_target("Raspberry Pi Zero W v1.1", "raspberry-pi-zero-w-v1.1"),
                 bare_metal_target("Raspberry Pi Zero WH v1.1", "raspberry-pi-zero-wh-v1.1"),

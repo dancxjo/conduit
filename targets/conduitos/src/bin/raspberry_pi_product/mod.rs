@@ -169,11 +169,26 @@ fn refuse(reason: &str) -> ! {
     arch::present(reason.as_bytes());
     arch::present(b"\n");
     loop {
-        core::hint::spin_loop();
+        unsafe {
+            core::arch::asm!("wfe", options(nomem, nostack));
+        }
     }
 }
 #[panic_handler]
-fn panic(_info: &PanicInfo<'_>) -> ! {
+fn panic(info: &PanicInfo<'_>) -> ! {
+    use core::fmt::Write;
+    arch::disable_interrupts();
+    if let Some(location) = info.location() {
+        let mut text = conduitos::sign_format::FixedText::new();
+        let _ = writeln!(
+            text,
+            "CONDUIT_RASPBERRY_PI_PANIC file={} line={} column={}",
+            location.file(),
+            location.line(),
+            location.column()
+        );
+        arch::present(text.as_bytes());
+    }
     refuse("panic")
 }
 #[alloc_error_handler]

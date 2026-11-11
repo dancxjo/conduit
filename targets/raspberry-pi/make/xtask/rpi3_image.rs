@@ -1,9 +1,9 @@
 //! Exact Pi 3B+ product build and firmware SD image; no physical claim at build.
 use super::{
-    armv6_rpi_b_plus_image as media, build as product_build,
+    armv6_rpi_b_plus_image as firmware, build as product_build,
     profile::Paths,
     report::{git_head, sha256_file, ArtifactRole, BuildRecord},
-    ConduitosArch, ConduitosError,
+    rpi_media as media, ConduitosArch, ConduitosError,
 };
 use crate::cli::GlobalOpts;
 use std::{fs, path::Path, process::Command};
@@ -81,8 +81,14 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     if manifest.target != TARGET {
         return Err(refusal("rpi3-make-target-mismatch"));
     }
-    product_build::execute_profile(&manifest, opts)?;
     let paths = Paths::new(ConduitosArch::Aarch64)?;
+    fs::create_dir_all(&paths.target).map_err(io_error)?;
+    fs::write(
+        paths.target.join("rpi3-product-manifest.json"),
+        serde_json::to_vec_pretty(&manifest).map_err(io_error)?,
+    )
+    .map_err(io_error)?;
+    product_build::execute_profile(&manifest, opts)?;
     if opts.dry_run {
         println!(
             "assemble {}",
@@ -90,7 +96,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         );
         return Ok(());
     }
-    let vendor = media::prepare_firmware(&paths)?;
+    let vendor = firmware::prepare_firmware(&paths)?;
     let stage = paths.target.join("rpi-3b-plus-boot-stage");
     fs::create_dir_all(&stage).map_err(io_error)?;
     for name in &FILES[..4] {
@@ -101,23 +107,11 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     media::set_fixed_timestamps_for(&stage, &FILES)?;
     let image = paths.target.join("conduitos-rpi-3b-plus.img");
     media::write_partitioned_image(&image)?;
-    run(Command::new("mkfs.vfat")
-        .args([
-            "--invariant",
-            "--offset=2048",
-            "-F",
-            "32",
-            "-h",
-            "2048",
-            "-i",
-            "434e4454",
-            "-n",
-            "CONDUITOS",
-        ])
-        .arg(&image))?;
-    let image_spec = format!("{}@@1048576", image.display());
+    media::format_fat(&image)?;
+    let image_spec = format!("{}@@{}", image.display(), media::FAT_OFFSET_BYTES);
     for name in FILES {
         run(Command::new("mcopy")
+            .env("MTOOLS_SKIP_CHECK", "1")
             .args(["-m", "-i", &image_spec])
             .arg(stage.join(name))
             .arg(format!("::{name}")))?;
@@ -127,6 +121,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     for name in FILES {
         let original = fs::read(stage.join(name)).map_err(io_error)?;
         let actual = Command::new("mtype")
+            .env("MTOOLS_SKIP_CHECK", "1")
             .args(["-i", &image_spec, &format!("::{name}")])
             .output()
             .map_err(io_error)?;
@@ -140,7 +135,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "base_commit":git_head(&paths.root)?, "architecture":"aarch64", "machine":"BCM2837B0/Cortex-A53",
         "board":"raspberry-pi-3-model-b-plus-rev-1.3", "target_id":TARGET,
         "boot_mechanism":"raspberry-pi-videocore-firmware-direct-kernel",
-        "firmware_commit":media::FIRMWARE_COMMIT,
+        "firmware_commit":firmware::FIRMWARE_COMMIT,
         "make_package_id":"conduit-host-raspberry-pi@1",
         "make_package_revision":conduit_host_raspberry_pi::MAKE_PACKAGE_REVISION,
         "image_id":manifest.image_id,"image_path":image,"image_sha256":sha256_file(&image)?,

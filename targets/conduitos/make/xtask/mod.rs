@@ -131,6 +131,8 @@ mod riscv64_product_boot;
 mod rpi3_flash;
 #[path = "../../../raspberry-pi/make/xtask/rpi3_image.rs"]
 mod rpi3_image;
+#[path = "../../../raspberry-pi/make/xtask/rpi_media.rs"]
+mod rpi_media;
 mod run;
 mod screen_free_three_host_proof;
 mod serial_observation;
