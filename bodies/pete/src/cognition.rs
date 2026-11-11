@@ -127,12 +127,17 @@ pub fn situate_pete_frame(
     let body = frame.body();
     let utterance = frame.utterance();
     let policy = *frame.temporal_policy();
-    let battery_observation = Observed {
-        value: BatteryObservation::new(*battery.charge_permille(), *battery.millivolts())
-            .map_err(|_| R::InvalidObservation)?,
-        sign_id: battery.sign().get().as_str().into(),
-        observed_at: instant(battery.observed_at())?,
-    };
+    let battery_observation = battery
+        .as_ref()
+        .map(|battery| {
+            Ok(Observed {
+                value: BatteryObservation::new(*battery.charge_permille(), *battery.millivolts())
+                    .map_err(|_| R::InvalidObservation)?,
+                sign_id: battery.sign().get().as_str().into(),
+                observed_at: instant(battery.observed_at())?,
+            })
+        })
+        .transpose()?;
     let safety_observation = body
         .as_ref()
         .map(|body| {
@@ -149,7 +154,9 @@ pub fn situate_pete_frame(
     let situation = select_pete_situation(
         instant(frame.reference())?,
         *policy.maximum_current_age_ticks(),
-        SituationInput::Observed(battery_observation.clone()),
+        battery_observation
+            .clone()
+            .map_or(SituationInput::Missing, SituationInput::Observed),
         SituationInput::Observed(Observed {
             value: utterance.content().clone(),
             sign_id: utterance.sign().get().as_str().into(),
@@ -164,8 +171,10 @@ pub fn situate_pete_frame(
         integrate_pete_experience(&situation, policy, &[]).map_err(|_| R::Experience)?;
     let homeostasis = super::cognition_homeostasis::homeostatic_evidence(
         &situation,
-        &battery_observation,
-        *battery.charging(),
+        battery_observation
+            .as_ref()
+            .zip(battery.as_ref())
+            .map(|(observed, input)| (observed, *input.charging())),
         policy,
         safety_observation.as_ref(),
     )?;

@@ -19,7 +19,7 @@ type PeteCognitionSafety = {
     safety_inhibited: Boolean
 }
 type PeteCognitionFrame = {
-    battery: PeteCognitionBattery
+    battery: PeteCognitionBattery?
     body: PeteCognitionSafety?
     utterance: PeteCognitionUtterance
     reference: TemporalInstant

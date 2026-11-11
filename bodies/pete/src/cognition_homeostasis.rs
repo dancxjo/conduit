@@ -13,13 +13,13 @@ use crate::{
 
 pub(super) fn homeostatic_evidence(
     situation: &PeteSituation,
-    battery: &Observed<conduit_robotics::BatteryObservation>,
-    charging: bool,
+    battery: Option<(&Observed<conduit_robotics::BatteryObservation>, bool)>,
     temporal_policy: ExperienceTemporalPolicy,
     body: Option<&Observed<PeteBodyState>>,
 ) -> Result<ExperienceItem, PeteCognitionRefusal> {
     let bound = situation.maximum_age_ticks;
-    let power = (situation.battery.state == SituationFactState::Current).then_some(battery);
+    let battery = battery.filter(|_| situation.battery.state == SituationFactState::Current);
+    let power = battery.map(|(observation, _)| observation);
     let safety = body.filter(|_| situation.body.state == SituationFactState::Current);
     let state = reduce_homeostasis(
         &situation.reference,
@@ -27,7 +27,7 @@ pub(super) fn homeostatic_evidence(
         &HomeostaticInputs {
             power: source("battery", bound, power, |value| PowerCondition {
                 reserve_permille: value.charge_permille(),
-                charging,
+                charging: battery.is_some_and(|(_, charging)| charging),
             }),
             thermal: missing("thermal", bound),
             compute_pressure: missing("compute-pressure", bound),

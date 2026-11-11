@@ -104,7 +104,7 @@ fn frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFrame {
     let now = at(100 * revision);
     let sign = |kind| PeteCognitionSign::new(format!("{kind}/{revision}")).unwrap();
     PeteCognitionFrame::new(
-        PeteCognitionBattery::new(90, false, 13_000, now.clone(), sign("battery")).unwrap(),
+        Some(PeteCognitionBattery::new(90, false, 13_000, now.clone(), sign("battery")).unwrap()),
         Some(PeteCognitionSafety::new(false, now.clone(), true, sign("body")).unwrap()),
         "pete/wake/2".into(),
         now.clone(),
@@ -115,7 +115,7 @@ fn frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFrame {
     .unwrap()
 }
 
-fn create_battery_stream(revision: u64) -> Vec<u8> {
+fn create_battery_stream(revision: u64, capacity_mah: u16) -> Vec<u8> {
     use conduit_pete::{
         CREATE_CHARGING_SOURCES_PACKET_ID, CREATE_GROUP_ZERO_PACKET_ID, STREAM_HEADER,
     };
@@ -124,7 +124,7 @@ fn create_battery_stream(revision: u64) -> Vec<u8> {
     packet[16] = if revision == 1 { 3 } else { 0 };
     packet[17..19].copy_from_slice(&13_000u16.to_be_bytes());
     packet[22..24].copy_from_slice(&charge_mah.to_be_bytes());
-    packet[24..26].copy_from_slice(&1_000u16.to_be_bytes());
+    packet[24..26].copy_from_slice(&capacity_mah.to_be_bytes());
     let mut stream = vec![STREAM_HEADER, 29, CREATE_GROUP_ZERO_PACKET_ID];
     stream.extend(packet);
     stream.extend([CREATE_CHARGING_SOURCES_PACKET_ID, 2]);
@@ -139,7 +139,7 @@ fn create_frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFram
         pete_cognition_battery_from_create, CreatePortableObservation,
     };
 
-    let bundle = decode_observation_bundle(&create_battery_stream(revision)).unwrap();
+    let bundle = decode_observation_bundle(&create_battery_stream(revision, 1_000)).unwrap();
     let observation = CreatePortableObservation {
         group_zero: lower_group_zero(&bundle.group_zero).unwrap(),
         charging_sources: lower_charging_sources(&bundle.charging_sources).unwrap(),
@@ -153,7 +153,7 @@ fn create_frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFram
     .unwrap()
     .unwrap();
     PeteCognitionFrame::new(
-        battery,
+        Some(battery),
         fixture.body().clone(),
         fixture.provenance_revision().clone(),
         fixture.reference().clone(),
@@ -167,6 +167,17 @@ fn create_frame(revision: u64, message: &str, retain: bool) -> PeteCognitionFram
 #[cfg(target_os = "linux")]
 #[test]
 fn pete_create_serial_samples_enter_one_cognition_play() {
+    assert_pete_create_serial_play(false);
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn pete_continues_when_create_capacity_is_unavailable() {
+    assert_pete_create_serial_play(true);
+}
+
+#[cfg(target_os = "linux")]
+fn assert_pete_create_serial_play(missing_first_capacity: bool) {
     use conduit_pete::{capture_pete_cognition_battery, UartProfile};
     use conduit_std_host::std_create_uart::{
         monotonic_millis, StdCreateUartBase, StdCreateUartObservation,
@@ -179,7 +190,9 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
         path::PathBuf,
     };
 
-    let (device, master, slave) = match std::env::var_os("CONDUIT_PETE_CREATE_SERIAL") {
+    let (device, master, slave) = match std::env::var_os("CONDUIT_PETE_CREATE_SERIAL")
+        .filter(|_| !missing_first_capacity)
+    {
         Some(path) => (PathBuf::from(path), None, None),
         None => {
             let mut master = -1;
@@ -224,7 +237,14 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
                 let mut commands = [0; 6];
                 master.read_exact(&mut commands).unwrap();
                 assert_eq!(commands, [128, 131, 148, 2, 0, 34]);
-                master.write_all(&create_battery_stream(revision)).unwrap();
+                let capacity = if missing_first_capacity && revision == 1 {
+                    0
+                } else {
+                    1_000
+                };
+                master
+                    .write_all(&create_battery_stream(revision, capacity))
+                    .unwrap();
                 let mut pause = [0; 2];
                 master.read_exact(&mut pause).unwrap();
                 assert_eq!(pause, [150, 0]);
@@ -255,7 +275,8 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
         }
     }
 
-    let use_ollama = std::env::var_os("CONDUIT_PETE_SERIAL_OLLAMA").is_some();
+    let use_ollama =
+        !missing_first_capacity && std::env::var_os("CONDUIT_PETE_SERIAL_OLLAMA").is_some();
     let model = if use_ollama {
         ollama_episode_model()
     } else {
@@ -295,10 +316,20 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
                 1_000,
                 monotonic_millis,
             )
-            .unwrap()
-            .expect("Create supplied a usable capacity estimate");
-            let now = battery.observed_at().clone();
-            capture_ticks.push(*now.ticks());
+            .unwrap();
+            let now = NativeTemporalInstant::new(
+                "clock/pete-create-proof".into(),
+                1,
+                NativeTemporalScale::Milliseconds,
+                monotonic_millis().unwrap(),
+                0,
+            )
+            .unwrap();
+            capture_ticks.push(
+                battery
+                    .as_ref()
+                    .map(|battery| *battery.observed_at().ticks()),
+            );
             let input = frame_input(
                 PeteCognitionFrame::new(
                     battery,
@@ -352,6 +383,10 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
         &control,
     );
     let capture_ticks = producer.join().unwrap();
+    if missing_first_capacity {
+        assert!(capture_ticks[0].is_none());
+        assert!(capture_ticks[1].is_some());
+    }
     let report = result.unwrap();
     let collector = output.episodes;
     let status = queue.status();
@@ -375,30 +410,39 @@ fn pete_create_serial_samples_enter_one_cognition_play() {
         let recorded: serde_json::Value =
             serde_json::from_str(episode.evidence().as_ref().unwrap()).unwrap();
         let evidence = recorded["evidence"].as_array().unwrap();
-        let battery = evidence
-            .iter()
-            .find(|item| {
-                item["identity"]
-                    .as_str()
-                    .is_some_and(|id| id.starts_with("pete/battery/"))
-            })
-            .unwrap();
-        assert_eq!(battery["observed_at"]["ticks"], capture_ticks[index]);
+        let battery = evidence.iter().find(|item| {
+            item["identity"]
+                .as_str()
+                .is_some_and(|id| id.starts_with("pete/battery/"))
+                && item["classifications"]["availability"] == "present"
+        });
+        assert_eq!(
+            battery.and_then(|item| item["observed_at"]["ticks"].as_u64()),
+            capture_ticks[index]
+        );
         let homeostasis = evidence
             .iter()
             .find(|item| item["identity"] == "pete/homeostasis")
             .unwrap();
-        assert_eq!(
-            homeostasis["sources"],
-            serde_json::json!([{"sign": format!("serial/battery/{}", index + 1)}])
-        );
         let state: serde_json::Value =
             serde_json::from_str(homeostasis["utf8_content"].as_str().unwrap()).unwrap();
         assert_eq!(state["motion"], "unknown");
-        assert!(state["charge_percent"].is_string());
+        if capture_ticks[index].is_some() {
+            assert_eq!(
+                homeostasis["sources"],
+                serde_json::json!([{"sign": format!("serial/battery/{}", index + 1)}])
+            );
+            assert!(state["charge_percent"].is_string());
+        } else {
+            assert_eq!(homeostasis["sources"], serde_json::json!([]));
+            assert!(state["charge_percent"].is_null());
+            assert_eq!(state["energy"], "unknown");
+        }
     }
     let snapshot = assert_pete_replay(&harness, &report);
-    if let Some(path) = std::env::var_os("CONDUIT_PETE_REPLAY_SNAPSHOT") {
+    if let Some(path) =
+        std::env::var_os("CONDUIT_PETE_REPLAY_SNAPSHOT").filter(|_| !missing_first_capacity)
+    {
         std::fs::write(path, snapshot.encode().unwrap()).unwrap();
     }
 }
