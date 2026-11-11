@@ -43,6 +43,7 @@ conduit-todo-face = { path = "../../plots/todo/face" }
 conduit-todo-plot = { path = "../../plots/todo/model", features = ["kernel-step"] }
 conduit-thermostat-plot = { path = "../../plots/thermostat/model" }
 conduit-host-make = { path = "../../make/host" }
+conduit-host-hosted = { path = "make" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-language = { path = "../../semantics/language" }
 conduit-data = { path = "../../semantics/data", features = ["kernel-step"] }

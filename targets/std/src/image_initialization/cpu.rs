@@ -1,7 +1,7 @@
 //! Native CPU-only operations selected before the one IMAGE registry/ledger.
 //! This provider entry confers no hardware or operation authority.
 use super::*;
-use conduit_workspace_make::{CheckedCpuInitialization, CPU_BASE_KIND, CPU_IMPLEMENTATION};
+use conduit_host_hosted::{CheckedCpuInitialization, CPU_BASE_KIND, CPU_IMPLEMENTATION};
 pub(crate) struct InitialCpu {
     pub(super) entry: BaseProviderEntry,
 }

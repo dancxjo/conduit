@@ -2823,6 +2823,7 @@ dependencies = [
  "conduit-emergency-keyword-spotter",
  "conduit-face",
  "conduit-finance",
+ "conduit-host-hosted",
  "conduit-host-make",
  "conduit-human",
  "conduit-kernel",

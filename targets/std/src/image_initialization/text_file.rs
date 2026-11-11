@@ -1,8 +1,8 @@
 //! Initial single-generation file residence, never an IMAGE reconfiguration.
 use super::*;
 use crate::text_file::SelectedTextFileResidence;
+use conduit_host_hosted::CheckedTextFileInitialization;
 use conduit_linux_snapshot_store::SnapshotDirectory;
-use conduit_workspace_make::CheckedTextFileInitialization;
 
 pub struct PreparedImageTextFile {
     pub(super) entry: BaseProviderEntry,
@@ -29,7 +29,7 @@ impl PreparedImageTextFile {
             .manifest
             .base_selections
             .iter()
-            .filter(|base| base.kind == conduit_workspace_make::TEXT_FILE_BASE_KIND);
+            .filter(|base| base.kind == conduit_host_hosted::TEXT_FILE_BASE_KIND);
         let base = bases.next().ok_or("IMAGE lacks immutable Text Base")?;
         let implementation = if parameters.write {
             conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION
@@ -125,7 +125,7 @@ impl PreparedImageTextFile {
                 .into(),
                 provider_generation: config.offer_generation.0,
                 implementation_id: implementation.into(),
-                mechanism_family: conduit_workspace_make::TEXT_FILE_BASE_KIND.into(),
+                mechanism_family: conduit_host_hosted::TEXT_FILE_BASE_KIND.into(),
                 enforcement_class: BaseEnforcementClass::Cooperative,
                 lifecycle: BaseLifecycle::Ready,
                 capabilities: vec![conduit_std_offers::durable_text_offer(content)?],
@@ -171,7 +171,7 @@ pub(crate) fn prepare_from_configuration(
         .configuration()
         .bases
         .iter()
-        .any(|base| base.kind == conduit_workspace_make::TEXT_FILE_BASE_KIND)
+        .any(|base| base.kind == conduit_host_hosted::TEXT_FILE_BASE_KIND)
     {
         return Ok(None);
     }
