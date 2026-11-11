@@ -40,7 +40,7 @@ const PREPARATION_FRAME_BYTES: usize = 512;
 const MAX_PREPARATION_DOCUMENT_BYTES: usize = MAX_PREPARATION_CHUNKS
     * (PREPARATION_FRAME_BYTES - conduit_wire::BOUNDED_DOCUMENT_HEADER_BYTES);
 
-trait Frames {
+pub(super) trait Frames {
     fn send(&mut self, bytes: &[u8], timeout: Duration) -> Result<(), ()>;
     fn receive<'a>(&mut self, output: &'a mut [u8], timeout: Duration) -> Result<&'a [u8], ()>;
 }

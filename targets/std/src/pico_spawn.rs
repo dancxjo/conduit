@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::pico_admission::{decode_advertisement, PicoAdmissionTransportError};
 use crate::usb_cdc::NativePathCdcLine;
+mod continuation;
+pub use continuation::{ContinuationInstallTransportError, UnverifiedContinuationPrefix};
 mod basis;
 pub use basis::PicoSpawnAdmissionBasis;
 mod member_return;
