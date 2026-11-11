@@ -1,7 +1,7 @@
 # Linux direct display adapter
 
-This optional adapter supports [#6325](https://github.com/dancxjo/conduit/issues/6325)
-uses SDL2 KMSDRM beneath an ordinary `GraphicsScene` Show. It reuses ConduitOS's
+This optional adapter supports [#6325](https://github.com/dancxjo/conduit/issues/6325).
+It uses SDL2 KMSDRM beneath an ordinary `GraphicsScene` Show. It reuses ConduitOS's
 existing raster implementation without copying it. No Body, observation state,
 formatting policy, recorder, scheduler or desktop session is introduced here.
 A prepared scanout owns one texture and an at-most-8-MiB CPU surface. Loss is
@@ -46,7 +46,7 @@ The generated session uses PAM login, logind seat0 and an explicitly dedicated
 VT; distribution session/DRM custody and SDL KMSDRM availability still need local
 verification. It does not install dependencies or promise physical output.
 
-Review and approval of those artifacts precede any host changes. Physical
+Review the generated artifacts before activating the optional session. Physical
 acknowledged Show, cold reboot, output loss and maintained maintenance access
 remain acceptance gates under #6325. Shared interactive owner/member bootstrap
 and input routing remain required to finish optional boot into the full GUI.
