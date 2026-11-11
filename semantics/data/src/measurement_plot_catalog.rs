@@ -2,9 +2,9 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
-    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindIdentity,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES, PortDescriptor, PortDirection, PortTemporal,
+    StructuredInfoType, kind_id, port_id,
 };
 use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
@@ -12,7 +12,7 @@ use conduit_plot::{
 };
 
 use crate::{
-    measurement_window_type, MAXIMUM_MEASUREMENT_PLOT_POINTS, MEASUREMENT_PLOT_SERIES_INFO_ID,
+    MAXIMUM_MEASUREMENT_PLOT_POINTS, MEASUREMENT_PLOT_SERIES_INFO_ID, measurement_window_type,
 };
 
 pub const MEASUREMENT_PLOT_KIND: &str = "data/measurement-plot";
@@ -24,6 +24,7 @@ pub fn install_measurement_plot_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
+    crate::install_measurement_chart_catalog(startup, profile)?;
     startup
         .insert_structured_type("MeasurementPlotSeries", measurement_plot_series_type())
         .map_err(|error| error.to_string())?;
