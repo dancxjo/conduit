@@ -218,6 +218,7 @@ const FACTORIES: &[&BackFactory] = &[
     &super::episode_loop_back::RECALL_EXPERIENCE_FACTORY,
     &super::episode_context_back::FACTORY,
     &super::episode_retrieval_producer_back::FACTORY,
+    &super::episode_retrieval_context_back::FACTORY,
     &super::episode_integration_back::FACTORY,
     &super::episode_loop_back::RETAIN_FACTORY,
     &super::episode_memory_back::MEMORY_FACTORY,

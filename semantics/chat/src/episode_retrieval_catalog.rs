@@ -4,7 +4,8 @@ use alloc::{
     vec,
 };
 use conduit_core::*;
-use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog};
+use conduit_plot::rust_binding::NativeRustBinding;
+use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog, StartupParameterSignature};
 pub const EPISODE_RETRIEVAL_PRODUCER_KIND: &str = "body/episode-retrieval-window";
 pub const EPISODE_RETRIEVAL_CONTEXT_KIND: &str = "body/episode-retrieval-context";
 fn port(
@@ -97,7 +98,7 @@ pub fn episode_retrieval_producer_contract() -> Kind {
 }
 pub fn episode_retrieval_context_contract() -> Kind {
     use PortDirection::*;
-    contract(
+    let mut kind = contract(
         EPISODE_RETRIEVAL_CONTEXT_KIND,
         vec![
             port(
@@ -117,7 +118,53 @@ pub fn episode_retrieval_context_contract() -> Kind {
             crate::episode_model_context_contract().outputs[0].clone(),
             port("pending", crate::episode_pending_type(), Output, false),
         ],
+    );
+    let profile = conduit_ai::ContextSelectionPolicy::semantic_type()
+        .unwrap()
+        .profile()
+        .unwrap()
+        .value_kind()
+        .clone();
+    let placeholder = conduit_ai::ContextSelectionPolicy::new(
+        "configuration/required".into(),
+        crate::EPISODE_CONTEXT_BYTE_CHARGE_PROFILE.into(),
+        conduit_ai::ContextRedundancyPolicy::KeepAll,
+        conduit_ai::ContextOrderingPolicy::Reranked,
+        1,
+        1,
+        1,
+        1,
     )
+    .unwrap()
+    .encode()
+    .unwrap();
+    kind.startup_parameters = vec![
+        FrontStartupParameter {
+            name: "policy".into(),
+            value_type: profile.clone(),
+            has_default: false,
+        },
+        FrontStartupParameter {
+            name: "instruction".into(),
+            value_type: kind_id("value/text"),
+            has_default: false,
+        },
+    ];
+    kind.configuration = vec![
+        KindConfigurationField {
+            key: "policy".into(),
+            default_value: ConfigurationValue::Structured(
+                StructuredConfigurationValue::new(profile.clone(), placeholder).unwrap(),
+            ),
+            rule: KindConfigurationRule::Structured { profile },
+        },
+        KindConfigurationField {
+            key: "instruction".into(),
+            default_value: ConfigurationValue::Text(String::new()),
+            rule: KindConfigurationRule::TextBytes { maximum: 1024 },
+        },
+    ];
+    kind
 }
 pub fn install_episode_retrieval_catalog(
     startup: &mut StartupCatalog,
@@ -148,7 +195,22 @@ pub fn install_episode_retrieval_catalog(
     ] {
         startup.insert(KindSignature {
             kind: kind.kind_id.as_str().into(),
-            startup_parameters: vec![],
+            startup_parameters: if kind.kind_id.as_str() == EPISODE_RETRIEVAL_CONTEXT_KIND {
+                vec![
+                    StartupParameterSignature {
+                        name: "policy".into(),
+                        value_type: "ContextSelectionPolicy".into(),
+                        default: None,
+                    },
+                    StartupParameterSignature {
+                        name: "instruction".into(),
+                        value_type: "Text".into(),
+                        default: None,
+                    },
+                ]
+            } else {
+                vec![]
+            },
         })?;
         profile.insert_kind(kind).map_err(|e| e.to_string())?;
     }

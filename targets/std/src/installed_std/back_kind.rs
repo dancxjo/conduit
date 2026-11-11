@@ -176,6 +176,7 @@ pub(super) enum InstalledBack {
     TemporalEvidence(super::temporal_evidence_back::TemporalEvidenceBack),
     ExperienceEvidence(super::experience_evidence_back::ExperienceEvidenceBack),
     EpisodeRetrievalProducer(super::episode_retrieval_producer_back::EpisodeRetrievalProducerBack),
+    EpisodeRetrievalContext(super::episode_retrieval_context_back::EpisodeRetrievalContextBack),
     EpisodeCompose(super::episode_loop_back::EpisodeComposeBack),
     HostedFrame(super::hosted_frame_back::FrameStepBack),
     EpisodeRetain(super::episode_loop_back::EpisodeRetainBack),

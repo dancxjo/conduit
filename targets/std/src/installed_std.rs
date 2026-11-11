@@ -31,6 +31,7 @@ mod episode_context_back;
 mod episode_integration_back;
 mod episode_loop_back;
 mod episode_memory_back;
+mod episode_retrieval_context_back;
 mod episode_retrieval_producer_back;
 mod experience_evidence_back;
 #[cfg(test)]
