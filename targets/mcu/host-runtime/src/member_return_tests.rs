@@ -349,7 +349,7 @@ impl DocumentTransport for BorrowedMessages<'_> {
         }
     }
 }
-mod return_allocation_probe {
+pub(crate) mod return_allocation_probe {
     use std::thread_local;
     include!(concat!(
         env!("CARGO_MANIFEST_DIR"),
