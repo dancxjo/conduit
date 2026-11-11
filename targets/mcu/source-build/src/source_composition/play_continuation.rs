@@ -40,9 +40,9 @@ macro_rules! pin {
     ($software:ident,$layout:ident) => {
         b::ContinuationBundleEntry {
             name: source::$layout::ENTRY,
-            source_document: source::$software::SOURCE_DOCUMENT_ID,
-            checked_plot: source::$software::CHECKED_PLOT_ID,
-            expanded_plot: source::$software::EXPANDED_PLOT_ID,
+            source_document: source::$layout::SOURCE_DOCUMENT_ID,
+            checked_plot: source::$layout::CHECKED_PLOT_ID,
+            expanded_plot: source::$layout::EXPANDED_PLOT_ID,
             projection_digest: source::$layout::PROJECTION_TEMPLATE_DIGEST,
             recipe_digest: source::$layout::FRAGMENT_RECIPE_DIGEST,
             placement_ids: source::$layout::FRAGMENT_PLACEMENT_IDS,

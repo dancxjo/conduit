@@ -19,7 +19,7 @@ pub struct AssignedForeRequirement {
     payload: [u8; ASSIGNED_LOCAL_FORE_BYTES],
 }
 impl AssignedForeRequirement {
-    pub fn new(
+    pub const fn new(
         endpoint: u16,
         cord: u16,
         direction: AssignedForeDirection,
@@ -27,11 +27,23 @@ impl AssignedForeRequirement {
         abi_digest: [u8; 32],
     ) -> Self {
         let mut payload = [0; ASSIGNED_LOCAL_FORE_BYTES];
-        payload[..2].copy_from_slice(&endpoint.to_le_bytes());
-        payload[2..4].copy_from_slice(&cord.to_le_bytes());
+        let endpoint = endpoint.to_le_bytes();
+        let cord = cord.to_le_bytes();
+        payload[0] = endpoint[0];
+        payload[1] = endpoint[1];
+        payload[2] = cord[0];
+        payload[3] = cord[1];
         payload[4] = direction as u8;
-        payload[5..21].copy_from_slice(&front_port.0);
-        payload[21..].copy_from_slice(&abi_digest);
+        let mut i = 0;
+        while i < 16 {
+            payload[5 + i] = front_port.0[i];
+            i += 1;
+        }
+        i = 0;
+        while i < 32 {
+            payload[21 + i] = abi_digest[i];
+            i += 1;
+        }
         Self { payload }
     }
     pub fn payload(&self) -> &[u8; ASSIGNED_LOCAL_FORE_BYTES] {
