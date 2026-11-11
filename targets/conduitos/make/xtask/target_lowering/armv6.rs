@@ -1,7 +1,7 @@
 //! Exact ARMv6 B+ serial plus optional firmware-framebuffer product closure.
 use super::{
-    BuildManifest, ConduitosError, FRAMEBUFFER_DRIVER, LINEAR_SERIAL_PRESENTER, NATIVE_COMPOSITOR,
-    NATIVE_PRESENTER, SCANOUT_BASE, SERIAL_TEXT_BASE, TargetBuildInputs, refusal,
+    refusal, BuildManifest, ConduitosError, TargetBuildInputs, FRAMEBUFFER_DRIVER,
+    LINEAR_SERIAL_PRESENTER, NATIVE_COMPOSITOR, NATIVE_PRESENTER, SCANOUT_BASE, SERIAL_TEXT_BASE,
 };
 
 const PL011_DRIVER: &str = "raspberry-pi/pl011@1";
@@ -194,8 +194,8 @@ fn exact(class: &str, expected: &[&str], selected: &[String]) -> Result<(), Cond
 mod tests {
     use super::*;
     use conduit_host_make::{
-        BuildInputs, build_default_host_image, check_host_configuration,
-        parse_host_configuration_conduit,
+        build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
+        BuildInputs,
     };
     fn manifest() -> BuildManifest {
         let profile = check_host_configuration(
@@ -227,12 +227,10 @@ mod tests {
         let lowered = lower_armv6_bplus(&manifest).unwrap();
         assert!(lowered.cargo_features.contains(&"armv6-product"));
         assert!(lowered.cargo_features.contains(&"native-startup-chime"));
-        assert!(
-            manifest
-                .presenters
-                .iter()
-                .any(|p| p == LINEAR_SERIAL_PRESENTER)
-        );
+        assert!(manifest
+            .presenters
+            .iter()
+            .any(|p| p == LINEAR_SERIAL_PRESENTER));
         assert!(manifest.presenters.iter().any(|p| p == NATIVE_PRESENTER));
         assert_eq!(lowered.proof_instrumentation, 0);
         assert!(lowered.implementations & conduitos::make::IMPL_USB_TRANSPORT != 0);
