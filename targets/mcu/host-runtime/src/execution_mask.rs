@@ -507,7 +507,7 @@ impl<C: RendererClock> RendererService<'_, C> {
         let prepared = (|| {
             let show = pending
                 .show
-                .transition(f::ManifestationLifecycle::Available, available_sign)
+                .into_transition(f::ManifestationLifecycle::Available, available_sign)
                 .map_err(|_| Refusal::Output)?;
             let length = f::postcard_wire::encode_show(&show, self.ready.wire.show_mut())
                 .map_err(|_| Refusal::Encoding)?

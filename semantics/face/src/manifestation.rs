@@ -12,8 +12,8 @@ use sha2::{Digest, Sha256};
 
 use crate::{Face, FaceContentId, RENDERER_KIND};
 
-mod validation;
 mod prepared_context;
+mod validation;
 pub use prepared_context::*;
 
 pub const MAX_MANIFESTATION_TARGET_BYTES: usize = 256;
@@ -231,6 +231,30 @@ impl Manifestation {
         lifecycle: ManifestationLifecycle,
         sign_id: SignId,
     ) -> Result<Self, ManifestationError> {
+        self.validate_transition(lifecycle, &sign_id)?;
+        self.clone().into_transition(lifecycle, sign_id)
+    }
+
+    /// Advance an exclusively owned Show without duplicating its retained
+    /// identity and Sign storage. This still owns the new Sign's identity
+    /// payload; it is not an allocation-free execution profile.
+    pub fn into_transition(
+        mut self,
+        lifecycle: ManifestationLifecycle,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
+        self.validate_transition(lifecycle, &sign_id)?;
+        self.lifecycle = lifecycle;
+        self.failure = None;
+        self.push_sign(sign_id);
+        Ok(self)
+    }
+
+    fn validate_transition(
+        &self,
+        lifecycle: ManifestationLifecycle,
+        sign_id: &SignId,
+    ) -> Result<(), ManifestationError> {
         let accepted = matches!(
             (self.lifecycle, lifecycle),
             (
@@ -246,15 +270,11 @@ impl Manifestation {
         );
         if !accepted
             || self.signs.len() >= MAX_MANIFESTATION_SIGNS
-            || self.signs.iter().any(|sign| sign.sign_id == sign_id)
+            || self.signs.iter().any(|sign| &sign.sign_id == sign_id)
         {
             return Err(ManifestationError::InvalidTransition);
         }
-        let mut next = self.clone();
-        next.lifecycle = lifecycle;
-        next.failure = None;
-        next.push_sign(sign_id);
-        Ok(next)
+        Ok(())
     }
 
     pub fn fail(
