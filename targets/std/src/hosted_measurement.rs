@@ -82,7 +82,7 @@ pub fn measurement_plot_std_offer() -> CapabilityOffer {
             .collect::<String>()
     );
     let (input, output) = measurement_plot_value_bounds();
-    BackOfferBuilder::new(
+    let mut offered = BackOfferBuilder::new(
         contract,
         Back {
             capability_id: CapabilityId::from(MEASUREMENT_PLOT_IMPLEMENTATION),
@@ -103,7 +103,11 @@ pub fn measurement_plot_std_offer() -> CapabilityOffer {
             authority_requirements: vec![],
         },
     )
-    .build()
+    .build();
+    // Refine the generic semantic ceiling to this implementation's actual
+    // finite wire envelope, avoiding 256KiB queue reservations per port.
+    offered.limits.max_queue_bytes = input.max(output);
+    offered
 }
 
 pub struct PreparedMeasurementPlot {
