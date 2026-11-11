@@ -8,8 +8,7 @@ use conduit_tm1637_wire::{owner::*, *};
 use std::{cell::Cell, rc::Rc};
 #[path = "../../../../../mechanisms/io/tm1637/tests/support/fixture.rs"]
 mod fixture;
-#[path = "../../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs"]
-mod selection_fixture;
+use super::fixture::selection_fixture;
 
 struct State {
     reads: Cell<u8>,
