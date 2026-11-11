@@ -131,3 +131,21 @@ fn restore(value: &mut Value, fields: &Value, defaults: &Value, canonical: &[&st
             .collect(),
     );
 }
+
+#[test]
+fn ambiguous_metadata_aliases_and_duplicate_content_refuse_instead_of_losing_facts() {
+    for item in [
+        r#"{"utf8_content":"first","utf8_content":"second"}"#,
+        r#"{"utf8_content":"first","json_string_ref":"observation.content"}"#,
+        r#"{"utf8_content":"first","classific\u0061tions":["body_state"]}"#,
+    ] {
+        let data = alloc::format!(
+            r#"{{"schema":"old","observation":{{"content":"What?"}},"current_experience":{{"evidence":[{item}]}},"recalled":[]}}"#
+        );
+        let mut output = Vec::with_capacity(4096);
+        assert_eq!(
+            render(data.as_bytes(), br#""Use facts""#, &mut output),
+            Err(R::MalformedExperience)
+        );
+    }
+}

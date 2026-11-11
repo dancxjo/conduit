@@ -211,6 +211,11 @@ impl<'a> Iterator for Fields<'a> {
         let start = self.pos;
         let result = (|| {
             let key_end = string_end(self.input, start)?;
+            // Prepared metadata uses literal field names. Reject escaped aliases
+            // so column identity and tuple declarations cannot disagree.
+            if self.input[start..key_end].contains(&b'\\') {
+                return Err(R::InvalidEvidenceJson);
+            }
             self.pos = space(self.input, key_end);
             expect(self.input, self.pos, b':')?;
             let value_start = space(self.input, self.pos + 1);

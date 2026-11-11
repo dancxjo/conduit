@@ -44,12 +44,20 @@ fn content<T>(
     let utf8 = field(item, "utf8_content")?;
     let reference = field(item, "json_string_ref")?;
     let binary = field(item, "content_bytes")?;
-    if [utf8, reference, binary]
-        .iter()
-        .filter(|v| !v.is_empty())
-        .count()
-        != 1
-    {
+    let mut content_fields = 0;
+    for pair in fields(item)? {
+        let (key, _) = pair?;
+        if [
+            br#""utf8_content""#.as_slice(),
+            br#""json_string_ref""#.as_slice(),
+            br#""content_bytes""#.as_slice(),
+        ]
+        .contains(&key)
+        {
+            content_fields += 1;
+        }
+    }
+    if content_fields != 1 {
         return Err(R::MalformedExperience);
     }
     if !reference.is_empty() {
