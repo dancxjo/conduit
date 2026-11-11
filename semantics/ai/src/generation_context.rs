@@ -39,7 +39,11 @@ pub fn decode_generation_context(input: &str) -> Result<Option<GenerationContext
         return Err("generation context bound");
     }
     let Ok(value) = serde_json::from_str::<serde_json::Value>(input) else {
-        return if input.contains("conduit.ai/generation-context") {
+        // A plain prompt may discuss this schema without being an envelope.
+        let tagged = input.trim_start().starts_with('{')
+            && input.contains("\"schema\"")
+            && input.contains("\"conduit.ai/generation-context");
+        return if tagged {
             Err("malformed generation context")
         } else {
             Ok(None)
@@ -76,6 +80,15 @@ mod tests {
         assert!(decode_generation_context("ordinary prompt")
             .unwrap()
             .is_none());
+        assert!(
+            decode_generation_context("Explain conduit.ai/generation-context")
+                .unwrap()
+                .is_none()
+        );
+        assert!(decode_generation_context(
+            r#"{"schema":"conduit.ai/generation-context@1","data":"#
+        )
+        .is_err());
         assert!(
             decode_generation_context(r#"{"schema":"conduit.ai/generation-context@2"}"#).is_err()
         );
