@@ -20,7 +20,8 @@ pub struct PreparedTypedRetention<'schema> {
     events: u32,
     sequence: u64,
     order: CommitOrder,
-    staged_length: Option<usize>,
+    staged_length: usize,
+    staged: bool,
     cancelled: bool,
 }
 impl<'schema> PreparedTypedRetention<'schema> {
@@ -42,7 +43,8 @@ impl<'schema> PreparedTypedRetention<'schema> {
             events: 0,
             sequence: 0,
             order,
-            staged_length: None,
+            staged_length: 0,
+            staged: false,
             cancelled: false,
         })
     }
@@ -61,7 +63,8 @@ impl<'schema> PreparedTypedRetention<'schema> {
         self.current.capacity().checked_add(self.pending.capacity())
     }
     fn discard_staged(&mut self) {
-        if self.staged_length.take().is_some() {
+        if self.staged {
+            self.staged = false;
             self.order.release();
         }
     }
@@ -106,17 +109,18 @@ impl<const P: usize> StepBack<P> for PreparedTypedRetention<'_> {
             self.order.release();
             return fail(FailureCode::InvalidLifecycle, 3);
         }
-        self.staged_length = Some(bytes.len());
+        self.staged_length = bytes.len();
+        self.staged = true;
         StepOutcome::Progress
     }
     fn step_committed(&mut self) {
-        if !self.cancelled {
-            if let Some(length) = self.staged_length.take() {
-                self.current.clear();
-                self.current.extend_from_slice(&self.pending[..length]);
-                self.sequence = self.order.commit();
-                self.events += 1;
-            }
+        if !self.cancelled && self.staged {
+            self.staged = false;
+            let length = self.staged_length;
+            self.current.clear();
+            self.current.extend_from_slice(&self.pending[..length]);
+            self.sequence = self.order.commit();
+            self.events += 1;
         }
     }
     fn cancel(&mut self) {
