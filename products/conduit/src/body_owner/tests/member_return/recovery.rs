@@ -170,15 +170,19 @@ fn retained_key_recovery_refuses_revocation_and_changed_attachment() {
         .begin_recovered_member_image_return(&prior, &ad, presentation(&prior, &ad, &key))
         .unwrap();
     let mut revoked = before;
-    let revision = revoked.membership.revision;
-    revoked
-        .membership
+    let sequence = revoked.last_sequence() + 1;
+    let mut membership = revoked.membership.clone();
+    let authority = owner.host.advertisement();
+    let change = membership
         .revoke(
             &prior.body_id,
-            revision,
+            membership.revision,
             &prior.part_id,
-            "sign/revoke-recovery".into(),
+            conduit_core::bind_sign(&authority.host_id, &authority.boot_id, None, sequence).sign_id,
         )
+        .unwrap();
+    revoked
+        .append_membership_events(membership, &[(change, sequence)])
         .unwrap();
     owner.session = conduit_body::BodyLifecycleSession::open(revoked).unwrap();
     let before = owner.session.evidence().clone();
