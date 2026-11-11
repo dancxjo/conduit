@@ -4,9 +4,6 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-# Isolated preparation pending the integration owner's workspace handoff.
-[workspace]
-
 [dependencies]
 conduit-core = { path = "../../../architecture/core", default-features = false }
 conduit-kernel = { path = "../../../architecture/kernel", default-features = false }

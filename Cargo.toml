@@ -54,6 +54,7 @@ members = [
 	"mechanisms/devices/ssd1306",
 	"mechanisms/implementations/linear-framebuffer-make",
 	"mechanisms/implementations/tm1637-output-make",
+	"mechanisms/implementations/typed-retention",
 	"mechanisms/implementations/emergency-keyword-spotter",
 	"mechanisms/implementations/synth",
 	"mechanisms/implementations/burn-model",
