@@ -8,6 +8,8 @@ pub struct PreparedEpisodeRetrievalProducer {
     body: Option<conduit_body::BodyConversationContext>,
     capture_type: Vec<u8>,
     clock_type: Vec<u8>,
+    memory_type: Vec<u8>,
+    published: bool,
     capture: Vec<u8>,
     packet: PreparedEpisodeRetrievalPacket,
     window: PreparedEpisodeRetrievalWindow,
@@ -27,6 +29,10 @@ impl PreparedEpisodeRetrievalProducer {
             clock_type: episode_retrieval_clock_class_type()
                 .canonical_bytes()
                 .unwrap(),
+            memory_type: crate::episode_memory_state_type()
+                .canonical_bytes()
+                .unwrap(),
+            published: false,
             capture: Vec::with_capacity(MAXIMUM_EPISODE_RETRIEVAL_CAPTURE_BYTES),
             packet: PreparedEpisodeRetrievalPacket::prepare(),
             window: PreparedEpisodeRetrievalWindow::prepare(),
@@ -57,7 +63,25 @@ impl PreparedEpisodeRetrievalProducer {
             return Err(R::ByteBound);
         }
         let memory = validate_canonical_structured_value(bytes).map_err(|_| R::Malformed)?;
+        if memory.type_bytes() != self.memory_type {
+            return Err(R::Malformed);
+        }
         let completed = number(field(memory, "completed")?)?;
+        let owner = field(memory, "owner")?;
+        match owner.variant_payload("bound").map_err(|_| R::Malformed)? {
+            Some(owner) => {
+                let body = self.body.as_ref().ok_or(R::Context)?;
+                if completed == 0
+                    || text(field(owner, "body_id")?)? != body.body_id.as_str()
+                    || text(field(owner, "wake_id")?)? != body.wake_id.as_str()
+                    || number(field(owner, "wake_sequence")?)? != body.wake_sequence
+                {
+                    return Err(R::Context);
+                }
+            }
+            None if completed != 0 => return Err(R::Context),
+            None => {}
+        }
         if self.begun.is_some_and(|begun| begun != completed) {
             return Err(R::OutOfOrder);
         }
@@ -73,6 +97,7 @@ impl PreparedEpisodeRetrievalProducer {
     ) -> Result<(), EpisodeRetrievalPacketRefusal> {
         use EpisodeRetrievalPacketRefusal as R;
         self.staged = None;
+        self.published = false;
         self.capture.clear();
         let completed = self.check_memory(memory)?;
         let body = self.body.as_ref().ok_or(R::Context)?;
@@ -104,13 +129,22 @@ impl PreparedEpisodeRetrievalProducer {
         let (snapshot, _) = self.packet.decode(&self.capture)?;
         self.window.build(&snapshot).map_err(R::Window)?;
         self.staged = Some(completed.checked_add(1).ok_or(R::OutOfOrder)?);
+        self.published = true;
         Ok(())
     }
     pub fn window(&self) -> &[u8] {
-        self.window.output()
+        if self.published {
+            self.window.output()
+        } else {
+            &[]
+        }
     }
     pub fn capture(&self) -> &[u8] {
-        &self.capture
+        if self.published {
+            &self.capture
+        } else {
+            &[]
+        }
     }
     pub fn commit(&mut self) {
         if let Some(staged) = self.staged.take() {
@@ -119,6 +153,7 @@ impl PreparedEpisodeRetrievalProducer {
     }
     pub fn cancel(&mut self) {
         self.staged = None;
+        self.published = false;
         self.capture.clear();
     }
 }

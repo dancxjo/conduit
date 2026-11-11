@@ -62,3 +62,7 @@ required-features = ["plot-catalog"]
 [[test]]
 name = "episode_retrieval_window"
 required-features = ["plot-catalog"]
+
+[[test]]
+name = "episode_retrieval_producer"
+required-features = ["plot-catalog"]
