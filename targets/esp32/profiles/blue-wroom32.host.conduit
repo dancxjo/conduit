@@ -1,6 +1,8 @@
 # Physical construction; Root must initialize and admit the exact workset.
 # Shared Source declares 18624 Mask bytes; these are representation ceilings,
-# not extra arena RAM. Assignment input remains 18KiB; heap116KiB includes the retained8KiB continuation prefix, explicitly backed by secondary96KiB + primary20KiB; static224KiB includes both.
+# not extra arena RAM. Assignment input remains 18 KiB. The 116 KiB heap
+# includes the retained 8 KiB continuation prefix and is physically backed by
+# 96 KiB secondary + 20 KiB primary DRAM; the 224 KiB static ceiling includes both.
 host blue-wroom32 {
   schema = 1
   # Recording has finite preparation ceilings; physical heap/work bounds stay below.
