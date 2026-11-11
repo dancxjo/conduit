@@ -27,28 +27,9 @@ pub(super) fn select<'a>(
             })
             .collect();
     }
-    let mut terms = Vec::new();
-    for term in keywords(query).map(normalize_keyword) {
-        if !terms
-            .iter()
-            .any(|previous: &&str| previous.eq_ignore_ascii_case(term))
-        {
-            terms.push(term);
-        }
-    }
     let mut candidates = Vec::with_capacity(memories.len());
     for memory in memories {
-        let score = |text: &str, identity: &str| {
-            terms
-                .iter()
-                .filter(|term| {
-                    keywords(text)
-                        .chain(keywords(identity))
-                        .map(normalize_keyword)
-                        .any(|word| word.eq_ignore_ascii_case(term))
-                })
-                .count()
-        };
+        let score = |text: &str, identity: &str| shared_terms(query, text, identity);
         let evidence = memory
             .evidence()
             .as_deref()
@@ -139,6 +120,24 @@ fn project_historical_item(
     projected
 }
 
+/// The existing bounded ASCII lexical law, usable over borrowed exact packets.
+/// The query and candidate are already bounded by their owning contracts.
+pub(crate) fn shared_terms(query: &str, text: &str, identity: &str) -> usize {
+    keywords(query)
+        .map(normalize_keyword)
+        .enumerate()
+        .filter(|(index, term)| {
+            !keywords(query)
+                .map(normalize_keyword)
+                .take(*index)
+                .any(|earlier| earlier.eq_ignore_ascii_case(term))
+                && keywords(text)
+                    .chain(keywords(identity))
+                    .map(normalize_keyword)
+                    .any(|word| word.eq_ignore_ascii_case(term))
+        })
+        .count()
+}
 fn normalize_keyword(word: &str) -> &str {
     if word.eq_ignore_ascii_case("percentage") {
         "percent"
@@ -162,27 +161,47 @@ fn keywords(text: &str) -> impl Iterator<Item = &str> {
 
 /// Keep the evidence and its source context, dropping rendering fields that
 /// are unnecessary for a historical model turn.
-pub(super) fn compact_evidence(evidence: &str) -> Option<alloc::string::String> {
+pub(super) fn compact_evidence(evidence: &str, observation: &str) -> Option<alloc::string::String> {
     let snapshot: serde_json::Value = serde_json::from_str(evidence).ok()?;
+    let compact_columns = snapshot.get("classification_fields").is_some_and(|fields| {
+        [
+            "domain",
+            "origin",
+            "availability",
+            "certainty",
+            "temporal_role",
+        ]
+        .iter()
+        .enumerate()
+        .all(|(index, field)| fields[index] == *field)
+    });
     let items: Vec<_> = snapshot["evidence"]
         .as_array()?
         .iter()
         .filter_map(|item| {
+            let content = if item["json_string_ref"] == "observation.content" {
+                serde_json::to_string(observation).ok()?
+            } else { item["utf8_content"].as_str()?.into() };
             Some(serde_json::json!({
                 "identity": item["identity"],
-                "origin": item["classifications"]["origin"],
-                "temporal_role": item["classifications"]["temporal_role"],
-                "utf8_content": item["utf8_content"].as_str()?,
+                "origin": if compact_columns { &item["classifications"][1] } else { &item["classifications"]["origin"] },
+                "temporal_role": if compact_columns { &item["classifications"][4] } else { &item["classifications"]["temporal_role"] },
+                "utf8_content": content,
                 "sources": item["sources"],
                 "observed_at": item["observed_at"],
             }))
         })
         .collect();
-    Some(alloc::string::ToString::to_string(&serde_json::json!({
+    let mut compact = serde_json::json!({
         "revision": snapshot["revision"],
         "provenance_revision": snapshot["provenance_revision"],
         "evidence": items,
-    })))
+    });
+    // A tuple's columns are part of its time provenance, not display metadata.
+    if let Some(fields) = snapshot.get("time_fields") {
+        compact["time_fields"] = fields.clone();
+    }
+    Some(alloc::string::ToString::to_string(&compact))
 }
 
 pub(super) fn asks_model_outcome(query: &str) -> bool {

@@ -75,7 +75,7 @@ fn actual_context_selection_preserves_chronology_costs_and_outcome_roles_without
         .map(|bytes| serde_json::from_slice(bytes).unwrap())
         .collect();
     assert_eq!(values[0]["origin"], "remembered");
-    assert_eq!(values[0]["actual_outcome"]["provenance"], "model_derived");
+    assert_eq!(values[0]["actual_outcome"]["source"], "host");
     assert_eq!(values[1]["actual_outcome"]["disposition"], "provider_lost");
     assert!(values[1]["actual_outcome"].get("content").is_none());
     assert_eq!(
@@ -209,11 +209,8 @@ fn only_selected_complete_items_reach_the_model_and_the_archive_stays_local() {
     context.select(&snapshot, output).unwrap();
     let fragment = context.selected_fragments().next().unwrap().to_vec();
     let value: serde_json::Value = serde_json::from_slice(&fragment).unwrap();
-    assert_eq!(
-        value["temporal_selection"]["item_indices"],
-        serde_json::json!([2])
-    );
-    assert_eq!(value["archive_scope"], "selected_complete_items_only");
+    assert_eq!(value["original_items"], serde_json::json!([2]));
+    assert_eq!(value["scope"], "complete_items");
     assert_eq!(
         value["historical_evidence"]["evidence"]
             .as_array()
@@ -247,10 +244,7 @@ fn only_selected_complete_items_reach_the_model_and_the_archive_stays_local() {
     context.select(&snapshot, output).unwrap();
     let value: serde_json::Value =
         serde_json::from_slice(context.selected_fragments().next().unwrap()).unwrap();
-    assert_eq!(
-        value["temporal_selection"]["item_indices"],
-        serde_json::json!([0, 2])
-    );
+    assert_eq!(value["original_items"], serde_json::json!([0, 2]));
     assert_ne!(
         identity,
         context.selected_chunk_identities().next().unwrap()

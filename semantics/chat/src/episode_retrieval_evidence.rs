@@ -6,7 +6,7 @@ mod decode;
 #[path = "episode_retrieval_evidence/skip.rs"]
 mod skip;
 #[path = "episode_retrieval_evidence/surrogate_representation.rs"]
-mod surrogate_representation;
+pub(crate) mod surrogate_representation;
 
 pub const MAXIMUM_EPISODE_EVIDENCE_BYTES: usize = 4096;
 pub const MAXIMUM_EPISODE_EVIDENCE_ITEMS: usize = 8;
@@ -48,6 +48,8 @@ pub struct EpisodeObservedInstant {
     pub ticks: u64,
     pub resolution_ticks: u64,
     pub uncertainty_ticks: u64,
+    /// Representation only; the explicit root column declaration is validated.
+    pub compact_array: bool,
 }
 impl EpisodeObservedInstant {
     pub fn borrowed(&self) -> BorrowedTemporalInstant<'_> {
@@ -124,6 +126,26 @@ impl PreparedEpisodeRetrievalEvidence {
                 .map_err(|_| Malformed)?;
         if adapted[used..].iter().any(|b| !b.is_ascii_whitespace()) {
             return Err(Malformed);
+        }
+        if parsed.items.items[..parsed.items.length]
+            .iter()
+            .any(|item| item.observed_at.is_some_and(|at| at.compact_array))
+        {
+            let expected = [
+                "clock_basis",
+                "scale",
+                "ticks",
+                "resolution_ticks",
+                "uncertainty_ticks",
+            ];
+            if parsed.time_fields.as_ref().is_none_or(|fields| {
+                fields
+                    .iter()
+                    .zip(expected)
+                    .any(|(field, expected)| field.as_str() != expected)
+            }) {
+                return Err(Malformed);
+            }
         }
         Ok(EpisodeRetrievalEvidence {
             original_json: json,

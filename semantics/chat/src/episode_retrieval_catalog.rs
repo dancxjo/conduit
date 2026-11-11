@@ -174,6 +174,7 @@ pub fn episode_retrieval_context_contract() -> Kind {
             port("pending", crate::episode_pending_type(), Output, false),
         ],
     );
+    kind.kind_contract_revision = "conduit.body/episode-retrieval-context@2".into();
     let profile = conduit_ai::ContextSelectionPolicy::semantic_type()
         .unwrap()
         .profile()
@@ -195,6 +196,11 @@ pub fn episode_retrieval_context_contract() -> Kind {
     .unwrap();
     kind.startup_parameters = vec![
         FrontStartupParameter {
+            name: "relevance_profile".into(),
+            value_type: kind_id("value/text"),
+            has_default: false,
+        },
+        FrontStartupParameter {
             name: "policy".into(),
             value_type: profile.clone(),
             has_default: false,
@@ -206,6 +212,11 @@ pub fn episode_retrieval_context_contract() -> Kind {
         },
     ];
     kind.configuration = vec![
+        KindConfigurationField {
+            key: "relevance_profile".into(),
+            default_value: ConfigurationValue::Text(String::new()),
+            rule: KindConfigurationRule::TextBytes { maximum: 128 },
+        },
         KindConfigurationField {
             key: "policy".into(),
             default_value: ConfigurationValue::Structured(
@@ -252,6 +263,11 @@ pub fn install_episode_retrieval_catalog(
             kind: kind.kind_id.as_str().into(),
             startup_parameters: if kind.kind_id.as_str() == EPISODE_RETRIEVAL_CONTEXT_KIND {
                 vec![
+                    StartupParameterSignature {
+                        name: "relevance_profile".into(),
+                        value_type: "Text".into(),
+                        default: None,
+                    },
                     StartupParameterSignature {
                         name: "policy".into(),
                         value_type: "ContextSelectionPolicy".into(),

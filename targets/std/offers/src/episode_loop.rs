@@ -95,7 +95,7 @@ pub fn episode_experience_integration_offer() -> CapabilityOffer {
 }
 
 pub const EPISODE_RETRIEVAL_PRODUCER_IMPLEMENTATION: &str = "std/body-episode-retrieval-window@2";
-pub const EPISODE_RETRIEVAL_CONTEXT_IMPLEMENTATION: &str = "std/body-episode-retrieval-context@1";
+pub const EPISODE_RETRIEVAL_CONTEXT_IMPLEMENTATION: &str = "std/body-episode-retrieval-context@2";
 pub fn episode_retrieval_producer_offer() -> CapabilityOffer {
     pure_offer(
         conduit_chat::episode_retrieval_producer_contract(),

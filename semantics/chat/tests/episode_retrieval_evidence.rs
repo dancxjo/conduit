@@ -196,3 +196,35 @@ fn prepared_parser_allocates_nothing_on_valid_escaped_or_invalid_inputs() {
     assert_eq!(allocations.allocations, 0);
     assert_eq!(allocations.reallocations, 0);
 }
+
+#[test]
+fn compact_time_columns_preserve_the_original_instant_without_allocation() {
+    let object = br#"{"evidence":[{"observed_at":{"clock_basis":"clock/one","scale":"milliseconds","ticks":42,"resolution_ticks":1,"uncertainty_ticks":3}}]}"#;
+    let compact = br#"{"time_fields":["clock_basis","scale","ticks","resolution_ticks","uncertainty_ticks"],"evidence":[{"observed_at":["clock/one","milliseconds",42,1,3]}]}"#;
+    let mut parser = PreparedEpisodeRetrievalEvidence::new();
+    let expected = parser.parse(object).unwrap().items()[0]
+        .observed_at
+        .unwrap();
+    let actual = parser.parse(compact).unwrap();
+    assert_eq!(actual.original_json.as_ptr(), compact.as_ptr());
+    assert_eq!(
+        actual.items()[0].observed_at.unwrap().borrowed(),
+        expected.borrowed()
+    );
+    let (parsed, allocations) = allocation_probe::observe(|| parser.parse(compact).unwrap());
+    assert_eq!(allocations.allocations, 0);
+    assert_eq!(allocations.reallocations, 0);
+    assert_eq!(parsed.items()[0].observed_at.unwrap().uncertainty_ticks, 3);
+}
+
+#[test]
+fn compact_time_refuses_missing_misordered_or_extra_columns() {
+    for input in [
+        br#"{"evidence":[{"observed_at":["clock/one","milliseconds",42,1,3]}]}"#.as_slice(),
+        br#"{"time_fields":["clock_basis","scale","ticks","uncertainty_ticks","resolution_ticks"],"evidence":[{"observed_at":["clock/one","milliseconds",42,1,3]}]}"#.as_slice(),
+        br#"{"time_fields":["clock_basis","scale","ticks","resolution_ticks","uncertainty_ticks"],"evidence":[{"observed_at":["clock/one","milliseconds",42,1,3,9]}]}"#.as_slice(),
+        br#"{"time_fields":["clock_basis","scale","ticks","resolution_ticks","uncertainty_ticks"],"evidence":[{"observed_at":["clock/one","milliseconds",42,0,3]}]}"#.as_slice(),
+    ] {
+        assert_eq!(PreparedEpisodeRetrievalEvidence::new().parse(input), Err(EpisodeRetrievalEvidenceError::Malformed));
+    }
+}

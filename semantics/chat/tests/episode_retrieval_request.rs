@@ -117,7 +117,7 @@ fn exact_packet_current_projection_and_actual_history_keep_separate_roles() {
     assert_eq!(data["retrieved_at"]["ticks"], 99);
     assert_eq!(data["reference"]["clock_basis"], "clock/one");
     assert_eq!(data["reference"]["scale"], "milliseconds");
-    assert_eq!(data["clock_semantics"], "named_monotonic_milliseconds");
+    assert_eq!(data["clock_semantics"], "named_monotonic");
     assert_eq!(
         data["recalled"][0]["historical_evidence"]["evidence"][0]["observed_at"]["ticks"],
         10
@@ -129,10 +129,7 @@ fn exact_packet_current_projection_and_actual_history_keep_separate_roles() {
         serde_json::json!([])
     );
     assert_eq!(data["recalled"].as_array().unwrap().len(), 2);
-    assert_eq!(
-        data["recalled"][0]["actual_outcome"]["provenance"],
-        "model_derived"
-    );
+    assert_eq!(data["recalled"][0]["actual_outcome"]["source"], "host");
     assert_eq!(
         data["recalled"][1]["actual_outcome"]["disposition"],
         "provider_lost"
@@ -224,8 +221,9 @@ fn native_producer_capture_and_existing_temporal_flow_feed_the_bounded_request_w
     assert_eq!(data["body_id"], wake.body_id.as_str());
     assert_eq!(data["wake_id"], wake.wake_id.as_str());
     assert_eq!(data["reference"]["ticks"], 100);
-    assert_eq!(data["retrieved_at"]["ticks"], 100);
-    assert_eq!(data["retrieval"]["context_selection"], "selected");
+    assert_eq!(data["retrieved_at"], "same_as_reference");
+    assert_eq!(data["reference"]["ticks"], 100);
+    assert_eq!(data["retrieval"]["context"], "selected");
     assert_eq!(data["recalled"].as_array().unwrap().len(), 2);
 }
 #[test]
@@ -283,10 +281,7 @@ fn competing_episodes_and_items_exclude_unselected_facts_from_model_and_pending_
     assert_eq!(*pending.recalled().get()[0].episode(), 2);
     let evidence = pending.recalled().get()[0].evidence().as_ref().unwrap();
     let evidence: serde_json::Value = serde_json::from_str(evidence).unwrap();
-    assert_eq!(
-        evidence["temporal_selection"]["item_indices"],
-        serde_json::json!([1])
-    );
+    assert_eq!(evidence["original_items"], serde_json::json!([1]));
     assert_eq!(
         evidence["historical_evidence"]["evidence"][0]["utf8_content"],
         "SELECTED_COMPLETE_ITEM_FACT"
@@ -427,7 +422,7 @@ fn model_data_reports_nonselected_temporal_results_and_real_omissions() {
         assert_eq!(data["recalled"], serde_json::json!([]));
         let diagnostics = &data["retrieval"];
         assert_eq!(
-            diagnostics["temporal_resolution"],
+            diagnostics["temporal"],
             if earliest {
                 "need_earlier_history"
             } else {
@@ -435,7 +430,7 @@ fn model_data_reports_nonselected_temporal_results_and_real_omissions() {
             }
         );
         assert_eq!(
-            diagnostics["temporal_omission_count"],
+            serde_json::json!(diagnostics["temporal_omissions"].as_array().unwrap().len()),
             if earliest { 0 } else { 2 }
         );
         if !earliest {
@@ -446,7 +441,10 @@ fn model_data_reports_nonselected_temporal_results_and_real_omissions() {
             );
             assert!(diagnostics["temporal_omissions"][0]["item"].is_null());
         }
-        assert_eq!(diagnostics["context_omission_count"], 0);
+        assert_eq!(
+            serde_json::json!(diagnostics["context_omissions"].as_array().unwrap().len()),
+            0
+        );
     }
 }
 
@@ -478,8 +476,11 @@ fn model_data_names_actual_context_budget_omitted_episode() {
     let wire: serde_json::Value =
         serde_json::from_slice(request.compose(&snapshot, &context).unwrap()).unwrap();
     let diagnostics = &wire["data"]["retrieval"];
-    assert_eq!(diagnostics["temporal_resolution"], "selected");
-    assert_eq!(diagnostics["context_omission_count"], 1);
+    assert_eq!(diagnostics["temporal"], "selected");
+    assert_eq!(
+        serde_json::json!(diagnostics["context_omissions"].as_array().unwrap().len()),
+        1
+    );
     assert_eq!(
         diagnostics["context_omissions"],
         serde_json::json!([{"episode":2,"reason":"item_budget"}])
@@ -561,11 +562,8 @@ fn all_history_omitted_by_budget_still_produces_truthful_current_only_context() 
         data["current_experience"]["evidence"],
         serde_json::json!([])
     );
-    assert_eq!(data["retrieval"]["temporal_resolution"], "selected");
-    assert_eq!(
-        data["retrieval"]["context_selection"],
-        "all_omitted_current_only"
-    );
+    assert_eq!(data["retrieval"]["temporal"], "selected");
+    assert_eq!(data["retrieval"]["context"], "all_omitted_current_only");
     assert_eq!(
         data["retrieval"]["context_omissions"],
         serde_json::json!([

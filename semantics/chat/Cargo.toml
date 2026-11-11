@@ -82,3 +82,7 @@ required-features = ["plot-catalog"]
 [[test]]
 name = "episode_retrieval_pending"
 required-features = ["plot-catalog"]
+
+[[test]]
+name = "episode_retrieval_relevance"
+required-features = ["plot-catalog"]

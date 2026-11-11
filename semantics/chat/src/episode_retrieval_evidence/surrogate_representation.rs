@@ -4,7 +4,7 @@
 //!
 //! Only validated UTF-16 surrogate pairs become equivalent literal UTF-8.
 //! Original evidence bytes are never changed or used from this working copy.
-pub(super) fn adapt_validated_surrogate_pairs(input: &[u8], output: &mut [u8; 4096]) -> usize {
+pub(crate) fn adapt_validated_surrogate_pairs(input: &[u8], output: &mut [u8; 4096]) -> usize {
     let (mut read, mut written, mut in_string) = (0, 0, false);
     while read < input.len() {
         let byte = input[read];

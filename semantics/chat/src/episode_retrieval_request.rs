@@ -8,7 +8,7 @@ mod pending;
 #[path = "episode_retrieval_request/writer.rs"]
 mod writer;
 use writer::*;
-pub const EPISODE_RETRIEVAL_DATA_SCHEMA: &str = "conduit.chat/episode-retrieval-request@1";
+pub const EPISODE_RETRIEVAL_DATA_SCHEMA: &str = "conduit.chat/episode-retrieval-request@2";
 pub const MAXIMUM_EPISODE_RETRIEVAL_REQUEST_BYTES: usize = 4096;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EpisodeCurrentProjectionRefusal {
@@ -124,16 +124,18 @@ where
         put(out, br#"","reference":"#)?;
         instant(out, input.reference)?;
         put(out, br#","retrieved_at":"#)?;
-        instant(out, input.retrieved)?;
+        if input.retrieved == input.reference {
+            put(out, br#""same_as_reference""#)?;
+        } else {
+            instant(out, input.retrieved)?;
+        }
         put(out, br#","clock_semantics":"#)?;
         string(
             out,
             match input.clock_basis {
-                conduit_ai::BorrowedTemporalClockBasis::UnixEpochMilliseconds => {
-                    b"unix_epoch_milliseconds"
-                }
+                conduit_ai::BorrowedTemporalClockBasis::UnixEpochMilliseconds => b"unix_epoch",
                 conduit_ai::BorrowedTemporalClockBasis::MonotonicMilliseconds(_) => {
-                    b"named_monotonic_milliseconds"
+                    b"named_monotonic"
                 }
             },
         )?;
@@ -204,7 +206,24 @@ fn diagnostics(
         EpisodeRetrievalResolution as Resolution, EpisodeTemporalOmissionReason as Temporal,
     };
     use conduit_ai::ContextOmissionReason as Context;
-    put(out, br#""retrieval":{"temporal_resolution":"#)?;
+    put(out, br#""retrieval":{"relevance_profile":"#)?;
+    match context.relevance_profile() {
+        Some(profile) => string(out, profile.as_bytes())?,
+        None => put(out, b"null")?,
+    }
+    put(out, br#", "relevance_omitted_items":"#)?;
+    integer(out, context.relevance_omitted_items() as u64)?;
+    if !context.irrelevant_episodes().is_empty() {
+        put(out, br#", "irrelevant_episodes":["#)?;
+        for (index, episode) in context.irrelevant_episodes().iter().enumerate() {
+            if index != 0 {
+                put(out, b",")?;
+            }
+            integer(out, *episode)?;
+        }
+        put(out, b"]")?;
+    }
+    put(out, br#", "temporal":"#)?;
     match context.temporal_resolution() {
         Some(resolution) => string(
             out,
@@ -217,18 +236,22 @@ fn diagnostics(
         )?,
         None => put(out, b"null")?,
     }
-    put(out, br#","context_selection":"#)?;
+    put(out, br#","context":"#)?;
     string(
         out,
         match context.selection() {
+            None if context.relevance_profile().is_some()
+                && !context.irrelevant_episodes().is_empty() =>
+            {
+                b"no_relevant_history_current_only"
+            }
             None => b"no_temporal_selection",
             Some(selection) if selection.selected_len == 0 => b"all_omitted_current_only",
             Some(selection) if selection.omitted_len > 0 => b"selected_with_omissions",
             Some(_) => b"selected",
         },
     )?;
-    put(out, br#","temporal_omission_count":"#)?;
-    integer(out, context.temporal_omissions().count() as u64)?;
+
     put(out, br#","temporal_omissions":["#)?;
     for (index, omission) in context.temporal_omissions().enumerate() {
         if index != 0 {
@@ -255,9 +278,7 @@ fn diagnostics(
         )?;
         put(out, b"}")?;
     }
-    put(out, br#"],"context_omission_count":"#)?;
-    integer(out, context.omissions().count() as u64)?;
-    put(out, br#","context_omissions":["#)?;
+    put(out, br#"],"context_omissions":["#)?;
     for (index, (episode, reason)) in context.omissions().enumerate() {
         if index != 0 {
             put(out, b",")?;

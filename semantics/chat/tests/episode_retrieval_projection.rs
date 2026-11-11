@@ -177,10 +177,7 @@ fn selected_membership_is_bounded_to_unique_original_ordinals_and_refuses_atomic
     assert!(result.is_ok());
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
     let parsed: serde_json::Value = serde_json::from_slice(projection.output()).unwrap();
-    assert_eq!(
-        parsed["temporal_selection"]["item_indices"],
-        serde_json::json!([1])
-    );
+    assert_eq!(parsed["original_items"], serde_json::json!([1]));
     for items in [&[][..], &[0, 0], &[2]] {
         assert_eq!(
             projection.render_selected(&snapshot, 1, items).err(),
@@ -232,11 +229,8 @@ fn selected_projection_contains_only_complete_original_objects_in_selected_order
         assert!(!text.contains(private), "exposed {private}");
     }
     let parsed: serde_json::Value = serde_json::from_slice(output).unwrap();
-    assert_eq!(parsed["archive_scope"], "selected_complete_items_only");
-    assert_eq!(
-        parsed["temporal_selection"]["item_indices"],
-        serde_json::json!([2, 0])
-    );
+    assert_eq!(parsed["scope"], "complete_items");
+    assert_eq!(parsed["original_items"], serde_json::json!([2, 0]));
     let evidence = &parsed["historical_evidence"];
     assert_eq!(evidence["evidence"].as_array().unwrap().len(), 2);
     assert_eq!(evidence["evidence"][0]["identity"], "third");
@@ -258,7 +252,7 @@ fn selected_projection_contains_only_complete_original_objects_in_selected_order
 fn selected_projection_pressure_and_malformed_input_clear_prior_output() {
     let raw = format!(
         r#"{{"evidence":[{{"identity":"large","unknown":"{}"}}]}}"#,
-        "x".repeat(3800)
+        "x".repeat(4000)
     );
     let large = fixture(Some(&raw));
     let good = fixture(Some(r#"{"evidence":[{"identity":"small"}]}"#));

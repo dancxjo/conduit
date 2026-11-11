@@ -129,8 +129,15 @@ impl<const PORTS: usize> StepBack<PORTS> for EpisodeRetrievalContextBack {
     }
 }
 fn configuration(gear: &PlannedGear) -> Result<(conduit_ai::ContextSelectionPolicy, &str), String> {
-    if gear.configuration.len() != 2 {
-        return Err("retrieval context requires exactly policy and instruction".into());
+    if gear.configuration.len() != 3 {
+        return Err("retrieval context requires policy, instruction, and relevance_profile".into());
+    }
+    if !gear.configuration.iter().any(|entry| {
+        entry.key == "relevance_profile"
+            && entry.value
+                == ConfigurationValue::Text(conduit_chat::EPISODE_SHARED_TERM_PROFILE.into())
+    }) {
+        return Err("unsupported episode relevance profile".into());
     }
     let policy = gear
         .configuration
@@ -190,7 +197,7 @@ fn prepare(
         EpisodeRetrievalContextBack {
             packet: Box::new(PreparedEpisodeRetrievalPacket::prepare()),
             context: Box::new(
-                PreparedEpisodeRetrievalContext::prepare(policy)
+                PreparedEpisodeRetrievalContext::prepare_with_shared_terms(policy)
                     .map_err(|error| format!("prepare context selection: {error:?}"))?,
             ),
             request: Box::new(

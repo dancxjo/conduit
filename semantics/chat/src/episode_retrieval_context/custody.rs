@@ -7,7 +7,7 @@ pub(super) fn selection_profile<'a>(
     output: &'a mut [u8; 128],
 ) -> &'a str {
     use sha2::{Digest, Sha256};
-    const PREFIX: &[u8] = b"render/episode-history-selected@2/";
+    const PREFIX: &[u8] = b"render/episode-history-selected@4/";
     let mut hash = Sha256::new();
     hash.update(PREFIX);
     hash.update(snapshot);
@@ -32,7 +32,7 @@ pub(super) fn field<'a>(
         .map_err(|_| R::Malformed)?
         .ok_or(R::Malformed)
 }
-fn leaf(v: ValidatedCanonicalStructuredValue<'_>) -> Result<&[u8], R> {
+pub(super) fn leaf(v: ValidatedCanonicalStructuredValue<'_>) -> Result<&[u8], R> {
     let n = v.value_node();
     if n.len() < 5
         || n[0] != 0

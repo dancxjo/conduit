@@ -16,6 +16,7 @@ use conduit_plot::rust_binding::NativeRustBinding;
 mod custody;
 use custody::*;
 pub const EPISODE_CONTEXT_BYTE_CHARGE_PROFILE: &str = "context/utf8-json-byte-charge@1";
+pub const EPISODE_SHARED_TERM_PROFILE: &str = "retrieval/shared-ascii-terms-best-item@1";
 const EPISODES: usize = 4;
 const ITEMS: usize = 32;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,6 +56,11 @@ pub struct PreparedEpisodeRetrievalContext {
     result: Option<BorrowedContextSelection>,
     temporal: Option<EpisodeRetrievalResolution>,
     selected_snapshot: Option<[u8; 32]>,
+    shared_terms: bool,
+    relevance_scores: [usize; EPISODES],
+    irrelevant_episodes: [u64; EPISODES],
+    irrelevant_len: usize,
+    omitted_items: usize,
 }
 impl PreparedEpisodeRetrievalContext {
     /// Token charge is one declared unit per rendered UTF-8 byte. It is not a
@@ -84,7 +90,28 @@ impl PreparedEpisodeRetrievalContext {
             result: None,
             temporal: None,
             selected_snapshot: None,
+            shared_terms: false,
+            relevance_scores: [0; EPISODES],
+            irrelevant_episodes: [0; EPISODES],
+            irrelevant_len: 0,
+            omitted_items: 0,
         })
+    }
+    /// Reuse the episode loop's existing shared-term retrieval law. Candidate
+    /// ranking is distinct from the generic selector's budget decisions.
+    pub fn prepare_with_shared_terms(policy: ContextSelectionPolicy) -> Result<Self, R> {
+        let mut prepared = Self::prepare(policy)?;
+        prepared.shared_terms = true;
+        Ok(prepared)
+    }
+    pub fn relevance_profile(&self) -> Option<&'static str> {
+        self.shared_terms.then_some(EPISODE_SHARED_TERM_PROFILE)
+    }
+    pub fn relevance_omitted_items(&self) -> usize {
+        self.omitted_items
+    }
+    pub fn irrelevant_episodes(&self) -> &[u64] {
+        &self.irrelevant_episodes[..self.irrelevant_len]
     }
     pub fn temporal_omissions(&self) -> impl Iterator<Item = crate::EpisodeTemporalOmission> + '_ {
         self.window.omissions()
@@ -130,6 +157,9 @@ impl PreparedEpisodeRetrievalContext {
         self.selected_snapshot = None;
         self.temporal = None;
         self.group_count = 0;
+        self.irrelevant_len = 0;
+        self.omitted_items = 0;
+        self.relevance_scores.fill(0);
         self.selected.fill(usize::MAX);
         self.omissions.fill(None);
         for fragment in &mut self.fragments {
@@ -143,6 +173,9 @@ impl PreparedEpisodeRetrievalContext {
             }
             Err(error) => {
                 self.temporal = None;
+                self.irrelevant_len = 0;
+                self.omitted_items = 0;
+                self.relevance_scores.fill(0);
                 self.selected.fill(usize::MAX);
                 self.omissions.fill(None);
                 for fragment in &mut self.fragments {
@@ -195,6 +228,12 @@ impl PreparedEpisodeRetrievalContext {
             }
             g.indices[g.len] = index;
             g.len += 1;
+        }
+        if self.shared_terms {
+            self.rank_shared_terms(snapshot, &keys[..key_count])?;
+            if self.group_count == 0 {
+                return Ok(None);
+            }
         }
         let mut profiles = [[0; 128]; EPISODES];
         let mut profile_lengths = [0; EPISODES];
@@ -278,12 +317,25 @@ impl PreparedEpisodeRetrievalContext {
                     lineage,
                     value: BorrowedContextValue::Text(&self.fragments[index]),
                 },
-                reranked_rank: (index + 1) as u16,
+                reranked_rank: if self.shared_terms {
+                    (1 + self.relevance_scores[..self.group_count]
+                        .iter()
+                        .enumerate()
+                        .filter(|(other, score)| {
+                            **score > self.relevance_scores[index]
+                                || (**score == self.relevance_scores[index] && *other < index)
+                        })
+                        .count()) as u16
+                } else {
+                    (index + 1) as u16
+                },
                 original_rank: (group.representative + 1) as u16,
                 contributions: BorrowedContextContributions::Explicit(
                     &contributions[index][..group.len],
                 ),
-                reranking_policy_identity: "temporal-first-selected-episode-order@1",
+                reranking_policy_identity: self
+                    .relevance_profile()
+                    .unwrap_or("temporal-first-selected-episode-order@1"),
                 temporal: Some(temporal),
                 redundancy_group: Some(
                     temporal
@@ -310,3 +362,6 @@ impl PreparedEpisodeRetrievalContext {
             .map_err(R::Context)
     }
 }
+
+#[path = "episode_retrieval_context/relevance.rs"]
+mod relevance;

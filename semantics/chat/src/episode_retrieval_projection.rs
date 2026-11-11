@@ -6,7 +6,7 @@ use conduit_core::ValidatedCanonicalStructuredValue;
 mod writer;
 use writer::*;
 #[path = "episode_retrieval_projection/raw_items.rs"]
-mod raw_items;
+pub(crate) mod raw_items;
 pub const MAXIMUM_EPISODE_RETRIEVAL_PROJECTION_BYTES: usize = 4096;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EpisodeRetrievalProjectionRefusal {
@@ -71,16 +71,15 @@ impl PreparedEpisodeRetrievalProjection {
         let out = &mut self.output;
         put(out, br#"{"origin":"remembered","episode":"#)?;
         integer(out, episode)?;
-        put(
-            out,
-            br#", "evidence_scope":"historical_snapshot","archive_scope":"#,
-        )?;
+        if selection.is_none() {
+            put(out, br#","evidence_scope":"historical_snapshot""#)?;
+        }
+        put(out, br#","scope":"#)?;
         if selection.is_some() {
-            put(out, br#""selected_complete_items_only""#)?;
+            put(out, br#""complete_items""#)?;
         } else {
             put(out, br#""raw_episode_for_custody""#)?;
         }
-        put(out, br#", "temporal_selection":"#)?;
         if let Some(items) = selection {
             let evidence =
                 variant(field(record, "evidence")?, "some")?.ok_or(R::InvalidSelection)?;
@@ -96,73 +95,96 @@ impl PreparedEpisodeRetrievalProjection {
             {
                 return Err(R::InvalidSelection);
             }
-            put(out, br#"{"scope":"only_listed_original_items","representative_time_scope":"earliest_selected_observed_at_only","item_indices":["#)?;
+            if items.len() > 1 {
+                put(out, br#","representative_time_scope":"earliest_selected_observed_at_only","original_items":["#)?;
+            } else {
+                put(out, br#","original_items":["#)?;
+            }
             for (index, item) in items.iter().enumerate() {
                 if index != 0 {
                     put(out, b",")?;
                 }
                 integer(out, *item as u64)?;
             }
-            put(out, b"]}")?;
+            put(out, b"]")?;
             selected_metadata = Some(parsed);
-        } else {
-            put(out, b"null")?;
         }
-        put(out, br#", "original_observation":{"identity":"#)?;
-        let observation = field(record, "observation")?;
-        string(out, leaf(field(observation, "identity")?)?)?;
-        // The complete trigger stays in the native audit record. It is not
-        // automatically eligible merely because another item was selected.
         if selection.is_none() {
-            put(out, br#", "content":"#)?;
-            string(out, leaf(field(observation, "content")?)?)?;
-        }
-        put(out, br#", "retain":"#)?;
-        match leaf(field(observation, "retain")?)? {
-            [0] => put(out, b"false")?,
-            [1] => put(out, b"true")?,
-            _ => return Err(R::MalformedRecord),
-        }
-        put(out, br#"},"actual_outcome":"#)?;
-        let outcome = field(record, "outcome")?;
-        if let Some(produced) = variant(outcome, "produced")? {
-            let response = field(produced, "response")?;
-            put(
-                out,
-                br#"{"disposition":"produced","provenance":"model_derived""#,
-            )?;
+            put(out, br#","original_observation":{"identity":"#)?;
+            let observation = field(record, "observation")?;
+            string(out, leaf(field(observation, "identity")?)?)?;
+            // The complete trigger stays in the native audit record. It is not
+            // automatically eligible merely because another item was selected.
             if selection.is_none() {
-                put(out, br#", "content":"#)?;
-                string(out, leaf(field(response, "content")?)?)?;
+                put(out, br#","content":"#)?;
+                string(out, leaf(field(observation, "content")?)?)?;
             }
-            put(out, br#", "implementation":"#)?;
-            string(out, leaf(field(response, "implementation")?)?)?;
-            put(out, br#", "run":"#)?;
-            string(out, leaf(field(response, "run")?)?)?;
-            put(out, br#", "truncated":"#)?;
-            match leaf(field(response, "truncated")?)? {
+            put(out, br#","retain":"#)?;
+            match leaf(field(observation, "retain")?)? {
                 [0] => put(out, b"false")?,
                 [1] => put(out, b"true")?,
                 _ => return Err(R::MalformedRecord),
             }
+
+            put(out, b"}")?;
+        }
+        put(out, br#","actual_outcome":"#)?;
+        let outcome = field(record, "outcome")?;
+        if let Some(produced) = variant(outcome, "produced")? {
+            let response = field(produced, "response")?;
+            if selection.is_some() {
+                put(out, br#"{"disposition":"produced","source":"host""#)?;
+            } else {
+                put(
+                    out,
+                    br#"{"disposition":"produced","provenance":"model_derived""#,
+                )?;
+                if selection.is_none() {
+                    put(out, br#","content":"#)?;
+                    string(out, leaf(field(response, "content")?)?)?;
+                }
+                if selection.is_none() {
+                    put(out, br#","implementation":"#)?;
+                    string(out, leaf(field(response, "implementation")?)?)?;
+                    put(out, br#","run":"#)?;
+                    string(out, leaf(field(response, "run")?)?)?;
+                }
+                put(out, br#","truncated":"#)?;
+                match leaf(field(response, "truncated")?)? {
+                    [0] => put(out, b"false")?,
+                    [1] => put(out, b"true")?,
+                    _ => return Err(R::MalformedRecord),
+                }
+            }
             put(out, b"}")?;
         } else if let Some(lost) = variant(outcome, "provider_lost")? {
-            put(out, br#"{"disposition":"provider_lost","attempt":"#)?;
-            string(out, leaf(field(lost, "attempt")?)?)?;
-            put(out, br#", "implementation":"#)?;
-            string(out, leaf(field(lost, "implementation")?)?)?;
+            put(out, br#"{"disposition":"provider_lost","source":"host""#)?;
+            if selection.is_none() {
+                put(out, br#","attempt":"#)?;
+                string(out, leaf(field(lost, "attempt")?)?)?;
+                put(out, br#","implementation":"#)?;
+                string(out, leaf(field(lost, "implementation")?)?)?;
+            }
             put(out, b"}")?;
         } else {
             return Err(R::MalformedRecord);
         }
-        put(out, br#", "historical_evidence":"#)?;
+        put(out, br#","historical_evidence":"#)?;
         let evidence = field(record, "evidence")?;
         if let Some(value) = variant(evidence, "some")? {
             let raw = leaf(value)?;
             if let Some(items) = selection {
                 let metadata = selected_metadata.as_ref().ok_or(R::InvalidSelection)?;
                 let ranges = raw_items::locate_validated_items(raw)?;
-                put(out, br#"{"evidence":["#)?;
+                put(out, b"{")?;
+                if items.iter().any(|index| {
+                    metadata.items()[*index as usize]
+                        .observed_at
+                        .is_some_and(|at| at.compact_array)
+                }) {
+                    put(out, br#""time_fields":["clock_basis","scale","ticks","resolution_ticks","uncertainty_ticks"],"#)?;
+                }
+                put(out, br#""evidence":["#)?;
                 for (index, item) in items.iter().enumerate() {
                     if index != 0 {
                         put(out, b",")?;

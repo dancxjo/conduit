@@ -41,6 +41,7 @@ pub(super) struct Root {
     pub revision: Option<u64>,
     pub provenance_revision: Option<FixedEvidenceText<256>>,
     pub items: Items,
+    pub time_fields: Option<[FixedEvidenceText<32>; 5]>,
 }
 impl<'de> Deserialize<'de> for Root {
     fn deserialize<D: de::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
@@ -55,6 +56,7 @@ impl<'de> Deserialize<'de> for Root {
                     revision: None,
                     provenance_revision: None,
                     items: Items::default(),
+                    time_fields: None,
                 };
                 let mut seen = 0;
                 while let Some(key) = map.next_key::<FixedEvidenceText<256>>()? {
@@ -66,6 +68,10 @@ impl<'de> Deserialize<'de> for Root {
                         "provenance_revision" => {
                             duplicate(&mut seen, 2)?;
                             root.provenance_revision = map.next_value()?;
+                        }
+                        "time_fields" => {
+                            duplicate(&mut seen, 8)?;
+                            root.time_fields = map.next_value()?;
                         }
                         "evidence" => {
                             duplicate(&mut seen, 4)?;
@@ -185,6 +191,25 @@ impl<'de> Deserialize<'de> for EpisodeObservedInstant {
             fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 f.write_str("exact temporal instant")
             }
+            fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error> {
+                let missing = || <A::Error as de::Error>::custom("missing instant column");
+                let value = EpisodeObservedInstant {
+                    clock_basis: seq.next_element()?.ok_or_else(missing)?,
+                    scale: seq.next_element::<Scale>()?.ok_or_else(missing)?.0,
+                    ticks: seq.next_element()?.ok_or_else(missing)?,
+                    resolution_ticks: seq.next_element()?.ok_or_else(missing)?,
+                    uncertainty_ticks: seq.next_element()?.ok_or_else(missing)?,
+                    compact_array: true,
+                };
+                if seq.next_element::<de::IgnoredAny>()?.is_some() {
+                    return Err(de::Error::custom("extra instant column"));
+                }
+                value
+                    .borrowed()
+                    .validate()
+                    .map_err(|_| de::Error::custom("invalid instant"))?;
+                Ok(value)
+            }
             fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
                 let (mut basis, mut scale, mut ticks, mut resolution, mut uncertainty) =
                     (None, None, None, None, None);
@@ -221,6 +246,7 @@ impl<'de> Deserialize<'de> for EpisodeObservedInstant {
                     ticks: ticks.ok_or_else(missing)?,
                     resolution_ticks: resolution.ok_or_else(missing)?,
                     uncertainty_ticks: uncertainty.ok_or_else(missing)?,
+                    compact_array: false,
                 };
                 value
                     .borrowed()
@@ -230,7 +256,7 @@ impl<'de> Deserialize<'de> for EpisodeObservedInstant {
                 Ok(value)
             }
         }
-        d.deserialize_map(InstantVisitor)
+        d.deserialize_ignored_any(InstantVisitor)
     }
 }
 struct Scale(TemporalScale);

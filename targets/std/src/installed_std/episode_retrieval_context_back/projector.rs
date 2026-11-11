@@ -35,7 +35,23 @@ pub(super) fn prepare() -> Projector {
         evidence.extend_from_slice(&evidence_type);
         evidence.extend_from_slice(node);
         let context = projection.execute(&evidence).map_err(|_| R::Malformed)?;
-        super::super::experience_model_request::render_context(context, output, None)
-            .map_err(|_| R::ByteBound)
+        let observation = value
+            .record_field("observation")
+            .map_err(|_| R::Malformed)?
+            .ok_or(R::Malformed)?;
+        let observation = observation
+            .record_field("content")
+            .map_err(|_| R::Malformed)?
+            .ok_or(R::Malformed)?
+            .value_node();
+        if observation.len() < 5 || observation[0] != 0 {
+            return Err(R::Malformed);
+        }
+        super::super::experience_model_request::render_compact_context(
+            context,
+            output,
+            &observation[5..],
+        )
+        .map_err(|_| R::ByteBound)
     })
 }

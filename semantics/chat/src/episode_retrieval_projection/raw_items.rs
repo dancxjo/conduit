@@ -4,7 +4,7 @@
 use super::R;
 use crate::FixedEvidenceText;
 
-pub(super) fn locate_validated_items(input: &[u8]) -> Result<[(usize, usize); 8], R> {
+pub(crate) fn locate_validated_items(input: &[u8]) -> Result<[(usize, usize); 8], R> {
     let mut ranges = [(0, 0); 8];
     let mut pos = space(input, 0);
     expect(input, pos, b'{')?;
@@ -119,4 +119,33 @@ fn value_end(input: &[u8], mut at: usize) -> Result<usize, R> {
             }
         }
     }
+}
+
+pub(crate) fn text_field<'a>(input: &'a [u8], name: &str) -> Result<&'a str, R> {
+    let mut pos = space(input, 0);
+    expect(input, pos, b'{')?;
+    pos = space(input, pos + 1);
+    let mut scratch = [0; 256];
+    while input.get(pos) != Some(&b'}') {
+        let end = string_end(input, pos)?;
+        let key = serde_json_core::from_slice_escaped::<FixedEvidenceText<256>>(
+            &input[pos..end],
+            &mut scratch,
+        );
+        let matches = key.is_ok_and(|(key, _)| key.as_str() == name);
+        pos = space(input, end);
+        expect(input, pos, b':')?;
+        pos = space(input, pos + 1);
+        let end = value_end(input, pos)?;
+        if matches {
+            return core::str::from_utf8(&input[pos..end]).map_err(|_| R::InvalidEvidenceJson);
+        }
+        pos = space(input, end);
+        if input.get(pos) == Some(&b',') {
+            pos = space(input, pos + 1);
+        } else {
+            break;
+        }
+    }
+    Ok("")
 }
