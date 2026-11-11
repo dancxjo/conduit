@@ -179,7 +179,10 @@ pub async fn run<'s>(
                 use conduit_mcu_host_runtime::transport::MessageTransport;
                 let mut input = [0; 128];
                 while link.receive(&mut input).await.is_ok() {
-                    let _ = link.send(reason.as_bytes()).await;
+                    let mut response = [0u8; 512];
+                    let count =
+                        continuation::refusal_response(reason, diagnostic.as_str(), &mut response);
+                    let _ = link.send(&response[..count]).await;
                 }
                 link.reset();
                 Timer::after_millis(10).await;

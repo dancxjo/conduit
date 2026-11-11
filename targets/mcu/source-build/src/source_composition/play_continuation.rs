@@ -5,6 +5,12 @@ use conduit_mcu_host_runtime::{
     continuation_native::ContinuationNativeContext,
     execution_authority::ContinuationNativeDescription, native_authority::Issuers,
 };
+mod binding_count {
+    include!(concat!(
+        env!("OUT_DIR"),
+        "/source_play_continuation_bindings.rs"
+    ));
+}
 mod native {
     include!(concat!(
         env!("OUT_DIR"),
@@ -50,9 +56,13 @@ macro_rules! pin {
         }
     };
 }
-pub type Started<'a,'f> = conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
-    (SamplingBound<'a,'f>,conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,OutputBound<'a,'f>),
-    conduit_mcu_host_runtime::execution_mask::RendererService<'a,crate::renderer::Clock>,
+pub type Started<'a, 'f> = conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
+    (
+        SamplingBound<'a, 'f>,
+        conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
+        OutputBound<'a, 'f>,
+    ),
+    conduit_mcu_host_runtime::execution_mask::RendererService<'a, crate::renderer::Clock>,
 )>;
 pub const SOURCE_DIGEST: [u8; 32] = source::SOURCE_SHA256;
 pub const PINS: [b::ContinuationBundleEntry<'static>; 3] = [
@@ -199,7 +209,7 @@ fn entry<'a>(
     let mut row = Entry {
         native: reserve(count, bytes, maximum)?,
         texts: reserve(count, bytes, maximum)?,
-        bindings: reserve(recipe.len(), bytes, maximum)?,
+        bindings: reserve(binding_count::distinct_fields(recipe), bytes, maximum)?,
         resources: reserve(resources.len(), bytes, maximum)?,
     };
     for record in c::AssignedPlanRecords::new(template).map_err(|_| MaterialRefusal::Scope)? {

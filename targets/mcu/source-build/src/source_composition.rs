@@ -4,9 +4,17 @@
 //! Board-local adapters retain actual physical owners, timers and transport.
 use std::{fs, path::Path};
 
+#[cfg(test)]
+#[path = "source_composition/play_continuation_bindings.rs"]
+mod continuation_binding_tests;
+
 pub fn emit_to(out: &Path) -> std::io::Result<()> {
     for (name, source) in [
         ("runtime", include_str!("source_composition/runtime.rs")),
+        (
+            "play_continuation_bindings",
+            include_str!("source_composition/play_continuation_bindings.rs"),
+        ),
         (
             "runtime_transactions",
             include_str!("source_composition/runtime_transactions.rs"),
@@ -73,4 +81,24 @@ pub fn emit_to(out: &Path) -> std::io::Result<()> {
         fs::write(out.join(format!("source_{name}.rs")), source)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn emitted_binding_count_is_the_same_tested_source() {
+        let directory =
+            std::env::temp_dir().join(format!("conduit-source-bindings-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        super::emit_to(&directory).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(directory.join("source_play_continuation_bindings.rs"))
+                .unwrap(),
+            include_str!("source_composition/play_continuation_bindings.rs")
+        );
+        let material =
+            std::fs::read_to_string(directory.join("source_play_continuation.rs")).unwrap();
+        assert!(material.contains("binding_count::distinct_fields(recipe)"));
+        std::fs::remove_dir_all(directory).unwrap();
+    }
 }

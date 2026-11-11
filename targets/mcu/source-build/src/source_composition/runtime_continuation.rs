@@ -2,6 +2,7 @@
 use super::*;
 use conduit_body as b;
 use conduit_mcu_host_runtime::continuation_native::ContinuationNativeContext;
+use core::fmt::Write;
 pub struct Installed<'a> {
     pub acceptance: conduit_mcu_host_runtime::root::InstalledContinuationAcceptance,
     pub prefix: &'a [u8; 8192],
@@ -115,8 +116,9 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
             budget,
         )
         .map_err(|_| "continuation-material")?;
+        let material_bytes = material.retained_backing_bytes();
         let budget = budget
-            .checked_sub(material.retained_backing_bytes())
+            .checked_sub(material_bytes)
             .ok_or("continuation-material-budget")?;
         let size = [
             source::sampling_layout::PROJECTION_TEMPLATE.len(),
@@ -130,6 +132,10 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
             return Err("continuation-scratch-budget");
         }
         let mut scratch = scratch_buffer(size)?;
+        factory.diagnostic.clear();
+        let _ = write!(factory.diagnostic,
+            "budget={budget} material={material_bytes} output={} scratch={size} remaining={} signed={}",
+            parts.workspace.len(), remaining(), verified.intent().ceilings.runtime_bytes);
         artifact
             .with_scope(|full| {
                 material.with_entries(|pins, entries, resources| {
@@ -147,7 +153,10 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
                         &mut scratch,
                         budget,
                     )
-                    .map_err(|_| "continuation-candidate")?;
+                    .map_err(|error| {
+                        let _ = write!(factory.diagnostic, " candidate={error:?}");
+                        "continuation-candidate"
+                    })?;
                     for (index, document) in documents.iter_mut().enumerate() {
                         *document = ranges
                             .document(parts.workspace, index)
@@ -165,7 +174,10 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
                         &documents,
                         &mut scratch,
                     )
-                    .map_err(|_| "continuation-fresh-scope")
+                    .map_err(|error| {
+                        let _ = write!(factory.diagnostic, " fresh={error:?}");
+                        "continuation-fresh-scope"
+                    })
                 })
             })
             .map_err(|_| "continuation-full-scope")??
@@ -194,4 +206,22 @@ fn scratch_buffer(length: usize) -> Result<alloc::vec::Vec<u8>, &'static str> {
         .map_err(|_| "continuation-scratch-capacity")?;
     bytes.resize(length, 0);
     Ok(bytes)
+}
+
+pub(super) fn refusal_response(reason: &str, detail: &str, response: &mut [u8; 512]) -> usize {
+    #[derive(serde::Serialize)]
+    struct Status<'a> {
+        phase: &'a str,
+        reason: &'a str,
+        detail: &'a str,
+    }
+    serde_json_core::to_slice(
+        &Status {
+            phase: "refused-before-play",
+            reason,
+            detail,
+        },
+        response,
+    )
+    .expect("bounded continuation refusal")
 }
