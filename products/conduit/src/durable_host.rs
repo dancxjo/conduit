@@ -47,6 +47,9 @@ pub(crate) mod local_fore_policy;
 pub(crate) mod source_continuation;
 #[path = "durable_host/source_revision.rs"]
 pub(crate) mod source_revision;
+#[cfg(target_os = "linux")]
+#[path = "durable_host/text_file_policy.rs"]
+mod text_file_policy;
 
 #[path = "durable_host/linux_direct_display.rs"]
 mod linux_direct_display;

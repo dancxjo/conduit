@@ -84,7 +84,7 @@ pub unsafe fn initialize_image_with_prepared_creche(
     creche_resource: Option<conduit_core::ResourceOffer>,
 ) -> Result<InitializedSourceCheckImage, String> {
     // SAFETY: preserve the caller's independent external workspace custody.
-    unsafe { initialize_image_with_caller_workspace(request, creche_resource, None) }
+    unsafe { initialize_image_with_caller_workspace(request, creche_resource, None, None) }
 }
 
 /// Additionally reserve a separately qualified caller envelope before Source
@@ -94,11 +94,14 @@ pub unsafe fn initialize_image_with_prepared_creche(
 /// All obligations of [`initialize_image_with_prepared_creche`] apply. When
 /// supplied, the caller envelope must independently cover every parent catalog,
 /// compiler, owner/planner/journal overlap and retained shared store it funds;
-/// it supplies neither Source access nor adoption authority.
+/// it supplies neither Source access nor adoption authority. Optional Text
+/// storage enters the same cold constructor with its real directory and
+/// independent current operation grant; none is inferred from advertised needs.
 pub unsafe fn initialize_image_with_caller_workspace(
     request: SourceCheckImageInstallation<'_>,
     creche_resource: Option<conduit_core::ResourceOffer>,
     caller_workspace_bytes: Option<usize>,
+    text_file: Option<conduit_std_host::TextFileInitialization>,
 ) -> Result<InitializedSourceCheckImage, String> {
     let selected = conduit_workspace_make::CheckedSourceCheckInitialization::from_configuration(
         request.checked,
@@ -143,6 +146,7 @@ pub unsafe fn initialize_image_with_caller_workspace(
             request.checked,
             budget,
             creche_resource,
+            text_file,
             |config, root| {
                 let caller = caller_workspace_bytes
                     .map(|bytes| root.prepare_value(bytes, bytes, || Ok(())))

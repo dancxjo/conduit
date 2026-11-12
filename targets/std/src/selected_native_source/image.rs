@@ -199,6 +199,9 @@ impl StdHost {
     /// metadata retention and provider preparation share its one finite ceiling.
     /// The callback's borrowed Root scope can retain separately qualified values
     /// on that same counter before the Host exists; it confers no native rights.
+    /// Optional Linux Text storage consumes its actual directory and independent
+    /// grant before the final ledger seals. Its checked preparation and retained
+    /// envelopes compete with Source on this same original memory counter.
     ///
     /// # Safety
     /// The original Source/Host grant obligations of the immediate constructor
@@ -217,6 +220,7 @@ impl StdHost {
         checked: &CheckedHostConfiguration,
         metadata_budget: ImmediateSourcePreparationBudget,
         creche_resource: Option<ResourceOffer>,
+        #[cfg(target_os = "linux")] text_file: Option<crate::TextFileInitialization>,
         metadata: F,
     ) -> Result<Self, String>
     where
@@ -235,6 +239,16 @@ impl StdHost {
             return Err("initial Source metadata has an invalid finite budget".into());
         }
         let memory = StagedImageMemory::verified(&config, image, checked, catalog)?;
+        #[cfg(target_os = "linux")]
+        let text_file = text_file
+            .map(|file| {
+                crate::image_initialization::validate_checked_file_definition(
+                    checked,
+                    &file.definition,
+                )?;
+                crate::selected_text_file::InitialTextFile::prepare(&config, image, file)
+            })
+            .transpose()?;
         let prepared = {
             let mut reserve = |bytes| memory.reserve(bytes);
             let scope = ImageRootPreparation::new(&mut reserve);
@@ -265,7 +279,7 @@ impl StdHost {
             creche_resource,
             Some(memory),
             #[cfg(target_os = "linux")]
-            None,
+            text_file,
         )
     }
 }

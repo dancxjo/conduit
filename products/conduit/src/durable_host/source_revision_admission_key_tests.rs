@@ -69,7 +69,7 @@ fn owned_invitation_key_matches_native_bootstrap_and_rejects_incoming_substituti
     };
     let basis = conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis {
         spore_id: "spore/key-test".into(),
-        image_id: image.clone().into(),
+        image_id: image.clone(),
         invitation: invitation.claim.clone(),
         expected_host: host.into(),
         expected_profile: configuration.into(),

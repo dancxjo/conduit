@@ -33,7 +33,7 @@ impl StdHost {
 
 /// The IMAGE omits initialization values, so preserve their original checked
 /// correspondence here instead of trusting runtime limits supplied by a caller.
-pub(super) fn validate_checked_file_definition(
+pub(crate) fn validate_checked_file_definition(
     checked: &CheckedHostConfiguration,
     d: &crate::NativeTextFileDefinition,
 ) -> Result<(), String> {

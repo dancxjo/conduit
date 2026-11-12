@@ -13,6 +13,8 @@ mod creche;
 #[cfg(target_os = "linux")]
 mod text_file;
 use creche::prepare_creche_entry;
+#[cfg(target_os = "linux")]
+pub(crate) use text_file::validate_checked_file_definition;
 
 const MAXIMUM_IMAGE_BYTES: usize = 64 * 1024;
 const MAXIMUM_TIMER_POOLS: usize = 16;

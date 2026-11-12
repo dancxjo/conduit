@@ -194,7 +194,7 @@ fn cold_host(directory: &std::path::Path, heap: u64, write: bool) -> crate::StdH
         &checked,
         TextFileInitialization {
             definition: enlarged,
-            directory: std::fs::File::open(&directory).unwrap(),
+            directory: std::fs::File::open(directory).unwrap(),
             reference: reference.clone(),
         }
     )
@@ -207,7 +207,7 @@ fn cold_host(directory: &std::path::Path, heap: u64, write: bool) -> crate::StdH
         &checked,
         TextFileInitialization {
             definition,
-            directory: std::fs::File::open(&directory).unwrap(),
+            directory: std::fs::File::open(directory).unwrap(),
             reference,
         },
     )
@@ -220,7 +220,7 @@ fn cold_host(directory: &std::path::Path, heap: u64, write: bool) -> crate::StdH
         .image_memory
         .is_some());
     if write {
-        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
+        assert_eq!(std::fs::read_dir(directory).unwrap().count(), 0);
     }
     host
 }

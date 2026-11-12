@@ -203,6 +203,8 @@ impl Owner {
             .cloned()
             .collect();
         grants.extend(self.host.native_source_authority_grant().cloned());
+        #[cfg(target_os = "linux")]
+        grants.extend(self.host.text_file_authority_grant().cloned());
         let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
             plot,
             &hosts,

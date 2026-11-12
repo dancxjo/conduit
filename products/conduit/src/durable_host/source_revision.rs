@@ -61,6 +61,9 @@ pub(crate) struct Selection {
     admissions: Vec<UsbAdmissionSelection>,
     #[serde(default)]
     local_fore_adapters: Vec<super::local_fore_policy::LocalForeAdapterIntent>,
+    #[cfg(target_os = "linux")]
+    #[serde(default)]
+    text_generation: Option<super::text_file_policy::Selection>,
 }
 
 /// Finite attended deployment request selected by the local installer.
@@ -467,6 +470,11 @@ pub(super) fn prepare(
         .ok_or("missing selected IMAGE")?;
     let checked_host = selected.checked()?;
     let image = selected.host_image().ok_or("missing selected IMAGE")?;
+    let text_file = selection
+        .text_generation
+        .as_ref()
+        .map(|selected| super::text_file_policy::prepare(selected, &config, image, &checked_host))
+        .transpose()?;
     // Actual descriptor access is supplied by the independently selected local
     // OS policy. Configuration labels and network clients cannot open it.
     let file =
@@ -531,6 +539,7 @@ pub(super) fn prepare(
             },
             creche,
             Some(selection.caller_workspace_bytes),
+            text_file,
         )?
     };
     let host = initialized.host;
