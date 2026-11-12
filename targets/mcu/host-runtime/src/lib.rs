@@ -76,3 +76,6 @@ pub mod recording_service_equipment;
 
 /// Descriptive installed cross-Boot metadata; never authority by decoding.
 pub mod continuation_artifact;
+
+#[cfg(feature = "execution")]
+pub mod fore_bridge;
