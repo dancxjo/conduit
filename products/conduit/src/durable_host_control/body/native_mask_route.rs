@@ -2,6 +2,8 @@
 use super::*;
 
 impl DurableHostRuntime {
+    // Keep each independently checked Line and presentation witness explicit.
+    #[allow(clippy::too_many_arguments)]
     pub(in crate::durable_host_control) fn owned_body_native_mask_route(
         &mut self,
         receipt: &MemberPresentationBasis,

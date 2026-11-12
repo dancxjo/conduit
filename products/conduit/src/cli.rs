@@ -28,6 +28,8 @@ pub(crate) struct Cli {
     pub(crate) command: Option<Command>,
 }
 
+// Parsed once at startup; keep CLI ownership inline rather than adding allocation.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
     /// Dedicated bounded compiler preparation child; not a Host admission command.

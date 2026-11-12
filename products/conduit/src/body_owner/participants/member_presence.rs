@@ -48,6 +48,7 @@ pub(crate) fn serve_with_carrier(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn serve_with_dispatch(
     line: SecureWebSocketLine,
     binding: LinkBindingId,

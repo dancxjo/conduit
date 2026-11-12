@@ -50,6 +50,8 @@ impl StdHost {
         self.selected_native_mask_supports_input()
             .then_some(PreparedNativeInput::owned_backing_bytes())
     }
+    // Keep physical input, route and occurrence witnesses distinct.
+    #[allow(clippy::too_many_arguments)]
     pub fn selected_native_mask_pointer(
         &mut self,
         encounter: &impl NativeMaskEncounter,

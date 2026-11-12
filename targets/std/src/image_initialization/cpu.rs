@@ -1,7 +1,7 @@
 //! Native CPU-only operations selected before the one IMAGE registry/ledger.
 //! This provider entry confers no hardware or operation authority.
 use super::*;
-use conduit_host_hosted::{CheckedCpuInitialization, CPU_BASE_KIND, CPU_IMPLEMENTATION};
+use conduit_host_hosted::{CPU_BASE_KIND, CPU_IMPLEMENTATION, CheckedCpuInitialization};
 pub(crate) struct InitialCpu {
     pub(super) entry: BaseProviderEntry,
 }
@@ -108,8 +108,9 @@ pub(crate) fn prepare(
     }))
 }
 impl StdHost {
-    /// Construct only the checked native CPU operations and optional exact Text
-    /// residence. Runtime profile workspace and escaped IMAGE result custody
+    /// Construct only the checked native CPU operations. Exact Text residence
+    /// requires the separate factory's actual affine initialization. Runtime
+    /// profile workspace and escaped IMAGE result custody
     /// remain independent gates; no declaration increases either capacity.
     pub fn from_selected_timer_and_cpu_image(
         config: StdHostConfig,
@@ -120,16 +121,12 @@ impl StdHost {
         conduit_host_make::verify_configuration_image(checked, image, catalog)?;
         let cpu =
             prepare(&config, image, checked)?.ok_or("checked Host has no CPU initialization")?;
-        #[cfg(target_os = "linux")]
-        let text_file = super::text_file::prepare_from_configuration(&config, image, checked)?;
         Self::from_selected_initial_bases(
             config,
             image,
             catalog,
             InitialBases {
                 cpu: Some(cpu),
-                #[cfg(target_os = "linux")]
-                text_file,
                 ..InitialBases::default()
             },
         )
@@ -209,24 +206,28 @@ mod tests {
         assert_eq!(ad.capabilities.len(), 3);
         assert_eq!(ad.resources.len(), 2);
         assert_eq!(ad.bases.len(), 2);
-        assert!(ad.capabilities.iter().any(|offer| offer
-            .implementation
-            .implementation_id
-            .as_str()
-            == conduit_std_offers::MEASUREMENT_PLOT_IMPLEMENTATION));
-        assert!(ad.capabilities.iter().any(|offer| offer
-            .implementation
-            .implementation_id
-            .as_str()
-            == conduit_std_offers::MEASUREMENT_CHART_FACE_IMPLEMENTATION));
-        assert!(!ad
-            .capabilities
-            .iter()
-            .any(|offer| offer.kind_id.as_str().starts_with("observation/")));
-        assert!(host
-            .kernel_resources
-            .require_reference_reconfiguration()
-            .is_err());
+        assert!(
+            ad.capabilities
+                .iter()
+                .any(|offer| offer.implementation.implementation_id.as_str()
+                    == conduit_std_offers::MEASUREMENT_PLOT_IMPLEMENTATION)
+        );
+        assert!(
+            ad.capabilities
+                .iter()
+                .any(|offer| offer.implementation.implementation_id.as_str()
+                    == conduit_std_offers::MEASUREMENT_CHART_FACE_IMPLEMENTATION)
+        );
+        assert!(
+            !ad.capabilities
+                .iter()
+                .any(|offer| offer.kind_id.as_str().starts_with("observation/"))
+        );
+        assert!(
+            host.kernel_resources
+                .require_reference_reconfiguration()
+                .is_err()
+        );
         assert_eq!(host.advertisement, ad);
     }
     #[test]
@@ -250,12 +251,14 @@ mod tests {
             .unwrap()
             .values
             .insert("pointer_bits".into(), serde_json::json!(32));
-        assert!(conduit_host_make::check_host_configuration(
-            configuration,
-            &conduit_workspace_make::catalog(),
-            &conduit_workspace_make::package_set()
-        )
-        .is_err());
+        assert!(
+            conduit_host_make::check_host_configuration(
+                configuration,
+                &conduit_workspace_make::catalog(),
+                &conduit_workspace_make::package_set()
+            )
+            .is_err()
+        );
     }
     #[test]
     fn selected_cpu_refuses_a_pool_below_the_actual_profile_workspace() {

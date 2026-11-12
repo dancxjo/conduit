@@ -98,6 +98,9 @@ pub struct ReturnedFaceContribution {
     pub refusal: FaceContributionRefusal,
 }
 pub trait BodyFaceContributionObserver {
+    // Refusal returns original charged custody; allocating a Box under pressure
+    // would add storage exactly when the consumer cannot accept ownership.
+    #[allow(clippy::result_large_err)]
     fn contribute(
         &mut self,
         contribution: CommittedFaceContribution,
@@ -339,6 +342,8 @@ impl PendingFaceContributionRoute {
         }
     }
     /// The sealed adapter accepts ONLY the actual production kernel type.
+    // Preserve the caller's original fragment on pressure without allocation.
+    #[allow(clippy::result_large_err)]
     pub(crate) fn stage<K: FaceContributionKernel>(
         &mut self,
         kernel: &K,

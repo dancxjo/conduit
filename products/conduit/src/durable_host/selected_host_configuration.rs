@@ -25,6 +25,9 @@ mod recognition;
 #[path = "selected_host_configuration/text_file.rs"]
 mod text_file;
 pub(crate) use image::check_seed_image;
+#[path = "selected_host_configuration/replacement.rs"]
+mod replacement;
+pub(super) use replacement::replacement_for_release;
 const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -120,7 +123,7 @@ impl Selection {
     pub(super) fn configuration_id(&self) -> &str {
         &self.configuration_id
     }
-    fn from_source(source: &str, target: &str) -> Result<Self, String> {
+    pub(in crate::durable_host) fn from_source(source: &str, target: &str) -> Result<Self, String> {
         let checked = check(source)?;
         require_target(&checked, target)?;
         let source = canonical_host_configuration_conduit(checked.configuration())

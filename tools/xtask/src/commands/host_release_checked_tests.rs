@@ -231,3 +231,62 @@ fn pi5_non_cxx_make_selection_retains_exact_target_adapter_and_toolchain_checks(
     wrong.toolchain_identity.push_str("+unreviewed");
     assert!(NativeTarget::select(target, &wrong).is_err());
 }
+
+#[test]
+fn checked_release_seals_exact_image_and_refuses_changed_payload() {
+    let (checked, image, selection, _) = fixture();
+    let directory = std::env::temp_dir().join(format!(
+        "conduit-checked-image-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    fs::create_dir(&directory).unwrap();
+    fs::write(directory.join("conduit-linux-aarch64"), b"fixture!").unwrap();
+    finish_release(
+        &directory,
+        "fixture/source",
+        &checked,
+        &image,
+        selection.clone(),
+        "conduit-linux-aarch64",
+    )
+    .unwrap();
+    let image_bytes = fs::read(directory.join("host-image.json")).unwrap();
+    assert_eq!(image_bytes, serde_json::to_vec(&image).unwrap());
+    let retained: HostImage = serde_json::from_slice(&image_bytes).unwrap();
+    verify_image_binding(&retained, &image_bytes).unwrap();
+    verify_configuration_image(&checked, &retained, &conduit_workspace_make::catalog()).unwrap();
+    let manifest_bytes = fs::read(directory.join("checked-native.json")).unwrap();
+    let manifest: HostReleaseManifest = serde_json::from_slice(&manifest_bytes).unwrap();
+    assert_eq!(manifest.files.len(), 2);
+    assert_eq!(manifest.files[0].path, "conduit-linux-aarch64");
+    assert_eq!(manifest.files[1].path, "host-image.json");
+    let verify = || {
+        verify_host_release_bytes(
+            &manifest_bytes,
+            &ReleaseTargetProfile {
+                target_id: &manifest.target_id,
+                package_id: &manifest.make_package_id,
+                output: "native-bundle",
+                builder_adapter: &manifest.builder_adapter,
+                deployment_adapter: &manifest.deployment_adapter,
+            },
+            "fixture/source",
+            HostReleaseBounds {
+                maximum_manifest_bytes: 65536,
+                maximum_files: 2,
+                maximum_file_bytes: 65536,
+                maximum_bundle_bytes: 131072,
+            },
+            |file| fs::File::open(directory.join(file)).map_err(|error| error.to_string()),
+            || false,
+        )
+    };
+    verify_native_release_build(&checked, &retained, &verify().unwrap(), &selection).unwrap();
+    fs::write(directory.join("host-image.json"), b"{}").unwrap();
+    assert!(verify().is_err());
+    fs::remove_dir_all(directory).unwrap();
+}

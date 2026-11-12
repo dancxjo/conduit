@@ -26,6 +26,8 @@ pub(in crate::durable_host) struct NativePresentation {
     primary_pressed: bool,
 }
 
+// Retain the original admitted route and its custody inline across input dispatch.
+#[allow(clippy::large_enum_variant)]
 enum NativeOwner {
     Joining(wire::OwnerRoute),
     Member(wire::member_carrier_client::MemberRoute),
@@ -445,7 +447,15 @@ fn present(
         retire_frame(runtime)?;
     }
     match acknowledgement {
-        Ok(()) => Ok((true, interactive.then_some(snapshot.route))),
+        Ok(()) => {
+            println!(
+                "native owner accepted Show for Face {} revision {} on frame {}",
+                snapshot.face.identity.as_str(),
+                frame.face_revision,
+                frame.scanout_frame_sequence
+            );
+            Ok((true, interactive.then_some(snapshot.route)))
+        }
         Err(error) => {
             // Physical commit is real even if its return is lost or refused.
             // End this encounter; no further Show/action uses its grant. Keep

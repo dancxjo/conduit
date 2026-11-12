@@ -3,6 +3,9 @@
 use super::*;
 use conduitos::native_face_scene::{FaceFrame, FaceSceneError, FaceSceneInput, NativeFaceScene};
 
+// Transfer the already admitted affine owners inline; boxing here would add
+// an allocation at invocation/input rather than reuse the original stores.
+#[allow(clippy::large_enum_variant)]
 pub(super) enum PreparedSelectedScene {
     ReadOnly(PreparedStaticNativeFaceScene),
     Interactive(NativeFaceScene),
@@ -54,6 +57,9 @@ impl SelectedNativeInteraction {
         &self.show
     }
 }
+// Transfer the already admitted affine owners inline; boxing here would add
+// an allocation at invocation/input rather than reuse the original stores.
+#[allow(clippy::large_enum_variant)]
 pub enum SelectedNativeMaskInput {
     Unchanged,
     Redrawn,
@@ -162,19 +168,19 @@ impl BoundReadOnlyMask {
                         format!("native input kernel completion:{error:?}")
                     })?;
                 let evidence = self.complete_frame(storage, evidence)?;
-                return Ok(SelectedNativeMaskInput::Submitted(
+                Ok(SelectedNativeMaskInput::Submitted(
                     SelectedNativeInteraction {
                         correlation,
                         show,
                         evidence: Some(evidence),
                     },
-                ));
+                ))
             }
             FaceSceneInput::Changed => {
                 self.repaint_input(&show, output)?;
-                return Ok(SelectedNativeMaskInput::Redrawn);
+                Ok(SelectedNativeMaskInput::Redrawn)
             }
-            FaceSceneInput::Unchanged => return Ok(SelectedNativeMaskInput::Unchanged),
+            FaceSceneInput::Unchanged => Ok(SelectedNativeMaskInput::Unchanged),
         }
     }
     fn commit_input(

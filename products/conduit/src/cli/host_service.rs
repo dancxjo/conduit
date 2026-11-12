@@ -41,6 +41,9 @@ pub(crate) enum HostServiceCommand {
         /// Replacement checked Make IMAGE for the retained Host source.
         #[arg(long)]
         host_image: Option<PathBuf>,
+        /// Atomically replace checked Host Source together with its refabricated IMAGE.
+        #[arg(long, requires = "host_image")]
+        configuration: Option<PathBuf>,
         #[arg(long)]
         state_dir: PathBuf,
         /// Install without activating the service, for foreground Body ownership.
@@ -164,6 +167,46 @@ mod tests {
                     command: HostServiceCommand::Configure {
                         configuration: None,
                         clear: true,
+                        ..
+                    }
+                })
+            })
+        ));
+    }
+    #[test]
+    fn refabricated_configuration_requires_exact_image_option() {
+        let base = [
+            "conduit",
+            "host",
+            "service",
+            "install",
+            "release.json",
+            "--state-dir",
+            "state",
+            "--no-start",
+        ];
+        assert!(
+            Cli::try_parse_from(
+                base.into_iter()
+                    .chain(["--configuration", "new.host.conduit"])
+            )
+            .is_err()
+        );
+        assert!(matches!(
+            Cli::try_parse_from(base.into_iter().chain([
+                "--configuration",
+                "new.host.conduit",
+                "--host-image",
+                "new-image.json"
+            ]))
+            .unwrap()
+            .command,
+            Some(Command::Host {
+                command: Some(HostCommand::Service {
+                    command: HostServiceCommand::Install {
+                        configuration: Some(_),
+                        host_image: Some(_),
+                        no_start: true,
                         ..
                     }
                 })

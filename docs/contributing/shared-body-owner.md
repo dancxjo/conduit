@@ -243,13 +243,32 @@ same source, then install both on the stopped destination:
 
 ```sh
 conduit host service install path/to/checked-native.json \
-  --host-image path/to/image.json --state-dir "$HOST_STATE" --no-start
+  --host-image path/to/host-image.json --state-dir "$HOST_STATE" --no-start
 ```
 
-This entrance checks the replacement IMAGE against the existing Host source and
-its configuration identity; it does not change equipment or grant membership.
-It preserves the Host identity and Body bindings. The final installation record
-must still fit its existing 64 KiB reader bound. Changing a Seed-bound Host's
-configuration requires a replacement Seed; reselecting identical source retains
-its checked IMAGE. After installation, a returning member still needs a current
-authorized encounter and signed return for its new Boot.
+Checked native release bundles include their exact `host-image.json` beside the
+executable and `checked-native.json`. Use that emitted IMAGE rather than
+reconstructing one from a later catalog.
+
+Without `--configuration`, this entrance checks the replacement IMAGE against
+its unchanged retained Host Source. To explicitly install a refabricated Host
+configuration, supply all three reviewed artifacts on the stopped destination:
+
+```sh
+conduit host service install path/to/checked-native.json \
+  --configuration path/to/replacement.host.conduit \
+  --host-image path/to/host-image.json --state-dir "$HOST_STATE" --no-start
+```
+
+The installer checks canonical Source, IMAGE payload/configuration, release source
+identity and exact running target together before atomically publishing the single
+installation record. Both original Host and Body ownership locks must be available.
+Host identity, Body bindings and credentials are preserved. This installs software;
+it creates no Seed, membership grant or physical readiness. The record must still
+fit its existing 64 KiB reader bound. Source-only `configure` retains its existing
+Seed-binding guard. A returning member still requires an authorized encounter
+and signed return for its new Boot.
+
+An unadmitted pending joining Seed remains pinned to its original configuration
+and IMAGE: incompatible replacement is refused until admission completes. The
+installer does not rewrite its invitation or remove historical Seed packages/keys.

@@ -176,6 +176,9 @@ impl RetainedNativeMaskStorage {
 
 /// One-shot compatibility and retained invocations share the same kernel. This
 /// adapter exposes no mutable scheduler escape from PreparedKernelSession.
+// Transfer the already admitted affine owners inline; boxing here would add
+// an allocation at invocation/input rather than reuse the original stores.
+#[allow(clippy::large_enum_variant)]
 pub(super) enum MaskScheduler {
     Ephemeral(alloc::boxed::Box<Scheduler>),
     Retained(RetainedNativeMaskStorage),
