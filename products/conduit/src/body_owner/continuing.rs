@@ -319,7 +319,7 @@ impl Owner {
                         control: &worker_control,
                         keyboard: None,
                     };
-                    let mut started = |play: &BodyPlayIdentity, wake: &Wake| {
+                    let started = |play: &BodyPlayIdentity, wake: &Wake| {
                         started_tx
                             .send((play.clone(), wake.clone()))
                             .map_err(|_| "Body owner start observer disconnected".to_string())?;
