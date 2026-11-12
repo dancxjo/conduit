@@ -8,6 +8,7 @@ use crate::{
 use sha2::{Digest, Sha256};
 #[path = "continuation_bindings.rs"]
 mod bindings;
+pub use bindings::{continuation_recipe_authority, ContinuationRecipeAuthority};
 
 /// Candidate bytes and typed fresh facts, not approval. Native possession stays
 /// with the original Root and must still pass ordinary issuance/admission.

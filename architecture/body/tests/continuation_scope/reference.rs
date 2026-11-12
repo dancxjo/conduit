@@ -10,6 +10,8 @@ mod admission;
 mod allocation_probe;
 #[path = "candidate_storage.rs"]
 mod candidate_storage;
+#[path = "native_operations.rs"]
+mod native_operations;
 #[path = "../prepared_fragment/support.rs"]
 mod support;
 #[global_allocator]
@@ -40,6 +42,7 @@ fn seal(plan: &c::Plan, boot: &str) -> c::Plan {
     for p in &mut f.placements {
         p.boot_id = boot.into();
         p.offer_generation = c::OfferGeneration(9);
+        native_operations::refresh(p, boot);
         for resource in &mut p.resources {
             if let Some(content) = &mut resource.content {
                 content.owner_boot = boot.into();
@@ -95,6 +98,15 @@ fn bindings<'a>(
                         .owner_boot
                         .as_str(),
                 ),
+                R::ProviderInstance => {
+                    V::Text(p.base.as_ref().unwrap().provider_instance_id.as_str())
+                }
+                R::ProviderGeneration => V::U64(p.base.as_ref().unwrap().provider_generation),
+                R::AuthorityGrant => {
+                    V::Text(p.authority[usize::from(field.entry)].grant_id.as_str())
+                }
+                R::AuthorityHost => V::Text(p.authority[usize::from(field.entry)].host_id.as_str()),
+                R::AuthorityBoot => V::Text(p.authority[usize::from(field.entry)].boot_id.as_str()),
                 _ => panic!("fixture has no other dynamic fields"),
             }
         } else {
@@ -116,7 +128,7 @@ pub fn with_reference(
         &c::HostAdvertisement,
     ),
 ) {
-    with_reference_kind(false, |s, v, a, _, _, _| check(s, v, a));
+    with_reference_kind(false, 0, |s, v, a, _, _, _| check(s, v, a));
 }
 pub fn with_typed_reference(
     check: impl for<'a> FnOnce(
@@ -125,7 +137,7 @@ pub fn with_typed_reference(
         &c::HostAdvertisement,
     ),
 ) {
-    with_reference_kind(true, |s, v, a, _, _, _| check(s, v, a));
+    with_reference_kind(true, 0, |s, v, a, _, _, _| check(s, v, a));
 }
 fn content_contract() -> c::ResourceContentRequirement {
     c::ResourceContentRequirement {
@@ -153,10 +165,16 @@ pub fn with_full_reference(
         &[u8],
     ),
 ) {
-    with_reference_kind(false, check);
+    with_reference_kind(false, 0, check);
+}
+pub fn with_native_reference(operations: usize) {
+    with_reference_kind(false, operations, |scope, _, _, _, _, _| {
+        assert_eq!(scope.fragment_count(), 3)
+    });
 }
 fn with_reference_kind(
     content: bool,
+    operations: usize,
     check: impl for<'a> FnOnce(
         &FreshContinuationScope<'a>,
         &VerifiedContinuationIntent<'a>,
@@ -171,6 +189,9 @@ fn with_reference_kind(
         .enumerate()
         .map(|(i, label)| {
             let mut plan = support::plan(label, if i < 3 { "host/local" } else { "host/remote" });
+            if operations != 0 && i == 0 {
+                native_operations::configure(&mut plan, operations);
+            }
             if content && i == 0 {
                 let f = &mut plan.fragments[0];
                 f.placements[0].resources[0].pool_id = "host/local/recording-pool".into();
@@ -342,19 +363,24 @@ fn with_reference_kind(
             }),
         });
     }
+    let native_rows: Vec<_> = docs.iter().map(|d| native_operations::rows(d)).collect();
+    let native_calls: Vec<Vec<_>> = native_rows
+        .iter()
+        .map(|rows| rows.iter().map(|n| n.contract).collect())
+        .collect();
     let entries: Vec<_> = (0..3)
         .map(|i| ContinuationLocalEntry {
             recipe: &pieces[i],
             bindings: &substitutions[i],
             template: &templates[i],
-            native: &[],
+            native: &native_rows[i],
             fore: &[],
             profile: AssignedBodyPreparationProfile {
                 maxima: maxima(),
                 requirements: c::AssignedPlanRequirements {
                     host: c::AssignedIdentity::from_text("host/local"),
                     boot: c::AssignedIdentity::from_text("local/fresh"),
-                    host_calls: &[],
+                    host_calls: &native_calls[i],
                     resources: &[0],
                     remote_bindings: &[],
                 },
@@ -436,6 +462,39 @@ fn with_reference_kind(
     });
     assert_eq!(cost.allocations, 0);
     assert_eq!(cost.reallocations, 0);
+    if operations != 0 {
+        native_operations::refusals(&native_rows[0], &pieces[0], |rows| {
+            let mut changed: Vec<_> = entries
+                .iter()
+                .map(|e| ContinuationLocalEntry {
+                    recipe: e.recipe,
+                    bindings: e.bindings,
+                    template: e.template,
+                    native: e.native,
+                    fore: e.fore,
+                    profile: AssignedBodyPreparationProfile {
+                        maxima: e.profile.maxima,
+                        requirements: e.profile.requirements,
+                        computations: e.profile.computations,
+                        fore: e.profile.fore,
+                    },
+                })
+                .collect();
+            changed[0].native = rows;
+            FreshContinuationScope::check_local_replacement::<0>(
+                &verified,
+                &checked,
+                &full,
+                &actual,
+                &pins,
+                &changed,
+                &docs,
+                &mut scratch,
+            )
+            .is_err()
+        });
+    }
+
     candidate_storage::check(
         &verified,
         &checked,

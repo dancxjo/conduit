@@ -21,3 +21,13 @@ fn full_six_reference_authorizes_only_fresh_local_three_and_refuses_scope_tamper
 fn full_six_typed_content_rebinds_owner_boot_and_preserves_static_contract() {
     reference::with_typed_reference(|scope, _, _| assert_eq!(scope.fragment_count(), 3));
 }
+
+#[test]
+fn canonical_two_operation_continuation_matches_pinned_authority_not_row_or_grant_sort() {
+    reference::with_native_reference(2);
+}
+
+#[test]
+fn canonical_single_operation_continuation_remains_supported() {
+    reference::with_native_reference(1);
+}
