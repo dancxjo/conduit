@@ -84,7 +84,7 @@ mod tests {
     fn startup_chime_make_selects_the_declared_speaker_without_granting_playback() {
         let source = source().replace("  limits =", r#"  capability = {kind: "sound/startup-chime", pinned_implementation: "std/kernel-startup-chime@1"}
   capability = {kind: "body/wake", pinned_implementation: "std/kernel-body-wake@1"}
-  need = {id: "fixture/speaker", class: "conduit.resource/audio-playback@1", slots: 1, bytes: 1}
+  need = {id: "fixture/speaker", class: "conduit.resource/audio-playback-alsa-hw@1", slots: 1, bytes: 1}
   limits ="#);
         let checked = checked(&source).unwrap();
         let packages = MakePackageSet::compose(&[&crate::HostedMakePackage]).unwrap();
