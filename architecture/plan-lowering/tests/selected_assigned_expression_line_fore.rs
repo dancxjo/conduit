@@ -17,12 +17,7 @@ fn identity() -> ResidentExpressionIdentity {
         input_kind: id("value/u64"),
         output_port: id("output"),
         output_kind: id("value/u64"),
-        computation: c::AssignedComputationRequirement {
-            node: 0,
-            key: id("expression"),
-            text_bytes: 1,
-            text_digest: [9; 32],
-        },
+        computation: c::AssignedComputationRequirement::from_text(0, "program", "00").unwrap(),
         private_work_units: 5,
     }
 }
@@ -81,8 +76,8 @@ fn projection() -> Vec<u8> {
     let mut config = [0; 55];
     config[2..18].copy_from_slice(&identity.computation.key.0);
     config[18] = 4;
-    config[19..23].copy_from_slice(&1u32.to_le_bytes());
-    config[23..].copy_from_slice(&[9; 32]);
+    config[19..23].copy_from_slice(&identity.computation.text_bytes.to_le_bytes());
+    config[23..].copy_from_slice(&identity.computation.text_digest);
     row(c::ASSIGNED_CONFIGURATION, &config);
     let mut resource = [0; 8];
     resource[4..].copy_from_slice(&5u32.to_le_bytes());
@@ -115,8 +110,8 @@ fn selected<'a>(
             remote_bindings: bindings,
         },
         computations: c::AssignedComputationProfile {
-            maximum_text_bytes: 1,
-            maximum_total_text_bytes: 1,
+            maximum_text_bytes: 2,
+            maximum_total_text_bytes: 2,
             requirements: computations,
         },
         fore: None,
