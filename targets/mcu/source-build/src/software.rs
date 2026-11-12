@@ -288,6 +288,7 @@ pub fn emit_rust_for_layout(
             "machine/pulse/read",
             "machine/tm1637/write",
             conduit_semantic_catalog::RESOURCE_APPEND_KIND,
+            conduit_semantic_catalog::RESOURCE_RECORD_SERVICE_KIND,
             "face/renderer",
             conduit_time::TICK_KIND,
         ]
