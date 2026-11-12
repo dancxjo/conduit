@@ -193,3 +193,47 @@ fn codec_rejects_wrong_versions_truncation_trailing_and_payload_pressure() {
         Err(WireError::UnsupportedWireFormat)
     );
 }
+
+#[test]
+fn frame_admission_requires_exact_maximum_payload_extent_without_overflow() {
+    let mut exact = binding();
+    exact.maximum_frame_bytes = 40 + 8 + 4 + exact.limits.maximum_payload_bytes;
+    assert_eq!(exact.validate(), Ok(()));
+    for message in [
+        SessionMessage::Offered {
+            sequence: 0,
+            payload: &[0; 16],
+        },
+        SessionMessage::InputAbnormal {
+            final_sequence: 0,
+            terminal: &[0; 16],
+        },
+    ] {
+        let mut output = [0; 68];
+        assert_eq!(
+            encode_external_fore_session_frame_into(
+                exact.frame(Message(message)),
+                &mut output,
+                exact.limits.maximum_payload_bytes,
+                exact.maximum_frame_bytes,
+            ),
+            Ok(68)
+        );
+    }
+    let mut short = exact.clone();
+    short.maximum_frame_bytes -= 1;
+    assert_eq!(short.validate(), Err(WireError::InvalidSession));
+    assert!(matches!(
+        ExternalForeSessionMachine::new(short, SessionRole::Source),
+        Err(WireError::InvalidSession)
+    ));
+    let mut overflow = exact;
+    overflow.limits.maximum_payload_bytes = u32::MAX;
+    overflow.limits.maximum_buffered_bytes = u32::MAX;
+    overflow.maximum_frame_bytes = u32::MAX;
+    assert_eq!(overflow.validate(), Err(WireError::InvalidSession));
+    assert!(matches!(
+        ExternalForeSessionMachine::new(overflow, SessionRole::Source),
+        Err(WireError::InvalidSession)
+    ));
+}

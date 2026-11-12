@@ -24,11 +24,17 @@ pub struct ExternalForeSessionBinding {
 }
 impl ExternalForeSessionBinding {
     pub fn validate(&self) -> Result<(), WireError> {
+        // Header, sequence and byte-field length precede either bounded payload.
+        let maximum_offer_bytes = 40_u32
+            .checked_add(8)
+            .and_then(|bytes| bytes.checked_add(4))
+            .and_then(|bytes| bytes.checked_add(self.limits.maximum_payload_bytes))
+            .ok_or(WireError::InvalidSession)?;
         if self.scope_commitment == [0; 32]
             || self.limits.maximum_in_flight_items == 0
             || self.limits.maximum_payload_bytes == 0
             || self.limits.maximum_payload_bytes > self.limits.maximum_buffered_bytes
-            || self.maximum_frame_bytes < 40
+            || self.maximum_frame_bytes < maximum_offer_bytes
             || self
                 .abnormal_kind
                 .as_ref()
@@ -74,7 +80,6 @@ pub struct ExternalForeSessionFrame<'a> {
 /// application cursor recovery remain separate obligations after interruption.
 #[derive(Clone)]
 pub struct ExternalForeSessionMachine {
-    binding: ExternalForeSessionBinding,
     lifecycle: SessionMachine<ExternalForeSessionBinding>,
 }
 impl ExternalForeSessionMachine {
@@ -84,12 +89,11 @@ impl ExternalForeSessionMachine {
     ) -> Result<Self, WireError> {
         binding.validate()?;
         Ok(Self {
-            lifecycle: SessionMachine::with_scope(binding.clone(), role),
-            binding,
+            lifecycle: SessionMachine::with_scope(binding, role),
         })
     }
     pub fn binding(&self) -> &ExternalForeSessionBinding {
-        &self.binding
+        &self.lifecycle.binding
     }
     pub fn is_active(&self) -> bool {
         self.lifecycle.is_active()
@@ -111,7 +115,7 @@ impl ExternalForeSessionMachine {
         direction: FrameDirection,
         frame: ExternalForeSessionFrame<'_>,
     ) -> Result<(), WireError> {
-        if frame.scope_commitment != self.binding.scope_commitment {
+        if frame.scope_commitment != self.lifecycle.binding.scope_commitment {
             return Err(WireError::InvalidSession);
         }
         match frame.message {
