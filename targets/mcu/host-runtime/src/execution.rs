@@ -322,17 +322,6 @@ impl<
         // The independent actual-report scratch above is dead BEFORE table
         // construction. PreparedBacks guarantees these same reports are immutable
         // until bind. Kernel validation below still checks every inactive row.
-        let tables = BoundedAssignedKernelTables::<N, C, P, R, T, H>::prepare_with_fore(
-            approved.projection(),
-            profile.maxima,
-            profile.requirements,
-            profile.computations,
-            layout,
-            fore,
-        )
-        .map_err(Refusal::Tables)?;
-        let nodes = tables.active_nodes();
-        let cords = tables.active_cords();
         let backing = backs
             .retained_backing_bytes()
             .ok_or(Refusal::Bounds)?
@@ -342,20 +331,35 @@ impl<
         let remaining = maximum_retained_bytes
             .checked_sub(backing)
             .ok_or(Refusal::Bounds)?;
-        let storage = ExecutionKernel::<B::Driver, N, C, P, R, T, H, S, L>::prepare_boxed_with_terminal_transductions_ref(
-            nodes,
-            cords,
-            tables.nodes,
-            tables.cords,
-            tables.routes,
-            tables.calls,
-            values,
-            signs,
-            remaining,
-            expected,
-            expected,
-        )
-        .map_err(Refusal::Storage)?;
+        let storage =
+            ExecutionKernel::<B::Driver, N, C, P, R, T, H, S, L>::prepare_boxed_with_table_writer(
+                values,
+                signs,
+                remaining,
+                expected,
+                expected,
+                Refusal::Storage,
+                |nodes, cords, routes, calls| {
+                    let identity =
+                        BoundedAssignedKernelTables::<N, C, P, R, T, H>::write_with_fore(
+                            approved.projection(),
+                            profile.maxima,
+                            profile.requirements,
+                            profile.computations,
+                            layout,
+                            fore,
+                            nodes,
+                            cords,
+                            routes,
+                            calls,
+                        )
+                        .map_err(Refusal::Tables)?;
+                    Ok((
+                        usize::from(identity.counts[0]),
+                        usize::from(identity.counts[3]),
+                    ))
+                },
+            )?;
         let retained = backing
             .checked_add(storage.storage_bytes())
             .ok_or(Refusal::Bounds)?;

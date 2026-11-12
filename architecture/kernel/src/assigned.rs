@@ -164,6 +164,52 @@ impl<
         fore: Option<&[c::AssignedForeRequirement]>,
         exact_counts: bool,
     ) -> Result<Self, AssignedKernelRefusal> {
+        let mut nodes = [NodeSpec {
+            input_cords: [None; P],
+            maximum_step_fuel: 0,
+        }; N];
+        let mut cords = [CordSpec::inactive(); C];
+        let mut routes = k::FixedRoutes::new(P as u16);
+        let mut calls = k::FixedHostCallBindings::new(1);
+        let mut startup_order = [k::NodeId(u16::MAX); N];
+        let identity = Self::write_capacity_profile(
+            input,
+            maxima,
+            required,
+            computations,
+            layout,
+            fore,
+            exact_counts,
+            &mut nodes,
+            &mut cords,
+            &mut routes,
+            &mut calls,
+            &mut startup_order,
+        )?;
+        Ok(Self {
+            identity,
+            nodes,
+            cords,
+            routes,
+            calls,
+            startup_order,
+        })
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn write_capacity_profile(
+        input: RecordInput<'_>,
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        fore: Option<&[c::AssignedForeRequirement]>,
+        exact_counts: bool,
+        nodes: &mut [NodeSpec<P>; N],
+        cords: &mut [CordSpec; C],
+        routes: &mut k::FixedRoutes<R, T>,
+        calls: &mut k::FixedHostCallBindings<H>,
+        startup_order: &mut [k::NodeId; N],
+    ) -> Result<c::AssignedPlanView, AssignedKernelRefusal> {
         use AssignedKernelRefusal as E;
         if !matches!(
             u16_at(input.header(), 8)?,
@@ -194,12 +240,12 @@ impl<
             return Err(E::Unsupported);
         }
         validate_layout(input, layout)?;
-        let mut nodes = [NodeSpec {
+        nodes.fill(NodeSpec {
             input_cords: [None; P],
             maximum_step_fuel: 0,
-        }; N];
+        });
         let mut node_seen = [false; N];
-        let mut cords = [CordSpec::inactive(); C];
+        cords.fill(CordSpec::inactive());
         let mut cord_seen = [false; C];
         let mut ranges = [None; R];
         let mut range_count = 0;
@@ -227,8 +273,8 @@ impl<
                 }
             }
         }
-        let mut calls = k::FixedHostCallBindings::<H>::new(calls_per_node);
-        let mut startup_order = [k::NodeId(u16::MAX); N];
+        *calls = k::FixedHostCallBindings::<H>::new(calls_per_node);
+        startup_order.fill(k::NodeId(u16::MAX));
         let mut startup_positions = [usize::MAX; N];
         let mut startup_count = 0;
         for record in input.records()? {
@@ -359,7 +405,7 @@ impl<
                 }
             }
         }
-        let mut routes = k::FixedRoutes::<R, T>::new(P as u16);
+        *routes = k::FixedRoutes::<R, T>::new(P as u16);
         for (node, port, range) in ranges.into_iter().flatten() {
             let start = usize::from(range.start);
             let end = start
@@ -374,16 +420,9 @@ impl<
         routes.seal()?;
         calls.seal()?;
         if u16_at(input.header(), 8)? == c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA {
-            local_fore::pin(&mut cords, fore.ok_or(E::Layout)?)?;
+            local_fore::pin(cords, fore.ok_or(E::Layout)?)?;
         }
-        Ok(Self {
-            identity,
-            nodes,
-            cords,
-            routes,
-            calls,
-            startup_order,
-        })
+        Ok(identity)
     }
     /// Prepare existing production Backs in the exact dependency-respecting
     /// assigned order. No Play may start until this succeeds for every node.
