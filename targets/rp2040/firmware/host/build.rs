@@ -1,6 +1,8 @@
 use sha2::{Digest, Sha256};
 use std::{env, fs, path::PathBuf};
+mod recording_build;
 fn main() {
+    println!("cargo:rerun-if-changed=recording_build.rs");
     println!("cargo:rerun-if-env-changed=CONDUIT_HOST_CONFIGURATION");
     println!("cargo:rerun-if-env-changed=CONDUIT_SOURCE_IDENTITY");
     println!("cargo:rerun-if-env-changed=CONDUIT_HOST_IMAGE_ID");
@@ -20,6 +22,9 @@ fn main() {
         conduit_host_make::parse_host_configuration_conduit(&source).expect("Host Source syntax");
     let checked = conduit_host_make::check_host_configuration(configuration, &catalog, &packages)
         .expect("checked Host Source");
+    let recording = recording_build::Recording::checked(&checked)
+        .expect("checked finite recorder construction");
+    recording.emit_cfg();
     println!("cargo:rustc-check-cfg=cfg(retained_wifi)");
     if conduit_host_rp2040::retained_wifi_selected(&checked)
         .expect("checked optional retained network attachment")
@@ -97,6 +102,7 @@ fn main() {
             &source_identity,
             &out,
             renderer,
+            recording,
         )
     });
 
@@ -131,15 +137,9 @@ fn main() {
         None=>String::new(),
     };
     fs::write(out.join("renderer.rs"), renderer_source).unwrap();
-    let recording = conduit_host_rp2040::source_build::native_build::checked_recording(
-        &checked,
-        conduit_host_rp2040::RECORDING_IMPLEMENTATION,
-        8192,
-        589824,
-    )
-    .expect("checked finite recording construction");
-    let recording_prefix = recording.map_or(0, |r| r.prefix_bytes);
-    let recording_slots = recording.map_or(0, |r| r.slots);
+    let recording_prefix = recording.residence.map_or(0, |r| r.prefix_bytes);
+    let recording_slots = recording.residence.map_or(0, |r| r.slots);
+    let recording_read_operations = recording.read_operations;
     let preparation = conduit_host_make::rust_preparation_delegation(&checked);
     let execution = conduit_host_make::rust_execution_delegation(&checked);
     let assignment =
@@ -210,6 +210,7 @@ pub(crate) use start_local_io;
 include!(concat!(env!("OUT_DIR"), "/native_offer.rs"));
 pub const RECORDING_PREFIX_BYTES:u32={recording_prefix};
 pub const RECORDING_SLOTS:u32={recording_slots};
+pub const RECORDING_READ_OPERATIONS:u32={recording_read_operations};
 pub const MAX_ASSIGNMENT_BYTES:usize={assignment};
 pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image_id:?};
@@ -327,6 +328,7 @@ fn prepare_dht_workset(
     source_identity: &str,
     out: &std::path::Path,
     renderer: conduit_host_rp2040::CheckedRendererConstruction,
+    recording: recording_build::Recording,
 ) -> Vec<conduit_embedded_build::PreparedResidentExpression> {
     use conduit_host_rp2040::source_build::{
         image_input, native_calibration as calibration, workset,
@@ -380,21 +382,19 @@ fn prepare_dht_workset(
     );
     conduit_host_rp2040::source_build::native_build::check_source_clocks(&workset, clock)
         .expect("checked Source clock construction");
-    let append = workset
-        .entries
-        .iter()
-        .any(|entry| {
-            entry.plot.expanded.gears.iter().any(|g| {
-                g.kind_id.as_str() == conduit_resource_snapshot::native_append::APPEND_KIND
-            })
-        })
-        .then(|| {
-            conduit_resource_snapshot::native_append::capability_offer(
-                &artifact,
-                &conduit_core::ImplementationId::from("rp2040/nor-record-append@1"),
-            )
-            .expect("finite immutable append definition")
-        });
+    let recorder = recording
+        .description(
+            workset
+                .entries
+                .iter()
+                .flat_map(|entry| &entry.plot.expanded.gears)
+                .map(|gear| gear.kind_id.as_str()),
+            &artifact,
+        )
+        .expect("Source recorder matches explicit checked Base");
+    let append = recorder
+        .as_ref()
+        .map(|description| description.definition.clone());
     let mut descriptions = vec![
         calibration::NativeDescription {
             slot: calibration::Slot {
@@ -437,17 +437,8 @@ fn prepare_dht_workset(
             definition: renderer_offer,
         },
     ];
-    if let Some(definition) = &append {
-        descriptions.push(calibration::NativeDescription {
-            slot: calibration::Slot {
-                base: "rp2040/record-append",
-                pool: "pool/rp2040/record-append",
-                implementation: "rp2040/nor-record-append@1",
-            },
-            class: conduit_resource_snapshot::native_append::APPEND_CLASS,
-            mechanism: conduit_resource_snapshot::native_append::APPEND_MECHANISM,
-            definition: definition.clone(),
-        });
+    if let Some(description) = recorder {
+        descriptions.push(description);
     }
 
     conduit_host_rp2040::source_build::native_build::emit_capability_images(
