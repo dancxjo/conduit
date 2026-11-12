@@ -5,6 +5,23 @@ mod material {
     include!(concat!(env!("OUT_DIR"), "/ht16k33-frame-material.rs"));
 }
 pub const DISPLAY_FRAME_BYTES: usize = material::TEMPLATE.len();
+/// Accept only the exact Source-derived canonical acknowledgement of one write.
+/// Initialization acknowledges five transactions and deliberately refuses here.
+/// This validates payload meaning only: the caller must separately establish
+/// the selected output Play, current frame ticket and actual provider outcome.
+/// Comparison uses immutable build-checked bytes, with no allocation or IO.
+pub fn validate_write_acknowledgement(bytes: &[u8]) -> Result<(), R> {
+    if bytes
+        == include_bytes!(concat!(
+            env!("OUT_DIR"),
+            "/ht16k33-write-acknowledgement.value"
+        ))
+    {
+        Ok(())
+    } else {
+        Err(R::WrongType)
+    }
+}
 pub fn validate_display_frame(
     bytes: &[u8],
 ) -> Result<conduit_core::ValidatedCanonicalStructuredValue<'_>, R> {

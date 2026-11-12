@@ -219,6 +219,29 @@ impl<'a, C: RendererClock, E: PreparedFrameEncoder, const FRAME: usize>
         self.frame_pending = None;
         Ok(())
     }
+    /// Complete only an exact successful redraw outcome from the selected HT
+    /// output Plot. The initialization acknowledgement (five transactions), a
+    /// bus-result value, refusal or malformed bytes cannot publish Available.
+    /// # Safety
+    /// Root must correlate this ticket, bytes and Sign with the acknowledged
+    /// output of this frame's original admitted HT write Plot. Canonical bytes
+    /// alone are not authority or evidence of a physical effect.
+    #[cfg(feature = "ht16k33-mask")]
+    pub unsafe fn ht16k33_completion(
+        &mut self,
+        ticket: FrameTicket,
+        acknowledgement: &[u8],
+        available_sign: SignId,
+    ) -> Result<(), Refusal> {
+        if self.frame_pending != Some(ticket) {
+            return Err(Refusal::Lifecycle);
+        }
+        conduit_ht16k33::frame::validate_write_acknowledgement(acknowledgement)
+            .map_err(|_| Refusal::Lifecycle)?;
+        // SAFETY: exact selected output correlation remains this caller's
+        // obligation; the typed result has been checked before any mutation.
+        unsafe { self.electrical_completion(ticket, available_sign) }
+    }
     /// Borrow drained evidence for exact archive preflight without rearming.
     pub fn drained_evidence(&self) -> Result<DrainedInvocation<&k::FixedSignLog<64>>, Refusal> {
         if !self.drained || self.request.is_some() || self.frame_pending.is_some() {

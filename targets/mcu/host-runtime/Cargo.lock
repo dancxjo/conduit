@@ -254,6 +254,7 @@ dependencies = [
  "conduit-embedded-build",
  "conduit-environment-runtime",
  "conduit-face",
+ "conduit-ht16k33",
  "conduit-i2c-transaction",
  "conduit-kernel",
  "conduit-monotonic-wait",

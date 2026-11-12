@@ -73,4 +73,40 @@ pub fn emit() {
         ),
     )
     .unwrap();
+    // Source supplies the exact nominal acknowledgement Type. A write uses
+    // count one; initialization uses the same Type with count five. Neither
+    // value is a transport delivery acknowledgement.
+    let acknowledgement = &checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "Ht16k33Acknowledgement")
+        .unwrap()
+        .value_type;
+    use conduit_core::{PreparedStructuredComposer, StructuredInfoType, StructuredInfoTypeShape};
+    let StructuredInfoTypeShape::Record { fields, .. } = acknowledgement.shape() else {
+        panic!("acknowledgement record")
+    };
+    assert_eq!(fields.len(), 1);
+    assert_eq!(fields[0].name(), "transactions");
+    assert_eq!(
+        fields[0].value_type(),
+        &StructuredInfoType::leaf("value/u8".into()).unwrap()
+    );
+    let mut count = PreparedStructuredComposer::new(fields[0].value_type(), 64).unwrap();
+    count.leaf(&[1]).unwrap();
+    let mut value = PreparedStructuredComposer::new(acknowledgement, 2048).unwrap();
+    value
+        .record(&[conduit_core::validate_canonical_structured_value(count.encoded()).unwrap()])
+        .unwrap();
+    conduit_core::validate_canonical_structured_value(value.encoded()).unwrap();
+    fs::write(
+        out.join("ht16k33-acknowledgement.type"),
+        acknowledgement.canonical_bytes().unwrap(),
+    )
+    .unwrap();
+    fs::write(
+        out.join("ht16k33-write-acknowledgement.value"),
+        value.encoded(),
+    )
+    .unwrap();
 }
