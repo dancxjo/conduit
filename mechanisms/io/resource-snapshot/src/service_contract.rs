@@ -55,7 +55,9 @@ pub fn definition() -> Kind {
             transductions.push(profile);
         }
     }
-    transductions.sort_by(|a, b| a.input_port_id.as_str().cmp(b.input_port_id.as_str()));
+    // Distinct input ports need canonical order, not stable sorting's large
+    // temporary buffer on constrained preparation stacks.
+    transductions.sort_unstable_by(|a, b| a.input_port_id.as_str().cmp(b.input_port_id.as_str()));
     append.kind_id = kind_id(SERVICE_KIND);
     append.kind_contract_revision = SERVICE_REVISION.into();
     append.inputs.extend(read.inputs);
