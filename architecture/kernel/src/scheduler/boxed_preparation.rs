@@ -110,6 +110,38 @@ where
         contracts: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
         actual: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
     ) -> Result<PreparedKernelStorage<D, Self, NODES>, KernelPreparationError> {
+        Self::prepare_boxed_with_terminal_transductions_ref(
+            active_nodes,
+            active_cords,
+            node_specs,
+            cord_specs,
+            routes,
+            host_bindings,
+            values,
+            signs,
+            maximum_storage_bytes,
+            &contracts,
+            &actual,
+        )
+    }
+
+    /// Borrow immutable lowering/report matrices during the same original
+    /// validation and allocation path. The expected matrix is copied directly
+    /// into the already funded scheduler field; no duplicate matrix is retained.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_boxed_with_terminal_transductions_ref(
+        active_nodes: usize,
+        active_cords: usize,
+        node_specs: [NodeSpec<PORTS>; NODES],
+        cord_specs: [CordSpec; CORDS],
+        routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
+        host_bindings: FixedHostCallBindings<HOST_BINDING_SLOTS>,
+        values: S,
+        signs: E,
+        maximum_storage_bytes: usize,
+        contracts: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+        actual: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    ) -> Result<PreparedKernelStorage<D, Self, NODES>, KernelPreparationError> {
         validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
         if PORTS == 0
             || QUEUE_SLOTS == 0
@@ -137,7 +169,7 @@ where
                 return Err(SchedulerError::InvalidPlan.into());
             }
         }
-        let recovery_for_cord = projected_recovery_map(active_cords, &cord_specs, &contracts)?;
+        let recovery_for_cord = projected_recovery_map(active_cords, &cord_specs, contracts)?;
         // Evaluate constructors before transferring any affine input owner.
         let ready = ReadySet::new(active_nodes);
         let debug_control = DebugControlState::new();
@@ -175,7 +207,7 @@ where
         }
         let drop_initialized = initialize! {
             node_specs: node_specs,
-            terminal_transductions: contracts,
+            terminal_transductions: *contracts,
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
