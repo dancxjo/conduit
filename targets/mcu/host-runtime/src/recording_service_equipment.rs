@@ -1,10 +1,12 @@
 //! Root-owned append/read service over one recovered affine NOR residence.
 //! Public inspection and original grant descriptions never authorize Start.
+extern crate alloc;
 pub use crate::recording_residence::RESERVED_PREFIX_BYTES;
 use crate::{
     execution::Policy,
     execution_authority::{Issuer, NativeFacts, Operation},
 };
+use alloc::string::String;
 use conduit_core as c;
 pub use conduit_resource_snapshot::native_append::AppendNativeIdentity;
 use conduit_resource_snapshot::{
@@ -36,6 +38,11 @@ pub struct Equipment<S> {
 #[derive(Debug)]
 pub enum Refusal {
     Scope,
+    Capacity {
+        required: usize,
+        maximum: usize,
+    },
+    Allocation,
     /// Issuers retain independently successful originals if the other refuses.
     /// No Ready service is exposed; retry with the same originals/context.
     Authority {
@@ -99,6 +106,64 @@ impl<S: NorStorage> Equipment<S> {
             Stage::Ready(Some(owner)) => Some(&owner.native_identity().resource_pool_id),
             _ => None,
         }
+    }
+    /// Describe only this same recovered/Ready residence. The caller retains
+    /// and funds this descriptor before assigned preparation; inline storage and
+    /// allocator overhead are separate. It proves no resource admission, grant
+    /// or permission to withdraw the owner through the original Start boundary.
+    pub fn resource_binding(
+        &self,
+        maximum_bytes: usize,
+    ) -> Result<Option<c::ResourceBinding>, Refusal> {
+        if !self.selected {
+            return Ok(None);
+        }
+        self.facts()?;
+        let pool = self.held_pool().ok_or(Refusal::Scope)?.as_str();
+        let class = conduit_resource_snapshot::native_append::APPEND_CLASS;
+        let required = pool
+            .len()
+            .checked_add(class.len())
+            .ok_or(Refusal::Capacity {
+                required: usize::MAX,
+                maximum: maximum_bytes,
+            })?;
+        if required > maximum_bytes {
+            return Err(Refusal::Capacity {
+                required,
+                maximum: maximum_bytes,
+            });
+        }
+        let mut remaining = maximum_bytes;
+        let mut copy = |text: &str| -> Result<String, Refusal> {
+            let used = maximum_bytes - remaining;
+            if text.len() > remaining {
+                return Err(Refusal::Capacity {
+                    required: used.saturating_add(text.len()),
+                    maximum: maximum_bytes,
+                });
+            }
+            let mut owned = String::new();
+            owned
+                .try_reserve_exact(text.len())
+                .map_err(|_| Refusal::Allocation)?;
+            remaining = remaining
+                .checked_sub(owned.capacity())
+                .ok_or(Refusal::Capacity {
+                    required: used.saturating_add(owned.capacity()),
+                    maximum: maximum_bytes,
+                })?;
+            owned.push_str(text);
+            Ok(owned)
+        };
+        Ok(Some(c::ResourceBinding {
+            pool_id: copy(pool)?.into(),
+            class_id: copy(class)?.into(),
+            units: 1,
+            protected: None,
+            compute: None,
+            content: None,
+        }))
     }
     pub fn ready(&self) -> Option<&ReadyRecordService<S>> {
         match self.stage.as_ref()? {
