@@ -75,6 +75,6 @@ fn main(){{
         &code,
         &exercise,
         "resident-terminal-wrappers",
-        &["conduit_kernel"],
+        &["conduit_kernel", "conduit_plan_lowering"],
     );
 }

@@ -1,7 +1,9 @@
 //! Compile and exercise the exact generated zero-inventory implementation.
 #[allow(dead_code)]
-#[path = "resident_library_empty_source.rs"]
-mod generated;
+mod generated {
+    include!("resident_assignment_source.rs");
+    include!("resident_library_empty_source.rs");
+}
 
 #[test]
 fn empty_inventory_retains_no_computation_owners_and_lends_no_backs() {
@@ -23,7 +25,10 @@ fn empty_inventory_retains_no_computation_owners_and_lends_no_backs() {
 
 #[test]
 fn empty_inventory_generation_still_obeys_its_explicit_byte_bound() {
-    let exact = include_str!("resident_library_empty_source.rs");
+    let exact = concat!(
+        include_str!("resident_assignment_source.rs"),
+        include_str!("resident_library_empty_source.rs")
+    );
     assert_eq!(
         crate::generate_resident_library(&[], exact.len() as u32).unwrap(),
         exact
