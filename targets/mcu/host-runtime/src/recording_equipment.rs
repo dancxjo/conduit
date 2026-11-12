@@ -1,5 +1,6 @@
 //! Root-owned finite recording equipment, before and after original authority.
 //! Recovery reads preserve evidence; they do not admit resources or Start work.
+pub use crate::recording_residence::RESERVED_PREFIX_BYTES;
 use crate::{
     execution::Policy,
     execution_authority::{Issuer, NativeFacts, Operation},
@@ -7,17 +8,13 @@ use crate::{
 use conduit_core as c;
 pub use conduit_resource_snapshot::native_append::AppendNativeIdentity;
 use conduit_resource_snapshot::{
-    append::{
-        PreparedNorRecordResidence, RecordRecovery, RecordResidenceId, RecordResidenceRefusal,
-    },
+    append::{PreparedNorRecordResidence, RecordRecovery, RecordResidenceRefusal},
     native_append::{
         AppendCallRefusal, ReadyRecordAppender, APPEND_AUTHORITY, APPEND_KIND, APPEND_OPERATION,
         APPEND_RESULT_BYTES,
     },
     nor::NorStorage,
 };
-use sha2::{Digest, Sha256};
-pub const RESERVED_PREFIX_BYTES: u32 = 8192;
 const ORIGINAL_GRANT: &str = "native/record-append/original";
 // Exactly one inline owner; no duplicate provider or allocation just to move stages.
 #[allow(clippy::large_enum_variant)]
@@ -66,26 +63,16 @@ impl<S: NorStorage> Equipment<S> {
                 recovery: None,
             };
         }
-        let mut hash = Sha256::new();
-        hash.update(b"conduit.root/nor-record-residence@1");
-        for value in [body.as_str(), identity.host_id.as_str()] {
-            hash.update((value.len() as u64).to_le_bytes());
-            hash.update(value.as_bytes());
-        }
-        let residence = RecordResidenceId(hash.finalize().into());
-        let prepared = if body.as_str().is_empty() || prefix_bytes < RESERVED_PREFIX_BYTES {
-            Err((storage, RecordResidenceRefusal::Geometry))
-        } else {
-            PreparedNorRecordResidence::prepare(storage, residence, prefix_bytes, slots)
-        };
+        let prepared =
+            crate::recording_residence::recover(storage, &identity, body, prefix_bytes, slots);
         match prepared {
             Err((storage, refusal)) => Self {
                 stage: Some(Stage::Unused(storage)),
                 selected,
                 recovery: Some(Err(refusal)),
             },
-            Ok(mut provider) => {
-                let recovery = Some(provider.recover());
+            Ok((provider, recovery)) => {
+                let recovery = Some(recovery);
                 Self {
                     stage: Some(Stage::Recovered { identity, provider }),
                     selected,

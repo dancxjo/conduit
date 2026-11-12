@@ -69,6 +69,10 @@ pub mod continuation_native;
 
 #[cfg(feature = "execution")]
 pub mod recording_equipment;
+#[cfg(feature = "execution")]
+mod recording_residence;
+#[cfg(feature = "execution")]
+pub mod recording_service_equipment;
 
 /// Descriptive installed cross-Boot metadata; never authority by decoding.
 pub mod continuation_artifact;
