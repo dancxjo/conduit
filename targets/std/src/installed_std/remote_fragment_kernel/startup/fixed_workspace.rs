@@ -12,6 +12,7 @@ pub(super) struct FixedWorkspace {
     pub(super) signs: usize,
     pub(super) retained_kernel: usize,
     pub(super) constructor_requests: usize,
+    pub(super) expected_offer_requests: Option<usize>,
 }
 pub(super) fn derive() -> Option<FixedWorkspace> {
     if !cfg!(target_pointer_width = "64") {
@@ -44,5 +45,6 @@ pub(super) fn derive() -> Option<FixedWorkspace> {
         signs,
         retained_kernel,
         constructor_requests,
+        expected_offer_requests: super::offer_workspace::derive(),
     })
 }

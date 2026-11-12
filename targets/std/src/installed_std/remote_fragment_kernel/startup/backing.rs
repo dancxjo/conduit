@@ -7,21 +7,21 @@ use core::mem::size_of;
 
 struct Count(usize);
 impl Count {
-    fn add(&mut self, n: usize) -> Result<(), String> {
+    fn add(&mut self, n: usize) -> Result<(), &'static str> {
         self.0 = self
             .0
             .checked_add(n)
             .ok_or("remote backing size overflow")?;
         Ok(())
     }
-    fn vector<T>(&mut self, v: &Vec<T>) -> Result<(), String> {
+    fn vector<T>(&mut self, v: &Vec<T>) -> Result<(), &'static str> {
         self.add(
             v.capacity()
                 .checked_mul(size_of::<T>())
                 .ok_or("remote vector overflow")?,
         )
     }
-    fn owned(&mut self, n: Option<usize>) -> Result<(), String> {
+    fn owned(&mut self, n: Option<usize>) -> Result<(), &'static str> {
         self.add(n.ok_or("remote startup receipt does not support this live auxiliary owner")?)
     }
 }
@@ -30,7 +30,7 @@ macro_rules! empty { ($n:expr, $($v:expr),+ $(,)?) => { $(
     if !$v.is_empty() { return Err("remote startup backing does not support this descriptor/profile".into()); }
     $n.vector($v)?;
 )+ }; }
-fn placement(n: &mut Count, p: &PlannedGear) -> Result<(), String> {
+fn placement(n: &mut Count, p: &PlannedGear) -> Result<(), &'static str> {
     strings!(
         n,
         p.placement_id,
@@ -89,7 +89,7 @@ fn placement(n: &mut Count, p: &PlannedGear) -> Result<(), String> {
                     n.owned(c.contract.retained_backing_bytes())?;
                 }
             }
-            _ => return Err("remote startup backing lacks this semantic law accounting".into()),
+            _ => return Err("remote startup backing lacks this semantic law accounting"),
         }
     }
     n.vector(&p.host_calls)?;
@@ -102,7 +102,7 @@ fn placement(n: &mut Count, p: &PlannedGear) -> Result<(), String> {
     n.vector(&p.resources)?;
     for r in &p.resources {
         if r.protected.is_some() || r.compute.is_some() || r.content.is_some() {
-            return Err("remote startup backing lacks external resource accounting".into());
+            return Err("remote startup backing lacks external resource accounting");
         }
         strings!(n, r.pool_id, r.class_id);
     }
@@ -121,6 +121,32 @@ fn placement(n: &mut Count, p: &PlannedGear) -> Result<(), String> {
     }
     Ok(())
 }
+// A Vec clone reserves its length on the qualified library. Nested source
+// capacities dominate every cloned String/Vec payload; no copy is made here.
+pub(super) fn placement_clone_request_bound(
+    placements: &[PlannedGear],
+) -> Result<usize, &'static str> {
+    if !cfg!(conduit_pinned_collection_layout) {
+        return Err("placement clone term requires qualified library");
+    }
+    let bytes = placements
+        .len()
+        .checked_mul(size_of::<PlannedGear>())
+        .ok_or("placement clone term overflow")?;
+    let mut n = Count(bytes);
+    for p in placements {
+        if p.semantic_contract
+            .laws
+            .iter()
+            .any(|law| !matches!(law, KindSemanticLaw::Terminal(_)))
+        {
+            return Err("placement clone term excludes additional semantic payloads");
+        }
+        placement(&mut n, p)?;
+    }
+    Ok(n.0)
+}
+
 impl InstalledRemoteFragment {
     /// Newly owned heap payload of this prepared runtime only. Inline caller
     /// storage, reservations, preparation workspace, process RSS and transport
@@ -161,10 +187,17 @@ impl InstalledRemoteFragment {
         n.add(body_kernel::remote_identity_backing(
             &self.lowered.identity,
         )?)?;
-        n.vector(&self.placements)?;
+        let mut placement_storage = Count(0);
+        placement_storage.vector(&self.placements)?;
         for p in &self.placements {
-            placement(&mut n, p)?;
+            placement(&mut placement_storage, p)?;
         }
+        if cfg!(conduit_pinned_collection_layout)
+            && placement_storage.0 > placement_clone_request_bound(&self.placements)?
+        {
+            return Err("retained placement clone exceeded derived term".into());
+        }
+        n.add(placement_storage.0)?;
         n.vector(&self.startup_outputs)?;
         for c in &self.startup_outputs {
             n.add(c.output.retained_backing_bytes())?;
@@ -250,10 +283,13 @@ impl InstalledRemoteFragment {
         {
             return Err("startup fixed constructor accounting drifted".into());
         }
+        if cfg!(conduit_pinned_collection_layout) && fixed.expected_offer_requests.is_none() {
+            return Err("startup expected-offer derivation is unsupported".into());
+        }
         #[cfg(test)]
         eprintln!(
-            "STARTUP_FIXED_WORKSPACE retained={} constructor_requests={}",
-            fixed.retained_kernel, fixed.constructor_requests
+            "STARTUP_FIXED_WORKSPACE retained={} constructor_requests={} expected_offers={:?}",
+            fixed.retained_kernel, fixed.constructor_requests, fixed.expected_offer_requests
         );
         // The complete preparation recipe must add all non-fixed owners; this
         // partial term is deliberately not used to enable IMAGE preflight.

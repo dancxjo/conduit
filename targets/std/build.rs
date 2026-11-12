@@ -6,6 +6,18 @@ use std::{env, fs, path::PathBuf, process::Command};
 const REVISION: &str = "48a229ceaefd4985c50990b14116b6d856af0985";
 const SOURCES: &[(&str, &str)] = &[
     (
+        "std/src/sys/os_str/bytes.rs",
+        "b8db748fa98d57b9c5358dd0ad48c4950691defea188786b0d17c2c23533a721",
+    ),
+    (
+        "std/src/ffi/os_str.rs",
+        "fc18fd9479db9a95a94d96bd7b4c5ac5b479fbef97d13c2545aebebbbb2af9c0",
+    ),
+    (
+        "alloc/src/string.rs",
+        "e3289c812f163ba94b10d43f7fa5ba3bf9133adeaaa7733c4d796380e9aeac1e",
+    ),
+    (
         "alloc/src/slice.rs",
         "b1f0a5f6e3d104d6176699cf05efdfe1725095cd984fdf4422ddc3093726361c",
     ),

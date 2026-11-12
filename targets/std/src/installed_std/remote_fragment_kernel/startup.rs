@@ -173,3 +173,5 @@ mod backing;
 mod collection_bound_tests;
 
 mod fixed_workspace;
+
+mod offer_workspace;

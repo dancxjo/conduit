@@ -8,6 +8,27 @@ use conduit_core::{InfoBool, PlannedGear};
 use conduit_kernel::{Failure, FailureCode, HostCallDisposition, HostCallOutcome};
 use std::{ffi::OsString, path::Path, time::Duration};
 pub(crate) const PCM_BYTES: usize = conduit_synth::STARTUP_CHIME_FRAMES as usize * 4;
+pub(super) const ARGUMENTS: &[&str] = &[
+    "--quiet",
+    "--file-type=raw",
+    "--format=S16_LE",
+    "--rate=48000",
+    "--channels=2",
+    "--period-size=256",
+    "--buffer-size=1024",
+    "--disable-resample",
+    "--disable-channels",
+    "--disable-format",
+    "--disable-softvol",
+    "--fatal-errors",
+    "--device",
+];
+pub(super) const WORKSPACE_DRIFT: &str =
+    "startup chime retained workspace exceeded its derived term";
+pub(super) const MISSING_SELECTION: &str = "startup chime has no checked selected speaker";
+pub(super) const UNCHECKED_PROVIDER: &str = "startup chime requires a checked playback Base";
+pub(super) const IDENTITY_MISMATCH: &str =
+    "startup chime speaker identity/Boot/generation differs from selected Plan";
 
 pub(crate) struct PreparedChimeOutput {
     selection: HostedPlaybackSelection,
@@ -19,44 +40,37 @@ impl PreparedChimeOutput {
         placement: &PlannedGear,
         selected: Option<&HostedPlaybackSelection>,
     ) -> Result<Self, String> {
-        let selected = selected.ok_or("startup chime has no checked selected speaker")?;
+        let selected = selected.ok_or(MISSING_SELECTION)?;
         let expected_base = selected
             .checked_provider_binding()
-            .ok_or("startup chime requires a checked playback Base")?;
+            .ok_or(UNCHECKED_PROVIDER)?;
         if selected.boot_id != placement.boot_id
             || selected.offer_generation != placement.offer_generation
             || placement.base.as_ref() != Some(&expected_base)
             || placement.resources.len() != 1
             || placement.resources[0].pool_id != selected.pool_id()
         {
-            return Err(
-                "startup chime speaker identity/Boot/generation differs from selected Plan".into(),
-            );
+            return Err(IDENTITY_MISMATCH.into());
         }
-        let arguments = [
-            "--quiet",
-            "--file-type=raw",
-            "--format=S16_LE",
-            "--rate=48000",
-            "--channels=2",
-            "--period-size=256",
-            "--buffer-size=1024",
-            "--disable-resample",
-            "--disable-channels",
-            "--disable-format",
-            "--disable-softvol",
-            "--fatal-errors",
-            "--device",
-        ]
-        .into_iter()
-        .map(OsString::from)
-        .chain(std::iter::once(OsString::from(selected.alsa_target())))
-        .collect();
-        Ok(Self {
+        let mut arguments = Vec::with_capacity(ARGUMENTS.len() + 1);
+        for value in ARGUMENTS {
+            let mut argument = OsString::with_capacity(value.len());
+            argument.push(value);
+            arguments.push(argument);
+        }
+        // Qualified Linux OsString::from(String) transfers the byte Vec.
+        arguments.push(OsString::from(selected.alsa_target()));
+        let prepared = Self {
             selection: selected.clone(),
             arguments,
             attempted: false,
-        })
+        };
+        if let Some(derived) = super::startup_chime_workspace::derive(selected) {
+            if prepared.retained_backing_bytes() > derived {
+                return Err(WORKSPACE_DRIFT.into());
+            }
+        }
+        Ok(prepared)
     }
     pub(crate) fn retained_backing_bytes(&self) -> usize {
         self.selection.backing_bytes()

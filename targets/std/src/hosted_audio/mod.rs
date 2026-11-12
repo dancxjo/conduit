@@ -15,6 +15,7 @@ mod proof;
 mod staged;
 pub(crate) mod startup_chime;
 mod startup_chime_host;
+pub(crate) mod startup_chime_workspace;
 #[cfg(test)]
 pub(crate) use fake::FakePlaybackBehavior;
 
@@ -124,17 +125,11 @@ impl HostedPlaybackSelection {
     }
 
     pub fn pool_id(&self) -> ResourcePoolId {
-        ResourcePoolId::from(format!(
-            "std/audio/alsa/{}/card-{}/device-{}",
-            self.observation.base_identity, self.observation.card_id, self.observation.device
-        ))
+        ResourcePoolId::from(startup_chime_workspace::endpoint(self, "std/audio/alsa/"))
     }
 
     pub fn alsa_target(&self) -> String {
-        format!(
-            "hw:CARD={},DEV={}",
-            self.observation.card_id, self.observation.device
-        )
+        startup_chime_workspace::alsa_target(self)
     }
 
     pub fn resource_observation(&self, host_id: HostId, sign_id: SignId) -> ResourceObservation {

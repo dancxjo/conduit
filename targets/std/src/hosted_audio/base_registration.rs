@@ -1,7 +1,6 @@
 //! Non-authorizing provenance for an explicitly checked playback provider.
 use super::HostedPlaybackSelection;
 use conduit_core::{BaseEnforcementClass, BaseLifecycle, BaseProviderBinding, BaseProviderEntry};
-use std::fmt::Write;
 
 impl HostedPlaybackSelection {
     pub(crate) fn bind_source_base(&mut self, base_id: &str) {
@@ -24,16 +23,24 @@ impl HostedPlaybackSelection {
     pub(crate) fn checked_provider_binding(&self) -> Option<BaseProviderBinding> {
         let digest = self.executable_sha256?;
         let mut hex = String::with_capacity(64);
+        const HEX: &[u8; 16] = b"0123456789abcdef";
         for byte in digest {
-            write!(&mut hex, "{byte:02x}").expect("write provider identity to String");
+            hex.push(HEX[usize::from(byte >> 4)] as char);
+            hex.push(HEX[usize::from(byte & 15)] as char);
         }
-        let endpoint = format!(
-            "std/alsa-output/{}/card-{}/device-{}",
-            self.observation.base_identity, self.observation.card_id, self.observation.device
+        let endpoint = super::startup_chime_workspace::endpoint(self, "std/alsa-output/");
+        let mut instance = String::with_capacity(
+            endpoint
+                .len()
+                .checked_add(65)
+                .expect("provider identity length"),
         );
+        instance.push_str(&endpoint);
+        instance.push('/');
+        instance.push_str(&hex);
         Some(BaseProviderBinding {
             base_id: self.source_base_id.as_deref().unwrap_or(&endpoint).into(),
-            provider_instance_id: format!("{endpoint}/{hex}").into(),
+            provider_instance_id: instance.into(),
             provider_generation: self.offer_generation.0,
             implementation_id: conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION.into(),
             mechanism_family: if self.source_base_id.is_some() {
