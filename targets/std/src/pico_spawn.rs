@@ -93,6 +93,15 @@ impl PicoSpawnSocket {
         ProvisioningCarrier::UsbCdc.open(path)
     }
 
+    /// Check the independently pinned direct USB attachment of this same
+    /// claimed socket. This establishes neither membership nor a Ready Line.
+    #[cfg(target_os = "linux")]
+    pub fn verify_local_usb_serial(&self, expected: &str) -> Result<(), PicoSpawnTransportError> {
+        self.line
+            .verify_local_usb_serial(expected)
+            .map_err(Into::into)
+    }
+
     /// Deliver an already committed receipt over two bounded raw USB frames.
     /// Verification requires independent owner/member pins and actual observed
     /// equipment. Successful writes do not prove MCU acceptance or start Play.

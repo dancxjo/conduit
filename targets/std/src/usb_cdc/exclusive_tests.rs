@@ -44,6 +44,12 @@ fn write(fd: i32, bytes: &[u8]) {
 fn same_descriptor_claim_preserves_partial_decoder_and_releases_on_drop() {
     let (master, _slave, path) = pty();
     let mut line = NativePathCdcLine::open_forwarded_tty(&path, 64).unwrap();
+    assert_ne!(
+        unsafe { libc::fcntl(line.fd.0, libc::F_GETFD) } & libc::FD_CLOEXEC,
+        0
+    );
+    // A local PTY lock is not proof of a directly attached USB device.
+    assert!(line.verify_local_usb_serial("fixture/serial").is_err());
     let mut output = [0; 64];
     write(master.0, b"\0\x05ab");
     assert!(line
@@ -51,6 +57,7 @@ fn same_descriptor_claim_preserves_partial_decoder_and_releases_on_drop() {
         .is_err());
     line.claim_local_exclusive().unwrap();
     line.claim_local_exclusive().unwrap();
+    assert!(line.verify_local_usb_serial("fixture/serial").is_err());
     assert_eq!(open(&path).unwrap_err().raw_os_error(), Some(libc::EBUSY));
     write(master.0, b"cde");
     assert_eq!(

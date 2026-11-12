@@ -287,7 +287,7 @@ impl NativePathCdcLine {
         let fd = unsafe {
             libc::open(
                 path_c.as_ptr(),
-                libc::O_RDWR | libc::O_NOCTTY | libc::O_NONBLOCK,
+                libc::O_RDWR | libc::O_NOCTTY | libc::O_NONBLOCK | libc::O_CLOEXEC,
             )
         };
         if fd < 0 {

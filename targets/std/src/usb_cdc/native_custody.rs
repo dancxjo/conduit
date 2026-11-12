@@ -50,3 +50,7 @@ impl Drop for NativePathCdcLine {
 #[cfg(all(test, target_os = "linux"))]
 #[path = "exclusive_tests.rs"]
 mod tests;
+
+#[cfg(target_os = "linux")]
+#[path = "usb_attachment.rs"]
+mod usb_attachment;
