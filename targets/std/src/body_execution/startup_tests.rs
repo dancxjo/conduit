@@ -341,3 +341,44 @@ fn image_chime_retains_original_memory_custody_through_execution_and_report() {
     )
     .is_err());
 }
+
+#[test]
+fn committed_startup_cancelled_before_execution_cannot_sound() {
+    crate::hosted_audio::startup_chime::reset_test_attempts();
+    let (mut host, mut session) = fixture(FakePlaybackBehavior::Success);
+    let proposed = session.realization().unwrap().clone();
+    let ad = host.advertisement().clone();
+    let control = RunControl::default();
+    let report = host
+        .run_body_plan_with_committed_startup_to(
+            BodyRunRequest {
+                wake: &proposed.wake,
+                plan: &proposed.plan,
+                control: &control,
+                keyboard: None,
+            },
+            &mut Vec::new(),
+            &mut Timer,
+            None,
+            |play, wake| {
+                session
+                    .started(&ad.host_id, &ad.boot_id, play.clone(), wake.clone())
+                    .unwrap();
+                let proof =
+                    CommittedBodyStartup::from_retained(session.evidence(), &proposed.plan, play)?;
+                control
+                    .request_stop(
+                        crate::RunControlRequestId::new("fixture/cancel-after-commit").unwrap(),
+                    )
+                    .unwrap();
+                Ok(proof)
+            },
+        )
+        .unwrap();
+    assert!(matches!(
+        report.terminal,
+        TerminalDisposition::Cancelled { .. }
+    ));
+    assert_eq!(crate::hosted_audio::startup_chime::test_attempts(), 0);
+    assert!(report.startup_chimes.iter().all(|r| r.request.is_none()));
+}
