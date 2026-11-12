@@ -110,7 +110,6 @@ impl Drop for LiveForeTerminalGuard<'_> {
     }
 }
 
-#[derive(Debug)]
 /// Latest physical completion for each selected cue, scoped by this report's
 /// exact Body Play and node map. It does not attest that a speaker was heard.
 #[derive(Debug, Clone, Copy)]
@@ -121,6 +120,7 @@ pub struct StartupChimeCallReceipt {
     pub failure: Option<conduit_kernel::Failure>,
     pub kernel_accepted: bool,
 }
+#[derive(Debug)]
 pub struct BodyRunReport {
     pub startup_chimes: Vec<StartupChimeCallReceipt>,
     pub play: BodyPlayIdentity,
