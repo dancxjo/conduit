@@ -117,6 +117,10 @@ pub(super) fn offers() -> Vec<ImplementationOffer> {
             conduit_mcu_source_build::recording::BASE_KIND,
             crate::RECORDING_IMPLEMENTATION,
         ),
+        (
+            conduit_mcu_source_build::recording::BASE_KIND,
+            crate::RECORD_SERVICE_IMPLEMENTATION,
+        ),
         (crate::TM1637_BASE_KIND, crate::TM1637_IMPLEMENTATION),
     ]
     .into_iter()
