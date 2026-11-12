@@ -11,6 +11,10 @@ mod record_view_tests;
 mod computation;
 mod execution;
 mod fore;
+mod line_fore;
+pub use line_fore::*;
+#[cfg(test)]
+mod line_fore_tests;
 pub use fore::*;
 mod native;
 mod projection_template;

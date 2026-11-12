@@ -89,6 +89,7 @@ impl<'a> AssignedPlanRecords<'a> {
                 | ASSIGNED_KERNEL_PLAN_SCHEMA
                 | ASSIGNED_NATIVE_PLAN_SCHEMA
                 | crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                | crate::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
         ) {
             return Err(AssignedPlanRefusal::WrongSchema);
         }
