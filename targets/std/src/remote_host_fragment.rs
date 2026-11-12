@@ -319,6 +319,13 @@ impl StdHost {
             if staging > derived {
                 return Err("ledger clone exceeded its derived storage term".into());
             }
+            let reservation_requests = fragment
+                .runtime
+                .startup_reservation_request_bound(&self.kernel_resources)
+                .ok_or("closed reservation derivation is unsupported")?;
+            if reservation.closed_backing_bytes()? > reservation_requests {
+                return Err("reservation exceeded its derived constructor storage term".into());
+            }
         }
         Ok(RemoteStartupBacking {
             retained_bytes: retained,
@@ -362,7 +369,9 @@ impl StdHost {
             runtime,
             reservation: Some(reservation),
             resource_custody_epoch: self.kernel_resources.remote_backing_custody_epoch(),
-            identity: play.identity().clone(),
+            // The issued identity has no remaining owner here. Transfer its exact
+            // allocation instead of constructing an equivalent identity copy.
+            identity: play.identity,
             offer_generation: self.advertisement.offer_generation,
             body_time: None,
             clock_quality: None,

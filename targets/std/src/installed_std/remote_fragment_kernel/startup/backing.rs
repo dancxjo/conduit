@@ -148,6 +148,16 @@ pub(super) fn placement_clone_request_bound(
 }
 
 impl InstalledRemoteFragment {
+    pub(crate) fn startup_reservation_request_bound(
+        &self,
+        ledger: &crate::kernel_preparation::KernelResourceLedger,
+    ) -> Option<usize> {
+        ledger.closed_startup_reservation_request_bound(
+            &self.placements,
+            &self.lowered.identity.plan_id,
+        )
+    }
+
     /// Newly owned heap payload of this prepared runtime only. Inline caller
     /// storage, reservations, preparation workspace, process RSS and transport
     /// stores are separate. Unsupported state refuses; no grant is inferred.

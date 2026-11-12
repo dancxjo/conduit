@@ -180,6 +180,88 @@ impl PoolUsage {
     }
 }
 
+impl super::KernelResourceLedger {
+    /// Requested allocations owned by one closed startup reservation result.
+    /// This is a partial constructor term, not an admission/authority receipt.
+    /// Lowering, both staged ledger clones, exact-offer checks and error String
+    /// formatting have separate owners and must be added by the constructor.
+    /// This method borrows existing owners and never clones or reserves usage.
+    pub(crate) fn closed_startup_reservation_request_bound(
+        &self,
+        placements: &[conduit_core::PlannedGear],
+        plan_id: &conduit_core::PlanId,
+    ) -> Option<usize> {
+        use conduit_core::CapabilityId;
+        use core::mem::size_of;
+        if !cfg!(conduit_pinned_collection_layout) || placements.len() != 2 {
+            return None;
+        }
+        // Reuse the existing allocation-free qualification for quarantine and
+        // every live pool's unsupported compute/group ownership. Its number
+        // is intentionally not added: ledger staging is a distinct term.
+        self.closed_clone_request_bound()?;
+        let source = placements.iter().find(|p| {
+            p.implementation_id.as_str() == conduit_std_offers::BODY_WAKE_IMPLEMENTATION
+                && p.capability_id.as_str() == conduit_std_offers::BODY_WAKE_CAPABILITY
+        })?;
+        let sink = placements.iter().find(|p| {
+            p.implementation_id.as_str() == conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+                && p.capability_id.as_str() == conduit_std_offers::STARTUP_CHIME_CAPABILITY
+        })?;
+        if !source.resources.is_empty() || sink.resources.len() != 1 {
+            return None;
+        }
+        let binding = &sink.resources[0];
+        if binding.class_id.as_str() != conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS
+            || binding.units != 1
+            || binding.protected.is_some()
+            || binding.compute.is_some()
+            || binding.content.is_some()
+            || !self
+                .pools
+                .iter()
+                .any(|p| p.pool_id == binding.pool_id && p.class_id == binding.class_id)
+        {
+            return None;
+        }
+        // placement_resources.rs visits ledger rows, not placement rows. Prove
+        // exactly two rows will be pushed even if handed a malformed ledger.
+        for selected in [&source.capability_id, &sink.capability_id] {
+            if self
+                .instances
+                .iter()
+                .filter(|(id, _)| id == selected)
+                .count()
+                != 1
+            {
+                return None;
+            }
+        }
+        // prepare_and_reserve_partitions with exactly one borrowed partition:
+        // Vec::with_capacity(1), then its popped result is moved, not cloned.
+        let mut bytes = size_of::<super::KernelResourceReservation>();
+        // placement_resources.rs:14 starts Vec::new and pushes two instance
+        // rows. Pinned raw_vec.rs mincap is4 for this String/u16 tuple; assert
+        // the type range rather than silently transplanting a host layout.
+        let row = size_of::<(CapabilityId, u16)>();
+        if !(2..=1024).contains(&row) {
+            return None;
+        }
+        bytes = bytes.checked_add(4usize.checked_mul(row)?)?;
+        bytes = bytes.checked_add(source.capability_id.as_str().len())?;
+        bytes = bytes.checked_add(sink.capability_id.as_str().len())?;
+        // Lowered one-resource table -> Vec::with_capacity(1), semantic.clone.
+        // Plain ResourceBinding has exactly these two owned String leaves.
+        bytes = bytes.checked_add(size_of::<ResourceBinding>())?;
+        bytes = bytes.checked_add(binding.pool_id.as_str().len())?;
+        bytes = bytes.checked_add(binding.class_id.as_str().len())?;
+        bytes = bytes.checked_add(plan_id.as_str().len())?;
+        // Every clone is a length-sized slice allocation on the qualified
+        // library. The sum dominates every individual RawVec request.
+        (bytes <= isize::MAX as usize).then_some(bytes)
+    }
+}
+
 pub(super) fn requested_units(
     bindings: &[ResourceBinding],
     pool_id: &ResourcePoolId,
