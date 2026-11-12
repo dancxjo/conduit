@@ -231,3 +231,6 @@ impl Profile {
         ram
     }
 }
+
+#[cfg(feature = "canonical-frame")]
+pub mod frame;
