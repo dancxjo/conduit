@@ -15,9 +15,14 @@ mod continuation;
 pub use continuation::{ContinuationInstallTransportError, UnverifiedContinuationPrefix};
 mod basis;
 pub use basis::PicoSpawnAdmissionBasis;
+mod fore_carriage;
 mod member_return;
 mod offer_images;
 mod preparation;
+pub use fore_carriage::{
+    ForeCarriageBounds, ForeCarriageError, ForeCarriageFrame, PicoForeCarriage,
+    PreparedForeCarriage,
+};
 pub use member_return::{MemberReturnObservation, MemberReturnPresentation, PicoMemberReturnBasis};
 pub use offer_images::resolve_member_offer_images;
 pub use preparation::{
