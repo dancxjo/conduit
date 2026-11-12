@@ -78,6 +78,14 @@ impl<'a> PreparedFileSnapshot<'a> {
             buffer_len: 0,
         })
     }
+    /// Nested owned Rust heap backing only. `Self` (including both record/read
+    /// buffers and the prepared names) is inline and must be charged once by
+    /// its enclosing owner. The borrowed directory, descriptor, allocator overhead and
+    /// filesystem/platform storage are not owned heap backing of this value.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.record.retained_backing_bytes()
+    }
+
     /// Success follows file sync, non-replacing link, candidate removal and
     /// directory sync. Any attempted write is terminal for this preparation.
     /// An uncertain publication requires explicit Root reconciliation, not retry.

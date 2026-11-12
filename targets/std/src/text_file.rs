@@ -77,6 +77,15 @@ impl<'a> PreparedTextFile<'a> {
         })
     }
 
+    /// Nested owned Rust heap backing only. Inline `Self`/snapshot buffers must
+    /// be charged once by the enclosing owner; the borrowed directory, its file
+    /// descriptor, allocator overhead and filesystem storage remain separate.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.file
+            .retained_backing_bytes()?
+            .checked_add(self.reference.capacity())
+    }
+
     /// The reference becomes an output only after the actual file and directory
     /// publication boundary succeeds. Refusal never acknowledges a Save.
     pub fn publish(

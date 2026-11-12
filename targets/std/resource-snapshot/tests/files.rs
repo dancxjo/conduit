@@ -34,9 +34,12 @@ fn publishes_and_reopens_an_exact_generation_under_new_boot_authority_without_pl
     {
         let directory = root.directory();
         let mut operation = PreparedFileSnapshot::prepare(&directory, &write, &reference).unwrap();
+        let backing = operation.retained_backing_bytes().unwrap();
+        assert!(backing > 0);
         let (result, memory) =
             allocation_probe::observe(|| operation.publish(authority(&write), b"[]"));
         result.unwrap();
+        assert_eq!(operation.retained_backing_bytes(), Some(backing));
         assert_eq!((memory.allocations, memory.reallocations), (0, 0));
         assert!(matches!(
             operation.publish(authority(&write), b"[]"),
@@ -46,8 +49,11 @@ fn publishes_and_reopens_an_exact_generation_under_new_boot_authority_without_pl
     let (read, _) = fixture::placement("boot/two", false, 2);
     let directory = root.directory();
     let mut operation = PreparedFileSnapshot::prepare(&directory, &read, &reference).unwrap();
+    let backing = operation.retained_backing_bytes().unwrap();
+    assert!(backing > 0);
     let (_, memory) = allocation_probe::observe(|| {
         assert_eq!(operation.read(authority(&read)).unwrap(), b"[]");
+        assert_eq!(operation.retained_backing_bytes(), Some(backing));
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     assert_eq!(fs::read_dir(&root.path).unwrap().count(), 1);
