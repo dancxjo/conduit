@@ -291,12 +291,18 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
         sign_items: kernel.sign_items,
         sign_bytes: kernel.sign_bytes,
         host_call_slots: host_call_storage::slot_count(
-            kernel.nodes.len(), kernel.host_calls.iter().map(|call| call.call),
-        ).map_err(str::to_owned)?,
+            kernel.nodes.len(),
+            kernel.host_calls.iter().map(|call| call.call),
+        )
+        .map_err(str::to_owned)?,
         pending_host_call_slots: host_call_storage::pending_count(
             kernel.nodes.len(),
-            kernel.host_calls.iter().map(|call| (call.node, call.maximum_in_flight)),
-        ).map_err(str::to_owned)?,
+            kernel
+                .host_calls
+                .iter()
+                .map(|call| (call.node, call.maximum_in_flight)),
+        )
+        .map_err(str::to_owned)?,
         host_call_contracts: kernel
             .host_calls
             .iter()
