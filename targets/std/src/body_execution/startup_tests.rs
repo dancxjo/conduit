@@ -57,7 +57,7 @@ fn fixture(behavior: FakePlaybackBehavior) -> (StdHost, BodyLifecycleSession) {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: 8,
+            connection_byte_capacity: conduit_core::BOOL_ENCODED_LEN as u32,
             authority_grants: &[grant],
             protected_resource_grants: &[],
             line_offers: &[],
