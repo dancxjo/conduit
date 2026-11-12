@@ -212,6 +212,7 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     .map_err(|error| format!("installed physical catalogue refused: {error:?}"))?;
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_body_startup_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profiles)?;
     if include_dsp {
         // Keep shipped Types before other catalogs, as in the original full
@@ -486,6 +487,23 @@ mod tests {
             front.outputs()[1].value_kind.as_str(),
             conduit_face::SHOW_VALUE_KIND
         );
+    }
+    #[test]
+    fn ordinary_installed_source_resolves_the_canonical_body_startup_plot() {
+        let source = parse(include_str!("../../../plots/startup-chime/main.conduit")).unwrap();
+        let expanded = source.expand_entry_for_authoring().unwrap();
+        assert_eq!(expanded.expanded.gears.len(), 2);
+        assert_eq!(expanded.expanded.connections.len(), 1);
+        assert!(expanded
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == "body/wake"));
+        assert!(expanded
+            .expanded
+            .gears
+            .iter()
+            .any(|gear| gear.kind_id.as_str() == "sound/startup-chime"));
     }
 }
 
