@@ -9,6 +9,7 @@ pub(crate) use local_fore::LocalForeProvenance;
 mod bounded;
 pub use bounded::BoundedAssignedKernelTables;
 mod record_input;
+mod write_records;
 use boundary::endpoint;
 use k::scheduler::{
     AssignedConnectionTrack as Track, AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec,
