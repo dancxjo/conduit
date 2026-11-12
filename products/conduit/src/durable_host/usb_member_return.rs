@@ -24,6 +24,8 @@ pub(crate) fn return_usb(
         return Err("live return owner differs from the Seed's independent pin".into());
     }
     let mut custody = membership_receipt_custody::reserve(receipt_output)?;
+    let (next_basis_path, mut next_basis) =
+        membership_receipt_custody::reserve_return_basis(receipt_output)?;
     let timeout = Duration::from_secs(5);
     let mut socket = carrier
         .open(port.to_str().ok_or("USB path is not UTF-8")?)
@@ -72,11 +74,17 @@ pub(crate) fn return_usb(
         )
         .map_err(|e| format!("member returned; signed acknowledgement refused: {e:?}"))?;
     membership_receipt_custody::retain(&mut custody, &signed)?;
+    membership_receipt_custody::retain_return_basis(
+        &mut next_basis,
+        &basis,
+        &signed,
+        &observed.presentation.projection,
+    )?;
     socket
         .deliver_member_return(&signed, &basis, &observed.presentation.projection, timeout)
         .map_err(|e| {
             format!("return committed and receipt saved; USB delivery uncertain: {e:?}")
         })?;
-    println!("Owner committed the existing Part on the observed Boot; signed acknowledgement saved to {} and sent over USB. Device acceptance and Play are not confirmed.",receipt_output.display());
+    println!("Owner committed the existing Part on the observed Boot; signed acknowledgement saved to {} and sent over USB. Next public return basis: {}. Device acceptance and Play are not confirmed.",receipt_output.display(),next_basis_path.display());
     Ok(())
 }

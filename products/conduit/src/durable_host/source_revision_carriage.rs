@@ -234,6 +234,7 @@ pub(super) fn return_selected_basis_owned(
         .canonicalize()
         .map_err(|e| format!("selected return carrier path: {e}"))?;
     let mut receipt = membership_receipt_custody::reserve(receipt_output)?;
+    let (_, mut next_basis) = membership_receipt_custody::reserve_return_basis(receipt_output)?;
     let timeout = Duration::from_secs(5);
     let mut socket = carrier
         .open(canonical_port.to_str().ok_or("USB path is not UTF-8")?)
@@ -290,6 +291,12 @@ pub(super) fn return_selected_basis_owned(
         )
         .map_err(|e| format!("return committed; verify selected member receipt: {e:?}"))?;
     membership_receipt_custody::retain(&mut receipt, &signed).map_err(post_commit)?;
+    membership_receipt_custody::retain_return_basis(
+        &mut next_basis,
+        basis,
+        &signed,
+        &observed.presentation.projection,
+    )?;
     socket
         .deliver_member_return(&signed, basis, &observed.presentation.projection, timeout)
         .map_err(|e| {
