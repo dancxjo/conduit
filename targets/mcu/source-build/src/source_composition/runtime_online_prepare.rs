@@ -84,6 +84,10 @@
         }
         #[cfg(fore_carrier)]
         let hot = fore_hot.as_ref().ok_or("missing-fore-hot")?;
+        // The cold callback transfers these original exclusive loans once;
+        // it never returns a reborrow of its own FnMut capture storage.
+        #[cfg(fore_carrier)]
+        let mut carrier_inputs = Some((&mut *link, &mut fore_buffers));
         let prepared = crate::play::prepare(
             &*parts.workspace,
             context.into(),
@@ -131,7 +135,7 @@
                     None
                 }
             },
-            |approved, fore, profile| {
+            &mut |approved, fore, profile| {
                 #[cfg(not(fore_carrier))]
                 {
                     let _ = (approved, fore, profile);
@@ -140,13 +144,14 @@
                 #[cfg(fore_carrier)]
                 {
                     let cold = fore_cold.take().ok_or("missing-fore-cold")?;
+                    let (carrier_link, carrier_buffers) = carrier_inputs.take().ok_or("fore-carrier-already-transferred")?;
                     crate::play::fore::prepare_components(
                         &parts,
                         context,
                         hot,
                         cold,
-                        &mut *link,
-                        &mut fore_buffers,
+                        carrier_link,
+                        carrier_buffers,
                         approved,
                         fore.ok_or("missing-opaque-fore")?,
                         profile,

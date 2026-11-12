@@ -244,7 +244,6 @@ pub async fn run<'s>(
             let mut refusal_detail = heapless::String::<192>::new();
             // Caller-owned affine slots live in the original future storage.
             // Poll boundaries return only status, never another fat workset copy.
-            let mut prepared_slot = None;
             #[cfg(fore_carrier)]
             let mut fore_hot = None;
             #[cfg(fore_carrier)]
@@ -252,6 +251,8 @@ pub async fn run<'s>(
             #[cfg(fore_carrier)]
             let mut fore_buffers =
                 crate::play::fore::buffers().expect("funded installed Fore buffers");
+            // Retained loans drop before their caller-owned rows and backing.
+            let mut prepared_slot = None;
 
             crate::runtime::stack_checkpoint(3);
             let prepared_status = include!(concat!(
@@ -315,7 +316,7 @@ pub async fn run<'s>(
                             &face,
                             &held_pools,
                             append_output.len() + core::mem::size_of::<conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus>() + {
-                                #[cfg(fore_carrier)] { core::mem::size_of_val(&fore_hot) + core::mem::size_of_val(&fore_buffers) }
+                                #[cfg(fore_carrier)] { core::mem::size_of::<Option<crate::play::fore::installation::Hot>>() + core::mem::size_of::<crate::play::fore::Buffers>() }
                                 #[cfg(not(fore_carrier))] { 0 }
                             },
                             &mut started_slot,
@@ -382,8 +383,6 @@ pub async fn run<'s>(
                     loop {
                         core::hint::black_box(&arena);
                         core::hint::black_box(&prepared_slot);
-                        core::hint::black_box(&fore_hot);
-                        core::hint::black_box(&fore_buffers);
                         core::hint::black_box(reason);
                         Timer::after_secs(1).await;
                     }

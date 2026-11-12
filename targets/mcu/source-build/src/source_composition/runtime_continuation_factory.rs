@@ -162,7 +162,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
             contracts,
             diagnostic,
             None,
-            |_, _, _| Ok(None),
+            &mut |_, _, _| Ok(None),
         )
         .map_err(|error| refusal(diagnostic, "continuation-source-preparation", error))?;
         prepared_slot = Some(prepared);

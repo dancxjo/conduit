@@ -171,7 +171,9 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     contracts: &mut Option<execution_group::NativeContracts>,
     diagnostic: &mut heapless::String<192>,
     line: Option<fore::Selection<'a>>,
-    prepare_carrier: impl FnOnce(
+    // Borrow only cold callback dispatch; capturing its concrete generic type
+    // in this opaque return would also retain short Root/parts context borrows.
+    prepare_carrier: &mut dyn FnMut(
         &b::DelegatedBodyFragment<'w>,
         Option<&b::ApprovedBodyForePorts<FORE_PORTS>>,
         b::AssignedBodyPreparationProfile<'_>,
