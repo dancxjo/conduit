@@ -12,6 +12,10 @@ pub fn emit_to(out: &Path) -> std::io::Result<()> {
     for (name, source) in [
         ("runtime", include_str!("source_composition/runtime.rs")),
         (
+            "runtime_online_prepare",
+            include_str!("source_composition/runtime_online_prepare.rs"),
+        ),
+        (
             "play_continuation_bindings",
             include_str!("source_composition/play_continuation_bindings.rs"),
         ),
