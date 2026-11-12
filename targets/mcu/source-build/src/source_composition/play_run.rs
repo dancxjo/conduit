@@ -46,6 +46,11 @@ mod control {
     include!(concat!(env!("OUT_DIR"), "/source_play_control.rs"));
 }
 pub(super) use control::ReturnControl;
+mod carriage {
+    use super::*;
+    include!(concat!(env!("OUT_DIR"), "/source_play_carriage.rs"));
+}
+pub use carriage::Carriage;
 fn boundary(fore: c::AssignedForeRequirement) -> OwnedValueBoundary {
     OwnedValueBoundary {
         cord: k::CordId(fore.cord()),
@@ -128,8 +133,8 @@ fn rearm_archived(
 
 #[allow(clippy::too_many_arguments)]
 pub async fn run<'r, 'f>(
-    mut sampling: Box<crate::play::SamplingKernel<'r, 'f>>,
-    mut sampling_calls: crate::play::SamplingCalls,
+    sampling: &mut crate::play::SamplingKernel<'r, 'f>,
+    sampling_calls: &mut crate::play::SamplingCalls,
     mask: conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
     mut output: Box<crate::play::OutputKernel<'r, 'f>>,
     mut output_calls: NativeCalls<0>,
@@ -139,19 +144,22 @@ pub async fn run<'r, 'f>(
     evidence: StartedEvidence,
     arena: ImageMemoryLease<'_>,
     face: &conduit_environment_runtime::publication_face_custody::LocalPublicationFace,
-    link: &mut crate::transport::Link,
+    carriage: Carriage<'_, '_, '_, '_, '_>,
     activity: &conduit_mcu_host_runtime::native_runner::NativeActivity,
     append_output: &mut [u8],
     append_status: conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus,
-    mut control: Option<ReturnControl<'_, '_>>,
 ) -> ! {
     crate::runtime::stack_checkpoint(9);
     let inspection = inspection_state(&evidence);
     let delivery = RefCell::new(Delivery::Empty);
-    let mut sample_observer = SampleObserver {
-        inspection: &inspection,
-        status: append_status,
-    };
+    let (carriage, observer) = carriage.split();
+    let mut sample_observer = carriage::SampleObserverMode::new(
+        SampleObserver {
+            inspection: &inspection,
+            status: append_status,
+        },
+        observer,
+    );
     let fore = crate::workset::generated::output_layout::fore();
     // The independently checked output wrapper has exactly one input. Its
     // complete Frame ABI and local endpoint are validated before Start.
@@ -204,9 +212,13 @@ pub async fn run<'r, 'f>(
         #[cfg(record_service)]
         let result = {
             let mut service = conduit_mcu_host_runtime::native_runner::synchronous::Service::new(
-                &mut sampling_calls.service, append_output,
-            ).expect("pre-Start funded record-service output");
-            runner.run_with_sync_calls(&mut sampling_calls.base, &mut service).await
+                &mut sampling_calls.service,
+                append_output,
+            )
+            .expect("pre-Start funded record-service output");
+            runner
+                .run_with_sync_calls(&mut sampling_calls.base, &mut service)
+                .await
         };
         if let Some(event) = sampling.signs().events().last() {
             let _ = inspection.record(0, event);
@@ -380,26 +392,7 @@ pub async fn run<'r, 'f>(
             embassy_time::Timer::after_secs(1).await;
         }
     };
-    let inspect = async {
-        let mut response = inspection_buffer();
-        loop {
-            // The original complete arena remains reserved throughout local
-            // execution, including carrier interruptions and native failures.
-            core::hint::black_box(&arena);
-            link.connected().await;
-            let _ = control::serve(
-                &inspection,
-                face,
-                link,
-                &mut response,
-                &mut control,
-                activity,
-            )
-            .await;
-            link.reset();
-            embassy_time::Timer::after_millis(1).await;
-        }
-    };
+    let inspect = carriage.run(&inspection, face, activity, &arena);
     // Fairly poll the four independent actors. A carrier failure is handled
     // inside inspection; a provider fault stays inside its own runner.
     use core::{
