@@ -72,7 +72,6 @@ mod member_offers;
 mod member_return;
 #[path = "planning.rs"]
 mod planning;
-pub(crate) use fore_line_planning::ForeLineSelection;
 #[path = "remote_preparation.rs"]
 mod remote_preparation;
 #[path = "retained_planning.rs"]

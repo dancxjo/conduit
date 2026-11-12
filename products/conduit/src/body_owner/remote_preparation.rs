@@ -11,22 +11,6 @@ use conduit_embedded_build::{
 use std::collections::BTreeMap;
 
 impl Owner {
-    /// The installed File policy already prepared these immutable codebooks.
-    /// Neither the transport nor its challenge supplies Source or projections.
-    #[cfg(target_os = "linux")]
-    pub(crate) fn approve_selected_remote_workset(
-        &mut self,
-        member: &crate::durable_host::owner::MemberPresentationBasis,
-        challenge: &conduit_body::HostCommandChallenge<'_>,
-        limits: BodyFragmentProjectionLimits,
-    ) -> Result<(Vec<u8>, [u8; 64]), String> {
-        self.approve_selected_remote_workset_with_line_fore(
-            member,
-            challenge,
-            limits,
-            &BTreeMap::new(),
-        )
-    }
     /// Sessions are supplied by original native policy, never the challenge.
     #[cfg(target_os = "linux")]
     pub(crate) fn approve_selected_remote_workset_with_line_fore(

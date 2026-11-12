@@ -119,13 +119,48 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
     fore_line_planning::verify_current_member_line_selection(
         &owner, &source, &expanded, &boundary, &ad,
     );
+    // A native provider sees one complete sealed baseline before Wake. An IO
+    // or custody refusal must not publish a preliminary proposal or call it twice.
+    let before_provider = owner.session.evidence().clone();
+    let mut calls = 0;
+    let result = owner.plan_workset_with_source_boundaries_and_provider(
+        &[(&source, &expanded)],
+        &std::collections::BTreeMap::from([(resident(&expanded), boundary.clone())]),
+        &mut |partitions| {
+            calls += 1;
+            assert!(!partitions.is_empty());
+            for partition in partitions {
+                assert!(conduit_core::verify_plan(&partition.plan));
+                for fragment in &partition.plan.fragments {
+                    conduit_embedded_build::assigned_fore_inventory(
+                        &partition.plan,
+                        &fragment.fragment_id,
+                        16,
+                    )
+                    .unwrap();
+                }
+            }
+            Err("fixture/native-carrier-custody-refused".into())
+        },
+    );
+    assert_eq!(
+        result.unwrap_err(),
+        "fixture/native-carrier-custody-refused"
+    );
+    assert_eq!(calls, 1);
+    assert_eq!(owner.session.evidence(), &before_provider);
     let boundary_for_line_test = boundary.clone();
     owner
-        .plan_workset_with_source_boundaries(
+        .plan_workset_with_source_boundaries_and_provider(
             &[(&source, &expanded)],
             &std::collections::BTreeMap::from([(resident(&expanded), boundary)]),
+            &mut |_| {
+                calls += 1;
+                Ok(std::collections::BTreeMap::new())
+            },
         )
         .unwrap();
+    assert_eq!(calls, 2);
     let issuer = owner.prepare_current_member_carrier_receiver().unwrap();
     let member =
         crate::durable_host::owner::MemberPresentationBasis::new(credential.clone(), ad.clone())
