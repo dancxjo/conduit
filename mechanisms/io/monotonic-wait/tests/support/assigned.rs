@@ -39,7 +39,7 @@ fn assigned_timer_control(borrowed: bool, fore: u8) {
     );
     let fragment = &plan.fragments[0];
     let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
-    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&fragment).unwrap();
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment).unwrap();
     let bounds = e::EmbeddedImageBounds {
         maximum_nodes: 1,
         maximum_cords: 0,
@@ -120,7 +120,7 @@ fn assigned_timer_control(borrowed: bool, fore: u8) {
         let mut scope = fixture::scope();
         scope.capability_id = WAIT_CAPABILITY.into();
         scope.authority_contract_id = WAIT_AUTHORITY.into();
-        fixture::authorization(scope, &fragment, &active)
+        fixture::authorization(scope, fragment, &active)
     };
     fn bind(
         slot: &mut Option<ReadyMonotonicWaitBase<Provider>>,
