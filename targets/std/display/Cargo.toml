@@ -6,10 +6,11 @@ publish = false
 
 [features]
 default = []
-sdl = ["dep:conduit-face", "dep:conduit-human", "dep:conduitos", "dep:sdl2"]
+sdl = ["dep:conduit-face", "dep:conduit-human", "dep:conduit-semantic-catalog", "dep:conduitos", "dep:sdl2"]
 
 [dependencies]
 conduit-human = { path = "../../../semantics/human", optional = true }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, optional = true }
 conduit-face = { path = "../../../semantics/face", optional = true }
 conduitos = { path = "../../conduitos", default-features = false, optional = true }
 sdl2 = { version = "=0.38.0", default-features = false, optional = true }

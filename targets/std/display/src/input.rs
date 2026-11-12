@@ -1,5 +1,6 @@
 //! Finite acquisition of actual SDL window input; semantic routing stays in Mask.
 use crate::Scanout;
+pub(super) mod pointer;
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 use conduitos::product_bases::InitializedNativeOutput;
 use sdl2::{
@@ -14,6 +15,7 @@ pub enum NativeInput {
     /// The finite inspection allowance ended; queued events remain untouched.
     Pending,
     Key(KeyEvent),
+    Pointer(conduit_semantic_catalog::NormalizedPointerSample),
     Quit,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -23,8 +25,21 @@ pub enum NativeInputRefusal {
     NotPrepared,
     PreparationUnavailable,
     InvalidKey { scancode: Option<i32> },
+    InvalidPointer,
 }
 impl Scanout<'_> {
+    /// Actual settled input readiness, with no resource or interaction grant.
+    pub fn prepared_input(&self) -> Result<crate::PreparedNativeInput, NativeInputRefusal> {
+        if !self.input_ready {
+            return Err(NativeInputRefusal::NotPrepared);
+        }
+        self.input_owner
+            .as_ref()
+            .filter(|input| input.matches_display(&self.initialized))
+            .cloned()
+            .ok_or(NativeInputRefusal::Lost)
+    }
+
     /// Before Play, discard queued input from earlier window lifetimes. Each
     /// call inspects at most the supplied allowance. Readiness requires an
     /// actual empty SDL queue, not merely the end of a poll cycle. Preparation
@@ -39,7 +54,15 @@ impl Scanout<'_> {
             return Err(NativeInputRefusal::InvalidBound);
         }
         if self.input_ready {
-            return Ok(NativeInput::Idle);
+            if self
+                .input_owner
+                .as_ref()
+                .is_some_and(|input| input.is_live())
+            {
+                return Ok(NativeInput::Idle);
+            }
+            self.input_ready = false;
+            self.input_owner = None;
         }
         let queue = self
             .canvas
@@ -50,7 +73,16 @@ impl Scanout<'_> {
             .map_err(|_| NativeInputRefusal::PreparationUnavailable)?;
         for _ in 0..maximum_events {
             match events.poll_event() {
-                Some(Event::KeyDown { .. } | Event::KeyUp { .. }) => {}
+                Some(
+                    Event::KeyDown { .. }
+                    | Event::KeyUp { .. }
+                    | Event::MouseMotion { .. }
+                    | Event::MouseButtonDown { .. }
+                    | Event::MouseButtonUp { .. }
+                    | Event::FingerDown { .. }
+                    | Event::FingerUp { .. }
+                    | Event::FingerMotion { .. },
+                ) => {}
                 Some(event) => {
                     if let Some(input) = self.translate_input(event)? {
                         return Ok(input);
@@ -59,6 +91,10 @@ impl Scanout<'_> {
                 None => {
                     let pending: Vec<Event> = queue.peek_events(1);
                     if pending.is_empty() {
+                        self.pointer.prepare(events.mouse_state().left());
+                        self.input_owner = Some(crate::PreparedNativeInput::prepared(
+                            self.initialized.clone(),
+                        ));
                         self.input_ready = true;
                         return Ok(NativeInput::Idle);
                     }
@@ -84,7 +120,14 @@ impl Scanout<'_> {
                 return Ok(NativeInput::Idle);
             };
             match event {
-                Event::KeyDown { .. } | Event::KeyUp { .. } => {}
+                Event::KeyDown { .. }
+                | Event::KeyUp { .. }
+                | Event::MouseMotion { .. }
+                | Event::MouseButtonDown { .. }
+                | Event::MouseButtonUp { .. }
+                | Event::FingerDown { .. }
+                | Event::FingerUp { .. }
+                | Event::FingerMotion { .. } => {}
                 event => {
                     if let Some(input) = self.translate_input(event)? {
                         return Ok(input);
@@ -111,6 +154,13 @@ impl Scanout<'_> {
         }
         if !self.input_ready {
             return Err(NativeInputRefusal::NotPrepared);
+        }
+        if !self
+            .input_owner
+            .as_ref()
+            .is_some_and(|input| input.matches_display(&self.initialized))
+        {
+            return Err(NativeInputRefusal::Lost);
         }
         for _ in 0..maximum_events {
             let Some(event) = events.poll_event() else {
@@ -154,6 +204,17 @@ impl Scanout<'_> {
                 }
                 _ => Ok(None),
             },
+            event @ (Event::MouseMotion { window_id, .. }
+            | Event::MouseButtonDown { window_id, .. }
+            | Event::MouseButtonUp { window_id, .. })
+                if window_id == own_window =>
+            {
+                let (width, height) = self.initialized.window_size();
+                self.pointer
+                    .observe(&event, width, height)
+                    .map(|sample| sample.map(NativeInput::Pointer))
+                    .map_err(|_| NativeInputRefusal::InvalidPointer)
+            }
             Event::KeyDown {
                 window_id,
                 scancode,

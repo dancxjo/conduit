@@ -5,7 +5,9 @@
 #![cfg(feature = "sdl")]
 mod initialized;
 mod input;
+mod prepared_input;
 pub use input::{NativeInput, NativeInputRefusal};
+pub use prepared_input::{NativeInputClaimRefusal, NativeInputHostClaim, PreparedNativeInput};
 mod preparation;
 mod surface;
 use conduit_face::GraphicsScene;
@@ -31,6 +33,8 @@ pub struct Scanout<'a> {
     surface: Surface,
     live: bool,
     input_ready: bool,
+    input_owner: Option<PreparedNativeInput>,
+    pointer: input::pointer::Pointer,
     initialized: InitializedDisplay,
 }
 impl<'a> Scanout<'a> {
@@ -53,6 +57,8 @@ impl<'a> Scanout<'a> {
             surface,
             live: true,
             input_ready: false,
+            input_owner: None,
+            pointer: input::pointer::Pointer::default(),
             initialized,
         })
     }
@@ -109,6 +115,9 @@ impl<'a> Scanout<'a> {
     /// Revocation is terminal for this prepared scanout. Reacquisition requires
     /// a new preparation; device availability alone cannot restore authority.
     pub fn lose(&mut self) {
+        if let Some(input) = &self.input_owner {
+            input.revoke();
+        }
         self.initialized.revoke();
         self.live = false;
         self.surface.lose();
@@ -163,6 +172,9 @@ pub fn with_kmsdrm<T>(
     if !sdl2::hint::set("SDL_VIDEODRIVER", KMSDRM_DRIVER) {
         return Err("kmsdrm-driver-selection-refused".into());
     }
+    if !sdl2::hint::set("SDL_TOUCH_MOUSE_EVENTS", "1") {
+        return Err("touch-pointer-selection-refused".into());
+    }
     let sdl = sdl2::init()?;
     let video = sdl.video()?;
     if !is_kmsdrm_backend(video.current_video_driver()) {
@@ -177,6 +189,23 @@ pub fn with_kmsdrm<T>(
     let textures = canvas.texture_creator();
     let mut scanout = Scanout::prepare(&mut canvas, &textures, width, height)?;
     let mut events = sdl.event_pump()?;
+    let mut settled = false;
+    for _ in 0..16 {
+        match scanout
+            .prepare_input(&mut events, 16)
+            .map_err(|e| format!("input-preparation:{e:?}"))?
+        {
+            NativeInput::Idle => {
+                settled = true;
+                break;
+            }
+            NativeInput::Pending => (),
+            _ => return Err("input-preparation-lifetime-ended".into()),
+        }
+    }
+    if !settled {
+        return Err("input-preparation-event-pressure".into());
+    }
     run(&mut scanout, &mut events)
 }
 

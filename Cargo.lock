@@ -2294,6 +2294,7 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-human",
+ "conduit-semantic-catalog",
  "conduitos",
  "sdl2",
 ]
