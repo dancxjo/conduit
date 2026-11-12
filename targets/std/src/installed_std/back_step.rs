@@ -331,6 +331,8 @@ installed_step_dispatch!(
     AudioRenderDemand,
     AudioPlay,
     AudioTone,
+    StartupChime,
+    StartupSource,
     WavArtifact,
     PcmProfileConversion,
     MidiOutput,

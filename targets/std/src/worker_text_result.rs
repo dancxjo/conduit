@@ -33,6 +33,19 @@ pub(crate) struct WorkerTextBasis {
     play: ActivePlayIdentity,
 }
 impl WorkerTextBasis {
+    pub(crate) fn retained_backing_bytes(&self) -> Option<usize> {
+        [
+            self.source_document_id.0.capacity(),
+            self.checked_plot_id.0.capacity(),
+            self.play.active_play_id.0.capacity(),
+            self.play.plan_id.0.capacity(),
+            self.play.host_id.0.capacity(),
+            self.play.boot_id.0.capacity(),
+        ]
+        .into_iter()
+        .try_fold(0usize, usize::checked_add)
+    }
+
     pub(crate) fn new(plan: &PlanFragment, play: ActivePlayIdentity) -> Self {
         Self {
             source_document_id: plan.source_document_id.clone(),

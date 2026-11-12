@@ -5,6 +5,8 @@ use super::back::InstalledBack;
 impl InstalledBack {
     pub(super) fn allocation_capacity(&self) -> usize {
         match self {
+            Self::StartupChime(back) => back.retained_backing_bytes(),
+            Self::StartupSource(_) => core::mem::size_of::<[usize; 3]>(),
             Self::TemporalEvidence(back) => back.allocation_capacity(),
             Self::NativeU64Expression(back) => back.retained_capacity_bytes(),
             Self::LocalExpression(back) => back.output_capacity(),

@@ -213,3 +213,96 @@ impl KernelResourceLedger {
 #[cfg(test)]
 #[path = "staged_image_memory_tests.rs"]
 mod staged_tests;
+
+// Measurements of original prepared owners only; neither is an admission
+// receipt. In particular this does not fund preparation or enable preflight.
+impl KernelResourceReservation {
+    pub(crate) fn closed_backing_bytes(&self) -> Result<usize, String> {
+        let mut bytes = self.plan_id.0.capacity();
+        measured_add(&mut bytes, measured_vector(&self.bindings)?)?;
+        measured_add(&mut bytes, measured_vector(&self.instances)?)?;
+        for binding in &self.bindings {
+            if binding.compute.is_some() || binding.content.is_some() || binding.protected.is_some()
+            {
+                return Err("remote startup reservation has unsupported resource backing".into());
+            }
+            measured_add(&mut bytes, binding.pool_id.0.capacity())?;
+            measured_add(&mut bytes, binding.class_id.0.capacity())?;
+        }
+        for (id, _) in &self.instances {
+            measured_add(&mut bytes, id.0.capacity())?;
+        }
+        Ok(bytes)
+    }
+}
+impl KernelResourceLedger {
+    pub(crate) fn remote_backing_custody_epoch(&self) -> usize {
+        self.custody_epoch
+    }
+
+    /// Allocation-free bound before cloning. On the qualified library, Vec and
+    /// String clones reserve their lengths; the original capacities dominate
+    /// those requests. Shared IMAGE Arc storage is not allocated again.
+    pub(crate) fn closed_clone_request_bound(&self) -> Option<usize> {
+        if !cfg!(conduit_pinned_collection_layout) || self.retirement_hold.is_some() {
+            return None;
+        }
+        let mut bytes = self
+            .identity
+            .0
+             .0
+            .capacity()
+            .checked_add(self.identity.1 .0.capacity())?;
+        bytes = bytes.checked_add(
+            self.pools
+                .capacity()
+                .checked_mul(core::mem::size_of::<PoolUsage>())?,
+        )?;
+        bytes = bytes.checked_add(
+            self.instances
+                .capacity()
+                .checked_mul(core::mem::size_of::<(conduit_core::CapabilityId, u16)>())?,
+        )?;
+        for pool in &self.pools {
+            bytes = bytes.checked_add(pool.closed_backing_bytes()?)?;
+        }
+        for (id, _) in &self.instances {
+            bytes = bytes.checked_add(id.0.capacity())?;
+        }
+        Some(bytes)
+    }
+
+    /// Measure an actual staged clone, not an assumed Vec clone capacity.
+    /// The original IMAGE counter is shared and is not charged a second time.
+    pub(crate) fn closed_staging_backing_bytes(&self) -> Result<usize, String> {
+        self.require_available()?;
+        let staged = self.clone();
+        let mut bytes = staged.identity.0 .0.capacity();
+        measured_add(&mut bytes, staged.identity.1 .0.capacity())?;
+        measured_add(&mut bytes, measured_vector(&staged.pools)?)?;
+        measured_add(&mut bytes, measured_vector(&staged.instances)?)?;
+        for pool in &staged.pools {
+            measured_add(
+                &mut bytes,
+                pool.closed_backing_bytes()
+                    .ok_or("remote startup staging does not support compute/group backing")?,
+            )?;
+        }
+        for (id, _) in &staged.instances {
+            measured_add(&mut bytes, id.0.capacity())?;
+        }
+        Ok(bytes)
+    }
+}
+fn measured_add(total: &mut usize, value: usize) -> Result<(), String> {
+    *total = total
+        .checked_add(value)
+        .ok_or("remote startup backing overflow")?;
+    Ok(())
+}
+fn measured_vector<T>(values: &Vec<T>) -> Result<usize, String> {
+    values
+        .capacity()
+        .checked_mul(core::mem::size_of::<T>())
+        .ok_or_else(|| "remote startup vector backing overflow".into())
+}

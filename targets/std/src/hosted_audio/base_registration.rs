@@ -1,28 +1,71 @@
 //! Non-authorizing provenance for an explicitly checked playback provider.
 use super::HostedPlaybackSelection;
-use conduit_core::{BaseEnforcementClass, BaseLifecycle, BaseProviderEntry};
-use std::fmt::Write;
+use conduit_core::{BaseEnforcementClass, BaseLifecycle, BaseProviderBinding, BaseProviderEntry};
 
 impl HostedPlaybackSelection {
-    pub(crate) fn checked_base_entry(&self) -> Option<BaseProviderEntry> {
+    pub(crate) fn bind_source_base(&mut self, base_id: &str) {
+        self.source_base_id = Some(base_id.into());
+    }
+    pub(crate) fn backing_bytes(&self) -> usize {
+        let o = &self.observation;
+        self.boot_id.0.capacity()
+            + o.card_id.capacity()
+            + o.card_name.capacity()
+            + o.device_name.capacity()
+            + o.base_identity.capacity()
+            + self.source_base_id.as_ref().map_or(0, String::capacity)
+    }
+    pub(crate) fn executable_digest(&self) -> Option<[u8; 32]> {
+        self.executable_sha256
+    }
+    /// Exact provider identity without materializing capability advertisements.
+    /// This conveys no grant and does not observe or open the audio device.
+    pub(crate) fn checked_provider_binding(&self) -> Option<BaseProviderBinding> {
         let digest = self.executable_sha256?;
         let mut hex = String::with_capacity(64);
+        const HEX: &[u8; 16] = b"0123456789abcdef";
         for byte in digest {
-            write!(&mut hex, "{byte:02x}").expect("write provider identity to String");
+            hex.push(HEX[usize::from(byte >> 4)] as char);
+            hex.push(HEX[usize::from(byte & 15)] as char);
         }
-        let endpoint = format!(
-            "std/alsa-output/{}/card-{}/device-{}",
-            self.observation.base_identity, self.observation.card_id, self.observation.device
+        let endpoint = super::startup_chime_workspace::endpoint(self, "std/alsa-output/");
+        let mut instance = String::with_capacity(
+            endpoint
+                .len()
+                .checked_add(65)
+                .expect("provider identity length"),
         );
-        Some(BaseProviderEntry {
-            base_id: endpoint.clone().into(),
-            provider_instance_id: format!("{endpoint}/{hex}").into(),
+        instance.push_str(&endpoint);
+        instance.push('/');
+        instance.push_str(&hex);
+        Some(BaseProviderBinding {
+            base_id: self.source_base_id.as_deref().unwrap_or(&endpoint).into(),
+            provider_instance_id: instance.into(),
             provider_generation: self.offer_generation.0,
             implementation_id: conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION.into(),
-            mechanism_family: "std.base/alsa-playback@1".into(),
+            mechanism_family: if self.source_base_id.is_some() {
+                "audio/speaker"
+            } else {
+                "std.base/alsa-playback@1"
+            }
+            .into(),
             enforcement_class: BaseEnforcementClass::Cooperative,
+        })
+    }
+    pub(crate) fn checked_base_entry(&self) -> Option<BaseProviderEntry> {
+        let binding = self.checked_provider_binding()?;
+        Some(BaseProviderEntry {
+            base_id: binding.base_id,
+            provider_instance_id: binding.provider_instance_id,
+            provider_generation: binding.provider_generation,
+            implementation_id: binding.implementation_id,
+            mechanism_family: binding.mechanism_family,
+            enforcement_class: binding.enforcement_class,
             lifecycle: BaseLifecycle::Ready,
-            capabilities: vec![conduit_std_offers::audio_play_alsa_hw_offer()],
+            capabilities: vec![
+                conduit_std_offers::audio_play_alsa_hw_offer(),
+                conduit_std_offers::startup_chime_offer(),
+            ],
             resources: vec![conduit_core::resource_offer(
                 self.pool_id().as_str(),
                 conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS,
@@ -155,7 +198,11 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(offers.len(), 1);
         assert_eq!(offers[0].authority_requirements.len(), 1);
-        assert_eq!(base.capability_ids, vec![offers[0].capability_id.clone()]);
+        let chime = conduit_std_offers::startup_chime_offer();
+        assert!(ad.capabilities.contains(&chime));
+        let mut expected = vec![offers[0].capability_id.clone(), chime.capability_id];
+        expected.sort();
+        assert_eq!(base.capability_ids, expected);
         let before = host.advertisement().clone();
         assert!(host.attach_selected_playback(selected).is_err());
         assert_eq!(host.advertisement(), &before);

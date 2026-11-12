@@ -18,7 +18,7 @@ fn vector<T>(values: &Vec<T>) -> Result<usize, String> {
         .checked_mul(core::mem::size_of::<T>())
         .ok_or_else(|| "Body vector backing overflow".into())
 }
-fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
+pub(super) fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
     if !map.remote_endpoints.is_empty() {
         return Err("local IMAGE memory does not support external Fore/Line maps".into());
     }
@@ -64,12 +64,14 @@ fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
     }
     Ok(bytes)
 }
-fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
+pub(super) fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
     match driver {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
         InstalledBack::Creche(back) => Ok(back.retained_backing_bytes()),
+        InstalledBack::StartupSource(_) => Ok(driver.allocation_capacity()),
+        InstalledBack::StartupChime(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::Inactive | InstalledBack::SelectedNativeSource(_) => Ok(0),
         _ => Err("IMAGE memory receipt lacks a complete owned Back accounting".into()),
     }
@@ -113,6 +115,7 @@ impl BodyKernel<'_> {
         let mut ticks = 0;
         let mut sources = 0;
         let mut creches = 0;
+        let mut startups = 0;
         for (index, driver) in self.scheduler.drivers().iter().enumerate() {
             if matches!(driver, InstalledBack::SelectedNativeSource(_)) {
                 let route = self
@@ -141,6 +144,9 @@ impl BodyKernel<'_> {
                 )?;
                 creches += 1;
             }
+            if matches!(driver, InstalledBack::StartupSource(_)) {
+                startups += 1;
+            }
             if matches!(driver, InstalledBack::Tick(_)) {
                 ticks += 1;
             }
@@ -148,8 +154,9 @@ impl BodyKernel<'_> {
         }
         if sources > 1
             || creches > 1
-            || (creches == 1 && (ticks != 0 || sources != 0))
-            || (ticks == 0 && sources == 0 && creches == 0)
+            || startups > 1
+            || (creches == 1 && (ticks != 0 || sources != 0 || startups != 0))
+            || (ticks == 0 && sources == 0 && creches == 0 && startups == 0)
             || (self.creche.is_some() != (creches == 1))
             || (self.native_source.is_some() != (sources == 1))
         {
@@ -159,13 +166,16 @@ impl BodyKernel<'_> {
         }
         add(
             &mut bytes,
-            if sources == 1 || creches == 1 {
+            if sources == 1 || creches == 1 || startups == 1 {
                 self.fore.finite_one_shot_backing_bytes()
             } else {
                 self.fore.tick_backing_bytes()
             }
             .ok_or("IMAGE memory receipt does not support this Fore/input/live contract")?,
         )?;
+        for (_, output) in &self.startup_outputs {
+            add(&mut bytes, output.retained_backing_bytes())?;
+        }
         for host in &self.data_text_hosts {
             add(
                 &mut bytes,
@@ -195,6 +205,9 @@ impl BodyKernel<'_> {
             )?;
         }
         for count in [
+            vector(&self.startup_gates)?,
+            vector(&self.startup_outputs)?,
+            vector(&self.startup_receipts)?,
             vector(&self.activations)?,
             vector(&self.partitions)?,
             vector(&self.operations)?,

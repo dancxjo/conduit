@@ -83,6 +83,10 @@ pub const HOSTED_PLATFORM_VARIANTS: [HostedPlatformVariant; 4] = [
 fn package_catalog() -> PackageCatalogContribution {
     let mut implementations: BTreeMap<_, _> = conduit_std_offers::supported_nucleus_offers()
         .into_iter()
+        .chain([
+            conduit_std_offers::audio_play_alsa_hw_offer(),
+            conduit_std_offers::startup_chime_offer(),
+        ])
         .map(|offer| {
             let implementation = offer.implementation.implementation_id.as_str().to_owned();
             let mut prerequisites = offer
@@ -151,6 +155,18 @@ fn package_catalog() -> PackageCatalogContribution {
         dependencies: BTreeMap::from([
             creche_initialization::resource_dependency(),
             source_check_initialization::resource_dependency(),
+            (
+                PrerequisiteNode::Resource(
+                    conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS.into(),
+                ),
+                vec![PrerequisiteNode::Base("audio/speaker".into())],
+            ),
+            (
+                PrerequisiteNode::Base("audio/speaker".into()),
+                vec![PrerequisiteNode::Driver(
+                    conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION.into(),
+                )],
+            ),
             (
                 PrerequisiteNode::Resource("conduit.resource/timer-slot@1".into()),
                 vec![PrerequisiteNode::Base("timer/monotonic".into())],

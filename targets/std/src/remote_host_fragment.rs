@@ -18,6 +18,7 @@ use core::ops::{Deref, DerefMut};
 pub struct AdmittedRemoteFragment {
     runtime: InstalledRemoteFragment,
     reservation: Option<KernelResourceReservation>,
+    resource_custody_epoch: usize,
     identity: ActivePlayIdentity,
     offer_generation: conduit_core::OfferGeneration,
     body_time: Option<(BodyTimeRequirement, BodyHostTimeAdmission)>,
@@ -31,6 +32,15 @@ pub enum RemoteBodyTimeStepRefusal {
     NotQualified,
     Quality(BodyTimeQuality),
     Kernel(String),
+}
+
+/// Observed owned heap capacities, not an IMAGE/Root admission receipt.
+/// Caller storage, compilation/lowering workspace, transport and process RSS
+/// remain separate. This value cannot enable stepping or resource admission.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RemoteStartupBacking {
+    pub retained_bytes: usize,
+    pub ledger_staging_bytes: usize,
 }
 
 impl AdmittedRemoteFragment {
@@ -197,7 +207,7 @@ impl StdHost {
         &mut self,
         fragment: &mut AdmittedRemoteFragment,
         request: HostCallRequest,
-        cancelled: impl FnMut() -> bool,
+        cancelled: impl Fn() -> bool,
     ) -> Result<bool, String> {
         let advertisement = self.advertisement();
         if fragment.identity.host_id != advertisement.host_id
@@ -214,6 +224,24 @@ impl StdHost {
             self.microphone.as_mut(),
             cancelled,
         )
+    }
+
+    pub fn complete_remote_startup_host_call(
+        &mut self,
+        fragment: &mut AdmittedRemoteFragment,
+        request: HostCallRequest,
+        cancelled: impl Fn() -> bool,
+    ) -> Result<bool, String> {
+        let actual = self.advertisement();
+        if fragment.identity.host_id != actual.host_id
+            || fragment.identity.boot_id != actual.boot_id
+            || fragment.offer_generation != actual.offer_generation
+        {
+            return Err("remote startup belongs to another Host, Boot or generation".into());
+        }
+        fragment
+            .runtime
+            .complete_startup_host_call(request, cancelled)
     }
 
     pub fn complete_remote_voice_host_call<F>(
@@ -246,14 +274,75 @@ impl StdHost {
         )
     }
 
+    /// Measure original retained owners and an actual resource-ledger clone.
+    /// No reservation or IMAGE preflight guard is changed by this operation.
+    pub fn measure_remote_startup_backing(
+        &self,
+        fragment: &AdmittedRemoteFragment,
+    ) -> Result<RemoteStartupBacking, String> {
+        let ad = self.advertisement();
+        if fragment.resource_custody_epoch != self.kernel_resources.remote_backing_custody_epoch()
+            || fragment.identity.host_id != ad.host_id
+            || fragment.identity.boot_id != ad.boot_id
+            || fragment.offer_generation != ad.offer_generation
+        {
+            return Err("remote startup backing belongs to another Host/Boot/generation".into());
+        }
+        let reservation = fragment
+            .reservation
+            .as_ref()
+            .ok_or("remote startup reservation has been retired")?;
+        let mut retained = fragment.runtime.retained_startup_profile_backing_bytes()?;
+        for bytes in [
+            reservation.closed_backing_bytes()?,
+            fragment.identity.active_play_id.0.capacity(),
+            fragment.identity.plan_id.0.capacity(),
+            fragment.identity.host_id.0.capacity(),
+            fragment.identity.boot_id.0.capacity(),
+        ] {
+            retained = retained
+                .checked_add(bytes)
+                .ok_or("remote startup backing overflow")?;
+        }
+        if fragment.body_time.is_some()
+            || fragment.clock_quality.is_some()
+            || fragment.last_clock_sample.is_some()
+        {
+            return Err("remote startup backing does not cover Body time state".into());
+        }
+        let staging = self.kernel_resources.closed_staging_backing_bytes()?;
+        if cfg!(conduit_pinned_collection_layout) {
+            let derived = self
+                .kernel_resources
+                .closed_clone_request_bound()
+                .ok_or("closed ledger clone derivation is unsupported")?;
+            if staging > derived {
+                return Err("ledger clone exceeded its derived storage term".into());
+            }
+            let reservation_requests = fragment
+                .runtime
+                .startup_reservation_request_bound(&self.kernel_resources)
+                .ok_or("closed reservation derivation is unsupported")?;
+            if reservation.closed_backing_bytes()? > reservation_requests {
+                return Err("reservation exceeded its derived constructor storage term".into());
+            }
+        }
+        Ok(RemoteStartupBacking {
+            retained_bytes: retained,
+            ledger_staging_bytes: staging,
+        })
+    }
+
     pub fn prepare_remote_fragment(
         &mut self,
         fragment: &PlanFragment,
     ) -> Result<AdmittedRemoteFragment, String> {
-        let advertisement = self.advertisement().clone();
+        // The checked advertisement already belongs to this Host. Borrow it
+        // during synchronous preparation instead of copying the
+        // complete offer inventory into a second temporary owner.
         let reservation = self
             .kernel_resources
-            .prepare_and_reserve(&advertisement, fragment)?;
+            .prepare_and_reserve(&self.advertisement, fragment)?;
         let play = match self.issue_kernel_play(fragment) {
             Ok(play) => play,
             Err(error) => {
@@ -261,8 +350,8 @@ impl StdHost {
                 return Err(error);
             }
         };
-        let runtime = match InstalledRemoteFragment::prepare(
-            &advertisement,
+        let mut runtime = match InstalledRemoteFragment::prepare(
+            &self.advertisement,
             fragment,
             play.identity().play_sequence,
         ) {
@@ -272,11 +361,18 @@ impl StdHost {
                 return Err(error);
             }
         };
+        if let Err(error) = runtime.prepare_startup_outputs(self.playback.as_ref()) {
+            self.kernel_resources.release(reservation)?;
+            return Err(error);
+        }
         Ok(AdmittedRemoteFragment {
             runtime,
             reservation: Some(reservation),
-            identity: play.identity().clone(),
-            offer_generation: advertisement.offer_generation,
+            resource_custody_epoch: self.kernel_resources.remote_backing_custody_epoch(),
+            // The issued identity has no remaining owner here. Transfer its exact
+            // allocation instead of constructing an equivalent identity copy.
+            identity: play.identity,
+            offer_generation: self.advertisement.offer_generation,
             body_time: None,
             clock_quality: None,
             last_clock_sample: None,

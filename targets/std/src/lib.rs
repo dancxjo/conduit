@@ -200,7 +200,9 @@ pub use vision_ocr::{
     MAXIMUM_OCR_ITEMS,
 };
 mod remote_host_fragment;
-pub use remote_host_fragment::{AdmittedRemoteFragment, RemoteBodyTimeStepRefusal};
+pub use remote_host_fragment::{
+    AdmittedRemoteFragment, RemoteBodyTimeStepRefusal, RemoteStartupBacking,
+};
 #[cfg(test)]
 mod body_chat_tests;
 #[cfg(test)]
@@ -546,6 +548,8 @@ pub struct StdHost {
     terminal_attachment: Option<std::os::unix::net::UnixStream>,
     image_identity: Option<conduit_host_make::ImageBootIdentity>,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
+    // Drops after the speaker it funds, on the original IMAGE counter.
+    _playback_memory: Option<kernel_preparation::ImageMemoryLease>,
     wav_artifact: Option<hosted_wav_artifact::WavArtifactSelection>,
     speech_synthesis: Option<hosted_speech_synthesis::EspeakSpeechAdapter>,
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
@@ -922,6 +926,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1002,6 +1007,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1095,6 +1101,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1150,6 +1157,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1205,6 +1213,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1260,6 +1269,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1300,6 +1310,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1364,6 +1375,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: Some(playback),
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1423,6 +1435,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1471,6 +1484,7 @@ impl StdHost {
             advertisement,
             image_identity: Some(image_identity),
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1532,6 +1546,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: Some(playback),
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1604,6 +1619,11 @@ impl StdHost {
     /// Constructs the explicit grant shape for a caller that has independently
     /// authorized this exact selected playback capability. Merely constructing
     /// or discovering a host never calls this method.
+    /// Read current selected equipment; this issues no authority grant.
+    pub fn playback_selection(&self) -> Option<&hosted_audio::HostedPlaybackSelection> {
+        self.playback.as_ref()
+    }
+
     pub fn playback_authority_grant(
         &self,
         grant_id: &str,

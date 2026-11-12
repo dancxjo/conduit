@@ -3,7 +3,7 @@
 //! to the worker. Start is acknowledged after durable lifecycle publication.
 use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
 use conduit_body::{BodyPlayIdentity, Wake};
-use conduit_std_host::body_execution::BodyRunRequest;
+use conduit_std_host::body_execution::{BodyRunRequest, CommittedBodyStartup};
 #[path = "continuing/report.rs"]
 mod report;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
@@ -36,7 +36,7 @@ type WorkerOutcome = (
 pub(crate) struct RunWorker {
     control: RunControl,
     started: Receiver<(BodyPlayIdentity, Wake)>,
-    acknowledge: Option<SyncSender<Result<(), String>>>,
+    acknowledge: Option<SyncSender<Result<Option<CommittedBodyStartup>, String>>>,
     thread: Option<JoinHandle<WorkerOutcome>>,
     creche_controller: Receiver<conduit::creche_encounter::CrecheEncounterController>,
     creche_custody: Option<super::creche_route_custody::CrecheRouteCustody>,
@@ -269,6 +269,16 @@ impl Owner {
             .realization()
             .expect("Plan just committed")
             .clone();
+        let needs_startup = proposed
+            .plan
+            .plots
+            .iter()
+            .flat_map(|part| &part.plan.fragments)
+            .flat_map(|fragment| &fragment.placements)
+            .any(|placement| placement.kind_id.as_str() == "body/wake");
+        if needs_startup && creche_binding.is_some() {
+            return Err("startup source requires the committed startup observer, not a Crèche-only observer".into());
+        }
         let mut creche = self.take_creche_execution(creche_binding);
         let creche_custody = creche.as_ref().map(|run| run.custody.clone());
         let (creche_tx, creche_rx) = mpsc::sync_channel(1);
@@ -276,7 +286,8 @@ impl Owner {
         let control = RunControl::default();
         let worker_control = control.clone();
         let (started_tx, started_rx) = mpsc::sync_channel(1);
-        let (ack_tx, ack_rx) = mpsc::sync_channel(1);
+        let (ack_tx, ack_rx) =
+            mpsc::sync_channel::<Result<Option<CommittedBodyStartup>, String>>(1);
         let thread = thread::Builder::new()
             .name("conduit-body-play".into())
             .stack_size(BODY_PLAY_STACK_BYTES)
@@ -324,12 +335,25 @@ impl Owner {
                                 &mut output,
                                 &mut timer,
                                 &creche_tx,
-                                started,
+                                |p,w| started(p,w).map(|_|()),
                             ),
+                        None if needs_startup && host.image_identity().is_some() => {
+                            let inputs = ingress.as_ref().map(|i|std::slice::from_ref(i.input.input())).unwrap_or(&[]);
+                            host.run_selected_image_body_plan_with_committed_startup_to(
+                                request, inputs, &mut output, &mut timer,
+                                has_fore.then_some(&mut fore as &mut dyn conduit_std_host::body_execution::BodyForeOutputAdapter),
+                                |p,w| started(p,w)?.ok_or_else(|| "durable startup acknowledgment omitted evidence".to_string()),
+                            ).map(RunReport::Image)
+                        },
+                        None if needs_startup => host.run_body_plan_with_committed_startup_to(
+                            request, &mut output, &mut timer,
+                            has_fore.then_some(&mut fore as &mut dyn conduit_std_host::body_execution::BodyForeOutputAdapter),
+                            |p,w| started(p,w)?.ok_or_else(|| "durable startup acknowledgment omitted evidence".to_string()),
+                        ).map(RunReport::Reference),
                         None if ingress.is_some() => host
                             .run_selected_image_body_plan_with_retained_input_to_with_start(
                                 request, &ingress.as_ref().expect("selected ingress").input,
-                                &mut output, &mut timer, &mut fore, started,
+                                &mut output, &mut timer, &mut fore, |p,w| started(p,w).map(|_|()),
                             ).map(RunReport::Image),
                         None if host.image_identity().is_some() => host
                             .run_selected_image_body_plan_with_output_to_with_start(
@@ -337,14 +361,14 @@ impl Owner {
                                 &mut output,
                                 &mut timer,
                                 has_fore.then_some(&mut fore as &mut dyn conduit_std_host::body_execution::BodyForeOutputAdapter),
-                                started,
+                                |p,w| started(p,w).map(|_|()),
                             )
                             .map(RunReport::Image),
                         None if has_fore => host.run_body_plan_with_fore_to_with_start(
-                            request, &[], false, &mut fore, &mut output, &mut timer, started,
+                            request, &[], false, &mut fore, &mut output, &mut timer, |p,w| started(p,w).map(|_|()),
                         ).map(RunReport::Reference),
                         None => host
-                            .run_body_plan_to_with_start(request, &mut output, &mut timer, started)
+                            .run_body_plan_to_with_start(request, &mut output, &mut timer, |p,w| started(p,w).map(|_|()))
                             .map(RunReport::Reference),
                     };
                     let _ = finished.send(());
@@ -415,6 +439,15 @@ impl Owner {
                     "failure":report.failure, "kernel_failure":report.kernel_failure.map(|failure| serde_json::json!({
                         "code":failure.code.as_str(), "detail":failure.detail,
                     })),
+                    "startup_chimes":report.startup_chimes.iter().map(|cue|serde_json::json!({
+                        "node":cue.node.0,"request":cue.request.map(|r|r.0),
+                        "outcome":cue.disposition.map(|d|match d {
+                            conduit_kernel::HostCallDisposition::Completed=>"completed",conduit_kernel::HostCallDisposition::Denied=>"denied",
+                            conduit_kernel::HostCallDisposition::Failed=>"failed",conduit_kernel::HostCallDisposition::Cancelled=>"cancelled",
+                        }).unwrap_or("not-requested"),
+                        "failure":cue.failure.map(|f|serde_json::json!({"code":f.code.as_str(),"detail":f.detail})),
+                        "kernel_accepted":cue.kernel_accepted,"speaker_heard_claimed":false,
+                    })).collect::<Vec<_>>(),
                     "cleanup_failure":report.cleanup_failure,
                     "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
                     "terminal_sign":report.terminal_sign,
@@ -458,11 +491,37 @@ impl RunWorker {
         }
         match self.started.try_recv() {
             Ok((play, wake)) => {
-                let result = owner.retain_started(root, play, wake);
+                let result = owner.retain_started(root, play, wake).and_then(|()| {
+                    let realization = owner
+                        .session
+                        .realization()
+                        .ok_or("retained Started has no realization")?;
+                    let needs_startup = realization
+                        .plan
+                        .plots
+                        .iter()
+                        .flat_map(|part| &part.plan.fragments)
+                        .flat_map(|fragment| &fragment.placements)
+                        .any(|placement| placement.kind_id.as_str() == "body/wake");
+                    if !needs_startup {
+                        return Ok(None);
+                    }
+                    let play = realization
+                        .play
+                        .as_ref()
+                        .ok_or("retained Started has no Play")?;
+                    CommittedBodyStartup::from_retained(
+                        owner.session.evidence(),
+                        &realization.plan,
+                        play,
+                    )
+                    .map(Some)
+                });
+                let status = result.as_ref().map(|_| ()).map_err(Clone::clone);
                 if let Some(acknowledge) = self.acknowledge.take() {
-                    let _ = acknowledge.send(result.clone());
+                    let _ = acknowledge.send(result);
                 }
-                result?;
+                status?;
             }
             Err(TryRecvError::Empty | TryRecvError::Disconnected) => {}
         }

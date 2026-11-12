@@ -288,6 +288,7 @@ fn node(
 fn report(terminal: TerminalDisposition) -> BodyRunReport {
     let wake = wake();
     BodyRunReport {
+        startup_chimes: Vec::new(),
         play: BodyPlayIdentity {
             active_play_id: "play/test".into(),
             body_id: wake.body_id.clone(),

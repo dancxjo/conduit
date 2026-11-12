@@ -45,8 +45,20 @@ mod native_source;
 mod preparation_body;
 pub(crate) use native_source::NativeBodySource;
 pub(crate) mod memory;
+pub(super) fn remote_identity_backing(map: &KernelIdentityMap) -> Result<usize, String> {
+    memory::identities(map)
+}
+pub(super) fn remote_driver_backing(back: &InstalledBack) -> Result<usize, String> {
+    memory::back_bytes(back)
+}
 
 pub(crate) struct BodyKernel<'a> {
+    startup_receipts: Vec<crate::body_execution::StartupChimeCallReceipt>,
+    startup_gates: Vec<super::startup_source_back::StartupGate>,
+    startup_outputs: Vec<(
+        conduit_kernel::NodeId,
+        crate::hosted_audio::startup_chime::PreparedChimeOutput,
+    )>,
     terminal_events: Option<Vec<KernelEvent>>,
     error_diagnostic: Option<diagnostic::Diagnostic>,
     cleanup_diagnostic: Option<diagnostic::Diagnostic>,
@@ -76,6 +88,7 @@ pub(crate) struct BodyKernel<'a> {
 }
 
 pub(crate) struct BodyKernelResult {
+    pub startup_chimes: Vec<crate::body_execution::StartupChimeCallReceipt>,
     pub terminal: TerminalDisposition,
     pub failure: Option<String>,
     pub kernel_failure: Option<Failure>,
@@ -476,7 +489,7 @@ impl<'a> BodyKernel<'a> {
         let mut kernel_failure = None;
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
-            loop {
+            'body_run: loop {
                 if !cancelling && !control.stop_requested() {
                     self.poll_creche(creche.as_deref_mut())?;
                 }
@@ -691,6 +704,53 @@ impl<'a> BodyKernel<'a> {
                                     format_args!("Body request value: {error:?}"),
                                 )
                             })?;
+                    if operation.contract_id.as_str() == conduit_std_offers::STARTUP_CHIME_OPERATION
+                    {
+                        let Some(InstalledBack::StartupChime(back)) =
+                            self.scheduler.drivers().get(usize::from(request.node.0))
+                        else {
+                            return Err(
+                                "startup Host Call does not belong to the exact selected Back"
+                                    .into(),
+                            );
+                        };
+                        let output = self
+                            .startup_outputs
+                            .iter_mut()
+                            .find(|(node, _)| *node == request.node)
+                            .map(|(_, output)| output)
+                            .ok_or("startup Host Call has no prepared checked speaker")?;
+                        let receipt = self
+                            .startup_receipts
+                            .iter_mut()
+                            .find(|r| r.node == request.node)
+                            .ok_or("startup receipt has no admitted slot")?;
+                        if receipt
+                            .request
+                            .is_some_and(|prior| prior.0 >= request.request.0)
+                        {
+                            return Err(
+                                "stale startup request cannot overwrite terminal evidence".into()
+                            );
+                        }
+                        let outcome = output.execute(input, back.pcm(), control);
+                        receipt.request = Some(request.request);
+                        receipt.disposition = Some(outcome.disposition);
+                        receipt.failure = outcome.failure;
+                        receipt.kernel_accepted = false;
+                        if outcome.disposition == HostCallDisposition::Cancelled
+                            && control.stop_requested()
+                        {
+                            // No further queued Host effects may start. Preserve the
+                            // actual outcome, then retire the pending request normally.
+                            continue 'body_run;
+                        }
+                        self.scheduler
+                            .complete_host_call(request.node, request.request, outcome)
+                            .map_err(|error| format!("startup Host Call completion: {error:?}"))?;
+                        receipt.kernel_accepted = true;
+                        continue;
+                    }
                     if data_text::is_file(&operation.contract_id) {
                         let source = self
                             .data_text_hosts
@@ -1274,6 +1334,7 @@ impl<'a> BodyKernel<'a> {
         let each_output_completion_failed = self.scheduler.drivers().iter().any(|driver| matches!(driver,InstalledBack::BodyEach(each) if each.output_completion_failed()));
         let (fore_deliveries, fore_pending_output) = self.fore.into_custody();
         BodyKernelResult {
+            startup_chimes: self.startup_receipts,
             terminal,
             failure,
             kernel_failure,
@@ -1347,3 +1408,93 @@ mod parsec_live_fore_tests;
 #[cfg(test)]
 #[path = "body_kernel/parsec_instruction_source_tests.rs"]
 mod parsec_instruction_source_tests;
+
+impl BodyKernel<'_> {
+    pub(crate) fn requires_startup(&self) -> bool {
+        !self.startup_gates.is_empty()
+    }
+    pub(crate) fn bind_startup(
+        &self,
+        startup: Option<&crate::body_execution::CommittedBodyStartup>,
+    ) -> Result<(), String> {
+        if self.startup_gates.is_empty() {
+            return Ok(());
+        }
+        let startup =
+            startup.ok_or("body/wake requires the exact durable Started acknowledgment")?;
+        let eligible = startup.eligible(conduit_body::StartupScope::Wake);
+        for gate in &self.startup_gates {
+            gate.bind(eligible)?;
+        }
+        Ok(())
+    }
+}
+
+impl BodyKernel<'_> {
+    pub(crate) fn prepare_startup_outputs(
+        &mut self,
+        parts: &[BodyPlotPlan],
+        selected: Option<&crate::hosted_audio::HostedPlaybackSelection>,
+    ) -> Result<(), String> {
+        let count = parts
+            .iter()
+            .flat_map(|p| &p.plan.fragments)
+            .flat_map(|f| &f.placements)
+            .filter(|p| {
+                p.implementation_id.as_str() == conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+            })
+            .count();
+        if count == 0 {
+            return Ok(());
+        }
+        let mut outputs = Vec::new();
+        outputs
+            .try_reserve_exact(count)
+            .map_err(|_| "startup output preparation capacity")?;
+        for part in parts {
+            for fragment in &part.plan.fragments {
+                let map = self
+                    .partitions
+                    .iter()
+                    .find(|m| {
+                        m.fragment_id == fragment.fragment_id && m.plan_id == fragment.plan_id
+                    })
+                    .ok_or("startup fragment identity missing")?;
+                for placement in &fragment.placements {
+                    if placement.implementation_id.as_str()
+                        != conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION
+                    {
+                        continue;
+                    }
+                    super::startup_chime_back::validate(placement)?;
+                    let node = map
+                        .node_for_placement(&placement.placement_id)
+                        .ok_or("startup placement missing")?;
+                    if usize::from(node.0) >= MAX_NODES || outputs.iter().any(|(id, _)| *id == node)
+                    {
+                        return Err("duplicate or unbounded startup speaker placement".into());
+                    }
+                    outputs.push((
+                        node,
+                        crate::hosted_audio::startup_chime::PreparedChimeOutput::prepare(
+                            placement, selected,
+                        )?,
+                    ));
+                }
+            }
+        }
+        let receipts = outputs
+            .iter()
+            .map(|(node, _)| crate::body_execution::StartupChimeCallReceipt {
+                node: *node,
+                request: None,
+                disposition: None,
+                failure: None,
+                kernel_accepted: false,
+            })
+            .collect();
+        self.startup_receipts = receipts;
+        self.startup_outputs = outputs;
+        Ok(())
+    }
+}

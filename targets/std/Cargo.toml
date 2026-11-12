@@ -149,3 +149,6 @@ ort-sys = { version = "=2.0.0-rc.12", default-features = false, features = ["std
 name = "conduit-native-model-worker"
 path = "src/bin/conduit-native-model-worker.rs"
 required-features = ["native-model-backing"]
+
+[build-dependencies]
+sha2 = "0.10"

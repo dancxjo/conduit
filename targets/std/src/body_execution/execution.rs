@@ -45,6 +45,7 @@ impl StdHost {
         W: Write,
         T: TimerAdapter,
         F,
+        S,
     >(
         &mut self,
         request: BodyRunRequest<'_>,
@@ -65,7 +66,8 @@ impl StdHost {
         mut image_result: Option<&mut Option<crate::kernel_preparation::ImageMemoryLease>>,
     ) -> Result<BodyRunReport, String>
     where
-        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<S, String>,
+        S: StartupAcknowledgmentValue,
     {
         let selected_memory = image_result.is_some();
         if selected_memory
@@ -164,6 +166,10 @@ impl StdHost {
                 self.selected_text_file.as_ref(),
             )?
         };
+        if kernel.requires_startup() && !S::PROVIDES_STARTUP {
+            return Err("body/wake requires a committed startup observer before Play".into());
+        }
+        kernel.prepare_startup_outputs(&request.plan.plots, self.playback.as_ref())?;
         kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
         if let Some(terminal) = &terminal {
             kernel.attach_parsec_terminal(
@@ -245,12 +251,22 @@ impl StdHost {
                     .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
                 (wake_at_start, sign(2))
             };
-            if let Err(error) = started(&play, &wake_at_start) {
-                if let Some(queue) = live_queue {
-                    queue.mark_play_terminal();
+            let acknowledged: BodyStartedAcknowledgment = match started(&play, &wake_at_start) {
+                Ok(value) => value.into(),
+                Err(error) => {
+                    if let Some(queue) = live_queue {
+                        queue.mark_play_terminal();
+                    }
+                    return Err(error);
                 }
-                return Err(error);
-            }
+            };
+            let startup = match &acknowledged {
+                BodyStartedAcknowledgment::LifecycleOnly => None,
+                BodyStartedAcknowledgment::CommittedStartup(committed) => {
+                    Some(committed.for_play(request.plan, &play)?)
+                }
+            };
+            kernel.bind_startup(startup)?;
             if let Some(owner) = creche.as_deref_mut() {
                 owner.confirm_started(&self.advertisement, &play)?;
             }
@@ -281,6 +297,7 @@ impl StdHost {
                 queue.mark_play_terminal();
             }
             Ok(BodyRunReport {
+                startup_chimes: result.startup_chimes,
                 play,
                 wake_at_start,
                 terminal: result.terminal,

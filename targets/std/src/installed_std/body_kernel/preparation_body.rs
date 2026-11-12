@@ -97,6 +97,7 @@ impl<'a> BodyKernel<'a> {
                 .as_ref()
                 .is_some_and(|source| source.matches_call(operation.node, operation.call))
                 && !scalar_math::supports(operation)
+                && operation.contract_id.as_str() != conduit_std_offers::STARTUP_CHIME_OPERATION
                 && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
@@ -280,8 +281,18 @@ impl<'a> BodyKernel<'a> {
                     })
                 }),
         )?;
+        let startup_gates = drivers
+            .iter()
+            .filter_map(|back| match back {
+                InstalledBack::StartupSource(source) => Some(source.gate.clone()),
+                _ => None,
+            })
+            .collect();
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
+            startup_gates,
+            startup_outputs: Vec::new(),
+            startup_receipts: Vec::new(),
             terminal_events: None,
             error_diagnostic: None,
             cleanup_diagnostic: None,

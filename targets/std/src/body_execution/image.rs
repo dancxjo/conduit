@@ -104,6 +104,36 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
+        self.run_image_with_start_ack(request, inputs, output, timer, fore, started)
+    }
+    /// Preserve the IMAGE backing lease while forwarding exact committed startup evidence.
+    pub fn run_selected_image_body_plan_with_committed_startup_to<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &[ExternalForeInput],
+        output: &mut W,
+        timer: &mut T,
+        fore: Option<&mut dyn BodyForeOutputAdapter>,
+        started: F,
+    ) -> Result<ImageBodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<CommittedBodyStartup, String>,
+    {
+        self.run_image_with_start_ack(request, inputs, output, timer, fore, started)
+    }
+    fn run_image_with_start_ack<W: Write, T: TimerAdapter, F, S>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &[ExternalForeInput],
+        output: &mut W,
+        timer: &mut T,
+        fore: Option<&mut dyn BodyForeOutputAdapter>,
+        started: F,
+    ) -> Result<ImageBodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<S, String>,
+        S: StartupAcknowledgmentValue,
+    {
         if !inputs.is_empty() && fore.is_none() {
             return Err("selected IMAGE finite ingress requires an output adapter".into());
         }

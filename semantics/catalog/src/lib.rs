@@ -572,3 +572,8 @@ pub use resonator_projection_preparation::*;
 mod resonator_projection_report;
 #[cfg(feature = "plot-catalog")]
 pub use resonator_projection_report::*;
+
+#[cfg(feature = "kernel-step")]
+mod startup_chime_back;
+#[cfg(feature = "kernel-step")]
+pub use startup_chime_back::StartupChimeBack;

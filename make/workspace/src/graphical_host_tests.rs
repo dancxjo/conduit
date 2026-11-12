@@ -298,3 +298,42 @@ fn shipped_graphical_sources_declare_exact_native_mask_prerequisites() {
         }
     }
 }
+
+#[test]
+fn pi5_graphical_construction_keeps_exact_target_and_finite_scanout() {
+    use conduit_linear_framebuffer_make::CheckedScanoutInitialization;
+    let source = PI3
+        .replace("raspberry-pi-3-model-b-plus-rev-1.3", "raspberry-pi-5-model-b-rev-1.1-8gb")
+        .replace(
+            "implementation: \"display/linear-framebuffer@1\"}",
+            "implementation: \"display/linear-framebuffer@1\", initialization: {backend: \"KMSDRM\", width: 1024, height: 600}}",
+        );
+    let check = |source: &str| {
+        check_host_configuration(
+            parse_host_configuration_conduit(source).unwrap(),
+            &super::catalog(),
+            &super::package_set(),
+        )
+    };
+    let checked = check(&source).expect("Pi5 closes the existing native display provider");
+    assert_eq!(
+        checked.profile().target.key(),
+        conduit_host_raspberry_pi::PI5_AARCH64_TARGET
+    );
+    assert!(checked
+        .profile()
+        .presenters
+        .iter()
+        .any(|presenter| { presenter.implementation == "presenter/native-graphical@1" }));
+    let scanout = CheckedScanoutInitialization::from_configuration(&checked).unwrap();
+    assert_eq!((scanout.width(), scanout.height()), (1024, 600));
+    assert_eq!(scanout.surface_bytes(), 2_457_600);
+    for invalid in [
+        source.replace("raspberry-pi-5-model-b-rev-1.1-8gb", "unsupported-board"),
+        source.replace("KMSDRM", "wayland"),
+        source.replace("height: 600", "height: 4097"),
+        source.replace("display/linear-framebuffer@1", "browser/dom@1"),
+    ] {
+        assert!(check(&invalid).is_err());
+    }
+}

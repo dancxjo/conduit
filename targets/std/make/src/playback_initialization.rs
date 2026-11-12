@@ -80,4 +80,50 @@ mod tests {
             assert!(checked(&invalid).is_err());
         }
     }
+    #[test]
+    fn startup_chime_make_selects_the_declared_speaker_without_granting_playback() {
+        let source = source().replace("  limits =", r#"  capability = {kind: "sound/startup-chime", pinned_implementation: "std/kernel-startup-chime@1"}
+  capability = {kind: "body/wake", pinned_implementation: "std/kernel-body-wake@1"}
+  need = {id: "fixture/speaker", class: "conduit.resource/audio-playback-alsa-hw@1", slots: 1, bytes: 1}
+  limits ="#);
+        let checked = checked(&source).unwrap();
+        let packages = MakePackageSet::compose(&[&crate::HostedMakePackage]).unwrap();
+        let catalog = MakeCatalog::canonical().with_packages(&packages);
+        let (image, _) = build_default_host_image(
+            checked.profile().clone(),
+            &catalog,
+            &packages,
+            &BuildInputs {
+                source_identity: "fixture/chime-source".into(),
+                toolchain_available: true,
+            },
+        )
+        .unwrap();
+        assert!(image
+            .manifest
+            .implementations
+            .iter()
+            .any(|id| id == conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION));
+        assert!(image
+            .manifest
+            .host_calls
+            .iter()
+            .any(|id| id == conduit_std_offers::STARTUP_CHIME_OPERATION));
+        assert!(image
+            .manifest
+            .base_selections
+            .iter()
+            .any(|base| base.kind == "audio/speaker"
+                && base.driver == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION));
+        // IMAGE describes finite equipment and code, not independently issued grants.
+        assert_eq!(
+            image
+                .manifest
+                .resource_budgets
+                .iter()
+                .filter(|r| r.id == "fixture/speaker")
+                .count(),
+            1
+        );
+    }
 }

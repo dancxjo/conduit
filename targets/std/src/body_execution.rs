@@ -47,6 +47,9 @@ mod creche;
 #[cfg(test)]
 mod creche_tests;
 mod execution;
+mod startup;
+use startup::StartupAcknowledgmentValue;
+pub use startup::{BodyStartedAcknowledgment, CommittedBodyStartup};
 mod fore;
 mod fore_custody;
 pub use fore_custody::{
@@ -107,8 +110,21 @@ impl Drop for LiveForeTerminalGuard<'_> {
     }
 }
 
+/// Latest physical completion for each selected cue, scoped by this report's
+/// exact Body Play and node map. It does not attest that a speaker was heard.
+#[derive(Debug, Clone, Copy)]
+pub struct StartupChimeCallReceipt {
+    pub node: conduit_kernel::NodeId,
+    pub request: Option<conduit_kernel::RequestId>,
+    pub disposition: Option<conduit_kernel::HostCallDisposition>,
+    pub failure: Option<conduit_kernel::Failure>,
+    /// A normal Host Call completion was accepted. Global RunCancelled retires
+    /// pending calls without a completion and leaves this false.
+    pub kernel_accepted: bool,
+}
 #[derive(Debug)]
 pub struct BodyRunReport {
+    pub startup_chimes: Vec<StartupChimeCallReceipt>,
     pub play: BodyPlayIdentity,
     /// Historical lifecycle record at start, not a current liveness claim.
     pub wake_at_start: Wake,
@@ -404,3 +420,37 @@ mod tests {
         );
     }
 }
+
+impl StdHost {
+    /// The callback returns exact retained startup evidence only after durable
+    /// Started publication. Source binding happens after it, before effects.
+    pub fn run_body_plan_with_committed_startup_to<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        fore: Option<&mut dyn BodyForeOutputAdapter>,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<CommittedBodyStartup, String>,
+    {
+        self.run_body_plan_to_with_start_and_clock_and_creche(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            fore.map(|f| (&[][..], false, f)),
+            None,
+            None,
+            None,
+            None,
+            started,
+            None,
+        )
+    }
+}
+
+#[cfg(test)]
+mod startup_tests;

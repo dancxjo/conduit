@@ -335,6 +335,7 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         json_encode_std_offer(),
         json_decode_std_offer(),
         audio_tone_offer(),
+        body_wake_offer(),
     ]
 }
 
@@ -349,3 +350,6 @@ pub use pcm_packing::*;
 
 mod source_check;
 pub use source_check::*;
+
+mod startup_chime;
+pub use startup_chime::*;

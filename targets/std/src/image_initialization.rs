@@ -18,6 +18,10 @@ const MAXIMUM_TIMER_POOLS: usize = 16;
 #[derive(Default)]
 struct InitialBases<'a> {
     creche: Option<ResourceOffer>,
+    playback: Option<(
+        crate::hosted_audio::HostedPlaybackSelection,
+        crate::kernel_preparation::ImageMemoryLease,
+    )>,
     source: Option<crate::selected_native_source::InitialNativeSource<'a>>,
     memory: Option<crate::kernel_preparation::StagedImageMemory<'a>>,
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
@@ -128,9 +132,19 @@ impl StdHost {
         catalog: &MakeCatalog,
         scanout: crate::selected_scanout::SelectedScanoutBase,
         native_mask: crate::selected_native_mask::InitialNativeMask,
+        playback: Option<(
+            &conduit_host_make::CheckedHostConfiguration,
+            &crate::hosted_audio::HostedPlaybackSelection,
+        )>,
     ) -> Result<Self, String> {
+        let (playback, memory) = if let Some((checked, selected)) = playback {
+            let (playback, memory) = prepare_playback(&config, image, catalog, checked, selected)?;
+            (Some(playback), Some(memory))
+        } else {
+            (None, None)
+        };
         Self::from_selected_initial_bases(
-            config,
+            config.clone(),
             image,
             catalog,
             InitialBases {
@@ -138,7 +152,32 @@ impl StdHost {
                 native_mask: Some(native_mask),
                 source: None,
                 creche: None,
-                memory: None,
+                playback,
+                memory,
+            },
+        )
+    }
+
+    /// Initialize the checked speaker on the same finite IMAGE counter as the
+    /// final Host. The borrowed observation/checked Source remain caller-owned;
+    /// only the actual cloned speaker stores are transferred into this Host.
+    /// This publishes equipment, never playback authority or a startup pulse.
+    pub fn from_selected_timer_and_playback_image(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        checked: &conduit_host_make::CheckedHostConfiguration,
+        selected: &crate::hosted_audio::HostedPlaybackSelection,
+    ) -> Result<Self, String> {
+        let (playback, memory) = prepare_playback(&config, image, catalog, checked, selected)?;
+        Self::from_selected_initial_bases(
+            config.clone(),
+            image,
+            catalog,
+            InitialBases {
+                playback: Some(playback),
+                memory: Some(memory),
+                ..InitialBases::default()
             },
         )
     }
@@ -156,6 +195,7 @@ impl StdHost {
             image,
             catalog,
             InitialBases {
+                playback: None,
                 source: Some(source),
                 creche,
                 memory,
@@ -231,6 +271,21 @@ impl StdHost {
                 .map(|offer| offer.implementation.implementation_id.as_str().to_owned()),
             );
         }
+        if initial.playback.is_some() {
+            for implementation in [
+                conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION,
+                conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION,
+                conduit_std_offers::BODY_WAKE_IMPLEMENTATION,
+            ] {
+                if manifest
+                    .implementations
+                    .iter()
+                    .any(|id| id == implementation)
+                {
+                    expected_implementations.insert(implementation.into());
+                }
+            }
+        }
         if !manifest.target.starts_with("std/")
             || manifest
                 .implementations
@@ -261,6 +316,12 @@ impl StdHost {
                     source.definition.base.base_id.as_str() == base.id
                         && source.definition.base.mechanism_family.as_str() == base.kind
                         && source.definition.base.implementation_id.as_str() == base.driver
+                }) && !initial.playback.as_ref().is_some_and(|(selected, _)| {
+                    selected.checked_base_entry().is_some_and(|entry| {
+                        entry.base_id.as_str() == base.id
+                            && entry.mechanism_family.as_str() == base.kind
+                            && entry.implementation_id.as_str() == base.driver
+                    })
                 }) && !(initial.has_scanout()
                     && base.kind == "display/scanout"
                     && base.driver == "display/linear-framebuffer@1")
@@ -284,6 +345,7 @@ impl StdHost {
             || budgets.len()
                 > MAXIMUM_TIMER_POOLS
                     + usize::from(initial.creche.is_some())
+                    + usize::from(initial.playback.is_some())
                     + usize::from(initial.has_scanout())
                     + 2 * usize::from(initial.has_native_mask())
                     + initial
@@ -297,6 +359,13 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
+            if initial
+                .playback
+                .as_ref()
+                .is_some_and(|(selected, _)| selected.pool_id().as_str() == budget.id)
+            {
+                continue;
+            }
             if initial
                 .creche
                 .as_ref()
@@ -396,6 +465,28 @@ impl StdHost {
             initialized_base_kinds.insert(entry.mechanism_family.as_str().into());
             initialized_driver_kinds.insert(entry.implementation_id.as_str().into());
         }
+        if let Some((selected, _)) = &initial.playback {
+            let mut entry = selected
+                .checked_base_entry()
+                .ok_or("selected speaker is unchecked")?;
+            entry.capabilities.retain(|offer| {
+                manifest
+                    .implementations
+                    .iter()
+                    .any(|id| id == offer.implementation.implementation_id.as_str())
+            });
+            if entry.capabilities.is_empty() {
+                return Err("selected speaker has no built supported audio implementation".into());
+            }
+            registry
+                .register(entry.clone())
+                .map_err(|e| format!("selected speaker registry: {e:?}"))?;
+            ready_resource_classes.insert(conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS.into());
+            initialized_base_kinds.insert("audio/speaker".into());
+            initialized_driver_kinds
+                .insert(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION.into());
+            candidates.push(entry);
+        }
         if let Some(entry) = creche_entry {
             registry
                 .register(entry.clone())
@@ -428,8 +519,29 @@ impl StdHost {
             ready_resource_classes.insert(RUNTIME_MEMORY_RESOURCE_CLASS.into());
             facilities.insert("compositor/native@1".into());
         }
+        if initial.playback.is_some()
+            && manifest
+                .implementations
+                .iter()
+                .any(|id| id == conduit_std_offers::BODY_WAKE_IMPLEMENTATION)
+        {
+            mask_capabilities.push(conduit_std_offers::body_wake_offer());
+        }
         #[allow(unused_mut)]
-        let mut expected_capabilities = 1
+        let mut expected_capabilities = initial.playback.as_ref().map_or(0, |(selected, _)| {
+            selected.checked_base_entry().map_or(0, |entry| {
+                entry
+                    .capabilities
+                    .iter()
+                    .filter(|offer| {
+                        manifest
+                            .implementations
+                            .iter()
+                            .any(|id| id == offer.implementation.implementation_id.as_str())
+                    })
+                    .count()
+            })
+        }) + 1
             + usize::from(initial.creche.is_some())
             + mask_capabilities.len()
             + initial
@@ -468,7 +580,9 @@ impl StdHost {
                     initialized_base_kinds,
                     initialized_driver_kinds,
                     available_facilities: facilities,
-                    authority_ready: has_native_mask || initial.source.is_some(),
+                    authority_ready: has_native_mask
+                        || initial.source.is_some()
+                        || initial.playback.is_some(),
                 },
             },
         )
@@ -490,6 +604,10 @@ impl StdHost {
         } else {
             host.kernel_resources.bind_image_bounds(&manifest.bounds)?;
         }
+        if let Some((selected, lease)) = initial.playback {
+            host.playback = Some(selected);
+            host._playback_memory = Some(lease);
+        }
         if let Some(source) = initial.source {
             source.initialize(&mut host)?;
         }
@@ -503,6 +621,128 @@ impl StdHost {
         }
         Ok(host)
     }
+}
+
+/// Validate logical Source equipment against the observed physical endpoint.
+/// The provider instance retains the physical device/digest identity; only its
+/// logical Base name/family are supplied by the verified fabrication.
+fn prepare_playback<'a>(
+    config: &'a StdHostConfig,
+    image: &'a HostImage,
+    catalog: &MakeCatalog,
+    checked: &conduit_host_make::CheckedHostConfiguration,
+    selected: &crate::hosted_audio::HostedPlaybackSelection,
+) -> Result<
+    (
+        (
+            crate::hosted_audio::HostedPlaybackSelection,
+            crate::kernel_preparation::ImageMemoryLease,
+        ),
+        crate::kernel_preparation::StagedImageMemory<'a>,
+    ),
+    String,
+> {
+    use conduit_host_make::ConfigurationValue;
+    let memory =
+        crate::kernel_preparation::StagedImageMemory::verified(config, image, checked, catalog)?;
+    let mut declared = checked
+        .configuration()
+        .bases
+        .iter()
+        .filter(|b| b.kind == "audio/speaker");
+    let declared = declared
+        .next()
+        .filter(|_| declared.next().is_none())
+        .ok_or("expected one checked speaker Base")?;
+    if !checked
+        .resolved_bases()
+        .iter()
+        .any(|(kind, implementation)| {
+            kind == "audio/speaker"
+                && implementation == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION
+        })
+    {
+        return Err("speaker implementation differs from checked Source".into());
+    }
+    let contract = catalog
+        .initialization_contracts
+        .get(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION)
+        .ok_or("speaker initialization contract missing")?;
+    let values = declared
+        .initialization
+        .as_ref()
+        .ok_or("speaker initialization missing")?
+        .checked_values(contract)?;
+    let text = |key: &str| match values.get(key) {
+        Some(ConfigurationValue::Text(value)) => Ok(value.as_str()),
+        _ => Err("invalid speaker text field".to_string()),
+    };
+    let device = match values.get("device") {
+        Some(ConfigurationValue::U64(value)) => *value,
+        _ => return Err("invalid speaker device".into()),
+    };
+    let digest = text("executable_sha256")?;
+    if digest.len() != 64
+        || !digest
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    {
+        return Err("speaker requires lowercase SHA-256".into());
+    }
+    let mut expected_digest = [0u8; 32];
+    for (index, byte) in expected_digest.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&digest[index * 2..index * 2 + 2], 16)
+            .map_err(|_| "invalid speaker digest")?;
+    }
+    if selected.boot_id != config.boot_id
+        || selected.offer_generation != config.offer_generation
+        || selected.observation.card_id != text("card_id")?
+        || selected.observation.base_identity != text("base_identity")?
+        || u64::from(selected.observation.device) != device
+        || selected.executable_digest() != Some(expected_digest)
+    {
+        return Err("observed speaker differs from checked Source/Boot".into());
+    }
+    let mut bases = image.manifest.base_selections.iter().filter(|b| {
+        b.kind == "audio/speaker"
+            && b.driver == conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION
+    });
+    let base = bases
+        .next()
+        .filter(|_| bases.next().is_none())
+        .ok_or("expected one IMAGE speaker Base")?;
+    let pool = selected.pool_id();
+    let mut budgets = image
+        .manifest
+        .resource_budgets
+        .iter()
+        .filter(|b| b.id == pool.as_str());
+    let budget = budgets
+        .next()
+        .filter(|_| budgets.next().is_none())
+        .ok_or("speaker requires its exact physical pool budget")?;
+    if budget.class != conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS
+        || budget.slots != 1
+        || budget.bytes == 0
+    {
+        return Err("speaker pool differs from actual finite equipment capacity".into());
+    }
+    // Borrowed input stores are independently owned. Reserve before cloning;
+    // cloned String backing is bounded by these already-retained capacities.
+    let bytes = selected
+        .backing_bytes()
+        .checked_add(base.id.len())
+        .and_then(|n| {
+            n.checked_add(crate::kernel_preparation::ImageMemoryLease::owned_backing_bytes())
+        })
+        .ok_or("speaker backing overflow")?;
+    let mut lease = memory.reserve(bytes)?;
+    let mut owned = selected.clone();
+    owned.bind_source_base(&base.id);
+    lease.retain_result(
+        owned.backing_bytes() + crate::kernel_preparation::ImageMemoryLease::owned_backing_bytes(),
+    );
+    Ok(((owned, lease), memory))
 }
 
 struct ImageBytes(Vec<u8>);

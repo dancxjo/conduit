@@ -11,17 +11,22 @@ use std::collections::BTreeMap;
 
 pub struct LinearFramebufferMakeExtension;
 
-fn package_catalog() -> PackageCatalogContribution {
-    let targets = vec![
+fn supported_targets() -> Vec<String> {
+    vec![
         "std/x86_64/computer".into(),
         "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
+        "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb".into(),
         "conduitos/x86_64/pc".into(),
         "conduitos/aarch64/virt".into(),
         "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
         "conduitos/ia32/pc".into(),
         "conduitos/riscv64/virt".into(),
         "conduitos/loongarch64/virt".into(),
-    ];
+    ]
+}
+
+fn package_catalog() -> PackageCatalogContribution {
+    let targets = supported_targets();
     let closure = conduit_conduitos_mask_offer::native_read_only_implementation_closure(
         conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
     );
@@ -70,16 +75,7 @@ fn package_catalog() -> PackageCatalogContribution {
         presenters: BTreeMap::from([(
             "presenter/native-graphical@1".into(),
             PresenterMetadata {
-                targets: vec![
-                    "std/x86_64/computer".into(),
-                    "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
-                    "conduitos/x86_64/pc".into(),
-                    "conduitos/aarch64/virt".into(),
-                    "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
-                    "conduitos/ia32/pc".into(),
-                    "conduitos/riscv64/virt".into(),
-                    "conduitos/loongarch64/virt".into(),
-                ],
+                targets: supported_targets(),
                 prerequisites: presenter_roots,
             },
         )]),
@@ -115,7 +111,7 @@ impl HostMakePackage for LinearFramebufferMakeExtension {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Extension(MakeExtension {
             package_id: "conduit-linear-framebuffer@1".into(),
-            package_revision: 2,
+            package_revision: 3,
             catalog: package_catalog(),
             compatible_target_patterns: vec![
                 "std/*/*".into(),
@@ -130,16 +126,7 @@ impl HostMakePackage for LinearFramebufferMakeExtension {
                 base_kind: "display/scanout".into(),
                 implementation_id: "display/linear-framebuffer@1".into(),
                 implementation_revision: 1,
-                target_patterns: vec![
-                    "std/x86_64/computer".into(),
-                    "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
-                    "conduitos/x86_64/pc".into(),
-                    "conduitos/aarch64/virt".into(),
-                    "conduitos/armv6/raspberry-pi-model-b-plus-v1.2".into(),
-                    "conduitos/ia32/pc".into(),
-                    "conduitos/riscv64/virt".into(),
-                    "conduitos/loongarch64/virt".into(),
-                ],
+                target_patterns: supported_targets(),
                 prerequisites: Vec::new(),
                 build_feature: Some("base-linear-framebuffer".into()),
             }],

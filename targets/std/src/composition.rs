@@ -403,6 +403,7 @@ pub(super) fn build_advertisement(
         capabilities.extend(conduit_std_offers::alife_offers());
     }
     capabilities.push(conduit_std_offers::audio_tone_offer());
+    capabilities.push(conduit_std_offers::body_wake_offer());
     if playback.is_some() {
         capabilities.push(conduit_std_offers::audio_play_alsa_hw_offer());
     }
