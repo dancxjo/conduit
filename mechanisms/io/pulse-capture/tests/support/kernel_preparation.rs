@@ -45,6 +45,13 @@ fn owner(state: Rc<State>) -> ReadyPulseBase<Provider> {
 }
 #[test]
 fn generated_pulse_preparation_preserves_owner_until_exact_bounded_transfer() {
+    generated_pulse_control(false);
+}
+#[test]
+fn explicit_line_fore_pulse_preserves_the_same_ready_owner_until_bind() {
+    generated_pulse_control(true);
+}
+fn generated_pulse_control(line_fore: bool) {
     let (mut fragment, _, _, _) = fixture::selected();
     let gear = &mut fragment.placements[0];
     gear.capability_id = PULSE_CAPABILITY.into();
@@ -170,6 +177,102 @@ fn generated_pulse_preparation_preserves_owner_until_exact_bounded_transfer() {
     report!("pulse CPU fixture pointer_bits={} codec_reachable_backing_bytes={} scheduler_inline_bytes={}",
         usize::BITS, codec.retained_backing_bytes().unwrap(), core::mem::size_of::<PulseKernel>());
     drop(codec);
+    if line_fore {
+        use conduit_plan_lowering::selected_assigned_operation::SelectedAssignedLineForeOperationPlan;
+        // Representation fixture: schema8 LOCAL variants exercise the explicit
+        // decoder without claiming a live selected Line or carrier authority.
+        let mut line_bytes = bytes[..ASSIGNED_PLAN_HEADER_BYTES].to_vec();
+        line_bytes[8..10].copy_from_slice(&ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA.to_le_bytes());
+        for record in AssignedPlanRecords::new(&bytes).unwrap() {
+            let record = record.unwrap();
+            let payload = if record.tag == ASSIGNED_LOCAL_FORE {
+                let mut payload = vec![0];
+                payload.extend_from_slice(record.payload);
+                payload
+            } else {
+                record.payload.to_vec()
+            };
+            line_bytes.push(record.tag);
+            line_bytes.extend_from_slice(&(payload.len() as u16).to_le_bytes());
+            line_bytes.extend_from_slice(&payload);
+        }
+        let length = line_bytes.len() as u16;
+        line_bytes[10..12].copy_from_slice(&length.to_le_bytes());
+        let digest = assigned_plan_payload_digest(&line_bytes[ASSIGNED_PLAN_HEADER_BYTES..]);
+        line_bytes[93..125].copy_from_slice(&digest);
+        let line_selected = || {
+            let mut operation = selected().operation;
+            operation.input = AssignedOperationInput::Contiguous(&line_bytes);
+            SelectedAssignedLineForeOperationPlan {
+                operation,
+                fore: AssignedLineForeProfile {
+                    local: image.fore(),
+                    lines: &[],
+                },
+            }
+        };
+        let (table, handle, claim) = assigned_retained::issued(fragment, &active);
+        assert!(ReadyPulseBase::prepare_assigned_fore_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &contract,
+            SelectedAssignedForeOperationPlan {
+                operation: line_selected().operation,
+                fore: image.fore()
+            }
+        )
+        .is_err());
+        assert!(slot.is_some());
+        let (table, handle, mut claim) = assigned_retained::issued(fragment, &active);
+        claim.boot_id = "foreign".into();
+        assert!(ReadyPulseBase::prepare_assigned_line_fore_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &contract,
+            line_selected()
+        )
+        .is_err());
+        assert!(slot.is_some());
+        let (table, handle, claim) = assigned_retained::issued(fragment, &active);
+        let mut missing = line_selected();
+        missing.fore.local = &[];
+        assert!(ReadyPulseBase::prepare_assigned_line_fore_retained(
+            &mut slot, table, handle, claim, &contract, missing
+        )
+        .is_err());
+        assert!(slot.is_some());
+        let (table, handle, claim) = assigned_retained::issued(fragment, &active);
+        let prepared = ReadyPulseBase::prepare_assigned_line_fore_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &contract,
+            line_selected(),
+        )
+        .unwrap();
+        assert_eq!(prepared.node(), NodeId(0));
+        drop(prepared);
+        assert!(slot.is_some());
+        let (table, handle, claim) = assigned_retained::issued(fragment, &active);
+        let prepared = ReadyPulseBase::prepare_assigned_line_fore_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &contract,
+            line_selected(),
+        )
+        .unwrap();
+        let _bound = prepared.bind();
+        assert!(slot.is_none());
+        assert_eq!(state.effects.get(), 0);
+        return;
+    }
 
     for capacity in [0, core::mem::size_of::<PulseKernel>()] {
         let (table, handle, claim) = assigned_retained::issued(fragment, &active);

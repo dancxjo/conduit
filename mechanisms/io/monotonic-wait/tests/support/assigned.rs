@@ -4,17 +4,21 @@ use conduit_embedded_build as e;
 use conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan;
 #[test]
 fn assigned_timer_preserves_slot_on_refusal_then_transfers_and_waits() {
-    assigned_timer_control(false, false);
+    assigned_timer_control(false, 0);
 }
 #[test]
 fn borrowed_assignment_preserves_slot_then_transfers_and_waits() {
-    assigned_timer_control(true, false);
+    assigned_timer_control(true, 0);
 }
 #[test]
 fn local_fore_timer_checks_configuration_before_lending_actual_owner() {
-    assigned_timer_control(false, true);
+    assigned_timer_control(false, 1);
 }
-fn assigned_timer_control(borrowed: bool, fore: bool) {
+#[test]
+fn line_fore_timer_preserves_configuration_possession_and_slot_custody() {
+    assigned_timer_control(false, 2);
+}
+fn assigned_timer_control(borrowed: bool, fore: u8) {
     let state = Rc::new(State::default());
     let mut slot = Some(installation::ready(state.clone()));
     let (mut fragment, _, _, _) = fixture::selected();
@@ -58,7 +62,7 @@ fn assigned_timer_control(borrowed: bool, fore: bool) {
         runtime_state_bytes: 8192,
         counts: [32; ASSIGNED_PLAN_COUNT_KINDS],
     };
-    let bytes = if fore {
+    let mut bytes = if fore != 0 {
         e::generate_fore_native_plan(
             &plan,
             &fragment.fragment_id,
@@ -75,6 +79,9 @@ fn assigned_timer_control(borrowed: bool, fore: bool) {
     } else {
         e::encode_assigned_native_plan(&image, maxima).unwrap()
     };
+    if fore == 2 {
+        bytes[8..10].copy_from_slice(&ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA.to_le_bytes());
+    }
     let calls = [AssignedIdentity::from_text(WAIT_HOST_CALL_CONTRACT)];
     let resources: Vec<_> = image.resources.iter().map(|r| r.resource).collect();
     let records: Vec<_> = AssignedPlanRecords::new(&bytes)
@@ -122,9 +129,14 @@ fn assigned_timer_control(borrowed: bool, fore: bool) {
         claim: BaseOperationClaim,
         configuration: &[ConfigurationEntry],
         selected: SelectedAssignedOperationPlan<'_>,
-        fore: bool,
+        fore: u8,
     ) -> Result<MonotonicWaitHostCall<Provider>, WaitCallRefusal> {
-        if fore {
+        if fore == 2 {
+            ReadyMonotonicWaitBase::prepare_assigned_line_fore_retained(slot,table,handle,claim,configuration,
+                conduit_plan_lowering::selected_assigned_operation::SelectedAssignedLineForeOperationPlan {
+                    operation:selected,fore:AssignedLineForeProfile {local:&[],lines:&[]}
+                }).map(|ticket|ticket.bind())
+        } else if fore == 1 {
             ReadyMonotonicWaitBase::prepare_assigned_fore_retained(slot,table,handle,claim,configuration,
                 conduit_plan_lowering::selected_assigned_operation::SelectedAssignedForeOperationPlan{operation:selected,fore:&[]}).map(|ticket|ticket.bind())
         } else {
@@ -137,6 +149,44 @@ fn assigned_timer_control(borrowed: bool, fore: bool) {
                 selected,
             )
         }
+    }
+    if fore == 2 {
+        use conduit_plan_lowering::selected_assigned_operation::{
+            SelectedAssignedForeOperationPlan, SelectedAssignedLineForeOperationPlan,
+        };
+        let (table, handle, claim) = issue();
+        assert!(ReadyMonotonicWaitBase::prepare_assigned_fore_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &fixture::configuration(),
+            SelectedAssignedForeOperationPlan {
+                operation: selected(&active),
+                fore: &[]
+            }
+        )
+        .is_err());
+        assert!(slot.is_some());
+        let (table, handle, claim) = issue();
+        let ticket = ReadyMonotonicWaitBase::prepare_assigned_line_fore_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &fixture::configuration(),
+            SelectedAssignedLineForeOperationPlan {
+                operation: selected(&active),
+                fore: AssignedLineForeProfile {
+                    local: &[],
+                    lines: &[],
+                },
+            },
+        )
+        .unwrap();
+        drop(ticket);
+        assert!(slot.is_some());
+        assert_eq!(state.calls.get(), 0);
     }
     let mut foreign = active.clone();
     foreign.boot_id = "stale/boot".into();

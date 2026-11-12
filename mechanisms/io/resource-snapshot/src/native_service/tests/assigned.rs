@@ -217,3 +217,87 @@ fn checked_assignment_does_not_supply_the_missing_start_reservation() {
     assert!(slot.is_some());
     assert!(f.owner.admissions().is_empty());
 }
+
+#[test]
+fn explicit_line_fore_service_keeps_ready_and_opaque_operations_on_refusal() {
+    let f = Fixture::new();
+    let calls = calls(&f);
+    // Same native records, explicit schema8 with no external routes in this
+    // CPU preparation fixture. This grants no live Line or Start authority.
+    let mut bytes =
+        conduit_embedded_build::encode_assigned_native_plan(&image(&f), maxima()).unwrap();
+    bytes[8..10].copy_from_slice(&c::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA.to_le_bytes());
+    let descriptor = || SelectedAssignedLineForeServicePlan {
+        service: selected(&f, &bytes, None, &calls, 0),
+        fore: c::AssignedLineForeProfile {
+            local: &[],
+            lines: &[],
+        },
+    };
+    let ops = || {
+        [
+            operation(f.scopes[0].clone()),
+            operation(f.scopes[1].clone()),
+        ]
+    };
+    let mut slot = Some(ready(&f));
+    assert!(ReadyRecordService::prepare_assigned_retained(
+        &mut slot,
+        ops(),
+        &f.resource,
+        descriptor().service
+    )
+    .is_err());
+    assert!(slot.is_some());
+    for edit in 0..4 {
+        let mut read = f.scopes[1].clone();
+        if edit == 0 {
+            read.authority_grant_id = "foreign-grant".into();
+        }
+        if edit == 1 {
+            read.operation_contract_id = "foreign-operation".into();
+        }
+        let mut candidate = descriptor();
+        if edit == 2 {
+            candidate.service.resource = 1;
+        }
+        if edit == 3 {
+            candidate.service.fore = Some(&[]);
+        }
+        let operations = [operation(f.scopes[0].clone()), operation(read)];
+        let returned = match ReadyRecordService::prepare_assigned_line_fore_retained(
+            &mut slot,
+            operations,
+            &f.resource,
+            candidate,
+        ) {
+            Err((returned, _)) => returned,
+            Ok(_) => panic!("foreign native preparation admitted"),
+        };
+        assert!(slot.is_some());
+        assert_eq!(returned[0].inspection().completed_operations, 0);
+        assert_eq!(returned[1].inspection().completed_operations, 0);
+    }
+    let prepared = ReadyRecordService::prepare_assigned_line_fore_retained(
+        &mut slot,
+        ops(),
+        &f.resource,
+        descriptor(),
+    )
+    .unwrap_or_else(|_| panic!("same checked service schema8"));
+    assert_eq!(prepared.node(), NodeId(0));
+    drop(prepared);
+    assert!(slot.is_some());
+    let prepared = ReadyRecordService::prepare_assigned_line_fore_retained(
+        &mut slot,
+        ops(),
+        &f.resource,
+        descriptor(),
+    )
+    .unwrap_or_else(|_| panic!("same checked service schema8 after drop"));
+    // SAFETY: existing rich CPU fixture holds the actual exact capacity-one
+    // reservation; no new authority/admission is inferred from schema8.
+    let owner = unsafe { prepared.bind_after_resource_admission() };
+    assert!(slot.is_none());
+    assert_eq!(owner.node(), NodeId(0));
+}
