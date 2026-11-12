@@ -151,7 +151,7 @@ fn arrange_content(
             }
             let (end, measured) =
                 measure_item_prefix(
-                    &item,
+                    item,
                     remaining,
                     text_width,
                     if after_heading && chunk == 0 {
@@ -166,7 +166,7 @@ fn arrange_content(
                 )
                 .or_else(|_| {
                     measure_item_prefix(
-                        &item,
+                        item,
                         remaining,
                         text_width,
                         maximum_height,
