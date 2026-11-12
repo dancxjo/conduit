@@ -62,7 +62,7 @@ pub async fn run<'s>(
     let mut append_output =
         [0u8; crate::play::RECORDING_OUTPUT_BYTES];
     let mut append_status = Some(
-        conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus::prepare(
+        conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus::prepare_selected(
             &source::sampling_layout::fore(),
             source::sampling_layout::append_status_fore(),
         )
