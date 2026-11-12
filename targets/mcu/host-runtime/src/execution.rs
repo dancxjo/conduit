@@ -136,6 +136,15 @@ pub enum Refusal<E> {
         required: usize,
         maximum: usize,
     },
+    /// Atomic admission needs these additional bridge/observation buffers.
+    /// This is the existing ceiling check, distinct from retained-only refusal.
+    ResourcePreparationCapacity {
+        retained: usize,
+        bridge: usize,
+        observations: usize,
+        required: usize,
+        maximum: usize,
+    },
     /// A pre-allocation lower bound already exceeds the caller's retained
     /// execution budget; it does not claim to measure preparation peak.
     LowerBoundCapacity {

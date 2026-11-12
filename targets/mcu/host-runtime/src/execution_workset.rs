@@ -159,7 +159,10 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
             .and_then(|n| n.checked_add(observation_backing_bytes))
             .ok_or(Refusal::Bounds)?;
         if required > self.maximum {
-            return Err(Refusal::Capacity {
+            return Err(Refusal::ResourcePreparationCapacity {
+                retained: self.retained,
+                bridge,
+                observations: observation_backing_bytes,
                 required,
                 maximum: self.maximum,
             });
