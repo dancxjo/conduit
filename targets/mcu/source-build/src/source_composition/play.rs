@@ -273,7 +273,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                     "kernel-headroom",
                 ));
             }
-            let sample = PreparedFragment::<_, SN, SC, SP, SR, ST, SH, SS, HostedSignLog>::prepare_with_terminal_transductions(
+            let sample = PreparedFragment::<_, SN, SC, SP, SR, ST, SH, SS, HostedSignLog>::prepare_with_terminal_transductions_ref(
                 sampling,
                 sampling_profile,
                 sampling_fore,
@@ -289,10 +289,10 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 .map_err(|_| "sampling-sign-storage")?,
                 policy.maximum_retained_bytes,
                 || Ok::<_, &'static str>(sample_backs),
-                core::array::from_fn(|node| core::array::from_fn(|port| source::sampling_layout::GENERATED_TERMINAL_TRANSDUCTIONS[node][port])),
+                &source::sampling_layout::GENERATED_TERMINAL_TRANSDUCTIONS,
             )
             .map_err(|error| kernel_refusal(diagnostic, error, "sampling-kernel"))?;
-            let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog>::prepare_with_terminal_transductions(
+            let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog>::prepare_with_terminal_transductions_ref(
                 output,
                 output_profile,
                 output_fore,
@@ -311,7 +311,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 .map_err(|_| "output-sign-storage")?,
                 policy.maximum_retained_bytes,
                 || Ok::<_, &'static str>(output_backs),
-                core::array::from_fn(|node| core::array::from_fn(|port| source::output_layout::GENERATED_TERMINAL_TRANSDUCTIONS[node][port])),
+                &source::output_layout::GENERATED_TERMINAL_TRANSDUCTIONS,
             )
             .map_err(|error| kernel_refusal(diagnostic, error, "output-kernel"))?;
             let mask = MaskConstruction {
