@@ -4,7 +4,9 @@
 use crate as k;
 use conduit_assigned_plan as c;
 mod boundary;
+mod line_fore;
 mod local_fore;
+use line_fore::ForeProfile;
 pub(crate) use local_fore::LocalForeProvenance;
 mod bounded;
 pub use bounded::BoundedAssignedKernelTables;
@@ -123,7 +125,7 @@ impl<
             required,
             computations,
             layout,
-            Some(fore),
+            Some(ForeProfile::Local(fore)),
         )
     }
     /// The same exact local fore profile over borrowed canonical records.
@@ -142,7 +144,7 @@ impl<
             required,
             computations,
             layout,
-            Some(fore),
+            Some(ForeProfile::Local(fore)),
         )
     }
     fn prepare_profile(
@@ -151,7 +153,7 @@ impl<
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
         layout: &ResidentLayout<'_>,
-        fore: Option<&[c::AssignedForeRequirement]>,
+        fore: Option<ForeProfile<'_>>,
     ) -> Result<Self, AssignedKernelRefusal> {
         Self::prepare_capacity_profile(input, maxima, required, computations, layout, fore, true)
     }
@@ -162,7 +164,7 @@ impl<
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
         layout: &ResidentLayout<'_>,
-        fore: Option<&[c::AssignedForeRequirement]>,
+        fore: Option<ForeProfile<'_>>,
         exact_counts: bool,
     ) -> Result<Self, AssignedKernelRefusal> {
         let mut nodes = [NodeSpec {
@@ -203,7 +205,7 @@ impl<
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
         layout: &ResidentLayout<'_>,
-        fore: Option<&[c::AssignedForeRequirement]>,
+        fore: Option<ForeProfile<'_>>,
         exact_counts: bool,
         nodes: &mut [NodeSpec<P>; N],
         cords: &mut [CordSpec; C],
@@ -212,8 +214,13 @@ impl<
         startup_order: &mut [k::NodeId; N],
     ) -> Result<c::AssignedPlanView, AssignedKernelRefusal> {
         use AssignedKernelRefusal as E;
-        if !matches!(
-            u16_at(input.header(), 8)?,
+        let schema = u16_at(input.header(), 8)?;
+        if schema == c::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA {
+            if !matches!(fore, Some(ForeProfile::Line(_))) {
+                return Err(E::Unsupported);
+            }
+        } else if !matches!(
+            schema,
             c::ASSIGNED_KERNEL_PLAN_SCHEMA
                 | c::ASSIGNED_NATIVE_PLAN_SCHEMA
                 | c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
@@ -235,7 +242,7 @@ impl<
         {
             return Err(E::Layout);
         }
-        if usize::from(identity.counts[9]) != fore.map_or(0, |f| f.len())
+        if usize::from(identity.counts[9]) != fore.map_or(0, ForeProfile::len)
             || identity.counts[12] != 0
         {
             return Err(E::Unsupported);
@@ -420,8 +427,8 @@ impl<
         }
         routes.seal()?;
         calls.seal()?;
-        if u16_at(input.header(), 8)? == c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA {
-            local_fore::pin(cords, fore.ok_or(E::Layout)?)?;
+        if let Some(profile) = fore {
+            profile.pin(cords)?;
         }
         Ok(identity)
     }

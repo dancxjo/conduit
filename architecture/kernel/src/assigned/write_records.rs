@@ -34,7 +34,7 @@ impl<
             required,
             computations,
             layout,
-            Some(fore),
+            Some(ForeProfile::Local(fore)),
             true,
             nodes,
             cords,

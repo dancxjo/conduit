@@ -10,7 +10,8 @@
 use crate::*;
 
 /// Opt-in native Fore projection. Schemas 4–7 keep their original meanings.
-/// Runtime table writers and carrier admission do not support this schema yet.
+/// Local-only decoders refuse it. Explicit numeric table conversion remains
+/// separate from live carrier installation, possession and admission.
 pub const ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA: u16 = 8;
 pub const ASSIGNED_LINE_FORE_BYTES: usize = 198;
 pub const ASSIGNED_LINE_FORE_LOCAL_BYTES: usize = 54;
@@ -70,6 +71,10 @@ impl AssignedLineForeRequirement {
             binding,
             payload,
         }
+    }
+    /// Exact independently expected Fore ABI, not permission to submit values.
+    pub fn fore(&self) -> &AssignedForeRequirement {
+        &self.fore
     }
     pub fn payload(&self) -> &[u8; ASSIGNED_LINE_FORE_BYTES] {
         &self.payload
