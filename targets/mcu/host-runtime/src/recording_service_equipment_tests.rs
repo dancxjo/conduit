@@ -429,3 +429,6 @@ fn grant_copy_budget_and_retained_install_refusals_preserve_actual_recovered_pai
         assert_eq!(drops.get(), 0);
     });
 }
+
+#[path = "recording_service_binding_tests.rs"]
+mod binding;
