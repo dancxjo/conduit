@@ -44,6 +44,33 @@ use shapes::{
     OutputBound, SamplingBound, FORE_PORTS, OC, OH, ON, OP, OR, OS, OT, SC, SH, SN, SP, SR, SS, ST,
 };
 pub use shapes::{OutputKernel, SamplingCalls, SamplingKernel, CONDUIT_EXECUTION_KERNEL_BYTES};
+// Specialize the generic lowering width at compile time. The physical kernel
+// borrows this immutable matrix; no projection array is constructed on its stack.
+const fn terminal_contracts<const N: usize, const P: usize, const WIDE: usize>(
+    source: &[[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; WIDE]; N],
+) -> [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]; N] {
+    assert!(P <= WIDE);
+    let mut result = [[None; P]; N];
+    let mut node = 0;
+    while node < N {
+        let mut port = 0;
+        while port < WIDE {
+            if port < P {
+                result[node][port] = source[node][port];
+            } else {
+                assert!(source[node][port].is_none());
+            }
+            port += 1;
+        }
+        node += 1;
+    }
+    result
+}
+const SAMPLING_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; SP]; SN] =
+    terminal_contracts(&source::sampling_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
+const OUTPUT_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; OP]; ON] =
+    terminal_contracts(&source::output_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
+
 pub const CONTINUATION_FORE_PORTS: usize = FORE_PORTS;
 pub type ContinuationStarted<'a, 'f> =
     conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
@@ -289,7 +316,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 .map_err(|_| "sampling-sign-storage")?,
                 policy.maximum_retained_bytes,
                 || Ok::<_, &'static str>(sample_backs),
-                &source::sampling_layout::GENERATED_TERMINAL_TRANSDUCTIONS,
+                &SAMPLING_TERMINALS,
             )
             .map_err(|error| kernel_refusal(diagnostic, error, "sampling-kernel"))?;
             let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog>::prepare_with_terminal_transductions_ref(
@@ -311,7 +338,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 .map_err(|_| "output-sign-storage")?,
                 policy.maximum_retained_bytes,
                 || Ok::<_, &'static str>(output_backs),
-                &source::output_layout::GENERATED_TERMINAL_TRANSDUCTIONS,
+                &OUTPUT_TERMINALS,
             )
             .map_err(|error| kernel_refusal(diagnostic, error, "output-kernel"))?;
             let mask = MaskConstruction {
