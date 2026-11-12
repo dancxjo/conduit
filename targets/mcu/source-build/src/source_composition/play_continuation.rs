@@ -25,7 +25,7 @@ pub enum MaterialRefusal {
 }
 struct Text<'a> {
     node: u16,
-    authority_entry: u16,
+    call: u16,
     instance: &'a str,
     grant: &'a str,
     generation: u64,
@@ -249,19 +249,9 @@ fn entry<'a>(
             ),
             binding: description.binding,
         });
-        let mut capabilities = actual.capabilities.iter().filter(|offer|
-            c::AssignedIdentity::from_text(offer.capability_id.as_str()) == description.binding.capability);
-        let capability = capabilities.next().ok_or(MaterialRefusal::Scope)?;
-        if capabilities.next().is_some() { return Err(MaterialRefusal::Scope); }
-        let mut authorities = capability.authority_requirements.iter().enumerate().filter(|(_, a)|
-            c::AssignedIdentity::from_text(a.contract_id.as_str()) == description.binding.authority
-            && c::AssignedIdentity::from_text(a.host_call_contract_id.as_str()) == description.binding.call
-            && c::AssignedIdentity::from_text(a.subject_kind.as_str()) == description.binding.subject);
-        let (authority_entry, _) = authorities.next().ok_or(MaterialRefusal::Scope)?;
-        if authorities.next().is_some() { return Err(MaterialRefusal::Scope); }
         row.texts.push(Text {
             node,
-            authority_entry: authority_entry.try_into().map_err(|_| MaterialRefusal::Bounds)?,
+            call: u16_at(2),
             instance: description.instance,
             grant: description.grant,
             generation: description.binding.generation,
@@ -361,10 +351,19 @@ fn entry<'a>(
                     Role::ProviderInstance => text(native()?.instance),
                     Role::ProviderGeneration => Value::U64(native()?.generation),
                     Role::AuthorityGrant => {
-                        let mut matching = row.texts.iter().filter(|n|
-                            n.node == node && n.authority_entry == field.entry);
+                        let expected = b::continuation_recipe_authority(recipe, *field)
+                            .map_err(|_| MaterialRefusal::Scope)?;
+                        let mut matching = row.native.iter().filter(|n| n.node == node
+                            && n.binding.authority == expected.authority
+                            && n.binding.call == expected.call
+                            && n.binding.subject == expected.subject
+                            && n.binding.authority_capability == expected.capability);
                         let original = matching.next().ok_or(MaterialRefusal::Scope)?;
                         if matching.next().is_some() { return Err(MaterialRefusal::Scope); }
+                        let mut texts = row.texts.iter().filter(|n|
+                            n.node == node && n.call == original.call);
+                        let original = texts.next().ok_or(MaterialRefusal::Scope)?;
+                        if texts.next().is_some() { return Err(MaterialRefusal::Scope); }
                         text(original.grant)
                     },
                     Role::ResourcePool => text(
