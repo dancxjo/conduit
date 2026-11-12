@@ -4,8 +4,7 @@ use super::*;
 fn original_parts_carrier_is_funded_and_binds_only_through_original_admission_start() {
     let f = fixture();
     let seed = seed(&f);
-    let lines = [actual_line()];
-    let pins = [pin(&lines[0])];
+    let pins = [pin(&actual_line())];
     let local = [docs::local()];
     let bindings = [binding()];
     let document = document(&pins[0]);
@@ -14,27 +13,6 @@ fn original_parts_carrier_is_funded_and_binds_only_through_original_admission_st
     let bound = Cell::new(0);
     let mut link = Link::new(Mock(&io));
     let mut backing = [0; 64];
-    // SAFETY: this fixture explicitly installs its original exclusive Mock
-    // serial provider/backing and immutable checked peer/Line selection.
-    let selection = unsafe {
-        NativeForeCarrierSelection::from_native_custody(
-            &mut link,
-            &mut backing,
-            "image/1",
-            "config/1",
-            &f.issuer,
-            c::AssignedLineForeProfile {
-                local: &local,
-                lines: &pins,
-            },
-            &lines,
-            "session",
-            "serial-profile",
-            bounds(),
-        )
-    }
-    .unwrap();
-    let mut selection = Some(selection);
     let parts = root.execution_parts().unwrap();
     let context = b::NativePreparationContext {
         bootstrap: parts.bootstrap,
@@ -50,34 +28,68 @@ fn original_parts_carrier_is_funded_and_binds_only_through_original_admission_st
         active_worksets: 0,
         maximum_retained_bytes: 16384,
     };
-    let prepared =
-        PreparedLocalWorkset::<_, 1>::prepare_selected_profiles::<4096, 2, ForeCarrierRefusal>(
-            parts.workspace,
-            context,
-            policy,
-            |_, _| {
-                Ok(AssignedPreparationProfile::LineFore(docs::profile(
-                    &local, &pins, &bindings,
-                )))
-            },
-            |fragments, fore| {
-                let ticket = parts.prepare_fore_carrier::<Mock<'_>, 1, 2>(
-                    11,
-                    selection.take(),
-                    &fragments[0],
-                    &fore[0],
-                    docs::profile(&local, &pins, &bindings),
-                )?;
-                let wrapped = ticket.attach(Ticket(&bound));
-                assert!(
-                    wrapped.retained_backing_bytes().unwrap()
-                        >= 64 + core::mem::size_of_val(&wrapped)
-                            - core::mem::size_of::<Ticket<'_>>()
-                );
-                Ok(wrapped)
-            },
-        )
+    let prepared = {
+        // Cold owned installation evidence exists only inside this preparation
+        // block; retaining any of these borrows would fail this compile proof.
+        let lines = [actual_line()];
+        let peer = f.issuer.clone();
+        let image = std::string::String::from("image/1");
+        let configuration = std::string::String::from("config/1");
+        let session = std::string::String::from("session");
+        let session_contract = std::string::String::from("serial-profile");
+        // SAFETY: this fixture explicitly installs its original exclusive Mock
+        // serial provider/backing and immutable checked peer/Line selection.
+        let selection = unsafe {
+            NativeForeCarrierSelection::from_native_custody(
+                &mut link,
+                &mut backing,
+                &image,
+                &configuration,
+                &peer,
+                c::AssignedLineForeProfile {
+                    local: &local,
+                    lines: &pins,
+                },
+                &lines,
+                &session,
+                &session_contract,
+                bounds(),
+            )
+        }
         .unwrap();
+        let mut selection = Some(selection);
+        let prepared =
+            PreparedLocalWorkset::<_, 1>::prepare_selected_profiles::<4096, 2, ForeCarrierRefusal>(
+                parts.workspace,
+                context,
+                policy,
+                |_, _| {
+                    Ok(AssignedPreparationProfile::LineFore(docs::profile(
+                        &local, &pins, &bindings,
+                    )))
+                },
+                |fragments, fore| {
+                    let ticket = parts.prepare_fore_carrier::<Mock<'_>, 1, 2>(
+                        11,
+                        selection.take(),
+                        &fragments[0],
+                        &fore[0],
+                        docs::profile(&local, &pins, &bindings),
+                    )?;
+                    let wrapped = ticket.attach(Ticket(&bound));
+                    assert!(
+                        wrapped.retained_backing_bytes().unwrap()
+                            >= 64 + core::mem::size_of_val(&wrapped)
+                                - core::mem::size_of::<Ticket<'_>>()
+                    );
+                    Ok(wrapped)
+                },
+            )
+            .unwrap();
+        drop(selection);
+        drop((lines, peer, image, configuration, session, session_contract));
+        prepared
+    };
     assert_eq!(io.get(), 0);
     assert_eq!(bound.get(), 0);
     let mut committed = prepared
@@ -112,7 +124,7 @@ fn original_parts_carrier_is_funded_and_binds_only_through_original_admission_st
         binding(),
         docs::id("session"),
         docs::id("serial-profile"),
-        c::admitted_line_commitment(&lines[0]),
+        c::admitted_line_commitment(&actual_line()),
     );
     assert_ne!(
         external_fore_scope_commitment(

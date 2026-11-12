@@ -30,7 +30,7 @@ pub(super) fn prepare<'c, 'p, C: Carrier, const N: usize, const F: usize, const 
     workspace: &b::HostCommandInput<N>,
     context: b::NativePreparationContext<'_>,
     config: &Configuration,
-    selection: Option<NativeForeCarrierSelection<'c, 'p, C>>,
+    selection: Option<NativeForeCarrierSelection<'c, 'p, '_, C>>,
     approved: &b::DelegatedBodyFragment<'_>,
     fore: &b::ApprovedBodyForePorts<PORTS>,
     profile: b::AssignedBodyLineForePreparationProfile<'_>,
@@ -96,14 +96,22 @@ pub(super) fn prepare<'c, 'p, C: Carrier, const N: usize, const F: usize, const 
         .into_retained_stamp()
         .map_err(|_| E::Attribution)?
         .custody_identity();
+    let NativeForeCarrierSelection {
+        _link,
+        backing,
+        installed,
+    } = selection;
     Ok(PreparedForeCarrier {
-        selection,
+        _link,
+        backing,
+        pins: installed.profile.lines,
+        _bounds: installed.bounds,
         scope,
         custody,
     })
 }
 fn check_lines(
-    installed: &Installation<'_>,
+    installed: &Installation<'_, '_>,
     actual: &c::HostAdvertisement,
 ) -> Result<(), ForeCarrierRefusal> {
     use ForeCarrierRefusal as E;

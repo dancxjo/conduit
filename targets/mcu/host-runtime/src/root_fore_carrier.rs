@@ -28,33 +28,33 @@ pub struct ForeCarrierBounds {
     pub maximum_in_flight_items: u16,
     pub maximum_frames: u32,
 }
-struct Installation<'p> {
-    image: &'p str,
-    configuration: &'p str,
-    peer: &'p b::FederationPeer,
+struct Installation<'p, 'i> {
+    image: &'i str,
+    configuration: &'i str,
+    peer: &'i b::FederationPeer,
     profile: c::AssignedLineForeProfile<'p>,
-    lines: &'p [c::AdmittedLine],
-    session: &'p str,
-    session_contract: &'p str,
+    lines: &'i [c::AdmittedLine],
+    session: &'i str,
+    session_contract: &'i str,
     bounds: ForeCarrierBounds,
 }
 /// Affine original native carrier/backing custody plus immutable installation.
 /// No safe metadata constructor, Clone, serialization or raw IO extraction exists.
 /// ```compile_fail
 /// use conduit_mcu_host_runtime::{root::NativeForeCarrierSelection,transport::{Carrier,Link}};
-/// fn overlap<'a,'p,C:Carrier+'a>(link:&'a mut Link<C>,
-///     install:impl FnOnce(&'a mut Link<C>)->NativeForeCarrierSelection<'a,'p,C>) {
+/// fn overlap<'a,'p,'i,C:Carrier+'a>(link:&'a mut Link<C>,
+///     install:impl FnOnce(&'a mut Link<C>)->NativeForeCarrierSelection<'a,'p,'i,C>) {
 ///     let selected=install(link);
 ///     link.reset(); // The original loan remains exclusively held.
 ///     drop(selected);
 /// }
 /// ```
-pub struct NativeForeCarrierSelection<'c, 'p, C: Carrier> {
+pub struct NativeForeCarrierSelection<'c, 'p, 'i, C: Carrier> {
     _link: &'c mut Link<C>,
     backing: &'c mut [u8],
-    installed: Installation<'p>,
+    installed: Installation<'p, 'i>,
 }
-impl<'c, 'p, C: Carrier> NativeForeCarrierSelection<'c, 'p, C> {
+impl<'c, 'p, 'i, C: Carrier> NativeForeCarrierSelection<'c, 'p, 'i, C> {
     /// Explicit native installation, not permission inferred from a received Plan.
     /// # Safety
     /// Trusted Root composition owns THIS initialized physical serial Link and
@@ -69,13 +69,13 @@ impl<'c, 'p, C: Carrier> NativeForeCarrierSelection<'c, 'p, C> {
     pub unsafe fn from_native_custody(
         link: &'c mut Link<C>,
         backing: &'c mut [u8],
-        image: &'p str,
-        configuration: &'p str,
-        peer: &'p b::FederationPeer,
+        image: &'i str,
+        configuration: &'i str,
+        peer: &'i b::FederationPeer,
         profile: c::AssignedLineForeProfile<'p>,
-        lines: &'p [c::AdmittedLine],
-        session: &'p str,
-        session_contract: &'p str,
+        lines: &'i [c::AdmittedLine],
+        session: &'i str,
+        session_contract: &'i str,
         bounds: ForeCarrierBounds,
     ) -> Result<Self, ForeCarrierRefusal> {
         check::bounds(bounds, backing.len(), profile.lines.len())?;
@@ -149,8 +149,13 @@ pub fn external_fore_scope_commitment(
 }
 /// Prepared original loan. No receive/send, carrier extraction or standalone
 /// bind/Start exists; attach it to the original workset's prepared kernel group.
+/// Cold full Line/peer/image/configuration/session material is retired after
+/// validation/hashing. Only the compact installed Line rows remain borrowed.
 pub struct PreparedForeCarrier<'c, 'p, C: Carrier> {
-    selection: NativeForeCarrierSelection<'c, 'p, C>,
+    _link: &'c mut Link<C>,
+    backing: &'c mut [u8],
+    pins: &'p [c::AssignedLineForeRequirement],
+    _bounds: ForeCarrierBounds,
     scope: [u8; 32],
     custody: [u8; 32],
 }
@@ -160,10 +165,7 @@ impl<'c, 'p, C: Carrier> PreparedForeCarrier<'c, 'p, C> {
     }
     pub fn fore_scope_digest(&self, endpoint: u16, cord: u16) -> Option<[u8; 32]> {
         let line = self
-            .selection
-            .installed
-            .profile
-            .lines
+            .pins
             .iter()
             .find(|line| line.fore().endpoint() == endpoint && line.fore().cord() == cord)?;
         Some(external_fore_scope_commitment(
@@ -221,7 +223,7 @@ unsafe impl<'c, 'p, C: Carrier, T: PreparedLocalKernels> PreparedLocalKernels
         self.kernels
             .retained_backing_bytes()?
             .checked_add(wrapper)?
-            .checked_add(self.carrier.selection.backing.len())
+            .checked_add(self.carrier.backing.len())
     }
     unsafe fn bind(self) -> Self::Bound {
         // SAFETY: caller satisfies the unchanged original workset admission/Start.
@@ -238,7 +240,7 @@ impl<'s, const N: usize> Root<'s, N> {
     pub fn prepare_fore_carrier<'c, 'p, C: Carrier, const F: usize, const PORTS: usize>(
         &self,
         now: u64,
-        selection: Option<NativeForeCarrierSelection<'c, 'p, C>>,
+        selection: Option<NativeForeCarrierSelection<'c, 'p, '_, C>>,
         approved: &b::DelegatedBodyFragment<'_>,
         fore: &b::ApprovedBodyForePorts<PORTS>,
         profile: b::AssignedBodyLineForePreparationProfile<'_>,
@@ -269,7 +271,7 @@ impl<const N: usize> ExecutionParts<'_, '_, N> {
     pub fn prepare_fore_carrier<'c, 'p, C: Carrier, const F: usize, const PORTS: usize>(
         &self,
         now: u64,
-        selection: Option<NativeForeCarrierSelection<'c, 'p, C>>,
+        selection: Option<NativeForeCarrierSelection<'c, 'p, '_, C>>,
         approved: &b::DelegatedBodyFragment<'_>,
         fore: &b::ApprovedBodyForePorts<PORTS>,
         profile: b::AssignedBodyLineForePreparationProfile<'_>,

@@ -3,8 +3,8 @@ use conduit_body::*;
 use conduit_core as c;
 use ed25519_dalek::Signer;
 use sha2::{Digest, Sha256};
+use std::format;
 use std::prelude::v1::*;
-use std::{format, vec};
 #[allow(dead_code)]
 #[path = "test_auth.rs"]
 mod auth;
