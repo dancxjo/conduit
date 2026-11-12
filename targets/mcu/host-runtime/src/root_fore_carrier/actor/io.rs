@@ -117,17 +117,24 @@ impl<C: MessageTransport> ForeIoActor<'_, '_, '_, C> {
         result
     }
     async fn receive_inner(&mut self) -> Result<ForeIoProgress, ForeIoRefusal> {
+        if self.state.retired {
+            return Err(ForeIoRefusal::Inactive);
+        }
         if !matches!(self.state.pending, Pending::None) {
             return self.apply();
         }
         self.check()?;
-        let length = self
+        let received = self
             .link
             .receive(self.buffer)
             .await
-            .map_err(|_| ForeIoRefusal::Io)?
-            .len();
+            .map_err(|_| ForeIoRefusal::Io)?;
+        let length = received.len();
+        let received_start = received.as_ptr();
         self.state.used_frames += 1;
+        if length > self.buffer.len() || received_start != self.buffer.as_ptr() {
+            return Err(ForeIoRefusal::Bounds);
+        }
         self.admit_received(length)
     }
     /// Prefer a pending send/APPLY; otherwise race one cancellation-safe framed
@@ -146,7 +153,7 @@ impl<C: MessageTransport> ForeIoActor<'_, '_, '_, C> {
             }
             progress => return Ok(progress),
         }
-        let result = {
+        {
             let receive = self.receive_one();
             let pause = yield_to.pause();
             let mut receive = pin!(receive);
@@ -161,7 +168,6 @@ impl<C: MessageTransport> ForeIoActor<'_, '_, '_, C> {
                 Poll::Pending
             })
             .await
-        };
-        result
+        }
     }
 }

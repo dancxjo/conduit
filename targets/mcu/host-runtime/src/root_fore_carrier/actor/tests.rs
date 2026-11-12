@@ -250,6 +250,25 @@ fn original_bound_root_carrier_exchanges_real_scoped_payloads_then_isolates_io_f
     observer.before_step(kernel).unwrap();
     kernel.step().unwrap();
     observer.before_step(kernel).unwrap();
+    // A real successful Accepted write is followed by a contested synchronous
+    // APPLY. Keeping this exact pending phase prevents a duplicate frame.
+    crate::tests::ready(actor.send_pending()).unwrap();
+    let frames_after_send = actor.frames_used();
+    let writes_after_send = peer.borrow().as_ref().unwrap().writes;
+    assert_eq!(
+        observer.with_test_mailbox_loan(|| actor.apply()),
+        Ok(ForeIoProgress::Busy)
+    );
+    assert!(matches!(
+        actor.state.pending,
+        Pending::Sent(Event::IngressAccepted(0))
+    ));
+    assert_eq!(
+        crate::tests::ready(actor.send_pending()),
+        Ok(ForeIoProgress::Progress)
+    );
+    assert_eq!(actor.frames_used(), frames_after_send);
+    assert_eq!(peer.borrow().as_ref().unwrap().writes, writes_after_send);
     for _ in 0..12 {
         if !matches!(actor.state.pending, Pending::None) {
             crate::tests::ready(actor.send_pending()).unwrap();
@@ -347,3 +366,6 @@ impl MessageTransport for TestTransport<'_> {
         Ok(())
     }
 }
+
+#[path = "preparation_tests.rs"]
+mod preparation;
