@@ -110,7 +110,7 @@ impl InstalledRemoteFragment {
     pub(crate) fn complete_startup_host_call(
         &mut self,
         request: conduit_kernel::scheduler::HostCallRequest,
-        cancelled: impl FnMut() -> bool,
+        cancelled: impl Fn() -> bool,
     ) -> Result<bool, String> {
         use conduit_kernel::HostCallDisposition;
         let operation = self

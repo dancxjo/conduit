@@ -80,7 +80,7 @@ impl PreparedChimeOutput {
         self.execute_inner(
             input,
             pcm,
-            &mut || control.stop_requested(),
+            &|| control.stop_requested(),
             #[cfg(test)]
             Some(control),
         )
@@ -89,12 +89,12 @@ impl PreparedChimeOutput {
         &mut self,
         input: &[u8],
         pcm: &[u8],
-        mut cancelled: impl FnMut() -> bool,
+        cancelled: impl Fn() -> bool,
     ) -> HostCallOutcome {
         self.execute_inner(
             input,
             pcm,
-            &mut cancelled,
+            &cancelled,
             #[cfg(test)]
             None,
         )
@@ -103,7 +103,7 @@ impl PreparedChimeOutput {
         &mut self,
         input: &[u8],
         pcm: &[u8],
-        cancelled: &mut dyn FnMut() -> bool,
+        cancelled: &dyn Fn() -> bool,
         #[cfg(test)] test_control: Option<&RunControl>,
     ) -> HostCallOutcome {
         let Ok(pulse) = InfoBool::decode(input) else {
@@ -196,7 +196,7 @@ impl PreparedChimeOutput {
     fn execute_fake(
         &self,
         pcm: &[u8],
-        cancelled: &mut dyn FnMut() -> bool,
+        cancelled: &dyn Fn() -> bool,
         test_control: Option<&RunControl>,
     ) -> HostCallOutcome {
         TEST_EFFECT_ATTEMPTS.with(|n| n.set(n.get() + 1));

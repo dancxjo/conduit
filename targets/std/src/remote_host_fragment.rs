@@ -197,7 +197,7 @@ impl StdHost {
         &mut self,
         fragment: &mut AdmittedRemoteFragment,
         request: HostCallRequest,
-        cancelled: impl FnMut() -> bool,
+        cancelled: impl Fn() -> bool,
     ) -> Result<bool, String> {
         let advertisement = self.advertisement();
         if fragment.identity.host_id != advertisement.host_id
@@ -220,7 +220,7 @@ impl StdHost {
         &mut self,
         fragment: &mut AdmittedRemoteFragment,
         request: HostCallRequest,
-        cancelled: impl FnMut() -> bool,
+        cancelled: impl Fn() -> bool,
     ) -> Result<bool, String> {
         let actual = self.advertisement();
         if fragment.identity.host_id != actual.host_id
