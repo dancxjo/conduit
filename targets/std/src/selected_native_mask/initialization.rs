@@ -204,3 +204,118 @@ impl StdHost {
         )
     }
 }
+
+#[cfg(test)]
+mod audio_tests {
+    use super::*;
+    use crate::hosted_audio::{
+        AlsaPlaybackObservation, FakePlaybackBehavior, HostedPlaybackSelection,
+    };
+    use conduit_host_make::{
+        build_default_host_image, check_host_configuration, parse_host_configuration_conduit,
+        BuildInputs,
+    };
+    use std::sync::atomic::Ordering;
+
+    #[test]
+    fn native_mask_and_startup_speaker_share_the_original_image_counter() {
+        // CPU/SDL diagnostics only: this is not KMSDRM or audible-output proof.
+        assert!(sdl2::hint::set("SDL_VIDEODRIVER", "dummy"));
+        let sdl = sdl2::init().unwrap();
+        let video = sdl.video().unwrap();
+        let window = video
+            .window("combined Mask/speaker diagnostic", 640, 480)
+            .build()
+            .unwrap();
+        let mut canvas = window.into_canvas().software().build().unwrap();
+        let textures = canvas.texture_creator();
+        let mut output =
+            conduit_linux_display::Scanout::prepare(&mut canvas, &textures, 640, 480).unwrap();
+        let source = include_str!("../../../profiles/raspberry-pi-3-tick-workset.host.conduit").replace("  limits =", &format!(r#"  base = {{kind: "display/scanout", implementation: "display/linear-framebuffer@1", initialization: {{backend: "KMSDRM", width: 640, height: 480}}}}
+  base = {{kind: "audio/speaker", implementation: "std/kernel-audio-play-alsa-hw@1", initialization: {{executable_sha256: "{}", card_id: "Fixture", device: 0, base_identity: "fixture/speaker"}}}}
+  capability = {{kind: "sound/startup-chime", pinned_implementation: "std/kernel-startup-chime@1"}}
+  capability = {{kind: "body/wake", pinned_implementation: "std/kernel-body-wake@1"}}
+  need = {{id: "display/main", class: "face/surface", slots: 1, bytes: 1228800}}
+  need = {{id: "display/show", class: "face.resource/show@1", slots: 1, bytes: 1}}
+  need = {{id: "display/memory", class: "conduit.resource/runtime-memory@1", slots: 8388608, bytes: 8388608}}
+  need = {{id: "std/audio/alsa/fixture/speaker/card-Fixture/device-0", class: "conduit.resource/audio-playback-alsa-hw@1", slots: 1, bytes: 1}}
+  limits ="#, "ab".repeat(32)));
+        let catalog = conduit_workspace_make::catalog();
+        let packages = conduit_workspace_make::package_set();
+        let checked = check_host_configuration(
+            parse_host_configuration_conduit(&source).unwrap(),
+            &catalog,
+            &packages,
+        )
+        .unwrap();
+        let (image, _) = build_default_host_image(
+            checked.profile().clone(),
+            &catalog,
+            &packages,
+            &BuildInputs {
+                source_identity: "diagnostic/native-mask-and-speaker".into(),
+                toolchain_available: true,
+            },
+        )
+        .unwrap();
+        let config = StdHostConfig {
+            host_id: "diagnostic/combined".into(),
+            boot_id: "diagnostic/boot".into(),
+            offer_generation: OfferGeneration(7),
+        };
+        let selected = HostedPlaybackSelection::deterministic_fake(
+            AlsaPlaybackObservation {
+                card_index: 999,
+                card_id: "Fixture".into(),
+                card_name: "Fixture".into(),
+                device: 0,
+                device_name: "PCM".into(),
+                base_identity: "fixture/speaker".into(),
+            },
+            config.boot_id.clone(),
+            config.offer_generation,
+            FakePlaybackBehavior::Success,
+        )
+        .with_executable_sha256("ab".repeat(32))
+        .unwrap();
+        crate::hosted_audio::startup_chime::reset_test_attempts();
+        let mut host = StdHost::from_native_mask_backend(
+            config,
+            &image,
+            &catalog,
+            &checked,
+            CheckedNativeMaskInitialization::from_configuration(&checked).unwrap(),
+            &mut output,
+            true,
+            Some(&selected),
+        )
+        .unwrap();
+        let used = host.kernel_resources.image_memory_observer();
+        let display_charge = host
+            .ready_selected_native_mask()
+            .unwrap()
+            .fixed_backing()
+            .image_heap_charge;
+        assert!(used.load(Ordering::Acquire) > display_charge);
+        assert!(host
+            .playback_selection()
+            .unwrap()
+            .same_physical_selection(&selected));
+        assert!(host.advertisement().capabilities.iter().any(|o| o
+            .implementation
+            .implementation_id
+            .as_str()
+            == conduit_std_offers::STARTUP_CHIME_IMPLEMENTATION));
+        assert!(output.initialized_display().unwrap().is_live());
+        assert_eq!(
+            crate::hosted_audio::startup_chime::test_attempts(),
+            0,
+            "initialization never plays a cue"
+        );
+        drop(host);
+        assert_eq!(
+            used.load(Ordering::Acquire),
+            crate::kernel_preparation::StagedImageMemory::counter_backing_bytes()
+        );
+    }
+}
