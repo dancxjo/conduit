@@ -94,7 +94,7 @@ impl PreparedChimeOutput {
                 482,
             );
         }
-        if control.requested_stop().is_some() {
+        if control.stop_requested() {
             return cancelled();
         }
         self.attempted = true;
@@ -124,7 +124,7 @@ impl PreparedChimeOutput {
                 require_process_group: true,
             },
             PCM_BYTES,
-            || control.requested_stop().is_some(),
+            || control.stop_requested(),
         );
         match report {
             Ok(report) => match report.terminal {

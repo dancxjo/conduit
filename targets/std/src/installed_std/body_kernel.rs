@@ -766,7 +766,7 @@ impl<'a> BodyKernel<'a> {
                         receipt.failure = outcome.failure;
                         receipt.kernel_accepted = false;
                         if outcome.disposition == HostCallDisposition::Cancelled
-                            && control.requested_stop().is_some()
+                            && control.stop_requested()
                         {
                             // No further queued Host effects may start. Preserve the
                             // actual outcome, then retire the pending request normally.
