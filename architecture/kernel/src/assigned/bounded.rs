@@ -56,6 +56,39 @@ impl<
         })
     }
 
+    /// Decode into caller-owned initialized inert tables. This supplies no
+    /// admission, provider possession, or execution authority. On refusal the
+    /// destination may be partially written and must not be executed.
+    #[allow(clippy::too_many_arguments)]
+    pub fn write_with_fore(
+        bytes: &[u8],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        fore: &[c::AssignedForeRequirement],
+        nodes: &mut [NodeSpec<P>; N],
+        cords: &mut [CordSpec; C],
+        routes: &mut k::FixedRoutes<R, T>,
+        calls: &mut k::FixedHostCallBindings<H>,
+    ) -> Result<c::AssignedPlanView, AssignedKernelRefusal> {
+        let mut startup_order = [k::NodeId(u16::MAX); N];
+        AssignedKernelTables::write_capacity_profile(
+            RecordInput::Bytes(bytes),
+            maxima,
+            required,
+            computations,
+            layout,
+            Some(fore),
+            false,
+            nodes,
+            cords,
+            routes,
+            calls,
+            &mut startup_order,
+        )
+    }
+
     pub fn identity(&self) -> c::AssignedPlanView {
         self.identity
     }
