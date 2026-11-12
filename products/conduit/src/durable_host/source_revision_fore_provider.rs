@@ -12,6 +12,7 @@ type Choices = BTreeMap<ResidentPlot, owner::OwnedForeLineSelection>;
 #[serde(deny_unknown_fields)]
 pub(in crate::durable_host::source_revision) struct DirectForeCarrierSelection {
     host_definition: std::path::PathBuf,
+    installed_image_id: String,
     usb_serial: String,
     plot: ResidentPlot,
     ports: Vec<super::super::super::local_fore_policy::LocalForePortIntent>,
@@ -21,7 +22,7 @@ pub(in crate::durable_host::source_revision) struct DirectForeCarrierSelection {
 /// TTY, stale member, declaration-only availability, or an unverified reopen.
 pub(in crate::durable_host::source_revision) fn select_direct_fore_lines(
     plays: &[UsbPlaySelection],
-    carriers: &[Result<SelectedPlayCarrier, String>],
+    carriers: &mut [Result<SelectedPlayCarrier, String>],
     peer: &conduit_body::FederationPeer,
     partitions: &[BodyPlotPlan],
 ) -> Result<(Choices, Vec<Sessions>), String> {
@@ -33,7 +34,7 @@ pub(in crate::durable_host::source_revision) fn select_direct_fore_lines(
     for (play, carrier) in plays.iter().zip(carriers) {
         let mut selected = Sessions::new();
         if let Some(policy) = &play.direct_fore_carrier {
-            let carrier = carrier.as_ref().map_err(Clone::clone)?;
+            let carrier = carrier.as_mut().map_err(|error| error.clone())?;
             if !carrier.authenticated_return() {
                 return Err("direct Fore requires the original completed member return".into());
             }
@@ -41,7 +42,8 @@ pub(in crate::durable_host::source_revision) fn select_direct_fore_lines(
                 .socket
                 .verify_local_usb_serial(&policy.usb_serial)
                 .map_err(|e| format!("direct Fore physical attachment: {e:?}"))?;
-            let (rows, picked) = describe(policy, &carrier.member, peer, partitions)?;
+            let (rows, picked, material) = describe(policy, &carrier.member, peer, partitions)?;
+            carrier.fore_material = Some(material);
             let entry = choices.entry(policy.plot.clone()).or_insert_with(|| {
                 owner::OwnedForeLineSelection {
                     choices: Vec::new(),
@@ -69,7 +71,14 @@ fn describe(
     member: &owner::MemberPresentationBasis,
     peer: &conduit_body::FederationPeer,
     partitions: &[BodyPlotPlan],
-) -> Result<(owner::OwnedForeLineSelection, Vec<SelectedForeSession>), String> {
+) -> Result<
+    (
+        owner::OwnedForeLineSelection,
+        Vec<SelectedForeSession>,
+        DirectForeMaterial,
+    ),
+    String,
+> {
     use conduit_host_make as h;
     if policy.ports.len() != 2
         || policy
@@ -147,6 +156,7 @@ fn describe(
         allowed_bases: vec![implementation.into()],
     };
     let mut sessions = Vec::new();
+    let mut frozen = Vec::new();
     for wanted in &policy.ports {
         let matching: Vec<_> = lowered
             .fore_ports
@@ -192,6 +202,23 @@ fn describe(
         )
         .map_err(|e| format!("direct physical Fore: {e:?}"))?;
         let line = described.line;
+        let bound = c::AssignedRemoteBinding {
+            line: c::AssignedIdentity::from_text(line.line_id.as_str()),
+            local_host: c::AssignedIdentity::from_text(actual.host_id.as_str()),
+            local_boot: c::AssignedIdentity::from_text(actual.boot_id.as_str()),
+            peer_host: c::AssignedIdentity::from_text(peer.host_id.as_str()),
+            peer_boot: c::AssignedIdentity::from_text(peer.boot_id.as_str()),
+        };
+        frozen.push(binding::FrozenFore {
+            pin: c::AssignedLineForeRequirement::new(
+                pins[*index],
+                bound,
+                c::AssignedIdentity::from_text(&described.session_id),
+                c::AssignedIdentity::from_text(SESSION_CONTRACT),
+                c::admitted_line_commitment(&line),
+            ),
+            abnormal_kind: port.abnormal_kind.clone(),
+        });
         let binding = line.binding;
         rows.choices.push(conduit_planner::ExternalForeLineChoice {
             host_id: actual.host_id.clone(),
@@ -231,9 +258,14 @@ fn describe(
             session_contract: c::AssignedIdentity::from_text(SESSION_CONTRACT),
         });
     }
-    Ok((rows, sessions))
+    let material = DirectForeMaterial::new(policy, member, configuration, bounds, frozen)?;
+    Ok((rows, sessions, material))
 }
 
 #[cfg(test)]
 #[path = "source_revision_fore_provider_tests.rs"]
 mod tests;
+
+#[path = "source_revision_fore_binding.rs"]
+mod binding;
+pub(super) use binding::DirectForeMaterial;

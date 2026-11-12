@@ -140,6 +140,7 @@ impl Fixture {
             root,
             policy: DirectForeCarrierSelection {
                 host_definition: definition,
+                installed_image_id: "image:fixture".into(),
                 usb_serial: "fixture/serial".into(),
                 plot: plot.clone(),
                 ports,
@@ -158,7 +159,7 @@ impl Drop for Fixture {
 #[test]
 fn descriptive_rows_bind_the_original_plan_and_same_full_physical_session() {
     let fixture = Fixture::new();
-    let (rows, sessions) = describe(
+    let (rows, sessions, _material) = describe(
         &fixture.policy,
         &fixture.member,
         &fixture.peer,
@@ -215,13 +216,137 @@ fn no_selected_carrier_is_not_descriptive_line_availability() {
     let fixture = Fixture::new();
     assert!(select_direct_fore_lines(
         &[],
-        &[Err("fixture/absent".into())],
+        &mut [Err("fixture/absent".into())],
         &fixture.peer,
         &fixture.partitions
     )
     .is_err());
     let (choices, sessions) =
-        select_direct_fore_lines(&[], &[], &fixture.peer, &fixture.partitions).unwrap();
+        select_direct_fore_lines(&[], &mut [], &fixture.peer, &fixture.partitions).unwrap();
     assert!(choices.is_empty());
     assert!(sessions.is_empty());
+}
+
+#[test]
+fn client_binding_uses_original_child_bytes_custody_and_installed_image() {
+    use sha2::{Digest, Sha256};
+    let fixture = Fixture::new();
+    let (rows, sessions, material) = describe(
+        &fixture.policy,
+        &fixture.member,
+        &fixture.peer,
+        &fixture.partitions,
+    )
+    .unwrap();
+    let sealed = conduit_planner::bind_external_fore_lines(
+        &fixture.partitions[0].plan,
+        &rows.choices,
+        &rows.offers,
+        &rows.allowed_bases,
+    )
+    .unwrap();
+    let fragment = &sealed.fragments[0];
+    let generated = conduit_embedded_build::generate_line_fore_native_plan(
+        &sealed,
+        &fragment.fragment_id,
+        conduit_embedded_build::EmbeddedImageBounds::HOST_TOOLING,
+        conduit_embedded_build::EmbeddedComputationBounds {
+            maximum_program_bytes: 32768,
+            maximum_total_program_bytes: 65536,
+        },
+        2,
+        &sessions,
+    )
+    .unwrap();
+    let projection = generated
+        .encode(c::AssignedPlanMaxima {
+            encoded_bytes: 16384,
+            runtime_state_bytes: 32768,
+            counts: [32; c::ASSIGNED_PLAN_COUNT_KINDS],
+        })
+        .unwrap();
+    let inventory: Vec<_> = generated
+        .fore()
+        .iter()
+        .flat_map(|pin| pin.payload().iter().copied())
+        .collect();
+    let body = fixture.member.credential.body_id.as_str();
+    let play = format!(
+        "body-play/sha256:{}",
+        conduit_body::body_play_digest(body, "fixture/wake", "fixture/body-plan", 1)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>()
+    );
+    let (count, digest) =
+        conduit_body::local_fragment_set_commitment(&[fragment.fragment_id.as_str()]).unwrap();
+    let metadata = conduit_body::BodyFragmentApprovalMetadata {
+        schema: 3,
+        body,
+        wake: "fixture/wake",
+        body_plan: "fixture/body-plan",
+        body_play: &play,
+        play_sequence: 1,
+        workload_revision: 1,
+        source: fixture.policy.plot.source_document_id.as_str(),
+        checked_plot: fixture.policy.plot.checked_plot_id.as_str(),
+        expanded_plot: fragment.expanded_plot_id.as_str(),
+        plot_plan: sealed.plan_id.as_str(),
+        fragment: fragment.fragment_id.as_str(),
+        host: fragment.host_id.as_str(),
+        boot: fragment.boot_id.as_str(),
+        offer_generation: fixture.member.host_advertisement.offer_generation.0,
+        local_fragment_count: count,
+        local_fragment_digest: digest,
+        resource_bindings: &[],
+        fore_ports: &inventory,
+        projection_length: projection.len() as u32,
+        projection_digest: Sha256::digest(&projection).into(),
+    };
+    let child = conduit_body::encode_body_fragment_document(&metadata, &projection, 65536).unwrap();
+    let payload = conduit_body::encode_body_workset_document(&[&child], 65536).unwrap();
+    let bindings = material.bindings(&payload, [8; 32]).unwrap();
+    material.prepare_carriage(&payload, [8; 32]).unwrap();
+    assert_ne!(bindings[0].scope_commitment, bindings[1].scope_commitment);
+    let input = generated
+        .profile()
+        .lines
+        .iter()
+        .find(|row| row.fore().direction() == c::AssignedForeDirection::Input)
+        .unwrap();
+    let full = conduit_wire::fore_carrier_scope_commitment(
+        &Sha256::digest(&child).into(),
+        "image:fixture",
+        fixture.member.host_advertisement.profile.as_str(),
+        conduit_wire::ForeCarrierScopeBounds {
+            maximum_lines: 2,
+            maximum_frame_bytes: 512,
+            maximum_payload_bytes: 460,
+            maximum_buffered_bytes: 1024,
+            maximum_in_flight_items: 1,
+            maximum_frames: 100,
+        },
+    );
+    assert_eq!(
+        bindings[0].scope_commitment,
+        conduit_wire::external_fore_scope_commitment(&full, &[8; 32], input.payload())
+    );
+    assert_ne!(
+        bindings[0].scope_commitment,
+        material.bindings(&payload, [9; 32]).unwrap()[0].scope_commitment
+    );
+    let mut other = fixture.policy.clone();
+    other.installed_image_id = "image:other".into();
+    let (_, _, other) =
+        describe(&other, &fixture.member, &fixture.peer, &fixture.partitions).unwrap();
+    assert_ne!(
+        bindings[0].scope_commitment,
+        other.bindings(&payload, [8; 32]).unwrap()[0].scope_commitment
+    );
+    let mut damaged = payload.clone();
+    *damaged.last_mut().unwrap() ^= 1;
+    assert!(material.bindings(&damaged, [8; 32]).is_err());
+    assert!(material
+        .bindings(&payload[..payload.len() - 1], [8; 32])
+        .is_err());
 }

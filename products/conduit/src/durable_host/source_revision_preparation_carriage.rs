@@ -15,7 +15,13 @@ pub(in crate::durable_host::source_revision) fn submit_selected_play(
     >,
 ) -> Result<(), String> {
     use conduit_std_host::pico_spawn::PreparationCommandBytes;
-    let SelectedPlayCarrier { member, socket, .. } = carrier;
+    let SelectedPlayCarrier {
+        member,
+        socket,
+        fore_material,
+        prepared_fore,
+        ..
+    } = carrier;
     let limits = conduit_embedded_build::BodyFragmentProjectionLimits {
         image: selected.image.bounds(),
         computations: conduit_embedded_build::EmbeddedComputationBounds {
@@ -32,6 +38,7 @@ pub(in crate::durable_host::source_revision) fn submit_selected_play(
     };
     let mut approved = None;
     let mut refusal = None;
+    let mut prepared_client = None;
     let exchange = socket.exchange_preparation(
         std::time::Duration::from_millis(selected.wait_milliseconds),
         selected.maximum_document_bytes as usize,
@@ -51,9 +58,27 @@ pub(in crate::durable_host::source_revision) fn submit_selected_play(
                 }
             }
             let (payload, signature) = approved.as_ref().expect("just approved");
+            if let Some(material) = fore_material.as_ref() {
+                let bound = conduit_body::host_command_attribution_transcript(challenge, payload)
+                    .map_err(|e| format!("original native custody transcript: {e:?}"))
+                    .and_then(|custody| material.prepare_carriage(payload, custody));
+                match bound {
+                    Ok(client) => prepared_client = Some(client),
+                    Err(error) => {
+                        refusal = Some(error);
+                        return Err(());
+                    }
+                }
+            }
             Ok(PreparationCommandBytes { payload, signature })
         },
     );
+    // Retain the original derived scope even if submission/delivery is
+    // uncertain. This metadata authorizes no retry, peer readiness or Start.
+    // An occupied report invokes no approval callback and cannot construct it.
+    if let Some(client) = prepared_client {
+        *prepared_fore = Some(client);
+    }
     write_json_atomic(
         &selected.report_output,
         &serde_json::json!({
@@ -65,6 +90,7 @@ pub(in crate::durable_host::source_revision) fn submit_selected_play(
             "admission_proved": false,
             "play_proved": false,
             "approval_retained": approved.is_some(),
+            "fore_bindings_prepared": prepared_fore.is_some(),
         }),
     )?;
     exchange.map(|_| ()).map_err(|e| {

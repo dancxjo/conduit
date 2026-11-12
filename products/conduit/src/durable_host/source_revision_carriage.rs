@@ -8,6 +8,8 @@ pub(super) struct SelectedPlayCarrier {
     socket: conduit_std_host::pico_spawn::PicoSpawnSocket,
     canonical_port: std::path::PathBuf,
     completed_return: Option<CompletedMemberReturn>,
+    fore_material: Option<fore_provider::DirectForeMaterial>,
+    prepared_fore: Option<conduit_std_host::pico_spawn::PreparedForeCarriage>,
 }
 // Constructed only after the existing proof, commit, receipt delivery and durable
 // presentation publication have ALL completed on this same owned socket.
@@ -131,6 +133,8 @@ pub(super) fn open_selected_play_carrier(
         socket,
         canonical_port,
         completed_return: None,
+        fore_material: None,
+        prepared_fore: None,
     })
 }
 #[cfg(target_os = "linux")]
@@ -319,6 +323,8 @@ pub(super) fn return_selected_basis_owned(
         socket,
         canonical_port,
         completed_return: Some(CompletedMemberReturn),
+        fore_material: None,
+        prepared_fore: None,
     })
 }
 

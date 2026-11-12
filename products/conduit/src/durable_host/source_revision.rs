@@ -710,7 +710,7 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
         let line_peer = owner.member_carrier_peer()?;
         match owner.plan_retained_with_fore_provider(state_dir, |partitions| {
             let (lines, sessions) =
-                select_direct_fore_lines(&selection.plays, &carriers, &line_peer, partitions)?;
+                select_direct_fore_lines(&selection.plays, &mut carriers, &line_peer, partitions)?;
             line_sessions = sessions;
             Ok(lines)
         }) {

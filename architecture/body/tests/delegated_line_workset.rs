@@ -149,3 +149,28 @@ fn every_child_rechecks_original_set_deadline_scope_policy_and_exact_line_count(
         ))
     ));
 }
+
+#[test]
+fn borrowed_workset_inspection_reuses_complete_envelope_checks_without_attribution() {
+    let bytes = mixed_workset();
+    let view = BodyWorksetDocumentView::<2>::decode(&bytes).unwrap();
+    assert_eq!(view.len(), 2);
+    assert!(!view.is_empty());
+    let first = view.document(0).unwrap();
+    assert_eq!(
+        decode_body_fragment_document(first).unwrap().0.fragment,
+        "fragment"
+    );
+    assert!(first.as_ptr() >= bytes.as_ptr());
+    assert!((first.as_ptr() as usize + first.len()) <= bytes.as_ptr() as usize + bytes.len());
+    assert!(view.document(2).is_none());
+    assert!(BodyWorksetDocumentView::<1>::decode(&bytes).is_err());
+    assert!(BodyWorksetDocumentView::<0>::decode(&bytes).is_err());
+    assert!(BodyWorksetDocumentView::<2>::decode(&bytes[..bytes.len() - 1]).is_err());
+    let mut trailing = bytes.clone();
+    trailing.push(0);
+    assert!(BodyWorksetDocumentView::<2>::decode(&trailing).is_err());
+    let mut corrupted = bytes.clone();
+    *corrupted.last_mut().unwrap() ^= 1;
+    assert!(BodyWorksetDocumentView::<2>::decode(&corrupted).is_err());
+}
