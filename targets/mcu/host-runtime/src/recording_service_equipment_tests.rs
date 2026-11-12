@@ -219,9 +219,11 @@ fn selection_recovery_and_publication_preserve_one_real_residence_and_gaps() {
     assert_eq!(programs.get(), programmed);
     assert_eq!(drops.get(), 0);
     // Duplicate publication of the same physical residence cannot invent capacity.
-    let mut duplicate = crate::native_images::Publication::new(&mut advertised, 1, 4096).unwrap();
-    assert!(recovered.publish(&mut duplicate).is_err());
-    drop(duplicate);
+    {
+        let mut duplicate =
+            crate::native_images::Publication::new(&mut advertised, 1, 4096).unwrap();
+        assert!(recovered.publish(&mut duplicate).is_err());
+    }
     assert_eq!(advertised.resources.len(), 1);
 }
 #[test]

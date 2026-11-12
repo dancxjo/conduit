@@ -158,17 +158,18 @@ mod tests {
         // A different uninspectable selected slot prevents a full report, but
         // cannot force this per-slot entrance to materialize/query all E rows.
         assert!(subset.terminal_transductions::<2>().is_none());
-        let subset = PreparedResidentSubset([
-            Some(Loan {
-                inspectable: true,
-                available: &available,
-            }),
-            None,
-        ]);
-        let full = subset.terminal_transductions::<2>().unwrap();
-        assert_eq!(subset.terminal_transductions_at::<2>(0), Some(full[0]));
-        assert_eq!(subset.terminal_transductions_at::<2>(1), Some(full[1]));
-        drop(subset);
+        {
+            let subset = PreparedResidentSubset([
+                Some(Loan {
+                    inspectable: true,
+                    available: &available,
+                }),
+                None,
+            ]);
+            let full = subset.terminal_transductions::<2>().unwrap();
+            assert_eq!(subset.terminal_transductions_at::<2>(0), Some(full[0]));
+            assert_eq!(subset.terminal_transductions_at::<2>(1), Some(full[1]));
+        }
         assert!(available.get());
     }
 }

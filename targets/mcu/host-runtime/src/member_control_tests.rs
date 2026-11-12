@@ -162,15 +162,18 @@ fn canonical_member_control_updates_only_verified_receipt_and_preserves_reservat
         let original_resources = serde_json::to_vec(&root.resources).unwrap();
         let original_receipt = serde_json::to_vec(&root.receipt).unwrap();
         let original_digest = root.receipt_digest();
-        let (mut control, workspace) = root.member_control_with_workspace().unwrap();
-        assert_eq!(workspace.len(), 16384);
-        let result = ready(control.return_member(
-            &mut link,
-            [IMAGE].into_iter(),
-            &[] as &[c::AuthorityGrant],
-            workspace,
-            &mut [0; 4096],
-        ));
+        let result = {
+            let (mut control, workspace) = root.member_control_with_workspace().unwrap();
+            assert_eq!(workspace.len(), 16384);
+            let result = ready(control.return_member(
+                &mut link,
+                [IMAGE].into_iter(),
+                &[] as &[c::AuthorityGrant],
+                workspace,
+                &mut [0; 4096],
+            ));
+            result
+        };
         let expected = match case {
             0 => Ok(()),
             1 => Err(crate::root::Refusal::MemberReturn(Refusal::Scope)),
@@ -181,7 +184,6 @@ fn canonical_member_control_updates_only_verified_receipt_and_preserves_reservat
             _ => unreachable!(),
         };
         assert_eq!(result, expected, "case {case}");
-        drop(control);
         assert_eq!(
             serde_json::to_vec(&root.resources).unwrap(),
             original_resources

@@ -67,9 +67,13 @@ fn original_parts_carrier_is_funded_and_binds_only_through_original_admission_st
             )
         }
         .unwrap();
-        let mut selection = Some(selection);
-        let prepared =
-            PreparedLocalWorkset::<_, 1>::prepare_selected_profiles::<4096, 2, ForeCarrierRefusal>(
+        let prepared = {
+            let mut selection = Some(selection);
+            let prepared = PreparedLocalWorkset::<_, 1>::prepare_selected_profiles::<
+                4096,
+                2,
+                ForeCarrierRefusal,
+            >(
                 parts.workspace,
                 context,
                 policy,
@@ -99,7 +103,8 @@ fn original_parts_carrier_is_funded_and_binds_only_through_original_admission_st
                 },
             )
             .unwrap();
-        drop(selection);
+            prepared
+        };
         drop((lines, peer, image, configuration, session, session_contract));
         prepared
     };
