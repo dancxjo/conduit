@@ -21,7 +21,7 @@ pub struct Factory<'a, 'f, 'issuers, 'diagnostic> {
     pub recording: Option<&'a crate::play::RecordingOperation<'static>>,
     pub sampling_values: conduit_kernel::HostedValueStore,
     pub output_values: conduit_kernel::HostedValueStore,
-    pub contracts: NativeContracts,
+    pub contracts: &'issuers mut Option<NativeContracts>,
     pub reader: Reader<'a>,
     pub face: &'a LocalPublicationFace,
     pub append_output_bytes: usize,

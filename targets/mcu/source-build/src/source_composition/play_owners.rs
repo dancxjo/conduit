@@ -65,7 +65,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
     output_profile: b::AssignedBodyPreparationProfile<'_>,
     sampling_fore: &[c::AssignedForeRequirement],
     output_fore: &[c::AssignedForeRequirement],
-    contracts: execution_group::NativeContracts,
+    contracts: &execution_group::NativeContracts,
 ) -> Result<(Sample<'a, 'f>, Output<'a, 'f>), &'static str> {
     let mut is_sampling = [false; resident::ENTRY_COUNT];
     let mut selected = core::array::from_fn(|_| None);
@@ -142,20 +142,19 @@ pub(super) fn prepare<'a, 'f: 'a>(
             crate::runtime::remaining(),
         )
         .map_err(|_| "pulse-authority")?;
-    let pulse_contract = contracts.pulse;
+    let pulse_contract = &contracts.pulse;
     let pulse = ReadyPulseBase::prepare_assigned_fore_retained(
         pulse,
         table,
         handle,
         claim,
-        &pulse_contract,
+        pulse_contract,
         SelectedAssignedForeOperationPlan {
             operation: operation(sampling, &sampling_profile, pn),
             fore: sampling_fore,
         },
     )
     .map_err(|_| "pulse-assignment")?;
-    drop(pulse_contract); // Cold schema metadata is not execution custody.
     let (table, handle, claim) = context
         .issue(
             write_issuer,
@@ -166,20 +165,19 @@ pub(super) fn prepare<'a, 'f: 'a>(
             crate::runtime::remaining(),
         )
         .map_err(|_| "write-authority")?;
-    let write_contract = contracts.write;
+    let write_contract = &contracts.write;
     let write = ReadyWriteBase::prepare_assigned_fore_retained(
         write,
         table,
         handle,
         claim,
-        &write_contract,
+        write_contract,
         SelectedAssignedForeOperationPlan {
             operation: operation(output, &output_profile, wn),
             fore: output_fore,
         },
     )
     .map_err(|_| "write-assignment")?;
-    drop(write_contract);
     // This checked BSP construction currently admits exactly one Source
     // clock; shared mechanisms support larger independently built sets.
     let [wait] = waits;
@@ -236,7 +234,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
         return Err("append-source-duplicate");
     }
     #[cfg(not(record_service))]
-    let appender = match (append_node, contracts.append, recording_operation) {
+    let appender = match (append_node, contracts.append.as_ref(), recording_operation) {
         (Some(node), Some(contract), Some(op)) => {
             let recording = recording.ok_or("append-busy")?;
             let (table, handle, claim) = context
@@ -254,7 +252,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
                 table,
                 handle,
                 claim,
-                &contract,
+                contract,
                 &[],
                 SelectedAssignedForeOperationPlan {
                     operation: operation(sampling, &sampling_profile, node),
@@ -262,7 +260,6 @@ pub(super) fn prepare<'a, 'f: 'a>(
                 },
             )
             .map_err(|_| "append-assignment")?;
-            drop(contract);
             Some(ticket)
         }
         (None, None, None) => None,

@@ -162,7 +162,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     operations: &Operations<'_, WAIT_SLOTS>,
     sampling_values: HostedValueStore,
     output_values: HostedValueStore,
-    contracts: execution_group::NativeContracts,
+    contracts: &mut Option<execution_group::NativeContracts>,
     diagnostic: &mut heapless::String<192>,
 ) -> Result<
     PreparedLocalWorkset<
@@ -178,6 +178,23 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     >,
     Refusal<Refusal<&'static str>>,
 > {
+    // Keep cold schema graphs in their original backing through selection.
+    // The guard retires them on every refusal as well as on success.
+    struct ColdContracts<'a>(&'a mut Option<execution_group::NativeContracts>);
+    impl ColdContracts<'_> {
+        fn get(&self) -> Option<&execution_group::NativeContracts> {
+            self.0.as_ref()
+        }
+        fn retire(&mut self) {
+            *self.0 = None;
+        }
+    }
+    impl Drop for ColdContracts<'_> {
+        fn drop(&mut self) {
+            *self.0 = None;
+        }
+    }
+    let mut contracts = ColdContracts(contracts);
     let workspace = workspace.into();
     let append_selected = source::sampling::NATIVE_KINDS
         .iter()
@@ -287,8 +304,12 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 profile!(output_layout, host, boot, output_fore),
                 sampling_fore,
                 output_fore,
-                contracts,
+                contracts.get().ok_or("native-contracts-busy")?,
             )?;
+            // No native ticket retains schema references. End the immutable
+            // loan before dropping the original graphs in place, so their heap
+            // backing is available for physical kernel construction.
+            contracts.retire();
             let available = crate::runtime::remaining();
             if incremental > available {
                 return Err(kernel_refusal(

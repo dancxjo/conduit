@@ -140,7 +140,7 @@ pub async fn run<'s>(
                 recording: recording_operation.as_ref(),
                 sampling_values: sampling_values.take().expect("original sampling values"),
                 output_values: output_values.take().expect("original output values"),
-                contracts: contracts.take().expect("original native contracts"),
+                contracts: &mut contracts,
                 reader: reader.take().expect("original Reader"),
                 face: &face,
                 append_output_bytes: append_output.len(),
@@ -329,7 +329,7 @@ pub async fn run<'s>(
                         &operations,
                         sampling_values.take().ok_or("sampling-values-busy")?,
                         output_values.take().ok_or("output-values-busy")?,
-                        contracts.take().ok_or("native-contracts-busy")?,
+                        &mut contracts,
                         &mut refusal_detail,
                     )
                     .map_err(|error| {
