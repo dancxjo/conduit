@@ -13,6 +13,7 @@ mod microphone_initialization;
 mod playback_initialization;
 mod recognition_initialization;
 mod source_check_initialization;
+mod text_file_initialization;
 mod tls_listener_initialization;
 pub use builder::*;
 pub use creche_initialization::{
@@ -30,6 +31,10 @@ pub use tls_listener_initialization::{
 
 pub use source_check_initialization::{
     source_check_initialization_contract, CheckedSourceCheckInitialization,
+};
+
+pub use text_file_initialization::{
+    text_file_initialization_contract, CheckedTextFileInitialization,
 };
 
 pub struct HostedMakePackage;
@@ -116,8 +121,23 @@ fn package_catalog() -> PackageCatalogContribution {
         conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION.into(),
         source_check_initialization::metadata(),
     );
+    for write in [true, false] {
+        let offer = text_file_initialization::offer(write);
+        implementations.insert(
+            offer.implementation_id,
+            text_file_initialization::metadata(write),
+        );
+    }
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION.into(),
+                text_file_initialization_contract(),
+            ),
+            (
+                conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION.into(),
+                text_file_initialization_contract(),
+            ),
             (
                 conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION.into(),
                 source_check_initialization_contract(),
@@ -151,6 +171,7 @@ fn package_catalog() -> PackageCatalogContribution {
         dependencies: BTreeMap::from([
             creche_initialization::resource_dependency(),
             source_check_initialization::resource_dependency(),
+            text_file_initialization::resource_dependency(),
             (
                 PrerequisiteNode::Resource("conduit.resource/timer-slot@1".into()),
                 vec![PrerequisiteNode::Base("timer/monotonic".into())],
@@ -241,6 +262,8 @@ impl HostMakePackage for HostedMakePackage {
             offers: vec![
                 creche_initialization::offer(),
                 source_check_initialization::offer(),
+                text_file_initialization::offer(true),
+                text_file_initialization::offer(false),
                 tls_listener_initialization::offer(),
                 playback_initialization::offer(),
                 recognition_initialization::offer(),
