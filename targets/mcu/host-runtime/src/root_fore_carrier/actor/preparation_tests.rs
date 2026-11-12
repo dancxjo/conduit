@@ -68,14 +68,20 @@ fn actual_frame_extent_and_input_abi_and_original_policy_are_prestart_gates() {
                 n.preparation(),
             )
             .unwrap();
-        let mut ingress = PrimitiveIngressSpec {
-            pin: &pins[0],
-            value_kind: c::COUNT_INFO_ID,
-            temporal: "flow-open",
-            quantity_profile: c::QuantityValueProfile::Decimal,
-            item_capacity: 1,
-            byte_capacity: 8,
-        };
+        let ingress = PrimitiveIngressSpec::checked(
+            &pins[0],
+            c::AssignedForeAbi {
+                value_kind: c::COUNT_INFO_ID,
+                value_contract: None,
+                abnormal_kind: None,
+                temporal: "flow-open",
+                track: c::ConnectionTrack::Payload,
+                quantity_profile: c::QuantityValueProfile::Decimal,
+                item_capacity: 1,
+                byte_capacity: 8,
+            },
+        )
+        .unwrap();
         let egress = EgressSpec::checked(
             &pins[1],
             c::AssignedForeAbi {
@@ -97,7 +103,25 @@ fn actual_frame_extent_and_input_abi_and_original_policy_are_prestart_gates() {
         let bridge =
             PreparedForeBridge::prepare(custody, ingress, egress, &mut input, &mut output).unwrap();
         if case == 1 {
-            ingress.byte_capacity = 9;
+            assert!(matches!(
+                PrimitiveIngressSpec::checked(
+                    &pins[0],
+                    c::AssignedForeAbi {
+                        value_kind: c::COUNT_INFO_ID,
+                        value_contract: None,
+                        abnormal_kind: None,
+                        temporal: "flow-open",
+                        track: c::ConnectionTrack::Payload,
+                        quantity_profile: c::QuantityValueProfile::Decimal,
+                        item_capacity: 1,
+                        byte_capacity: 9,
+                    }
+                ),
+                Err(crate::fore_bridge::Refusal::UnsupportedAbi)
+            ));
+            assert!(peer.borrow().is_none());
+            assert!(root.resources.admissions().is_empty());
+            continue;
         }
         match carrier.prepare_bridge_sessions(&bridge, ingress, egress) {
             Err(ForeIoRefusal::Bounds) if case == 0 => {}

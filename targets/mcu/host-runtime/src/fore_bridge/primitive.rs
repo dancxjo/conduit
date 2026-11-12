@@ -1,70 +1,106 @@
-//! First ingress profile: unconstrained simple primitive payloads only.
+//! Check the complete borrowed ingress ABI once; retain a compact hot validator.
 use super::*;
 
-/// Trusted Make-derived input ABI description. Preparation recomputes the SAME
-/// ABI including an empty value contract; constrained/structured pins refuse.
+/// Exact checked primitive input. Cold contracts never survive preparation.
 #[derive(Clone, Copy)]
 pub struct PrimitiveIngressSpec<'p> {
-    pub pin: &'p c::AssignedLineForeRequirement,
-    pub value_kind: &'p str,
-    pub temporal: &'p str,
-    pub quantity_profile: c::QuantityValueProfile,
-    pub item_capacity: u16,
-    pub byte_capacity: u32,
+    pin: &'p c::AssignedLineForeRequirement,
+    value_kind: &'static str,
+    byte_capacity: u32,
+    count_bounds: Option<(u64, u64)>,
 }
-impl PrimitiveIngressSpec<'_> {
-    pub(super) fn check(&self) -> Result<(), Refusal> {
-        use c::PrimitiveInfoKind as P;
-        if self.pin.fore().direction() != c::AssignedForeDirection::Input
-            || self.item_capacity != 1
-            || self.byte_capacity == 0
-            || !matches!(self.temporal, "value" | "flow-open" | "flow-closing")
-            || !matches!(
-                c::primitive_info_kind(self.value_kind),
-                Some(
-                    P::Empty
-                        | P::CancellationRequest
-                        | P::Bool
-                        | P::Count
-                        | P::Scalar
-                        | P::Text
-                        | P::Bytes
-                        | P::U8
-                        | P::U16
-                        | P::U32
-                        | P::U64
-                        | P::U128
-                        | P::I8
-                        | P::I16
-                        | P::I32
-                        | P::I64
-                        | P::I128
-                        | P::F32
-                        | P::F64
-                )
-            )
+impl<'p> PrimitiveIngressSpec<'p> {
+    pub fn checked(
+        pin: &'p c::AssignedLineForeRequirement,
+        abi: c::AssignedForeAbi<'_>,
+    ) -> Result<Self, Refusal> {
+        let value_kind = [
+            "value/empty",
+            "control/cancellation-request",
+            "value/bool",
+            "value/count",
+            "value/scalar",
+            "value/text",
+            "value/bytes",
+            "value/u8",
+            "value/u16",
+            "value/u32",
+            "value/u64",
+            "value/u128",
+            "value/i8",
+            "value/i16",
+            "value/i32",
+            "value/i64",
+            "value/i128",
+            "value/ieee754-binary32",
+            "value/ieee754-binary64",
+        ]
+        .into_iter()
+        .find(|kind| *kind == abi.value_kind)
+        .ok_or(Refusal::UnsupportedAbi)?;
+        if pin.fore().direction() != c::AssignedForeDirection::Input
+            || abi.track != c::ConnectionTrack::Payload
+            || abi.abnormal_kind.is_some()
+            || abi.item_capacity != 1
+            || abi.byte_capacity == 0
+            || !matches!(abi.temporal, "value" | "flow-open" | "flow-closing")
         {
             return Err(Refusal::UnsupportedAbi);
         }
-        let digest = c::assigned_fore_abi_digest(c::AssignedForeAbi {
-            value_kind: self.value_kind,
-            value_contract: None,
-            abnormal_kind: None,
-            temporal: self.temporal,
-            track: c::ConnectionTrack::Payload,
-            quantity_profile: self.quantity_profile,
-            item_capacity: self.item_capacity,
-            byte_capacity: self.byte_capacity,
-        });
-        if self.pin.fore().payload()[21..] != digest {
+        let count_bounds = if let Some(contract) = abi.value_contract {
+            if value_kind != c::COUNT_INFO_ID
+                || contract.value_kind.as_str() != value_kind
+                || contract.maximum_bytes != 8
+                || abi.byte_capacity != 8
+                || contract.validate_definition().is_err()
+            {
+                return Err(Refusal::UnsupportedAbi);
+            }
+            use c::{IntervalEndpoint::Inclusive, ValueConstraint::UnsignedRange};
+            Some(match contract.constraints.as_slice() {
+                [] => (0, u64::MAX),
+                [UnsignedRange {
+                    minimum,
+                    maximum,
+                    minimum_endpoint: Inclusive,
+                    maximum_endpoint: Inclusive,
+                }] => (minimum.unwrap_or(0), maximum.unwrap_or(u64::MAX)),
+                _ => return Err(Refusal::UnsupportedAbi),
+            })
+        } else {
+            None
+        };
+        let byte_capacity = abi.byte_capacity;
+        if pin.fore().payload()[21..] != c::assigned_fore_abi_digest(abi) {
             return Err(Refusal::UnsupportedAbi);
         }
-        Ok(())
+        Ok(Self {
+            pin,
+            value_kind,
+            byte_capacity,
+            count_bounds,
+        })
+    }
+    pub const fn pin(&self) -> &'p c::AssignedLineForeRequirement {
+        self.pin
+    }
+    pub const fn byte_capacity(&self) -> u32 {
+        self.byte_capacity
     }
     pub(super) fn validate(&self, bytes: &[u8]) -> Result<(), Refusal> {
         if bytes.len() > self.byte_capacity as usize {
             return Err(Refusal::Bounds);
         }
-        c::validate_primitive_info(self.value_kind, bytes).map_err(|_| Refusal::InvalidValue)
+        c::validate_primitive_info(self.value_kind, bytes).map_err(|_| Refusal::InvalidValue)?;
+        if let Some((minimum, maximum)) = self.count_bounds {
+            let value = c::decode_count(bytes).map_err(|_| Refusal::InvalidValue)?;
+            if value < minimum || value > maximum {
+                return Err(Refusal::InvalidValue);
+            }
+        }
+        Ok(())
     }
 }
+#[cfg(test)]
+#[path = "primitive_tests.rs"]
+mod tests;

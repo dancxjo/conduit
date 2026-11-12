@@ -61,21 +61,8 @@ impl<C: MessageTransport, const PORTS: usize> PreparedForeCarrier<'_, '_, C, POR
         input: PrimitiveIngressSpec<'_>,
         output: EgressSpec<'_>,
     ) -> Result<PreparedForeSessions, ForeIoRefusal> {
-        let input_abi = c::assigned_fore_abi_digest(c::AssignedForeAbi {
-            value_kind: input.value_kind,
-            value_contract: None,
-            abnormal_kind: None,
-            temporal: input.temporal,
-            track: c::ConnectionTrack::Payload,
-            quantity_profile: input.quantity_profile,
-            item_capacity: input.item_capacity,
-            byte_capacity: input.byte_capacity,
-        });
-        if input.pin.fore().payload()[21..] != input_abi {
-            return Err(ForeIoRefusal::Scope);
-        }
         bridge
-            .check_original_policy(&self.custody, input.pin, output.pin())
+            .check_original_policy(&self.custody, input.pin(), output.pin())
             .map_err(|_| ForeIoRefusal::Scope)?;
         let make = |pin: &c::AssignedLineForeRequirement,
                     payload: u32,
@@ -123,13 +110,13 @@ impl<C: MessageTransport, const PORTS: usize> PreparedForeCarrier<'_, '_, C, POR
                 Machine::new(binding, role).map_err(|_| ForeIoRefusal::Wire)?,
             )
         };
-        if input.pin.fore().direction() != c::AssignedForeDirection::Input
+        if input.pin().fore().direction() != c::AssignedForeDirection::Input
             || output.pin().fore().direction() != c::AssignedForeDirection::Output
         {
             return Err(ForeIoRefusal::Scope);
         }
         let routes = [
-            make(input.pin, input.byte_capacity, SessionRole::Sink)?,
+            make(input.pin(), input.byte_capacity(), SessionRole::Sink)?,
             make(output.pin(), output.byte_capacity(), SessionRole::Source)?,
         ];
         if routes[0].machine.binding().scope_commitment

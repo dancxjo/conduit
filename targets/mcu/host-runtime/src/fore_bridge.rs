@@ -63,18 +63,17 @@ impl<'b, 'p> PreparedForeBridge<'b, 'p> {
         ingress_bytes: &'b mut [u8],
         egress_bytes: &'b mut [u8],
     ) -> Result<Self, Refusal> {
-        ingress.check()?;
         if egress.pin().fore().direction() != c::AssignedForeDirection::Output
             || egress.byte_capacity() == 0
-            || ingress.byte_capacity as usize > ingress_bytes.len()
+            || ingress.byte_capacity() as usize > ingress_bytes.len()
             || egress.byte_capacity() as usize > egress_bytes.len()
-            || ingress.pin.fore().endpoint() == egress.pin().fore().endpoint()
-            || ingress.pin.fore().cord() == egress.pin().fore().cord()
+            || ingress.pin().fore().endpoint() == egress.pin().fore().endpoint()
+            || ingress.pin().fore().cord() == egress.pin().fore().cord()
         {
             return Err(Refusal::Bounds);
         }
         let pins = [
-            c::assigned_plan_payload_digest(ingress.pin.payload()),
+            c::assigned_plan_payload_digest(ingress.pin().payload()),
             c::assigned_plan_payload_digest(egress.pin().payload()),
         ];
         Ok(Self {

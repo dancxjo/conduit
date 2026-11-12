@@ -5,6 +5,18 @@ use crate::{execution::StoredExecutionKernel, native_dispatch::Dispatch};
 use conduit_kernel::{scheduler::*, *};
 use core::convert::Infallible;
 use std::vec;
+fn ingress_abi(kind: &str, byte_capacity: u32) -> c::AssignedForeAbi<'_> {
+    c::AssignedForeAbi {
+        value_kind: kind,
+        value_contract: None,
+        abnormal_kind: None,
+        temporal: "flow-open",
+        track: c::ConnectionTrack::Payload,
+        quantity_profile: c::QuantityValueProfile::Decimal,
+        item_capacity: 1,
+        byte_capacity,
+    }
+}
 struct Pins {
     lines: [c::AssignedLineForeRequirement; 2],
 }
@@ -51,14 +63,20 @@ impl Pins {
     }
     fn specs<'a>(&'a self, kind: &'a str) -> (PrimitiveIngressSpec<'a>, EgressSpec<'a>) {
         (
-            PrimitiveIngressSpec {
-                pin: &self.lines[0],
-                value_kind: kind,
-                temporal: "flow-open",
-                quantity_profile: c::QuantityValueProfile::Decimal,
-                item_capacity: 1,
-                byte_capacity: 8,
-            },
+            PrimitiveIngressSpec::checked(
+                &self.lines[0],
+                c::AssignedForeAbi {
+                    value_kind: kind,
+                    value_contract: None,
+                    abnormal_kind: None,
+                    temporal: "flow-open",
+                    track: c::ConnectionTrack::Payload,
+                    quantity_profile: c::QuantityValueProfile::Decimal,
+                    item_capacity: 1,
+                    byte_capacity: 8,
+                },
+            )
+            .unwrap(),
             EgressSpec::checked(
                 &self.lines[1],
                 c::AssignedForeAbi {
@@ -204,20 +222,17 @@ fn generic_primitive_validation_and_exact_activation_refuse_unproved_inputs() {
         port.stage_ingress(0, valid).unwrap();
     }
     let pins = Pins::new(c::COUNT_INFO_ID);
-    let (mut input_spec, output_spec) = pins.specs(c::COUNT_INFO_ID);
-    input_spec.byte_capacity = 7;
-    let mut input = [0; 8];
-    let mut output = [0; 8];
     assert!(matches!(
-        PreparedForeBridge::prepare([4; 32], input_spec, output_spec, &mut input, &mut output),
+        PrimitiveIngressSpec::checked(&pins.lines[0], ingress_abi(c::COUNT_INFO_ID, 7)),
         Err(Refusal::UnsupportedAbi)
     ));
     let pins = Pins::new("unsupported/structured");
-    let (input_spec, output_spec) = pins.specs("unsupported/structured");
     assert!(matches!(
-        PreparedForeBridge::prepare([4; 32], input_spec, output_spec, &mut input, &mut output),
+        PrimitiveIngressSpec::checked(&pins.lines[0], ingress_abi("unsupported/structured", 8)),
         Err(Refusal::UnsupportedAbi)
     ));
+    let mut input = [0; 8];
+    let mut output = [0; 8];
     let pins = Pins::new(c::COUNT_INFO_ID);
     let bound = make_bound(&pins, &mut input, &mut output);
     let mut activation = pins.activation();
@@ -276,13 +291,12 @@ fn constrained_abi_refuses_and_preparation_and_pumping_allocate_nothing() {
         c::AssignedIdentity([8; 16]),
         [9; 32],
     );
-    let (input_spec, output_spec) = pins.specs(c::COUNT_INFO_ID);
-    let mut input = [0; 8];
-    let mut output = [0; 8];
     assert!(matches!(
-        PreparedForeBridge::prepare([4; 32], input_spec, output_spec, &mut input, &mut output),
+        PrimitiveIngressSpec::checked(&pins.lines[0], ingress_abi(c::COUNT_INFO_ID, 8)),
         Err(Refusal::UnsupportedAbi)
     ));
+    let mut input = [0; 8];
+    let mut output = [0; 8];
     let pins = Pins::new(c::COUNT_INFO_ID);
     let (bound, cost) = crate::member_return_tests::return_allocation_probe::observe(|| {
         make_bound(&pins, &mut input, &mut output)

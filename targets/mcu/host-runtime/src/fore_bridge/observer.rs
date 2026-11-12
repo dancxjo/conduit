@@ -68,7 +68,7 @@ impl<
         if !state.active || self.port.retired.get() {
             return Ok(());
         }
-        let input = Route::from_pin(state.ingress.pin);
+        let input = Route::from_pin(state.ingress.pin());
         let output = Route::from_pin(state.egress.pin());
         if let Input::Offered { sequence, length } = state.input {
             match kernel.admit_remote_input(
