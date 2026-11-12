@@ -304,6 +304,10 @@ impl ProtectedHandshake {
         if !state.completed() {
             return Err(ProtectedLineError::HandshakeIncomplete);
         }
+        let channel_binding: [u8; 32] = state
+            .get_hash()
+            .try_into()
+            .map_err(|_| ProtectedLineError::InvalidBinding)?;
         let (initiator_send, responder_send) = state.get_ciphers();
         let (send, receive) = match self.role {
             Role::Initiator => (initiator_send, responder_send),
@@ -312,6 +316,7 @@ impl ProtectedHandshake {
         Ok(ProtectedSession {
             role: self.role,
             binding: self.binding,
+            channel_binding,
             limits: self.limits,
             send: Some(send),
             receive: Some(receive),
@@ -351,6 +356,7 @@ pub struct SessionEvidence<'a> {
 pub struct ProtectedSession {
     role: Role,
     binding: SessionBinding,
+    channel_binding: [u8; 32],
     limits: SessionLimits,
     send: Option<NoiseCipher>,
     receive: Option<NoiseCipher>,
@@ -363,6 +369,13 @@ pub struct ProtectedSession {
 
 #[cfg(feature = "noise-session")]
 impl ProtectedSession {
+    /// Public Noise handshake hash for binding an upper-layer proof to this
+    /// exact cryptographic channel. This is neither membership nor authority;
+    /// callers must independently require an open session and verify that proof.
+    pub fn channel_binding(&self) -> &[u8; 32] {
+        &self.channel_binding
+    }
+
     pub fn maximum_frame_bytes(&self) -> usize {
         HEADER_BYTES + self.limits.maximum_payload_bytes as usize + TAG_BYTES
     }
