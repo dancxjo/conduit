@@ -160,3 +160,65 @@ fn stale_set_wrong_profile_boot_line_count_and_legacy_entrance_never_invoke_fact
     assert_eq!(calls.get(), 0);
     assert_eq!(count.get(), 0);
 }
+
+#[test]
+fn source_pins_and_configuration_gate_line_profile_before_native_factory() {
+    use conduit_core as c;
+    use conduit_mcu_host_runtime::execution_group::{prepare_with_source_profiles, EntryPin};
+    let f = Fixture::new();
+    let projection = projection(c::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA);
+    let child = document(&projection, "body/1", "boot/1", &inventory(), &[]);
+    let bytes = b::encode_body_workset_document(&[&child], 4096).unwrap();
+    let mut input = b::HostCommandInput::<4096>::new();
+    input.writable().unwrap()[..bytes.len()].copy_from_slice(&bytes);
+    input
+        .retain(workset_command(&f, &bytes).into_retained_stamp().unwrap())
+        .unwrap();
+    let preparation = policy();
+    let execution = execution();
+    let binds = Cell::new(0);
+    let calls = Cell::new(0);
+    let local = [local()];
+    let lines = [line(7)];
+    let bindings = [binding()];
+    let absent_configuration = [c::AssignedRecordRequirement {
+        tag: c::ASSIGNED_CONFIGURATION,
+        payload_digest: [1; 32],
+    }];
+    for change in 0..3 {
+        let result = prepare_with_source_profiles::<Ticket<'_>, (), 4096, 2, 1>(
+            &input,
+            f.context(),
+            Policy {
+                preparation: Some(&preparation),
+                execution: Some(&execution),
+                active_worksets: 0,
+                maximum_retained_bytes: 16384,
+            },
+            [EntryPin {
+                source: if change == 1 {
+                    "other-source"
+                } else {
+                    "source"
+                },
+                checked: "checked",
+                expanded: "expanded",
+            }],
+            [if change == 2 {
+                &absent_configuration[..]
+            } else {
+                &[]
+            }],
+            [Choice::LineFore(profile(&local, &lines, &bindings))],
+            |fragments, ports| {
+                assert_eq!(fragments[0].metadata().fragment, "fragment");
+                assert_eq!(ports[0], &[remote(), local[0]]);
+                calls.set(calls.get() + 1);
+                Ok(Ticket(&binds))
+            },
+        );
+        assert_eq!(result.is_ok(), change == 0);
+        assert_eq!(calls.get(), 1);
+        assert_eq!(binds.get(), 0);
+    }
+}
