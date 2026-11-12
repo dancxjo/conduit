@@ -593,7 +593,9 @@ fn started_remote_cue(behavior: FakePlaybackBehavior) -> (StdHost, crate::Admitt
         .prospective_body_play(&proposed.wake, &proposed.plan)
         .unwrap();
     let ad = host.advertisement().clone();
+    let allocation_probe = crate::allocation_probe::begin();
     let mut remote = host.prepare_remote_fragment(fragment).unwrap();
+    let observed = allocation_probe.finish_statistics();
     assert!(
         remote.retained_startup_profile_backing_bytes().unwrap()
             > crate::hosted_audio::startup_chime::PCM_BYTES
@@ -603,6 +605,18 @@ fn started_remote_cue(behavior: FakePlaybackBehavior) -> (StdHost, crate::Admitt
     let backing = host.measure_remote_startup_backing(&remote).unwrap();
     assert!(backing.retained_bytes > remote.retained_startup_profile_backing_bytes().unwrap());
     assert!(backing.ledger_staging_bytes > 0);
+    // Diagnostic cross-check of this fixed fixture, not a bound for arbitrary
+    // providers, allocator metadata, transport or production preparation.
+    assert!(
+        backing.retained_bytes >= observed.live_bytes,
+        "retained accounting {} misses observed live storage {}",
+        backing.retained_bytes,
+        observed.live_bytes
+    );
+    eprintln!("REMOTE_STARTUP_BACKING retained={} ledger_clone={} observed_live={} observed_peak={} requested={} allocations={} reallocations={}",
+        backing.retained_bytes, backing.ledger_staging_bytes, observed.live_bytes,
+        observed.peak_live_bytes, observed.requested_bytes,
+        observed.allocations, observed.reallocations);
     let control = RunControl::default();
     let request = BodyRunRequest {
         wake: &proposed.wake,
