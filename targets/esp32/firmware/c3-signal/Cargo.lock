@@ -247,6 +247,7 @@ dependencies = [
  "portable-atomic-util",
  "postcard",
  "serde",
+ "serde-json-core",
  "sha2",
 ]
 
@@ -327,15 +328,15 @@ dependencies = [
 name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
- "conduit-dht11-observation",
- "conduit-tm1637-protocol",
  "conduit-core",
+ "conduit-dht11-observation",
  "conduit-kernel",
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
  "conduit-semantic-catalog",
  "conduit-time",
+ "conduit-tm1637-protocol",
  "conduit-typed-retention",
 ]
 
@@ -450,9 +451,9 @@ dependencies = [
 name = "conduit-mcu-source-build"
 version = "0.1.0"
 dependencies = [
- "conduit-dht11-observation",
  "conduit-body",
  "conduit-core",
+ "conduit-dht11-observation",
  "conduit-embedded-build",
  "conduit-environment-runtime",
  "conduit-face",
