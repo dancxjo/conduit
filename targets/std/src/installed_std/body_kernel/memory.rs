@@ -18,7 +18,7 @@ fn vector<T>(values: &Vec<T>) -> Result<usize, String> {
         .checked_mul(core::mem::size_of::<T>())
         .ok_or_else(|| "Body vector backing overflow".into())
 }
-fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
+pub(super) fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
     if !map.remote_endpoints.is_empty() {
         return Err("local IMAGE memory does not support external Fore/Line maps".into());
     }
@@ -64,7 +64,7 @@ fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
     }
     Ok(bytes)
 }
-fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
+pub(super) fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
     match driver {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()

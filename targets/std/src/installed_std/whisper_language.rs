@@ -10,6 +10,15 @@ pub(super) struct PreparedWhisperLanguage {
 }
 
 impl WhisperLanguages {
+    pub(super) fn empty_backing_bytes(&self) -> Option<usize> {
+        if self.0.iter().any(Option::is_some) {
+            return None;
+        }
+        self.0
+            .capacity()
+            .checked_mul(core::mem::size_of::<Option<PreparedWhisperLanguage>>())
+    }
+
     pub(super) fn prepare(
         fragment: &PlanFragment,
         identity: &conduit_plan_lowering::lowering::KernelIdentityMap,

@@ -45,6 +45,12 @@ mod native_source;
 mod preparation_body;
 pub(crate) use native_source::NativeBodySource;
 pub(crate) mod memory;
+pub(super) fn remote_identity_backing(map: &KernelIdentityMap) -> Result<usize, String> {
+    memory::identities(map)
+}
+pub(super) fn remote_driver_backing(back: &InstalledBack) -> Result<usize, String> {
+    memory::back_bytes(back)
+}
 
 pub(crate) struct BodyKernel<'a> {
     startup_receipts: Vec<crate::body_execution::StartupChimeCallReceipt>,

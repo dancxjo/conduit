@@ -125,6 +125,15 @@ pub fn activate_in_process(
 }
 
 impl RemoteCordSessions {
+    pub(crate) fn empty_backing_bytes(&self) -> Option<usize> {
+        if !self.sessions.is_empty() {
+            return None;
+        }
+        self.sessions
+            .capacity()
+            .checked_mul(core::mem::size_of::<RemoteCordSession>())
+    }
+
     pub fn prepare(fragment: &PlanFragment, lowered: &LoweredPlanFragment) -> Result<Self, String> {
         if lowered.remote_endpoints.len() > MAXIMUM_REMOTE_ENDPOINTS {
             return Err("std fragment exceeds the remote Cord endpoint bound".into());
