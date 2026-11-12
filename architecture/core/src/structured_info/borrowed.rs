@@ -8,6 +8,8 @@ use super::{
 };
 use sha2::{Digest, Sha256};
 
+mod composition;
+pub use composition::{BorrowedStructuredValue, PreparedLinkedStructuredComposer};
 mod leaf_sequence;
 mod prepared;
 mod projection;
