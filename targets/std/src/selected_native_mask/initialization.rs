@@ -279,7 +279,7 @@ mod audio_tests {
         .with_executable_sha256("ab".repeat(32))
         .unwrap();
         crate::hosted_audio::startup_chime::reset_test_attempts();
-        let mut host = StdHost::from_native_mask_backend(
+        let host = StdHost::from_native_mask_backend(
             config,
             &image,
             &catalog,
