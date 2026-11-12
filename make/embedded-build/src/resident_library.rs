@@ -11,7 +11,10 @@ pub fn generate_resident_library(
         return Err(R::Bounds);
     }
     if images.is_empty() {
-        let code = include_str!("resident_library_empty_source.rs");
+        let code = concat!(
+            include_str!("resident_assignment_source.rs"),
+            include_str!("resident_library_empty_source.rs")
+        );
         return if code.len() as u64 <= u64::from(maximum_generated_bytes) {
             Ok(code.into())
         } else {

@@ -3,12 +3,20 @@ pub(crate) fn append(code: &mut String, entries: usize) {
     code.push_str(&format!(r#"
 /// Check every assignment while retaining an exclusive, non-executing loan.
 /// The ticket is not a resource reservation or execution authorization.
-pub fn prepare_selected_array(&mut self,mut selected:[Option<conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>>;{entries}])->Result<PreparedResidentLoans<'_>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
+#[inline(always)]
+pub fn prepare_selected_array(&mut self,selected:[Option<conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>>;{entries}])->Result<PreparedResidentLoans<'_>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
+ self.prepare_selected_profiles_array(selected.map(|entry|entry.map(ResidentAssignment::Local)))
+}}
+/// Check the complete mixed representation before lending any owner. Profiles
+/// are cold preparation inputs; the returned ticket retains only node ordinals.
+#[inline(always)]
+pub fn prepare_selected_profiles_array(&mut self,mut selected:[Option<ResidentAssignment<'_>>;{entries}])->Result<PreparedResidentLoans<'_>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
 "#));
     for index in 0..entries {
         code.push_str(&format!(r#"
 let node_{index}=selected[{index}].take().map(|selection|{{
-self.entry_{index}.as_ref().ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)?.check_assigned(selection)
+let owner=self.entry_{index}.as_ref().ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)?;
+match selection{{ResidentAssignment::Local(plan)=>owner.check_assigned(plan),ResidentAssignment::LineFore(plan)=>owner.check_assigned_with_line_fore(plan)}}
 }}).transpose()?;
 "#));
     }
@@ -96,6 +104,7 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
 
 /// A representation adapter over the existing nominal loans, not another Back.
 pub(crate) fn append_back(code: &mut String, entries: usize) {
+    code.push_str(include_str!("resident_assignment_source.rs"));
     append_prepared(code, entries);
     code.push_str("/// Uniform selected loans; each variant still owns its exact entry's exclusive loan.\npub enum BorrowedBack<'a>{\n");
     for index in 0..entries {

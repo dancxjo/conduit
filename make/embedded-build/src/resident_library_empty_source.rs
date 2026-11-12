@@ -71,6 +71,15 @@ impl Initialized {
     > {
         Ok(PreparedResidentLoans { _owner: self })
     }
+    pub fn prepare_selected_profiles_array(
+        &mut self,
+        _: [Option<ResidentAssignment<'_>>; 0],
+    ) -> Result<
+        PreparedResidentLoans<'_>,
+        conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal,
+    > {
+        Ok(PreparedResidentLoans { _owner: self })
+    }
     pub fn borrow_selected(
         &mut self,
         selected: [Option<
