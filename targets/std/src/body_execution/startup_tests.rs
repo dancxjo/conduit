@@ -303,7 +303,8 @@ fn image_chime_retains_original_memory_custody_through_execution_and_report() {
     assert!(host.image_identity().is_some());
     let used = host.kernel_resources.image_memory_observer();
     let base_charge = used.load(Ordering::Acquire);
-    assert!(base_charge > 24);
+    let counter_bytes = crate::kernel_preparation::StagedImageMemory::counter_backing_bytes();
+    assert!(base_charge > counter_bytes);
     let (mut host, mut session) = fixture_for_host(host);
     let proposed = session.realization().unwrap().clone();
     let ad = host.advertisement().clone();
@@ -333,13 +334,67 @@ fn image_chime_retains_original_memory_custody_through_execution_and_report() {
     drop(report);
     assert_eq!(used.load(Ordering::Acquire), base_charge);
     drop(host);
-    assert_eq!(used.load(Ordering::Acquire), 24); // retained counter metadata only
+    assert_eq!(used.load(Ordering::Acquire), counter_bytes); // retained counter metadata only
     let mut stale = selected.clone();
     stale.offer_generation = OfferGeneration(2);
     assert!(StdHost::from_selected_timer_and_playback_image(
-        config, &image, &catalog, &checked, &stale
+        config.clone(),
+        &image,
+        &catalog,
+        &checked,
+        &stale
     )
     .is_err());
+    // The same ordinary fabricated workset with a genuinely smaller admitted
+    // heap must refuse before Started, without widening any Base or grant.
+    let small = source.replace("heap_arena_bytes: 67108864", "heap_arena_bytes: 8192");
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(&small).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
+    let (image, _) = build_default_host_image(
+        checked.profile().clone(),
+        &catalog,
+        &packages,
+        &BuildInputs {
+            source_identity: "fixture/chime-small-image".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    let host = StdHost::from_selected_timer_and_playback_image(
+        config, &image, &catalog, &checked, selected,
+    )
+    .unwrap();
+    let (mut host, session) = fixture_for_host(host);
+    let proposed = session.realization().unwrap().clone();
+    crate::hosted_audio::startup_chime::reset_test_attempts();
+    let mut started = false;
+    let result = host.run_selected_image_body_plan_with_committed_startup_to(
+        BodyRunRequest {
+            wake: &proposed.wake,
+            plan: &proposed.plan,
+            control: &RunControl::default(),
+            keyboard: None,
+        },
+        &[],
+        &mut Vec::new(),
+        &mut crate::ThreadTimer,
+        None,
+        |_, _| {
+            started = true;
+            Err("should refuse before Started".into())
+        },
+    );
+    let error = result.err().expect("undersized IMAGE must refuse");
+    assert!(!started);
+    assert!(
+        error.contains("memory") || error.contains("heap"),
+        "{error}"
+    );
+    assert_eq!(crate::hosted_audio::startup_chime::test_attempts(), 0);
 }
 
 #[test]
