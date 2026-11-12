@@ -74,12 +74,12 @@ pub enum ProvisioningCarrier {
 }
 impl ProvisioningCarrier {
     pub fn open(self, path: &str) -> Result<PicoSpawnSocket, PicoSpawnTransportError> {
-        let line = match self {
-            Self::UsbCdc => NativePathCdcLine::open(path, MAX_PICO_ADMISSION_FRAME_BYTES)?,
-            Self::ForwardedTty => {
-                NativePathCdcLine::open_forwarded_tty(path, MAX_PICO_ADMISSION_FRAME_BYTES)?
-            }
-        };
+        let line = NativePathCdcLine::open_exclusive_tty(
+            path,
+            MAX_PICO_ADMISSION_FRAME_BYTES,
+            matches!(self, Self::UsbCdc),
+        )?;
+        // Forwarded carriage still needs independently established remote custody.
         Ok(PicoSpawnSocket { line })
     }
 }
@@ -90,9 +90,7 @@ pub struct PicoSpawnSocket {
 
 impl PicoSpawnSocket {
     pub fn open(path: &str) -> Result<Self, PicoSpawnTransportError> {
-        Ok(Self {
-            line: NativePathCdcLine::open(path, MAX_PICO_ADMISSION_FRAME_BYTES)?,
-        })
+        ProvisioningCarrier::UsbCdc.open(path)
     }
 
     /// Deliver an already committed receipt over two bounded raw USB frames.
