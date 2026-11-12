@@ -28,6 +28,9 @@ pub struct Inputs<'a> {
 mod continuation;
 pub use continuation::ContinuationPins;
 
+#[path = "host_call_storage.rs"]
+mod host_call_storage;
+
 pub struct Layout {
     /// Independently lowered immutable laws; never supplied by an assignment.
     pub terminal_transductions_rust: String,
@@ -48,6 +51,8 @@ pub struct Layout {
     pub ports_per_node: usize,
     pub sign_items: u16,
     pub sign_bytes: u32,
+    /// Physical node/operation table geometry, not packed Host Call count.
+    pub host_call_slots: usize,
     pub host_call_contracts: Vec<c::AssignedIdentity>,
     pub resource_ordinals: Vec<u16>,
     pub computations: Vec<c::AssignedComputationRequirement>,
@@ -283,6 +288,9 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             .unwrap_or(1),
         sign_items: kernel.sign_items,
         sign_bytes: kernel.sign_bytes,
+        host_call_slots: host_call_storage::slot_count(
+            kernel.nodes.len(), kernel.host_calls.iter().map(|call| call.call),
+        ).map_err(str::to_owned)?,
         host_call_contracts: kernel
             .host_calls
             .iter()

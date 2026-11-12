@@ -21,12 +21,12 @@ shape!(SC, sampling_layout, ASSIGNED_CORD);
 pub(super) const SR: usize = SN * SP;
 shape!(ST, sampling_layout, ASSIGNED_ROUTE_TARGET);
 // Fixed tables are indexed by node/port, not packed record counts.
-pub(super) const SH: usize = SN;
+pub(super) const SH: usize = source::sampling_layout::HOST_CALL_SLOTS;
 shape!(ON, output_layout, ASSIGNED_NODE);
 shape!(OC, output_layout, ASSIGNED_CORD);
 pub(super) const OR: usize = ON * OP;
 shape!(OT, output_layout, ASSIGNED_ROUTE_TARGET);
-pub(super) const OH: usize = ON;
+pub(super) const OH: usize = source::output_layout::HOST_CALL_SLOTS;
 pub(super) const SP: usize = source::sampling_layout::PORTS_PER_NODE;
 pub(super) const OP: usize = source::output_layout::PORTS_PER_NODE;
 pub(super) const SS: usize = source::sampling_layout::SIGN_ITEMS;
