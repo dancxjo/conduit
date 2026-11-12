@@ -19,6 +19,13 @@ pub use service::{BoxedRecordServiceBack, CallsWithRecordService, PreparedWithRe
 #[path = "execution_factory_drivers.rs"]
 mod drivers;
 
+#[path = "execution_factory_native.rs"]
+mod native;
+pub use native::{NativeCallNode, PreparedCallSet, PreparedNativeDrivers};
+#[path = "execution_factory_i2c_clock.rs"]
+mod i2c_clock;
+pub use i2c_clock::{I2cClockCalls, PreparedI2cClockCalls};
+
 extern crate alloc;
 use crate::{execution::PreparedBacks, execution_software::SoftwareBack};
 use conduit_kernel::{

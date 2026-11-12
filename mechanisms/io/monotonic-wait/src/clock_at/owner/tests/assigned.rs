@@ -317,6 +317,9 @@ fn exercise(borrowed: bool, fore: bool) {
     )
     .unwrap();
     assert_eq!(ticket.node(), lowered.nodes[0].node);
+    let (reported, report_work) = allocation_probe::observe(|| ticket.retained_backing_bytes());
+    assert!(reported.unwrap() >= CLOCK_MAXIMUM_BYTES as usize);
+    assert_eq!((report_work.allocations, report_work.reallocations), (0, 0));
     let input = request(10);
     let ((mut owner, output), memory) = allocation_probe::observe(|| {
         let mut owner = ticket.bind();

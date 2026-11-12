@@ -2325,6 +2325,7 @@ dependencies = [
  "conduit-dht11-observation",
  "conduit-environment-runtime",
  "conduit-face",
+ "conduit-i2c-transaction",
  "conduit-kernel",
  "conduit-monotonic-wait",
  "conduit-plan-lowering",

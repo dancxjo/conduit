@@ -167,6 +167,14 @@ pub struct PreparedAssignedClockAt<'a, P: MonotonicDeadlineProvider> {
     codec: PreparedClockCodec,
 }
 impl<P: MonotonicDeadlineProvider> PreparedAssignedClockAt<'_, P> {
+    /// Reachable owned operation and codec backing. The borrowed ready
+    /// provider, inline ticket and allocator overhead are funded separately.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.operation
+            .retained_backing_bytes()?
+            .checked_add(self.codec.retained_backing_bytes()?)
+    }
+
     pub fn node(&self) -> NodeId {
         self.node
     }
