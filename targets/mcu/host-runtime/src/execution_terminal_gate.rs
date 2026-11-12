@@ -36,7 +36,7 @@ pub(super) fn prepare_checked_backs<
 >(
     bytes: &[u8],
     profile: &super::b::AssignedBodyPreparationProfile<'_>,
-    fore: &[super::c::AssignedForeRequirement],
+    fore: super::ForeProfile<'_>,
     layout: &super::ResidentLayout<'_>,
     factory: impl FnOnce() -> Result<B, E>,
 ) -> Result<B, super::Refusal<E>> {
@@ -56,21 +56,13 @@ fn check_tables<
 >(
     bytes: &[u8],
     profile: &super::b::AssignedBodyPreparationProfile<'_>,
-    fore: &[super::c::AssignedForeRequirement],
+    fore: super::ForeProfile<'_>,
     layout: &super::ResidentLayout<'_>,
 ) -> Result<(), conduit_kernel::assigned::AssignedKernelRefusal> {
     // A bounded preparation-only validation pass. This scratch is retired before
     // factory/report inspection. The immutable input is decoded again by the
     // separate storage constructor; no temporary heap or new capacity is used.
-    super::BoundedAssignedKernelTables::<N, C, P, R, T, H>::prepare_with_fore(
-        bytes,
-        profile.maxima,
-        profile.requirements,
-        profile.computations,
-        layout,
-        fore,
-    )
-    .map(|_| ())
+    fore.check::<N, C, P, R, T, H>(bytes, profile, layout)
 }
 
 #[cfg(test)]
@@ -161,7 +153,7 @@ mod tests {
         let result = prepare_checked_backs::<(), (), 1, 1, 1, 1, 1, 1>(
             b"malformed",
             &profile,
-            &[],
+            super::super::ForeProfile::Local(&[]),
             &super::super::ResidentLayout {
                 records: &[],
                 counts: [0; 13],

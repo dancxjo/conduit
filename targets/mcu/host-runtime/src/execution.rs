@@ -3,6 +3,8 @@
 //! module uses the ordinary scheduler and original resource ledger throughout.
 extern crate alloc;
 use alloc::boxed::Box;
+#[path = "execution_line_fore.rs"]
+mod line_fore;
 #[path = "execution_terminal_gate.rs"]
 mod terminal_gate;
 use conduit_body as b;
@@ -12,6 +14,7 @@ use conduit_kernel::{
     scheduler::*,
     *,
 };
+use line_fore::ForeProfile;
 
 /// A trusted native Source factory must validate every selected node against its
 /// independently installed implementation/configuration and keep all actual
@@ -210,7 +213,7 @@ impl<
         Self::prepare_inner(
             approved,
             profile,
-            fore,
+            ForeProfile::Local(fore),
             layout,
             values,
             signs,
@@ -237,7 +240,7 @@ impl<
         Self::prepare_inner(
             approved,
             profile,
-            fore,
+            ForeProfile::Local(fore),
             layout,
             values,
             signs,
@@ -265,7 +268,7 @@ impl<
         Self::prepare_inner(
             approved,
             profile,
-            fore,
+            ForeProfile::Local(fore),
             layout,
             values,
             signs,
@@ -279,7 +282,7 @@ impl<
     fn prepare_inner<E>(
         approved: &b::DelegatedBodyFragment<'_>,
         profile: b::AssignedBodyPreparationProfile<'_>,
-        fore: &[c::AssignedForeRequirement],
+        fore: ForeProfile<'_>,
         layout: &ResidentLayout<'_>,
         values: HostedValueStore,
         signs: L,
@@ -328,7 +331,7 @@ impl<
     fn prepare_storage<E>(
         approved: &b::DelegatedBodyFragment<'_>,
         profile: b::AssignedBodyPreparationProfile<'_>,
-        fore: &[c::AssignedForeRequirement],
+        fore: ForeProfile<'_>,
         layout: &ResidentLayout<'_>,
         values: HostedValueStore,
         signs: L,
@@ -358,13 +361,10 @@ impl<
                 Refusal::Storage,
                 |nodes, cords, routes, calls| {
                     let identity =
-                        BoundedAssignedKernelTables::<N, C, P, R, T, H>::write_with_fore(
+                        fore.write::<N, C, P, R, T, H>(
                             approved.projection(),
-                            profile.maxima,
-                            profile.requirements,
-                            profile.computations,
+                            &profile,
                             layout,
-                            fore,
                             nodes,
                             cords,
                             routes,
