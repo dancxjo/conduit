@@ -1,10 +1,11 @@
 //! Prepare the ordinary shared Body scheduler and its exact local providers.
+//! Original Plans are borrowed; this table creates no replacement Plan or grant.
 use super::*;
 impl<'a> BodyKernel<'a> {
     #[allow(clippy::too_many_arguments)]
     pub(super) fn prepare_with_live(
         native: Option<NativeBodySource<'a, '_>>,
-        partitions: &[BodyPlotPlan],
+        partitions: &[&conduit_core::Plan],
         has_keyboard: bool,
         parent_play: &conduit_core::ActivePlayId,
         fore_inputs: &'a [ExternalForeInput],
@@ -20,10 +21,9 @@ impl<'a> BodyKernel<'a> {
             .iter()
             .map(|partition| {
                 partition
-                    .plan
                     .fragments
                     .first()
-                    .filter(|_| partition.plan.fragments.len() == 1)
+                    .filter(|_| partition.fragments.len() == 1)
                     .ok_or("local body execution requires one local fragment per Plot")
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -38,7 +38,7 @@ impl<'a> BodyKernel<'a> {
         let mut each = each_route::prepare(partitions, parent_play, fore_inputs.len())?;
         if scans.len() == 1 {
             let conduit_core::PlannedActivationEntry::Scan(planned) =
-                &partitions[scans[0].partition].plan.activations[0]
+                &partitions[scans[0].partition].activations[0]
             else {
                 return Err("installed scan activation changed during preparation".into());
             };
@@ -59,12 +59,8 @@ impl<'a> BodyKernel<'a> {
             && scans.len() == 1
             && partitions.len() == 1
             && parsec_sources.is_some();
-        let plans = partitions
-            .iter()
-            .map(|partition| &partition.plan)
-            .collect::<Vec<_>>();
         let lowered = lower_local_fragment_set_from_plans(
-            &plans,
+            partitions,
             FIXED_KERNEL_STORAGE_PROFILE,
             FragmentSetBounds {
                 fragments: conduit_body::MAX_BODY_PLOTS as u16,
