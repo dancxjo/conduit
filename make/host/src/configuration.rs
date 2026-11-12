@@ -1,14 +1,13 @@
 mod model;
 pub use model::*;
 mod identity;
+pub use identity::host_configuration_identity;
 mod operations;
 mod preparation;
 #[path = "configuration/presentation.rs"]
 mod presentation;
 
 use std::collections::{BTreeMap, BTreeSet};
-
-use sha2::{Digest, Sha256};
 
 use crate::{
     validate_profile, BaseSelection, DriverSelection, HostBounds, HostPolicy, HostProfile,
@@ -209,9 +208,8 @@ pub fn check_host_configuration(
         return Err(diagnostics);
     }
     configuration.normalize_declarations();
-    let canonical = identity::stable_host_configuration_identity_source(&configuration)
-        .map_err(|item| vec![item])?;
-    let configuration_id = format!("sha256:{:x}", Sha256::digest(canonical.as_bytes()));
+    let configuration_id =
+        host_configuration_identity(&configuration).map_err(|item| vec![item])?;
     let mut resolved_bases = selected.into_iter().collect::<Vec<_>>();
     resolved_bases.sort();
     let presentation = presentation::resolve(

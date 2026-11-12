@@ -39,6 +39,7 @@ pub use canonical::{canonical_profile_json, ProfileId};
 pub use capability_intent::*;
 pub use catalog::MakeCatalog;
 pub use conduit_core::{ConfigurationValue, KindConfigurationField, KindConfigurationRule};
+pub use configuration::host_configuration_identity;
 pub use configuration::*;
 pub use configuration_descriptors::*;
 pub use configuration_image::verify_configuration_image;
