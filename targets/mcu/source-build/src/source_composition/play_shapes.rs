@@ -22,11 +22,13 @@ pub(super) const SR: usize = SN * SP;
 shape!(ST, sampling_layout, ASSIGNED_ROUTE_TARGET);
 // Fixed tables are indexed by node/port, not packed record counts.
 pub(super) const SH: usize = source::sampling_layout::HOST_CALL_SLOTS;
+pub(super) const SK: usize = source::sampling_layout::PENDING_HOST_CALL_SLOTS;
 shape!(ON, output_layout, ASSIGNED_NODE);
 shape!(OC, output_layout, ASSIGNED_CORD);
 pub(super) const OR: usize = ON * OP;
 shape!(OT, output_layout, ASSIGNED_ROUTE_TARGET);
 pub(super) const OH: usize = source::output_layout::HOST_CALL_SLOTS;
+pub(super) const OK: usize = source::output_layout::PENDING_HOST_CALL_SLOTS;
 pub(super) const SP: usize = source::sampling_layout::PORTS_PER_NODE;
 pub(super) const OP: usize = source::output_layout::PORTS_PER_NODE;
 pub(super) const SS: usize = source::sampling_layout::SIGN_ITEMS;
@@ -46,6 +48,7 @@ pub type SamplingKernel<'a, 'f> = ExecutionKernel<
     SH,
     SS,
     HostedSignLog,
+    SK,
 >;
 pub type OutputKernel<'a, 'f> = ExecutionKernel<
     Driver<'f, resident::BorrowedBack<'a>>,
@@ -57,6 +60,7 @@ pub type OutputKernel<'a, 'f> = ExecutionKernel<
     OH,
     OS,
     HostedSignLog,
+    OK,
 >;
 #[used]
 #[no_mangle]

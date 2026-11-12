@@ -13,9 +13,27 @@ pub(super) fn slot_count(
         .ok_or("Host Call table overflow")
 }
 
+/// The scheduler owns at most one pending Host Call per node, including a
+/// completed request until its result is consumed. Distinct operations on one
+/// node share this slot; their sparse binding addresses remain unchanged.
+/// Boxed scheduler preparation requires one slot even for a call-free fragment.
+pub(super) fn pending_count(
+    nodes: usize,
+    calls: impl Iterator<Item = (u16, u16)>,
+) -> Result<usize, &'static str> {
+    let mut callable = std::collections::BTreeSet::new();
+    for (node, maximum_in_flight) in calls {
+        if usize::from(node) >= nodes || maximum_in_flight != 1 {
+            return Err("unsupported pending Host Call geometry");
+        }
+        callable.insert(node);
+    }
+    Ok(callable.len().max(1))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::slot_count;
+    use super::{pending_count, slot_count};
 
     #[test]
     fn no_calls_and_single_operation_keep_stride_one() {
@@ -35,5 +53,25 @@ mod tests {
         assert_eq!(slot_count(3, [4].into_iter()), Ok(15));
         assert!(slot_count(3, [u16::MAX].into_iter()).is_err());
         assert!(slot_count(usize::MAX, [1].into_iter()).is_err());
+    }
+
+    #[test]
+    fn pending_slots_count_callable_nodes_independently_of_binding_stride() {
+        let calls = [(0, 1), (9, 0), (4, 0), (0, 0)];
+        assert_eq!(slot_count(18, calls.iter().map(|(_, call)| *call)), Ok(36));
+        assert_eq!(
+            pending_count(18, calls.iter().map(|(node, _)| (*node, 1))),
+            Ok(3)
+        );
+        assert_eq!(slot_count(3, [4].into_iter()), Ok(15));
+        assert_eq!(pending_count(3, [(2, 1)].into_iter()), Ok(1));
+    }
+
+    #[test]
+    fn pending_slots_keep_empty_constructor_valid_and_refuse_unproven_geometry() {
+        assert_eq!(pending_count(18, [].into_iter()), Ok(1));
+        assert!(pending_count(3, [(3, 1)].into_iter()).is_err());
+        assert!(pending_count(3, [(0, 0)].into_iter()).is_err());
+        assert!(pending_count(3, [(0, 2)].into_iter()).is_err());
     }
 }

@@ -41,7 +41,7 @@ mod shapes {
     include!(concat!(env!("OUT_DIR"), "/source_play_shapes.rs"));
 }
 use shapes::{
-    OutputBound, SamplingBound, FORE_PORTS, OC, OH, ON, OP, OR, OS, OT, SC, SH, SN, SP, SR, SS, ST,
+    OutputBound, SamplingBound, FORE_PORTS, OC, OH, OK, ON, OP, OR, OS, OT, SC, SH, SK, SN, SP, SR, SS, ST,
 };
 pub use shapes::{OutputKernel, SamplingCalls, SamplingKernel, CONDUIT_EXECUTION_KERNEL_BYTES};
 // Specialize the generic lowering width at compile time. The physical kernel
@@ -321,7 +321,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                     "kernel-headroom",
                 ));
             }
-            let sample = PreparedFragment::<_, SN, SC, SP, SR, ST, SH, SS, HostedSignLog>::prepare_with_terminal_transductions_ref(
+            let sample = PreparedFragment::<_, SN, SC, SP, SR, ST, SH, SS, HostedSignLog, SK>::prepare_with_terminal_transductions_ref(
                 sampling,
                 sampling_profile,
                 sampling_fore,
@@ -340,7 +340,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 &SAMPLING_TERMINALS,
             )
             .map_err(|error| kernel_refusal(diagnostic, error, "sampling-kernel"))?;
-            let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog>::prepare_with_terminal_transductions_ref(
+            let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog, OK>::prepare_with_terminal_transductions_ref(
                 output,
                 output_profile,
                 output_fore,

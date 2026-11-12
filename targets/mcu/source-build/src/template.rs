@@ -53,6 +53,8 @@ pub struct Layout {
     pub sign_bytes: u32,
     /// Physical node/operation table geometry, not packed Host Call count.
     pub host_call_slots: usize,
+    /// One pending request per independently checked callable node.
+    pub pending_host_call_slots: usize,
     pub host_call_contracts: Vec<c::AssignedIdentity>,
     pub resource_ordinals: Vec<u16>,
     pub computations: Vec<c::AssignedComputationRequirement>,
@@ -290,6 +292,10 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
         sign_bytes: kernel.sign_bytes,
         host_call_slots: host_call_storage::slot_count(
             kernel.nodes.len(), kernel.host_calls.iter().map(|call| call.call),
+        ).map_err(str::to_owned)?,
+        pending_host_call_slots: host_call_storage::pending_count(
+            kernel.nodes.len(),
+            kernel.host_calls.iter().map(|call| (call.node, call.maximum_in_flight)),
         ).map_err(str::to_owned)?,
         host_call_contracts: kernel
             .host_calls

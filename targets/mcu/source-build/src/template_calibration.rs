@@ -254,7 +254,7 @@ impl Calibration {
             );
             let storage=format!("pub const PORTS_PER_NODE:usize={};\npub const SIGN_ITEMS:usize={};\npub const SIGN_BYTES:u32={};\n",entry.layout.ports_per_node,entry.layout.sign_items,entry.layout.sign_bytes);
             text.insert_str(0, &storage);
-            text.insert_str(0, &format!("pub const HOST_CALL_SLOTS:usize={};\n", entry.layout.host_call_slots));
+            text.insert_str(0, &format!("pub const HOST_CALL_SLOTS:usize={};\npub const PENDING_HOST_CALL_SLOTS:usize={};\n", entry.layout.host_call_slots, entry.layout.pending_host_call_slots));
             text.insert_str(0, &entry.layout.terminal_transductions_rust);
             text.insert_str(
                 0,
