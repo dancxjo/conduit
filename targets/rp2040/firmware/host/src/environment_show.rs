@@ -51,29 +51,15 @@ impl PreparedReading {
             .map(|g| SegmentPatternForm::encode(g)[0])
     }
 }
-/// Finite environmental seven-segment glyph compatibility adapter to HT wiring.
-/// This is not a general fourteen-segment renderer; it consumes logical Show
-/// segment Forms, independently of the TM1637 physical register mapping.
-/// This adapter performs no quantity formatting, rounding or page selection.
+/// Map the selected logical Show through the checked physical wiring.
+/// No character recognition, quantity formatting or redraw effects occur here.
 pub fn frame(reading: &PreparedReading, elapsed: u64) -> Result<[u8; 16], ()> {
-    let digits = reading.render(elapsed);
-    let mut glyphs = [conduit_ht16k33::Glyph::from_char(' ').map_err(|_| ())?; 4];
-    const NUMERALS: [u8; 10] = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f];
-    for (out, bits) in glyphs.iter_mut().zip(digits) {
-        let character = if let Some(n) = NUMERALS.iter().position(|b| *b == bits) {
-            char::from(b'0' + n as u8)
-        } else {
-            match bits {
-                0 => ' ',
-                0x40 => '-',
-                0x63 => '°',
-                0x71 => 'F',
-                0x39 => 'C',
-                0x76 => 'H',
-                _ => return Err(()),
-            }
-        };
-        *out = conduit_ht16k33::Glyph::from_char(character).map_err(|_| ())?;
-    }
-    Ok(crate::config::display_profile().encode(glyphs, [false; 4]))
+    let show = &reading.pages[((elapsed / 2000) % 3) as usize];
+    crate::config::display_profile()
+        .encode_seven_segment(
+            (*show.digits()).map(|g| SegmentPatternForm::encode(g)[0]),
+            *show.decimal_points(),
+            *show.colon(),
+        )
+        .map_err(|_| ())
 }
