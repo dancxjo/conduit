@@ -54,6 +54,25 @@ pub fn generate_fore_native_plan(
     computations: EmbeddedComputationBounds,
     maximum_fore_ports: usize,
 ) -> Result<GeneratedForePlan, GenerationError> {
+    let (kernel, ports) = prepare_fore(
+        plan,
+        fragment,
+        bounds,
+        computations,
+        maximum_fore_ports,
+        false,
+    )?;
+    let fore = ports.iter().map(requirement).collect();
+    Ok(GeneratedForePlan { kernel, fore })
+}
+pub(crate) fn prepare_fore(
+    plan: &c::Plan,
+    fragment: &c::FragmentId,
+    bounds: EmbeddedImageBounds,
+    computations: EmbeddedComputationBounds,
+    maximum_fore_ports: usize,
+    allow_lines: bool,
+) -> Result<(GeneratedEmbeddedPlan, Vec<LoweredForePort>), GenerationError> {
     if !c::verify_plan(plan) {
         return Err(GenerationError::InvalidFragment);
     }
@@ -66,7 +85,7 @@ pub fn generate_fore_native_plan(
         .map_err(|_| GenerationError::InvalidFragment)?;
     if !activations.entries.is_empty()
         || !lowered.remote_endpoints.is_empty()
-        || lowered.fore_ports.iter().any(|p| p.selected_line.is_some())
+        || (!allow_lines && lowered.fore_ports.iter().any(|p| p.selected_line.is_some()))
     {
         return Err(GenerationError::Unsupported(
             UnsupportedPlanFeature::LocalFore,
@@ -88,10 +107,9 @@ pub fn generate_fore_native_plan(
     }
     let kernel =
         crate::generate::generate_profile(fragment, &lowered, bounds, Some(computations), true)?;
-    let fore = lowered.fore_ports.iter().map(requirement).collect();
-    Ok(GeneratedForePlan { kernel, fore })
+    Ok((kernel, lowered.fore_ports))
 }
-fn requirement(port: &LoweredForePort) -> c::AssignedForeRequirement {
+pub(crate) fn requirement(port: &LoweredForePort) -> c::AssignedForeRequirement {
     let mut abi = Vec::from(&b"conduit.assigned/local-fore-abi@1\0"[..]);
     let mut bytes = |value: &[u8]| {
         abi.extend_from_slice(&(value.len() as u64).to_le_bytes());

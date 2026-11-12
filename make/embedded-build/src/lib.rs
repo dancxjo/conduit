@@ -42,6 +42,8 @@ mod configuration;
 mod configuration_record;
 pub use configuration_record::encode_assigned_software_configuration;
 mod fore;
+mod line_fore;
+pub use line_fore::{generate_line_fore_native_plan, GeneratedLineForePlan, SelectedForeSession};
 mod generate;
 pub use fore::{generate_fore_native_plan, GeneratedForePlan};
 mod model;

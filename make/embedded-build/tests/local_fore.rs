@@ -197,3 +197,6 @@ fn checked_local_fore_projects_exactly_and_legacy_paths_refuse_it() {
 
 #[path = "local_fore/bounded_tables.rs"]
 mod bounded_tables;
+
+#[path = "local_fore/line.rs"]
+mod line;

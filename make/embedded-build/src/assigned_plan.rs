@@ -15,7 +15,7 @@ pub fn encode_assigned_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA, &[], &[], false)
+    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA, &[], &[], false, None)
 }
 
 /// Kernel projection with explicit single-value envelopes and pressure policy.
@@ -31,6 +31,7 @@ pub fn encode_assigned_kernel_plan(
         &[],
         &[],
         false,
+        None,
     )
 }
 /// Exact single cooperative Base/resource/authority facts for constrained native
@@ -46,6 +47,7 @@ pub fn encode_assigned_native_plan(
         &[],
         &[],
         false,
+        None,
     )
 }
 
@@ -63,6 +65,7 @@ pub fn encode_assigned_resident_native_plan(
         &[],
         resident,
         true,
+        None,
     )
 }
 pub(crate) fn encode_resident_fore(
@@ -78,6 +81,7 @@ pub(crate) fn encode_resident_fore(
         fore,
         resident,
         true,
+        None,
     )
 }
 
@@ -93,8 +97,27 @@ pub(crate) fn encode_fore(
         fore,
         &[],
         false,
+        None,
     )
 }
+pub(crate) fn encode_line_fore(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+    profile: conduit_core::AssignedLineForeProfile<'_>,
+    resident: &[crate::BoundResidentExpression],
+    pin_selectors: bool,
+) -> Result<Vec<u8>, GenerationError> {
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA,
+        &[],
+        resident,
+        pin_selectors,
+        Some(profile),
+    )
+}
+mod endpoints;
 fn encode(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
@@ -102,10 +125,14 @@ fn encode(
     fore: &[conduit_core::AssignedForeRequirement],
     resident: &[crate::BoundResidentExpression],
     pin_selectors: bool,
+    line_fore: Option<conduit_core::AssignedLineForeProfile<'_>>,
 ) -> Result<Vec<u8>, GenerationError> {
     crate::configuration_record::validate_bindings(plan, resident)?;
-    if schema != conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
-        && crate::fore::has_local_fore_endpoint(plan)
+    if !matches!(
+        schema,
+        conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+            | conduit_core::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
+    ) && crate::fore::has_local_fore_endpoint(plan)
     {
         return Err(GenerationError::Unsupported(
             crate::UnsupportedPlanFeature::LocalFore,
@@ -165,6 +192,7 @@ fn encode(
             conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA
                 | conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA
                 | conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                | conduit_core::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
         ) {
             u32_to(&mut value, cord.maximum_value_bytes);
             value.push(cord.pressure_policy as u8);
@@ -212,6 +240,7 @@ fn encode(
             schema,
             conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA
                 | conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                | conduit_core::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
         ) {
             crate::assigned_native::append(plan, operation, &mut value)?;
         }
@@ -268,50 +297,7 @@ fn encode(
         }
         record(ASSIGNED_SIGN, value)?;
     }
-    for port in fore {
-        record(conduit_core::ASSIGNED_LOCAL_FORE, port.payload().to_vec())?;
-    }
-    for remote in &plan.remote_endpoints {
-        let mut value = Vec::new();
-        for item in [
-            &remote.line_id,
-            &remote.local_host,
-            &remote.local_boot,
-            &remote.peer_host,
-            &remote.peer_boot,
-            &remote.connection_id,
-            &remote.source_fragment_id,
-            &remote.sink_fragment_id,
-            &remote.local_endpoint,
-            &remote.peer_endpoint,
-            &remote.base_instance_id,
-            &remote.link_binding_id,
-            &remote.value_kind,
-        ] {
-            identity_to(&mut value, item);
-        }
-        u16_to(&mut value, remote.endpoint);
-        u16_to(&mut value, remote.cord);
-        identity_to(&mut value, remote.base.as_str());
-        value.push(match remote.direction {
-            RemoteCordDirection::Egress => 0,
-            RemoteCordDirection::Ingress => 1,
-        });
-        value.extend_from_slice(&[
-            remote.contract.scope as u8,
-            remote.contract.traffic_shape as u8,
-            remote.contract.duplex as u8,
-            remote.contract.ordering as u8,
-            remote.contract.reliability as u8,
-            remote.contract.continuation as u8,
-            remote.contract.security as u8,
-        ]);
-        u16_to(&mut value, remote.maximum_in_flight_items);
-        u32_to(&mut value, remote.maximum_payload_bytes);
-        u32_to(&mut value, remote.maximum_buffered_bytes);
-        u32_to(&mut value, remote.maximum_frame_bytes);
-        record(ASSIGNED_REMOTE_ENDPOINT, value)?;
-    }
+    endpoints::encode(plan, fore, line_fore, &mut record)?;
     for dependency in &plan.startup_dependencies {
         let mut value = vec![0];
         u16_to(&mut value, dependency.prerequisite_node);
