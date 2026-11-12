@@ -116,6 +116,9 @@ mod commons_encounter;
 #[path = "notebook.rs"]
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 mod notebook;
+#[cfg(target_os = "linux")]
+#[path = "text_file_play.rs"]
+mod text_file_play;
 pub(crate) use notebook::NotebookWaitingWorker;
 #[path = "todo_face.rs"]
 mod todo_face;
