@@ -1,6 +1,6 @@
 //! Non-authorizing provenance for an explicitly checked playback provider.
 use super::HostedPlaybackSelection;
-use conduit_core::{BaseEnforcementClass, BaseLifecycle, BaseProviderEntry};
+use conduit_core::{BaseEnforcementClass, BaseLifecycle, BaseProviderBinding, BaseProviderEntry};
 use std::fmt::Write;
 
 impl HostedPlaybackSelection {
@@ -19,7 +19,9 @@ impl HostedPlaybackSelection {
     pub(crate) fn executable_digest(&self) -> Option<[u8; 32]> {
         self.executable_sha256
     }
-    pub(crate) fn checked_base_entry(&self) -> Option<BaseProviderEntry> {
+    /// Exact provider identity without materializing capability advertisements.
+    /// This conveys no grant and does not observe or open the audio device.
+    pub(crate) fn checked_provider_binding(&self) -> Option<BaseProviderBinding> {
         let digest = self.executable_sha256?;
         let mut hex = String::with_capacity(64);
         for byte in digest {
@@ -29,7 +31,7 @@ impl HostedPlaybackSelection {
             "std/alsa-output/{}/card-{}/device-{}",
             self.observation.base_identity, self.observation.card_id, self.observation.device
         );
-        Some(BaseProviderEntry {
+        Some(BaseProviderBinding {
             base_id: self.source_base_id.as_deref().unwrap_or(&endpoint).into(),
             provider_instance_id: format!("{endpoint}/{hex}").into(),
             provider_generation: self.offer_generation.0,
@@ -41,6 +43,17 @@ impl HostedPlaybackSelection {
             }
             .into(),
             enforcement_class: BaseEnforcementClass::Cooperative,
+        })
+    }
+    pub(crate) fn checked_base_entry(&self) -> Option<BaseProviderEntry> {
+        let binding = self.checked_provider_binding()?;
+        Some(BaseProviderEntry {
+            base_id: binding.base_id,
+            provider_instance_id: binding.provider_instance_id,
+            provider_generation: binding.provider_generation,
+            implementation_id: binding.implementation_id,
+            mechanism_family: binding.mechanism_family,
+            enforcement_class: binding.enforcement_class,
             lifecycle: BaseLifecycle::Ready,
             capabilities: vec![
                 conduit_std_offers::audio_play_alsa_hw_offer(),

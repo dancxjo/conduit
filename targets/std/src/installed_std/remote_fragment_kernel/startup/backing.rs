@@ -242,6 +242,22 @@ impl InstalledRemoteFragment {
                 ExpectedSign::PlanFragmentReceived | ExpectedSign::PlanTerminal => {}
             }
         }
+        let fixed = super::fixed_workspace::derive()
+            .ok_or("startup fixed workspace is unsupported or overflowed")?;
+        if self.scheduler.values().reserved_storage_bytes() < fixed.values
+            || self.scheduler.signs().reserved_storage_bytes() < fixed.signs
+            || n.0 < fixed.retained_kernel
+        {
+            return Err("startup fixed constructor accounting drifted".into());
+        }
+        #[cfg(test)]
+        eprintln!(
+            "STARTUP_FIXED_WORKSPACE retained={} constructor_requests={}",
+            fixed.retained_kernel, fixed.constructor_requests
+        );
+        // The complete preparation recipe must add all non-fixed owners; this
+        // partial term is deliberately not used to enable IMAGE preflight.
+        let _fixed_constructor_requests = fixed.constructor_requests;
         Ok(n.0)
     }
 }

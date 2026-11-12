@@ -15,7 +15,7 @@ impl crate::StdHost {
             .ok_or("startup chime has no selected speaker")?;
         if selected.boot_id != self.advertisement.boot_id
             || selected.offer_generation != self.advertisement.offer_generation
-            || selected.checked_base_entry().is_none()
+            || selected.executable_digest().is_none()
         {
             return Err("startup chime speaker is stale or unchecked".into());
         }
