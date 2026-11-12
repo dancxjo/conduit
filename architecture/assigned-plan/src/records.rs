@@ -20,11 +20,14 @@ pub struct AssignedRecordRequirement {
 }
 impl AssignedRecordRequirement {
     /// The boot-specific native tail is checked against actual possession by
-    /// the native operation binder. The resident graph pins its presence/ABI.
+    /// the native operation binder for schemas 6, 7 and 8. The resident graph
+    /// pins its presence/ABI; this does not validate or erase the full tail.
     pub fn from_kernel_record(record: AssignedRecord<'_>, schema: u16) -> Self {
         if matches!(
             schema,
-            ASSIGNED_NATIVE_PLAN_SCHEMA | crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+            ASSIGNED_NATIVE_PLAN_SCHEMA
+                | crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                | crate::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
         ) && record.tag == crate::ASSIGNED_HOST_CALL
             && record.payload.len() >= 47
         {
@@ -32,6 +35,9 @@ impl AssignedRecordRequirement {
                 tag: record.tag,
                 payload: &record.payload[..47],
             })
+        // Schema 8 mixes local Fores and selected Lines. A bare Cord record
+        // cannot distinguish them, so its complete connection identity remains
+        // exact; never apply schema-7 local-name normalization to a real Line.
         } else if schema == crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
             && record.tag == crate::ASSIGNED_CORD
             && record.payload.len() == 42
@@ -190,3 +196,7 @@ mod tests {
         assert_ne!(pin(&a, fore), pin(&b, fore));
     }
 }
+
+#[cfg(test)]
+#[path = "records/native_line_tests.rs"]
+mod native_line_tests;
