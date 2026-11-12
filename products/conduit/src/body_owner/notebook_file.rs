@@ -1,21 +1,13 @@
 //! Notebook file encounters use the installed owner's one Host and lifecycle.
-use super::super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
+use super::super::{debug, state, Owner};
 use super::{checkpoint, NotebookDocument, SOURCE};
 use conduit_body::{BodyId, ResidentPlot};
 use conduit_core::*;
 use conduit_semantic_catalog::TextDocument;
-use conduit_std_host::body_execution::{BodyForeOutputAdapter, BodyRunRequest};
-use conduit_std_host::{ExternalForeDelivery, ExternalForeInput, RunControl};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{
-    fs::File,
-    path::Path,
-    time::{Duration, Instant},
-};
+use std::{fs::File, path::Path};
 
-#[path = "notebook_file_plan.rs"]
-mod planning;
 const PUBLISH: &str = include_str!("../../../../plots/notebook/publish.conduit");
 const LOAD: &str = include_str!("../../../../plots/notebook/load.conduit");
 
@@ -68,18 +60,6 @@ fn root_identity(root: &File) -> Result<(u64, u64), String> {
         return Err("notebook storage selection is not a directory".into());
     }
     Ok((metadata.dev(), metadata.ino()))
-}
-
-struct OneOutput(Vec<ExternalForeDelivery>);
-impl BodyForeOutputAdapter for OneOutput {
-    fn deliver(&mut self, value: &ExternalForeDelivery) -> Result<(), String> {
-        if !self.0.is_empty() || value.bytes.len() > conduit_data::MAXIMUM_DATA_TEXT_BYTES as usize
-        {
-            return Err("notebook file Play exceeded its admitted output".into());
-        }
-        self.0.push(value.clone());
-        Ok(())
-    }
 }
 
 impl Owner {
@@ -365,71 +345,15 @@ impl Owner {
         write: bool,
         bytes: Vec<u8>,
     ) -> Result<Vec<u8>, String> {
-        self.plan_notebook_file(write)?;
-        self.persist(root)?;
-        state::require_execution_capacity(root)?;
-        let proposed = self
-            .session
-            .realization()
-            .ok_or("notebook file Plan required")?
-            .clone();
-        let ad = self.host.advertisement().clone();
-        let inputs = [ExternalForeInput {
-            front_port_id: port_id(if write { "value" } else { "selected" }),
-            track: ConnectionTrack::Payload,
-            bytes,
-        }];
-        let control = RunControl::default();
-        let session = &mut self.session;
-        let admissions = self.admissions.as_ref();
-        let host = &mut self.host;
-        let (report, output) = std::thread::scope(|scope| {
-            std::thread::Builder::new()
-                .name("conduit-notebook-file".into())
-                .stack_size(4 * 1024 * 1024)
-                .spawn_scoped(scope, || {
-                    let mut fore = OneOutput(Vec::with_capacity(1));
-                    let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
-                    let mut timer = DeadlineTimer {
-                        until: Instant::now() + Duration::from_secs(5),
-                        control: control.clone(),
-                    };
-                    let report = host.run_body_plan_with_fore_to_with_start(
-                        BodyRunRequest {
-                            wake: &proposed.wake,
-                            plan: &proposed.plan,
-                            control: &control,
-                            keyboard: None,
-                        },
-                        &inputs,
-                        false,
-                        &mut fore,
-                        &mut output,
-                        &mut timer,
-                        |play, wake| {
-                            let mut next = session.clone();
-                            next.started(&ad.host_id, &ad.boot_id, play.clone(), wake.clone())
-                                .map_err(debug)?;
-                            state::retain_session(root, &mut next, None, admissions, None, None)?;
-                            *session = next;
-                            Ok(())
-                        },
-                    );
-                    (report, fore)
-                })
-                .map_err(|error| format!("start notebook file worker: {error}"))?
-                .join()
-                .map_err(|_| "notebook file worker panicked".to_string())
-        })?;
-        let report = report?;
-        let success = report.terminal == TerminalDisposition::Completed
-            && report.failure.is_none()
-            && report.cleanup_failure.is_none()
-            && report.fore_deliveries.len() == 1
-            && output.0.len() == 1
-            && output.0[0].track == ConnectionTrack::Payload
-            && output.0[0].front_port_id == port_id(if write { "saved" } else { "value" })
-            && report.terminal_sign.active_play_id == Some(report.play.active_play_id.clone());
+        self.plan_selected_text_file(if write { PUBLISH } else { LOAD }, write)?;
+        let played = self.run_selected_text_file_plan(root, write, bytes)?;
+        let super::super::text_file_play::TextFilePlayOutcome {
+            report,
+            proposed,
+            host: ad,
+            output,
+        } = played;
+        let success = output.is_some();
         let mut next = self.session.clone();
         if next
             .realization()
@@ -464,6 +388,6 @@ impl Owner {
                 "notebook storage refused the operation; current document preserved".into(),
             );
         }
-        Ok(output.0[0].bytes.to_vec())
+        Ok(output.expect("successful Text file output"))
     }
 }

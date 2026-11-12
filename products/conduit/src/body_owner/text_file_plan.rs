@@ -3,15 +3,19 @@ use super::*;
 use std::collections::BTreeMap;
 
 impl Owner {
-    pub(super) fn plan_notebook_file(&mut self, write: bool) -> Result<(), String> {
-        let source = crate::plot_source::parse(if write { PUBLISH } else { LOAD })?;
+    pub(in crate::durable_host::owner::controller) fn plan_selected_text_file(
+        &mut self,
+        text: &str,
+        write: bool,
+    ) -> Result<(), String> {
+        let source = crate::plot_source::parse(text)?;
         let plot = source.expand_entry_for_authoring()?;
         let resident = ResidentPlot::new(
             plot.expanded.source_document_id.clone(),
             plot.expanded.checked_plot_id.clone(),
         );
         if self.resident.as_ref() != Some(&resident) || self.session.realization().is_some() {
-            return Err("notebook file Plan differs from the idle resident Source".into());
+            return Err("Text file Plan differs from the idle resident Source".into());
         }
         let ad = self.host.advertisement().clone();
         let expected = if write {
@@ -23,13 +27,13 @@ impl Owner {
             .capabilities
             .iter()
             .find(|offer| offer.implementation.implementation_id.as_str() == expected)
-            .ok_or("notebook has no explicitly selected durable file offer")?;
+            .ok_or("Host has no explicitly selected durable file offer")?;
         let [requirement] = offer.authority_requirements.as_slice() else {
-            return Err("notebook file offer has unexpected authority requirements".into());
+            return Err("Text file offer has unexpected authority requirements".into());
         };
         let grant = AuthorityGrant {
             grant_id: format!(
-                "grant/notebook/{}/{}",
+                "grant/data-text/{}/{}",
                 ad.boot_id.as_str(),
                 ad.offer_generation.0
             )
@@ -97,6 +101,23 @@ impl Owner {
             &boundaries,
         )
         .map_err(debug)?;
+        // Availability of a durable offer is insufficient: the exact selected
+        // Source must actually realize this operation. A pure wrapper emitting
+        // a lookalike reference cannot become publication evidence.
+        let [fragment] = plan.fragments.as_slice() else {
+            return Err("selected Text file operation requires one local fragment".into());
+        };
+        let [placement] = fragment.placements.as_slice() else {
+            return Err("selected Text file operation requires its one exact Back".into());
+        };
+        if placement.capability_id != offer.capability_id
+            || placement.implementation_id != offer.implementation.implementation_id
+            || placement.execution_profile_id != offer.implementation.execution_profile_id
+            || placement.artifact_id != offer.implementation.artifact_id
+            || placement.kind_id != offer.kind_id
+        {
+            return Err("selected Text Source did not realize the durable file offer".into());
+        }
         self.session
             .propose(
                 vec![conduit_body::BodyPlotPlan {
