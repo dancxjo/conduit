@@ -641,3 +641,6 @@ fn selected_context_does_not_leak_trigger_or_prior_model_words_from_a_selected_e
     assert!(!transmitted.contains("UNSELECTED_TRIGGER_SECRET"));
     assert!(!transmitted.contains("UNSELECTED_MODEL_SECRET"));
 }
+
+#[path = "episode_retrieval_request/fact_view.rs"]
+mod fact_view;

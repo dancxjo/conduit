@@ -305,8 +305,11 @@ Their presence is not an additional physical or release acceptance claim:
   continuation, independent reaction/attention and causal replay. The model
   request remains 4 KiB and resident history remains four entries within 8 KiB.
   [The cognition guide](plots/pete-cognition/README.md) records the authored
-  policies, declared compact codecs, bounds and proof entrances. Integration
-  and final live/browser proof are tracked in [#6861](https://github.com/dancxjo/conduit/pull/6861).
+  policies, declared compact codecs, bounds and proof entrances. Default hosted
+  Gemma3 proof covers recalled labels, exact unknown answers, percentage units,
+  and failed-provider recall using a fact-first view with complete provenance.
+  Initial integration/browser proof is tracked in [#6861](https://github.com/dancxjo/conduit/pull/6861);
+  the default-model fix and CI receipts are in [#6881](https://github.com/dancxjo/conduit/pull/6881).
 - **Learned realization lifecycle (#3709):** checkpoint-bearing hosted model
   execution, bounded effect-free shadow comparison, explicit evaluation and
   operator promotion/rollback authority, ordinary replacement-Plan selection,
