@@ -1,6 +1,6 @@
 //! Retained Source custody through complete local or explicitly Line-bound planning.
 use super::{continuing::ImageIngress, Owner};
-use crate::body_owner::ForeLineSelection;
+use crate::durable_host::owner::ForeLineSelection;
 use conduit_body::ResidentPlot;
 use std::{collections::BTreeMap, path::Path};
 impl Owner {
