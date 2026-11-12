@@ -153,18 +153,33 @@ pub fn external_fore_scope_commitment(
 /// bind/Start exists; attach it to the original workset's prepared kernel group.
 /// Cold full Line/peer/image/configuration/session material is retired after
 /// validation/hashing. Only the compact installed Line rows remain borrowed.
-pub struct PreparedForeCarrier<'c, 'p, C: MessageTransport> {
+pub struct PreparedForeCarrier<'c, 'p, C: MessageTransport, const PORTS: usize = 16> {
     _link: &'c mut C,
     backing: &'c mut [u8],
     pins: &'p [c::AssignedLineForeRequirement],
+    line_limits: [c::LinkLimits; PORTS],
     _bounds: ForeCarrierBounds,
     scope: [u8; 32],
     custody: [u8; 32],
 }
-impl<'c, 'p, C: MessageTransport> PreparedForeCarrier<'c, 'p, C> {
+impl<'c, 'p, C: MessageTransport, const PORTS: usize> PreparedForeCarrier<'c, 'p, C, PORTS> {
     pub fn scope_digest(&self) -> &[u8; 32] {
         &self.scope
     }
+    /// Original public command transcript only; inspecting it grants nothing.
+    pub fn custody_digest(&self) -> &[u8; 32] {
+        &self.custody
+    }
+    /// Actual selected Line limits checked against the canonical commitment,
+    /// never the potentially wider installed carrier ceilings.
+    pub fn selected_line_limits(&self, endpoint: u16, cord: u16) -> Option<c::LinkLimits> {
+        let index = self
+            .pins
+            .iter()
+            .position(|line| line.fore().endpoint() == endpoint && line.fore().cord() == cord)?;
+        self.line_limits.get(index).copied()
+    }
+
     pub fn fore_scope_digest(&self, endpoint: u16, cord: u16) -> Option<[u8; 32]> {
         let line = self
             .pins
@@ -177,7 +192,10 @@ impl<'c, 'p, C: MessageTransport> PreparedForeCarrier<'c, 'p, C> {
         ))
     }
 
-    pub fn attach<T: PreparedLocalKernels>(self, kernels: T) -> ForeCarrierKernels<'c, 'p, C, T> {
+    pub fn attach<T: PreparedLocalKernels>(
+        self,
+        kernels: T,
+    ) -> ForeCarrierKernels<'c, 'p, C, T, PORTS> {
         ForeCarrierKernels {
             kernels,
             carrier: self,
@@ -186,23 +204,33 @@ impl<'c, 'p, C: MessageTransport> PreparedForeCarrier<'c, 'p, C> {
 }
 /// Same ordinary PreparedLocalKernels admission/Start path, with finite original
 /// borrowed carrier backing charged alongside the original prepared kernels.
-pub struct ForeCarrierKernels<'c, 'p, C: MessageTransport, T: PreparedLocalKernels> {
+pub struct ForeCarrierKernels<
+    'c,
+    'p,
+    C: MessageTransport,
+    T: PreparedLocalKernels,
+    const PORTS: usize = 16,
+> {
     kernels: T,
-    carrier: PreparedForeCarrier<'c, 'p, C>,
+    carrier: PreparedForeCarrier<'c, 'p, C, PORTS>,
 }
 /// Bound only by the original workset Start. Raw carrier remains private until
 /// the typed runtime actor is wired; no public IO/extraction entrance exists.
-pub struct BoundForeCarrierKernels<'c, 'p, C: MessageTransport, T> {
+pub struct BoundForeCarrierKernels<'c, 'p, C: MessageTransport, T, const PORTS: usize = 16> {
     kernels: T,
-    _carrier: PreparedForeCarrier<'c, 'p, C>,
+    _carrier: PreparedForeCarrier<'c, 'p, C, PORTS>,
 }
-impl<C: MessageTransport, T> BoundForeCarrierKernels<'_, '_, C, T> {
+impl<C: MessageTransport, T, const PORTS: usize> BoundForeCarrierKernels<'_, '_, C, T, PORTS> {
     pub fn kernels_mut(&mut self) -> &mut T {
         &mut self.kernels
     }
     pub fn scope_digest(&self) -> &[u8; 32] {
         &self._carrier.scope
     }
+    pub fn selected_line_limits(&self, endpoint: u16, cord: u16) -> Option<c::LinkLimits> {
+        self._carrier.selected_line_limits(endpoint, cord)
+    }
+
     pub fn fore_scope_digest(&self, endpoint: u16, cord: u16) -> Option<[u8; 32]> {
         self._carrier.fore_scope_digest(endpoint, cord)
     }
@@ -216,10 +244,10 @@ impl<C: MessageTransport, T> BoundForeCarrierKernels<'_, '_, C, T> {
 // SAFETY: both original owners are transferred once by the SAME existing Start.
 // No IO/allocation occurs in bind; the carrier stays private. Original kernels'
 // unsafe contract still requires the factory's exact approved fragment set.
-unsafe impl<'c, 'p, C: MessageTransport, T: PreparedLocalKernels> PreparedLocalKernels
-    for ForeCarrierKernels<'c, 'p, C, T>
+unsafe impl<'c, 'p, C: MessageTransport, T: PreparedLocalKernels, const PORTS: usize>
+    PreparedLocalKernels for ForeCarrierKernels<'c, 'p, C, T, PORTS>
 {
-    type Bound = BoundForeCarrierKernels<'c, 'p, C, T::Bound>;
+    type Bound = BoundForeCarrierKernels<'c, 'p, C, T::Bound, PORTS>;
     fn retained_backing_bytes(&self) -> Option<usize> {
         let wrapper = core::mem::size_of::<Self>().checked_sub(core::mem::size_of::<T>())?;
         self.kernels
@@ -246,7 +274,7 @@ impl<'s, const N: usize> Root<'s, N> {
         approved: &b::DelegatedBodyFragment<'_>,
         fore: &b::ApprovedBodyForePorts<PORTS>,
         profile: b::AssignedBodyLineForePreparationProfile<'_>,
-    ) -> Result<PreparedForeCarrier<'c, 'p, C>, ForeCarrierRefusal> {
+    ) -> Result<PreparedForeCarrier<'c, 'p, C, PORTS>, ForeCarrierRefusal> {
         let member = self.receipt.as_ref().ok_or(ForeCarrierRefusal::Scope)?;
         let context = b::NativePreparationContext {
             bootstrap: &self.seed,
@@ -277,7 +305,7 @@ impl<const N: usize> ExecutionParts<'_, '_, N> {
         approved: &b::DelegatedBodyFragment<'_>,
         fore: &b::ApprovedBodyForePorts<PORTS>,
         profile: b::AssignedBodyLineForePreparationProfile<'_>,
-    ) -> Result<PreparedForeCarrier<'c, 'p, C>, ForeCarrierRefusal> {
+    ) -> Result<PreparedForeCarrier<'c, 'p, C, PORTS>, ForeCarrierRefusal> {
         let context = b::NativePreparationContext {
             bootstrap: self.bootstrap,
             member: self.member,

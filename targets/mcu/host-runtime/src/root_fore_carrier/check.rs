@@ -41,7 +41,7 @@ pub(super) fn prepare<
     approved: &b::DelegatedBodyFragment<'_>,
     fore: &b::ApprovedBodyForePorts<PORTS>,
     profile: b::AssignedBodyLineForePreparationProfile<'_>,
-) -> Result<PreparedForeCarrier<'c, 'p, C>, ForeCarrierRefusal> {
+) -> Result<PreparedForeCarrier<'c, 'p, C, PORTS>, ForeCarrierRefusal> {
     use ForeCarrierRefusal as E;
     let selection = selection.ok_or(E::MissingSelection)?;
     let installed = &selection.installed;
@@ -58,6 +58,9 @@ pub(super) fn prepare<
         || installed.profile.lines != profile.line_fore.lines
     {
         return Err(E::Scope);
+    }
+    if installed.profile.lines.len() > PORTS {
+        return Err(E::Bounds);
     }
     check_lines(installed, context.actual)?;
     let command = workspace
@@ -103,6 +106,18 @@ pub(super) fn prepare<
         .into_retained_stamp()
         .map_err(|_| E::Attribution)?
         .custody_identity();
+    let empty = c::LinkLimits {
+        maximum_in_flight_items: 0,
+        maximum_payload_bytes: 0,
+        maximum_buffered_bytes: 0,
+        maximum_frame_bytes: 0,
+    };
+    let mut line_limits = [empty; PORTS];
+    // The immutable full Line was just checked against its exact canonical
+    // commitment. Copy only its actual finite caps before retiring cold data.
+    for (target, line) in line_limits.iter_mut().zip(installed.lines) {
+        *target = line.binding.limits;
+    }
     let NativeForeCarrierSelection {
         _link,
         backing,
@@ -112,6 +127,7 @@ pub(super) fn prepare<
         _link,
         backing,
         pins: installed.profile.lines,
+        line_limits,
         _bounds: installed.bounds,
         scope,
         custody,
