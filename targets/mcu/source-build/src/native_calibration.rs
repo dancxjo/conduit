@@ -208,9 +208,11 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
         {
             return Err("invalid or duplicate checked native calibration slot".into());
         }
-        for authority in &offer.authority_requirements {
+        for (ordinal, authority) in offer.authority_requirements.iter().enumerate() {
             grants.push(c::AuthorityGrant {
-                grant_id: format!("fabrication/inert-policy/{}", slot.base).into(),
+                // Each distinct requirement needs a distinct descriptive identity.
+                // These calibration grants are never emitted or used at execution.
+                grant_id: format!("fabrication/inert-policy/{}/{ordinal}", slot.base).into(),
                 contract_id: authority.contract_id.clone(),
                 host_call_contract_id: authority.host_call_contract_id.clone(),
                 subject_kind: authority.subject_kind.clone(),
