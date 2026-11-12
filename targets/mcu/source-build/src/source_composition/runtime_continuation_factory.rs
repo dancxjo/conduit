@@ -17,7 +17,8 @@ pub struct Factory<'a, 'f, 'issuers, 'diagnostic> {
     pub equipment: &'a mut crate::equipment::Equipment,
     pub issuers: &'issuers mut Issuers<W>,
     pub operations: &'a Operations<'static, W>,
-    pub recording: Option<&'a Operation<'static>>,
+    #[cfg(record_service)] pub recording_resource: &'a mut Option<c::ResourceBinding>,
+    pub recording: Option<&'a crate::play::RecordingOperation<'static>>,
     pub sampling_values: conduit_kernel::HostedValueStore,
     pub output_values: conduit_kernel::HostedValueStore,
     pub contracts: NativeContracts,
@@ -95,6 +96,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
         equipment,
         issuers,
         operations,
+        #[cfg(record_service)] recording_resource,
         recording,
         sampling_values,
         output_values,
@@ -104,6 +106,8 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
         append_output_bytes,
         diagnostic,
     } = factory;
+    #[cfg(record_service)]
+    let recording_resource = recording_resource.as_ref();
     let pools = held(equipment).map_err(|error| {
         stage(diagnostic, "held", scope);
         refusal(diagnostic, "continuation-held-pools", error)
@@ -133,7 +137,11 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
             &mut equipment.display,
             &mut equipment.waits,
             equipment.recording.ready_slot(),
-            &mut issuers.recording,
+            #[cfg(record_service)] recording_resource,
+            {
+                #[cfg(not(record_service))] { &mut issuers.recording }
+                #[cfg(record_service)] { [&mut issuers.recording, &mut issuers.recording_read] }
+            },
             recording,
             append_output_bytes,
             &mut issuers.pulse,

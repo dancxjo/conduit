@@ -56,9 +56,11 @@ pub async fn run<'s>(
         remaining(),
     )
     .expect("funded canonical output storage");
+    #[cfg(record_service)]
+    let mut recording_resource = None;
     let (maximum_events, recording_operation) = initialization::publication_bounds(&parameters);
     let mut append_output =
-        [0u8; conduit_resource_snapshot::native_append::APPEND_RESULT_BYTES as usize];
+        [0u8; crate::play::RECORDING_OUTPUT_BYTES];
     let mut append_status = Some(
         conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus::prepare(
             &source::sampling_layout::fore(),
@@ -134,6 +136,7 @@ pub async fn run<'s>(
                 equipment: &mut equipment,
                 issuers: &mut issuers,
                 operations: &operations,
+                #[cfg(record_service)] recording_resource: &mut recording_resource,
                 recording: recording_operation.as_ref(),
                 sampling_values: sampling_values.take().expect("original sampling values"),
                 output_values: output_values.take().expect("original output values"),
@@ -299,6 +302,8 @@ pub async fn run<'s>(
                         configuration_id: parts.configuration.configuration_id,
                         now_millis: now_ms(),
                     };
+                    #[cfg(record_service)]
+                    { recording_resource = equipment.recording.resource_binding(remaining()).map_err(|_| "recording-resource")?; }
                     let prepared = crate::play::prepare(
                         &*parts.workspace,
                         context.into(),
@@ -311,7 +316,11 @@ pub async fn run<'s>(
                         &mut equipment.display,
                         &mut equipment.waits,
                         equipment.recording.ready_slot(),
-                        &mut issuers.recording,
+                        #[cfg(record_service)] recording_resource.as_ref(),
+                        {
+                            #[cfg(not(record_service))] { &mut issuers.recording }
+                            #[cfg(record_service)] { [&mut issuers.recording, &mut issuers.recording_read] }
+                        },
                         recording_operation.as_ref(),
                         append_output.len(),
                         &mut issuers.pulse,

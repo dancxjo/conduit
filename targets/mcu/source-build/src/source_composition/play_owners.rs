@@ -13,10 +13,16 @@ type SampleBase<'a, 'f> = PreparedDrivers<
     SN,
     WAIT_SLOTS,
 >;
+#[cfg(not(record_service))]
 type Sample<'a, 'f> = conduit_mcu_host_runtime::execution_factory::PreparedWithOptionalAppender<
     'a,
     SampleBase<'a, 'f>,
     RecordingStorage,
+>;
+#[cfg(record_service)]
+type Sample<'a, 'f> = conduit_mcu_host_runtime::execution_factory::PreparedWithRecordService<
+    'a, SampleBase<'a, 'f>, RecordingStorage, SP,
+    { conduit_resource_snapshot::read_result::READ_RESULT_BYTES },
 >;
 type Output<'a, 'f> = PreparedDrivers<
     'a,
@@ -45,9 +51,10 @@ pub(super) fn prepare<'a, 'f: 'a>(
     pulse: &'a mut Option<ReadyPulseBase<Pulse>>,
     write: &'a mut Option<ReadyWriteBase<Wire>>,
     waits: &'a mut [Option<ReadyMonotonicWaitBase<MonotonicTimer>>; WAIT_SLOTS],
-    recording: Option<&'a mut Option<ReadyRecordAppender<RecordingStorage>>>,
-    recording_issuer: &mut Issuer,
-    recording_operation: Option<&Operation<'_>>,
+    recording: Option<&'a mut Option<crate::equipment::RecordingReady>>,
+    #[cfg(record_service)] recording_resource: Option<&'a c::ResourceBinding>,
+    recording_issuer: RecordingIssuers<'_>,
+    recording_operation: Option<&RecordingOperation<'_>>,
     pulse_issuer: &mut Issuer,
     write_issuer: &mut Issuer,
     wait_issuers: &mut [Issuer; WAIT_SLOTS],
@@ -220,11 +227,15 @@ pub(super) fn prepare<'a, 'f: 'a>(
     // Only independently compiled Source selects this actual native owner.
     let mut append_nodes = source::sampling::NATIVE_KINDS
         .iter()
-        .filter(|(_, kind)| *kind == conduit_resource_snapshot::native_append::APPEND_KIND);
+        .filter(|(_, kind)| {
+            #[cfg(not(record_service))] { *kind == conduit_resource_snapshot::native_append::APPEND_KIND }
+            #[cfg(record_service)] { *kind == conduit_resource_snapshot::service_contract::SERVICE_KIND }
+        });
     let append_node = append_nodes.next().map(|(node, _)| *node);
     if append_nodes.next().is_some() {
         return Err("append-source-duplicate");
     }
+    #[cfg(not(record_service))]
     let appender = match (append_node, contracts.append, recording_operation) {
         (Some(node), Some(contract), Some(op)) => {
             let recording = recording.ok_or("append-busy")?;
@@ -257,6 +268,29 @@ pub(super) fn prepare<'a, 'f: 'a>(
         (None, None, None) => None,
         _ => return Err("append-source-contract"),
     };
+    #[cfg(record_service)]
+    let service = {
+        let node = append_node.ok_or("record-service-source")?;
+        let operations = recording_operation.ok_or("record-service-operations")?;
+        let recording = recording.ok_or("record-service-busy")?;
+        let [append_issuer, read_issuer] = recording_issuer;
+        let facts = NativeFacts::record_service(recording.as_ref().ok_or("record-service-busy")?);
+        let issue = |issuer: &mut Issuer, op: &Operation<'_>| {
+            let (table, handle, claim) = context.issue(issuer, policy, sampling, &facts, op, crate::runtime::remaining())
+                .map_err(|_| "record-service-authority")?;
+            c::BoundBaseOperation::bind(table, handle, claim).map_err(|_| "record-service-operation")
+        };
+        let append = issue(append_issuer, &operations[0])?;
+        let read = issue(read_issuer, &operations[1])?;
+        let selected = conduit_plan_lowering::selected_assigned_operation_set::SelectedAssignedServicePlan {
+            operation: operation(sampling, &sampling_profile, node),
+            fore: Some(sampling_fore),
+            resource: source::sampling_layout::RECORD_SERVICE_RESOURCE.ok_or("record-service-resource-index")?,
+        };
+        conduit_resource_snapshot::native_service::ReadyRecordService::prepare_assigned_retained(
+            recording, [append, read], recording_resource.ok_or("record-service-resource")?, selected,
+        ).map_err(|_| "record-service-assignment")?
+    };
     let sample_software = software
         .prepare_assigned(
             sampling.projection(),
@@ -275,6 +309,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
             }),
         )
         .map_err(|_| "output-software")?;
+    #[cfg(not(record_service))]
     let sample_backs = PreparedDrivers::with_optional_appender(
         sample_loans,
         sample_nodes,
@@ -286,6 +321,14 @@ pub(super) fn prepare<'a, 'f: 'a>(
         },
         appender,
     )?;
+    #[cfg(record_service)]
+    // SAFETY: this same Source factory remains behind original whole-workset
+    // check_resources/Start, including the exact checked residence index above.
+    let sample_backs = unsafe { PreparedDrivers::with_record_service::<_, SP,
+        { conduit_resource_snapshot::read_result::READ_RESULT_BYTES }>(
+        sample_loans, sample_nodes, sample_software,
+        PreparedCalls { pulse: Some(pulse), write: None, waits: [wait] }, service,
+    ) }?;
     let output_backs = PreparedDrivers::<_, Pulse, Wire, MonotonicTimer, 4, ON, 0>::new(
         output_loans,
         output_nodes,

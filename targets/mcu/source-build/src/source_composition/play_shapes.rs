@@ -31,8 +31,13 @@ pub(super) const SP: usize = source::sampling_layout::PORTS_PER_NODE;
 pub(super) const OP: usize = source::output_layout::PORTS_PER_NODE;
 pub(super) const SS: usize = source::sampling_layout::SIGN_ITEMS;
 pub(super) const OS: usize = source::output_layout::SIGN_ITEMS;
+#[cfg(not(record_service))]
+type RecordingDriver = conduit_mcu_host_runtime::execution_factory::NoExtraBack;
+#[cfg(record_service)]
+type RecordingDriver = conduit_mcu_host_runtime::execution_factory::BoxedRecordServiceBack<SP,
+    { conduit_resource_snapshot::read_result::READ_RESULT_BYTES }>;
 pub type SamplingKernel<'a, 'f> = ExecutionKernel<
-    Driver<'f, resident::BorrowedBack<'a>>,
+    Driver<'f, resident::BorrowedBack<'a>, RecordingDriver>,
     SN,
     SC,
     SP,
@@ -60,13 +65,13 @@ pub static CONDUIT_EXECUTION_KERNEL_BYTES: [usize; 3] = [
     core::mem::size_of::<conduit_seven_segment_mask::native_kernel::Kernel>(),
     core::mem::size_of::<OutputKernel<'static, 'static>>() + sign_bytes(OS, OS),
 ];
-pub(super) type SamplingBound<'a, 'f> = (
-    Box<SamplingKernel<'a, 'f>>,
-    conduit_mcu_host_runtime::execution_factory::CallsWithOptionalAppender<
-        conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>,
-        RecordingStorage,
-    >,
-);
+#[cfg(not(record_service))]
+pub type SamplingCalls = conduit_mcu_host_runtime::execution_factory::CallsWithOptionalAppender<
+    conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>, RecordingStorage>;
+#[cfg(record_service)]
+pub type SamplingCalls = conduit_mcu_host_runtime::execution_factory::CallsWithRecordService<
+    conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>, RecordingStorage>;
+pub(super) type SamplingBound<'a, 'f> = (Box<SamplingKernel<'a, 'f>>, SamplingCalls);
 pub(super) type OutputBound<'a, 'f> = (
     Box<OutputKernel<'a, 'f>>,
     conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, 0>,

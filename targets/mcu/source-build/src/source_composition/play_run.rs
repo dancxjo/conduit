@@ -129,10 +129,7 @@ fn rearm_archived(
 #[allow(clippy::too_many_arguments)]
 pub async fn run<'r, 'f>(
     mut sampling: Box<crate::play::SamplingKernel<'r, 'f>>,
-    mut sampling_calls: conduit_mcu_host_runtime::execution_factory::CallsWithOptionalAppender<
-        NativeCalls<WAIT_SLOTS>,
-        crate::equipment::RecordingStorage,
-    >,
+    mut sampling_calls: crate::play::SamplingCalls,
     mask: conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
     mut output: Box<crate::play::OutputKernel<'r, 'f>>,
     mut output_calls: NativeCalls<0>,
@@ -191,6 +188,7 @@ pub async fn run<'r, 'f>(
             &cancelled,
         )
         .with_activity(activity);
+        #[cfg(not(record_service))]
         let result = if let Some(appender) = sampling_calls.appender.as_mut() {
             let mut service = conduit_mcu_host_runtime::native_runner::synchronous::Service::new(
                 appender,
@@ -202,6 +200,13 @@ pub async fn run<'r, 'f>(
                 .await
         } else {
             runner.run(&mut sampling_calls.base).await
+        };
+        #[cfg(record_service)]
+        let result = {
+            let mut service = conduit_mcu_host_runtime::native_runner::synchronous::Service::new(
+                &mut sampling_calls.service, append_output,
+            ).expect("pre-Start funded record-service output");
+            runner.run_with_sync_calls(&mut sampling_calls.base, &mut service).await
         };
         if let Some(event) = sampling.signs().events().last() {
             let _ = inspection.record(0, event);

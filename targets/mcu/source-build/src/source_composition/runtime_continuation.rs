@@ -98,13 +98,21 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
                 .authorize_continuation(
                     context,
                     policy,
-                    &mut factory.issuers.recording,
-                    operation,
+                    {
+                        #[cfg(not(record_service))] { &mut factory.issuers.recording }
+                        #[cfg(record_service)] { [&mut factory.issuers.recording, &mut factory.issuers.recording_read] }
+                    },
+                    {
+                        #[cfg(not(record_service))] { operation }
+                        #[cfg(record_service)] { [&operation[0], &operation[1]] }
+                    },
                     remaining(),
                 )
                 .map_err(|_| "continuation-recording-authorization")?,
             _ => return Err("continuation-recording-scope"),
         }
+        #[cfg(record_service)]
+        { *factory.recording_resource = factory.equipment.recording.resource_binding(remaining()).map_err(|_| "continuation-recording-resource")?; }
         let budget = remaining().min(verified.intent().ceilings.runtime_bytes as usize);
         let material = crate::play::continuation::Material::prepare(
             context,

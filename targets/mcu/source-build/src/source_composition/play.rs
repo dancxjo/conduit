@@ -30,6 +30,11 @@ use conduit_pulse_capture::installation::ReadyPulseBase;
 use conduit_resource_snapshot::native_append::ReadyRecordAppender;
 use conduit_tm1637_wire::installation::ReadyWriteBase;
 type RecordingStorage = crate::equipment::RecordingStorage;
+mod recording_policy {
+    include!(concat!(env!("OUT_DIR"), "/source_play_recording.rs"));
+}
+pub use recording_policy::{RecordingIssuers, RecordingOperation, OUTPUT_BYTES as RECORDING_OUTPUT_BYTES};
+
 type Pulse = crate::equipment::Capture;
 type Wire = crate::equipment::Wire;
 mod shapes {
@@ -38,7 +43,7 @@ mod shapes {
 use shapes::{
     OutputBound, SamplingBound, FORE_PORTS, OC, OH, ON, OP, OR, OS, OT, SC, SH, SN, SP, SR, SS, ST,
 };
-pub use shapes::{OutputKernel, SamplingKernel, CONDUIT_EXECUTION_KERNEL_BYTES};
+pub use shapes::{OutputKernel, SamplingCalls, SamplingKernel, CONDUIT_EXECUTION_KERNEL_BYTES};
 pub const CONTINUATION_FORE_PORTS: usize = FORE_PORTS;
 pub type ContinuationStarted<'a, 'f> =
     conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
@@ -119,9 +124,10 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     pulse: &'a mut Option<ReadyPulseBase<Pulse>>,
     write: &'a mut Option<ReadyWriteBase<Wire>>,
     waits: &'a mut [Option<ReadyMonotonicWaitBase<MonotonicTimer>>; WAIT_SLOTS],
-    recording: Option<&'a mut Option<ReadyRecordAppender<RecordingStorage>>>,
-    recording_issuer: &mut Issuer,
-    recording_operation: Option<&Operation<'_>>,
+    recording: Option<&'a mut Option<crate::equipment::RecordingReady>>,
+    #[cfg(record_service)] recording_resource: Option<&'a c::ResourceBinding>,
+    recording_issuer: RecordingIssuers<'_>,
+    recording_operation: Option<&RecordingOperation<'_>>,
     append_output_bytes: usize,
     pulse_issuer: &mut Issuer,
     write_issuer: &mut Issuer,
@@ -151,7 +157,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
         .any(|(_, kind)| *kind == conduit_resource_snapshot::native_append::APPEND_KIND);
     if append_selected
         && append_output_bytes
-            < conduit_resource_snapshot::native_append::APPEND_RESULT_BYTES as usize
+            < RECORDING_OUTPUT_BYTES
     {
         return Err(Refusal::Bounds);
     }
@@ -241,6 +247,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 write,
                 waits,
                 recording,
+                #[cfg(record_service)] recording_resource,
                 recording_issuer,
                 recording_operation,
                 pulse_issuer,
