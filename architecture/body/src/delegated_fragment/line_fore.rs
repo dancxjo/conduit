@@ -30,6 +30,19 @@ pub fn receive_delegated_body_fragment_with_line_fore<'a, const PORTS: usize>(
     let policy = installed.expect("checked installed delegation");
     let (metadata, projection) =
         decode_body_fragment_document(command.payload()).map_err(E::Document)?;
+    finish_line_fore(metadata, projection, policy, context, profile)
+}
+
+// Shared by the independently authenticated single-fragment and original
+// complete-workset entrances. This helper issues no child attribution.
+pub(super) fn finish_line_fore<'a, const PORTS: usize>(
+    metadata: BodyFragmentApprovalMetadata<'a>,
+    projection: &'a [u8],
+    policy: &HostPreparationDelegation,
+    context: NativePreparationContext<'_>,
+    profile: AssignedBodyLineForePreparationProfile<'_>,
+) -> Result<(DelegatedBodyFragment<'a>, ApprovedBodyForePorts<PORTS>), DelegatedFragmentRefusal> {
+    use DelegatedFragmentRefusal as E;
     if profile.preparation.fore.is_some() {
         return Err(E::ForeApproval);
     }

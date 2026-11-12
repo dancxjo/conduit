@@ -20,6 +20,13 @@ enum StartOrigin {
 use conduit_body as b;
 use conduit_core as c;
 
+/// Independent Root-selected representation, not Line/carrier authority.
+/// Online preparation only; continuation remains on its existing legacy path.
+pub enum AssignedPreparationProfile<'a> {
+    Legacy(b::AssignedBodyPreparationProfile<'a>),
+    LineFore(b::AssignedBodyLineForePreparationProfile<'a>),
+}
+
 /// Prepared concrete kernels and their actual exclusive provider loans.
 /// # Safety
 /// Implementations must validate every approved fragment against independently
@@ -113,6 +120,29 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
         context: b::NativePreparationContext<'_>,
         policy: Policy<'_>,
         profile_for: impl FnMut(usize, &[u8]) -> Result<b::AssignedBodyPreparationProfile<'p>, E>,
+        factory: impl FnOnce(
+            &[b::DelegatedBodyFragment<'w>; F],
+            &[b::ApprovedBodyForePorts<PORTS>; F],
+        ) -> Result<T, E>,
+    ) -> Result<Self, Refusal<E>> {
+        let mut profile_for = profile_for;
+        Self::prepare_selected_profiles::<I, PORTS, E>(
+            workspace,
+            context,
+            policy,
+            move |index, bytes| profile_for(index, bytes).map(AssignedPreparationProfile::Legacy),
+            factory,
+        )
+    }
+    /// Prepare a mixed exact legacy/Line-Fore workset. Every choice is
+    /// independently checked beneath the SAME retained signed set; no session,
+    /// input permission, resource admission or Start is created here.
+    #[inline(always)]
+    pub fn prepare_selected_profiles<'p, const I: usize, const PORTS: usize, E>(
+        workspace: &'w b::HostCommandInput<I>,
+        context: b::NativePreparationContext<'_>,
+        policy: Policy<'_>,
+        profile_for: impl FnMut(usize, &[u8]) -> Result<AssignedPreparationProfile<'p>, E>,
         factory: impl FnOnce(
             &[b::DelegatedBodyFragment<'w>; F],
             &[b::ApprovedBodyForePorts<PORTS>; F],
