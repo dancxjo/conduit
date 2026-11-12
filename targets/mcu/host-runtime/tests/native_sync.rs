@@ -94,6 +94,21 @@ type Kernel = StoredExecutionKernel<RequestBack, Signs, 1, 1, 1, 0, 0, 1>;
 fn kernel(value_bytes: u32, fail: Rc<Cell<bool>>) -> Kernel {
     let mut values = HostedValueStore::new(4, 200, value_bytes).unwrap();
     let input = values.store(b"sample").unwrap();
+    kernel_with_back(
+        values,
+        RequestBack { input, phase: 0 },
+        200,
+        APPEND_RESULT_BYTES,
+        fail,
+    )
+}
+fn kernel_with_back<D: StepBack<1>>(
+    values: HostedValueStore,
+    back: D,
+    maximum_input_bytes: u32,
+    maximum_output_bytes: u32,
+    fail: Rc<Cell<bool>>,
+) -> StoredExecutionKernel<D, Signs, 1, 1, 1, 0, 0, 1> {
     let mut routes = FixedRoutes::<0, 0>::new(1);
     routes.seal().unwrap();
     let mut bindings = FixedHostCallBindings::<1>::new(1);
@@ -102,13 +117,13 @@ fn kernel(value_bytes: u32, fail: Rc<Cell<bool>>) -> Kernel {
             NodeId(0),
             HostCallBinding {
                 call: HostCallId(0),
-                maximum_input_bytes: 200,
-                maximum_output_bytes: APPEND_RESULT_BYTES,
+                maximum_input_bytes,
+                maximum_output_bytes,
             },
         )
         .unwrap();
     bindings.seal().unwrap();
-    Kernel::new_with_active_counts_and_host_calls(
+    StoredExecutionKernel::new_with_active_counts_and_host_calls(
         1,
         0,
         [NodeSpec {
@@ -128,7 +143,7 @@ fn kernel(value_bytes: u32, fail: Rc<Cell<bool>>) -> Kernel {
         )],
         routes,
         bindings,
-        [RequestBack { input, phase: 0 }],
+        [back],
         values,
         Signs {
             log: FixedSignLog::new(64 * core::mem::size_of::<KernelEvent>() as u32).unwrap(),
@@ -426,3 +441,6 @@ mod record_service;
 
 #[path = "native_sync/allocations.rs"]
 mod allocations;
+
+#[path = "native_sync/i2c_clock.rs"]
+mod i2c_clock;

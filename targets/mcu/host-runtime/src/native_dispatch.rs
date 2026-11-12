@@ -7,6 +7,8 @@
 //! Clock waits instead retain an exact request and eight owned input bytes;
 //! they release the kernel loan, then recheck it when publishing completion.
 use crate::execution::StoredExecutionKernel;
+#[path = "native_deadline.rs"]
+pub mod deadline;
 #[path = "native_write_failure.rs"]
 pub mod write_failure;
 use conduit_kernel::{scheduler::*, *};

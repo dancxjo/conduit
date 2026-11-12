@@ -87,9 +87,22 @@ pub(super) fn grant(s: &BaseCapabilityScope) -> AuthorityGrant {
     }
 }
 fn authorization(
+    s: BaseCapabilityScope,
+    fragment: &PlanFragment,
+    active: &ActivePlayIdentity,
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
+    authorization_with_bounds(s, fragment, active, 200, 64)
+}
+pub(super) fn authorization_with_bounds(
     mut s: BaseCapabilityScope,
     fragment: &PlanFragment,
     active: &ActivePlayIdentity,
+    parameter_bytes: u32,
+    work_units: u64,
 ) -> (
     BaseCapabilityTable,
     BaseCapabilityHandle,
@@ -124,8 +137,8 @@ fn authorization(
         resource_pool_id: s.resource_pool_id.clone(),
         resource_generation_id: s.resource_generation_id.clone(),
         envelope_id: s.envelope_id.clone(),
-        parameter_bytes: 200,
-        work_units: 64,
+        parameter_bytes,
+        work_units,
     };
     let mut table = BaseCapabilityTable::new(
         s.host_id.clone(),

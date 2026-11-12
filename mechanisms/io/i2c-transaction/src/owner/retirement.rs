@@ -19,16 +19,23 @@ impl<P: I2cProvider> I2cHostCall<P> {
         owner: &mut Option<Self>,
     ) -> Result<(P, I2cAttachment), I2cRetirementRefusal> {
         let current = owner.as_mut().ok_or(I2cRetirementRefusal::Unavailable)?;
-        if current.inspection().in_flight_operations != 0 {
+        current.finish_idle()?;
+        Self::retire_retained(owner)
+    }
+
+    /// Retire the idle exact capability after kernel drain without quarantining
+    /// an already quiescent synchronous controller. This never renews authority,
+    /// resets hardware, clears provider loss or asserts that a new Play is ready.
+    pub fn finish_idle(&mut self) -> Result<(), I2cRetirementRefusal> {
+        if self.inspection().in_flight_operations != 0 {
             return Err(I2cRetirementRefusal::InFlight);
         }
-        if current.inspection().lifecycle != CapabilityLifecycle::Revoked {
-            current
-                .table
-                .revoke(&current.handle)
+        if self.inspection().lifecycle != CapabilityLifecycle::Revoked {
+            self.table
+                .revoke(&self.handle)
                 .map_err(I2cRetirementRefusal::Capability)?;
         }
-        Self::retire_retained(owner)
+        Ok(())
     }
 
     pub fn inspection(&self) -> &CapabilityInspection {

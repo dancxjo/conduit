@@ -4,6 +4,8 @@
 #[path = "native_activity.rs"]
 mod activity;
 pub use activity::NativeActivity;
+#[path = "native_runner_io.rs"]
+mod io;
 #[path = "native_sync_join.rs"]
 mod sync_join;
 #[path = "native_sync.rs"]
@@ -366,7 +368,15 @@ impl<
         // supervise owns and drops every child future before returning here.
         let mut revoked = true;
         if let Some(service) = service {
-            revoked &= service.revoke().is_ok();
+            let retired = if result.is_ok() {
+                service.finish()
+            } else {
+                service.revoke()
+            };
+            if retired.is_err() {
+                let _ = service.revoke();
+                revoked = false;
+            }
         }
         if let Some(call) = calls.pulse.as_mut() {
             revoked &= call.revoke(call.node(), HostCallId(0)).is_ok();
