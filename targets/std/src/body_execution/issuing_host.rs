@@ -124,7 +124,58 @@ impl IssuingHostRunReport {
         &self.local.partitions
     }
 }
+/// Local issuing-Host evidence retaining the original IMAGE result charge.
+/// Borrowing the local report cannot settle the full Body or detach its memory.
+pub struct ImageIssuingHostRunReport {
+    local: IssuingHostRunReport,
+    _memory: crate::kernel_preparation::ImageMemoryLease,
+}
+impl ImageIssuingHostRunReport {
+    pub fn local_execution(&self) -> &IssuingHostRunReport {
+        &self.local
+    }
+}
 impl StdHost {
+    /// Run the original issuer's local assignment under its original IMAGE
+    /// counter. Remote approvals must already name this exact issued Play.
+    /// Caller-owned ingress/output backing and authority remain independent.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_selected_image_issuing_host_plan_with_fore_to_with_start<
+        W: Write,
+        T: TimerAdapter,
+        F,
+    >(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        issued: &BodyPlayIdentity,
+        inputs: &[ExternalForeInput],
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<ImageIssuingHostRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &SignIdentity) -> Result<(), String>,
+    {
+        if !self.kernel_resources.has_image_bounds() {
+            return Err("selected issuing execution requires an IMAGE-bound Host".into());
+        }
+        let mut memory = None;
+        let local = self.run_issuing_host_plan_with_memory(
+            request,
+            issued,
+            inputs,
+            fore_output,
+            output,
+            timer,
+            started,
+            Some(&mut memory),
+        )?;
+        Ok(ImageIssuingHostRunReport {
+            local,
+            _memory: memory.ok_or("selected issuing result lost original backing custody")?,
+        })
+    }
     /// Execute this ORIGINAL ISSUER's complete local Plot/Mask assignment from
     /// the original full sealed Body Plan. Freeze all remote approvals for this
     /// same issued Play before calling: successful local admission consumes the
@@ -143,7 +194,33 @@ impl StdHost {
         fore_output: &mut dyn BodyForeOutputAdapter,
         output: &mut W,
         timer: &mut T,
+        started: F,
+    ) -> Result<IssuingHostRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &SignIdentity) -> Result<(), String>,
+    {
+        self.run_issuing_host_plan_with_memory(
+            request,
+            issued,
+            inputs,
+            fore_output,
+            output,
+            timer,
+            started,
+            None,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn run_issuing_host_plan_with_memory<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        issued: &BodyPlayIdentity,
+        inputs: &[ExternalForeInput],
+        fore_output: &mut dyn BodyForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
         mut started: F,
+        memory: Option<&mut Option<crate::kernel_preparation::ImageMemoryLease>>,
     ) -> Result<IssuingHostRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &SignIdentity) -> Result<(), String>,
@@ -171,7 +248,7 @@ impl StdHost {
                     &bind_sign(&host, &boot, Some(&play.active_play_id), start_sequence),
                 )
             },
-            None,
+            memory,
             Some(&scope),
         )?;
         Ok(IssuingHostRunReport { local })

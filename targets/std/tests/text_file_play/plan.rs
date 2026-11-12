@@ -107,15 +107,18 @@ fn try_named_plan(
         1
     );
     let required = &offer.authority_requirements[0];
-    let grant = AuthorityGrant {
-        grant_id: format!("grant/{}/file", advertisement.boot_id.as_str()).into(),
-        contract_id: required.contract_id.clone(),
-        host_call_contract_id: required.host_call_contract_id.clone(),
-        subject_kind: required.subject_kind.clone(),
-        host_id: advertisement.host_id.clone(),
-        boot_id: advertisement.boot_id.clone(),
-        capability_id: offer.capability_id.clone(),
-    };
+    let grant = host
+        .text_file_authority_grant()
+        .cloned()
+        .unwrap_or_else(|| AuthorityGrant {
+            grant_id: format!("grant/{}/file", advertisement.boot_id.as_str()).into(),
+            contract_id: required.contract_id.clone(),
+            host_call_contract_id: required.host_call_contract_id.clone(),
+            subject_kind: required.subject_kind.clone(),
+            host_id: advertisement.host_id.clone(),
+            boot_id: advertisement.boot_id.clone(),
+            capability_id: offer.capability_id.clone(),
+        });
     let hosts = [advertisement.clone()];
     let placements = conduit_planner::default_expanded_placements(&authored.expanded, &hosts)
         .map_err(|error| format!("{error:?}"))?;

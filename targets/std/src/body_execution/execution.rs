@@ -71,16 +71,13 @@ impl StdHost {
     {
         let selected_memory = image_result.is_some();
         if issuing_scope.is_some()
-            && (selected_memory
-                || request.keyboard.is_some()
+            && (request.keyboard.is_some()
                 || live.is_some()
                 || checkpoint.is_some()
                 || terminal.is_some()
                 || creche.is_some())
         {
-            return Err(
-                "issued Host-local profile does not support IMAGE or encounter attachments".into(),
-            );
+            return Err("issued Host-local profile does not support encounter attachments".into());
         }
         if selected_memory
             && (request.keyboard.is_some()
@@ -146,7 +143,22 @@ impl StdHost {
         } else {
             self.kernel_resources.preflight_image_workset(fragments)?;
         }
-        let mut prepared_lifecycle = if selected_memory {
+        let mut prepared_lifecycle = if selected_memory && issuing_scope.is_some() {
+            let terminal_sequence = self
+                .next_kernel_sign_sequence
+                .max(issuing_host::FIRST_LOCAL_SIGN_SEQUENCE)
+                .checked_add(1)
+                .ok_or("Host Sign sequence exhausted")?;
+            Some((
+                request.wake.clone(),
+                bind_sign(
+                    &self.advertisement.host_id,
+                    &self.advertisement.boot_id,
+                    Some(&prospective_play.active_play_id),
+                    terminal_sequence,
+                ),
+            ))
+        } else if selected_memory {
             Some(image::prepare_lifecycle(
                 &request,
                 &prospective_play,

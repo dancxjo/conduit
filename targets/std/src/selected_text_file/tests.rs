@@ -1,5 +1,6 @@
 //! Descriptive/correspondence tests only; no IMAGE/Ready or disk-capacity claim.
 use super::*;
+use crate as conduit_std_host;
 fn selected(write: bool) -> (NativeTextFileDefinition, BoundedResourceRef) {
     let reference = BoundedResourceRef {
         identity: ResourceSemanticIdentity::from_digest([17; 32]),
@@ -114,8 +115,7 @@ fn descriptive_provider_cannot_enlarge_its_declared_bounds_or_residence() {
     }
 }
 
-#[test]
-fn cold_image_initializes_real_directory_and_retains_original_operation_grant() {
+fn cold_host(directory: &std::path::Path, heap: u64, write: bool) -> crate::StdHost {
     use conduit_host_make::*;
     let packages = conduit_workspace_make::package_set();
     let catalog = conduit_workspace_make::catalog();
@@ -128,12 +128,16 @@ fn cold_image_initializes_real_directory_and_retains_original_operation_grant() 
   capability = {kind: "data/save/text", pinned_implementation: "std/file-data-save-text@1"}
   need = {id: "recording-generation", class: "data/immutable-generation@1", slots: 1, bytes: 128}
   limits ="#);
-    let checked = check_host_configuration(
-        parse_host_configuration_conduit(&source).unwrap(),
-        &catalog,
-        &packages,
-    )
-    .unwrap();
+    let source = if write {
+        source
+    } else {
+        source
+            .replace("std/file-data-save-text@1", "std/file-data-load-text@1")
+            .replace("data/save/text", "data/load/text")
+    };
+    let mut configuration = parse_host_configuration_conduit(&source).unwrap();
+    configuration.limits.heap_arena_bytes = heap;
+    let checked = check_host_configuration(configuration, &catalog, &packages).unwrap();
     let (image, _) = build_default_host_image(
         checked.profile().clone(),
         &catalog,
@@ -150,7 +154,15 @@ fn cold_image_initializes_real_directory_and_retains_original_operation_grant() 
         .iter()
         .find(|b| b.kind == DURABLE_TEXT_BASE_KIND)
         .unwrap();
-    let (mut definition, reference) = selected(true);
+    let (mut definition, reference) = selected(write);
+    if !write {
+        definition.authority.boot_id = "boot/selected-file-reader".into();
+        definition.base.resources[0]
+            .content
+            .as_mut()
+            .unwrap()
+            .owner_boot = definition.authority.boot_id.clone();
+    }
     definition.base.base_id = selected_base.id.as_str().into();
     definition.base.resources[0].pool_id = "recording-generation".into();
     definition.base.resources[0]
@@ -163,9 +175,14 @@ fn cold_image_initializes_real_directory_and_retains_original_operation_grant() 
         boot_id: definition.authority.boot_id.clone(),
         offer_generation: OfferGeneration(1),
     };
-    let directory = std::env::temp_dir().join(format!("conduit-cold-file-{}", std::process::id()));
-    std::fs::create_dir(&directory).unwrap();
-    let (mut enlarged, _) = selected(true);
+
+    let (mut enlarged, _) = selected(write);
+    enlarged.authority.boot_id = definition.authority.boot_id.clone();
+    enlarged.base.resources[0]
+        .content
+        .as_mut()
+        .unwrap()
+        .owner_boot = definition.authority.boot_id.clone();
     enlarged.base.base_id = definition.base.base_id.clone();
     enlarged.base.resources[0].pool_id = definition.base.resources[0].pool_id.clone();
     enlarged.base.resources[0].content.as_mut().unwrap().base_id = definition.base.base_id.clone();
@@ -202,7 +219,196 @@ fn cold_image_initializes_real_directory_and_retains_original_operation_grant() 
         .unwrap()
         .image_memory
         .is_some());
-    assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
-    drop(host);
-    std::fs::remove_dir(directory).unwrap();
+    if write {
+        assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
+    }
+    host
+}
+#[test]
+fn cold_image_initializes_real_directory_and_retains_original_operation_grant() {
+    let directory = tempfile::tempdir().unwrap();
+    drop(cold_host(directory.path(), 64 * 1024 * 1024, true));
+}
+
+#[allow(dead_code)] // Reuse only the planning portion of the integration fixture.
+#[path = "../../tests/text_file_play/plan.rs"]
+mod play_fixture;
+
+#[test]
+fn selected_image_original_issuer_publishes_locally_without_global_settlement() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            use crate::body_execution::BodyRunRequest;
+            use conduit_body::{Body, BodyPlan, BodyPlotPlan, ResidentPlot};
+            let root = tempfile::tempdir().unwrap();
+            let mut host = cold_host(root.path(), 64 * 1024 * 1024, true);
+            let memory = host.kernel_resources.image_memory_observer();
+            let baseline = memory.load(std::sync::atomic::Ordering::SeqCst);
+            let local = play_fixture::plan(&host, true);
+            let remote_root = tempfile::tempdir().unwrap();
+            let remote = crate::StdHost::new_with_text_file(
+                crate::StdHostConfig {
+                    host_id: "remote/member".into(),
+                    boot_id: "boot/remote".into(),
+                    offer_generation: OfferGeneration(1),
+                },
+                std::fs::File::open(remote_root.path()).unwrap(),
+                play_fixture::reference(),
+                true,
+            )
+            .unwrap();
+            let remote_plan = play_fixture::named_plan(&remote, "remote/recording");
+            let resident = |plan: Plan| BodyPlotPlan {
+                plot: ResidentPlot::new(
+                    plan.source_document_id.clone(),
+                    plan.checked_plot_id.clone(),
+                ),
+                plan,
+            };
+            let parts = vec![resident(local), resident(remote_plan)];
+            let body = Body::born(
+                parts[0].plot.source_document_id.clone(),
+                parts[0].plot.checked_plot_id.clone(),
+                1,
+                "birth/test".into(),
+            )
+            .unwrap()
+            .admit_plot(parts[1].plot.clone(), "admit/test".into())
+            .unwrap();
+            let wake = body.wake(1, "wake/test".into()).unwrap().1;
+            let plan = BodyPlan::seal(&wake, parts).unwrap();
+            let issued = host.prospective_body_play(&wake, &plan).unwrap();
+            let control = crate::RunControl::default();
+            let request = || BodyRunRequest {
+                wake: &wake,
+                plan: &plan,
+                control: &control,
+                keyboard: None,
+            };
+            struct Output(usize);
+            impl crate::body_execution::BodyForeOutputAdapter for Output {
+                fn deliver(&mut self, _: &crate::ExternalForeDelivery) -> Result<(), String> {
+                    self.0 += 1;
+                    Ok(())
+                }
+            }
+            let input = [crate::ExternalForeInput {
+                front_port_id: port_id("value"),
+                track: ConnectionTrack::Payload,
+                bytes: b"I was here.".to_vec(),
+            }];
+            let mut output = Output(0);
+            let pressure = host
+                .kernel_resources
+                .reserve_managed_base_memory(64 * 1024 * 1024 - baseline - 1)
+                .unwrap();
+            assert!(host
+                .run_selected_image_issuing_host_plan_with_fore_to_with_start(
+                    request(),
+                    &issued,
+                    &input,
+                    &mut output,
+                    &mut Vec::new(),
+                    &mut crate::ThreadTimer,
+                    |_, _| panic!("memory refusal must precede start"),
+                )
+                .is_err());
+            assert_eq!(host.prospective_body_play(&wake, &plan).unwrap(), issued);
+            assert_eq!(output.0, 0);
+            assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+            drop(pressure);
+            assert_eq!(memory.load(std::sync::atomic::Ordering::SeqCst), baseline);
+            let mut starts = 0;
+            let report = host
+                .run_selected_image_issuing_host_plan_with_fore_to_with_start(
+                    request(),
+                    &issued,
+                    &input,
+                    &mut output,
+                    &mut Vec::new(),
+                    &mut crate::ThreadTimer,
+                    |play, _| {
+                        assert_eq!(play, &issued);
+                        starts += 1;
+                        Ok(())
+                    },
+                )
+                .unwrap();
+            let local = report.local_execution();
+            assert_eq!(local.local_terminal(), &TerminalDisposition::Completed);
+            assert_eq!(local.local_execution().wake_at_start, wake);
+            assert_eq!(local.local_partitions().len(), 1);
+            assert!(local.failure().is_none());
+            assert_eq!(starts, 1);
+            assert!(memory.load(std::sync::atomic::Ordering::SeqCst) > baseline);
+            let saved_reference = local.fore_deliveries()[0].bytes.to_vec();
+            drop(report);
+            assert_eq!(memory.load(std::sync::atomic::Ordering::SeqCst), baseline);
+            assert_eq!(output.0, 1);
+            assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 1);
+            assert_eq!(std::fs::read_dir(remote_root.path()).unwrap().count(), 0);
+            assert!(host
+                .run_selected_image_issuing_host_plan_with_fore_to_with_start(
+                    request(),
+                    &issued,
+                    &input,
+                    &mut output,
+                    &mut Vec::new(),
+                    &mut crate::ThreadTimer,
+                    |_, _| panic!("replay must refuse before start"),
+                )
+                .is_err());
+            assert_eq!(output.0, 1);
+            drop(host);
+            let mut reader = cold_host(root.path(), 64 * 1024 * 1024, false);
+            let read_plan = play_fixture::plan(&reader, false);
+            let read_body = Body::born(
+                read_plan.source_document_id.clone(),
+                read_plan.checked_plot_id.clone(),
+                1,
+                "birth/read".into(),
+            )
+            .unwrap();
+            let read_wake = read_body.wake(1, "wake/read".into()).unwrap().1;
+            let read_plan = BodyPlan::seal(&read_wake, vec![resident(read_plan)]).unwrap();
+            let read_play = reader
+                .prospective_body_play(&read_wake, &read_plan)
+                .unwrap();
+            let read = reader
+                .run_selected_image_issuing_host_plan_with_fore_to_with_start(
+                    BodyRunRequest {
+                        wake: &read_wake,
+                        plan: &read_plan,
+                        control: &control,
+                        keyboard: None,
+                    },
+                    &read_play,
+                    &[crate::ExternalForeInput {
+                        front_port_id: port_id("selected"),
+                        track: ConnectionTrack::Payload,
+                        bytes: saved_reference,
+                    }],
+                    &mut output,
+                    &mut Vec::new(),
+                    &mut crate::ThreadTimer,
+                    |_, _| Ok(()),
+                )
+                .unwrap();
+            assert_eq!(
+                reader.advertisement().boot_id.as_str(),
+                "boot/selected-file-reader"
+            );
+            assert_eq!(
+                read.local_execution().local_terminal(),
+                &TerminalDisposition::Completed
+            );
+            assert_eq!(
+                read.local_execution().fore_deliveries()[0].bytes.as_slice(),
+                b"I was here."
+            );
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }
