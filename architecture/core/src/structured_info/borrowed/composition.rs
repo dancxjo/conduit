@@ -9,13 +9,14 @@ pub enum BorrowedStructuredValue<'a> {
     Empty,
     Leaf(&'a [u8]),
     Record(&'a [BorrowedStructuredValue<'a>]),
+    Collection(&'a [BorrowedStructuredValue<'a>]),
     Variant {
         tag: &'a str,
         payload: &'a BorrowedStructuredValue<'a>,
     },
 }
-/// Finite leaf/record/variant composition, including nominal wrappers. Collection
-/// and sequence construction are intentionally unsupported by this small API.
+/// Finite leaf/record/variant/fixed-collection composition, including nominal wrappers.
+/// Sequence construction is intentionally unsupported by this small API.
 /// Schema storage and all output belong to the caller; no authority is implied.
 pub struct PreparedLinkedStructuredComposer<'schema> {
     validator: BorrowedStructuredValueValidator<'schema>,
@@ -127,6 +128,21 @@ fn visit(
             crate::validate_primitive_info(identity, bytes).map_err(R::InvalidPrimitiveLeaf)?;
             output.put(&[0])?;
             output.bytes(bytes)?;
+        }
+        1 => {
+            let count = usize::from(kind.u16()?);
+            let schema = child(&mut kind)?;
+            let BorrowedStructuredValue::Collection(values) = value else {
+                return Err(R::WrongType);
+            };
+            if values.len() != count {
+                return Err(R::WrongCollectionLength);
+            }
+            output.put(&[1])?;
+            output.put(&(count as u32).to_le_bytes())?;
+            for value in values {
+                visit(schema, *value, depth + 1, nodes, output)?;
+            }
         }
         2 => {
             kind.text()?;

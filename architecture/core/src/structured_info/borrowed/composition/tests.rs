@@ -117,3 +117,45 @@ fn wrong_record_count_and_unknown_variant_are_preflight_refusals() {
         assert_eq!(output, [0xa5; 512]);
     }
 }
+
+#[test]
+fn fixed_collection_matches_owned_bytes_and_preflights_count_and_element() {
+    let octet = Type::leaf(kind_id("value/u8")).unwrap();
+    let ty = Type::collection(octet.clone(), Some(2)).unwrap();
+    let owned = Owned::collection(
+        ty.clone(),
+        vec![
+            Owned::leaf(octet.clone(), vec![0]).unwrap(),
+            Owned::leaf(octet, vec![255]).unwrap(),
+        ],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let schema = ty.canonical_bytes().unwrap();
+    let writer = PreparedLinkedStructuredComposer::new(&schema, owned.len()).unwrap();
+    let mut output = vec![0; owned.len()];
+    let values = [
+        BorrowedStructuredValue::Leaf(&[0]),
+        BorrowedStructuredValue::Leaf(&[255]),
+    ];
+    assert_eq!(
+        writer
+            .encode_into(BorrowedStructuredValue::Collection(&values), &mut output)
+            .unwrap(),
+        owned
+    );
+    for values in [
+        &values[..1],
+        &[
+            BorrowedStructuredValue::Leaf(&[0, 1]),
+            BorrowedStructuredValue::Leaf(&[255]),
+        ][..],
+    ] {
+        output.fill(0xa5);
+        assert!(writer
+            .encode_into(BorrowedStructuredValue::Collection(values), &mut output)
+            .is_err());
+        assert!(output.iter().all(|byte| *byte == 0xa5));
+    }
+}
