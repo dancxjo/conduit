@@ -1,10 +1,7 @@
 //! Explicit construction intent for borrowing the original Root serial wrapper.
 //! No IO, native custody, runtime authority or available Line is created here.
-use conduit_host_make::{
-    BaseInitializationContract, CheckedHostConfiguration, ConfigurationValue,
-    KindConfigurationField, KindConfigurationRule,
-};
-pub const BASE_KIND: &str = "line/fore-carrier";
+pub use conduit_host_make::fore_carrier::{initialization_contract, BASE_KIND};
+use conduit_host_make::{CheckedHostConfiguration, ConfigurationValue};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CheckedForeCarrierConstruction {
     pub maximum_lines: u8,
@@ -14,33 +11,7 @@ pub struct CheckedForeCarrierConstruction {
     pub maximum_in_flight_items: u16,
     pub maximum_frames: u32,
 }
-pub fn initialization_contract() -> BaseInitializationContract {
-    let count = |key: &str, maximum| KindConfigurationField {
-        key: key.into(),
-        default_value: ConfigurationValue::U64(1),
-        rule: KindConfigurationRule::U64Range {
-            minimum: 1,
-            maximum,
-        },
-    };
-    BaseInitializationContract {
-        fields: vec![
-            KindConfigurationField {
-                key: "authorizer".into(),
-                default_value: ConfigurationValue::Text("seed-owner".into()),
-                rule: KindConfigurationRule::TextOneOf {
-                    values: vec!["seed-owner".into()],
-                },
-            },
-            count("maximum_lines", 16),
-            count("maximum_frame_bytes", 4096),
-            count("maximum_payload_bytes", 4096),
-            count("maximum_buffered_bytes", 65536),
-            count("maximum_in_flight_items", 1),
-            count("maximum_frames", 1_000_000),
-        ],
-    }
-}
+
 impl CheckedForeCarrierConstruction {
     pub fn from_configuration(
         checked: &CheckedHostConfiguration,

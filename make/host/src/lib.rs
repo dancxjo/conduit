@@ -20,6 +20,7 @@ mod deployment_network_boot;
 mod deployment_removable;
 mod deployment_uf2;
 mod deployment_vm;
+pub mod fore_carrier;
 mod initialization;
 mod model;
 mod package_contract;
