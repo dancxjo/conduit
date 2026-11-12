@@ -61,7 +61,7 @@ impl<
             return Ok(());
         }
         let input = Route::from_pin(state.ingress.pin);
-        let output = Route::from_pin(state.egress.pin);
+        let output = Route::from_pin(state.egress.pin());
         if let Input::Offered { sequence, length } = state.input {
             match kernel.admit_remote_input(
                 input.endpoint,
@@ -127,7 +127,7 @@ impl<
                     .values()
                     .get(offer.value)
                     .map_err(|e| ObserverRefusal::Kernel(SchedulerError::Storage(e)))?;
-                if bytes.len() > state.egress.byte_capacity as usize {
+                if bytes.len() > state.egress.byte_capacity() as usize {
                     return Err(ObserverRefusal::Bridge(Refusal::Bounds));
                 }
                 state.egress_bytes[..bytes.len()].copy_from_slice(bytes);

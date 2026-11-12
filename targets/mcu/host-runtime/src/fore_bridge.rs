@@ -30,13 +30,9 @@ pub enum Refusal {
     Inactive,
     Scope,
 }
-/// Exact native Back output pin. Root retains its full checked typed contract;
-/// this bridge cannot fabricate or validate structured native Back results.
-#[derive(Clone, Copy)]
-pub struct EgressSpec<'p> {
-    pub pin: &'p c::AssignedLineForeRequirement,
-    pub byte_capacity: u32,
-}
+#[path = "fore_bridge/egress.rs"]
+mod egress;
+pub use egress::EgressSpec;
 #[derive(Clone, Copy)]
 struct Route {
     endpoint: RemoteEndpointId,
@@ -68,18 +64,18 @@ impl<'b, 'p> PreparedForeBridge<'b, 'p> {
         egress_bytes: &'b mut [u8],
     ) -> Result<Self, Refusal> {
         ingress.check()?;
-        if egress.pin.fore().direction() != c::AssignedForeDirection::Output
-            || egress.byte_capacity == 0
+        if egress.pin().fore().direction() != c::AssignedForeDirection::Output
+            || egress.byte_capacity() == 0
             || ingress.byte_capacity as usize > ingress_bytes.len()
-            || egress.byte_capacity as usize > egress_bytes.len()
-            || ingress.pin.fore().endpoint() == egress.pin.fore().endpoint()
-            || ingress.pin.fore().cord() == egress.pin.fore().cord()
+            || egress.byte_capacity() as usize > egress_bytes.len()
+            || ingress.pin.fore().endpoint() == egress.pin().fore().endpoint()
+            || ingress.pin.fore().cord() == egress.pin().fore().cord()
         {
             return Err(Refusal::Bounds);
         }
         let pins = [
             c::assigned_plan_payload_digest(ingress.pin.payload()),
-            c::assigned_plan_payload_digest(egress.pin.payload()),
+            c::assigned_plan_payload_digest(egress.pin().payload()),
         ];
         Ok(Self {
             shared: RefCell::new(mailbox::State::new(
@@ -92,6 +88,32 @@ impl<'b, 'p> PreparedForeBridge<'b, 'p> {
             pins,
             retired: Cell::new(false),
         })
+    }
+    /// Descriptive consistency preflight BEFORE resource admission/Start. The
+    /// original Root carrier must independently prove these inputs; matching
+    /// public commitments neither admits resources nor activates this bridge.
+    pub(crate) fn check_original_policy(
+        &self,
+        custody: &[u8; 32],
+        input: &c::AssignedLineForeRequirement,
+        output: &c::AssignedLineForeRequirement,
+    ) -> Result<(), Refusal> {
+        let pins = [
+            c::assigned_plan_payload_digest(input.payload()),
+            c::assigned_plan_payload_digest(output.payload()),
+        ];
+        self.check_policy_commitments(custody, &pins)
+    }
+    fn check_policy_commitments(
+        &self,
+        custody: &[u8; 32],
+        pins: &[[u8; 32]; 2],
+    ) -> Result<(), Refusal> {
+        if &self.custody == custody && &self.pins == pins {
+            Ok(())
+        } else {
+            Err(Refusal::Scope)
+        }
     }
 }
 /// Bound by original whole-workset Start but still inert until Root activates
@@ -149,14 +171,23 @@ impl Drop for ObserverPort<'_, '_, '_> {
     }
 }
 impl<'b, 'p> BoundForeBridge<'b, 'p> {
+    /// Same descriptive original-policy check for the already bound owner.
+    /// This does not replace the actual carrier/Started activation checks.
+    pub(crate) fn check_original_policy(
+        &self,
+        custody: &[u8; 32],
+        input: &c::AssignedLineForeRequirement,
+        output: &c::AssignedLineForeRequirement,
+    ) -> Result<(), Refusal> {
+        self.0.check_original_policy(custody, input, output)
+    }
     /// Root-only activation after checking the actual original carrier ticket.
     pub(crate) fn activate<'a>(
         &'a self,
         activation: ForeBridgeActivation,
     ) -> Result<(ObserverPort<'a, 'b, 'p>, CarrierPort<'a, 'b, 'p>), Refusal> {
-        if self.0.custody != activation.custody || self.0.pins != activation.pins {
-            return Err(Refusal::Scope);
-        }
+        self.0
+            .check_policy_commitments(&activation.custody, &activation.pins)?;
         let mut state = self.0.shared.borrow_mut();
         if state.active || self.0.retired.get() {
             return Err(Refusal::Inactive);

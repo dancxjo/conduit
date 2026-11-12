@@ -59,10 +59,20 @@ impl Pins {
                 item_capacity: 1,
                 byte_capacity: 8,
             },
-            EgressSpec {
-                pin: &self.lines[1],
-                byte_capacity: 8,
-            },
+            EgressSpec::checked(
+                &self.lines[1],
+                c::AssignedForeAbi {
+                    value_kind: kind,
+                    value_contract: None,
+                    abnormal_kind: None,
+                    temporal: "flow-open",
+                    track: c::ConnectionTrack::Payload,
+                    quantity_profile: c::QuantityValueProfile::Decimal,
+                    item_capacity: 1,
+                    byte_capacity: 8,
+                },
+            )
+            .unwrap(),
         )
     }
     fn activation(&self) -> ForeBridgeActivation {
@@ -430,3 +440,6 @@ fn dropping_either_actor_port_fences_the_bridge_even_during_a_mailbox_loan() {
     drop(observer);
     assert_eq!(port.stage_ingress(0, &[0; 8]), Err(Refusal::Inactive));
 }
+
+#[path = "tests/egress_policy.rs"]
+mod egress_policy;
