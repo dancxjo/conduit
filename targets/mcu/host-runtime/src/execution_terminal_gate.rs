@@ -9,11 +9,12 @@ pub(super) fn check_actual<B: PreparedBacks<N, P>, const N: usize, const P: usiz
     backs: &B,
     expected: &[[Option<AssignedTerminalTransduction>; P]; N],
 ) -> Result<(), ReportRefusal> {
-    let actual = backs
-        .terminal_transductions()
-        .ok_or(ReportRefusal::Unavailable)?;
+    let report = backs.terminal_transductions();
+    let actual = report.as_ref().ok_or(ReportRefusal::Unavailable)?;
+    // Borrow the original report in place: moving it out of Option creates
+    // another complete matrix on constrained-target stacks.
     // Include inactive rows: an actual Some cannot hide behind expected None.
-    if actual != *expected {
+    if actual != expected {
         return Err(ReportRefusal::Mismatch);
     }
     Ok(())
