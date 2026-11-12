@@ -97,6 +97,7 @@ impl<'a> BodyKernel<'a> {
                 .as_ref()
                 .is_some_and(|source| source.matches_call(operation.node, operation.call))
                 && !scalar_math::supports(operation)
+                && operation.contract_id.as_str() != conduit_std_offers::STARTUP_CHIME_OPERATION
                 && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
