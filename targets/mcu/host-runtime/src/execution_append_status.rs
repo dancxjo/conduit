@@ -31,10 +31,38 @@ impl PreparedAppendStatus {
             pending: None,
         })
     }
+    /// Own only the independently selected output within a complete Fore
+    /// inventory. This does not own, consume, or deliver any other boundary;
+    /// the complete inventory still requires ordinary kernel/profile checks.
+    /// `None` explicitly selects no observer, regardless of other API ports.
+    pub fn prepare_selected(
+        actual: &[conduit_core::AssignedForeRequirement],
+        expected: Option<conduit_core::AssignedForeRequirement>,
+    ) -> Result<Self, Refusal> {
+        let Some(expected) = expected else {
+            return Self::prepare(&[], None);
+        };
+        if expected.direction() != conduit_core::AssignedForeDirection::Output {
+            return Err(Refusal::AppendStatus);
+        }
+        // Reject aliases of either numeric identity, including a second row
+        // with the right boundary but the wrong ABI/direction.
+        let mut selected = actual.iter().filter(|port| {
+            port.cord() == expected.cord() || port.endpoint() == expected.endpoint()
+        });
+        let port = selected.next().ok_or(Refusal::AppendStatus)?;
+        if selected.next().is_some() || port.payload() != expected.payload() {
+            return Err(Refusal::AppendStatus);
+        }
+        Self::prepare(core::slice::from_ref(port), Some(expected))
+    }
     pub fn boundary(&self) -> Option<conduit_core::AssignedForeRequirement> {
         self.boundary
     }
     pub fn stage(&mut self, sequence: u64, bytes: &[u8]) -> Result<(), Refusal> {
+        if self.boundary.is_none() {
+            return Err(Refusal::AppendStatus);
+        }
         if let Some((prior, _)) = self.pending {
             return if prior == sequence && bytes == &self.bytes[..self.length] {
                 Ok(())
@@ -108,5 +136,68 @@ mod append_status_tests {
         let mut ready = PreparedAppendStatus::prepare(&[output], Some(output)).unwrap();
         assert!(ready.stage(0, b"invalid").is_err());
         assert!(ready.pending.is_none());
+    }
+    #[test]
+    fn selected_observer_owns_only_status_in_complete_three_port_inventory() {
+        let status = F::new(0, 2, D::Output, I::from_text("append_status"), [9; 32]);
+        let read_index = F::new(1, 3, D::Input, I::from_text("read_index"), [7; 32]);
+        let read_result = F::new(2, 4, D::Output, I::from_text("read_result"), [8; 32]);
+        let inventory = [read_index, status, read_result];
+        let before = inventory.map(|port| *port.payload());
+        let mut ready = PreparedAppendStatus::prepare_selected(&inventory, Some(status)).unwrap();
+        assert_eq!(ready.boundary().unwrap().payload(), status.payload());
+        for other in [read_index, read_result] {
+            assert_ne!(ready.boundary().unwrap().cord(), other.cord());
+            assert_ne!(ready.boundary().unwrap().endpoint(), other.endpoint());
+        }
+        assert!(ready.pending.is_none());
+        assert_eq!(inventory.map(|port| *port.payload()), before);
+        let unit = conduit_core::StructuredInfoValue::leaf(
+            conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/empty")).unwrap(),
+            std::vec::Vec::new(),
+        )
+        .unwrap();
+        let capacity = conduit_core::StructuredInfoValue::variant(
+            conduit_resource_snapshot::append_result::result_type().unwrap(),
+            "capacity",
+            unit,
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+        assert!(ready.stage(0, &capacity).is_ok());
+        assert!(ready.pending.is_some());
+        let mut absent = PreparedAppendStatus::prepare_selected(&inventory, None).unwrap();
+        assert!(absent.boundary().is_none());
+        assert!(absent.stage(0, &capacity).is_err());
+        assert!(absent.pending.is_none());
+        // The strict old API continues to reject unrelated ports.
+        assert!(PreparedAppendStatus::prepare(&inventory, Some(status)).is_err());
+    }
+    #[test]
+    fn selected_observer_rejects_missing_aliases_and_wrong_contract() {
+        let status = F::new(0, 2, D::Output, I::from_text("append_status"), [9; 32]);
+        let read = F::new(1, 3, D::Input, I::from_text("read_index"), [7; 32]);
+        assert!(PreparedAppendStatus::prepare_selected(&[read], Some(status)).is_err());
+        for wrong in [
+            status,
+            F::new(0, 2, D::Input, I::from_text("append_status"), [9; 32]),
+            F::new(0, 2, D::Output, I::from_text("append_status"), [8; 32]),
+            F::new(0, 2, D::Output, I::from_text("read_result"), [9; 32]),
+            F::new(0, 5, D::Output, I::from_text("append_status"), [9; 32]),
+            F::new(5, 2, D::Output, I::from_text("append_status"), [9; 32]),
+        ] {
+            assert!(
+                PreparedAppendStatus::prepare_selected(&[read, status, wrong], Some(status))
+                    .is_err()
+            );
+            if wrong.payload() != status.payload() {
+                assert!(
+                    PreparedAppendStatus::prepare_selected(&[read, wrong], Some(status)).is_err()
+                );
+            }
+        }
+        let input = F::new(0, 2, D::Input, I::from_text("append_status"), [9; 32]);
+        assert!(PreparedAppendStatus::prepare_selected(&[input], Some(input)).is_err());
     }
 }
