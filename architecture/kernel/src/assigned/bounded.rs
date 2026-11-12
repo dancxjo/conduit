@@ -29,7 +29,6 @@ impl<
 {
     /// Use only with the scheduler's explicit active-count constructor. The
     /// separately pinned layout and ordinary Core validation remain mandatory.
-    #[inline(always)] // Fuse the owned table-field transfer with the caller's destination.
     pub fn prepare_with_fore(
         bytes: &[u8],
         maxima: c::AssignedPlanMaxima,
