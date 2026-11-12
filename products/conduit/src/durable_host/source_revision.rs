@@ -672,8 +672,11 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     for member in &selection.admissions {
         admit_selected_member(&mut owner, state_dir, member, &peer)?;
     }
+    let mut returned_carriers = Vec::with_capacity(selection.returns.len());
     for member in &selection.returns {
-        return_selected_member(&mut owner, state_dir, member, &peer)?;
+        returned_carriers.push(return_selected_member(
+            &mut owner, state_dir, member, &peer,
+        )?);
     }
     // Only the ordinary authenticated returns selected by this policy advanced
     // this Root since the exact old basis and trusted restart were verified.
@@ -697,7 +700,7 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     if !selection.plays.is_empty() || !selection.continuation_outputs.is_empty() {
         // Original sockets are held before planning and through submission.
         // Open failures are explicit; possession alone advertises no Ready Line.
-        let mut carriers = open_selected_play_carriers(&selection.plays);
+        let mut carriers = open_selected_play_carriers(&selection.plays, &mut returned_carriers);
         match owner.plan_retained(state_dir) {
             Ok(()) => {
                 if let Err(error) =
@@ -725,6 +728,8 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
             Err(error) => eprintln!("selected workset retained; Plan refused: {error}"),
         }
     }
+    // Returns not selected for a Play have no continuing serial assignment.
+    drop(returned_carriers);
     let ad = owner.host.advertisement();
     let status = RuntimeStatus {
         schema: RUNTIME_SCHEMA.into(),

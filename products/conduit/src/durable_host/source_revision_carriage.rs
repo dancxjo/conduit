@@ -18,9 +18,6 @@ impl SelectedPlayCarrier {
     pub(super) fn canonical_port(&self) -> &Path {
         &self.canonical_port
     }
-    pub(super) fn member_basis(&self) -> &owner::MemberPresentationBasis {
-        &self.member
-    }
     pub(super) fn authenticated_return(&self) -> bool {
         self.completed_return.is_some()
     }
@@ -38,15 +35,6 @@ impl SelectedPlayCarrier {
             .map_err(|e| format!("selected Play carrier path: {e}"))?;
         check_retained_selection(&self.canonical_port, &self.member, &canonical, &expected)?;
         Ok(self)
-    }
-    pub(super) fn into_fore_carriage(
-        self,
-        prepared: conduit_std_host::pico_spawn::PreparedForeCarriage,
-    ) -> Result<conduit_std_host::pico_spawn::PicoForeCarriage, String> {
-        if !self.authenticated_return() {
-            return Err("Fore carriage requires the original authenticated return socket".into());
-        }
-        Ok(self.socket.into_fore_carriage(prepared))
     }
 }
 #[cfg(target_os = "linux")]
