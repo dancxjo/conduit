@@ -18,6 +18,7 @@ use core::ops::{Deref, DerefMut};
 pub struct AdmittedRemoteFragment {
     runtime: InstalledRemoteFragment,
     reservation: Option<KernelResourceReservation>,
+    resource_custody_epoch: usize,
     identity: ActivePlayIdentity,
     offer_generation: conduit_core::OfferGeneration,
     body_time: Option<(BodyTimeRequirement, BodyHostTimeAdmission)>,
@@ -31,6 +32,15 @@ pub enum RemoteBodyTimeStepRefusal {
     NotQualified,
     Quality(BodyTimeQuality),
     Kernel(String),
+}
+
+/// Observed owned heap capacities, not an IMAGE/Root admission receipt.
+/// Caller storage, compilation/lowering workspace, transport and process RSS
+/// remain separate. This value cannot enable stepping or resource admission.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RemoteStartupBacking {
+    pub retained_bytes: usize,
+    pub ledger_staging_bytes: usize,
 }
 
 impl AdmittedRemoteFragment {
@@ -264,6 +274,48 @@ impl StdHost {
         )
     }
 
+    /// Measure original retained owners and an actual resource-ledger clone.
+    /// No reservation or IMAGE preflight guard is changed by this operation.
+    pub fn measure_remote_startup_backing(
+        &self,
+        fragment: &AdmittedRemoteFragment,
+    ) -> Result<RemoteStartupBacking, String> {
+        let ad = self.advertisement();
+        if fragment.resource_custody_epoch != self.kernel_resources.remote_backing_custody_epoch()
+            || fragment.identity.host_id != ad.host_id
+            || fragment.identity.boot_id != ad.boot_id
+            || fragment.offer_generation != ad.offer_generation
+        {
+            return Err("remote startup backing belongs to another Host/Boot/generation".into());
+        }
+        let reservation = fragment
+            .reservation
+            .as_ref()
+            .ok_or("remote startup reservation has been retired")?;
+        let mut retained = fragment.runtime.retained_startup_profile_backing_bytes()?;
+        for bytes in [
+            reservation.closed_backing_bytes()?,
+            fragment.identity.active_play_id.0.capacity(),
+            fragment.identity.plan_id.0.capacity(),
+            fragment.identity.host_id.0.capacity(),
+            fragment.identity.boot_id.0.capacity(),
+        ] {
+            retained = retained
+                .checked_add(bytes)
+                .ok_or("remote startup backing overflow")?;
+        }
+        if fragment.body_time.is_some()
+            || fragment.clock_quality.is_some()
+            || fragment.last_clock_sample.is_some()
+        {
+            return Err("remote startup backing does not cover Body time state".into());
+        }
+        Ok(RemoteStartupBacking {
+            retained_bytes: retained,
+            ledger_staging_bytes: self.kernel_resources.closed_staging_backing_bytes()?,
+        })
+    }
+
     pub fn prepare_remote_fragment(
         &mut self,
         fragment: &PlanFragment,
@@ -297,6 +349,7 @@ impl StdHost {
         Ok(AdmittedRemoteFragment {
             runtime,
             reservation: Some(reservation),
+            resource_custody_epoch: self.kernel_resources.remote_backing_custody_epoch(),
             identity: play.identity().clone(),
             offer_generation: advertisement.offer_generation,
             body_time: None,

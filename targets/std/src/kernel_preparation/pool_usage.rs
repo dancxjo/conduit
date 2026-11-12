@@ -20,6 +20,23 @@ pub(super) struct PoolUsage {
 }
 
 impl PoolUsage {
+    /// Heap payload of a closed non-compute pool, including allocated capacity
+    /// even when the topology vector is empty. Shared provider storage is not
+    /// owned by this descriptor.
+    pub(super) fn closed_backing_bytes(&self) -> Option<usize> {
+        if self.compute.is_some() || !self.groups.is_empty() {
+            return None;
+        }
+        self.pool_id
+            .0
+            .capacity()
+            .checked_add(self.class_id.0.capacity())?
+            .checked_add(
+                self.groups
+                    .capacity()
+                    .checked_mul(core::mem::size_of::<GroupUsage>())?,
+            )
+    }
     pub(super) fn new(offer: &ResourceOffer) -> Result<Self, String> {
         if offer.pool_id.as_str().is_empty()
             || offer.class_id.as_str().is_empty()

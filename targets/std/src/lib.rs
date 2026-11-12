@@ -200,7 +200,9 @@ pub use vision_ocr::{
     MAXIMUM_OCR_ITEMS,
 };
 mod remote_host_fragment;
-pub use remote_host_fragment::{AdmittedRemoteFragment, RemoteBodyTimeStepRefusal};
+pub use remote_host_fragment::{
+    AdmittedRemoteFragment, RemoteBodyTimeStepRefusal, RemoteStartupBacking,
+};
 #[cfg(test)]
 mod body_chat_tests;
 #[cfg(test)]

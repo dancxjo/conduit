@@ -598,6 +598,11 @@ fn started_remote_cue(behavior: FakePlaybackBehavior) -> (StdHost, crate::Admitt
         remote.retained_startup_profile_backing_bytes().unwrap()
             > crate::hosted_audio::startup_chime::PCM_BYTES
     );
+    let (other, _) = fixture(behavior);
+    assert!(other.measure_remote_startup_backing(&remote).is_err());
+    let backing = host.measure_remote_startup_backing(&remote).unwrap();
+    assert!(backing.retained_bytes > remote.retained_startup_profile_backing_bytes().unwrap());
+    assert!(backing.ledger_staging_bytes > 0);
     let control = RunControl::default();
     let request = BodyRunRequest {
         wake: &proposed.wake,
