@@ -2,6 +2,7 @@
 //! This creates descriptive grants only; fresh scope/full admission/Start remain required.
 use super::*;
 use crate::continuation_native::ContinuationNativeContext;
+use conduit_environment_runtime::display_mask::PreparedFrameEncoder;
 impl<const W: usize> Issuers<W> {
     #[allow(clippy::too_many_arguments)]
     pub fn authorize_continuation<
@@ -9,13 +10,15 @@ impl<const W: usize> Issuers<W> {
         T: OpenDrain,
         C: RendererClock,
         M: MonotonicWaitProvider,
+        E: PreparedFrameEncoder,
+        const FRAME: usize,
     >(
         &mut self,
         context: ContinuationNativeContext<'_>,
         policy: Policy<'_>,
         pulse: &ReadyPulseBase<P>,
         write: &ReadyWriteBase<T>,
-        renderer: &ReadyRenderer<C>,
+        renderer: &ReadyRenderer<C, E, FRAME>,
         waits: &[Option<ReadyMonotonicWaitBase<M>>; W],
         operations: &Operations<'_, W>,
         remaining: impl Fn() -> usize,

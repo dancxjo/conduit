@@ -13,6 +13,9 @@ pub struct Ht16k33Encoder {
 }
 
 impl Ht16k33Encoder {
+    /// Exact Source-derived extent for fixed renderer/output storage.
+    pub const FRAME_BYTES: usize = conduit_ht16k33::frame::DISPLAY_FRAME_BYTES;
+
     /// Address and backpack wiring must come from explicit checked construction.
     /// The independently admitted HT protocol still owns controller setup and
     /// the selected I²C result; canonical bytes alone prove no physical effect.

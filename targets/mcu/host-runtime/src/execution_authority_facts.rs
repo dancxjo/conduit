@@ -1,8 +1,13 @@
 //! Borrow only original initialized native custody; never decoded metadata.
 use super::*;
+use conduit_environment_runtime::display_mask::PreparedFrameEncoder;
 impl<'a> NativeFacts<'a> {
-    pub fn renderer<C: crate::execution_mask::RendererClock>(
-        owner: &'a crate::execution_mask::ReadyRenderer<C>,
+    pub fn renderer<
+        C: crate::execution_mask::RendererClock,
+        E: PreparedFrameEncoder,
+        const FRAME: usize,
+    >(
+        owner: &'a crate::execution_mask::ReadyRenderer<C, E, FRAME>,
     ) -> Self {
         facts!(owner.native_identity(), crate::execution_mask::CAPABILITY)
     }

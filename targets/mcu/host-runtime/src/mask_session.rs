@@ -1,6 +1,7 @@
 //! Continuing execution of the admitted Value-input Mask through the ordinary
 //! prepared session. Local adapters are exact Fore owners, never network Lines.
 use crate::execution_mask::{self, FrameTicket, OutputFrame, RendererClock, RendererService};
+use conduit_environment_runtime::display_mask::PreparedFrameEncoder;
 extern crate alloc;
 use alloc::boxed::Box;
 use conduit_core::SignId;
@@ -55,9 +56,14 @@ impl From<execution_mask::Refusal> for Refusal {
 /// This owner is constructed only after the complete workset has Started.
 /// Storage for optional output tracking is allocated during original preparation.
 /// Its previous invocation's mandatory evidence is returned explicitly on rearm.
-pub struct MaskSession<'a, C: RendererClock> {
+pub struct MaskSession<
+    'a,
+    C: RendererClock,
+    E: PreparedFrameEncoder = conduit_environment_runtime::display_mask::Tm1637Encoder,
+    const FRAME: usize = { conduit_tm1637_protocol::DISPLAY_FRAME_BYTES },
+> {
     session: Session,
-    renderer: RendererService<'a, C>,
+    renderer: RendererService<'a, C, E, FRAME>,
     boundaries: Boundaries,
     sequence: u64,
     active: bool,
@@ -65,10 +71,12 @@ pub struct MaskSession<'a, C: RendererClock> {
     request: Option<HostCallRequest>,
     frame_pending: Option<FrameTicket>,
 }
-impl<'a, C: RendererClock> MaskSession<'a, C> {
+impl<'a, C: RendererClock, E: PreparedFrameEncoder, const FRAME: usize>
+    MaskSession<'a, C, E, FRAME>
+{
     pub fn bind_started(
         kernel: Box<Kernel>,
-        renderer: RendererService<'a, C>,
+        renderer: RendererService<'a, C, E, FRAME>,
         boundaries: Boundaries,
         remote_sign_reservation: u16,
         optional: OptionalOutputStorage<6>,

@@ -3,6 +3,7 @@
 extern crate alloc;
 use alloc::{string::String, vec::Vec};
 use conduit_core as c;
+use conduit_environment_runtime::display_mask::PreparedFrameEncoder;
 use core::mem::size_of;
 #[path = "native_images_io.rs"]
 mod io;
@@ -104,9 +105,13 @@ impl<'a> Publication<'a> {
     ) -> Result<(), Refusal> {
         self.append(wait(owner, self.actual, self.remaining)?)
     }
-    pub fn renderer<P: crate::execution_mask::RendererClock>(
+    pub fn renderer<
+        P: crate::execution_mask::RendererClock,
+        E: PreparedFrameEncoder,
+        const FRAME: usize,
+    >(
         &mut self,
-        owner: &crate::execution_mask::ReadyRenderer<P>,
+        owner: &crate::execution_mask::ReadyRenderer<P, E, FRAME>,
     ) -> Result<(), Refusal> {
         self.append(renderer(owner, self.actual, self.remaining)?)
     }
@@ -200,8 +205,12 @@ pub fn wait<P: conduit_monotonic_wait::MonotonicWaitProvider>(
         maximum_bytes,
     )
 }
-pub fn renderer<P: crate::execution_mask::RendererClock>(
-    owner: &crate::execution_mask::ReadyRenderer<P>,
+pub fn renderer<
+    P: crate::execution_mask::RendererClock,
+    E: PreparedFrameEncoder,
+    const FRAME: usize,
+>(
+    owner: &crate::execution_mask::ReadyRenderer<P, E, FRAME>,
     actual: &c::HostAdvertisement,
     maximum_bytes: usize,
 ) -> Result<Projection, Refusal> {

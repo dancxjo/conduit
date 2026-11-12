@@ -35,6 +35,7 @@ conduit-face = { path = "../../../semantics/face", default-features = false, fea
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", features = ["native-kernel"], optional = true }
 
 [features]
+ht16k33-mask = ["execution", "conduit-environment-runtime/display-mask-ht16k33"]
 execution = ["dep:conduit-i2c-transaction", "dep:conduit-composite", "dep:conduit-tm1637-protocol", "dep:conduit-semantic-catalog", "dep:conduit-dht11-observation", "dep:conduit-resource-snapshot", "dep:conduit-face", "dep:conduit-seven-segment-mask", "dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:conduit-time", "dep:conduit-environment-runtime", "dep:conduit-pulse-capture", "dep:conduit-tm1637-wire", "dep:conduit-monotonic-wait"]
 
 [dev-dependencies]
