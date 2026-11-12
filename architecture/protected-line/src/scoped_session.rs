@@ -95,6 +95,14 @@ impl<const SESSIONS: usize> ScopedProtectedSession<'_, SESSIONS> {
     pub fn evidence(&self) -> SessionEvidence<'_> {
         self.session.evidence()
     }
+    /// Bind an upper-layer proof only while this channel retains its original
+    /// slot and open crypto. The hash alone grants no peer or service authority.
+    pub fn channel_binding(&self) -> Result<&[u8; 32], ProtectedLineError> {
+        if self.slot.is_none() || self.session.evidence().disposition != SessionDisposition::Open {
+            return Err(ProtectedLineError::Closed);
+        }
+        Ok(self.session.channel_binding())
+    }
     pub fn seal(
         &mut self,
         plaintext: &[u8],

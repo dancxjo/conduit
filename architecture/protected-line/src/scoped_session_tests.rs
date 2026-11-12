@@ -237,6 +237,7 @@ fn success_keeps_same_slot_through_crypto_then_drop_close_or_cancel_permits_next
         assert_eq!(session.slot.as_ref().unwrap().index, 1);
         assert_eq!(session.slot.as_ref().unwrap().pool.occupied, [true, true]);
         assert_eq!(session.evidence().binding, &binding);
+        assert_eq!(session.channel_binding().unwrap(), peer.channel_binding());
         assert_eq!(session.limits(), policy().traffic);
         let mut encrypted = [0; 128];
         let mut plain = [0; 64];
@@ -284,6 +285,7 @@ fn terminal_crypto_failure_releases_slot_once_before_wrapper_drop() {
         SessionDisposition::Failed(_)
     ));
     assert!(session.slot.is_none());
+    assert_eq!(session.channel_binding(), Err(ProtectedLineError::Closed));
     assert_eq!(
         session.open(b"malformed", &mut [0; 64]),
         Err(ProtectedLineError::Closed)
