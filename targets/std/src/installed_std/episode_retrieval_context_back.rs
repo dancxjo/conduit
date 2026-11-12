@@ -201,8 +201,11 @@ fn prepare(
                     .map_err(|error| format!("prepare context selection: {error:?}"))?,
             ),
             request: Box::new(
-                PreparedEpisodeRetrievalRequest::prepare(instruction, projector::prepare())
-                    .map_err(|error| format!("prepare bounded retrieval request: {error:?}"))?,
+                PreparedEpisodeRetrievalRequest::prepare_fact_view(
+                    instruction,
+                    projector::prepare(),
+                )
+                .map_err(|error| format!("prepare bounded retrieval request: {error:?}"))?,
             ),
             staged: false,
             closed: [false; 2],

@@ -149,3 +149,88 @@ pub(crate) fn text_field<'a>(input: &'a [u8], name: &str) -> Result<&'a str, R> 
     }
     Ok("")
 }
+
+/// Borrow structural values from a document already validated by its owner.
+pub(crate) fn array_values(input: &[u8]) -> Result<Values<'_>, R> {
+    let pos = space(input, 0);
+    expect(input, pos, b'[')?;
+    Ok(Values {
+        input,
+        pos: space(input, pos + 1),
+        done: false,
+    })
+}
+pub(crate) struct Values<'a> {
+    input: &'a [u8],
+    pos: usize,
+    done: bool,
+}
+impl<'a> Iterator for Values<'a> {
+    type Item = Result<&'a [u8], R>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.done || self.input.get(self.pos) == Some(&b']') {
+            return None;
+        }
+        let start = self.pos;
+        let result = (|| {
+            let end = value_end(self.input, start)?;
+            self.pos = space(self.input, end);
+            match self.input.get(self.pos) {
+                Some(b',') => self.pos = space(self.input, self.pos + 1),
+                Some(b']') => self.done = true,
+                _ => return Err(R::InvalidEvidenceJson),
+            }
+            Ok(&self.input[start..end])
+        })();
+        if result.is_err() {
+            self.done = true;
+        }
+        Some(result)
+    }
+}
+pub(crate) fn object_fields(input: &[u8]) -> Result<Fields<'_>, R> {
+    let pos = space(input, 0);
+    expect(input, pos, b'{')?;
+    Ok(Fields {
+        input,
+        pos: space(input, pos + 1),
+        done: false,
+    })
+}
+pub(crate) struct Fields<'a> {
+    input: &'a [u8],
+    pos: usize,
+    done: bool,
+}
+impl<'a> Iterator for Fields<'a> {
+    type Item = Result<(&'a [u8], &'a [u8]), R>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.done || self.input.get(self.pos) == Some(&b'}') {
+            return None;
+        }
+        let start = self.pos;
+        let result = (|| {
+            let key_end = string_end(self.input, start)?;
+            // Prepared metadata uses literal field names. Reject escaped aliases
+            // so column identity and tuple declarations cannot disagree.
+            if self.input[start..key_end].contains(&b'\\') {
+                return Err(R::InvalidEvidenceJson);
+            }
+            self.pos = space(self.input, key_end);
+            expect(self.input, self.pos, b':')?;
+            let value_start = space(self.input, self.pos + 1);
+            let end = value_end(self.input, value_start)?;
+            self.pos = space(self.input, end);
+            match self.input.get(self.pos) {
+                Some(b',') => self.pos = space(self.input, self.pos + 1),
+                Some(b'}') => self.done = true,
+                _ => return Err(R::InvalidEvidenceJson),
+            }
+            Ok((&self.input[start..key_end], &self.input[value_start..end]))
+        })();
+        if result.is_err() {
+            self.done = true;
+        }
+        Some(result)
+    }
+}
