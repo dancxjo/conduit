@@ -320,10 +320,12 @@ impl StdHost {
         &mut self,
         fragment: &PlanFragment,
     ) -> Result<AdmittedRemoteFragment, String> {
-        let advertisement = self.advertisement().clone();
+        // The checked advertisement already belongs to this Host. Borrow it
+        // during synchronous preparation instead of copying the
+        // complete offer inventory into a second temporary owner.
         let reservation = self
             .kernel_resources
-            .prepare_and_reserve(&advertisement, fragment)?;
+            .prepare_and_reserve(&self.advertisement, fragment)?;
         let play = match self.issue_kernel_play(fragment) {
             Ok(play) => play,
             Err(error) => {
@@ -332,7 +334,7 @@ impl StdHost {
             }
         };
         let mut runtime = match InstalledRemoteFragment::prepare(
-            &advertisement,
+            &self.advertisement,
             fragment,
             play.identity().play_sequence,
         ) {
@@ -351,7 +353,7 @@ impl StdHost {
             reservation: Some(reservation),
             resource_custody_epoch: self.kernel_resources.remote_backing_custody_epoch(),
             identity: play.identity().clone(),
-            offer_generation: advertisement.offer_generation,
+            offer_generation: self.advertisement.offer_generation,
             body_time: None,
             clock_quality: None,
             last_clock_sample: None,

@@ -221,9 +221,47 @@ impl InstalledRemoteFragment {
         } else {
             None
         };
-        let vision_run_id = String::with_capacity(play.active_play_id.as_str().len() + 64);
-        let vision_active_play_id = play.active_play_id.as_str().to_string();
-        let vision_clock_basis = format!("{}/monotonic", fragment.boot_id.as_str());
+        // Scratch storage follows the exact installed operations. An unrelated
+        // fragment does not retain text/model/vision capacity it cannot use.
+        let needs_text_output = lowered.host_calls.iter().any(|call| {
+            matches!(
+                call.contract_id.as_str(),
+                conduit_std_offers::TEXT_UPPER_HOST_CALL_CONTRACT
+                    | conduit_std_offers::COMMITTED_TURN_TO_TEXT_OPERATION
+                    | conduit_std_offers::MODEL_RESULT_TO_TEXT_OPERATION
+                    | conduit_std_offers::GENERATED_CHUNK_TO_TEXT_OPERATION
+            )
+        });
+        let needs_model_output = lowered
+            .host_calls
+            .iter()
+            .any(|call| call.contract_id.as_str() == conduit_ai::LOCAL_MODEL_OPERATION);
+        let needs_vision = lowered.host_calls.iter().any(|call| {
+            matches!(
+                call.contract_id.as_str(),
+                conduit_std_offers::LOCAL_VISION_MOTION_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_OBJECTS_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_OCR_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_DESCRIBE_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_EXPERIENCE_OPERATION
+                    | conduit_std_offers::LOCAL_VISION_TRACK_OPERATION
+            )
+        });
+        let vision_run_id = if needs_vision {
+            String::with_capacity(play.active_play_id.as_str().len() + 64)
+        } else {
+            String::new()
+        };
+        let vision_active_play_id = if needs_vision || needs_model_output {
+            play.active_play_id.as_str().to_string()
+        } else {
+            String::new()
+        };
+        let vision_clock_basis = if needs_vision {
+            format!("{}/monotonic", fragment.boot_id.as_str())
+        } else {
+            String::new()
+        };
         let has_startup = scheduler
             .drivers()
             .iter()
@@ -241,10 +279,16 @@ impl InstalledRemoteFragment {
             placements: fragment.placements.clone(),
             whisper_languages,
             sessions,
-            text_output_buffer: Vec::with_capacity(super::contract::MAX_TEXT_BYTES as usize),
-            model_output_buffer: Vec::with_capacity(
-                conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES as usize,
-            ),
+            text_output_buffer: if needs_text_output {
+                Vec::with_capacity(super::contract::MAX_TEXT_BYTES as usize)
+            } else {
+                Vec::new()
+            },
+            model_output_buffer: if needs_model_output {
+                Vec::with_capacity(conduit_ai::MAXIMUM_MODEL_RESULT_ENVELOPE_BYTES as usize)
+            } else {
+                Vec::new()
+            },
             recognized_turn_commit_hosts,
             speech_window_hosts,
             speech_result_stream_hosts,
