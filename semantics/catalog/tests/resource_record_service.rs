@@ -8,10 +8,10 @@ fn authored_record_service_keeps_both_typed_fore_pairs_and_terminal_laws() {
         .unwrap();
     let source = r#"
 plot history-store (
-    record: Bytes...| <<
-    request: Count...| <<
+    >> record: Bytes...| <= 200B
+    >> request: Count...|
     append-status: RecordAppendResult...| >>
-    read-result: RecordReadResult...| >>
+    read-result: RecordReadResult...| <= READ_RESULT_BOUND B >>
 ) {
     store: resource/record-service
     record >> store.record
@@ -20,7 +20,14 @@ plot history-store (
     store.read-result >> read-result
 }
 "#;
-    let syntax = parse_syntax_document(source).unwrap();
+    let source = source.replace(
+        "READ_RESULT_BOUND B",
+        &format!(
+            "{}B",
+            conduit_resource_snapshot::read_result::READ_RESULT_BYTES
+        ),
+    );
+    let syntax = parse_syntax_document(&source);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
     let expanded =
         expand_canonical_plot_for_authoring(&checked, "history-store", &profiles).unwrap();

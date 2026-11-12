@@ -51,7 +51,7 @@ pub fn install_resource_record_service_catalog(
         conduit_resource_snapshot::service_contract::definition(),
     ] {
         startup.insert(conduit_plot::KindSignature {
-            kind: kind.kind_id.clone(),
+            kind: kind.kind_id.as_str().into(),
             startup_parameters: Vec::new(),
         })?;
         startup.insert_fore(kind.kind_id.as_str(), kind.checked_front())?;
