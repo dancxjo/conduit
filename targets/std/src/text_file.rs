@@ -1,7 +1,7 @@
 //! Selected immutable Text generations beneath ordinary data/save and data/load.
 //! A directory descriptor and exact Plan binding are supplied by Host preparation;
 //! no path, namespace discovery, editor state or automatic fallback is introduced.
-use conduit_core::{AuthorityBinding, BoundedResourceRef, PlannedGear};
+use conduit_core::{AuthorityBinding, AuthorityGrant, BoundedResourceRef, HostBaseId, PlannedGear};
 use conduit_data::DataReference;
 use conduit_linux_snapshot_store::{FileSnapshotRefusal, PreparedFileSnapshot, SnapshotDirectory};
 
@@ -33,6 +33,22 @@ impl<'a> PreparedTextFile<'a> {
         placement: &PlannedGear,
         reference: &BoundedResourceRef,
     ) -> Result<Self, TextFileRefusal> {
+        Self::prepare_on_base(
+            directory,
+            placement,
+            reference,
+            &conduit_std_offers::DURABLE_TEXT_BASE.into(),
+        )
+    }
+
+    /// Prepare against the exact independently selected Base, not an arbitrary
+    /// received label. This validates correspondence; it grants no possession.
+    pub fn prepare_on_base(
+        directory: &'a SnapshotDirectory,
+        placement: &PlannedGear,
+        reference: &BoundedResourceRef,
+        base_id: &HostBaseId,
+    ) -> Result<Self, TextFileRefusal> {
         let content = placement
             .resources
             .first()
@@ -41,7 +57,7 @@ impl<'a> PreparedTextFile<'a> {
         if placement.resources.len() != 1
             || placement.resources[0].protected.is_some()
             || placement.resources[0].compute.is_some()
-            || content.base_id.as_str() != conduit_std_offers::DURABLE_TEXT_BASE
+            || &content.base_id != base_id
             || content.residence_profile.as_str() != conduit_std_offers::DURABLE_TEXT_RESIDENCE
         {
             return Err(TextFileRefusal::InvalidBinding);
@@ -133,7 +149,40 @@ impl<'a> PreparedTextFile<'a> {
 pub(crate) struct SelectedTextFileResidence {
     pub(crate) directory: SnapshotDirectory,
     pub(crate) reference: BoundedResourceRef,
-    root_identity: (u64, u64),
+    pub(crate) root_identity: (u64, u64),
+    pub(crate) base_id: HostBaseId,
+    pub(crate) authority_grant: Option<AuthorityGrant>,
+    pub(crate) image_memory: Option<crate::kernel_preparation::ImageMemoryLease>,
+}
+impl SelectedTextFileResidence {
+    /// Nested owned heap only. Inline Self, directory/Fd, allocator overhead and
+    /// platform storage are separate. The IMAGE lease allocation is counted once.
+    pub(crate) fn retained_backing_bytes(&self) -> Option<usize> {
+        let mut bytes = self
+            .base_id
+            .0
+            .capacity()
+            .checked_add(self.reference.content_profile.0.capacity())?
+            .checked_add(self.reference.access_class.0.capacity())?;
+        if let Some(grant) = &self.authority_grant {
+            for value in [
+                &grant.grant_id.0,
+                &grant.contract_id.0,
+                &grant.host_call_contract_id.0,
+                &grant.subject_kind.0,
+                &grant.host_id.0,
+                &grant.boot_id.0,
+                &grant.capability_id.0,
+            ] {
+                bytes = bytes.checked_add(value.capacity())?;
+            }
+        }
+        if self.image_memory.is_some() {
+            bytes = bytes
+                .checked_add(crate::kernel_preparation::ImageMemoryLease::owned_backing_bytes())?;
+        }
+        Some(bytes)
+    }
 }
 
 impl crate::StdHost {
@@ -259,6 +308,9 @@ impl crate::StdHost {
             directory,
             reference,
             root_identity,
+            base_id: conduit_std_offers::DURABLE_TEXT_BASE.into(),
+            authority_grant: None,
+            image_memory: None,
         });
         Ok(())
     }
