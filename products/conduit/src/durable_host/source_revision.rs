@@ -15,8 +15,8 @@ use conduit_std_host::{
 mod carriage;
 #[cfg(target_os = "linux")]
 use carriage::{
-    admit_selected_member, open_selected_play_carriers, return_selected_member,
-    select_direct_fore_lines, submit_selected_play,
+    admit_selected_member, negotiate_selected_fore, open_selected_play_carriers,
+    return_selected_member, select_direct_fore_lines, submit_selected_play,
 };
 
 const SELECTION_FILE: &str = "source-check-selection.json";
@@ -753,7 +753,14 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
         .into_iter()
         .zip(&selection.plays)
         .filter_map(|(carrier, play)| {
-            (native_lines_planned && play.direct_fore_carrier.is_some()).then_some(carrier)
+            if native_lines_planned && play.direct_fore_carrier.is_some() {
+                match carrier {
+                    Ok(carrier) => Some(negotiate_selected_fore(carrier, play)),
+                    Err(_) => None,
+                }
+            } else {
+                None
+            }
         })
         .collect();
     // Returns not selected for a Play have no continuing serial assignment.

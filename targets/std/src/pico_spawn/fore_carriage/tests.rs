@@ -30,6 +30,7 @@ struct Peer {
     pressure: bool,
     fail_send: bool,
     fail_receive: bool,
+    delay_second_hello: bool,
 }
 impl Peer {
     fn new() -> Self {
@@ -44,6 +45,7 @@ impl Peer {
             pressure: false,
             fail_send: false,
             fail_receive: false,
+            delay_second_hello: false,
         }
     }
     fn emit(&mut self, route: usize, message: Message<'_>) {
@@ -68,9 +70,13 @@ impl Frames for Peer {
             .unwrap();
         self.machines[route].admit_inbound(frame).unwrap();
         match frame.message {
+            Message::Hello if route == 1 && self.delay_second_hello => {}
             Message::Hello => self.emit(route, Message::Hello),
             Message::Message(SessionMessage::Ready) => {
-                self.emit(route, Message::Message(SessionMessage::Ready))
+                self.emit(route, Message::Message(SessionMessage::Ready));
+                if route == 0 && self.delay_second_hello {
+                    self.emit(1, Message::Hello);
+                }
             }
             Message::Message(SessionMessage::Offered { sequence, .. }) => {
                 if self.pressure {
@@ -285,3 +291,6 @@ fn configuration_frame_budget_timeout_partial_io_and_local_cancel_are_fail_close
 #[cfg(unix)]
 #[path = "pty_tests.rs"]
 mod pty_tests;
+
+#[path = "handshake_tests.rs"]
+mod handshake;

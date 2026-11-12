@@ -10,6 +10,7 @@ pub(super) struct SelectedPlayCarrier {
     completed_return: Option<CompletedMemberReturn>,
     fore_material: Option<fore_provider::DirectForeMaterial>,
     prepared_fore: Option<conduit_std_host::pico_spawn::PreparedForeCarriage>,
+    fore_input_reported: bool,
 }
 // Constructed only after the existing proof, commit, receipt delivery and durable
 // presentation publication have ALL completed on this same owned socket.
@@ -135,6 +136,7 @@ pub(super) fn open_selected_play_carrier(
         completed_return: None,
         fore_material: None,
         prepared_fore: None,
+        fore_input_reported: false,
     })
 }
 #[cfg(target_os = "linux")]
@@ -325,6 +327,7 @@ pub(super) fn return_selected_basis_owned(
         completed_return: Some(CompletedMemberReturn),
         fore_material: None,
         prepared_fore: None,
+        fore_input_reported: false,
     })
 }
 
@@ -485,3 +488,9 @@ mod carrier_path_tests {
 mod fore_provider;
 #[cfg(target_os = "linux")]
 pub(super) use fore_provider::{select_direct_fore_lines, DirectForeCarrierSelection};
+
+#[cfg(target_os = "linux")]
+#[path = "source_revision_fore_client.rs"]
+mod fore_client;
+#[cfg(target_os = "linux")]
+pub(super) use fore_client::negotiate_selected_fore;

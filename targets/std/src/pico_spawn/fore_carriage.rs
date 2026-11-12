@@ -68,6 +68,17 @@ impl PicoSpawnSocket {
     }
 }
 impl PicoForeCarriage {
+    /// Explicit one-shot negotiation of both original request/result sessions.
+    /// One deadline covers all frames. Peer messages must match the independently
+    /// prepared scopes; success proves session negotiation, not kernel Start or
+    /// recording commitment. No application value is acknowledged here.
+    pub fn handshake(
+        &mut self,
+        output: &mut [u8],
+        timeout: Duration,
+    ) -> Result<(), ForeCarriageError> {
+        self.inner.handshake(output, timeout)
+    }
     /// One explicit frame, with no automatic retry, Ready or acknowledgment.
     /// A successful write is never proof of receiver acceptance or durability.
     pub fn send(
@@ -252,3 +263,6 @@ impl<F: Frames> Carriage<F> {
 }
 #[cfg(test)]
 mod tests;
+
+#[path = "fore_carriage/handshake.rs"]
+mod handshake;

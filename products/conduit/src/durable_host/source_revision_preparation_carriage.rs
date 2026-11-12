@@ -20,6 +20,7 @@ pub(in crate::durable_host::source_revision) fn submit_selected_play(
         socket,
         fore_material,
         prepared_fore,
+        fore_input_reported,
         ..
     } = carrier;
     let limits = conduit_embedded_build::BodyFragmentProjectionLimits {
@@ -72,6 +73,10 @@ pub(in crate::durable_host::source_revision) fn submit_selected_play(
             }
             Ok(PreparationCommandBytes { payload, signature })
         },
+    );
+    *fore_input_reported |= matches!(
+        &exchange,
+        Ok(conduit_std_host::pico_spawn::PreparationExchange::InputReported(_))
     );
     // Retain the original derived scope even if submission/delivery is
     // uncertain. This metadata authorizes no retry, peer readiness or Start.
