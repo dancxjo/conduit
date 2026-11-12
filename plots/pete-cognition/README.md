@@ -34,14 +34,24 @@ all fit the unchanged 4 KiB model request; overflow refuses atomically. The
 160 KiB capture and 64 KiB temporal-window Cords are prepared transport bounds,
 not increases to the four-entry, 8 KiB autobiographical memory.
 
-The model data uses the versioned `episode-retrieval-request@2` format. Repeated
-classification and instant field names are declared once beside exact column
-values. A declared null default keeps unknown recorded times unknown. An exact
-repeated utterance can refer to `observation.content`; its
-JSON-string encoding is resolved during retention. The native record keeps the
-same transmitted current projection, original observation and complete actual
-outcome. Model history carries the actual disposition and identifies its Host
-source; complete attempt/run provenance stays in the paired native audit.
+The model view uses `episode-retrieval-request@3` inside
+`generation-context@2`. The Plot's instruction, the literal human question,
+and untrusted evidence remain separate fields. Current and remembered values
+appear first; metadata references connect each value to its complete original
+provenance. Repeated metadata keys and byte-identical classification/time
+dimensions are declared once. Explicit presence masks preserve missing fields,
+and null instants stay unknown. JSON content retains its original numeric and
+escape lexemes; other UTF-8 and binary content retain explicit encodings.
+
+The native record keeps the exact original current projection, original
+observation and complete actual outcome. Decoding the model view recovers those
+same current values and provenance without another lookup. Model history carries
+the actual disposition and identifies its Host source; complete attempt/run
+provenance stays in the paired native audit. The formatter reuses the existing
+4 KiB buffers, refuses overflow atomically and does not allocate during Play.
+The question reaches Gemma3 with its instructions and data in one user turn;
+Ollama still renders the provider template. No provider conversation history or
+additional model call supplies recall.
 Resident memory preserves known domain, origin, availability, certainty, and
 temporal role; missing legacy classifications remain unknown. Retained time
 columns remain attached to their values across checkpoint recovery.

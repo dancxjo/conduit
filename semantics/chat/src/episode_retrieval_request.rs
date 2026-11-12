@@ -3,11 +3,13 @@
 //! this module never substitutes a new fact projection or a second lookup.
 use alloc::vec::Vec;
 use conduit_core::{validate_canonical_structured_value, ValidatedCanonicalStructuredValue};
+mod fact_view;
 #[path = "episode_retrieval_request/pending.rs"]
 mod pending;
 #[path = "episode_retrieval_request/writer.rs"]
 mod writer;
 use writer::*;
+pub const EPISODE_RETRIEVAL_FACT_DATA_SCHEMA: &str = "conduit.chat/episode-retrieval-request@3";
 pub const EPISODE_RETRIEVAL_DATA_SCHEMA: &str = "conduit.chat/episode-retrieval-request@2";
 pub const MAXIMUM_EPISODE_RETRIEVAL_REQUEST_BYTES: usize = 4096;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +37,7 @@ use EpisodeRetrievalRequestRefusal as R;
 /// Resource references remain inert; this callback grants no read authority.
 pub struct PreparedEpisodeRetrievalRequest<P> {
     instruction: Vec<u8>,
+    fact_view: bool,
     projector: P,
     scratch: [u8; MAXIMUM_EPISODE_RETRIEVAL_REQUEST_BYTES],
     output: Vec<u8>,
@@ -52,11 +55,19 @@ where
         string(&mut quoted, instruction.as_bytes())?;
         Ok(Self {
             instruction: quoted,
+            fact_view: false,
             projector,
             scratch: [0; MAXIMUM_EPISODE_RETRIEVAL_REQUEST_BYTES],
             output: Vec::with_capacity(MAXIMUM_EPISODE_RETRIEVAL_REQUEST_BYTES),
             pending: pending::PreparedEpisodeRetrievalPending::prepare(),
         })
+    }
+    /// Fact-first display with a literal human question and lossless provenance.
+    /// The paired native pending packet retains the original projection bytes.
+    pub fn prepare_fact_view(instruction: &str, projector: P) -> Result<Self, R> {
+        let mut prepared = Self::prepare(instruction, projector)?;
+        prepared.fact_view = true;
+        Ok(prepared)
     }
     pub fn output(&self) -> &[u8] {
         &self.output
@@ -74,7 +85,16 @@ where
     ) -> Result<&[u8], R> {
         self.output.clear();
         self.pending.clear();
-        if let Err(error) = self.compose_inner(snapshot, context) {
+        let result = self.compose_inner(snapshot, context).and_then(|()| {
+            if self.fact_view {
+                let length = self.output.len();
+                self.scratch[..length].copy_from_slice(&self.output);
+                self.output.clear();
+                fact_view::render(&self.scratch[..length], &self.instruction, &mut self.output)?;
+            }
+            Ok(())
+        });
+        if let Err(error) = result {
             self.output.clear();
             self.pending.clear();
             return Err(error);
@@ -102,12 +122,15 @@ where
             .map_err(|_| R::MalformedExperience)?;
         let observation = field(experience, "observation")?;
         let out = &mut self.output;
-        put(
-            out,
-            br#"{"schema":"conduit.ai/generation-context@1","instruction":"#,
-        )?;
-        put(out, &self.instruction)?;
-        put(out, br#","data":{"schema":"#)?;
+        if !self.fact_view {
+            put(
+                out,
+                br#"{"schema":"conduit.ai/generation-context@1","instruction":"#,
+            )?;
+            put(out, &self.instruction)?;
+            put(out, br#","data":"#)?;
+        }
+        put(out, br#"{"schema":"#)?;
         string(out, EPISODE_RETRIEVAL_DATA_SCHEMA.as_bytes())?;
         put(out, br#","body_id":"#)?;
         string(out, input.expected.body_id.as_bytes())?;
@@ -161,7 +184,7 @@ where
         }
         put(out, b"],")?;
         diagnostics(out, context)?;
-        put(out, b"}}")?;
+        put(out, if self.fact_view { b"}" } else { b"}}" })?;
         self.pending.encode(snapshot, context, current)?;
         Ok(())
     }

@@ -60,12 +60,14 @@ impl HostedLocalModelAdapter for FencedFakeEpisodeModel {
                 return terminal;
             }
         }
-        let text = core::str::from_utf8(input).unwrap();
-        let context = conduit_ai::decode_generation_context(text).unwrap();
-        let prompt: serde_json::Value =
-            serde_json::from_str(context.as_ref().map(|c| c.data().as_str()).unwrap_or(text))
-                .unwrap();
-        let answer = if prompt["schema"] == conduit_chat::EPISODE_RETRIEVAL_DATA_SCHEMA {
+        let prompt = request_data(core::str::from_utf8(input).unwrap());
+        let answer = if [
+            conduit_chat::EPISODE_RETRIEVAL_DATA_SCHEMA,
+            conduit_chat::EPISODE_RETRIEVAL_FACT_DATA_SCHEMA,
+        ]
+        .iter()
+        .any(|schema| prompt["schema"] == *schema)
+        {
             let now = prompt["observation"]["content"].as_str().unwrap();
             match prompt["recalled"].as_array().unwrap().last() {
                 None => format!("No memory yet; I notice: {now}"),
@@ -418,13 +420,21 @@ pub fn terminal(report: &StdRunReport) -> &TerminalDisposition {
 /// Inspect evidence while retaining the exact provider wire in recorded requests.
 pub fn request_data(request: &str) -> serde_json::Value {
     let context = conduit_ai::decode_generation_context(request).unwrap();
-    serde_json::from_str(
+    let data = fact_view::decode(
         context
             .as_ref()
             .map(|c| c.data().as_str())
             .unwrap_or(request),
-    )
-    .unwrap()
+        context.as_ref().and_then(|c| c.question().as_deref()),
+    );
+    if data["schema"] == conduit_chat::EPISODE_RETRIEVAL_FACT_DATA_SCHEMA {
+        assert_eq!(
+            context.as_ref().unwrap().question().as_deref(),
+            data["observation"]["content"].as_str()
+        );
+    }
+    data
 }
 
+mod fact_view;
 pub mod model_projection;
