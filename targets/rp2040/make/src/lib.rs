@@ -20,8 +20,11 @@ pub use resident_protocol::{
 };
 pub use resident_work::CheckedResidentWorkPool;
 
+pub const RECORD_SERVICE_IMPLEMENTATION: &str = "rp2040/nor-record-service@1";
 pub const RECORDING_IMPLEMENTATION: &str = "rp2040/nor-record-append@1";
-pub use conduit_mcu_source_build::recording::CheckedRecordingConstruction;
+pub use conduit_mcu_source_build::recording::{
+    CheckedRecordServiceConstruction, CheckedRecordingConstruction,
+};
 pub const CLOCK_IMPLEMENTATION: &str = "rp2040/monotonic-clock@1";
 pub use conduit_mcu_source_build::clock::CheckedClockConstruction;
 pub const RENDERER_IMPLEMENTATION: &str = "rp2040/seven-segment-renderer@1";
@@ -41,6 +44,10 @@ impl HostMakePackage for Rp2040MakePackage {
             package_revision: 1,
             catalog: PackageCatalogContribution {
                 initialization_contracts: std::collections::BTreeMap::from([
+                    (
+                        RECORD_SERVICE_IMPLEMENTATION.into(),
+                        conduit_mcu_source_build::recording::service_initialization_contract(),
+                    ),
                     (
                         RECORDING_IMPLEMENTATION.into(),
                         conduit_mcu_source_build::recording::initialization_contract(),
