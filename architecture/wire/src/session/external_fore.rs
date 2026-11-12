@@ -198,6 +198,7 @@ mod tests;
 mod physical;
 pub use physical::{
     describe_physical_fore_line, PhysicalForeInstallation, PhysicalForeLine, PhysicalForePeerFacts,
+    PHYSICAL_FORE_SESSION_CONTRACT,
 };
 
 mod scope;

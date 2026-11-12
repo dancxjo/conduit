@@ -10,6 +10,10 @@ use conduit_core::{
 };
 use sha2::{Digest, Sha256};
 
+/// Existing request/result CNDF contract used by the native physical carrier.
+/// Naming it creates no initialized transport, session or execution authority.
+pub const PHYSICAL_FORE_SESSION_CONTRACT: &str = "conduit.wire/physical-fore-cndf@1";
+
 /// Exact installation facts, supplied independently of received frame metadata.
 #[derive(Clone, Copy)]
 pub struct PhysicalForeInstallation<'a> {

@@ -16,7 +16,7 @@ mod carriage;
 #[cfg(target_os = "linux")]
 use carriage::{
     admit_selected_member, open_selected_play_carriers, return_selected_member,
-    submit_selected_play,
+    select_direct_fore_lines, submit_selected_play,
 };
 
 const SELECTION_FILE: &str = "source-check-selection.json";
@@ -67,6 +67,10 @@ pub(crate) struct Selection {
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct UsbPlaySelection {
+    /// Independently installed direct USB carrier; never selected by incoming frames.
+    #[cfg(target_os = "linux")]
+    #[serde(default)]
+    direct_fore_carrier: Option<carriage::DirectForeCarrierSelection>,
     #[serde(default)]
     carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
     port: std::path::PathBuf,
@@ -697,12 +701,21 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     // this single-use authorization.
     write_json_atomic(&state_dir.join(SELECTION_FILE), &selection)?;
     owner.commit_authorized_file_revision(state_dir, authorization)?;
+    let mut carriers = open_selected_play_carriers(&selection.plays, &mut returned_carriers);
+    let mut line_sessions = Vec::new();
+    let mut native_lines_planned = false;
     if !selection.plays.is_empty() || !selection.continuation_outputs.is_empty() {
         // Original sockets are held before planning and through submission.
         // Open failures are explicit; possession alone advertises no Ready Line.
-        let mut carriers = open_selected_play_carriers(&selection.plays, &mut returned_carriers);
-        match owner.plan_retained(state_dir) {
+        let line_peer = owner.member_carrier_peer()?;
+        match owner.plan_retained_with_fore_provider(state_dir, |partitions| {
+            let (lines, sessions) =
+                select_direct_fore_lines(&selection.plays, &carriers, &line_peer, partitions)?;
+            line_sessions = sessions;
+            Ok(lines)
+        }) {
             Ok(()) => {
+                native_lines_planned = true;
                 if let Err(error) =
                     super::source_continuation::export(&owner, &selection.continuation_outputs)
                 {
@@ -711,14 +724,14 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
                     // refusal remains explicit; an export is never a Start.
                     eprintln!("selected continuation output refused: {error}");
                 }
-                for (play, carrier) in selection.plays.iter().zip(&mut carriers) {
+                for ((play, carrier), sessions) in selection
+                    .plays
+                    .iter()
+                    .zip(&mut carriers)
+                    .zip(line_sessions.drain(..))
+                {
                     let result = match carrier {
-                        Ok(carrier) => submit_selected_play(
-                            &mut owner,
-                            play,
-                            carrier,
-                            std::collections::BTreeMap::new(),
-                        ),
+                        Ok(carrier) => submit_selected_play(&mut owner, play, carrier, sessions),
                         Err(error) => Err(error.clone()),
                     };
                     if let Err(error) = result {
@@ -733,6 +746,16 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
             Err(error) => eprintln!("selected workset retained; Plan refused: {error}"),
         }
     }
+    // A selected native Line keeps the original descriptor, including an
+    // uncertain preparation reply, under this same Root's lifetime. Ordinary
+    // preparation-only carriers retain their existing release behavior.
+    let _native_line_carriers: Vec<_> = carriers
+        .into_iter()
+        .zip(&selection.plays)
+        .filter_map(|(carrier, play)| {
+            (native_lines_planned && play.direct_fore_carrier.is_some()).then_some(carrier)
+        })
+        .collect();
     // Returns not selected for a Play have no continuing serial assignment.
     drop(returned_carriers);
     let ad = owner.host.advertisement();

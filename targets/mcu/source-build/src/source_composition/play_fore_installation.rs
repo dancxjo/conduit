@@ -7,7 +7,7 @@ use conduit_mcu_host_runtime::{
     root::ForeCarrierBounds,
 };
 
-pub const SESSION_CONTRACT: &str = "conduit.wire/physical-fore-cndf@1";
+pub const SESSION_CONTRACT: &str = conduit_wire::PHYSICAL_FORE_SESSION_CONTRACT;
 const PORTS: usize = crate::play::FORE_PORTS;
 
 pub struct Hot {

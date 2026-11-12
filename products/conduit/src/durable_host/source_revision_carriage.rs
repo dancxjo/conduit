@@ -473,3 +473,9 @@ mod carrier_path_tests {
         // cannot construct CompletedMemberReturn or mark an opened FD Ready.
     }
 }
+
+#[cfg(target_os = "linux")]
+#[path = "source_revision_fore_provider.rs"]
+mod fore_provider;
+#[cfg(target_os = "linux")]
+pub(super) use fore_provider::{select_direct_fore_lines, DirectForeCarrierSelection};
