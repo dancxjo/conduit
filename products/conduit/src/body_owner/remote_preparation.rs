@@ -3,8 +3,9 @@ use super::Owner;
 use conduit_body::{BodyPlayIdentity, PreparedBodyFragment};
 use conduit_core::HostAdvertisement;
 use conduit_embedded_build::{
-    generate_prepared_body_workset, BodyFragmentGenerationRefusal, BodyFragmentProjectionLimits,
-    BoundResidentExpression, GeneratedBodyWorksetDocument,
+    generate_prepared_body_workset, generate_prepared_body_workset_with_line_fore,
+    BodyFragmentGenerationRefusal, BodyFragmentProjectionLimits, BoundResidentExpression,
+    GeneratedBodyWorksetDocument, SelectedForeSession,
 };
 
 impl Owner {
@@ -108,6 +109,49 @@ impl Owner {
             BodyFragmentGenerationRefusal,
         >,
     ) -> Result<(BodyPlayIdentity, GeneratedBodyWorksetDocument), String> {
+        self.project_remote_body_workset(actual, |scope| {
+            generate_prepared_body_workset(scope, actual, maximum_document_bytes, resolve)
+        })
+    }
+
+    /// Resolve exact sessions for the original sealed Fore routes together with
+    /// their resident implementations. Session metadata is descriptive: this
+    /// entrance neither installs a carrier nor signs or admits the document.
+    #[allow(dead_code)] // Installed carrier integration supplies this preparation resolver.
+    pub(super) fn prepare_remote_body_workset_with_line_fore(
+        &self,
+        actual: &HostAdvertisement,
+        maximum_document_bytes: u32,
+        resolve: impl FnMut(
+            PreparedBodyFragment<'_>,
+        ) -> Result<
+            (
+                Vec<BoundResidentExpression>,
+                BodyFragmentProjectionLimits,
+                Vec<SelectedForeSession>,
+            ),
+            BodyFragmentGenerationRefusal,
+        >,
+    ) -> Result<(BodyPlayIdentity, GeneratedBodyWorksetDocument), String> {
+        self.project_remote_body_workset(actual, |scope| {
+            generate_prepared_body_workset_with_line_fore(
+                scope,
+                actual,
+                maximum_document_bytes,
+                resolve,
+            )
+        })
+    }
+
+    // Both preparation entrances derive scope solely from original owner truth.
+    fn project_remote_body_workset(
+        &self,
+        actual: &HostAdvertisement,
+        project: impl FnOnce(
+            PreparedBodyFragment<'_>,
+        )
+            -> Result<GeneratedBodyWorksetDocument, BodyFragmentGenerationRefusal>,
+    ) -> Result<(BodyPlayIdentity, GeneratedBodyWorksetDocument), String> {
         if self.host.is_playing() || actual.host_id == self.host.advertisement().host_id {
             return Err("remote preparation requires the idle original owner Host".into());
         }
@@ -140,8 +184,7 @@ impl Owner {
         let scope = PreparedBodyFragment::prepare(&proposal.wake, &proposal.plan, &play, fragment)
             .map_err(|_| "current Body fragment containment refused")?;
         let document =
-            generate_prepared_body_workset(scope, actual, maximum_document_bytes, resolve)
-                .map_err(|error| format!("remote Body projection refused: {error:?}"))?;
+            project(scope).map_err(|error| format!("remote Body projection refused: {error:?}"))?;
         Ok((play, document))
     }
 }

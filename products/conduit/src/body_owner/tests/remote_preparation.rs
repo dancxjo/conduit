@@ -154,6 +154,79 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
     };
     let before = owner.session.evidence().clone();
     let proposal = owner.session.realization().unwrap().clone();
+    // The explicit Line entrance preserves the SAME owner gates and exact local
+    // document when this sealed proposal has no selected Line. These descriptive
+    // sessions cannot introduce connectivity absent from the original proposal.
+    let (legacy_play, legacy_document) = owner
+        .prepare_remote_resident_workset(&ad, &[&image], limits)
+        .unwrap();
+    let (line_play, line_document) = owner
+        .prepare_remote_body_workset_with_line_fore(&ad, limits.maximum_document_bytes, |scope| {
+            let resident = build::bind_current_mixed_resident_expressions(
+                scope.plot_plan(),
+                &scope.fragment().fragment_id,
+                &ad,
+                &[&image],
+                &[],
+            )
+            .map_err(build::BodyFragmentGenerationRefusal::Resident)?;
+            Ok((resident, limits, vec![]))
+        })
+        .unwrap();
+    assert_eq!(legacy_play, line_play);
+    assert_eq!(legacy_document.bytes(), line_document.bytes());
+    for field in 0..3 {
+        let mut stale = ad.clone();
+        match field {
+            0 => stale.host_id = "foreign".into(),
+            1 => stale.boot_id = "foreign".into(),
+            _ => stale.offer_generation.0 += 1,
+        }
+        assert!(owner
+            .prepare_remote_body_workset_with_line_fore(&stale, 4096, |_| panic!(
+                "stale member reached resolver"
+            ))
+            .is_err());
+    }
+    assert!(owner
+        .prepare_remote_body_workset_with_line_fore(owner.host.advertisement(), 4096, |_| panic!(
+            "local owner reached remote resolver"
+        ))
+        .is_err());
+    assert!(owner
+        .prepare_remote_body_workset_with_line_fore(&ad, 0, |_| panic!(
+            "zero document bound reached resolver"
+        ))
+        .is_err());
+    assert!(owner
+        .prepare_remote_body_workset_with_line_fore(&ad, 4096, |scope| {
+            let resident = build::bind_current_mixed_resident_expressions(
+                scope.plot_plan(),
+                &scope.fragment().fragment_id,
+                &ad,
+                &[&image],
+                &[],
+            )
+            .map_err(build::BodyFragmentGenerationRefusal::Resident)?;
+            Ok((
+                resident,
+                limits,
+                vec![build::SelectedForeSession {
+                    front_port_id: "echoed".into(),
+                    direction: conduit_core::PortDirection::Output,
+                    track: conduit_core::ConnectionTrack::Payload,
+                    session: conduit_core::AssignedIdentity::from_text(
+                        "fixture/unselected-session",
+                    ),
+                    session_contract: conduit_core::AssignedIdentity::from_text(
+                        "fixture/unselected-contract",
+                    ),
+                }],
+            ))
+        })
+        .is_err());
+    assert_eq!(owner.session.evidence(), &before);
+    assert_eq!(owner.session.realization(), Some(&proposal));
     for mutation in 0..15 {
         let mut changed = challenge;
         match mutation {
