@@ -23,7 +23,7 @@ fn main() {
     let checked = conduit_host_make::check_host_configuration(configuration, &catalog, &packages)
         .expect("checked Host Source");
     let fore_carrier =
-        conduit_mcu_source_build::fore_carrier::CheckedForeCarrierConstruction::from_configuration(
+        conduit_host_rp2040::fore_carrier::CheckedForeCarrierConstruction::from_configuration(
             &checked,
             "rp2040/root-usb-fore@1",
         )

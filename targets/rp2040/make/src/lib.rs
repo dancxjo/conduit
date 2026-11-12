@@ -3,6 +3,8 @@ use conduit_host_make::{
     PackageCatalogContribution, PostBuildAction, SporeOutputKind, TargetDescriptor,
 };
 
+pub use conduit_mcu_source_build::fore_carrier;
+
 mod bootstrap_contract;
 mod gpio_initialization;
 mod hardware_initialization;
