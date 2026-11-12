@@ -4,6 +4,7 @@ use conduit_host_make::{
     KindConfigurationField, KindConfigurationRule, PackageCatalogContribution,
 };
 use std::collections::BTreeMap;
+pub const FORE_CARRIER: &str = "esp32/root-uart-fore@1";
 pub const UART: &str = "esp32/uart0@1";
 pub const DHT11: &str = "esp32/dht11@1";
 pub const TM1637: &str = "esp32/tm1637@1";
@@ -67,6 +68,10 @@ pub(super) fn catalog() -> PackageCatalogContribution {
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
             (
+                FORE_CARRIER.into(),
+                conduit_mcu_source_build::fore_carrier::initialization_contract(),
+            ),
+            (
                 RECORD_SERVICE.into(),
                 conduit_mcu_source_build::recording::service_initialization_contract(),
             ),
@@ -89,6 +94,10 @@ pub(super) fn catalog() -> PackageCatalogContribution {
 pub(super) fn offers() -> impl Iterator<Item = conduit_host_make::ImplementationOffer> {
     [
         ("serial/text", UART),
+        (
+            conduit_mcu_source_build::fore_carrier::BASE_KIND,
+            FORE_CARRIER,
+        ),
         ("sensor/environment", DHT11),
         ("display/segmented", TM1637),
         ("clock/monotonic", CLOCK),

@@ -2,6 +2,7 @@
 //! No GPIO, sensor result, runtime readiness, Host identity or grant is invented.
 use conduit_plot as p;
 pub mod clock;
+pub mod fore_carrier;
 pub mod image_input;
 pub mod native_build;
 pub mod native_calibration;

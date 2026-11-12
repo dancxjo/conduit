@@ -44,6 +44,25 @@ fn main() {
             conduit_host_esp32_make::physical::RENDERER,
         )
         .expect("checked finite Face renderer construction");
+    let fore_carrier =
+        conduit_mcu_source_build::fore_carrier::CheckedForeCarrierConstruction::from_configuration(
+            &checked,
+            "esp32/root-uart-fore@1",
+        )
+        .expect("checked explicit Root Fore carrier construction");
+    println!("cargo:rustc-check-cfg=cfg(fore_carrier)");
+    if fore_carrier.is_some() {
+        println!("cargo:rustc-cfg=fore_carrier");
+    }
+    let fore_carrier_bounds = fore_carrier.map_or_else(
+        || "None".to_string(),
+        |c| format!("Some({})", c.rust_bounds()),
+    );
+    let fore_carrier_implementation = if fore_carrier.is_some() {
+        "esp32/root-uart-fore@1"
+    } else {
+        ""
+    };
     let config = checked.configuration();
     let mut work = config
         .resources
@@ -79,6 +98,8 @@ fn main() {
 pub const RECORDING_PREFIX_BYTES:u32={recording_prefix};
 pub const RECORDING_SLOTS:u32={recording_slots};
 pub const RECORDING_READ_OPERATIONS:u32={recording_read_operations};
+pub const FORE_CARRIER_BOUNDS:Option<conduit_mcu_host_runtime::root::ForeCarrierBounds>={fore_carrier_bounds};
+pub const FORE_CARRIER_IMPLEMENTATION:&str={fore_carrier_implementation:?};
 pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image:?};
 pub const SOURCE_IDENTITY:&str={source_identity:?};

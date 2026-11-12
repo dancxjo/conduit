@@ -22,6 +22,25 @@ fn main() {
         conduit_host_make::parse_host_configuration_conduit(&source).expect("Host Source syntax");
     let checked = conduit_host_make::check_host_configuration(configuration, &catalog, &packages)
         .expect("checked Host Source");
+    let fore_carrier =
+        conduit_mcu_source_build::fore_carrier::CheckedForeCarrierConstruction::from_configuration(
+            &checked,
+            "rp2040/root-usb-fore@1",
+        )
+        .expect("checked explicit Root Fore carrier construction");
+    println!("cargo:rustc-check-cfg=cfg(fore_carrier)");
+    if fore_carrier.is_some() {
+        println!("cargo:rustc-cfg=fore_carrier");
+    }
+    let fore_carrier_bounds = fore_carrier.map_or_else(
+        || "None".to_string(),
+        |c| format!("Some({})", c.rust_bounds()),
+    );
+    let fore_carrier_implementation = if fore_carrier.is_some() {
+        "rp2040/root-usb-fore@1"
+    } else {
+        ""
+    };
     let recording = recording_build::Recording::checked(&checked)
         .expect("checked finite recorder construction");
     recording.emit_cfg();
@@ -212,6 +231,8 @@ pub const RECORDING_PREFIX_BYTES:u32={recording_prefix};
 pub const RECORDING_SLOTS:u32={recording_slots};
 pub const RECORDING_READ_OPERATIONS:u32={recording_read_operations};
 pub const MAX_ASSIGNMENT_BYTES:usize={assignment};
+pub const FORE_CARRIER_BOUNDS:Option<conduit_mcu_host_runtime::root::ForeCarrierBounds>={fore_carrier_bounds};
+pub const FORE_CARRIER_IMPLEMENTATION:&str={fore_carrier_implementation:?};
 pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image_id:?};
 pub const HEAP_BYTES:usize={heap};

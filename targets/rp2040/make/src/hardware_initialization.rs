@@ -4,6 +4,7 @@ use conduit_host_make::{
     KindConfigurationField, KindConfigurationRule,
 };
 
+pub const FORE_CARRIER_IMPLEMENTATION: &str = "rp2040/root-usb-fore@1";
 pub const I2C_BASE_KIND: &str = "bus/i2c";
 pub const I2C_IMPLEMENTATION: &str = "rp2040/i2c@1";
 pub const BOSCH_BASE_KIND: &str = "sensor/environment";
@@ -107,6 +108,10 @@ pub fn ht16k33_initialization_contract() -> BaseInitializationContract {
 pub(super) fn offers() -> Vec<ImplementationOffer> {
     [
         (I2C_BASE_KIND, I2C_IMPLEMENTATION),
+        (
+            conduit_mcu_source_build::fore_carrier::BASE_KIND,
+            FORE_CARRIER_IMPLEMENTATION,
+        ),
         (BOSCH_BASE_KIND, BOSCH_IMPLEMENTATION),
         (HT16K33_BASE_KIND, HT16K33_IMPLEMENTATION),
         (WIFI_BASE_KIND, WIFI_IMPLEMENTATION),

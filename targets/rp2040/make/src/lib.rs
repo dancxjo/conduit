@@ -45,6 +45,10 @@ impl HostMakePackage for Rp2040MakePackage {
             catalog: PackageCatalogContribution {
                 initialization_contracts: std::collections::BTreeMap::from([
                     (
+                        hardware_initialization::FORE_CARRIER_IMPLEMENTATION.into(),
+                        conduit_mcu_source_build::fore_carrier::initialization_contract(),
+                    ),
+                    (
                         RECORD_SERVICE_IMPLEMENTATION.into(),
                         conduit_mcu_source_build::recording::service_initialization_contract(),
                     ),
