@@ -1,0 +1,45 @@
+with machine/i2c/transact/request as I2cTransaction
+with machine/i2c/transact/result as I2cResult
+with flow/zip/finite/paired as I2cCorrelatedPair
+
+# Routing context is ordinary info. It neither names nor grants a Host, Base,
+# attachment or caller. The enclosing checked Plot supplies explicit routes.
+type I2cCorrelation = {
+    client: U64
+    sequence: U64
+}
+type I2cCorrelatedRequest = {
+    correlation: I2cCorrelation
+    transaction: I2cTransaction
+}
+type I2cCorrelatedResult = {
+    correlation: I2cCorrelation
+    result: I2cResult
+}
+
+plot i2c-correlated-context (
+    request: I2cCorrelatedRequest...| >> context: I2cCorrelation...|
+) = (.correlation)
+
+plot i2c-correlated-transaction (
+    request: I2cCorrelatedRequest...| >> transaction: I2cTransaction...|
+) = (.transaction)
+
+plot i2c-correlated-result (
+    pair: I2cCorrelatedPair...| >> result: I2cCorrelatedResult...|
+) = ({ correlation: .0, result: .1 })
+
+# Atomic fan-out and FIFO Cords keep contexts in the same order as requests.
+# One exact native operation owns the controller and returns typed outcomes.
+# This Plot adds no retry, timeout policy, second bus grant or mutable broker.
+plot i2c-correlated-exchange (
+    >> request: I2cCorrelatedRequest...|
+    result: I2cCorrelatedResult...| >>
+) {
+    bus: machine/i2c/transact
+    paired: flow/zip/finite
+    request >> i2c-correlated-context() >> paired.left
+    request >> i2c-correlated-transaction() >> bus.request
+    bus.result >> paired.right
+    paired.paired >> i2c-correlated-result() >> result
+}

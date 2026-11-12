@@ -41,6 +41,17 @@ An I801 device-error bit combines several hardware causes and is not reported
 as a proved NACK. The physical port adapter requires admitted native ownership;
 it does not discover, configure or advertise a controller by itself.
 
+`i2c-correlated.conduit` supplies a Source composition with one native bus
+operation and explicit request/result correlation. Atomic fan-out and FIFO
+Cords preserve each caller-supplied context through the typed exchange; normal
+and refused bus results take the same path. Client and sequence values are
+ordinary info, not Host identities or authority. The enclosing Plot must supply
+its explicit merge and response routes; the selected native Base still owns
+address permissions, bounded termination and controller custody. This adds no
+retry, discovery or extra controller grant. MCU Source construction checks and
+emits the composition; an authoring transcript preserves mixed caller contexts
+and typed refusals. Live sampling/display integration remains unfinished.
+
 `bme280-compensation.conduit` contains ordinary checked temperature, pressure
 and humidity arithmetic with explicit calibration and fine-temperature inputs.
 Pressure exposes a separate invalid-calibration outcome for a zero denominator;

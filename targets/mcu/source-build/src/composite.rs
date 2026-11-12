@@ -383,3 +383,7 @@ mod tests {
         .is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "correlated_i2c_tests.rs"]
+mod correlated_i2c_tests;
