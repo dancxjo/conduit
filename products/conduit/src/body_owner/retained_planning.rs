@@ -10,14 +10,6 @@ impl Owner {
         self.plan_retained_with_fore_lines(root, &BTreeMap::new())
     }
 
-    pub(crate) fn plan_retained_with_ingress(
-        &mut self,
-        root: &Path,
-        ingress: Option<&ImageIngress>,
-    ) -> Result<(), String> {
-        self.plan_retained_with_ingress_and_lines(root, ingress, &BTreeMap::new())
-    }
-
     /// Line facts are supplied by the owning native provider, never a Plot or
     /// incoming preparation document. They remain planning evidence only.
     pub(crate) fn plan_retained_with_fore_lines(
