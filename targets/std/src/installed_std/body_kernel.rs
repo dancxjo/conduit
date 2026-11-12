@@ -47,6 +47,7 @@ pub(crate) use native_source::NativeBodySource;
 pub(crate) mod memory;
 
 pub(crate) struct BodyKernel<'a> {
+    startup_receipts: Vec<crate::body_execution::StartupChimeCallReceipt>,
     startup_gates: Vec<super::startup_source_back::StartupGate>,
     startup_outputs: Vec<(
         conduit_kernel::NodeId,
@@ -81,6 +82,7 @@ pub(crate) struct BodyKernel<'a> {
 }
 
 pub(crate) struct BodyKernelResult {
+    pub startup_chimes: Vec<crate::body_execution::StartupChimeCallReceipt>,
     pub terminal: TerminalDisposition,
     pub failure: Option<String>,
     pub kernel_failure: Option<Failure>,
@@ -712,10 +714,28 @@ impl<'a> BodyKernel<'a> {
                             .find(|(node, _)| *node == request.node)
                             .map(|(_, output)| output)
                             .ok_or("startup Host Call has no prepared checked speaker")?;
+                        let receipt = self
+                            .startup_receipts
+                            .iter_mut()
+                            .find(|r| r.node == request.node)
+                            .ok_or("startup receipt has no admitted slot")?;
+                        if receipt
+                            .request
+                            .is_some_and(|prior| prior.0 >= request.request.0)
+                        {
+                            return Err(
+                                "stale startup request cannot overwrite terminal evidence".into()
+                            );
+                        }
                         let outcome = output.execute(input, back.pcm(), control);
+                        receipt.request = Some(request.request);
+                        receipt.disposition = Some(outcome.disposition);
+                        receipt.failure = outcome.failure;
+                        receipt.kernel_accepted = false;
                         self.scheduler
                             .complete_host_call(request.node, request.request, outcome)
                             .map_err(|error| format!("startup Host Call completion: {error:?}"))?;
+                        receipt.kernel_accepted = true;
                         continue;
                     }
                     if data_text::is_file(&operation.contract_id) {
@@ -1301,6 +1321,7 @@ impl<'a> BodyKernel<'a> {
         let each_output_completion_failed = self.scheduler.drivers().iter().any(|driver| matches!(driver,InstalledBack::BodyEach(each) if each.output_completion_failed()));
         let (fore_deliveries, fore_pending_output) = self.fore.into_custody();
         BodyKernelResult {
+            startup_chimes: self.startup_receipts,
             terminal,
             failure,
             kernel_failure,
@@ -1376,9 +1397,12 @@ mod parsec_live_fore_tests;
 mod parsec_instruction_source_tests;
 
 impl BodyKernel<'_> {
+    pub(crate) fn requires_startup(&self) -> bool {
+        !self.startup_gates.is_empty()
+    }
     pub(crate) fn bind_startup(
         &self,
-        startup: Option<&conduit_body::BodyStartup>,
+        startup: Option<&crate::body_execution::CommittedBodyStartup>,
     ) -> Result<(), String> {
         if self.startup_gates.is_empty() {
             return Ok(());
@@ -1446,6 +1470,17 @@ impl BodyKernel<'_> {
                 }
             }
         }
+        let receipts = outputs
+            .iter()
+            .map(|(node, _)| crate::body_execution::StartupChimeCallReceipt {
+                node: *node,
+                request: None,
+                disposition: None,
+                failure: None,
+                kernel_accepted: false,
+            })
+            .collect();
+        self.startup_receipts = receipts;
         self.startup_outputs = outputs;
         Ok(())
     }

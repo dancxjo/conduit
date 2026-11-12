@@ -291,6 +291,7 @@ impl<'a> BodyKernel<'a> {
         Ok(Self {
             startup_gates,
             startup_outputs: Vec::new(),
+            startup_receipts: Vec::new(),
             terminal_events: None,
             error_diagnostic: None,
             cleanup_diagnostic: None,

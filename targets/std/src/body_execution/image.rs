@@ -132,7 +132,7 @@ impl StdHost {
     ) -> Result<ImageBodyRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<S, String>,
-        S: Into<BodyStartedAcknowledgment>,
+        S: StartupAcknowledgmentValue,
     {
         if !inputs.is_empty() && fore.is_none() {
             return Err("selected IMAGE finite ingress requires an output adapter".into());

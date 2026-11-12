@@ -48,6 +48,7 @@ mod creche;
 mod creche_tests;
 mod execution;
 mod startup;
+use startup::StartupAcknowledgmentValue;
 pub use startup::{BodyStartedAcknowledgment, CommittedBodyStartup};
 mod fore;
 mod fore_custody;
@@ -110,7 +111,18 @@ impl Drop for LiveForeTerminalGuard<'_> {
 }
 
 #[derive(Debug)]
+/// Latest physical completion for each selected cue, scoped by this report's
+/// exact Body Play and node map. It does not attest that a speaker was heard.
+#[derive(Debug, Clone, Copy)]
+pub struct StartupChimeCallReceipt {
+    pub node: conduit_kernel::NodeId,
+    pub request: Option<conduit_kernel::RequestId>,
+    pub disposition: Option<conduit_kernel::HostCallDisposition>,
+    pub failure: Option<conduit_kernel::Failure>,
+    pub kernel_accepted: bool,
+}
 pub struct BodyRunReport {
+    pub startup_chimes: Vec<StartupChimeCallReceipt>,
     pub play: BodyPlayIdentity,
     /// Historical lifecycle record at start, not a current liveness claim.
     pub wake_at_start: Wake,
@@ -437,3 +449,6 @@ impl StdHost {
         )
     }
 }
+
+#[cfg(test)]
+mod startup_tests;

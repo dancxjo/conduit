@@ -67,7 +67,7 @@ impl StdHost {
     ) -> Result<BodyRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<S, String>,
-        S: Into<BodyStartedAcknowledgment>,
+        S: StartupAcknowledgmentValue,
     {
         let selected_memory = image_result.is_some();
         if selected_memory
@@ -166,6 +166,9 @@ impl StdHost {
                 self.selected_text_file.as_ref(),
             )?
         };
+        if kernel.requires_startup() && !S::PROVIDES_STARTUP {
+            return Err("body/wake requires a committed startup observer before Play".into());
+        }
         kernel.prepare_startup_outputs(&request.plan.plots, self.playback.as_ref())?;
         kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
         if let Some(terminal) = &terminal {
@@ -294,6 +297,7 @@ impl StdHost {
                 queue.mark_play_terminal();
             }
             Ok(BodyRunReport {
+                startup_chimes: result.startup_chimes,
                 play,
                 wake_at_start,
                 terminal: result.terminal,

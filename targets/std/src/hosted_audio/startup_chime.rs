@@ -36,10 +36,6 @@ impl PreparedChimeOutput {
             || placement.base.as_ref() != Some(&expected_base)
             || placement.resources.len() != 1
             || placement.resources[0].pool_id != selected.pool_id()
-            || placement.realization_characteristics
-                != selected
-                    .realization_advertisement(placement.host_id.clone())
-                    .characteristics
         {
             return Err(
                 "startup chime speaker identity/Boot/generation differs from selected Plan".into(),
@@ -104,6 +100,10 @@ impl PreparedChimeOutput {
             );
         }
         self.attempted = true;
+        #[cfg(test)]
+        if self.selection.fake_behavior.is_some() {
+            return self.execute_fake(pcm);
+        }
         if self.selection.verify_executable_identity().is_err()
             || !discover_alsa_playback()
                 .is_ok_and(|current| current.contains(&self.selection.observation))
@@ -166,4 +166,71 @@ fn outcome(disposition: HostCallDisposition, code: FailureCode, detail: u16) -> 
         output: None,
         failure: Some(Failure { code, detail }),
     }
+}
+
+#[cfg(test)]
+impl PreparedChimeOutput {
+    fn execute_fake(&self, pcm: &[u8]) -> HostCallOutcome {
+        TEST_EFFECT_ATTEMPTS.with(|n| n.set(n.get() + 1));
+        use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
+        let Ok(mut session) = super::PlaybackSession::resolved(self.selection.clone()) else {
+            return outcome(
+                HostCallDisposition::Failed,
+                FailureCode::HostCallFailed,
+                486,
+            );
+        };
+        let mut frame = [0u8; conduit_semantic_catalog::AUDIO_PLAY_ALSA_PCM_BLOCK_BYTES as usize];
+        for (index, block) in pcm
+            .chunks(usize::from(super::PERIOD_FRAMES) * 4)
+            .enumerate()
+        {
+            let header = PcmFrameHeader::new(
+                PcmSampleRepresentation::Signed16LittleEndian,
+                super::SAMPLE_RATE_HZ,
+                PcmChannelLayout::StereoLeftRight,
+                super::PERIOD_FRAMES,
+                super::SOURCE_CLOCK_ID,
+                index as u64 * u64::from(super::PERIOD_FRAMES),
+                false,
+            )
+            .unwrap();
+            frame[..conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN].copy_from_slice(&header.encode());
+            frame[conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN..].copy_from_slice(block);
+            if let Err(error) = session.write_frame(&frame) {
+                return match error {
+                    super::PlaybackFailure::DeviceBusy
+                    | super::PlaybackFailure::StaleObservation => outcome(
+                        HostCallDisposition::Denied,
+                        FailureCode::HostCallDenied,
+                        487,
+                    ),
+                    _ => outcome(
+                        HostCallDisposition::Failed,
+                        FailureCode::HostCallFailed,
+                        488,
+                    ),
+                };
+            }
+        }
+        if session.drain().and_then(|_| session.stop()).is_err() {
+            return outcome(
+                HostCallDisposition::Failed,
+                FailureCode::HostCallFailed,
+                489,
+            );
+        }
+        completed()
+    }
+}
+
+#[cfg(test)]
+thread_local! { static TEST_EFFECT_ATTEMPTS:core::cell::Cell<usize>=const {core::cell::Cell::new(0)}; }
+#[cfg(test)]
+pub(crate) fn reset_test_attempts() {
+    TEST_EFFECT_ATTEMPTS.with(|n| n.set(0));
+}
+#[cfg(test)]
+pub(crate) fn test_attempts() -> usize {
+    TEST_EFFECT_ATTEMPTS.with(core::cell::Cell::get)
 }

@@ -438,6 +438,15 @@ impl Owner {
                     "failure":report.failure, "kernel_failure":report.kernel_failure.map(|failure| serde_json::json!({
                         "code":failure.code.as_str(), "detail":failure.detail,
                     })),
+                    "startup_chimes":report.startup_chimes.iter().map(|cue|serde_json::json!({
+                        "node":cue.node.0,"request":cue.request.map(|r|r.0),
+                        "outcome":cue.disposition.map(|d|match d {
+                            conduit_kernel::HostCallDisposition::Completed=>"completed",conduit_kernel::HostCallDisposition::Denied=>"denied",
+                            conduit_kernel::HostCallDisposition::Failed=>"failed",conduit_kernel::HostCallDisposition::Cancelled=>"cancelled",
+                        }).unwrap_or("not-requested"),
+                        "failure":cue.failure.map(|f|serde_json::json!({"code":f.code.as_str(),"detail":f.detail})),
+                        "kernel_accepted":cue.kernel_accepted,"speaker_heard_claimed":false,
+                    })).collect::<Vec<_>>(),
                     "cleanup_failure":report.cleanup_failure,
                     "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
                     "terminal_sign":report.terminal_sign,

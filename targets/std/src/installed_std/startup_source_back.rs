@@ -79,6 +79,9 @@ fn validate(p: &PlannedGear) -> Result<(), String> {
         || p.outputs != o.outputs
         || p.host_calls != o.host_calls
         || p.limits != o.limits
+        || p.capability_id != o.capability_id
+        || p.realization_properties != o.realization_properties
+        || !p.pool_references.is_empty()
         || !p.configuration.is_empty()
         || !p.authority.is_empty()
         || !p.resources.is_empty()
@@ -110,4 +113,57 @@ fn prepare(
         gate: StartupGate(Arc::new(AtomicU8::new(0))),
         pulse: Some(pulse),
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn pending_silent_and_backpressured_startup_are_distinct_and_never_replay() {
+        let mut values = conduit_kernel::HostedValueStore::new(1, 8, 8).unwrap();
+        let pulse = values
+            .store(&conduit_core::InfoBool::new(true).encode())
+            .unwrap();
+        let gate = StartupGate(Arc::new(AtomicU8::new(0)));
+        let mut back = StartupSourceBack {
+            gate: gate.clone(),
+            pulse: Some(pulse),
+        };
+        let mut pending = StepIo::test_frame([None], [false], [Some(8)], None, 8);
+        assert!(matches!(
+            back.step(&mut pending, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Fail(_)
+        ));
+        gate.bind(true).unwrap();
+        assert!(gate.bind(true).is_err());
+        let mut blocked = StepIo::test_frame([None], [false], [None], None, 8);
+        assert!(matches!(
+            back.step(&mut blocked, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Await
+        ));
+        let mut ready = StepIo::test_frame([None], [false], [Some(8)], None, 8);
+        assert!(matches!(
+            back.step(&mut ready, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
+        ));
+        assert_eq!(ready.test_output(PortId(0)), Some(pulse));
+        let mut again = StepIo::test_frame([None], [false], [Some(8)], None, 8);
+        assert!(matches!(
+            back.step(&mut again, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
+        ));
+        assert!(again.test_output(PortId(0)).is_none());
+        let silent = StartupGate(Arc::new(AtomicU8::new(0)));
+        silent.bind(false).unwrap();
+        let mut back = StartupSourceBack {
+            gate: silent,
+            pulse: Some(pulse),
+        };
+        let mut ready = StepIo::test_frame([None], [false], [Some(8)], None, 8);
+        assert!(matches!(
+            back.step(&mut ready, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Complete
+        ));
+        assert!(ready.test_output(PortId(0)).is_none());
+    }
 }

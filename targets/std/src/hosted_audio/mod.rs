@@ -14,6 +14,7 @@ mod fake;
 mod proof;
 mod staged;
 pub(crate) mod startup_chime;
+mod startup_chime_host;
 #[cfg(test)]
 pub(crate) use fake::FakePlaybackBehavior;
 

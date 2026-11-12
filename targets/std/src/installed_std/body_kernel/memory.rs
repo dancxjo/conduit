@@ -207,6 +207,7 @@ impl BodyKernel<'_> {
         for count in [
             vector(&self.startup_gates)?,
             vector(&self.startup_outputs)?,
+            vector(&self.startup_receipts)?,
             vector(&self.activations)?,
             vector(&self.partitions)?,
             vector(&self.operations)?,

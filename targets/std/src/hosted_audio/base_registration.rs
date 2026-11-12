@@ -158,7 +158,11 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(offers.len(), 1);
         assert_eq!(offers[0].authority_requirements.len(), 1);
-        assert_eq!(base.capability_ids, vec![offers[0].capability_id.clone()]);
+        let chime = conduit_std_offers::startup_chime_offer();
+        assert!(ad.capabilities.contains(&chime));
+        let mut expected = vec![offers[0].capability_id.clone(), chime.capability_id];
+        expected.sort();
+        assert_eq!(base.capability_ids, expected);
         let before = host.advertisement().clone();
         assert!(host.attach_selected_playback(selected).is_err());
         assert_eq!(host.advertisement(), &before);
