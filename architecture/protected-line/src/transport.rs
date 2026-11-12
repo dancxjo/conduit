@@ -1,3 +1,9 @@
+#[path = "async_handshake.rs"]
+mod async_handshake;
+#[cfg(feature = "noise-session")]
+pub use async_handshake::establish_protected_session_async;
+pub use async_handshake::AsyncProtectedFrameCarrier;
+
 #[cfg(feature = "noise-session")]
 use alloc::vec;
 #[cfg(feature = "noise-session")]
