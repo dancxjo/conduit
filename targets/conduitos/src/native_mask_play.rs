@@ -346,3 +346,6 @@ fn admitted_value_bytes_for_profile(
     }
     Ok(bytes)
 }
+
+#[cfg(all(target_os = "linux", any(test, feature = "native-compositor-core")))]
+mod bounded_json;

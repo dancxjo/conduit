@@ -1,14 +1,14 @@
 //! Installed ordinary Host Call realization. Projection allocates bounded
 //! temporaries outside the sealed Step; it is never an ImmediateNativeSource.
 use super::{
-    InstalledScheduler,
     back::{BackBudget, BackFactory, InstalledBack},
+    InstalledScheduler,
 };
 use crate::hosted_measurement::*;
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef, HostCallDisposition, HostCallOutcome,
     scheduler::{HostCallBack, HostCallRequest, StepBack, StepInputBytes, StepIo, StepOutcome},
+    BoundedValueRef, HostCallDisposition, HostCallOutcome,
 };
 use conduit_plan_lowering::lowering::LoweredHostCall;
 use std::cell::RefCell;

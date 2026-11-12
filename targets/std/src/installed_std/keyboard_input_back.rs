@@ -72,7 +72,7 @@ impl<const PORTS: usize> StepBack<PORTS> for KeyboardInputBack {
                 HostCallDisposition::Denied
                 | HostCallDisposition::Failed
                 | HostCallDisposition::Cancelled => {
-                    return step_fail(FailureCode::InvalidLifecycle, 114)
+                    return step_fail(FailureCode::InvalidLifecycle, 114);
                 }
             }
         }

@@ -44,6 +44,21 @@ pub(super) fn encounter_with_binding(
     revision: u64,
     binding: &str,
 ) -> (FixtureEncounter, RemoteOwnerMaskRouteSeal, Face) {
+    fixture_with_action(host, revision, binding, false)
+}
+pub(super) fn action_encounter(
+    host: &HostAdvertisement,
+    revision: u64,
+    binding: &str,
+) -> (FixtureEncounter, RemoteOwnerMaskRouteSeal, Face) {
+    fixture_with_action(host, revision, binding, true)
+}
+fn fixture_with_action(
+    host: &HostAdvertisement,
+    revision: u64,
+    binding: &str,
+    action: bool,
+) -> (FixtureEncounter, RemoteOwnerMaskRouteSeal, Face) {
     let planned = conduit_conduitos_mask_offer::prepare_native_stage_with_profile(
         host,
         NativeMaskStorageProfile::Standard,
@@ -91,7 +106,7 @@ pub(super) fn encounter_with_binding(
         .append_membership_events(membership, &[(admitted, 2), (present, 3)])
         .unwrap();
     let session = BodyLifecycleSession::open(evidence).unwrap();
-    let face = Face::new(
+    let face = Face::new_with_semantics(
         revision,
         FaceBasis {
             body_id: Some(id),
@@ -110,6 +125,20 @@ pub(super) fn encounter_with_binding(
         }],
         vec![],
         vec![],
+        vec![],
+        if action {
+            vec![conduit_face::FaceAction {
+                identity: "fixture/activate".into(),
+                intent: "fixture/activate".into(),
+                target: "front/native-mask".into(),
+                name: "Activate".into(),
+                arguments: vec![],
+                disclosure: conduit_face::FaceDisclosureLevel::CurrentAction,
+                availability: conduit_face::FaceActionAvailability::Available,
+            }]
+        } else {
+            vec![]
+        },
         vec![],
     )
     .unwrap();

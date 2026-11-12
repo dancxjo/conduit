@@ -4,7 +4,9 @@ pub mod hosted_display;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod selected_native_mask;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
-pub use selected_native_mask::NativeMaskEncounter;
+pub use selected_native_mask::{
+    NativeMaskEncounter, SelectedNativeInteraction, SelectedNativeMaskInput,
+};
 mod selected_native_source;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod selected_scanout;
@@ -97,9 +99,6 @@ pub use hosted_body_conversation_context::{
 };
 pub mod hosted_calendar;
 pub mod hosted_data;
-pub mod hosted_measurement;
-pub mod measurement_face;
-pub mod measurement_chart_offer;
 pub mod hosted_geometry;
 pub mod hosted_history;
 pub mod hosted_http;
@@ -107,9 +106,14 @@ pub mod hosted_indicator;
 pub mod hosted_job;
 pub mod hosted_keyboard;
 mod hosted_language;
+pub mod hosted_measurement;
+pub mod hosted_measurement_chart_constructor;
 mod hosted_process;
 #[cfg(feature = "local-model-proof")]
 mod house_conversation_topology;
+pub mod measurement_chart_flow_offer;
+pub mod measurement_chart_offer;
+pub mod measurement_face;
 #[cfg(unix)]
 pub mod pico_indicator;
 mod whisper_installation;

@@ -1,4 +1,4 @@
-//! Read-only native presentation on the installed Seed's actual initialized Host.
+//! Shared native presentation on the installed Seed's actual initialized Host.
 //! Initial admission and current-member presentation retain distinct authority.
 use super::{wire, RuntimeStatus};
 use crate::durable_host::routed_join::MaskSelection;
@@ -20,6 +20,10 @@ pub(in crate::durable_host) struct NativePresentation {
     state: PathBuf,
     status: RuntimeStatus,
     reconnect_delay: Option<Duration>,
+    current_input_route: Option<conduit_face::RemoteOwnerMaskRouteSeal>,
+    pending_input: Option<conduit_std_host::SelectedNativeInteraction>,
+    input_sequence: u64,
+    primary_pressed: bool,
 }
 
 enum NativeOwner {
@@ -89,9 +93,12 @@ impl NativePresentation {
             )
             .map(|(route, snapshot)| (NativeOwner::Joining(route), snapshot))
         };
+        let mut current_input_route = None;
         let owner = match connection {
             Ok((owner, snapshot)) => {
-                present(runtime, output, &owner, snapshot, 1)?.then_some(owner)
+                let (acknowledged, route) = present(runtime, output, &owner, snapshot, 1)?;
+                current_input_route = route;
+                acknowledged.then_some(owner)
             }
             Err(error) if reconnect_delay.is_some() => {
                 // The retained contact is operator-selected planning policy,
@@ -122,7 +129,119 @@ impl NativePresentation {
                 body_id: status.body_id.clone(),
             },
             reconnect_delay,
+            current_input_route,
+            pending_input: None,
+            input_sequence: 0,
+            primary_pressed: false,
         })
+    }
+
+    fn finish_input(&mut self, runtime: &mut DurableHostRuntime) -> Result<(), String> {
+        if self.pending_input.is_some() {
+            runtime
+                .presentation_host_mut()?
+                .retire_selected_native_interaction(&mut self.pending_input)?;
+        }
+        self.current_input_route = None;
+        Ok(())
+    }
+
+    fn retire_input(&mut self, runtime: &mut DurableHostRuntime) -> Result<(), String> {
+        self.finish_input(runtime)?;
+        retire_frame(runtime)
+    }
+
+    pub(in crate::durable_host) fn input(
+        &mut self,
+        runtime: &mut DurableHostRuntime,
+        output: &mut Scanout<'_>,
+        event: conduit_linux_display::NativeInput,
+    ) -> Result<(), String> {
+        use conduit_linux_display::NativeInput;
+        use conduit_std_host::SelectedNativeMaskInput;
+        // Track physical button state even without a current owner or Show.
+        // A held touch never becomes a new click when a replacement Show arrives.
+        let activate = if let NativeInput::Pointer(sample) = &event {
+            let rising = sample.primary_pressed && !self.primary_pressed;
+            self.primary_pressed = sample.primary_pressed;
+            rising
+        } else {
+            false
+        };
+        if self.pending_input.is_some() {
+            return Ok(());
+        }
+        let (Some(owner), Some(route)) = (&mut self.owner, &self.current_input_route) else {
+            return Ok(());
+        };
+        self.input_sequence = self
+            .input_sequence
+            .checked_add(1)
+            .ok_or("native interaction sequence exhausted")?;
+        let input = output
+            .prepared_input()
+            .map_err(|error| format!("native input lost:{error:?}"))?;
+        let host = runtime.presentation_host_mut()?;
+        let result = match event {
+            NativeInput::Key(key) => host.selected_native_mask_key(
+                owner,
+                route,
+                &input,
+                key,
+                self.input_sequence,
+                output,
+            )?,
+            NativeInput::Pointer(sample) => host.selected_native_mask_pointer(
+                owner,
+                route,
+                &input,
+                sample,
+                activate,
+                self.input_sequence,
+                output,
+            )?,
+            _ => return Ok(()),
+        };
+        if let SelectedNativeMaskInput::Submitted(interaction) = result {
+            self.pending_input = Some(interaction);
+            let pending = self
+                .pending_input
+                .as_ref()
+                .ok_or("native input custody absent")?;
+            let request = pending.correlation().interaction.clone();
+            let outcome = match owner {
+                NativeOwner::Member(owner) => {
+                    owner.begin_action(pending.show(), request).map(|()| false)
+                }
+                NativeOwner::Joining(owner) => {
+                    owner
+                        .action(pending.show(), request)
+                        .and_then(|(reply, _)| {
+                            if reply["accepted"].as_bool() == Some(true) {
+                                Ok(true)
+                            } else {
+                                Err(format!("native owner refused:{}", reply["code"]))
+                            }
+                        })
+                }
+            };
+            match outcome {
+                Ok(false) => (), // The same carrier continues presence while waiting.
+                Ok(true) => {
+                    self.finish_input(runtime)?;
+                    self.next_refresh = Instant::now();
+                }
+                Err(error) => {
+                    // The action may have reached its owner. Retire, never replay.
+                    self.retire_input(runtime)?;
+                    self.owner = None;
+                    self.next_refresh =
+                        Instant::now() + self.reconnect_delay.unwrap_or(REFRESH_PERIOD);
+                    eprintln!("native action outcome unavailable; no replay:{error}");
+                }
+            }
+        }
+        Ok(())
     }
 
     fn reconnect(
@@ -143,7 +262,10 @@ impl NativePresentation {
                     .ok_or("native child Play sequence exhausted")?;
                 // Kernel/output failures remain terminal. Only an unavailable
                 // authenticated contact is retried by this explicit policy.
-                if present(runtime, output, &owner, snapshot, self.play_sequence)? {
+                let (acknowledged, route) =
+                    present(runtime, output, &owner, snapshot, self.play_sequence)?;
+                self.current_input_route = route;
+                if acknowledged {
                     self.owner = Some(owner);
                     self.next_refresh = Instant::now() + REFRESH_PERIOD;
                 }
@@ -165,6 +287,7 @@ impl NativePresentation {
         {
             // Retire the old carrier before allocating/authenticating the new
             // one. There is never overlap or an enlarged presence lease.
+            self.retire_input(runtime)?;
             drop(self.owner.take());
             self.next_refresh = Instant::now();
         }
@@ -176,9 +299,36 @@ impl NativePresentation {
         }
         if let Some(owner) = self.owner.as_mut() {
             if let Err(error) = owner.poll_presence() {
+                self.retire_input(runtime)?;
                 self.owner = None;
                 self.next_refresh = Instant::now() + self.reconnect_delay.unwrap_or(REFRESH_PERIOD);
                 eprintln!("native carrier lost; displayed Show is historical: {error}");
+                return Ok(());
+            }
+        }
+        if self.pending_input.is_some() {
+            let outcome = match &self.owner {
+                Some(NativeOwner::Member(owner)) => owner.poll_action(),
+                _ => Err("pending native action lost its member carrier".into()),
+            };
+            let outcome = match outcome {
+                Ok(outcome) => outcome,
+                Err(error) => {
+                    self.retire_input(runtime)?;
+                    self.owner = None;
+                    self.next_refresh =
+                        Instant::now() + self.reconnect_delay.unwrap_or(REFRESH_PERIOD);
+                    eprintln!("native action response lost; no replay:{error}");
+                    return Ok(());
+                }
+            };
+            if let Some(outcome) = outcome {
+                self.finish_input(runtime)?;
+                if let Err(error) = outcome {
+                    eprintln!("native owner action refused:{error}");
+                }
+                self.next_refresh = Instant::now();
+            } else {
                 return Ok(());
             }
         }
@@ -194,6 +344,7 @@ impl NativePresentation {
             // The Host and output remain alive. Exhausting this presentation
             // encounter retires only its bearer, not the member's attachment.
             // An actual departure requires a separate explicit lifecycle act.
+            self.retire_input(runtime)?;
             drop(self.owner.take());
             eprintln!("native owner encounter ended: displayed Show is historical");
             return Ok(());
@@ -202,6 +353,7 @@ impl NativePresentation {
         let snapshot = match owner.refresh() {
             Ok(snapshot) => snapshot,
             Err(error) => {
+                self.retire_input(runtime)?;
                 self.owner = None;
                 self.next_refresh = Instant::now() + self.reconnect_delay.unwrap_or(REFRESH_PERIOD);
                 eprintln!("native owner encounter lost; displayed Show is historical: {error}");
@@ -212,7 +364,11 @@ impl NativePresentation {
             .play_sequence
             .checked_add(1)
             .ok_or("native child Play sequence exhausted")?;
-        let owner_acknowledged = present(runtime, output, owner, snapshot, self.play_sequence)?;
+        retire_frame(runtime)?;
+        self.current_input_route = None;
+        let (owner_acknowledged, route) =
+            present(runtime, output, owner, snapshot, self.play_sequence)?;
+        self.current_input_route = route;
         if !owner_acknowledged {
             self.owner = None;
         }
@@ -242,7 +398,7 @@ fn present(
     owner: &NativeOwner,
     snapshot: wire::Snapshot,
     play_sequence: u64,
-) -> Result<bool, String> {
+) -> Result<(bool, Option<conduit_face::RemoteOwnerMaskRouteSeal>), String> {
     let front = snapshot
         .face
         .subjects
@@ -251,40 +407,62 @@ fn present(
         .identity
         .as_str();
     let host = runtime.presentation_host_mut()?;
-    let frame = host.render_selected_native_mask(
-        owner,
-        &snapshot.route,
-        &snapshot.face,
-        play_sequence,
-        front,
-        output,
-    )?;
+    let interactive = host.selected_native_mask_supports_input();
+    if interactive && !snapshot.interactions_admitted {
+        return Err("owner did not admit native input for this Show".into());
+    }
+    let frame = if interactive {
+        host.render_selected_interactive_native_mask(
+            owner,
+            &snapshot.route,
+            &snapshot.face,
+            play_sequence,
+            front,
+            output,
+        )?
+    } else {
+        host.render_selected_native_mask(
+            owner,
+            &snapshot.route,
+            &snapshot.face,
+            play_sequence,
+            front,
+            output,
+        )?
+    };
     // Acknowledge the actual Available Show only after the physical driver ACK.
     let acknowledgement = owner.acknowledge(
         host.selected_native_mask_show()
             .ok_or("native Available Show absent")?,
     );
-    let mut evidence = host.take_selected_native_mask_evidence()?;
-    let retained = evidence.as_ref().ok_or("native retired evidence absent")?;
     println!(
-        "native Mask displayed Face {} revision {} on frame {}; pixels {}",
-        retained.composition().face_id.as_str(),
+        "native Mask displayed Face {} revision {} on frame {}",
+        snapshot.face.identity.as_str(),
         frame.face_revision,
-        frame.scanout_frame_sequence,
-        retained.evidence().receipt.scanout_pixels_written
+        frame.scanout_frame_sequence
     );
-    // This disposes local completed-Play diagnostics, never recorded observations
-    // or a recorder's durable acknowledgment. The exact provider/ledger checks
-    // remain inside StdHost; no resource charge is silently cleared here.
-    host.retire_selected_native_mask_evidence(&mut evidence)?;
+    if !interactive {
+        retire_frame(runtime)?;
+    }
     match acknowledgement {
-        Ok(()) => Ok(true),
+        Ok(()) => Ok((true, interactive.then_some(snapshot.route))),
         Err(error) => {
             // Physical commit is real even if its return is lost or refused.
             // End this encounter; no further Show/action uses its grant. Keep
             // the actual Host/output alive with explicitly historical pixels.
             eprintln!("native Show is historical; owner acknowledgment was not accepted: {error}");
-            Ok(false)
+            retire_frame(runtime)?;
+            Ok((false, None))
         }
     }
+}
+
+// Dispose completed local Mask custody. This is never a durable recording ACK.
+fn retire_frame(runtime: &mut DurableHostRuntime) -> Result<(), String> {
+    let host = runtime.presentation_host_mut()?;
+    let mut evidence = host.take_selected_native_mask_evidence()?;
+    if evidence.is_some() {
+        host.retire_selected_native_mask_evidence(&mut evidence)?;
+    }
+    Ok(())
 }

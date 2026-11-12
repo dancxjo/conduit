@@ -125,10 +125,16 @@ fn actual_kernel_arithmetic_refusal_matches_baseline_sign_and_terminal() {
         let fragment = &plan.fragments[0];
         assert_eq!(fragment.placements.len(), 1);
         let placement = &fragment.placements[0];
-        assert_eq!(error, format!(
-            "installed kernel step: BackFailed(Failure {{ code: HostCallFailed, detail: 4 }}); logical-gear={} placement={} source-document={} source-span={:?}",
-            placement.gear_id.as_str(), placement.placement_id.as_str(), fragment.source_document_id.as_str(), placement.source_span
-        ));
+        assert_eq!(
+            error,
+            format!(
+                "installed kernel step: BackFailed(Failure {{ code: HostCallFailed, detail: 4 }}); logical-gear={} placement={} source-document={} source-span={:?}",
+                placement.gear_id.as_str(),
+                placement.placement_id.as_str(),
+                fragment.source_document_id.as_str(),
+                placement.source_span
+            )
+        );
         // Each physical realization has its own placement. The logical failure
         // must retain the same authored Gear, Source and span in both Plans.
         results.push((

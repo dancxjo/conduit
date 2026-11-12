@@ -66,6 +66,13 @@ fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
 }
 fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
     match driver {
+        InstalledBack::CombineLatest(back) => back
+            .retained_backing_bytes()
+            .ok_or_else(|| "latest-value backing overflow".into()),
+        InstalledBack::MeasurementChartConstructor(back) => back
+            .retained_backing_bytes()
+            .checked_add(back.workspace_bytes() as usize)
+            .ok_or_else(|| "chart constructor backing overflow".into()),
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
@@ -74,6 +81,7 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
             .checked_add(crate::hosted_measurement::measurement_plot_workspace_bytes() as usize)
             .ok_or_else(|| "measurement projection prepared workspace overflow".into()),
         InstalledBack::MeasurementChartFace(back) => Ok(back.retained_backing_bytes()),
+        InstalledBack::MeasurementChartFlowFace(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::Creche(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::Inactive | InstalledBack::SelectedNativeSource(_) => Ok(0),
         _ => Err("IMAGE memory receipt lacks a complete owned Back accounting".into()),
@@ -156,7 +164,10 @@ impl BodyKernel<'_> {
                 )?;
                 creches += 1;
             }
-            if matches!(driver, InstalledBack::MeasurementChartFace(_)) {
+            if matches!(
+                driver,
+                InstalledBack::MeasurementChartFace(_) | InstalledBack::MeasurementChartFlowFace(_)
+            ) {
                 chart_faces += 1;
             }
             if matches!(driver, InstalledBack::MeasurementPlot(_)) {

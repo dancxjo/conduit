@@ -531,14 +531,24 @@ fn run(state_dir: &Path) -> Result<(), String> {
                     };
                     let mut progress =
                         |runtime: &mut crate::durable_host_control::DurableHostRuntime| {
-                            match scanout.poll_output_lifecycle(events, 16) {
-                                Ok(
-                                    conduit_linux_display::NativeInput::Idle
-                                    | conduit_linux_display::NativeInput::Pending,
-                                ) => (),
-                                Ok(_) => return Err("native output lifetime ended".into()),
-                                Err(error) => {
-                                    return Err(format!("native output lifetime lost: {error:?}"));
+                            let input = if presentation.is_some() {
+                                scanout.poll_input(events, 16)
+                            } else {
+                                scanout.poll_output_lifecycle(events, 16)
+                            }
+                            .map_err(|error| {
+                                format!("native input/output lifetime lost:{error:?}")
+                            })?;
+                            match input {
+                                conduit_linux_display::NativeInput::Quit => {
+                                    return Err("native output lifetime ended".into())
+                                }
+                                conduit_linux_display::NativeInput::Idle
+                                | conduit_linux_display::NativeInput::Pending => (),
+                                event => {
+                                    if let Some(presentation) = &mut presentation {
+                                        presentation.input(runtime, scanout, event)?;
+                                    }
                                 }
                             }
                             if let Some(presentation) = &mut presentation {

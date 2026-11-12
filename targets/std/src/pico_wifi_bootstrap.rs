@@ -351,7 +351,7 @@ impl PicoWifiBootstrapSource {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Drained => return Ok(None),
                 SchedulerStatus::Idle => {
-                    return Err("credential source became idle early".to_owned())
+                    return Err("credential source became idle early".to_owned());
                 }
                 SchedulerStatus::Cancelled => return Err("credential source cancelled".to_owned()),
             }

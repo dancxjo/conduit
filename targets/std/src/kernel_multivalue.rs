@@ -1010,7 +1010,7 @@ fn execute_fragment_with_options<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete deferred face: {error:?}"))?;
             }
             SchedulerStatus::Cancelled => {
-                return Err("multi-value kernel was cancelled".to_string())
+                return Err("multi-value kernel was cancelled".to_string());
             }
         }
     }

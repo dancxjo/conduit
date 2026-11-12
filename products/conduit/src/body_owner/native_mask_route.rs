@@ -8,6 +8,8 @@ use conduit_core::{HostAdvertisement, LineAvailability, LineOffer};
 use conduit_face::{Face, MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
 use conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection;
 
+#[path = "native_mask_route/graphical_plan.rs"]
+mod graphical_plan;
 #[path = "native_mask_route/member_basis.rs"]
 mod member_basis;
 #[path = "native_mask_route/member_leave.rs"]
@@ -21,6 +23,7 @@ enum SelectedRemoteMask<'a> {
             conduit_face::ComponentMaskLook,
             conduit_face::TodoComponentRecipe,
         )>,
+        Option<&'a LineOffer>,
     ),
     Terminal(&'a LineOffer),
     Spoken(&'a RemoteSpokenTemplateSelection),
@@ -105,6 +108,22 @@ impl Owner {
         return_line: &LineOffer,
         expires_at_millis: u64,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        self.seal_graphical_native_mask_route(
+            member,
+            face_line,
+            return_line,
+            None,
+            expires_at_millis,
+        )
+    }
+    pub(crate) fn seal_graphical_native_mask_route(
+        &mut self,
+        member: &MemberPresentationBasis,
+        face_line: &LineOffer,
+        return_line: &LineOffer,
+        interaction_line: Option<&LineOffer>,
+        expires_at_millis: u64,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
         let selection = self
             .pending_native_mask
             .as_ref()
@@ -118,7 +137,7 @@ impl Owner {
                 face_line,
                 return_line,
                 expires_at_millis,
-                SelectedRemoteMask::Native(selection),
+                SelectedRemoteMask::Native(selection, interaction_line),
             )
             .and_then(|seal| {
                 self.select_component_face_route(&seal)?;
@@ -200,10 +219,10 @@ impl Owner {
         expires_at_millis: u64,
         selection: SelectedRemoteMask<'_>,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
-        let (component_selection, interaction_line, spoken) = match selection {
-            SelectedRemoteMask::Native(component) => (component, None, None),
-            SelectedRemoteMask::Terminal(line) => (None, Some(line), None),
-            SelectedRemoteMask::Spoken(selection) => (None, None, Some(selection)),
+        let (component_selection, interaction_line, spoken, graphical) = match selection {
+            SelectedRemoteMask::Native(component, line) => (component, line, None, true),
+            SelectedRemoteMask::Terminal(line) => (None, Some(line), None, false),
+            SelectedRemoteMask::Spoken(selection) => (None, None, Some(selection), false),
         };
         if super::super::super::current_time_millis()? >= expires_at_millis {
             return Err("native-mask-return-expired".into());
@@ -230,7 +249,7 @@ impl Owner {
                 return_line,
                 selection,
             )?
-        } else if let Some(interaction_line) = interaction_line {
+        } else if let Some(interaction_line) = interaction_line.filter(|_| !graphical) {
             super::remote_terminal_route::plan(
                 native_offer,
                 self.host.advertisement(),
@@ -239,51 +258,14 @@ impl Owner {
                 interaction_line,
             )?
         } else {
-            let planned = conduit_conduitos_mask_offer::prepare_advertised_native_stage_from_offer(
+            graphical_plan::plan(
                 native_offer,
-                component_selection.map(|(look, recipe)| (look.into(), recipe)),
-            )
-            .map_err(|error| format!("native-mask-plan-refused:{error:?}"))?
-            .planned_mask;
-            let choices = [
-                (
-                    conduit_core::PortDirection::Input,
-                    &planned.mask.face_input.front_port_id,
-                    face_line,
-                ),
-                (
-                    conduit_core::PortDirection::Output,
-                    &planned.mask.show_output.front_port_id,
-                    return_line,
-                ),
-            ]
-            .map(
-                |(direction, port, line)| conduit_planner::ExternalForeLineChoice {
-                    host_id: native_offer.host_id.clone(),
-                    boot_id: native_offer.boot_id.clone(),
-                    direction,
-                    front_port_id: port.clone(),
-                    track: conduit_core::ConnectionTrack::Payload,
-                    peer_host_id: self.host.advertisement().host_id.clone(),
-                    peer_boot_id: self.host.advertisement().boot_id.clone(),
-                    line_id: line.line_id.clone(),
-                },
-            );
-            let mut bases = vec![
-                face_line.binding.base.clone(),
-                return_line.binding.base.clone(),
-            ];
-            bases.sort();
-            bases.dedup();
-            let plan = conduit_planner::bind_external_fore_lines(
-                &planned.plan,
-                &choices,
-                &[face_line.clone(), return_line.clone()],
-                &bases,
-            )
-            .map_err(|error| format!("native-mask-lines-refused:{error:?}"))?;
-            conduit_face::PlannedMaskPlot::admit(&planned.mask, &plan)
-                .map_err(|error| format!("native-mask-fore-refused:{error:?}"))?
+                self.host.advertisement(),
+                component_selection,
+                face_line,
+                return_line,
+                interaction_line,
+            )?
         };
         let selected_input = planned
             .plan
@@ -297,6 +279,9 @@ impl Owner {
             conduit_conduitos_mask_offer::READ_ONLY_INTERACTION_PROFILE
                 | conduit_conduitos_mask_offer::READ_ONLY_COLLECTION_INTERACTION_PROFILE
         );
+        if graphical && native_read_only && interaction_line.is_some() {
+            return Err("native-read-only-mask-cannot-admit-interaction-Line".into());
+        }
         if native_read_only
             && (!selected_input.resources.is_empty() || !selected_input.authority.is_empty())
         {
@@ -380,7 +365,10 @@ impl Owner {
                 &previous_route.face_line,
                 &previous_route.return_line,
                 previous_route.expires_at_millis,
-                SelectedRemoteMask::Native(Some((look, recipe))),
+                SelectedRemoteMask::Native(
+                    Some((look, recipe)),
+                    previous_route.interaction_line.as_ref(),
+                ),
             )
             .and_then(|route| {
                 self.select_component_face_route(&route)?;
@@ -444,14 +432,19 @@ impl Owner {
         if route.read_only {
             return Err("native-mask-has-no-interaction-authority".into());
         }
-        if route.interaction_line.is_some() {
-            let bytes = serde_json::to_vec(interaction)
-                .map_err(|error| format!("native-mask-interaction-encoding:{error}"))?;
-            route
-                .seal
-                .validate_interaction_payload(bytes.len())
-                .map_err(|error| format!("native-mask-interaction-refused:{error:?}"))?;
+        let line = route
+            .interaction_line
+            .as_ref()
+            .ok_or("native-mask-has-no-original-interaction-Line")?;
+        if route.seal.interaction_line.as_ref() != Some(&line.admitted_line()) {
+            return Err("native-mask-interaction-Line-differs-from-original-route".into());
         }
+        let bytes = serde_json::to_vec(interaction)
+            .map_err(|error| format!("native-mask-interaction-encoding:{error}"))?;
+        route
+            .seal
+            .validate_interaction_payload(bytes.len())
+            .map_err(|error| format!("native-mask-interaction-refused:{error:?}"))?;
         Ok(())
     }
 

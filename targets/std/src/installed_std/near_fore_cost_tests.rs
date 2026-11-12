@@ -41,7 +41,11 @@ fn prepared_validation_and_refusal_keep_capacity_and_report_component_cost() {
             let warm = start.elapsed();
             assert_eq!(hot_allocations, 0);
             assert_eq!(evaluator.output_capacity(), capacity);
-            println!("FORE_COST profile={label} trial={trial} preparation_wall_ns={} preparation_allocations={prep_allocations} calls=16 warm_wall_ns={} hot_allocations={hot_allocations}", preparation.as_nanos(), warm.as_nanos());
+            println!(
+                "FORE_COST profile={label} trial={trial} preparation_wall_ns={} preparation_allocations={prep_allocations} calls=16 warm_wall_ns={} hot_allocations={hot_allocations}",
+                preparation.as_nanos(),
+                warm.as_nanos()
+            );
         }
     }
     let tight = source.replace("0.1Hz", "0.000000001Hz");

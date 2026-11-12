@@ -40,7 +40,9 @@ fn prepared_with_format(
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles).unwrap();
     conduit_semantic_catalog::install_microphone_clip_catalogs(&mut startup, &mut profiles)
         .unwrap();
-    let source = format!("plot microphone-remote-fixture {{\n microphone: media/capture-microphone-clip\n \"{request}\" >> microphone.request\n}}.\n");
+    let source = format!(
+        "plot microphone-remote-fixture {{\n microphone: media/capture-microphone-clip\n \"{request}\" >> microphone.request\n}}.\n"
+    );
     let checked = conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(&source),
         &startup,

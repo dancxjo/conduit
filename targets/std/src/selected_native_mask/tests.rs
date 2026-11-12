@@ -13,12 +13,35 @@ fn selected(
     conduit_host_make::CheckedHostConfiguration,
     conduit_host_make::HostImage,
 ) {
+    selected_profile(memory, false)
+}
+fn selected_input(
+    memory: u32,
+) -> (
+    conduit_host_make::CheckedHostConfiguration,
+    conduit_host_make::HostImage,
+) {
+    selected_profile(memory, true)
+}
+fn selected_profile(
+    memory: u32,
+    input: bool,
+) -> (
+    conduit_host_make::CheckedHostConfiguration,
+    conduit_host_make::HostImage,
+) {
+    let input_need = if input {
+        r#"  need = {id: "input/main", class: "conduit.resource/conduitos-human-input@1", slots: 1, bytes: 1}
+"#
+    } else {
+        ""
+    };
     let source = include_str!("../../profiles/raspberry-pi-3-tick-workset.host.conduit")
         .replace("  capability =", &format!(r#"  base = {{kind: "display/scanout", implementation: "display/linear-framebuffer@1", initialization: {{backend: "KMSDRM", width: 640, height: 480}}}}
   need = {{id: "display/main", class: "face/surface", slots: 1, bytes: 1228800}}
   need = {{id: "display/show", class: "face.resource/show@1", slots: 1, bytes: 1}}
   need = {{id: "display/memory", class: "conduit.resource/runtime-memory@1", slots: {memory}, bytes: {memory}}}
-  capability ="#));
+{input_need}  capability ="#));
     let catalog = conduit_workspace_make::catalog();
     let packages = conduit_workspace_make::package_set();
     let checked = check_host_configuration(
@@ -273,3 +296,6 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
     drop(host);
     assert_eq!(observed.load(std::sync::atomic::Ordering::Acquire), 0);
 }
+
+#[path = "interactive_tests.rs"]
+mod interactive_tests;

@@ -47,7 +47,7 @@ impl RuntimeFaceReceiver {
         }
         // A single bounded slot: never drain an unbounded producer queue.
         if let Ok(frame) = self.0.try_recv() {
-            if !owner.runtime_face_is_current(&frame) {
+            if !owner.runtime_face_scope_matches_current(&frame) {
                 return Err(
                     "committed Face differs from current Body/Host/Boot/Plan/Play/workset".into(),
                 );
@@ -65,13 +65,20 @@ impl RuntimeFaceReceiver {
                     );
                 }
             }
-            owner.runtime_face = Some(frame);
+            if frame.scope().is_retired() {
+                owner.runtime_face = None;
+            } else {
+                owner.runtime_face = Some(frame);
+            }
         }
         Ok(())
     }
 }
 impl Owner {
     fn runtime_face_is_current(&self, frame: &CommittedFaceContribution) -> bool {
+        !frame.scope().is_retired() && self.runtime_face_scope_matches_current(frame)
+    }
+    fn runtime_face_scope_matches_current(&self, frame: &CommittedFaceContribution) -> bool {
         if self.workset_recovery_required || self.execution_persistence_pending {
             return false;
         }

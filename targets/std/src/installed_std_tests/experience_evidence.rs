@@ -176,7 +176,8 @@ fn run(
     }
     let source = format!(
         "plot evidence-proof {{\n input: {SOURCE}(value = \"{}\")\n project: experience/project-evidence\n result: {SINK}(value = \"{}\")\n input.output >> project.request\n project.context >> result.input\n}}\n",
-        hex(&request.canonical_bytes().unwrap()), hex(&expected.canonical_bytes().unwrap()),
+        hex(&request.canonical_bytes().unwrap()),
+        hex(&expected.canonical_bytes().unwrap()),
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_plot(&checked, "evidence-proof", &profile).unwrap();

@@ -1,9 +1,9 @@
 //! All canonical output buffers and schema span tables prepare before execution.
 use super::*;
 use conduit_core::{
-    PreparedStructuredComposer as Composer,
+    validate_canonical_structured_value as validate, PreparedStructuredComposer as Composer,
     StructuredCompositionPreparationRefusal as PreparationRefusal,
-    StructuredInfoRefusal as Refusal, validate_canonical_structured_value as validate,
+    StructuredInfoRefusal as Refusal,
 };
 const UNIT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/read-unit.value"));
 /// Inline state, allocator overhead and caller-owned input are separate charges.

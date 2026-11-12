@@ -50,7 +50,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AddressDetectBack {
                     return StepOutcome::Progress;
                 }
                 (HostCallDisposition::Denied, _, _) => {
-                    return step_fail(FailureCode::HostCallDenied, 2)
+                    return step_fail(FailureCode::HostCallDenied, 2);
                 }
                 (_, _, Some(failure)) => return StepOutcome::Fail(failure),
                 _ => return step_fail(FailureCode::HostCallFailed, 13),

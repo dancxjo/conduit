@@ -124,6 +124,10 @@ fn package_catalog() -> PackageCatalogContribution {
         conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION.into(),
         source_check_initialization::metadata(),
     );
+    implementations.insert(
+        conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION.into(),
+        recognition_initialization::metadata(),
+    );
     for (write, implementation) in [
         (true, conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION),
         (false, conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION),
@@ -133,11 +137,9 @@ fn package_catalog() -> PackageCatalogContribution {
             text_file_initialization::metadata(write),
         );
     }
-    for offer in [
-        conduit_std_offers::measurement_plot_std_offer(),
-        conduit_std_offers::measurement_chart_face_std_offer(1)
-            .expect("finite metadata descriptor"),
-    ] {
+    for offer in
+        conduit_std_offers::measurement_chart_cpu_offers().expect("finite standard CPU inventory")
+    {
         implementations.insert(
             offer.implementation.implementation_id.as_str().into(),
             cpu_initialization::operation_metadata(&offer),

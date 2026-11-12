@@ -11,6 +11,9 @@ use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, HostCallId, PortId, RequestId,
 };
 
+#[path = "measurement_chart_face_back/flow.rs"]
+pub(in crate::installed_std) mod flow;
+
 pub(super) static FACTORY: BackFactory = BackFactory {
     implementation_id: MEASUREMENT_CHART_FACE_IMPLEMENTATION,
     budget,
@@ -115,6 +118,12 @@ const _: () = assert!(
 );
 pub(super) fn configuration(placement: &PlannedGear) -> Result<(&str, u32), String> {
     let expected = measurement_chart_face_std_offer(workspace_bytes()).map_err(str::to_owned)?;
+    configuration_for(placement, &expected)
+}
+fn configuration_for<'a>(
+    placement: &'a PlannedGear,
+    expected: &conduit_core::CapabilityOffer,
+) -> Result<(&'a str, u32), String> {
     if placement.kind_id != expected.kind_id
         || placement.kind_contract_revision != expected.kind_contract_revision
         || placement.semantic_contract != expected.semantic_contract
@@ -201,3 +210,6 @@ mod tests;
 #[cfg(test)]
 #[path = "measurement_chart_face_back/image_tests.rs"]
 mod image_tests;
+
+#[cfg(test)]
+mod graph_tests;

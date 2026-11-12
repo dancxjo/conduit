@@ -156,3 +156,31 @@ fn one_point_has_visible_marker_and_small_extent_is_explicit_refusal() {
     assert!(found);
     assert!(NativeFaceScene::prepare_with_input(face, 100, 100, false).is_err());
 }
+
+#[test]
+fn four_maximum_series_fit_standard_interactive_scene_and_chart_projection_bound() {
+    let face = face(
+        &["Temperature", "Humidity", "Pressure", "Light"],
+        conduit_data::MAXIMUM_MEASUREMENT_PLOT_POINTS,
+    );
+    let bounds = NativeFaceScene::standard_interactive_memory_bounds(&face).unwrap();
+    let scene = NativeFaceScene::prepare(face.clone(), 1024, 600).unwrap();
+    assert!(scene.standard_interactive_retained_backing_bytes().unwrap() <= bounds.retained_bytes);
+    assert!(
+        scene.frame().unwrap().retained_backing_bytes().unwrap() <= bounds.frame_transient_bytes
+    );
+    let chart = chart(&face, 0).unwrap().unwrap();
+    let labels = chart.labels();
+    let joined = labels.join("\n");
+    let mut actual = chart.series.capacity() * core::mem::size_of::<Series<'_>>()
+        + labels.capacity() * core::mem::size_of::<String>()
+        + joined.capacity();
+    for series in &chart.series {
+        actual += series.data.points().physical_capacity()
+            * core::mem::size_of::<conduit_data::MeasurementPlotPoint>();
+    }
+    for label in labels {
+        actual += label.capacity();
+    }
+    assert!(actual <= transient_backing_bound().unwrap());
+}

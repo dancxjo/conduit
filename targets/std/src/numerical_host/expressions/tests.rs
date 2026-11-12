@@ -108,7 +108,9 @@ fn a_late_unsupported_native_law_and_foreign_source_leave_the_prior_batch_intact
     host.prepare_expression_realizations(&expression(". + 9"))
         .unwrap();
     let before = host.advertisement().clone();
-    let mixed = authored("type Small = U64 in 0..=10\nplot arithmetic (\n >> wide: U64\n >> small: Small\n result: U64 >>\n narrow: Small >>\n) {\n wide >> (. + 1) >> result\n small >> (.) >> narrow\n}\n");
+    let mixed = authored(
+        "type Small = U64 in 0..=10\nplot arithmetic (\n >> wide: U64\n >> small: Small\n result: U64 >>\n narrow: Small >>\n) {\n wide >> (. + 1) >> result\n small >> (.) >> narrow\n}\n",
+    );
     let why = host
         .prepare_expression_realizations(&mixed.expanded)
         .unwrap_err();
@@ -136,7 +138,9 @@ fn a_source_exceeding_the_finite_batch_and_generation_exhaustion_never_partially
         .map(|i| format!("(. + {i})"))
         .collect::<Vec<_>>()
         .join(" >> ");
-    let large = authored(&format!("plot arithmetic (\n >> value: U64\n result: U64 >>\n) {{\n value >> {stages} >> result\n}}\n"));
+    let large = authored(&format!(
+        "plot arithmetic (\n >> value: U64\n result: U64 >>\n) {{\n value >> {stages} >> result\n}}\n"
+    ));
     let mut host = StdHost::new();
     let before = host.advertisement().clone();
     assert!(host

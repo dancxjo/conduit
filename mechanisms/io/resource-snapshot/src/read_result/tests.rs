@@ -96,7 +96,7 @@ fn invalid_indices_and_oversized_payload_refuse_without_replacing_last_result() 
 #[test]
 fn decoder_refuses_count_overflow_and_semantically_invalid_order() {
     use conduit_core::{
-        PreparedStructuredComposer as Composer, validate_canonical_structured_value as validate,
+        validate_canonical_structured_value as validate, PreparedStructuredComposer as Composer,
     };
     let mut count = Composer::try_from_static_schema(
         include_bytes!(concat!(env!("OUT_DIR"), "/read-count.type")),

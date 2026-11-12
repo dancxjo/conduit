@@ -65,6 +65,19 @@ pub struct PreparedTuplePairEncoder {
 }
 
 impl PreparedTuplePairEncoder {
+    /// Actual retained heap payload, excluding inline Self/allocator overhead.
+    /// These fields currently OWN prefix/middle/output; none is counted as flash.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        [
+            self.left_kind.0.capacity(),
+            self.right_kind.0.capacity(),
+            self.prefix.capacity(),
+            self.middle.capacity(),
+            self.output.capacity(),
+        ]
+        .into_iter()
+        .try_fold(0usize, |sum, bytes| sum.checked_add(bytes))
+    }
     pub fn new(
         left_kind: KindId,
         left_maximum: u32,

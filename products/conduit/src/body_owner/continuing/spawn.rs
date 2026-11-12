@@ -16,16 +16,18 @@ impl Owner {
             .realization()
             .expect("Plan just committed")
             .clone();
-        let has_runtime_face = proposed
-            .plan
-            .plots
-            .iter()
-            .flat_map(|plot| &plot.plan.fragments)
-            .flat_map(|fragment| &fragment.placements)
-            .any(|placement| {
-                placement.implementation_id.as_str()
-                == conduit_std_host::measurement_chart_offer::MEASUREMENT_CHART_FACE_IMPLEMENTATION
-            });
+        let has_runtime_face =
+            proposed
+                .plan
+                .plots
+                .iter()
+                .flat_map(|plot| &plot.plan.fragments)
+                .flat_map(|fragment| &fragment.placements)
+                .any(|placement| {
+                    matches!(placement.implementation_id.as_str(),
+                    conduit_std_host::measurement_chart_offer::MEASUREMENT_CHART_FACE_IMPLEMENTATION
+                    | conduit_std_offers::MEASUREMENT_CHART_FLOW_FACE_IMPLEMENTATION)
+                });
         let (mut face_sender, face_receiver) = super::super::runtime_face::channel();
         let mut creche = self.take_creche_execution(creche_binding);
         let creche_custody = creche.as_ref().map(|run| run.custody.clone());

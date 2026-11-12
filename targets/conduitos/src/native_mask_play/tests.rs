@@ -525,3 +525,45 @@ mod read_only;
 
 #[path = "tests/cold.rs"]
 mod cold;
+
+#[test]
+fn exact_interaction_returns_same_rearmed_kernel_storage_and_evidence() {
+    let (ephemeral, mut compositor) = fixture_scanout(73);
+    let request = ephemeral.renderer_request();
+    let plan = request.prepared_show().planned_mask.clone();
+    let face = request.face().clone();
+    ephemeral.cancel().unwrap();
+    let profile = NativeMaskStorageProfile::Standard;
+    let bytes = RetainedNativeMaskStorage::required_store_bytes(profile).unwrap();
+    let storage = RetainedNativeMaskStorage::prepare(&plan, profile, bytes).unwrap();
+    let pending = PreparedNativeMaskPlay::prepare_cold_with_storage(
+        &plan,
+        &face,
+        73,
+        "front/native-mask",
+        "surface/native-mask",
+        HostBaseId::from("display/native-mask"),
+        profile,
+        storage,
+    )
+    .unwrap()
+    .start()
+    .unwrap();
+    let staged = stage(&pending, &mut compositor);
+    compositor
+        .compose_frame(&mut FixturePixelTarget {
+            writes: 0,
+            fail: false,
+        })
+        .unwrap();
+    let ack = compositor.scanout_acknowledgement(&staged, 1).unwrap();
+    let session = pending.complete_render(&ack).unwrap();
+    let show = session.show().clone();
+    let identity = session.backing_identity();
+    let interaction = fixture_interaction(&session);
+    let (correlation, storage, evidence) = session.interact_retained(interaction.clone()).unwrap();
+    assert_eq!(correlation.interaction, interaction);
+    assert_eq!(correlation.show_id, show.show_id);
+    assert!(evidence.receipt.kernel_signs > 0);
+    assert_eq!(storage.backing_identity(), identity);
+}

@@ -373,7 +373,7 @@ fn exchange_provider(
         ResponseFrame::Completed { response } => conduit_web::decode_response(&response)
             .map_err(|_| "isolated HTTP provider returned malformed response".to_string())?,
         ResponseFrame::Refused { reason } => {
-            return Err(format!("isolated HTTP refused: {reason}"))
+            return Err(format!("isolated HTTP refused: {reason}"));
         }
         other => return Err(format!("isolated HTTP provider returned {other:?}")),
     };

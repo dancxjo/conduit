@@ -89,7 +89,7 @@ impl crate::StdHost {
                     definition,
                     provider,
                     format!("native worker profile: {e:?}"),
-                ))
+                ));
             }
         };
         let (registry, advertisement, mut ledger) =

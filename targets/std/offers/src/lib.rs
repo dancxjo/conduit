@@ -62,7 +62,9 @@ pub use structured_values::*;
 mod current_sample;
 pub use current_sample::*;
 mod combine_latest;
+mod combine_latest_schema;
 pub use combine_latest::*;
+pub use combine_latest_schema::*;
 mod thermostat;
 pub use thermostat::*;
 mod todo;
@@ -354,3 +356,8 @@ mod measurement_plot;
 pub use measurement_plot::*;
 mod measurement_chart;
 pub use measurement_chart::*;
+
+mod measurement_chart_constructor;
+pub use measurement_chart_constructor::*;
+mod measurement_chart_flow;
+pub use measurement_chart_flow::*;

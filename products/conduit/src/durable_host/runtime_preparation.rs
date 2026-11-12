@@ -189,6 +189,16 @@ fn prepare_runtime_with_composition(
     if source_selection.is_some() && selected_image.is_none() {
         return Err("selected File compiler requires its installed IMAGE".into());
     }
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    let mut image_recognizer = if selected_image.is_some() && scanout.is_some() {
+        installation
+            .selected_host_configuration
+            .as_ref()
+            .ok_or("selected IMAGE lost Host source")?
+            .prepare_recognizer()?
+    } else {
+        None
+    };
     if selected_image.is_some() {
         if todo.is_some()
             || thermostat.is_some()
@@ -204,7 +214,11 @@ fn prepare_runtime_with_composition(
             .ok_or("selected IMAGE lost its source")?;
         #[cfg(all(target_os = "linux", feature = "native-display"))]
         if scanout.is_some() {
-            selection.require_prepared_image_initialization(true, source_selection.is_some())?;
+            selection.require_image_equipment_initialization(
+                true,
+                source_selection.is_some(),
+                image_recognizer.is_some(),
+            )?;
         } else {
             selection.require_prepared_image_initialization(false, source_selection.is_some())?;
         }
@@ -290,13 +304,24 @@ fn prepare_runtime_with_composition(
                     conduit_workspace_make::CheckedNativeMaskInitialization::from_configuration(
                         &checked,
                     )?;
-                return StdHost::from_selected_timer_and_native_mask_image(
+                let input = parameters
+                    .input()
+                    .is_some()
+                    .then(|| {
+                        output
+                            .prepared_input()
+                            .map_err(|error| format!("selected SDL input not prepared:{error:?}"))
+                    })
+                    .transpose()?;
+                return StdHost::from_selected_timer_native_mask_with_equipment_image(
                     config,
                     image,
                     &conduit_workspace_make::catalog(),
                     &checked,
                     parameters,
                     output,
+                    image_recognizer.take(),
+                    input,
                 );
             }
             if installation

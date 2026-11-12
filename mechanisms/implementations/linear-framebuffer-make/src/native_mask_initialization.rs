@@ -12,6 +12,7 @@ pub struct CheckedNativeMaskInitialization {
     surface: ResourceBudget,
     show: ResourceBudget,
     memory: ResourceBudget,
+    input: Option<ResourceBudget>,
 }
 impl CheckedNativeMaskInitialization {
     pub fn from_configuration(checked: &CheckedHostConfiguration) -> Result<Self, String> {
@@ -38,11 +39,25 @@ impl CheckedNativeMaskInitialization {
         if memory.slots == 0 || memory.bytes < u64::from(memory.slots) {
             return Err("native Mask runtime memory lacks positive byte-backed capacity".into());
         }
+        let mut inputs = checked
+            .configuration()
+            .resources
+            .iter()
+            .filter(|pool| pool.class == "conduit.resource/conduitos-human-input@1");
+        let input = inputs.next().cloned();
+        if inputs.next().is_some()
+            || input
+                .as_ref()
+                .is_some_and(|pool| pool.slots != 1 || pool.bytes == 0)
+        {
+            return Err("native interaction requires one explicit single-slot input pool".into());
+        }
         Ok(Self {
             scanout,
             surface,
             show,
             memory,
+            input,
         })
     }
     pub fn configuration_id(&self) -> &str {
@@ -56,6 +71,9 @@ impl CheckedNativeMaskInitialization {
     }
     pub fn show(&self) -> &ResourceBudget {
         &self.show
+    }
+    pub fn input(&self) -> Option<&ResourceBudget> {
+        self.input.as_ref()
     }
     pub fn memory(&self) -> &ResourceBudget {
         &self.memory

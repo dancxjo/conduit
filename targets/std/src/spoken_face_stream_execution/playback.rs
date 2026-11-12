@@ -23,14 +23,18 @@ const MAXIMUM_CAPTURE_WAV_BYTES: u64 = 44 + 30 * 48_000 * 4;
 /// Short utterances below its startup lead begin on input close.
 pub fn spoken_playback_plot(language: &conduit_language::LanguageRequest) -> String {
     let language_request = crate::hosted_language::language_request_literal(language);
-    format!("plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {{\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n speaker: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n}}.\n")
+    format!(
+        "plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {{\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n speaker: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n}}.\n"
+    )
 }
 
 /// The two effects are explicit siblings of one converted stream. Neither a
 /// later synthesis nor a second Play can stand in for the listener's PCM.
 pub fn spoken_playback_with_capture_plot(language: &conduit_language::LanguageRequest) -> String {
     let language_request = crate::hosted_language::language_request_literal(language);
-    format!("plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {{\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n speaker: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n convert.converted >> artifact.audio\n}}.\n")
+    format!(
+        "plot spoken_face_playback (\n >> segments: SpeakableText...|\n) {{\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n speaker: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> speaker.audio\n convert.converted >> artifact.audio\n}}.\n"
+    )
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

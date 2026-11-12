@@ -53,7 +53,7 @@ impl<const PORTS: usize> StepBack<PORTS> for HousePromptBack {
                     return StepOutcome::Progress;
                 }
                 (HostCallDisposition::Denied, _, _) => {
-                    return step_fail(FailureCode::HostCallDenied, 1)
+                    return step_fail(FailureCode::HostCallDenied, 1);
                 }
                 (_, _, Some(failure)) => return StepOutcome::Fail(failure),
                 _ => return step_fail(FailureCode::HostCallFailed, 2),
@@ -168,7 +168,7 @@ impl HousePromptHost {
             match conduit_tongues::prepare_house_generation_request(detection, context, 2_048) {
                 Ok(request) => request,
                 Err(conduit_tongues::HousePromptRefusal::NotAddressed) => {
-                    return Ok(HostCompletion::NotAddressed)
+                    return Ok(HostCompletion::NotAddressed);
                 }
                 Err(error) => return Err(format!("House prompt projection: {error:?}")),
             };

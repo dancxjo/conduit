@@ -43,6 +43,29 @@ impl NativeMaskInteractionSession {
         mut self,
         interaction: FaceInteraction,
     ) -> Result<MaskInteractionCorrelation, NativeMaskPlayError> {
+        self.complete_interaction(interaction)
+    }
+    /// Finish this exact interaction and return the original drained/rearmed
+    /// stores. Evidence transfer is not owner action acceptance or durable ACK.
+    pub fn interact_retained(
+        mut self,
+        interaction: FaceInteraction,
+    ) -> Result<
+        (
+            MaskInteractionCorrelation,
+            RetainedNativeMaskStorage,
+            RetiredNativeMaskEvidence,
+        ),
+        NativeMaskPlayError,
+    > {
+        let correlation = self.complete_interaction(interaction)?;
+        let (storage, evidence) = self.take_completed_retained()?;
+        Ok((correlation, storage, evidence))
+    }
+    fn complete_interaction(
+        &mut self,
+        interaction: FaceInteraction,
+    ) -> Result<MaskInteractionCorrelation, NativeMaskPlayError> {
         if self.play.read_only {
             return Err(NativeMaskPlayError::Shape);
         }
@@ -95,6 +118,11 @@ impl NativeMaskInteractionSession {
     ) -> Result<(RetainedNativeMaskStorage, RetiredNativeMaskEvidence), NativeMaskPlayError> {
         self.complete_input(None)?;
         self.finish(None)?;
+        self.take_completed_retained()
+    }
+    fn take_completed_retained(
+        mut self,
+    ) -> Result<(RetainedNativeMaskStorage, RetiredNativeMaskEvidence), NativeMaskPlayError> {
         let mut receipt = self
             .play
             .receipt

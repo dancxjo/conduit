@@ -131,7 +131,8 @@ pub(crate) use body::submit_attached_terminal_interaction;
 use body::HostSource;
 #[allow(unused_imports)]
 pub(crate) use body::{
-    acknowledge_native_mask_show, select_native_component_mask, select_native_mask_route,
+    acknowledge_native_mask_show, select_graphical_native_mask_route, select_native_component_mask,
+    select_native_mask_route,
 };
 #[allow(unused_imports)]
 // Native return consumes the expiry-bearing entrance after its route lands.
@@ -142,8 +143,8 @@ pub(crate) use body::{
 };
 pub(crate) use body::{
     attest_admission_receipt, attest_image_return_acknowledgement, begin_carrier,
-    carrier_mask_route, carrier_receiver, carrier_show, complete_carrier, renew_carrier_presence,
-    retire_carrier,
+    carrier_interaction, carrier_mask_route, carrier_receiver, carrier_show, complete_carrier,
+    renew_carrier_presence, retire_carrier,
 };
 pub(crate) use body::{
     begin_image_member_return, begin_member_return, complete_member_return, leave_member,
@@ -1460,6 +1461,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyMemberCarrierComplete { token, .. }
         | Request::BodyMemberCarrierMaskRoute { token, .. }
         | Request::BodyMemberCarrierShow { token, .. }
+        | Request::BodyMemberCarrierInteraction { token, .. }
         | Request::BodyMemberPresenceRenew { token, .. }
         | Request::BodyMemberCarrierInspect { token, .. }
         | Request::BodyMemberCarrierRetire { token, .. }
@@ -1537,6 +1539,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyMemberLeave { .. }
                 | Request::BodyMemberCarrierMaskRoute { .. }
                 | Request::BodyMemberCarrierShow { .. }
+                | Request::BodyMemberCarrierInteraction { .. }
                 | Request::BodyMemberPresenceRenew { .. }
                 | Request::BodyMemberCarrierInspect { .. }
                 | Request::BodyMemberCarrierRetire { .. }
@@ -1822,9 +1825,15 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             session,
             face_line,
             return_line,
+            interaction_line,
             ..
         } if protocol == PROTOCOL => runtime
-            .owned_body_member_carrier_mask_route(&session, &face_line, &return_line)
+            .owned_body_member_carrier_mask_route(
+                &session,
+                &face_line,
+                &return_line,
+                interaction_line.as_deref(),
+            )
             .map(|route| Response::BodyNativeMaskRoute {
                 protocol: PROTOCOL,
                 route: Box::new(route),
@@ -1839,6 +1848,20 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         } if protocol == PROTOCOL => runtime
             .owned_body_member_carrier_show(&session, &request, &show)
             .map(|()| Response::BodyNativeMaskShowAccepted { protocol: PROTOCOL })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierInteraction {
+            protocol,
+            session,
+            request,
+            show,
+            interaction,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_interaction(&session, &request, &show, &interaction)
+            .map(|result| Response::BodyInteraction {
+                protocol: PROTOCOL,
+                result: Box::new(result),
+            })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberPresenceRenew {
             protocol,
@@ -1969,6 +1992,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             face_line,
             return_line,
             terminal_interaction_line,
+            native_interaction_line,
             spoken_selection,
             expires_at_millis,
             ..
@@ -1978,6 +2002,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 &face_line,
                 &return_line,
                 terminal_interaction_line.as_deref(),
+                native_interaction_line.as_deref(),
                 spoken_selection.as_deref(),
                 expires_at_millis,
             )

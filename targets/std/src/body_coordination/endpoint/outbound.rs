@@ -59,10 +59,10 @@ impl CoordinationEndpoint {
             {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle => {
-                    return Err("coordination endpoint idle before offer".into())
+                    return Err("coordination endpoint idle before offer".into());
                 }
                 SchedulerStatus::Drained => {
-                    return Err("coordination endpoint completed before offer".into())
+                    return Err("coordination endpoint completed before offer".into());
                 }
                 SchedulerStatus::Cancelled => return Err("coordination endpoint cancelled".into()),
             }

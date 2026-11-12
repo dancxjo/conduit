@@ -34,12 +34,10 @@ fn four_labelled_lines_roundtrip_order_points_and_standard_intrinsic_wrapping() 
             .collect::<Vec<_>>(),
         names
     );
-    assert!(
-        chart
-            .series()
-            .iter()
-            .all(|item| item.series().points().len() == 32)
-    );
+    assert!(chart
+        .series()
+        .iter()
+        .all(|item| item.series().points().len() == 32));
     let canonical = conduit_core::StructuredInfoValue::leaf(measurement_chart_type(), encoded)
         .unwrap()
         .canonical_bytes()

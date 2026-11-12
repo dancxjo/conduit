@@ -10,6 +10,10 @@ pub(super) struct AdmittedSnapshot {
     mask_plan: PlanId,
     face: FaceContentId,
     revision: u64,
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    interaction_line: Option<conduit_core::AdmittedLine>,
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    interactions_admitted: bool,
 }
 impl AdmittedSnapshot {
     pub(super) fn bind(
@@ -36,6 +40,10 @@ impl AdmittedSnapshot {
             mask_plan: route.planned_mask.plan.plan_id.clone(),
             face: face.identity.clone(),
             revision: face.revision,
+            #[cfg(all(target_os = "linux", feature = "native-display"))]
+            interaction_line: route.interaction_line.clone(),
+            #[cfg(all(target_os = "linux", feature = "native-display"))]
+            interactions_admitted: snapshot.interactions_admitted,
         })
     }
     pub(super) fn validate_show(&self, show: &MaskShow) -> Result<(), String> {
@@ -60,7 +68,8 @@ impl AdmittedSnapshot {
             || route.face_id != face.identity
             || route.face_revision != face.revision
             || route.face_basis != face.basis
-            || route.interaction_line.is_some()
+            || route.interaction_line != self.interaction_line
+            || route.interaction_line.is_some() != self.interactions_admitted
         {
             return Err("native frame differs from the authenticated owner snapshot".into());
         }

@@ -41,10 +41,10 @@ impl<const PORTS: usize> StepBack<PORTS> for TimedPatternBack {
                     return StepOutcome::Progress;
                 }
                 (HostCallDisposition::Cancelled, _, _) => {
-                    return step_fail(FailureCode::Cancelled, 0)
+                    return step_fail(FailureCode::Cancelled, 0);
                 }
                 (HostCallDisposition::Failed, None, Some(failure)) => {
-                    return StepOutcome::Fail(failure)
+                    return StepOutcome::Fail(failure);
                 }
                 _ => return step_fail(FailureCode::InvalidLifecycle, 231),
             }

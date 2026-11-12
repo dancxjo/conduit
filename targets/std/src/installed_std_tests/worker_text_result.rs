@@ -23,7 +23,10 @@ fn pending_text(
     InstalledRemoteFragment,
     HostCallRequest,
 ) {
-    let source = format!("plot worker_text {{\n upper: text/upper\n show: face/text(\"Worker result\")\n {} >> upper >> show\n}}\n", serde_json::to_string(text).unwrap());
+    let source = format!(
+        "plot worker_text {{\n upper: text/upper\n show: face/text(\"Worker result\")\n {} >> upper >> show\n}}\n",
+        serde_json::to_string(text).unwrap()
+    );
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();

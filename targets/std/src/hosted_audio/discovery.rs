@@ -88,7 +88,7 @@ fn discover_at(
             return Err(PlaybackDiscoveryError::CommandFailed(format!(
                 "{other:?}: {}",
                 String::from_utf8_lossy(&report.stderr.retained).trim()
-            )))
+            )));
         }
     }
     let stdout = std::str::from_utf8(&report.stdout.retained)
@@ -209,7 +209,9 @@ mod process_tests {
             std::fs::write(&program, script).unwrap();
             std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
         };
-        write("#!/bin/sh\n[ \"$1\" = --playback ] && [ \"$2\" = -l ] && [ \"$LC_ALL\" = C ] || exit 90\nprintf 'card 999: Fixture [Fixture], device 0: Output [Output]\\n'\n");
+        write(
+            "#!/bin/sh\n[ \"$1\" = --playback ] && [ \"$2\" = -l ] && [ \"$LC_ALL\" = C ] || exit 90\nprintf 'card 999: Fixture [Fixture], device 0: Output [Output]\\n'\n",
+        );
         let observed =
             discover_at(&program, Path::new("/nonexistent"), Duration::from_secs(2)).unwrap();
         assert_eq!(observed.len(), 1);

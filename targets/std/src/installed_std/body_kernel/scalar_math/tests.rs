@@ -22,7 +22,9 @@ fn plan(name: &str, port: &str, operation: &str, host: &HostAdvertisement) -> Pl
         .insert_value_kind_alias("Scalar", kind_id(SCALAR_INFO_ID))
         .unwrap();
     // The existing I64 startup contract uses raw Scalar microunits.
-    let source = format!("plot {name} (\n {port}: Scalar >>\n) {{\n source: scalar/literal(value = 2000000)\n transform: {operation}\n source.value >> transform.in\n transform.out >> {port}\n}}");
+    let source = format!(
+        "plot {name} (\n {port}: Scalar >>\n) {{\n source: scalar/literal(value = 2000000)\n transform: {operation}\n source.value >> transform.in\n transform.out >> {port}\n}}"
+    );
     let checked = conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(&source),
         &startup,

@@ -217,7 +217,7 @@ pub fn value_scan_child_steps(scan: &PlannedScanActivation) -> Result<u32, Strin
             _ => {
                 return Err(
                     "Value scan child implementation has no admitted finite step profile".into(),
-                )
+                );
             }
         }
     }

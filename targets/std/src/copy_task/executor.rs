@@ -515,7 +515,7 @@ fn execute_copy(
                         SchedulerStatus::Progress { .. } => continue,
                         SchedulerStatus::Drained | SchedulerStatus::Cancelled => break,
                         SchedulerStatus::Idle => {
-                            return Err("failed copy kernel became idle during cleanup".into())
+                            return Err("failed copy kernel became idle during cleanup".into());
                         }
                     }
                 }

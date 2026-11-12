@@ -443,7 +443,10 @@ mod remote;
 #[test]
 fn canonical_arecord_symlink_explicitly_selects_capture_for_discovery_and_audio() {
     let _process = microphone_process();
-    let script = format!("#!/bin/sh\nif [ \"$1\" != --capture ]; then printf 'card 9: Playback [Playback], device 0: Output [Output]\\n'; exit 0; fi\nshift\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n", listing());
+    let script = format!(
+        "#!/bin/sh\nif [ \"$1\" != --capture ]; then printf 'card 9: Playback [Playback], device 0: Output [Output]\\n'; exit 0; fi\nshift\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n",
+        listing()
+    );
     let (root, executable) = fixture(&script, "multimode");
     let canonical = root.join("aplay");
     fs::rename(&executable, &canonical).unwrap();

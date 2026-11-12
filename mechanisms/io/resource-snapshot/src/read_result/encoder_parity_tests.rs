@@ -88,17 +88,15 @@ fn failure_keeps_exact_previous_retry_bytes_and_encoding_allocates_nothing() {
             .unwrap();
     let mut short = [0xa5; 1];
     let unit = V::Empty;
-    assert!(
-        writer
-            .encode_into(
-                V::Variant {
-                    tag: "cancelled",
-                    payload: &unit
-                },
-                &mut short
-            )
-            .is_err()
-    );
+    assert!(writer
+        .encode_into(
+            V::Variant {
+                tag: "cancelled",
+                payload: &unit
+            },
+            &mut short
+        )
+        .is_err());
     assert_eq!(short, [0xa5; 1]);
     // Reuse the crate's existing allocator observation, installed only in tests.
     let (_, observation) = crate::append::tests::allocation_probe::observe(|| {

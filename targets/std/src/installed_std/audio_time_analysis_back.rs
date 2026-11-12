@@ -59,7 +59,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioTimeAnalysisBack {
                             R::FrameIndexOverflow => 7,
                             R::NonfiniteSample => 8,
                         },
-                    )
+                    );
                 }
             };
             if self.encoder.encode(&analysis).is_err() {

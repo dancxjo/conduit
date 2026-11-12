@@ -42,6 +42,7 @@ pub struct FaceContributionScope {
     node: NodeId,
     call: HostCallId,
     maximum_input_bytes: u32,
+    lifetime: Arc<CommitState>,
     _memory: Option<crate::kernel_preparation::ImageMemoryLease>,
 }
 impl CommittedFaceContribution {
@@ -56,6 +57,12 @@ impl CommittedFaceContribution {
     }
 }
 impl FaceContributionScope {
+    /// A shared, actual Back lifetime witness. This is not a substitute for
+    /// the receiving owner's current Body/Host/Boot/Plan/Play checks.
+    pub fn is_retired(&self) -> bool {
+        self.lifetime.revoked.load(Ordering::Acquire)
+    }
+
     pub fn body_play(&self) -> &BodyPlayIdentity {
         &self.body_play
     }
@@ -97,6 +104,7 @@ pub trait BodyFaceContributionObserver {
     ) -> Result<(), ReturnedFaceContribution>;
 }
 
+#[derive(Debug)]
 struct CommitState {
     placement: c::PlacementId,
     call: HostCallId,
@@ -289,6 +297,7 @@ impl PendingFaceContributionRoute {
             node: context.node,
             call: context.call,
             maximum_input_bytes: required.maximum_input_bytes,
+            lifetime: observation.0.clone(),
             _memory: None,
         };
         Ok(Self {
@@ -297,6 +306,14 @@ impl PendingFaceContributionRoute {
             pending: None,
             last_request: None,
         })
+    }
+    pub(crate) fn is_retired(&self) -> bool {
+        self.scope.is_retired()
+    }
+    pub(crate) fn escaped_gate_backing_bytes(&self) -> Option<usize> {
+        core::mem::size_of::<CommitState>()
+            .checked_add(2 * core::mem::size_of::<usize>())?
+            .checked_add(self.state.placement.0.capacity())
     }
     pub(crate) fn is_pending(&self) -> bool {
         self.pending.is_some()

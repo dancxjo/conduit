@@ -98,6 +98,7 @@ impl<'a> BodyKernel<'a> {
                 .is_some_and(|source| source.matches_call(operation.node, operation.call))
                 && !scalar_math::supports(operation)
                 && !super::super::measurement_plot_back::supports(operation)
+                && !super::super::measurement_chart_constructor_back::supports(operation)
                 && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
@@ -109,6 +110,8 @@ impl<'a> BodyKernel<'a> {
                 && !face(operation)
                 && operation.contract_id.as_str()
                     != crate::measurement_chart_offer::MEASUREMENT_CHART_FACE_HOST_CALL
+                && operation.contract_id.as_str()
+                    != crate::measurement_chart_flow_offer::MEASUREMENT_CHART_FLOW_FACE_HOST_CALL
                 && operation.contract_id.as_str()
                     != conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
             {
@@ -262,6 +265,7 @@ impl<'a> BodyKernel<'a> {
                 if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str())
                     && placement.implementation_id.as_str()
                         != crate::measurement_chart_offer::MEASUREMENT_CHART_FACE_IMPLEMENTATION
+                    && placement.implementation_id.as_str() != crate::measurement_chart_flow_offer::MEASUREMENT_CHART_FLOW_FACE_IMPLEMENTATION
                 {
                     let node = partition
                         .identity

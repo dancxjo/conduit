@@ -34,6 +34,7 @@ pub(super) struct CombineLatestBack {
     finish_after_commit: bool,
     terminal: bool,
     output_maximum: u32,
+    input_terminals: [bool; 2],
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for CombineLatestBack {
@@ -50,7 +51,11 @@ impl<const PORTS: usize> StepBack<PORTS> for CombineLatestBack {
                 input: PortId(input as u16),
                 output: PortId(0),
                 normal_close: normal,
-                abnormal: AssignedAbnormalTransduction::PropagateAfterDrain,
+                abnormal: if self.input_terminals[input] {
+                    AssignedAbnormalTransduction::PropagateAfterDrain
+                } else {
+                    AssignedAbnormalTransduction::NotAccepted
+                },
                 cancellation: AssignedCancellationTransduction::NotCancellable,
             });
         }
@@ -187,6 +192,17 @@ impl<const PORTS: usize> StepBack<PORTS> for CombineLatestBack {
 }
 
 impl CombineLatestBack {
+    pub(super) fn retained_backing_bytes(&self) -> Option<usize> {
+        [
+            self.left.capacity(),
+            self.right.capacity(),
+            self.candidate.capacity(),
+            core::mem::size_of::<PreparedTuplePairEncoder>(),
+            self.encoder.retained_backing_bytes()?,
+        ]
+        .into_iter()
+        .try_fold(0usize, |sum, bytes| sum.checked_add(bytes))
+    }
     fn encode_pair(&mut self) -> Option<usize> {
         let left = &self.left[..self.left_len?];
         let right = &self.right[..self.right_len?];
@@ -232,16 +248,48 @@ fn validate(
     String,
 > {
     let (left, right, latest) = exact_contracts(placement)?;
-    let expected = conduit_semantic_catalog::combine_latest_semantic_contract(left, right)
+    let input_terminals = [
+        placement
+            .inputs
+            .first()
+            .ok_or("missing latest left Port")?
+            .abnormal_kind
+            .is_some(),
+        placement
+            .inputs
+            .get(1)
+            .ok_or("missing latest right Port")?
+            .abnormal_kind
+            .is_some(),
+    ];
+    let expected = if placement.kind_id.as_str() == conduit_semantic_catalog::COMBINE_LATEST_KIND {
+        conduit_semantic_catalog::combine_latest_semantic_contract(left, right)
+    } else {
+        conduit_semantic_catalog::combine_latest_schema_with_input_terminals(
+            left,
+            right,
+            input_terminals,
+        )
+    }
+    .map_err(str::to_string)?;
+    let expected_offer =
+        if placement.kind_id.as_str() == conduit_semantic_catalog::COMBINE_LATEST_KIND {
+            conduit_std_offers::combine_latest_offer(left, right)
+        } else {
+            conduit_std_offers::combine_latest_schema_offer_with_input_terminals(
+                left,
+                right,
+                input_terminals,
+            )
+        }
         .map_err(str::to_string)?;
     if left.maximum_bytes > conduit_std_offers::COMBINE_LATEST_MAXIMUM_INPUT_BYTES
         || right.maximum_bytes > conduit_std_offers::COMBINE_LATEST_MAXIMUM_INPUT_BYTES
-        || placement.kind_id.as_str() != conduit_semantic_catalog::COMBINE_LATEST_KIND
-        || placement.kind_contract_revision.as_str()
-            != conduit_semantic_catalog::COMBINE_LATEST_CONTRACT_REVISION
+        || placement.kind_id != expected.kind_id
+        || placement.kind_contract_revision != expected.kind_contract_revision
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::COMBINE_LATEST_EXECUTION_PROFILE
-        || placement.implementation_id.as_str() != conduit_std_offers::COMBINE_LATEST_IMPLEMENTATION
+        || placement.implementation_id != expected_offer.implementation.implementation_id
         || placement.artifact_id.as_str() != conduit_std_offers::COMBINE_LATEST_ARTIFACT
         || placement.inputs != expected.inputs
         || placement.outputs != expected.outputs
@@ -301,6 +349,10 @@ fn prepare(
         finish_after_commit: false,
         terminal: false,
         output_maximum: latest.maximum_bytes,
+        input_terminals: [
+            placement.inputs[0].abnormal_kind.is_some(),
+            placement.inputs[1].abnormal_kind.is_some(),
+        ],
     }))
 }
 
@@ -331,6 +383,7 @@ mod tests {
             candidate_closed: None,
             closed: [false; 2],
             output_maximum: encoder.maximum_bytes(),
+            input_terminals: [true, true],
             encoder: Box::new(encoder),
             output_owed: false,
             output_staged: false,

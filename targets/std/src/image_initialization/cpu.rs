@@ -56,21 +56,25 @@ pub(crate) fn prepare(
     }
     let mut capabilities = Vec::new();
     let mut workspace = 0u32;
-    for offer in [
-        conduit_std_offers::measurement_plot_std_offer(),
-        conduit_std_offers::measurement_chart_face_std_offer(
-            conduit_std_offers::measurement_chart_face_workspace_bytes(),
-        )?,
-    ] {
-        if image
-            .manifest
-            .implementations
-            .iter()
-            .any(|implementation| implementation == offer.implementation.implementation_id.as_str())
+    for offer in conduit_std_offers::measurement_chart_cpu_offers()? {
+        let selected = checked.profile().capabilities.iter().any(|selection| {
+            selection.kind == offer.kind_id.as_str()
+                && selection.contract_revision == offer.kind_contract_revision.as_str()
+                && selection.implementation == offer.implementation.implementation_id.as_str()
+        });
+        if selected
+            && image.manifest.implementations.iter().any(|implementation| {
+                implementation == offer.implementation.implementation_id.as_str()
+            })
         {
-            workspace = workspace
-                .checked_add(offer.resource_requirements[0].units)
-                .ok_or("selected CPU workspace overflow")?;
+            for requirement in &offer.resource_requirements {
+                if requirement.class_id.as_str() != RUNTIME_MEMORY_RESOURCE_CLASS {
+                    return Err("CPU profile requests unsupported resource class".into());
+                }
+                workspace = workspace
+                    .checked_add(requirement.units)
+                    .ok_or("selected CPU workspace overflow")?;
+            }
             capabilities.push(offer);
         }
     }

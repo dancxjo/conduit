@@ -33,6 +33,16 @@ pub(super) struct InputState {
 mod preview;
 
 impl InputState {
+    pub(super) fn retained_backing_bytes(&self) -> Option<usize> {
+        let mut bytes = self
+            .values
+            .capacity()
+            .checked_mul(core::mem::size_of::<Option<Vec<u8>>>())?;
+        for value in self.values.iter().flatten() {
+            bytes = bytes.checked_add(value.capacity())?;
+        }
+        Some(bytes) // keymap is the borrowed standard default throughout Scene.
+    }
     pub(super) fn has_pending_input(&self) -> bool {
         self.action.is_some() || self.submitted
     }

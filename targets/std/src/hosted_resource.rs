@@ -153,7 +153,7 @@ impl HostedResourceGeneration {
             Publication::Empty => {}
             Publication::Candidate(_) => return Err(ResourcePublicationRefusal::CandidateOccupied),
             Publication::Published(_) => {
-                return Err(ResourcePublicationRefusal::PublishedImmutable)
+                return Err(ResourcePublicationRefusal::PublishedImmutable);
             }
             Publication::Lost => return Err(ResourcePublicationRefusal::Lost),
         }

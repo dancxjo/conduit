@@ -3,7 +3,10 @@ use crate::machine::{
     MonotonicClockBase, SerialBase, TimerBase, TimerToken,
 };
 
-use super::{TIMER_IRQ_VECTOR, acpi, cpu, gdt, idt, interrupt_controller, irq, pic, serial};
+use super::{TIMER_IRQ_VECTOR, acpi, cpu, gdt, interrupt_controller, irq, pic, serial};
+
+#[cfg(target_os = "none")]
+use super::idt;
 
 pub fn initialize_machine(
     record: &crate::boot::BootRecord,
@@ -14,6 +17,7 @@ pub fn initialize_machine(
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-gdt\n");
     gdt::initialize();
     crate::arch::early_write(b"CONDUIT_BOOT_STAGE machine-idt\n");
+    #[cfg(target_os = "none")]
     idt::initialize();
     #[cfg(target_os = "none")]
     {

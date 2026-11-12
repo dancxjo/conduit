@@ -52,9 +52,18 @@ impl Selection {
         scanout_prepared: bool,
         source_prepared: bool,
     ) -> Result<(), String> {
+        self.require_image_equipment_initialization(scanout_prepared, source_prepared, false)
+    }
+    pub(super) fn require_image_equipment_initialization(
+        &self,
+        scanout_prepared: bool,
+        source_prepared: bool,
+        recognizer_prepared: bool,
+    ) -> Result<(), String> {
         for base in &self.checked()?.configuration().bases {
             if base.initialization.is_some()
                 && !(scanout_prepared && base.kind == "display/scanout")
+                && !(recognizer_prepared && base.kind == "speech/recognizer")
                 && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
                 && !(source_prepared && base.kind == "creche/encounter")
                 && base.kind != conduit_workspace_make::TEXT_FILE_BASE_KIND
@@ -153,6 +162,30 @@ impl Selection {
     }
     pub(super) fn validate(&self) -> Result<(), String> {
         self.checked().map(|_| ())
+    }
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    pub(super) fn prepare_recognizer(
+        &self,
+    ) -> Result<Option<conduit_std_host::hosted_speech_recognition::WhisperSpeechAdapter>, String>
+    {
+        let checked = self.checked()?;
+        let mut bases = checked
+            .configuration()
+            .bases
+            .iter()
+            .filter(|base| base.kind == "speech/recognizer" && base.initialization.is_some());
+        let Some(base) = bases.next() else {
+            return Ok(None);
+        };
+        if bases.next().is_some() {
+            return Err("selected IMAGE requires one exact recognizer".into());
+        }
+        recognition::initialize(
+            base.initialization
+                .as_ref()
+                .ok_or("recognizer lost initialization")?,
+        )
+        .map(Some)
     }
     pub(super) fn prepare_creche(
         &self,

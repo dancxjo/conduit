@@ -419,6 +419,8 @@ impl<'a> BodyKernel<'a> {
         if self.operations.iter().any(|operation| {
             operation.contract_id.as_str()
                 == crate::measurement_chart_offer::MEASUREMENT_CHART_FACE_HOST_CALL
+                || operation.contract_id.as_str()
+                    == crate::measurement_chart_flow_offer::MEASUREMENT_CHART_FLOW_FACE_HOST_CALL
         }) && self.chart_face.is_none()
         {
             return Err("planned chart Face has no exact scoped committed observer route".into());
@@ -694,6 +696,13 @@ impl<'a> BodyKernel<'a> {
                         == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
                     {
                         self.begin_creche(request, creche.as_deref_mut())?;
+                        continue;
+                    }
+                    if super::measurement_chart_constructor_back::complete(
+                        operation,
+                        request,
+                        &mut self.scheduler,
+                    )? {
                         continue;
                     }
                     if super::measurement_plot_back::complete(

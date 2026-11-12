@@ -8,8 +8,8 @@ mod face_snapshot;
 mod member_carrier;
 pub(crate) use member_carrier::{
     attest_admission_receipt, attest_image_return_acknowledgement, begin_carrier,
-    carrier_mask_route, carrier_receiver, carrier_show, complete_carrier, renew_carrier_presence,
-    retire_carrier,
+    carrier_interaction, carrier_mask_route, carrier_receiver, carrier_show, complete_carrier,
+    renew_carrier_presence, retire_carrier,
 };
 #[path = "body/member_leave.rs"]
 mod member_leave;
@@ -689,6 +689,7 @@ pub(crate) fn select_native_mask_route(
             face_line: Box::new(face_line),
             return_line: Box::new(return_line),
             terminal_interaction_line: terminal_interaction_line.map(Box::new),
+            native_interaction_line: None,
             spoken_selection: spoken_selection.map(Box::new),
             expires_at_millis,
         },
@@ -700,6 +701,50 @@ pub(crate) fn select_native_mask_route(
         Response::Refused { code, .. } => Err(code),
         _ => Err("Body owner returned the wrong native Mask route response".into()),
     }
+}
+
+/// Explicit graphical selection; never interpreted as the attached terminal Mask.
+#[cfg(unix)]
+pub(crate) fn select_graphical_native_mask_route(
+    state_dir: &Path,
+    receipt: MemberPresentationBasis,
+    face_line: conduit_core::LineOffer,
+    return_line: conduit_core::LineOffer,
+    native_interaction_line: Option<conduit_core::LineOffer>,
+    expires_at_millis: u64,
+) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
+    match call(
+        state_dir,
+        Request::BodyNativeMaskRoute {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            receipt: Box::new(receipt),
+            face_line: Box::new(face_line),
+            return_line: Box::new(return_line),
+            terminal_interaction_line: None,
+            native_interaction_line: native_interaction_line.map(Box::new),
+            spoken_selection: None,
+            expires_at_millis,
+        },
+    )? {
+        Response::BodyNativeMaskRoute {
+            protocol: PROTOCOL,
+            route,
+        } => Ok(*route),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned wrong graphical Mask route response".into()),
+    }
+}
+#[cfg(not(unix))]
+pub(crate) fn select_graphical_native_mask_route(
+    _state_dir: &Path,
+    _receipt: MemberPresentationBasis,
+    _face_line: conduit_core::LineOffer,
+    _return_line: conduit_core::LineOffer,
+    _native_interaction_line: Option<conduit_core::LineOffer>,
+    _expires_at_millis: u64,
+) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }
 
 #[cfg(unix)]

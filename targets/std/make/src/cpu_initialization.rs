@@ -52,8 +52,15 @@ pub(super) fn operation_metadata(offer: &conduit_core::CapabilityOffer) -> Imple
         prerequisites: vec![
             PrerequisiteNode::Base(CPU_BASE_KIND.into()),
             PrerequisiteNode::Resource(conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS.into()),
-            PrerequisiteNode::HostCall(offer.host_calls[0].contract_id.as_str().into()),
-        ],
+        ]
+        .into_iter()
+        .chain(
+            offer
+                .host_calls
+                .iter()
+                .map(|call| PrerequisiteNode::HostCall(call.contract_id.as_str().into())),
+        )
+        .collect(),
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq)]

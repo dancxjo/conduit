@@ -159,9 +159,10 @@ fn actual_committed_inspection_is_current_on_owner_and_withdrawn_on_lull() {
         // exact admitted producer scope in its ordinary provenance subject.
         assert!(face.properties.iter().any(|property| {
             property.name == "active-play-id"
-                && property.value == conduit_face::FacePropertyValue::Identity(
-                    report.play.active_play_id.as_str().into(),
-                )
+                && property.value
+                    == conduit_face::FacePropertyValue::Identity(
+                        report.play.active_play_id.as_str().into(),
+                    )
         }));
     }
     drop(observer);

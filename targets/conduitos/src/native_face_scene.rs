@@ -473,3 +473,7 @@ mod heading_tests;
 #[cfg(test)]
 #[path = "native_face_scene/corner_tests.rs"]
 mod corner_tests;
+
+#[path = "native_face_scene/interactive_backing.rs"]
+mod interactive_backing;
+pub use interactive_backing::StandardNativeSceneBounds;

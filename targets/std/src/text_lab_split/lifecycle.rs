@@ -22,7 +22,7 @@ impl NativeTextLabFragment {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle => return Err("native forward Cord became idle".into()),
                 SchedulerStatus::Drained => {
-                    return Err("native Text Lab completed too early".into())
+                    return Err("native Text Lab completed too early".into());
                 }
                 SchedulerStatus::Cancelled => return Err("native Text Lab cancelled".into()),
             }
@@ -40,7 +40,7 @@ impl NativeTextLabFragment {
                     SchedulerStatus::Progress { .. } => {}
                     SchedulerStatus::Idle => return Err("native face became idle".into()),
                     SchedulerStatus::Drained => {
-                        return Err("native face completed too early".into())
+                        return Err("native face completed too early".into());
                     }
                     SchedulerStatus::Cancelled => return Err("native Text Lab cancelled".into()),
                 }

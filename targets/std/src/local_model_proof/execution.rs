@@ -41,7 +41,10 @@ pub(super) fn run_profile(
     let maximum_work_units = contract.bounds.maximum_work_units();
     let source = format!(
         "plot run {{\n source: conduit-test/local-model-request\n model: {}({}, 1, {}, {}, 0)\n sink: conduit-test/local-model-result\n source.value >> model.request\n model.result >> sink.value\n}}\n",
-        profile.kind(), maximum_input_bytes, maximum_output_bytes, maximum_work_units,
+        profile.kind(),
+        maximum_input_bytes,
+        maximum_output_bytes,
+        maximum_work_units,
     );
     let checked =
         check_syntax_document(&parse_syntax_document(&source), &startup).map_err(|error| {

@@ -162,8 +162,18 @@ pub(super) fn step_failure(
                 .find(|p| p.placement_id == node.placement_id)
         });
     match placement {
-        Some(placement) => format!("installed kernel step: {error:?}; logical-gear={} placement={} source-document={} source-span={:?}",
-            placement.gear_id.as_str(), placement.placement_id.as_str(), fragment.source_document_id.as_str(), placement.source_span),
-        None => format!("installed kernel step: {error:?}; plan={} fragment={} source-document={}", fragment.plan_id.as_str(), fragment.fragment_id.as_str(), fragment.source_document_id.as_str()),
+        Some(placement) => format!(
+            "installed kernel step: {error:?}; logical-gear={} placement={} source-document={} source-span={:?}",
+            placement.gear_id.as_str(),
+            placement.placement_id.as_str(),
+            fragment.source_document_id.as_str(),
+            placement.source_span
+        ),
+        None => format!(
+            "installed kernel step: {error:?}; plan={} fragment={} source-document={}",
+            fragment.plan_id.as_str(),
+            fragment.fragment_id.as_str(),
+            fragment.source_document_id.as_str()
+        ),
     }
 }

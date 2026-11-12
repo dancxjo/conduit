@@ -73,6 +73,25 @@ impl PendingAction {
         })
     }
 
+    pub(super) fn begin_member(
+        &mut self,
+        state: &Path,
+        binding: LinkBindingId,
+        command: (OwnerFaceSnapshotRequest, Box<MaskShow>, FaceInteraction),
+    ) -> Result<(), String> {
+        let state = state.to_path_buf();
+        self.start_operation(move || {
+            let (request, show, interaction) = command;
+            crate::durable_host_control::carrier_interaction(
+                &state,
+                binding,
+                request,
+                *show,
+                interaction,
+            )
+            .map(|_| ())
+        })
+    }
     fn start_operation(
         &mut self,
         operation: impl FnOnce() -> Result<(), String> + Send + 'static,

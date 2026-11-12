@@ -1,13 +1,13 @@
 //! Authored Plot -> actual StdHost Body admission -> ordinary kernel Host Call.
 use super::*;
 use crate::{
-    ExternalForeDelivery, ExternalForeInput, RunControl, StdHost, StdHostConfig,
     body_execution::{BodyForeOutputAdapter, BodyRunRequest},
+    ExternalForeDelivery, ExternalForeInput, RunControl, StdHost, StdHostConfig,
 };
 use conduit_body::{Body, BodyPlan, BodyPlotPlan, BodyWorkset, ResidentPlot};
 use conduit_core::{
-    ConnectionTrack, HostAdvertisement, Plan, PortDirection, SignId, StructuredInfoValue,
-    TerminalDisposition, port_id,
+    port_id, ConnectionTrack, HostAdvertisement, Plan, PortDirection, SignId, StructuredInfoValue,
+    TerminalDisposition,
 };
 use conduit_data::*;
 use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions};
@@ -220,9 +220,7 @@ fn insufficient_actual_workspace_pool_refuses_projection_planning() {
     assert!(plan(&advertisement).is_err());
     let mut actual_ledger =
         crate::kernel_preparation::KernelResourceLedger::new(&advertisement).unwrap();
-    assert!(
-        actual_ledger
-            .prepare_and_reserve_plans(&advertisement, &[(&admitted_plan, false)])
-            .is_err()
-    );
+    assert!(actual_ledger
+        .prepare_and_reserve_plans(&advertisement, &[(&admitted_plan, false)])
+        .is_err());
 }

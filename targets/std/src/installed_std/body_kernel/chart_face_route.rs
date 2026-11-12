@@ -17,6 +17,7 @@ pub(super) struct ChartFaceRoute {
     maximum_updates: u32,
     route: PendingFaceContributionRoute,
     waiting: Option<HostCallRequest>,
+    terminal_profile: bool,
 }
 impl ChartFaceRoute {
     pub(super) fn additional_backing_bytes(&self) -> Result<usize, String> {
@@ -39,6 +40,7 @@ impl ChartFaceRoute {
         per_frame
             .checked_mul(self.maximum_updates as usize)
             .and_then(|bytes| bytes.checked_add(self.route.additional_backing_bytes()?))
+            .and_then(|bytes| bytes.checked_add(self.route.escaped_gate_backing_bytes()?))
             .ok_or_else(|| "chart Face finite escaped result backing overflow".into())
     }
     pub(super) fn attach_image_memory(
@@ -59,8 +61,10 @@ impl BodyKernel<'_> {
     ) -> Result<(), String> {
         let mut routes = Vec::with_capacity(1);
         for (index, driver) in self.scheduler.drivers().iter().enumerate() {
-            let InstalledBack::MeasurementChartFace(back) = driver else {
-                continue;
+            let (observation, terminal_profile) = match driver {
+                InstalledBack::MeasurementChartFace(back) => (back.observation(), false),
+                InstalledBack::MeasurementChartFlowFace(back) => (back.observation(), true),
+                _ => continue,
             };
             if !observer || self.chart_face.is_some() || !routes.is_empty() {
                 return Err("chart Face requires one exact prepared observer route".into());
@@ -86,14 +90,20 @@ impl BodyKernel<'_> {
                 .flat_map(|f| &f.placements)
                 .find(|p| &p.placement_id == placement_id)
                 .ok_or("chart Face Source placement missing")?;
-            let (title, maximum_updates) =
-                super::super::measurement_chart_face_back::configuration(placement)?;
+            let (title, maximum_updates) = if terminal_profile {
+                super::super::measurement_chart_face_back::flow::configuration(placement)?
+            } else {
+                super::super::measurement_chart_face_back::configuration(placement)?
+            };
+            let contract = if terminal_profile {
+                crate::measurement_chart_flow_offer::MEASUREMENT_CHART_FLOW_FACE_HOST_CALL
+            } else {
+                MEASUREMENT_CHART_FACE_HOST_CALL
+            };
             let operation = self
                 .operations
                 .iter()
-                .find(|op| {
-                    op.node == node && op.contract_id.as_str() == MEASUREMENT_CHART_FACE_HOST_CALL
-                })
+                .find(|op| op.node == node && op.contract_id.as_str() == contract)
                 .ok_or("chart Face has no exact Host Call")?;
             if operation.call != conduit_kernel::HostCallId(0)
                 || operation.binding.maximum_output_bytes != 0
@@ -111,7 +121,7 @@ impl BodyKernel<'_> {
                     call: operation.call,
                     contract: &operation.contract_id,
                 },
-                back.observation(),
+                observation,
             )
             .map_err(|e| format!("chart Face scope: {e:?}"))?;
             routes.push(ChartFaceRoute {
@@ -121,6 +131,7 @@ impl BodyKernel<'_> {
                 maximum_updates,
                 route,
                 waiting: None,
+                terminal_profile,
             });
         }
         self.chart_face = routes.pop();
@@ -205,12 +216,22 @@ impl BodyKernel<'_> {
         let Some(route) = self.chart_face.as_mut() else {
             return Ok(());
         };
+        if route.terminal_profile && route.route.is_retired() {
+            // Only the actual committed terminal retires this shared witness.
+            // Any unpublished last frame is no longer a current Face.
+            self.chart_face = None;
+            return Ok(());
+        }
         let observer = observer
             .as_deref_mut()
             .ok_or("chart Face observer detached")?;
         match route.route.publish(observer) {
             Ok(_) | Err(FaceContributionRefusal::Pressure) => {}
             Err(error) => return Err(format!("chart Face contribution refused: {error:?}")),
+        }
+        if route.terminal_profile && route.route.is_retired() {
+            self.chart_face = None;
+            return Ok(());
         }
         self.prepare_chart_face_call()
     }

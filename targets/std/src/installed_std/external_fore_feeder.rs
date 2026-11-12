@@ -140,7 +140,7 @@ impl<'a> PreparedForeInputs<'a> {
                 outcome => {
                     return Err(error(format_args!(
                         "external Fore input was not admitted exactly: {outcome:?}"
-                    )))
+                    )));
                 }
             }
             for &(endpoint, cord) in &entry.targets {
@@ -251,7 +251,7 @@ impl LiveForeFeeder {
                 outcome => {
                     return Err(format!(
                         "checkpoint initial Fore was not admitted exactly: {outcome:?}"
-                    ))
+                    ));
                 }
             }
             for &(endpoint, cord) in &self.initial_targets {

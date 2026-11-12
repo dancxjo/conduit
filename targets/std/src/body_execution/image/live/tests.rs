@@ -232,7 +232,7 @@ fn actual_live_closing_flow_keeps_original_queue_charge_and_commits_distinct_fra
                         std::thread::yield_now()
                     }
                     _ => {
-                        return Err("bounded live producer did not retain exact third input".into())
+                        return Err("bounded live producer did not retain exact third input".into());
                     }
                 }
             }

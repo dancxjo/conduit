@@ -6,7 +6,9 @@ use conduit_plot::{
 use std::sync::Arc;
 
 fn source(limit: &str) -> String {
-    format!("plot project (\n >> value: Quantity <= 1800B\n result: NearQuantity <= 16384B >>\n) {{\n boundary: math/near(limit={limit})\n value >> boundary.value\n boundary.result >> result\n}}\n")
+    format!(
+        "plot project (\n >> value: Quantity <= 1800B\n result: NearQuantity <= 16384B >>\n) {{\n boundary: math/near(limit={limit})\n value >> boundary.value\n boundary.result >> result\n}}\n"
+    )
 }
 fn plan_from(host: &mut StdHost, authored: &ExpandedAuthoringPlot) -> Result<Plan, String> {
     host.prepare_numerical_realizations(&authored.expanded)?;

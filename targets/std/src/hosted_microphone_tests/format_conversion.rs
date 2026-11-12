@@ -73,7 +73,10 @@ dd if=/dev/zero bs=32 count=1 2>/dev/null
 #[test]
 fn negotiated_rate_warning_does_not_become_mislabeled_pcm() {
     let _process = microphone_process();
-    let (root, discovery) = parsed_fixture("#!/bin/sh\necho 'Warning: rate is not accurate (requested = 16000Hz, got = 48000Hz)' >&2\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n", "rate-warning");
+    let (root, discovery) = parsed_fixture(
+        "#!/bin/sh\necho 'Warning: rate is not accurate (requested = 16000Hz, got = 48000Hz)' >&2\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n",
+        "rate-warning",
+    );
     let selected = discovery.observations[0].clone();
     let mut adapter = discovery
         .initialize(
@@ -95,7 +98,10 @@ fn negotiated_rate_warning_does_not_become_mislabeled_pcm() {
 #[test]
 fn failed_recapture_cannot_reuse_an_earlier_receipt() {
     let _process = microphone_process();
-    let (root, discovery) = parsed_fixture("#!/bin/sh\nif [ -e \"$0.once\" ]; then exit 1; fi\ntouch \"$0.once\"\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n", "recapture");
+    let (root, discovery) = parsed_fixture(
+        "#!/bin/sh\nif [ -e \"$0.once\" ]; then exit 1; fi\ntouch \"$0.once\"\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n",
+        "recapture",
+    );
     let selected = discovery.observations[0].clone();
     let mut adapter = discovery
         .initialize(

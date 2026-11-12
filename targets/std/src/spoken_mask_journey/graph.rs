@@ -12,9 +12,13 @@ pub(crate) fn source(
         "face/generated-manifestation-speech"
     };
     let synthesis = if streaming {
-        format!("commit: speech/commit-generated-text\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = {maximum_output_bytes}, maximum-audio-millis = 30000, maximum-segments = 32)")
+        format!(
+            "commit: speech/commit-generated-text\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = {maximum_output_bytes}, maximum-audio-millis = 30000, maximum-segments = 32)"
+        )
     } else {
-        format!("voice: speech/synthesize(language-request = {language_request}, maximum-output-bytes = {maximum_output_bytes})")
+        format!(
+            "voice: speech/synthesize(language-request = {language_request}, maximum-output-bytes = {maximum_output_bytes})"
+        )
     };
     let work = if streaming {
         ", maximum-blocks = 32768, maximum-audio-millis = 30000"

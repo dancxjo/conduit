@@ -2,9 +2,9 @@
 
 use alloc::{string::ToString, vec};
 use conduit_core::{
-    CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind, KindIdentity,
-    MAXIMUM_STRUCTURED_CANONICAL_BYTES, PortDescriptor, PortDirection, PortTemporal,
-    StructuredInfoType, kind_id, port_id,
+    kind_id, port_id, CapabilityLimits, ConfigurationValue, FrontStartupParameter, Kind,
+    KindIdentity, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_plot::{
     KindConfigurationField, KindConfigurationRule, KindProjection, KindSignature, ProfileCatalog,
@@ -12,7 +12,7 @@ use conduit_plot::{
 };
 
 use crate::{
-    MAXIMUM_MEASUREMENT_PLOT_POINTS, MEASUREMENT_PLOT_SERIES_INFO_ID, measurement_window_type,
+    measurement_window_type, MAXIMUM_MEASUREMENT_PLOT_POINTS, MEASUREMENT_PLOT_SERIES_INFO_ID,
 };
 
 pub const MEASUREMENT_PLOT_KIND: &str = "data/measurement-plot";

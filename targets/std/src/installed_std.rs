@@ -68,8 +68,8 @@ mod pcm_clip_frames_back;
 mod temporal_evidence_back;
 pub(crate) use ieee_back::{offer as ieee_offer, owns_offer as owns_ieee_offer};
 pub(crate) use near_back::{
-    IMPLEMENTATION as NEAR_VALUE_IMPLEMENTATION, admitted as prepare_near_value,
-    offers as near_offers, owns_offer as owns_near_offer,
+    admitted as prepare_near_value, offers as near_offers, owns_offer as owns_near_offer,
+    IMPLEMENTATION as NEAR_VALUE_IMPLEMENTATION,
 };
 mod committed_fore;
 mod native_source_dispatch;
@@ -96,8 +96,9 @@ mod local_vision_back;
 mod logic_backs;
 mod math_backs;
 mod math_host;
-mod measurement_plot_back;
+mod measurement_chart_constructor_back;
 pub(crate) mod measurement_chart_face_back;
+mod measurement_plot_back;
 mod microphone_clip_back;
 mod microphone_host;
 mod midi_input_back;
@@ -119,9 +120,9 @@ pub(super) use preparation::{
 };
 mod lifecycle;
 mod retained_run;
-pub(crate) use retained_run::DurableStateRun;
 #[cfg(test)]
 pub(super) use retained_run::run_fragment;
+pub(crate) use retained_run::DurableStateRun;
 pub(super) use retained_run::{InstalledRunHost, RunLifecycle};
 mod combine_latest_back;
 mod current_sample_back;
@@ -238,7 +239,7 @@ use self::back::InstalledBack;
 pub(crate) use self::catalog::supports;
 #[cfg(test)]
 use self::contract::parse_tick_configuration;
-use self::contract::{TICK_ENCODED_LEN, decode_tick};
+use self::contract::{decode_tick, TICK_ENCODED_LEN};
 pub use self::remote_fragment_kernel::{
     InstalledRemoteFragment, RemoteHostWork, RemoteHostWorkRef, RemoteSignRetention,
     RemoteValueIdentity, RemoteValueTransfer,
@@ -252,8 +253,8 @@ use super::{
 #[cfg(test)]
 use conduit_core::present_host_call_requirement;
 use conduit_core::{
-    CancellationReason, Observation, ObservationKind, PlanFragment, TerminalDisposition,
-    bind_active_play, bind_sign, kind_id, wait_host_call_requirement,
+    bind_active_play, bind_sign, kind_id, wait_host_call_requirement, CancellationReason,
+    Observation, ObservationKind, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::scheduler::{FixedScheduler, SchedulerStatus};
 use conduit_kernel::{
@@ -1113,6 +1114,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             let operation = host_calls
                 .get(request.node, request.call)
                 .ok_or("measurement dispatch has no lowered operation")?;
+            if measurement_chart_constructor_back::complete(operation, request, &mut scheduler)? {
+                host_calls.record(request).map_err(str::to_string)?;
+                continue;
+            }
             if measurement_plot_back::complete(operation, request, &mut scheduler)? {
                 host_calls.record(request).map_err(str::to_string)?;
                 continue;

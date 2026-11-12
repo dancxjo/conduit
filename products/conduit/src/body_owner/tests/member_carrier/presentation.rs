@@ -10,8 +10,19 @@ fn native_member(
     conduit_body::SpawnInvitationSecret,
     conduit_core::HostAdvertisement,
 ) {
+    native_member_profile(owner, root, true)
+}
+fn native_member_profile(
+    owner: &mut Owner,
+    root: &std::path::Path,
+    interactive: bool,
+) -> (
+    conduit_body::MembershipCredential,
+    conduit_body::SpawnInvitationSecret,
+    conduit_core::HostAdvertisement,
+) {
     let invitation = owner.issue_invitation(root, 60, None).unwrap();
-    let provider = conduit_core::BaseProviderEntry {
+    let mut provider = conduit_core::BaseProviderEntry {
         base_id: "fixture/framebuffer".into(),
         provider_instance_id: "fixture/framebuffer/1".into(),
         provider_generation: 1,
@@ -20,18 +31,61 @@ fn native_member(
         enforcement_class: conduit_core::BaseEnforcementClass::ConduitOsKernelEnforced,
         lifecycle: conduit_core::BaseLifecycle::Ready,
         capabilities: vec![],
-        resources: vec![conduit_core::resource_offer(
-            "fixture/surface",
-            conduit_face::SHOW_RESOURCE_CLASS,
-            1,
-        )],
+        resources: vec![
+            conduit_core::resource_offer("fixture/surface", conduit_face::SHOW_RESOURCE_CLASS, 1),
+            conduit_core::resource_offer(
+                "fixture/input",
+                "conduit.resource/conduitos-human-input@1",
+                1,
+            ),
+        ],
     };
-    let ad = conduit_conduitos_mask_offer::native_host_advertisement(
-        &"fixture/native".into(),
-        &"fixture/native/boot".into(),
-        1,
-        &provider,
-    );
+    if !interactive {
+        provider
+            .resources
+            .retain(|pool| pool.class_id.as_str() != "conduit.resource/conduitos-human-input@1");
+    }
+    provider.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+    let mut ad = if interactive {
+        conduit_conduitos_mask_offer::native_host_advertisement(
+            &"fixture/native".into(),
+            &"fixture/native/boot".into(),
+            1,
+            &provider,
+        )
+    } else {
+        conduit_conduitos_mask_offer::native_read_only_host_advertisement(
+            &"fixture/native".into(),
+            &"fixture/native/boot".into(),
+            1,
+            &provider,
+            conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
+        )
+    };
+    // Model the exact initialized registry BEFORE signed admission: three
+    // physical Backs owned by the declared provider, plus a pure unowned tee.
+    provider.capabilities = ad
+        .capabilities
+        .iter()
+        .filter(|cap| {
+            [
+                conduit_face::SHOW_RESOURCE_SOURCE_KIND,
+                conduit_face::RESOURCE_RENDERER_KIND,
+                conduit_face::FACE_INTERACTION_KIND,
+            ]
+            .contains(&cap.kind_id.as_str())
+        })
+        .cloned()
+        .collect();
+    ad.capabilities.retain(|cap| {
+        cap.kind_id.as_str() == conduit_face::FACE_TEE_KIND || provider.capabilities.contains(cap)
+    });
+    ad.resources = provider.resources.clone();
+    ad.bases[0].capability_ids = provider
+        .capabilities
+        .iter()
+        .map(|cap| cap.capability_id.clone())
+        .collect();
     let key = conduit_body::SpawnInvitationSecret::from_csprng_bytes(invitation.secret).unwrap();
     let request = PortableSpawnAdmissionRequest {
         schema: SPAWN_ADMISSION_REQUEST_SCHEMA.into(),
@@ -207,4 +261,206 @@ fn short_presence_expiry_withdraws_native_witness_without_member_departure() {
         .is_err());
     assert_eq!(owner.session.evidence(), &before);
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn member_interaction_requires_same_live_carrier_and_acknowledged_show() {
+    let (mut owner, root) = owner_fixture();
+    let (credential, key, ad) = native_member(&mut owner, &root);
+    let (challenge, _) = begin(&mut owner, &credential, &ad);
+    owner
+        .complete_current_member_carrier(&challenge, signature(&challenge, &key))
+        .unwrap();
+    let session = &challenge.session_id;
+    owner.renew_current_member_presence(session, 1).unwrap();
+    let member = crate::durable_host::owner::MemberPresentationBasis {
+        credential: credential.clone(),
+        host_advertisement: ad.clone(),
+    };
+    let (face_line, returned, interaction_line) =
+        crate::durable_host::routed_join::native_lines::offer_graphical(
+            owner.host.advertisement(),
+            &member,
+            session.as_str(),
+        )
+        .unwrap();
+    let interaction_line = interaction_line.unwrap();
+    let seal = owner
+        .select_member_carrier_mask_route_with_interaction(
+            session,
+            &face_line,
+            &returned,
+            Some(&interaction_line),
+        )
+        .unwrap();
+    let shown = show(&mut owner, &seal, 1);
+    let req = request(&credential);
+    let face = owner.local_face_snapshot().unwrap();
+    let action = face
+        .actions
+        .iter()
+        .find(|action| {
+            action.arguments.is_empty()
+                && action.availability == conduit_face::FaceActionAvailability::Available
+        })
+        .unwrap();
+    let interaction = conduit_face::FaceInteraction::new(
+        &face,
+        &shown,
+        &action.identity,
+        &action.target,
+        vec![],
+        1,
+    )
+    .unwrap();
+    assert!(owner
+        .validate_member_carrier_interaction(session, &req, &shown, &interaction)
+        .is_err());
+    owner
+        .acknowledge_member_carrier_show(session, &req, &shown)
+        .unwrap();
+    owner
+        .validate_member_carrier_interaction(session, &req, &shown, &interaction)
+        .unwrap();
+    let mut substituted = req.clone();
+    substituted.boot_id = "substituted/boot".into();
+    assert!(owner
+        .validate_member_carrier_interaction(session, &substituted, &shown, &interaction)
+        .is_err());
+    owner.retire_current_member_carrier(session).unwrap();
+    assert!(owner
+        .validate_member_carrier_interaction(session, &req, &shown, &interaction)
+        .is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn graphical_carrier_binds_exact_third_line_without_selecting_terminal_mask() {
+    let (mut owner, root) = owner_fixture();
+    let (credential, key, ad) = native_member(&mut owner, &root);
+    let (challenge, _) = begin(&mut owner, &credential, &ad);
+    owner
+        .complete_current_member_carrier(&challenge, signature(&challenge, &key))
+        .unwrap();
+    owner
+        .renew_current_member_presence(&challenge.session_id, 1)
+        .unwrap();
+    let member = crate::durable_host::owner::MemberPresentationBasis {
+        credential: credential.clone(),
+        host_advertisement: ad.clone(),
+    };
+    let (face, show_line, interaction) =
+        crate::durable_host::routed_join::native_lines::offer_graphical(
+            owner.host.advertisement(),
+            &member,
+            challenge.session_id.as_str(),
+        )
+        .unwrap();
+    let interaction = interaction.unwrap();
+    let mut wrong = interaction.clone();
+    wrong.binding.binding_id = "fixture/foreign-interaction".into();
+    assert!(owner
+        .select_member_carrier_mask_route_with_interaction(
+            &challenge.session_id,
+            &face,
+            &show_line,
+            Some(&wrong)
+        )
+        .is_err());
+    let seal = owner
+        .select_member_carrier_mask_route_with_interaction(
+            &challenge.session_id,
+            &face,
+            &show_line,
+            Some(&interaction),
+        )
+        .unwrap();
+    assert_eq!(seal.interaction_line, Some(interaction.admitted_line()));
+    let input = seal
+        .planned_mask
+        .plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .find(|placement| placement.gear_id == seal.planned_mask.mask.interaction_output.gear_id)
+        .unwrap();
+    assert_eq!(
+        input.execution_profile_id.as_str(),
+        "conduitos/bounded-interaction@1"
+    );
+    let current = owner.local_face_snapshot().unwrap();
+    seal.validate_current_with_interaction(
+        &owner.session,
+        &current,
+        owner.host.advertisement(),
+        &ad,
+        &face,
+        &show_line,
+        &interaction,
+    )
+    .unwrap();
+    let shown = show(&mut owner, &seal, 1);
+    owner
+        .acknowledge_member_carrier_show(&challenge.session_id, &request(&credential), &shown)
+        .unwrap();
+    owner
+        .retire_current_member_carrier(&challenge.session_id)
+        .unwrap();
+    assert!(owner
+        .validate_native_mask_show(&request(&credential), &shown)
+        .is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn authenticated_two_line_viewer_cannot_mint_human_input_from_available_actions() {
+    for interactive in [true, false] {
+        let (mut owner, root) = owner_fixture();
+        let (credential, key, ad) = native_member_profile(&mut owner, &root, interactive);
+        let (challenge, _) = begin(&mut owner, &credential, &ad);
+        owner
+            .complete_current_member_carrier(&challenge, signature(&challenge, &key))
+            .unwrap();
+        let session = &challenge.session_id;
+        owner.renew_current_member_presence(session, 1).unwrap();
+        let (face_line, returned) = lines(&owner, &credential, &ad, session);
+        let seal = owner
+            .select_member_carrier_mask_route(session, &face_line, &returned)
+            .unwrap();
+        assert!(seal.interaction_line.is_none());
+        let shown = show(&mut owner, &seal, 1);
+        let req = request(&credential);
+        owner
+            .acknowledge_member_carrier_show(session, &req, &shown)
+            .unwrap();
+        let face = owner.local_face_snapshot().unwrap();
+        let action = face
+            .actions
+            .iter()
+            .find(|action| {
+                action.arguments.is_empty()
+                    && action.availability == conduit_face::FaceActionAvailability::Available
+            })
+            .unwrap();
+        let forged = conduit_face::FaceInteraction::new(
+            &face,
+            &shown,
+            &action.identity,
+            &action.target,
+            vec![],
+            1,
+        )
+        .unwrap();
+        assert_eq!(
+            owner
+                .validate_member_carrier_interaction(session, &req, &shown, &forged)
+                .unwrap_err(),
+            if interactive {
+                "native-mask-has-no-original-interaction-Line"
+            } else {
+                "native-mask-has-no-interaction-authority"
+            }
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }

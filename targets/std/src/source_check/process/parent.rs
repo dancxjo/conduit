@@ -152,13 +152,13 @@ impl SourceCheckProcessWorker {
             ProcessTerminal::Cancelled => return Err(SourceCheckProcessFailure::Cancelled),
             ProcessTerminal::TimedOut => return Err(SourceCheckProcessFailure::Deadline),
             ProcessTerminal::ProviderLost(reason) => {
-                return Err(SourceCheckProcessFailure::ProviderLost(reason))
+                return Err(SourceCheckProcessFailure::ProviderLost(reason));
             }
             ProcessTerminal::Exited(status) if !status.success() => {
                 return Err(SourceCheckProcessFailure::WorkerExited {
                     code: status.code(),
                     diagnostic: report.stderr.retained,
-                })
+                });
             }
             ProcessTerminal::Exited(_) => {}
         }
