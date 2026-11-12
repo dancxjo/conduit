@@ -317,7 +317,7 @@ fn image_chime_retains_original_memory_custody_through_execution_and_report() {
             },
             &[],
             &mut Vec::new(),
-            &mut Timer,
+            &mut crate::ThreadTimer,
             None,
             |play, wake| {
                 session
