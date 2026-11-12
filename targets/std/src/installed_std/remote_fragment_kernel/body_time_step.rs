@@ -23,7 +23,7 @@ impl InstalledRemoteFragment {
     }
 
     fn step_kernel(&mut self) -> Result<SchedulerStatus, String> {
-        if !self.startup_bound {
+        if self.startup_state == super::startup::StartupBindingState::Unbound {
             return Err(
                 "remote Body startup requires its exact retained Started acknowledgment".into(),
             );

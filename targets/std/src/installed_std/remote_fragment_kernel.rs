@@ -70,7 +70,7 @@ pub struct InstalledRemoteFragment {
     worker_text_basis: crate::worker_text_result::WorkerTextBasis,
     scheduler: Box<InstalledScheduler>,
     body_time_required: bool,
-    startup_bound: bool,
+    startup_state: startup::StartupBindingState,
     lowered: LoweredPlanFragment,
     placements: Vec<conduit_core::PlannedGear>,
     whisper_languages: super::whisper_language::WhisperLanguages,
@@ -223,12 +223,16 @@ impl InstalledRemoteFragment {
         let vision_run_id = String::with_capacity(play.active_play_id.as_str().len() + 64);
         let vision_active_play_id = play.active_play_id.as_str().to_string();
         let vision_clock_basis = format!("{}/monotonic", fragment.boot_id.as_str());
-        let startup_bound = !scheduler
+        let has_startup = scheduler
             .drivers()
             .iter()
             .any(|driver| matches!(driver, super::InstalledBack::StartupSource(_)));
         Ok(Self {
-            startup_bound,
+            startup_state: if has_startup {
+                startup::StartupBindingState::Unbound
+            } else {
+                startup::StartupBindingState::Bound
+            },
             scheduler,
             body_time_required: false,
             lowered,
@@ -717,7 +721,9 @@ impl InstalledRemoteFragment {
         self.text_output_buffer.clear();
         self.scheduler
             .cancel()
-            .map_err(|error| format!("cancel remote std fragment: {error:?}"))
+            .map_err(|error| format!("cancel remote std fragment: {error:?}"))?;
+        self.startup_state = startup::StartupBindingState::Cancelled;
+        Ok(())
     }
 
     /// Records an exact admitted Line failure before cancelling kernel work.

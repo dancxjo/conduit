@@ -4,6 +4,13 @@ use super::InstalledRemoteFragment;
 use crate::body_execution::CommittedBodyStartup;
 use conduit_body::{PreparedBodyFragment, StartupScope};
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum StartupBindingState {
+    Unbound,
+    Bound,
+    Cancelled,
+}
+
 impl InstalledRemoteFragment {
     /// Root must supply the original prepared containment and acknowledged
     /// biography. Public fragment IDs or a transport acknowledgment are not
@@ -13,8 +20,8 @@ impl InstalledRemoteFragment {
         scope: PreparedBodyFragment<'_>,
         committed: &CommittedBodyStartup,
     ) -> Result<(), String> {
-        if self.startup_bound {
-            return Err("remote startup is absent or already bound".into());
+        if self.startup_state != StartupBindingState::Unbound {
+            return Err("remote startup is absent, bound or retired".into());
         }
         let original = scope.fragment();
         if original.fragment_id != self.lowered.identity.fragment_id
@@ -31,7 +38,7 @@ impl InstalledRemoteFragment {
                 source.gate.bind(committed.eligible(StartupScope::Wake))?;
             }
         }
-        self.startup_bound = true;
+        self.startup_state = StartupBindingState::Bound;
         Ok(())
     }
 }

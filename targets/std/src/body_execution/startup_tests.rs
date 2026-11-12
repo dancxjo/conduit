@@ -572,4 +572,15 @@ fn remote_startup_requires_original_body_fragment_and_retained_start_before_step
     assert!(matches!(remote.step().unwrap(), SchedulerStatus::Cancelled));
     host.release_remote_fragment(remote).unwrap();
     assert!(host.kernel_resources.is_idle());
+    let mut unstarted = host.prepare_remote_fragment(fragment).unwrap();
+    unstarted.cancel().unwrap();
+    assert!(matches!(
+        unstarted.step().unwrap(),
+        SchedulerStatus::Cancelled
+    ));
+    assert!(unstarted
+        .bind_committed_body_startup(scope, &committed)
+        .is_err());
+    host.release_remote_fragment(unstarted).unwrap();
+    assert!(host.kernel_resources.is_idle());
 }
