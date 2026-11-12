@@ -10,6 +10,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[cfg(target_os = "linux")]
+#[path = "text_file_issuing.rs"]
+mod issuing;
 #[path = "text_file_plan.rs"]
 mod planning;
 

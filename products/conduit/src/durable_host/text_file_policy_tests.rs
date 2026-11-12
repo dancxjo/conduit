@@ -1,5 +1,5 @@
 use super::*;
-fn fixture() -> (
+pub(crate) fn fixture() -> (
     CheckedHostConfiguration,
     HostImage,
     StdHostConfig,

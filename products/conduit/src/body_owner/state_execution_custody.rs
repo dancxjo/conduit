@@ -333,8 +333,16 @@ pub(super) fn history(root: &Path, host: &str, body: &str) -> Result<Value, Stri
     )
 }
 pub(super) fn require_capacity(root: &Path, host: &str, body: &str) -> Result<(), String> {
+    require_slots(root, host, body, 1)
+}
+pub(super) fn require_slots(
+    root: &Path,
+    host: &str,
+    body: &str,
+    slots: usize,
+) -> Result<(), String> {
     let prepared = prepare(root, host, body, None)?;
-    if prepared.index.history.len() >= MAX_RECEIPTS {
+    if slots == 0 || slots > MAX_RECEIPTS - prepared.index.history.len() {
         return Err("execution custody capacity exhausted before Play".into());
     }
     Ok(())

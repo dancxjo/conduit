@@ -156,5 +156,7 @@ pub(crate) fn prepare(
 }
 
 #[cfg(test)]
+pub(crate) use tests::fixture as text_file_fixture;
+#[cfg(test)]
 #[path = "text_file_policy_tests.rs"]
 mod tests;
