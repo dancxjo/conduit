@@ -452,7 +452,9 @@ mod carrier_path_tests {
         )
         .is_err());
         let mut expected = actual.clone();
-        expected.credential.part_id = "fixture/other-part".into();
+        expected.credential.part_id =
+            conduit_body::PartId::bind(&actual.credential.body_id, "fixture/other-part", 2)
+                .unwrap();
         assert!(check_retained_selection(path, &actual, path, &expected).is_err());
         let mut expected = actual.clone();
         expected.host_advertisement.offer_generation.0 += 1;
