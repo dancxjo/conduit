@@ -240,6 +240,38 @@ impl KernelResourceLedger {
         self.custody_epoch
     }
 
+    /// Allocation-free bound before cloning. On the qualified library, Vec and
+    /// String clones reserve their lengths; the original capacities dominate
+    /// those requests. Shared IMAGE Arc storage is not allocated again.
+    pub(crate) fn closed_clone_request_bound(&self) -> Option<usize> {
+        if !cfg!(conduit_pinned_collection_layout) || self.retirement_hold.is_some() {
+            return None;
+        }
+        let mut bytes = self
+            .identity
+            .0
+             .0
+            .capacity()
+            .checked_add(self.identity.1 .0.capacity())?;
+        bytes = bytes.checked_add(
+            self.pools
+                .capacity()
+                .checked_mul(core::mem::size_of::<PoolUsage>())?,
+        )?;
+        bytes = bytes.checked_add(
+            self.instances
+                .capacity()
+                .checked_mul(core::mem::size_of::<(conduit_core::CapabilityId, u16)>())?,
+        )?;
+        for pool in &self.pools {
+            bytes = bytes.checked_add(pool.closed_backing_bytes()?)?;
+        }
+        for (id, _) in &self.instances {
+            bytes = bytes.checked_add(id.0.capacity())?;
+        }
+        Some(bytes)
+    }
+
     /// Measure an actual staged clone, not an assumed Vec clone capacity.
     /// The original IMAGE counter is shared and is not charged a second time.
     pub(crate) fn closed_staging_backing_bytes(&self) -> Result<usize, String> {

@@ -310,9 +310,19 @@ impl StdHost {
         {
             return Err("remote startup backing does not cover Body time state".into());
         }
+        let staging = self.kernel_resources.closed_staging_backing_bytes()?;
+        if cfg!(conduit_pinned_collection_layout) {
+            let derived = self
+                .kernel_resources
+                .closed_clone_request_bound()
+                .ok_or("closed ledger clone derivation is unsupported")?;
+            if staging > derived {
+                return Err("ledger clone exceeded its derived storage term".into());
+            }
+        }
         Ok(RemoteStartupBacking {
             retained_bytes: retained,
-            ledger_staging_bytes: self.kernel_resources.closed_staging_backing_bytes()?,
+            ledger_staging_bytes: staging,
         })
     }
 

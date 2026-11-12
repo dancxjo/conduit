@@ -6,6 +6,10 @@ use std::{env, fs, path::PathBuf, process::Command};
 const REVISION: &str = "48a229ceaefd4985c50990b14116b6d856af0985";
 const SOURCES: &[(&str, &str)] = &[
     (
+        "alloc/src/slice.rs",
+        "b1f0a5f6e3d104d6176699cf05efdfe1725095cd984fdf4422ddc3093726361c",
+    ),
+    (
         "alloc/src/collections/btree/node.rs",
         "2200ca0a4fe38592c314dc7f5f40bbb160e06b6f9e4abd1eb5bc40701540ab25",
     ),
