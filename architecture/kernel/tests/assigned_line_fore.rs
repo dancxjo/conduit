@@ -405,3 +405,37 @@ fn selected_line_variants_keep_mandatory_remote_signs_and_delivery_pressure() {
     );
     assert_eq!(kernel.cord_usage(CordId(0)).unwrap(), (0, 0));
 }
+
+#[test]
+fn mixed_profile_boot_local_name_changes_pass_but_selected_line_identity_stays_exact() {
+    let mut fixture = Fixture::new([false, true]);
+    let original: Vec<_> = a::AssignedPlanRecords::new(&fixture.bytes)
+        .unwrap()
+        .map(Result::unwrap)
+        .map(|r| {
+            a::AssignedRecordRequirement::from_kernel_record_with_line_fore(r, fixture.profile())
+        })
+        .collect();
+    let next_boot = a::AssignedIdentity::from_text("synthetic/local-fore/next-boot");
+    let local = fixture
+        .records
+        .iter_mut()
+        .find(|(tag, payload)| *tag == a::ASSIGNED_CORD && payload[..2] == 0u16.to_le_bytes())
+        .unwrap();
+    local.1[2..18].copy_from_slice(&next_boot.0);
+    fixture.reseal();
+    fixture.pins = original.clone();
+    assert!(fixture.tables().is_ok());
+    let line = fixture
+        .records
+        .iter_mut()
+        .find(|(tag, payload)| *tag == a::ASSIGNED_CORD && payload[..2] == 1u16.to_le_bytes())
+        .unwrap();
+    line.1[2..18].copy_from_slice(&next_boot.0);
+    fixture.reseal();
+    fixture.pins = original;
+    assert!(matches!(
+        fixture.tables(),
+        Err(AssignedKernelRefusal::Layout)
+    ));
+}

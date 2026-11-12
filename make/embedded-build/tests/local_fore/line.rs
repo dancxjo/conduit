@@ -256,3 +256,69 @@ fn full_selected_line_commitment_covers_every_immutable_realization_fact() {
     );
     field!(contract.security, c::LineSecurity::AuthenticatedEncrypted);
 }
+
+#[test]
+fn make_layout_and_kernel_share_boot_local_normalization_without_weakening_selected_line() {
+    let plan = selected_plan();
+    let generated = project(&plan, &[session()]).unwrap();
+    let mut bytes = generated.encode(maxima()).unwrap();
+    let pins = generated.layout_requirements(maxima()).unwrap();
+    let computations = b::assigned_computation_requirements(generated.kernel()).unwrap();
+    let required = c::AssignedPlanRequirements {
+        host: c::AssignedIdentity::from_text("fixture/host"),
+        boot: c::AssignedIdentity::from_text("fixture/boot"),
+        host_calls: &[],
+        resources: &[],
+        remote_bindings: generated.remote_bindings(),
+    };
+    let profile = c::AssignedComputationProfile {
+        maximum_text_bytes: 65535,
+        maximum_total_text_bytes: u32::MAX,
+        requirements: &computations,
+    };
+    let counts = core::array::from_fn(|i| bytes[80 + i]);
+    let layout = conduit_kernel::assigned::ResidentLayout {
+        records: &pins,
+        counts,
+    };
+    let mut rename = |cord: u16| {
+        let mut at = 125;
+        while at < bytes.len() {
+            let n = usize::from(u16::from_le_bytes([bytes[at + 1], bytes[at + 2]]));
+            if bytes[at] == c::ASSIGNED_CORD && bytes[at + 3..at + 5] == cord.to_le_bytes() {
+                bytes[at + 5..at + 21]
+                    .copy_from_slice(&c::AssignedIdentity::from_text("synthetic/next-boot").0);
+            }
+            at += 3 + n;
+        }
+        let digest = c::assigned_plan_payload_digest(&bytes[125..]);
+        bytes[93..125].copy_from_slice(&digest);
+        bytes.clone()
+    };
+    let local = generated.profile().local[0].cord();
+    let local_changed = rename(local);
+    assert!(
+        conduit_kernel::assigned::AssignedKernelTables::<1, 2, 1, 1, 1, 0>::prepare_with_line_fore(
+            &local_changed,
+            maxima(),
+            required,
+            profile,
+            &layout,
+            generated.profile()
+        )
+        .is_ok()
+    );
+    let line = generated.profile().lines[0].fore().cord();
+    let line_changed = rename(line);
+    assert!(matches!(
+        conduit_kernel::assigned::AssignedKernelTables::<1, 2, 1, 1, 1, 0>::prepare_with_line_fore(
+            &line_changed,
+            maxima(),
+            required,
+            profile,
+            &layout,
+            generated.profile()
+        ),
+        Err(conduit_kernel::assigned::AssignedKernelRefusal::Layout)
+    ));
+}

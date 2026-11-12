@@ -207,3 +207,42 @@ impl<'a> Validation<'a> {
         }
     }
 }
+
+impl AssignedRecordRequirement {
+    /// Trusted schema-8 structural layout AFTER full Core decoding against this
+    /// independent profile. Only an exact LOCAL Fore's synthetic connection
+    /// name is Boot-relative. Selected Line Cords always retain their full ID.
+    /// This fingerprint is descriptive, never ingress or possession authority.
+    pub fn from_kernel_record_with_line_fore(
+        record: AssignedRecord<'_>,
+        profile: AssignedLineForeProfile<'_>,
+    ) -> Self {
+        if record.tag == ASSIGNED_CORD && record.payload.len() == 42 {
+            let cord = u16::from_le_bytes([record.payload[0], record.payload[1]]);
+            let selected_line = profile.lines.iter().any(|line| line.fore().cord() == cord);
+            let local = !selected_line
+                && profile.local.iter().any(|fore| {
+                    let offset = match fore.direction() {
+                        AssignedForeDirection::Input => 18,
+                        AssignedForeDirection::Output => 23,
+                    };
+                    fore.cord() == cord
+                        && record.payload[offset] == 1
+                        && u16::from_le_bytes([
+                            record.payload[offset + 1],
+                            record.payload[offset + 2],
+                        ]) == fore.endpoint()
+                });
+            if local {
+                let mut structural = [0; 42];
+                structural.copy_from_slice(record.payload);
+                structural[2..18].fill(0);
+                return Self::from_record(AssignedRecord {
+                    tag: record.tag,
+                    payload: &structural,
+                });
+            }
+        }
+        Self::from_kernel_record(record, ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA)
+    }
+}

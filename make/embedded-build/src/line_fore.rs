@@ -50,9 +50,68 @@ impl GeneratedLineForePlan {
         &self,
         maxima: c::AssignedPlanMaxima,
     ) -> Result<Vec<c::AssignedRecordRequirement>, GenerationError> {
-        crate::assigned_layout::layout_records(
-            self.encode(maxima)?,
+        self.checked_layout(self.encode(maxima)?, maxima)
+    }
+    /// Resident references retain the SAME checked structural layout profile.
+    pub fn layout_requirements_with_resident_computations(
+        &self,
+        maxima: c::AssignedPlanMaxima,
+        resident: &[BoundResidentExpression],
+    ) -> Result<Vec<c::AssignedRecordRequirement>, GenerationError> {
+        self.checked_layout(
+            self.encode_with_resident_computations(maxima, resident)?,
+            maxima,
+        )
+    }
+    fn checked_layout(
+        &self,
+        bytes: Vec<u8>,
+        maxima: c::AssignedPlanMaxima,
+    ) -> Result<Vec<c::AssignedRecordRequirement>, GenerationError> {
+        let computations = crate::assigned_computation_requirements(&self.kernel)?;
+        let host_calls: Vec<_> = self
+            .kernel
+            .host_calls
+            .iter()
+            .map(|call| c::AssignedIdentity::from_text(&call.contract_id))
+            .collect();
+        let resources: Vec<_> = self
+            .kernel
+            .resources
+            .iter()
+            .map(|resource| resource.resource)
+            .collect();
+        let maximum_text_bytes = computations
+            .iter()
+            .map(|pin| pin.text_bytes)
+            .max()
+            .unwrap_or(0);
+        let maximum_total_text_bytes = computations
+            .iter()
+            .try_fold(0u32, |sum, pin| sum.checked_add(pin.text_bytes))
+            .ok_or(GenerationError::InvalidFragment)?;
+        c::decode_assigned_plan_with_line_fore(
+            &bytes,
+            maxima,
+            c::AssignedPlanRequirements {
+                host: c::AssignedIdentity::from_text(&self.kernel.host_id),
+                boot: c::AssignedIdentity::from_text(&self.kernel.boot_id),
+                host_calls: &host_calls,
+                resources: &resources,
+                remote_bindings: &self.bindings,
+            },
+            c::AssignedComputationProfile {
+                maximum_text_bytes,
+                maximum_total_text_bytes,
+                requirements: &computations,
+            },
+            self.profile(),
+        )
+        .map_err(|_| GenerationError::InvalidFragment)?;
+        crate::assigned_layout::layout_records_profile(
+            bytes,
             c::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA,
+            Some(self.profile()),
         )
     }
 }

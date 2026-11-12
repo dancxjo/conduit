@@ -121,3 +121,76 @@ fn schema8_remote_cord_identity_endpoints_capacities_and_track_stay_exact() {
         pin(&renamed, ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA)
     );
 }
+
+#[test]
+fn explicit_line_profile_normalizes_only_exact_local_fore_cords() {
+    let local = AssignedForeRequirement::new(
+        2,
+        3,
+        AssignedForeDirection::Input,
+        AssignedIdentity([1; 16]),
+        [2; 32],
+    );
+    let binding = AssignedRemoteBinding {
+        line: AssignedIdentity([3; 16]),
+        local_host: AssignedIdentity([4; 16]),
+        local_boot: AssignedIdentity([5; 16]),
+        peer_host: AssignedIdentity([6; 16]),
+        peer_boot: AssignedIdentity([7; 16]),
+    };
+    let line = AssignedLineForeRequirement::new(
+        AssignedForeRequirement::new(
+            8,
+            9,
+            AssignedForeDirection::Output,
+            AssignedIdentity([8; 16]),
+            [9; 32],
+        ),
+        binding,
+        AssignedIdentity([10; 16]),
+        AssignedIdentity([11; 16]),
+        [12; 32],
+    );
+    let local_pins = [local];
+    let lines = [line];
+    let profile = AssignedLineForeProfile {
+        local: &local_pins,
+        lines: &lines,
+    };
+    let mut cord = [0; 42];
+    cord[..2].copy_from_slice(&3u16.to_le_bytes());
+    cord[18] = 1;
+    cord[19..21].copy_from_slice(&2u16.to_le_bytes());
+    let pin = |bytes: &[u8], profile| {
+        AssignedRecordRequirement::from_kernel_record_with_line_fore(
+            AssignedRecord {
+                tag: ASSIGNED_CORD,
+                payload: bytes,
+            },
+            profile,
+        )
+    };
+    let mut renamed = cord;
+    renamed[2..18].fill(9);
+    assert_eq!(pin(&cord, profile), pin(&renamed, profile));
+    let mut changed = renamed;
+    changed[19] ^= 1;
+    assert_ne!(pin(&cord, profile), pin(&changed, profile));
+    changed = renamed;
+    changed[32] ^= 1;
+    assert_ne!(pin(&cord, profile), pin(&changed, profile));
+    let mut remote = [0; 42];
+    remote[..2].copy_from_slice(&9u16.to_le_bytes());
+    remote[23] = 1;
+    remote[24..26].copy_from_slice(&8u16.to_le_bytes());
+    let mut changed = remote;
+    changed[2..18].fill(9);
+    assert_ne!(pin(&remote, profile), pin(&changed, profile));
+    // Even a malformed ambiguous profile cannot launder a selected Line cord.
+    let aliases = [*line.fore()];
+    let ambiguous = AssignedLineForeProfile {
+        local: &aliases,
+        lines: &lines,
+    };
+    assert_ne!(pin(&remote, ambiguous), pin(&changed, ambiguous));
+}

@@ -7,6 +7,8 @@ mod boundary;
 mod line_fore;
 mod local_fore;
 use line_fore::ForeProfile;
+#[path = "assigned/layout.rs"]
+mod layout_check;
 pub(crate) use local_fore::LocalForeProvenance;
 mod bounded;
 pub use bounded::BoundedAssignedKernelTables;
@@ -247,7 +249,7 @@ impl<
         {
             return Err(E::Unsupported);
         }
-        validate_layout(input, layout)?;
+        layout_check::validate(input, layout, fore)?;
         nodes.fill(NodeSpec {
             input_cords: [None; P],
             maximum_step_fuel: 0,
@@ -448,38 +450,7 @@ impl<
         &self.startup_order
     }
 }
-fn validate_layout(
-    input: RecordInput<'_>,
-    layout: &ResidentLayout<'_>,
-) -> Result<(), AssignedKernelRefusal> {
-    use AssignedKernelRefusal as E;
-    if layout.records.len() > 256 {
-        return Err(E::Capacity);
-    }
-    let mut seen = [false; 256];
-    for record in input.records()? {
-        let record = record?;
-        if matches!(
-            record.tag,
-            c::ASSIGNED_CONFIGURATION | c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL
-        ) {
-            continue;
-        }
-        let expected =
-            c::AssignedRecordRequirement::from_kernel_record(record, u16_at(input.header(), 8)?);
-        let index = layout
-            .records
-            .iter()
-            .enumerate()
-            .position(|(i, r)| !seen[i] && *r == expected)
-            .ok_or(E::Layout)?;
-        seen[index] = true;
-    }
-    if seen[..layout.records.len()].contains(&false) {
-        return Err(E::Layout);
-    }
-    Ok(())
-}
+
 fn u16_at(data: &[u8], offset: usize) -> Result<u16, AssignedKernelRefusal> {
     Ok(u16::from_le_bytes(
         data.get(offset..offset + 2)
