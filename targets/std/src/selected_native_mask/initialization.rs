@@ -231,7 +231,7 @@ mod audio_tests {
         let textures = canvas.texture_creator();
         let mut output =
             conduit_linux_display::Scanout::prepare(&mut canvas, &textures, 640, 480).unwrap();
-        let source = include_str!("../../../profiles/raspberry-pi-3-tick-workset.host.conduit").replace("  limits =", &format!(r#"  base = {{kind: "display/scanout", implementation: "display/linear-framebuffer@1", initialization: {{backend: "KMSDRM", width: 640, height: 480}}}}
+        let source = include_str!("../../profiles/raspberry-pi-3-tick-workset.host.conduit").replace("  limits =", &format!(r#"  base = {{kind: "display/scanout", implementation: "display/linear-framebuffer@1", initialization: {{backend: "KMSDRM", width: 640, height: 480}}}}
   base = {{kind: "audio/speaker", implementation: "std/kernel-audio-play-alsa-hw@1", initialization: {{executable_sha256: "{}", card_id: "Fixture", device: 0, base_identity: "fixture/speaker"}}}}
   capability = {{kind: "sound/startup-chime", pinned_implementation: "std/kernel-startup-chime@1"}}
   capability = {{kind: "body/wake", pinned_implementation: "std/kernel-body-wake@1"}}
