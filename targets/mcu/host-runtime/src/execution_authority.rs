@@ -23,8 +23,8 @@ pub struct NativeFacts<'a> {
     resource_generation: &'a c::ResourceGenerationId,
     envelope: &'a c::CapabilityEnvelopeId,
     artifact: &'a c::ArtifactId,
-    implementation: &'a c::ImplementationId,
-    capability: &'static str,
+    implementation: &'a str,
+    capability: &'a str,
 }
 macro_rules! facts {
     ($id:expr,$capability:expr) => {{
@@ -38,42 +38,14 @@ macro_rules! facts {
             resource_generation: &id.resource_generation_id,
             envelope: &id.envelope_id,
             artifact: &id.artifact_id,
-            implementation: &id.implementation_id,
+            implementation: id.implementation_id.as_str(),
             capability: $capability,
         }
     }};
 }
-impl<'a> NativeFacts<'a> {
-    pub fn renderer<C: super::execution_mask::RendererClock>(
-        owner: &'a super::execution_mask::ReadyRenderer<C>,
-    ) -> Self {
-        facts!(owner.native_identity(), super::execution_mask::CAPABILITY)
-    }
-    pub fn pulse<P: conduit_pulse_capture::owner::PulseReadProvider>(
-        owner: &'a conduit_pulse_capture::installation::ReadyPulseBase<P>,
-    ) -> Self {
-        facts!(
-            owner.identity(),
-            conduit_pulse_capture::installation::PULSE_CAPABILITY
-        )
-    }
-    pub fn write<P: conduit_tm1637_wire::OpenDrain>(
-        owner: &'a conduit_tm1637_wire::installation::ReadyWriteBase<P>,
-    ) -> Self {
-        facts!(
-            owner.native_identity(),
-            conduit_tm1637_wire::installation::WRITE_CAPABILITY
-        )
-    }
-    pub fn wait<P: conduit_monotonic_wait::MonotonicWaitProvider>(
-        owner: &'a conduit_monotonic_wait::ReadyMonotonicWaitBase<P>,
-    ) -> Self {
-        facts!(
-            owner.native_identity(),
-            conduit_monotonic_wait::WAIT_CAPABILITY
-        )
-    }
-}
+#[path = "execution_authority_facts.rs"]
+mod facts;
+
 /// Independently installed Source/equipment policy. These are requested ceilings,
 /// not permission to enlarge the provider's envelope: its exact binder and Core
 /// capability issuance must both accept them. Never populate from a received Plan.
@@ -253,7 +225,7 @@ impl Issuer {
             authority_grant_id: copy!(grant.grant_id.as_str()),
             authority_contract_id: copy!(op.authority),
             capability_id: copy!(native.capability),
-            implementation_id: copy!(native.implementation.as_str()),
+            implementation_id: copy!(native.implementation),
             operation_contract_id: copy!(op.call),
             subject_kind: copy!(op.kind),
             resource_pool_id: copy!(native.pool.as_str()),
@@ -298,7 +270,7 @@ impl Issuer {
             base_provider_generation: native.generation,
             plan_id: copy!(m.body_plan),
             active_play_id: copy!(m.body_play),
-            implementation_id: copy!(native.implementation.as_str()),
+            implementation_id: copy!(native.implementation),
             operation_contract_id: copy!(op.call),
             subject_kind: copy!(op.kind),
             resource_pool_id: copy!(native.pool.as_str()),
@@ -436,7 +408,7 @@ fn fingerprint_parts(
         native.pool.as_str(),
         &native.resource_generation.0,
         native.envelope.as_str(),
-        native.implementation.as_str(),
+        native.implementation,
         native.capability,
         op.kind,
         op.authority,
@@ -466,3 +438,7 @@ mod tests;
 
 #[path = "execution_authority_service.rs"]
 mod service;
+
+#[cfg(test)]
+#[path = "execution_authority_io_tests.rs"]
+mod io_tests;

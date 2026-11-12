@@ -12,6 +12,7 @@ mod projection;
 pub use offer::capability_offer;
 pub use projection::{I2cImageProjection, I2cImageProjectionRefusal};
 
+pub const I2C_CAPABILITY: &str = "conduitos/i2c-transaction@1";
 pub const I2C_IMPLEMENTATION: &str = "conduitos/i2c-transaction@1";
 pub const I2C_EXECUTION_PROFILE: &str = "conduitos/i2c-cooperative-bounded@1";
 pub const I2C_ATTACHMENT_CLASS: &str = "machine/i2c-attachment";

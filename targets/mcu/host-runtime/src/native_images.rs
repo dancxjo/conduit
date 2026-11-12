@@ -4,6 +4,10 @@ extern crate alloc;
 use alloc::{string::String, vec::Vec};
 use conduit_core as c;
 use core::mem::size_of;
+#[path = "native_images_io.rs"]
+mod io;
+pub use io::{clock_at, i2c};
+
 pub struct Projection {
     pub base: c::BaseProviderAdvertisement,
     pub resource: c::ResourceOffer,
@@ -130,9 +134,9 @@ struct Facts<'a> {
     generation: u64,
     implementation: &'a c::BaseImplementationId,
     pool: &'a c::ResourcePoolId,
-    class: &'static str,
-    mechanism: &'static str,
-    capability: &'static str,
+    class: &'a str,
+    mechanism: &'a str,
+    capability: &'a str,
 }
 macro_rules! facts {
     ($id:expr,$class:expr,$capability:expr) => {{

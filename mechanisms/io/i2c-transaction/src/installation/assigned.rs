@@ -107,7 +107,7 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
             resource_bytes: self.attachment.resource_bytes,
         };
         let native = AssignedNativeIdentity {
-            capability: I2C_IMPLEMENTATION,
+            capability: I2C_CAPABILITY,
             execution_profile: I2C_EXECUTION_PROFILE,
             artifact: id.artifact_id.as_str(),
             base: id.base_id.as_str(),
