@@ -96,7 +96,13 @@ fn count_profiles_check_full_digest_and_refuse_widening_or_unsupported_constrain
         ));
     }
     for constraints in [
-        vec![range(0, 10), range(0, 20)],
+        vec![
+            c::ValueConstraint::ByteLength {
+                minimum: 8,
+                maximum: 8,
+            },
+            range(0, 10),
+        ],
         vec![c::ValueConstraint::ByteLength {
             minimum: 8,
             maximum: 8,
