@@ -465,10 +465,13 @@ fn startup_cancelled_after_first_pcm_block_retires_the_exact_pending_request() {
             },
         )
         .unwrap();
-    assert!(matches!(
+    assert!(
+        matches!(report.terminal, TerminalDisposition::Cancelled { .. }),
+        "terminal={:?} failure={:?} cue={:?}",
         report.terminal,
-        TerminalDisposition::Cancelled { .. }
-    ));
+        report.failure,
+        report.startup_chimes
+    );
     assert!(report.failure.is_none(), "{:?}", report.failure);
     assert_eq!(crate::hosted_audio::startup_chime::test_attempts(), 1);
     let receipt = &report.startup_chimes[0];
