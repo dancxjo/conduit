@@ -7,6 +7,12 @@ pub(in crate::durable_host::source_revision) fn submit_selected_play(
     owner: &mut owner::Owner,
     selected: &UsbPlaySelection,
     carrier: &mut SelectedPlayCarrier,
+    // Owned cold selection from the native provider. Neither the incoming
+    // challenge nor the serialized File selection can supply these sessions.
+    line_sessions: std::collections::BTreeMap<
+        conduit_body::ResidentPlot,
+        Vec<conduit_embedded_build::SelectedForeSession>,
+    >,
 ) -> Result<(), String> {
     use conduit_std_host::pico_spawn::PreparationCommandBytes;
     let SelectedPlayCarrier { member, socket, .. } = carrier;
@@ -30,7 +36,12 @@ pub(in crate::durable_host::source_revision) fn submit_selected_play(
         std::time::Duration::from_millis(selected.wait_milliseconds),
         selected.maximum_document_bytes as usize,
         |challenge| {
-            match owner.approve_selected_remote_workset(member, challenge, limits) {
+            match owner.approve_selected_remote_workset_with_line_fore(
+                member,
+                challenge,
+                limits,
+                &line_sessions,
+            ) {
                 Ok(command) => {
                     approved = Some(command);
                 }
