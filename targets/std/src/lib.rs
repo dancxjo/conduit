@@ -5,6 +5,10 @@ pub mod hosted_display;
 pub mod selected_native_mask;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub use selected_native_mask::NativeMaskEncounter;
+#[cfg(target_os = "linux")]
+mod selected_text_file;
+#[cfg(target_os = "linux")]
+pub use selected_text_file::{NativeTextFileDefinition, TextFileInitialization};
 mod selected_native_source;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod selected_scanout;

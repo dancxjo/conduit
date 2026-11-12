@@ -190,6 +190,8 @@ impl StdHost {
             source,
             creche_resource,
             None,
+            #[cfg(target_os = "linux")]
+            None,
         )
     }
     /// Admit native-definition construction before its metadata factory runs.
@@ -262,6 +264,8 @@ impl StdHost {
             source,
             creche_resource,
             Some(memory),
+            #[cfg(target_os = "linux")]
+            None,
         )
     }
 }

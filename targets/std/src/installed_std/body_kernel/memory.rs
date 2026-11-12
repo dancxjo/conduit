@@ -53,8 +53,19 @@ fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
         add(&mut bytes, id.0.capacity())?;
     }
     for (_, _, binding) in &map.resources {
-        if binding.compute.is_some() || binding.content.is_some() || binding.protected.is_some() {
+        if binding.compute.is_some() || binding.protected.is_some() {
             return Err("local IMAGE memory does not support external resource payloads".into());
+        }
+        if let Some(content) = &binding.content {
+            for text in [
+                &content.contract.content_profile.0,
+                &content.owner_host.0,
+                &content.owner_boot.0,
+                &content.base_id.0,
+                &content.residence_profile.0,
+            ] {
+                add(&mut bytes, text.capacity())?;
+            }
         }
         add(&mut bytes, binding.pool_id.0.capacity())?;
         add(&mut bytes, binding.class_id.0.capacity())?;
@@ -70,7 +81,12 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
         InstalledBack::Creche(back) => Ok(back.retained_backing_bytes()),
-        InstalledBack::Inactive | InstalledBack::SelectedNativeSource(_) => Ok(0),
+        // These Backs retain only inline state; the complete receipt separately
+        // requires and counts the actual selected native/file route owner.
+        InstalledBack::Inactive
+        | InstalledBack::SelectedNativeSource(_)
+        | InstalledBack::DataSaveText(_)
+        | InstalledBack::DataLoadText(_) => Ok(0),
         _ => Err("IMAGE memory receipt lacks a complete owned Back accounting".into()),
     }
 }
@@ -113,6 +129,7 @@ impl BodyKernel<'_> {
         let mut ticks = 0;
         let mut sources = 0;
         let mut creches = 0;
+        let mut files = 0;
         for (index, driver) in self.scheduler.drivers().iter().enumerate() {
             if matches!(driver, InstalledBack::SelectedNativeSource(_)) {
                 let route = self
@@ -144,22 +161,41 @@ impl BodyKernel<'_> {
             if matches!(driver, InstalledBack::Tick(_)) {
                 ticks += 1;
             }
+            if matches!(
+                driver,
+                InstalledBack::DataSaveText(_) | InstalledBack::DataLoadText(_)
+            ) {
+                let node = conduit_kernel::NodeId(
+                    index.try_into().map_err(|_| "file node index overflow")?,
+                );
+                let route = self
+                    .data_text_hosts
+                    .iter()
+                    .find(|route| route.file_node() == Some(node))
+                    .ok_or("IMAGE data Back lacks its exact selected file owner")?;
+                route
+                    .image_backing_bytes()
+                    .ok_or("IMAGE file owner lacks original funded backing")?;
+                files += 1;
+            }
             add(&mut bytes, back_bytes(driver)?)?;
         }
         if sources > 1
             || creches > 1
+            || files > 1
+            || (files == 1 && (ticks != 0 || sources != 0 || creches != 0))
             || (creches == 1 && (ticks != 0 || sources != 0))
-            || (ticks == 0 && sources == 0 && creches == 0)
+            || (ticks == 0 && sources == 0 && creches == 0 && files == 0)
             || (self.creche.is_some() != (creches == 1))
             || (self.native_source.is_some() != (sources == 1))
         {
             return Err(
-                "IMAGE memory receipt requires exact tick, immediate Source or single Crèche ownership".into(),
+                "IMAGE memory receipt requires exact tick, immediate Source, single Crèche or one funded file operation".into(),
             );
         }
         add(
             &mut bytes,
-            if sources == 1 || creches == 1 {
+            if sources == 1 || creches == 1 || files == 1 {
                 self.fore.finite_one_shot_backing_bytes()
             } else {
                 self.fore.tick_backing_bytes()
@@ -169,7 +205,7 @@ impl BodyKernel<'_> {
         for host in &self.data_text_hosts {
             add(
                 &mut bytes,
-                host.empty_backing_bytes()
+                host.image_backing_bytes()
                     .ok_or("IMAGE memory receipt does not support data residence")?,
             )?;
         }

@@ -50,7 +50,7 @@ fn selected(write: bool) -> (NativeTextFileDefinition, BoundedResourceRef) {
             base_id: base_id.clone(),
             provider_instance_id: "base/selected-file".into(),
             provider_generation: 1,
-            implementation_id: offer.implementation.implementation_id.clone(),
+            implementation_id: offer.implementation.implementation_id.as_str().into(),
             mechanism_family: DURABLE_TEXT_BASE_KIND.into(),
             enforcement_class: BaseEnforcementClass::Cooperative,
             lifecycle: BaseLifecycle::Ready,
@@ -112,4 +112,97 @@ fn descriptive_provider_cannot_enlarge_its_declared_bounds_or_residence() {
         }
         assert!(validate_definition(&d, &r, &host, &boot).is_err());
     }
+}
+
+#[test]
+fn cold_image_initializes_real_directory_and_retains_original_operation_grant() {
+    use conduit_host_make::*;
+    let packages = conduit_workspace_make::package_set();
+    let catalog = conduit_workspace_make::catalog();
+    let source = include_str!("../../profiles/raspberry-pi-3-tick-workset.host.conduit")
+        .lines()
+        .filter(|line| !line.contains("serial/text") && !line.contains("storage/protected-file"))
+        .collect::<Vec<_>>()
+        .join("\n")
+        .replace("  limits =", r#"  base = {kind: "storage/text-generation", implementation: "std/file-data-save-text@1", initialization: {maximum_text_bytes: 128, preparation_bytes: 32768, retained_bytes: 16384}}
+  capability = {kind: "data/save/text", pinned_implementation: "std/file-data-save-text@1"}
+  need = {id: "recording-generation", class: "data/immutable-generation@1", slots: 1, bytes: 128}
+  limits ="#);
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(&source).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
+    let (image, _) = build_default_host_image(
+        checked.profile().clone(),
+        &catalog,
+        &packages,
+        &BuildInputs {
+            source_identity: "fixture/cold-file".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    let selected_base = image
+        .manifest
+        .base_selections
+        .iter()
+        .find(|b| b.kind == DURABLE_TEXT_BASE_KIND)
+        .unwrap();
+    let (mut definition, reference) = selected(true);
+    definition.base.base_id = selected_base.id.as_str().into();
+    definition.base.resources[0].pool_id = "recording-generation".into();
+    definition.base.resources[0]
+        .content
+        .as_mut()
+        .unwrap()
+        .base_id = definition.base.base_id.clone();
+    let config = crate::StdHostConfig {
+        host_id: definition.authority.host_id.clone(),
+        boot_id: definition.authority.boot_id.clone(),
+        offer_generation: OfferGeneration(1),
+    };
+    let directory = std::env::temp_dir().join(format!("conduit-cold-file-{}", std::process::id()));
+    std::fs::create_dir(&directory).unwrap();
+    let (mut enlarged, _) = selected(true);
+    enlarged.base.base_id = definition.base.base_id.clone();
+    enlarged.base.resources[0].pool_id = definition.base.resources[0].pool_id.clone();
+    enlarged.base.resources[0].content.as_mut().unwrap().base_id = definition.base.base_id.clone();
+    enlarged.retained_bytes += 1;
+    assert!(crate::StdHost::from_selected_timer_and_text_file_image(
+        config.clone(),
+        &image,
+        &catalog,
+        &checked,
+        TextFileInitialization {
+            definition: enlarged,
+            directory: std::fs::File::open(&directory).unwrap(),
+            reference: reference.clone(),
+        }
+    )
+    .is_err());
+    let expected_grant = definition.authority.clone();
+    let host = crate::StdHost::from_selected_timer_and_text_file_image(
+        config,
+        &image,
+        &catalog,
+        &checked,
+        TextFileInitialization {
+            definition,
+            directory: std::fs::File::open(&directory).unwrap(),
+            reference,
+        },
+    )
+    .unwrap();
+    assert_eq!(host.text_file_authority_grant(), Some(&expected_grant));
+    assert!(host
+        .selected_text_file
+        .as_ref()
+        .unwrap()
+        .image_memory
+        .is_some());
+    assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 0);
+    drop(host);
+    std::fs::remove_dir(directory).unwrap();
 }

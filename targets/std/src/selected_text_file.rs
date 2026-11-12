@@ -223,7 +223,7 @@ fn validate_definition(
     let expected = durable_text_offer(content.contract.clone())?;
     let grant = &d.authority;
     if d.base.capabilities[0] != expected
-        || d.base.implementation_id != expected.implementation.implementation_id
+        || d.base.implementation_id.as_str() != expected.implementation.implementation_id.as_str()
         || grant.grant_id.as_str().is_empty()
         || grant.host_id != *host
         || grant.boot_id != *boot

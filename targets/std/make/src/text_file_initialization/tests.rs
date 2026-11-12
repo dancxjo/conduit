@@ -11,7 +11,7 @@ fn source(write: bool) -> String {
     };
     include_str!("../../../profiles/linux-computer.host.conduit").replace("  limits =", &format!(r#"  base = {{kind: "{DURABLE_TEXT_BASE_KIND}", implementation: "{}", initialization: {{maximum_text_bytes: 4096, preparation_bytes: 65536, retained_bytes: 16384}}}}
   capability = {{kind: "{kind}", pinned_implementation: "{}"}}
-  resource = {{id: "recording-generation", class: "{DURABLE_TEXT_RESOURCE}", slots: 1, bytes: 4096}}
+  need = {{id: "recording-generation", class: "{DURABLE_TEXT_RESOURCE}", slots: 1, bytes: 4096}}
   limits ="#, implementation(write), implementation(write)))
 }
 fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
@@ -90,7 +90,9 @@ fn text_file_intent_requires_exact_capability_driver_and_linux_target() {
         .unwrap()
         .to_owned();
     let duplicate = source(true).replace(&base, &format!("{base}\n{base}"));
-    assert!(check(&duplicate).is_err());
+    assert!(check(&duplicate)
+        .and_then(|c| CheckedTextFileInitialization::from_configuration(&c))
+        .is_err());
     let preference = source(true).replace(&format!("implementation: \"{DURABLE_TEXT_SAVE_IMPLEMENTATION}\""),&format!("implementations: [\"{DURABLE_TEXT_SAVE_IMPLEMENTATION}\", \"{DURABLE_TEXT_LOAD_IMPLEMENTATION}\"]"));
     assert!(check(&preference)
         .and_then(|c| CheckedTextFileInitialization::from_configuration(&c))

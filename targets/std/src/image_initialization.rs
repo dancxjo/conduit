@@ -1,5 +1,5 @@
 //! Initial construction of explicitly supported IMAGE-bound timer/native owners.
-//! Serial and storage declarations remain uninitialized and publish no offers.
+//! Serial and unsupported storage declarations publish no offers.
 //! Bounds are logical admission limits, never a claim about process RSS.
 use crate::{StdHost, StdHostConfig};
 use conduit_body_make::deployment_runtime_catalog::{CRECHE_IMPLEMENTATION, CRECHE_RESOURCE};
@@ -10,6 +10,8 @@ use conduit_host_make::{
 use std::{collections::BTreeSet, io::Write};
 
 mod creche;
+#[cfg(target_os = "linux")]
+mod text_file;
 use creche::prepare_creche_entry;
 
 const MAXIMUM_IMAGE_BYTES: usize = 64 * 1024;
@@ -20,12 +22,50 @@ struct InitialBases<'a> {
     creche: Option<ResourceOffer>,
     source: Option<crate::selected_native_source::InitialNativeSource<'a>>,
     memory: Option<crate::kernel_preparation::StagedImageMemory<'a>>,
+    #[cfg(target_os = "linux")]
+    text_file: Option<crate::selected_text_file::InitialTextFile>,
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
     scanout: Option<crate::selected_scanout::SelectedScanoutBase>,
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
     native_mask: Option<crate::selected_native_mask::InitialNativeMask>,
 }
 impl InitialBases<'_> {
+    fn has_text_file(&self) -> bool {
+        #[cfg(target_os = "linux")]
+        {
+            self.text_file.is_some()
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            false
+        }
+    }
+    fn matches_text_file_base(&self, id: &str, kind: &str, driver: &str) -> bool {
+        #[cfg(target_os = "linux")]
+        {
+            self.text_file.as_ref().is_some_and(|f| {
+                f.definition.base.base_id.as_str() == id
+                    && f.definition.base.mechanism_family.as_str() == kind
+                    && f.definition.base.implementation_id.as_str() == driver
+            })
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = (id, kind, driver);
+            false
+        }
+    }
+    fn owns_text_file_pool(&self, id: &str) -> bool {
+        #[cfg(target_os = "linux")]
+        {
+            self.text_file.as_ref().is_some_and(|f| f.owns_pool(id))
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = id;
+            false
+        }
+    }
     fn has_native_mask(&self) -> bool {
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         {
@@ -139,6 +179,8 @@ impl StdHost {
                 source: None,
                 creche: None,
                 memory: None,
+                #[cfg(target_os = "linux")]
+                text_file: None,
             },
         )
     }
@@ -150,6 +192,7 @@ impl StdHost {
         source: crate::selected_native_source::InitialNativeSource<'a>,
         creche: Option<ResourceOffer>,
         memory: Option<crate::kernel_preparation::StagedImageMemory<'a>>,
+        #[cfg(target_os = "linux")] text_file: Option<crate::selected_text_file::InitialTextFile>,
     ) -> Result<Self, String> {
         Self::from_selected_initial_bases(
             config,
@@ -159,6 +202,8 @@ impl StdHost {
                 source: Some(source),
                 creche,
                 memory,
+                #[cfg(target_os = "linux")]
+                text_file,
                 #[cfg(all(target_os = "linux", feature = "linux-display"))]
                 scanout: None,
                 #[cfg(all(target_os = "linux", feature = "linux-display"))]
@@ -221,6 +266,17 @@ impl StdHost {
                     .to_owned(),
             );
         }
+        #[cfg(target_os = "linux")]
+        if let Some(file) = &initial.text_file {
+            file.validate_image(image)?;
+            expected_implementations.insert(
+                file.definition.base.capabilities[0]
+                    .implementation
+                    .implementation_id
+                    .as_str()
+                    .to_owned(),
+            );
+        }
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         if initial.has_native_mask() {
             expected_implementations.extend(
@@ -261,9 +317,10 @@ impl StdHost {
                     source.definition.base.base_id.as_str() == base.id
                         && source.definition.base.mechanism_family.as_str() == base.kind
                         && source.definition.base.implementation_id.as_str() == base.driver
-                }) && !(initial.has_scanout()
-                    && base.kind == "display/scanout"
-                    && base.driver == "display/linear-framebuffer@1")
+                }) && !initial.matches_text_file_base(&base.id, &base.kind, &base.driver)
+                    && !(initial.has_scanout()
+                        && base.kind == "display/scanout"
+                        && base.driver == "display/linear-framebuffer@1")
                     && !matches!(
                         (base.kind.as_str(), base.driver.as_str()),
                         ("timer/monotonic", "hosted/monotonic-clock@1")
@@ -284,6 +341,7 @@ impl StdHost {
             || budgets.len()
                 > MAXIMUM_TIMER_POOLS
                     + usize::from(initial.creche.is_some())
+                    + usize::from(initial.has_text_file())
                     + usize::from(initial.has_scanout())
                     + 2 * usize::from(initial.has_native_mask())
                     + initial
@@ -297,6 +355,10 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
+            if initial.owns_text_file_pool(&budget.id) {
+                continue;
+            }
+
             if initial
                 .creche
                 .as_ref()
@@ -381,6 +443,22 @@ impl StdHost {
             initialized_base_kinds.insert("display/scanout".into());
             initialized_driver_kinds.insert("display/linear-framebuffer@1".into());
         }
+        #[cfg(target_os = "linux")]
+        if let Some(file) = &initial.text_file {
+            let entry = &file.definition.base;
+            registry
+                .register(entry.clone())
+                .map_err(|error| format!("selected file registry: {error:?}"))?;
+            candidates.push(entry.clone());
+            ready_resource_classes.extend(
+                entry
+                    .resources
+                    .iter()
+                    .map(|r| r.class_id.as_str().to_owned()),
+            );
+            initialized_base_kinds.insert(entry.mechanism_family.as_str().into());
+            initialized_driver_kinds.insert(entry.implementation_id.as_str().into());
+        }
         if let Some(source) = &initial.source {
             let entry = &source.definition.base;
             registry
@@ -430,6 +508,7 @@ impl StdHost {
         }
         #[allow(unused_mut)]
         let mut expected_capabilities = 1
+            + usize::from(initial.has_text_file())
             + usize::from(initial.creche.is_some())
             + mask_capabilities.len()
             + initial
@@ -468,7 +547,9 @@ impl StdHost {
                     initialized_base_kinds,
                     initialized_driver_kinds,
                     available_facilities: facilities,
-                    authority_ready: has_native_mask || initial.source.is_some(),
+                    authority_ready: has_native_mask
+                        || initial.source.is_some()
+                        || initial.has_text_file(),
                 },
             },
         )
@@ -493,6 +574,11 @@ impl StdHost {
         if let Some(source) = initial.source {
             source.initialize(&mut host)?;
         }
+        #[cfg(target_os = "linux")]
+        if let Some(file) = initial.text_file {
+            file.initialize(&mut host)?;
+        }
+
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         if let Some(intent) = initial.native_mask {
             let mask = intent.initialize(&mut host)?;
