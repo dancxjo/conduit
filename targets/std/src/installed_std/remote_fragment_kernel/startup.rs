@@ -168,3 +168,6 @@ impl InstalledRemoteFragment {
 }
 
 mod backing;
+
+#[cfg(all(test, target_pointer_width = "64"))]
+mod collection_bound_tests;
