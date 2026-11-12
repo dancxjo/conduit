@@ -1,7 +1,5 @@
 use super::super::super::CooperativeYield;
 use super::*;
-#[path = "../tests/native_sync/allocations.rs"]
-mod allocations;
 
 struct Yield {
     calls: Cell<usize>,
@@ -50,7 +48,14 @@ impl Future for Work<'_> {
     }
 }
 fn poll<F: Future>(future: core::pin::Pin<&mut F>) -> Poll<F::Output> {
-    allocations::without_allocations(|| future.poll(&mut Context::from_waker(Waker::noop())))
+    let (result, cost) = crate::member_return_tests::return_allocation_probe::observe(|| {
+        future.poll(&mut Context::from_waker(Waker::noop()))
+    });
+    assert_eq!(
+        cost.allocation_attempts, 0,
+        "prepared poll attempted allocation"
+    );
+    result
 }
 #[test]
 fn timing_contention_defers_original_future_and_yields_without_holding_window() {
