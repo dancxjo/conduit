@@ -185,8 +185,10 @@ fn handshake(
         if second.as_ref().is_some_and(Result::is_err) {
             return (first, second.unwrap(), unrelated.get());
         }
-        if first.is_some() && second.is_some() {
-            return (first, second.unwrap(), unrelated.get());
+        if first.is_some() {
+            if let Some(result) = second.take() {
+                return (first, result, unrelated.get());
+            }
         }
     }
     panic!("handshake did not settle")
