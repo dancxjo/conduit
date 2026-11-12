@@ -59,8 +59,7 @@ pub async fn run<'s>(
     #[cfg(record_service)]
     let mut recording_resource = None;
     let (maximum_events, recording_operation) = initialization::publication_bounds(&parameters);
-    let mut append_output =
-        [0u8; crate::play::RECORDING_OUTPUT_BYTES];
+    let mut append_output = [0u8; crate::play::RECORDING_OUTPUT_BYTES];
     let mut append_status = Some(
         conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus::prepare_selected(
             &source::sampling_layout::fore(),
@@ -136,7 +135,8 @@ pub async fn run<'s>(
                 equipment: &mut equipment,
                 issuers: &mut issuers,
                 operations: &operations,
-                #[cfg(record_service)] recording_resource: &mut recording_resource,
+                #[cfg(record_service)]
+                recording_resource: &mut recording_resource,
                 recording: recording_operation.as_ref(),
                 sampling_values: sampling_values.take().expect("original sampling values"),
                 output_values: output_values.take().expect("original output values"),
@@ -155,8 +155,9 @@ pub async fn run<'s>(
             Ok(()) => {
                 let started = started.take().expect("original continuation Started");
                 let evidence = started.evidence();
-                let (((mut sample, mut sample_calls), mask, (output, output_calls)), renderer) =
-                    started.into_kernels();
+                let ((sampling, mask, (output, output_calls)), renderer) = started.into_kernels();
+                let (mut sample, mut sample_calls) =
+                    sampling.into_local().expect("local-only continuation");
                 return crate::play_run::run(
                     &mut *sample,
                     &mut sample_calls,
@@ -171,7 +172,11 @@ pub async fn run<'s>(
                     &face,
                     crate::play_run::Carriage::Local {
                         link,
-                        control: crate::play_run::ReturnControl::prepare(root, &issuers, return_images),
+                        control: crate::play_run::ReturnControl::prepare(
+                            root,
+                            &issuers,
+                            return_images,
+                        ),
                     },
                     activity.take().expect("original native activity"),
                     &mut append_output,
@@ -240,6 +245,14 @@ pub async fn run<'s>(
             // Caller-owned affine slots live in the original future storage.
             // Poll boundaries return only status, never another fat workset copy.
             let mut prepared_slot = None;
+            #[cfg(fore_carrier)]
+            let mut fore_hot = None;
+            #[cfg(fore_carrier)]
+            let mut fore_cold = None;
+            #[cfg(fore_carrier)]
+            let mut fore_buffers =
+                crate::play::fore::buffers().expect("funded installed Fore buffers");
+
             crate::runtime::stack_checkpoint(3);
             let prepared_status = {
                 let future = async {
@@ -305,7 +318,25 @@ pub async fn run<'s>(
                         now_millis: now_ms(),
                     };
                     #[cfg(record_service)]
-                    { recording_resource = equipment.recording.resource_binding(remaining()).map_err(|_| "recording-resource")?; }
+                    {
+                        recording_resource = equipment
+                            .recording
+                            .resource_binding(remaining())
+                            .map_err(|_| "recording-resource")?;
+                    }
+                    #[cfg(fore_carrier)]
+                    {
+                        let (hot, cold) = crate::play::fore::installation::prepare(
+                            context,
+                            crate::config::FORE_CARRIER_IMPLEMENTATION,
+                            crate::config::FORE_CARRIER_BOUNDS.ok_or("missing-installed-fore")?,
+                            &source::sampling_layout::fore(),
+                        )?;
+                        fore_hot = Some(hot);
+                        fore_cold = Some(cold);
+                    }
+                    #[cfg(fore_carrier)]
+                    let hot = fore_hot.as_ref().ok_or("missing-fore-hot")?;
                     let prepared = crate::play::prepare(
                         &*parts.workspace,
                         context.into(),
@@ -318,10 +349,17 @@ pub async fn run<'s>(
                         &mut equipment.display,
                         &mut equipment.waits,
                         equipment.recording.ready_slot(),
-                        #[cfg(record_service)] recording_resource.as_ref(),
+                        #[cfg(record_service)]
+                        recording_resource.as_ref(),
                         {
-                            #[cfg(not(record_service))] { &mut issuers.recording }
-                            #[cfg(record_service)] { [&mut issuers.recording, &mut issuers.recording_read] }
+                            #[cfg(not(record_service))]
+                            {
+                                &mut issuers.recording
+                            }
+                            #[cfg(record_service)]
+                            {
+                                [&mut issuers.recording, &mut issuers.recording_read]
+                            }
                         },
                         recording_operation.as_ref(),
                         append_output.len(),
@@ -333,6 +371,42 @@ pub async fn run<'s>(
                         output_values.take().ok_or("output-values-busy")?,
                         &mut contracts,
                         &mut refusal_detail,
+                        {
+                            #[cfg(fore_carrier)]
+                            {
+                                Some(crate::play::fore::Selection {
+                                    profile: hot.profile(),
+                                    bindings: &hot.bindings,
+                                })
+                            }
+                            #[cfg(not(fore_carrier))]
+                            {
+                                None
+                            }
+                        },
+                        |approved, fore, profile| {
+                            #[cfg(not(fore_carrier))]
+                            {
+                                let _ = (approved, fore, profile);
+                                Ok(None)
+                            }
+                            #[cfg(fore_carrier)]
+                            {
+                                let cold = fore_cold.take().ok_or("missing-fore-cold")?;
+                                crate::play::fore::prepare_components(
+                                    &parts,
+                                    context,
+                                    hot,
+                                    cold,
+                                    &mut *link,
+                                    &mut fore_buffers,
+                                    approved,
+                                    fore.ok_or("missing-opaque-fore")?,
+                                    profile,
+                                )
+                                .map(Some)
+                            }
+                        },
                     )
                     .map_err(|error| {
                         use core::fmt::Write;
@@ -410,7 +484,10 @@ pub async fn run<'s>(
                             presentation_slot.take().ok_or("presentation-slot-empty")?,
                             &face,
                             &held_pools,
-                            append_output.len() + core::mem::size_of::<conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus>(),
+                            append_output.len() + core::mem::size_of::<conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus>() + {
+                                #[cfg(fore_carrier)] { core::mem::size_of_val(&fore_hot) + core::mem::size_of_val(&fore_buffers) }
+                                #[cfg(not(fore_carrier))] { 0 }
+                            },
                             &mut started_slot,
                             &mut scopes_slot,
                         )
@@ -434,21 +511,27 @@ pub async fn run<'s>(
                         let started = started_slot.take().expect("original Started output slot");
                         let scopes = scopes_slot.take().expect("original Scopes output slot");
                         let evidence = started.evidence();
-                        let (((mut sample, mut sample_calls), mask, (output, output_calls)), renderer) =
-                            started.into_kernels();
-                        crate::play_run::run(
-                            &mut *sample,
-                            &mut sample_calls,
+                        let ((sampling, mask, output), renderer) = started.into_kernels();
+                        crate::play::fore::run_started(
+                            sampling,
                             mask,
                             output,
-                            output_calls,
                             renderer,
                             optional.take().expect("original optional tracking"),
                             scopes,
                             evidence,
                             arena,
                             &face,
-                            crate::play_run::Carriage::Local { link, control: None },
+                            {
+                                #[cfg(fore_carrier)]
+                                {
+                                    None
+                                }
+                                #[cfg(not(fore_carrier))]
+                                {
+                                    Some(link)
+                                }
+                            },
                             &equipment.activity,
                             &mut append_output,
                             append_status
@@ -465,6 +548,16 @@ pub async fn run<'s>(
                     // No partial execution: retain the original signed input and
                     // any fenced reservations. Read-only refusal stays observable
                     // on the same carrier; recovery remains the original reboot.
+                    #[cfg(fore_carrier)]
+                    loop {
+                        core::hint::black_box(&arena);
+                        core::hint::black_box(&prepared_slot);
+                        core::hint::black_box(&fore_hot);
+                        core::hint::black_box(&fore_buffers);
+                        core::hint::black_box(reason);
+                        Timer::after_secs(1).await;
+                    }
+                    #[cfg(not(fore_carrier))]
                     loop {
                         core::hint::black_box(&arena);
                         link.connected().await;

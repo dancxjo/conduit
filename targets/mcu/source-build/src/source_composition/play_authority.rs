@@ -88,10 +88,11 @@ impl<'c, 's, 'w> NativeAuthority<'c, 's, 'w> {
         policy: Policy<'_>,
         pins: [EntryPin<'p>; 3],
         configurations: [&'p [c::AssignedRecordRequirement]; 3],
-        profiles: [b::AssignedBodyPreparationProfile<'p>; 3],
+        profiles: [conduit_mcu_host_runtime::execution_workset::AssignedPreparationProfile<'p>; 3],
         factory: impl FnOnce(
             [&b::DelegatedBodyFragment<'w>; 3],
             [&[c::AssignedForeRequirement]; 3],
+            Option<[&b::ApprovedBodyForePorts<PORTS>; 3]>,
         ) -> Result<T, E>,
     ) -> Result<PreparedLocalWorkset<'w, T, 3>, Refusal<Refusal<E>>>
     where
@@ -99,25 +100,35 @@ impl<'c, 's, 'w> NativeAuthority<'c, 's, 'w> {
     {
         match (self, workspace) {
             (Self::Online(context), Some(workspace)) => {
-                execution_group::prepare_with_source::<T, E, INPUT, PORTS>(
+                execution_group::prepare_with_source_profiles_approved::<T, E, INPUT, PORTS, 3>(
                     workspace,
                     context,
                     policy,
                     pins,
                     configurations,
                     profiles,
-                    factory,
+                    move |fragments, fore| {
+                        factory(fragments, fore.map(|f| f.as_slice()), Some(fore))
+                    },
                 )
             }
             (Self::Continuation { context, scope }, None) => {
+                use conduit_mcu_host_runtime::execution_workset::AssignedPreparationProfile;
+                let profiles = profiles.map(|p| match p {
+                    AssignedPreparationProfile::Legacy(p) => Some(p),
+                    _ => None,
+                });
+                let [Some(a), Some(b), Some(c)] = profiles else {
+                    return Err(Refusal::Scope);
+                };
                 execution_group::prepare_continuation_with_source::<T, E, PORTS>(
                     scope,
                     context,
                     policy,
                     pins,
                     configurations,
-                    profiles,
-                    factory,
+                    [a, b, c],
+                    move |fragments, fore| factory(fragments, fore, None),
                 )
             }
             _ => Err(Refusal::Scope),

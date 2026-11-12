@@ -33,17 +33,23 @@ type RecordingStorage = crate::equipment::RecordingStorage;
 mod recording_policy {
     include!(concat!(env!("OUT_DIR"), "/source_play_recording.rs"));
 }
-pub use recording_policy::{RecordingIssuers, RecordingOperation, OUTPUT_BYTES as RECORDING_OUTPUT_BYTES};
+pub use recording_policy::{
+    RecordingIssuers, RecordingOperation, OUTPUT_BYTES as RECORDING_OUTPUT_BYTES,
+};
 
 type Pulse = crate::equipment::Capture;
 type Wire = crate::equipment::Wire;
 mod shapes {
     include!(concat!(env!("OUT_DIR"), "/source_play_shapes.rs"));
 }
+pub(crate) use shapes::FORE_PORTS;
 use shapes::{
-    OutputBound, SamplingBound, FORE_PORTS, OC, OH, OK, ON, OP, OR, OS, OT, SC, SH, SK, SN, SP, SR, SS, ST,
+    OutputBound, SamplingBound, OC, OH, OK, ON, OP, OR, OS, OT, SC, SH, SK, SN, SP, SR, SS, ST,
 };
 pub use shapes::{OutputKernel, SamplingCalls, SamplingKernel, CONDUIT_EXECUTION_KERNEL_BYTES};
+pub mod fore {
+    include!(concat!(env!("OUT_DIR"), "/source_play_fore.rs"));
+}
 // Specialize the generic lowering width at compile time. The physical kernel
 // borrows this immutable matrix; no projection array is constructed on its stack.
 const fn terminal_contracts<const N: usize, const P: usize, const WIDE: usize>(
@@ -66,16 +72,16 @@ const fn terminal_contracts<const N: usize, const P: usize, const WIDE: usize>(
     }
     result
 }
-const SAMPLING_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; SP]; SN] =
-    terminal_contracts(&source::sampling_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
-const OUTPUT_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; OP]; ON] =
-    terminal_contracts(&source::output_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
+const SAMPLING_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; SP];
+    SN] = terminal_contracts(&source::sampling_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
+const OUTPUT_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; OP];
+    ON] = terminal_contracts(&source::output_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
 
 pub const CONTINUATION_FORE_PORTS: usize = FORE_PORTS;
 pub type ContinuationStarted<'a, 'f> =
     conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
         (
-            SamplingBound<'a, 'f>,
+            fore::BoundSampling<'a, 'a, SamplingBound<'a, 'f>>,
             conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
             OutputBound<'a, 'f>,
         ),
@@ -164,12 +170,18 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     output_values: HostedValueStore,
     contracts: &mut Option<execution_group::NativeContracts>,
     diagnostic: &mut heapless::String<192>,
+    line: Option<fore::Selection<'a>>,
+    prepare_carrier: impl FnOnce(
+        &b::DelegatedBodyFragment<'w>,
+        Option<&b::ApprovedBodyForePorts<FORE_PORTS>>,
+        b::AssignedBodyPreparationProfile<'_>,
+    ) -> Result<Option<fore::Components<'a, 'a>>, &'static str>,
 ) -> Result<
     PreparedLocalWorkset<
         'w,
         impl PreparedLocalKernels<
                 Bound = (
-                    SamplingBound<'a, 'f>,
+                    fore::BoundSampling<'a, 'a, SamplingBound<'a, 'f>>,
                     conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
                     OutputBound<'a, 'f>,
                 ),
@@ -199,10 +211,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     let append_selected = source::sampling::NATIVE_KINDS
         .iter()
         .any(|(_, kind)| *kind == conduit_resource_snapshot::native_append::APPEND_KIND);
-    if append_selected
-        && append_output_bytes
-            < RECORDING_OUTPUT_BYTES
-    {
+    if append_selected && append_output_bytes < RECORDING_OUTPUT_BYTES {
         return Err(Refusal::Bounds);
     }
     // The original arena funds cold preparation and retained execution.
@@ -238,6 +247,19 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     let sf = source::sampling_layout::fore();
     let mf = source::mask_layout::fore();
     let of = source::output_layout::fore();
+    use conduit_mcu_host_runtime::execution_workset::AssignedPreparationProfile;
+    let mut sampling_profile = profile!(sampling_layout, host, boot, &sf);
+    let selected_profile = match line {
+        Some(line) => {
+            sampling_profile.fore = None;
+            sampling_profile.requirements.remote_bindings = line.bindings;
+            AssignedPreparationProfile::LineFore(b::AssignedBodyLineForePreparationProfile {
+                preparation: sampling_profile,
+                line_fore: line.profile,
+            })
+        }
+        None => AssignedPreparationProfile::Legacy(sampling_profile),
+    };
     context.prepare::<_, _, { crate::config::MAX_ASSIGNMENT_BYTES }, FORE_PORTS>(
         workspace,
         policy,
@@ -252,12 +274,15 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
             source::output_layout::CONFIGURATIONS,
         ],
         [
-            profile!(sampling_layout, host, boot, &sf),
-            profile!(mask_layout, host, boot, &mf),
-            profile!(output_layout, host, boot, &of),
+            selected_profile,
+            AssignedPreparationProfile::Legacy(profile!(mask_layout, host, boot, &mf)),
+            AssignedPreparationProfile::Legacy(profile!(output_layout, host, boot, &of)),
         ],
         #[inline(always)]
-        move |[sampling, mask, output], [sampling_fore, mask_fore, output_fore]| {
+        move |[sampling, mask, output], [sampling_fore, mask_fore, output_fore], approved_fore| {
+            let mut sampling_profile=profile!(sampling_layout,host,boot,sampling_fore);
+            if let Some(line)=line { sampling_profile.fore=None; sampling_profile.requirements.remote_bindings=line.bindings; }
+            let carriage=prepare_carrier(sampling,approved_fore.map(|ports|ports[0]),sampling_profile)?;
             // Bind the already funded recording owner only from the original
             // opaque approval. The stream identifies this authored producer;
             // Boot/Plan/Play remain separate, exact record context fields.
@@ -279,7 +304,6 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 stream.finalize().into(),
                 1,
             )?;
-            let sampling_profile = profile!(sampling_layout, host, boot, sampling_fore);
             let output_profile = profile!(output_layout, host, boot, output_fore);
             let (sample_backs, output_backs) = owners::prepare(
                 context,
@@ -300,8 +324,9 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 operations,
                 sampling,
                 output,
-                profile!(sampling_layout, host, boot, sampling_fore),
+                sampling_profile,
                 profile!(output_layout, host, boot, output_fore),
+                line.map(|l|l.profile),
                 sampling_fore,
                 output_fore,
                 contracts.get().ok_or("native-contracts-busy")?,
@@ -321,25 +346,9 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                     "kernel-headroom",
                 ));
             }
-            let sample = PreparedFragment::<_, SN, SC, SP, SR, ST, SH, SS, HostedSignLog, SK>::prepare_with_terminal_transductions_ref(
-                sampling,
-                sampling_profile,
-                sampling_fore,
-                &ResidentLayout {
-                    records: source::sampling_layout::RECORDS,
-                    counts: source::sampling_layout::COUNTS,
-                },
-                sampling_values,
-                HostedSignLog::new(
-                    SS as u16,
-                    (SS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
-                )
-                .map_err(|_| "sampling-sign-storage")?,
-                policy.maximum_retained_bytes,
-                || Ok::<_, &'static str>(sample_backs),
-                &SAMPLING_TERMINALS,
-            )
-            .map_err(|error| kernel_refusal(diagnostic, error, "sampling-kernel"))?;
+            let sample = fore::prepare_kernel(sampling,sampling_profile,sampling_fore,line.map(|l|l.profile),sampling_values,policy.maximum_retained_bytes,sample_backs)
+                .map_err(|error| kernel_refusal(diagnostic,error,"sampling-kernel"))?;
+            let sample=match carriage {Some(carriage)=>carriage.wrap(sample),None=>fore::PreparedSampling::Local(sample,core::marker::PhantomData)};
             let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog, OK>::prepare_with_terminal_transductions_ref(
                 output,
                 output_profile,

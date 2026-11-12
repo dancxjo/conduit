@@ -17,7 +17,8 @@ pub struct Factory<'a, 'f, 'issuers, 'diagnostic> {
     pub equipment: &'a mut crate::equipment::Equipment,
     pub issuers: &'issuers mut Issuers<W>,
     pub operations: &'a Operations<'static, W>,
-    #[cfg(record_service)] pub recording_resource: &'a mut Option<c::ResourceBinding>,
+    #[cfg(record_service)]
+    pub recording_resource: &'a mut Option<c::ResourceBinding>,
     pub recording: Option<&'a crate::play::RecordingOperation<'static>>,
     pub sampling_values: conduit_kernel::HostedValueStore,
     pub output_values: conduit_kernel::HostedValueStore,
@@ -96,7 +97,8 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
         equipment,
         issuers,
         operations,
-        #[cfg(record_service)] recording_resource,
+        #[cfg(record_service)]
+        recording_resource,
         recording,
         sampling_values,
         output_values,
@@ -137,10 +139,17 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
             &mut equipment.display,
             &mut equipment.waits,
             equipment.recording.ready_slot(),
-            #[cfg(record_service)] recording_resource,
+            #[cfg(record_service)]
+            recording_resource,
             {
-                #[cfg(not(record_service))] { &mut issuers.recording }
-                #[cfg(record_service)] { [&mut issuers.recording, &mut issuers.recording_read] }
+                #[cfg(not(record_service))]
+                {
+                    &mut issuers.recording
+                }
+                #[cfg(record_service)]
+                {
+                    [&mut issuers.recording, &mut issuers.recording_read]
+                }
             },
             recording,
             append_output_bytes,
@@ -152,6 +161,8 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
             output_values,
             contracts,
             diagnostic,
+            None,
+            |_, _, _| Ok(None),
         )
         .map_err(|error| refusal(diagnostic, "continuation-source-preparation", error))?;
         prepared_slot = Some(prepared);

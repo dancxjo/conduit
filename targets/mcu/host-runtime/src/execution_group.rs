@@ -439,7 +439,9 @@ where
 
 #[path = "execution_group_source.rs"]
 mod source;
-pub use source::{prepare_with_source, prepare_with_source_profiles};
+pub use source::{
+    prepare_with_source, prepare_with_source_profiles, prepare_with_source_profiles_approved,
+};
 
 #[path = "execution_group_continuation.rs"]
 mod continuation;

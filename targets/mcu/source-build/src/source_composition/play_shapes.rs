@@ -1,6 +1,6 @@
 // Independently compiled finite kernel/storage geometry.
 use super::*;
-pub(super) const FORE_PORTS: usize = {
+pub(crate) const FORE_PORTS: usize = {
     let a = source::sampling_layout::FORE_PORTS;
     let b = source::mask_layout::FORE_PORTS;
     let c = source::output_layout::FORE_PORTS;
@@ -36,8 +36,10 @@ pub(super) const OS: usize = source::output_layout::SIGN_ITEMS;
 #[cfg(not(record_service))]
 type RecordingDriver = conduit_mcu_host_runtime::execution_factory::NoExtraBack;
 #[cfg(record_service)]
-type RecordingDriver = conduit_mcu_host_runtime::execution_factory::BoxedRecordServiceBack<SP,
-    { conduit_resource_snapshot::read_result::READ_RESULT_BYTES }>;
+type RecordingDriver = conduit_mcu_host_runtime::execution_factory::BoxedRecordServiceBack<
+    SP,
+    { conduit_resource_snapshot::read_result::READ_RESULT_BYTES },
+>;
 pub type SamplingKernel<'a, 'f> = ExecutionKernel<
     Driver<'f, resident::BorrowedBack<'a>, RecordingDriver>,
     SN,
@@ -71,10 +73,14 @@ pub static CONDUIT_EXECUTION_KERNEL_BYTES: [usize; 3] = [
 ];
 #[cfg(not(record_service))]
 pub type SamplingCalls = conduit_mcu_host_runtime::execution_factory::CallsWithOptionalAppender<
-    conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>, RecordingStorage>;
+    conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>,
+    RecordingStorage,
+>;
 #[cfg(record_service)]
 pub type SamplingCalls = conduit_mcu_host_runtime::execution_factory::CallsWithRecordService<
-    conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>, RecordingStorage>;
+    conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>,
+    RecordingStorage,
+>;
 pub(super) type SamplingBound<'a, 'f> = (Box<SamplingKernel<'a, 'f>>, SamplingCalls);
 pub(super) type OutputBound<'a, 'f> = (
     Box<OutputKernel<'a, 'f>>,

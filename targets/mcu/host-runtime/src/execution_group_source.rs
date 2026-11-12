@@ -62,6 +62,44 @@ pub fn prepare_with_source_profiles<
 where
     T: PreparedLocalKernels,
 {
+    prepare_with_source_profiles_approved::<T, E, INPUT, PORTS, F>(
+        workspace,
+        context,
+        policy,
+        pins,
+        configurations,
+        profiles,
+        move |fragments, fore| factory(fragments, fore.map(|f| f.as_slice())),
+    )
+}
+
+/// Profile-aware Source gate retaining the original opaque Fore approvals for
+/// Root's independent actual-carrier gate. All legacy role/config checks apply.
+#[allow(clippy::too_many_arguments)]
+#[inline(always)]
+pub fn prepare_with_source_profiles_approved<
+    'w,
+    'p,
+    T,
+    E,
+    const INPUT: usize,
+    const PORTS: usize,
+    const F: usize,
+>(
+    workspace: &'w b::HostCommandInput<INPUT>,
+    context: b::NativePreparationContext<'_>,
+    policy: Policy<'_>,
+    pins: [EntryPin<'p>; F],
+    configurations: [&'p [c::AssignedRecordRequirement]; F],
+    profiles: [crate::execution_workset::AssignedPreparationProfile<'p>; F],
+    factory: impl FnOnce(
+        [&b::DelegatedBodyFragment<'w>; F],
+        [&b::ApprovedBodyForePorts<PORTS>; F],
+    ) -> Result<T, E>,
+) -> Result<PreparedLocalWorkset<'w, T, F>, Refusal<Refusal<E>>>
+where
+    T: PreparedLocalKernels,
+{
     if F == 0
         || pins
             .iter()
@@ -104,11 +142,8 @@ where
                 )?;
                 indices[role] = index;
             }
-            factory(
-                indices.map(|i| &fragments[i]),
-                indices.map(|i| fore[i].as_slice()),
-            )
-            .map_err(Refusal::Back)
+            factory(indices.map(|i| &fragments[i]), indices.map(|i| &fore[i]))
+                .map_err(Refusal::Back)
         },
     )
 }
