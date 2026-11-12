@@ -713,7 +713,12 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
                 }
                 for (play, carrier) in selection.plays.iter().zip(&mut carriers) {
                     let result = match carrier {
-                        Ok(carrier) => submit_selected_play(&mut owner, play, carrier),
+                        Ok(carrier) => submit_selected_play(
+                            &mut owner,
+                            play,
+                            carrier,
+                            std::collections::BTreeMap::new(),
+                        ),
                         Err(error) => Err(error.clone()),
                     };
                     if let Err(error) = result {
