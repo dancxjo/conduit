@@ -6,18 +6,102 @@ use super::*;
 pub(super) struct SelectedPlayCarrier {
     member: owner::MemberPresentationBasis,
     socket: conduit_std_host::pico_spawn::PicoSpawnSocket,
+    canonical_port: std::path::PathBuf,
+    completed_return: Option<CompletedMemberReturn>,
+}
+// Constructed only after the existing proof, commit, receipt delivery and durable
+// presentation publication have ALL completed on this same owned socket.
+#[cfg(target_os = "linux")]
+struct CompletedMemberReturn;
+#[cfg(target_os = "linux")]
+impl SelectedPlayCarrier {
+    pub(super) fn canonical_port(&self) -> &Path {
+        &self.canonical_port
+    }
+    pub(super) fn member_basis(&self) -> &owner::MemberPresentationBasis {
+        &self.member
+    }
+    pub(super) fn authenticated_return(&self) -> bool {
+        self.completed_return.is_some()
+    }
+    pub(super) fn consume_for_selected_play(
+        self,
+        selected: &UsbPlaySelection,
+    ) -> Result<Self, String> {
+        if !self.authenticated_return() {
+            return Err("selected carrier has no completed authenticated return".into());
+        }
+        let expected = selected_play_basis(selected)?;
+        let canonical = selected
+            .port
+            .canonicalize()
+            .map_err(|e| format!("selected Play carrier path: {e}"))?;
+        check_retained_selection(&self.canonical_port, &self.member, &canonical, &expected)?;
+        Ok(self)
+    }
+    pub(super) fn into_fore_carriage(
+        self,
+        prepared: conduit_std_host::pico_spawn::PreparedForeCarriage,
+    ) -> Result<conduit_std_host::pico_spawn::PicoForeCarriage, String> {
+        if !self.authenticated_return() {
+            return Err("Fore carriage requires the original authenticated return socket".into());
+        }
+        Ok(self.socket.into_fore_carriage(prepared))
+    }
+}
+#[cfg(target_os = "linux")]
+fn check_retained_selection(
+    actual_path: &Path,
+    actual: &owner::MemberPresentationBasis,
+    expected_path: &Path,
+    expected: &owner::MemberPresentationBasis,
+) -> Result<(), String> {
+    if actual_path != expected_path || actual != expected {
+        return Err("selected Play differs from original authenticated return carrier or actual member basis; refusing reopen".into());
+    }
+    Ok(())
 }
 
 /// Refuse aliases before opening any reader, including two symlinks to one TTY.
 #[cfg(target_os = "linux")]
 pub(super) fn open_selected_play_carriers(
     selected: &[UsbPlaySelection],
+    returned: &mut Vec<SelectedPlayCarrier>,
 ) -> Vec<Result<SelectedPlayCarrier, String>> {
     let paths = selected.iter().map(|play| play.port.as_path());
     if let Err(error) = unique_carrier_paths(paths) {
         return selected.iter().map(|_| Err(error.clone())).collect();
     }
-    selected.iter().map(open_selected_play_carrier).collect()
+    let mut retained_paths = std::collections::BTreeSet::new();
+    if returned
+        .iter()
+        .any(|carrier| !retained_paths.insert(carrier.canonical_port()))
+    {
+        return selected
+            .iter()
+            .map(|_| {
+                Err("returned carriers repeat one original path; refusing a second reader".into())
+            })
+            .collect();
+    }
+    drop(retained_paths);
+    selected
+        .iter()
+        .map(|play| {
+            let canonical = play
+                .port
+                .canonicalize()
+                .map_err(|e| format!("selected Play carrier path: {e}"))?;
+            if let Some(index) = returned
+                .iter()
+                .position(|carrier| carrier.canonical_port() == canonical.as_path())
+            {
+                returned.remove(index).consume_for_selected_play(play)
+            } else {
+                open_selected_play_carrier(play)
+            }
+        })
+        .collect()
 }
 
 #[cfg(target_os = "linux")]
@@ -41,6 +125,30 @@ fn unique_carrier_paths<'a>(paths: impl IntoIterator<Item = &'a Path>) -> Result
 pub(super) fn open_selected_play_carrier(
     selected: &UsbPlaySelection,
 ) -> Result<SelectedPlayCarrier, String> {
+    let member = selected_play_basis(selected)?;
+    let canonical_port = selected
+        .port
+        .canonicalize()
+        .map_err(|e| format!("selected Play carrier path: {e}"))?;
+    let socket = selected
+        .carrier
+        .open(
+            canonical_port
+                .to_str()
+                .ok_or("selected Play port is not UTF-8")?,
+        )
+        .map_err(|e| format!("open selected Play carrier: {e:?}"))?;
+    Ok(SelectedPlayCarrier {
+        member,
+        socket,
+        canonical_port,
+        completed_return: None,
+    })
+}
+#[cfg(target_os = "linux")]
+fn selected_play_basis(
+    selected: &UsbPlaySelection,
+) -> Result<owner::MemberPresentationBasis, String> {
     if !(1..=10_000).contains(&selected.wait_milliseconds) {
         return Err("selected preparation carriage exceeds original challenge lifetime".into());
     }
@@ -50,78 +158,12 @@ pub(super) fn open_selected_play_carrier(
     )?)
     .map_err(|e| format!("selected member basis: {e}"))?;
     member.validate()?;
-    let socket = selected
-        .carrier
-        .open(
-            selected
-                .port
-                .to_str()
-                .ok_or("selected Play port is not UTF-8")?,
-        )
-        .map_err(|e| format!("open selected Play carrier: {e:?}"))?;
-    Ok(SelectedPlayCarrier { member, socket })
+    Ok(member)
 }
 
-/// A transport report never proves admission or Start. Preserve owner approval
-/// on every outcome, including a lost reply, until receiver retirement is proved.
-#[cfg(target_os = "linux")]
-pub(super) fn submit_selected_play(
-    owner: &mut owner::Owner,
-    selected: &UsbPlaySelection,
-    carrier: &mut SelectedPlayCarrier,
-) -> Result<(), String> {
-    use conduit_std_host::pico_spawn::PreparationCommandBytes;
-    let SelectedPlayCarrier { member, socket } = carrier;
-    let limits = conduit_embedded_build::BodyFragmentProjectionLimits {
-        image: selected.image.bounds(),
-        computations: conduit_embedded_build::EmbeddedComputationBounds {
-            maximum_program_bytes: selected.maximum_program_bytes,
-            maximum_total_program_bytes: selected.maximum_total_program_bytes,
-        },
-        assigned: conduit_core::AssignedPlanMaxima {
-            encoded_bytes: selected.assigned_encoded_bytes,
-            runtime_state_bytes: selected.assigned_runtime_state_bytes,
-            counts: selected.assigned_counts,
-        },
-        maximum_fore_ports: selected.maximum_fore_ports,
-        maximum_document_bytes: selected.maximum_document_bytes,
-    };
-    let mut approved = None;
-    let mut refusal = None;
-    let exchange = socket.exchange_preparation(
-        std::time::Duration::from_millis(selected.wait_milliseconds),
-        selected.maximum_document_bytes as usize,
-        |challenge| {
-            match owner.approve_selected_remote_workset(member, challenge, limits) {
-                Ok(command) => {
-                    approved = Some(command);
-                }
-                Err(error) => {
-                    refusal = Some(error);
-                    return Err(());
-                }
-            }
-            let (payload, signature) = approved.as_ref().expect("just approved");
-            Ok(PreparationCommandBytes { payload, signature })
-        },
-    );
-    write_json_atomic(
-        &selected.report_output,
-        &serde_json::json!({
-            "schema": "conduit.diagnostic/preparation-carriage@1",
-            "member_host": member.host_advertisement.host_id,
-            "member_boot": member.host_advertisement.boot_id,
-            "reported": format!("{exchange:?}"),
-            "owner_refusal": refusal,
-            "admission_proved": false,
-            "play_proved": false,
-            "approval_retained": approved.is_some(),
-        }),
-    )?;
-    exchange.map(|_| ()).map_err(|e| {
-        format!("selected preparation carriage: {e:?}; original approval retained if issued")
-    })
-}
+#[path = "source_revision_preparation_carriage.rs"]
+mod preparation_carriage;
+pub(super) use preparation_carriage::submit_selected_play;
 
 /// Use the ordinary canonical image-return protocol on the same live owner.
 /// Public basis files pin the reinstalled member to this actual owner peer;
@@ -132,7 +174,7 @@ pub(super) fn return_selected_member(
     state_dir: &Path,
     selected: &UsbReturnSelection,
     peer: &conduit_body::FederationPeer,
-) -> Result<(), String> {
+) -> Result<SelectedPlayCarrier, String> {
     use conduit_std_host::pico_spawn::PicoMemberReturnBasis;
     use std::time::{Duration, Instant};
     let deadline = Instant::now() + Duration::from_millis(selected.wait_milliseconds);
@@ -151,7 +193,7 @@ pub(super) fn return_selected_member(
     if &basis.owner != peer || basis.credential.part_id != selected.part_id {
         return Err("selected return differs from the member's independently installed current owner pin or selected Part".into());
     }
-    return_selected_basis(
+    return_selected_basis_owned(
         owner,
         state_dir,
         &selected.port,
@@ -172,6 +214,27 @@ pub(super) fn return_selected_basis(
     basis: &conduit_std_host::pico_spawn::PicoMemberReturnBasis,
     recover_retained_key: bool,
 ) -> Result<(), String> {
+    return_selected_basis_owned(
+        owner,
+        state_dir,
+        port,
+        carrier,
+        receipt_output,
+        basis,
+        recover_retained_key,
+    )
+    .map(drop)
+}
+#[cfg(target_os = "linux")]
+pub(super) fn return_selected_basis_owned(
+    owner: &mut owner::Owner,
+    state_dir: &Path,
+    port: &Path,
+    carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
+    receipt_output: &Path,
+    basis: &conduit_std_host::pico_spawn::PicoMemberReturnBasis,
+    recover_retained_key: bool,
+) -> Result<SelectedPlayCarrier, String> {
     use conduit_body::MemberReturnImageAcknowledgement;
     use std::time::Duration;
     // Resolve the actual owner again instead of trusting a copied peer argument.
@@ -179,10 +242,13 @@ pub(super) fn return_selected_basis(
     if basis.owner != peer {
         return Err("selected return owner differs from the installed member pin".into());
     }
+    let canonical_port = port
+        .canonicalize()
+        .map_err(|e| format!("selected return carrier path: {e}"))?;
     let mut receipt = membership_receipt_custody::reserve(receipt_output)?;
     let timeout = Duration::from_secs(5);
     let mut socket = carrier
-        .open(port.to_str().ok_or("USB path is not UTF-8")?)
+        .open(canonical_port.to_str().ok_or("USB path is not UTF-8")?)
         .map_err(|e| format!("open selected member return: {e:?}"))?;
     let observed = socket
         .request_member_return(basis, timeout)
@@ -212,16 +278,21 @@ pub(super) fn return_selected_basis(
         .prove_member_return(basis, &observed.advertisement, &challenge, timeout)
         .map_err(|e| format!("selected member continuity proof: {e:?}"))?;
     let credential = owner.complete_member_return(state_dir, &proof)?;
-    let signed = owner.attest_current_member_receipt(
-        &owner::MembershipReceiptDocument::ImageReturn {
-            receipt: MemberReturnImageAcknowledgement::new(
-                credential.clone(),
-                observed.presentation.projection.clone(),
-            ),
-            images: observed.images,
-        },
-        &peer,
-    )?;
+    let post_commit = |error: String| {
+        format!("return committed; original receipt/member state may be retained: {error}")
+    };
+    let signed = owner
+        .attest_current_member_receipt(
+            &owner::MembershipReceiptDocument::ImageReturn {
+                receipt: MemberReturnImageAcknowledgement::new(
+                    credential.clone(),
+                    observed.presentation.projection.clone(),
+                ),
+                images: observed.images,
+            },
+            &peer,
+        )
+        .map_err(post_commit)?;
     signed
         .verify_image_return(
             &peer,
@@ -229,22 +300,31 @@ pub(super) fn return_selected_basis(
             &basis.credential,
             &observed.presentation.projection,
         )
-        .map_err(|e| format!("verify selected member receipt: {e:?}"))?;
-    membership_receipt_custody::retain(&mut receipt, &signed)?;
+        .map_err(|e| format!("return committed; verify selected member receipt: {e:?}"))?;
+    membership_receipt_custody::retain(&mut receipt, &signed).map_err(post_commit)?;
     socket
         .deliver_member_return(&signed, basis, &observed.presentation.projection, timeout)
         .map_err(|e| {
             format!("return committed and receipt retained; member delivery uncertain: {e:?}")
         })?;
-    owner.retire_completed_selected_return(&credential)?;
+    owner
+        .retire_completed_selected_return(&credential)
+        .map_err(post_commit)?;
     // Descriptive convenience for this same Root's later checked preparation.
     // Every use still rechecks actual current membership and observed offers.
-    let presentation = owner::MemberPresentationBasis::new(credential, observed.advertisement)?;
+    let presentation = owner::MemberPresentationBasis::new(credential, observed.advertisement)
+        .map_err(post_commit)?;
     write_json_atomic(
         &receipt_output.with_extension("presentation.json"),
         &presentation,
-    )?;
-    Ok(())
+    )
+    .map_err(post_commit)?;
+    Ok(SelectedPlayCarrier {
+        member: presentation,
+        socket,
+        canonical_port,
+        completed_return: Some(CompletedMemberReturn),
+    })
 }
 
 #[cfg(target_os = "linux")]
@@ -365,5 +445,34 @@ mod carrier_path_tests {
         assert!(unique_carrier_paths([first.as_path(), alias.as_path()]).is_err());
         assert!(unique_carrier_paths([root.join("absent").as_path()]).is_err());
         std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn retained_reuse_requires_exact_path_and_actual_member_basis() {
+        let ad = conduit_std_host::StdHost::new().advertisement().clone();
+        let credential = serde_json::from_value(serde_json::json!({
+            "credential_id":"fixture/credential", "body_id":"fixture/body", "part_id":"fixture/part",
+            "host_id":ad.host_id, "boot_id":ad.boot_id, "issued_at_millis":1,
+        })).unwrap();
+        let actual = owner::MemberPresentationBasis::new(credential, ad).unwrap();
+        let path = Path::new("/fixture/original-canonical-port");
+        assert!(check_retained_selection(path, &actual, path, &actual).is_ok());
+        assert!(check_retained_selection(
+            path,
+            &actual,
+            Path::new("/fixture/reopened-port"),
+            &actual
+        )
+        .is_err());
+        let mut expected = actual.clone();
+        expected.credential.part_id = "fixture/other-part".into();
+        assert!(check_retained_selection(path, &actual, path, &expected).is_err());
+        let mut expected = actual.clone();
+        expected.host_advertisement.offer_generation.0 += 1;
+        assert!(check_retained_selection(path, &actual, path, &expected).is_err());
+        let mut expected = actual.clone();
+        expected.host_advertisement.boot_id = "fixture/stale-boot".into();
+        assert!(check_retained_selection(path, &actual, path, &expected).is_err());
+        // Equality only selects an already authenticated original carrier; it
+        // cannot construct CompletedMemberReturn or mark an opened FD Ready.
     }
 }
