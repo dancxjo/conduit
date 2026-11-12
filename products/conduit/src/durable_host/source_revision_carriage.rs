@@ -8,6 +8,32 @@ pub(super) struct SelectedPlayCarrier {
     socket: conduit_std_host::pico_spawn::PicoSpawnSocket,
 }
 
+/// Refuse aliases before opening any reader, including two symlinks to one TTY.
+#[cfg(target_os = "linux")]
+pub(super) fn open_selected_play_carriers(
+    selected: &[UsbPlaySelection],
+) -> Vec<Result<SelectedPlayCarrier, String>> {
+    let paths = selected.iter().map(|play| play.port.as_path());
+    if let Err(error) = unique_carrier_paths(paths) {
+        return selected.iter().map(|_| Err(error.clone())).collect();
+    }
+    selected.iter().map(open_selected_play_carrier).collect()
+}
+
+#[cfg(target_os = "linux")]
+fn unique_carrier_paths<'a>(paths: impl IntoIterator<Item = &'a Path>) -> Result<(), String> {
+    let mut unique = std::collections::BTreeSet::new();
+    for path in paths {
+        let canonical = path
+            .canonicalize()
+            .map_err(|error| format!("selected Play carrier path: {error}"))?;
+        if !unique.insert(canonical) {
+            return Err("selected Plays alias one carrier; exactly one reader is required".into());
+        }
+    }
+    Ok(())
+}
+
 /// Open before planning and retain the original decoder through preparation.
 /// A later Line provider must independently verify installed contracts and
 /// current identities before turning this possession into planning evidence.
@@ -319,4 +345,25 @@ pub(super) fn admit_selected_member(
         &return_basis,
         false,
     )
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod carrier_path_tests {
+    use super::*;
+    #[test]
+    fn canonical_aliases_refuse_before_opening_a_second_reader() {
+        let root =
+            std::env::temp_dir().join(format!("conduit-carrier-paths-{}", std::process::id()));
+        std::fs::create_dir(&root).unwrap();
+        let first = root.join("first");
+        let second = root.join("second");
+        let alias = root.join("alias");
+        std::fs::write(&first, []).unwrap();
+        std::fs::write(&second, []).unwrap();
+        std::os::unix::fs::symlink(&first, &alias).unwrap();
+        assert!(unique_carrier_paths([first.as_path(), second.as_path()]).is_ok());
+        assert!(unique_carrier_paths([first.as_path(), alias.as_path()]).is_err());
+        assert!(unique_carrier_paths([root.join("absent").as_path()]).is_err());
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }

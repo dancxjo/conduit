@@ -15,7 +15,8 @@ use conduit_std_host::{
 mod carriage;
 #[cfg(target_os = "linux")]
 use carriage::{
-    admit_selected_member, open_selected_play_carrier, return_selected_member, submit_selected_play,
+    admit_selected_member, open_selected_play_carriers, return_selected_member,
+    submit_selected_play,
 };
 
 const SELECTION_FILE: &str = "source-check-selection.json";
@@ -696,11 +697,7 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     if !selection.plays.is_empty() || !selection.continuation_outputs.is_empty() {
         // Original sockets are held before planning and through submission.
         // Open failures are explicit; possession alone advertises no Ready Line.
-        let mut carriers: Vec<_> = selection
-            .plays
-            .iter()
-            .map(open_selected_play_carrier)
-            .collect();
+        let mut carriers = open_selected_play_carriers(&selection.plays);
         match owner.plan_retained(state_dir) {
             Ok(()) => {
                 if let Err(error) =
