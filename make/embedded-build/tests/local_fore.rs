@@ -200,3 +200,17 @@ mod bounded_tables;
 
 #[path = "local_fore/line.rs"]
 mod line;
+
+#[test]
+fn cold_fore_inventory_matches_firmware_and_refuses_unsealed_or_unbounded_input() {
+    let plan = plan(64);
+    let fragment = &plan.fragments[0].fragment_id;
+    let inventory = b::assigned_fore_inventory(&plan, fragment, 2).unwrap();
+    assert_eq!(inventory, generate(&plan).fore());
+    assert!(b::assigned_fore_inventory(&plan, fragment, 1).is_err());
+    assert!(b::assigned_fore_inventory(&plan, fragment, 17).is_err());
+    assert!(b::assigned_fore_inventory(&plan, &"fixture/absent".into(), 2).is_err());
+    let mut unsealed = plan.clone();
+    unsealed.plan_id = "fixture/forged-plan".into();
+    assert!(b::assigned_fore_inventory(&unsealed, fragment, 2).is_err());
+}

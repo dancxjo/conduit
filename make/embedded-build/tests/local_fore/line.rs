@@ -133,6 +133,10 @@ fn original_checked_source_selected_line_reaches_exact_kernel_tables() {
         identity.plan,
         c::AssignedIdentity::from_text(plan.plan_id.as_str())
     );
+    assert_eq!(
+        b::assigned_fore_inventory(&plan, &plan.fragments[0].fragment_id, 2).unwrap(),
+        generated.fore()
+    );
     let pins = generated.layout_requirements(maxima()).unwrap();
     let layout = conduit_kernel::assigned::ResidentLayout {
         records: &pins,
@@ -262,6 +266,10 @@ fn make_layout_and_kernel_share_boot_local_normalization_without_weakening_selec
     let plan = selected_plan();
     let generated = project(&plan, &[session()]).unwrap();
     let mut bytes = generated.encode(maxima()).unwrap();
+    assert_eq!(
+        b::assigned_fore_inventory(&plan, &plan.fragments[0].fragment_id, 2).unwrap(),
+        generated.fore()
+    );
     let pins = generated.layout_requirements(maxima()).unwrap();
     let computations = b::assigned_computation_requirements(generated.kernel()).unwrap();
     let required = c::AssignedPlanRequirements {

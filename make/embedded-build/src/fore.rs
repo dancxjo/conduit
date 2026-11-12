@@ -109,6 +109,37 @@ pub(crate) fn prepare_fore(
         crate::generate::generate_profile(fragment, &lowered, bounds, Some(computations), true)?;
     Ok((kernel, lowered.fore_ports))
 }
+/// Project the exact Fore pins of one sealed Plan fragment during cold Line
+/// selection, without generating a kernel image or claiming native readiness.
+/// The same canonical lowering and ABI projection are used by both assigned
+/// firmware schemas. The caller still owns carrier selection and admission.
+pub fn assigned_fore_inventory(
+    plan: &c::Plan,
+    fragment: &c::FragmentId,
+    maximum_fore_ports: usize,
+) -> Result<Vec<c::AssignedForeRequirement>, GenerationError> {
+    if !c::verify_plan(plan) {
+        return Err(GenerationError::InvalidFragment);
+    }
+    if maximum_fore_ports > 16 {
+        return Err(GenerationError::BoundExceeded {
+            table: "local Fore profile capacity",
+            actual: maximum_fore_ports as u64,
+            maximum: 16,
+        });
+    }
+    let (lowered, _) = lower_plan_fragment_from_plan(plan, fragment)
+        .map_err(|_| GenerationError::InvalidFragment)?;
+    if lowered.fore_ports.len() > maximum_fore_ports {
+        return Err(GenerationError::BoundExceeded {
+            table: "local Fore ports",
+            actual: lowered.fore_ports.len() as u64,
+            maximum: maximum_fore_ports as u64,
+        });
+    }
+    Ok(lowered.fore_ports.iter().map(requirement).collect())
+}
+
 pub(crate) fn requirement(port: &LoweredForePort) -> c::AssignedForeRequirement {
     let abi = c::assigned_fore_abi_digest(c::AssignedForeAbi {
         value_kind: port.value_kind.as_str(),
