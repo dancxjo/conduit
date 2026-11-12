@@ -2,8 +2,10 @@
 use sha2::{Digest, Sha256};
 use std::{env, fs, path::PathBuf};
 mod heap_layout;
+mod recording_build;
 fn main() {
     println!("cargo:rerun-if-changed=heap_layout.rs");
+    println!("cargo:rerun-if-changed=recording_build.rs");
     println!("cargo:rustc-link-arg=-Tlinkall.x");
     for key in [
         "CONDUIT_HOST_CONFIGURATION",
@@ -28,6 +30,9 @@ fn main() {
         conduit_host_make::parse_host_configuration_conduit(&source).expect("Host Source syntax");
     let checked = conduit_host_make::check_host_configuration(parsed, &catalog, &packages)
         .expect("checked physical Host Source");
+    let recording = recording_build::Recording::checked(&checked)
+        .expect("checked finite recorder construction");
+    recording.emit_cfg();
     let physical =
         conduit_host_esp32_make::physical::CheckedPhysicalConstruction::from_configuration(
             &checked,
@@ -64,35 +69,16 @@ fn main() {
     assert!(config.limits.buffered_bytes <= config.limits.heap_arena_bytes);
     let heap = heap_layout::checked(config.limits.heap_arena_bytes)
         .expect("IMAGE heap must fit the explicitly checked two-region ESP32 construction");
-    let recording = if checked
-        .configuration()
-        .bases
-        .iter()
-        .any(|base| base.kind == "resource/nor-record-residence")
-    {
-        let construction =
-            conduit_host_esp32_make::physical::CheckedRecordingConstruction::from_configuration(
-                &checked,
-                conduit_host_esp32_make::physical::RECORDING,
-            )
-            .expect("checked finite recording construction");
-        assert!(
-            construction.prefix_bytes >= 8192
-                && construction.end_bytes().expect("recording extent") <= 655360,
-            "recording exceeds physical DURABLE"
-        );
-        Some(construction)
-    } else {
-        None
-    };
-    let recording_prefix = recording.map_or(0, |r| r.prefix_bytes);
-    let recording_slots = recording.map_or(0, |r| r.slots);
+    let recording_prefix = recording.residence.map_or(0, |r| r.prefix_bytes);
+    let recording_slots = recording.residence.map_or(0, |r| r.slots);
+    let recording_read_operations = recording.read_operations;
     let preparation = conduit_host_make::rust_preparation_delegation(&checked);
     let execution = conduit_host_make::rust_execution_delegation(&checked);
     let generated = format!(
         r#"
 pub const RECORDING_PREFIX_BYTES:u32={recording_prefix};
 pub const RECORDING_SLOTS:u32={recording_slots};
+pub const RECORDING_READ_OPERATIONS:u32={recording_read_operations};
 pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image:?};
 pub const SOURCE_IDENTITY:&str={source_identity:?};
@@ -260,21 +246,19 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
     )
     .expect("exact original captured Make IMAGE");
     use conduit_mcu_source_build::native_calibration::{NativeDescription, Slot};
-    let append = workset
-        .entries
-        .iter()
-        .any(|entry| {
-            entry.plot.expanded.gears.iter().any(|g| {
-                g.kind_id.as_str() == conduit_resource_snapshot::native_append::APPEND_KIND
-            })
-        })
-        .then(|| {
-            conduit_resource_snapshot::native_append::capability_offer(
-                &artifact,
-                &conduit_core::ImplementationId::from("esp32/nor-record-append@1"),
-            )
-            .expect("finite immutable append definition")
-        });
+    let recorder = recording
+        .description(
+            workset
+                .entries
+                .iter()
+                .flat_map(|entry| &entry.plot.expanded.gears)
+                .map(|gear| gear.kind_id.as_str()),
+            &artifact,
+        )
+        .expect("Source recorder matches explicit checked Base");
+    let append = recorder
+        .as_ref()
+        .map(|description| description.definition.clone());
     let mut descriptions = vec![
         NativeDescription {
             slot: Slot {
@@ -317,17 +301,8 @@ ASSERT(SIZEOF(.data) + SIZEOF(.bss) + SIZEOF(.noinit) + SIZEOF(.dram2_uninit) <=
             definition: wait.clone(),
         },
     ];
-    if let Some(definition) = &append {
-        descriptions.push(NativeDescription {
-            slot: Slot {
-                base: "esp32/record-append",
-                pool: "pool/esp32/record-append",
-                implementation: "esp32/nor-record-append@1",
-            },
-            class: conduit_resource_snapshot::native_append::APPEND_CLASS,
-            mechanism: conduit_resource_snapshot::native_append::APPEND_MECHANISM,
-            definition: definition.clone(),
-        });
+    if let Some(description) = recorder {
+        descriptions.push(description);
     }
 
     let routing = conduit_mcu_host_runtime::execution_mask::routing_offers(
