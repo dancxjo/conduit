@@ -1,5 +1,5 @@
 //! Exact resident computation selection, without issuing authority or storage.
-use crate::selected_assigned_operation::AssignedOperationInput;
+use crate::selected_assigned_operation::{AssignedForeProfile, AssignedOperationInput};
 use conduit_core as c;
 use conduit_kernel::NodeId;
 
@@ -46,10 +46,37 @@ pub fn check_selected_resident_expression(
     identity: ResidentExpressionIdentity,
     selected: SelectedAssignedExpressionPlan<'_>,
 ) -> Result<NodeId, ResidentExpressionBindingRefusal> {
+    let fore = selected.fore.map(AssignedForeProfile::Local);
+    check_expression_profile(identity, selected, fore)
+}
+/// Explicit schema-8 resident descriptor. The legacy inner Fore must be None;
+/// the independent Line profile never grants a carrier, resource or native IO.
+pub struct SelectedAssignedLineForeExpressionPlan<'a> {
+    pub expression: SelectedAssignedExpressionPlan<'a>,
+    pub fore: c::AssignedLineForeProfile<'a>,
+}
+pub fn check_selected_resident_expression_with_line_fore(
+    identity: ResidentExpressionIdentity,
+    selected: SelectedAssignedLineForeExpressionPlan<'_>,
+) -> Result<NodeId, ResidentExpressionBindingRefusal> {
+    if selected.expression.fore.is_some() {
+        return Err(ResidentExpressionBindingRefusal::Selection);
+    }
+    check_expression_profile(
+        identity,
+        selected.expression,
+        Some(AssignedForeProfile::Line(selected.fore)),
+    )
+}
+fn check_expression_profile(
+    identity: ResidentExpressionIdentity,
+    selected: SelectedAssignedExpressionPlan<'_>,
+    fore: Option<AssignedForeProfile<'_>>,
+) -> Result<NodeId, ResidentExpressionBindingRefusal> {
     use ResidentExpressionBindingRefusal as E;
     let schema = u16_at(selected.input.header(), 8)?;
-    if (selected.fore.is_some() && schema != c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA)
-        || (selected.fore.is_none()
+    if (fore.is_some_and(|profile| schema != profile.schema()))
+        || (fore.is_none()
             && !matches!(
                 schema,
                 c::ASSIGNED_KERNEL_PLAN_SCHEMA | c::ASSIGNED_NATIVE_PLAN_SCHEMA
@@ -59,11 +86,11 @@ pub fn check_selected_resident_expression(
     }
     let view = selected
         .input
-        .decode(
+        .decode_profile(
             selected.maxima,
             selected.requirements,
             selected.computations,
-            selected.fore,
+            fore,
         )
         .map_err(E::Assignment)?;
     if view.fragment != c::AssignedIdentity::from_text(selected.fragment_id)

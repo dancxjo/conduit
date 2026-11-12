@@ -5,7 +5,7 @@
 use crate::assigned_configuration as configuration_check;
 use crate::{
     assigned_play_scope::AssignedPlayScope,
-    selected_assigned_operation::SelectedAssignedOperationPlan,
+    selected_assigned_operation::{AssignedForeProfile, SelectedAssignedOperationPlan},
     selected_operation_set::{
         SelectedOperationSet, SelectedOperationSetRefusal as E, SelectedServiceContract,
         SelectedServiceRoute, MAXIMUM_SELECTED_OPERATIONS,
@@ -43,6 +43,39 @@ pub fn check_selected_assigned_operation_set(
     native: AssignedServiceNativeIdentity<'_>,
     selected: SelectedAssignedServicePlan<'_>,
 ) -> Result<SelectedOperationSet, E> {
+    let fore = selected.fore.map(AssignedForeProfile::Local);
+    check_profile(operations, definition, native, selected, fore)
+}
+/// Explicit schema-8 service preparation; retains the same original opaque
+/// operation checks. The inner legacy Fore must be None, with no fallback.
+pub struct SelectedAssignedLineForeServicePlan<'a> {
+    pub service: SelectedAssignedServicePlan<'a>,
+    pub fore: c::AssignedLineForeProfile<'a>,
+}
+pub fn check_selected_assigned_operation_set_with_line_fore(
+    operations: &[&c::BoundBaseOperation],
+    definition: SelectedServiceContract<'_>,
+    native: AssignedServiceNativeIdentity<'_>,
+    selected: SelectedAssignedLineForeServicePlan<'_>,
+) -> Result<SelectedOperationSet, E> {
+    if selected.service.fore.is_some() {
+        return Err(E::WrongBinding);
+    }
+    check_profile(
+        operations,
+        definition,
+        native,
+        selected.service,
+        Some(AssignedForeProfile::Line(selected.fore)),
+    )
+}
+fn check_profile(
+    operations: &[&c::BoundBaseOperation],
+    definition: SelectedServiceContract<'_>,
+    native: AssignedServiceNativeIdentity<'_>,
+    selected: SelectedAssignedServicePlan<'_>,
+    fore: Option<AssignedForeProfile<'_>>,
+) -> Result<SelectedOperationSet, E> {
     let plan = selected.operation;
     let count = definition.calls.len();
     if count == 0
@@ -70,22 +103,13 @@ pub fn check_selected_assigned_operation_set(
     {
         return Err(E::WrongBinding);
     }
-    let schema = if selected.fore.is_some() {
-        c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
-    } else {
-        c::ASSIGNED_NATIVE_PLAN_SCHEMA
-    };
+    let schema = fore.map_or(c::ASSIGNED_NATIVE_PLAN_SCHEMA, |fore| fore.schema());
     if plan.input.header().get(8..10) != Some(schema.to_le_bytes().as_slice()) {
         return Err(E::WrongBinding);
     }
     let view = plan
         .input
-        .decode(
-            plan.maxima,
-            plan.requirements,
-            plan.computations,
-            selected.fore,
-        )
+        .decode_profile(plan.maxima, plan.requirements, plan.computations, fore)
         .map_err(|_| E::WrongBinding)?;
     let id = c::AssignedIdentity::from_text;
     if view.fragment != id(plan.fragment_id) || !plan.scope.matches(&view, plan.input.header()) {

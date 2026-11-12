@@ -8,6 +8,7 @@ use crate::selected_operation::{
 mod input;
 use conduit_core as c;
 use conduit_kernel::{NodeId, PortId};
+pub(crate) use input::AssignedForeProfile;
 pub use input::AssignedOperationInput;
 
 pub struct SelectedAssignedOperationPlan<'a> {
@@ -85,7 +86,7 @@ pub fn bind_selected_assigned_fore_operation(
         native,
         AssignedSelection {
             operation: selected.operation,
-            fore: Some(selected.fore),
+            fore: Some(AssignedForeProfile::Local(selected.fore)),
         },
     )
 }
@@ -107,14 +108,55 @@ pub fn bind_selected_assigned_fore_configured_operation(
         native,
         AssignedSelection {
             operation: selected.operation,
-            fore: Some(selected.fore),
+            fore: Some(AssignedForeProfile::Local(selected.fore)),
         },
     )
 }
 
+/// Explicit schema-8 preparation descriptor, not Line/native authority.
+pub struct SelectedAssignedLineForeOperationPlan<'a> {
+    pub operation: SelectedAssignedOperationPlan<'a>,
+    pub fore: c::AssignedLineForeProfile<'a>,
+}
+pub fn bind_selected_assigned_line_fore_operation(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedLineForeOperationPlan<'_>,
+) -> Result<NodeId, E> {
+    bind_selected_assigned_line_fore_configured_operation(
+        table,
+        claim,
+        definition,
+        &[],
+        native,
+        selected,
+    )
+}
+pub fn bind_selected_assigned_line_fore_configured_operation(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[c::ConfigurationEntry],
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedLineForeOperationPlan<'_>,
+) -> Result<NodeId, E> {
+    bind_assigned_profile(
+        table,
+        claim,
+        definition,
+        configuration,
+        native,
+        AssignedSelection {
+            operation: selected.operation,
+            fore: Some(AssignedForeProfile::Line(selected.fore)),
+        },
+    )
+}
 struct AssignedSelection<'a> {
     operation: SelectedAssignedOperationPlan<'a>,
-    fore: Option<&'a [c::AssignedForeRequirement]>,
+    fore: Option<AssignedForeProfile<'a>>,
 }
 fn bind_assigned_profile(
     table: &c::BaseCapabilityTable,
@@ -129,20 +171,18 @@ fn bind_assigned_profile(
     let id = c::AssignedIdentity::from_text;
     if selected.input.header().get(8..10)
         != Some(
-            if admission.fore.is_some() {
-                c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
-            } else {
-                c::ASSIGNED_NATIVE_PLAN_SCHEMA
-            }
-            .to_le_bytes()
-            .as_slice(),
+            admission
+                .fore
+                .map_or(c::ASSIGNED_NATIVE_PLAN_SCHEMA, |fore| fore.schema())
+                .to_le_bytes()
+                .as_slice(),
         )
     {
         return Err(wrong());
     }
     let view = selected
         .input
-        .decode(
+        .decode_profile(
             selected.maxima,
             selected.requirements,
             selected.computations,
