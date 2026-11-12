@@ -170,16 +170,22 @@ fn decode_inner<'a>(
     if &input[..16] != MAGIC {
         return Err(Refusal::Header);
     }
-    let length = u32::from_le_bytes(
+    let length = usize::try_from(u32::from_le_bytes(
         input[16..HEADER_BYTES]
             .try_into()
             .map_err(|_| Refusal::Header)?,
-    ) as usize;
+    ))
+    .map_err(|_| Refusal::Extent)?;
     if length == 0 || length > ARTIFACT_BYTES - HEADER_BYTES {
         return Err(Refusal::Extent);
     }
     let end = HEADER_BYTES + length;
-    if input[end..ARTIFACT_BYTES].iter().any(|byte| *byte != 0xff) {
+    let padding_end = if accepted {
+        ARTIFACT_BYTES
+    } else {
+        PREFIX_BYTES
+    };
+    if input[end..padding_end].iter().any(|byte| *byte != 0xff) {
         return Err(Refusal::Noncanonical);
     }
     let (artifact, used) = serde_json_core::from_slice::<Artifact<'a>>(&input[HEADER_BYTES..end])
@@ -219,5 +225,94 @@ mod tests {
         ));
         bytes[16..20].copy_from_slice(&u32::MAX.to_le_bytes());
         assert!(matches!(decode(&bytes, &mut scratch), Err(Refusal::Extent)));
+    }
+    #[test]
+    fn installed_decode_keeps_acceptance_separate_from_descriptive_artifact() {
+        let mut plots = [None; b::MAX_BODY_PLOTS];
+        plots[0] = Some(PlotPin {
+            source_document: "source",
+            checked_plot: "checked",
+            plan_id: "plan",
+            local: true,
+        });
+        let wake_bytes = b::identity::bound_identity_bytes("wake", &["body"], 1);
+        let wake = core::str::from_utf8(&wake_bytes).unwrap();
+        let digest = b::body_plan_commitment_digest(
+            "body",
+            wake,
+            1,
+            &[b::BodyPlotSeal {
+                source_document_id: "source",
+                checked_plot_id: "checked",
+                plan_id: "plan",
+            }],
+            &[],
+            None,
+        )
+        .unwrap();
+        let mut base = alloc::string::String::from("body-plan/sha256:");
+        use core::fmt::Write;
+        for byte in digest {
+            write!(&mut base, "{byte:02x}").unwrap();
+        }
+        let mut artifact = Artifact {
+            schema: SCHEMA,
+            intent: b::ContinuationIntent {
+                schema: b::CONTINUATION_INTENT_SCHEMA,
+                body_id: "body",
+                part_id: "part",
+                host_id: "host",
+                credential_id: "credential",
+                membership_generation: 1,
+                intent_generation: 1,
+                issuer_host: "owner",
+                issuer_key: [7; 32],
+                source_digest: [1; 32],
+                workset_digest: [2; 32],
+                authority: b::ContinuationAuthority::LocalWorksetReplacement,
+                scope_digest: [0; 32],
+                image_id: "image",
+                configuration_id: "configuration",
+                ceilings: b::ContinuationCeilings {
+                    assignment_bytes: 4096,
+                    runtime_bytes: 4096,
+                    durable_bytes: 8192,
+                    operation_slots: 2,
+                    active_worksets: 1,
+                },
+            },
+            // Deliberately unauthenticated: decoding must not verify or repair it.
+            signature: [[0; 32]; 2],
+            wake_id: wake,
+            wake_sequence: 1,
+            workload_revision: 1,
+            base_body_plan: &base,
+            plot_count: 1,
+            plots,
+        };
+        artifact.intent.scope_digest = artifact
+            .with_scope(|scope| b::continuation_scope_digest(artifact.intent.body_id, scope))
+            .unwrap()
+            .unwrap();
+        let mut bytes = [0; PREFIX_BYTES];
+        let mut scratch = [0; PREFIX_BYTES];
+        encode(&artifact, &mut bytes).unwrap();
+        assert!(decode(&bytes, &mut scratch).is_ok());
+        for value in [0, 0x5a] {
+            bytes[ARTIFACT_BYTES..].fill(value);
+            assert_eq!(
+                decode(&bytes, &mut scratch).err(),
+                Some(Refusal::Noncanonical)
+            );
+            let decoded = decode_installed(&bytes, &mut scratch).unwrap();
+            assert_eq!(decoded.signature_bytes(), [0; 64]);
+            assert_eq!(decoded.intent.scope_digest, artifact.intent.scope_digest);
+        }
+        // Installed decoding still enforces erased padding in the artifact range.
+        bytes[ARTIFACT_BYTES - 1] = 0;
+        assert_eq!(
+            decode_installed(&bytes, &mut scratch).err(),
+            Some(Refusal::Noncanonical)
+        );
     }
 }
