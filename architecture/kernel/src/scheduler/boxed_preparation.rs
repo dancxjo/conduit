@@ -1,5 +1,6 @@
 //! Allocating preparation entrance for the unchanged fixed execution kernel.
 use super::*;
+mod fixed_signs;
 mod storage;
 mod table_writer;
 pub use storage::{KernelPreparationError, PreparedKernelStorage};

@@ -2,8 +2,8 @@
 //! come from checked Make material; received descriptors cannot supply them.
 use super::{Kernel, MaskBack};
 use conduit_core as c;
+use conduit_kernel as k;
 use conduit_kernel::assigned::{AssignedKernelRefusal, AssignedKernelTables, ResidentLayout};
-use conduit_kernel::{self as k, SignSink};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MaskRole {
@@ -142,15 +142,20 @@ fn prepare_admitted_storage(
         profile.face_bytes + profile.show_bytes,
     )
     .map_err(E::Values)?;
-    let signs = super::prepare_signs().map_err(|_| E::Bounds)?;
-    signs.ensure_remote_capacity(12).map_err(|_| E::Bounds)?;
-    let storage = Kernel::prepare_boxed_with_table_writer(
+    let storage = Kernel::prepare_boxed_with_fixed_signs_and_table_writer(
         values,
-        signs,
+        (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
+        12,
+        k::remote_sign_storage_bytes(12).ok_or(E::Bounds)?,
         core::mem::size_of::<Kernel>(),
         &[[None; 2]; 3],
         &[[None; 2]; 3],
-        E::Kernel,
+        |error| match error {
+            k::scheduler::KernelPreparationError::Topology(k::scheduler::SchedulerError::Sign(
+                _,
+            )) => E::Bounds,
+            other => E::Kernel(other),
+        },
         |nodes, cords, routes, calls| {
             Tables::write_records_with_fore(
                 input.header,

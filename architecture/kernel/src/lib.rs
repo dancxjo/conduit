@@ -7,6 +7,7 @@
 //! bindings before Play start. The fixed and hosted storage profiles implement
 //! the same value/sign contracts.
 
+mod fixed_sign_preparation;
 #[cfg(feature = "alloc")]
 mod packed_sign;
 mod sign_retention;
@@ -696,33 +697,21 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
         remote_item_capacity: u16,
         remote_byte_capacity: u32,
     ) -> Result<Self, SignError> {
-        let physical_bytes = EVENTS
-            .checked_mul(size_of::<KernelEvent>())
-            .and_then(|value| u32::try_from(value).ok())
-            .ok_or(SignError::InvalidBudget)?;
-        let remote_physical_bytes =
-            remote_sign_storage_bytes(remote_item_capacity).ok_or(SignError::InvalidBudget)?;
-        if EVENTS == 0
-            || EVENTS > usize::from(u16::MAX)
-            || byte_capacity == 0
-            || byte_capacity > physical_bytes
-            || usize::from(remote_item_capacity) > EVENTS
-            || (remote_item_capacity == 0 && remote_byte_capacity != 0)
-            || (remote_item_capacity != 0
-                && (remote_byte_capacity == 0 || remote_byte_capacity > remote_physical_bytes))
-        {
-            return Err(SignError::InvalidBudget);
-        }
+        let budgets = fixed_sign_preparation::FixedSignBudgets::checked::<EVENTS>(
+            byte_capacity,
+            remote_item_capacity,
+            remote_byte_capacity,
+        )?;
         Ok(Self {
             entries: [None; EVENTS],
             len: 0,
             retained_items: 0,
-            byte_capacity,
+            byte_capacity: budgets.byte_capacity,
             used_bytes: 0,
             next_sequence: 0,
             remote_entries: [None; EVENTS],
-            remote_item_capacity,
-            remote_byte_capacity,
+            remote_item_capacity: budgets.remote_item_capacity,
+            remote_byte_capacity: budgets.remote_byte_capacity,
             remote_len: 0,
             remote_used_bytes: 0,
             retention_gap: None,

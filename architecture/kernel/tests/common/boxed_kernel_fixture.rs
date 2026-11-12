@@ -190,3 +190,11 @@ pub fn prepare_written(
         write,
     )
 }
+
+#[allow(dead_code)]
+pub fn owned_values(drops: &Rc<Drops>) -> Values {
+    Values {
+        inner: FixedValueStore::new(1).unwrap(),
+        drops: drops.clone(),
+    }
+}

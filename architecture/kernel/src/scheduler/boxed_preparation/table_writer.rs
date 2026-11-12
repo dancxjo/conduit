@@ -50,6 +50,37 @@ where
             &mut FixedHostCallBindings<HOST_BINDING_SLOTS>,
         ) -> Result<(usize, usize), Q>,
     ) -> Result<PreparedKernelStorage<D, Self, NODES>, Q> {
+        // SAFETY: this private initializer moves the exact owned sign sink into
+        // its final destination once, without calling user code or failing.
+        unsafe {
+            Self::prepare_boxed_with_sign_initializer(
+                values,
+                |target| target.write(signs),
+                maximum_storage_bytes,
+                contracts,
+                actual,
+                map_error,
+                write,
+            )
+        }
+    }
+    // SAFETY: initializer must initialize exactly one E without unwinding or
+    // failure. It is private to this preparation module; no public pointer API.
+    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    pub(super) unsafe fn prepare_boxed_with_sign_initializer<Q>(
+        values: S,
+        initialize_signs: impl FnOnce(*mut E),
+        maximum_storage_bytes: usize,
+        contracts: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+        actual: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+        map_error: impl Fn(KernelPreparationError) -> Q,
+        write: impl FnOnce(
+            &mut [NodeSpec<PORTS>; NODES],
+            &mut [CordSpec; CORDS],
+            &mut FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
+            &mut FixedHostCallBindings<HOST_BINDING_SLOTS>,
+        ) -> Result<(usize, usize), Q>,
+    ) -> Result<PreparedKernelStorage<D, Self, NODES>, Q> {
         // Evaluate constructors before transferring any affine input owner.
         let ready = ReadySet::new(0);
         let debug_control = DebugControlState::new();
@@ -63,7 +94,7 @@ where
                 // This never-called exhaustive pattern makes adding a field
                 // without initializing it a compile error. It reads no storage.
                 let _check_fields = |value: &Self| {
-                    let Self { drivers: _, $( $(#[$attribute])* $field: _, )* } = value;
+                    let Self { drivers: _, signs: _, $( $(#[$attribute])* $field: _, )* } = value;
                 };
                 $(
                     $(#[$attribute])*
@@ -81,9 +112,16 @@ where
                         // listed fields have been initialized exactly once.
                         unsafe { core::ptr::drop_in_place(core::ptr::addr_of_mut!((*pointer).$field)); }
                     )*
+                    // SAFETY: the private infallible initializer wrote E once.
+                    // Preserve owned value-store cleanup before the sign sink.
+                    unsafe { core::ptr::drop_in_place(core::ptr::addr_of_mut!((*pointer).signs)); }
                 };
                 drop_initialized
             }};
+        }
+        // SAFETY: private caller guarantees exact infallible initialization.
+        unsafe {
+            initialize_signs(core::ptr::addr_of_mut!((*pointer).signs));
         }
         let drop_initialized = initialize! {
             node_specs: [NodeSpec { input_cords: [None; PORTS], maximum_step_fuel: 0 }; NODES],
@@ -109,7 +147,6 @@ where
             undispatched_cancellation_count: 0,
             pending_host_slots: [None; NODES],
             values: values,
-            signs: signs,
             cords: [CordState::EMPTY; CORDS],
             queue_slots: [None; QUEUE_SLOTS],
             ready: ready,
