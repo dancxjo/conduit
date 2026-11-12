@@ -8,6 +8,9 @@ use conduit_seven_segment_mask::{
 };
 use conduit_tm1637_protocol::PreparedDisplayFrame;
 
+#[cfg(feature = "display-mask-ht16k33")]
+pub mod ht16k33;
+
 /// Prepared physical encoding only: implementations perform no IO, quantity
 /// formatting, time sampling, allocation or authority creation during encode.
 /// Bounds and backing must describe the exact retained encoder and stay fixed.
