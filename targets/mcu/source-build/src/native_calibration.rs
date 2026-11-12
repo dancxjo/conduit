@@ -237,8 +237,11 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
     }
     let mut entries = Vec::new();
     for entry in &workset.entries {
-        let software =
-            crate::software::compile(&entry.plot.expanded, input.bounds.maximum_offer_image_bytes)?;
+        let software = crate::software::compile_with_types(
+            &entry.plot.expanded,
+            Some(&workset.checked_source),
+            input.bounds.maximum_offer_image_bytes,
+        )?;
         for offer in software.nodes.into_iter().filter_map(|n| n.offer) {
             insert(&mut host, offer)?;
         }

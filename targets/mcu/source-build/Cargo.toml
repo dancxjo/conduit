@@ -4,12 +4,15 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 [dependencies]
+conduit-composite = { path = "../../../architecture/composite" }
 conduit-dht11-observation = { path = "../../../mechanisms/devices/dht11" }
 conduit-body = { path = "../../../architecture/body", default-features = false }
 conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-embedded-build = { path = "../../../make/embedded-build" }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["plot-catalog"] }
+conduit-i2c-transaction = { path = "../../../mechanisms/io/i2c-transaction", features = ["source-catalog"] }
+conduit-monotonic-wait = { path = "../../../mechanisms/io/monotonic-wait", features = ["clock-at-catalog"] }
 conduit-time = { path = "../../../semantics/time" }
 conduit-environment-runtime = { path = "../../../bodies/environment/runtime", features = ["appliance", "construction"] }
 conduit-semantic-catalog = { path = "../../../semantics/catalog" }

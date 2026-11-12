@@ -84,6 +84,20 @@ where
 {
     type Driver = Driver<'f, R::Back>;
     type Calls = CallsWithAppender<Calls<P, T, W, A>, S>;
+    fn requires_terminal_gate(&self) -> bool {
+        <PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A> as PreparedBacks<N, PORTS>>::requires_terminal_gate(&self.base)
+    }
+    fn terminal_transductions(
+        &self,
+    ) -> Option<[[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; PORTS]; N]> {
+        <PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A> as PreparedBacks<N, PORTS>>::terminal_transductions(&self.base)
+    }
+    fn write_terminal_transductions(
+        &self,
+        target: &mut [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; PORTS]; N],
+    ) -> Option<()> {
+        <PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A> as PreparedBacks<N, PORTS>>::write_terminal_transductions(&self.base, target)
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }
@@ -182,6 +196,20 @@ where
 {
     type Driver = Driver<'f, R::Back>;
     type Calls = CallsWithOptionalAppender<Calls<P, T, W, A>, S>;
+    fn requires_terminal_gate(&self) -> bool {
+        <PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A> as PreparedBacks<N, PORTS>>::requires_terminal_gate(&self.base)
+    }
+    fn terminal_transductions(
+        &self,
+    ) -> Option<[[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; PORTS]; N]> {
+        <PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A> as PreparedBacks<N, PORTS>>::terminal_transductions(&self.base)
+    }
+    fn write_terminal_transductions(
+        &self,
+        target: &mut [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; PORTS]; N],
+    ) -> Option<()> {
+        <PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A> as PreparedBacks<N, PORTS>>::write_terminal_transductions(&self.base, target)
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }

@@ -25,7 +25,7 @@ pub struct Entry {
 }
 pub struct Workset {
     pub(crate) calibrated: bool,
-    checked_source: p::CheckedSyntaxDocument,
+    pub(crate) checked_source: p::CheckedSyntaxDocument,
     pub sha256: [u8; 32],
     pub entries: Vec<Entry>,
 }
@@ -72,6 +72,17 @@ pub fn compile(
     entries: &[String],
     mask: Option<MaskBounds>,
 ) -> Result<Workset, String> {
+    compile_specialized(bytes, expected_sha256, entries, mask, &[])
+}
+/// Explicit build-host specializations are checked against named Source Types.
+/// They confer no runtime budget or initialized availability.
+pub fn compile_specialized(
+    bytes: &[u8],
+    expected_sha256: &str,
+    entries: &[String],
+    mask: Option<MaskBounds>,
+    specializations: &[crate::composite::Specialization<'_>],
+) -> Result<Workset, String> {
     if bytes.is_empty()
         || bytes.len() > MAXIMUM_SOURCE_BYTES
         || entries.is_empty()
@@ -110,6 +121,7 @@ pub fn compile(
             .install(&mut startup, &mut profiles)?;
     }
     conduit_semantic_catalog::install_resource_record_service_catalog(&mut startup, &mut profiles)?;
+    crate::protocol_catalog::install(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
     install(
         conduit_time::tick_trigger_semantic_contract(),
@@ -129,6 +141,7 @@ pub fn compile(
     if !syntax.diagnostics.is_empty() {
         return Err(format!("workset syntax: {:?}", syntax.diagnostics));
     }
+    crate::composite::install(&syntax, specializations, &mut startup, &mut profiles)?;
     let checked = p::check_syntax_document(&syntax, &startup).map_err(debug)?;
     // Install the ordinary checked selector definitions before expansion; the
     // Source compiler owns their meaning, not a target-side selector shortcut.
@@ -164,7 +177,7 @@ pub fn compile(
     let mut material = Vec::with_capacity(prepared.len());
     for (name, plot) in entries.iter().zip(prepared) {
         let expanded = &plot.expanded;
-        let mut rust = software::emit_rust(expanded, 24 * 1024, 1024 * 1024)?;
+        let mut rust = software::emit_rust_with_types(expanded, &checked, 24 * 1024, 1024 * 1024)?;
         emit_mask_routing_images(expanded, &mut rust, mask)?;
         material.push(Entry {
             name: name.clone(),

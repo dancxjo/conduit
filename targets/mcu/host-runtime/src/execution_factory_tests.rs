@@ -63,3 +63,31 @@ fn completion_shape_remains_specific_to_checked_driver_kind() {
         assert!(!io.test_host_completion_consumed());
     }
 }
+
+#[test]
+fn composite_terminal_laws_survive_software_and_driver_wrappers() {
+    let schema =
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/u64")).unwrap();
+    let actual = conduit_composite::FlowMergeFiniteBack::prepare(&schema, 8).unwrap();
+    let expected =
+        <conduit_composite::FlowMergeFiniteBack as StepBack<2>>::terminal_transductions(&actual);
+    assert!(expected.iter().all(Option::is_some));
+    let software = SoftwareBack::merge(&schema, 8).unwrap();
+    let wrapped: Driver<'_, HostCallBack> = Driver::Software(software);
+    assert_eq!(
+        <Driver<HostCallBack> as StepBack<2>>::terminal_transductions(&wrapped),
+        expected
+    );
+}
+
+#[test]
+fn terminal_state_constructor_refuses_a_schema_without_terminal_boolean() {
+    let schema =
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/u64")).unwrap();
+    let contract = conduit_core::CheckedValueContract {
+        value_kind: conduit_core::kind_id("value/u64"),
+        maximum_bytes: 8,
+        constraints: alloc::vec![],
+    };
+    assert!(SoftwareBack::seeded_until(&contract, &schema).is_err());
+}

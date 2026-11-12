@@ -188,8 +188,9 @@ impl Calibration {
             {
                 return Err("calibration lost exact checked entry identity".into());
             }
-            let mut rust = crate::software::emit_rust_for_layout(
+            let mut rust = crate::software::emit_rust_for_layout_with_types(
                 &source.plot.expanded,
+                Some(&workset.checked_source),
                 &calibrated.source_to_kernel,
                 maximum_image_bytes,
                 maximum_generated_bytes,

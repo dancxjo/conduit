@@ -81,12 +81,19 @@ impl MonotonicClockContract {
         PreparedStructuredValueValidator::new(&self.request, CLOCK_MAXIMUM_BYTES as usize)
     }
 
+    /// Install checked clock Types and Kind atomically into a larger workset
+    /// catalog. This describes the protocol, never a clock owner or grant.
     #[cfg(feature = "clock-at-catalog")]
-    pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
+    pub fn install_catalogs(
+        &self,
+        startup: &mut StartupCatalog,
+        profiles: &mut ProfileCatalog,
+    ) -> Result<(), alloc::string::String> {
         let checked =
             check_syntax_document(&parse_syntax_document(CLOCK_TYPES), &StartupCatalog::new())
-                .expect("reviewed clock Type definitions");
-        let mut startup = StartupCatalog::new();
+                .map_err(|error| alloc::format!("clock Type Source: {error:?}"))?;
+        let mut staged = startup.clone();
+        let mut definitions = profiles.clone();
         for (name, path) in [
             ("MonotonicClockRequest", "machine/clock/at/request"),
             ("MonotonicClockResult", "machine/clock/at/result"),
@@ -95,22 +102,31 @@ impl MonotonicClockContract {
                 .native_types
                 .iter()
                 .find(|ty| ty.name == name)
-                .expect("checked clock Type");
-            startup
-                .insert_checked_native_type(path, ty)
-                .expect("clock import");
+                .ok_or_else(|| alloc::format!("missing clock Type {name}"))?;
+            staged.insert_checked_native_type_from_document(path, &checked, &ty.identity)?;
         }
-        startup
+        staged
             .insert(conduit_plot::KindSignature {
                 kind: CLOCK_KIND.into(),
                 startup_parameters: vec![],
             })
-            .expect("clock startup");
-        startup
+            .map_err(|error| alloc::format!("clock startup: {error:?}"))?;
+        staged
             .insert_fore(CLOCK_KIND, self.kind.checked_front())
-            .expect("clock Fore");
-        let mut profile = ProfileCatalog::new();
-        profile.insert_kind(self.kind.clone()).expect("clock Kind");
-        (startup, profile)
+            .map_err(|error| alloc::format!("clock Fore: {error:?}"))?;
+        definitions
+            .insert_kind(self.kind.clone())
+            .map_err(|error| alloc::format!("clock Kind: {error:?}"))?;
+        *startup = staged;
+        *profiles = definitions;
+        Ok(())
+    }
+    #[cfg(feature = "clock-at-catalog")]
+    pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
+        let mut startup = StartupCatalog::new();
+        let mut profiles = ProfileCatalog::new();
+        self.install_catalogs(&mut startup, &mut profiles)
+            .expect("reviewed clock catalogs");
+        (startup, profiles)
     }
 }

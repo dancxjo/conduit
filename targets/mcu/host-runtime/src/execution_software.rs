@@ -50,6 +50,9 @@ pub struct RecordingLogScope<'a> {
 /// This enum contains no parser, sensor decoder, packet encoder or scheduler.
 /// Resident expressions remain separately compiled, exactly selected owners.
 pub enum SoftwareBack<'a> {
+    SeededState(Box<conduit_composite::SeededStateBack>),
+    Zip(Box<conduit_composite::FlowZipBack>),
+    Merge(Box<conduit_composite::FlowMergeFiniteBack>),
     Tick(conduit_time::TickBack),
     Trigger(conduit_time::TickTriggerBack),
     Selector(Box<SelectorBack>),
@@ -58,6 +61,39 @@ pub enum SoftwareBack<'a> {
     Publication(Box<PublicationFaceBack<'a>>),
 }
 impl<'a> SoftwareBack<'a> {
+    pub fn seeded_until(
+        contract: &conduit_core::CheckedValueContract,
+        schema: &conduit_core::StructuredInfoType,
+    ) -> Result<Self, &'static str> {
+        conduit_composite::SeededStateBack::prepare_until(contract, schema)
+            .map(|back| Self::SeededState(Box::new(back)))
+    }
+    pub fn zip(
+        left: &conduit_core::CheckedValueContract,
+        left_type: conduit_core::StructuredInfoType,
+        right: &conduit_core::CheckedValueContract,
+        right_type: conduit_core::StructuredInfoType,
+        feedback: bool,
+    ) -> Result<Self, &'static str> {
+        let back = if feedback {
+            conduit_composite::FlowZipBack::prepare_typed_feedback(
+                left, left_type, right, right_type,
+            )
+        } else {
+            conduit_composite::FlowZipBack::prepare_typed_finite(left, left_type, right, right_type)
+        }
+        .map_err(|_| "zip-definition")?;
+        Ok(Self::Zip(Box::new(back)))
+    }
+    pub fn merge(
+        schema: &conduit_core::StructuredInfoType,
+        maximum_bytes: u32,
+    ) -> Result<Self, &'static str> {
+        conduit_composite::FlowMergeFiniteBack::prepare(schema, maximum_bytes)
+            .map(|back| Self::Merge(Box::new(back)))
+            .map_err(|_| "merge-definition")
+    }
+
     /// The wait value is already retained in the selected kernel's value store.
     pub fn tick(wait: ValueRef, count: u64) -> Result<Self, &'static str> {
         conduit_time::TickBack::counted(wait, count)
@@ -164,8 +200,36 @@ impl<'a> SoftwareBack<'a> {
     }
 }
 impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
+    fn terminal_transductions(
+        &self,
+    ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P] {
+        match self {
+            Self::SeededState(back) => {
+                <conduit_composite::SeededStateBack as StepBack<P>>::terminal_transductions(back)
+            }
+            Self::Zip(back) => {
+                <conduit_composite::FlowZipBack as StepBack<P>>::terminal_transductions(back)
+            }
+            Self::Merge(back) => {
+                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::terminal_transductions(
+                    back,
+                )
+            }
+            _ => [None; P],
+        }
+    }
+
     fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
         match self {
+            Self::SeededState(back) => {
+                <conduit_composite::SeededStateBack as StepBack<P>>::step(back, io, input)
+            }
+            Self::Zip(back) => {
+                <conduit_composite::FlowZipBack as StepBack<P>>::step(back, io, input)
+            }
+            Self::Merge(back) => {
+                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::step(back, io, input)
+            }
             Self::Tick(back) => back.step(io, input),
             Self::Trigger(back) => back.step(io, input),
             Self::Selector(back) => back.step(io, input),
@@ -176,6 +240,9 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
         match self {
+            Self::SeededState(back) => <conduit_composite::SeededStateBack as StepBack<P>>::prepared_output(back, port),
+            Self::Zip(back) => <conduit_composite::FlowZipBack as StepBack<P>>::prepared_output(back, port),
+            Self::Merge(back) => <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::prepared_output(back, port),
             Self::Selector(back) => <SelectorBack as StepBack<P>>::prepared_output(back, port),
             Self::Observation(back) => {
                 <ObservationBack as StepBack<P>>::prepared_output(back, port)
@@ -186,6 +253,9 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
     }
     fn step_committed(&mut self) {
         match self {
+            Self::SeededState(back) => <conduit_composite::SeededStateBack as StepBack<P>>::step_committed(back),
+            Self::Zip(back) => <conduit_composite::FlowZipBack as StepBack<P>>::step_committed(back),
+            Self::Merge(back) => <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::step_committed(back),
             Self::Tick(back) => <conduit_time::TickBack as StepBack<P>>::step_committed(back),
             Self::Trigger(back) => {
                 <conduit_time::TickTriggerBack as StepBack<P>>::step_committed(back)
@@ -198,6 +268,13 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
     }
     fn cancel(&mut self) {
         match self {
+            Self::SeededState(back) => {
+                <conduit_composite::SeededStateBack as StepBack<P>>::cancel(back)
+            }
+            Self::Zip(back) => <conduit_composite::FlowZipBack as StepBack<P>>::cancel(back),
+            Self::Merge(back) => {
+                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::cancel(back)
+            }
             Self::Tick(back) => <conduit_time::TickBack as StepBack<P>>::cancel(back),
             Self::Trigger(back) => <conduit_time::TickTriggerBack as StepBack<P>>::cancel(back),
             Self::Selector(back) => <SelectorBack as StepBack<P>>::cancel(back),

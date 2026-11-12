@@ -204,6 +204,12 @@ where
         target: &mut [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; PORTS]; N],
     ) -> Option<()> {
         target.fill([None; PORTS]);
+        for (index, selected) in self.software.selected.iter().enumerate() {
+            if *selected {
+                let back = self.software.owner.slots[index].as_ref()?;
+                target[index] = <SoftwareBack as StepBack<PORTS>>::terminal_transductions(back);
+            }
+        }
         let nodes = self.residents.nodes();
         if nodes.iter().all(Option::is_none) {
             return Some(());
@@ -219,6 +225,23 @@ where
         Some(())
     }
 
+    fn requires_terminal_gate(&self) -> bool {
+        self.software
+            .selected
+            .iter()
+            .enumerate()
+            .any(|(index, selected)| {
+                *selected
+                    && matches!(
+                        self.software.owner.slots[index].as_ref(),
+                        Some(
+                            SoftwareBack::SeededState(_)
+                                | SoftwareBack::Zip(_)
+                                | SoftwareBack::Merge(_)
+                        )
+                    )
+            })
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }

@@ -55,6 +55,7 @@ impl<R: StepBack<P>, X: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, 
     ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P] {
         match self {
             Self::Resident(back) => back.terminal_transductions(),
+            Self::Software(back) => <SoftwareBack as StepBack<P>>::terminal_transductions(back),
             Self::Extra(back) => back.terminal_transductions(),
             _ => [None; P],
         }
@@ -270,6 +271,23 @@ pub struct PreparedDrivers<
 /// a received assignment. Hardware decoders and packet encoders remain resident
 /// expressions; these cases instantiate only the ordinary software providers.
 pub enum SoftwareDefinition<'a> {
+    /// Flash schema images are decoded only inside measured inventory construction.
+    SeededUntilStatic {
+        schema: &'static [u8],
+        maximum_bytes: u32,
+    },
+    MergeStatic {
+        schema: &'static [u8],
+        maximum_bytes: u32,
+    },
+    ZipStatic {
+        left_schema: &'static [u8],
+        left_maximum_bytes: u32,
+        right_schema: &'static [u8],
+        right_maximum_bytes: u32,
+        feedback: bool,
+    },
+
     Tick {
         wait: conduit_kernel::ValueRef,
         count: u64,
@@ -358,10 +376,55 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
             return Err("recording-scope-multiple-owners");
         }
         let before = allocated_bytes();
+        let decode_composite =
+            |bytes: &'static [u8], maximum_bytes: u32| -> Result<_, &'static str> {
+                let schema = conduit_core::StructuredInfoType::from_canonical_bytes(bytes)
+                    .map_err(|_| "composite-type-image")?;
+                let contract = conduit_core::CheckedValueContract::new(
+                    schema
+                        .profile()
+                        .map_err(|_| "composite-type-profile")?
+                        .value_kind()
+                        .clone(),
+                    maximum_bytes,
+                    alloc::vec![],
+                )
+                .map_err(|_| "composite-envelope")?;
+                Ok((schema, contract))
+            };
+
         let mut slots = core::array::from_fn(|_| None);
         for (index, definition) in definitions.into_iter().enumerate() {
             slots[index] = match definition {
                 None => None,
+                Some(SoftwareDefinition::SeededUntilStatic {
+                    schema,
+                    maximum_bytes,
+                }) => {
+                    let (schema, contract) = decode_composite(schema, maximum_bytes)?;
+                    Some(SoftwareBack::seeded_until(&contract, &schema)?)
+                }
+                Some(SoftwareDefinition::MergeStatic {
+                    schema,
+                    maximum_bytes,
+                }) => {
+                    let (schema, _) = decode_composite(schema, maximum_bytes)?;
+                    Some(SoftwareBack::merge(&schema, maximum_bytes)?)
+                }
+                Some(SoftwareDefinition::ZipStatic {
+                    left_schema,
+                    left_maximum_bytes,
+                    right_schema,
+                    right_maximum_bytes,
+                    feedback,
+                }) => {
+                    let (left_type, left) = decode_composite(left_schema, left_maximum_bytes)?;
+                    let (right_type, right) = decode_composite(right_schema, right_maximum_bytes)?;
+                    Some(SoftwareBack::zip(
+                        &left, left_type, &right, right_type, feedback,
+                    )?)
+                }
+
                 Some(SoftwareDefinition::Tick { wait, count }) => {
                     Some(SoftwareBack::tick(wait, count)?)
                 }
