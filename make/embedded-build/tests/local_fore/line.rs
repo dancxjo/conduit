@@ -322,3 +322,6 @@ fn make_layout_and_kernel_share_boot_local_normalization_without_weakening_selec
         Err(conduit_kernel::assigned::AssignedKernelRefusal::Layout)
     ));
 }
+
+#[path = "body_projection.rs"]
+mod body_projection;
