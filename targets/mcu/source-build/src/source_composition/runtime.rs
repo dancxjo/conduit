@@ -155,11 +155,11 @@ pub async fn run<'s>(
             Ok(()) => {
                 let started = started.take().expect("original continuation Started");
                 let evidence = started.evidence();
-                let (((sample, sample_calls), mask, (output, output_calls)), renderer) =
+                let (((mut sample, mut sample_calls), mask, (output, output_calls)), renderer) =
                     started.into_kernels();
                 return crate::play_run::run(
-                    sample,
-                    sample_calls,
+                    &mut *sample,
+                    &mut sample_calls,
                     mask,
                     output,
                     output_calls,
@@ -169,13 +169,15 @@ pub async fn run<'s>(
                     evidence,
                     arena,
                     &face,
-                    link,
+                    crate::play_run::Carriage::Local {
+                        link,
+                        control: crate::play_run::ReturnControl::prepare(root, &issuers, return_images),
+                    },
                     activity.take().expect("original native activity"),
                     &mut append_output,
                     append_status
                         .take()
                         .expect("original prepared status custody"),
-                    crate::play_run::ReturnControl::prepare(root, &issuers, return_images),
                 )
                 .await;
             }
@@ -432,11 +434,11 @@ pub async fn run<'s>(
                         let started = started_slot.take().expect("original Started output slot");
                         let scopes = scopes_slot.take().expect("original Scopes output slot");
                         let evidence = started.evidence();
-                        let (((sample, sample_calls), mask, (output, output_calls)), renderer) =
+                        let (((mut sample, mut sample_calls), mask, (output, output_calls)), renderer) =
                             started.into_kernels();
                         crate::play_run::run(
-                            sample,
-                            sample_calls,
+                            &mut *sample,
+                            &mut sample_calls,
                             mask,
                             output,
                             output_calls,
@@ -446,13 +448,12 @@ pub async fn run<'s>(
                             evidence,
                             arena,
                             &face,
-                            link,
+                            crate::play_run::Carriage::Local { link, control: None },
                             &equipment.activity,
                             &mut append_output,
                             append_status
                                 .take()
                                 .expect("original prepared status custody"),
-                            None, // Retained online command bytes remain immutable.
                         )
                         .await
                     };
