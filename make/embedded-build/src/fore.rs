@@ -110,39 +110,16 @@ pub(crate) fn prepare_fore(
     Ok((kernel, lowered.fore_ports))
 }
 pub(crate) fn requirement(port: &LoweredForePort) -> c::AssignedForeRequirement {
-    let mut abi = Vec::from(&b"conduit.assigned/local-fore-abi@1\0"[..]);
-    let mut bytes = |value: &[u8]| {
-        abi.extend_from_slice(&(value.len() as u64).to_le_bytes());
-        abi.extend_from_slice(value);
-    };
-    bytes(port.value_kind.as_str().as_bytes());
-    bytes(
-        &port
-            .value_contract
-            .as_ref()
-            .map(|c| c.identity_bytes())
-            .unwrap_or_default(),
-    );
-    bytes(
-        port.abnormal_kind
-            .as_ref()
-            .map_or(&[][..], |k| k.as_str().as_bytes()),
-    );
-    bytes(port.temporal.as_str().as_bytes());
-    abi.extend_from_slice(&[
-        match port.track {
-            c::ConnectionTrack::Payload => 0,
-            c::ConnectionTrack::NormalClose => 1,
-            c::ConnectionTrack::AbnormalTerminal => 2,
-            c::ConnectionTrack::Quiescence => 3,
-        },
-        match port.quantity_profile {
-            c::QuantityValueProfile::Decimal => 0,
-            c::QuantityValueProfile::Exact => 1,
-        },
-    ]);
-    abi.extend_from_slice(&port.item_capacity.to_le_bytes());
-    abi.extend_from_slice(&port.byte_capacity.to_le_bytes());
+    let abi = c::assigned_fore_abi_digest(c::AssignedForeAbi {
+        value_kind: port.value_kind.as_str(),
+        value_contract: port.value_contract.as_ref(),
+        abnormal_kind: port.abnormal_kind.as_ref().map(|kind| kind.as_str()),
+        temporal: port.temporal.as_str(),
+        track: port.track,
+        quantity_profile: port.quantity_profile,
+        item_capacity: port.item_capacity,
+        byte_capacity: port.byte_capacity,
+    });
     c::AssignedForeRequirement::new(
         port.endpoint.0,
         port.cord.0,
@@ -151,7 +128,7 @@ pub(crate) fn requirement(port: &LoweredForePort) -> c::AssignedForeRequirement 
             c::PortDirection::Output => c::AssignedForeDirection::Output,
         },
         c::AssignedIdentity::from_text(port.front_port_id.as_str()),
-        c::assigned_plan_payload_digest(&abi),
+        abi,
     )
 }
 

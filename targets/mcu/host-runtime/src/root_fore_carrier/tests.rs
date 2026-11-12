@@ -3,7 +3,7 @@ use super::*;
 use crate::execution_workset::{AssignedPreparationProfile, PreparedLocalWorkset};
 use core::cell::Cell;
 use sha2::{Digest, Sha256};
-use std::{vec, vec::Vec};
+use std::vec::Vec;
 #[allow(dead_code)]
 #[path = "test_support.rs"]
 mod docs;

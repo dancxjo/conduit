@@ -24,6 +24,8 @@ mod deadline;
 mod delivery;
 mod device;
 mod exact_numeric;
+mod fore_abi;
+pub use fore_abi::{assigned_fore_abi_digest, AssignedForeAbi};
 mod fore_ports;
 use fore_ports::verify_fragment_fore_ports;
 mod execution;
