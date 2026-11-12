@@ -14,7 +14,9 @@ use conduit_std_host::{
 #[path = "source_revision_carriage.rs"]
 mod carriage;
 #[cfg(target_os = "linux")]
-use carriage::{admit_selected_member, return_selected_member, submit_selected_play};
+use carriage::{
+    admit_selected_member, open_selected_play_carrier, return_selected_member, submit_selected_play,
+};
 
 const SELECTION_FILE: &str = "source-check-selection.json";
 
@@ -692,6 +694,13 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     write_json_atomic(&state_dir.join(SELECTION_FILE), &selection)?;
     owner.commit_authorized_file_revision(state_dir, authorization)?;
     if !selection.plays.is_empty() || !selection.continuation_outputs.is_empty() {
+        // Original sockets are held before planning and through submission.
+        // Open failures are explicit; possession alone advertises no Ready Line.
+        let mut carriers: Vec<_> = selection
+            .plays
+            .iter()
+            .map(open_selected_play_carrier)
+            .collect();
         match owner.plan_retained(state_dir) {
             Ok(()) => {
                 if let Err(error) =
@@ -702,8 +711,12 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
                     // refusal remains explicit; an export is never a Start.
                     eprintln!("selected continuation output refused: {error}");
                 }
-                for play in &selection.plays {
-                    if let Err(error) = submit_selected_play(&mut owner, play) {
+                for (play, carrier) in selection.plays.iter().zip(&mut carriers) {
+                    let result = match carrier {
+                        Ok(carrier) => submit_selected_play(&mut owner, play, carrier),
+                        Err(error) => Err(error.clone()),
+                    };
+                    if let Err(error) = result {
                         // CAS has committed; losing carriage cannot revoke a
                         // receiver or discard the original approval owner.
                         eprintln!(

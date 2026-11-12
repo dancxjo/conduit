@@ -1,13 +1,20 @@
 //! Finite attended admission, return and preparation selected by File policy.
 use super::*;
-/// A transport report never proves admission or Start. Preserve owner approval
-/// on every outcome, including a lost reply, until receiver retirement is proved.
+/// Original independently selected member basis and sole opened carrier.
+/// Possessing this socket does not establish membership, a Ready Line or Start.
 #[cfg(target_os = "linux")]
-pub(super) fn submit_selected_play(
-    owner: &mut owner::Owner,
+pub(super) struct SelectedPlayCarrier {
+    member: owner::MemberPresentationBasis,
+    socket: conduit_std_host::pico_spawn::PicoSpawnSocket,
+}
+
+/// Open before planning and retain the original decoder through preparation.
+/// A later Line provider must independently verify installed contracts and
+/// current identities before turning this possession into planning evidence.
+#[cfg(target_os = "linux")]
+pub(super) fn open_selected_play_carrier(
     selected: &UsbPlaySelection,
-) -> Result<(), String> {
-    use conduit_std_host::pico_spawn::PreparationCommandBytes;
+) -> Result<SelectedPlayCarrier, String> {
     if !(1..=10_000).contains(&selected.wait_milliseconds) {
         return Err("selected preparation carriage exceeds original challenge lifetime".into());
     }
@@ -17,6 +24,28 @@ pub(super) fn submit_selected_play(
     )?)
     .map_err(|e| format!("selected member basis: {e}"))?;
     member.validate()?;
+    let socket = selected
+        .carrier
+        .open(
+            selected
+                .port
+                .to_str()
+                .ok_or("selected Play port is not UTF-8")?,
+        )
+        .map_err(|e| format!("open selected Play carrier: {e:?}"))?;
+    Ok(SelectedPlayCarrier { member, socket })
+}
+
+/// A transport report never proves admission or Start. Preserve owner approval
+/// on every outcome, including a lost reply, until receiver retirement is proved.
+#[cfg(target_os = "linux")]
+pub(super) fn submit_selected_play(
+    owner: &mut owner::Owner,
+    selected: &UsbPlaySelection,
+    carrier: &mut SelectedPlayCarrier,
+) -> Result<(), String> {
+    use conduit_std_host::pico_spawn::PreparationCommandBytes;
+    let SelectedPlayCarrier { member, socket } = carrier;
     let limits = conduit_embedded_build::BodyFragmentProjectionLimits {
         image: selected.image.bounds(),
         computations: conduit_embedded_build::EmbeddedComputationBounds {
@@ -31,22 +60,13 @@ pub(super) fn submit_selected_play(
         maximum_fore_ports: selected.maximum_fore_ports,
         maximum_document_bytes: selected.maximum_document_bytes,
     };
-    let mut socket = selected
-        .carrier
-        .open(
-            selected
-                .port
-                .to_str()
-                .ok_or("selected Play port is not UTF-8")?,
-        )
-        .map_err(|e| format!("open selected Play carrier: {e:?}"))?;
     let mut approved = None;
     let mut refusal = None;
     let exchange = socket.exchange_preparation(
         std::time::Duration::from_millis(selected.wait_milliseconds),
         selected.maximum_document_bytes as usize,
         |challenge| {
-            match owner.approve_selected_remote_workset(&member, challenge, limits) {
+            match owner.approve_selected_remote_workset(member, challenge, limits) {
                 Ok(command) => {
                     approved = Some(command);
                 }
