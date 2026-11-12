@@ -286,7 +286,8 @@ impl Owner {
         let control = RunControl::default();
         let worker_control = control.clone();
         let (started_tx, started_rx) = mpsc::sync_channel(1);
-        let (ack_tx, ack_rx) = mpsc::sync_channel(1);
+        let (ack_tx, ack_rx) =
+            mpsc::sync_channel::<Result<Option<CommittedBodyStartup>, String>>(1);
         let thread = thread::Builder::new()
             .name("conduit-body-play".into())
             .stack_size(BODY_PLAY_STACK_BYTES)
