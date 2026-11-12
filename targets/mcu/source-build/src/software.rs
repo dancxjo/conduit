@@ -74,6 +74,7 @@ pub fn compile(
                 "machine/pulse/read",
                 "machine/tm1637/write",
                 conduit_semantic_catalog::RESOURCE_APPEND_KIND,
+                conduit_semantic_catalog::RESOURCE_RECORD_SERVICE_KIND,
                 // Actual initialized Mask routing and renderer owners have
                 // their own exact offers and assigned-kernel binding.
                 "face/tee",

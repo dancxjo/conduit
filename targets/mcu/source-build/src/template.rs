@@ -31,6 +31,8 @@ pub use continuation::ContinuationPins;
 pub struct Layout {
     /// Independently lowered immutable laws; never supplied by an assignment.
     pub terminal_transductions_rust: String,
+    /// Exact independently lowered parent index for the single residence.
+    pub record_service_resource: Option<u16>,
     pub continuation: ContinuationPins,
     /// Inert canonical identity program, not a sealed current-Boot fragment.
     pub fragment_seal_recipe: c::FragmentSealRecipe,
@@ -229,9 +231,21 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             );
         }
     }
+    let mut services = kernel.nodes.iter().filter(|node|
+        node.kind_id == conduit_semantic_catalog::RESOURCE_RECORD_SERVICE_KIND);
+    let record_service_resource = if let Some(node) = services.next() {
+        if services.next().is_some() { return Err("multiple native record-service owners".into()); }
+        let mut resources = kernel.resources.iter().filter(|resource| resource.node == node.node);
+        let resource = resources.next().ok_or("record-service lacks its residence")?;
+        if resources.next().is_some() || resource.units != 1 {
+            return Err("record-service requires one exact residence".into());
+        }
+        Some(resource.resource)
+    } else { None };
     let continuation = continuation::capture(fragment, kernel, generated.fore())?;
     Ok(Layout {
         terminal_transductions_rust: kernel.render_terminal_transductions(),
+        record_service_resource,
         continuation,
         fragment_seal_recipe,
         fragment_seal_to_kernel,

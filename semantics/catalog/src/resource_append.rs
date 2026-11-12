@@ -5,6 +5,10 @@ use conduit_core::*;
 pub use conduit_resource_snapshot::append_contract::{
     APPEND_KIND as RESOURCE_APPEND_KIND, APPEND_REVISION as RESOURCE_APPEND_REVISION,
 };
+pub use conduit_resource_snapshot::service_contract::{
+    SERVICE_KIND as RESOURCE_RECORD_SERVICE_KIND,
+    SERVICE_REVISION as RESOURCE_RECORD_SERVICE_REVISION,
+};
 /// Opaque existing Bytes, bounded to 200, and a canonical declared typed result.
 /// A recorded output denotes verified media commitment only; capacity and
 /// uncertainty remain ordinary values. Input closure drains
