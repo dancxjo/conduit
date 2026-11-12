@@ -1,5 +1,6 @@
 //! Preparation from retained owner truth, never caller-supplied approval bytes.
 use super::Owner;
+use conduit_body::ResidentPlot;
 use conduit_body::{BodyPlayIdentity, PreparedBodyFragment};
 use conduit_core::HostAdvertisement;
 use conduit_embedded_build::{
@@ -7,6 +8,7 @@ use conduit_embedded_build::{
     BodyFragmentGenerationRefusal, BodyFragmentProjectionLimits, BoundResidentExpression,
     GeneratedBodyWorksetDocument, SelectedForeSession,
 };
+use std::collections::BTreeMap;
 
 impl Owner {
     /// The installed File policy already prepared these immutable codebooks.
@@ -17,6 +19,22 @@ impl Owner {
         member: &crate::durable_host::owner::MemberPresentationBasis,
         challenge: &conduit_body::HostCommandChallenge<'_>,
         limits: BodyFragmentProjectionLimits,
+    ) -> Result<(Vec<u8>, [u8; 64]), String> {
+        self.approve_selected_remote_workset_with_line_fore(
+            member,
+            challenge,
+            limits,
+            &BTreeMap::new(),
+        )
+    }
+    /// Sessions are supplied by original native policy, never the challenge.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn approve_selected_remote_workset_with_line_fore(
+        &mut self,
+        member: &crate::durable_host::owner::MemberPresentationBasis,
+        challenge: &conduit_body::HostCommandChallenge<'_>,
+        limits: BodyFragmentProjectionLimits,
+        sessions: &BTreeMap<ResidentPlot, Vec<SelectedForeSession>>,
     ) -> Result<(Vec<u8>, [u8; 64]), String> {
         let retained = self
             .selected_file_workset
@@ -35,8 +53,9 @@ impl Owner {
                 }
                 native.push(offer);
             }
-            let command =
-                self.approve_remote_workset(member, challenge, &images, &native, limits)?;
+            let command = self.approve_remote_workset_with_line_fore(
+                member, challenge, &images, &native, limits, sessions,
+            )?;
             Ok((command.payload().to_vec(), *command.signature()))
         })();
         self.selected_file_workset = Some(retained);
@@ -64,35 +83,92 @@ impl Owner {
         native: &[&conduit_core::CapabilityOffer],
         limits: BodyFragmentProjectionLimits,
     ) -> Result<(BodyPlayIdentity, GeneratedBodyWorksetDocument), String> {
-        self.prepare_remote_body_workset(actual, limits.maximum_document_bytes, |scope| {
-            let local_native: Vec<_> = native
-                .iter()
-                .copied()
-                .filter(|offer| {
-                    scope
-                        .fragment()
-                        .placements
-                        .iter()
-                        .any(|placement| placement.capability_id == offer.capability_id)
-                })
-                .collect();
-            if local_native.iter().any(|offer| {
-                offer.implementation.execution_profile_id.as_str()
-                    == conduit_embedded_build::RESIDENT_EXPRESSION_PROFILE
-            }) {
-                return Err(BodyFragmentGenerationRefusal::Resident(
-                    conduit_embedded_build::ResidentExpressionRefusal::Selection,
+        self.prepare_remote_mixed_workset_with_line_fore(
+            actual,
+            images,
+            native,
+            limits,
+            &BTreeMap::new(),
+        )
+    }
+    pub(super) fn prepare_remote_mixed_workset_with_line_fore(
+        &self,
+        actual: &HostAdvertisement,
+        images: &[&conduit_embedded_build::PreparedResidentExpression],
+        native: &[&conduit_core::CapabilityOffer],
+        limits: BodyFragmentProjectionLimits,
+        sessions: &BTreeMap<ResidentPlot, Vec<SelectedForeSession>>,
+    ) -> Result<(BodyPlayIdentity, GeneratedBodyWorksetDocument), String> {
+        self.project_remote_body_workset(actual, |anchor| {
+            let mut local_plots = std::collections::BTreeSet::new();
+            for local in anchor.local_fragments() {
+                let local = local.map_err(|_| BodyFragmentGenerationRefusal::Scope)?;
+                let fragment = local.fragment();
+                local_plots.insert(ResidentPlot::new(
+                    fragment.source_document_id.clone(),
+                    fragment.checked_plot_id.clone(),
                 ));
             }
-            let resident = conduit_embedded_build::bind_current_mixed_resident_expressions(
-                scope.plot_plan(),
-                &scope.fragment().fragment_id,
+            if sessions
+                .iter()
+                .any(|(plot, rows)| !local_plots.contains(plot) || rows.len() > 16)
+            {
+                return Err(BodyFragmentGenerationRefusal::Scope);
+            }
+            generate_prepared_body_workset_with_line_fore(
+                anchor,
                 actual,
-                images,
-                &local_native,
+                limits.maximum_document_bytes,
+                |scope| {
+                    let local_native: Vec<_> = native
+                        .iter()
+                        .copied()
+                        .filter(|offer| {
+                            scope
+                                .fragment()
+                                .placements
+                                .iter()
+                                .any(|placement| placement.capability_id == offer.capability_id)
+                        })
+                        .collect();
+                    if local_native.iter().any(|offer| {
+                        offer.implementation.execution_profile_id.as_str()
+                            == conduit_embedded_build::RESIDENT_EXPRESSION_PROFILE
+                    }) {
+                        return Err(BodyFragmentGenerationRefusal::Resident(
+                            conduit_embedded_build::ResidentExpressionRefusal::Selection,
+                        ));
+                    }
+                    let resident = conduit_embedded_build::bind_current_mixed_resident_expressions(
+                        scope.plot_plan(),
+                        &scope.fragment().fragment_id,
+                        actual,
+                        images,
+                        &local_native,
+                    )
+                    .map_err(BodyFragmentGenerationRefusal::Resident)?;
+                    let fragment = scope.fragment();
+                    let plot = ResidentPlot::new(
+                        fragment.source_document_id.clone(),
+                        fragment.checked_plot_id.clone(),
+                    );
+                    let selected = sessions
+                        .get(&plot)
+                        .map(|rows| {
+                            rows.iter()
+                                .map(|row| SelectedForeSession {
+                                    front_port_id: row.front_port_id.clone(),
+                                    direction: row.direction,
+                                    track: row.track,
+                                    session: row.session,
+                                    session_contract: row.session_contract,
+                                })
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    Ok((resident, limits, selected))
+                },
             )
-            .map_err(BodyFragmentGenerationRefusal::Resident)?;
-            Ok((resident, limits))
         })
     }
     // The installed remote dispatcher must call this before signing or sending.

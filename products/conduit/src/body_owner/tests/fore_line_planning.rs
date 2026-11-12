@@ -11,7 +11,7 @@ pub(super) fn verify_current_member_line_selection(
         conduit_planner::ConnectionQueueLimits,
     >,
     member: &c::HostAdvertisement,
-) {
+) -> Vec<conduit_body::BodyPlotPlan> {
     let budgets = std::collections::BTreeMap::from([(resident(expanded), boundaries.clone())]);
     let baseline = owner
         .prepare_workset_partitions(&[(source, expanded)], &budgets)
@@ -133,4 +133,5 @@ pub(super) fn verify_current_member_line_selection(
     }
     assert_eq!(owner.session.evidence(), &before);
     assert!(owner.session.realization().is_none());
+    planned
 }

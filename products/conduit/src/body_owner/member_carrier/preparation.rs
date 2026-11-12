@@ -51,6 +51,30 @@ impl Owner {
         native: &[&conduit_core::CapabilityOffer],
         limits: BodyFragmentProjectionLimits,
     ) -> Result<&PreparedRemoteBodyCommand, String> {
+        self.approve_remote_workset_with_line_fore(
+            member,
+            challenge,
+            images,
+            native,
+            limits,
+            &std::collections::BTreeMap::new(),
+        )
+    }
+    /// Original trusted session selection follows the SAME approval/signing
+    /// custody path. Received wire metadata can never supply these choices.
+    #[allow(clippy::too_many_arguments)] // Original approval inputs plus explicit native sessions.
+    pub(crate) fn approve_remote_workset_with_line_fore(
+        &mut self,
+        member: &MemberPresentationBasis,
+        challenge: &HostCommandChallenge<'_>,
+        images: &[&PreparedResidentExpression],
+        native: &[&conduit_core::CapabilityOffer],
+        limits: BodyFragmentProjectionLimits,
+        sessions: &std::collections::BTreeMap<
+            conduit_body::ResidentPlot,
+            Vec<conduit_embedded_build::SelectedForeSession>,
+        >,
+    ) -> Result<&PreparedRemoteBodyCommand, String> {
         if let Some(custody) = &self.member_carrier {
             if custody.commands.iter().any(|command| {
                 command.part == member.credential.part_id
@@ -97,7 +121,9 @@ impl Owner {
             maximum_document_bytes: challenge.maximum_payload_bytes,
             ..limits
         };
-        let (play, document) = self.prepare_remote_mixed_workset(actual, images, native, limits)?;
+        let (play, document) = self.prepare_remote_mixed_workset_with_line_fore(
+            actual, images, native, limits, sessions,
+        )?;
         if self
             .member_carrier
             .as_ref()

@@ -119,6 +119,7 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
     fore_line_planning::verify_current_member_line_selection(
         &owner, &source, &expanded, &boundary, &ad,
     );
+    let boundary_for_line_test = boundary.clone();
     owner
         .plan_workset_with_source_boundaries(
             &[(&source, &expanded)],
@@ -157,6 +158,14 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
         maximum_fore_ports: 2,
         maximum_document_bytes: 4096,
     };
+    signed_line_approval::run(
+        &source,
+        &expanded,
+        &image,
+        &ad,
+        &boundary_for_line_test,
+        limits,
+    );
     let before = owner.session.evidence().clone();
     let proposal = owner.session.realization().unwrap().clone();
     // The explicit Line entrance preserves the SAME owner gates and exact local
@@ -508,3 +517,6 @@ fn two_members_retain_one_exact_body_play_and_block_duplicate_boot_and_source_ca
     assert_eq!(owner.session.evidence().body.workset, before.body.workset);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "signed_line_approval.rs"]
+mod signed_line_approval;
