@@ -2,7 +2,7 @@
 use super::*;
 use crate::{
     execution_workset::{PreparedLocalKernels, StartedEvidence},
-    transport::{Carrier, Link},
+    transport::MessageTransport,
 };
 use conduit_body as b;
 use conduit_core as c;
@@ -38,36 +38,38 @@ struct Installation<'p, 'i> {
     session_contract: &'i str,
     bounds: ForeCarrierBounds,
 }
-/// Affine original native carrier/backing custody plus immutable installation.
+/// Affine original native framed transport/backing custody plus immutable installation.
 /// No safe metadata constructor, Clone, serialization or raw IO extraction exists.
+/// The framed transport stays intact, including platform control interception.
 /// ```compile_fail
-/// use conduit_mcu_host_runtime::{root::NativeForeCarrierSelection,transport::{Carrier,Link}};
-/// fn overlap<'a,'p,'i,C:Carrier+'a>(link:&'a mut Link<C>,
-///     install:impl FnOnce(&'a mut Link<C>)->NativeForeCarrierSelection<'a,'p,'i,C>) {
+/// use conduit_mcu_host_runtime::{root::NativeForeCarrierSelection,transport::MessageTransport};
+/// fn overlap<'a,'p,'i,C:MessageTransport+'a>(link:&'a mut C,
+///     install:impl FnOnce(&'a mut C)->NativeForeCarrierSelection<'a,'p,'i,C>) {
 ///     let selected=install(link);
-///     link.reset(); // The original loan remains exclusively held.
+///     let _second = &mut *link; // The original loan remains exclusively held.
 ///     drop(selected);
 /// }
 /// ```
-pub struct NativeForeCarrierSelection<'c, 'p, 'i, C: Carrier> {
-    _link: &'c mut Link<C>,
+pub struct NativeForeCarrierSelection<'c, 'p, 'i, C: MessageTransport> {
+    _link: &'c mut C,
     backing: &'c mut [u8],
     installed: Installation<'p, 'i>,
 }
-impl<'c, 'p, 'i, C: Carrier> NativeForeCarrierSelection<'c, 'p, 'i, C> {
+impl<'c, 'p, 'i, C: MessageTransport> NativeForeCarrierSelection<'c, 'p, 'i, C> {
     /// Explicit native installation, not permission inferred from a received Plan.
     /// # Safety
-    /// Trusted Root composition owns THIS initialized physical serial Link and
+    /// Trusted Root composition owns THIS initialized physical serial framed transport and
     /// THIS complete finite backing. The immutable image/configuration, peer,
     /// exact Line/Fore/session pins and limits are independently checked installed
     /// Host selection; none may originate from received preparation metadata.
     /// The native owner has independently established this carrier-to-peer
     /// physical custody mapping. This function cannot attest it from bytes and
-    /// claims neither peer authentication nor network confidentiality. The loan
+    /// claims neither peer authentication nor network confidentiality. A
+    /// MessageTransport implementation alone proves none of this custody. The loan
     /// must remain exclusive through the eventual ordinary workset retirement.
     #[allow(clippy::too_many_arguments)]
     pub unsafe fn from_native_custody(
-        link: &'c mut Link<C>,
+        link: &'c mut C,
         backing: &'c mut [u8],
         image: &'i str,
         configuration: &'i str,
@@ -151,15 +153,15 @@ pub fn external_fore_scope_commitment(
 /// bind/Start exists; attach it to the original workset's prepared kernel group.
 /// Cold full Line/peer/image/configuration/session material is retired after
 /// validation/hashing. Only the compact installed Line rows remain borrowed.
-pub struct PreparedForeCarrier<'c, 'p, C: Carrier> {
-    _link: &'c mut Link<C>,
+pub struct PreparedForeCarrier<'c, 'p, C: MessageTransport> {
+    _link: &'c mut C,
     backing: &'c mut [u8],
     pins: &'p [c::AssignedLineForeRequirement],
     _bounds: ForeCarrierBounds,
     scope: [u8; 32],
     custody: [u8; 32],
 }
-impl<'c, 'p, C: Carrier> PreparedForeCarrier<'c, 'p, C> {
+impl<'c, 'p, C: MessageTransport> PreparedForeCarrier<'c, 'p, C> {
     pub fn scope_digest(&self) -> &[u8; 32] {
         &self.scope
     }
@@ -184,17 +186,17 @@ impl<'c, 'p, C: Carrier> PreparedForeCarrier<'c, 'p, C> {
 }
 /// Same ordinary PreparedLocalKernels admission/Start path, with finite original
 /// borrowed carrier backing charged alongside the original prepared kernels.
-pub struct ForeCarrierKernels<'c, 'p, C: Carrier, T: PreparedLocalKernels> {
+pub struct ForeCarrierKernels<'c, 'p, C: MessageTransport, T: PreparedLocalKernels> {
     kernels: T,
     carrier: PreparedForeCarrier<'c, 'p, C>,
 }
 /// Bound only by the original workset Start. Raw carrier remains private until
 /// the typed runtime actor is wired; no public IO/extraction entrance exists.
-pub struct BoundForeCarrierKernels<'c, 'p, C: Carrier, T> {
+pub struct BoundForeCarrierKernels<'c, 'p, C: MessageTransport, T> {
     kernels: T,
     _carrier: PreparedForeCarrier<'c, 'p, C>,
 }
-impl<C: Carrier, T> BoundForeCarrierKernels<'_, '_, C, T> {
+impl<C: MessageTransport, T> BoundForeCarrierKernels<'_, '_, C, T> {
     pub fn kernels_mut(&mut self) -> &mut T {
         &mut self.kernels
     }
@@ -214,7 +216,7 @@ impl<C: Carrier, T> BoundForeCarrierKernels<'_, '_, C, T> {
 // SAFETY: both original owners are transferred once by the SAME existing Start.
 // No IO/allocation occurs in bind; the carrier stays private. Original kernels'
 // unsafe contract still requires the factory's exact approved fragment set.
-unsafe impl<'c, 'p, C: Carrier, T: PreparedLocalKernels> PreparedLocalKernels
+unsafe impl<'c, 'p, C: MessageTransport, T: PreparedLocalKernels> PreparedLocalKernels
     for ForeCarrierKernels<'c, 'p, C, T>
 {
     type Bound = BoundForeCarrierKernels<'c, 'p, C, T::Bound>;
@@ -237,7 +239,7 @@ unsafe impl<'c, 'p, C: Carrier, T: PreparedLocalKernels> PreparedLocalKernels
 impl<'s, const N: usize> Root<'s, N> {
     /// Recheck this Root's original online whole-set command. Returning a ticket
     /// borrows only the selected carrier/backing and immutable installation.
-    pub fn prepare_fore_carrier<'c, 'p, C: Carrier, const F: usize, const PORTS: usize>(
+    pub fn prepare_fore_carrier<'c, 'p, C: MessageTransport, const F: usize, const PORTS: usize>(
         &self,
         now: u64,
         selection: Option<NativeForeCarrierSelection<'c, 'p, '_, C>>,
@@ -268,7 +270,7 @@ impl<'s, const N: usize> Root<'s, N> {
 impl<const N: usize> ExecutionParts<'_, '_, N> {
     /// Same Root gate over its original disjoint loans, usable inside the real
     /// prepared-workset factory without reborrowing or reconstructing Root.
-    pub fn prepare_fore_carrier<'c, 'p, C: Carrier, const F: usize, const PORTS: usize>(
+    pub fn prepare_fore_carrier<'c, 'p, C: MessageTransport, const F: usize, const PORTS: usize>(
         &self,
         now: u64,
         selection: Option<NativeForeCarrierSelection<'c, 'p, '_, C>>,

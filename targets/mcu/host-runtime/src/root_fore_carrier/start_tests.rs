@@ -69,7 +69,7 @@ fn original_parts_carrier_is_funded_and_binds_only_through_original_admission_st
                     )))
                 },
                 |fragments, fore| {
-                    let ticket = parts.prepare_fore_carrier::<Mock<'_>, 1, 2>(
+                    let ticket = parts.prepare_fore_carrier::<Link<Mock<'_>>, 1, 2>(
                         11,
                         selection.take(),
                         &fragments[0],

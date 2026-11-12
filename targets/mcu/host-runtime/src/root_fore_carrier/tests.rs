@@ -1,6 +1,7 @@
 extern crate std;
 use super::*;
 use crate::execution_workset::{AssignedPreparationProfile, PreparedLocalWorkset};
+use crate::transport::{Carrier, Link};
 use core::cell::Cell;
 use sha2::{Digest, Sha256};
 use std::vec::Vec;
@@ -191,7 +192,7 @@ fn current_root_command_policy_peer_line_session_and_bounds_are_independent_gate
         )
         .unwrap();
     assert!(matches!(
-        root.prepare_fore_carrier::<Mock<'_>, 1, 2>(
+        root.prepare_fore_carrier::<Link<Mock<'_>>, 1, 2>(
             11,
             None,
             &approved,
@@ -258,7 +259,7 @@ fn current_root_command_policy_peer_line_session_and_bounds_are_independent_gate
             )
         }
         .unwrap();
-        let result = root.prepare_fore_carrier::<Mock<'_>, 1, 2>(
+        let result = root.prepare_fore_carrier::<Link<Mock<'_>>, 1, 2>(
             if change == 0 { 30 } else { 11 },
             Some(selection),
             &approved,
@@ -351,7 +352,7 @@ fn another_valid_child_or_body_and_missing_root_policy_cannot_supply_carrier_aut
     }
     .unwrap();
     assert!(matches!(
-        root.prepare_fore_carrier::<Mock<'_>, 1, 2>(
+        root.prepare_fore_carrier::<Link<Mock<'_>>, 1, 2>(
             11,
             Some(selection),
             &approved,
@@ -396,7 +397,7 @@ fn another_valid_child_or_body_and_missing_root_policy_cannot_supply_carrier_aut
     }
     .unwrap();
     assert!(matches!(
-        root.prepare_fore_carrier::<Mock<'_>, 1, 2>(
+        root.prepare_fore_carrier::<Link<Mock<'_>>, 1, 2>(
             11,
             Some(selection),
             &approved,
@@ -434,7 +435,7 @@ fn another_valid_child_or_body_and_missing_root_policy_cannot_supply_carrier_aut
     }
     .unwrap();
     assert!(matches!(
-        root.prepare_fore_carrier::<Mock<'_>, 1, 2>(
+        root.prepare_fore_carrier::<Link<Mock<'_>>, 1, 2>(
             11,
             Some(selection),
             &approved,

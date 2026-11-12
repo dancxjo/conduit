@@ -26,7 +26,14 @@ pub(super) fn bounds(
     Ok(())
 }
 #[allow(clippy::too_many_arguments)]
-pub(super) fn prepare<'c, 'p, C: Carrier, const N: usize, const F: usize, const PORTS: usize>(
+pub(super) fn prepare<
+    'c,
+    'p,
+    C: MessageTransport,
+    const N: usize,
+    const F: usize,
+    const PORTS: usize,
+>(
     workspace: &b::HostCommandInput<N>,
     context: b::NativePreparationContext<'_>,
     config: &Configuration,
