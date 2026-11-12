@@ -54,6 +54,7 @@ impl Selection {
                 && !(scanout_prepared && base.kind == "display/scanout")
                 && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
                 && !(source_prepared && base.kind == "creche/encounter")
+                && !(self.host_image.is_some() && base.kind == "audio/speaker")
             {
                 return Err(
                     "selected IMAGE cannot initialize this physical equipment or Crèche provider"
@@ -130,6 +131,25 @@ impl Selection {
     pub(super) fn validate(&self) -> Result<(), String> {
         self.checked().map(|_| ())
     }
+    pub(super) fn prepare_playback(
+        &self,
+        config: &conduit_std_host::StdHostConfig,
+    ) -> Result<Option<conduit_std_host::hosted_audio::HostedPlaybackSelection>, String> {
+        let checked = self.checked()?;
+        require_target(&checked, running_target_id()?)?;
+        let mut speakers = checked
+            .configuration()
+            .bases
+            .iter()
+            .filter(|base| base.kind == "audio/speaker" && base.initialization.is_some());
+        let Some(base) = speakers.next() else {
+            return Ok(None);
+        };
+        if speakers.next().is_some() {
+            return Err("ambiguous selected speaker".into());
+        }
+        playback::initialize_for_config(base.initialization.as_ref().unwrap(), config).map(Some)
+    }
     pub(super) fn prepare_creche(
         &self,
     ) -> Result<Option<conduit::creche_encounter::CrecheEncounterFactory>, String> {
@@ -201,7 +221,19 @@ impl Selection {
                 }
                 Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
                     let selected = playback::initialize(initialization, host)?;
-                    host.attach_selected_playback(selected)?;
+                    if self.host_image.is_some() {
+                        if !host
+                            .playback_selection()
+                            .is_some_and(|current| current.same_physical_selection(&selected))
+                        {
+                            return Err(
+                                "checked IMAGE speaker was not initialized with its original Host"
+                                    .into(),
+                            );
+                        }
+                    } else {
+                        host.attach_selected_playback(selected)?;
+                    }
                 }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     host.attach_whisper_clip_recognizer(recognition::initialize(initialization)?)?;

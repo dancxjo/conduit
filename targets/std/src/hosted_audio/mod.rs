@@ -84,11 +84,21 @@ pub struct HostedPlaybackSelection {
     pub offer_generation: OfferGeneration,
     delivery_mode: PlaybackDeliveryMode,
     executable_sha256: Option<[u8; 32]>,
+    // Logical checked Source Base; physical provider identity remains unchanged.
+    source_base_id: Option<String>,
     #[cfg(test)]
     fake_behavior: Option<fake::FakePlaybackBehavior>,
 }
 
 impl HostedPlaybackSelection {
+    /// Compare physical endpoint custody independently of its logical Source Base.
+    pub fn same_physical_selection(&self, other: &Self) -> bool {
+        self.observation == other.observation
+            && self.boot_id == other.boot_id
+            && self.offer_generation == other.offer_generation
+            && self.delivery_mode == other.delivery_mode
+            && self.executable_sha256 == other.executable_sha256
+    }
     pub fn from_observation(
         observation: AlsaPlaybackObservation,
         boot_id: BootId,
@@ -100,6 +110,7 @@ impl HostedPlaybackSelection {
             offer_generation,
             delivery_mode: PlaybackDeliveryMode::Direct,
             executable_sha256: None,
+            source_base_id: None,
             #[cfg(test)]
             fake_behavior: None,
         }
@@ -217,6 +228,7 @@ impl HostedPlaybackSelection {
             offer_generation,
             delivery_mode: PlaybackDeliveryMode::Direct,
             executable_sha256: None,
+            source_base_id: None,
             fake_behavior: Some(behavior),
         }
     }

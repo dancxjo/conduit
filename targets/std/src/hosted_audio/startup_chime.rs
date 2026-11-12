@@ -67,12 +67,7 @@ impl PreparedChimeOutput {
         })
     }
     pub(crate) fn retained_backing_bytes(&self) -> usize {
-        let o = &self.selection.observation;
-        self.selection.boot_id.0.capacity()
-            + o.card_id.capacity()
-            + o.card_name.capacity()
-            + o.device_name.capacity()
-            + o.base_identity.capacity()
+        self.selection.backing_bytes()
             + self.arguments.capacity() * core::mem::size_of::<OsString>()
             + self.arguments.iter().map(OsString::capacity).sum::<usize>()
     }

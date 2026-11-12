@@ -4,6 +4,21 @@ use conduit_core::{BaseEnforcementClass, BaseLifecycle, BaseProviderEntry};
 use std::fmt::Write;
 
 impl HostedPlaybackSelection {
+    pub(crate) fn bind_source_base(&mut self, base_id: &str) {
+        self.source_base_id = Some(base_id.into());
+    }
+    pub(crate) fn backing_bytes(&self) -> usize {
+        let o = &self.observation;
+        self.boot_id.0.capacity()
+            + o.card_id.capacity()
+            + o.card_name.capacity()
+            + o.device_name.capacity()
+            + o.base_identity.capacity()
+            + self.source_base_id.as_ref().map_or(0, String::capacity)
+    }
+    pub(crate) fn executable_digest(&self) -> Option<[u8; 32]> {
+        self.executable_sha256
+    }
     pub(crate) fn checked_base_entry(&self) -> Option<BaseProviderEntry> {
         let digest = self.executable_sha256?;
         let mut hex = String::with_capacity(64);
@@ -15,11 +30,16 @@ impl HostedPlaybackSelection {
             self.observation.base_identity, self.observation.card_id, self.observation.device
         );
         Some(BaseProviderEntry {
-            base_id: endpoint.clone().into(),
+            base_id: self.source_base_id.as_deref().unwrap_or(&endpoint).into(),
             provider_instance_id: format!("{endpoint}/{hex}").into(),
             provider_generation: self.offer_generation.0,
             implementation_id: conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION.into(),
-            mechanism_family: "std.base/alsa-playback@1".into(),
+            mechanism_family: if self.source_base_id.is_some() {
+                "audio/speaker"
+            } else {
+                "std.base/alsa-playback@1"
+            }
+            .into(),
             enforcement_class: BaseEnforcementClass::Cooperative,
             lifecycle: BaseLifecycle::Ready,
             capabilities: vec![

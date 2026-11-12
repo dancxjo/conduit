@@ -31,6 +31,14 @@ fn fixture(behavior: FakePlaybackBehavior) -> (StdHost, BodyLifecycleSession) {
     .with_executable_sha256("ab".repeat(32))
     .unwrap();
     host.attach_selected_playback(selected).unwrap();
+    fixture_for_host(host)
+}
+fn fixture_for_host(host: StdHost) -> (StdHost, BodyLifecycleSession) {
+    let config = crate::StdHostConfig {
+        host_id: host.advertisement().host_id.clone(),
+        boot_id: host.advertisement().boot_id.clone(),
+        offer_generation: host.advertisement().offer_generation,
+    };
     let (mut startup, mut profiles) = (
         conduit_plot::StartupCatalog::new(),
         conduit_plot::ProfileCatalog::new(),
@@ -238,4 +246,98 @@ fn lifecycle_only_or_failed_ack_cannot_fire_startup() {
     );
     assert!(result.unwrap_err().contains("retained Started failed"));
     assert_eq!(crate::hosted_audio::startup_chime::test_attempts(), 0);
+}
+
+#[test]
+fn image_chime_retains_original_memory_custody_through_execution_and_report() {
+    use conduit_host_make::*;
+    use std::sync::atomic::Ordering;
+    crate::hosted_audio::startup_chime::reset_test_attempts();
+    let (reference, _) = fixture(FakePlaybackBehavior::Success);
+    let source = include_str!("../../profiles/raspberry-pi-3-tick-workset.host.conduit")
+        .replace("  limits =", &format!(r#"  base = {{kind: "audio/speaker", implementation: "std/kernel-audio-play-alsa-hw@1", initialization: {{executable_sha256: "{}", card_id: "Fixture", device: 0, base_identity: "fixture/speaker"}}}}
+  capability = {{kind: "sound/startup-chime", pinned_implementation: "std/kernel-startup-chime@1"}}
+  capability = {{kind: "body/wake", pinned_implementation: "std/kernel-body-wake@1"}}
+  need = {{id: "std/audio/alsa/fixture/speaker/card-Fixture/device-0", class: "conduit.resource/audio-playback-alsa-hw@1", slots: 1, bytes: 1}}
+  limits ="#, "ab".repeat(32)));
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(&source).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
+    let (image, _) = build_default_host_image(
+        checked.profile().clone(),
+        &catalog,
+        &packages,
+        &BuildInputs {
+            source_identity: "fixture/chime-image".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    let config = crate::StdHostConfig {
+        host_id: reference.advertisement().host_id.clone(),
+        boot_id: reference.advertisement().boot_id.clone(),
+        offer_generation: reference.advertisement().offer_generation,
+    };
+    let selected = reference.playback_selection().unwrap();
+    let host = StdHost::from_selected_timer_and_playback_image(
+        config.clone(),
+        &image,
+        &catalog,
+        &checked,
+        selected,
+    )
+    .unwrap();
+    assert_eq!(
+        host.advertisement()
+            .bases
+            .iter()
+            .filter(|b| b.mechanism_family.as_str() == "audio/speaker")
+            .count(),
+        1
+    );
+    assert!(host.image_identity().is_some());
+    let used = host.kernel_resources.image_memory_observer();
+    let base_charge = used.load(Ordering::Acquire);
+    assert!(base_charge > 24);
+    let (mut host, mut session) = fixture_for_host(host);
+    let proposed = session.realization().unwrap().clone();
+    let ad = host.advertisement().clone();
+    let report = host
+        .run_selected_image_body_plan_with_committed_startup_to(
+            BodyRunRequest {
+                wake: &proposed.wake,
+                plan: &proposed.plan,
+                control: &RunControl::default(),
+                keyboard: None,
+            },
+            &[],
+            &mut Vec::new(),
+            &mut Timer,
+            None,
+            |play, wake| {
+                session
+                    .started(&ad.host_id, &ad.boot_id, play.clone(), wake.clone())
+                    .unwrap();
+                CommittedBodyStartup::from_retained(session.evidence(), &proposed.plan, play)
+            },
+        )
+        .unwrap();
+    assert_eq!(report.report().terminal, TerminalDisposition::Completed);
+    assert_eq!(crate::hosted_audio::startup_chime::test_attempts(), 1);
+    assert!(used.load(Ordering::Acquire) > base_charge);
+    drop(report);
+    assert_eq!(used.load(Ordering::Acquire), base_charge);
+    drop(host);
+    assert_eq!(used.load(Ordering::Acquire), 24); // retained counter metadata only
+    let mut stale = selected.clone();
+    stale.offer_generation = OfferGeneration(2);
+    assert!(StdHost::from_selected_timer_and_playback_image(
+        config, &image, &catalog, &checked, &stale
+    )
+    .is_err());
 }

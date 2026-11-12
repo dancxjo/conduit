@@ -97,8 +97,6 @@ pub use hosted_body_conversation_context::{
 };
 pub mod hosted_calendar;
 pub mod hosted_data;
-pub mod hosted_measurement;
-pub mod measurement_face;
 pub mod hosted_geometry;
 pub mod hosted_history;
 pub mod hosted_http;
@@ -106,9 +104,11 @@ pub mod hosted_indicator;
 pub mod hosted_job;
 pub mod hosted_keyboard;
 mod hosted_language;
+pub mod hosted_measurement;
 mod hosted_process;
 #[cfg(feature = "local-model-proof")]
 mod house_conversation_topology;
+pub mod measurement_face;
 #[cfg(unix)]
 pub mod pico_indicator;
 mod whisper_installation;
@@ -546,6 +546,8 @@ pub struct StdHost {
     terminal_attachment: Option<std::os::unix::net::UnixStream>,
     image_identity: Option<conduit_host_make::ImageBootIdentity>,
     playback: Option<hosted_audio::HostedPlaybackSelection>,
+    // Drops after the speaker it funds, on the original IMAGE counter.
+    _playback_memory: Option<kernel_preparation::ImageMemoryLease>,
     wav_artifact: Option<hosted_wav_artifact::WavArtifactSelection>,
     speech_synthesis: Option<hosted_speech_synthesis::EspeakSpeechAdapter>,
     midi_input: Option<hosted_midi::HostedRawMidiSelection>,
@@ -922,6 +924,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1002,6 +1005,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1095,6 +1099,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1150,6 +1155,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1205,6 +1211,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1260,6 +1267,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1300,6 +1308,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1364,6 +1373,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: Some(playback),
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1423,6 +1433,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1471,6 +1482,7 @@ impl StdHost {
             advertisement,
             image_identity: Some(image_identity),
             playback: None,
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1532,6 +1544,7 @@ impl StdHost {
             advertisement,
             image_identity: None,
             playback: Some(playback),
+            _playback_memory: None,
             wav_artifact: None,
             speech_synthesis: None,
             midi_input: None,
@@ -1604,6 +1617,11 @@ impl StdHost {
     /// Constructs the explicit grant shape for a caller that has independently
     /// authorized this exact selected playback capability. Merely constructing
     /// or discovering a host never calls this method.
+    /// Read current selected equipment; this issues no authority grant.
+    pub fn playback_selection(&self) -> Option<&hosted_audio::HostedPlaybackSelection> {
+        self.playback.as_ref()
+    }
+
     pub fn playback_authority_grant(
         &self,
         grant_id: &str,

@@ -40,7 +40,32 @@ impl StdHost {
         parameters: CheckedNativeMaskInitialization,
         output: &mut conduit_linux_display::Scanout<'_>,
     ) -> Result<Self, String> {
-        Self::from_native_mask_backend(config, image, catalog, checked, parameters, output, false)
+        Self::from_native_mask_backend(
+            config, image, catalog, checked, parameters, output, false, None,
+        )
+    }
+    /// Preserve the same selected SDL/Mask owners while initializing one checked
+    /// speaker on their final IMAGE counter. Membership and grants are separate.
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_selected_timer_and_native_mask_and_playback_image(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        checked: &CheckedHostConfiguration,
+        parameters: CheckedNativeMaskInitialization,
+        output: &mut conduit_linux_display::Scanout<'_>,
+        playback: &crate::hosted_audio::HostedPlaybackSelection,
+    ) -> Result<Self, String> {
+        Self::from_native_mask_backend(
+            config,
+            image,
+            catalog,
+            checked,
+            parameters,
+            output,
+            false,
+            Some(playback),
+        )
     }
     #[cfg(test)]
     pub(crate) fn from_native_mask_diagnostic(
@@ -51,8 +76,11 @@ impl StdHost {
         parameters: CheckedNativeMaskInitialization,
         output: &mut conduit_linux_display::Scanout<'_>,
     ) -> Result<Self, String> {
-        Self::from_native_mask_backend(config, image, catalog, checked, parameters, output, true)
+        Self::from_native_mask_backend(
+            config, image, catalog, checked, parameters, output, true, None,
+        )
     }
+    #[allow(clippy::too_many_arguments)]
     fn from_native_mask_backend(
         config: StdHostConfig,
         image: &HostImage,
@@ -61,6 +89,7 @@ impl StdHost {
         parameters: CheckedNativeMaskInitialization,
         output: &mut conduit_linux_display::Scanout<'_>,
         diagnostic: bool,
+        playback: Option<&crate::hosted_audio::HostedPlaybackSelection>,
     ) -> Result<Self, String> {
         conduit_host_make::verify_configuration_image(checked, image, catalog)?;
         if checked.configuration_id() != parameters.configuration_id() {
@@ -165,6 +194,13 @@ impl StdHost {
             height,
             scanout_cpu_bytes: output.cpu_backing_bytes(),
         };
-        Self::from_selected_native_initial_bases(config, image, catalog, scanout, intent)
+        Self::from_selected_native_initial_bases(
+            config,
+            image,
+            catalog,
+            scanout,
+            intent,
+            playback.map(|p| (checked, p)),
+        )
     }
 }

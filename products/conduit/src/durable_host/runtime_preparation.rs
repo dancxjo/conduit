@@ -239,6 +239,16 @@ fn prepare_runtime_with_composition(
             offer_generation: OfferGeneration(1),
         })
     })?;
+    let playback = if selected_image.is_some() {
+        installation
+            .selected_host_configuration
+            .as_ref()
+            .map(|selection| selection.prepare_playback(&config))
+            .transpose()?
+            .flatten()
+    } else {
+        None
+    };
     // Keep the actual initialized provider alive before constructing its slot.
     // A checked Base alone cannot publish this offer.
     let creche_factory = installation
@@ -261,6 +271,11 @@ fn prepare_runtime_with_composition(
         Ok(if let Some(image) = selected_image {
             #[cfg(target_os = "linux")]
             if let Some(source_selection) = &source_selection {
+                if playback.is_some() {
+                    return Err(
+                        "selected File compiler/speaker composition is not initialized".into(),
+                    );
+                }
                 #[cfg(all(target_os = "linux", feature = "native-display"))]
                 if scanout.is_some() {
                     return Err(
@@ -290,6 +305,17 @@ fn prepare_runtime_with_composition(
                     conduit_workspace_make::CheckedNativeMaskInitialization::from_configuration(
                         &checked,
                     )?;
+                if let Some(playback) = &playback {
+                    return StdHost::from_selected_timer_and_native_mask_and_playback_image(
+                        config,
+                        image,
+                        &conduit_workspace_make::catalog(),
+                        &checked,
+                        parameters,
+                        output,
+                        playback,
+                    );
+                }
                 return StdHost::from_selected_timer_and_native_mask_image(
                     config,
                     image,
@@ -297,6 +323,23 @@ fn prepare_runtime_with_composition(
                     &checked,
                     parameters,
                     output,
+                );
+            }
+            if let Some(playback) = &playback {
+                if creche_factory.is_some() {
+                    return Err("selected speaker/Creche composition is not initialized".into());
+                }
+                let checked = installation
+                    .selected_host_configuration
+                    .as_ref()
+                    .ok_or("speaker lost selected Source")?
+                    .checked()?;
+                return StdHost::from_selected_timer_and_playback_image(
+                    config,
+                    image,
+                    &conduit_workspace_make::catalog(),
+                    &checked,
+                    playback,
                 );
             }
             if let Some(factory) = &creche_factory {
