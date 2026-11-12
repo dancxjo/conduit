@@ -25,6 +25,8 @@ pub enum ForeCarriageError {
     /// IO may have partially transferred a frame; no rollback is implied.
     OutcomeUnknown,
     Retired,
+    /// The application refused the offered result before any result acknowledgment.
+    ConsumerRefused,
 }
 /// Borrowed exact decoded frame after scope and Wire lifecycle admission.
 /// An Offered payload remains application bytes, not a committed observation.
@@ -78,6 +80,22 @@ impl PicoForeCarriage {
         timeout: Duration,
     ) -> Result<(), ForeCarriageError> {
         self.inner.handshake(output, timeout)
+    }
+    /// One serial request then one result, with one deadline and no retry.
+    /// An early result is refused without acknowledgment. The application must
+    /// independently correlate the result; two transport routes imply no RPC.
+    /// The callback checks/consumes the opaque result before any result ACK.
+    /// Transport delivery is distinct from durable recording and grants no
+    /// permission to erase or retire an observation. The caller must select
+    /// and validate application value contracts independently.
+    pub fn exchange(
+        &mut self,
+        input: &[u8],
+        output: &mut [u8],
+        timeout: Duration,
+        consume: impl FnOnce(&[u8]) -> Result<(), ()>,
+    ) -> Result<ForeExchangeOutcome, ForeCarriageError> {
+        self.inner.exchange(input, output, timeout, consume)
     }
     /// One explicit frame, with no automatic retry, Ready or acknowledgment.
     /// A successful write is never proof of receiver acceptance or durability.
@@ -266,3 +284,7 @@ mod tests;
 
 #[path = "fore_carriage/handshake.rs"]
 mod handshake;
+
+#[path = "fore_carriage/exchange.rs"]
+mod exchange;
+pub use exchange::ForeExchangeOutcome;

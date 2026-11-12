@@ -31,6 +31,9 @@ struct Peer {
     fail_send: bool,
     fail_receive: bool,
     delay_second_hello: bool,
+    reply: Option<&'static [u8]>,
+    early_reply: bool,
+    fail_send_at: Option<usize>,
 }
 impl Peer {
     fn new() -> Self {
@@ -46,6 +49,9 @@ impl Peer {
             fail_send: false,
             fail_receive: false,
             delay_second_hello: false,
+            reply: None,
+            early_reply: false,
+            fail_send_at: None,
         }
     }
     fn emit(&mut self, route: usize, message: Message<'_>) {
@@ -59,7 +65,7 @@ impl Peer {
 impl Frames for Peer {
     fn send(&mut self, bytes: &[u8], _: Duration) -> Result<(), ()> {
         self.writes += 1;
-        if self.fail_send {
+        if self.fail_send || self.fail_send_at == Some(self.writes) {
             return Err(());
         }
         let frame = decode_external_fore_session_frame(bytes, 16, 128).unwrap();
@@ -90,10 +96,24 @@ impl Frames for Peer {
                         route,
                         Message::Message(SessionMessage::Accepted { sequence }),
                     );
+                    if self.early_reply {
+                        if let Some(payload) = self.reply.take() {
+                            self.emit(
+                                1,
+                                Message::Message(SessionMessage::Offered { sequence, payload }),
+                            );
+                        }
+                    }
                     self.emit(
                         route,
                         Message::Message(SessionMessage::Delivered { sequence }),
                     );
+                    if let Some(payload) = self.reply.take() {
+                        self.emit(
+                            1,
+                            Message::Message(SessionMessage::Offered { sequence, payload }),
+                        );
+                    }
                 }
             }
             _ => {}
@@ -294,3 +314,6 @@ mod pty_tests;
 
 #[path = "handshake_tests.rs"]
 mod handshake;
+
+#[path = "exchange_tests.rs"]
+mod exchange;

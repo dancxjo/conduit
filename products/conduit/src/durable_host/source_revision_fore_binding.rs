@@ -90,8 +90,10 @@ impl DirectForeMaterial {
             if meta.fore_ports.len() % c::ASSIGNED_LOCAL_FORE_BYTES != 0
                 || self.rows.iter().any(|row| {
                     meta.fore_ports
-                        .chunks_exact(c::ASSIGNED_LOCAL_FORE_BYTES)
-                        .filter(|pin| *pin == row.pin.fore().payload())
+                        .as_chunks::<{ c::ASSIGNED_LOCAL_FORE_BYTES }>()
+                        .0
+                        .iter()
+                        .filter(|pin| pin.as_slice() == row.pin.fore().payload())
                         .count()
                         != 1
                 })
