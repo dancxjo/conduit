@@ -60,7 +60,7 @@ impl<const N: usize> Root<'_, N> {
         }
         // Artifact first, acceptance last. The committed footer is in the final
         // actual256B page; partial marker/JSON/signature can never activate it.
-        for (index, page) in write_image.chunks_exact(PAGE).enumerate() {
+        for (index, page) in write_image.as_chunks::<PAGE>().0.iter().enumerate() {
             let at = index * PAGE;
             if readback[at..at + PAGE] != *page {
                 storage.program(at as u32, page).map_err(|_| E::Uncertain)?;

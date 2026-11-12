@@ -1,5 +1,4 @@
 //! Disjoint original resident loans and exact slot inspection.
-use super::*;
 /// Implemented by the linked generated resident inventory's existing opaque
 /// selection ticket; it must not create a different interpreter or decoder.
 /// # Safety
@@ -101,6 +100,7 @@ unsafe impl<L: PreparedResidentEntry, const E: usize> PreparedResidents<E>
 #[cfg(test)]
 mod tests {
     use super::*;
+    use conduit_kernel::scheduler::HostCallBack;
     use core::cell::Cell;
     struct Loan<'a> {
         inspectable: bool,

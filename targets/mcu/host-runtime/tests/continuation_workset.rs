@@ -9,6 +9,7 @@ use conduit_mcu_host_runtime::{
     execution_workset::{PreparedLocalKernels, PreparedLocalWorkset},
 };
 use std::cell::Cell;
+#[allow(dead_code)]
 #[path = "../../../../architecture/body/tests/continuation_scope/reference.rs"]
 mod reference;
 struct Ticket<'a>(&'a Cell<usize>, usize);
