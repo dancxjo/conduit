@@ -1,6 +1,10 @@
 //! Concrete composition of real initialized resident/software/native Back loans.
 //! Source/assignment checking happens before this inventory is lent; binding
 //! consumes every selected slot once, without allocating or starting equipment.
+#[path = "execution_factory_residents.rs"]
+mod residents;
+pub use residents::{PreparedResidentEntry, PreparedResidentSubset, PreparedResidents};
+
 #[path = "execution_factory_appender.rs"]
 mod appender;
 pub use appender::{
@@ -91,28 +95,6 @@ impl<R: StepBack<P>, X: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, 
             Self::Extra(back) => back.cancel(),
         }
     }
-}
-/// Implemented by the linked generated resident inventory's existing opaque
-/// selection ticket; it must not create a different interpreter or decoder.
-/// # Safety
-/// `nodes` must describe exactly the initialized, exclusively borrowed owners
-/// returned by `bind`; binding must be infallible and allocate no memory.
-/// A Some terminal report must match the same selected slots and bound Back
-/// reports exactly, remaining immutable through bind.
-pub unsafe trait PreparedResidents<const E: usize> {
-    type Back;
-    fn nodes(&self) -> [Option<u16>; E];
-    /// Same selected slots and actual Back profiles returned by bind. Inspection
-    /// changes no availability; None means this inventory cannot be inspected.
-    fn terminal_transductions<const P: usize>(
-        &self,
-    ) -> Option<[Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]>; E]>
-    {
-        None
-    }
-
-    fn retained_backing_bytes(&self) -> Option<usize>;
-    fn bind(self) -> [Option<(u16, Self::Back)>; E];
 }
 pub struct SoftwareConfigurationPin {
     pub node: u16,
@@ -438,63 +420,6 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
         // SAFETY: carries the caller's checked-Source/allocator obligations and
         // retains exactly the newly constructed objects, with no copied runtime.
         unsafe { Self::new(slots, identities, backing, configuration) }
-    }
-}
-
-/// One disjoint initialized resident entry, preflighted before splitting a
-/// generated inventory. Splitting alone cannot mark it unavailable or Start it.
-/// # Safety
-/// `node` and `bind` must refer to the same original checked loan; bind is
-/// allocation/effect-free, and dropping an unbound loan preserves availability.
-/// A Some terminal report must exactly match that bound Back and remain
-/// immutable through bind; inspection must not change availability.
-pub unsafe trait PreparedResidentEntry {
-    type Back;
-    fn node(&self) -> u16;
-    /// A truthful immutable report of this exact loan's bound Back, without
-    /// transferring it or changing its initialized owner's availability.
-    fn terminal_transductions<const P: usize>(
-        &self,
-    ) -> Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]> {
-        None
-    }
-
-    fn retained_backing_bytes(&self) -> Option<usize>;
-    fn bind(self) -> (u16, Self::Back);
-}
-/// A fragment's subset of a single collectively preflighted resident inventory.
-/// Different fragments can hold disjoint tickets until the one atomic admission.
-pub struct PreparedResidentSubset<L, const E: usize>(pub [Option<L>; E]);
-// SAFETY: each opaque entry is exclusively held once in this owned array. The
-// adapter preserves the checked mapping and delegates only infallible binds.
-unsafe impl<L: PreparedResidentEntry, const E: usize> PreparedResidents<E>
-    for PreparedResidentSubset<L, E>
-{
-    type Back = L::Back;
-    fn nodes(&self) -> [Option<u16>; E] {
-        core::array::from_fn(|i| self.0[i].as_ref().map(L::node))
-    }
-    fn terminal_transductions<const P: usize>(
-        &self,
-    ) -> Option<[Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]>; E]>
-    {
-        let mut reports = [None; E];
-        for (slot, loan) in reports.iter_mut().zip(&self.0) {
-            if let Some(loan) = loan {
-                *slot = Some(loan.terminal_transductions::<P>()?);
-            }
-        }
-        Some(reports)
-    }
-    fn retained_backing_bytes(&self) -> Option<usize> {
-        self.0
-            .iter()
-            .flatten()
-            .try_fold(0usize, |n, l| n.checked_add(l.retained_backing_bytes()?))
-    }
-    #[inline(always)] // Fuse the affine owner transfer with its final destination.
-    fn bind(self) -> [Option<(u16, Self::Back)>; E] {
-        self.0.map(|l| l.map(L::bind))
     }
 }
 
