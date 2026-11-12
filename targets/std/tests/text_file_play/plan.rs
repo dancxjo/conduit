@@ -39,6 +39,17 @@ pub fn try_plan(
     write: bool,
     terminal_output: bool,
 ) -> Result<Plan, String> {
+    try_named_plan(host, write, terminal_output, None)
+}
+pub fn named_plan(host: &conduit_std_host::StdHost, name: &str) -> Plan {
+    try_named_plan(host, true, true, Some(name)).unwrap()
+}
+fn try_named_plan(
+    host: &conduit_std_host::StdHost,
+    write: bool,
+    terminal_output: bool,
+    name: Option<&str>,
+) -> Result<Plan, String> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     startup
@@ -58,8 +69,10 @@ pub fn try_plan(
             conduit_data::DATA_LOAD_TEXT_KIND,
         )
     };
+    let source = name.map_or_else(|| source.to_owned(), |name| source.replace(entry, name));
+    let entry = name.unwrap_or(entry);
     let source = if terminal_output {
-        source.to_owned()
+        source
     } else {
         source
             .lines()

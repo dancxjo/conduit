@@ -124,6 +124,7 @@ impl StdHost {
             None,
             started,
             Some(&mut custody),
+            None,
         )?;
         Ok(ImageBodyRunReport {
             report,

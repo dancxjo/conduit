@@ -120,3 +120,6 @@ fn resealing_cannot_hide_a_split_publication_terminal_from_core_verification() {
     );
     assert!(!verify_plan(&forged));
 }
+
+#[path = "text_file_play/issuing_host.rs"]
+mod issuing_host;

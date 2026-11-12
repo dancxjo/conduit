@@ -179,7 +179,7 @@ fn receipt(
         crate::installed_std::body_kernel::memory::lifecycle_bytes(&play, &prepared, &sign)
             .unwrap();
     let mut kernel = BodyKernel::prepare_on_host(
-        &plan.plots,
+        &plan.plots.iter().map(|part| &part.plan).collect::<Vec<_>>(),
         false,
         &play.active_play_id,
         inputs,

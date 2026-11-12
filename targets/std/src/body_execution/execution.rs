@@ -36,6 +36,7 @@ impl StdHost {
             None,
             started,
             None,
+            None,
         )
     }
 
@@ -63,11 +64,24 @@ impl StdHost {
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
         mut started: F,
         mut image_result: Option<&mut Option<crate::kernel_preparation::ImageMemoryLease>>,
+        issuing_scope: Option<&issuing_host::IssuingHostScope<'_>>,
     ) -> Result<BodyRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
         let selected_memory = image_result.is_some();
+        if issuing_scope.is_some()
+            && (selected_memory
+                || request.keyboard.is_some()
+                || live.is_some()
+                || checkpoint.is_some()
+                || terminal.is_some()
+                || creche.is_some())
+        {
+            return Err(
+                "issued Host-local profile does not support IMAGE or encounter attachments".into(),
+            );
+        }
         if selected_memory
             && (request.keyboard.is_some()
                 || request.plan.body_time_requirement.is_some()
@@ -82,6 +96,20 @@ impl StdHost {
         }
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         let prospective_play = self.prospective_body_play(request.wake, request.plan)?;
+        if let Some(scope) = issuing_scope {
+            scope.recheck(&request, &prospective_play, &self.advertisement)?;
+        }
+        let whole_plans = if issuing_scope.is_none() {
+            request
+                .plan
+                .plots
+                .iter()
+                .map(|part| &part.plan)
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        let execution_plans = issuing_scope.map_or(whole_plans.as_slice(), |scope| scope.plans());
         let admitted_clock_quality = if let Some(requirement) = &request.plan.body_time_requirement
         {
             let correlation = correlation.ok_or_else(|| {
@@ -110,11 +138,9 @@ impl StdHost {
         // Bind the prospective identity without consuming the sequence. The
         // exact child pool must be prepared and correlated before Play start;
         // a preparation refusal leaves the Host sequence untouched.
-        let fragments = request
-            .plan
-            .plots
+        let fragments = execution_plans
             .iter()
-            .flat_map(|part| part.plan.fragments.iter());
+            .flat_map(|plan| plan.fragments.iter());
         if selected_memory {
             self.kernel_resources.preflight_image_shape(fragments)?;
         } else {
@@ -132,7 +158,7 @@ impl StdHost {
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
         let mut kernel = if let Some((queue, _)) = &live {
             BodyKernel::prepare_live_on_host(
-                &request.plan.plots,
+                execution_plans,
                 request.keyboard.is_some(),
                 &prospective_play.active_play_id,
                 queue,
@@ -143,7 +169,7 @@ impl StdHost {
             )?
         } else {
             BodyKernel::prepare_on_host(
-                &request.plan.plots,
+                execution_plans,
                 request.keyboard.is_some(),
                 &prospective_play.active_play_id,
                 fore_inputs,
@@ -180,11 +206,9 @@ impl StdHost {
             kernel.attach_creche(owner, request.plan, &prospective_play, &self.advertisement)?;
         }
         kernel.require_supported_execution()?;
-        let plans = request
-            .plan
-            .plots
+        let plans = execution_plans
             .iter()
-            .map(|part| (&part.plan, false))
+            .map(|plan| (*plan, false))
             .collect::<Vec<_>>();
         let (reservations, mut memory_lease) = if let Some((wake, sign)) = &prepared_lifecycle {
             let lifecycle = crate::installed_std::body_kernel::memory::lifecycle_bytes(
@@ -211,14 +235,31 @@ impl StdHost {
             )
         };
         drop(plans);
+        drop(whole_plans);
         let result = (|| {
             let sequence = self.next_kernel_play_sequence;
-            self.next_kernel_play_sequence = sequence
+            let next_play = sequence
                 .checked_add(1)
                 .ok_or_else(|| "Body Play sequence exhausted".to_string())?;
             let play = prospective_play;
             if play.play_sequence != sequence {
                 return Err("Body prospective Play identity changed before start".into());
+            }
+            let local_signs = if issuing_scope.is_some() {
+                // Global lifecycle owns ordinals 0/1/2 for this parent Play.
+                // Reserve distinct local evidence from the ordinary Host cursor;
+                // never recycle it after a callback or effect uncertainty.
+                let first = self
+                    .next_kernel_sign_sequence
+                    .max(issuing_host::FIRST_LOCAL_SIGN_SEQUENCE);
+                let next = first.checked_add(2).ok_or("Host Sign sequence exhausted")?;
+                Some((first, next))
+            } else {
+                None
+            };
+            self.next_kernel_play_sequence = next_play;
+            if let Some((_, next)) = local_signs {
+                self.next_kernel_sign_sequence = next;
             }
             kernel.confirm_input_play(&self.advertisement, &play)?;
             // Body lifecycle signs are scoped by this unique admitted Play.
@@ -237,6 +278,10 @@ impl StdHost {
                 prepared_lifecycle.take()
             {
                 prepared
+            } else if let Some((first, _)) = local_signs {
+                // Preserve the original Wake unchanged: local kernel evidence
+                // never manufactures global Ready/Playing or settlement.
+                (request.wake.clone(), sign(first + 1))
             } else {
                 let wake_at_start = request
                     .wake
