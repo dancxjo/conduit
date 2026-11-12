@@ -483,7 +483,7 @@ impl<'a> BodyKernel<'a> {
         let mut kernel_failure = None;
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
-            loop {
+            'body_run: loop {
                 if !cancelling && !control.stop_requested() {
                     self.poll_creche(creche.as_deref_mut())?;
                 }
@@ -625,6 +625,39 @@ impl<'a> BodyKernel<'a> {
                         == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
                     {
                         self.cancel_creche_call(cancellation, creche.as_deref_mut())?;
+                    } else if operation.contract_id.as_str()
+                        == conduit_std_offers::STARTUP_CHIME_OPERATION
+                    {
+                        // The synchronous process owner has already retired. An
+                        // operator stop is acknowledged through scheduler cancellation,
+                        // never injected as a normal optional-sound completion.
+                        let receipt = self
+                            .startup_receipts
+                            .iter_mut()
+                            .find(|r| r.node == cancellation.node)
+                            .ok_or("startup cancellation has no admitted receipt")?;
+                        if receipt.kernel_accepted
+                            || receipt.request.is_some_and(|id| id != cancellation.request)
+                        {
+                            return Err(
+                                "stale startup cancellation cannot overwrite terminal evidence"
+                                    .into(),
+                            );
+                        }
+                        receipt.request = Some(cancellation.request);
+                        receipt.disposition = Some(HostCallDisposition::Cancelled);
+                        self.scheduler
+                            .complete_host_call(
+                                cancellation.node,
+                                cancellation.request,
+                                HostCallOutcome {
+                                    disposition: HostCallDisposition::Cancelled,
+                                    output: None,
+                                    failure: None,
+                                },
+                            )
+                            .map_err(|e| format!("startup cancellation acknowledgment: {e:?}"))?;
+                        receipt.kernel_accepted = true;
                     } else if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                         keys.cancel();
                         self.scheduler
@@ -732,6 +765,13 @@ impl<'a> BodyKernel<'a> {
                         receipt.disposition = Some(outcome.disposition);
                         receipt.failure = outcome.failure;
                         receipt.kernel_accepted = false;
+                        if outcome.disposition == HostCallDisposition::Cancelled
+                            && control.requested_stop().is_some()
+                        {
+                            // No further queued Host effects may start. Preserve the
+                            // actual outcome, then retire the pending request normally.
+                            continue 'body_run;
+                        }
                         self.scheduler
                             .complete_host_call(request.node, request.request, outcome)
                             .map_err(|error| format!("startup Host Call completion: {error:?}"))?;

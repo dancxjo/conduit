@@ -94,10 +94,13 @@ impl PreparedChimeOutput {
                 482,
             );
         }
+        if control.requested_stop().is_some() {
+            return cancelled();
+        }
         self.attempted = true;
         #[cfg(test)]
         if self.selection.fake_behavior.is_some() {
-            return self.execute_fake(pcm);
+            return self.execute_fake(pcm, control);
         }
         if self.selection.verify_executable_identity().is_err()
             || !discover_alsa_playback()
@@ -126,14 +129,7 @@ impl PreparedChimeOutput {
         match report {
             Ok(report) => match report.terminal {
                 ProcessTerminal::Exited(status) if status.success() => completed(),
-                ProcessTerminal::Cancelled => HostCallOutcome {
-                    disposition: HostCallDisposition::Cancelled,
-                    output: None,
-                    failure: Some(Failure {
-                        code: FailureCode::Cancelled,
-                        detail: 0,
-                    }),
-                },
+                ProcessTerminal::Cancelled => cancelled(),
                 _ => outcome(
                     HostCallDisposition::Failed,
                     FailureCode::HostCallFailed,
@@ -147,6 +143,9 @@ impl PreparedChimeOutput {
             ),
         }
     }
+}
+fn cancelled() -> HostCallOutcome {
+    outcome(HostCallDisposition::Cancelled, FailureCode::Cancelled, 0)
 }
 fn completed() -> HostCallOutcome {
     HostCallOutcome {
@@ -165,7 +164,7 @@ fn outcome(disposition: HostCallDisposition, code: FailureCode, detail: u16) -> 
 
 #[cfg(test)]
 impl PreparedChimeOutput {
-    fn execute_fake(&self, pcm: &[u8]) -> HostCallOutcome {
+    fn execute_fake(&self, pcm: &[u8], control: &RunControl) -> HostCallOutcome {
         TEST_EFFECT_ATTEMPTS.with(|n| n.set(n.get() + 1));
         use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
         let Ok(mut session) = super::PlaybackSession::resolved(self.selection.clone()) else {
@@ -207,6 +206,15 @@ impl PreparedChimeOutput {
                     ),
                 };
             }
+            if index == 0 && TEST_CANCEL_AFTER_FIRST_BLOCK.with(|n| n.replace(false)) {
+                control
+                    .request_stop(
+                        crate::RunControlRequestId::new("fixture/cancel-during-cue").unwrap(),
+                    )
+                    .unwrap();
+                let _ = session.stop();
+                return cancelled();
+            }
         }
         if session.drain().and_then(|_| session.stop()).is_err() {
             return outcome(
@@ -220,10 +228,18 @@ impl PreparedChimeOutput {
 }
 
 #[cfg(test)]
-thread_local! { static TEST_EFFECT_ATTEMPTS:core::cell::Cell<usize>=const {core::cell::Cell::new(0)}; }
+thread_local! {
+    static TEST_EFFECT_ATTEMPTS:core::cell::Cell<usize>=const {core::cell::Cell::new(0)};
+    static TEST_CANCEL_AFTER_FIRST_BLOCK:core::cell::Cell<bool>=const {core::cell::Cell::new(false)};
+}
+#[cfg(test)]
+pub(crate) fn cancel_after_first_test_block() {
+    TEST_CANCEL_AFTER_FIRST_BLOCK.with(|n| n.set(true));
+}
 #[cfg(test)]
 pub(crate) fn reset_test_attempts() {
     TEST_EFFECT_ATTEMPTS.with(|n| n.set(0));
+    TEST_CANCEL_AFTER_FIRST_BLOCK.with(|n| n.set(false));
 }
 #[cfg(test)]
 pub(crate) fn test_attempts() -> usize {

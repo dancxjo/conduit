@@ -437,3 +437,49 @@ fn committed_startup_cancelled_before_execution_cannot_sound() {
     assert_eq!(crate::hosted_audio::startup_chime::test_attempts(), 0);
     assert!(report.startup_chimes.iter().all(|r| r.request.is_none()));
 }
+
+#[test]
+fn startup_cancelled_after_first_pcm_block_retires_the_exact_pending_request() {
+    crate::hosted_audio::startup_chime::reset_test_attempts();
+    let (mut host, mut session) = fixture(FakePlaybackBehavior::Success);
+    let proposed = session.realization().unwrap().clone();
+    let ad = host.advertisement().clone();
+    let control = RunControl::default();
+    crate::hosted_audio::startup_chime::cancel_after_first_test_block();
+    let report = host
+        .run_body_plan_with_committed_startup_to(
+            BodyRunRequest {
+                wake: &proposed.wake,
+                plan: &proposed.plan,
+                control: &control,
+                keyboard: None,
+            },
+            &mut Vec::new(),
+            &mut Timer,
+            None,
+            |play, wake| {
+                session
+                    .started(&ad.host_id, &ad.boot_id, play.clone(), wake.clone())
+                    .unwrap();
+                CommittedBodyStartup::from_retained(session.evidence(), &proposed.plan, play)
+            },
+        )
+        .unwrap();
+    assert!(matches!(
+        report.terminal,
+        TerminalDisposition::Cancelled { .. }
+    ));
+    assert!(report.failure.is_none(), "{:?}", report.failure);
+    assert_eq!(crate::hosted_audio::startup_chime::test_attempts(), 1);
+    let receipt = &report.startup_chimes[0];
+    assert!(receipt.request.is_some());
+    assert_eq!(
+        receipt.disposition,
+        Some(conduit_kernel::HostCallDisposition::Cancelled)
+    );
+    assert_eq!(
+        receipt.failure.unwrap().code,
+        conduit_kernel::FailureCode::Cancelled
+    );
+    assert!(receipt.kernel_accepted);
+}

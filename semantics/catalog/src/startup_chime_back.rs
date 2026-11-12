@@ -1,6 +1,6 @@
 //! Exact optional sound sink, shared by native ConduitOS and hosted profiles.
-//! Optionality belongs to `sound/startup-chime`: the kernel still retains the
-//! actual Host Call completion/denial/failure before this sink consumes it.
+//! Optionality belongs to `sound/startup-chime`. The executing Host must retain
+//! the actual output outcome; a kernel completion event alone does not prove sound.
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
