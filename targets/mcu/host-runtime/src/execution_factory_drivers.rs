@@ -195,20 +195,28 @@ where
     fn terminal_transductions(
         &self,
     ) -> Option<[[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; PORTS]; N]> {
-        let nodes = self.residents.nodes();
         let mut actual = [[None; PORTS]; N];
+        self.write_terminal_transductions(&mut actual)?;
+        Some(actual)
+    }
+    fn write_terminal_transductions(
+        &self,
+        target: &mut [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; PORTS]; N],
+    ) -> Option<()> {
+        target.fill([None; PORTS]);
+        let nodes = self.residents.nodes();
         if nodes.iter().all(Option::is_none) {
-            return Some(actual);
+            return Some(());
         }
-        let reports = self.residents.terminal_transductions::<PORTS>()?;
-        for (node, report) in nodes.into_iter().zip(reports) {
+        for (slot, node) in nodes.into_iter().enumerate() {
+            let report = self.residents.terminal_transductions_at::<PORTS>(slot)?;
             match (node, report) {
-                (Some(node), Some(report)) => *actual.get_mut(usize::from(node))? = report,
+                (Some(node), Some(report)) => *target.get_mut(usize::from(node))? = report,
                 (None, None) => {}
                 _ => return None,
             }
         }
-        Some(actual)
+        Some(())
     }
 
     fn retained_backing_bytes(&self) -> Option<usize> {

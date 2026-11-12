@@ -183,6 +183,11 @@ fn assigned_factory_refusals_preserve_ready_and_charge_all_retained_backing() {
         PreparedBacks::<2, 2>::terminal_transductions(&candidate).is_none(),
         "an arbitrary resident owner must explicitly refuse inspection"
     );
+    let mut written = [[None; 2]; 2];
+    assert!(super::super::allocations::without_allocations(|| {
+        PreparedBacks::<2, 2>::write_terminal_transductions(&candidate, &mut written)
+    })
+    .is_none());
     drop(candidate);
     assert!(slot.is_some());
     assert_eq!(storage.programs.get(), 0);
@@ -465,6 +470,16 @@ fn check_signed_start<const HOST_CALLS: usize>(
                 )
             }
             .unwrap();
+            let full = PreparedBacks::<2, 2>::terminal_transductions(&backs).unwrap();
+            let mut written = [[None; 2]; 2];
+            assert!(super::super::allocations::without_allocations(|| {
+                PreparedBacks::<2, 2>::write_terminal_transductions(&backs, &mut written)
+            })
+            .is_some());
+            assert_eq!(
+                written, full,
+                "same original service/resident reports in place"
+            );
             let expected = core::array::from_fn(|node| {
                 core::array::from_fn(|port| {
                     if mismatch == Some(node) {

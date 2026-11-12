@@ -31,6 +31,18 @@ pub unsafe trait PreparedBacks<const N: usize, const P: usize> {
     fn terminal_transductions(&self) -> Option<[[Option<AssignedTerminalTransduction>; P]; N]> {
         None
     }
+    /// Fill one caller-owned matrix with the identical immutable actual-owner
+    /// report returned by `terminal_transductions`, including inactive slots.
+    /// None means uninspectable; partial writes on refusal are not a report.
+    /// Implementations may avoid full-matrix return temporaries, but must not
+    /// bind/withdraw owners, allocate, or change availability while inspecting.
+    fn write_terminal_transductions(
+        &self,
+        target: &mut [[Option<AssignedTerminalTransduction>; P]; N],
+    ) -> Option<()> {
+        *target = self.terminal_transductions()?;
+        Some(())
+    }
     /// Terminal-bearing factories must never use the legacy empty-law entrance.
     fn requires_terminal_gate(&self) -> bool {
         false

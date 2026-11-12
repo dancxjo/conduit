@@ -146,12 +146,17 @@ where
         true
     }
     fn terminal_transductions(&self) -> Option<[[Option<AssignedTerminalTransduction>; PORTS]; N]> {
-        let mut actual = <PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A> as PreparedBacks<
-            N,
-            PORTS,
-        >>::terminal_transductions(&self.base)?;
-        actual[usize::from(self.service.node().0)] = self.back.terminal_transductions();
+        let mut actual = [[None; PORTS]; N];
+        self.write_terminal_transductions(&mut actual)?;
         Some(actual)
+    }
+    fn write_terminal_transductions(
+        &self,
+        target: &mut [[Option<AssignedTerminalTransduction>; PORTS]; N],
+    ) -> Option<()> {
+        <PreparedDrivers<'a, 'o, 'f, R, P, T, W, E, N, A> as PreparedBacks<N, PORTS>>::write_terminal_transductions(&self.base, target)?;
+        *target.get_mut(usize::from(self.service.node().0))? = self.back.terminal_transductions();
+        Some(())
     }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)

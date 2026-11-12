@@ -9,12 +9,12 @@ pub(super) fn check_actual<B: PreparedBacks<N, P>, const N: usize, const P: usiz
     backs: &B,
     expected: &[[Option<AssignedTerminalTransduction>; P]; N],
 ) -> Result<(), ReportRefusal> {
-    let report = backs.terminal_transductions();
-    let actual = report.as_ref().ok_or(ReportRefusal::Unavailable)?;
-    // Borrow the original report in place: moving it out of Option creates
-    // another complete matrix on constrained-target stacks.
+    let mut actual = [[None; P]; N];
+    backs
+        .write_terminal_transductions(&mut actual)
+        .ok_or(ReportRefusal::Unavailable)?;
     // Include inactive rows: an actual Some cannot hide behind expected None.
-    if actual != expected {
+    if &actual != expected {
         return Err(ReportRefusal::Mismatch);
     }
     Ok(())
@@ -173,5 +173,45 @@ mod tests {
         );
         assert!(matches!(result, Err(super::super::Refusal::Tables(_))));
         assert!(!called.get());
+    }
+    #[test]
+    fn gate_uses_one_caller_matrix_writer_without_full_report_return() {
+        struct Written<'a>(&'a Cell<usize>, &'a Cell<usize>);
+        // SAFETY: both inspection paths describe the same empty bound Backs;
+        // counters observe calls only and grant/change no owner availability.
+        unsafe impl PreparedBacks<2, 1> for Written<'_> {
+            type Driver = Back;
+            type Calls = ();
+            fn terminal_transductions(
+                &self,
+            ) -> Option<[[Option<AssignedTerminalTransduction>; 1]; 2]> {
+                self.0.set(self.0.get() + 1);
+                Some([[None]; 2])
+            }
+            fn write_terminal_transductions(
+                &self,
+                target: &mut [[Option<AssignedTerminalTransduction>; 1]; 2],
+            ) -> Option<()> {
+                self.1.set(self.1.get() + 1);
+                target.fill([None]);
+                Some(())
+            }
+            fn retained_backing_bytes(&self) -> Option<usize> {
+                Some(0)
+            }
+            fn bind(self) -> ([Back; 2], ()) {
+                ([Back, Back], ())
+            }
+        }
+        let full = Cell::new(0);
+        let writes = Cell::new(0);
+        let actual = Written(&full, &writes);
+        let (result, cost) = crate::member_return_tests::return_allocation_probe::observe(|| {
+            check_actual(&actual, &[[None]; 2])
+        });
+        assert!(result.is_ok());
+        assert_eq!(full.get(), 0);
+        assert_eq!(writes.get(), 1);
+        assert_eq!(cost.allocation_attempts, 0);
     }
 }
