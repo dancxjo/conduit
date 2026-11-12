@@ -360,6 +360,7 @@ mod fore_carrier;
 #[cfg(feature = "execution")]
 pub use fore_carrier::{
     external_fore_scope_commitment, fore_carrier_scope_commitment, BoundForeCarrierKernels,
-    ForeCarrierBounds, ForeCarrierKernels, ForeCarrierRefusal, NativeForeCarrierSelection,
-    PreparedForeCarrier,
+    BoundForeSessions, ForeCarrierBounds, ForeCarrierKernels, ForeCarrierRefusal, ForeIoActor,
+    ForeIoProgress, ForeIoRefusal, NativeForeCarrierSelection, PreparedForeCarrier,
+    PreparedForeSessions,
 };

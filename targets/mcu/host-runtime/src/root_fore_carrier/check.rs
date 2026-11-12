@@ -82,10 +82,11 @@ pub(super) fn prepare<
         let bytes = set.document(index).ok_or(E::Workset)?;
         let (metadata, projection) =
             b::decode_body_fragment_document(bytes).map_err(|_| E::Fragment)?;
-        if metadata == *approved.metadata() && projection == approved.projection() {
-            if found.replace(index).is_some() {
-                return Err(E::Scope);
-            }
+        if metadata == *approved.metadata()
+            && projection == approved.projection()
+            && found.replace(index).is_some()
+        {
+            return Err(E::Scope);
         }
     }
     let index = found.ok_or(E::Scope)?;

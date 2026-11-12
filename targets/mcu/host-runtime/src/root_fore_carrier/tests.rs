@@ -7,13 +7,13 @@ use sha2::{Digest, Sha256};
 use std::vec::Vec;
 #[allow(dead_code)]
 #[path = "test_support.rs"]
-mod docs;
-const PREP: b::HostPreparationDelegation = b::HostPreparationDelegation {
+pub(super) mod docs;
+pub(super) const PREP: b::HostPreparationDelegation = b::HostPreparationDelegation {
     authorizer: b::HostPreparationAuthorizer::SeedOwner,
     maximum_assignment_bytes: 4096,
     maximum_runtime_state_bytes: 1024,
 };
-const EXEC: b::HostExecutionDelegation = b::HostExecutionDelegation {
+pub(super) const EXEC: b::HostExecutionDelegation = b::HostExecutionDelegation {
     authorizer: b::HostExecutionAuthorizer::SeedOwner,
     maximum_active_worksets: 1,
     continuation: None,
@@ -55,7 +55,7 @@ fn bounds() -> ForeCarrierBounds {
         maximum_frames: 8,
     }
 }
-fn actual_line() -> c::AdmittedLine {
+pub(super) fn actual_line() -> c::AdmittedLine {
     c::AdmittedLine {
         line_id: "line".into(),
         binding: c::BoundLink {
@@ -129,14 +129,14 @@ fn fixture() -> docs::Fixture {
     f.host.profile = "config/1".into();
     f
 }
-fn seed(f: &docs::Fixture) -> Vec<u8> {
+pub(super) fn seed(f: &docs::Fixture) -> Vec<u8> {
     let payload = serde_json::to_vec(&f.bootstrap).unwrap();
     let mut bytes = b"CONDUIT_SEED@2\0\0".to_vec();
     bytes.extend_from_slice(&(payload.len() as u32).to_le_bytes());
     bytes.extend_from_slice(&payload);
     bytes
 }
-fn root<'s>(f: &docs::Fixture, seed: &'s [u8], document: &[u8]) -> Root<'s, 4096> {
+pub(super) fn root<'s>(f: &docs::Fixture, seed: &'s [u8], document: &[u8]) -> Root<'s, 4096> {
     let mut root = Root::new(
         crate::seed::Seed::parse(seed, "host/1", "image/1", "config/1").unwrap(),
         f.host.clone(),

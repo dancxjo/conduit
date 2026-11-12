@@ -6,8 +6,13 @@ use crate::{
 };
 use conduit_body as b;
 use conduit_core as c;
+#[path = "root_fore_carrier/actor.rs"]
+mod actor;
 #[path = "root_fore_carrier/check.rs"]
 mod check;
+pub use actor::{
+    BoundForeSessions, ForeIoActor, ForeIoProgress, ForeIoRefusal, PreparedForeSessions,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ForeCarrierRefusal {
@@ -65,6 +70,9 @@ impl<'c, 'p, 'i, C: MessageTransport> NativeForeCarrierSelection<'c, 'p, 'i, C> 
     /// The native owner has independently established this carrier-to-peer
     /// physical custody mapping. This function cannot attest it from bytes and
     /// claims neither peer authentication nor network confidentiality. A
+    /// Framed receive must be cancellation-safe: dropping a pending receive
+    /// preserves partial framing in THIS original platform transport, without
+    /// consuming an unseen complete frame. The actor may race it with a yield.
     /// MessageTransport implementation alone proves none of this custody. The loan
     /// must remain exclusive through the eventual ordinary workset retirement.
     #[allow(clippy::too_many_arguments)]
