@@ -199,3 +199,8 @@ mod physical;
 pub use physical::{
     describe_physical_fore_line, PhysicalForeInstallation, PhysicalForeLine, PhysicalForePeerFacts,
 };
+
+mod scope;
+pub use scope::{
+    external_fore_scope_commitment, fore_carrier_scope_commitment, ForeCarrierScopeBounds,
+};

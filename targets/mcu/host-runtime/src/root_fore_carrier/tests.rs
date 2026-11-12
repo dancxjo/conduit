@@ -449,3 +449,54 @@ fn another_valid_child_or_body_and_missing_root_policy_cannot_supply_carrier_aut
 
 #[path = "start_tests.rs"]
 mod start;
+
+#[test]
+fn public_root_hash_wrappers_match_shared_wire_and_original_transcript() {
+    let child = [7; 32];
+    let b = bounds();
+    let shared = conduit_wire::ForeCarrierScopeBounds {
+        maximum_lines: b.maximum_lines,
+        maximum_frame_bytes: b.maximum_frame_bytes,
+        maximum_payload_bytes: b.maximum_payload_bytes,
+        maximum_buffered_bytes: b.maximum_buffered_bytes as u64,
+        maximum_in_flight_items: b.maximum_in_flight_items,
+        maximum_frames: b.maximum_frames,
+    };
+    let full = fore_carrier_scope_commitment(&child, "image/1", "config/1", b);
+    assert_eq!(
+        full,
+        conduit_wire::fore_carrier_scope_commitment(&child, "image/1", "config/1", shared)
+    );
+    // The pre-extraction transcript is an independent oracle for the wrapper.
+    let mut old = Sha256::new();
+    old.update(b"conduit.root/fore-carrier-scope@1\0");
+    old.update(child);
+    for text in ["image/1", "config/1"] {
+        old.update((text.len() as u32).to_le_bytes());
+        old.update(text.as_bytes());
+    }
+    old.update([b.maximum_lines]);
+    old.update(b.maximum_frame_bytes.to_le_bytes());
+    old.update(b.maximum_payload_bytes.to_le_bytes());
+    old.update((b.maximum_buffered_bytes as u64).to_le_bytes());
+    old.update(b.maximum_in_flight_items.to_le_bytes());
+    old.update(b.maximum_frames.to_le_bytes());
+    assert_eq!(full, <[u8; 32]>::from(old.finalize()));
+    let line = docs::line(7);
+    let custody = [8; 32];
+    let route = external_fore_scope_commitment(&full, &custody, &line);
+    assert_eq!(
+        route,
+        conduit_wire::external_fore_scope_commitment(&full, &custody, line.payload())
+    );
+    let mut old = Sha256::new();
+    old.update(b"conduit.root/external-fore-carrier@1\0");
+    old.update(full);
+    old.update(custody);
+    old.update(line.payload());
+    assert_eq!(route, <[u8; 32]>::from(old.finalize()));
+    assert_ne!(
+        route,
+        external_fore_scope_commitment(&full, &custody, &docs::line(8))
+    );
+}

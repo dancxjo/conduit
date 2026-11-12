@@ -124,21 +124,19 @@ pub fn fore_carrier_scope_commitment(
     configuration: &str,
     bounds: ForeCarrierBounds,
 ) -> [u8; 32] {
-    use sha2::{Digest, Sha256};
-    let mut hash = Sha256::new();
-    hash.update(b"conduit.root/fore-carrier-scope@1\0");
-    hash.update(child_sha256);
-    for text in [image, configuration] {
-        hash.update((text.len() as u32).to_le_bytes());
-        hash.update(text.as_bytes());
-    }
-    hash.update([bounds.maximum_lines]);
-    hash.update(bounds.maximum_frame_bytes.to_le_bytes());
-    hash.update(bounds.maximum_payload_bytes.to_le_bytes());
-    hash.update((bounds.maximum_buffered_bytes as u64).to_le_bytes());
-    hash.update(bounds.maximum_in_flight_items.to_le_bytes());
-    hash.update(bounds.maximum_frames.to_le_bytes());
-    hash.finalize().into()
+    conduit_wire::fore_carrier_scope_commitment(
+        child_sha256,
+        image,
+        configuration,
+        conduit_wire::ForeCarrierScopeBounds {
+            maximum_lines: bounds.maximum_lines,
+            maximum_frame_bytes: bounds.maximum_frame_bytes,
+            maximum_payload_bytes: bounds.maximum_payload_bytes,
+            maximum_buffered_bytes: bounds.maximum_buffered_bytes as u64,
+            maximum_in_flight_items: bounds.maximum_in_flight_items,
+            maximum_frames: bounds.maximum_frames,
+        },
+    )
 }
 /// Descriptive per-Fore transcript, never a grant. Exact bytes are SHA256 of
 /// "conduit.root/external-fore-carrier@1\0" || full scope commitment[32] ||
@@ -149,13 +147,7 @@ pub fn external_fore_scope_commitment(
     custody: &[u8; 32],
     line: &c::AssignedLineForeRequirement,
 ) -> [u8; 32] {
-    use sha2::{Digest, Sha256};
-    let mut hash = Sha256::new();
-    hash.update(b"conduit.root/external-fore-carrier@1\0");
-    hash.update(full_scope);
-    hash.update(custody);
-    hash.update(line.payload());
-    hash.finalize().into()
+    conduit_wire::external_fore_scope_commitment(full_scope, custody, line.payload())
 }
 /// Prepared original loan. No receive/send, carrier extraction or standalone
 /// bind/Start exists; attach it to the original workset's prepared kernel group.
