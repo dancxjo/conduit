@@ -49,7 +49,7 @@ impl CommittedBodyStartup {
     pub fn causal_sign_fingerprints(&self) -> (&[u8; 32], &[u8; 32]) {
         (&self.wake_sign, &self.play_start_sign)
     }
-    pub(super) fn for_play(
+    pub(crate) fn for_play(
         &self,
         plan: &BodyPlan,
         play: &BodyPlayIdentity,

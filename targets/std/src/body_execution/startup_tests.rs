@@ -495,3 +495,81 @@ fn startup_cancelled_after_first_pcm_block_retires_the_exact_pending_request() {
         && e.request == receipt.request
         && e.kind == conduit_kernel::KernelEventKind::HostCallCompleted));
 }
+
+#[test]
+fn remote_startup_requires_original_body_fragment_and_retained_start_before_stepping() {
+    use conduit_body::PreparedBodyFragment;
+    use conduit_kernel::scheduler::SchedulerStatus;
+    crate::hosted_audio::startup_chime::reset_test_attempts();
+    let (mut host, mut session) = fixture(FakePlaybackBehavior::Success);
+    let proposed = session.realization().unwrap().clone();
+    let fragment = &proposed.plan.plots[0].plan.fragments[0];
+    let play = host
+        .prospective_body_play(&proposed.wake, &proposed.plan)
+        .unwrap();
+    let ad = host.advertisement().clone();
+    let mut remote = host.prepare_remote_fragment(fragment).unwrap();
+    assert!(remote.step().unwrap_err().contains("retained Started"));
+    assert!(remote.next_host_request().is_none());
+    assert!(
+        CommittedBodyStartup::from_retained(session.evidence(), &proposed.plan, &play).is_err()
+    );
+    let control = RunControl::default();
+    let request = BodyRunRequest {
+        wake: &proposed.wake,
+        plan: &proposed.plan,
+        control: &control,
+        keyboard: None,
+    };
+    let (started_wake, _) = super::image::prepare_lifecycle(&request, &play, &ad).unwrap();
+    session
+        .started(&ad.host_id, &ad.boot_id, play.clone(), started_wake)
+        .unwrap();
+    let committed =
+        CommittedBodyStartup::from_retained(session.evidence(), &proposed.plan, &play).unwrap();
+    let wrong_play = BodyPlayIdentity::bind(&proposed.plan, play.play_sequence + 1);
+    let wrong =
+        PreparedBodyFragment::prepare(&proposed.wake, &proposed.plan, &wrong_play, fragment)
+            .unwrap();
+    assert!(remote
+        .bind_committed_body_startup(wrong, &committed)
+        .is_err());
+    assert!(remote.step().is_err());
+    let scope =
+        PreparedBodyFragment::prepare(&proposed.wake, &proposed.plan, &play, fragment).unwrap();
+    remote
+        .bind_committed_body_startup(scope, &committed)
+        .unwrap();
+    assert!(remote
+        .bind_committed_body_startup(scope, &committed)
+        .is_err());
+    let mut pending = None;
+    for _ in 0..8 {
+        assert!(!matches!(
+            remote.step().unwrap(),
+            SchedulerStatus::Cancelled
+        ));
+        if let Some(request) = remote.next_host_request() {
+            pending = Some(request);
+            break;
+        }
+    }
+    let pending = pending.expect("bound original source must reach the exact cue request");
+    assert_eq!(
+        remote
+            .describe_host_request(pending)
+            .unwrap()
+            .contract_id
+            .as_str(),
+        conduit_std_offers::STARTUP_CHIME_OPERATION
+    );
+    assert_eq!(
+        crate::hosted_audio::startup_chime::test_attempts(),
+        0,
+        "binding is not output dispatch"
+    );
+    remote.cancel().unwrap();
+    assert!(matches!(remote.step().unwrap(), SchedulerStatus::Cancelled));
+    host.release_remote_fragment(remote).unwrap();
+    assert!(host.kernel_resources.is_idle());
+}

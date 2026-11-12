@@ -62,6 +62,7 @@ pub struct RemoteValueTransfer {
 
 mod host_work;
 mod microphone;
+mod startup;
 mod worker_text;
 pub use host_work::{RemoteHostWork, RemoteHostWorkRef};
 
@@ -69,6 +70,7 @@ pub struct InstalledRemoteFragment {
     worker_text_basis: crate::worker_text_result::WorkerTextBasis,
     scheduler: Box<InstalledScheduler>,
     body_time_required: bool,
+    startup_bound: bool,
     lowered: LoweredPlanFragment,
     placements: Vec<conduit_core::PlannedGear>,
     whisper_languages: super::whisper_language::WhisperLanguages,
@@ -221,7 +223,12 @@ impl InstalledRemoteFragment {
         let vision_run_id = String::with_capacity(play.active_play_id.as_str().len() + 64);
         let vision_active_play_id = play.active_play_id.as_str().to_string();
         let vision_clock_basis = format!("{}/monotonic", fragment.boot_id.as_str());
+        let startup_bound = !scheduler
+            .drivers()
+            .iter()
+            .any(|driver| matches!(driver, super::InstalledBack::StartupSource(_)));
         Ok(Self {
+            startup_bound,
             scheduler,
             body_time_required: false,
             lowered,
