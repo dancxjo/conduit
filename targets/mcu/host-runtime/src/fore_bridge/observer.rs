@@ -32,6 +32,14 @@ impl<'a, 'b, 'p, O> ForeObserver<'a, 'b, 'p, O> {
     pub fn new(existing: O, port: ObserverPort<'a, 'b, 'p>) -> Self {
         Self { existing, port }
     }
+
+    /// Force synchronous mailbox contention in cross-module actor tests.
+    /// Tests must not perform IO while this loan is held.
+    #[cfg(test)]
+    pub(crate) fn with_test_mailbox_loan<R>(&self, apply: impl FnOnce() -> R) -> R {
+        let _loan = self.port.shared.borrow_mut();
+        apply()
+    }
 }
 impl<
         D: StepBack<P>,
