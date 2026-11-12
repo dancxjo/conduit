@@ -149,12 +149,16 @@ pub fn compile_specialized(
         for cord in &plot.cords {
             for stage in &cord.stages {
                 if let p::CheckedCordStage::StructuredSelector { selector, .. } = stage {
-                    profiles
-                        .insert(p::structured_selector_definition(
-                            selector,
-                            conduit_core::PortTemporal::Flow { closes: true },
-                        ))
-                        .map_err(debug)?;
+                    let definition = p::structured_selector_definition(
+                        selector,
+                        conduit_core::PortTemporal::Flow { closes: true },
+                    );
+                    // A checked closure can use the same selector at several
+                    // sites. Reuse only its identical semantic definition;
+                    // a conflicting definition still follows catalog refusal.
+                    if profiles.get(&definition.kind_id) != Some(&definition) {
+                        profiles.insert(definition).map_err(debug)?;
+                    }
                 }
             }
         }

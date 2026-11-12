@@ -246,6 +246,67 @@ mod tests {
     use super::*;
     use sha2::{Digest, Sha256};
     #[test]
+    fn authored_bme_protocol_compiles_through_shared_mcu_source() {
+        let units = [
+            include_str!("../../../../plots/device-protocols/bme280-lifecycle.conduit"),
+            // This entry needs the shared join, not the separate externally
+            // driven finite-feedback demonstration in the same source file.
+            include_str!("../../../../plots/device-protocols/bme280-feedback.conduit")
+                .split("\nplot bme280-feedback")
+                .next()
+                .unwrap(),
+            include_str!("../../../../plots/device-protocols/bme280-clock-events.conduit"),
+            include_str!("../../../../plots/device-protocols/main.conduit"),
+            include_str!("../../../../plots/device-protocols/bme280-capture-observation.conduit"),
+            include_str!("../../../../plots/device-protocols/bme280-protocol-frame.conduit"),
+            include_str!("../../../../plots/device-protocols/bme280-autonomous.conduit"),
+        ];
+        let imports = units
+            .iter()
+            .flat_map(|s| s.lines())
+            .filter(|s| s.starts_with("with "))
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>()
+            .join("\n");
+        let bodies = units
+            .iter()
+            .flat_map(|s| s.lines())
+            .filter(|s| !s.starts_with("with "))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let source = format!("{imports}\n{bodies}");
+        let reference = |type_name, maximum_bytes| ValueReference {
+            type_name,
+            maximum_bytes,
+        };
+        let requests = [
+            Specialization::SeededUntil(reference("BmeProtocolFrame", 4096)),
+            Specialization::Zip {
+                left: reference("BmeProtocolState", 4096),
+                right: reference("BmeProtocolEvent", 4096),
+                feedback: true,
+            },
+            Specialization::Merge(reference("BmeClockContext", 4096)),
+            Specialization::Zip {
+                left: reference("BmeClockContext", 4096),
+                right: reference("ClockResult", 512),
+                feedback: false,
+            },
+        ];
+        let workset = crate::workset::compile_specialized(
+            source.as_bytes(),
+            &format!("{:x}", Sha256::digest(source.as_bytes())),
+            &["bme280-autonomous".into()],
+            None,
+            &requests,
+        )
+        .unwrap();
+        assert_eq!(workset.entries.len(), 1);
+        assert!(workset.entries[0].nodes > 40);
+    }
+
+    #[test]
     fn checked_composites_emit_exact_schema_images_and_distinct_zip_laws() {
         let source = include_bytes!("../tests/fixtures/composites.conduit");
         let frame = || ValueReference {
