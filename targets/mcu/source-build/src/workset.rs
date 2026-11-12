@@ -109,7 +109,7 @@ pub fn compile(
             .map_err(debug)?
             .install(&mut startup, &mut profiles)?;
     }
-    conduit_semantic_catalog::install_resource_append_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_resource_record_service_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
     install(
         conduit_time::tick_trigger_semantic_contract(),
