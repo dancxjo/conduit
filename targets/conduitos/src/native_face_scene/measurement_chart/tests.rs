@@ -74,7 +74,7 @@ fn full_series_uses_continuous_chunks_and_preserves_ordinary_face() {
             view.turn_page(true);
         }
         assert_eq!(chunks.len(), 12);
-        for lines in chunks.chunks_exact(3) {
+        for lines in chunks.as_chunks::<3>().0 {
             assert_eq!(
                 lines
                     .iter()
