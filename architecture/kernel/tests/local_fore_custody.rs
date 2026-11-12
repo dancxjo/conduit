@@ -168,6 +168,51 @@ fn prepared() -> Tables {
     )
     .unwrap();
     assert_eq!(identity.counts, counts);
+    let identity = AssignedKernelTables::<1, 2, 1, 1, 1, 1>::write_records_with_fore(
+        &bytes[..a::ASSIGNED_PLAN_HEADER_BYTES],
+        &records,
+        a::AssignedPlanMaxima::TINY_HOST,
+        required,
+        a::AssignedComputationProfile {
+            maximum_text_bytes: 16,
+            maximum_total_text_bytes: 16,
+            requirements: &[],
+        },
+        &ResidentLayout {
+            records: &pins,
+            counts,
+        },
+        &fore,
+        &mut nodes,
+        &mut cords,
+        &mut routes,
+        &mut calls,
+    )
+    .unwrap();
+    let mut too_many_nodes = [nodes[0]; 2];
+    let refusal = AssignedKernelTables::<2, 2, 1, 1, 1, 1>::write_records_with_fore(
+        &bytes[..a::ASSIGNED_PLAN_HEADER_BYTES],
+        &records,
+        a::AssignedPlanMaxima::TINY_HOST,
+        required,
+        a::AssignedComputationProfile {
+            maximum_text_bytes: 16,
+            maximum_total_text_bytes: 16,
+            requirements: &[],
+        },
+        &ResidentLayout {
+            records: &pins,
+            counts,
+        },
+        &fore,
+        &mut too_many_nodes,
+        &mut cords,
+        &mut routes,
+        &mut calls,
+    )
+    .err();
+    assert_eq!(refusal, Some(AssignedKernelRefusal::Layout));
+    assert_eq!(identity.counts, counts);
     assert_eq!(nodes, tables.nodes);
     assert_eq!(cords, tables.cords);
     assert!(routes.is_sealed() && calls.is_sealed());
