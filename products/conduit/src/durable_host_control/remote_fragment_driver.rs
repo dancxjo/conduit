@@ -26,6 +26,9 @@ where
             {
                 continue;
             }
+            if host.complete_remote_startup_host_call(admitted, request, cancelled)? {
+                continue;
+            }
             if host.complete_remote_microphone_host_call(admitted, request, cancelled)? {
                 continue;
             }

@@ -584,3 +584,114 @@ fn remote_startup_requires_original_body_fragment_and_retained_start_before_step
     host.release_remote_fragment(unstarted).unwrap();
     assert!(host.kernel_resources.is_idle());
 }
+
+fn started_remote_cue(behavior: FakePlaybackBehavior) -> (StdHost, crate::AdmittedRemoteFragment) {
+    let (mut host, mut session) = fixture(behavior);
+    let proposed = session.realization().unwrap().clone();
+    let fragment = &proposed.plan.plots[0].plan.fragments[0];
+    let play = host
+        .prospective_body_play(&proposed.wake, &proposed.plan)
+        .unwrap();
+    let ad = host.advertisement().clone();
+    let mut remote = host.prepare_remote_fragment(fragment).unwrap();
+    let control = RunControl::default();
+    let request = BodyRunRequest {
+        wake: &proposed.wake,
+        plan: &proposed.plan,
+        control: &control,
+        keyboard: None,
+    };
+    let (wake, _) = super::image::prepare_lifecycle(&request, &play, &ad).unwrap();
+    session
+        .started(&ad.host_id, &ad.boot_id, play.clone(), wake)
+        .unwrap();
+    let committed =
+        CommittedBodyStartup::from_retained(session.evidence(), &proposed.plan, &play).unwrap();
+    let scope = conduit_body::PreparedBodyFragment::prepare(
+        &proposed.wake,
+        &proposed.plan,
+        &play,
+        fragment,
+    )
+    .unwrap();
+    remote
+        .bind_committed_body_startup(scope, &committed)
+        .unwrap();
+    (host, remote)
+}
+fn next_remote_cue(
+    remote: &mut crate::AdmittedRemoteFragment,
+) -> conduit_kernel::scheduler::HostCallRequest {
+    for _ in 0..8 {
+        remote.step().unwrap();
+        if let Some(request) = remote.next_host_request() {
+            return request;
+        }
+    }
+    panic!("expected original pending cue");
+}
+#[test]
+fn remote_cue_dispatch_uses_the_original_pending_request_and_retains_physical_outcome() {
+    use conduit_kernel::HostCallDisposition as D;
+    for (behavior, expected) in [
+        (FakePlaybackBehavior::Success, D::Completed),
+        (FakePlaybackBehavior::DeviceBusy, D::Denied),
+        (FakePlaybackBehavior::OpenFailure, D::Failed),
+    ] {
+        crate::hosted_audio::startup_chime::reset_test_attempts();
+        let (mut host, mut remote) = started_remote_cue(behavior);
+        let request = next_remote_cue(&mut remote);
+        let mut forged = request;
+        forged.request.0 += 1;
+        assert!(host
+            .complete_remote_startup_host_call(&mut remote, forged, || false)
+            .is_err());
+        assert_eq!(crate::hosted_audio::startup_chime::test_attempts(), 0);
+        assert!(host
+            .complete_remote_startup_host_call(&mut remote, request, || false)
+            .unwrap());
+        assert!(host
+            .complete_remote_startup_host_call(&mut remote, request, || false)
+            .is_err());
+        assert_eq!(crate::hosted_audio::startup_chime::test_attempts(), 1);
+        let receipt = remote.startup_cue_receipts().next().unwrap();
+        assert_eq!(receipt.disposition, Some(expected));
+        assert!(receipt.kernel_accepted);
+        assert_eq!(receipt.failure.is_some(), expected != D::Completed);
+        let mut drained = false;
+        for _ in 0..8 {
+            if remote.step().unwrap() == conduit_kernel::scheduler::SchedulerStatus::Drained {
+                drained = true;
+                break;
+            }
+        }
+        assert!(drained);
+        host.release_remote_fragment(remote).unwrap();
+        assert!(host.kernel_resources.is_idle());
+    }
+}
+#[test]
+fn remote_cue_cancellation_retires_without_a_normal_completion_or_second_effect() {
+    crate::hosted_audio::startup_chime::reset_test_attempts();
+    let (mut host, mut remote) = started_remote_cue(FakePlaybackBehavior::Success);
+    let request = next_remote_cue(&mut remote);
+    assert!(host
+        .complete_remote_startup_host_call(&mut remote, request, || true)
+        .unwrap());
+    let receipt = remote.startup_cue_receipts().next().unwrap();
+    assert_eq!(
+        receipt.disposition,
+        Some(conduit_kernel::HostCallDisposition::Cancelled)
+    );
+    assert!(!receipt.kernel_accepted);
+    assert_eq!(crate::hosted_audio::startup_chime::test_attempts(), 0);
+    assert!(host
+        .complete_remote_startup_host_call(&mut remote, request, || false)
+        .is_err());
+    assert_eq!(
+        remote.step().unwrap(),
+        conduit_kernel::scheduler::SchedulerStatus::Cancelled
+    );
+    host.release_remote_fragment(remote).unwrap();
+    assert!(host.kernel_resources.is_idle());
+}

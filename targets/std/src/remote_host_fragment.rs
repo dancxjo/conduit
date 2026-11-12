@@ -216,6 +216,24 @@ impl StdHost {
         )
     }
 
+    pub fn complete_remote_startup_host_call(
+        &mut self,
+        fragment: &mut AdmittedRemoteFragment,
+        request: HostCallRequest,
+        cancelled: impl FnMut() -> bool,
+    ) -> Result<bool, String> {
+        let actual = self.advertisement();
+        if fragment.identity.host_id != actual.host_id
+            || fragment.identity.boot_id != actual.boot_id
+            || fragment.offer_generation != actual.offer_generation
+        {
+            return Err("remote startup belongs to another Host, Boot or generation".into());
+        }
+        fragment
+            .runtime
+            .complete_startup_host_call(request, cancelled)
+    }
+
     pub fn complete_remote_voice_host_call<F>(
         &mut self,
         fragment: &mut AdmittedRemoteFragment,
@@ -261,7 +279,7 @@ impl StdHost {
                 return Err(error);
             }
         };
-        let runtime = match InstalledRemoteFragment::prepare(
+        let mut runtime = match InstalledRemoteFragment::prepare(
             &advertisement,
             fragment,
             play.identity().play_sequence,
@@ -272,6 +290,10 @@ impl StdHost {
                 return Err(error);
             }
         };
+        if let Err(error) = runtime.prepare_startup_outputs(self.playback.as_ref()) {
+            self.kernel_resources.release(reservation)?;
+            return Err(error);
+        }
         Ok(AdmittedRemoteFragment {
             runtime,
             reservation: Some(reservation),

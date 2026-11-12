@@ -77,6 +77,35 @@ impl PreparedChimeOutput {
         pcm: &[u8],
         control: &RunControl,
     ) -> HostCallOutcome {
+        self.execute_inner(
+            input,
+            pcm,
+            &mut || control.stop_requested(),
+            #[cfg(test)]
+            Some(control),
+        )
+    }
+    pub(crate) fn execute_with_cancel(
+        &mut self,
+        input: &[u8],
+        pcm: &[u8],
+        mut cancelled: impl FnMut() -> bool,
+    ) -> HostCallOutcome {
+        self.execute_inner(
+            input,
+            pcm,
+            &mut cancelled,
+            #[cfg(test)]
+            None,
+        )
+    }
+    fn execute_inner(
+        &mut self,
+        input: &[u8],
+        pcm: &[u8],
+        cancelled: &mut dyn FnMut() -> bool,
+        #[cfg(test)] test_control: Option<&RunControl>,
+    ) -> HostCallOutcome {
         let Ok(pulse) = InfoBool::decode(input) else {
             return outcome(
                 HostCallDisposition::Failed,
@@ -94,13 +123,13 @@ impl PreparedChimeOutput {
                 482,
             );
         }
-        if control.stop_requested() {
-            return cancelled();
+        if cancelled() {
+            return self::cancelled();
         }
         self.attempted = true;
         #[cfg(test)]
         if self.selection.fake_behavior.is_some() {
-            return self.execute_fake(pcm, control);
+            return self.execute_fake(pcm, cancelled, test_control);
         }
         if self.selection.verify_executable_identity().is_err()
             || !discover_alsa_playback()
@@ -124,12 +153,12 @@ impl PreparedChimeOutput {
                 require_process_group: true,
             },
             PCM_BYTES,
-            || control.stop_requested(),
+            cancelled,
         );
         match report {
             Ok(report) => match report.terminal {
                 ProcessTerminal::Exited(status) if status.success() => completed(),
-                ProcessTerminal::Cancelled => cancelled(),
+                ProcessTerminal::Cancelled => self::cancelled(),
                 _ => outcome(
                     HostCallDisposition::Failed,
                     FailureCode::HostCallFailed,
@@ -164,7 +193,12 @@ fn outcome(disposition: HostCallDisposition, code: FailureCode, detail: u16) -> 
 
 #[cfg(test)]
 impl PreparedChimeOutput {
-    fn execute_fake(&self, pcm: &[u8], control: &RunControl) -> HostCallOutcome {
+    fn execute_fake(
+        &self,
+        pcm: &[u8],
+        cancelled: &mut dyn FnMut() -> bool,
+        test_control: Option<&RunControl>,
+    ) -> HostCallOutcome {
         TEST_EFFECT_ATTEMPTS.with(|n| n.set(n.get() + 1));
         use conduit_audio::{PcmChannelLayout, PcmFrameHeader, PcmSampleRepresentation};
         let Ok(mut session) = super::PlaybackSession::resolved(self.selection.clone()) else {
@@ -179,6 +213,10 @@ impl PreparedChimeOutput {
             .chunks(usize::from(super::PERIOD_FRAMES) * 4)
             .enumerate()
         {
+            if cancelled() {
+                let _ = session.stop();
+                return self::cancelled();
+            }
             let header = PcmFrameHeader::new(
                 PcmSampleRepresentation::Signed16LittleEndian,
                 super::SAMPLE_RATE_HZ,
@@ -207,13 +245,15 @@ impl PreparedChimeOutput {
                 };
             }
             if index == 0 && TEST_CANCEL_AFTER_FIRST_BLOCK.with(|n| n.replace(false)) {
-                control
-                    .request_stop(
-                        crate::RunControlRequestId::new("fixture/cancel-during-cue").unwrap(),
-                    )
-                    .unwrap();
+                if let Some(control) = test_control {
+                    control
+                        .request_stop(
+                            crate::RunControlRequestId::new("fixture/cancel-during-cue").unwrap(),
+                        )
+                        .unwrap();
+                }
                 let _ = session.stop();
-                return cancelled();
+                return self::cancelled();
             }
         }
         if session.drain().and_then(|_| session.stop()).is_err() {

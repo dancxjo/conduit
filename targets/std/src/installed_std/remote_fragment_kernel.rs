@@ -71,6 +71,7 @@ pub struct InstalledRemoteFragment {
     scheduler: Box<InstalledScheduler>,
     body_time_required: bool,
     startup_state: startup::StartupBindingState,
+    startup_outputs: Vec<startup::RemoteCue>,
     lowered: LoweredPlanFragment,
     placements: Vec<conduit_core::PlannedGear>,
     whisper_languages: super::whisper_language::WhisperLanguages,
@@ -228,6 +229,7 @@ impl InstalledRemoteFragment {
             .iter()
             .any(|driver| matches!(driver, super::InstalledBack::StartupSource(_)));
         Ok(Self {
+            startup_outputs: Vec::new(),
             startup_state: if has_startup {
                 startup::StartupBindingState::Unbound
             } else {
@@ -267,7 +269,15 @@ impl InstalledRemoteFragment {
         &mut self.sessions
     }
     pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
-        self.scheduler.next_host_request()
+        let request = self.scheduler.next_host_request()?;
+        if let Some(cue) = self
+            .startup_outputs
+            .iter_mut()
+            .find(|cue| cue.node == request.node)
+        {
+            cue.pending.get_or_insert(request);
+        }
+        Some(request)
     }
     pub fn complete_host_call(
         &mut self,
@@ -708,6 +718,9 @@ impl InstalledRemoteFragment {
     }
     pub fn cancel(&mut self) -> Result<(), String> {
         self.pending_body_context = None;
+        for cue in &mut self.startup_outputs {
+            cue.pending = None;
+        }
         for host in self.speech_window_hosts.iter_mut().flatten() {
             host.cancel();
         }
