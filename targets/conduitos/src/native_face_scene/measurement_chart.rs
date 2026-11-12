@@ -291,8 +291,7 @@ pub(super) fn append(
                 u128::from(*point.source_index()) * u128::from(plot.width - 1)
                     / u128::from(chart.maximum_index)
             } as i16;
-            let y =
-                (*point.value_millionths() * i64::from(plot.height - 1) / 1_000_000) as i16;
+            let y = (*point.value_millionths() * i64::from(plot.height - 1) / 1_000_000) as i16;
             let next = GraphicsPoint::new(plot.x + x, bottom - y)
                 .map_err(|_| FaceSceneError::SceneBound)?;
             if last == Some(next) {
