@@ -4,6 +4,7 @@ use conduit_body::*;
 use conduit_core as c;
 use ed25519_dalek::Signer;
 use sha2::{Digest, Sha256};
+#[allow(dead_code)] // Shared auth fixture also supplies a small-command helper.
 #[path = "host_preparation_delegation/support.rs"]
 mod support;
 use support::Fixture;
@@ -141,7 +142,7 @@ fn document(projection: &[u8], body: &str, boot: &str, fore: &[u8], resource: &[
 fn inventory() -> Vec<u8> {
     [remote().payload().as_slice(), local().payload().as_slice()].concat()
 }
-fn slot(f: &Fixture) -> IssuedHostCommandChallenge {
+fn slot(f: &Fixture) -> IssuedHostCommandChallenge<'_> {
     IssuedHostCommandChallenge::issue(
         &f.member,
         &f.host,
