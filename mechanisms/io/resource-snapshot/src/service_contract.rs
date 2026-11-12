@@ -35,7 +35,9 @@ pub fn definition() -> Kind {
         contracts.push(contract);
     }
     let mut transductions = alloc::vec::Vec::new();
-    for law in append.semantic_laws.iter().chain(&read.semantic_laws) {
+    // The two fixed inputs are already in canonical order: read-index, record.
+    // Construct in that order instead of instantiating a generic slice sorter.
+    for law in read.semantic_laws.iter().chain(&append.semantic_laws) {
         if let KindSemanticLaw::TerminalTransduction(profile) = law {
             let mut profile = profile.clone();
             if profile.input_port_id == read_input && profile.output_port_id == read_output {
@@ -55,9 +57,6 @@ pub fn definition() -> Kind {
             transductions.push(profile);
         }
     }
-    // Distinct input ports need canonical order, not stable sorting's large
-    // temporary buffer on constrained preparation stacks.
-    transductions.sort_unstable_by(|a, b| a.input_port_id.as_str().cmp(b.input_port_id.as_str()));
     append.kind_id = kind_id(SERVICE_KIND);
     append.kind_contract_revision = SERVICE_REVISION.into();
     append.inputs.extend(read.inputs);
