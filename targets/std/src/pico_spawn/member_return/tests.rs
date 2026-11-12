@@ -109,3 +109,6 @@ fn canonical_proof_wire_and_signature_are_exactly_scoped() {
     other.offer_generation.0 += 1;
     assert!(basis.check_proof(&ad, &other, &proof).is_err());
 }
+
+#[path = "basis_advancement_tests.rs"]
+mod basis_advancement;
