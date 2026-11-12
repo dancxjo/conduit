@@ -75,6 +75,10 @@ pub fn emit_to(out: &Path) -> std::io::Result<()> {
         ("play_run", include_str!("source_composition/play_run.rs")),
         ("play_fore", include_str!("source_composition/play_fore.rs")),
         (
+            "play_fore_installation",
+            include_str!("source_composition/play_fore_installation.rs"),
+        ),
+        (
             "play_carriage",
             include_str!("source_composition/play_carriage.rs"),
         ),
