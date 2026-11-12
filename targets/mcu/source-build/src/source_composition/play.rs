@@ -280,9 +280,14 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
         ],
         #[inline(always)]
         move |[sampling, mask, output], [sampling_fore, mask_fore, output_fore], approved_fore| {
-            let mut sampling_profile=profile!(sampling_layout,host,boot,sampling_fore);
-            if let Some(line)=line { sampling_profile.fore=None; sampling_profile.requirements.remote_bindings=line.bindings; }
-            let carriage=prepare_carrier(sampling,approved_fore.map(|ports|ports[0]),sampling_profile)?;
+            // Reconstruct only the finite bounds and immutable borrowed pins;
+            // each preparation owner consumes its descriptor independently.
+            let sampling_profile=|| {
+                let mut profile=profile!(sampling_layout,host,boot,sampling_fore);
+                if let Some(line)=line { profile.fore=None; profile.requirements.remote_bindings=line.bindings; }
+                profile
+            };
+            let carriage=prepare_carrier(sampling,approved_fore.map(|ports|ports[0]),sampling_profile())?;
             // Bind the already funded recording owner only from the original
             // opaque approval. The stream identifies this authored producer;
             // Boot/Plan/Play remain separate, exact record context fields.
@@ -324,7 +329,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 operations,
                 sampling,
                 output,
-                sampling_profile,
+                sampling_profile(),
                 profile!(output_layout, host, boot, output_fore),
                 line.map(|l|l.profile),
                 sampling_fore,
@@ -346,7 +351,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                     "kernel-headroom",
                 ));
             }
-            let sample = fore::prepare_kernel(sampling,sampling_profile,sampling_fore,line.map(|l|l.profile),sampling_values,policy.maximum_retained_bytes,sample_backs)
+            let sample = fore::prepare_kernel(sampling,sampling_profile(),sampling_fore,line.map(|l|l.profile),sampling_values,policy.maximum_retained_bytes,sample_backs)
                 .map_err(|error| kernel_refusal(diagnostic,error,"sampling-kernel"))?;
             let sample=match carriage {Some(carriage)=>carriage.wrap(sample),None=>fore::PreparedSampling::Local(sample,core::marker::PhantomData)};
             let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog, OK>::prepare_with_terminal_transductions_ref(

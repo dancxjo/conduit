@@ -3,7 +3,7 @@
 // it never shares that loan with diagnostic/control IO or bypasses BOOTSEL.
 use conduit_mcu_host_runtime::{
     fore_bridge::{ForeObserver, ObserverPort, ObserverRefusal},
-    root_fore_carrier::ForeIoActor,
+    root::ForeIoActor,
 };
 pub enum Carriage<'io, 'bridge, 'pins, 'control, 'state> {
     Local {
