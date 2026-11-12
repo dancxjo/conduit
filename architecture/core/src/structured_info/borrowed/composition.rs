@@ -7,6 +7,7 @@ use super::*;
 #[derive(Clone, Copy)]
 pub enum BorrowedStructuredValue<'a> {
     Empty,
+    Canonical(ValidatedCanonicalStructuredValue<'a>),
     Leaf(&'a [u8]),
     Record(&'a [BorrowedStructuredValue<'a>]),
     Collection(&'a [BorrowedStructuredValue<'a>]),
@@ -102,6 +103,20 @@ fn visit(
     output: &mut Sink<'_>,
 ) -> Result<(), StructuredInfoRefusal> {
     use StructuredInfoRefusal as R;
+    if let BorrowedStructuredValue::Canonical(value) = value {
+        if value.type_bytes() != schema {
+            return Err(R::WrongType);
+        }
+        // Recheck in the enclosing traversal's depth and node budget. A child
+        // validated alone must not bypass aggregate canonical limits.
+        let mut cursor = Cursor::new(value.value_node());
+        validate_value(schema, &mut cursor, depth, nodes)?;
+        if !cursor.remaining.is_empty() {
+            return Err(malformed());
+        }
+        return output.put(value.value_node());
+    }
+
     if depth > MAXIMUM_STRUCTURED_INFO_DEPTH {
         return Err(R::TooDeep);
     }

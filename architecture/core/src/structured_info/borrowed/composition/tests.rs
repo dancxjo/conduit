@@ -159,3 +159,60 @@ fn fixed_collection_matches_owned_bytes_and_preflights_count_and_element() {
         assert!(output.iter().all(|byte| *byte == 0xa5));
     }
 }
+
+#[test]
+fn canonical_child_keeps_exact_schema_and_aggregate_node_budget() {
+    let empty = Type::leaf(kind_id("value/empty")).unwrap();
+    let bytes = Owned::leaf(empty.clone(), vec![])
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    let child = validate_canonical_structured_value(&bytes).unwrap();
+    let schema = empty.canonical_bytes().unwrap();
+    let writer = PreparedLinkedStructuredComposer::new(&schema, bytes.len()).unwrap();
+    let mut output = vec![0; bytes.len()];
+    assert_eq!(
+        writer
+            .encode_into(BorrowedStructuredValue::Canonical(child), &mut output)
+            .unwrap(),
+        bytes
+    );
+    let foreign = Type::leaf(kind_id("value/u8"))
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    let writer = PreparedLinkedStructuredComposer::new(&foreign, 128).unwrap();
+    let mut output = [0xa5; 128];
+    assert_eq!(
+        writer.encode_into(BorrowedStructuredValue::Canonical(child), &mut output),
+        Err(StructuredInfoRefusal::WrongType)
+    );
+    assert_eq!(output, [0xa5; 128]);
+    let mut sink = Sink {
+        output: None,
+        position: 0,
+    };
+    let mut nodes = 0;
+    assert_eq!(
+        visit(
+            &schema,
+            BorrowedStructuredValue::Canonical(child),
+            1,
+            &mut nodes,
+            &mut sink
+        ),
+        Err(StructuredInfoRefusal::TooManyNodes)
+    );
+    let mut nodes = MAXIMUM_STRUCTURED_INFO_NODES;
+    assert_eq!(
+        visit(
+            &schema,
+            BorrowedStructuredValue::Canonical(child),
+            MAXIMUM_STRUCTURED_INFO_DEPTH + 1,
+            &mut nodes,
+            &mut sink
+        ),
+        Err(StructuredInfoRefusal::TooDeep)
+    );
+    assert_eq!(sink.position, 0);
+}
