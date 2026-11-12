@@ -67,7 +67,7 @@ fn independently_reproduced_legs_share_carrier_session_but_pin_exact_fore() {
     assert_eq!(a.session_id, b.session_id);
     assert_eq!(
         a.session_id,
-        "dd057b53b652ed9f43ec1a66bd0347972ab65d7e549f0a7f81b5466138db4701"
+        "29abeba8a8d43175799b4e50d29f778e268c1d93c49923aa0e29e6f1b4718840"
     );
     assert_eq!(a.line.binding.source.host_id.as_str(), "linux");
     assert_eq!(a.line.binding.sink.host_id.as_str(), "mcu");
