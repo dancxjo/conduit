@@ -99,9 +99,12 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     let plot_seal = c::PlainPlotPlanSeal::capture(&plan)
         .map_err(|e| format!("canonical Plot Plan seal eligibility: {e:?}"))?;
     let fragment = &plan.fragments[0];
-    let digest = plot_seal.digest(&[c::PlotFragmentSeal {
-        host_id: fragment.host_id.as_str(), fragment_id: fragment.fragment_id.as_str(),
-    }]).map_err(|e| format!("canonical Plot Plan commitment seal: {e:?}"))?;
+    let digest = plot_seal
+        .digest(&[c::PlotFragmentSeal {
+            host_id: fragment.host_id.as_str(),
+            fragment_id: fragment.fragment_id.as_str(),
+        }])
+        .map_err(|e| format!("canonical Plot Plan commitment seal: {e:?}"))?;
     let hex: String = digest.iter().map(|byte| format!("{byte:02x}")).collect();
     if hex != plan.plan_id.as_str() {
         return Err("canonical Plot Plan commitment differs from ordinary seal".into());
@@ -217,7 +220,10 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
     }
     let mut computations = Vec::new();
     for configuration in &kernel.configuration {
-        if matches!(configuration.key.as_str(), "program" | "selector" | "reference") {
+        if matches!(
+            configuration.key.as_str(),
+            "program" | "selector" | "reference"
+        ) {
             let e::GeneratedConfigurationValue::Text(text) = &configuration.value else {
                 return Err("non-text checked computation".into());
             };
@@ -231,17 +237,28 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             );
         }
     }
-    let mut services = kernel.nodes.iter().filter(|node|
-        node.kind_id == conduit_semantic_catalog::RESOURCE_RECORD_SERVICE_KIND);
+    let mut services = kernel
+        .nodes
+        .iter()
+        .filter(|node| node.kind_id == conduit_semantic_catalog::RESOURCE_RECORD_SERVICE_KIND);
     let record_service_resource = if let Some(node) = services.next() {
-        if services.next().is_some() { return Err("multiple native record-service owners".into()); }
-        let mut resources = kernel.resources.iter().filter(|resource| resource.node == node.node);
-        let resource = resources.next().ok_or("record-service lacks its residence")?;
+        if services.next().is_some() {
+            return Err("multiple native record-service owners".into());
+        }
+        let mut resources = kernel
+            .resources
+            .iter()
+            .filter(|resource| resource.node == node.node);
+        let resource = resources
+            .next()
+            .ok_or("record-service lacks its residence")?;
         if resources.next().is_some() || resource.units != 1 {
             return Err("record-service requires one exact residence".into());
         }
         Some(resource.resource)
-    } else { None };
+    } else {
+        None
+    };
     let continuation = continuation::capture(fragment, kernel, generated.fore())?;
     Ok(Layout {
         terminal_transductions_rust: kernel.render_terminal_transductions(),
@@ -249,7 +266,11 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
         continuation,
         fragment_seal_recipe,
         fragment_seal_to_kernel,
-        fragment_seal_placement_ids: fragment.placements.iter().map(|p| p.placement_id.as_str().to_owned()).collect(),
+        fragment_seal_placement_ids: fragment
+            .placements
+            .iter()
+            .map(|p| p.placement_id.as_str().to_owned())
+            .collect(),
         projection_template: bytes,
         projection_template_digest,
         maxima: input.maxima,
@@ -420,24 +441,43 @@ mod tests {
         restarted.offer_generation = c::OfferGeneration(2);
         let later = make(&restarted, &boundaries).unwrap();
         assert_eq!(layout.nodes, later.nodes);
-        assert_eq!(layout.terminal_transductions_rust, later.terminal_transductions_rust);
-        assert!(layout.terminal_transductions_rust.contains("GENERATED_TERMINAL_TRANSDUCTIONS"));
-        assert_eq!(layout.continuation, later.continuation,
-            "named Fore/resource pins are immutable across Boot changes");
+        assert_eq!(
+            layout.terminal_transductions_rust,
+            later.terminal_transductions_rust
+        );
+        assert!(layout
+            .terminal_transductions_rust
+            .contains("GENERATED_TERMINAL_TRANSDUCTIONS"));
+        assert_eq!(
+            layout.continuation, later.continuation,
+            "named Fore/resource pins are immutable across Boot changes"
+        );
         assert_eq!(layout.continuation.fore.len(), layout.fore.len());
         for fore in &layout.continuation.fore {
             assert!(!fore.front.is_empty() && !fore.gear.is_empty());
-            assert_eq!(layout.fragment_seal_placement_ids[
-                layout.fragment_seal_to_kernel.iter().position(|node| *node==fore.node).unwrap()
-            ], fore.placement);
-            assert!(layout.fore.iter().any(|pin| pin.cord()==fore.cord && pin.endpoint()==fore.endpoint
-                && pin.payload()[5..21]==c::AssignedIdentity::from_text(&fore.front).0));
+            assert_eq!(
+                layout.fragment_seal_placement_ids[layout
+                    .fragment_seal_to_kernel
+                    .iter()
+                    .position(|node| *node == fore.node)
+                    .unwrap()],
+                fore.placement
+            );
+            assert!(layout.fore.iter().any(|pin| pin.cord() == fore.cord
+                && pin.endpoint() == fore.endpoint
+                && pin.payload()[5..21] == c::AssignedIdentity::from_text(&fore.front).0));
         }
-        let emitted=layout.continuation.emit();
+        let emitted = layout.continuation.emit();
         assert!(emitted.contains("pub static FRESH_FORE"));
         assert!(emitted.contains("pub static CONTINUATION_RESOURCES"));
-        assert_eq!(layout.fragment_seal_placement_ids, later.fragment_seal_placement_ids);
-        assert_eq!(c::fragment_seal_recipe_identity(layout.fragment_seal_recipe.pieces()), c::fragment_seal_recipe_identity(later.fragment_seal_recipe.pieces()));
+        assert_eq!(
+            layout.fragment_seal_placement_ids,
+            later.fragment_seal_placement_ids
+        );
+        assert_eq!(
+            c::fragment_seal_recipe_identity(layout.fragment_seal_recipe.pieces()),
+            c::fragment_seal_recipe_identity(later.fragment_seal_recipe.pieces())
+        );
         assert_eq!(layout.counts, later.counts);
         assert_eq!(
             layout.projection_template_digest,

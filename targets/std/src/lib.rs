@@ -97,8 +97,6 @@ pub use hosted_body_conversation_context::{
 };
 pub mod hosted_calendar;
 pub mod hosted_data;
-pub mod hosted_measurement;
-pub mod measurement_face;
 pub mod hosted_geometry;
 pub mod hosted_history;
 pub mod hosted_http;
@@ -106,9 +104,11 @@ pub mod hosted_indicator;
 pub mod hosted_job;
 pub mod hosted_keyboard;
 mod hosted_language;
+pub mod hosted_measurement;
 mod hosted_process;
 #[cfg(feature = "local-model-proof")]
 mod house_conversation_topology;
+pub mod measurement_face;
 #[cfg(unix)]
 pub mod pico_indicator;
 mod whisper_installation;

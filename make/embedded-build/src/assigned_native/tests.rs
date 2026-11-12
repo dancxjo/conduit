@@ -29,10 +29,16 @@ fn each_call_selects_its_own_original_authority_independent_of_order() {
     let append = grant("grant/append", "operation/append", "resource/append");
     let read = grant("grant/read", "operation/read", "resource/read");
     for authorities in [vec![append.clone(), read.clone()], vec![read, append]] {
-        let a = selected_authority(&authorities, &call(1, "operation/append", Some("resource/append")))
-            .unwrap();
-        let r = selected_authority(&authorities, &call(0, "operation/read", Some("resource/read")))
-            .unwrap();
+        let a = selected_authority(
+            &authorities,
+            &call(1, "operation/append", Some("resource/append")),
+        )
+        .unwrap();
+        let r = selected_authority(
+            &authorities,
+            &call(0, "operation/read", Some("resource/read")),
+        )
+        .unwrap();
         assert_eq!(a.grant_id.as_str(), "grant/append");
         assert_eq!(r.grant_id.as_str(), "grant/read");
     }
@@ -43,8 +49,16 @@ fn wrong_target_missing_operation_and_ambiguous_authority_refuse() {
     let original = grant("grant/read", "operation/read", "resource/read");
     let call = call(0, "operation/read", Some("resource/read"));
     assert!(selected_authority(&[], &call).is_none());
-    assert!(selected_authority(&[grant("wrong", "operation/append", "resource/read")], &call).is_none());
-    assert!(selected_authority(&[grant("wrong", "operation/read", "resource/append")], &call).is_none());
+    assert!(selected_authority(
+        &[grant("wrong", "operation/append", "resource/read")],
+        &call
+    )
+    .is_none());
+    assert!(selected_authority(
+        &[grant("wrong", "operation/read", "resource/append")],
+        &call
+    )
+    .is_none());
     assert!(selected_authority(&[original.clone(), original], &call).is_none());
 }
 

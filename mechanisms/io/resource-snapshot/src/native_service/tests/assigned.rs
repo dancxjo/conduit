@@ -1,9 +1,9 @@
 use super::*;
 use alloc::vec::Vec;
 use conduit_core::{
-    ASSIGNED_PLAN_COUNT_KINDS, ASSIGNED_PLAN_HEADER_BYTES, AssignedComputationProfile,
-    AssignedIdentity, AssignedPlanMaxima, AssignedPlanRecords, AssignedPlanRequirements,
-    AssignedRecord,
+    AssignedComputationProfile, AssignedIdentity, AssignedPlanMaxima, AssignedPlanRecords,
+    AssignedPlanRequirements, AssignedRecord, ASSIGNED_PLAN_COUNT_KINDS,
+    ASSIGNED_PLAN_HEADER_BYTES,
 };
 use conduit_plan_lowering::{
     assigned_play_scope::AssignedPlayScope,
@@ -14,7 +14,7 @@ mod fixture;
 #[path = "rich.rs"]
 mod rich;
 use fixture::Storage;
-use rich::{Fixture, grant, operation};
+use rich::{grant, operation, Fixture};
 fn ready(f: &Fixture) -> ReadyRecordService<Storage> {
     let gear = &f.fragment.placements[0];
     let base = gear.base.as_ref().unwrap();

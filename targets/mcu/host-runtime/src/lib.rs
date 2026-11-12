@@ -4,10 +4,10 @@
 //! execution path uses original Root grants, atomic admission and the ordinary
 //! production kernel to run checked assignments.
 pub mod image_memory;
-pub mod poll_boundary;
 pub mod ingress;
 pub mod member_return;
 pub mod membership;
+pub mod poll_boundary;
 pub mod root;
 pub mod seed;
 pub mod transport;
@@ -15,15 +15,15 @@ pub mod transport;
 #[cfg(feature = "execution")]
 pub mod execution;
 #[cfg(feature = "execution")]
-pub mod execution_mask;
+pub mod execution_authority;
 #[cfg(feature = "execution")]
 pub mod execution_factory;
 #[cfg(feature = "execution")]
-pub mod execution_authority;
-#[cfg(feature = "execution")]
-pub mod execution_workset;
+pub mod execution_mask;
 #[cfg(feature = "execution")]
 pub mod execution_software;
+#[cfg(feature = "execution")]
+pub mod execution_workset;
 #[cfg(test)]
 extern crate std;
 #[cfg(test)]

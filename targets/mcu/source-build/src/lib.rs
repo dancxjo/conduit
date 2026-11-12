@@ -3,10 +3,10 @@
 use conduit_plot as p;
 pub mod clock;
 pub mod image_input;
-pub mod native_calibration;
 pub mod native_build;
-pub mod renderer;
+pub mod native_calibration;
 pub mod recording;
+pub mod renderer;
 pub mod software;
 pub mod source_composition;
 pub mod template;

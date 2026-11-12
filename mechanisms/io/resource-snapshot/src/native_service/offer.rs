@@ -95,12 +95,10 @@ mod tests {
             offer.host_calls[1].maximum_output_bytes as usize,
             crate::read_result::READ_RESULT_BYTES
         );
-        assert!(
-            offer
-                .host_calls
-                .iter()
-                .all(|call| call.maximum_in_flight == 1)
-        );
+        assert!(offer
+            .host_calls
+            .iter()
+            .all(|call| call.maximum_in_flight == 1));
         assert_eq!(offer.authority_requirements.len(), 2);
         for (call, authority) in offer.host_calls.iter().zip(&offer.authority_requirements) {
             assert_eq!(authority.host_call_contract_id, call.contract_id);

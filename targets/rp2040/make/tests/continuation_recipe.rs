@@ -67,8 +67,10 @@ fn actual_yellow_three_fragment_make_emits_canonical_seal_recipes() {
         if name.starts_with("workset_") && name.ends_with(".rs") {
             let text = fs::read_to_string(file.path()).unwrap();
             if text.contains("FRAGMENT_SEAL_RECIPE") {
-                assert!(text.contains("pub const PLOT_PLAN_SEAL:"),
-                    "actual entry must pass empty-tail eligibility before emitting static pins");
+                assert!(
+                    text.contains("pub const PLOT_PLAN_SEAL:"),
+                    "actual entry must pass empty-tail eligibility before emitting static pins"
+                );
                 assert!(text.contains("FRAGMENT_RECIPE_DIGEST"));
                 assert!(text.contains("FRAGMENT_PLACEMENT_IDS"));
                 emitted.push_str(&format!("mod entry_{entries} {{ {text} }}\n"));

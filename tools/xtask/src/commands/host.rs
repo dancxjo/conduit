@@ -12,8 +12,12 @@ use crate::cli::GlobalOpts;
 mod host_browser_sdk_package;
 #[path = "host_capstone.rs"]
 mod host_capstone;
+#[path = "host_cargo_build.rs"]
+mod host_cargo_build;
 #[path = "host_configurator.rs"]
 mod host_configurator;
+#[path = "host_continuation_recipe.rs"]
+mod host_continuation_recipe;
 #[path = "host_esp32_inspection.rs"]
 mod host_esp32_inspection;
 #[cfg(test)]
@@ -43,10 +47,6 @@ mod host_spoken_birth;
 pub(crate) mod host_target;
 #[path = "host_whisper.rs"]
 mod host_whisper;
-#[path = "host_cargo_build.rs"]
-mod host_cargo_build;
-#[path = "host_continuation_recipe.rs"]
-mod host_continuation_recipe;
 #[path = "host_workset_source.rs"]
 mod host_workset_source;
 

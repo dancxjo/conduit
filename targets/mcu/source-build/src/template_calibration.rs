@@ -7,10 +7,10 @@ use conduit_host_make as h;
 use conduit_planner as p;
 use std::{collections::BTreeMap, fmt::Write, path::Path};
 
-#[path = "template_seal_emission.rs"]
-mod seal_emission;
 #[path = "template_continuation_manifest.rs"]
 mod continuation_manifest;
+#[path = "template_seal_emission.rs"]
+mod seal_emission;
 
 pub struct EntryLimits {
     pub entry: String,
@@ -255,7 +255,13 @@ impl Calibration {
             let storage=format!("pub const PORTS_PER_NODE:usize={};\npub const SIGN_ITEMS:usize={};\npub const SIGN_BYTES:u32={};\n",entry.layout.ports_per_node,entry.layout.sign_items,entry.layout.sign_bytes);
             text.insert_str(0, &storage);
             text.insert_str(0, &entry.layout.terminal_transductions_rust);
-            text.insert_str(0, &format!("pub const RECORD_SERVICE_RESOURCE:Option<u16>={:?};\n", entry.layout.record_service_resource));
+            text.insert_str(
+                0,
+                &format!(
+                    "pub const RECORD_SERVICE_RESOURCE:Option<u16>={:?};\n",
+                    entry.layout.record_service_resource
+                ),
+            );
             let mut profile=format!("pub const MAXIMA:conduit_core::AssignedPlanMaxima=conduit_core::AssignedPlanMaxima{{encoded_bytes:{},runtime_state_bytes:{},counts:{:?}}};\npub const HOST_CALL_CONTRACTS:&[conduit_core::AssignedIdentity]=&[",entry.layout.maxima.encoded_bytes,entry.layout.maxima.runtime_state_bytes,entry.layout.maxima.counts);
             for identity in &entry.layout.host_call_contracts {
                 write!(profile, "conduit_core::AssignedIdentity({:?}),", identity.0).unwrap();

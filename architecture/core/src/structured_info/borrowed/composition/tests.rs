@@ -1,7 +1,7 @@
 use super::*;
 use crate::{
-    StructuredFieldType as Field, StructuredFieldValue, StructuredInfoType as Type,
-    StructuredInfoValue as Owned, StructuredVariantCase, kind_id,
+    kind_id, StructuredFieldType as Field, StructuredFieldValue, StructuredInfoType as Type,
+    StructuredInfoValue as Owned, StructuredVariantCase,
 };
 use alloc::{vec, vec::Vec};
 #[test]
@@ -80,11 +80,9 @@ fn preflight_refusals_preserve_caller_buffer_and_valid_empty_is_not_an_arbitrary
     }
     let count = crate::encode_count(1);
     let mut short = [0xa5; 1];
-    assert!(
-        writer
-            .encode_into(BorrowedStructuredValue::Leaf(&count), &mut short)
-            .is_err()
-    );
+    assert!(writer
+        .encode_into(BorrowedStructuredValue::Leaf(&count), &mut short)
+        .is_err());
     assert_eq!(short, [0xa5; 1]);
     assert!(PreparedLinkedStructuredComposer::new(&[0; 3], 64).is_err());
 }
@@ -107,17 +105,15 @@ fn wrong_record_count_and_unknown_variant_are_preflight_refusals() {
     let mut output = [0xa5; 512];
     let payload = BorrowedStructuredValue::Record(&[]);
     for tag in ["known", "unknown"] {
-        assert!(
-            writer
-                .encode_into(
-                    BorrowedStructuredValue::Variant {
-                        tag,
-                        payload: &payload
-                    },
-                    &mut output
-                )
-                .is_err()
-        );
+        assert!(writer
+            .encode_into(
+                BorrowedStructuredValue::Variant {
+                    tag,
+                    payload: &payload
+                },
+                &mut output
+            )
+            .is_err());
         assert_eq!(output, [0xa5; 512]);
     }
 }
