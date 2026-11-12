@@ -103,7 +103,48 @@ pub(super) fn finish_checked<'a>(
     body: &str,
     maximum_assignment_bytes: u32,
     maximum_runtime_state_bytes: u32,
+    profile: AssignedBodyPreparationProfile<'_>,
+) -> Result<DelegatedBodyFragment<'a>, DelegatedFragmentRefusal> {
+    finish_checked_with(
+        metadata,
+        projection,
+        actual,
+        body,
+        maximum_assignment_bytes,
+        maximum_runtime_state_bytes,
+        profile,
+        |profile| match profile.fore {
+            Some(fore) => c::decode_assigned_plan_with_fore(
+                projection,
+                profile.maxima,
+                profile.requirements,
+                profile.computations,
+                fore,
+            ),
+            None => c::decode_assigned_plan_with_computations(
+                projection,
+                profile.maxima,
+                profile.requirements,
+                profile.computations,
+            ),
+        },
+    )
+}
+
+// Only representation selection varies. Attribution stays at the public
+// receiving entrances; every decoder shares these exact scope/resource checks.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn finish_checked_with<'a>(
+    metadata: BodyFragmentApprovalMetadata<'a>,
+    projection: &'a [u8],
+    actual: &c::HostAdvertisement,
+    body: &str,
+    maximum_assignment_bytes: u32,
+    maximum_runtime_state_bytes: u32,
     mut profile: AssignedBodyPreparationProfile<'_>,
+    decode: impl FnOnce(
+        &AssignedBodyPreparationProfile<'_>,
+    ) -> Result<c::AssignedPlanView, c::AssignedPlanRefusal>,
 ) -> Result<DelegatedBodyFragment<'a>, DelegatedFragmentRefusal> {
     use DelegatedFragmentRefusal as E;
     if metadata.body != body
@@ -135,22 +176,7 @@ pub(super) fn finish_checked<'a>(
         u32::from(profile.maxima.encoded_bytes).min(maximum_assignment_bytes) as u16;
     profile.maxima.runtime_state_bytes =
         u32::from(profile.maxima.runtime_state_bytes).min(maximum_runtime_state_bytes) as u16;
-    let view = match profile.fore {
-        Some(fore) => c::decode_assigned_plan_with_fore(
-            projection,
-            profile.maxima,
-            profile.requirements,
-            profile.computations,
-            fore,
-        ),
-        None => c::decode_assigned_plan_with_computations(
-            projection,
-            profile.maxima,
-            profile.requirements,
-            profile.computations,
-        ),
-    }
-    .map_err(E::Assignment)?;
+    let view = decode(&profile).map_err(E::Assignment)?;
     let id = c::AssignedIdentity::from_text;
     if view.plan != id(metadata.plot_plan)
         || view.fragment != id(metadata.fragment)

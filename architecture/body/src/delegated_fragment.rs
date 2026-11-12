@@ -177,6 +177,11 @@ mod approved_fore;
 #[cfg(feature = "authenticated-admission")]
 pub use approved_fore::*;
 
+#[cfg(feature = "authenticated-admission")]
+mod line_fore;
+#[cfg(feature = "authenticated-admission")]
+pub use line_fore::*;
+
 mod preparation_workset;
 pub use preparation_workset::*;
 
