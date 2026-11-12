@@ -7,9 +7,9 @@ mod assigned;
 mod offer;
 use alloc::vec;
 pub use assigned::PreparedAssignedPulse;
-pub use offer::capability_offer;
 use conduit_core::*;
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
+pub use offer::capability_offer;
 
 pub const PULSE_CAPABILITY: &str = "conduit/pulse-read@1";
 pub const PULSE_EXECUTION_PROFILE: &str = "conduit/pulse-cooperative-bounded@1";

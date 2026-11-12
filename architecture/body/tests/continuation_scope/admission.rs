@@ -8,6 +8,10 @@ pub fn check(
 ) {
     let mut fragments = Vec::new();
     for index in 0..3 {
+        let calls: Vec<_> = super::native_operations::rows(scope.document(index).unwrap())
+            .iter()
+            .map(|n| n.contract)
+            .collect();
         let profile = AssignedBodyPreparationProfile {
             maxima: c::AssignedPlanMaxima {
                 encoded_bytes: 4096,
@@ -17,7 +21,7 @@ pub fn check(
             requirements: c::AssignedPlanRequirements {
                 host: c::AssignedIdentity::from_text(actual.host_id.as_str()),
                 boot: c::AssignedIdentity::from_text(actual.boot_id.as_str()),
-                host_calls: &[],
+                host_calls: &calls,
                 resources: &[0],
                 remote_bindings: &[],
             },

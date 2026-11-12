@@ -15,6 +15,7 @@ use std::{
 pub(super) struct PendingMemberReturn {
     challenge: PartReturnChallenge,
     prior: MembershipCredential,
+    recover_retained_key: bool,
     prior_attachment: Option<AuthenticatedHostObservation>,
     completed: Option<(PartReturnProof, MembershipCredential)>,
     advertisement: HostAdvertisement,
@@ -110,6 +111,33 @@ impl Owner {
         advertisement: &HostAdvertisement,
         presentation: Option<conduit_body::MemberReturnImagePresentation>,
     ) -> Result<PartReturnChallenge, String> {
+        self.begin_member_image_return_with_policy(credential, advertisement, presentation, false)
+    }
+
+    /// Protected owner-local recovery entrance. The wire credential is only an
+    /// identity hint; the durable latest credential and current continuity key
+    /// remain the transition authority. Never selected by member wire data.
+    pub(crate) fn begin_recovered_member_image_return(
+        &mut self,
+        wire_prior: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+        presentation: conduit_body::MemberReturnImagePresentation,
+    ) -> Result<PartReturnChallenge, String> {
+        self.begin_member_image_return_with_policy(
+            wire_prior,
+            advertisement,
+            Some(presentation),
+            true,
+        )
+    }
+
+    fn begin_member_image_return_with_policy(
+        &mut self,
+        credential: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+        presentation: Option<conduit_body::MemberReturnImagePresentation>,
+        recover_retained_key: bool,
+    ) -> Result<PartReturnChallenge, String> {
         if let Some(claim) = &presentation {
             let mut context = advertisement.clone();
             context.capabilities.clear();
@@ -129,7 +157,16 @@ impl Owner {
             .as_ref()
             .filter(|p| Instant::now() < p.deadline)
         {
-            if pending.prior == *credential
+            let same_prior = if recover_retained_key {
+                pending
+                    .presentation
+                    .as_ref()
+                    .is_some_and(|claim| claim.credential == *credential)
+            } else {
+                pending.prior == *credential
+            };
+            if pending.recover_retained_key == recover_retained_key
+                && same_prior
                 && pending.advertisement == *advertisement
                 && pending.presentation == presentation
             {
@@ -151,12 +188,37 @@ impl Owner {
         {
             return Err("member return differs from retained Body and Host".into());
         }
+        let transition_prior = if recover_retained_key {
+            let latest = self
+                .admissions
+                .as_ref()
+                .and_then(|manager| {
+                    manager
+                        .receipts
+                        .iter()
+                        .rev()
+                        .find(|receipt| receipt.credential.part_id == credential.part_id)
+                })
+                .ok_or("member recovery has no retained credential")?;
+            if latest.credential.body_id != credential.body_id
+                || latest.credential.host_id != credential.host_id
+            {
+                return Err("member recovery differs from retained identity".into());
+            }
+            if latest.credential.boot_id == advertisement.boot_id {
+                return Err("member recovery requires a fresh Host Boot".into());
+            }
+            latest.credential.clone()
+        } else {
+            credential.clone()
+        };
+        // This still requires a distinct Boot and an eligible Admitted Part.
         let mut manager = self
             .admissions
             .clone()
             .ok_or("member return has no admission custody")?;
         let (basis, prior_attachment) =
-            self.member_return_preparation(credential, advertisement)?;
+            self.member_return_preparation(&transition_prior, advertisement)?;
         let at = crate::durable_host::current_time_millis()?;
         let mut nonce = [0; 32];
         getrandom::fill(&mut nonce).map_err(|e| e.to_string())?;
@@ -176,7 +238,8 @@ impl Owner {
         self.pending_member_return = Some(PendingMemberReturn {
             challenge: challenge.clone(),
             advertisement: advertisement.clone(),
-            prior: credential.clone(),
+            prior: transition_prior,
+            recover_retained_key,
             prior_attachment,
             completed: None,
             attempts: 0,

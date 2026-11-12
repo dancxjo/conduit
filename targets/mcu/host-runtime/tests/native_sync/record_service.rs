@@ -60,8 +60,8 @@ fn kernel(calls: [HostCallId; 2], value_bytes: u32, fail: Rc<Cell<bool>>) -> Ser
                 NodeId(0),
                 HostCallBinding {
                     call,
-                    maximum_input_bytes: 200,
-                    maximum_output_bytes: if call == HostCallId(1) {
+                    maximum_input_bytes: if call == calls[1] { 8 } else { 200 },
+                    maximum_output_bytes: if call == calls[1] {
                         READ_RESULT_BYTES as u32
                     } else {
                         APPEND_RESULT_BYTES
@@ -264,3 +264,6 @@ fn rejected_kernel_completion_retains_unacknowledged_service_custody() {
             .kernel_committed
     );
 }
+
+#[path = "factory_service.rs"]
+mod factory_service;

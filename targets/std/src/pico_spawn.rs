@@ -15,9 +15,14 @@ mod continuation;
 pub use continuation::{ContinuationInstallTransportError, UnverifiedContinuationPrefix};
 mod basis;
 pub use basis::PicoSpawnAdmissionBasis;
+mod fore_carriage;
 mod member_return;
 mod offer_images;
 mod preparation;
+pub use fore_carriage::{
+    ForeCarriageBounds, ForeCarriageError, ForeCarriageFrame, PicoForeCarriage,
+    PreparedForeCarriage,
+};
 pub use member_return::{MemberReturnObservation, MemberReturnPresentation, PicoMemberReturnBasis};
 pub use offer_images::resolve_member_offer_images;
 pub use preparation::{
@@ -69,12 +74,12 @@ pub enum ProvisioningCarrier {
 }
 impl ProvisioningCarrier {
     pub fn open(self, path: &str) -> Result<PicoSpawnSocket, PicoSpawnTransportError> {
-        let line = match self {
-            Self::UsbCdc => NativePathCdcLine::open(path, MAX_PICO_ADMISSION_FRAME_BYTES)?,
-            Self::ForwardedTty => {
-                NativePathCdcLine::open_forwarded_tty(path, MAX_PICO_ADMISSION_FRAME_BYTES)?
-            }
-        };
+        let line = NativePathCdcLine::open_exclusive_tty(
+            path,
+            MAX_PICO_ADMISSION_FRAME_BYTES,
+            matches!(self, Self::UsbCdc),
+        )?;
+        // Forwarded carriage still needs independently established remote custody.
         Ok(PicoSpawnSocket { line })
     }
 }
@@ -85,9 +90,16 @@ pub struct PicoSpawnSocket {
 
 impl PicoSpawnSocket {
     pub fn open(path: &str) -> Result<Self, PicoSpawnTransportError> {
-        Ok(Self {
-            line: NativePathCdcLine::open(path, MAX_PICO_ADMISSION_FRAME_BYTES)?,
-        })
+        ProvisioningCarrier::UsbCdc.open(path)
+    }
+
+    /// Check the independently pinned direct USB attachment of this same
+    /// claimed socket. This establishes neither membership nor a Ready Line.
+    #[cfg(target_os = "linux")]
+    pub fn verify_local_usb_serial(&self, expected: &str) -> Result<(), PicoSpawnTransportError> {
+        self.line
+            .verify_local_usb_serial(expected)
+            .map_err(Into::into)
     }
 
     /// Deliver an already committed receipt over two bounded raw USB frames.

@@ -15,7 +15,7 @@ mod recording {
 #[inline(never)]
 pub(super) fn publication_bounds(
     parameters: &[(u16, ValueRef)],
-) -> (u32, Option<Operation<'static>>) {
+) -> (u32, Option<crate::play::RecordingOperation<'static>>) {
     let definitions =
         source::sampling::definitions(parameters).expect("checked software definitions");
     let recording = recording::operation(&definitions, source::sampling::NATIVE_KINDS)

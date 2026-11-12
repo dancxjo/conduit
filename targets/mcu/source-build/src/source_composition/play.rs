@@ -30,20 +30,58 @@ use conduit_pulse_capture::installation::ReadyPulseBase;
 use conduit_resource_snapshot::native_append::ReadyRecordAppender;
 use conduit_tm1637_wire::installation::ReadyWriteBase;
 type RecordingStorage = crate::equipment::RecordingStorage;
+mod recording_policy {
+    include!(concat!(env!("OUT_DIR"), "/source_play_recording.rs"));
+}
+pub use recording_policy::{
+    RecordingIssuers, RecordingOperation, OUTPUT_BYTES as RECORDING_OUTPUT_BYTES,
+};
+
 type Pulse = crate::equipment::Capture;
 type Wire = crate::equipment::Wire;
 mod shapes {
     include!(concat!(env!("OUT_DIR"), "/source_play_shapes.rs"));
 }
+pub(crate) use shapes::FORE_PORTS;
 use shapes::{
-    OutputBound, SamplingBound, FORE_PORTS, OC, OH, ON, OP, OR, OS, OT, SC, SH, SN, SP, SR, SS, ST,
+    OutputBound, SamplingBound, OC, OH, OK, ON, OP, OR, OS, OT, SC, SH, SK, SN, SP, SR, SS, ST,
 };
-pub use shapes::{OutputKernel, SamplingKernel, CONDUIT_EXECUTION_KERNEL_BYTES};
+pub use shapes::{OutputKernel, SamplingCalls, SamplingKernel, CONDUIT_EXECUTION_KERNEL_BYTES};
+pub mod fore {
+    include!(concat!(env!("OUT_DIR"), "/source_play_fore.rs"));
+}
+// Specialize the generic lowering width at compile time. The physical kernel
+// borrows this immutable matrix; no projection array is constructed on its stack.
+const fn terminal_contracts<const N: usize, const P: usize, const WIDE: usize>(
+    source: &[[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; WIDE]; N],
+) -> [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]; N] {
+    assert!(P <= WIDE);
+    let mut result = [[None; P]; N];
+    let mut node = 0;
+    while node < N {
+        let mut port = 0;
+        while port < WIDE {
+            if port < P {
+                result[node][port] = source[node][port];
+            } else {
+                assert!(source[node][port].is_none());
+            }
+            port += 1;
+        }
+        node += 1;
+    }
+    result
+}
+const SAMPLING_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; SP];
+    SN] = terminal_contracts(&source::sampling_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
+const OUTPUT_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; OP];
+    ON] = terminal_contracts(&source::output_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
+
 pub const CONTINUATION_FORE_PORTS: usize = FORE_PORTS;
 pub type ContinuationStarted<'a, 'f> =
     conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
         (
-            SamplingBound<'a, 'f>,
+            fore::BoundSampling<'a, 'a, SamplingBound<'a, 'f>>,
             conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
             OutputBound<'a, 'f>,
         ),
@@ -119,9 +157,10 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     pulse: &'a mut Option<ReadyPulseBase<Pulse>>,
     write: &'a mut Option<ReadyWriteBase<Wire>>,
     waits: &'a mut [Option<ReadyMonotonicWaitBase<MonotonicTimer>>; WAIT_SLOTS],
-    recording: Option<&'a mut Option<ReadyRecordAppender<RecordingStorage>>>,
-    recording_issuer: &mut Issuer,
-    recording_operation: Option<&Operation<'_>>,
+    recording: Option<&'a mut Option<crate::equipment::RecordingReady>>,
+    #[cfg(record_service)] recording_resource: Option<&'a c::ResourceBinding>,
+    recording_issuer: RecordingIssuers<'_>,
+    recording_operation: Option<&RecordingOperation<'_>>,
     append_output_bytes: usize,
     pulse_issuer: &mut Issuer,
     write_issuer: &mut Issuer,
@@ -129,14 +168,22 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     operations: &Operations<'_, WAIT_SLOTS>,
     sampling_values: HostedValueStore,
     output_values: HostedValueStore,
-    contracts: execution_group::NativeContracts,
+    contracts: &mut Option<execution_group::NativeContracts>,
     diagnostic: &mut heapless::String<192>,
+    line: Option<fore::Selection<'a>>,
+    // Borrow only cold callback dispatch; capturing its concrete generic type
+    // in this opaque return would also retain short Root/parts context borrows.
+    prepare_carrier: &mut dyn FnMut(
+        &b::DelegatedBodyFragment<'w>,
+        Option<&b::ApprovedBodyForePorts<FORE_PORTS>>,
+        b::AssignedBodyPreparationProfile<'_>,
+    ) -> Result<Option<fore::Components<'a, 'a>>, &'static str>,
 ) -> Result<
     PreparedLocalWorkset<
         'w,
         impl PreparedLocalKernels<
                 Bound = (
-                    SamplingBound<'a, 'f>,
+                    fore::BoundSampling<'a, 'a, SamplingBound<'a, 'f>>,
                     conduit_seven_segment_mask::native_kernel::PreparedAssignedMaskKernel,
                     OutputBound<'a, 'f>,
                 ),
@@ -145,14 +192,28 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     >,
     Refusal<Refusal<&'static str>>,
 > {
+    // Keep cold schema graphs in their original backing through selection.
+    // The guard retires them on every refusal as well as on success.
+    struct ColdContracts<'a>(&'a mut Option<execution_group::NativeContracts>);
+    impl ColdContracts<'_> {
+        fn get(&self) -> Option<&execution_group::NativeContracts> {
+            self.0.as_ref()
+        }
+        fn retire(&mut self) {
+            *self.0 = None;
+        }
+    }
+    impl Drop for ColdContracts<'_> {
+        fn drop(&mut self) {
+            *self.0 = None;
+        }
+    }
+    let mut contracts = ColdContracts(contracts);
     let workspace = workspace.into();
     let append_selected = source::sampling::NATIVE_KINDS
         .iter()
         .any(|(_, kind)| *kind == conduit_resource_snapshot::native_append::APPEND_KIND);
-    if append_selected
-        && append_output_bytes
-            < conduit_resource_snapshot::native_append::APPEND_RESULT_BYTES as usize
-    {
+    if append_selected && append_output_bytes < RECORDING_OUTPUT_BYTES {
         return Err(Refusal::Bounds);
     }
     // The original arena funds cold preparation and retained execution.
@@ -188,6 +249,19 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
     let sf = source::sampling_layout::fore();
     let mf = source::mask_layout::fore();
     let of = source::output_layout::fore();
+    use conduit_mcu_host_runtime::execution_workset::AssignedPreparationProfile;
+    let mut sampling_profile = profile!(sampling_layout, host, boot, &sf);
+    let selected_profile = match line {
+        Some(line) => {
+            sampling_profile.fore = None;
+            sampling_profile.requirements.remote_bindings = line.bindings;
+            AssignedPreparationProfile::LineFore(b::AssignedBodyLineForePreparationProfile {
+                preparation: sampling_profile,
+                line_fore: line.profile,
+            })
+        }
+        None => AssignedPreparationProfile::Legacy(sampling_profile),
+    };
     context.prepare::<_, _, { crate::config::MAX_ASSIGNMENT_BYTES }, FORE_PORTS>(
         workspace,
         policy,
@@ -202,12 +276,20 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
             source::output_layout::CONFIGURATIONS,
         ],
         [
-            profile!(sampling_layout, host, boot, &sf),
-            profile!(mask_layout, host, boot, &mf),
-            profile!(output_layout, host, boot, &of),
+            selected_profile,
+            AssignedPreparationProfile::Legacy(profile!(mask_layout, host, boot, &mf)),
+            AssignedPreparationProfile::Legacy(profile!(output_layout, host, boot, &of)),
         ],
         #[inline(always)]
-        move |[sampling, mask, output], [sampling_fore, mask_fore, output_fore]| {
+        move |[sampling, mask, output], [sampling_fore, mask_fore, output_fore], approved_fore| {
+            // Reconstruct only the finite bounds and immutable borrowed pins;
+            // each preparation owner consumes its descriptor independently.
+            let sampling_profile=|| {
+                let mut profile=profile!(sampling_layout,host,boot,sampling_fore);
+                if let Some(line)=line { profile.fore=None; profile.requirements.remote_bindings=line.bindings; }
+                profile
+            };
+            let carriage=prepare_carrier(sampling,approved_fore.map(|ports|ports[0]),sampling_profile())?;
             // Bind the already funded recording owner only from the original
             // opaque approval. The stream identifies this authored producer;
             // Boot/Plan/Play remain separate, exact record context fields.
@@ -229,7 +311,6 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 stream.finalize().into(),
                 1,
             )?;
-            let sampling_profile = profile!(sampling_layout, host, boot, sampling_fore);
             let output_profile = profile!(output_layout, host, boot, output_fore);
             let (sample_backs, output_backs) = owners::prepare(
                 context,
@@ -241,6 +322,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 write,
                 waits,
                 recording,
+                #[cfg(record_service)] recording_resource,
                 recording_issuer,
                 recording_operation,
                 pulse_issuer,
@@ -249,12 +331,17 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 operations,
                 sampling,
                 output,
-                profile!(sampling_layout, host, boot, sampling_fore),
+                sampling_profile(),
                 profile!(output_layout, host, boot, output_fore),
+                line.map(|l|l.profile),
                 sampling_fore,
                 output_fore,
-                contracts,
+                contracts.get().ok_or("native-contracts-busy")?,
             )?;
+            // No native ticket retains schema references. End the immutable
+            // loan before dropping the original graphs in place, so their heap
+            // backing is available for physical kernel construction.
+            contracts.retire();
             let available = crate::runtime::remaining();
             if incremental > available {
                 return Err(kernel_refusal(
@@ -266,25 +353,10 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                     "kernel-headroom",
                 ));
             }
-            let sample = PreparedFragment::<_, SN, SC, SP, SR, ST, SH, SS, HostedSignLog>::prepare(
-                sampling,
-                sampling_profile,
-                sampling_fore,
-                &ResidentLayout {
-                    records: source::sampling_layout::RECORDS,
-                    counts: source::sampling_layout::COUNTS,
-                },
-                sampling_values,
-                HostedSignLog::new(
-                    SS as u16,
-                    (SS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
-                )
-                .map_err(|_| "sampling-sign-storage")?,
-                policy.maximum_retained_bytes,
-                || Ok::<_, &'static str>(sample_backs),
-            )
-            .map_err(|error| kernel_refusal(diagnostic, error, "sampling-kernel"))?;
-            let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog>::prepare(
+            let sample = fore::prepare_kernel(sampling,sampling_profile(),sampling_fore,line.map(|l|l.profile),sampling_values,policy.maximum_retained_bytes,sample_backs)
+                .map_err(|error| kernel_refusal(diagnostic,error,"sampling-kernel"))?;
+            let sample=match carriage {Some(carriage)=>carriage.wrap(sample),None=>fore::PreparedSampling::Local(sample,core::marker::PhantomData)};
+            let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog, OK>::prepare_with_terminal_transductions_ref(
                 output,
                 output_profile,
                 output_fore,
@@ -303,6 +375,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
                 .map_err(|_| "output-sign-storage")?,
                 policy.maximum_retained_bytes,
                 || Ok::<_, &'static str>(output_backs),
+                &OUTPUT_TERMINALS,
             )
             .map_err(|error| kernel_refusal(diagnostic, error, "output-kernel"))?;
             let mask = MaskConstruction {

@@ -795,7 +795,13 @@ fn assert_recall(mut harness: common::Harness, episodes: [ExternalForeInput; 2])
     let requests = harness.requests.lock().unwrap();
     assert_eq!(requests.len(), 2);
     let second: serde_json::Value = common::request_data(&requests[1]);
-    let selected = if second["schema"] == conduit_chat::EPISODE_RETRIEVAL_DATA_SCHEMA {
+    let selected = if [
+        conduit_chat::EPISODE_RETRIEVAL_DATA_SCHEMA,
+        conduit_chat::EPISODE_RETRIEVAL_FACT_DATA_SCHEMA,
+    ]
+    .iter()
+    .any(|schema| second["schema"] == *schema)
+    {
         common::model_projection::expanded_model_evidence(
             &second["current_experience"],
             second["observation"]["content"].as_str().unwrap(),

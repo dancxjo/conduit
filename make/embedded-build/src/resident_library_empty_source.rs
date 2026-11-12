@@ -13,7 +13,7 @@ impl Initialized {
     pub fn prepare() -> Result<Self, PreparationRefusal> {
         Ok(Self)
     }
-    pub fn offers(&self) -> [Option<&[u8]>; 0] {
+    pub fn offers(&self) -> [Option<&'static [u8]>; 0] {
         []
     }
     pub fn available_identity(
@@ -71,6 +71,15 @@ impl Initialized {
     > {
         Ok(PreparedResidentLoans { _owner: self })
     }
+    pub fn prepare_selected_profiles_array(
+        &mut self,
+        _: [Option<ResidentAssignment<'_>>; 0],
+    ) -> Result<
+        PreparedResidentLoans<'_>,
+        conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal,
+    > {
+        Ok(PreparedResidentLoans { _owner: self })
+    }
     pub fn borrow_selected(
         &mut self,
         selected: [Option<
@@ -99,6 +108,11 @@ pub struct PreparedResidentLoans<'a> {
     _owner: &'a mut Initialized,
 }
 impl<'a> PreparedResidentLoans<'a> {
+    pub fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> [Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]>; 0] {
+        []
+    }
     pub fn nodes(&self) -> [Option<u16>; 0] {
         []
     }
@@ -143,6 +157,11 @@ pub struct PreparedResidentEntryLoan<'a> {
     _loan: core::marker::PhantomData<&'a mut Initialized>,
 }
 impl<'a> PreparedResidentEntryLoan<'a> {
+    pub fn terminal_transductions<const P: usize>(
+        &self,
+    ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P] {
+        match self.never {}
+    }
     pub fn node(&self) -> u16 {
         match self.never {}
     }

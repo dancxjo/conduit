@@ -110,9 +110,10 @@ impl<'a, P: SynchronousHostCall> Service<'a, P> {
         const R: usize,
         const T: usize,
         const H: usize,
+        const K: usize,
     >(
         &mut self,
-        kernel: &mut StoredExecutionKernel<D, L, N, C, PORTS, R, T, H>,
+        kernel: &mut StoredExecutionKernel<D, L, N, C, PORTS, R, T, H, K>,
         activity: &NativeActivity,
     ) -> Result<Dispatch, Refusal> {
         let Some(_window) = activity.try_blocking() else {

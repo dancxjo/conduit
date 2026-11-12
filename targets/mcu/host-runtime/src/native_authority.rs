@@ -129,9 +129,10 @@ impl<'a, const W: usize> Operations<'a, W> {
         })
     }
 }
-/// One opaque issuer per actual owner, no duplicated Root/resource ledger.
+/// One opaque issuer per original operation, sharing the actual owners and ledger.
 pub struct Issuers<const W: usize> {
     pub recording: Issuer,
+    pub recording_read: Issuer,
     pub pulse: Issuer,
     pub write: Issuer,
     pub renderer: Issuer,
@@ -146,6 +147,7 @@ impl<const W: usize> Issuers<W> {
     pub fn new() -> Self {
         Self {
             recording: Issuer::new(),
+            recording_read: Issuer::new(),
             pulse: Issuer::new(),
             write: Issuer::new(),
             renderer: Issuer::new(),
@@ -216,6 +218,7 @@ impl<const W: usize> Issuers<W> {
     }
     pub fn retained_backing_bytes(&self) -> Option<usize> {
         core::iter::once(&self.recording)
+            .chain(core::iter::once(&self.recording_read))
             .chain(core::iter::once(&self.pulse))
             .chain(core::iter::once(&self.write))
             .chain(core::iter::once(&self.renderer))
@@ -226,6 +229,7 @@ impl<const W: usize> Issuers<W> {
     /// Borrowing preserves the Issuers' custody and issues no native token.
     pub fn grants(&self) -> impl Iterator<Item = &AuthorityGrant> + Clone {
         core::iter::once(&self.recording)
+            .chain(core::iter::once(&self.recording_read))
             .chain(core::iter::once(&self.pulse))
             .chain(core::iter::once(&self.write))
             .chain(core::iter::once(&self.renderer))
@@ -280,6 +284,10 @@ impl<const W: usize> Issuers<W> {
         Ok(result)
     }
 }
+
+#[path = "native_authority_recording.rs"]
+mod recording;
+pub use recording::record_service_operations;
 
 /// Installed Source supplies a finite record count; receiving a Plan supplies none.
 /// One operation owns the whole finite NOR residence, independently of call count.

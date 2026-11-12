@@ -28,9 +28,6 @@ pub use linux_builder::*;
 pub use microphone_initialization::{
     alsa_microphone_initialization_contract, ALSA_MICROPHONE_BASE_KIND,
 };
-pub use text_file_initialization::{
-    text_file_initialization_contract, CheckedTextFileInitialization, TEXT_FILE_BASE_KIND,
-};
 pub use tls_listener_initialization::{
     tls_listener_initialization_contract, CheckedTlsListenerInitialization, TLS_LISTENER_BASE_KIND,
     TLS_LISTENER_IMPLEMENTATION,
@@ -38,6 +35,10 @@ pub use tls_listener_initialization::{
 
 pub use source_check_initialization::{
     source_check_initialization_contract, CheckedSourceCheckInitialization,
+};
+
+pub use text_file_initialization::{
+    text_file_initialization_contract, CheckedTextFileInitialization,
 };
 
 pub struct HostedMakePackage;
@@ -187,12 +188,9 @@ fn package_catalog() -> PackageCatalogContribution {
         ]),
         implementations,
         dependencies: BTreeMap::from([
-            (
-                PrerequisiteNode::Resource("data/immutable-generation@1".into()),
-                vec![PrerequisiteNode::Base(TEXT_FILE_BASE_KIND.into())],
-            ),
             creche_initialization::resource_dependency(),
             source_check_initialization::resource_dependency(),
+            text_file_initialization::resource_dependency(),
             (
                 PrerequisiteNode::Resource("conduit.resource/timer-slot@1".into()),
                 vec![PrerequisiteNode::Base("timer/monotonic".into())],
@@ -280,27 +278,30 @@ impl HostMakePackage for HostedMakePackage {
                     "macos",
                 ),
             ],
-            offers: text_file_initialization::offers()
-                .into_iter()
-                .chain(vec![
-                    cpu_initialization::offer(),
-                    creche_initialization::offer(),
-                    source_check_initialization::offer(),
-                    tls_listener_initialization::offer(),
-                    playback_initialization::offer(),
-                    recognition_initialization::offer(),
-                    microphone_initialization::offer(),
-                    microphone_initialization::converted_offer(),
-                    offer("clock/monotonic", "hosted/monotonic-clock@1", "base-clock"),
-                    offer("serial/text", "hosted/serial@1", "base-serial"),
-                    offer(
-                        "storage/protected-file",
-                        "hosted/protected-file@1",
-                        "base-protected-file",
-                    ),
-                    offer("timer/monotonic", "hosted/monotonic-clock@1", "base-timer"),
-                ])
-                .collect(),
+            offers: [
+                text_file_initialization::offer(true),
+                text_file_initialization::offer(false),
+            ]
+            .into_iter()
+            .chain(vec![
+                cpu_initialization::offer(),
+                creche_initialization::offer(),
+                source_check_initialization::offer(),
+                tls_listener_initialization::offer(),
+                playback_initialization::offer(),
+                recognition_initialization::offer(),
+                microphone_initialization::offer(),
+                microphone_initialization::converted_offer(),
+                offer("clock/monotonic", "hosted/monotonic-clock@1", "base-clock"),
+                offer("serial/text", "hosted/serial@1", "base-serial"),
+                offer(
+                    "storage/protected-file",
+                    "hosted/protected-file@1",
+                    "base-protected-file",
+                ),
+                offer("timer/monotonic", "hosted/monotonic-clock@1", "base-timer"),
+            ])
+            .collect(),
         })
     }
 }

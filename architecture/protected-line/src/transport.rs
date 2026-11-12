@@ -1,4 +1,16 @@
 #[cfg(feature = "noise-session")]
+#[path = "scoped_session.rs"]
+mod scoped_session;
+#[cfg(feature = "noise-session")]
+pub use scoped_session::{ScopedProtectedSession, ScopedProtectedSessionAttempt};
+
+#[path = "async_handshake.rs"]
+mod async_handshake;
+#[cfg(feature = "noise-session")]
+pub use async_handshake::establish_protected_session_async;
+pub use async_handshake::AsyncProtectedFrameCarrier;
+
+#[cfg(feature = "noise-session")]
 use alloc::vec;
 #[cfg(feature = "noise-session")]
 use alloc::vec::Vec;

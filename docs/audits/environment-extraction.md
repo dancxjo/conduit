@@ -280,3 +280,29 @@ and shared TM1637 realization. Those follow-ups avoid restoring decoded schema
 copies or the removed Body-local display generator when reconciling the focused
 extraction. Every external package shared with the accepted base retains its version and
 checksum; additional existing entries fund integration-only runtime features.
+
+## Delivery reconciliation, 11 November 2026
+
+The initial shared extraction above landed through [#6867](https://github.com/dancxjo/conduit/pull/6867)
+after full Candidate proof. This is development delivery, not release or device
+acceptance. [#6870](https://github.com/dancxjo/conduit/pull/6870) separately carries
+typed retention and its real publication adapter. The focused TM1637 Frame/packet
+realization cut is [#6882](https://github.com/dancxjo/conduit/pull/6882), stacked on
+retention. Its six device tests and 53 remaining Body tests, strict Body lint,
+public output proof, lock/shard guards and Cortex-M0+ checks qualify that source
+cut without importing the experimental MCU framework.
+
+The remaining architectural boundary is explicit application composition.
+The branch-only MCU preparation work in [#6837](https://github.com/dancxjo/conduit/pull/6837)
+has shared checked-workset/software-offer helpers with production callers, but
+its `software.rs` and `workset.rs` still select environmental publication channels
+and recording contracts. Those choices must become explicit application/Host
+adapter inputs; the shared compiler must not silently install the environmental
+catalog. The helpers alone do not complete that migration.
+
+Likewise, local commit ordering is not durable recording; trusted evidence is
+not a selected recorder; a retained Face is not an admitted contribution or
+Mask route. Recorder installation/restart, shared observation/history views and
+retirement of superseded proof services remain with the acceptance owners in
+the inventory above. These extractions remove reusable machinery from the Body;
+they do not by themselves establish a wholly authored installed application.

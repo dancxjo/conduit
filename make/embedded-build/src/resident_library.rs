@@ -11,7 +11,10 @@ pub fn generate_resident_library(
         return Err(R::Bounds);
     }
     if images.is_empty() {
-        let code = include_str!("resident_library_empty_source.rs");
+        let code = concat!(
+            include_str!("resident_assignment_source.rs"),
+            include_str!("resident_library_empty_source.rs")
+        );
         return if code.len() as u64 <= u64::from(maximum_generated_bytes) {
             Ok(code.into())
         } else {
@@ -68,7 +71,7 @@ pub fn generate_resident_library(
     }
     code.push_str("})}\n");
     code.push_str(&format!(
-        "/// Lossless document images of unbound initialized owners only.\n/// This does not publish a Host generation.\npub fn offers(&self)->[Option<&[u8]>;{}]{{[\n",
+        "/// Lossless document images of unbound initialized owners only.\n/// This does not publish a Host generation.\npub fn offers(&self)->[Option<&'static [u8]>;{}]{{[\n",
         images.len()
     ));
     for index in 0..images.len() {

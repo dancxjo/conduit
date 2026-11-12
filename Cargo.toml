@@ -51,6 +51,7 @@ members = [
 	"mechanisms/io/resource-snapshot",
 	"mechanisms/io/i2c-transaction",
 	"mechanisms/devices/create-oi",
+
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
 	"mechanisms/implementations/linear-framebuffer-make",
@@ -165,7 +166,10 @@ strip = "symbols"
 opt-level = "s"
 strip = "symbols"
 
+# Cross-crate deduplication keeps the complete native Host under its artifact bound.
+# Provider dependencies retain their existing release optimization levels.
 [profile.release]
+lto = "thin"
 strip = "symbols"
 
 # Source checking and binding generation also run inside build dependencies.

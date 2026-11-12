@@ -46,7 +46,7 @@ impl AssignedForeRequirement {
         }
         Self { payload }
     }
-    pub fn payload(&self) -> &[u8; ASSIGNED_LOCAL_FORE_BYTES] {
+    pub const fn payload(&self) -> &[u8; ASSIGNED_LOCAL_FORE_BYTES] {
         &self.payload
     }
     pub fn endpoint(&self) -> u16 {

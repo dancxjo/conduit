@@ -1,177 +1,169 @@
-//! Explicit finite immutable Text residence intent; no filesystem effects or authority.
-use conduit_core::{
-    BoundedResourceRef, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
-    ResourceVersionIdentity,
-};
+//! Checked single-generation file intent; no directory, grant or Ready provider.
 use conduit_host_make::{
     BaseInitializationContract, CheckedHostConfiguration, ConfigurationValue,
     ImplementationMetadata, ImplementationOffer, KindConfigurationField, KindConfigurationRule,
     PrerequisiteNode,
 };
-use std::path::PathBuf;
-pub const TEXT_FILE_BASE_KIND: &str = "storage/immutable-text";
+use conduit_std_offers::*;
+fn targets() -> Vec<String> {
+    vec![
+        crate::HOSTED_TARGET_ID.into(),
+        "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
+        "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb".into(),
+    ]
+}
 pub fn text_file_initialization_contract() -> BaseInitializationContract {
-    let text = |key: &str, maximum| KindConfigurationField {
+    let count = |key: &str, default, maximum| KindConfigurationField {
         key: key.into(),
-        default_value: ConfigurationValue::Text(String::new()),
-        rule: KindConfigurationRule::DataLabel { maximum },
-    };
-    let count = |key: &str, minimum, maximum| KindConfigurationField {
-        key: key.into(),
-        default_value: ConfigurationValue::U64(minimum),
-        rule: KindConfigurationRule::U64Range { minimum, maximum },
+        default_value: ConfigurationValue::U64(default),
+        rule: KindConfigurationRule::U64Range {
+            minimum: 1,
+            maximum,
+        },
     };
     BaseInitializationContract {
         fields: vec![
-            text("directory", 4096),
-            text("identity", 64),
-            text("version", 64),
-            text("content_profile", 64),
-            text("access", 32),
-            count("content_bytes", 1, 4096),
-            count("disk_capacity_bytes", 8192, 1024 * 1024),
+            count(
+                "maximum_text_bytes",
+                u64::from(DURABLE_TEXT_MAXIMUM_BYTES),
+                u64::from(DURABLE_TEXT_MAXIMUM_BYTES),
+            ),
+            count("preparation_bytes", 1, u64::from(u32::MAX)),
+            count("retained_bytes", 1, u64::from(u32::MAX)),
         ],
     }
 }
-pub(super) fn offers() -> Vec<ImplementationOffer> {
-    [
-        conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION,
-        conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION,
-    ]
-    .into_iter()
-    .map(|implementation| ImplementationOffer {
-        base_kind: TEXT_FILE_BASE_KIND.into(),
-        implementation_id: implementation.into(),
+pub(super) fn offer(write: bool) -> ImplementationOffer {
+    ImplementationOffer {
+        base_kind: DURABLE_TEXT_BASE_KIND.into(),
+        implementation_id: implementation(write).into(),
         implementation_revision: 1,
-        target_patterns: vec!["std/*/*".into()],
+        target_patterns: targets(),
         prerequisites: vec![],
         build_feature: None,
-    })
-    .collect()
+    }
 }
 pub(super) fn metadata(write: bool) -> ImplementationMetadata {
+    let contract = durable_text_contract(write);
     ImplementationMetadata {
-        kind: if write {
-            "data/save/text"
-        } else {
-            "data/load/text"
-        }
-        .into(),
-        contract_revision: "conduit.data/text-generation@2".into(),
-        targets: vec!["std/*/*".into()],
+        kind: contract.kind_id.as_str().into(),
+        contract_revision: contract.kind_contract_revision.as_str().into(),
+        targets: targets(),
         prerequisites: vec![
             PrerequisiteNode::HostCall(
                 if write {
-                    conduit_std_offers::DURABLE_TEXT_PUBLISH_CALL
+                    DURABLE_TEXT_PUBLISH_CALL
                 } else {
-                    conduit_std_offers::DURABLE_TEXT_READ_CALL
+                    DURABLE_TEXT_READ_CALL
                 }
                 .into(),
             ),
-            PrerequisiteNode::Resource("data/immutable-generation@1".into()),
+            PrerequisiteNode::Resource(DURABLE_TEXT_RESOURCE.into()),
+            PrerequisiteNode::Driver(implementation(write).into()),
         ],
     }
 }
+pub(super) fn resource_dependency() -> (PrerequisiteNode, Vec<PrerequisiteNode>) {
+    (
+        PrerequisiteNode::Resource(DURABLE_TEXT_RESOURCE.into()),
+        vec![PrerequisiteNode::Base(DURABLE_TEXT_BASE_KIND.into())],
+    )
+}
+fn implementation(write: bool) -> &'static str {
+    if write {
+        DURABLE_TEXT_SAVE_IMPLEMENTATION
+    } else {
+        DURABLE_TEXT_LOAD_IMPLEMENTATION
+    }
+}
+/// Exact Source-bound finite construction parameters. Directory custody, the
+/// immutable reference and the existing snapshot authority grant remain separate
+/// Root inputs; none can be inferred from this description.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CheckedTextFileInitialization {
     pub configuration_id: String,
-    pub directory: PathBuf,
-    pub reference: BoundedResourceRef,
+    pub driver: String,
     pub write: bool,
-    pub disk_capacity_bytes: u64,
+    pub maximum_text_bytes: u32,
+    pub preparation_bytes: u64,
+    pub retained_bytes: u64,
 }
 impl CheckedTextFileInitialization {
     pub fn from_configuration(checked: &CheckedHostConfiguration) -> Result<Self, String> {
-        if checked.configuration().target.os.as_deref() != Some("linux") {
-            return Err("immutable Text residence requires Linux".into());
+        if checked.configuration().target.os.as_deref() != Some("linux")
+            || checked.profile().target.family != "std"
+        {
+            return Err("durable Text initialization requires a selected Linux/std Host".into());
         }
         let mut bases = checked
             .configuration()
             .bases
             .iter()
-            .filter(|base| base.kind == TEXT_FILE_BASE_KIND);
-        let base = bases.next().ok_or("no selected immutable Text residence")?;
-        if bases.next().is_some() {
-            return Err("immutable Text residence requires one selected generation".into());
+            .filter(|b| b.kind == DURABLE_TEXT_BASE_KIND);
+        let base = bases.next().ok_or("no selected durable Text Base")?;
+        if bases.next().is_some() || !base.implementations.is_empty() {
+            return Err("durable Text requires one explicitly pinned Base".into());
+        }
+        let mut selected = checked
+            .resolved_bases()
+            .iter()
+            .filter(|(kind, _)| kind == DURABLE_TEXT_BASE_KIND);
+        let (_, driver) = selected
+            .next()
+            .ok_or("durable Text driver is not resolved")?;
+        let write = match driver.as_str() {
+            DURABLE_TEXT_SAVE_IMPLEMENTATION => true,
+            DURABLE_TEXT_LOAD_IMPLEMENTATION => false,
+            _ => return Err("unsupported durable Text driver".into()),
+        };
+        if selected.next().is_some() || base.implementation.as_deref() != Some(driver.as_str()) {
+            return Err("durable Text requires one exact selected driver".into());
+        }
+        let mut capabilities = checked.profile().capabilities.iter().filter(|c| {
+            [DURABLE_TEXT_SAVE_KIND, DURABLE_TEXT_LOAD_KIND].contains(&c.kind.as_str())
+        });
+        let capability = capabilities
+            .next()
+            .ok_or("durable Text operation is not explicitly selected")?;
+        let kind = if write {
+            DURABLE_TEXT_SAVE_KIND
+        } else {
+            DURABLE_TEXT_LOAD_KIND
+        };
+        if capabilities.next().is_some()
+            || capability.implementation != *driver
+            || capability.kind != kind
+            || capability.contract_revision != DURABLE_TEXT_CONTRACT_REVISION
+        {
+            return Err("durable Text capability differs from its selected driver".into());
         }
         let values = base
             .initialization
             .as_ref()
-            .ok_or("immutable Text residence requires explicit initialization")?
+            .ok_or("missing durable Text initialization")?
             .checked_values(&text_file_initialization_contract())?;
-        let text = |key: &str| match values.get(key) {
-            Some(ConfigurationValue::Text(value)) => Ok(value.as_str()),
-            _ => Err("immutable Text initialization text field"),
-        };
-        let number = |key: &str| match values.get(key) {
+        let count = |key: &str| match values.get(key) {
             Some(ConfigurationValue::U64(value)) => Ok(*value),
-            _ => Err("immutable Text initialization count field"),
+            _ => Err("durable Text count has wrong type".to_string()),
         };
-        let directory = PathBuf::from(text("directory")?);
-        if !directory.is_absolute()
-            || directory
-                .components()
-                .any(|part| matches!(part, std::path::Component::ParentDir))
-        {
-            return Err("immutable Text requires an absolute selected directory".into());
-        }
-        let write = match text("access")? {
-            "write-candidate-publish" => true,
-            "read-published" => false,
-            _ => return Err("immutable Text access must be explicit".into()),
-        };
-        let implementation = if write {
-            conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION
-        } else {
-            conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION
-        };
-        if !checked
-            .resolved_bases()
-            .iter()
-            .any(|(kind, selected)| kind == TEXT_FILE_BASE_KIND && selected == implementation)
-        {
-            return Err("immutable Text access differs from selected implementation".into());
-        }
-        if text("content_profile")? != "value/text" {
-            return Err("immutable Text requires value/text content".into());
-        }
-        let reference = BoundedResourceRef {
-            identity: ResourceSemanticIdentity::from_digest(digest(text("identity")?)?),
-            content_profile: "value/text".into(),
-            access_class: "data/immutable-generation@1".into(),
-            extent: ResourceExtent {
-                bytes: number("content_bytes")?,
-                items: None,
-            },
-            lifetime: ResourceLifetime {
-                version: ResourceVersionIdentity::from_digest(digest(text("version")?)?),
-                expires_at: None,
-            },
-        };
-        reference
-            .validate()
-            .map_err(|e| format!("immutable Text reference: {e:?}"))?;
-        Ok(Self {
+        let result = Self {
             configuration_id: checked.configuration_id().into(),
-            directory,
-            reference,
+            driver: driver.clone(),
             write,
-            disk_capacity_bytes: number("disk_capacity_bytes")?,
-        })
+            maximum_text_bytes: u32::try_from(count("maximum_text_bytes")?)
+                .map_err(|_| "durable Text extent overflow")?,
+            preparation_bytes: count("preparation_bytes")?,
+            retained_bytes: count("retained_bytes")?,
+        };
+        if result.retained_bytes > result.preparation_bytes
+            || result.preparation_bytes > checked.configuration().limits.heap_arena_bytes
+        {
+            return Err(
+                "durable Text preparation omits retention or exceeds declared memory".into(),
+            );
+        }
+        Ok(result)
     }
 }
-fn digest(text: &str) -> Result<[u8; 32], String> {
-    if text.len() != 64
-        || !text
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-    {
-        return Err("immutable Text identity requires 64 lowercase hex digits".into());
-    }
-    let mut result = [0; 32];
-    for (index, value) in result.iter_mut().enumerate() {
-        *value =
-            u8::from_str_radix(&text[index * 2..index * 2 + 2], 16).map_err(|e| e.to_string())?;
-    }
-    Ok(result)
-}
+#[cfg(test)]
+mod tests;

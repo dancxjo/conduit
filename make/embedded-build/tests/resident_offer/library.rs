@@ -2,6 +2,8 @@
 #[path = "publication.rs"]
 mod publication;
 pub use publication::decode;
+#[path = "library_profiles.rs"]
+mod profiles;
 
 pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::Back {
     use conduit_body::{FederationPeer, HostCommandReceiveBounds, IssuedHostCommandChallenge};
@@ -42,6 +44,7 @@ pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::
         assignment.pins[0]
     );
     publication::check(library.offers());
+    profiles::run(&mut library, assignment);
     let original = library.offers();
     let original = original.map(|offer| {
         let offer = offer.unwrap();

@@ -57,6 +57,7 @@ pub(super) fn with_verified_root(operation: impl FnOnce(&ImageRootPreparation<'_
                 retained_bytes: 4 * 1024 * 1024,
             },
             None,
+            None,
             |_, root| -> Result<UnusedMetadata, String> {
                 operation(root);
                 Err("fixture stops before native construction".into())

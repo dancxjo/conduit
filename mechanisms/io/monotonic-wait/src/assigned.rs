@@ -4,11 +4,17 @@ use conduit_core::BoundBaseOperation;
 use conduit_plan_lowering::{
     selected_assigned_operation::{
         bind_selected_assigned_configured_operation,
-        bind_selected_assigned_fore_configured_operation, AssignedNativeIdentity,
-        SelectedAssignedForeOperationPlan, SelectedAssignedOperationPlan,
+        bind_selected_assigned_fore_configured_operation,
+        bind_selected_assigned_line_fore_configured_operation, AssignedNativeIdentity,
+        SelectedAssignedForeOperationPlan, SelectedAssignedLineForeOperationPlan,
+        SelectedAssignedOperationPlan,
     },
     selected_operation::{SelectedCallRefusal, SelectedOperationContract},
 };
+enum ForeProfile<'a> {
+    Local(&'a [AssignedForeRequirement]),
+    Line(conduit_core::AssignedLineForeProfile<'a>),
+}
 impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
     /// Check retained identity and attachment without transferring the timer,
     /// dispatching a wait or consuming a lease.
@@ -33,7 +39,23 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             claim,
             configuration,
             selected.operation,
-            Some(selected.fore),
+            Some(ForeProfile::Local(selected.fore)),
+        )
+    }
+    /// Explicit schema-8 check; no timer withdrawal, wait or lease consumption.
+    pub fn check_assigned_line_fore(
+        &self,
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        configuration: &[ConfigurationEntry],
+        selected: SelectedAssignedLineForeOperationPlan<'_>,
+    ) -> Result<conduit_kernel::NodeId, WaitCallRefusal> {
+        self.check_assigned_profile(
+            table,
+            claim,
+            configuration,
+            selected.operation,
+            Some(ForeProfile::Line(selected.fore)),
         )
     }
     fn check_assigned_profile(
@@ -42,7 +64,7 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
         claim: &BaseOperationClaim,
         configuration: &[ConfigurationEntry],
         selected: SelectedAssignedOperationPlan<'_>,
-        fore: Option<&[AssignedForeRequirement]>,
+        fore: Option<ForeProfile<'_>>,
     ) -> Result<conduit_kernel::NodeId, WaitCallRefusal> {
         let identity = &self.identity;
         if claim.host_id != identity.host_id
@@ -83,13 +105,24 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
                 native,
                 selected,
             ),
-            Some(fore) => bind_selected_assigned_fore_configured_operation(
+            Some(ForeProfile::Local(fore)) => bind_selected_assigned_fore_configured_operation(
                 table,
                 claim,
                 definition,
                 configuration,
                 native,
                 SelectedAssignedForeOperationPlan {
+                    operation: selected,
+                    fore,
+                },
+            ),
+            Some(ForeProfile::Line(fore)) => bind_selected_assigned_line_fore_configured_operation(
+                table,
+                claim,
+                definition,
+                configuration,
+                native,
+                SelectedAssignedLineForeOperationPlan {
                     operation: selected,
                     fore,
                 },
@@ -184,6 +217,28 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             .as_ref()
             .ok_or(WaitCallRefusal::Possession)?
             .check_assigned_fore(&table, &claim, configuration, selected)?;
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WaitCallRefusal::Capability(reason))?;
+        Ok(PreparedAssignedWait {
+            slot,
+            operation,
+            node,
+        })
+    }
+    /// Exact schema-8 Fore and configuration checks lend the SAME original
+    /// Ready timer; dropping the ticket leaves it in its initialized slot.
+    pub fn prepare_assigned_line_fore_retained<'a>(
+        slot: &'a mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        configuration: &[ConfigurationEntry],
+        selected: SelectedAssignedLineForeOperationPlan<'_>,
+    ) -> Result<PreparedAssignedWait<'a, P>, WaitCallRefusal> {
+        let node = slot
+            .as_ref()
+            .ok_or(WaitCallRefusal::Possession)?
+            .check_assigned_line_fore(&table, &claim, configuration, selected)?;
         let operation = BoundBaseOperation::bind(table, handle, claim)
             .map_err(|(_, _, _, reason)| WaitCallRefusal::Capability(reason))?;
         Ok(PreparedAssignedWait {

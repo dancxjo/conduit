@@ -28,6 +28,32 @@ pub fn checked_recording(
     Ok(Some(construction))
 }
 
+/// Check an explicitly selected service's physical construction, never grant
+/// its read operations or create another residence resource.
+pub fn checked_record_service(
+    checked: &CheckedHostConfiguration,
+    implementation: &str,
+    minimum_prefix_bytes: u32,
+    durable_bytes: u32,
+) -> Result<Option<recording::CheckedRecordServiceConstruction>, String> {
+    if !checked
+        .configuration()
+        .bases
+        .iter()
+        .any(|base| base.kind == recording::BASE_KIND)
+    {
+        return Ok(None);
+    }
+    let construction =
+        recording::CheckedRecordServiceConstruction::from_configuration(checked, implementation)?;
+    if construction.residence.prefix_bytes < minimum_prefix_bytes
+        || construction.residence.end_bytes()? > durable_bytes
+    {
+        return Err("recording exceeds physical DURABLE".into());
+    }
+    Ok(Some(construction))
+}
+
 /// Preserve original standard image ordering and optional append shape. Every
 /// definition still passes the same finite ordinary image encoder.
 pub fn emit_capability_images(
@@ -99,7 +125,11 @@ pub fn check_source_clocks(
 ) -> Result<(), String> {
     let mut waits = 0usize;
     for entry in &workset.entries {
-        let material = crate::software::compile(&entry.plot.expanded, 24 * 1024)?;
+        let material = crate::software::compile_with_types(
+            &entry.plot.expanded,
+            Some(&workset.checked_source),
+            24 * 1024,
+        )?;
         for node in material.nodes {
             if let crate::software::SoftwareRole::Tick { period_ms, .. } = node.role {
                 waits += 1;

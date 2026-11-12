@@ -48,6 +48,8 @@ mod creche;
 mod creche_tests;
 mod execution;
 mod face_route;
+mod issuing_host;
+pub use issuing_host::{ImageIssuingHostRunReport, IssuingHostRunReport};
 mod fore;
 mod fore_custody;
 pub use fore_custody::{
@@ -117,7 +119,8 @@ impl Drop for LiveForeTerminalGuard<'_> {
 #[derive(Debug)]
 pub struct BodyRunReport {
     pub play: BodyPlayIdentity,
-    /// Historical lifecycle record at start, not a current liveness claim.
+    /// Historical lifecycle record at local start, not current liveness. An
+    /// issuing-Host report retains the original Wake without global advancement.
     pub wake_at_start: Wake,
     /// Kernel execution disposition; cleanup may independently fail afterward.
     pub terminal: TerminalDisposition,

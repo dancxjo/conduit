@@ -19,11 +19,15 @@ mod host_call;
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};
 mod reader;
 mod snapshot;
+#[cfg(feature = "text-recording")]
+mod text_generation;
 use alloc::string::String;
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId, StructuredInfoRefusal};
 pub use history::{PreparedRecordingHistory, RecordingHistoryRefusal, RecoveredHistory};
 pub use reader::{PreparedRecordingReader, RecordedSample, RecordingReadRefusal};
 pub use snapshot::{PreparedRecordingSnapshot, RecordingSnapshotRefusal};
+#[cfg(feature = "text-recording")]
+pub use text_generation::{PreparedRecordingText, RecordingTextRefusal};
 #[allow(dead_code)]
 mod forms {
     include!(concat!(env!("OUT_DIR"), "/recording-forms.rs"));

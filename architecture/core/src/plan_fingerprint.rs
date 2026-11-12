@@ -255,6 +255,16 @@ fn push_bound_link(
     push_u32(canonical, binding.limits.maximum_frame_bytes);
 }
 
+/// Commitment to the complete immutable Line already selected by a Plan.
+/// Uses the Plan's canonical field encoding and no intermediate allocation.
+/// This fingerprint establishes neither live availability nor carrier custody.
+pub fn admitted_line_commitment(line: &AdmittedLine) -> [u8; 32] {
+    let mut canonical = CanonicalHash::new();
+    push_string(&mut canonical, "conduit.admitted-line/commitment@1");
+    push_admitted_line(&mut canonical, line);
+    canonical.finish()
+}
+
 fn push_admitted_line(
     canonical: &mut impl crate::canonical_bytes::CanonicalSink,
     line: &AdmittedLine,

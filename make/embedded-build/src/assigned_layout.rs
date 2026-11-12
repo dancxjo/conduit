@@ -30,6 +30,13 @@ pub(crate) fn layout_records(
     bytes: Vec<u8>,
     schema: u16,
 ) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
+    layout_records_profile(bytes, schema, None)
+}
+pub(crate) fn layout_records_profile(
+    bytes: Vec<u8>,
+    schema: u16,
+    profile: Option<conduit_core::AssignedLineForeProfile<'_>>,
+) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
     conduit_core::AssignedPlanRecords::new(&bytes)
         .map_err(|_| GenerationError::InvalidFragment)?
         .filter_map(|record| match record {
@@ -39,9 +46,16 @@ pub(crate) fn layout_records(
                     ASSIGNED_CONFIGURATION | ASSIGNED_SIGN | ASSIGNED_TERMINAL
                 ) =>
             {
-                Some(Ok(
-                    conduit_core::AssignedRecordRequirement::from_kernel_record(record, schema),
-                ))
+                Some(Ok(match profile {
+                    Some(profile) => {
+                        conduit_core::AssignedRecordRequirement::from_kernel_record_with_line_fore(
+                            record, profile,
+                        )
+                    }
+                    None => {
+                        conduit_core::AssignedRecordRequirement::from_kernel_record(record, schema)
+                    }
+                }))
             }
             Ok(_) => None,
             Err(_) => Some(Err(GenerationError::InvalidFragment)),

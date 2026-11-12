@@ -53,55 +53,6 @@ impl Owner {
             .map(|play| &play.active_play_id)
     }
 
-    /// Plan the complete retained workset for the owner's existing finite
-    /// receipt adapter. Output budgets confer no input or Host Call authority.
-    pub(crate) fn plan_retained(&mut self, root: &Path) -> Result<(), String> {
-        self.plan_retained_with_ingress(root, None)
-    }
-
-    pub(crate) fn plan_retained_with_ingress(
-        &mut self,
-        root: &Path,
-        ingress: Option<&ImageIngress>,
-    ) -> Result<(), String> {
-        self.ensure_execution_retained(root)?;
-        if let Some(ingress) = ingress {
-            self.host.verify_selected_image_fore_input(&ingress.input)?;
-        }
-        #[cfg(target_os = "linux")]
-        if let Some(retained) = self.selected_file_workset.take() {
-            let result = (|| {
-                retained.verify(&self.host, &self.session.evidence().body.workset)?;
-                let boundaries = fore::boundaries_for_plots_with_local(
-                    retained.checked.plots.iter(),
-                    ingress,
-                    self.local_fore_adapters.as_ref(),
-                )?;
-                let borrowed = retained
-                    .checked
-                    .plots
-                    .iter()
-                    .map(|plot| (&retained.checked.source, plot))
-                    .collect::<Vec<_>>();
-                self.plan_workset_with_source_boundaries(&borrowed, &boundaries)
-            })();
-            self.selected_file_workset = Some(retained);
-            return result;
-        }
-        let sources = super::super::retained_source::workset(root)?
-            .ok_or("retained Source workset is unavailable for Body Plan")?;
-        let boundaries = fore::boundaries_for_plots_with_local(
-            sources.iter().map(|source| &source.plot),
-            ingress,
-            self.local_fore_adapters.as_ref(),
-        )?;
-        let borrowed: Vec<_> = sources
-            .iter()
-            .map(|source| (&source.source, &source.plot))
-            .collect();
-        self.plan_workset_with_source_boundaries(&borrowed, &boundaries)
-    }
-
     /// Foreground Run consumes its already proposed exact Plan, using the same
     /// admitted execution and durable Start acknowledgment as the service.
     pub(crate) fn execute_prepared(

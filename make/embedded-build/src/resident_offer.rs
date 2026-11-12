@@ -51,15 +51,20 @@ pub(crate) fn append(
         .map_err(|_| R::GenerationMetadata)?;
     // Keep only the lossless image, never a second raw catalog in firmware.
     code.push_str(&format!("static OFFER_IMAGE:&[u8]=&{image:?};\n"));
-    code.push_str(r#"
+    code.push_str(
+        r#"
 /// One actually initialized Back; metadata grants no resource or execution.
 pub struct Initialized { back:Back, available:bool }
 impl Initialized {
 pub fn prepare()->Result<Self,PreparationRefusal>{Ok(Self{back:prepare_back()?,available:true})}
 /// Lossless descriptive image; availability remains separate.
-pub fn offer_image(&self)->&[u8]{OFFER_IMAGE}
-pub fn available_offer_image(&self)->Option<&[u8]>{self.available.then_some(OFFER_IMAGE)}
+pub fn offer_image(&self)->&'static [u8]{OFFER_IMAGE}
+pub fn available_offer_image(&self)->Option<&'static [u8]>{self.available.then_some(OFFER_IMAGE)}
 pub fn into_back(self)->Back{self.back}
+"#,
+    );
+    append_terminal_inspection(code);
+    code.push_str(r#"
 /// All checks precede the exclusive loan. No second engine is constructed.
 pub fn borrow_assigned(&mut self,selected:conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>)->Result<(u16,BorrowedBack<'_>),conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{
 let node=self.check_assigned(selected)?;Ok((node,self.borrow_prechecked()))
@@ -75,4 +80,11 @@ pub(super) fn borrow_prechecked(&mut self)->BorrowedBack<'_>{self.available=fals
         private_work,
     )?;
     Ok(offer)
+}
+
+pub(crate) fn append_terminal_inspection(code: &mut String) {
+    code.push_str(r#"
+/// Borrow the actual initialized Back's laws without changing availability.
+pub fn terminal_transductions<const P:usize>(&self)->[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;P]{<Back as conduit_kernel::scheduler::StepBack<P>>::terminal_transductions(&self.back)}
+"#);
 }

@@ -43,7 +43,7 @@ impl<
             required,
             computations,
             layout,
-            Some(fore),
+            Some(ForeProfile::Local(fore)),
             false,
         )?;
         Ok(Self {
@@ -54,6 +54,100 @@ impl<
             calls: tables.calls,
             startup_order: tables.startup_order,
         })
+    }
+
+    /// Decode into caller-owned initialized inert tables. This supplies no
+    /// admission, provider possession, or execution authority. On refusal the
+    /// destination may be partially written and must not be executed.
+    #[allow(clippy::too_many_arguments)]
+    pub fn write_with_fore(
+        bytes: &[u8],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        fore: &[c::AssignedForeRequirement],
+        nodes: &mut [NodeSpec<P>; N],
+        cords: &mut [CordSpec; C],
+        routes: &mut k::FixedRoutes<R, T>,
+        calls: &mut k::FixedHostCallBindings<H>,
+    ) -> Result<c::AssignedPlanView, AssignedKernelRefusal> {
+        let mut startup_order = [k::NodeId(u16::MAX); N];
+        AssignedKernelTables::write_capacity_profile(
+            RecordInput::Bytes(bytes),
+            maxima,
+            required,
+            computations,
+            layout,
+            Some(ForeProfile::Local(fore)),
+            false,
+            nodes,
+            cords,
+            routes,
+            calls,
+            &mut startup_order,
+        )
+    }
+
+    /// Explicit schema-8 active-prefix preparation; storage capacities remain
+    /// unchanged. Root still owns all live Line/session and Start admission.
+    pub fn prepare_with_line_fore(
+        bytes: &[u8],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        profile: c::AssignedLineForeProfile<'_>,
+    ) -> Result<Self, AssignedKernelRefusal> {
+        let tables = AssignedKernelTables::prepare_capacity_profile(
+            RecordInput::Bytes(bytes),
+            maxima,
+            required,
+            computations,
+            layout,
+            Some(ForeProfile::Line(profile)),
+            false,
+        )?;
+        Ok(Self {
+            identity: tables.identity,
+            nodes: tables.nodes,
+            cords: tables.cords,
+            routes: tables.routes,
+            calls: tables.calls,
+            startup_order: tables.startup_order,
+        })
+    }
+
+    /// Same schema-8 checks, writing only inert caller-owned active-prefix
+    /// tables. Partial destinations on refusal must not be executed.
+    #[allow(clippy::too_many_arguments)]
+    pub fn write_with_line_fore(
+        bytes: &[u8],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        profile: c::AssignedLineForeProfile<'_>,
+        nodes: &mut [NodeSpec<P>; N],
+        cords: &mut [CordSpec; C],
+        routes: &mut k::FixedRoutes<R, T>,
+        calls: &mut k::FixedHostCallBindings<H>,
+    ) -> Result<c::AssignedPlanView, AssignedKernelRefusal> {
+        let mut startup_order = [k::NodeId(u16::MAX); N];
+        AssignedKernelTables::write_capacity_profile(
+            RecordInput::Bytes(bytes),
+            maxima,
+            required,
+            computations,
+            layout,
+            Some(ForeProfile::Line(profile)),
+            false,
+            nodes,
+            cords,
+            routes,
+            calls,
+            &mut startup_order,
+        )
     }
 
     pub fn identity(&self) -> c::AssignedPlanView {

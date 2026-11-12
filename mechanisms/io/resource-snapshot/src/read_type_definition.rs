@@ -1,8 +1,8 @@
 //! Fabrication-host definition of finite descriptive media read outcomes.
 use alloc::vec;
 use conduit_core::{
-    StructuredFieldType as Field, StructuredInfoType as Type, StructuredVariantCase as Case,
-    kind_id,
+    kind_id, StructuredFieldType as Field, StructuredInfoType as Type,
+    StructuredVariantCase as Case,
 };
 pub fn count_definition() -> Type {
     Type::leaf(kind_id("value/u64")).expect("Count")

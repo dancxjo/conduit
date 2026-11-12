@@ -1,0 +1,46 @@
+with flow/zip/finite/paired as Pair
+with flow/zip/feedback/paired as FeedbackPair
+type Frame = {
+    terminal: Boolean
+    value: U64
+}
+plot state-client (
+    >> seed: Frame...|
+    >> next: Frame...|
+    current: Frame...| >>
+) {
+    cell: state/seeded/flow/until
+    seed >> cell.seed
+    next >> cell.next
+    cell.current >> current
+}
+plot merge-client (
+    >> left: Frame...|
+    >> right: Frame...|
+    merged: Frame...| >>
+) {
+    merge: flow/merge/finite
+    left >> merge.left
+    right >> merge.right
+    merge.merged >> merged
+}
+plot zip-client (
+    >> left: Frame...|
+    >> right: Frame...|
+    paired: Pair...| >>
+) {
+    zip: flow/zip/finite
+    left >> zip.left
+    right >> zip.right
+    zip.paired >> paired
+}
+plot feedback-client (
+    >> left: Frame...|
+    >> right: Frame...|
+    paired: FeedbackPair...| >>
+) {
+    zip: flow/zip/feedback
+    left >> zip.left
+    right >> zip.right
+    zip.paired >> paired
+}

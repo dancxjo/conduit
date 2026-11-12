@@ -57,6 +57,7 @@ impl StdHost {
             started,
             Some(&mut custody),
             None,
+            None,
         );
         let report = match result {
             Ok(report) => report,

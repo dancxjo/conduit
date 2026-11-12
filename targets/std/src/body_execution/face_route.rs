@@ -32,6 +32,7 @@ impl StdHost {
             started,
             None,
             Some(face),
+            None,
         )
     }
     #[allow(clippy::too_many_arguments)]
@@ -62,6 +63,7 @@ impl StdHost {
             started,
             None,
             Some(face),
+            None,
         )
     }
 }

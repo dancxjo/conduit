@@ -362,18 +362,8 @@ fn prepare_runtime_with_composition(
                             .into(),
                     );
                 }
-                let checked = installation
-                    .selected_host_configuration
-                    .as_ref()
-                    .ok_or("immutable Text lost selected Source")?
-                    .checked()?;
-                return StdHost::from_selected_timer_and_text_file_image(
-                    config,
-                    image,
-                    &conduit_workspace_make::catalog(),
-                    &checked,
-                    parameters,
-                );
+                let _ = parameters;
+                return Err("selected Text IMAGE requires independently owned directory and authority through original construction".into());
             }
             if let Some(factory) = &creche_factory {
                 StdHost::from_selected_timer_and_creche_image(

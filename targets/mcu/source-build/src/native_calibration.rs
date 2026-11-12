@@ -208,9 +208,11 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
         {
             return Err("invalid or duplicate checked native calibration slot".into());
         }
-        for authority in &offer.authority_requirements {
+        for (ordinal, authority) in offer.authority_requirements.iter().enumerate() {
             grants.push(c::AuthorityGrant {
-                grant_id: format!("fabrication/inert-policy/{}", slot.base).into(),
+                // Each distinct requirement needs a distinct descriptive identity.
+                // These calibration grants are never emitted or used at execution.
+                grant_id: format!("fabrication/inert-policy/{}/{ordinal}", slot.base).into(),
                 contract_id: authority.contract_id.clone(),
                 host_call_contract_id: authority.host_call_contract_id.clone(),
                 subject_kind: authority.subject_kind.clone(),
@@ -235,8 +237,11 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
     }
     let mut entries = Vec::new();
     for entry in &workset.entries {
-        let software =
-            crate::software::compile(&entry.plot.expanded, input.bounds.maximum_offer_image_bytes)?;
+        let software = crate::software::compile_with_types(
+            &entry.plot.expanded,
+            Some(&workset.checked_source),
+            input.bounds.maximum_offer_image_bytes,
+        )?;
         for offer in software.nodes.into_iter().filter_map(|n| n.offer) {
             insert(&mut host, offer)?;
         }

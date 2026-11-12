@@ -116,3 +116,86 @@ fn allocating_entrance_propagates_allocation_refusal_and_cleans_its_owned_inputs
         (1, 1, 1)
     );
 }
+
+#[test]
+fn inactive_actual_terminal_law_refuses_before_storage_or_owner_withdrawal() {
+    use conduit_kernel::{scheduler::*, *};
+    struct TerminalBack {
+        witness: Driver,
+        reports_law: bool,
+    }
+    impl StepBack<1> for TerminalBack {
+        fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; 1] {
+            [self.reports_law.then_some(AssignedTerminalTransduction {
+                input: PortId(0),
+                output: PortId(0),
+                normal_close: AssignedNormalCloseTransduction::Consume,
+                abnormal: AssignedAbnormalTransduction::NotAccepted,
+                cancellation: AssignedCancellationTransduction::NotCancellable,
+            })]
+        }
+        fn step(&mut self, io: &mut StepIo<1>, input: &StepInputBytes<'_, 1>) -> StepOutcome {
+            self.witness.step(io, input)
+        }
+    }
+    type K = FixedScheduler<
+        TerminalBack,
+        FixedValueStore<1, 1>,
+        FixedSignLog<16>,
+        2,
+        1,
+        1,
+        1,
+        1,
+        0,
+        0,
+        1,
+    >;
+    let drops = Rc::new(Drops::default());
+    let owners = [
+        Some(TerminalBack {
+            witness: Driver(drops.clone()),
+            reports_law: false,
+        }),
+        Some(TerminalBack {
+            witness: Driver(drops.clone()),
+            reports_law: true,
+        }),
+    ];
+    let actual =
+        core::array::from_fn(|node| owners[node].as_ref().unwrap().terminal_transductions());
+    let mut routes = FixedRoutes::<1, 0>::new(1);
+    routes.seal().unwrap();
+    let mut calls = FixedHostCallBindings::<0>::new(1);
+    calls.seal().unwrap();
+    let (result, cost) = allocation::observe(false, || {
+        K::prepare_boxed_with_terminal_transductions(
+            1,
+            0,
+            [NodeSpec {
+                input_cords: [None],
+                maximum_step_fuel: 1,
+            }; 2],
+            [CordSpec::inactive()],
+            routes,
+            calls,
+            FixedValueStore::new(1).unwrap(),
+            FixedSignLog::new((16 * size_of::<KernelEvent>()) as u32).unwrap(),
+            usize::MAX,
+            [[None]; 2],
+            actual,
+        )
+    });
+    assert_eq!(
+        result.err(),
+        Some(Error::Topology(SchedulerError::InvalidPlan))
+    );
+    assert_eq!(
+        cost.requests, 0,
+        "matrix refusal precedes kernel allocation"
+    );
+    assert!(owners.iter().all(Option::is_some));
+    assert_eq!(drops.drivers.get(), 0, "both real owners remain possessed");
+    drop(owners);
+    assert_eq!(drops.drivers.get(), 2);
+}

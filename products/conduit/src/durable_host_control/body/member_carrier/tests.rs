@@ -57,6 +57,28 @@ fn requests(token: u8) -> Vec<Request> {
             ),
             expected_owner: Box::new(challenge.responder.clone()),
         },
+        Request::BodyMemberRecoverReturnBegin {
+            protocol: PROTOCOL,
+            token: vec![token; 32],
+            credential: credential.clone(),
+            advertisement: Box::new(ad.clone()),
+            presentation: Box::new(conduit_body::MemberReturnImagePresentation {
+                kind: "Advertise".into(),
+                schema: conduit_body::MEMBER_RETURN_IMAGES_SCHEMA.into(),
+                credential: credential.clone(),
+                projection: conduit_body::HostAdvertisementImageProjection {
+                    context: {
+                        let mut context = ad.clone();
+                        context.capabilities.clear();
+                        context
+                    },
+                    capability_images: Vec::new(),
+                    authority_grants: Vec::new(),
+                },
+                signature: vec![0; 64],
+            }),
+            images: Vec::new(),
+        },
         Request::BodyMemberCarrierBegin {
             protocol: PROTOCOL,
             token: vec![token; 32],
@@ -123,10 +145,17 @@ fn member_carrier_control_requires_authenticated_local_caller_and_real_body_owne
             // nor a caller's transport description can create an owner.
             let encoded = serde_json::to_vec(&request).unwrap();
             let request = serde_json::from_slice(&encoded).unwrap();
-            assert!(
-                matches!(handle(request, &[9;32], &mut runtime), Response::Refused { code, .. }
-                if if token == 8 { code == "unauthorized" } else { code.contains("live installed owner") })
-            );
+            let recovery = matches!(&request, Request::BodyMemberRecoverReturnBegin { .. });
+            let Response::Refused { code, .. } = handle(request, &[9; 32], &mut runtime) else {
+                panic!("a control token cannot manufacture a live Body owner");
+            };
+            if token == 8 {
+                assert_eq!(code, "unauthorized");
+            } else if recovery {
+                assert_eq!(code, "installed Host does not own a live Body session");
+            } else {
+                assert!(code.contains("live installed owner"), "{code}");
+            }
         }
     }
     assert_eq!(runtime.truth().advertisement, original);

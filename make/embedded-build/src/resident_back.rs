@@ -26,9 +26,10 @@ self.owner.available=true;Ok(())
     forward(code, "BorrowedBack<'_>", "self.owner.back");
 }
 
-fn forward(code: &mut String, name: &str, engine: &str) {
+pub(crate) fn forward(code: &mut String, name: &str, engine: &str) {
     code.push_str(&format!(r#"
 impl<const P:usize>conduit_kernel::scheduler::StepBack<P> for {name}{{
+fn terminal_transductions(&self)->[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;P]{{<EngineBack as conduit_kernel::scheduler::StepBack<P>>::terminal_transductions(&{engine})}}
 fn step(&mut self,io:&mut conduit_kernel::scheduler::StepIo<P>,input:&conduit_kernel::scheduler::StepInputBytes<'_,P>)->conduit_kernel::scheduler::StepOutcome{{conduit_kernel::scheduler::StepBack::step(&mut {engine},io,input)}}
 fn prepared_output(&self,port:conduit_kernel::PortId)->Option<&[u8]>{{<EngineBack as conduit_kernel::scheduler::StepBack<P>>::prepared_output(&{engine},port)}}
 fn step_committed(&mut self){{<EngineBack as conduit_kernel::scheduler::StepBack<P>>::step_committed(&mut {engine})}}

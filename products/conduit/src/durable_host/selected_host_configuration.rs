@@ -66,7 +66,7 @@ impl Selection {
                 && !(recognizer_prepared && base.kind == "speech/recognizer")
                 && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
                 && !(source_prepared && base.kind == "creche/encounter")
-                && base.kind != conduit_workspace_make::TEXT_FILE_BASE_KIND
+                && base.kind != conduit_std_offers::DURABLE_TEXT_BASE_KIND
                 && base.kind != conduit_workspace_make::CPU_BASE_KIND
             {
                 return Err(

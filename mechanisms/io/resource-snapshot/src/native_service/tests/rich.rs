@@ -3,7 +3,7 @@ use super::*;
 use alloc::vec;
 use conduit_core::*;
 use conduit_plan_lowering::{
-    lowering::{LoweredPlanFragment, lower_plan_fragment},
+    lowering::{lower_plan_fragment, LoweredPlanFragment},
     selected_operation::SelectedOperationPlan,
 };
 #[path = "../../../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs"]

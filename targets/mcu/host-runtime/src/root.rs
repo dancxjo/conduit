@@ -353,3 +353,14 @@ pub use continuation::{
 #[path = "root_control.rs"]
 mod control;
 pub use control::MemberControl;
+
+#[cfg(feature = "execution")]
+#[path = "root_fore_carrier.rs"]
+mod fore_carrier;
+#[cfg(feature = "execution")]
+pub use fore_carrier::{
+    external_fore_scope_commitment, fore_carrier_scope_commitment, BoundForeCarrierKernels,
+    BoundForeSessions, ForeCarrierBounds, ForeCarrierKernels, ForeCarrierRefusal, ForeIoActor,
+    ForeIoProgress, ForeIoRefusal, NativeForeCarrierSelection, PreparedForeCarrier,
+    PreparedForeSessions,
+};

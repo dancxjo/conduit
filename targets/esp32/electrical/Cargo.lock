@@ -101,6 +101,7 @@ dependencies = [
  "portable-atomic-util",
  "postcard",
  "serde",
+ "serde-json-core",
  "serde_json",
  "sha2",
 ]
@@ -113,15 +114,6 @@ dependencies = [
  "libm",
  "serde",
  "sha2",
-]
-
-[[package]]
-name = "conduit-dht11-observation"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-kernel",
- "conduit-plot",
 ]
 
 [[package]]
@@ -148,9 +140,6 @@ dependencies = [
 name = "conduit-mcu-host-runtime"
 version = "0.1.0"
 dependencies = [
- "conduit-semantic-catalog",
- "conduit-dht11-observation",
- "conduit-tm1637-protocol",
  "conduit-body",
  "conduit-core",
  "conduit-wire",
@@ -188,14 +177,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-tm1637-protocol"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-plot",
-]
-
-[[package]]
 name = "conduit-tm1637-wire"
 version = "0.1.0"
 
@@ -205,6 +186,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+ "sha2",
 ]
 
 [[package]]

@@ -19,7 +19,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
     root: &mut Root<'_, { crate::config::MAX_ASSIGNMENT_BYTES }>,
     installed: &Installed<'_>,
     policy: Policy<'_>,
-    factory: Factory<'a, 'f, '_>,
+    factory: Factory<'a, 'f, '_, '_>,
     target: &mut Option<crate::play::ContinuationStarted<'a, 'f>>,
     scopes: &mut Option<crate::play_service::Scopes>,
     activity: &mut Option<&'a conduit_mcu_host_runtime::native_runner::NativeActivity>,
@@ -98,13 +98,21 @@ pub(super) async fn prepare_into<'a, 'f: 'a>(
                 .authorize_continuation(
                     context,
                     policy,
-                    &mut factory.issuers.recording,
-                    operation,
+                    {
+                        #[cfg(not(record_service))] { &mut factory.issuers.recording }
+                        #[cfg(record_service)] { [&mut factory.issuers.recording, &mut factory.issuers.recording_read] }
+                    },
+                    {
+                        #[cfg(not(record_service))] { operation }
+                        #[cfg(record_service)] { [&operation[0], &operation[1]] }
+                    },
                     remaining(),
                 )
                 .map_err(|_| "continuation-recording-authorization")?,
             _ => return Err("continuation-recording-scope"),
         }
+        #[cfg(record_service)]
+        { *factory.recording_resource = factory.equipment.recording.resource_binding(remaining()).map_err(|_| "continuation-recording-resource")?; }
         let budget = remaining().min(verified.intent().ceilings.runtime_bytes as usize);
         let material = crate::play::continuation::Material::prepare(
             context,

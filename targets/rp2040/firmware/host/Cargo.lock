@@ -306,9 +306,8 @@ dependencies = [
 name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
- "conduit-dht11-observation",
- "conduit-tm1637-protocol",
  "conduit-core",
+ "conduit-dht11-observation",
  "conduit-environment-face",
  "conduit-face",
  "conduit-kernel",
@@ -318,6 +317,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
+ "conduit-tm1637-protocol",
  "conduit-typed-retention",
 ]
 
@@ -419,11 +419,9 @@ dependencies = [
 name = "conduit-mcu-host-runtime"
 version = "0.1.0"
 dependencies = [
- "conduit-semantic-catalog",
- "conduit-dht11-observation",
- "conduit-tm1637-protocol",
  "conduit-body",
  "conduit-core",
+ "conduit-dht11-observation",
  "conduit-environment-runtime",
  "conduit-face",
  "conduit-kernel",
@@ -431,8 +429,10 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-pulse-capture",
  "conduit-resource-snapshot",
+ "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
+ "conduit-tm1637-protocol",
  "conduit-tm1637-wire",
  "conduit-wire",
  "ed25519-dalek",
@@ -445,9 +445,9 @@ dependencies = [
 name = "conduit-mcu-source-build"
 version = "0.1.0"
 dependencies = [
- "conduit-dht11-observation",
  "conduit-body",
  "conduit-core",
+ "conduit-dht11-observation",
  "conduit-embedded-build",
  "conduit-environment-runtime",
  "conduit-face",
@@ -580,7 +580,6 @@ dependencies = [
 name = "conduit-rp2040-host"
 version = "0.1.0"
 dependencies = [
- "conduit-tm1637-protocol",
  "aligned",
  "conduit-body",
  "conduit-bosch-env",
@@ -608,6 +607,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
+ "conduit-tm1637-protocol",
  "conduit-tm1637-wire",
  "conduit-wire",
  "cortex-m",
@@ -757,6 +757,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+ "sha2",
 ]
 
 [[package]]

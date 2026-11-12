@@ -1,10 +1,14 @@
 //! Shared sealed single-child geometry for execution contract fixtures.
+#[cfg(feature = "kernel-executor")]
 use crate::*;
+#[cfg(feature = "kernel-executor")]
 use conduit_core::*;
+#[cfg(feature = "kernel-executor")]
 use conduit_plot::CompositeFrontTerminal;
 
 #[path = "../tests/support/allocation.rs"]
 pub(crate) mod allocation;
+#[cfg(feature = "kernel-executor")]
 pub(crate) mod common {
     use alloc::vec::Vec;
     include!(concat!(
@@ -13,6 +17,7 @@ pub(crate) mod common {
     ));
 }
 
+#[cfg(feature = "kernel-executor")]
 pub(crate) fn single_child(
     mut fragment: PlanFragment,
     maximum_bytes: u32,

@@ -269,3 +269,21 @@ fn compact_receipt_remains_readable_when_pretty_storage_exceeds_index_bound() {
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn local_start_and_terminal_capacity_are_checked_together_before_effects() {
+    let (root, bio) = fixture();
+    for n in 0..execution_custody::MAX_RECEIPTS - 1 {
+        retain(&root, &bio, Some(&receipt(&bio, n)), None).unwrap();
+    }
+    let before = fs::read(root.join("body/owner-execution.json")).unwrap();
+    require_execution_slots(&root, 1).unwrap();
+    assert!(require_execution_slots(&root, 2)
+        .unwrap_err()
+        .contains("before Play"));
+    assert_eq!(
+        fs::read(root.join("body/owner-execution.json")).unwrap(),
+        before
+    );
+    fs::remove_dir_all(root).unwrap();
+}

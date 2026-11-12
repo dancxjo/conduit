@@ -163,6 +163,9 @@ pub struct GeneratedStaticNode {
     pub implementation_id: String,
     pub artifact_id: String,
     pub input_cords: [Option<u16>; FIXED_KERNEL_STORAGE_PORTS_PER_NODE],
+    /// Per-input laws from checked lowering; unrelated to whole-Plan terminals.
+    pub terminal_transductions: [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;
+        FIXED_KERNEL_STORAGE_PORTS_PER_NODE],
     pub maximum_step_fuel: u16,
 }
 

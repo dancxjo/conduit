@@ -3,6 +3,13 @@ include!(concat!(env!("OUT_DIR"), "/read-profile.rs"));
 pub(crate) const RESULT_SCHEMA: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/read-result.type"));
 pub const MAXIMUM_RECORD_BYTES: usize = 200;
+/// Owned authoring-Host type definition. Execution uses the linked schema and
+/// bounded encoder instead of decoding another runtime type tree.
+pub fn result_type() -> Result<conduit_core::StructuredInfoType, conduit_core::StructuredInfoRefusal>
+{
+    conduit_core::StructuredInfoType::from_canonical_bytes(RESULT_SCHEMA)
+}
+
 mod encoder;
 pub use encoder::{Encoder, READ_ENCODER_MAXIMUM_BACKING_BYTES};
 

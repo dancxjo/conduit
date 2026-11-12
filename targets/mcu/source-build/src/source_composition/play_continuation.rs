@@ -25,6 +25,7 @@ pub enum MaterialRefusal {
 }
 struct Text<'a> {
     node: u16,
+    call: u16,
     instance: &'a str,
     grant: &'a str,
     generation: u64,
@@ -100,7 +101,7 @@ impl<'a> Material<'a> {
         equipment: &'a crate::equipment::Equipment,
         issuers: &'a Issuers<WAIT_SLOTS>,
         operations: &Operations<'_, WAIT_SLOTS>,
-        recording: Option<&Operation<'_>>,
+        recording: Option<&RecordingOperation<'_>>,
         maximum_preparation_bytes: usize,
     ) -> Result<Self, MaterialRefusal> {
         let actual = context.actual();
@@ -185,7 +186,7 @@ fn entry<'a>(
     equipment: &'a crate::equipment::Equipment,
     issuers: &'a Issuers<WAIT_SLOTS>,
     operations: &Operations<'_, WAIT_SLOTS>,
-    recording: Option<&Operation<'_>>,
+    recording: Option<&RecordingOperation<'_>>,
     pin: &b::ContinuationBundleEntry<'static>,
     template: &'static [u8],
     recipe: &'static [c::FragmentSealPiece<'static>],
@@ -250,6 +251,7 @@ fn entry<'a>(
         });
         row.texts.push(Text {
             node,
+            call: u16_at(2),
             instance: description.instance,
             grant: description.grant,
             generation: description.binding.generation,
@@ -330,10 +332,12 @@ fn entry<'a>(
                     .get(ordinal)
                     .ok_or(MaterialRefusal::Scope)?;
                 let native = || {
-                    row.texts
-                        .iter()
-                        .find(|n| n.node == node)
-                        .ok_or(MaterialRefusal::Scope)
+                    let mut matching = row.texts.iter().filter(|n| n.node == node);
+                    let first = matching.next().ok_or(MaterialRefusal::Scope)?;
+                    if matching.any(|n| n.instance != first.instance || n.generation != first.generation) {
+                        return Err(MaterialRefusal::Scope);
+                    }
+                    Ok(first)
                 };
                 match field.role {
                     Role::PlacementId => text(pin.placement_ids[ordinal]),
@@ -346,7 +350,22 @@ fn entry<'a>(
                     Role::OfferGeneration => Value::U64(actual.offer_generation.0),
                     Role::ProviderInstance => text(native()?.instance),
                     Role::ProviderGeneration => Value::U64(native()?.generation),
-                    Role::AuthorityGrant => text(native()?.grant),
+                    Role::AuthorityGrant => {
+                        let expected = b::continuation_recipe_authority(recipe, *field)
+                            .map_err(|_| MaterialRefusal::Scope)?;
+                        let mut matching = row.native.iter().filter(|n| n.node == node
+                            && n.binding.authority == expected.authority
+                            && n.binding.call == expected.call
+                            && n.binding.subject == expected.subject
+                            && n.binding.authority_capability == expected.capability);
+                        let original = matching.next().ok_or(MaterialRefusal::Scope)?;
+                        if matching.next().is_some() { return Err(MaterialRefusal::Scope); }
+                        let mut texts = row.texts.iter().filter(|n|
+                            n.node == node && n.call == original.call);
+                        let original = texts.next().ok_or(MaterialRefusal::Scope)?;
+                        if texts.next().is_some() { return Err(MaterialRefusal::Scope); }
+                        text(original.grant)
+                    },
                     Role::ResourcePool => text(
                         row.resources
                             .iter()

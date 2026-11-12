@@ -463,3 +463,6 @@ mod append;
 #[cfg(test)]
 #[path = "execution_authority_tests.rs"]
 mod tests;
+
+#[path = "execution_authority_service.rs"]
+mod service;

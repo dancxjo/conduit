@@ -16,6 +16,7 @@ pub(crate) fn decode(
         requirements,
         profile,
         None,
+        None,
     )
 }
 
@@ -35,6 +36,27 @@ pub(crate) fn decode_fore(
         required,
         Some(computations),
         Some(fore),
+        None,
+    )
+}
+
+pub(crate) fn decode_line_fore(
+    bytes: &[u8],
+    maxima: AssignedPlanMaxima,
+    requirements: AssignedPlanRequirements<'_>,
+    computations: AssignedComputationProfile<'_>,
+    profile: AssignedLineForeProfile<'_>,
+) -> Result<AssignedPlanView, AssignedPlanRefusal> {
+    validate(
+        bytes,
+        bytes.len(),
+        None,
+        AssignedPlanRecords::payload_records(bytes),
+        maxima,
+        requirements,
+        Some(computations),
+        None,
+        Some(profile),
     )
 }
 
@@ -90,6 +112,7 @@ pub(crate) fn decode_records(
         requirements,
         Some(profile),
         fore,
+        None,
     )
 }
 
@@ -103,7 +126,11 @@ fn validate<'a>(
     requirements: AssignedPlanRequirements<'_>,
     profile: Option<AssignedComputationProfile<'_>>,
     fore: Option<&[AssignedForeRequirement]>,
+    line_fore: Option<AssignedLineForeProfile<'_>>,
 ) -> Result<AssignedPlanView, AssignedPlanRefusal> {
+    let mut line_validation = line_fore
+        .map(|profile| crate::line_fore::Validation::new(profile, requirements))
+        .transpose()?;
     let mut fore_validation = crate::fore::Validation::new(fore.unwrap_or(&[]))?;
     let mut computations = computation::Validation::new(profile)?;
     if bytes.len() < ASSIGNED_PLAN_HEADER_BYTES {
@@ -118,7 +145,13 @@ fn validate<'a>(
     {
         return Err(AssignedPlanRefusal::WrongSchema);
     }
+    if line_fore.is_some() && schema != ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA {
+        return Err(AssignedPlanRefusal::WrongSchema);
+    }
     if schema != ASSIGNED_PLAN_SCHEMA
+        && !(schema == ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
+            && line_fore.is_some()
+            && profile.is_some())
         && !(schema == ASSIGNED_FORE_NATIVE_PLAN_SCHEMA && fore.is_some() && profile.is_some())
         && !(profile.is_some()
             && matches!(
@@ -196,7 +229,9 @@ fn validate<'a>(
             ASSIGNED_HOST_CALL => {
                 if matches!(
                     schema,
-                    ASSIGNED_NATIVE_PLAN_SCHEMA | ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                    ASSIGNED_NATIVE_PLAN_SCHEMA
+                        | ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                        | ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
                 ) {
                     length == 47 || length == ASSIGNED_NATIVE_CALL_BYTES
                 } else {
@@ -206,7 +241,9 @@ fn validate<'a>(
             ASSIGNED_RESOURCE => length == 8,
             ASSIGNED_SIGN => length == 37,
             ASSIGNED_REMOTE_ENDPOINT => {
-                if schema == ASSIGNED_FORE_NATIVE_PLAN_SCHEMA {
+                if schema == ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA {
+                    length == ASSIGNED_LINE_FORE_LOCAL_BYTES || length == ASSIGNED_LINE_FORE_BYTES
+                } else if schema == ASSIGNED_FORE_NATIVE_PLAN_SCHEMA {
                     length == ASSIGNED_LOCAL_FORE_BYTES
                 } else {
                     length == 250
@@ -240,6 +277,11 @@ fn validate<'a>(
             ASSIGNED_ROUTE_TARGET => length == 6 || payload[2] == 1,
             ASSIGNED_SIGN => payload[34] <= 3,
             ASSIGNED_RESOURCE_CORD => payload[10] <= 1 && payload[11] <= 2,
+            ASSIGNED_REMOTE_ENDPOINT if schema == ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA => {
+                payload[5] <= 1
+                    && ((payload[0] == 0 && length == ASSIGNED_LINE_FORE_LOCAL_BYTES)
+                        || (payload[0] == 1 && length == ASSIGNED_LINE_FORE_BYTES))
+            }
             ASSIGNED_REMOTE_ENDPOINT if schema == ASSIGNED_FORE_NATIVE_PLAN_SCHEMA => {
                 payload[4] <= 1
             }
@@ -256,7 +298,9 @@ fn validate<'a>(
             ASSIGNED_HOST_CALL
                 if matches!(
                     schema,
-                    ASSIGNED_NATIVE_PLAN_SCHEMA | ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                    ASSIGNED_NATIVE_PLAN_SCHEMA
+                        | ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                        | ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
                 ) =>
             {
                 assigned_native_binding(payload).is_ok()
@@ -302,6 +346,20 @@ fn validate<'a>(
                     return Err(AssignedPlanRefusal::UnknownResource);
                 }
             }
+            ASSIGNED_REMOTE_ENDPOINT if schema == ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA => {
+                if let Some(binding) = line_validation
+                    .as_mut()
+                    .ok_or(AssignedPlanRefusal::WrongSchema)?
+                    .record(payload)?
+                {
+                    let index = requirements
+                        .remote_bindings
+                        .iter()
+                        .position(|expected| *expected == binding)
+                        .ok_or(AssignedPlanRefusal::StaleRemoteEndpoint)?;
+                    remotes[index] = true;
+                }
+            }
             ASSIGNED_REMOTE_ENDPOINT if schema == ASSIGNED_FORE_NATIVE_PLAN_SCHEMA => {
                 fore_validation.record(payload)?;
             }
@@ -327,6 +385,9 @@ fn validate<'a>(
     }
     computations.finish()?;
     fore_validation.finish()?;
+    if let Some(validation) = line_validation {
+        validation.finish()?;
+    }
     if seen != counts {
         return Err(AssignedPlanRefusal::ExtraRecords);
     }

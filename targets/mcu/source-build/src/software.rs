@@ -10,6 +10,7 @@ mod selected;
 pub const PROFILE: &str = "conduit.mcu/prepared-software@1";
 pub const ARTIFACT: &str = "conduit-mcu-host-runtime/software@1";
 pub enum SoftwareRole {
+    Composite(crate::composite::Role),
     Tick {
         count: u64,
         period_ms: u64,
@@ -54,6 +55,13 @@ pub fn compile(
     source: &p::ExpandedCanonicalPlot,
     maximum_image_bytes: usize,
 ) -> Result<SoftwareMaterial, String> {
+    compile_with_types(source, None, maximum_image_bytes)
+}
+pub fn compile_with_types(
+    source: &p::ExpandedCanonicalPlot,
+    types: Option<&p::CheckedSyntaxDocument>,
+    maximum_image_bytes: usize,
+) -> Result<SoftwareMaterial, String> {
     source
         .validate_expansion()
         .map_err(|e| format!("expanded Source: {e:?}"))?;
@@ -72,8 +80,11 @@ pub fn compile(
         if gear.configuration.iter().any(|c| c.key == "program")
             || [
                 "machine/pulse/read",
+                conduit_i2c_transaction::contract::I2C_KIND,
+                conduit_monotonic_wait::clock_at::contract::CLOCK_KIND,
                 "machine/tm1637/write",
                 conduit_semantic_catalog::RESOURCE_APPEND_KIND,
+                conduit_semantic_catalog::RESOURCE_RECORD_SERVICE_KIND,
                 // Actual initialized Mask routing and renderer owners have
                 // their own exact offers and assigned-kernel binding.
                 "face/tee",
@@ -85,7 +96,11 @@ pub fn compile(
             continue;
         }
         let temporal = c::PortTemporal::Flow { closes: true };
-        let (kind, role, native) = if gear.kind_id.as_str() == conduit_time::TICK_KIND {
+        let (kind, role, native) = if let Some((kind, role)) =
+            crate::composite::selected(gear, types)?
+        {
+            (kind, SoftwareRole::Composite(role), false)
+        } else if gear.kind_id.as_str() == conduit_time::TICK_KIND {
             let cadence = conduit_time::parse_tick_configuration(&gear.configuration)
                 .map_err(|e| format!("Source clock: {e:?}"))?;
             (
@@ -200,11 +215,21 @@ pub fn compile(
             let implementation: c::ImplementationId =
                 format!("conduit.mcu/software/{:x}", h.finalize()).into();
             let artifact: c::ArtifactId = ARTIFACT.into();
+            let queue_bytes = if matches!(&role, SoftwareRole::Composite(_)) {
+                kind.semantic_contract()
+                    .value_contracts()
+                    .iter()
+                    .map(|v| v.contract.maximum_bytes)
+                    .max()
+                    .ok_or("composite value envelopes absent")?
+            } else {
+                4096
+            };
             let mut kind = kind;
             kind.limits = c::CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 1,
-                max_queue_bytes: 4096,
+                max_queue_bytes: queue_bytes,
             };
             let offer = c::BackOfferBuilder::new(
                 kind,
@@ -262,6 +287,38 @@ pub fn emit_rust_for_layout(
     maximum_image_bytes: usize,
     maximum_generated_bytes: usize,
 ) -> Result<String, String> {
+    emit_rust_for_layout_with_types(
+        source,
+        None,
+        source_to_kernel,
+        maximum_image_bytes,
+        maximum_generated_bytes,
+    )
+}
+pub fn emit_rust_with_types(
+    source: &p::ExpandedCanonicalPlot,
+    types: &p::CheckedSyntaxDocument,
+    maximum_image_bytes: usize,
+    maximum_generated_bytes: usize,
+) -> Result<String, String> {
+    let nodes = (0..source.gears.len())
+        .map(|n| u16::try_from(n).map_err(|_| "node bound".to_owned()))
+        .collect::<Result<Vec<_>, _>>()?;
+    emit_rust_for_layout_with_types(
+        source,
+        Some(types),
+        &nodes,
+        maximum_image_bytes,
+        maximum_generated_bytes,
+    )
+}
+pub fn emit_rust_for_layout_with_types(
+    source: &p::ExpandedCanonicalPlot,
+    types: Option<&p::CheckedSyntaxDocument>,
+    source_to_kernel: &[u16],
+    maximum_image_bytes: usize,
+    maximum_generated_bytes: usize,
+) -> Result<String, String> {
     use std::fmt::Write;
     if source_to_kernel.len() != source.gears.len() {
         return Err("Source/kernel map length".into());
@@ -276,7 +333,7 @@ pub fn emit_rust_for_layout(
         }
         *slot = true;
     }
-    let mut material = compile(source, maximum_image_bytes)?;
+    let mut material = compile_with_types(source, types, maximum_image_bytes)?;
     for node in &mut material.nodes {
         node.node = source_to_kernel[usize::from(node.node)];
     }
@@ -285,8 +342,11 @@ pub fn emit_rust_for_layout(
     for (node, gear) in source.gears.iter().enumerate() {
         if [
             "machine/pulse/read",
+            conduit_i2c_transaction::contract::I2C_KIND,
+            conduit_monotonic_wait::clock_at::contract::CLOCK_KIND,
             "machine/tm1637/write",
             conduit_semantic_catalog::RESOURCE_APPEND_KIND,
+            conduit_semantic_catalog::RESOURCE_RECORD_SERVICE_KIND,
             "face/renderer",
             conduit_time::TICK_KIND,
         ]
@@ -348,6 +408,7 @@ pub fn emit_rust_for_layout(
     for node in &material.nodes {
         let definition=match &node.role {
             SoftwareRole::Tick{count,..}=>format!("D::Tick{{wait:waits.iter().find(|v|v.0=={}).ok_or(\"missing-clock-value\")?.1,count:{count}}}",node.node),
+            SoftwareRole::Composite(role)=>crate::composite::emit_definition(role)?,
             SoftwareRole::Trigger=>"D::Trigger".into(),
             SoftwareRole::Selector{canonical,input_bytes,output_bytes}=>format!("D::SelectorStatic{{canonical:&{canonical:?},input_bytes:{input_bytes},output_bytes:{output_bytes}}}"),
             SoftwareRole::Dht11Observation=>"D::Dht11Observation".into(),

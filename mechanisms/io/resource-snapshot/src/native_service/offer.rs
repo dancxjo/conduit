@@ -13,7 +13,7 @@ pub fn capability_offer(
     }
     let append_kind = kind_id(crate::append_contract::APPEND_KIND);
     let read_kind = kind_id(crate::read_contract::READ_KIND);
-    Ok(BackOfferBuilder::new(
+    let mut offer = BackOfferBuilder::new(
         crate::service_contract::definition(),
         Back {
             capability_id: SERVICE_CAPABILITY.into(),
@@ -54,7 +54,12 @@ pub fn capability_offer(
             ],
         },
     )
-    .build())
+    .build();
+    // Core and Planner require canonical description order, independently of
+    // the execution service's append/read operation-slot order.
+    offer.host_calls.sort();
+    offer.authority_requirements.sort();
+    Ok(offer)
 }
 #[cfg(test)]
 mod tests {
@@ -77,33 +82,50 @@ mod tests {
             offer.host_calls[0].target_kind,
             offer.host_calls[1].target_kind
         );
+        assert!(offer.host_calls.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(offer
+            .authority_requirements
+            .windows(2)
+            .all(|pair| pair[0] < pair[1]));
+        let append = offer
+            .host_calls
+            .iter()
+            .find(|call| call.contract_id.as_str() == crate::native_append::APPEND_OPERATION)
+            .unwrap();
+        let read = offer
+            .host_calls
+            .iter()
+            .find(|call| call.contract_id.as_str() == READ_OPERATION)
+            .unwrap();
         assert_eq!(
-            offer.host_calls[0].target_kind,
+            append.target_kind,
             Some(kind_id(crate::append_contract::APPEND_KIND))
         );
         assert_eq!(
-            offer.host_calls[1].target_kind,
+            read.target_kind,
             Some(kind_id(crate::read_contract::READ_KIND))
         );
-        assert_eq!(offer.host_calls[0].maximum_input_bytes, 200);
+        assert_eq!(append.maximum_input_bytes, 200);
         assert_eq!(
-            offer.host_calls[0].maximum_output_bytes,
+            append.maximum_output_bytes,
             crate::append_result::APPEND_RESULT_BYTES
         );
-        assert_eq!(offer.host_calls[1].maximum_input_bytes, 8);
+        assert_eq!(read.maximum_input_bytes, 8);
         assert_eq!(
-            offer.host_calls[1].maximum_output_bytes as usize,
+            read.maximum_output_bytes as usize,
             crate::read_result::READ_RESULT_BYTES
         );
-        assert!(
-            offer
+        assert!(offer
+            .host_calls
+            .iter()
+            .all(|call| call.maximum_in_flight == 1));
+        assert_eq!(offer.authority_requirements.len(), 2);
+        for authority in &offer.authority_requirements {
+            let call = offer
                 .host_calls
                 .iter()
-                .all(|call| call.maximum_in_flight == 1)
-        );
-        assert_eq!(offer.authority_requirements.len(), 2);
-        for (call, authority) in offer.host_calls.iter().zip(&offer.authority_requirements) {
-            assert_eq!(authority.host_call_contract_id, call.contract_id);
+                .find(|call| authority.host_call_contract_id == call.contract_id)
+                .unwrap();
             assert_eq!(Some(authority.subject_kind.clone()), call.target_kind);
         }
         assert_ne!(

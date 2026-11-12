@@ -469,14 +469,7 @@ fn scoped_todo_host_refuses_preloaded_inputs_above_selected_bound_before_play() 
 fn installed_body_preparation_retains_exact_todo_scan_entry() {
     let plan = crate::flow_activation::tests::todo_scan_plan();
     let fragment = &plan.fragments[0];
-    let partition = BodyPlotPlan {
-        plot: ResidentPlot::new(
-            plan.source_document_id.clone(),
-            plan.checked_plot_id.clone(),
-        ),
-        plan: plan.clone(),
-    };
-    let bound = bind_body_activations(&[partition], &[fragment]).unwrap();
+    let bound = bind_body_activations(&[&plan], &[fragment]).unwrap();
     assert_eq!(bound.len(), 1);
     assert_eq!(bound[0].source_plan_id, plan.plan_id);
     assert_eq!(bound[0].fragment_id, fragment.fragment_id);
@@ -492,15 +485,5 @@ fn installed_body_preparation_retains_exact_todo_scan_entry() {
     ));
     let mut substituted = fragment.clone();
     substituted.fragment_id = conduit_core::FragmentId::from("substituted");
-    assert!(bind_body_activations(
-        &[BodyPlotPlan {
-            plot: ResidentPlot::new(
-                plan.source_document_id.clone(),
-                plan.checked_plot_id.clone(),
-            ),
-            plan,
-        }],
-        &[&substituted],
-    )
-    .is_err());
+    assert!(bind_body_activations(&[&plan], &[&substituted]).is_err());
 }

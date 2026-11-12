@@ -16,10 +16,10 @@ authored initialization and a current/next transition boundary. It also installs
 no durable store, recorder, provider or admission grant. The application supplies
 its own typed contract, channel meaning, exact preparation bounds and scope.
 
-This package is an isolated preparation handoff. Workspace registration and the
-supported xtask proof entrance remain owned by the integration lane. The
-preparation branch also supplies the environmental publication adapter; deployment
-and installed admission remain separate. Component tests drive the production StepBack interface with
+The helper is registered in the workspace's Foundation proof shard. Repository
+validation enters through `cargo xtask ci pipeline unit foundation`. The
+application publication adapter retains its own channel meaning; deployment and
+installed admission remain separate. Component tests drive the production StepBack interface with
 test frames. Additional CPU tests use the actual fixed scheduler and bounded
 input/value/sign stores to exercise consumption, commit, closure, refusal and
 cancellation without allocation. These fixtures do not claim a checked or
@@ -62,3 +62,10 @@ scheduler. Both packages pass strict all-target Clippy (runtime with all
 features), and the runtime adapter checks for `thumbv6m-none-eabi` without default
 features. These are CPU/compile results, not firmware linking, native resource
 admission, hardware memory measurements or accepted release proof.
+
+The focused delivery refresh against the shared extraction and current `dev`
+passes 59 environmental runtime tests across 19 binaries, ten helper tests,
+nine workspace shard guards, workspace formatting, the evidence-retention guard,
+and a Cortex-M0+ (`thumbv6m-none-eabi`) check of this shared helper. The earlier
+64-test cohort above predates the device extraction; these are distinct scopes.
+Neither cohort establishes live deployment or durable recording.

@@ -9,18 +9,20 @@ use conduit_mcu_host_runtime::{
     execution_group::NativeContracts,
 };
 use core::fmt::Write;
-pub struct Factory<'a, 'f, 'diagnostic> {
+pub struct Factory<'a, 'f, 'issuers, 'diagnostic> {
     pub residents: &'a mut crate::resident::generated::Initialized,
     pub software: &'a mut SoftwareInventory<'f, { source::sampling::NODE_COUNT }>,
     pub output_software: &'a mut SoftwareInventory<'f, { source::output::NODE_COUNT }>,
     pub routing: &'a mut ReadyMaskRouting,
     pub equipment: &'a mut crate::equipment::Equipment,
-    pub issuers: &'a mut Issuers<W>,
+    pub issuers: &'issuers mut Issuers<W>,
     pub operations: &'a Operations<'static, W>,
-    pub recording: Option<&'a Operation<'static>>,
+    #[cfg(record_service)]
+    pub recording_resource: &'a mut Option<c::ResourceBinding>,
+    pub recording: Option<&'a crate::play::RecordingOperation<'static>>,
     pub sampling_values: conduit_kernel::HostedValueStore,
     pub output_values: conduit_kernel::HostedValueStore,
-    pub contracts: NativeContracts,
+    pub contracts: &'issuers mut Option<NativeContracts>,
     pub reader: Reader<'a>,
     pub face: &'a LocalPublicationFace,
     pub append_output_bytes: usize,
@@ -82,7 +84,7 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
     scope: &'scope b::FreshContinuationScope<'w>,
     resources: &mut c::ResourceAdmissionOwner,
     policy: Policy<'_>,
-    factory: Factory<'a, 'f, '_>,
+    factory: Factory<'a, 'f, '_, '_>,
     target: &mut Option<crate::play::ContinuationStarted<'a, 'f>>,
     scopes_target: &mut Option<crate::play_service::Scopes>,
     activity_target: &mut Option<&'a conduit_mcu_host_runtime::native_runner::NativeActivity>,
@@ -95,6 +97,8 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
         equipment,
         issuers,
         operations,
+        #[cfg(record_service)]
+        recording_resource,
         recording,
         sampling_values,
         output_values,
@@ -104,6 +108,8 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
         append_output_bytes,
         diagnostic,
     } = factory;
+    #[cfg(record_service)]
+    let recording_resource = recording_resource.as_ref();
     let pools = held(equipment).map_err(|error| {
         stage(diagnostic, "held", scope);
         refusal(diagnostic, "continuation-held-pools", error)
@@ -133,7 +139,18 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
             &mut equipment.display,
             &mut equipment.waits,
             equipment.recording.ready_slot(),
-            &mut issuers.recording,
+            #[cfg(record_service)]
+            recording_resource,
+            {
+                #[cfg(not(record_service))]
+                {
+                    &mut issuers.recording
+                }
+                #[cfg(record_service)]
+                {
+                    [&mut issuers.recording, &mut issuers.recording_read]
+                }
+            },
             recording,
             append_output_bytes,
             &mut issuers.pulse,
@@ -144,6 +161,8 @@ pub(super) async fn prepare_into<'a, 'f: 'a, 'w: 'scope, 'scope>(
             output_values,
             contracts,
             diagnostic,
+            None,
+            &mut |_, _, _| Ok(None),
         )
         .map_err(|error| refusal(diagnostic, "continuation-source-preparation", error))?;
         prepared_slot = Some(prepared);

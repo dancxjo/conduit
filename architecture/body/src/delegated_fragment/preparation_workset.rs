@@ -120,6 +120,31 @@ impl<'a, const N: usize> WorksetDocuments<'a, N> {
     }
 }
 
+/// Borrowed inspection of one complete document set. This performs only the
+/// existing bounded envelope/child-digest checks, not attribution, delegation,
+/// native admission, carrier possession or permission to execute any child.
+#[cfg(feature = "authenticated-admission")]
+pub struct BodyWorksetDocumentView<'a, const N: usize> {
+    inner: WorksetDocuments<'a, N>,
+}
+#[cfg(feature = "authenticated-admission")]
+impl<'a, const N: usize> BodyWorksetDocumentView<'a, N> {
+    pub fn decode(bytes: &'a [u8]) -> Result<Self, BodyWorksetDocumentRefusal> {
+        Ok(Self {
+            inner: WorksetDocuments::decode(bytes)?,
+        })
+    }
+    pub fn len(&self) -> usize {
+        self.inner.count
+    }
+    pub fn is_empty(&self) -> bool {
+        self.inner.count == 0
+    }
+    pub fn document(&self, index: usize) -> Option<&'a [u8]> {
+        self.inner.document(index)
+    }
+}
+
 #[cfg(feature = "authenticated-admission")]
 mod receiving;
 #[cfg(feature = "authenticated-admission")]

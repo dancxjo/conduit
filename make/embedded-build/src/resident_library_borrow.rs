@@ -3,12 +3,20 @@ pub(crate) fn append(code: &mut String, entries: usize) {
     code.push_str(&format!(r#"
 /// Check every assignment while retaining an exclusive, non-executing loan.
 /// The ticket is not a resource reservation or execution authorization.
-pub fn prepare_selected_array(&mut self,mut selected:[Option<conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>>;{entries}])->Result<PreparedResidentLoans<'_>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
+#[inline(always)]
+pub fn prepare_selected_array(&mut self,selected:[Option<conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>>;{entries}])->Result<PreparedResidentLoans<'_>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
+ self.prepare_selected_profiles_array(selected.map(|entry|entry.map(ResidentAssignment::Local)))
+}}
+/// Check the complete mixed representation before lending any owner. Profiles
+/// are cold preparation inputs; the returned ticket retains only node ordinals.
+#[inline(always)]
+pub fn prepare_selected_profiles_array(&mut self,mut selected:[Option<ResidentAssignment<'_>>;{entries}])->Result<PreparedResidentLoans<'_>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
 "#));
     for index in 0..entries {
         code.push_str(&format!(r#"
 let node_{index}=selected[{index}].take().map(|selection|{{
-self.entry_{index}.as_ref().ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)?.check_assigned(selection)
+let owner=self.entry_{index}.as_ref().ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)?;
+match selection{{ResidentAssignment::Local(plan)=>owner.check_assigned(plan),ResidentAssignment::LineFore(plan)=>owner.check_assigned_with_line_fore(plan)}}
 }}).transpose()?;
 "#));
     }
@@ -48,6 +56,12 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
             "loan_{index}.map(|(node,back)|(node,BorrowedBack::Entry{index}(back))),\n"
         ));
     }
+    code.push_str("]}\npub fn terminal_transductions<const P:usize>(&self)->[Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;P]>;");
+    code.push_str(&entries.to_string());
+    code.push_str("]{[\n");
+    for index in 0..entries {
+        code.push_str(&format!("self.nodes[{index}].map(|_|self.owner.entry_{index}.as_ref().expect(\"exclusively preflighted resident owner\").terminal_transductions::<P>()),\n"));
+    }
     code.push_str("]}\npub fn split(self)->[Option<PreparedResidentEntryLoan<'a>>;");
     code.push_str(&entries.to_string());
     code.push_str("]{let Self{owner,nodes}=self;[\n");
@@ -77,6 +91,10 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
             "PreparedResidentEntryInner::Entry{index}{{node,..}}=>*node,\n"
         ));
     }
+    code.push_str("}}\npub fn terminal_transductions<const P:usize>(&self)->[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;P]{match &self.inner{\n");
+    for index in 0..entries {
+        code.push_str(&format!("PreparedResidentEntryInner::Entry{index}{{owner,..}}=>owner.terminal_transductions::<P>(),\n"));
+    }
     code.push_str("}}\npub fn bind(self)->(u16,BorrowedBack<'a>){match self.inner{\n");
     for index in 0..entries {
         code.push_str(&format!("PreparedResidentEntryInner::Entry{index}{{node,owner}}=>(node,BorrowedBack::Entry{index}(owner.borrow_prechecked())),\n"));
@@ -86,6 +104,7 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
 
 /// A representation adapter over the existing nominal loans, not another Back.
 pub(crate) fn append_back(code: &mut String, entries: usize) {
+    code.push_str(include_str!("resident_assignment_source.rs"));
     append_prepared(code, entries);
     code.push_str("/// Uniform selected loans; each variant still owns its exact entry's exclusive loan.\npub enum BorrowedBack<'a>{\n");
     for index in 0..entries {
@@ -101,6 +120,7 @@ pub(crate) fn append_back(code: &mut String, entries: usize) {
         "}}}\nimpl<const P:usize>conduit_kernel::scheduler::StepBack<P> for BorrowedBack<'_>{\n",
     );
     for (signature, body) in [
+        ("fn terminal_transductions(&self)->[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;P]", "conduit_kernel::scheduler::StepBack::<P>::terminal_transductions(back)"),
         ("fn step(&mut self,io:&mut conduit_kernel::scheduler::StepIo<P>,input:&conduit_kernel::scheduler::StepInputBytes<'_,P>)->conduit_kernel::scheduler::StepOutcome", "conduit_kernel::scheduler::StepBack::step(back,io,input)"),
         ("fn prepared_output(&self,port:conduit_kernel::PortId)->Option<&[u8]>", "conduit_kernel::scheduler::StepBack::<P>::prepared_output(back,port)"),
         ("fn step_committed(&mut self)", "conduit_kernel::scheduler::StepBack::<P>::step_committed(back)"),

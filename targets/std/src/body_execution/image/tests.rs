@@ -124,7 +124,7 @@ fn receipt(host: &StdHost, wake: &Wake, plan: &BodyPlan) -> usize {
     };
     let (prepared, sign) = prepare_lifecycle(&request, &play, host.advertisement()).unwrap();
     let mut kernel = BodyKernel::prepare_on_host(
-        &plan.plots,
+        &plan.plots.iter().map(|part| &part.plan).collect::<Vec<_>>(),
         false,
         &play.active_play_id,
         &[],

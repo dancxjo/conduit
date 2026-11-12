@@ -1,6 +1,5 @@
 //! Exact ordinary numerical Each ownership before the Body kernel starts.
 use super::super::back::BackBudget;
-use conduit_body::BodyPlotPlan;
 use conduit_core::{
     prepare_plan_on_hosts, ActivePlayId, PlacementId, PlannedActivationEntry,
     PreparationHostIdentity,
@@ -13,30 +12,29 @@ pub(super) struct PreparedBodyEach {
     pub back: Option<conduit_composite::KernelEachBack>,
 }
 pub(super) fn prepare(
-    partitions: &[BodyPlotPlan],
+    partitions: &[&conduit_core::Plan],
     parent: &ActivePlayId,
     preloaded: usize,
 ) -> Result<Vec<PreparedBodyEach>, String> {
     let mut prepared = Vec::new();
     for (index, partition) in partitions.iter().enumerate() {
-        if partition.plan.activations.is_empty() {
+        if partition.activations.is_empty() {
             continue;
         }
-        if partition.plan.activations.len() != 1 {
+        if partition.activations.len() != 1 {
             return Err("Body supports one exact activation per Plot".into());
         }
-        let PlannedActivationEntry::Unary(each) = &partition.plan.activations[0] else {
+        let PlannedActivationEntry::Unary(each) = &partition.activations[0] else {
             continue;
         };
-        crate::flow_activation::validate_near_each(&partition.plan, each)?;
+        crate::flow_activation::validate_near_each(partition, each)?;
         if preloaded > usize::from(each.limits.maximum_items) {
             return Err("preloaded numerical Values exceed Each admission".into());
         }
         let fragment = partition
-            .plan
             .fragments
             .first()
-            .filter(|_| partition.plan.fragments.len() == 1)
+            .filter(|_| partition.fragments.len() == 1)
             .ok_or("Each requires one local parent fragment")?;
         let identity = PreparationHostIdentity {
             host_id: fragment.host_id.clone(),
@@ -47,10 +45,10 @@ pub(super) fn prepare(
             identity,
             crate::flow_activation::standard_child_registry()?,
         );
-        let mut receipts = prepare_plan_on_hosts(&partition.plan, &mut [&mut host])
+        let mut receipts = prepare_plan_on_hosts(partition, &mut [&mut host])
             .map_err(|e| format!("prepare Each Plan: {e:?}"))?;
         let mut back = crate::flow_activation::install_pure_near_each(
-            &partition.plan,
+            partition,
             &mut receipts,
             &each.activation_id,
             &mut host,

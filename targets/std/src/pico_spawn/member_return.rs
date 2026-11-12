@@ -55,6 +55,34 @@ impl PicoMemberReturnBasis {
         }
         Ok(())
     }
+    /// Advance only the credential using an original-owner-attested receipt and
+    /// an independently observed exact current image projection. This verifies
+    /// the same durable relationship, full projection and pinned owner/member
+    /// keys as receipt delivery; it creates no membership, recovery permission,
+    /// latest-Core-state proof or live carrier evidence. Normal presentations
+    /// still require exact credential equality against the returned basis.
+    pub fn advance_from_verified_receipt(
+        &self,
+        signed: &SignedPortableAdmissionReceipt,
+        actual_projection: &conduit_body::HostAdvertisementImageProjection,
+    ) -> Result<Self, Error> {
+        self.validate()?;
+        if actual_projection.context.profile != self.expected_profile {
+            return Err(Error::WrongAdvertisement);
+        }
+        let acknowledged = signed
+            .verify_image_return(
+                &self.owner,
+                &self.member_verifying_key,
+                &self.credential,
+                actual_projection,
+            )
+            .map_err(|_| Error::InvalidReceipt)?;
+        let mut advanced = self.clone();
+        advanced.credential = acknowledged.credential;
+        advanced.validate()?;
+        Ok(advanced)
+    }
     pub fn check_presentation(&self, claim: &MemberReturnPresentation) -> Result<(), Error> {
         self.validate()?;
         claim

@@ -30,6 +30,27 @@ impl DurableHostRuntime {
             None => owner.begin_member_return(credential, advertisement),
         }
     }
+    pub(in crate::durable_host_control) fn owned_body_recovered_member_return_begin(
+        &mut self,
+        wire_credential: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+        presentation: conduit_body::MemberReturnImagePresentation,
+        images: &[Vec<u8>],
+    ) -> Result<PartReturnChallenge, String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        let resolved = conduit_std_host::pico_spawn::resolve_member_offer_images(
+            &presentation.projection,
+            images,
+        )
+        .map_err(|e| format!("member recovery images: {e:?}"))?;
+        if &resolved != advertisement {
+            return Err("member recovery image resolution differs from advertisement".into());
+        }
+        owner.begin_recovered_member_image_return(wire_credential, advertisement, presentation)
+    }
+
     pub(in crate::durable_host_control) fn owned_body_member_return_complete(
         &mut self,
         proof: crate::durable_host::owner::MemberReturnProofDocument,
@@ -195,4 +216,42 @@ pub(crate) fn return_member(
     _: crate::durable_host::MemberEncounter,
 ) -> Result<MembershipCredential, String> {
     Err("member return requires authenticated local owner control".into())
+}
+
+/// Explicit local recovery selects the transition credential from durable owner
+/// custody. The unchanged wire proof must still authenticate the active Part key.
+#[cfg(unix)]
+pub(crate) fn begin_recovered_image_member_return(
+    state_dir: &Path,
+    presentation: conduit_body::MemberReturnImagePresentation,
+    images: Vec<Vec<u8>>,
+    advertisement: HostAdvertisement,
+) -> Result<PartReturnChallenge, String> {
+    match call(
+        state_dir,
+        Request::BodyMemberRecoverReturnBegin {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            credential: presentation.credential.clone(),
+            advertisement: Box::new(advertisement),
+            presentation: Box::new(presentation),
+            images,
+        },
+    )? {
+        Response::BodyMemberReturnChallenge {
+            protocol: PROTOCOL,
+            challenge,
+        } => Ok(*challenge),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("wrong recovered member return challenge response".into()),
+    }
+}
+#[cfg(not(unix))]
+pub(crate) fn begin_recovered_image_member_return(
+    _: &Path,
+    _: conduit_body::MemberReturnImagePresentation,
+    _: Vec<Vec<u8>>,
+    _: HostAdvertisement,
+) -> Result<PartReturnChallenge, String> {
+    Err("member recovery requires local owner control".into())
 }

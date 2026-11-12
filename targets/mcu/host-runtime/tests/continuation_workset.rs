@@ -9,6 +9,7 @@ use conduit_mcu_host_runtime::{
     execution_workset::{PreparedLocalKernels, PreparedLocalWorkset},
 };
 use std::cell::Cell;
+#[allow(dead_code)]
 #[path = "../../../../architecture/body/tests/continuation_scope/reference.rs"]
 mod reference;
 struct Ticket<'a>(&'a Cell<usize>, usize);
@@ -216,6 +217,33 @@ fn checked_continuation_uses_atomic_admission_distinct_origin_and_one_use_start(
             utilized_units: 0,
             sign_id: "observed/current".into(),
         };
+        let before = resources.clone();
+        let observation_backing = intent.ceilings.runtime_bytes as usize;
+        match prepare().admit::<()>(
+            &mut resources,
+            core::slice::from_ref(&observed),
+            observation_backing,
+        ) {
+            Err(Refusal::ResourcePreparationCapacity {
+                retained,
+                bridge,
+                observations,
+                required,
+                maximum,
+            }) => {
+                assert_eq!(observations, observation_backing);
+                assert_eq!(required, retained + bridge + observations);
+                assert!(required > maximum);
+                assert!(retained <= maximum);
+                assert!(bridge > 0);
+            }
+            _ => panic!("admission scratch shortage must retain its exact components"),
+        }
+        assert_eq!(
+            resources, before,
+            "capacity refusal precedes ledger effects"
+        );
+        assert_eq!(binds.get(), 0);
         let mut admitted = prepare()
             .admit::<()>(&mut resources, &[observed], 0)
             .unwrap();

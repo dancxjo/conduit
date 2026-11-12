@@ -53,6 +53,10 @@ impl PreparedObservationBacking {
         self.try_bind(basis).map_err(|(_, error)| error)
     }
     /// Invalid scope returns the original inert allocation for another attempt.
+    #[expect(
+        clippy::result_large_err,
+        reason = "Return the original affine backing without a new allocation on no_std targets"
+    )]
     pub fn try_bind(
         mut self,
         basis: FaceBasis,

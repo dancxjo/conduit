@@ -454,3 +454,7 @@ mod tests {
         ));
     }
 }
+
+#[path = "native_images_service.rs"]
+mod service;
+pub use service::{record_service, recovered_record_service};

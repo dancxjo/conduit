@@ -1,6 +1,6 @@
 //! Checked native immutable Text residence selection. Filesystem effects belong to Boot.
 use conduit_host_make::CheckedHostConfiguration;
-use conduit_workspace_make::{CheckedTextFileInitialization, TEXT_FILE_BASE_KIND};
+use conduit_workspace_make::CheckedTextFileInitialization;
 pub(super) fn parameters(
     checked: &CheckedHostConfiguration,
 ) -> Result<Option<CheckedTextFileInitialization>, String> {
@@ -8,7 +8,7 @@ pub(super) fn parameters(
         .configuration()
         .bases
         .iter()
-        .any(|base| base.kind == TEXT_FILE_BASE_KIND)
+        .any(|base| base.kind == conduit_std_offers::DURABLE_TEXT_BASE_KIND)
     {
         return Ok(None);
     }

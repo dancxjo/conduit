@@ -101,9 +101,33 @@ fn main(){{
     let((),cost)=probe::observe(||{{assert!(!owner.offer_image().is_empty());
         assert!(matches!(weak::Initialized::prepare(),Err(weak::PreparationRefusal::Back(conduit_semantic_catalog::StaticExpressionBackRefusal::Work))));}});
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
+    assert_eq!(owner.terminal_transductions::<2>(),[None;2]);
+    assert!(owner.available_offer_image().is_some());
     let offer=library_checks::decode(owner.offer_image());
     let assignment=support::exercise(offer);
     let active=assignment.active();
+    let mut inspected=library::Initialized::prepare().unwrap();
+    let((),cost)=probe::observe(||{{
+        let loans=inspected.prepare_selected_array([Some(assignment.selected(&active)),None]).unwrap();
+        assert_eq!(loans.terminal_transductions::<2>(),[Some([None;2]),None]);
+        let entries=loans.split();
+        assert_eq!(entries[0].as_ref().unwrap().terminal_transductions::<2>(),[None;2]);
+        drop(entries);
+    }});
+    assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
+    assert!(inspected.offers().iter().all(Option::is_some));
+    let((),cost)=probe::observe(||{{
+        let loans=inspected.prepare_selected_array([Some(assignment.selected(&active)),None]).unwrap();
+        let expected=loans.terminal_transductions::<2>()[0].unwrap();
+        let mut entries=loans.split();
+        let(_,back)=entries[0].take().unwrap().bind();
+        assert_eq!(conduit_kernel::scheduler::StepBack::<2>::terminal_transductions(&back),expected);
+        drop(back);
+    }});
+    assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
+    assert!(inspected.offers()[0].is_none());
+    assert!(inspected.offers()[1].is_some());
+
     assert_eq!(owner.computation_requirement(0),assignment.pins[0]);
     let mut owner=Some(owner);
     refusals::run(&mut owner,&assignment);

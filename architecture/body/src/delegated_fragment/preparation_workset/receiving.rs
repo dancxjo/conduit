@@ -188,4 +188,33 @@ impl<'payload, const N: usize> DelegatedBodyWorkset<'_, 'payload, N> {
         )
         .map_err(E::Fragment)
     }
+    /// Explicit schema-8 child preparation under this SAME complete-set command
+    /// and deadline. Root retains independent Line pins and carrier authority;
+    /// the returned descriptors approve only exact preparation representation.
+    pub fn receive_fragment_with_line_fore<const PORTS: usize>(
+        &self,
+        index: usize,
+        installed: Option<&HostPreparationDelegation>,
+        context: NativePreparationContext<'_>,
+        profile: crate::AssignedBodyLineForePreparationProfile<'_>,
+    ) -> Result<
+        (
+            DelegatedBodyFragment<'payload>,
+            ApprovedBodyForePorts<PORTS>,
+        ),
+        DelegatedWorksetRefusal,
+    > {
+        use DelegatedWorksetRefusal as E;
+        check_host_workset_preparation_delegation(installed, context, &self.command)
+            .map_err(E::Policy)?;
+        let policy = installed.expect("checked installed delegation");
+        if self.documents.declared_runtime_state_bytes > policy.maximum_runtime_state_bytes {
+            return Err(E::Policy(PreparationDelegationRefusal::Bounds));
+        }
+        let bytes = self.documents.document(index).ok_or(E::Index)?;
+        let (metadata, projection) = decode_body_fragment_document(bytes)
+            .map_err(|e| E::Document(BodyWorksetDocumentRefusal::Fragment(e)))?;
+        line_fore::finish_line_fore(metadata, projection, policy, context, profile)
+            .map_err(E::Fragment)
+    }
 }

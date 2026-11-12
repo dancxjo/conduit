@@ -4,12 +4,16 @@ use conduit_host_make::{
     KindConfigurationField, KindConfigurationRule, PackageCatalogContribution,
 };
 use std::collections::BTreeMap;
+pub const FORE_CARRIER: &str = "esp32/root-uart-fore@1";
 pub const UART: &str = "esp32/uart0@1";
 pub const DHT11: &str = "esp32/dht11@1";
 pub const TM1637: &str = "esp32/tm1637@1";
 pub const RENDERER: &str = "esp32/seven-segment-renderer@1";
+pub const RECORD_SERVICE: &str = "esp32/nor-record-service@1";
 pub const RECORDING: &str = "esp32/nor-record-append@1";
-pub use conduit_mcu_source_build::recording::CheckedRecordingConstruction;
+pub use conduit_mcu_source_build::recording::{
+    CheckedRecordServiceConstruction, CheckedRecordingConstruction,
+};
 pub const CLOCK: &str = "esp32/monotonic-clock@1";
 fn count(key: &str, minimum: u64, maximum: u64) -> KindConfigurationField {
     KindConfigurationField {
@@ -63,6 +67,14 @@ pub fn display_contract() -> BaseInitializationContract {
 pub(super) fn catalog() -> PackageCatalogContribution {
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                FORE_CARRIER.into(),
+                conduit_mcu_source_build::fore_carrier::initialization_contract(),
+            ),
+            (
+                RECORD_SERVICE.into(),
+                conduit_mcu_source_build::recording::service_initialization_contract(),
+            ),
             (UART.into(), uart_contract()),
             (CLOCK.into(), clock_contract()),
             (
@@ -82,10 +94,18 @@ pub(super) fn catalog() -> PackageCatalogContribution {
 pub(super) fn offers() -> impl Iterator<Item = conduit_host_make::ImplementationOffer> {
     [
         ("serial/text", UART),
+        (
+            conduit_mcu_source_build::fore_carrier::BASE_KIND,
+            FORE_CARRIER,
+        ),
         ("sensor/environment", DHT11),
         ("display/segmented", TM1637),
         ("clock/monotonic", CLOCK),
         (conduit_mcu_source_build::recording::BASE_KIND, RECORDING),
+        (
+            conduit_mcu_source_build::recording::BASE_KIND,
+            RECORD_SERVICE,
+        ),
         ("face/renderer", RENDERER),
     ]
     .into_iter()

@@ -54,6 +54,25 @@ pub fn generate_fore_native_plan(
     computations: EmbeddedComputationBounds,
     maximum_fore_ports: usize,
 ) -> Result<GeneratedForePlan, GenerationError> {
+    let (kernel, ports) = prepare_fore(
+        plan,
+        fragment,
+        bounds,
+        computations,
+        maximum_fore_ports,
+        false,
+    )?;
+    let fore = ports.iter().map(requirement).collect();
+    Ok(GeneratedForePlan { kernel, fore })
+}
+pub(crate) fn prepare_fore(
+    plan: &c::Plan,
+    fragment: &c::FragmentId,
+    bounds: EmbeddedImageBounds,
+    computations: EmbeddedComputationBounds,
+    maximum_fore_ports: usize,
+    allow_lines: bool,
+) -> Result<(GeneratedEmbeddedPlan, Vec<LoweredForePort>), GenerationError> {
     if !c::verify_plan(plan) {
         return Err(GenerationError::InvalidFragment);
     }
@@ -66,7 +85,7 @@ pub fn generate_fore_native_plan(
         .map_err(|_| GenerationError::InvalidFragment)?;
     if !activations.entries.is_empty()
         || !lowered.remote_endpoints.is_empty()
-        || lowered.fore_ports.iter().any(|p| p.selected_line.is_some())
+        || (!allow_lines && lowered.fore_ports.iter().any(|p| p.selected_line.is_some()))
     {
         return Err(GenerationError::Unsupported(
             UnsupportedPlanFeature::LocalFore,
@@ -88,43 +107,50 @@ pub fn generate_fore_native_plan(
     }
     let kernel =
         crate::generate::generate_profile(fragment, &lowered, bounds, Some(computations), true)?;
-    let fore = lowered.fore_ports.iter().map(requirement).collect();
-    Ok(GeneratedForePlan { kernel, fore })
+    Ok((kernel, lowered.fore_ports))
 }
-fn requirement(port: &LoweredForePort) -> c::AssignedForeRequirement {
-    let mut abi = Vec::from(&b"conduit.assigned/local-fore-abi@1\0"[..]);
-    let mut bytes = |value: &[u8]| {
-        abi.extend_from_slice(&(value.len() as u64).to_le_bytes());
-        abi.extend_from_slice(value);
-    };
-    bytes(port.value_kind.as_str().as_bytes());
-    bytes(
-        &port
-            .value_contract
-            .as_ref()
-            .map(|c| c.identity_bytes())
-            .unwrap_or_default(),
-    );
-    bytes(
-        port.abnormal_kind
-            .as_ref()
-            .map_or(&[][..], |k| k.as_str().as_bytes()),
-    );
-    bytes(port.temporal.as_str().as_bytes());
-    abi.extend_from_slice(&[
-        match port.track {
-            c::ConnectionTrack::Payload => 0,
-            c::ConnectionTrack::NormalClose => 1,
-            c::ConnectionTrack::AbnormalTerminal => 2,
-            c::ConnectionTrack::Quiescence => 3,
-        },
-        match port.quantity_profile {
-            c::QuantityValueProfile::Decimal => 0,
-            c::QuantityValueProfile::Exact => 1,
-        },
-    ]);
-    abi.extend_from_slice(&port.item_capacity.to_le_bytes());
-    abi.extend_from_slice(&port.byte_capacity.to_le_bytes());
+/// Project the exact Fore pins of one sealed Plan fragment during cold Line
+/// selection, without generating a kernel image or claiming native readiness.
+/// The same canonical lowering and ABI projection are used by both assigned
+/// firmware schemas. The caller still owns carrier selection and admission.
+pub fn assigned_fore_inventory(
+    plan: &c::Plan,
+    fragment: &c::FragmentId,
+    maximum_fore_ports: usize,
+) -> Result<Vec<c::AssignedForeRequirement>, GenerationError> {
+    if !c::verify_plan(plan) {
+        return Err(GenerationError::InvalidFragment);
+    }
+    if maximum_fore_ports > 16 {
+        return Err(GenerationError::BoundExceeded {
+            table: "local Fore profile capacity",
+            actual: maximum_fore_ports as u64,
+            maximum: 16,
+        });
+    }
+    let (lowered, _) = lower_plan_fragment_from_plan(plan, fragment)
+        .map_err(|_| GenerationError::InvalidFragment)?;
+    if lowered.fore_ports.len() > maximum_fore_ports {
+        return Err(GenerationError::BoundExceeded {
+            table: "local Fore ports",
+            actual: lowered.fore_ports.len() as u64,
+            maximum: maximum_fore_ports as u64,
+        });
+    }
+    Ok(lowered.fore_ports.iter().map(requirement).collect())
+}
+
+pub(crate) fn requirement(port: &LoweredForePort) -> c::AssignedForeRequirement {
+    let abi = c::assigned_fore_abi_digest(c::AssignedForeAbi {
+        value_kind: port.value_kind.as_str(),
+        value_contract: port.value_contract.as_ref(),
+        abnormal_kind: port.abnormal_kind.as_ref().map(|kind| kind.as_str()),
+        temporal: port.temporal.as_str(),
+        track: port.track,
+        quantity_profile: port.quantity_profile,
+        item_capacity: port.item_capacity,
+        byte_capacity: port.byte_capacity,
+    });
     c::AssignedForeRequirement::new(
         port.endpoint.0,
         port.cord.0,
@@ -133,7 +159,7 @@ fn requirement(port: &LoweredForePort) -> c::AssignedForeRequirement {
             c::PortDirection::Output => c::AssignedForeDirection::Output,
         },
         c::AssignedIdentity::from_text(port.front_port_id.as_str()),
-        c::assigned_plan_payload_digest(&abi),
+        abi,
     )
 }
 

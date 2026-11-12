@@ -14,7 +14,10 @@ use conduit_std_host::{
 #[path = "source_revision_carriage.rs"]
 mod carriage;
 #[cfg(target_os = "linux")]
-use carriage::{admit_selected_member, return_selected_member, submit_selected_play};
+use carriage::{
+    admit_selected_member, negotiate_selected_fore, open_selected_play_carriers,
+    return_selected_member, select_direct_fore_lines, submit_selected_play,
+};
 
 const SELECTION_FILE: &str = "source-check-selection.json";
 
@@ -58,12 +61,19 @@ pub(crate) struct Selection {
     admissions: Vec<UsbAdmissionSelection>,
     #[serde(default)]
     local_fore_adapters: Vec<super::local_fore_policy::LocalForeAdapterIntent>,
+    #[cfg(target_os = "linux")]
+    #[serde(default)]
+    text_generation: Option<super::text_file_policy::Selection>,
 }
 
 /// Finite attended deployment request selected by the local installer.
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct UsbPlaySelection {
+    /// Independently installed direct USB carrier; never selected by incoming frames.
+    #[cfg(target_os = "linux")]
+    #[serde(default)]
+    direct_fore_carrier: Option<carriage::DirectForeCarrierSelection>,
     #[serde(default)]
     carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
     port: std::path::PathBuf,
@@ -141,6 +151,10 @@ mod residents;
 struct UsbReturnSelection {
     #[serde(default)]
     carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
+    /// Explicit local File authority to recover a fresh Boot from the stored key.
+    /// The incoming retained credential remains a hint; strict is the default.
+    #[serde(default)]
+    recover_retained_key: bool,
     part_id: conduit_body::PartId,
     port: std::path::PathBuf,
     basis: std::path::PathBuf,
@@ -456,6 +470,11 @@ pub(super) fn prepare(
         .ok_or("missing selected IMAGE")?;
     let checked_host = selected.checked()?;
     let image = selected.host_image().ok_or("missing selected IMAGE")?;
+    let text_file = selection
+        .text_generation
+        .as_ref()
+        .map(|selected| super::text_file_policy::prepare(selected, &config, image, &checked_host))
+        .transpose()?;
     // Actual descriptor access is supplied by the independently selected local
     // OS policy. Configuration labels and network clients cannot open it.
     let file =
@@ -520,6 +539,7 @@ pub(super) fn prepare(
             },
             creche,
             Some(selection.caller_workspace_bytes),
+            text_file,
         )?
     };
     let host = initialized.host;
@@ -665,8 +685,11 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     for member in &selection.admissions {
         admit_selected_member(&mut owner, state_dir, member, &peer)?;
     }
+    let mut returned_carriers = Vec::with_capacity(selection.returns.len());
     for member in &selection.returns {
-        return_selected_member(&mut owner, state_dir, member, &peer)?;
+        returned_carriers.push(return_selected_member(
+            &mut owner, state_dir, member, &peer,
+        )?);
     }
     // Only the ordinary authenticated returns selected by this policy advanced
     // this Root since the exact old basis and trusted restart were verified.
@@ -687,9 +710,21 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     // this single-use authorization.
     write_json_atomic(&state_dir.join(SELECTION_FILE), &selection)?;
     owner.commit_authorized_file_revision(state_dir, authorization)?;
+    let mut carriers = open_selected_play_carriers(&selection.plays, &mut returned_carriers);
+    let mut line_sessions = Vec::new();
+    let mut native_lines_planned = false;
     if !selection.plays.is_empty() || !selection.continuation_outputs.is_empty() {
-        match owner.plan_retained(state_dir) {
+        // Original sockets are held before planning and through submission.
+        // Open failures are explicit; possession alone advertises no Ready Line.
+        let line_peer = owner.member_carrier_peer()?;
+        match owner.plan_retained_with_fore_provider(state_dir, |partitions| {
+            let (lines, sessions) =
+                select_direct_fore_lines(&selection.plays, &mut carriers, &line_peer, partitions)?;
+            line_sessions = sessions;
+            Ok(lines)
+        }) {
             Ok(()) => {
+                native_lines_planned = true;
                 if let Err(error) =
                     super::source_continuation::export(&owner, &selection.continuation_outputs)
                 {
@@ -698,8 +733,17 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
                     // refusal remains explicit; an export is never a Start.
                     eprintln!("selected continuation output refused: {error}");
                 }
-                for play in &selection.plays {
-                    if let Err(error) = submit_selected_play(&mut owner, play) {
+                for ((play, carrier), sessions) in selection
+                    .plays
+                    .iter()
+                    .zip(&mut carriers)
+                    .zip(line_sessions.drain(..))
+                {
+                    let result = match carrier {
+                        Ok(carrier) => submit_selected_play(&mut owner, play, carrier, sessions),
+                        Err(error) => Err(error.clone()),
+                    };
+                    if let Err(error) = result {
                         // CAS has committed; losing carriage cannot revoke a
                         // receiver or discard the original approval owner.
                         eprintln!(
@@ -711,6 +755,25 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
             Err(error) => eprintln!("selected workset retained; Plan refused: {error}"),
         }
     }
+    // A selected native Line keeps the original descriptor, including an
+    // uncertain preparation reply, under this same Root's lifetime. Ordinary
+    // preparation-only carriers retain their existing release behavior.
+    let _native_line_carriers: Vec<_> = carriers
+        .into_iter()
+        .zip(&selection.plays)
+        .filter_map(|(carrier, play)| {
+            if native_lines_planned && play.direct_fore_carrier.is_some() {
+                match carrier {
+                    Ok(carrier) => Some(negotiate_selected_fore(carrier, play)),
+                    Err(_) => None,
+                }
+            } else {
+                None
+            }
+        })
+        .collect();
+    // Returns not selected for a Play have no continuing serial assignment.
+    drop(returned_carriers);
     let ad = owner.host.advertisement();
     let status = RuntimeStatus {
         schema: RUNTIME_SCHEMA.into(),

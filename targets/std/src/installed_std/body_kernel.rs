@@ -10,7 +10,7 @@ use crate::{
 use conduit_body::BodyPlotPlan;
 use conduit_core::{
     BodyClockCorrelation, BodyTimeQuality, BodyTimeRefusal, BodyTimeRequirement,
-    CancellationReason, FailureReason, PlanFragment, TerminalDisposition,
+    CancellationReason, FailureReason, Plan, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::{
     scheduler::{HostCallRequest, SchedulerStatus},
@@ -187,9 +187,13 @@ impl<'a> BodyKernel<'a> {
         sequential_fore: bool,
         has_fore_output: bool,
     ) -> Result<Self, String> {
+        let plans = partitions
+            .iter()
+            .map(|partition| &partition.plan)
+            .collect::<Vec<_>>();
         Self::prepare_with_live(
             None,
-            partitions,
+            &plans,
             has_keyboard,
             parent_play,
             fore_inputs,
@@ -204,7 +208,7 @@ impl<'a> BodyKernel<'a> {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_on_host(
-        partitions: &[BodyPlotPlan],
+        partitions: &[&Plan],
         has_keyboard: bool,
         parent_play: &conduit_core::ActivePlayId,
         fore_inputs: &'a [ExternalForeInput],
@@ -233,7 +237,7 @@ impl<'a> BodyKernel<'a> {
     }
 
     pub(crate) fn prepare_live_on_host(
-        partitions: &[BodyPlotPlan],
+        partitions: &[&Plan],
         has_keyboard: bool,
         parent_play: &conduit_core::ActivePlayId,
         queue: &BodyLiveForeQueue,
@@ -243,11 +247,11 @@ impl<'a> BodyKernel<'a> {
             &'a crate::text_file::SelectedTextFileResidence,
         >,
     ) -> Result<Self, String> {
-        if partitions.len() != 1 || !queue.matches_plan(&partitions[0].plan, control) {
+        if partitions.len() != 1 || !queue.matches_plan(partitions[0], control) {
             return Err("live Fore queue differs from the exact Body Plan or stop control".into());
         }
         if has_keyboard {
-            BodyLiveForeQueue::validate_parsec_input_plan(&partitions[0].plan, host)?;
+            BodyLiveForeQueue::validate_parsec_input_plan(partitions[0], host)?;
         }
         let sources = parsec_sources::prepare(partitions, host)?;
         Self::prepare_with_live(
@@ -1349,7 +1353,7 @@ impl<'a> BodyKernel<'a> {
 }
 
 fn bind_body_activations(
-    partitions: &[BodyPlotPlan],
+    partitions: &[&Plan],
     fragments: &[&PlanFragment],
 ) -> Result<Vec<LoweredFragmentActivations>, String> {
     if partitions.len() != fragments.len() {
@@ -1359,13 +1363,13 @@ fn bind_body_activations(
         .iter()
         .zip(fragments)
         .map(|(partition, fragment)| {
-            if partition.plan.fragments.len() != 1
-                || partition.plan.fragments[0].fragment_id != fragment.fragment_id
-                || partition.plan.fragments[0].plan_id != fragment.plan_id
+            if partition.fragments.len() != 1
+                || partition.fragments[0].fragment_id != fragment.fragment_id
+                || partition.fragments[0].plan_id != fragment.plan_id
             {
                 return Err("Body activation binding fragment differs from exact Plan".into());
             }
-            lower_fragment_activations(&partition.plan, &fragment.fragment_id)
+            lower_fragment_activations(partition, &fragment.fragment_id)
                 .map_err(|error| format!("Body activation binding: {error:?}"))
         })
         .collect()

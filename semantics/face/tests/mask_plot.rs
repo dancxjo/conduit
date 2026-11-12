@@ -245,17 +245,24 @@ fn host_for(
         .iter()
         .map(|gear| {
             BackOfferBuilder::new(
-                profiles.canonical_kind(&gear.kind_id).cloned().unwrap_or_else(|| Kind {
-                    startup_parameters: gear.startup_parameters.clone(),
-                    shorthand: gear.shorthand.clone(),
-                    kind_id: gear.kind_id.clone(),
-                    kind_contract_revision: gear.kind_contract_revision.clone(),
-                    inputs: gear.inputs.clone(),
-                    outputs: gear.outputs.clone(),
-                    configuration: gear.semantic_contract.configuration.clone(),
-                    semantic_laws: gear.semantic_contract.laws.clone(),
-                    limits: CapabilityLimits { max_active_instances: 4, max_queue_items: 4, max_queue_bytes: 64 * 1024 },
-                }),
+                profiles
+                    .canonical_kind(&gear.kind_id)
+                    .cloned()
+                    .unwrap_or_else(|| Kind {
+                        startup_parameters: gear.startup_parameters.clone(),
+                        shorthand: gear.shorthand.clone(),
+                        kind_id: gear.kind_id.clone(),
+                        kind_contract_revision: gear.kind_contract_revision.clone(),
+                        inputs: gear.inputs.clone(),
+                        outputs: gear.outputs.clone(),
+                        configuration: gear.semantic_contract.configuration.clone(),
+                        semantic_laws: gear.semantic_contract.laws.clone(),
+                        limits: CapabilityLimits {
+                            max_active_instances: 4,
+                            max_queue_items: 4,
+                            max_queue_bytes: 64 * 1024,
+                        },
+                    }),
                 Back {
                     capability_id: CapabilityId::from(format!("cap/{}", gear.gear_id.as_str())),
                     execution_profile_id: ExecutionProfileId::from("mask/test@1"),

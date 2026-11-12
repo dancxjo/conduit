@@ -162,3 +162,39 @@ pub fn bound(drops: &Rc<Drops>) -> Result<Box<Kernel>, KernelPreparationError> {
         },
     )
 }
+
+#[allow(dead_code)]
+pub fn prepare_written(
+    drops: &Rc<Drops>,
+    ceiling: usize,
+    write: impl FnOnce(
+        &mut [NodeSpec<1>; 1],
+        &mut [CordSpec; 1],
+        &mut FixedRoutes<1, 0>,
+        &mut FixedHostCallBindings<0>,
+    ) -> Result<(usize, usize), KernelPreparationError>,
+) -> Result<Prepared, KernelPreparationError> {
+    Kernel::prepare_boxed_with_table_writer(
+        Values {
+            inner: FixedValueStore::new(1).unwrap(),
+            drops: drops.clone(),
+        },
+        Signs {
+            inner: FixedSignLog::new((16 * size_of::<KernelEvent>()) as u32).unwrap(),
+            drops: drops.clone(),
+        },
+        ceiling,
+        &[[None]],
+        &[[None]],
+        core::convert::identity,
+        write,
+    )
+}
+
+#[allow(dead_code)]
+pub fn owned_values(drops: &Rc<Drops>) -> Values {
+    Values {
+        inner: FixedValueStore::new(1).unwrap(),
+        drops: drops.clone(),
+    }
+}

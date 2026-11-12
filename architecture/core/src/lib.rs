@@ -24,6 +24,8 @@ mod deadline;
 mod delivery;
 mod device;
 mod exact_numeric;
+mod fore_abi;
+pub use fore_abi::{assigned_fore_abi_digest, AssignedForeAbi};
 mod fore_ports;
 use fore_ports::verify_fragment_fore_ports;
 mod execution;
@@ -81,12 +83,12 @@ mod stream_sampling;
 pub use canonical_bytes::FragmentScopeRole;
 use plan_fingerprint::compute_plan_id;
 pub use plan_fingerprint::{
-    compute_checked_front_fingerprint, compute_fragment_id, fragment_seal_recipe_digest,
-    fragment_seal_recipe_identity, fragment_seal_resource_matches, FragmentFingerprintBuilder,
-    FragmentFingerprintHeader, FragmentFingerprintRefusal, FragmentFingerprintTail,
-    FragmentSealBinding, FragmentSealField, FragmentSealLimits, FragmentSealPiece,
-    FragmentSealRecipe, FragmentSealRefusal, FragmentSealValue, PlainPlotPlanSeal,
-    PlotFragmentSeal, PlotPlanSealRefusal,
+    admitted_line_commitment, compute_checked_front_fingerprint, compute_fragment_id,
+    fragment_seal_recipe_digest, fragment_seal_recipe_identity, fragment_seal_resource_matches,
+    FragmentFingerprintBuilder, FragmentFingerprintHeader, FragmentFingerprintRefusal,
+    FragmentFingerprintTail, FragmentSealBinding, FragmentSealField, FragmentSealLimits,
+    FragmentSealPiece, FragmentSealRecipe, FragmentSealRefusal, FragmentSealValue,
+    PlainPlotPlanSeal, PlotFragmentSeal, PlotPlanSealRefusal,
 };
 mod structured_info;
 mod temporal;

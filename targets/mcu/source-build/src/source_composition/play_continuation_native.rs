@@ -7,7 +7,7 @@ pub(super) fn describe<'a>(
     equipment: &'a crate::equipment::Equipment,
     issuers: &'a Issuers<WAIT_SLOTS>,
     operations: &Operations<'_, WAIT_SLOTS>,
-    recording: Option<&Operation<'_>>,
+    recording: Option<&RecordingOperation<'_>>,
     node: u16,
     kind: &str,
     binding: c::AssignedNativeBinding,
@@ -62,13 +62,33 @@ pub(super) fn describe<'a>(
                 .and_then(Option::as_ref)
                 .ok_or(MaterialRefusal::Scope)?,
         )
-    } else if recording.is_some_and(|op| op.kind == kind) {
-        check(
-            NativeFacts::append(equipment.recording.ready().ok_or(MaterialRefusal::Scope)?),
-            &issuers.recording,
-            recording.ok_or(MaterialRefusal::Scope)?,
-        )
     } else {
-        Err(MaterialRefusal::Scope)
+        #[cfg(not(record_service))]
+        {
+            let operation = recording.filter(|op| op.kind == kind).ok_or(MaterialRefusal::Scope)?;
+            check(
+                NativeFacts::append(equipment.recording.ready().ok_or(MaterialRefusal::Scope)?),
+                &issuers.recording, operation,
+            )
+        }
+        #[cfg(record_service)]
+        {
+            if kind != conduit_resource_snapshot::service_contract::SERVICE_KIND {
+                return Err(MaterialRefusal::Scope);
+            }
+            let operations = recording.ok_or(MaterialRefusal::Scope)?;
+            let mut matching = operations.iter().enumerate().filter(|(_, op)|
+                c::AssignedIdentity::from_text(op.call) == binding.call);
+            let (ordinal, operation) = matching.next().ok_or(MaterialRefusal::Scope)?;
+            if matching.next().is_some() { return Err(MaterialRefusal::Scope); }
+            let issuer = match ordinal {
+                0 => &issuers.recording,
+                1 => &issuers.recording_read,
+                _ => return Err(MaterialRefusal::Scope),
+            };
+            let facts = NativeFacts::record_service(equipment.recording.ready().ok_or(MaterialRefusal::Scope)?);
+            issuer.describe_continuation(context, policy, &facts, operation, binding)
+                .map_err(|_| MaterialRefusal::Authority)
+        }
     }
 }

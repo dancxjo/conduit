@@ -12,6 +12,19 @@ pub enum AssignedOperationInput<'a> {
         records: &'a [c::AssignedRecord<'a>],
     },
 }
+#[derive(Clone, Copy)]
+pub(crate) enum AssignedForeProfile<'a> {
+    Local(&'a [c::AssignedForeRequirement]),
+    Line(c::AssignedLineForeProfile<'a>),
+}
+impl AssignedForeProfile<'_> {
+    pub(crate) fn schema(self) -> u16 {
+        match self {
+            Self::Local(_) => c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA,
+            Self::Line(_) => c::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA,
+        }
+    }
+}
 pub(crate) enum Records<'a> {
     Contiguous(c::AssignedPlanRecords<'a>),
     Borrowed(core::slice::Iter<'a, c::AssignedRecord<'a>>),
@@ -38,13 +51,29 @@ impl<'a> AssignedOperationInput<'a> {
             Self::Records { records, .. } => Ok(Records::Borrowed(records.iter())),
         }
     }
-    pub(crate) fn decode(
+    pub(crate) fn decode_profile(
         self,
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
-        fore: Option<&[c::AssignedForeRequirement]>,
+        fore: Option<AssignedForeProfile<'_>>,
     ) -> Result<c::AssignedPlanView, c::AssignedPlanRefusal> {
+        let fore = match fore {
+            Some(AssignedForeProfile::Line(profile)) => {
+                return match self {
+                    Self::Contiguous(bytes) => c::decode_assigned_plan_with_line_fore(
+                        bytes,
+                        maxima,
+                        required,
+                        computations,
+                        profile,
+                    ),
+                    Self::Records { .. } => Err(c::AssignedPlanRefusal::WrongSchema),
+                }
+            }
+            Some(AssignedForeProfile::Local(fore)) => Some(fore),
+            None => None,
+        };
         if let Some(fore) = fore {
             return match self {
                 Self::Contiguous(bytes) => {

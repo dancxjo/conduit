@@ -4,6 +4,8 @@ use conduit_body::{
     HostCommandReceiveBounds, IssuedHostCommandChallenge, HOST_PREPARED_WORKSET_CONTRACT,
 };
 use conduit_embedded_build as build;
+#[path = "fore_line_planning.rs"]
+mod fore_line_planning;
 
 #[test]
 fn current_owner_approves_exact_resident_workset_once_without_starting() {
@@ -114,12 +116,51 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
         assert_eq!(owner.session.evidence(), &before_plan);
         assert!(owner.session.realization().is_none());
     }
+    fore_line_planning::verify_current_member_line_selection(
+        &owner, &source, &expanded, &boundary, &ad,
+    );
+    // A native provider sees one complete sealed baseline before Wake. An IO
+    // or custody refusal must not publish a preliminary proposal or call it twice.
+    let before_provider = owner.session.evidence().clone();
+    let mut calls = 0;
+    let result = owner.plan_workset_with_source_boundaries_and_provider(
+        &[(&source, &expanded)],
+        &std::collections::BTreeMap::from([(resident(&expanded), boundary.clone())]),
+        &mut |partitions| {
+            calls += 1;
+            assert!(!partitions.is_empty());
+            for partition in partitions {
+                assert!(conduit_core::verify_plan(&partition.plan));
+                for fragment in &partition.plan.fragments {
+                    conduit_embedded_build::assigned_fore_inventory(
+                        &partition.plan,
+                        &fragment.fragment_id,
+                        16,
+                    )
+                    .unwrap();
+                }
+            }
+            Err("fixture/native-carrier-custody-refused".into())
+        },
+    );
+    assert_eq!(
+        result.unwrap_err(),
+        "fixture/native-carrier-custody-refused"
+    );
+    assert_eq!(calls, 1);
+    assert_eq!(owner.session.evidence(), &before_provider);
+    let boundary_for_line_test = boundary.clone();
     owner
-        .plan_workset_with_source_boundaries(
+        .plan_workset_with_source_boundaries_and_provider(
             &[(&source, &expanded)],
             &std::collections::BTreeMap::from([(resident(&expanded), boundary)]),
+            &mut |_| {
+                calls += 1;
+                Ok(std::collections::BTreeMap::new())
+            },
         )
         .unwrap();
+    assert_eq!(calls, 2);
     let issuer = owner.prepare_current_member_carrier_receiver().unwrap();
     let member =
         crate::durable_host::owner::MemberPresentationBasis::new(credential.clone(), ad.clone())
@@ -152,8 +193,89 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
         maximum_fore_ports: 2,
         maximum_document_bytes: 4096,
     };
+    signed_line_approval::run(
+        &source,
+        &expanded,
+        &image,
+        &ad,
+        &boundary_for_line_test,
+        limits,
+    );
     let before = owner.session.evidence().clone();
     let proposal = owner.session.realization().unwrap().clone();
+    // The explicit Line entrance preserves the SAME owner gates and exact local
+    // document when this sealed proposal has no selected Line. These descriptive
+    // sessions cannot introduce connectivity absent from the original proposal.
+    let (legacy_play, legacy_document) = owner
+        .prepare_remote_resident_workset(&ad, &[&image], limits)
+        .unwrap();
+    let (line_play, line_document) = owner
+        .prepare_remote_body_workset_with_line_fore(&ad, limits.maximum_document_bytes, |scope| {
+            let resident = build::bind_current_mixed_resident_expressions(
+                scope.plot_plan(),
+                &scope.fragment().fragment_id,
+                &ad,
+                &[&image],
+                &[],
+            )
+            .map_err(build::BodyFragmentGenerationRefusal::Resident)?;
+            Ok((resident, limits, vec![]))
+        })
+        .unwrap();
+    assert_eq!(legacy_play, line_play);
+    assert_eq!(legacy_document.bytes(), line_document.bytes());
+    for field in 0..3 {
+        let mut stale = ad.clone();
+        match field {
+            0 => stale.host_id = "foreign".into(),
+            1 => stale.boot_id = "foreign".into(),
+            _ => stale.offer_generation.0 += 1,
+        }
+        assert!(owner
+            .prepare_remote_body_workset_with_line_fore(&stale, 4096, |_| panic!(
+                "stale member reached resolver"
+            ))
+            .is_err());
+    }
+    assert!(owner
+        .prepare_remote_body_workset_with_line_fore(owner.host.advertisement(), 4096, |_| panic!(
+            "local owner reached remote resolver"
+        ))
+        .is_err());
+    assert!(owner
+        .prepare_remote_body_workset_with_line_fore(&ad, 0, |_| panic!(
+            "zero document bound reached resolver"
+        ))
+        .is_err());
+    assert!(owner
+        .prepare_remote_body_workset_with_line_fore(&ad, 4096, |scope| {
+            let resident = build::bind_current_mixed_resident_expressions(
+                scope.plot_plan(),
+                &scope.fragment().fragment_id,
+                &ad,
+                &[&image],
+                &[],
+            )
+            .map_err(build::BodyFragmentGenerationRefusal::Resident)?;
+            Ok((
+                resident,
+                limits,
+                vec![build::SelectedForeSession {
+                    front_port_id: "echoed".into(),
+                    direction: conduit_core::PortDirection::Output,
+                    track: conduit_core::ConnectionTrack::Payload,
+                    session: conduit_core::AssignedIdentity::from_text(
+                        "fixture/unselected-session",
+                    ),
+                    session_contract: conduit_core::AssignedIdentity::from_text(
+                        "fixture/unselected-contract",
+                    ),
+                }],
+            ))
+        })
+        .is_err());
+    assert_eq!(owner.session.evidence(), &before);
+    assert_eq!(owner.session.realization(), Some(&proposal));
     for mutation in 0..15 {
         let mut changed = challenge;
         match mutation {
@@ -430,3 +552,6 @@ fn two_members_retain_one_exact_body_play_and_block_duplicate_boot_and_source_ca
     assert_eq!(owner.session.evidence().body.workset, before.body.workset);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "signed_line_approval.rs"]
+mod signed_line_approval;

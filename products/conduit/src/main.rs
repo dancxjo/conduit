@@ -483,8 +483,10 @@ fn main() {
             port, basis, receipt_output, state_dir, authorize_admission,
         }) }) => durable_host::admit_usb(&port, &basis, &receipt_output, &state_dir, authorize_admission),
         Some(cli::Command::Body { command: Some(cli::BodyCommand::ReturnUsb {
-            port, basis, receipt_output, state_dir, authorize_return,
-        }) }) => durable_host::return_usb(&port, &basis, &receipt_output, &state_dir, authorize_return),
+            port, basis, receipt_output, state_dir, authorize_return, forwarded_tty, recover_retained_key,
+        }) }) => durable_host::return_usb(&port, &basis, &receipt_output, &state_dir, authorize_return,
+            if forwarded_tty { conduit_std_host::pico_spawn::ProvisioningCarrier::ForwardedTty }
+            else { conduit_std_host::pico_spawn::ProvisioningCarrier::UsbCdc }, recover_retained_key),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::CompleteJoin {

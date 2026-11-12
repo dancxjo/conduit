@@ -10,7 +10,7 @@ pub(super) async fn return_member(
     issuers: &mut Issuers<W>,
     operations: &Operations<'_, W>,
     residents: &crate::resident::generated::Initialized,
-    recording_operation: Option<&Operation<'_>>,
+    recording_operation: Option<&crate::play::RecordingOperation<'_>>,
     arena_bytes: usize,
     link: &mut crate::transport::Link,
     response: &mut [u8; 4096],
@@ -41,8 +41,14 @@ pub(super) async fn return_member(
                 .authorize(
                     context,
                     policy,
-                    &mut issuers.recording,
-                    operation,
+                    {
+                        #[cfg(not(record_service))] { &mut issuers.recording }
+                        #[cfg(record_service)] { [&mut issuers.recording, &mut issuers.recording_read] }
+                    },
+                    {
+                        #[cfg(not(record_service))] { operation }
+                        #[cfg(record_service)] { [&operation[0], &operation[1]] }
+                    },
                     remaining(),
                 )
                 .map_err(|_| conduit_mcu_host_runtime::root::Refusal::Scope),

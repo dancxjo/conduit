@@ -10,6 +10,9 @@ fn configuration() -> CheckedHostConfiguration {
     configuration_with_creche(false)
 }
 fn configuration_with_creche(creche: bool) -> CheckedHostConfiguration {
+    configuration_with_equipment(creche, false)
+}
+fn configuration_with_equipment(creche: bool, text_file: bool) -> CheckedHostConfiguration {
     let source = parent::configuration_source().replace("      limits =", r#"
       base = {kind: "timer/monotonic", implementation: "hosted/monotonic-clock@1"}
       capability = {kind: "time/tick", pinned_implementation: "std/kernel-time-tick@2"}
@@ -23,6 +26,15 @@ fn configuration_with_creche(creche: bool) -> CheckedHostConfiguration {
       base = {kind: "creche/encounter", implementation: "std/kernel-creche-prepare@1"}
       capability = {kind: "creche/prepare", pinned_implementation: "std/kernel-creche-prepare@1"}
       need = {id: "creche/slot", class: "conduit.resource/admitted-creche-encounter@1", slots: 1, bytes: 4096}
+      limits ="#)
+    } else {
+        source
+    };
+    let source = if text_file {
+        source.replace("      limits =", r#"
+      base = {kind: "storage/text-generation", implementation: "std/file-data-save-text@1", initialization: {maximum_text_bytes: 256, preparation_bytes: 32768, retained_bytes: 16384}}
+      capability = {kind: "data/save/text", pinned_implementation: "std/file-data-save-text@1"}
+      need = {id: "recording/generation", class: "data/immutable-generation@1", slots: 1, bytes: 256}
       limits ="#)
     } else {
         source
@@ -209,11 +221,33 @@ fn run_image_case(source: &str) {
     run_image_case_with_creche(source, false);
 }
 fn run_image_case_with_creche(source: &str, creche: bool) {
-    let checked = configuration_with_creche(creche);
+    run_image_case_with_equipment(source, creche, false);
+}
+#[path = "image_text.rs"]
+mod text;
+#[test]
+fn actual_compiler_and_text_file_share_original_image_without_extra_runtime_pool() {
+    run_image_case_with_equipment(
+        include_str!("../../../../plots/hello/main.conduit"),
+        false,
+        true,
+    );
+}
+fn run_image_case_with_equipment(source: &str, creche: bool, text_file: bool) {
+    let checked = configuration_with_equipment(creche, text_file);
     let image = image(&checked);
     let schema = SourceCheckNativeSchema::prepare().unwrap();
     let kind = PreparedSourceChecker::kind_for_bounds(&schema, bounds()).unwrap();
     let (config, definition) = definition(&checked, &image);
+    let (file_directory, file_initialization) = if text_file {
+        let (directory, initialization) = text::initialization(&config, &image);
+        (Some(directory), Some(initialization))
+    } else {
+        (None, None)
+    };
+    let file_grant = file_initialization
+        .as_ref()
+        .map(|file| file.definition.authority.clone());
     let grant = definition.grant.clone();
     let provider = definition.base.provider_instance_id.clone();
     let (input, mut owner) = input(source);
@@ -245,7 +279,7 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
     // SAFETY: Fixture owns this selected File, exact Source scope and independent
     // Host/Boot grant. Its caller metadata has separate preparation custody.
     let initialized = unsafe {
-        conduit::source_check_worker::initialize_image_with_prepared_creche(
+        conduit::source_check_worker::initialize_image_with_caller_workspace(
             conduit::source_check_worker::SourceCheckImageInstallation {
                 config,
                 image: &image,
@@ -275,6 +309,8 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
                     1,
                 )
             }),
+            None,
+            file_initialization,
         )
     }
     .unwrap();
@@ -292,6 +328,10 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
         .is_err());
     let mut retained_source = Some(initialized.source);
     let mut host = initialized.host;
+    assert_eq!(host.text_file_authority_grant(), file_grant.as_ref());
+    if let Some(directory) = &file_directory {
+        assert_eq!(std::fs::read_dir(directory.path()).unwrap().count(), 0);
+    }
     if !creche {
         let before =
             remaining_preparation(&mut host, image.manifest.bounds.heap_arena_bytes as usize);
@@ -318,7 +358,7 @@ fn run_image_case_with_creche(source: &str, creche: bool) {
     );
     assert_eq!(
         host.advertisement().capabilities.len(),
-        2 + usize::from(creche)
+        2 + usize::from(creche) + usize::from(text_file)
     );
     if creche {
         assert!(host
@@ -742,6 +782,7 @@ fn metadata_and_provider_preparation_compete_in_one_image_heap() {
                 retained_bytes: 50 * 1024 * 1024,
             },
             None,
+            None,
             move |_, _root| {
                 Ok((
                     definition,
@@ -779,6 +820,7 @@ fn retained_root_preparation_refuses_native_start_without_losing_its_value() {
                 preparation_bytes: 2 * 1024 * 1024,
                 retained_bytes: 2 * 1024 * 1024,
             },
+            None,
             None,
             |_, root| {
                 retained = Some(
@@ -851,6 +893,7 @@ fn source_capture_refuses_unfunded_io_or_retention_before_starting_child() {
                 },
                 None,
                 (mode == 2).then_some(image.manifest.bounds.heap_arena_bytes as usize),
+                None,
             )
         };
         let expected = if pressure {

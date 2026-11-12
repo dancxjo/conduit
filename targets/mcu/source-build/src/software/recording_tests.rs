@@ -178,3 +178,30 @@ fn authored_observation_selection_emits_scoped_recording_constructor_and_exact_c
         .iter()
         .any(|node| node.kind == append.kind_id));
 }
+
+#[test]
+fn record_service_retains_its_native_equipment_selection_pin() {
+    let source = r#"plot history-store (
+        >> record: Bytes...| <= 200B
+        >> request: Count...|
+        append-status: RecordAppendResult...| >>
+        read-result: RecordReadResult...| <= 837B >>
+    ) {
+        store: resource/record-service
+        record >> store.record
+        request >> store.read-index
+        store.index >> append-status
+        store.read-result >> read-result
+    }"#;
+    let digest = format!("{:x}", Sha256::digest(source.as_bytes()));
+    let workset =
+        crate::workset::compile(source.as_bytes(), &digest, &["history-store".into()], None)
+            .unwrap();
+    let entry = &workset.entries[0];
+    assert_eq!(entry.plot.expanded.gears.len(), 1);
+    assert!(compile(&entry.plot.expanded, 24 * 1024)
+        .unwrap()
+        .nodes
+        .is_empty());
+    assert!(entry.rust.contains("(0, \"resource/record-service\"),"));
+}

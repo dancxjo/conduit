@@ -42,6 +42,11 @@ pub fn check_assigned(&self,selected:conduit_plan_lowering::selected_assigned_ex
 if !self.available{{return Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner);}}
 conduit_plan_lowering::selected_assigned_expression::check_selected_resident_expression(BINDING,selected).map(|node|node.0)
 }}
+/// Explicit Line/Fore preparation checks the same installed owner and computation.
+pub fn check_assigned_with_line_fore(&self,selected:conduit_plan_lowering::selected_assigned_expression::SelectedAssignedLineForeExpressionPlan<'_>)->Result<u16,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
+if !self.available{{return Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner);}}
+conduit_plan_lowering::selected_assigned_expression::check_selected_resident_expression_with_line_fore(BINDING,selected).map(|node|node.0)
+}}
 /// All fallible checks precede the one-time transfer; refusal retains the same Back.
 pub fn bind_assigned_retained(slot:&mut Option<Self>,selected:conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>)->Result<(u16,Back),conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
 let node=slot.as_ref().ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)?.check_assigned(selected)?;

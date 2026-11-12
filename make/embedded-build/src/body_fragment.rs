@@ -46,6 +46,43 @@ pub fn generate_prepared_body_workset<'a>(
         BodyFragmentGenerationRefusal,
     >,
 ) -> Result<GeneratedBodyWorksetDocument, BodyFragmentGenerationRefusal> {
+    generate_body_workset(scope, actual, maximum_document_bytes, |local| {
+        let (resident, limits) = resolve(local)?;
+        generate_prepared_body_fragment(local, &resident, limits)
+    })
+}
+
+/// Project every original local fragment, preserving exact selected Fore Lines.
+/// Sessions select existing sealed routes; they grant no carrier possession.
+pub fn generate_prepared_body_workset_with_line_fore<'a>(
+    scope: PreparedBodyFragment<'a>,
+    actual: &conduit_core::HostAdvertisement,
+    maximum_document_bytes: u32,
+    mut resolve: impl FnMut(
+        PreparedBodyFragment<'a>,
+    ) -> Result<
+        (
+            Vec<BoundResidentExpression>,
+            BodyFragmentProjectionLimits,
+            Vec<SelectedForeSession>,
+        ),
+        BodyFragmentGenerationRefusal,
+    >,
+) -> Result<GeneratedBodyWorksetDocument, BodyFragmentGenerationRefusal> {
+    generate_body_workset(scope, actual, maximum_document_bytes, |local| {
+        let (resident, limits, sessions) = resolve(local)?;
+        generate_prepared_body_fragment_with_line_fore(local, &resident, limits, &sessions)
+    })
+}
+
+fn generate_body_workset<'a>(
+    scope: PreparedBodyFragment<'a>,
+    actual: &conduit_core::HostAdvertisement,
+    maximum_document_bytes: u32,
+    mut project: impl FnMut(
+        PreparedBodyFragment<'a>,
+    ) -> Result<GeneratedBodyFragmentDocument, BodyFragmentGenerationRefusal>,
+) -> Result<GeneratedBodyWorksetDocument, BodyFragmentGenerationRefusal> {
     use BodyFragmentGenerationRefusal as E;
     let count = scope.local_fragments().count();
     if count == 0
@@ -68,8 +105,7 @@ pub fn generate_prepared_body_workset<'a>(
     let mut documents = Vec::new();
     for local in scope.local_fragments() {
         let local = local.map_err(|_| E::Scope)?;
-        let (resident, limits) = resolve(local)?;
-        documents.push(generate_prepared_body_fragment(local, &resident, limits)?);
+        documents.push(project(local)?);
     }
     let fragments: Vec<_> = documents.iter().map(|document| document.bytes()).collect();
     let bytes = conduit_body::encode_body_workset_document(&fragments, maximum_document_bytes)
@@ -108,22 +144,72 @@ pub fn generate_prepared_body_fragment(
         generated.encode_with_resident_computations(limits.assigned, resident)
     }
     .map_err(E::Generation)?;
-    let resources = projected_resources(fragment, generated.kernel()).ok_or(E::Resources)?;
-    let fore: Vec<_> = generated
-        .fore()
+    finish_document(
+        scope,
+        generated.kernel(),
+        generated.fore(),
+        &projection,
+        limits,
+    )
+}
+
+/// An explicit schema-8 projection when sessions exist; ordinary fragments keep
+/// schema 7. Missing sessions for a selected Line always refuse, never downgrade.
+/// Returned bytes remain unsigned and confer no receiver admission or carrier.
+pub fn generate_prepared_body_fragment_with_line_fore(
+    scope: PreparedBodyFragment<'_>,
+    resident: &[BoundResidentExpression],
+    limits: BodyFragmentProjectionLimits,
+    sessions: &[SelectedForeSession],
+) -> Result<GeneratedBodyFragmentDocument, BodyFragmentGenerationRefusal> {
+    if sessions.is_empty() {
+        return generate_prepared_body_fragment(scope, resident, limits);
+    }
+    use BodyFragmentGenerationRefusal as E;
+    let generated = generate_line_fore_native_plan(
+        scope.plot_plan(),
+        &scope.fragment().fragment_id,
+        limits.image,
+        limits.computations,
+        limits.maximum_fore_ports,
+        sessions,
+    )
+    .map_err(E::Generation)?;
+    let projection = if resident.is_empty() {
+        generated.encode(limits.assigned)
+    } else {
+        generated.encode_with_resident_computations(limits.assigned, resident)
+    }
+    .map_err(E::Generation)?;
+    finish_document(
+        scope,
+        generated.kernel(),
+        generated.fore(),
+        &projection,
+        limits,
+    )
+}
+
+fn finish_document(
+    scope: PreparedBodyFragment<'_>,
+    kernel: &GeneratedEmbeddedPlan,
+    inventory: &[conduit_core::AssignedForeRequirement],
+    projection: &[u8],
+    limits: BodyFragmentProjectionLimits,
+) -> Result<GeneratedBodyFragmentDocument, BodyFragmentGenerationRefusal> {
+    use BodyFragmentGenerationRefusal as E;
+    let resources = projected_resources(scope.fragment(), kernel).ok_or(E::Resources)?;
+    let fore: Vec<_> = inventory
         .iter()
         .flat_map(|p| p.payload().iter().copied())
         .collect();
     let metadata = conduit_body::BodyFragmentApprovalMetadata::from_prepared(
-        scope,
-        &projection,
-        &resources,
-        &fore,
+        scope, projection, &resources, &fore,
     )
     .map_err(E::Document)?;
     let bytes = conduit_body::encode_body_fragment_document(
         &metadata,
-        &projection,
+        projection,
         limits.maximum_document_bytes,
     )
     .map_err(E::Document)?;

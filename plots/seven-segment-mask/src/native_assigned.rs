@@ -2,8 +2,8 @@
 //! come from checked Make material; received descriptors cannot supply them.
 use super::{Kernel, MaskBack};
 use conduit_core as c;
+use conduit_kernel as k;
 use conduit_kernel::assigned::{AssignedKernelRefusal, AssignedKernelTables, ResidentLayout};
-use conduit_kernel::{self as k, SignSink};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MaskRole {
@@ -122,53 +122,92 @@ impl PreparedAssignedMaskKernel {
         profile: &AssignedMaskProfile<'_>,
         scope: AssignedMaskScope,
     ) -> Result<PreparedAssignedMaskStorage, AssignedMaskRefusal> {
-        use AssignedMaskRefusal as E;
         Self::required_heap_bytes(profile)?;
-        let (tables, face, show, interaction, renderer) = admit(input, profile, scope)?;
-        let values = k::HostedValueStore::new_with_slot_capacities(
-            &[profile.face_bytes, profile.show_bytes],
-            profile.face_bytes + profile.show_bytes,
-        )
-        .map_err(E::Values)?;
-        let signs = super::prepare_signs().map_err(|_| E::Bounds)?;
-        signs.ensure_remote_capacity(12).map_err(|_| E::Bounds)?;
-        let identity = tables.identity;
-        let storage = Kernel::prepare_boxed(
-            3,
-            6,
-            tables.nodes,
-            tables.cords,
-            tables.routes,
-            tables.calls,
-            values,
-            signs,
-            core::mem::size_of::<Kernel>(),
-        )
-        .map_err(E::Kernel)?;
-        Ok(PreparedAssignedMaskStorage {
-            identity,
-            storage,
-            face,
-            show,
-            interaction,
-            renderer,
-        })
+        let admitted = admit(input, profile, scope)?;
+        prepare_admitted_storage(input, profile, scope, admitted)
     }
 }
-fn admit(
+// Keep the inline sign log and kernel construction scratch off the cold
+// admission frame. Only borrowed immutable metadata crosses this boundary.
+#[inline(never)]
+fn prepare_admitted_storage(
     input: AssignedMaskInput<'_>,
     profile: &AssignedMaskProfile<'_>,
     scope: AssignedMaskScope,
-) -> Result<
-    (
-        Tables,
-        c::AssignedForeRequirement,
-        c::AssignedForeRequirement,
-        c::AssignedForeRequirement,
-        k::NodeId,
-    ),
-    AssignedMaskRefusal,
-> {
+    admitted: AdmittedMask<'_>,
+) -> Result<PreparedAssignedMaskStorage, AssignedMaskRefusal> {
+    use AssignedMaskRefusal as E;
+    let values = k::HostedValueStore::new_with_slot_capacities(
+        &[profile.face_bytes, profile.show_bytes],
+        profile.face_bytes + profile.show_bytes,
+    )
+    .map_err(E::Values)?;
+    let storage = Kernel::prepare_boxed_with_fixed_signs_and_table_writer(
+        values,
+        (64 * core::mem::size_of::<k::KernelEvent>()) as u32,
+        12,
+        k::remote_sign_storage_bytes(12).ok_or(E::Bounds)?,
+        core::mem::size_of::<Kernel>(),
+        &[[None; 2]; 3],
+        &[[None; 2]; 3],
+        |error| match error {
+            k::scheduler::KernelPreparationError::Topology(k::scheduler::SchedulerError::Sign(
+                _,
+            )) => E::Bounds,
+            other => E::Kernel(other),
+        },
+        |nodes, cords, routes, calls| {
+            Tables::write_records_with_fore(
+                input.header,
+                input.records,
+                input.maxima,
+                c::AssignedPlanRequirements {
+                    host: scope.host,
+                    boot: scope.boot,
+                    host_calls: &[profile.present_call],
+                    resources: profile.resources,
+                    remote_bindings: &[],
+                },
+                c::AssignedComputationProfile {
+                    maximum_text_bytes: 0,
+                    maximum_total_text_bytes: 0,
+                    requirements: &[],
+                },
+                &profile.layout,
+                profile.fore,
+                nodes,
+                cords,
+                routes,
+                calls,
+            )
+            .map_err(E::Assignment)?;
+            Ok((3, 6))
+        },
+    )?;
+    Ok(PreparedAssignedMaskStorage {
+        identity: admitted.identity,
+        storage,
+        face: *admitted.face,
+        show: *admitted.show,
+        interaction: *admitted.interaction,
+        renderer: admitted.renderer,
+    })
+}
+struct AdmittedMask<'a> {
+    identity: c::AssignedPlanView,
+    face: &'a c::AssignedForeRequirement,
+    show: &'a c::AssignedForeRequirement,
+    interaction: &'a c::AssignedForeRequirement,
+    renderer: k::NodeId,
+}
+// Cold validation owns its temporary tables only until the small borrowed
+// metadata returns. No tables or duplicate Fore descriptors cross this frame.
+#[inline(never)]
+fn admit<'a>(
+    input: AssignedMaskInput<'_>,
+    profile: &'a AssignedMaskProfile<'_>,
+    scope: AssignedMaskScope,
+) -> Result<AdmittedMask<'a>, AssignedMaskRefusal> {
     use AssignedMaskRefusal as E;
     if profile.fore.len() != 3
         || profile.resources.len() > 1
@@ -219,7 +258,6 @@ fn admit(
                 f.direction() == direction
                     && f.payload()[5..21] == c::AssignedIdentity::from_text(name).0
             })
-            .copied()
             .ok_or(E::Shape)
     };
     let face = fore("face", c::AssignedForeDirection::Input)?;
@@ -312,5 +350,11 @@ fn admit(
     }
     // The shared constructor will validate the final tables before publishing a
     // scheduler. No rich Plan/Source/offer or mutable provider is retained here.
-    Ok((tables, face, show, interaction, renderer))
+    Ok(AdmittedMask {
+        identity: tables.identity,
+        face,
+        show,
+        interaction,
+        renderer,
+    })
 }

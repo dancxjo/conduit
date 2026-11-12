@@ -26,6 +26,15 @@ fn check(
     operations: &[&BoundBaseOperation],
     borrowed: bool,
 ) -> Result<SelectedOperationSet, SelectedOperationSetRefusal> {
+    check_mode(f, bytes, operations, borrowed, None)
+}
+fn check_mode(
+    f: &Fixture,
+    bytes: &[u8],
+    operations: &[&BoundBaseOperation],
+    borrowed: bool,
+    line: Option<(AssignedLineForeProfile<'_>, &[AssignedRemoteBinding])>,
+) -> Result<SelectedOperationSet, SelectedOperationSetRefusal> {
     let records: Vec<_> = AssignedPlanRecords::new(bytes)
         .unwrap()
         .map(Result::unwrap)
@@ -51,55 +60,64 @@ fn check(
         .collect();
     let gear = &f.fragment.placements[0];
     let base = gear.base.as_ref().unwrap();
-    check_selected_assigned_operation_set(
-        operations,
-        SelectedServiceContract {
-            kind: &f.kind,
-            configuration: &[],
-            resource: &f.resource,
-            requirement: &f.requirement,
-            resource_generation: &f.scopes[0].resource_generation_id,
-            envelope: &f.scopes[0].envelope_id,
-            calls: &calls,
-        },
-        AssignedServiceNativeIdentity {
-            capability: gear.capability_id.as_str(),
-            execution_profile: gear.execution_profile_id.as_str(),
-            artifact: gear.artifact_id.as_str(),
-            base: base.base_id.as_str(),
-            base_implementation: base.implementation_id.as_str(),
-            mechanism: base.mechanism_family.as_str(),
-            resource_class: f.resource.class_id.as_str(),
-            authorities: &authorities,
-        },
-        SelectedAssignedServicePlan {
-            operation: SelectedAssignedOperationPlan {
-                input,
-                maxima: AssignedPlanMaxima {
-                    encoded_bytes: 4096,
-                    runtime_state_bytes: 4096,
-                    counts: [32; ASSIGNED_PLAN_COUNT_KINDS],
-                },
-                requirements: AssignedPlanRequirements {
-                    host: AssignedIdentity::from_text(f.fragment.host_id.as_str()),
-                    boot: AssignedIdentity::from_text(f.fragment.boot_id.as_str()),
-                    host_calls: &call_pins,
-                    resources: &[0],
-                    remote_bindings: &[],
-                },
-                computations: AssignedComputationProfile {
-                    maximum_text_bytes: 0,
-                    maximum_total_text_bytes: 0,
-                    requirements: &[],
-                },
-                fragment_id: f.fragment.fragment_id.as_str(),
-                scope: AssignedPlayScope::Plot(&f.active),
-                node: NodeId(0),
+    let definition = SelectedServiceContract {
+        kind: &f.kind,
+        configuration: &[],
+        resource: &f.resource,
+        requirement: &f.requirement,
+        resource_generation: &f.scopes[0].resource_generation_id,
+        envelope: &f.scopes[0].envelope_id,
+        calls: &calls,
+    };
+    let native = AssignedServiceNativeIdentity {
+        capability: gear.capability_id.as_str(),
+        execution_profile: gear.execution_profile_id.as_str(),
+        artifact: gear.artifact_id.as_str(),
+        base: base.base_id.as_str(),
+        base_implementation: base.implementation_id.as_str(),
+        mechanism: base.mechanism_family.as_str(),
+        resource_class: f.resource.class_id.as_str(),
+        authorities: &authorities,
+    };
+    let selected = SelectedAssignedServicePlan {
+        operation: SelectedAssignedOperationPlan {
+            input,
+            maxima: AssignedPlanMaxima {
+                encoded_bytes: 4096,
+                runtime_state_bytes: 4096,
+                counts: [32; ASSIGNED_PLAN_COUNT_KINDS],
             },
-            fore: None,
-            resource: 0,
+            requirements: AssignedPlanRequirements {
+                host: AssignedIdentity::from_text(f.fragment.host_id.as_str()),
+                boot: AssignedIdentity::from_text(f.fragment.boot_id.as_str()),
+                host_calls: &call_pins,
+                resources: &[0],
+                remote_bindings: line.map_or(&[], |(_, bindings)| bindings),
+            },
+            computations: AssignedComputationProfile {
+                maximum_text_bytes: 0,
+                maximum_total_text_bytes: 0,
+                requirements: &[],
+            },
+            fragment_id: f.fragment.fragment_id.as_str(),
+            scope: AssignedPlayScope::Plot(&f.active),
+            node: NodeId(0),
         },
-    )
+        fore: None,
+        resource: 0,
+    };
+    match line {
+        Some((fore, _)) => check_selected_assigned_operation_set_with_line_fore(
+            operations,
+            definition,
+            native,
+            SelectedAssignedLineForeServicePlan {
+                service: selected,
+                fore,
+            },
+        ),
+        None => check_selected_assigned_operation_set(operations, definition, native, selected),
+    }
 }
 #[test]
 fn both_storage_forms_check_two_targets_without_claiming_reservation() {
@@ -220,3 +238,6 @@ fn actual_numeric_call_mapping_is_not_inferred_from_contract_sort_order() {
         assert_eq!(selected.routes[1].unwrap().call.0, 0);
     }
 }
+
+#[path = "selected_assigned_operation_set/line_fore.rs"]
+mod line_fore;

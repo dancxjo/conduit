@@ -47,7 +47,7 @@ struct Presence {
 }
 const PRESENCE_LEASE_MILLIS: u64 = 2000;
 impl Owner {
-    fn member_carrier_peer(&self) -> Result<FederationPeer, String> {
+    pub(crate) fn member_carrier_peer(&self) -> Result<FederationPeer, String> {
         let key = self
             .member_carrier
             .as_ref()

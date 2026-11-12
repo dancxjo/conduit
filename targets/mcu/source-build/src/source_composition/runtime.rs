@@ -33,6 +33,9 @@ pub async fn run<'s>(
     crate::runtime::stack_checkpoint(1);
     let mut residents =
         crate::resident::inventory().expect("actual initialized resident inventory");
+    // These immutable flash descriptions survive exclusive initialized-Back loans.
+    // They are not availability evidence or native authority.
+    let return_images = residents.offers();
     let mut routing = initialization::routing();
     let clocks: &[(u16, u64, u64); W] = source::sampling::CLOCKS
         .try_into()
@@ -53,11 +56,12 @@ pub async fn run<'s>(
         remaining(),
     )
     .expect("funded canonical output storage");
+    #[cfg(record_service)]
+    let mut recording_resource = None;
     let (maximum_events, recording_operation) = initialization::publication_bounds(&parameters);
-    let mut append_output =
-        [0u8; conduit_resource_snapshot::native_append::APPEND_RESULT_BYTES as usize];
+    let mut append_output = [0u8; crate::play::RECORDING_OUTPUT_BYTES];
     let mut append_status = Some(
-        conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus::prepare(
+        conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus::prepare_selected(
             &source::sampling_layout::fore(),
             source::sampling_layout::append_status_fore(),
         )
@@ -131,10 +135,12 @@ pub async fn run<'s>(
                 equipment: &mut equipment,
                 issuers: &mut issuers,
                 operations: &operations,
+                #[cfg(record_service)]
+                recording_resource: &mut recording_resource,
                 recording: recording_operation.as_ref(),
                 sampling_values: sampling_values.take().expect("original sampling values"),
                 output_values: output_values.take().expect("original output values"),
-                contracts: contracts.take().expect("original native contracts"),
+                contracts: &mut contracts,
                 reader: reader.take().expect("original Reader"),
                 face: &face,
                 append_output_bytes: append_output.len(),
@@ -149,11 +155,12 @@ pub async fn run<'s>(
             Ok(()) => {
                 let started = started.take().expect("original continuation Started");
                 let evidence = started.evidence();
-                let (((sample, sample_calls), mask, (output, output_calls)), renderer) =
-                    started.into_kernels();
+                let ((sampling, mask, (output, output_calls)), renderer) = started.into_kernels();
+                let (mut sample, mut sample_calls) =
+                    sampling.into_local().expect("local-only continuation");
                 return crate::play_run::run(
-                    sample,
-                    sample_calls,
+                    &mut *sample,
+                    &mut sample_calls,
                     mask,
                     output,
                     output_calls,
@@ -163,7 +170,14 @@ pub async fn run<'s>(
                     evidence,
                     arena,
                     &face,
-                    link,
+                    crate::play_run::Carriage::Local {
+                        link,
+                        control: crate::play_run::ReturnControl::prepare(
+                            root,
+                            &issuers,
+                            return_images,
+                        ),
+                    },
                     activity.take().expect("original native activity"),
                     &mut append_output,
                     append_status
@@ -230,115 +244,21 @@ pub async fn run<'s>(
             let mut refusal_detail = heapless::String::<192>::new();
             // Caller-owned affine slots live in the original future storage.
             // Poll boundaries return only status, never another fat workset copy.
+            #[cfg(fore_carrier)]
+            let mut fore_hot = None;
+            #[cfg(fore_carrier)]
+            let mut fore_cold = None;
+            #[cfg(fore_carrier)]
+            let mut fore_buffers =
+                crate::play::fore::buffers().expect("funded installed Fore buffers");
+            // Retained loans drop before their caller-owned rows and backing.
             let mut prepared_slot = None;
+
             crate::runtime::stack_checkpoint(3);
-            let prepared_status = {
-                let future = async {
-                    let parts = root.execution_parts().map_err(|_| "execution-custody")?;
-                    let policy = Policy {
-                        preparation: crate::config::PREPARATION_DELEGATION.as_ref(),
-                        execution: crate::config::EXECUTION_DELEGATION.as_ref(),
-                        active_worksets: 0,
-                        // A logical complete-owner receipt is bounded separately
-                        // from ASG representation. Physical backing is exclusively
-                        // held by the original whole-arena lease.
-                        maximum_retained_bytes: arena.bytes(),
-                    };
-                    let identity = conduit_core::AssignedIdentity::from_text;
-                    let mut held_pools = heapless::Vec::<_, 6>::from_slice(&[
-                        identity(crate::config::RESIDENT_WORK_POOL),
-                        identity(
-                            equipment
-                                .pulse
-                                .as_ref()
-                                .ok_or("pulse-busy")?
-                                .identity()
-                                .resource_pool_id
-                                .as_str(),
-                        ),
-                        identity(
-                            equipment
-                                .display
-                                .as_ref()
-                                .ok_or("display-busy")?
-                                .native_identity()
-                                .resource_pool_id
-                                .as_str(),
-                        ),
-                        identity(
-                            equipment.waits[0]
-                                .as_ref()
-                                .ok_or("wait-busy")?
-                                .native_identity()
-                                .resource_pool_id
-                                .as_str(),
-                        ),
-                        identity(
-                            equipment
-                                .renderer
-                                .native_identity()
-                                .resource_pool_id
-                                .as_str(),
-                        ),
-                    ])
-                    .expect("five original held pools");
-                    if let Some(pool) = equipment.recording.held_pool() {
-                        held_pools
-                            .push(identity(pool.as_str()))
-                            .map_err(|_| "held-pools")?;
-                    }
-                    let context = conduit_body::NativePreparationContext {
-                        bootstrap: parts.bootstrap,
-                        member: parts.member,
-                        actual: parts.resources.host(),
-                        image_id: parts.configuration.image_id,
-                        configuration_id: parts.configuration.configuration_id,
-                        now_millis: now_ms(),
-                    };
-                    let prepared = crate::play::prepare(
-                        &*parts.workspace,
-                        context.into(),
-                        policy,
-                        &mut residents,
-                        &mut *software,
-                        &mut *output_software,
-                        &mut routing,
-                        &mut equipment.pulse,
-                        &mut equipment.display,
-                        &mut equipment.waits,
-                        equipment.recording.ready_slot(),
-                        &mut issuers.recording,
-                        recording_operation.as_ref(),
-                        append_output.len(),
-                        &mut issuers.pulse,
-                        &mut issuers.write,
-                        &mut issuers.waits,
-                        &operations,
-                        sampling_values.take().ok_or("sampling-values-busy")?,
-                        output_values.take().ok_or("output-values-busy")?,
-                        contracts.take().ok_or("native-contracts-busy")?,
-                        &mut refusal_detail,
-                    )
-                    .map_err(|error| {
-                        use core::fmt::Write;
-                        let _ = write!(&mut refusal_detail, "{error:?}");
-                        "complete-source-preparation"
-                    })?;
-                    prepared_slot = Some((
-                        prepared,
-                        &*parts.workspace,
-                        parts.bootstrap,
-                        parts.member,
-                        parts.configuration,
-                        parts.resources,
-                        policy,
-                        held_pools,
-                    ));
-                    Ok::<(), &'static str>(())
-                };
-                let mut future = core::pin::pin!(future);
-                conduit_mcu_host_runtime::poll_boundary::separate(future.as_mut()).await
-            };
+            let prepared_status = include!(concat!(
+                env!("OUT_DIR"),
+                "/source_runtime_online_prepare.rs"
+            ));
             crate::runtime::stack_checkpoint(4);
             // Successive polls retire preparation scratch before admission and
             // provider binding need their own stack. Custody moves once; no
@@ -395,7 +315,10 @@ pub async fn run<'s>(
                             presentation_slot.take().ok_or("presentation-slot-empty")?,
                             &face,
                             &held_pools,
-                            append_output.len() + core::mem::size_of::<conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus>(),
+                            append_output.len() + core::mem::size_of::<conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus>() + {
+                                #[cfg(fore_carrier)] { core::mem::size_of::<Option<crate::play::fore::installation::Hot>>() + core::mem::size_of::<crate::play::fore::Buffers>() }
+                                #[cfg(not(fore_carrier))] { 0 }
+                            },
                             &mut started_slot,
                             &mut scopes_slot,
                         )
@@ -419,21 +342,27 @@ pub async fn run<'s>(
                         let started = started_slot.take().expect("original Started output slot");
                         let scopes = scopes_slot.take().expect("original Scopes output slot");
                         let evidence = started.evidence();
-                        let (((sample, sample_calls), mask, (output, output_calls)), renderer) =
-                            started.into_kernels();
-                        crate::play_run::run(
-                            sample,
-                            sample_calls,
+                        let ((sampling, mask, output), renderer) = started.into_kernels();
+                        crate::play::fore::run_started(
+                            sampling,
                             mask,
                             output,
-                            output_calls,
                             renderer,
                             optional.take().expect("original optional tracking"),
                             scopes,
                             evidence,
                             arena,
                             &face,
-                            link,
+                            {
+                                #[cfg(fore_carrier)]
+                                {
+                                    None
+                                }
+                                #[cfg(not(fore_carrier))]
+                                {
+                                    Some(link)
+                                }
+                            },
                             &equipment.activity,
                             &mut append_output,
                             append_status
@@ -450,6 +379,14 @@ pub async fn run<'s>(
                     // No partial execution: retain the original signed input and
                     // any fenced reservations. Read-only refusal stays observable
                     // on the same carrier; recovery remains the original reboot.
+                    #[cfg(fore_carrier)]
+                    loop {
+                        core::hint::black_box(&arena);
+                        core::hint::black_box(&prepared_slot);
+                        core::hint::black_box(reason);
+                        Timer::after_secs(1).await;
+                    }
+                    #[cfg(not(fore_carrier))]
                     loop {
                         core::hint::black_box(&arena);
                         link.connected().await;

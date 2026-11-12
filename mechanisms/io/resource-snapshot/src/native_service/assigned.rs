@@ -8,6 +8,26 @@ pub struct PreparedAssignedRecordService<'a, S> {
     resource_index: u16,
 }
 impl<S: NorStorage> PreparedAssignedRecordService<'_, S> {
+    pub fn node(&self) -> NodeId {
+        self.prepared.node()
+    }
+    pub fn routes(
+        &self,
+    ) -> [conduit_plan_lowering::selected_operation_set::SelectedServiceRoute; 2] {
+        self.prepared.routes()
+    }
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.prepared.retained_backing_bytes()
+    }
+    /// Prepare the actual two-call Back without withdrawing the Ready owner.
+    pub fn prepare_back<const PORTS: usize, const READ_BYTES: usize>(
+        &self,
+    ) -> Result<
+        crate::native_append::service_back::RecordServiceBack<PORTS, READ_BYTES>,
+        ServiceRefusal,
+    > {
+        self.prepared.prepare_back()
+    }
     pub fn resource_binding(&self) -> &c::ResourceBinding {
         self.resource
     }
@@ -38,6 +58,35 @@ impl<S: NorStorage> ReadyRecordService<S> {
         operations: [c::BoundBaseOperation; 2],
         resource: &'a c::ResourceBinding,
         selected: SelectedAssignedServicePlan<'_>,
+    ) -> Result<PreparedAssignedRecordService<'a, S>, ([c::BoundBaseOperation; 2], ServiceRefusal)>
+    {
+        Self::prepare_assigned_profile(slot, operations, resource, selected, None)
+    }
+    /// Explicit schema-8 selection, preserving the same original operations,
+    /// actual residence owner and exact resource-index checks. No admission.
+    #[allow(clippy::result_large_err)]
+    pub fn prepare_assigned_line_fore_retained<'a>(
+        slot: &'a mut Option<Self>,
+        operations: [c::BoundBaseOperation; 2],
+        resource: &'a c::ResourceBinding,
+        selected: SelectedAssignedLineForeServicePlan<'_>,
+    ) -> Result<PreparedAssignedRecordService<'a, S>, ([c::BoundBaseOperation; 2], ServiceRefusal)>
+    {
+        Self::prepare_assigned_profile(
+            slot,
+            operations,
+            resource,
+            selected.service,
+            Some(selected.fore),
+        )
+    }
+    #[allow(clippy::result_large_err)]
+    fn prepare_assigned_profile<'a>(
+        slot: &'a mut Option<Self>,
+        operations: [c::BoundBaseOperation; 2],
+        resource: &'a c::ResourceBinding,
+        selected: SelectedAssignedServicePlan<'_>,
+        line_fore: Option<c::AssignedLineForeProfile<'_>>,
     ) -> Result<PreparedAssignedRecordService<'a, S>, ([c::BoundBaseOperation; 2], ServiceRefusal)>
     {
         let resource_index = selected.resource;
@@ -84,29 +133,42 @@ impl<S: NorStorage> ReadyRecordService<S> {
                     maximum_operations: ready.limits.read_operations,
                 },
             ];
-            check_selected_assigned_operation_set(
-                &[&operations[0], &operations[1]],
-                SelectedServiceContract {
-                    kind: &kind,
-                    configuration: &[],
-                    resource,
-                    requirement: &requirement,
-                    resource_generation: &identity.resource_generation_id,
-                    envelope: &identity.envelope_id,
-                    calls: &calls,
-                },
-                AssignedServiceNativeIdentity {
-                    capability: SERVICE_CAPABILITY,
-                    execution_profile: SERVICE_PROFILE,
-                    artifact: identity.artifact_id.as_str(),
-                    base: identity.base_id.as_str(),
-                    base_implementation: identity.base_implementation_id.as_str(),
-                    mechanism: crate::native_append::APPEND_MECHANISM,
-                    resource_class: crate::native_append::APPEND_CLASS,
-                    authorities: &[crate::native_append::APPEND_AUTHORITY, READ_AUTHORITY],
-                },
-                selected,
-            )
+            let definition = SelectedServiceContract {
+                kind: &kind,
+                configuration: &[],
+                resource,
+                requirement: &requirement,
+                resource_generation: &identity.resource_generation_id,
+                envelope: &identity.envelope_id,
+                calls: &calls,
+            };
+            let native = AssignedServiceNativeIdentity {
+                capability: SERVICE_CAPABILITY,
+                execution_profile: SERVICE_PROFILE,
+                artifact: identity.artifact_id.as_str(),
+                base: identity.base_id.as_str(),
+                base_implementation: identity.base_implementation_id.as_str(),
+                mechanism: crate::native_append::APPEND_MECHANISM,
+                resource_class: crate::native_append::APPEND_CLASS,
+                authorities: &[crate::native_append::APPEND_AUTHORITY, READ_AUTHORITY],
+            };
+            match line_fore {
+                Some(fore) => check_selected_assigned_operation_set_with_line_fore(
+                    &[&operations[0], &operations[1]],
+                    definition,
+                    native,
+                    SelectedAssignedLineForeServicePlan {
+                        service: selected,
+                        fore,
+                    },
+                ),
+                None => check_selected_assigned_operation_set(
+                    &[&operations[0], &operations[1]],
+                    definition,
+                    native,
+                    selected,
+                ),
+            }
             .map_err(|_| ServiceRefusal::WrongBinding)
         };
         match check() {

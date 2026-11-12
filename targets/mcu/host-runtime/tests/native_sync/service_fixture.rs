@@ -128,6 +128,17 @@ impl Fixture {
         );
         let gear = &mut fragment.placements[0];
         gear.execution_profile_id = SERVICE_PROFILE.into();
+        gear.terminal_transductions = kind
+            .semantic_laws
+            .iter()
+            .filter_map(|law| {
+                if let KindSemanticLaw::TerminalTransduction(profile) = law {
+                    Some(profile.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
         gear.resources[0].class_id = conduit_resource_snapshot::native_append::APPEND_CLASS.into();
         gear.base.as_mut().unwrap().mechanism_family =
             conduit_resource_snapshot::native_append::APPEND_MECHANISM.into();

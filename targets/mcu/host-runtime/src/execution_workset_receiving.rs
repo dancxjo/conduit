@@ -10,7 +10,7 @@ pub(super) fn receive<'w, 'p, const I: usize, const F: usize, const PORTS: usize
     workspace: &'w b::HostCommandInput<I>,
     context: b::NativePreparationContext<'_>,
     policy: Policy<'_>,
-    mut profile_for: impl FnMut(usize, &[u8]) -> Result<b::AssignedBodyPreparationProfile<'p>, E>,
+    mut profile_for: impl FnMut(usize, &[u8]) -> Result<AssignedPreparationProfile<'p>, E>,
 ) -> Result<
     (
         Box<[b::DelegatedBodyFragment<'w>; F]>,
@@ -49,20 +49,28 @@ pub(super) fn receive<'w, 'p, const I: usize, const F: usize, const PORTS: usize
     for index in 0..F {
         let profile = profile_for(index, set.document(index).ok_or(Refusal::Scope)?)
             .map_err(Refusal::Back)?;
-        let received = if profile.fore.is_some() {
-            set.receive_fragment_with_pinned_fore::<PORTS>(
-                index,
-                policy.preparation,
-                context,
-                profile,
-            )
-        } else {
-            set.receive_fragment_with_approved_fore::<PORTS>(
-                index,
-                policy.preparation,
-                context,
-                profile,
-            )
+        let received = match profile {
+            AssignedPreparationProfile::Legacy(profile) if profile.fore.is_some() => set
+                .receive_fragment_with_pinned_fore::<PORTS>(
+                    index,
+                    policy.preparation,
+                    context,
+                    profile,
+                ),
+            AssignedPreparationProfile::Legacy(profile) => set
+                .receive_fragment_with_approved_fore::<PORTS>(
+                    index,
+                    policy.preparation,
+                    context,
+                    profile,
+                ),
+            AssignedPreparationProfile::LineFore(profile) => set
+                .receive_fragment_with_line_fore::<PORTS>(
+                    index,
+                    policy.preparation,
+                    context,
+                    profile,
+                ),
         };
         let (fragment, fore) = received.map_err(Refusal::Workset)?;
         fragments.push(fragment);

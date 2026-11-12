@@ -7,15 +7,17 @@ use super::*;
 #[derive(Clone, Copy)]
 pub enum BorrowedStructuredValue<'a> {
     Empty,
+    Canonical(ValidatedCanonicalStructuredValue<'a>),
     Leaf(&'a [u8]),
     Record(&'a [BorrowedStructuredValue<'a>]),
+    Collection(&'a [BorrowedStructuredValue<'a>]),
     Variant {
         tag: &'a str,
         payload: &'a BorrowedStructuredValue<'a>,
     },
 }
-/// Finite leaf/record/variant composition, including nominal wrappers. Collection
-/// and sequence construction are intentionally unsupported by this small API.
+/// Finite leaf/record/variant/fixed-collection composition, including nominal wrappers.
+/// Sequence construction is intentionally unsupported by this small API.
 /// Schema storage and all output belong to the caller; no authority is implied.
 pub struct PreparedLinkedStructuredComposer<'schema> {
     validator: BorrowedStructuredValueValidator<'schema>,
@@ -101,6 +103,20 @@ fn visit(
     output: &mut Sink<'_>,
 ) -> Result<(), StructuredInfoRefusal> {
     use StructuredInfoRefusal as R;
+    if let BorrowedStructuredValue::Canonical(value) = value {
+        if value.type_bytes() != schema {
+            return Err(R::WrongType);
+        }
+        // Recheck in the enclosing traversal's depth and node budget. A child
+        // validated alone must not bypass aggregate canonical limits.
+        let mut cursor = Cursor::new(value.value_node());
+        validate_value(schema, &mut cursor, depth, nodes)?;
+        if !cursor.remaining.is_empty() {
+            return Err(malformed());
+        }
+        return output.put(value.value_node());
+    }
+
     if depth > MAXIMUM_STRUCTURED_INFO_DEPTH {
         return Err(R::TooDeep);
     }
@@ -127,6 +143,21 @@ fn visit(
             crate::validate_primitive_info(identity, bytes).map_err(R::InvalidPrimitiveLeaf)?;
             output.put(&[0])?;
             output.bytes(bytes)?;
+        }
+        1 => {
+            let count = usize::from(kind.u16()?);
+            let schema = child(&mut kind)?;
+            let BorrowedStructuredValue::Collection(values) = value else {
+                return Err(R::WrongType);
+            };
+            if values.len() != count {
+                return Err(R::WrongCollectionLength);
+            }
+            output.put(&[1])?;
+            output.put(&(count as u32).to_le_bytes())?;
+            for value in values {
+                visit(schema, *value, depth + 1, nodes, output)?;
+            }
         }
         2 => {
             kind.text()?;

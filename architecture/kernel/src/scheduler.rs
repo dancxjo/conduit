@@ -1278,48 +1278,17 @@ where
     }
 
     fn bind_projected_recoveries(&mut self) -> Result<(), SchedulerError> {
-        self.recovery_for_cord = [None; CORDS];
-        for cord in 0..self.active_cords {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.cord_scans += 1;
-                self.scan_counts.set(counts);
-            }
-            let spec = self.cord_specs[cord];
-            if spec.track != AssignedConnectionTrack::AbnormalTerminal {
-                continue;
-            }
-            let CordEndpoint::Local {
-                node: sink,
-                port: sink_port,
-            } = spec.sink
-            else {
-                continue;
-            };
-            let Some(contract) = self.terminal_transductions[usize::from(sink.0)]
-                .get(usize::from(sink_port.0))
-                .copied()
-                .flatten()
-            else {
-                continue;
-            };
-            if contract.input == sink_port
-                && matches!(contract.abnormal, AssignedAbnormalTransduction::Recover)
-            {
-                if self.recovery_for_cord[..cord]
-                    .iter()
-                    .enumerate()
-                    .any(|(other, recovery)| {
-                        *recovery == Some(sink)
-                            || (*recovery).is_some() && self.cord_specs[other].source == spec.source
-                    })
-                {
-                    return Err(SchedulerError::InvalidPlan);
-                }
-                self.recovery_for_cord[cord] = Some(sink);
-            }
+        #[cfg(test)]
+        {
+            let mut counts = self.scan_counts.get();
+            counts.cord_scans += self.active_cords as u64;
+            self.scan_counts.set(counts);
         }
+        self.recovery_for_cord = projected_recovery_map(
+            self.active_cords,
+            &self.cord_specs,
+            &self.terminal_transductions,
+        )?;
         Ok(())
     }
 
@@ -3864,3 +3833,47 @@ impl<I: Iterator<Item = RouteTarget>> CollectTargets for I {}
 
 #[cfg(test)]
 mod tests;
+
+fn projected_recovery_map<const NODES: usize, const CORDS: usize, const PORTS: usize>(
+    active_cords: usize,
+    cord_specs: &[CordSpec; CORDS],
+    contracts: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+) -> Result<[Option<NodeId>; CORDS], SchedulerError> {
+    let mut recovery_for_cord = [None; CORDS];
+    for cord in 0..active_cords {
+        let spec = cord_specs[cord];
+        if spec.track != AssignedConnectionTrack::AbnormalTerminal {
+            continue;
+        }
+        let CordEndpoint::Local {
+            node: sink,
+            port: sink_port,
+        } = spec.sink
+        else {
+            continue;
+        };
+        let Some(contract) = contracts[usize::from(sink.0)]
+            .get(usize::from(sink_port.0))
+            .copied()
+            .flatten()
+        else {
+            continue;
+        };
+        if contract.input == sink_port
+            && matches!(contract.abnormal, AssignedAbnormalTransduction::Recover)
+        {
+            if recovery_for_cord[..cord]
+                .iter()
+                .enumerate()
+                .any(|(other, recovery)| {
+                    *recovery == Some(sink)
+                        || (*recovery).is_some() && cord_specs[other].source == spec.source
+                })
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            recovery_for_cord[cord] = Some(sink);
+        }
+    }
+    Ok(recovery_for_cord)
+}

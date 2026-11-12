@@ -37,6 +37,8 @@ pub(super) struct DataTextGenerationHosts<'a> {
         conduit_core::AuthorityBinding,
         crate::text_file::PreparedTextFile<'a>,
     )>,
+    #[cfg(target_os = "linux")]
+    file_memory: Option<&'a crate::kernel_preparation::ImageMemoryLease>,
     _lifetime: core::marker::PhantomData<&'a ()>,
     text_kind: KindId,
     stores: Vec<PoolStore>,
@@ -67,6 +69,56 @@ impl<'a> DataTextGenerationHosts<'a> {
             )
     }
 
+    /// Exact nested heap of an empty route or a genuinely IMAGE-funded file
+    /// route. Inline buffers/owners are charged by the enclosing route Vec;
+    /// the borrowed persistent directory/reference owner retains its own lease.
+    pub(super) fn image_backing_bytes(&self) -> Option<usize> {
+        #[cfg(target_os = "linux")]
+        if let Some((_, _, authority, file)) = &self.file {
+            self.file_memory?;
+            if !self.stores.is_empty() || !self.bindings.is_empty() {
+                return None;
+            }
+            let mut bytes = self
+                .text_kind
+                .0
+                .capacity()
+                .checked_add(
+                    self.stores
+                        .capacity()
+                        .checked_mul(core::mem::size_of::<PoolStore>())?,
+                )?
+                .checked_add(
+                    self.bindings
+                        .capacity()
+                        .checked_mul(core::mem::size_of::<NodeBinding>())?,
+                )?
+                .checked_add(file.retained_backing_bytes()?)?;
+            for text in [
+                &authority.grant_id.0,
+                &authority.contract_id.0,
+                &authority.host_call_contract_id.0,
+                &authority.subject_kind.0,
+                &authority.host_id.0,
+                &authority.boot_id.0,
+                &authority.capability_id.0,
+            ] {
+                bytes = bytes.checked_add(text.capacity())?;
+            }
+            return Some(bytes);
+        }
+        self.empty_backing_bytes()
+    }
+    pub(super) fn file_node(&self) -> Option<NodeId> {
+        #[cfg(target_os = "linux")]
+        {
+            self.file.as_ref().map(|entry| entry.0)
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            None
+        }
+    }
     pub(super) fn contains_node(&self, node: NodeId) -> bool {
         #[cfg(target_os = "linux")]
         if self.file.as_ref().is_some_and(|entry| entry.0 == node) {
@@ -99,9 +151,17 @@ impl<'a> DataTextGenerationHosts<'a> {
         {
             return Err("selected file Text is unavailable on this Host".into());
         }
+        #[cfg(target_os = "linux")]
+        let file = prepare_file_binding(fragment, identity, selected_file)?;
         Ok(Self {
             #[cfg(target_os = "linux")]
-            file: prepare_file_binding(fragment, identity, selected_file)?,
+            file_memory: if file.is_some() {
+                selected_file.and_then(|selected| selected.image_memory.as_ref())
+            } else {
+                None
+            },
+            #[cfg(target_os = "linux")]
+            file,
             _lifetime: core::marker::PhantomData,
             text_kind: kind_id("value/text"),
             stores: Vec::new(),
@@ -183,9 +243,15 @@ impl<'a> DataTextGenerationHosts<'a> {
                 operation,
             });
         }
+        #[cfg(target_os = "linux")]
+        let file_memory = file
+            .as_ref()
+            .and_then(|_| selected_file.and_then(|selected| selected.image_memory.as_ref()));
         Ok(Self {
             #[cfg(target_os = "linux")]
             file,
+            #[cfg(target_os = "linux")]
+            file_memory,
             _lifetime: core::marker::PhantomData,
             text_kind: kind_id("value/text"),
             stores,
@@ -410,10 +476,11 @@ fn prepare_file_binding<'a>(
             } else {
                 DataTextOperation::Load
             };
-            let prepared = crate::text_file::PreparedTextFile::prepare(
+            let prepared = crate::text_file::PreparedTextFile::prepare_on_base(
                 &selected.directory,
                 placement,
                 &selected.reference,
+                &selected.base_id,
             )
             .map_err(|error| format!("prepare file Text: {error:?}"))?;
             let node = identity

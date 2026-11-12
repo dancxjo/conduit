@@ -1,7 +1,7 @@
 //! Owner-authorized USB carriage of existing canonical Part return.
 use super::{bounded_read, membership_receipt_custody};
 use conduit_body::{MemberReturnImageAcknowledgement, MemberReturnProofDocument};
-use conduit_std_host::pico_spawn::{PicoMemberReturnBasis, PicoSpawnSocket};
+use conduit_std_host::pico_spawn::{PicoMemberReturnBasis, ProvisioningCarrier};
 use std::{path::Path, time::Duration};
 pub(crate) fn return_usb(
     port: &Path,
@@ -9,6 +9,8 @@ pub(crate) fn return_usb(
     receipt_output: &Path,
     state: &Path,
     authorized: bool,
+    carrier: ProvisioningCarrier,
+    recover_retained_key: bool,
 ) -> Result<(), String> {
     if !authorized {
         return Err("USB member return requires --authorize-return".into());
@@ -22,18 +24,30 @@ pub(crate) fn return_usb(
         return Err("live return owner differs from the Seed's independent pin".into());
     }
     let mut custody = membership_receipt_custody::reserve(receipt_output)?;
+    let (next_basis_path, mut next_basis) =
+        membership_receipt_custody::reserve_return_basis(receipt_output)?;
     let timeout = Duration::from_secs(5);
-    let mut socket = PicoSpawnSocket::open(port.to_str().ok_or("USB path is not UTF-8")?)
+    let mut socket = carrier
+        .open(port.to_str().ok_or("USB path is not UTF-8")?)
         .map_err(|e| format!("open member-return carrier: {e:?}"))?;
     let observed = socket
         .request_member_return(&basis, timeout)
         .map_err(|e| format!("observe actual returning member: {e:?}"))?;
-    let challenge = crate::durable_host_control::begin_image_member_return(
-        state,
-        observed.presentation.clone(),
-        observed.images.clone(),
-        observed.advertisement.clone(),
-    )?;
+    let challenge = if recover_retained_key {
+        crate::durable_host_control::begin_recovered_image_member_return(
+            state,
+            observed.presentation.clone(),
+            observed.images.clone(),
+            observed.advertisement.clone(),
+        )?
+    } else {
+        crate::durable_host_control::begin_image_member_return(
+            state,
+            observed.presentation.clone(),
+            observed.images.clone(),
+            observed.advertisement.clone(),
+        )?
+    };
     let proof = socket
         .prove_member_return(&basis, &observed.advertisement, &challenge, timeout)
         .map_err(|e| format!("actual member continuity proof: {e:?}"))?;
@@ -60,11 +74,17 @@ pub(crate) fn return_usb(
         )
         .map_err(|e| format!("member returned; signed acknowledgement refused: {e:?}"))?;
     membership_receipt_custody::retain(&mut custody, &signed)?;
+    membership_receipt_custody::retain_return_basis(
+        &mut next_basis,
+        &basis,
+        &signed,
+        &observed.presentation.projection,
+    )?;
     socket
         .deliver_member_return(&signed, &basis, &observed.presentation.projection, timeout)
         .map_err(|e| {
             format!("return committed and receipt saved; USB delivery uncertain: {e:?}")
         })?;
-    println!("Owner committed the existing Part on the observed Boot; signed acknowledgement saved to {} and sent over USB. Device acceptance and Play are not confirmed.",receipt_output.display());
+    println!("Owner committed the existing Part on the observed Boot; signed acknowledgement saved to {} and sent over USB. Next public return basis: {}. Device acceptance and Play are not confirmed.",receipt_output.display(),next_basis_path.display());
     Ok(())
 }

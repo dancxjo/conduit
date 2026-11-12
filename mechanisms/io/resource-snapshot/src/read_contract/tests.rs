@@ -26,12 +26,10 @@ fn read_source_contract_is_exact_finite_count_to_linked_media_result() {
     for count in [0, 1, u64::from(u32::MAX)] {
         input.contract.validate(&encode_count(count)).unwrap();
     }
-    assert!(
-        input
-            .contract
-            .validate(&encode_count(u64::from(u32::MAX) + 1))
-            .is_err()
-    );
+    assert!(input
+        .contract
+        .validate(&encode_count(u64::from(u32::MAX) + 1))
+        .is_err());
     assert!(input.contract.validate(&[0; 7]).is_err());
     let output = kind
         .value_contracts()

@@ -71,10 +71,11 @@ pub async fn pulse<
     const R: usize,
     const T: usize,
     const H: usize,
+    const K: usize,
     L: SignSink,
     A: PulseReadProvider,
 >(
-    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
     call: &mut PulseHostCall<A>,
 ) -> Result<Dispatch, SchedulerError> {
     let room = kernel.preflight_host_result_storage(1024);
@@ -137,10 +138,11 @@ pub fn write<
     const R: usize,
     const T: usize,
     const H: usize,
+    const K: usize,
     L: SignSink,
     A: OpenDrain,
 >(
-    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
     call: &mut WriteHostCall<A>,
     cancelled: impl FnMut() -> bool,
 ) -> Result<Dispatch, SchedulerError> {
@@ -226,10 +228,11 @@ pub fn begin_wait<
     const R: usize,
     const T: usize,
     const H: usize,
+    const K: usize,
     L: SignSink,
     A: MonotonicWaitProvider,
 >(
-    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
     call: &MonotonicWaitHostCall<A>,
 ) -> Result<Option<PendingWait>, SchedulerError> {
     let room = kernel.signs().ensure_capacity(1);
@@ -263,9 +266,10 @@ pub fn complete_wait<
     const R: usize,
     const T: usize,
     const H: usize,
+    const K: usize,
     L: SignSink,
 >(
-    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
     pending: &PendingWait,
     completion: HostCallOutcome,
 ) -> Result<Dispatch, SchedulerError> {

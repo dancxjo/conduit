@@ -66,8 +66,9 @@ pub struct Runner<
     O,
     F,
     L: SignSink,
+    const K: usize = H,
 > {
-    kernel: RefCell<&'a mut StoredExecutionKernel<D, L, N, C, P, R, T, H>>,
+    kernel: RefCell<&'a mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>>,
     observer: RefCell<&'a mut O>,
     yield_to_host: &'a Y,
     cancelled: &'a F,
@@ -84,13 +85,14 @@ impl<
         const T: usize,
         const H: usize,
         Y: CooperativeYield,
-        O: Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H>>,
+        O: Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H, K>>,
         F: Fn() -> bool,
         L: SignSink,
-    > Runner<'a, D, N, C, P, R, T, H, Y, O, F, L>
+        const K: usize,
+    > Runner<'a, D, N, C, P, R, T, H, Y, O, F, L, K>
 {
     pub fn new(
-        kernel: &'a mut StoredExecutionKernel<D, L, N, C, P, R, T, H>,
+        kernel: &'a mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
         observer: &'a mut O,
         yield_to_host: &'a Y,
         cancelled: &'a F,

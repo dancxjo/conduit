@@ -13,10 +13,19 @@ type SampleBase<'a, 'f> = PreparedDrivers<
     SN,
     WAIT_SLOTS,
 >;
+#[cfg(not(record_service))]
 type Sample<'a, 'f> = conduit_mcu_host_runtime::execution_factory::PreparedWithOptionalAppender<
     'a,
     SampleBase<'a, 'f>,
     RecordingStorage,
+>;
+#[cfg(record_service)]
+type Sample<'a, 'f> = conduit_mcu_host_runtime::execution_factory::PreparedWithRecordService<
+    'a,
+    SampleBase<'a, 'f>,
+    RecordingStorage,
+    SP,
+    { conduit_resource_snapshot::read_result::READ_RESULT_BYTES },
 >;
 type Output<'a, 'f> = PreparedDrivers<
     'a,
@@ -45,9 +54,10 @@ pub(super) fn prepare<'a, 'f: 'a>(
     pulse: &'a mut Option<ReadyPulseBase<Pulse>>,
     write: &'a mut Option<ReadyWriteBase<Wire>>,
     waits: &'a mut [Option<ReadyMonotonicWaitBase<MonotonicTimer>>; WAIT_SLOTS],
-    recording: Option<&'a mut Option<ReadyRecordAppender<RecordingStorage>>>,
-    recording_issuer: &mut Issuer,
-    recording_operation: Option<&Operation<'_>>,
+    recording: Option<&'a mut Option<crate::equipment::RecordingReady>>,
+    #[cfg(record_service)] recording_resource: Option<&'a c::ResourceBinding>,
+    recording_issuer: RecordingIssuers<'_>,
+    recording_operation: Option<&RecordingOperation<'_>>,
     pulse_issuer: &mut Issuer,
     write_issuer: &mut Issuer,
     wait_issuers: &mut [Issuer; WAIT_SLOTS],
@@ -56,10 +66,15 @@ pub(super) fn prepare<'a, 'f: 'a>(
     output: &b::DelegatedBodyFragment<'_>,
     sampling_profile: b::AssignedBodyPreparationProfile<'_>,
     output_profile: b::AssignedBodyPreparationProfile<'_>,
+    line_fore: Option<c::AssignedLineForeProfile<'_>>,
     sampling_fore: &[c::AssignedForeRequirement],
     output_fore: &[c::AssignedForeRequirement],
-    contracts: execution_group::NativeContracts,
+    contracts: &execution_group::NativeContracts,
 ) -> Result<(Sample<'a, 'f>, Output<'a, 'f>), &'static str> {
+    #[cfg(not(record_service))]
+    if line_fore.is_some() {
+        return Err("line-fore-requires-read-service");
+    }
     let mut is_sampling = [false; resident::ENTRY_COUNT];
     let mut selected = core::array::from_fn(|_| None);
     for entry in 0..resident::ENTRY_COUNT {
@@ -79,7 +94,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
             (None, Some(pin)) => (output, &output_profile, output_fore, pin),
             _ => return Err("resident-source-selection"),
         };
-        selected[entry] = Some(SelectedAssignedExpressionPlan {
+        let mut expression = SelectedAssignedExpressionPlan {
             input: AssignedOperationInput::Contiguous(approved.projection()),
             maxima: profile.maxima,
             requirements: profile.requirements,
@@ -89,10 +104,18 @@ pub(super) fn prepare<'a, 'f: 'a>(
             scope: AssignedPlayScope::Delegated(approved),
             node: NodeId(pin.node),
             work_resource: 0, // Checked BSP publishes its cooperative pool first.
+        };
+        selected[entry] = Some(match (is_sampling[entry], line_fore) {
+            (true, Some(fore)) => {
+                expression.fore = None;
+                resident::ResidentAssignment::LineFore(
+                conduit_plan_lowering::selected_assigned_expression::SelectedAssignedLineForeExpressionPlan{expression,fore})
+            }
+            _ => resident::ResidentAssignment::Local(expression),
         });
     }
     let mut loans = residents
-        .prepare_selected_array(selected)
+        .prepare_selected_profiles_array(selected)
         .map_err(|_| "resident-assignment")?
         .split();
     let sample_loans =
@@ -135,20 +158,14 @@ pub(super) fn prepare<'a, 'f: 'a>(
             crate::runtime::remaining(),
         )
         .map_err(|_| "pulse-authority")?;
-    let pulse_contract = contracts.pulse;
-    let pulse = ReadyPulseBase::prepare_assigned_fore_retained(
-        pulse,
-        table,
-        handle,
-        claim,
-        &pulse_contract,
-        SelectedAssignedForeOperationPlan {
-            operation: operation(sampling, &sampling_profile, pn),
-            fore: sampling_fore,
-        },
-    )
-    .map_err(|_| "pulse-assignment")?;
-    drop(pulse_contract); // Cold schema metadata is not execution custody.
+    let pulse_contract = &contracts.pulse;
+    let selected = operation(sampling, &sampling_profile, pn);
+    let pulse = match line_fore {
+        Some(fore) => ReadyPulseBase::prepare_assigned_line_fore_retained(pulse,table,handle,claim,pulse_contract,
+            conduit_plan_lowering::selected_assigned_operation::SelectedAssignedLineForeOperationPlan{operation:selected,fore}),
+        None => ReadyPulseBase::prepare_assigned_fore_retained(pulse,table,handle,claim,pulse_contract,
+            SelectedAssignedForeOperationPlan{operation:selected,fore:sampling_fore}),
+    }.map_err(|_| "pulse-assignment")?;
     let (table, handle, claim) = context
         .issue(
             write_issuer,
@@ -159,20 +176,19 @@ pub(super) fn prepare<'a, 'f: 'a>(
             crate::runtime::remaining(),
         )
         .map_err(|_| "write-authority")?;
-    let write_contract = contracts.write;
+    let write_contract = &contracts.write;
     let write = ReadyWriteBase::prepare_assigned_fore_retained(
         write,
         table,
         handle,
         claim,
-        &write_contract,
+        write_contract,
         SelectedAssignedForeOperationPlan {
             operation: operation(output, &output_profile, wn),
             fore: output_fore,
         },
     )
     .map_err(|_| "write-assignment")?;
-    drop(write_contract);
     // This checked BSP construction currently admits exactly one Source
     // clock; shared mechanisms support larger independently built sets.
     let [wait] = waits;
@@ -204,28 +220,31 @@ pub(super) fn prepare<'a, 'f: 'a>(
             crate::runtime::remaining(),
         )
         .map_err(|_| "wait-authority")?;
-    let wait = ReadyMonotonicWaitBase::prepare_assigned_fore_retained(
-        wait,
-        table,
-        handle,
-        claim,
-        &configuration,
-        SelectedAssignedForeOperationPlan {
-            operation: operation(sampling, &sampling_profile, *clock),
-            fore: sampling_fore,
-        },
-    )
-    .map_err(|_| "wait-assignment")?;
+    let selected = operation(sampling, &sampling_profile, *clock);
+    let wait = match line_fore {
+        Some(fore) => ReadyMonotonicWaitBase::prepare_assigned_line_fore_retained(wait,table,handle,claim,&configuration,
+            conduit_plan_lowering::selected_assigned_operation::SelectedAssignedLineForeOperationPlan{operation:selected,fore}),
+        None => ReadyMonotonicWaitBase::prepare_assigned_fore_retained(wait,table,handle,claim,&configuration,
+            SelectedAssignedForeOperationPlan{operation:selected,fore:sampling_fore}),
+    }.map_err(|_| "wait-assignment")?;
     drop(configuration);
     // Only independently compiled Source selects this actual native owner.
-    let mut append_nodes = source::sampling::NATIVE_KINDS
-        .iter()
-        .filter(|(_, kind)| *kind == conduit_resource_snapshot::native_append::APPEND_KIND);
+    let mut append_nodes = source::sampling::NATIVE_KINDS.iter().filter(|(_, kind)| {
+        #[cfg(not(record_service))]
+        {
+            *kind == conduit_resource_snapshot::native_append::APPEND_KIND
+        }
+        #[cfg(record_service)]
+        {
+            *kind == conduit_resource_snapshot::service_contract::SERVICE_KIND
+        }
+    });
     let append_node = append_nodes.next().map(|(node, _)| *node);
     if append_nodes.next().is_some() {
         return Err("append-source-duplicate");
     }
-    let appender = match (append_node, contracts.append, recording_operation) {
+    #[cfg(not(record_service))]
+    let appender = match (append_node, contracts.append.as_ref(), recording_operation) {
         (Some(node), Some(contract), Some(op)) => {
             let recording = recording.ok_or("append-busy")?;
             let (table, handle, claim) = context
@@ -243,7 +262,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
                 table,
                 handle,
                 claim,
-                &contract,
+                contract,
                 &[],
                 SelectedAssignedForeOperationPlan {
                     operation: operation(sampling, &sampling_profile, node),
@@ -251,11 +270,52 @@ pub(super) fn prepare<'a, 'f: 'a>(
                 },
             )
             .map_err(|_| "append-assignment")?;
-            drop(contract);
             Some(ticket)
         }
         (None, None, None) => None,
         _ => return Err("append-source-contract"),
+    };
+    #[cfg(record_service)]
+    let service = {
+        let node = append_node.ok_or("record-service-source")?;
+        let operations = recording_operation.ok_or("record-service-operations")?;
+        let recording = recording.ok_or("record-service-busy")?;
+        let [append_issuer, read_issuer] = recording_issuer;
+        let facts = NativeFacts::record_service(recording.as_ref().ok_or("record-service-busy")?);
+        let issue = |issuer: &mut Issuer, op: &Operation<'_>| {
+            let (table, handle, claim) = context
+                .issue(
+                    issuer,
+                    policy,
+                    sampling,
+                    &facts,
+                    op,
+                    crate::runtime::remaining(),
+                )
+                .map_err(|_| "record-service-authority")?;
+            c::BoundBaseOperation::bind(table, handle, claim)
+                .map_err(|_| "record-service-operation")
+        };
+        let append = issue(append_issuer, &operations[0])?;
+        let read = issue(read_issuer, &operations[1])?;
+        let selected =
+            conduit_plan_lowering::selected_assigned_operation_set::SelectedAssignedServicePlan {
+                operation: operation(sampling, &sampling_profile, node),
+                fore: if line_fore.is_some() {
+                    None
+                } else {
+                    Some(sampling_fore)
+                },
+                resource: source::sampling_layout::RECORD_SERVICE_RESOURCE
+                    .ok_or("record-service-resource-index")?,
+            };
+        match line_fore {
+            Some(fore) => conduit_resource_snapshot::native_service::ReadyRecordService::prepare_assigned_line_fore_retained(
+                recording,[append,read],recording_resource.ok_or("record-service-resource")?,
+                conduit_plan_lowering::selected_assigned_operation_set::SelectedAssignedLineForeServicePlan{service:selected,fore}),
+            None => conduit_resource_snapshot::native_service::ReadyRecordService::prepare_assigned_retained(
+                recording,[append,read],recording_resource.ok_or("record-service-resource")?,selected),
+        }.map_err(|_| "record-service-assignment")?
     };
     let sample_software = software
         .prepare_assigned(
@@ -275,6 +335,7 @@ pub(super) fn prepare<'a, 'f: 'a>(
             }),
         )
         .map_err(|_| "output-software")?;
+    #[cfg(not(record_service))]
     let sample_backs = PreparedDrivers::with_optional_appender(
         sample_loans,
         sample_nodes,
@@ -286,6 +347,26 @@ pub(super) fn prepare<'a, 'f: 'a>(
         },
         appender,
     )?;
+    #[cfg(record_service)]
+    // SAFETY: this same Source factory remains behind original whole-workset
+    // check_resources/Start, including the exact checked residence index above.
+    let sample_backs = unsafe {
+        PreparedDrivers::with_record_service::<
+            _,
+            SP,
+            { conduit_resource_snapshot::read_result::READ_RESULT_BYTES },
+        >(
+            sample_loans,
+            sample_nodes,
+            sample_software,
+            PreparedCalls {
+                pulse: Some(pulse),
+                write: None,
+                waits: [wait],
+            },
+            service,
+        )
+    }?;
     let output_backs = PreparedDrivers::<_, Pulse, Wire, MonotonicTimer, 4, ON, 0>::new(
         output_loans,
         output_nodes,

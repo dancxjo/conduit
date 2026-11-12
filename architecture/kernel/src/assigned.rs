@@ -4,11 +4,16 @@
 use crate as k;
 use conduit_assigned_plan as c;
 mod boundary;
+mod line_fore;
 mod local_fore;
+use line_fore::ForeProfile;
+#[path = "assigned/layout.rs"]
+mod layout_check;
 pub(crate) use local_fore::LocalForeProvenance;
 mod bounded;
 pub use bounded::BoundedAssignedKernelTables;
 mod record_input;
+mod write_records;
 use boundary::endpoint;
 use k::scheduler::{
     AssignedConnectionTrack as Track, AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec,
@@ -122,7 +127,7 @@ impl<
             required,
             computations,
             layout,
-            Some(fore),
+            Some(ForeProfile::Local(fore)),
         )
     }
     /// The same exact local fore profile over borrowed canonical records.
@@ -141,7 +146,7 @@ impl<
             required,
             computations,
             layout,
-            Some(fore),
+            Some(ForeProfile::Local(fore)),
         )
     }
     fn prepare_profile(
@@ -150,7 +155,7 @@ impl<
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
         layout: &ResidentLayout<'_>,
-        fore: Option<&[c::AssignedForeRequirement]>,
+        fore: Option<ForeProfile<'_>>,
     ) -> Result<Self, AssignedKernelRefusal> {
         Self::prepare_capacity_profile(input, maxima, required, computations, layout, fore, true)
     }
@@ -161,12 +166,63 @@ impl<
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
         layout: &ResidentLayout<'_>,
-        fore: Option<&[c::AssignedForeRequirement]>,
+        fore: Option<ForeProfile<'_>>,
         exact_counts: bool,
     ) -> Result<Self, AssignedKernelRefusal> {
+        let mut nodes = [NodeSpec {
+            input_cords: [None; P],
+            maximum_step_fuel: 0,
+        }; N];
+        let mut cords = [CordSpec::inactive(); C];
+        let mut routes = k::FixedRoutes::new(P as u16);
+        let mut calls = k::FixedHostCallBindings::new(1);
+        let mut startup_order = [k::NodeId(u16::MAX); N];
+        let identity = Self::write_capacity_profile(
+            input,
+            maxima,
+            required,
+            computations,
+            layout,
+            fore,
+            exact_counts,
+            &mut nodes,
+            &mut cords,
+            &mut routes,
+            &mut calls,
+            &mut startup_order,
+        )?;
+        Ok(Self {
+            identity,
+            nodes,
+            cords,
+            routes,
+            calls,
+            startup_order,
+        })
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn write_capacity_profile(
+        input: RecordInput<'_>,
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        fore: Option<ForeProfile<'_>>,
+        exact_counts: bool,
+        nodes: &mut [NodeSpec<P>; N],
+        cords: &mut [CordSpec; C],
+        routes: &mut k::FixedRoutes<R, T>,
+        calls: &mut k::FixedHostCallBindings<H>,
+        startup_order: &mut [k::NodeId; N],
+    ) -> Result<c::AssignedPlanView, AssignedKernelRefusal> {
         use AssignedKernelRefusal as E;
-        if !matches!(
-            u16_at(input.header(), 8)?,
+        let schema = u16_at(input.header(), 8)?;
+        if schema == c::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA {
+            if !matches!(fore, Some(ForeProfile::Line(_))) {
+                return Err(E::Unsupported);
+            }
+        } else if !matches!(
+            schema,
             c::ASSIGNED_KERNEL_PLAN_SCHEMA
                 | c::ASSIGNED_NATIVE_PLAN_SCHEMA
                 | c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
@@ -188,18 +244,18 @@ impl<
         {
             return Err(E::Layout);
         }
-        if usize::from(identity.counts[9]) != fore.map_or(0, |f| f.len())
+        if usize::from(identity.counts[9]) != fore.map_or(0, ForeProfile::len)
             || identity.counts[12] != 0
         {
             return Err(E::Unsupported);
         }
-        validate_layout(input, layout)?;
-        let mut nodes = [NodeSpec {
+        layout_check::validate(input, layout, fore)?;
+        nodes.fill(NodeSpec {
             input_cords: [None; P],
             maximum_step_fuel: 0,
-        }; N];
+        });
         let mut node_seen = [false; N];
-        let mut cords = [CordSpec::inactive(); C];
+        cords.fill(CordSpec::inactive());
         let mut cord_seen = [false; C];
         let mut ranges = [None; R];
         let mut range_count = 0;
@@ -209,8 +265,26 @@ impl<
         };
         let mut targets = [empty_target; T];
         let mut target_count = 0;
-        let mut calls = k::FixedHostCallBindings::<H>::new(1);
-        let mut startup_order = [k::NodeId(u16::MAX); N];
+        // The assigned records are already Core-checked above. Preserve the
+        // existing stride-one representation for zero/single-call images; a
+        // multi-operation node selects its actual maximum call ID plus one.
+        // This never enlarges the caller's funded H-slot table, including sparse
+        // IDs and partial node rows: install still checks each actual slot.
+        let mut calls_per_node = 1u16;
+        for record in input.records()? {
+            let record = record?;
+            if record.tag == c::ASSIGNED_HOST_CALL {
+                let stride = u16_at(record.payload, 2)?
+                    .checked_add(1)
+                    .ok_or(E::Capacity)?;
+                calls_per_node = calls_per_node.max(stride);
+                if usize::from(calls_per_node) > H {
+                    return Err(E::Capacity);
+                }
+            }
+        }
+        *calls = k::FixedHostCallBindings::<H>::new(calls_per_node);
+        startup_order.fill(k::NodeId(u16::MAX));
         let mut startup_positions = [usize::MAX; N];
         let mut startup_count = 0;
         for record in input.records()? {
@@ -341,7 +415,7 @@ impl<
                 }
             }
         }
-        let mut routes = k::FixedRoutes::<R, T>::new(P as u16);
+        *routes = k::FixedRoutes::<R, T>::new(P as u16);
         for (node, port, range) in ranges.into_iter().flatten() {
             let start = usize::from(range.start);
             let end = start
@@ -355,17 +429,10 @@ impl<
         }
         routes.seal()?;
         calls.seal()?;
-        if u16_at(input.header(), 8)? == c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA {
-            local_fore::pin(&mut cords, fore.ok_or(E::Layout)?)?;
+        if let Some(profile) = fore {
+            profile.pin(cords)?;
         }
-        Ok(Self {
-            identity,
-            nodes,
-            cords,
-            routes,
-            calls,
-            startup_order,
-        })
+        Ok(identity)
     }
     /// Prepare existing production Backs in the exact dependency-respecting
     /// assigned order. No Play may start until this succeeds for every node.
@@ -383,38 +450,7 @@ impl<
         &self.startup_order
     }
 }
-fn validate_layout(
-    input: RecordInput<'_>,
-    layout: &ResidentLayout<'_>,
-) -> Result<(), AssignedKernelRefusal> {
-    use AssignedKernelRefusal as E;
-    if layout.records.len() > 256 {
-        return Err(E::Capacity);
-    }
-    let mut seen = [false; 256];
-    for record in input.records()? {
-        let record = record?;
-        if matches!(
-            record.tag,
-            c::ASSIGNED_CONFIGURATION | c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL
-        ) {
-            continue;
-        }
-        let expected =
-            c::AssignedRecordRequirement::from_kernel_record(record, u16_at(input.header(), 8)?);
-        let index = layout
-            .records
-            .iter()
-            .enumerate()
-            .position(|(i, r)| !seen[i] && *r == expected)
-            .ok_or(E::Layout)?;
-        seen[index] = true;
-    }
-    if seen[..layout.records.len()].contains(&false) {
-        return Err(E::Layout);
-    }
-    Ok(())
-}
+
 fn u16_at(data: &[u8], offset: usize) -> Result<u16, AssignedKernelRefusal> {
     Ok(u16::from_le_bytes(
         data.get(offset..offset + 2)

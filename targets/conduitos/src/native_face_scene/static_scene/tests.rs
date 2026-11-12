@@ -1,4 +1,5 @@
-use super::*;
+use super::super::PreparedStaticNativeFaceScene;
+use super::NativeFaceScene;
 
 #[test]
 fn static_owner_keeps_complete_semantic_face_and_identical_initial_frame() {
@@ -10,10 +11,11 @@ fn static_owner_keeps_complete_semantic_face_and_identical_initial_frame() {
     ordinary.local_input_available = false;
     let static_scene = PreparedStaticNativeFaceScene::prepare(original.clone(), 640, 480).unwrap();
     assert_eq!(static_scene.scene.face, original);
-    assert_eq!(
-        static_scene.frame().unwrap().scene,
-        ordinary.frame().unwrap().scene
-    );
+    let static_frame = static_scene.frame().unwrap();
+    assert_eq!(static_frame.scene, ordinary.frame().unwrap().scene);
+    // Read-only presentation still owns its finite hit buffer; its IMAGE
+    // accounting must not mistake absence of active input for zero backing.
+    assert!(static_frame.retained_backing_bytes().unwrap() > 0);
     assert!(
         static_scene.retained_backing_bytes().unwrap()
             >= original.retained_backing_bytes().unwrap()

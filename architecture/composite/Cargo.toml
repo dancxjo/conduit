@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-fixture-registry-preparation = []
+default = ["kernel-executor"]
+# Finite StepBacks need only Core and the existing execution kernel.
+# Hosted/nested-Plan preparation remains an explicit, separately linked layer.
+kernel-executor = ["dep:conduit-plot", "dep:conduit-plan-lowering"]
+fixture-registry-preparation = ["kernel-executor"]
 
 [[test]]
 name = "kernel_execution"
@@ -20,9 +24,9 @@ required-features = ["fixture-registry-preparation"]
 
 [dependencies]
 conduit-core = { path = "../core" }
-conduit-plot = { path = "../plot" }
+conduit-plot = { path = "../plot", optional = true }
 conduit-kernel = { path = "../kernel", features = ["alloc"] }
-conduit-plan-lowering = { path = "../plan-lowering", default-features = false }
+conduit-plan-lowering = { path = "../plan-lowering", default-features = false, optional = true }
 
 [dev-dependencies]
 conduit-kernel = { path = "../kernel", features = ["alloc", "step-test-support"] }

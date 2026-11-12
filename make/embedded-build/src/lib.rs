@@ -42,8 +42,10 @@ mod configuration;
 mod configuration_record;
 pub use configuration_record::encode_assigned_software_configuration;
 mod fore;
+mod line_fore;
+pub use line_fore::{generate_line_fore_native_plan, GeneratedLineForePlan, SelectedForeSession};
 mod generate;
-pub use fore::{generate_fore_native_plan, GeneratedForePlan};
+pub use fore::{assigned_fore_inventory, generate_fore_native_plan, GeneratedForePlan};
 mod model;
 mod render;
 mod validate;
@@ -75,3 +77,6 @@ mod resident_expression_tests;
 
 mod body_fragment;
 pub use body_fragment::*;
+
+#[cfg(test)]
+mod resident_terminal_tests;

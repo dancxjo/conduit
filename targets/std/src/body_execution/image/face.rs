@@ -35,6 +35,7 @@ impl StdHost {
             started,
             Some(&mut custody),
             Some(face),
+            None,
         )?;
         Ok(ImageBodyRunReport {
             report,

@@ -12,8 +12,13 @@ fn exact_undispatched_creche_kernel_has_finite_receipt_without_starting_owner() 
         track: conduit_core::ConnectionTrack::Payload,
         bytes: owner.request().0.to_vec(),
     }];
+    let plans = plan
+        .plots
+        .iter()
+        .map(|partition| &partition.plan)
+        .collect::<Vec<_>>();
     let mut kernel = BodyKernel::prepare_on_host(
-        &plan.plots,
+        &plans,
         false,
         &play.active_play_id,
         &inputs,

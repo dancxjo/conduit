@@ -30,6 +30,16 @@ pub struct PreparedClockCodec {
     unit: Vec<u8>,
 }
 impl PreparedClockCodec {
+    /// Owned prepared schema and buffer capacities, excluding inline storage
+    /// and allocator bookkeeping. This performs no provider work.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.request
+            .retained_backing_bytes()?
+            .checked_add(self.result.prepared_heap_bytes())?
+            .checked_add(self.instant.prepared_heap_bytes())?
+            .checked_add(self.unit.capacity())
+    }
+
     pub fn new(contract: &MonotonicClockContract) -> Result<Self, StructuredInfoRefusal> {
         let mut unit = PreparedStructuredComposer::new(
             &StructuredInfoType::leaf(kind_id("value/empty"))?,

@@ -56,6 +56,8 @@ pub(super) fn build(
         return Err("qualified ESP linker unavailable".into());
     }
     let target = root.join("target/esp32-electrical-check");
+    let temporary = root.join("target/esp32-electrical-tmp");
+    fs::create_dir_all(&temporary)?;
     let image_description =
         super::host_workset_source::ImageDescriptionInput::capture(output, description, image)?;
     let mut command = Command::new("cargo");
@@ -75,7 +77,7 @@ pub(super) fn build(
         .env("CARGO_TARGET_DIR", &target)
         .env("CARGO_BUILD_JOBS", "2")
         .env("CARGO_INCREMENTAL", "0")
-        .env("TMPDIR", root.join("target/esp32-electrical-tmp"))
+        .env("TMPDIR", &temporary)
         .env("CARGO_TARGET_XTENSA_ESP32_NONE_ELF_LINKER", &linker);
     image_description.configure(&mut command)?;
     if let Some(workset) = workset {

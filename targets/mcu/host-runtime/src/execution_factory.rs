@@ -1,6 +1,10 @@
 //! Concrete composition of real initialized resident/software/native Back loans.
 //! Source/assignment checking happens before this inventory is lent; binding
 //! consumes every selected slot once, without allocating or starting equipment.
+#[path = "execution_factory_residents.rs"]
+mod residents;
+pub use residents::{PreparedResidentEntry, PreparedResidentSubset, PreparedResidents};
+
 #[path = "execution_factory_appender.rs"]
 mod appender;
 pub use appender::{
@@ -8,8 +12,19 @@ pub use appender::{
     PreparedWithOptionalAppender,
 };
 
+#[path = "execution_factory_service.rs"]
+mod service;
+pub use service::{BoxedRecordServiceBack, CallsWithRecordService, PreparedWithRecordService};
+
 #[path = "execution_factory_drivers.rs"]
 mod drivers;
+
+#[path = "execution_factory_native.rs"]
+mod native;
+pub use native::{NativeCallNode, PreparedCallSet, PreparedNativeDrivers};
+#[path = "execution_factory_i2c_clock.rs"]
+mod i2c_clock;
+pub use i2c_clock::{I2cClockCalls, PreparedI2cClockCalls};
 
 extern crate alloc;
 use crate::{execution::PreparedBacks, execution_software::SoftwareBack};
@@ -27,19 +42,38 @@ use conduit_tm1637_wire::{
     installation::PreparedAssignedWrite, owner::WriteHostCall, OpenDrain, WriteBack,
 };
 
-pub enum Driver<'a, R> {
+/// Uninhabited default keeps existing Driver inventories free of extra state.
+pub enum NoExtraBack {}
+impl<const PORTS: usize> StepBack<PORTS> for NoExtraBack {
+    fn step(&mut self, _: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        match *self {}
+    }
+}
+pub enum Driver<'a, R, X = NoExtraBack> {
     Resident(R),
     Software(SoftwareBack<'a>),
     Native(HostCallBack),
     Write(WriteBack),
+    Extra(X),
 }
-impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
+impl<R: StepBack<P>, X: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R, X> {
+    fn terminal_transductions(
+        &self,
+    ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P] {
+        match self {
+            Self::Resident(back) => back.terminal_transductions(),
+            Self::Software(back) => <SoftwareBack as StepBack<P>>::terminal_transductions(back),
+            Self::Extra(back) => back.terminal_transductions(),
+            _ => [None; P],
+        }
+    }
     fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
         match self {
             Self::Resident(back) => back.step(io, input),
             Self::Software(back) => back.step(io, input),
             Self::Native(back) => back.step(io, input),
             Self::Write(back) => back.step(io, input),
+            Self::Extra(back) => back.step(io, input),
         }
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
@@ -48,6 +82,7 @@ impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
             Self::Software(back) => <SoftwareBack as StepBack<P>>::prepared_output(back, port),
             Self::Native(back) => <HostCallBack as StepBack<P>>::prepared_output(back, port),
             Self::Write(back) => <WriteBack as StepBack<P>>::prepared_output(back, port),
+            Self::Extra(back) => back.prepared_output(port),
         }
     }
     fn step_committed(&mut self) {
@@ -56,6 +91,7 @@ impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
             Self::Software(back) => <SoftwareBack as StepBack<P>>::step_committed(back),
             Self::Native(back) => <HostCallBack as StepBack<P>>::step_committed(back),
             Self::Write(back) => <WriteBack as StepBack<P>>::step_committed(back),
+            Self::Extra(back) => back.step_committed(),
         }
     }
     fn cancel(&mut self) {
@@ -64,19 +100,9 @@ impl<R: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R> {
             Self::Software(back) => <SoftwareBack as StepBack<P>>::cancel(back),
             Self::Native(back) => <HostCallBack as StepBack<P>>::cancel(back),
             Self::Write(back) => <WriteBack as StepBack<P>>::cancel(back),
+            Self::Extra(back) => back.cancel(),
         }
     }
-}
-/// Implemented by the linked generated resident inventory's existing opaque
-/// selection ticket; it must not create a different interpreter or decoder.
-/// # Safety
-/// `nodes` must describe exactly the initialized, exclusively borrowed owners
-/// returned by `bind`; binding must be infallible and allocate no memory.
-pub unsafe trait PreparedResidents<const E: usize> {
-    type Back;
-    fn nodes(&self) -> [Option<u16>; E];
-    fn retained_backing_bytes(&self) -> Option<usize>;
-    fn bind(self) -> [Option<(u16, Self::Back)>; E];
 }
 pub struct SoftwareConfigurationPin {
     pub node: u16,
@@ -252,6 +278,23 @@ pub struct PreparedDrivers<
 /// a received assignment. Hardware decoders and packet encoders remain resident
 /// expressions; these cases instantiate only the ordinary software providers.
 pub enum SoftwareDefinition<'a> {
+    /// Flash schema images are decoded only inside measured inventory construction.
+    SeededUntilStatic {
+        schema: &'static [u8],
+        maximum_bytes: u32,
+    },
+    MergeStatic {
+        schema: &'static [u8],
+        maximum_bytes: u32,
+    },
+    ZipStatic {
+        left_schema: &'static [u8],
+        left_maximum_bytes: u32,
+        right_schema: &'static [u8],
+        right_maximum_bytes: u32,
+        feedback: bool,
+    },
+
     Tick {
         wait: conduit_kernel::ValueRef,
         count: u64,
@@ -340,10 +383,55 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
             return Err("recording-scope-multiple-owners");
         }
         let before = allocated_bytes();
+        let decode_composite =
+            |bytes: &'static [u8], maximum_bytes: u32| -> Result<_, &'static str> {
+                let schema = conduit_core::StructuredInfoType::from_canonical_bytes(bytes)
+                    .map_err(|_| "composite-type-image")?;
+                let contract = conduit_core::CheckedValueContract::new(
+                    schema
+                        .profile()
+                        .map_err(|_| "composite-type-profile")?
+                        .value_kind()
+                        .clone(),
+                    maximum_bytes,
+                    alloc::vec![],
+                )
+                .map_err(|_| "composite-envelope")?;
+                Ok((schema, contract))
+            };
+
         let mut slots = core::array::from_fn(|_| None);
         for (index, definition) in definitions.into_iter().enumerate() {
             slots[index] = match definition {
                 None => None,
+                Some(SoftwareDefinition::SeededUntilStatic {
+                    schema,
+                    maximum_bytes,
+                }) => {
+                    let (schema, contract) = decode_composite(schema, maximum_bytes)?;
+                    Some(SoftwareBack::seeded_until(&contract, &schema)?)
+                }
+                Some(SoftwareDefinition::MergeStatic {
+                    schema,
+                    maximum_bytes,
+                }) => {
+                    let (schema, _) = decode_composite(schema, maximum_bytes)?;
+                    Some(SoftwareBack::merge(&schema, maximum_bytes)?)
+                }
+                Some(SoftwareDefinition::ZipStatic {
+                    left_schema,
+                    left_maximum_bytes,
+                    right_schema,
+                    right_maximum_bytes,
+                    feedback,
+                }) => {
+                    let (left_type, left) = decode_composite(left_schema, left_maximum_bytes)?;
+                    let (right_type, right) = decode_composite(right_schema, right_maximum_bytes)?;
+                    Some(SoftwareBack::zip(
+                        &left, left_type, &right, right_type, feedback,
+                    )?)
+                }
+
                 Some(SoftwareDefinition::Tick { wait, count }) => {
                     Some(SoftwareBack::tick(wait, count)?)
                 }
@@ -402,41 +490,6 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
         // SAFETY: carries the caller's checked-Source/allocator obligations and
         // retains exactly the newly constructed objects, with no copied runtime.
         unsafe { Self::new(slots, identities, backing, configuration) }
-    }
-}
-
-/// One disjoint initialized resident entry, preflighted before splitting a
-/// generated inventory. Splitting alone cannot mark it unavailable or Start it.
-/// # Safety
-/// `node` and `bind` must refer to the same original checked loan; bind is
-/// allocation/effect-free, and dropping an unbound loan preserves availability.
-pub unsafe trait PreparedResidentEntry {
-    type Back;
-    fn node(&self) -> u16;
-    fn retained_backing_bytes(&self) -> Option<usize>;
-    fn bind(self) -> (u16, Self::Back);
-}
-/// A fragment's subset of a single collectively preflighted resident inventory.
-/// Different fragments can hold disjoint tickets until the one atomic admission.
-pub struct PreparedResidentSubset<L, const E: usize>(pub [Option<L>; E]);
-// SAFETY: each opaque entry is exclusively held once in this owned array. The
-// adapter preserves the checked mapping and delegates only infallible binds.
-unsafe impl<L: PreparedResidentEntry, const E: usize> PreparedResidents<E>
-    for PreparedResidentSubset<L, E>
-{
-    type Back = L::Back;
-    fn nodes(&self) -> [Option<u16>; E] {
-        core::array::from_fn(|i| self.0[i].as_ref().map(L::node))
-    }
-    fn retained_backing_bytes(&self) -> Option<usize> {
-        self.0
-            .iter()
-            .flatten()
-            .try_fold(0usize, |n, l| n.checked_add(l.retained_backing_bytes()?))
-    }
-    #[inline(always)] // Fuse the affine owner transfer with its final destination.
-    fn bind(self) -> [Option<(u16, Self::Back)>; E] {
-        self.0.map(|l| l.map(L::bind))
     }
 }
 

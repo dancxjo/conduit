@@ -2,7 +2,10 @@
 use alloc::format;
 use conduit_core::{HostAdvertisement, ResourceGenerationId};
 use conduit_esp32_electrical::{Esp32PulseCapture, Esp32Tm1637, PULSE_LIMITS};
-use conduit_mcu_host_runtime::recording_equipment::AppendNativeIdentity;
+#[cfg(not(record_service))]
+use conduit_mcu_host_runtime::recording_equipment as recording;
+#[cfg(record_service)]
+use conduit_mcu_host_runtime::recording_service_equipment as recording;
 use conduit_pulse_capture::{
     installation::{PulseNativeIdentity, ReadyPulseBase},
     owner::PulseAttachment,
@@ -11,11 +14,18 @@ use conduit_tm1637_wire::{
     installation::{ReadyWriteBase, WriteNativeIdentity},
     owner::WriteAttachment,
 };
+use recording::AppendNativeIdentity;
 pub const SOURCE_WAIT_SLOTS: usize = crate::workset::sampling::CLOCKS.len();
 pub type RecordingStorage = conduit_esp32_snapshot_nor::hardware::Esp32SnapshotNor<'static>;
+#[cfg(not(record_service))]
+pub type RecordingReady =
+    conduit_resource_snapshot::native_append::ReadyRecordAppender<RecordingStorage>;
+#[cfg(record_service)]
+pub type RecordingReady =
+    conduit_resource_snapshot::native_service::ReadyRecordService<RecordingStorage>;
 pub struct Equipment {
     pub activity: conduit_mcu_host_runtime::native_runner::NativeActivity,
-    pub recording: conduit_mcu_host_runtime::recording_equipment::Equipment<RecordingStorage>,
+    pub recording: recording::Equipment<RecordingStorage>,
     pub renderer: conduit_mcu_host_runtime::execution_mask::ReadyRenderer<crate::renderer::Clock>,
     pub pulse: Option<ReadyPulseBase<Capture>>,
     pub waits: [Option<
@@ -43,6 +53,26 @@ macro_rules! identity {
             base_implementation_id: $implementation.into(),
         }
     };
+}
+fn recording_identity(actual: &HostAdvertisement) -> AppendNativeIdentity {
+    #[cfg(record_service)]
+    {
+        identity!(
+            AppendNativeIdentity,
+            actual,
+            "record-service",
+            "esp32/nor-record-service@1"
+        )
+    }
+    #[cfg(not(record_service))]
+    {
+        identity!(
+            AppendNativeIdentity,
+            actual,
+            "record-append",
+            "esp32/nor-record-append@1"
+        )
+    }
 }
 impl Equipment {
     /// Publish only actual retained providers, with no decoded capability graph.
@@ -96,14 +126,9 @@ impl Equipment {
                 activity: conduit_mcu_host_runtime::native_runner::NativeActivity::new(),
                 // Sole checked owner; only selected immutable Source enables
                 // the finite read-only recovery before any electrical task.
-                recording: conduit_mcu_host_runtime::recording_equipment::Equipment::new(
+                recording: recording::Equipment::new(
                     recording_storage,
-                    identity!(
-                        AppendNativeIdentity,
-                        actual,
-                        "record-append",
-                        "esp32/nor-record-append@1"
-                    ),
+                    recording_identity(actual),
                     body,
                     crate::workset::sampling::NATIVE_KINDS,
                     crate::config::RECORDING_PREFIX_BYTES,
