@@ -97,7 +97,7 @@ impl PicoForeCarriage {
     /// Local retirement only. The Root actor currently refuses terminal control;
     /// no remote cancellation, grant revocation or kernel rollback is invented.
     pub fn cancel(&mut self) {
-        self.inner.state.retired = true;
+        self.inner.cancel();
     }
 }
 struct State {

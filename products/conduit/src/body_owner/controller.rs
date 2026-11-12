@@ -60,6 +60,8 @@ mod creche_route_custody;
 mod creche_worker;
 #[path = "direct_spoken_route.rs"]
 mod direct_spoken_route;
+#[path = "fore_line_planning.rs"]
+mod fore_line_planning;
 #[path = "member_carrier.rs"]
 mod member_carrier;
 #[path = "member_leave.rs"]
@@ -70,8 +72,11 @@ mod member_offers;
 mod member_return;
 #[path = "planning.rs"]
 mod planning;
+pub(crate) use fore_line_planning::ForeLineSelection;
 #[path = "remote_preparation.rs"]
 mod remote_preparation;
+#[path = "retained_planning.rs"]
+mod retained_planning;
 #[path = "workset_revision.rs"]
 mod workset_revision;
 pub(crate) use direct_spoken_route::DirectSpokenStart;

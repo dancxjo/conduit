@@ -73,12 +73,7 @@ impl Owner {
             BTreeMap<conduit_planner::ForeBoundaryKey, conduit_planner::ConnectionQueueLimits>,
         >,
     ) -> Result<(), String> {
-        let partitions = self.prepare_workset_partitions(sources, boundaries)?;
-        let advertised = self.host.advertisement();
-        self.session
-            .propose(partitions, &advertised.host_id, &advertised.boot_id)
-            .map_err(debug)?;
-        Ok(())
+        self.plan_workset_with_source_boundaries_and_lines(sources, boundaries, &BTreeMap::new())
     }
 
     pub(super) fn prepare_workset_partitions(

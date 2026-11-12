@@ -4,6 +4,8 @@ use conduit_body::{
     HostCommandReceiveBounds, IssuedHostCommandChallenge, HOST_PREPARED_WORKSET_CONTRACT,
 };
 use conduit_embedded_build as build;
+#[path = "fore_line_planning.rs"]
+mod fore_line_planning;
 
 #[test]
 fn current_owner_approves_exact_resident_workset_once_without_starting() {
@@ -114,6 +116,9 @@ fn current_owner_approves_exact_resident_workset_once_without_starting() {
         assert_eq!(owner.session.evidence(), &before_plan);
         assert!(owner.session.realization().is_none());
     }
+    fore_line_planning::verify_current_member_line_selection(
+        &owner, &source, &expanded, &boundary, &ad,
+    );
     owner
         .plan_workset_with_source_boundaries(
             &[(&source, &expanded)],
