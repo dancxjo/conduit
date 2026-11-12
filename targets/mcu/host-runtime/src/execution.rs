@@ -3,6 +3,8 @@
 //! module uses the ordinary scheduler and original resource ledger throughout.
 extern crate alloc;
 use alloc::boxed::Box;
+#[path = "execution_terminal_gate.rs"]
+mod terminal_gate;
 use conduit_body as b;
 use conduit_core as c;
 use conduit_kernel::{
@@ -212,6 +214,34 @@ impl<
             signs,
             maximum_retained_bytes,
             factory,
+            Some(&expected),
+        )
+    }
+
+    /// Borrow the independently linked immutable Source matrix. Unlike the
+    /// existing by-value API, this needs no caller RAM matrix copy.
+    #[allow(clippy::too_many_arguments)]
+    #[inline(never)]
+    pub fn prepare_with_terminal_transductions_ref<E>(
+        approved: &b::DelegatedBodyFragment<'_>,
+        profile: b::AssignedBodyPreparationProfile<'_>,
+        fore: &[c::AssignedForeRequirement],
+        layout: &ResidentLayout<'_>,
+        values: HostedValueStore,
+        signs: L,
+        maximum_retained_bytes: usize,
+        factory: impl FnOnce() -> Result<B, E>,
+        expected: &[[Option<AssignedTerminalTransduction>; P]; N],
+    ) -> Result<Self, Refusal<E>> {
+        Self::prepare_inner(
+            approved,
+            profile,
+            fore,
+            layout,
+            values,
+            signs,
+            maximum_retained_bytes,
+            factory,
             Some(expected),
         )
     }
@@ -226,8 +256,60 @@ impl<
         signs: L,
         maximum_retained_bytes: usize,
         factory: impl FnOnce() -> Result<B, E>,
-        expected: Option<[[Option<AssignedTerminalTransduction>; P]; N]>,
+        expected: Option<&[[Option<AssignedTerminalTransduction>; P]; N]>,
     ) -> Result<Self, Refusal<E>> {
+        let backs = terminal_gate::prepare_checked_backs::<B, E, N, C, P, R, T, H>(
+            approved.projection(),
+            &profile,
+            fore,
+            layout,
+            factory,
+        )?;
+        let empty = &[[None; P]; N];
+        let expected = match expected {
+            Some(expected) => {
+                terminal_gate::check_actual::<B, N, P>(&backs, expected).map_err(|error| {
+                    match error {
+                        terminal_gate::ReportRefusal::Unavailable => Refusal::TerminalContracts,
+                        terminal_gate::ReportRefusal::Mismatch => Refusal::Storage(
+                            KernelPreparationError::Topology(SchedulerError::InvalidPlan),
+                        ),
+                    }
+                })?;
+                expected
+            }
+            None if backs.requires_terminal_gate() => return Err(Refusal::TerminalContracts),
+            None => empty,
+        };
+        Self::prepare_storage(
+            approved,
+            profile,
+            fore,
+            layout,
+            values,
+            signs,
+            maximum_retained_bytes,
+            backs,
+            expected,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[inline(never)]
+    fn prepare_storage<E>(
+        approved: &b::DelegatedBodyFragment<'_>,
+        profile: b::AssignedBodyPreparationProfile<'_>,
+        fore: &[c::AssignedForeRequirement],
+        layout: &ResidentLayout<'_>,
+        values: HostedValueStore,
+        signs: L,
+        maximum_retained_bytes: usize,
+        backs: B,
+        expected: &[[Option<AssignedTerminalTransduction>; P]; N],
+    ) -> Result<Self, Refusal<E>> {
+        // The independent actual-report scratch above is dead BEFORE table
+        // construction. PreparedBacks guarantees these same reports are immutable
+        // until bind. Kernel validation below still checks every inactive row.
         let tables = BoundedAssignedKernelTables::<N, C, P, R, T, H>::prepare_with_fore(
             approved.projection(),
             profile.maxima,
@@ -239,17 +321,6 @@ impl<
         .map_err(Refusal::Tables)?;
         let nodes = tables.active_nodes();
         let cords = tables.active_cords();
-        let backs = factory().map_err(Refusal::Back)?;
-        let (expected, actual) = match expected {
-            Some(expected) => (
-                expected,
-                backs
-                    .terminal_transductions()
-                    .ok_or(Refusal::TerminalContracts)?,
-            ),
-            None if backs.requires_terminal_gate() => return Err(Refusal::TerminalContracts),
-            None => ([[None; P]; N], [[None; P]; N]),
-        };
         let backing = backs
             .retained_backing_bytes()
             .ok_or(Refusal::Bounds)?
@@ -259,7 +330,7 @@ impl<
         let remaining = maximum_retained_bytes
             .checked_sub(backing)
             .ok_or(Refusal::Bounds)?;
-        let storage = ExecutionKernel::<B::Driver, N, C, P, R, T, H, S, L>::prepare_boxed_with_terminal_transductions(
+        let storage = ExecutionKernel::<B::Driver, N, C, P, R, T, H, S, L>::prepare_boxed_with_terminal_transductions_ref(
             nodes,
             cords,
             tables.nodes,
@@ -270,7 +341,7 @@ impl<
             signs,
             remaining,
             expected,
-            actual,
+            expected,
         )
         .map_err(Refusal::Storage)?;
         let retained = backing
