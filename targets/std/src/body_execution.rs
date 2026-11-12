@@ -118,6 +118,8 @@ pub struct StartupChimeCallReceipt {
     pub request: Option<conduit_kernel::RequestId>,
     pub disposition: Option<conduit_kernel::HostCallDisposition>,
     pub failure: Option<conduit_kernel::Failure>,
+    /// A normal Host Call completion was accepted. Global RunCancelled retires
+    /// pending calls without a completion and leaves this false.
     pub kernel_accepted: bool,
 }
 #[derive(Debug)]

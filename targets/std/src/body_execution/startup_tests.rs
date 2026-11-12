@@ -484,5 +484,14 @@ fn startup_cancelled_after_first_pcm_block_retires_the_exact_pending_request() {
         receipt.failure.unwrap().code,
         conduit_kernel::FailureCode::Cancelled
     );
-    assert!(receipt.kernel_accepted);
+    // Global scheduler cancellation retires pending calls without accepting a
+    // normal completion. Keep the physical outcome and exact RunCancelled Sign.
+    assert!(!receipt.kernel_accepted);
+    assert!(report
+        .kernel_events
+        .iter()
+        .any(|e| e.kind == conduit_kernel::KernelEventKind::RunCancelled));
+    assert!(!report.kernel_events.iter().any(|e| e.node == receipt.node
+        && e.request == receipt.request
+        && e.kind == conduit_kernel::KernelEventKind::HostCallCompleted));
 }
