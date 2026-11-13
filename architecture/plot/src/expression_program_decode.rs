@@ -14,13 +14,30 @@ use conduit_core::{
 const HEADER: &[u8] = b"conduit.pure-expression.program.v2";
 
 impl PortableExpressionProgram {
+    /// Validate the original version's canonical bytes and finite expanded-Type
+    /// budget. Returned programs encode as v4; callers retaining an old identity
+    /// must keep its original versioned bytes rather than rehashing this value.
     pub fn from_canonical_bytes(encoded: &[u8]) -> Result<Self, PortableExpressionProgramRefusal> {
         if encoded.len() > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
             return Err(PortableExpressionProgramRefusal::TooLarge);
         }
-        let mut cursor = Cursor { remaining: encoded };
-        let input_maximum_bytes = if encoded.starts_with(super::expression_program::input_bound::V3)
-        {
+        let compact = encoded.starts_with(super::expression_program::input_bound::V4);
+        let mut cursor = Cursor {
+            remaining: encoded,
+            compact,
+            types: Vec::new(),
+            expanded: 0,
+        };
+        let input_maximum_bytes = if compact {
+            cursor.expect(super::expression_program::input_bound::V4)?;
+            match cursor.byte()? {
+                0 => None,
+                1 => Some(u32::from_le_bytes(cursor.take(4)?.try_into().map_err(
+                    |_| PortableExpressionProgramRefusal::MalformedEncoding,
+                )?)),
+                _ => return Err(PortableExpressionProgramRefusal::MalformedEncoding),
+            }
+        } else if encoded.starts_with(super::expression_program::input_bound::V3) {
             cursor.expect(super::expression_program::input_bound::V3)?;
             Some(u32::from_le_bytes(cursor.take(4)?.try_into().map_err(
                 |_| PortableExpressionProgramRefusal::MalformedEncoding,
@@ -42,7 +59,12 @@ impl PortableExpressionProgram {
             output_type,
             root,
         };
-        if value.canonical_bytes()?.as_slice() != encoded {
+        let canonical = if compact {
+            value.canonical_bytes()?
+        } else {
+            value.canonical_legacy_bytes(encoded.len())?
+        };
+        if canonical.as_slice() != encoded {
             return Err(PortableExpressionProgramRefusal::MalformedEncoding);
         }
         Ok(value)
@@ -66,6 +88,9 @@ impl PortableExpressionProgram {
 
 struct Cursor<'a> {
     remaining: &'a [u8],
+    compact: bool,
+    types: Vec<&'a [u8]>,
+    expanded: usize,
 }
 
 impl<'a> Cursor<'a> {
@@ -79,6 +104,18 @@ impl<'a> Cursor<'a> {
     }
 
     fn take(&mut self, length: usize) -> Result<&'a [u8], PortableExpressionProgramRefusal> {
+        self.charge(length)?;
+        self.raw_take(length)
+    }
+    fn charge(&mut self, bytes: usize) -> Result<(), PortableExpressionProgramRefusal> {
+        self.expanded = self
+            .expanded
+            .checked_add(bytes)
+            .filter(|n| *n <= MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES)
+            .ok_or(PortableExpressionProgramRefusal::TooLarge)?;
+        Ok(())
+    }
+    fn raw_take(&mut self, length: usize) -> Result<&'a [u8], PortableExpressionProgramRefusal> {
         let (value, remaining) = self
             .remaining
             .split_at_checked(length)
@@ -111,8 +148,54 @@ impl<'a> Cursor<'a> {
     }
 
     fn value_type(&mut self) -> Result<StructuredInfoType, PortableExpressionProgramRefusal> {
-        let length = self.length()?;
-        let encoded = self.take(length)?;
+        let encoded = if self.compact {
+            match self.raw_take(1)?[0] {
+                0 => {
+                    if self.types.len() >= MAXIMUM_STRUCTURED_INFO_NODES + 2 {
+                        return Err(PortableExpressionProgramRefusal::TooLarge);
+                    }
+                    let length = usize::try_from(u64::from_le_bytes(
+                        self.raw_take(8)?
+                            .try_into()
+                            .map_err(|_| PortableExpressionProgramRefusal::MalformedEncoding)?,
+                    ))
+                    .map_err(|_| PortableExpressionProgramRefusal::MalformedEncoding)?;
+                    let encoded = self.raw_take(length)?;
+                    if self.types.contains(&encoded) {
+                        return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                    }
+                    self.types.push(encoded);
+                    encoded
+                }
+                1 => {
+                    let index = u16::from_le_bytes(
+                        self.raw_take(2)?
+                            .try_into()
+                            .map_err(|_| PortableExpressionProgramRefusal::MalformedEncoding)?,
+                    ) as usize;
+                    *self
+                        .types
+                        .get(index)
+                        .ok_or(PortableExpressionProgramRefusal::MalformedEncoding)?
+                }
+                _ => return Err(PortableExpressionProgramRefusal::MalformedEncoding),
+            }
+        } else {
+            let length = usize::try_from(u64::from_le_bytes(
+                self.raw_take(8)?
+                    .try_into()
+                    .map_err(|_| PortableExpressionProgramRefusal::MalformedEncoding)?,
+            ))
+            .map_err(|_| PortableExpressionProgramRefusal::MalformedEncoding)?;
+            self.raw_take(length)?
+        };
+        // Preserve the old expanded-Type budget before parsing any repeated
+        // schema. A tiny reference stream cannot amplify decoded storage.
+        self.charge(
+            8usize
+                .checked_add(encoded.len())
+                .ok_or(PortableExpressionProgramRefusal::TooLarge)?,
+        )?;
         StructuredInfoType::from_canonical_bytes(encoded).map_err(Into::into)
     }
 

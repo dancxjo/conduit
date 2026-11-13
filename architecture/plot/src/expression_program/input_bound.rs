@@ -3,10 +3,16 @@ use super::*;
 use conduit_core::{CheckedValueContract, FrontValueContract, FrontValueLocation, KindSemanticLaw};
 
 pub(super) const V2: &[u8] = b"conduit.pure-expression.program.v2";
+pub(crate) const V4: &[u8] = b"conduit.pure-expression.program.v4";
 pub(crate) const V3: &[u8] = b"conduit.pure-expression.program.v3";
 
 pub(super) fn push_header(sink: &mut ProgramSink, bound: Option<u32>) {
-    sink.extend_from_slice(if bound.is_some() { V3 } else { V2 });
+    if sink.intern_types {
+        sink.extend_from_slice(V4);
+        sink.push(u8::from(bound.is_some()));
+    } else {
+        sink.extend_from_slice(if bound.is_some() { V3 } else { V2 });
+    }
     if let Some(maximum) = bound {
         sink.extend_from_slice(&maximum.to_le_bytes());
     }
@@ -22,7 +28,9 @@ impl PortableExpressionProgram {
         push_type(encoded, &self.input_type)?;
         push_type(encoded, &self.output_type)?;
         push_node(encoded, &self.root)?;
-        if encoded.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
+        if encoded.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES
+            || encoded.expanded_length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES
+        {
             Err(PortableExpressionProgramRefusal::TooLarge)
         } else {
             Ok(())
