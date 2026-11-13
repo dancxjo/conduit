@@ -70,6 +70,14 @@ impl<D, K, const N: usize> PreparedKernelStorage<D, K, N> {
         }
     }
 
+    #[cfg(feature = "execution-workspace")]
+    pub(in crate::scheduler) fn unbound_pointer(&mut self) -> *mut K {
+        self.storage
+            .as_mut()
+            .expect("live prepared storage")
+            .as_mut_ptr()
+    }
+
     pub fn storage_bytes(&self) -> usize {
         core::mem::size_of::<K>()
     }

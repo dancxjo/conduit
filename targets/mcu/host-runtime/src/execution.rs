@@ -50,6 +50,15 @@ pub unsafe trait PreparedBacks<const N: usize, const P: usize> {
     fn requires_terminal_gate(&self) -> bool {
         false
     }
+    /// Immutable physical requirements of exactly the drivers returned by bind.
+    /// None is uninspectable, not an empty requirement or an execution grant.
+    /// A Some report must remain exact through bind, including inactive slots.
+    #[cfg(feature = "execution-workspace")]
+    fn execution_workspace_requirements(
+        &self,
+    ) -> Option<[Option<conduit_kernel::scheduler::StepWorkspaceRequirements>; N]> {
+        None
+    }
     fn retained_backing_bytes(&self) -> Option<usize>;
     fn bind(self) -> ([Self::Driver; N], Self::Calls);
 }
@@ -184,6 +193,8 @@ pub struct PreparedFragment<
     storage: Storage<B, N, C, P, R, T, H, S, L, K>,
     backs: B,
     retained: usize,
+    #[cfg(feature = "execution-workspace")]
+    maximum_retained_bytes: usize,
 }
 impl<
         B: PreparedBacks<N, P>,
@@ -384,6 +395,8 @@ impl<
             storage,
             backs,
             retained,
+            #[cfg(feature = "execution-workspace")]
+            maximum_retained_bytes,
         })
     }
 }
@@ -416,3 +429,9 @@ unsafe impl<
         (self.storage.bind(drivers), calls)
     }
 }
+
+#[cfg(feature = "execution-workspace")]
+#[path = "execution_workspace.rs"]
+mod execution_workspace;
+#[cfg(feature = "execution-workspace")]
+pub use execution_workspace::WorkspaceFundingRefusal;

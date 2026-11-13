@@ -66,7 +66,8 @@ impl PreparedStepWorkspace {
     pub fn reserved_backing_bytes(&self) -> usize {
         self.bytes.capacity()
     }
-    fn fits(&self, r: StepWorkspaceRequirements) -> bool {
+    /// Physical extent inspection only; this grants no execution authority.
+    pub fn supports(&self, r: StepWorkspaceRequirements) -> bool {
         usize::try_from(r.output_bytes).is_ok_and(|n| n <= self.output_bytes)
             && usize::try_from(r.scratch_bytes).is_ok_and(|n| n <= self.scratch_bytes)
     }
@@ -74,7 +75,7 @@ impl PreparedStepWorkspace {
         &mut self,
         r: StepWorkspaceRequirements,
     ) -> Result<StepWorkspace<'_>, SchedulerError> {
-        if !self.fits(r) {
+        if !self.supports(r) {
             return Err(SchedulerError::InvalidPlan);
         }
         let (output, scratch) = self.bytes.split_at_mut(self.output_bytes);
@@ -157,17 +158,64 @@ where
             || self.drivers[..self.active_nodes]
                 .iter()
                 .filter_map(|d| d.workspace_requirements())
-                .any(|r| !workspace.fits(r))
+                .any(|r| !workspace.supports(r))
         {
             return Err((SchedulerError::InvalidPlan, workspace));
         }
         self.execution_workspace = Some(workspace);
+        self.unmet_execution_workspace = false;
         Ok(())
     }
     pub fn execution_workspace_backing_bytes(&self) -> usize {
         self.execution_workspace
             .as_ref()
             .map_or(0, PreparedStepWorkspace::reserved_backing_bytes)
+    }
+}
+
+impl<
+        D,
+        S,
+        E,
+        const N: usize,
+        const C: usize,
+        const P: usize,
+        const Q: usize,
+        const R: usize,
+        const T: usize,
+        const H: usize,
+        const A: usize,
+    > PreparedKernelStorage<D, FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>, N>
+where
+    D: StepBack<P>,
+    S: ValueStorage,
+    E: SignSink,
+{
+    /// Transfer funded physical backing before any driver is withdrawn. This
+    /// supplies no admission or Ready evidence. Root must independently check
+    /// exact selected-owner requirements and charge the complete retained
+    /// workset; the ceiling here covers this Vec's actual backing only.
+    /// Binding checks every actual active Back once. Missing/undersized backing
+    /// then refuses before any Step, without allocating during binding.
+    #[allow(clippy::result_large_err)] // Refusal returns the original affine owner.
+    pub fn install_execution_workspace(
+        &mut self,
+        workspace: PreparedStepWorkspace,
+        maximum_backing_bytes: usize,
+    ) -> Result<(), (SchedulerError, PreparedStepWorkspace)> {
+        if workspace.reserved_backing_bytes() > maximum_backing_bytes {
+            return Err((SchedulerError::InvalidPlan, workspace));
+        }
+        // SAFETY: private construction initializes this exact field before
+        // exposing PreparedKernelStorage. Drivers remain uninitialized: form
+        // only a reference to the already initialized Option, never to K.
+        let slot =
+            unsafe { &mut *core::ptr::addr_of_mut!((*self.unbound_pointer()).execution_workspace) };
+        if slot.is_some() {
+            return Err((SchedulerError::InvalidPlan, workspace));
+        }
+        *slot = Some(workspace);
+        Ok(())
     }
 }
 #[cfg(test)]

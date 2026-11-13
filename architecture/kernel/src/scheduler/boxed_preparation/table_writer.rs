@@ -162,7 +162,7 @@ where
             #[cfg(feature = "execution-workspace")]
             execution_workspace: None,
             #[cfg(feature = "execution-workspace")]
-            requires_execution_workspace: false,
+            unmet_execution_workspace: false,
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: debug_control,
@@ -179,11 +179,20 @@ where
             #[cfg(feature = "execution-workspace")]
             let requires_workspace = drivers[..active]
                 .iter()
-                .any(|back| back.workspace_requirements().is_some());
+                .filter_map(|back| back.workspace_requirements())
+                .any(|requirements| {
+                    // SAFETY: this Option is initialized; no reference to the
+                    // incomplete scheduler or its driver field is formed.
+                    let workspace =
+                        unsafe { &*core::ptr::addr_of!((*pointer).execution_workspace) };
+                    workspace
+                        .as_ref()
+                        .is_none_or(|workspace| !workspace.supports(requirements))
+                });
             unsafe {
                 core::ptr::addr_of_mut!((*pointer).drivers).write(drivers);
                 #[cfg(feature = "execution-workspace")]
-                core::ptr::addr_of_mut!((*pointer).requires_execution_workspace)
+                core::ptr::addr_of_mut!((*pointer).unmet_execution_workspace)
                     .write(requires_workspace);
             }
         };

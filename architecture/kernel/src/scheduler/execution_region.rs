@@ -102,7 +102,7 @@ where
             return Ok(SchedulerStatus::Cancelled);
         }
         #[cfg(feature = "execution-workspace")]
-        if self.requires_execution_workspace && self.execution_workspace.is_none() {
+        if self.unmet_execution_workspace {
             return Err(SchedulerError::InvalidPlan);
         }
         if self.debug_control.suspension().is_some() {

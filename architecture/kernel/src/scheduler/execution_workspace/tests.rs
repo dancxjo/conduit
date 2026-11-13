@@ -327,3 +327,86 @@ fn cancellation_drains_values_and_does_not_reopen_workspace_installation() {
     assert_eq!(error, SchedulerError::InvalidPlan);
     assert_eq!(original_owner.reserved_backing_bytes(), 16);
 }
+
+#[test]
+fn prebound_workspace_preserves_original_backing_and_checks_all_active_drivers() {
+    for writer in [false, true] {
+        for sufficient in [false, true] {
+            let (n, c, r, drivers) = topology();
+            let mut prepared = if writer {
+                Kernel::prepare_boxed_with_table_writer(
+                    FixedValueStore::new(32).unwrap(),
+                    signs(),
+                    usize::MAX,
+                    &[[None]; 4],
+                    &[[None]; 4],
+                    |e| e,
+                    move |nodes, cords, routes, calls| {
+                        *nodes = n;
+                        *cords = c;
+                        *routes = r;
+                        calls.seal().map_err(KernelPreparationError::from)?;
+                        Ok((4, 3))
+                    },
+                )
+                .unwrap()
+            } else {
+                let mut calls = FixedHostCallBindings::new(1);
+                calls.seal().unwrap();
+                Kernel::prepare_boxed(
+                    4,
+                    3,
+                    n,
+                    c,
+                    r,
+                    calls,
+                    FixedValueStore::new(32).unwrap(),
+                    signs(),
+                    usize::MAX,
+                )
+                .unwrap()
+            };
+            let output_bytes = if sufficient { 8 } else { 4 };
+            let workspace = PreparedStepWorkspace::try_new(
+                StepWorkspaceRequirements {
+                    output_bytes,
+                    scratch_bytes: 8,
+                },
+                16,
+            )
+            .unwrap();
+            let original_pointer = workspace.bytes.as_ptr();
+            let backing = workspace.reserved_backing_bytes();
+            let (error, workspace) = prepared
+                .install_execution_workspace(workspace, backing - 1)
+                .unwrap_err();
+            assert_eq!(error, SchedulerError::InvalidPlan);
+            assert_eq!(workspace.bytes.as_ptr(), original_pointer);
+            prepared
+                .install_execution_workspace(workspace, backing)
+                .unwrap();
+            let replacement = super::tests::workspace();
+            let replacement_pointer = replacement.bytes.as_ptr();
+            let (_, replacement) = prepared
+                .install_execution_workspace(replacement, 16)
+                .unwrap_err();
+            assert_eq!(replacement.bytes.as_ptr(), replacement_pointer);
+            let mut kernel = prepared.bind(drivers);
+            assert_eq!(
+                kernel.execution_workspace.as_ref().unwrap().bytes.as_ptr(),
+                original_pointer
+            );
+            if sufficient {
+                kernel.run(128).unwrap();
+                assert!(matches!(
+                    kernel.drivers()[3],
+                    Back::Sink { received: 2, .. }
+                ));
+            } else {
+                assert_eq!(kernel.run(128), Err(SchedulerError::InvalidPlan));
+                assert_eq!(kernel.logical_invocations(), 0);
+                assert_eq!(kernel.values().used_items(), 0);
+            }
+        }
+    }
+}

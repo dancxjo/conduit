@@ -1100,7 +1100,7 @@ pub struct FixedScheduler<
     #[cfg(feature = "execution-workspace")]
     execution_workspace: Option<PreparedStepWorkspace>,
     #[cfg(feature = "execution-workspace")]
-    requires_execution_workspace: bool,
+    unmet_execution_workspace: bool,
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
     debug_control: DebugControlState,
@@ -1181,7 +1181,7 @@ where
             &routes,
         )?;
         #[cfg(feature = "execution-workspace")]
-        let requires_execution_workspace = drivers[..active_nodes]
+        let unmet_execution_workspace = drivers[..active_nodes]
             .iter()
             .any(|back| back.workspace_requirements().is_some());
         Ok(Self {
@@ -1228,7 +1228,7 @@ where
             #[cfg(feature = "execution-workspace")]
             execution_workspace: None,
             #[cfg(feature = "execution-workspace")]
-            requires_execution_workspace,
+            unmet_execution_workspace,
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
