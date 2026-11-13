@@ -47,10 +47,9 @@ unsafe impl PreparedBacks<1, 1> for Backs<'_> {
         ([Back], ())
     }
 }
-#[test]
-fn original_workspace_is_funded_once_before_any_back_transfer() {
+type Fragment<'a> = PreparedFragment<Backs<'a>, 1, 1, 1, 1, 1, 1, 16>;
+fn prepared(binds: &Cell<usize>, extra: usize) -> Fragment<'_> {
     type Kernel = ExecutionKernel<Back, 1, 1, 1, 1, 1, 1, 16>;
-    let binds = Cell::new(0);
     let mut routes = FixedRoutes::new(1);
     routes
         .install(
@@ -94,16 +93,22 @@ fn original_workspace_is_funded_once_before_any_back_transfer() {
     )
     .unwrap();
     let retained = backing + storage.storage_bytes();
-    let address = storage.storage_address();
-    let mut prepared = PreparedFragment::<Backs<'_>, 1, 1, 1, 1, 1, 1, 16> {
+    PreparedFragment {
         storage,
         backs: Backs {
-            binds: &binds,
+            binds,
             inspectable: false,
         },
         retained,
-        maximum_retained_bytes: retained + 32,
-    };
+        maximum_retained_bytes: retained + extra,
+    }
+}
+#[test]
+fn original_workspace_is_funded_once_before_any_back_transfer() {
+    let binds = Cell::new(0);
+    let mut prepared = prepared(&binds, 32);
+    let retained = prepared.retained;
+    let address = prepared.storage.storage_address();
     let workspace = PreparedStepWorkspace::try_new(requirements(), 16).unwrap();
     let (error, workspace) = prepared.fund_execution_workspace(workspace).unwrap_err();
     assert_eq!(error, WorkspaceFundingRefusal::Uninspectable);
@@ -161,4 +166,41 @@ fn original_workspace_is_funded_once_before_any_back_transfer() {
     assert_eq!(binds.get(), 1);
     assert_eq!(kernel.execution_workspace_backing_bytes(), 16);
     kernel.run(4).unwrap();
+}
+
+#[test]
+fn owner_reports_derive_one_workspace_within_the_original_ceiling() {
+    for extra in [15, 16] {
+        let binds = Cell::new(0);
+        let mut prepared = prepared(&binds, extra);
+        let retained = prepared.retained;
+        assert_eq!(
+            prepared.prepare_execution_workspace(),
+            Err(WorkspaceFundingRefusal::Uninspectable)
+        );
+        prepared.backs.inspectable = true;
+        let result = prepared.prepare_execution_workspace();
+        assert_eq!(binds.get(), 0);
+        if extra == 15 {
+            assert_eq!(
+                result,
+                Err(WorkspaceFundingRefusal::Storage(
+                    WorkspacePreparationError::Capacity {
+                        required: 16,
+                        available: 15
+                    }
+                ))
+            );
+            assert_eq!(prepared.retained, retained);
+        } else {
+            result.unwrap();
+            assert_eq!(prepared.retained, retained + 16);
+            // SAFETY: exact owned fixture as in the manual funding test above.
+            let (mut kernel, ()) =
+                unsafe { crate::execution_workset::PreparedLocalKernels::bind(prepared) };
+            assert_eq!(binds.get(), 1);
+            assert_eq!(kernel.execution_workspace_backing_bytes(), 16);
+            kernel.run(4).unwrap();
+        }
+    }
 }

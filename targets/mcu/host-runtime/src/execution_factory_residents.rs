@@ -27,6 +27,16 @@ pub unsafe trait PreparedResidents<const E: usize> {
         self.terminal_transductions::<P>()?.get(slot).copied()
     }
 
+    /// Immutable exact selected-owner extent; outer None is uninspectable,
+    /// Some(None) needs no workspace. Inspection never withdraws the owner.
+    #[cfg(feature = "execution-workspace")]
+    fn execution_workspace_requirements_at<const P: usize>(
+        &self,
+        _slot: usize,
+    ) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
+        None
+    }
+
     fn retained_backing_bytes(&self) -> Option<usize>;
     fn bind(self) -> [Option<(u16, Self::Back)>; E];
 }
@@ -46,6 +56,13 @@ pub unsafe trait PreparedResidentEntry {
     fn terminal_transductions<const P: usize>(
         &self,
     ) -> Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]> {
+        None
+    }
+
+    #[cfg(feature = "execution-workspace")]
+    fn execution_workspace_requirements<const P: usize>(
+        &self,
+    ) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
         None
     }
 
@@ -85,6 +102,16 @@ unsafe impl<L: PreparedResidentEntry, const E: usize> PreparedResidents<E>
             None => Some(None),
         }
     }
+    #[cfg(feature = "execution-workspace")]
+    fn execution_workspace_requirements_at<const P: usize>(
+        &self,
+        slot: usize,
+    ) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
+        match self.0.get(slot)?.as_ref() {
+            Some(loan) => loan.execution_workspace_requirements::<P>(),
+            None => Some(None),
+        }
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         self.0
             .iter()
@@ -117,6 +144,12 @@ mod tests {
             &self,
         ) -> Option<[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]> {
             self.inspectable.then_some([None; P])
+        }
+        #[cfg(feature = "execution-workspace")]
+        fn execution_workspace_requirements<const P: usize>(
+            &self,
+        ) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
+            self.inspectable.then_some(None)
         }
         fn retained_backing_bytes(&self) -> Option<usize> {
             Some(0)
@@ -154,6 +187,21 @@ mod tests {
         assert_eq!(unknown, None);
         assert_eq!(outside, None);
         assert_eq!(cost.allocation_attempts, 0);
+        #[cfg(feature = "execution-workspace")]
+        {
+            let (reports, cost) =
+                crate::member_return_tests::return_allocation_probe::observe(|| {
+                    (
+                        subset.execution_workspace_requirements_at::<2>(0),
+                        subset.execution_workspace_requirements_at::<2>(1),
+                        subset.execution_workspace_requirements_at::<2>(2),
+                        subset.execution_workspace_requirements_at::<2>(3),
+                    )
+                });
+            assert_eq!(reports, (Some(None), Some(None), None, None));
+            assert_eq!(cost.allocations, 0);
+            assert_eq!(cost.reallocations, 0);
+        }
         assert!(available.get());
         // A different uninspectable selected slot prevents a full report, but
         // cannot force this per-slot entrance to materialize/query all E rows.

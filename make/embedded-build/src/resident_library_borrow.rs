@@ -33,7 +33,7 @@ match selection{{ResidentAssignment::Local(plan)=>owner.check_assigned(plan),Res
     code.push_str(&format!("/// The same exact loans in a finite uniform array.\npub fn borrow_selected_array(&mut self,selected:[Option<conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>>;{entries}])->Result<[Option<(u16,BorrowedBack<'_>)>;{entries}],conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{Ok(self.prepare_selected_array(selected)?.bind())}}\n"));
 }
 
-fn append_prepared(code: &mut String, entries: usize) {
+fn append_prepared(code: &mut String, entries: usize, workspace: bool) {
     code.push_str(&format!(
         r#"
 /// Exact checked selection over exclusively held initialized owners. Dropping
@@ -62,7 +62,15 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
     for index in 0..entries {
         code.push_str(&format!("self.nodes[{index}].map(|_|self.owner.entry_{index}.as_ref().expect(\"exclusively preflighted resident owner\").terminal_transductions::<P>()),\n"));
     }
-    code.push_str("]}\npub fn split(self)->[Option<PreparedResidentEntryLoan<'a>>;");
+    code.push_str("]}\n");
+    if workspace {
+        code.push_str("pub fn execution_workspace_requirements_at<const P:usize>(&self,slot:usize)->Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>>{match slot{\n");
+        for i in 0..entries {
+            code.push_str(&format!("{i}=>Some(if self.nodes[{i}].is_some(){{self.owner.entry_{i}.as_ref()?.execution_workspace_requirements::<P>()}}else{{None}}),\n"));
+        }
+        code.push_str("_=>None,}}\n");
+    }
+    code.push_str("pub fn split(self)->[Option<PreparedResidentEntryLoan<'a>>;");
     code.push_str(&entries.to_string());
     code.push_str("]{let Self{owner,nodes}=self;[\n");
     for index in 0..entries {
@@ -95,7 +103,15 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
     for index in 0..entries {
         code.push_str(&format!("PreparedResidentEntryInner::Entry{index}{{owner,..}}=>owner.terminal_transductions::<P>(),\n"));
     }
-    code.push_str("}}\npub fn bind(self)->(u16,BorrowedBack<'a>){match self.inner{\n");
+    code.push_str("}}\n");
+    if workspace {
+        code.push_str("pub fn execution_workspace_requirements<const P:usize>(&self)->Option<conduit_kernel::scheduler::StepWorkspaceRequirements>{match &self.inner{\n");
+        for i in 0..entries {
+            code.push_str(&format!("PreparedResidentEntryInner::Entry{i}{{owner,..}}=>owner.execution_workspace_requirements::<P>(),\n"));
+        }
+        code.push_str("}}\n");
+    }
+    code.push_str("pub fn bind(self)->(u16,BorrowedBack<'a>){match self.inner{\n");
     for index in 0..entries {
         code.push_str(&format!("PreparedResidentEntryInner::Entry{index}{{node,owner}}=>(node,BorrowedBack::Entry{index}(owner.borrow_prechecked())),\n"));
     }
@@ -105,7 +121,7 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
 /// A representation adapter over the existing nominal loans, not another Back.
 pub(crate) fn append_back(code: &mut String, entries: usize, workspace: bool) {
     code.push_str(include_str!("resident_assignment_source.rs"));
-    append_prepared(code, entries);
+    append_prepared(code, entries, workspace);
     code.push_str("/// Uniform selected loans; each variant still owns its exact entry's exclusive loan.\npub enum BorrowedBack<'a>{\n");
     for index in 0..entries {
         code.push_str(&format!("Entry{index}(entry_{index}::BorrowedBack<'a>),\n"));

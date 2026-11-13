@@ -32,16 +32,20 @@ pub fn generate_resident_library(
         .max()
         .ok_or(R::Bounds)?;
     code.push_str(&format!("/// Canonical extent of the selected prepared programs; not a queue grant.\npub const VALUE_SLOT_BYTES:usize={maximum_value_bytes};\n"));
+    let workspace = images
+        .iter()
+        .any(|image| image.execution_storage() == crate::ResidentExecutionStorage::SharedWorkspace);
     for (index, image) in images.iter().enumerate() {
         if images[..index].iter().any(|prior| {
             prior.offer_description().capability_id == image.offer_description().capability_id
         }) {
             return Err(R::Selection);
         }
-        code.push_str(&format!(
-            "pub mod entry_{index}{{\n{}\n}}\n",
-            image.source()
-        ));
+        code.push_str(&format!("pub mod entry_{index}{{\n{}\n", image.source()));
+        if workspace {
+            code.push_str("impl Initialized { pub(super) fn execution_workspace_requirements<const P:usize>(&self)->Option<conduit_kernel::scheduler::StepWorkspaceRequirements>{<Back as conduit_kernel::scheduler::StepBack<P>>::workspace_requirements(&self.back)} }\n");
+        }
+        code.push_str("}\n");
         if code.len() as u64 > u64::from(maximum_generated_bytes) {
             return Err(R::Bounds);
         }
@@ -129,13 +133,7 @@ self.entry_{index}.as_ref().filter(|owner|owner.available_offer_image().is_some(
         ));
     }
     code.push_str(")}\n}\n");
-    crate::resident_library_borrow::append_back(
-        &mut code,
-        images.len(),
-        images.iter().any(|image| {
-            image.execution_storage() == crate::ResidentExecutionStorage::SharedWorkspace
-        }),
-    );
+    crate::resident_library_borrow::append_back(&mut code, images.len(), workspace);
     if code.len() as u64 > u64::from(maximum_generated_bytes) {
         return Err(R::Bounds);
     }

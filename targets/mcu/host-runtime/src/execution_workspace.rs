@@ -8,6 +8,7 @@ pub enum WorkspaceFundingRefusal {
     Overflow,
     Capacity { required: usize, available: usize },
     AlreadyFunded,
+    Storage(conduit_kernel::scheduler::WorkspacePreparationError),
 }
 impl<
         B: PreparedBacks<N, P>,
@@ -22,6 +23,37 @@ impl<
         const K: usize,
     > PreparedFragment<B, N, C, P, R, T, H, S, L, K>
 {
+    /// Derive one pair of physical extents from the exact selected owners.
+    /// All allocation is cold, fallible and bounded by the original remaining
+    /// retained ceiling; this neither changes grants nor withdraws providers.
+    pub fn prepare_execution_workspace(&mut self) -> Result<(), WorkspaceFundingRefusal> {
+        use WorkspaceFundingRefusal as E;
+        let reports = self
+            .backs
+            .execution_workspace_requirements()
+            .ok_or(E::Uninspectable)?;
+        let mut required = conduit_kernel::scheduler::StepWorkspaceRequirements {
+            output_bytes: 0,
+            scratch_bytes: 0,
+        };
+        let mut any = false;
+        for report in reports.into_iter().flatten() {
+            any = true;
+            required.output_bytes = required.output_bytes.max(report.output_bytes);
+            required.scratch_bytes = required.scratch_bytes.max(report.scratch_bytes);
+        }
+        if !any {
+            return Ok(());
+        }
+        let remaining = self
+            .maximum_retained_bytes
+            .checked_sub(self.retained)
+            .ok_or(E::Overflow)?;
+        let workspace = PreparedStepWorkspace::try_new(required, remaining).map_err(E::Storage)?;
+        self.fund_execution_workspace(workspace)
+            .map_err(|(error, _owner)| error)
+    }
+
     /// Preserve every original owner on refusal. The original preparation
     /// ceiling remains fixed; neither this inspection nor physical
     /// storage acquisition admits resources, withdraws Backs or Starts a Play.
