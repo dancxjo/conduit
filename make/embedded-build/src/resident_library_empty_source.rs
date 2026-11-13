@@ -75,11 +75,26 @@ impl Initialized {
         PreparedResidentLoans<'_>,
         conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal,
     > {
-        Ok(PreparedResidentLoans { _owner: self })
+        self.prepare_selected_profiles_by(|_| unreachable!("empty resident inventory"))
     }
     pub fn prepare_selected_profiles_array(
         &mut self,
         _: [Option<ResidentAssignment<'_>>; 0],
+    ) -> Result<
+        PreparedResidentLoans<'_>,
+        conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal,
+    > {
+        self.prepare_selected_profiles_by(|_| unreachable!("empty resident inventory"))
+    }
+    /// No selected entries: inspect no assignment and retain only the owner.
+    pub fn prepare_selected_profiles_by<'s>(
+        &mut self,
+        _: impl FnMut(
+            usize,
+        ) -> Result<
+            Option<ResidentAssignment<'s>>,
+            conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal,
+        >,
     ) -> Result<
         PreparedResidentLoans<'_>,
         conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal,

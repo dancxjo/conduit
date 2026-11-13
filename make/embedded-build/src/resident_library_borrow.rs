@@ -1,20 +1,32 @@
 //! Check a finite selection before lending disjoint retained library entries.
+#[cfg(test)]
+#[path = "resident_assignment_selection_tests.rs"]
+mod selection_tests;
 pub(crate) fn append(code: &mut String, entries: usize) {
     code.push_str(&format!(r#"
 /// Check every assignment while retaining an exclusive, non-executing loan.
 /// The ticket is not a resource reservation or execution authorization.
 #[inline(always)]
 pub fn prepare_selected_array(&mut self,selected:[Option<conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>>;{entries}])->Result<PreparedResidentLoans<'_>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
- self.prepare_selected_profiles_array(selected.map(|entry|entry.map(ResidentAssignment::Local)))
+ let mut selected=selected.into_iter();
+ self.prepare_selected_profiles_by(|_|Ok(selected.next().flatten().map(ResidentAssignment::Local)))
 }}
 /// Check the complete mixed representation before lending any owner. Profiles
 /// are cold preparation inputs; the returned ticket retains only node ordinals.
 #[inline(always)]
 pub fn prepare_selected_profiles_array(&mut self,mut selected:[Option<ResidentAssignment<'_>>;{entries}])->Result<PreparedResidentLoans<'_>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
+ self.prepare_selected_profiles_by(|index|Ok(selected[index].take()))
+}}
+/// Inspect exactly one assignment at a time in entry order. The accessor's
+/// original binding error propagates unchanged. Earlier checks lend no owner;
+/// a late refusal leaves the complete original availability unchanged.
+/// Only compact checked node ordinals survive successful preflight.
+#[inline(always)]
+pub fn prepare_selected_profiles_by<'s>(&mut self,mut selected:impl FnMut(usize)->Result<Option<ResidentAssignment<'s>>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>)->Result<PreparedResidentLoans<'_>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
 "#));
     for index in 0..entries {
         code.push_str(&format!(r#"
-let node_{index}=selected[{index}].take().map(|selection|{{
+let node_{index}=selected({index})?.map(|selection|{{
 let owner=self.entry_{index}.as_ref().ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)?;
 match selection{{ResidentAssignment::Local(plan)=>owner.check_assigned(plan),ResidentAssignment::LineFore(plan)=>owner.check_assigned_with_line_fore(plan)}}
 }}).transpose()?;
