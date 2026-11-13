@@ -1,6 +1,8 @@
 //! The same checked DSP child participates in the existing authored scan syntax.
 #[path = "common_acoustic_value/literal.rs"]
 mod literal;
+#[path = "common_queue_policy/mod.rs"]
+mod queue_policy;
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
@@ -151,14 +153,8 @@ plot acoustic-scan-fixture (
     let hosts = [advertisement];
     let placements =
         conduit_planner::default_expanded_placements(&expanded.expanded, &hosts).unwrap();
-    let capacity = combine
-        .expanded
-        .gears
-        .iter()
-        .flat_map(|gear| gear.semantic_contract.value_contracts())
-        .map(|v| v.contract.maximum_bytes)
-        .max()
-        .unwrap();
+    let capacity =
+        queue_policy::activation_capacity(&hosts, &[&expanded.expanded, &combine.expanded]);
     let boundaries = [
         (conduit_core::PortDirection::Input, "queries"),
         (conduit_core::PortDirection::Output, "observations"),

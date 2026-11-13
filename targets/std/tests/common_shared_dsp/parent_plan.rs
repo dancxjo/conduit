@@ -1,4 +1,6 @@
 //! Preparation-only fixture for the authored timed parent and production factories.
+#[path = "../common_queue_policy/mod.rs"]
+mod queue_policy;
 use conduit_composite::KernelOperationRegistry;
 use conduit_core::{CheckedFront, Plan};
 use conduit_plot::{
@@ -115,14 +117,8 @@ pub fn prepare(initial: &[u8], tick: &[u8], count: usize) -> Parent {
     let hosts = [advertisement];
     let placements =
         conduit_planner::default_expanded_placements(&expanded.expanded, &hosts).unwrap();
-    let capacity = combine
-        .expanded
-        .gears
-        .iter()
-        .flat_map(|gear| gear.semantic_contract.value_contracts())
-        .map(|v| v.contract.maximum_bytes)
-        .max()
-        .unwrap();
+    let capacity =
+        queue_policy::activation_capacity(&hosts, &[&expanded.expanded, &combine.expanded]);
     let boundaries = [
         (conduit_core::PortDirection::Input, "controls"),
         (conduit_core::PortDirection::Output, "states"),
