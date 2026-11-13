@@ -238,7 +238,10 @@ pub fn compile_with_installed(
             // Composite owners retain the independently constructed finite
             // storage shape (seed/current, pending sides and staged output).
             // A single-slot placeholder cannot realize their checked State law.
-            let (queue_items, queue_bytes) = if matches!(&role, SoftwareRole::Composite(_) | SoftwareRole::Installed { .. }) {
+            let (queue_items, queue_bytes) = if matches!(
+                &role,
+                SoftwareRole::Composite(_) | SoftwareRole::Installed { .. }
+            ) {
                 (kind.limits.max_queue_items, kind.limits.max_queue_bytes)
             } else {
                 (1, 4096)
