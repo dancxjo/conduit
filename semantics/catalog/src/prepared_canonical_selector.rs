@@ -2,7 +2,7 @@
 use alloc::borrow::Cow;
 use conduit_core::StructuredSelector;
 
-/// Prepared pure selection invoked by the selector Back's existing Host Call.
+/// Prepared pure selection used by ordinary software Backs, with no Host effects.
 /// The output envelope is reserved before Play; unmatched drops return None.
 pub struct PreparedCanonicalSelector {
     selector: CaptureSelection,
@@ -64,10 +64,7 @@ impl PreparedCanonicalSelector {
         &mut self,
         input: &[u8],
     ) -> Result<Option<&[u8]>, conduit_core::StructuredSelectorRefusal> {
-        use conduit_core::{
-            StructuredCanonicalSelection as S, StructuredSelectorRefusal as R,
-            UnmatchedVariantDisposition as D,
-        };
+        use conduit_core::StructuredSelectorRefusal as R;
         if input.len() > self.maximum_input_bytes {
             return Err(R::MalformedCheckedValue);
         }
@@ -93,6 +90,42 @@ impl PreparedCanonicalSelector {
                     &mut self.output,
                 )?
             }
+        };
+        self.selection_result(selected)
+    }
+    /// Only the linked profile exposes immutable schema spans for execution.
+    pub fn input_schema_bytes(&self) -> Option<&[u8]> {
+        matches!(self.selector, CaptureSelection::Linked(_)).then_some(self.input_type.as_ref())
+    }
+    pub fn output_schema_bytes(&self) -> Option<&[u8]> {
+        matches!(self.selector, CaptureSelection::Linked(_)).then_some(self.output_type.as_ref())
+    }
+    /// Consume separate storage only through the checked linked profile. The
+    /// full input is validated; output keeps its ordinary canonical encoding.
+    pub fn select_parts(
+        &mut self,
+        schema: &[u8],
+        node: &[u8],
+    ) -> Result<Option<&[u8]>, conduit_core::StructuredSelectorRefusal> {
+        use conduit_core::StructuredSelectorRefusal as R;
+        let CaptureSelection::Linked(selector) = &self.selector else {
+            return Err(R::MalformedCheckedValue);
+        };
+        let selected = selector
+            .select_parts_into(schema, node, &mut self.output)
+            .map_err(|error| match error {
+                R::WrongInputType => R::MalformedCheckedValue,
+                other => other,
+            })?;
+        self.selection_result(selected)
+    }
+    fn selection_result(
+        &self,
+        selected: conduit_core::StructuredCanonicalSelection,
+    ) -> Result<Option<&[u8]>, conduit_core::StructuredSelectorRefusal> {
+        use conduit_core::{
+            StructuredCanonicalSelection as S, StructuredSelectorRefusal as R,
+            UnmatchedVariantDisposition as D,
         };
         match selected {
             S::Matched => Ok(Some(&self.output)),

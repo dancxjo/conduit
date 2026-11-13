@@ -58,7 +58,9 @@ pub enum Driver<'a, R, X = NoExtraBack> {
 }
 impl<R: StepBack<P>, X: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, R, X> {
     #[cfg(feature = "execution-workspace")]
-    fn workspace_requirements(&self) -> Option<conduit_kernel::scheduler::StepWorkspaceRequirements> {
+    fn workspace_requirements(
+        &self,
+    ) -> Option<conduit_kernel::scheduler::StepWorkspaceRequirements> {
         match self {
             Self::Resident(back) => back.workspace_requirements(),
             Self::Extra(back) => back.workspace_requirements(),
@@ -66,7 +68,12 @@ impl<R: StepBack<P>, X: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, 
         }
     }
     #[cfg(feature = "execution-workspace")]
-    fn step_with_workspace(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>, workspace: &mut conduit_kernel::scheduler::StepWorkspace<'_>) -> StepOutcome {
+    fn step_with_workspace(
+        &mut self,
+        io: &mut StepIo<P>,
+        input: &StepInputBytes<'_, P>,
+        workspace: &mut conduit_kernel::scheduler::StepWorkspace<'_>,
+    ) -> StepOutcome {
         match self {
             Self::Resident(back) => back.step_with_workspace(io, input, workspace),
             Self::Extra(back) => back.step_with_workspace(io, input, workspace),
@@ -76,6 +83,9 @@ impl<R: StepBack<P>, X: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, 
     fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
         match self {
             Self::Resident(back) => back.canonical_input_schema(port),
+            Self::Software(back) => {
+                <SoftwareBack as StepBack<P>>::canonical_input_schema(back, port)
+            }
             Self::Extra(back) => back.canonical_input_schema(port),
             _ => None,
         }
@@ -83,6 +93,9 @@ impl<R: StepBack<P>, X: StepBack<P>, const P: usize> StepBack<P> for Driver<'_, 
     fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
         match self {
             Self::Resident(back) => back.canonical_output_schema(port),
+            Self::Software(back) => {
+                <SoftwareBack as StepBack<P>>::canonical_output_schema(back, port)
+            }
             Self::Extra(back) => back.canonical_output_schema(port),
             _ => None,
         }

@@ -89,6 +89,39 @@ impl PreparedBorrowedStructuredSelector {
             StructuredInfoRefusal::CanonicalEncodingTooLarge => E::CanonicalEncodingTooLarge,
             _ => E::MalformedCheckedValue,
         })?;
+        self.select_validated_into(value, output)
+    }
+
+    /// Select from the exact linked schema and a separately retained node.
+    /// The complete input is validated before selection, including leaves that
+    /// the projection does not choose. This creates no admission authority.
+    pub fn select_parts_into(
+        &self,
+        schema: &[u8],
+        node: &[u8],
+        output: &mut Vec<u8>,
+    ) -> Result<StructuredCanonicalSelection, StructuredSelectorRefusal> {
+        use StructuredSelectorRefusal as E;
+        if schema != self.input.type_bytes() {
+            return Err(E::WrongInputType);
+        }
+        let value = self
+            .input
+            .validate_node(node)
+            .map_err(|error| match error {
+                StructuredInfoRefusal::WrongType => E::WrongInputType,
+                StructuredInfoRefusal::CanonicalEncodingTooLarge => E::CanonicalEncodingTooLarge,
+                _ => E::MalformedCheckedValue,
+            })?;
+        self.select_validated_into(value, output)
+    }
+
+    fn select_validated_into(
+        &self,
+        value: crate::ValidatedCanonicalStructuredValue<'_>,
+        output: &mut Vec<u8>,
+    ) -> Result<StructuredCanonicalSelection, StructuredSelectorRefusal> {
+        use StructuredSelectorRefusal as E;
         let malformed = |_| E::MalformedCheckedValue;
         let representation = value.representation().map_err(malformed)?;
         let selected = match &self.operation {

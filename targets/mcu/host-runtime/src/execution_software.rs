@@ -218,6 +218,23 @@ impl<'a> SoftwareBack<'a> {
     }
 }
 impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
+    fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
+        match self {
+            Self::Selector(back) => {
+                <SelectorBack as StepBack<P>>::canonical_input_schema(back, port)
+            }
+            _ => None,
+        }
+    }
+    fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
+        match self {
+            Self::Selector(back) => {
+                <SelectorBack as StepBack<P>>::canonical_output_schema(back, port)
+            }
+            _ => None,
+        }
+    }
+
     fn terminal_transductions(
         &self,
     ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P] {
@@ -359,6 +376,19 @@ impl SelectorBack {
     }
 }
 impl<const P: usize> StepBack<P> for SelectorBack {
+    #[cfg(feature = "schema-value-storage")]
+    fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0))
+            .then(|| self.selector.input_schema_bytes())
+            .flatten()
+    }
+    #[cfg(feature = "schema-value-storage")]
+    fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0))
+            .then(|| self.selector.output_schema_bytes())
+            .flatten()
+    }
+
     fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
         self.staged = false;
         if io.input_abnormal(PortId(0)).is_some() {
@@ -378,13 +408,25 @@ impl<const P: usize> StepBack<P> for SelectorBack {
         if !io.output_ready(PortId(0)) {
             return StepOutcome::Await;
         }
-        let Some(bytes) = input.input(PortId(0)) else {
-            return fail(3);
+        let canonical = input.input(PortId(0));
+        #[cfg(feature = "schema-value-storage")]
+        let parts = input.canonical_parts(PortId(0));
+        #[cfg(not(feature = "schema-value-storage"))]
+        let parts: Option<conduit_kernel::CanonicalValueParts<'_>> = None;
+        let length = match (canonical, parts) {
+            (Some(bytes), None) => Some(bytes.len()),
+            (None, Some(parts)) => parts.schema.len().checked_add(parts.node.len()),
+            _ => None,
         };
-        if bytes.len() != reference.byte_len as usize || io.consume_fuel(1).is_err() {
+        if length != Some(reference.byte_len as usize) || io.consume_fuel(1).is_err() {
             return fail(4);
         }
-        match self.selector.select(bytes) {
+        let selected = match (canonical, parts) {
+            (Some(bytes), None) => self.selector.select(bytes),
+            (None, Some(parts)) => self.selector.select_parts(parts.schema, parts.node),
+            _ => return fail(3),
+        };
+        match selected {
             Ok(Some(value)) if value.len() <= self.maximum => {
                 if io.send_prepared(PortId(0), value.len() as u32).is_err() {
                     return fail(5);
@@ -438,3 +480,7 @@ impl<const P: usize> StepBack<P> for PublicationFaceBack<'_> {
         <PublicationBack as StepBack<P>>::cancel(&mut self.back);
     }
 }
+
+#[cfg(all(test, feature = "schema-value-storage"))]
+#[path = "execution_selector_schema_tests.rs"]
+mod selector_schema_tests;

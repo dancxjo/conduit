@@ -20,11 +20,19 @@ fn parity(selector: StructuredSelector, values: &[StructuredInfoValue]) {
         selector.output_type().canonical_bytes().unwrap()
     );
     let mut output = Vec::with_capacity(4096);
+    let mut separated = Vec::with_capacity(4096);
     for input in values {
         let bytes = input.canonical_bytes().unwrap();
         let expected = selector.select(input).unwrap();
         let (actual, cost) = probe::observe(|| linked.select_canonical_into(&bytes, &mut output));
         assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        let schema = linked.input_type_bytes();
+        let (parts, cost) = probe::observe(|| {
+            linked.select_parts_into(schema, &bytes[schema.len()..], &mut separated)
+        });
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        assert_eq!(parts, actual);
+        assert_eq!(separated, output);
         match expected {
             StructuredSelection::Matched(value) => {
                 assert_eq!(actual, Ok(StructuredCanonicalSelection::Matched));
@@ -140,6 +148,29 @@ fn full_validation_refuses_a_malformed_unselected_leaf_and_preserves_output() {
     );
     assert_eq!(output, b"previous");
     assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    let (result, cost) = probe::observe(|| {
+        linked.select_parts_into(
+            linked.input_type_bytes(),
+            &malformed[linked.input_type_bytes().len()..],
+            &mut output,
+        )
+    });
+    assert_eq!(
+        result,
+        Err(StructuredSelectorRefusal::MalformedCheckedValue)
+    );
+    assert_eq!(output, b"previous");
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    let foreign = leaf("value/u8").canonical_bytes().unwrap();
+    assert_eq!(
+        linked.select_parts_into(
+            &foreign,
+            &malformed[linked.input_type_bytes().len()..],
+            &mut output
+        ),
+        Err(StructuredSelectorRefusal::WrongInputType)
+    );
+    assert_eq!(output, b"previous");
 }
 #[test]
 fn linked_limits_short_sequences_and_wrong_schemas_refuse_without_growing() {
