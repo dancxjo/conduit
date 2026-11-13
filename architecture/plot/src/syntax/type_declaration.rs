@@ -40,6 +40,7 @@ pub enum TypeFormStorageSyntax {
     U8Bits,
     I16Le,
     U16Le,
+    I128Le,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
