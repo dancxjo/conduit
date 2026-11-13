@@ -45,6 +45,11 @@ impl From<PreparedNativeRefusal> for StaticProjectedRefusal {
 /// installs an offer, reservation or Play.
 pub struct StaticProjectedExpression<const CONTRACTS: usize> {
     native: ResidentNativeValidator<CONTRACTS>,
+    checked: ParentCheckedProjectedExpression,
+}
+/// Retained only inside a constructor that has matched the child's exact Native
+/// definition to its parent. The parent validates every input before reuse.
+pub(in crate::expression_prepared) struct ParentCheckedProjectedExpression {
     tape: ScalarTape,
     inputs: &'static [StaticProjectedInput],
     output: PrimitiveInfoKind,
@@ -113,22 +118,24 @@ impl<const N: usize> StaticProjectedExpression<N> {
             .transpose()?;
         Ok(Self {
             native,
-            tape: ScalarTape {
-                instructions: Cow::Borrowed(instructions),
-                result,
-                scratch: ScratchProfile::prepare(instructions.len()),
+            checked: ParentCheckedProjectedExpression {
+                tape: ScalarTape {
+                    instructions: Cow::Borrowed(instructions),
+                    result,
+                    scratch: ScratchProfile::prepare(instructions.len()),
+                },
+                inputs,
+                output,
+                maximum_input_bytes,
+                output_contract,
             },
-            inputs,
-            output,
-            maximum_input_bytes,
-            output_contract,
         })
     }
     pub fn instruction_count(&self) -> usize {
-        self.tape.instruction_count()
+        self.checked.tape.instruction_count()
     }
     pub fn scratch_bytes(&self) -> usize {
-        self.tape.scratch_bytes()
+        self.checked.tape.scratch_bytes()
     }
     pub fn evaluate_into(
         &self,
@@ -136,7 +143,11 @@ impl<const N: usize> StaticProjectedExpression<N> {
         output: &mut [u8],
     ) -> Result<usize, StaticProjectedRefusal> {
         let validated = self.native.validate_borrowed(input)?;
-        self.evaluate_checked_into(input, validated, output)
+        self.checked.evaluate_checked_input_into(
+            crate::expression_prepared::canonical_input::CanonicalInput::Whole(input),
+            validated,
+            output,
+        )
     }
     pub(in crate::expression_prepared) fn input_matches(
         &self,
@@ -144,6 +155,15 @@ impl<const N: usize> StaticProjectedExpression<N> {
     ) -> bool {
         self.native.same_definition(native)
     }
+    /// Caller first checks `input_matches` against the retained parent. This
+    /// consumes the duplicate validator; it does not skip value validation.
+    pub(in crate::expression_prepared) fn into_parent_checked(
+        self,
+    ) -> ParentCheckedProjectedExpression {
+        self.checked
+    }
+}
+impl ParentCheckedProjectedExpression {
     pub(in crate::expression_prepared) fn checked_work(&self) -> u32 {
         let mut work = (self.tape.instruction_count() as u32).saturating_add(4);
         for operand in self.inputs {
@@ -159,18 +179,6 @@ impl<const N: usize> StaticProjectedExpression<N> {
     }
     // Private reuse only after the enclosing evaluator checks its whole input.
     // Constructor-time definition equality preserves every child guard/bound.
-    pub(in crate::expression_prepared) fn evaluate_checked_into(
-        &self,
-        input: &[u8],
-        validated: conduit_core::ValidatedCanonicalStructuredValue<'_>,
-        output: &mut [u8],
-    ) -> Result<usize, StaticProjectedRefusal> {
-        self.evaluate_checked_input_into(
-            crate::expression_prepared::canonical_input::CanonicalInput::Whole(input),
-            validated,
-            output,
-        )
-    }
     pub(in crate::expression_prepared) fn evaluate_checked_input_into(
         &self,
         input: crate::expression_prepared::canonical_input::CanonicalInput<'_>,

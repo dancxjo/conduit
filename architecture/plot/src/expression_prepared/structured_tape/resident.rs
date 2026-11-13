@@ -32,6 +32,12 @@ pub enum StaticStructuredValue<const INPUT: usize> {
     Scalar(StaticProjectedExpression<INPUT>),
     InputPath(&'static [crate::StaticExpressionPathStep]),
 }
+// Constructor-only input retains each independently prepared validator until
+// exact parent correspondence has passed. Runtime children retain only code.
+enum ParentCheckedStructuredValue {
+    Scalar(crate::expression_prepared::scalar_tape::projected::ParentCheckedProjectedExpression),
+    InputPath(&'static [crate::StaticExpressionPathStep]),
+}
 /// No owned instructions, constants, schemas or result storage. This is a value
 /// evaluator, never an offered Back or an execution/native admission witness.
 /// The installing Root must bind the exact checked artifact and admit complete
@@ -43,7 +49,7 @@ pub struct StaticStructuredExpression<
 > {
     input: ResidentNativeValidator<INPUT>,
     output: ResidentNativeValidator<OUTPUT>,
-    children: [StaticStructuredValue<INPUT>; CHILDREN],
+    children: [ParentCheckedStructuredValue; CHILDREN],
     program: &'static StaticStructuredProgram,
 }
 impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<I, O, C> {
@@ -100,6 +106,12 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
                 return Err(Refusal::InvalidProgram);
             }
         }
+        let children = children.map(|child| match child {
+            StaticStructuredValue::Scalar(child) => {
+                ParentCheckedStructuredValue::Scalar(child.into_parent_checked())
+            }
+            StaticStructuredValue::InputPath(path) => ParentCheckedStructuredValue::InputPath(path),
+        });
         Ok(Self {
             input,
             output,
@@ -133,8 +145,8 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
             self.children
                 .get(usize::from(index))
                 .map_or(u32::MAX, |child| match child {
-                    StaticStructuredValue::Scalar(child) => child.checked_work(),
-                    StaticStructuredValue::InputPath(path) => (path.len() + 1) as u32,
+                    ParentCheckedStructuredValue::Scalar(child) => child.checked_work(),
+                    ParentCheckedStructuredValue::InputPath(path) => (path.len() + 1) as u32,
                 })
         };
         for op in self.program.instructions {
@@ -248,18 +260,18 @@ impl Output for SliceOutput<'_> {
         Ok(())
     }
 }
-struct ResidentValues<'a, const I: usize> {
-    children: &'a mut [StaticStructuredValue<I>],
+struct ResidentValues<'a> {
+    children: &'a mut [ParentCheckedStructuredValue],
     input: conduit_core::ValidatedCanonicalStructuredValue<'a>,
 }
-impl<const I: usize> ResidentValues<'_, I> {
+impl ResidentValues<'_> {
     fn evaluate(
         &self,
         index: u16,
         input: CanonicalInput<'_>,
         output: &mut [u8],
     ) -> Result<usize, StaticStructuredRefusal> {
-        let StaticStructuredValue::Scalar(value) = self
+        let ParentCheckedStructuredValue::Scalar(value) = self
             .children
             .get(usize::from(index))
             .ok_or(Refusal::InvalidProgram)?
@@ -271,7 +283,7 @@ impl<const I: usize> ResidentValues<'_, I> {
             .map_err(|refusal| StaticStructuredRefusal::Child { index, refusal })
     }
 }
-impl<const I: usize> Values for ResidentValues<'_, I> {
+impl Values for ResidentValues<'_> {
     type Error = StaticStructuredRefusal;
     fn append(
         &mut self,
@@ -279,7 +291,8 @@ impl<const I: usize> Values for ResidentValues<'_, I> {
         input: CanonicalInput<'_>,
         output: &mut impl Output,
     ) -> Result<(), Self::Error> {
-        if let Some(StaticStructuredValue::InputPath(path)) = self.children.get(usize::from(index))
+        if let Some(ParentCheckedStructuredValue::InputPath(path)) =
+            self.children.get(usize::from(index))
         {
             let value = crate::expression_prepared::resident_projection::select(self.input, path)?;
             output.write(value.value_node())?;
