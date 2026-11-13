@@ -91,3 +91,113 @@ fn terminal_state_constructor_refuses_a_schema_without_terminal_boolean() {
     };
     assert!(SoftwareBack::seeded_until(&contract, &schema).is_err());
 }
+
+#[cfg(feature = "execution-workspace")]
+#[test]
+fn resident_and_extra_drivers_preserve_workspace_custody_through_the_kernel() {
+    use conduit_kernel::{scheduler::*, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent};
+    struct NeedsWorkspace(bool);
+    impl StepBack<1> for NeedsWorkspace {
+        fn workspace_requirements(&self) -> Option<StepWorkspaceRequirements> {
+            Some(StepWorkspaceRequirements {
+                output_bytes: 4,
+                scratch_bytes: 3,
+            })
+        }
+        fn canonical_input_schema(&self, _: PortId) -> Option<&[u8]> {
+            Some(&[2, 3])
+        }
+        fn canonical_output_schema(&self, _: PortId) -> Option<&[u8]> {
+            Some(&[4, 5])
+        }
+        fn step(&mut self, _: &mut StepIo<1>, _: &StepInputBytes<'_, 1>) -> StepOutcome {
+            panic!("workspace dispatch was lost")
+        }
+        fn step_with_workspace(
+            &mut self,
+            _: &mut StepIo<1>,
+            _: &StepInputBytes<'_, 1>,
+            workspace: &mut StepWorkspace<'_>,
+        ) -> StepOutcome {
+            let (out, scratch) = workspace.buffers();
+            assert_eq!(out, [0; 4]);
+            assert_eq!(scratch, [0; 3]);
+            out.fill(7);
+            scratch.fill(8);
+            self.0 = true;
+            StepOutcome::Complete
+        }
+    }
+    type Wrapped = Driver<'static, NeedsWorkspace, NeedsWorkspace>;
+    type Kernel =
+        FixedScheduler<Wrapped, FixedValueStore<1, 1>, FixedSignLog<16>, 1, 1, 1, 1, 1, 1, 1, 1>;
+    for extra in [false, true] {
+        let back = if extra {
+            Driver::Extra(NeedsWorkspace(false))
+        } else {
+            Driver::Resident(NeedsWorkspace(false))
+        };
+        assert_eq!(
+            StepBack::<1>::canonical_input_schema(&back, PortId(0)),
+            Some([2, 3].as_slice())
+        );
+        assert_eq!(
+            StepBack::<1>::canonical_output_schema(&back, PortId(0)),
+            Some([4, 5].as_slice())
+        );
+        let mut routes = FixedRoutes::new(1);
+        routes
+            .install(
+                conduit_kernel::NodeId(0),
+                PortId(0),
+                conduit_kernel::RouteRange { start: 0, len: 1 },
+                &[conduit_kernel::RouteTarget {
+                    cord: conduit_kernel::CordId(0),
+                    sink: conduit_kernel::CordEndpoint::local(conduit_kernel::NodeId(0), PortId(0)),
+                }],
+            )
+            .unwrap();
+        routes.seal().unwrap();
+        let mut kernel = Kernel::new(
+            [NodeSpec {
+                input_cords: [Some(conduit_kernel::CordId(0))],
+                maximum_step_fuel: 4,
+            }],
+            [CordSpec::local(
+                conduit_kernel::CordId(0),
+                (conduit_kernel::NodeId(0), PortId(0)),
+                (conduit_kernel::NodeId(0), PortId(0)),
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 1,
+                    pressure_policy: Default::default(),
+                },
+            )],
+            routes,
+            [back],
+            FixedValueStore::new(1).unwrap(),
+            FixedSignLog::new((16 * core::mem::size_of::<KernelEvent>()) as u32).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(kernel.step(), Err(SchedulerError::InvalidPlan));
+        assert_eq!(kernel.logical_invocations(), 0);
+        kernel
+            .install_execution_workspace(
+                PreparedStepWorkspace::try_new(
+                    StepWorkspaceRequirements {
+                        output_bytes: 4,
+                        scratch_bytes: 3,
+                    },
+                    7,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        kernel.run(4).unwrap();
+        assert!(match &kernel.drivers()[0] {
+            Driver::Resident(b) | Driver::Extra(b) => b.0,
+            _ => false,
+        });
+    }
+}
