@@ -35,7 +35,14 @@ fn schema_profiles_fund_actual_backing_and_preserve_logical_quotas_and_clocks() 
         ValueSlotProfile::Canonical(8),
     ];
     let clocks = [(7, 1000, 4)];
-    let (mut store, parameters) = prepare_schema(&profiles, &[8], &[16], &clocks, 4096).unwrap();
+    let (mut store, parameters) = prepare_schema(
+        &profiles,
+        &[ValueSlotProfile::Canonical(8)],
+        &[16],
+        &clocks,
+        4096,
+    )
+    .unwrap();
     let backing = store.external_backing_bytes().unwrap();
     assert_eq!(
         backing,
@@ -57,7 +64,13 @@ fn schema_profiles_fund_actual_backing_and_preserve_logical_quotas_and_clocks() 
     store.release(value).unwrap();
     assert_eq!(store.used_items(), 1);
     assert!(matches!(
-        prepare_schema(&profiles, &[8], &[16], &clocks, backing - 1),
+        prepare_schema(
+            &profiles,
+            &[ValueSlotProfile::Canonical(8)],
+            &[16],
+            &clocks,
+            backing - 1
+        ),
         Err("value-schema-storage")
     ));
     assert!(matches!(
@@ -66,7 +79,7 @@ fn schema_profiles_fund_actual_backing_and_preserve_logical_quotas_and_clocks() 
                 canonical: &[],
                 maximum_bytes: 8
             }],
-            &[8],
+            &[ValueSlotProfile::Canonical(8)],
             &[],
             &[],
             4096
@@ -74,7 +87,56 @@ fn schema_profiles_fund_actual_backing_and_preserve_logical_quotas_and_clocks() 
         Err("value-schema")
     ));
     assert!(matches!(
-        prepare_schema(&profiles, &[8], &[16], &[(7, 0, 4)], 4096),
+        prepare_schema(
+            &profiles,
+            &[ValueSlotProfile::Canonical(8)],
+            &[16],
+            &[(7, 0, 4)],
+            4096
+        ),
         Err("clock-geometry")
     ));
+}
+
+#[test]
+fn typed_staging_and_queued_value_have_separate_finite_slots() {
+    let ty = T::record(
+        kind_id("test/staging"),
+        vec![F::new("value", T::leaf(kind_id("value/u64")).unwrap()).unwrap()],
+    )
+    .unwrap();
+    let bytes = I::record(
+        ty.clone(),
+        vec![V::new(
+            "value",
+            I::leaf(
+                T::leaf(kind_id("value/u64")).unwrap(),
+                7u64.to_le_bytes().to_vec(),
+            )
+            .unwrap(),
+        )
+        .unwrap()],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let schema = Box::leak(ty.canonical_bytes().unwrap().into_boxed_slice());
+    let profile = ValueSlotProfile::Schema {
+        canonical: schema,
+        maximum_bytes: bytes.len() as u32,
+    };
+    let (mut store, _) = prepare_schema(&[profile], &[profile], &[8], &[], 4096).unwrap();
+    let queued = store.store_schema_canonical(schema, &bytes).unwrap();
+    let staged = store.store_schema_canonical(schema, &bytes).unwrap();
+    assert_ne!(queued, staged);
+    assert!(store.store_schema_canonical(schema, &bytes).is_err());
+    store.release(queued).unwrap();
+    assert_eq!(
+        store.canonical_parts(staged).unwrap().unwrap().schema,
+        schema
+    );
+    let next = store.store_schema_canonical(schema, &bytes).unwrap();
+    store.release(staged).unwrap();
+    store.release(next).unwrap();
+    assert_eq!(store.used_items(), 0);
 }

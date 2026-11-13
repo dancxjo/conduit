@@ -15,6 +15,7 @@ pub mod source_composition;
 pub mod template;
 pub mod template_calibration;
 pub mod workset;
+pub mod value_profiles;
 /// Maximum measured private computation fuel of this exact authored closure.
 /// The emitted-code test prepares every actual Back and verifies this ceiling.
 /// Scheduling/commit fuel remains separately accounted by the resident provider.

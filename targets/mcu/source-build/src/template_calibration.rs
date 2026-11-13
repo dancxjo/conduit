@@ -243,6 +243,9 @@ impl Calibration {
                 entry.layout.host_call_value_slot_capacities,
             );
             text.insert_str(0, &geometry);
+            if let Some(profiles) = &entry.layout.value_profiles_rust {
+                text.insert_str(0, profiles);
+            }
             let gears: Vec<_> = entry
                 .layout
                 .nodes

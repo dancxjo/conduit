@@ -91,7 +91,7 @@ pub type PreparedSchemaValues<const W: usize> = (
 #[cfg(feature = "schema-value-storage")]
 pub fn prepare_schema<const W: usize>(
     profiles: &[ValueSlotProfile],
-    steps: &[u32],
+    steps: &[ValueSlotProfile],
     results: &[u32],
     clocks: &[(u16, u64, u64); W],
     maximum_backing: usize,
@@ -100,23 +100,29 @@ pub fn prepare_schema<const W: usize>(
     use conduit_plan_lowering::schema_value_store::SchemaValueStore;
     let mut canonical = alloc::vec::Vec::new();
     let mut definitions = alloc::vec::Vec::new();
+    let count = profiles
+        .len()
+        .checked_add(steps.len())
+        .ok_or("value-count")?;
     canonical
-        .try_reserve_exact(profiles.len())
+        .try_reserve_exact(count)
         .map_err(|_| "value-capacities")?;
     definitions
-        .try_reserve_exact(profiles.len())
+        .try_reserve_exact(count)
         .map_err(|_| "value-definitions")?;
     let mut logical = 0u32;
-    for profile in profiles {
+    for profile in profiles.iter().chain(steps) {
         match *profile {
             ValueSlotProfile::Canonical(bytes) => canonical.push(bytes),
             ValueSlotProfile::Schema {
                 canonical,
                 maximum_bytes,
             } => {
-                let validator =
-                    BorrowedStructuredValueValidator::new(canonical, maximum_bytes as usize)
-                        .map_err(|_| "value-schema")?;
+                let validator = BorrowedStructuredValueValidator::new(
+                    canonical,
+                    usize::try_from(maximum_bytes).map_err(|_| "value-schema-width")?,
+                )
+                .map_err(|_| "value-schema")?;
                 logical = logical.checked_add(maximum_bytes).ok_or("value-bytes")?;
                 definitions.push((validator, 1));
             }
@@ -125,7 +131,7 @@ pub fn prepare_schema<const W: usize>(
     if definitions.is_empty() {
         return Err("value-schema-profile-empty");
     }
-    let (canonical, parameters) = prepare(&canonical, steps, results, clocks, maximum_backing)?;
+    let (canonical, parameters) = prepare(&canonical, &[], results, clocks, maximum_backing)?;
     let remaining = maximum_backing
         .checked_sub(canonical.reserved_storage_bytes())
         .ok_or("value-backing")?;

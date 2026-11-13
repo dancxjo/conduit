@@ -30,6 +30,8 @@ pub use continuation::ContinuationPins;
 
 #[path = "host_call_storage.rs"]
 mod host_call_storage;
+#[path = "template_value_profiles.rs"]
+mod value_profiles;
 
 pub struct Layout {
     /// Independently lowered immutable laws; never supplied by an assignment.
@@ -62,6 +64,8 @@ pub struct Layout {
     pub maximum_total_computation_text_bytes: u32,
     /// Payload reservation for every actual checked Cord item. Not a grant.
     pub cord_value_slot_capacities: Vec<u32>,
+    /// Explicit selected schema profiles, absent for canonical-only targets.
+    pub value_profiles_rust: Option<String>,
     /// Additional generated-output staging, one slot per routed output port.
     pub step_value_slot_capacities: Vec<u32>,
     /// Native results may exceed their outgoing typed Cord representation.
@@ -320,6 +324,7 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             .maximum_total_program_bytes
             .checked_mul(2)
             .ok_or("computation ceiling overflow")?,
+        value_profiles_rust: value_profiles::emit(kernel, fragment, input.resident)?,
         cord_value_slot_capacities,
         step_value_slot_capacities,
         host_call_value_slot_capacities,
