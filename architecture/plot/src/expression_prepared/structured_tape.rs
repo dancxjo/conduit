@@ -14,9 +14,9 @@ use compile::ConstructorTape;
 pub use execution::StructuredTapeInstruction;
 use execution::{execute, Output, Values};
 pub use resident::{
-    generate_static_structured_expression, StaticStructuredExpression,
-    StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
-    StaticStructuredValue,
+    generate_static_structured_expression, StaticStructuredChildProgram,
+    StaticStructuredExpression, StaticStructuredGenerationRefusal, StaticStructuredProgram,
+    StaticStructuredRefusal, StaticStructuredValue,
 };
 use StructuredTapeInstruction as Operation;
 const MAX_OPERATIONS: usize = 512;

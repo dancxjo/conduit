@@ -506,7 +506,7 @@ pub fn check_state() {
     // Equal shape alone cannot justify discarding a child's validator.
     for (name, bound, occurrences) in [("bound", 4095, 4096), ("occurrences", 4096, 4095)] {
         let altered = image.replacen("mod input_native {", &format!("mod input_native {{\npub fn altered()->Result<conduit_plot::rust_binding::ResidentNativeValidator<CONTRACT_COUNT>,conduit_plot::rust_binding::PreparedNativeRefusal>{{conduit_plot::rust_binding::ResidentNativeValidator::new(TYPE,{bound},&CONTRACTS,&SCOPES,{occurrences})}}\n"), 1)
-            .replacen("prepare_with_input(input.clone())", "prepare_with_input(input_native::altered().unwrap())", 1);
+            .replace("Expression::from_child_programs(input,output,&CHILDREN,&PROGRAM)", "let mut children=core::array::from_fn(|_|conduit_plot::StaticStructuredValue::InputPath(&[]));children[0]=conduit_plot::StaticStructuredValue::Scalar(conduit_plot::StaticProjectedExpression::new(input_native::altered().unwrap(),&child_0::PROGRAM).unwrap());Ok(Expression::new(input,output,children,&PROGRAM)?)");
         assert_ne!(altered, image);
         compiled_rust::verify(&format!("mod image{{\n{altered}\n}}"), "fn main(){assert!(matches!(image::prepare(),Err(conduit_plot::StaticStructuredRefusal::Expression(conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram))));}", &format!("parent-child-{name}-mismatch"));
     }

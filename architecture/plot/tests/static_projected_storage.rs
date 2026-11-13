@@ -78,3 +78,45 @@ fn linked_program_is_not_a_preparation_witness() {
         .is_err());
     }
 }
+
+#[test]
+fn descriptor_loop_refuses_later_children_without_publishing_partial_preparation() {
+    use conduit_plot::{
+        StaticExpressionPathStep as Path, StaticProjectedRefusal,
+        StaticStructuredChildProgram as C, StaticStructuredProgram, StaticStructuredRefusal,
+        StructuredTapeInstruction as Op,
+    };
+    static ROOT: StaticStructuredProgram = StaticStructuredProgram {
+        instructions: &[Op::Value(0)],
+        constants: &[],
+        maximum_input_bytes: 0,
+        maximum_output_bytes: 1,
+    };
+    static BAD_SCALAR: Program = Program {
+        result: 1,
+        ..PROGRAM
+    };
+    static CHILDREN: [C; 3] = [
+        C::Scalar(&PROGRAM),
+        C::Scalar(&BAD_SCALAR),
+        C::Scalar(&PROGRAM),
+    ];
+    static BAD_PATH: [C; 2] = [C::Scalar(&PROGRAM), C::InputPath(&[Path::Field("")])];
+    let native = || ResidentNativeValidator::intrinsic_empty(64).unwrap();
+    let (result, cost) = allocation_probe::observe(|| {
+        StaticStructuredExpression::from_child_programs(native(), native(), &CHILDREN, &ROOT)
+    });
+    assert!(matches!(
+        result,
+        Err(StaticStructuredRefusal::Child {
+            index: 1,
+            refusal: StaticProjectedRefusal::Expression(_),
+        })
+    ));
+    assert_eq!(cost.allocations, 0);
+    assert_eq!(cost.reallocations, 0);
+    assert!(matches!(
+        StaticStructuredExpression::from_child_programs(native(), native(), &BAD_PATH, &ROOT),
+        Err(StaticStructuredRefusal::Expression(_))
+    ));
+}

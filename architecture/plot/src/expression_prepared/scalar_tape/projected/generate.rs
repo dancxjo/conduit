@@ -109,7 +109,7 @@ pub(in crate::expression_prepared) fn generate_with_native(
     let output = node.kind;
     let native_module = shared_native.map_or_else(
         || format!("mod native {{\n{native}\n}}\n"),
-        |path| format!("use {path} as native;\n"),
+        |_| String::new(),
     );
     let mut source = format!("extern crate alloc;\n{native_module}");
     // Nested children belong to the enclosing program's exact canonical hash.
@@ -140,23 +140,16 @@ pub(in crate::expression_prepared) fn generate_with_native(
     if maximum > bounds.canonical_bytes {
         return Err(Refusal::UnsupportedType("projected-image/input-bound@1".into()).into());
     }
-    // A structured parent has already prepared this exact immutable Native
-    // definition. Keep standalone preparation independent, but let its children
-    // copy the validated view rather than repeat schema/predicate preparation.
-    let (prepare_name, prepare_input, native_input) = if shared_native.is_some() {
-        (
-            "prepare_with_input",
-            "input:conduit_plot::rust_binding::ResidentNativeValidator<{native::CONTRACT_COUNT}>",
-            "input",
-        )
+    let visibility = if shared_native.is_some() {
+        "pub(super) "
     } else {
-        ("prepare", "", "native::prepare()?")
+        ""
     };
-    source.push_str(&format!("];\nstatic PROGRAM:conduit_plot::StaticProjectedProgram=conduit_plot::StaticProjectedProgram{{maximum_input_bytes:{maximum},output:conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{output:?},instructions:INSTRUCTIONS,result:{},inputs:INPUTS,output_contract:{output_contract}}};\n", tape.result));
+    source.push_str(&format!("];\n{visibility}static PROGRAM:conduit_plot::StaticProjectedProgram=conduit_plot::StaticProjectedProgram{{maximum_input_bytes:{maximum},output:conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{output:?},instructions:INSTRUCTIONS,result:{},inputs:INPUTS,output_contract:{output_contract}}};\n", tape.result));
     if shared_native.is_none() {
         source.push_str("pub const RUNTIME_STATE_BYTES:usize=core::mem::size_of::<conduit_plot::StaticProjectedExpression<{native::CONTRACT_COUNT}>>();\n");
+        source.push_str("pub fn prepare() -> Result<conduit_plot::StaticProjectedExpression<{native::CONTRACT_COUNT}>, conduit_plot::StaticProjectedRefusal> { Ok(conduit_plot::StaticProjectedExpression::new(native::prepare()?, &PROGRAM)?) }\n");
     }
-    source.push_str(&format!("pub fn {prepare_name}({prepare_input}) -> Result<conduit_plot::StaticProjectedExpression<{{native::CONTRACT_COUNT}}>, conduit_plot::StaticProjectedRefusal> {{ Ok(conduit_plot::StaticProjectedExpression::new({native_input}, &PROGRAM)?) }}\n"));
     Ok(source)
 }
 

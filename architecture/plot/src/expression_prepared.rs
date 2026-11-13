@@ -50,9 +50,9 @@ use primitive::{
 };
 use structured::PreparedStructuredExpression;
 pub use structured::{
-    generate_static_structured_expression, StaticStructuredExpression,
-    StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
-    StaticStructuredValue, StructuredTapeInstruction,
+    generate_static_structured_expression, StaticStructuredChildProgram,
+    StaticStructuredExpression, StaticStructuredGenerationRefusal, StaticStructuredProgram,
+    StaticStructuredRefusal, StaticStructuredValue, StructuredTapeInstruction,
 };
 
 fn prepare_info_kind(

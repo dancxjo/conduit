@@ -32,6 +32,12 @@ pub enum StaticStructuredValue<const INPUT: usize> {
     Scalar(StaticProjectedExpression<INPUT>),
     InputPath(&'static [crate::StaticExpressionPathStep]),
 }
+/// Make-owned children sharing the enclosing expression's exact Native input.
+/// Descriptors are not prepared values or execution/admission witnesses.
+pub enum StaticStructuredChildProgram {
+    Scalar(&'static crate::StaticProjectedProgram),
+    InputPath(&'static [crate::StaticExpressionPathStep]),
+}
 // Constructor-only input retains each independently prepared validator until
 // exact parent correspondence has passed. Runtime children retain only code.
 enum ParentCheckedStructuredValue {
@@ -60,18 +66,7 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
         children: [StaticStructuredValue<I>; C],
         program: &'static StaticStructuredProgram,
     ) -> Result<Self, Refusal> {
-        if C > MAX_VALUES
-            || program.instructions.is_empty()
-            || program.instructions.len() > MAX_OPERATIONS
-            || program.constants.len() > MAX_CONSTANT_BYTES
-            || [program.maximum_input_bytes, program.maximum_output_bytes]
-                .iter()
-                .any(|n| *n > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES)
-            || (program.maximum_input_bytes == 0 && !input.is_intrinsic_empty())
-            || program.maximum_output_bytes == 0
-        {
-            return Err(Refusal::InvalidProgram);
-        }
+        Self::validate_program(&input, program)?;
         for child in &children {
             if let StaticStructuredValue::Scalar(child) = child {
                 if !child.input_matches(&input) {
@@ -83,6 +78,88 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
                     return Err(Refusal::InvalidProgram);
                 }
             }
+        }
+        let children = children.map(|child| match child {
+            StaticStructuredValue::Scalar(child) => {
+                ParentCheckedStructuredValue::Scalar(child.into_parent_checked())
+            }
+            StaticStructuredValue::InputPath(path) => ParentCheckedStructuredValue::InputPath(path),
+        });
+        Ok(Self {
+            input,
+            output,
+            children,
+            program,
+        })
+    }
+    /// Prepare immutable child descriptions through one bounded loop. Every
+    /// scalar inherits this exact already-prepared Native input; independently
+    /// prepared children still use `new` and its correspondence checks.
+    #[inline(never)]
+    pub fn from_child_programs(
+        input: ResidentNativeValidator<I>,
+        output: ResidentNativeValidator<O>,
+        descriptors: &'static [StaticStructuredChildProgram; C],
+        program: &'static StaticStructuredProgram,
+    ) -> Result<Self, StaticStructuredRefusal> {
+        Self::validate_program(&input, program)?;
+        let mut refusal = None;
+        let children = core::array::from_fn(|index| {
+            if refusal.is_some() {
+                return ParentCheckedStructuredValue::InputPath(&[]);
+            }
+            let prepared = match &descriptors[index] {
+                StaticStructuredChildProgram::Scalar(program) => {
+                    StaticProjectedExpression::new(input.clone(), program)
+                        .map(|child| {
+                            ParentCheckedStructuredValue::Scalar(child.into_parent_checked())
+                        })
+                        .map_err(|error| StaticStructuredRefusal::Child {
+                            index: index as u16,
+                            refusal: StaticProjectedRefusal::Expression(error),
+                        })
+                }
+                StaticStructuredChildProgram::InputPath(path) => {
+                    if crate::expression_prepared::resident_projection::valid(path) {
+                        Ok(ParentCheckedStructuredValue::InputPath(path))
+                    } else {
+                        Err(Refusal::InvalidProgram.into())
+                    }
+                }
+            };
+            match prepared {
+                Ok(child) => child,
+                Err(error) => {
+                    refusal = Some(error);
+                    ParentCheckedStructuredValue::InputPath(&[])
+                }
+            }
+        });
+        if let Some(refusal) = refusal {
+            return Err(refusal);
+        }
+        Ok(Self {
+            input,
+            output,
+            children,
+            program,
+        })
+    }
+    fn validate_program(
+        input: &ResidentNativeValidator<I>,
+        program: &'static StaticStructuredProgram,
+    ) -> Result<(), Refusal> {
+        if C > MAX_VALUES
+            || program.instructions.is_empty()
+            || program.instructions.len() > MAX_OPERATIONS
+            || program.constants.len() > MAX_CONSTANT_BYTES
+            || [program.maximum_input_bytes, program.maximum_output_bytes]
+                .iter()
+                .any(|n| *n > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+            || (program.maximum_input_bytes == 0 && !input.is_intrinsic_empty())
+            || program.maximum_output_bytes == 0
+        {
+            return Err(Refusal::InvalidProgram);
         }
         for (pc, op) in program.instructions.iter().enumerate() {
             let valid = match *op {
@@ -106,18 +183,7 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
                 return Err(Refusal::InvalidProgram);
             }
         }
-        let children = children.map(|child| match child {
-            StaticStructuredValue::Scalar(child) => {
-                ParentCheckedStructuredValue::Scalar(child.into_parent_checked())
-            }
-            StaticStructuredValue::InputPath(path) => ParentCheckedStructuredValue::InputPath(path),
-        });
-        Ok(Self {
-            input,
-            output,
-            children,
-            program,
-        })
+        Ok(())
     }
     /// Exact immutable structured input schema; raw Empty has no such transport.
     pub fn input_schema_bytes(&self) -> Option<&[u8]> {
