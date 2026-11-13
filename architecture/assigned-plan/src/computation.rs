@@ -38,16 +38,21 @@ pub struct AssignedComputationProfile<'a> {
     pub requirements: &'a [AssignedComputationRequirement],
 }
 
+/// The configuration-record count is one byte. One bit per computation covers
+/// its complete finite domain in the original 32-byte validation budget.
+pub const MAXIMUM_ASSIGNED_COMPUTATIONS: usize = u8::MAX as usize;
+const SEEN_BYTES: usize = MAXIMUM_ASSIGNED_COMPUTATIONS.div_ceil(8);
+
 pub(crate) struct Validation<'a> {
     profile: Option<AssignedComputationProfile<'a>>,
-    seen: [bool; 32],
+    seen: [u8; SEEN_BYTES],
     total: u32,
 }
 impl<'a> Validation<'a> {
     pub(crate) fn new(
         profile: Option<AssignedComputationProfile<'a>>,
     ) -> Result<Self, AssignedPlanRefusal> {
-        if profile.is_some_and(|p| p.requirements.len() > 32) {
+        if profile.is_some_and(|p| p.requirements.len() > MAXIMUM_ASSIGNED_COMPUTATIONS) {
             return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
         }
         if let Some(p) = profile {
@@ -61,7 +66,7 @@ impl<'a> Validation<'a> {
         }
         Ok(Self {
             profile,
-            seen: [false; 32],
+            seen: [0; SEEN_BYTES],
             total: 0,
         })
     }
@@ -110,21 +115,26 @@ impl<'a> Validation<'a> {
             .iter()
             .enumerate()
             .position(|(index, r)| {
-                !self.seen[index]
+                !self.was_seen(index)
                     && r.node == node
                     && r.key == key
                     && usize::from(r.text_bytes) == text.len()
                     && r.text_digest == digest
             })
             .ok_or(AssignedPlanRefusal::UnknownComputation)?;
-        self.seen[index] = true;
+        self.seen[index / 8] |= 1 << (index % 8);
         Ok(true)
     }
+    fn was_seen(&self, index: usize) -> bool {
+        self.seen[index / 8] & (1 << (index % 8)) != 0
+    }
     pub(crate) fn finish(self) -> Result<(), AssignedPlanRefusal> {
-        if self
-            .profile
-            .is_some_and(|p| self.seen[..p.requirements.len()].iter().any(|seen| !seen))
-        {
+        if self.profile.is_some_and(|p| {
+            p.requirements
+                .iter()
+                .enumerate()
+                .any(|(index, _)| !self.was_seen(index))
+        }) {
             return Err(AssignedPlanRefusal::MissingComputation);
         }
         Ok(())
@@ -141,3 +151,7 @@ fn canonical_hex(bytes: &[u8]) -> bool {
 #[cfg(test)]
 #[path = "reference_artifact_tests.rs"]
 mod reference_tests;
+
+#[cfg(test)]
+#[path = "computation_bitmap_tests.rs"]
+mod bitmap_tests;
