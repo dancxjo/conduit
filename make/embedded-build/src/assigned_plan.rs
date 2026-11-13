@@ -363,8 +363,7 @@ fn encode(
     bytes.extend_from_slice(&assigned_plan_magic());
     u16_to(&mut bytes, schema);
     u16_to(&mut bytes, total);
-    u16_to(&mut bytes, runtime_state_bytes);
-    u16_to(&mut bytes, 0);
+    u32_to(&mut bytes, runtime_state_bytes);
     for identity in [
         &plan.plan_id,
         &plan.fragment_id,
@@ -379,7 +378,7 @@ fn encode(
     Ok(bytes)
 }
 
-fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u16, GenerationError> {
+fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u32, GenerationError> {
     let table_state = plan.nodes.len() * 8
         + plan.cords.len() * 12
         + plan.route_targets.len() * 6
@@ -394,10 +393,10 @@ fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u16, GenerationEr
         .ok_or(GenerationError::ArithmeticOverflow(
             "assigned runtime state bytes",
         ))?;
-    u16::try_from(total).map_err(|_| GenerationError::BoundExceeded {
+    u32::try_from(total).map_err(|_| GenerationError::BoundExceeded {
         table: "assigned runtime state bytes",
         actual: total as u64,
-        maximum: u64::from(u16::MAX),
+        maximum: u64::from(u32::MAX),
     })
 }
 
@@ -455,3 +454,7 @@ fn bound(table: &'static str, actual: u64, maximum: u64) -> Result<(), Generatio
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "assigned_state_tests.rs"]
+mod state_tests;

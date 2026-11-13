@@ -166,7 +166,7 @@ impl<'a> FreshContinuationScope<'a> {
             )
             .map_err(E::Fragment)?;
             declared_runtime = declared_runtime
-                .checked_add(u32::from(approved.view().runtime_state_bytes))
+                .checked_add(approved.view().runtime_state_bytes)
                 .ok_or(E::Bounds)?;
             if declared_runtime > permission.ceilings.runtime_bytes {
                 return Err(E::Bounds);

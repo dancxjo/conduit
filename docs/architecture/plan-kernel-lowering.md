@@ -286,3 +286,14 @@ Construction is allocation-free and refuses unsupported temporal profiles or
 unrepresentable work. It does not publish a provider, reserve its pool, admit a
 Body Plan or authorize physical effects. Complete Host workspace admission,
 actual code placement, current offers and execution remain separate obligations.
+
+## Assigned runtime-state declaration
+
+Assigned format `CNDAP002` uses bytes 12–15 of its unchanged 125-byte header
+for a little-endian `u32` runtime-state declaration. This replaces the former
+`u16` declaration and reserved word; old format images are rejected. The
+encoded-image bound remains `u16`, and every receiver checks the full state
+declaration against its independently installed policy, including the checked
+sum across a workset. A wider declaration grants no physical memory: concrete
+retained backing, preparation overlap and execution resources still require
+ordinary admission before Play.

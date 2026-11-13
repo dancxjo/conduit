@@ -174,8 +174,10 @@ pub(super) fn finish_checked_with<'a>(
     // Policy may narrow an actual profile, never silently enlarge its grants.
     profile.maxima.encoded_bytes =
         u32::from(profile.maxima.encoded_bytes).min(maximum_assignment_bytes) as u16;
-    profile.maxima.runtime_state_bytes =
-        u32::from(profile.maxima.runtime_state_bytes).min(maximum_runtime_state_bytes) as u16;
+    profile.maxima.runtime_state_bytes = profile
+        .maxima
+        .runtime_state_bytes
+        .min(maximum_runtime_state_bytes);
     let view = decode(&profile).map_err(E::Assignment)?;
     let id = c::AssignedIdentity::from_text;
     if view.plan != id(metadata.plot_plan)

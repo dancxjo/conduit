@@ -70,6 +70,14 @@ fn compare(
     data: &[(u8, Vec<u8>)],
     program: AssignedComputationRequirement,
 ) -> Result<AssignedPlanView, AssignedPlanRefusal> {
+    compare_with_maxima(header, data, program, AssignedPlanMaxima::TINY_HOST)
+}
+fn compare_with_maxima(
+    header: &[u8; ASSIGNED_PLAN_HEADER_BYTES],
+    data: &[(u8, Vec<u8>)],
+    program: AssignedComputationRequirement,
+    maxima: AssignedPlanMaxima,
+) -> Result<AssignedPlanView, AssignedPlanRefusal> {
     let records: Vec<_> = data
         .iter()
         .map(|(tag, payload)| AssignedRecord { tag: *tag, payload })
@@ -92,23 +100,12 @@ fn compare(
         requirements: &computations,
     };
     let (actual, memory) = allocation_probe::observe(|| {
-        decode_assigned_records_with_computations(
-            header,
-            &records,
-            AssignedPlanMaxima::TINY_HOST,
-            required,
-            profile,
-        )
+        decode_assigned_records_with_computations(header, &records, maxima, required, profile)
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     assert_eq!(
         actual,
-        decode_assigned_plan_with_computations(
-            &bytes,
-            AssignedPlanMaxima::TINY_HOST,
-            required,
-            profile
-        )
+        decode_assigned_plan_with_computations(&bytes, maxima, required, profile)
     );
     actual
 }
@@ -367,4 +364,43 @@ fn large_logical_program_stays_within_the_original_encoded_envelope_and_budget()
             Err(AssignedPlanRefusal::ComputationCapacityExceeded)
         );
     }
+}
+
+#[test]
+fn wide_state_uses_reserved_header_word_without_growth_or_narrowing() {
+    assert_eq!(ASSIGNED_PLAN_HEADER_BYTES, 125);
+    for schema in [
+        ASSIGNED_PLAN_SCHEMA,
+        ASSIGNED_KERNEL_PLAN_SCHEMA,
+        ASSIGNED_NATIVE_PLAN_SCHEMA,
+    ] {
+        let (mut header, records, program) = fixture(schema);
+        for bytes in [65_535, 65_536, 218_989, u32::MAX] {
+            header[12..16].copy_from_slice(&bytes.to_le_bytes());
+            let mut maxima = AssignedPlanMaxima::TINY_HOST;
+            maxima.runtime_state_bytes = bytes;
+            let view = compare_with_maxima(&header, &records, program, maxima).unwrap();
+            assert_eq!(view.runtime_state_bytes, bytes);
+            maxima.runtime_state_bytes = bytes - 1;
+            assert_eq!(
+                compare_with_maxima(&header, &records, program, maxima),
+                Err(AssignedPlanRefusal::RuntimeCapacityExceeded)
+            );
+        }
+        header[12..16].copy_from_slice(&128u32.to_le_bytes());
+        header[..8].copy_from_slice(b"CNDAP001");
+        assert_eq!(
+            compare(&header, &records, program),
+            Err(AssignedPlanRefusal::WrongMagic)
+        );
+    }
+    assert_eq!(
+        AssignedPlanMaxima {
+            encoded_bytes: u16::MAX,
+            runtime_state_bytes: u32::MAX,
+            counts: [0; ASSIGNED_PLAN_COUNT_KINDS]
+        }
+        .total_bytes(),
+        u64::from(u32::MAX) + u64::from(u16::MAX)
+    );
 }

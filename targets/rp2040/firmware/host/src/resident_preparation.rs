@@ -159,7 +159,7 @@ fn check_workset<'a>(
             )
             .map_err(ValidationRefusal::Execution)?;
     }
-    if workset.declared_runtime_state_bytes() > u32::from(maxima.runtime_state_bytes) {
+    if workset.declared_runtime_state_bytes() > maxima.runtime_state_bytes {
         return Err(ValidationRefusal::Bounds);
     }
     let mut used = [false; crate::resident::generated::ENTRY_COUNT];

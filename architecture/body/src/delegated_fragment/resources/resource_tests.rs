@@ -93,7 +93,7 @@ fn row<'a>(contract: &'a c::ResourceContentRequirement, second: bool) -> Fragmen
 }
 fn projection(rows: &[FragmentResource<'_>]) -> Vec<u8> {
     let mut out = vec![0; c::ASSIGNED_PLAN_HEADER_BYTES];
-    out[..8].copy_from_slice(b"CNDAP001");
+    out[..8].copy_from_slice(b"CNDAP002");
     out[8..10].copy_from_slice(&c::ASSIGNED_PLAN_SCHEMA.to_le_bytes());
     for row in rows {
         out.push(c::ASSIGNED_RESOURCE);

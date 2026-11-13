@@ -27,7 +27,7 @@ fn resident_projection_retains_full_plan_identity_and_original_evidence_budget()
         &g,
         AssignedPlanMaxima {
             encoded_bytes: u16::MAX,
-            runtime_state_bytes: u16::MAX,
+            runtime_state_bytes: u32::MAX,
             counts: [u8::MAX; ASSIGNED_PLAN_COUNT_KINDS],
         },
     )

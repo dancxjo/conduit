@@ -139,7 +139,7 @@ mod tests {
                 &plan,
                 conduit_core::AssignedPlanMaxima {
                     encoded_bytes: u16::MAX,
-                    runtime_state_bytes: u16::MAX,
+                    runtime_state_bytes: u32::MAX,
                     counts: [u8::MAX; conduit_core::ASSIGNED_PLAN_COUNT_KINDS],
                 }
             ),

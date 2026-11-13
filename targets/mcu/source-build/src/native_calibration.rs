@@ -48,10 +48,7 @@ impl Bounds {
             .maximum_assignment_bytes
             .try_into()
             .map_err(|_| "assignment exceeds binary format")?;
-        let runtime = preparation
-            .maximum_runtime_state_bytes
-            .try_into()
-            .map_err(|_| "runtime exceeds binary format")?;
+        let runtime = preparation.maximum_runtime_state_bytes;
         let bytes = u32::try_from(limits.buffered_bytes)
             .map_err(|_| "buffer ceiling exceeds binary format")?;
         // Static topology is exact checked Source material, not a promise of

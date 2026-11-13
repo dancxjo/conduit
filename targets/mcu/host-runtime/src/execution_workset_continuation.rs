@@ -37,14 +37,15 @@ impl<'w, T: PreparedLocalKernels, const F: usize> PreparedLocalWorkset<'w, T, F>
             let mut profile = profile_for(index, document).map_err(Refusal::Back)?;
             // ASG declared state remains independently bounded per fragment and
             // across the complete local set. Physical backing has its own bound.
-            profile.maxima.runtime_state_bytes = u32::from(profile.maxima.runtime_state_bytes)
-                .min(preparation.maximum_runtime_state_bytes)
-                as u16;
+            profile.maxima.runtime_state_bytes = profile
+                .maxima
+                .runtime_state_bytes
+                .min(preparation.maximum_runtime_state_bytes);
             let (fragment, fore) = scope
                 .approve_fragment::<PORTS>(index, context.verified, context.actual, profile)
                 .map_err(|_| Refusal::Scope)?;
             declared_runtime = declared_runtime
-                .checked_add(u32::from(fragment.view().runtime_state_bytes))
+                .checked_add(fragment.view().runtime_state_bytes)
                 .ok_or(Refusal::Bounds)?;
             if declared_runtime > preparation.maximum_runtime_state_bytes {
                 return Err(Refusal::Bounds);
