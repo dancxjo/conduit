@@ -1,6 +1,5 @@
 with machine/i2c/transact/request as I2cTransaction
 with machine/i2c/transact/result as I2cResult
-with flow/zip/finite/paired as I2cCorrelatedPair
 
 # Routing context is ordinary info. It neither names nor grants a Host, Base,
 # attachment or caller. The enclosing checked Plot supplies explicit routes.
@@ -26,20 +25,30 @@ plot i2c-correlated-transaction (
 ) = (.transaction)
 
 plot i2c-correlated-result (
-    pair: I2cCorrelatedPair...| >> result: I2cCorrelatedResult...|
+    pair-type: type
+    pair: pair-type...| >> result: I2cCorrelatedResult...|
 ) = ({ correlation: .0, result: .1 })
 
 # Atomic fan-out and FIFO Cords keep contexts in the same order as requests.
 # One exact native operation owns the controller and returns typed outcomes.
 # This Plot adds no retry, timeout policy, second bus grant or mutable broker.
+# The caller selects an exact checked pairing Plot and its paired Type. A
+# wrapper Fore can preserve these protocol ports while its internal native zip
+# retains independently checked bounds; no Kind family is silently substituted.
 plot i2c-correlated-exchange (
+    pair-type: type
+    pairing: kind (
+        >> left: I2cCorrelation...|
+        >> right: I2cResult...|
+        paired: pair-type...| >>
+    )
     >> request: I2cCorrelatedRequest...|
     result: I2cCorrelatedResult...| >>
 ) {
     bus: machine/i2c/transact
-    paired: flow/zip/finite
+    paired: pairing
     request >> i2c-correlated-context() >> paired.left
     request >> i2c-correlated-transaction() >> bus.request
     bus.result >> paired.right
-    paired.paired >> i2c-correlated-result() >> result
+    paired.paired >> i2c-correlated-result(pair-type = pair-type) >> result
 }

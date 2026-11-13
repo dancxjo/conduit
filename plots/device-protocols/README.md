@@ -45,8 +45,12 @@ it does not discover, configure or advertise a controller by itself.
 operation and explicit request/result correlation. Atomic fan-out and FIFO
 Cords preserve each caller-supplied context through the typed exchange; normal
 and refused bus results take the same path. Client and sequence values are
-ordinary info, not Host identities or authority. The enclosing Plot must supply
-its explicit merge and response routes; the selected native Base still owns
+ordinary info, not Host identities or authority. The enclosing Plot selects the
+paired Type and an exact checked pairing Plot through the `pair-type` and
+`pairing` parameters. A checked wrapper can keep the protocol Fore independent
+of construction bounds while its expanded native zip retains those bounds.
+Missing or incompatible selections refuse during Source checking. The enclosing
+Plot must also supply its explicit merge and response routes; the selected native Base still owns
 address permissions, bounded termination and controller custody. This adds no
 retry, discovery or extra controller grant. MCU Source construction checks and
 emits the composition; an authoring transcript preserves mixed caller contexts
