@@ -112,3 +112,26 @@ fn original_native_refinement_and_type_remain_preparation_gates() {
         matches!(CheckedProtocolConfigurationImages::prepare(&checked, &source, 0, true), Err(e) if e.contains("Native laws"))
     );
 }
+#[test]
+fn installed_bindings_keep_the_original_host_source_and_logical_keys() {
+    let checked = host(GREEN);
+    let source = source();
+    let images =
+        || CheckedProtocolConfigurationImages::prepare(&checked, &source, 0, true).unwrap();
+    let bindings = images()
+        .into_bindings(&checked, &source, "sensor-settings", "display-settings")
+        .unwrap();
+    assert!(!bindings.is_empty());
+    bindings.validate_configuration(&checked).unwrap();
+    let changed = host(&GREEN.replace("brightness: 3", "brightness: 9"));
+    assert!(bindings.validate_configuration(&changed).is_err());
+    assert!(images()
+        .into_bindings(&changed, &source, "sensor-settings", "display-settings")
+        .is_err());
+    assert!(images()
+        .into_bindings(&checked, &source, "same", "same")
+        .is_err());
+    assert!(images()
+        .into_bindings(&checked, &source, "", "display-settings")
+        .is_err());
+}

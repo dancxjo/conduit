@@ -12,6 +12,38 @@ pub struct CheckedProtocolConfigurationImages {
     pub display: LinkedSourceImage,
 }
 impl CheckedProtocolConfigurationImages {
+    /// Retain these checked images as ordinary typed software providers. Logical
+    /// keys are authored by the caller; the original Host and Source remain pins.
+    pub fn into_bindings(
+        self,
+        checked: &CheckedHostConfiguration,
+        source: &CheckedSyntaxDocument,
+        sensor_key: &str,
+        display_key: &str,
+    ) -> Result<conduit_mcu_source_build::installed_values::InstalledValueBindings, String> {
+        use conduit_mcu_source_build::installed_values::{
+            InstalledValueBindings, InstalledValueInput,
+        };
+        if self.configuration_id != checked.configuration_id()
+            || self.source_document_id != source.source_document_id
+        {
+            return Err("protocol images belong to another original Host/Source".into());
+        }
+        let input = |key: &str, type_name: &str, image: LinkedSourceImage| InstalledValueInput {
+            key: key.into(),
+            type_name: type_name.into(),
+            maximum_bytes: image.maximum_bytes(),
+            image,
+        };
+        InstalledValueBindings::from_checked(
+            checked,
+            source,
+            vec![
+                input(sensor_key, "BmeProtocolBegin", self.sensor),
+                input(display_key, "Ht16k33Configuration", self.display),
+            ],
+        )
+    }
     /// Derive physical settings only from the exact selected Base implementations.
     /// The checked Source retains meaning/laws; the future Plan still selects
     /// each initialized producer, its original identity, resources and Start.
