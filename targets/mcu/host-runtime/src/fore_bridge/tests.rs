@@ -22,16 +22,14 @@ struct Pins {
 }
 impl Pins {
     fn new(kind: &str) -> Self {
-        let abi = c::assigned_fore_abi_digest(c::AssignedForeAbi {
-            value_kind: kind,
-            value_contract: None,
-            abnormal_kind: None,
-            temporal: "flow-open",
-            track: c::ConnectionTrack::Payload,
-            quantity_profile: c::QuantityValueProfile::Decimal,
-            item_capacity: 1,
-            byte_capacity: 8,
-        });
+        Self::with_capacity(kind, 8)
+    }
+    fn with_capacity(kind: &str, byte_capacity: u32) -> Self {
+        Self::from_abi(ingress_abi(kind, byte_capacity))
+    }
+    fn from_abi(abi: c::AssignedForeAbi<'_>) -> Self {
+        let abi = c::assigned_fore_abi_digest(abi);
+
         let binding = c::AssignedRemoteBinding {
             line: c::AssignedIdentity([1; 16]),
             local_host: c::AssignedIdentity([2; 16]),
@@ -118,10 +116,13 @@ impl StepBack<1> for Echo {
 }
 type Kernel = StoredExecutionKernel<Echo, FixedSignLog<32>, 1, 2, 1, 1, 1, 0, 0>;
 fn kernel(remote: u16) -> Kernel {
+    kernel_with_capacity(remote, 8)
+}
+fn kernel_with_capacity(remote: u16, byte_capacity: u32) -> Kernel {
     let capacity = |slot_start| CordCapacity {
         slot_start,
         item_capacity: 1,
-        byte_capacity: 8,
+        byte_capacity,
         pressure_policy: Default::default(),
     };
     let cords = [
@@ -159,7 +160,7 @@ fn kernel(remote: u16) -> Kernel {
         cords,
         routes,
         [Echo],
-        HostedValueStore::new_with_slot_capacities(&[8, 8], 16).unwrap(),
+        HostedValueStore::new_with_slot_capacities(&[byte_capacity; 2], 2 * byte_capacity).unwrap(),
         FixedSignLog::new_with_remote_storage(
             (32 * size_of::<KernelEvent>()) as u32,
             remote,
@@ -457,3 +458,6 @@ fn dropping_either_actor_port_fences_the_bridge_even_during_a_mailbox_loan() {
 
 #[path = "tests/egress_policy.rs"]
 mod egress_policy;
+
+#[path = "tests/structured_ingress.rs"]
+mod structured_ingress;

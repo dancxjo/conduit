@@ -34,7 +34,7 @@ pub(super) enum Output {
 }
 pub(super) struct State<'b, 'p> {
     pub active: bool,
-    pub ingress: PrimitiveIngressSpec<'p>,
+    pub ingress: IngressSpec<'p>,
     pub egress: EgressSpec<'p>,
     pub ingress_bytes: &'b mut [u8],
     pub egress_bytes: &'b mut [u8],
@@ -44,7 +44,7 @@ pub(super) struct State<'b, 'p> {
 }
 impl<'b, 'p> State<'b, 'p> {
     pub fn new(
-        ingress: PrimitiveIngressSpec<'p>,
+        ingress: IngressSpec<'p>,
         egress: EgressSpec<'p>,
         ingress_bytes: &'b mut [u8],
         egress_bytes: &'b mut [u8],

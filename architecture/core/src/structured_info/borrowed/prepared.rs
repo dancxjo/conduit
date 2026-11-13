@@ -31,6 +31,12 @@ impl<'schema> BorrowedStructuredValueValidator<'schema> {
             maximum_bytes,
         })
     }
+    /// Exact existing structured profile identity for this validated immutable
+    /// schema. No Type tree, KindId allocation, native authority or value is made.
+    pub fn matches_profile(&self, identity: &str) -> bool {
+        super::super::profile::matches_canonical_schema(self.type_bytes, identity)
+    }
+
     pub const fn maximum_bytes(&self) -> usize {
         self.maximum_bytes
     }

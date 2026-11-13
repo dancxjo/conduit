@@ -83,10 +83,14 @@ fn nested_records_variants_sequences_and_refusals_share_the_canonical_walker() {
         .canonical_bytes()
         .unwrap();
     let prefix = ty.canonical_bytes().unwrap();
+    let profile = ty.profile().unwrap().value_kind().clone();
     let mut altered = encoded.clone();
     altered.push(0);
     let (_, allocations) = allocation::observe(|| {
         let validator = BorrowedStructuredValueValidator::new(&prefix, encoded.len() + 1).unwrap();
+        assert!(validator.matches_profile(profile.as_str()));
+        assert!(!validator.matches_profile(BOOL_INFO_ID));
+        assert!(!validator.matches_profile("structured-info/profile-00@1"));
         let value = validator.validate(&encoded).unwrap();
         assert_eq!(
             value,
@@ -112,6 +116,26 @@ fn nested_records_variants_sequences_and_refusals_share_the_canonical_walker() {
             validator.validate(&altered),
             validate_canonical_structured_value(&altered)
         );
+    });
+    assert_eq!(allocations, 0);
+}
+
+#[test]
+fn borrowed_profile_matches_owned_identity_without_allocating_or_accepting_foreign_types() {
+    let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
+    let profile = ty.profile().unwrap().value_kind().clone();
+    let foreign = StructuredInfoType::leaf(kind_id(COUNT_INFO_ID))
+        .unwrap()
+        .profile()
+        .unwrap()
+        .value_kind()
+        .clone();
+    let (_, allocations) = allocation::observe(|| {
+        let validator = BorrowedStructuredValueValidator::new(BOOL_TYPE, TRUE_VALUE.len()).unwrap();
+        assert!(validator.matches_profile(profile.as_str()));
+        assert!(!validator.matches_profile(foreign.as_str()));
+        assert!(!validator.matches_profile("structured-info/profile-ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff@1"));
+        assert!(!validator.matches_profile(BOOL_INFO_ID));
     });
     assert_eq!(allocations, 0);
 }
