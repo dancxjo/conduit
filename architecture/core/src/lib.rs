@@ -2,6 +2,8 @@
 
 extern crate alloc;
 mod canonical_bytes;
+mod typed_kind_instance;
+pub use typed_kind_instance::typed_kind_instance_id;
 
 use alloc::collections::VecDeque;
 use alloc::format;
