@@ -106,6 +106,7 @@ fn main(){{prepared_values::run();exercise::exercise();}}
         "root-mixed-native",
         &[
             "conduit_core",
+            "conduit_mcu_host_runtime",
             "conduit_plot",
             "conduit_body",
             "conduit_embedded_build",

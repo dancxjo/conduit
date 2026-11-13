@@ -16,7 +16,12 @@ mod actual_make {
         renderer: conduit_host_rp2040::CheckedRendererConstruction,
     ) -> Vec<conduit_embedded_build::PreparedResidentExpression> {
         dht_workset_build::prepare(
-            checked, catalog, image_id, source_identity, out, renderer,
+            checked,
+            catalog,
+            image_id,
+            source_identity,
+            out,
+            renderer,
             recording_build::Recording::checked(checked).expect("checked recorder construction"),
         )
     }
@@ -89,7 +94,11 @@ fn actual_yellow_three_fragment_make_emits_canonical_seal_recipes() {
         &emitted,
         "fn main() {}",
         "actual-three-fragment-seal-recipe",
-        &["conduit_core", "conduit_seven_segment_mask"],
+        &[
+            "conduit_core",
+            "conduit_seven_segment_mask",
+            "conduit_mcu_host_runtime",
+        ],
     );
     fs::remove_dir_all(&out).unwrap();
 }

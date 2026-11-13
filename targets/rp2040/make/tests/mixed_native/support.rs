@@ -96,7 +96,7 @@ pub fn model(
     f.placements[0].artifact_id = "fixture/image".into();
     f.placements[0].execution_profile_id = I2C_EXECUTION_PROFILE.into();
     f.placements[0].base.as_mut().unwrap().implementation_id =
-        "conduitos.base/i2c-controller@1".into();
+        "rp2040/i2c@1".into();
     let mut resident = f.placements[0].clone();
     let offer = image.offer_description();
     resident.placement_id = "placement/resident".into();

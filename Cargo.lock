@@ -2208,6 +2208,7 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-resource-snapshot",
  "conduit-rp2040-flash-layout",
  "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
