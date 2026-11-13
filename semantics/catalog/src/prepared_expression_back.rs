@@ -47,6 +47,9 @@ trait ExpressionEngine {
     fn input_schema(&self) -> Option<&[u8]> {
         None
     }
+    fn output_schema(&self) -> Option<&[u8]> {
+        None
+    }
     #[cfg(feature = "execution-workspace")]
     fn workspace_requirements(
         &self,
@@ -253,6 +256,11 @@ impl<const PORTS: usize, E: ExpressionEngine> StepBack<PORTS> for PreparedExpres
     fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
         (port == PortId(0))
             .then(|| self.evaluator.input_schema())
+            .flatten()
+    }
+    fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0))
+            .then(|| self.evaluator.output_schema())
             .flatten()
     }
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {

@@ -21,12 +21,14 @@ impl StepBack<1> for Back {
     fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
         match self {
             Self::Expression(b) => <image::Back as StepBack<1>>::canonical_input_schema(b, port),
+            Self::Sink { .. } => SEPARATED.then(image::output_schema),
             _ => None,
         }
     }
-    fn canonical_output_schema(&self, _: PortId) -> Option<&[u8]> {
+    fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
         match self {
             Self::Source { schema, .. } => SEPARATED.then_some(schema),
+            Self::Expression(b) => <image::Back as StepBack<1>>::canonical_output_schema(b, port),
             _ => None,
         }
     }
@@ -55,10 +57,18 @@ impl StepBack<1> for Back {
                 if *complete {
                     return StepOutcome::Complete;
                 }
-                let Some(bytes) = input.input(PortId(0)) else {
+                if io.input(PortId(0)).is_none() {
                     return StepOutcome::Await;
-                };
-                assert_eq!(bytes, EXPECTED);
+                }
+                if SEPARATED {
+                    let parts = input.canonical_parts(PortId(0)).unwrap();
+                    assert_eq!(parts.schema, image::output_schema());
+                    assert_eq!(parts.schema, &EXPECTED[..parts.schema.len()]);
+                    assert_eq!(parts.node, &EXPECTED[parts.schema.len()..]);
+                    assert!(input.input(PortId(0)).is_none());
+                } else {
+                    assert_eq!(input.input(PortId(0)), Some(EXPECTED));
+                }
                 io.consume(PortId(0)).unwrap();
                 *staged = true;
                 StepOutcome::Progress
@@ -90,9 +100,16 @@ fn exercise(input: &[u8], invalid: bool) {
     let validator = BorrowedStructuredValueValidator::new(schema, input.len()).unwrap();
     // Core shape validation deliberately supplies no Native predicate witness.
     let checked = validator.validate(input).unwrap();
-    let canonical = FixedValueStore::<2, 2048>::new(4096).unwrap();
-    let mut values =
-        SchemaValueStore::try_new(canonical, &[(validator, 1)], input.len() as u32, 4096).unwrap();
+    let canonical = FixedValueStore::<2, 2048>::new(if SEPARATED { 1 } else { 4096 }).unwrap();
+    let output_validator =
+        BorrowedStructuredValueValidator::new(image::output_schema(), EXPECTED.len()).unwrap();
+    let mut values = SchemaValueStore::try_new(
+        canonical,
+        &[(validator, 1), (output_validator, 1)],
+        (input.len() + EXPECTED.len()) as u32,
+        4096,
+    )
+    .unwrap();
     let value = if SEPARATED {
         values.store_structured(checked).unwrap()
     } else {

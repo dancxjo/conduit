@@ -131,7 +131,7 @@ fn proof(separated: bool, shared: bool) {
         include_str!("resident_structured_expression_back/image_back.rs").to_owned()
     };
     if separated || shared {
-        additions.push_str("pub fn input_schema()->&'static[u8]{input_native::prepare().unwrap().schema_bytes()} pub fn parts_back()->Back{Back::from_resident_structured_parts(prepare().unwrap(),conduit_core::PortTemporal::Value).unwrap()} pub fn canonical_back()->Back{Back::from_resident_structured(prepare().unwrap(),conduit_core::PortTemporal::Value).unwrap()}\n");
+        additions.push_str("pub fn input_schema()->&'static[u8]{input_native::prepare().unwrap().schema_bytes()} pub fn output_schema()->&'static[u8]{output_native::prepare().unwrap().schema_bytes()} pub fn parts_back()->Back{Back::from_resident_structured_parts(prepare().unwrap(),conduit_core::PortTemporal::Value).unwrap()} pub fn canonical_back()->Back{Back::from_resident_structured(prepare().unwrap(),conduit_core::PortTemporal::Value).unwrap()}\n");
     }
     let generated = format!("mod image {{\n{image}\n{additions}\n}}");
     let probe = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

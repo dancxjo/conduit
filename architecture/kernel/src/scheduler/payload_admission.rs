@@ -276,6 +276,16 @@ where
             return Err(SchedulerError::InvalidPlan);
         }
         self.ensure_output_value_envelope(node, port, declared_len)?;
+        #[cfg(feature = "schema-value-storage")]
+        let value = if self.prepared_output_uses_schema_storage(node, port)? {
+            let schema = self.drivers[node]
+                .canonical_output_schema(port)
+                .ok_or(SchedulerError::InvalidPlan)?;
+            self.values.store_schema_canonical(schema, bytes)?
+        } else {
+            self.values.store(bytes)?
+        };
+        #[cfg(not(feature = "schema-value-storage"))]
         let value = self.values.store(bytes)?;
         let output = io
             .outputs

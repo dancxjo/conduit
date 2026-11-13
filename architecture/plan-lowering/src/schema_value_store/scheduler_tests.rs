@@ -300,3 +300,6 @@ fn separated_nodes_cannot_escape_through_a_remote_canonical_egress() {
     assert!(!kernel.drivers()[0].done);
     assert_eq!(kernel.values().reference_count(value), Ok(1));
 }
+
+#[path = "scheduler_tests/prepared_producer.rs"]
+mod prepared_producer;

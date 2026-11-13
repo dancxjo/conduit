@@ -439,6 +439,20 @@ pub trait ValueStorage {
         Err(StorageError::RepresentationMismatch)
     }
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError>;
+    /// Immutable representation support, independent of live free slots. This
+    /// advertises physical storage only, never semantic or execution authority.
+    fn supports_schema_storage(&self, _schema: &[u8]) -> bool {
+        false
+    }
+    /// Explicit publication into a configured schema/node pool. Unsupported
+    /// stores refuse; canonical publication remains an independent operation.
+    fn store_schema_canonical(
+        &mut self,
+        _schema: &[u8],
+        _bytes: &[u8],
+    ) -> Result<ValueRef, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError>;
     /// An explicitly selected representation may retain an immutable prefix
     /// separately. Ordinary stores expose no such representation.

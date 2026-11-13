@@ -227,6 +227,26 @@ impl<S: ValueStorage> ValueStorage for SchemaValueStore<'_, S> {
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, E> {
         self.canonical.store(bytes)
     }
+    fn supports_schema_storage(&self, schema: &[u8]) -> bool {
+        self.slots
+            .iter()
+            .any(|slot| slot.validator.type_bytes() == schema)
+    }
+    fn store_schema_canonical(&mut self, schema: &[u8], bytes: &[u8]) -> Result<ValueRef, E> {
+        let validator = self
+            .slots
+            .iter()
+            .find(|slot| slot.validator.type_bytes() == schema)
+            .map(|slot| slot.validator)
+            .ok_or(E::RepresentationMismatch)?;
+        let checked = validator
+            .validate(bytes)
+            .map_err(|_| E::RepresentationMismatch)?;
+        if checked.type_bytes() != schema {
+            return Err(E::RepresentationMismatch);
+        }
+        self.store_structured(checked)
+    }
     fn get(&self, value: ValueRef) -> Result<&[u8], E> {
         if self.index(value).is_some() {
             self.slot(value)?;

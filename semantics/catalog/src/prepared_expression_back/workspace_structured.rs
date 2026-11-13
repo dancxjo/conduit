@@ -23,6 +23,12 @@ impl<const I: usize, const O: usize, const C: usize> ExpressionEngine
         self.fuel
     }
     #[cfg(feature = "schema-value-storage")]
+    fn output_schema(&self) -> Option<&[u8]> {
+        self.separated_input
+            .then(|| self.image.output_schema_bytes())
+            .flatten()
+    }
+    #[cfg(feature = "schema-value-storage")]
     fn input_schema(&self) -> Option<&[u8]> {
         self.separated_input
             .then(|| self.image.input_schema_bytes())

@@ -131,3 +131,37 @@ fn preparation_funds_all_metadata_and_nodes_before_publication() {
 }
 #[path = "scheduler_tests.rs"]
 mod scheduler;
+
+#[test]
+fn explicit_producer_publication_checks_schema_before_mutating_the_pool() {
+    let (schema, bytes) = fixture("test/producer-schema", 42);
+    let (foreign, other) = fixture("test/foreign-schema", 42);
+    let validator = Validator::new(&schema, bytes.len()).unwrap();
+    let mut store =
+        SchemaValueStore::try_new(canonical(), &[(validator, 1)], bytes.len() as u32, 4096)
+            .unwrap();
+    assert!(store.supports_schema_storage(&schema));
+    assert!(!store.supports_schema_storage(&foreign));
+    for (expected, payload) in [
+        (&foreign[..], &bytes[..]),
+        (&schema[..], &other[..]),
+        (&schema[..], &bytes[..bytes.len() - 1]),
+    ] {
+        assert_eq!(
+            store.store_schema_canonical(expected, payload),
+            Err(E::RepresentationMismatch)
+        );
+        assert_eq!(store.used_items(), 0);
+        assert_eq!(store.used_bytes(), 0);
+    }
+    let value = store.store_schema_canonical(&schema, &bytes).unwrap();
+    assert_eq!(store.get(value), Err(E::RepresentationMismatch));
+    assert_eq!(value.byte_len, bytes.len() as u32);
+    assert_eq!(
+        store.store_schema_canonical(&schema, &bytes),
+        Err(E::ByteCapacityExceeded)
+    );
+    assert_eq!(store.used_items(), 1);
+    store.release(value).unwrap();
+    assert_eq!(store.used_bytes(), 0);
+}

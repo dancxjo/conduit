@@ -123,6 +123,10 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
     pub fn input_schema_bytes(&self) -> Option<&[u8]> {
         (!self.input.is_intrinsic_empty()).then(|| self.input.schema_bytes())
     }
+    /// Immutable output schema, independent of any particular produced value.
+    pub fn output_schema_bytes(&self) -> Option<&[u8]> {
+        (!self.output.is_intrinsic_empty()).then(|| self.output.schema_bytes())
+    }
     pub const fn maximum_input_bytes(&self) -> usize {
         self.program.maximum_input_bytes
     }
