@@ -14,10 +14,12 @@ use compile::ConstructorTape;
 pub use execution::StructuredTapeInstruction;
 use execution::{execute, Output, Values};
 pub use resident::{
+    generate_borrowed_static_structured_expression_with_work,
     generate_static_structured_expression, generate_static_structured_expression_with_work,
-    GeneratedStaticStructuredExpression, StaticStructuredChildProgram, StaticStructuredExpression,
+    BorrowedStaticStructuredExpression, GeneratedStaticStructuredExpression,
+    StaticStructuredChildProgram, StaticStructuredChildTable, StaticStructuredExpression,
     StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
-    StaticStructuredValue,
+    StaticStructuredValue, StructuredExpressionImage,
 };
 use StructuredTapeInstruction as Operation;
 const MAX_OPERATIONS: usize = 512;

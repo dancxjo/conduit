@@ -1,16 +1,19 @@
 //! Resident expression state without Back-owned output or scratch arrays.
 use super::*;
 use conduit_kernel::scheduler::{StepWorkspace, StepWorkspaceRequirements};
-use conduit_plot::{StaticStructuredExpression, StaticStructuredRefusal};
-pub struct WorkspaceStructuredEvaluator<const I: usize, const O: usize, const C: usize> {
-    image: StaticStructuredExpression<I, O, C>,
+use conduit_plot::{
+    BorrowedStaticStructuredExpression, StaticStructuredExpression, StaticStructuredRefusal,
+    StructuredExpressionImage,
+};
+pub struct WorkspaceStructuredEvaluatorImpl<Image: StructuredExpressionImage> {
+    image: Image,
     fuel: u16,
     refusal: Option<StaticStructuredRefusal>,
     #[cfg(feature = "schema-value-storage")]
     separated_input: bool,
 }
-impl<const I: usize, const O: usize, const C: usize> ExpressionEngine
-    for WorkspaceStructuredEvaluator<I, O, C>
+impl<Image: StructuredExpressionImage> ExpressionEngine
+    for WorkspaceStructuredEvaluatorImpl<Image>
 {
     type Refusal = ();
     fn evaluate(&mut self, _: &[u8]) -> Result<&[u8], ()> {
@@ -75,13 +78,21 @@ impl<const I: usize, const O: usize, const C: usize> ExpressionEngine
         })
     }
 }
+pub type WorkspaceStructuredEvaluator<const I: usize, const O: usize, const C: usize> =
+    WorkspaceStructuredEvaluatorImpl<StaticStructuredExpression<I, O, C>>;
+pub type BorrowedWorkspaceStructuredExpressionBack<const I: usize, const O: usize, const G: usize> =
+    PreparedExpressionBack<
+        WorkspaceStructuredEvaluatorImpl<BorrowedStaticStructuredExpression<I, O, G>>,
+    >;
 pub type WorkspaceStructuredExpressionBack<const I: usize, const O: usize, const C: usize> =
     PreparedExpressionBack<WorkspaceStructuredEvaluator<I, O, C>>;
-impl<const I: usize, const O: usize, const C: usize> WorkspaceStructuredExpressionBack<I, O, C> {
+impl<Image: StructuredExpressionImage>
+    PreparedExpressionBack<WorkspaceStructuredEvaluatorImpl<Image>>
+{
     /// Select the independently checked resident image. All output/scratch
     /// storage is owned and admitted by the scheduler, never retained here.
     pub fn from_resident_structured(
-        image: StaticStructuredExpression<I, O, C>,
+        image: Image,
         temporal: PortTemporal,
     ) -> Result<Self, StaticExpressionBackRefusal> {
         if !matches!(
@@ -98,7 +109,7 @@ impl<const I: usize, const O: usize, const C: usize> WorkspaceStructuredExpressi
         Ok(Self {
             maximum_input_bytes: image.maximum_input_bytes() as u32,
             maximum_output_bytes: image.maximum_output_bytes() as u32,
-            evaluator: WorkspaceStructuredEvaluator {
+            evaluator: WorkspaceStructuredEvaluatorImpl {
                 image,
                 fuel,
                 refusal: None,
@@ -115,7 +126,7 @@ impl<const I: usize, const O: usize, const C: usize> WorkspaceStructuredExpressi
     }
     #[cfg(feature = "schema-value-storage")]
     pub fn from_resident_structured_parts(
-        image: StaticStructuredExpression<I, O, C>,
+        image: Image,
         temporal: PortTemporal,
     ) -> Result<Self, StaticExpressionBackRefusal> {
         if image.input_schema_bytes().is_none() {

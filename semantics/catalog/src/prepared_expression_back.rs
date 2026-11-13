@@ -31,7 +31,7 @@ pub use resident_structured::{StaticStructuredExpressionBack, StructuredResident
 #[cfg(feature = "execution-workspace")]
 mod workspace_structured;
 #[cfg(feature = "execution-workspace")]
-pub use workspace_structured::{WorkspaceStructuredEvaluator, WorkspaceStructuredExpressionBack};
+pub use workspace_structured::{BorrowedWorkspaceStructuredExpressionBack, WorkspaceStructuredEvaluator, WorkspaceStructuredExpressionBack};
 
 trait ExpressionEngine {
     type Refusal;

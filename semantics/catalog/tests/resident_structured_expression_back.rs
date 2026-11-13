@@ -113,7 +113,12 @@ fn proof(separated: bool, shared: bool) {
     let good = input(112);
     let bad = input(7);
     let expected = program.evaluate(&good).unwrap();
-    let image = generate_static_structured_expression(
+    let generate = if shared {
+        conduit_plot::generate_borrowed_static_structured_expression_with_work
+    } else {
+        conduit_plot::generate_static_structured_expression_with_work
+    };
+    let image = generate(
         &document,
         &program,
         PreparedNativeBounds {
@@ -125,8 +130,9 @@ fn proof(separated: bool, shared: bool) {
         4096,
     )
     .unwrap();
+    let image = image.source;
     let mut additions = if shared {
-        "pub type Back=conduit_semantic_catalog::WorkspaceStructuredExpressionBack<{input_native::CONTRACT_COUNT},{output_native::CONTRACT_COUNT},{CHILD_COUNT}>;".to_owned()
+        "pub type Back=conduit_semantic_catalog::BorrowedWorkspaceStructuredExpressionBack<{input_native::CONTRACT_COUNT},{output_native::CONTRACT_COUNT},{GUARD_COUNT}>;".to_owned()
     } else {
         include_str!("resident_structured_expression_back/image_back.rs").to_owned()
     };

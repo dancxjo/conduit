@@ -51,10 +51,12 @@ use primitive::{
 };
 use structured::PreparedStructuredExpression;
 pub use structured::{
+    generate_borrowed_static_structured_expression_with_work,
     generate_static_structured_expression, generate_static_structured_expression_with_work,
-    GeneratedStaticStructuredExpression, StaticStructuredChildProgram, StaticStructuredExpression,
+    BorrowedStaticStructuredExpression, GeneratedStaticStructuredExpression,
+    StaticStructuredChildProgram, StaticStructuredChildTable, StaticStructuredExpression,
     StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
-    StaticStructuredValue, StructuredTapeInstruction,
+    StaticStructuredValue, StructuredExpressionImage, StructuredTapeInstruction,
 };
 
 fn prepare_info_kind(

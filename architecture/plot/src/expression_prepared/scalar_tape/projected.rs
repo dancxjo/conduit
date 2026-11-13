@@ -68,6 +68,7 @@ impl StaticProjectedProgram {
 }
 /// Retained only after constructor checks, with the enclosing parent's exact
 /// Native definition matched before its input validator can be discarded.
+#[derive(Clone, Copy)]
 pub(in crate::expression_prepared) struct ParentCheckedProjectedExpression {
     program: &'static StaticProjectedProgram,
     output_contract: Option<conduit_core::BorrowedFixedIntegerContract<'static>>,
@@ -176,6 +177,23 @@ impl<const N: usize> StaticProjectedExpression<N> {
     }
 }
 impl ParentCheckedProjectedExpression {
+    pub(in crate::expression_prepared) fn output_contract(
+        &self,
+    ) -> Option<conduit_core::BorrowedFixedIntegerContract<'static>> {
+        self.output_contract
+    }
+    /// Private reuse after the parent constructor validated the immutable
+    /// program and retained this exact output guard in its checked slot map.
+    pub(in crate::expression_prepared) fn from_parent_checked_program(
+        program: &'static StaticProjectedProgram,
+        output_contract: Option<conduit_core::BorrowedFixedIntegerContract<'static>>,
+    ) -> Self {
+        Self {
+            program,
+            output_contract,
+        }
+    }
+
     // One cold traversal over immutable operand metadata, shared by children.
     #[inline(never)]
     pub(in crate::expression_prepared) fn checked_work(&self) -> u32 {

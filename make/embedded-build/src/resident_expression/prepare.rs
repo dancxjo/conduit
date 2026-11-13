@@ -87,13 +87,13 @@ impl PreparedResidentExpression {
         }
         let definition = conduit_plot::portable_expression_definition(program, temporal)
             .map_err(|_| R::Contract)?;
-        let generated = conduit_plot::generate_static_structured_expression_with_work(
-            document,
-            program,
-            bounds.native,
-            bounds.maximum_occurrences,
-        )
-        .map_err(R::Generation)?;
+        let generate = if storage.uses_workspace() {
+            conduit_plot::generate_borrowed_static_structured_expression_with_work
+        } else {
+            conduit_plot::generate_static_structured_expression_with_work
+        };
+        let generated = generate(document, program, bounds.native, bounds.maximum_occurrences)
+            .map_err(R::Generation)?;
         if generated.computation_work > u32::from(bounds.private_work_units) {
             return Err(R::PrivateWork {
                 required: generated.computation_work,

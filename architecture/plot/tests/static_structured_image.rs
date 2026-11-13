@@ -136,6 +136,14 @@ fn corpus(
     }
     main.push_str("}\n");
     compiled_rust::verify(&format!("mod image{{\n{image}\n}}"), &main, name);
+    let borrowed =
+        generate_borrowed_static_structured_expression_with_work(d, p, bounds(), 4096).unwrap();
+    assert_eq!(borrowed.computation_work, reported_work);
+    compiled_rust::verify(
+        &format!("mod image{{\n{}\n}}", borrowed.source),
+        &main,
+        &format!("{name}-borrowed"),
+    );
 }
 fn member(ty: &StructuredInfoType, name: &str) -> StructuredInfoType {
     let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
@@ -491,3 +499,6 @@ fn built_in_empty_constructor_input_preserves_canonical_validation_without_alloc
 mod parent_correspondence;
 #[path = "static_structured_image/work_accounting.rs"]
 mod work_accounting;
+
+#[path = "static_structured_image/borrowed_children.rs"]
+mod borrowed_children;

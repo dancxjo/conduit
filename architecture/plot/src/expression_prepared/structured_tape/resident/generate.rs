@@ -59,6 +59,23 @@ pub fn generate_static_structured_expression_with_work(
     bounds: PreparedNativeBounds,
     maximum_occurrences: usize,
 ) -> Result<GeneratedStaticStructuredExpression, StaticStructuredGenerationRefusal> {
+    generate_with_storage(document, program, bounds, maximum_occurrences, false)
+}
+pub fn generate_borrowed_static_structured_expression_with_work(
+    document: &crate::CheckedSyntaxDocument,
+    program: &PortableExpressionProgram,
+    bounds: PreparedNativeBounds,
+    maximum_occurrences: usize,
+) -> Result<GeneratedStaticStructuredExpression, StaticStructuredGenerationRefusal> {
+    generate_with_storage(document, program, bounds, maximum_occurrences, true)
+}
+fn generate_with_storage(
+    document: &crate::CheckedSyntaxDocument,
+    program: &PortableExpressionProgram,
+    bounds: PreparedNativeBounds,
+    maximum_occurrences: usize,
+    borrowed: bool,
+) -> Result<GeneratedStaticStructuredExpression, StaticStructuredGenerationRefusal> {
     use crate::expression_prepared::resident_work::{
         direct_path_work, native_validation_work, structured_work,
     };
@@ -196,7 +213,7 @@ pub fn generate_static_structured_expression_with_work(
         ));
     }
     let c = children.len();
-    source.push_str(&format!("];\nstatic PROGRAM: conduit_plot::StaticStructuredProgram = conduit_plot::StaticStructuredProgram {{ instructions:CODE,constants:&{:?},maximum_input_bytes:{maximum_input},maximum_output_bytes:{maximum_output} }};\npub const CHILD_COUNT: usize = {c};\npub type Expression = conduit_plot::StaticStructuredExpression<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},{c}>;\npub const RUNTIME_STATE_BYTES: usize=core::mem::size_of::<Expression>();\nstatic CHILDREN:[conduit_plot::StaticStructuredChildProgram;CHILD_COUNT]=[",tape.constants));
+    source.push_str(&format!("];\nstatic PROGRAM: conduit_plot::StaticStructuredProgram = conduit_plot::StaticStructuredProgram {{ instructions:CODE,constants:&{:?},maximum_input_bytes:{maximum_input},maximum_output_bytes:{maximum_output} }};\npub const CHILD_COUNT: usize = {c};\npub const RUNTIME_STATE_BYTES: usize=core::mem::size_of::<Expression>();\nstatic CHILDREN:[conduit_plot::StaticStructuredChildProgram;CHILD_COUNT]=[",tape.constants));
     for (i, child) in children.iter().enumerate() {
         match child {
             ChildImage::Scalar(_) => source.push_str(&format!(
@@ -207,7 +224,29 @@ pub fn generate_static_structured_expression_with_work(
             )),
         }
     }
-    source.push_str("];\npub fn prepare()->Result<Expression,conduit_plot::StaticStructuredRefusal>{let input=input_native::prepare().map_err(conduit_plot::StaticStructuredRefusal::Input)?;let output=output_native::prepare().map_err(conduit_plot::StaticStructuredRefusal::Output)?;Expression::from_child_programs(input,output,&CHILDREN,&PROGRAM)}\n");
+    source.push_str("];\n");
+    let argument = if borrowed {
+        let mut slots = Vec::new();
+        let mut guards = 0usize;
+        for child in &children {
+            if matches!(child, ChildImage::Scalar(image) if image.has_output_contract) {
+                slots.push(guards as u16);
+                guards += 1;
+            } else {
+                slots.push(u16::MAX);
+            }
+        }
+        if guards == 0 {
+            slots.clear();
+        }
+        source.push_str(&format!("pub const GUARD_COUNT:usize={guards};\npub type Expression=conduit_plot::BorrowedStaticStructuredExpression<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},GUARD_COUNT>;\nstatic CHILD_TABLE:conduit_plot::StaticStructuredChildTable=conduit_plot::StaticStructuredChildTable{{children:&CHILDREN,output_guard_slots:&{slots:?}}};\n"));
+        "&CHILD_TABLE"
+    } else {
+        source.push_str(&format!("pub type Expression=conduit_plot::StaticStructuredExpression<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},{c}>;\n"));
+        "&CHILDREN"
+    };
+    source.push_str(&format!("pub fn prepare()->Result<Expression,conduit_plot::StaticStructuredRefusal>{{let input=input_native::prepare().map_err(conduit_plot::StaticStructuredRefusal::Input)?;let output=output_native::prepare().map_err(conduit_plot::StaticStructuredRefusal::Output)?;Expression::from_child_programs(input,output,{argument},&PROGRAM)}}\n"));
+
     let computation_work = structured_work(native_work[0], native_work[1], &tape.code, |index| {
         children
             .get(usize::from(index))

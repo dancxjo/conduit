@@ -534,7 +534,7 @@ pub use prepared_expression_back::{
 };
 #[cfg(feature = "execution-workspace")]
 pub use prepared_expression_back::{
-    WorkspaceStructuredEvaluator, WorkspaceStructuredExpressionBack,
+    BorrowedWorkspaceStructuredExpressionBack, WorkspaceStructuredEvaluator, WorkspaceStructuredExpressionBack,
 };
 #[cfg(feature = "prepared-expression-session")]
 mod prepared_expression_offer;

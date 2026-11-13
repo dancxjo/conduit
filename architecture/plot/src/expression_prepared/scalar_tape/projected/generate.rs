@@ -31,6 +31,7 @@ pub fn generate_static_projected_expression(
 pub(in crate::expression_prepared) struct GeneratedProjected {
     pub source: String,
     pub checked_work: u32,
+    pub has_output_contract: bool,
 }
 pub(in crate::expression_prepared) fn generate_with_native(
     document: &crate::CheckedSyntaxDocument,
@@ -174,6 +175,7 @@ pub(in crate::expression_prepared) fn generate_with_native(
     Ok(GeneratedProjected {
         source,
         checked_work: work,
+        has_output_contract: prepared.output_value_contract.is_some(),
     })
 }
 

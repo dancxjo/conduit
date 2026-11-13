@@ -7,7 +7,7 @@ pub(crate) fn append(
 ) {
     let engine = match storage {
         crate::ResidentExecutionStorage::Owned => format!("conduit_semantic_catalog::StaticStructuredExpressionBack<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},{{CHILD_COUNT}},{output}>"),
-        crate::ResidentExecutionStorage::SharedWorkspace | crate::ResidentExecutionStorage::SharedWorkspaceSchema => "conduit_semantic_catalog::WorkspaceStructuredExpressionBack<{input_native::CONTRACT_COUNT},{output_native::CONTRACT_COUNT},{CHILD_COUNT}>".into(),
+        crate::ResidentExecutionStorage::SharedWorkspace | crate::ResidentExecutionStorage::SharedWorkspaceSchema => "conduit_semantic_catalog::BorrowedWorkspaceStructuredExpressionBack<{input_native::CONTRACT_COUNT},{output_native::CONTRACT_COUNT},{GUARD_COUNT}>".into(),
     };
     let constructor = if storage == crate::ResidentExecutionStorage::SharedWorkspaceSchema {
         "from_resident_structured_parts"
