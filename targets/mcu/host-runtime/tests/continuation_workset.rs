@@ -26,7 +26,7 @@ unsafe impl PreparedLocalKernels for Ticket<'_> {
 }
 #[test]
 fn checked_continuation_uses_atomic_admission_distinct_origin_and_one_use_start() {
-    reference::with_reference(|scope, verified, actual| {
+    reference::with_full_reference(|scope, verified, actual, _, _, _| {
         let intent = verified.intent();
         let body = serde_json::from_value(serde_json::json!(intent.body_id)).unwrap();
         let bootstrap = b::MemberBootstrap {
