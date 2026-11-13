@@ -22,7 +22,6 @@ pub struct FlowZipBack {
     left_len: Option<usize>,
     right: Vec<u8>,
     right_len: Option<usize>,
-    candidate: Vec<u8>,
     candidate_side: Option<(usize, usize)>,
     encoder: PairEncoder,
     output_staged: bool,
@@ -202,7 +201,14 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
             if bytes.len() != reference.byte_len as usize || bytes.len() > maximum {
                 return fail(915 + side as u16);
             }
-            self.candidate[..bytes.len()].copy_from_slice(bytes);
+            // Only an empty slot may stage input. Its length remains absent
+            // until commit, so these bytes cannot form an observable pair.
+            let slot = if side == 0 {
+                &mut self.left
+            } else {
+                &mut self.right
+            };
+            slot[..bytes.len()].copy_from_slice(bytes);
             self.candidate_side = Some((side, bytes.len()));
             io.consume(port).expect("present flow/zip input");
             return StepOutcome::Progress;
@@ -221,11 +227,9 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
     fn step_committed(&mut self) {
         if let Some((side, len)) = self.candidate_side.take() {
             if side == 0 {
-                self.left[..len].copy_from_slice(&self.candidate[..len]);
                 self.left_len = Some(len);
                 self.return_owed = false;
             } else {
-                self.right[..len].copy_from_slice(&self.candidate[..len]);
                 self.right_len = Some(len);
             }
         }
@@ -317,7 +321,6 @@ impl FlowZipBack {
             left_len: None,
             right: vec![0; right.maximum_bytes as usize],
             right_len: None,
-            candidate: vec![0; left.maximum_bytes.max(right.maximum_bytes) as usize],
             candidate_side: None,
             output_maximum: encoder.maximum_bytes(),
             encoder: PairEncoder::Typed(Box::new(encoder.into_runtime())),
@@ -349,7 +352,6 @@ impl FlowZipBack {
             left_len: None,
             right: vec![0; right.maximum_bytes as usize],
             right_len: None,
-            candidate: vec![0; left.maximum_bytes.max(right.maximum_bytes) as usize],
             candidate_side: None,
             output_maximum: encoder.maximum_bytes(),
             encoder: PairEncoder::Leaf(Box::new(encoder)),

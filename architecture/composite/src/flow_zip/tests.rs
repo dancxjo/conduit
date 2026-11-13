@@ -413,3 +413,35 @@ fn feedback_left_close_waits_for_delayed_right_payload_and_its_real_close() {
 
 #[path = "feedback_close_tests.rs"]
 mod feedback_close_tests;
+
+#[test]
+fn staged_input_is_not_published_before_commit_and_cancel_discards_it() {
+    for side in 0..2 {
+        let mut operation = operation();
+        let bytes: &[u8] = b"next";
+        let mut references = [None; 2];
+        references[side] = Some(reference(1, bytes));
+        let mut values = [None; 2];
+        values[side] = Some(bytes);
+        let mut io = StepIo::test_frame(
+            references,
+            [false; 2],
+            [Some(operation.output_maximum), None],
+            None,
+            16,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame(values, None)),
+            StepOutcome::Progress
+        );
+        assert!(operation.left_len.is_none());
+        assert!(operation.right_len.is_none());
+        assert!(operation.encode_pair().is_none());
+        assert!(<FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)).is_none());
+        <FlowZipBack as StepBack<2>>::cancel(&mut operation);
+        <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        assert!(operation.left_len.is_none());
+        assert!(operation.right_len.is_none());
+        assert!(operation.encode_pair().is_none());
+    }
+}
