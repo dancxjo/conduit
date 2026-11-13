@@ -136,6 +136,9 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
     /// Upper bound in cooperative bounded-operation units, not CPU cycles.
     /// Both validation passes, all possible constructor/child operations and
     /// publication staging are charged, including unselected branches.
+    // Keep cold accounting separate from each generated constructor. Inlining
+    // through linked child tables duplicates traversal code per expression.
+    #[inline(never)]
     pub fn computation_work(&self) -> u32 {
         let mut work = self
             .input

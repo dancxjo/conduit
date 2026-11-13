@@ -176,6 +176,8 @@ impl<const N: usize> StaticProjectedExpression<N> {
     }
 }
 impl ParentCheckedProjectedExpression {
+    // One cold traversal over immutable operand metadata, shared by children.
+    #[inline(never)]
     pub(in crate::expression_prepared) fn checked_work(&self) -> u32 {
         let mut work = (self.program.instructions.len() as u32).saturating_add(4);
         for operand in self.program.inputs {
