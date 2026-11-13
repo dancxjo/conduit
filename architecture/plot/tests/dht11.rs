@@ -110,6 +110,7 @@ fn quantity(record: &StructuredInfoValue, name: &str) -> conduit_core::Quantity 
         conduit_core::QuantityFormInteger::U16Le => {
             u16::try_from(coefficient).unwrap().to_le_bytes()
         }
+        conduit_core::QuantityFormInteger::I128Le => panic!("DHT11 retains its two-byte Form"),
     };
     repr.decode(&bytes).unwrap()
 }

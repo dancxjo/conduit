@@ -17,16 +17,18 @@ fn emit_quantity(
     let integer = match repr.integer {
         conduit_core::QuantityFormInteger::I16Le => "I16Le",
         conduit_core::QuantityFormInteger::U16Le => "U16Le",
+        conduit_core::QuantityFormInteger::I128Le => "I128Le",
     };
+    let width = repr.exact_bytes();
     let role = match repr.role {
         conduit_core::QuantityRole::Point => "Point",
         conduit_core::QuantityRole::Delta => "Delta",
         conduit_core::QuantityRole::Linear => "Linear",
     };
     writeln!(out, "pub struct {name}Form;\nimpl {name}Form {{").unwrap();
-    writeln!(out, "pub const NAME: &str = {:?};\npub const IDENTITY: &str = {:?};\npub const VALUE_TYPE: &str = {:?};\npub const EXACT_BYTES: usize = 2;",form.name,form.compatibility_id,form.value_type.as_str()).unwrap();
+    writeln!(out, "pub const NAME: &str = {:?};\npub const IDENTITY: &str = {:?};\npub const VALUE_TYPE: &str = {:?};\npub const EXACT_BYTES: usize = {width};",form.name,form.compatibility_id,form.value_type.as_str()).unwrap();
     writeln!(out, "pub fn definition() -> Result<conduit_core::DecimalQuantityForm, conduit_core::QuantityFormRefusal> {{ Ok(conduit_core::DecimalQuantityForm {{ integer: conduit_core::QuantityFormInteger::{integer}, unit: conduit_core::Unit::decode(&{:?}).map_err(|_| conduit_core::QuantityFormRefusal::InvalidDefinition)?, exponent: {}, role: conduit_core::QuantityRole::{role} }}) }}", repr.unit.encode(), repr.exponent).unwrap();
-    out.push_str("pub fn encode(value: conduit_core::Quantity) -> Result<[u8; 2], conduit_core::QuantityFormRefusal> { Self::definition()?.encode(value) }\npub fn decode(bytes: &[u8]) -> Result<conduit_core::Quantity, conduit_core::QuantityFormRefusal> { Self::definition()?.decode(bytes) }\n}\n");
+    writeln!(out, "pub fn encode(value: conduit_core::Quantity) -> Result<[u8; {width}], conduit_core::QuantityFormRefusal> {{ let mut bytes = [0; {width}]; Self::definition()?.encode_into(value, &mut bytes)?; Ok(bytes) }}\npub fn decode(bytes: &[u8]) -> Result<conduit_core::Quantity, conduit_core::QuantityFormRefusal> {{ Self::definition()?.decode(bytes) }}\n}}\n").unwrap();
     Ok(())
 }
 pub(super) fn emit_forms(
