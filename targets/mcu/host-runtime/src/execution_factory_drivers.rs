@@ -242,6 +242,20 @@ where
                     )
             })
     }
+    #[cfg(feature = "execution-workspace")]
+    fn execution_workspace_requirements(
+        &self,
+    ) -> Option<[Option<conduit_kernel::scheduler::StepWorkspaceRequirements>; N]> {
+        let mut actual = self.software.workspace_requirements::<PORTS>()?;
+        for (slot, node) in self.resident_nodes.iter().enumerate() {
+            if let Some(node) = node {
+                actual[usize::from(*node)] = self
+                    .residents
+                    .execution_workspace_requirements_at::<PORTS>(slot)?;
+            }
+        }
+        Some(actual)
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }

@@ -1,6 +1,7 @@
 //! One Source-provided seed followed by exact finite state replacements.
 //! One admitted kernel-pool reference retains Current between observations.
-//! Replacements retire that reference atomically; there is no private byte copy.
+//! Replacements retire that reference atomically. Canonical boundary copies use
+//! the scheduler-owned workspace, never a second private retained State.
 use conduit_core::{
     BorrowedStructuredValueValidator, CheckedValueContract, PreparedStructuredValueValidator,
     StructuredInfoType, StructuredInfoTypeShape,
@@ -9,6 +10,8 @@ use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId, ValueRef,
 };
+
+mod schema_input;
 
 enum Validator {
     Primitive(CheckedValueContract),
@@ -28,6 +31,8 @@ pub struct SeededStateBack {
     flow: bool,
     until: bool,
     staged_terminal: bool,
+    #[cfg(all(feature = "execution-workspace", feature = "schema-value-storage"))]
+    workspace_output_bytes: u32,
 }
 
 impl SeededStateBack {
@@ -105,6 +110,12 @@ impl SeededStateBack {
             flow: false,
             until: false,
             staged_terminal: false,
+            #[cfg(all(feature = "execution-workspace", feature = "schema-value-storage"))]
+            workspace_output_bytes: if canonical.is_some() {
+                crate::value_backing::bytes(schema, contract.maximum_bytes) as u32
+            } else {
+                0
+            },
         })
     }
 
@@ -175,6 +186,81 @@ impl<const PORTS: usize> StepBack<PORTS> for SeededStateBack {
     }
 
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        self.step_inner(
+            io,
+            inputs,
+            #[cfg(feature = "execution-workspace")]
+            None,
+        )
+    }
+    #[cfg(feature = "execution-workspace")]
+    fn workspace_requirements(
+        &self,
+    ) -> Option<conduit_kernel::scheduler::StepWorkspaceRequirements> {
+        self.state_workspace_requirements()
+    }
+    #[cfg(feature = "execution-workspace")]
+    fn step_with_workspace(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        inputs: &StepInputBytes<'_, PORTS>,
+        workspace: &mut conduit_kernel::scheduler::StepWorkspace<'_>,
+    ) -> StepOutcome {
+        self.step_inner(io, inputs, Some(workspace))
+    }
+    #[cfg(all(feature = "execution-workspace", feature = "schema-value-storage"))]
+    fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
+        (port.0 < 2).then(|| self.linked_schema()).flatten()
+    }
+    #[cfg(all(feature = "execution-workspace", feature = "schema-value-storage"))]
+    fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0)).then(|| self.linked_schema()).flatten()
+    }
+
+    fn step_committed(&mut self) {
+        if let Some(value) = self.staged.take() {
+            self.held = Some(value);
+        }
+        self.terminal |= self.staged_terminal;
+        self.staged_terminal = false;
+        self.seeded |= self.staged_seed;
+        self.seed_closed |= self.staged_close;
+        self.staged_seed = false;
+        self.staged_close = false;
+    }
+
+    fn cancel(&mut self) {
+        self.staged_terminal = false;
+        self.staged_seed = false;
+        self.staged_close = false;
+        self.held = None;
+        self.staged = None;
+        self.terminal = true;
+    }
+}
+
+fn fail(detail: u16) -> StepOutcome {
+    StepOutcome::Fail(Failure {
+        code: FailureCode::InvalidInput,
+        detail,
+    })
+}
+
+#[cfg(test)]
+mod tests;
+
+#[cfg(test)]
+mod terminal_tests;
+
+impl SeededStateBack {
+    fn step_inner<const PORTS: usize>(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        inputs: &StepInputBytes<'_, PORTS>,
+        #[cfg(feature = "execution-workspace")] workspace: Option<
+            &mut conduit_kernel::scheduler::StepWorkspace<'_>,
+        >,
+    ) -> StepOutcome {
         if self.terminal {
             for port in [PortId(0), PortId(1)] {
                 if io.input_closed(port) && io.input(port).is_none() {
@@ -214,72 +300,51 @@ impl<const PORTS: usize> StepBack<PORTS> for SeededStateBack {
         let Some(reference) = io.input(port) else {
             return StepOutcome::Await;
         };
-        let Some(bytes) = inputs.input(port) else {
-            return fail(933);
+        let (terminal, parts) = match self.checked_input(inputs, port, reference.byte_len as usize)
+        {
+            Ok(input) => input,
+            Err(detail) => return fail(detail),
         };
-        if bytes.len() != reference.byte_len as usize || !self.valid(bytes) {
-            return fail(934);
-        }
-        let terminal = if self.until {
-            let Ok(view) = conduit_core::validate_canonical_structured_value(bytes) else {
-                return fail(935);
-            };
-            let Ok(Some(flag)) = view.record_field("terminal") else {
-                return fail(936);
-            };
-            let Ok(flag) = flag.primitive_bytes(conduit_core::BOOL_INFO_ID) else {
-                return fail(937);
-            };
-            flag == [1]
-        } else {
-            false
-        };
-        if !io.output_ready(PortId(0)) {
+        if !io.output_ready_for(PortId(0), reference.byte_len) {
             return StepOutcome::Await;
+        }
+        #[cfg(feature = "execution-workspace")]
+        if let Some(parts) = parts {
+            let Some(workspace) = workspace else {
+                return fail(938);
+            };
+            let (output, _) = workspace.buffers();
+            let Some(output) = output.get_mut(..reference.byte_len as usize) else {
+                return fail(938);
+            };
+            let (schema, node) = output.split_at_mut(parts.schema.len());
+            schema.copy_from_slice(parts.schema);
+            node.copy_from_slice(parts.node);
+            if io
+                .send_workspace_output(PortId(0), reference.byte_len)
+                .is_err()
+            {
+                return fail(938);
+            }
         }
         let value = io.take_input(port).expect("present state value");
         if let Some(previous) = self.held {
             io.discard(previous)
                 .expect("one retained previous state value");
         }
-        io.send(PortId(0), value).expect("ready exact state output");
+        if parts.is_none() {
+            io.send(PortId(0), value).expect("ready exact state output");
+        }
         self.staged_terminal = terminal;
         self.staged = Some(value);
         self.staged_seed = !self.seeded;
         StepOutcome::Progress
     }
-
-    fn step_committed(&mut self) {
-        if let Some(value) = self.staged.take() {
-            self.held = Some(value);
-        }
-        self.terminal |= self.staged_terminal;
-        self.staged_terminal = false;
-        self.seeded |= self.staged_seed;
-        self.seed_closed |= self.staged_close;
-        self.staged_seed = false;
-        self.staged_close = false;
-    }
-
-    fn cancel(&mut self) {
-        self.staged_terminal = false;
-        self.staged_seed = false;
-        self.staged_close = false;
-        self.held = None;
-        self.staged = None;
-        self.terminal = true;
-    }
 }
 
-fn fail(detail: u16) -> StepOutcome {
-    StepOutcome::Fail(Failure {
-        code: FailureCode::InvalidInput,
-        detail,
-    })
-}
-
-#[cfg(test)]
-mod tests;
-
-#[cfg(test)]
-mod terminal_tests;
+#[cfg(all(
+    test,
+    feature = "schema-value-storage",
+    feature = "execution-workspace"
+))]
+mod schema_tests;

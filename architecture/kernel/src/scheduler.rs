@@ -3367,7 +3367,9 @@ where
             consumed_host_value,
         )?;
         for discard in discards.iter().copied().flatten() {
-            self.values.get(discard)?;
+            // Retirement needs a live exact reference, not a canonical byte
+            // representation. Schema/native values retain the same custody.
+            self.values.reference_count(discard)?;
             if retained_values
                 .iter()
                 .flatten()

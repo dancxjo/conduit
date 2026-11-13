@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+execution-workspace = ["conduit-kernel/execution-workspace"]
 schema-value-storage = ["conduit-kernel/schema-value-storage"]
 default = ["kernel-executor"]
 # Finite StepBacks need only Core and the existing execution kernel.

@@ -11,6 +11,11 @@ impl SoftwareBack<'_> {
                     back, port,
                 )
             }
+            Self::SeededState(back) => {
+                <conduit_composite::SeededStateBack as StepBack<P>>::canonical_input_schema(
+                    back, port,
+                )
+            }
             Self::Zip(back) => {
                 <conduit_composite::FlowZipBack as StepBack<P>>::canonical_input_schema(back, port)
             }
@@ -24,6 +29,11 @@ impl SoftwareBack<'_> {
             }
             Self::Merge(back) => {
                 <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::canonical_output_schema(
+                    back, port,
+                )
+            }
+            Self::SeededState(back) => {
+                <conduit_composite::SeededStateBack as StepBack<P>>::canonical_output_schema(
                     back, port,
                 )
             }

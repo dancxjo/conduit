@@ -4,6 +4,8 @@ use crate::value_profiles;
 mod merges;
 #[path = "template_selector_profiles.rs"]
 mod selectors;
+#[path = "template_state_profiles.rs"]
+mod states;
 #[path = "template_zip_profiles.rs"]
 mod zips;
 use conduit_core as c;
@@ -91,6 +93,7 @@ pub(super) fn emit(
     }
     selectors::append(&mut owned, kernel, fragment, source)?;
     merges::append(&mut owned, kernel, fragment, source, types)?;
+    states::append(&mut owned, kernel, fragment, source, types)?;
     zips::append(&mut owned, kernel, fragment, source, types)?;
     if owned.is_empty() {
         return Ok(None);
