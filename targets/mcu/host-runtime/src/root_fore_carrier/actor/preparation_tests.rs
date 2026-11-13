@@ -2,7 +2,7 @@
 use super::*;
 #[test]
 fn actual_frame_extent_and_input_abi_and_original_policy_are_prestart_gates() {
-    for case in 0..4 {
+    for case in 0..5 {
         let mut f = documents::Fixture::new();
         f.host.profile = "config/1".into();
         let seed = root_test::seed(&f);
@@ -10,7 +10,28 @@ fn actual_frame_extent_and_input_abi_and_original_policy_are_prestart_gates() {
         if case == 0 {
             lines[0].binding.limits.maximum_frame_bytes = 59;
         }
-        let pins = [pin(&lines[0], false), pin(&lines[1], true)];
+        let input_capacity = if case == 4 { 128 } else { 8 };
+        let mut carrier_bounds = bounds();
+        carrier_bounds.maximum_buffered_bytes = 256;
+        if case == 4 {
+            lines[0].binding.limits.maximum_payload_bytes = input_capacity;
+            lines[0].binding.limits.maximum_buffered_bytes = input_capacity;
+            lines[0].binding.limits.maximum_frame_bytes = 256;
+            carrier_bounds.maximum_payload_bytes = input_capacity;
+            carrier_bounds.maximum_frame_bytes = 256;
+            carrier_bounds.maximum_buffered_bytes = 256;
+        }
+        let schema = c::StructuredInfoType::leaf(c::kind_id(c::BOOL_INFO_ID)).unwrap();
+        let structured_kind = schema.profile().unwrap().value_kind().clone();
+        let kind = if case == 4 {
+            structured_kind.as_str()
+        } else {
+            c::COUNT_INFO_ID
+        };
+        let pins = [
+            pin_with_abi(&lines[0], false, kind, input_capacity),
+            pin(&lines[1], true),
+        ];
         let n = numeric(&pins);
         let inventory: Vec<u8> = pins
             .iter()
@@ -20,8 +41,8 @@ fn actual_frame_extent_and_input_abi_and_original_policy_are_prestart_gates() {
         let root = root_test::root(&f, &seed, &document);
         let peer = RefCell::new(None);
         let mut transport = TestTransport(&peer);
-        let mut frame = [0; 128];
-        let mut input = [0; 8];
+        let mut frame = [0; 256];
+        let mut input = [0; 128];
         let mut output = [0; 8];
         let selection = unsafe {
             NativeForeCarrierSelection::from_native_custody(
@@ -34,7 +55,7 @@ fn actual_frame_extent_and_input_abi_and_original_policy_are_prestart_gates() {
                 &lines,
                 "session",
                 "serial-profile",
-                bounds(),
+                carrier_bounds,
             )
         }
         .unwrap();
@@ -68,20 +89,27 @@ fn actual_frame_extent_and_input_abi_and_original_policy_are_prestart_gates() {
                 n.preparation(),
             )
             .unwrap();
-        let ingress = PrimitiveIngressSpec::checked(
-            &pins[0],
-            c::AssignedForeAbi {
-                value_kind: c::COUNT_INFO_ID,
-                value_contract: None,
-                abnormal_kind: None,
-                temporal: "flow-open",
-                track: c::ConnectionTrack::Payload,
-                quantity_profile: c::QuantityValueProfile::Decimal,
-                item_capacity: 1,
-                byte_capacity: 8,
-            },
-        )
-        .unwrap();
+        let abi = c::AssignedForeAbi {
+            value_kind: kind,
+            value_contract: None,
+            abnormal_kind: None,
+            temporal: "flow-open",
+            track: c::ConnectionTrack::Payload,
+            quantity_profile: c::QuantityValueProfile::Decimal,
+            item_capacity: 1,
+            byte_capacity: input_capacity,
+        };
+        let ingress: crate::fore_bridge::IngressSpec<'_> = if case == 4 {
+            // This proves original Root route preparation, not payload delivery:
+            // the structured route uses an explicitly larger admitted bound.
+            let schema =
+                std::boxed::Box::leak(schema.canonical_bytes().unwrap().into_boxed_slice());
+            StructuredIngressSpec::checked(&pins[0], abi, schema)
+                .unwrap()
+                .into()
+        } else {
+            PrimitiveIngressSpec::checked(&pins[0], abi).unwrap().into()
+        };
         let egress = EgressSpec::checked(
             &pins[1],
             c::AssignedForeAbi {
@@ -126,7 +154,7 @@ fn actual_frame_extent_and_input_abi_and_original_policy_are_prestart_gates() {
         match carrier.prepare_bridge_sessions(&bridge, ingress, egress) {
             Err(ForeIoRefusal::Bounds) if case == 0 => {}
             Err(ForeIoRefusal::Scope) if case == 1 || case == 2 => {}
-            Ok(sessions) if case == 3 => {
+            Ok(sessions) if case == 3 || case == 4 => {
                 assert!(!sessions.routes[0].machine.is_active());
                 assert!(!sessions.routes[1].machine.is_active());
             }

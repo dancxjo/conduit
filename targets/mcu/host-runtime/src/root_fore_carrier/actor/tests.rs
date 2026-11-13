@@ -5,7 +5,7 @@ use super::*;
 use crate::{
     execution::{PreparedBacks, PreparedFragment},
     execution_workset::{AssignedPreparationProfile, PreparedKernelGroup, PreparedLocalWorkset},
-    fore_bridge::ForeObserver,
+    fore_bridge::{ForeObserver, PrimitiveIngressSpec, StructuredIngressSpec},
     native_dispatch::Dispatch,
     native_runner::Observer,
 };
@@ -84,20 +84,35 @@ fn line(output: bool) -> c::AdmittedLine {
     line
 }
 fn pin(line: &c::AdmittedLine, output: bool) -> c::AssignedLineForeRequirement {
+    pin_with_kind(line, output, c::COUNT_INFO_ID)
+}
+fn pin_with_kind(
+    line: &c::AdmittedLine,
+    output: bool,
+    kind: &str,
+) -> c::AssignedLineForeRequirement {
+    pin_with_abi(line, output, kind, 8)
+}
+fn pin_with_abi(
+    line: &c::AdmittedLine,
+    output: bool,
+    kind: &str,
+    capacity: u32,
+) -> c::AssignedLineForeRequirement {
     let (local, peer) = if output {
         (&line.binding.source, &line.binding.sink)
     } else {
         (&line.binding.sink, &line.binding.source)
     };
     let abi = c::assigned_fore_abi_digest(c::AssignedForeAbi {
-        value_kind: c::COUNT_INFO_ID,
+        value_kind: kind,
         value_contract: None,
         abnormal_kind: None,
         temporal: "flow-open",
         track: c::ConnectionTrack::Payload,
         quantity_profile: c::QuantityValueProfile::Decimal,
         item_capacity: 1,
-        byte_capacity: 8,
+        byte_capacity: capacity,
     });
     c::AssignedLineForeRequirement::new(
         c::AssignedForeRequirement::new(
