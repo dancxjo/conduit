@@ -55,7 +55,7 @@ impl FlowMergeFiniteBack {
         Ok(Self {
             validator: Some(Validator::Static(validator)),
             leaf: None,
-            output: vec![0; maximum_bytes as usize],
+            output: vec![0; crate::value_backing::bytes(schema, maximum_bytes)],
             staged: None,
             committed_close: [false; 2],
             staged_close: None,
@@ -83,7 +83,7 @@ impl FlowMergeFiniteBack {
             } else {
                 None
             },
-            output: vec![0; maximum_bytes as usize],
+            output: vec![0; crate::value_backing::bytes(schema, maximum_bytes)],
             staged: None,
             committed_close: [false; 2],
             staged_close: None,

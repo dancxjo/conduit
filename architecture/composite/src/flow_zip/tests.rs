@@ -134,14 +134,15 @@ fn typed_pairing_preserves_nested_schema_under_pressure_without_play_allocation(
     .canonical_bytes()
     .unwrap();
     let expected = packet.canonical_bytes().unwrap();
-    let left = CheckedValueContract::new(
-        packet.profile().unwrap().value_kind().clone(),
-        input.len() as u32,
-        vec![],
-    )
-    .unwrap();
-    let right = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    let left =
+        CheckedValueContract::new(packet.profile().unwrap().value_kind().clone(), 4096, vec![])
+            .unwrap();
+    let right = CheckedValueContract::new(kind_id("value/count"), 1024, vec![]).unwrap();
     let mut operation = FlowZipBack::prepare_typed(&left, packet, &right, leaf).unwrap();
+    assert_eq!(operation.left.len(), input.len());
+    assert_eq!(operation.right.len(), 8);
+    assert_eq!(left.maximum_bytes, 4096);
+    assert_eq!(right.maximum_bytes, 1024);
     let count = conduit_core::encode_count(8);
     let allocations = crate::test_support::allocation::allocations_during(|| {
         for (side, bytes) in [(0, input.as_slice()), (1, count.as_slice())] {

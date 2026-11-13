@@ -40,6 +40,7 @@ pub use flow_singleton::FlowSingletonBack;
 mod flow_concat_finite;
 pub use flow_concat_finite::FlowConcatFiniteBack;
 mod flow_merge_finite;
+mod value_backing;
 #[cfg(feature = "kernel-executor")]
 mod flow_select;
 mod flow_zip;

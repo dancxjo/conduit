@@ -310,6 +310,8 @@ impl FlowZipBack {
         {
             return Err(StructuredInfoRefusal::WrongType);
         }
+        let left_backing = crate::value_backing::bytes(&left_type, left.maximum_bytes);
+        let right_backing = crate::value_backing::bytes(&right_type, right.maximum_bytes);
         let encoder = PreparedTypedTuplePairEncoder::new(
             left_type,
             left.maximum_bytes,
@@ -317,9 +319,9 @@ impl FlowZipBack {
             right.maximum_bytes,
         )?;
         Ok(Self {
-            left: vec![0; left.maximum_bytes as usize],
+            left: vec![0; left_backing],
             left_len: None,
-            right: vec![0; right.maximum_bytes as usize],
+            right: vec![0; right_backing],
             right_len: None,
             candidate_side: None,
             output_maximum: encoder.maximum_bytes(),
