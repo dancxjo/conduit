@@ -153,12 +153,14 @@ pub(super) fn prepare_with_body_edit<
     let exchange =
         crate::protocol_source::PreparedProtocolEntry::prepare(&encoded_package, "bme280-exchange")
             .unwrap();
-    assert!(exchange
-        .expanded()
-        .expanded
-        .gears
-        .iter()
-        .all(|gear| gear.kind_id.as_str() != "machine/i2c/transact"));
+    assert!(
+        exchange
+            .expanded()
+            .expanded
+            .gears
+            .iter()
+            .all(|gear| gear.kind_id.as_str() != "machine/i2c/transact")
+    );
     assert_eq!(
         exchange.input_schema(&port_id("result")).unwrap(),
         i2c.decode_result_type().unwrap()

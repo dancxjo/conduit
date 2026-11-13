@@ -177,7 +177,7 @@ mod tests {
 #[cfg(test)]
 mod identity_tests {
     use super::*;
-    use conduit_core::{kind_id, CheckedValueContract, StructuredInfoType};
+    use conduit_core::{CheckedValueContract, StructuredInfoType, kind_id};
     #[test]
     fn family_contract_schema_and_pair_order_are_exact_instance_identity() {
         let boolean = ProtocolValue {
@@ -213,11 +213,13 @@ mod factory_tests {
     fn legacy_and_typed_state_offers_coexist_and_unsupported_constraints_stay_refused() {
         let schema = StructuredInfoType::record(
             kind_id("test/state@1"),
-            alloc::vec![StructuredFieldType::new(
-                "terminal",
-                StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap()
-            )
-            .unwrap()],
+            alloc::vec![
+                StructuredFieldType::new(
+                    "terminal",
+                    StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap()
+                )
+                .unwrap()
+            ],
         )
         .unwrap();
         let plain = CheckedValueContract::new(
