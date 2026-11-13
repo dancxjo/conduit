@@ -1,5 +1,11 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
+#[cfg(feature = "execution-workspace")]
+mod execution_workspace;
 mod local_fore;
+#[cfg(feature = "execution-workspace")]
+pub use execution_workspace::{
+    PreparedStepWorkspace, StepWorkspace, StepWorkspaceRequirements, WorkspacePreparationError,
+};
 
 mod host_call_back;
 mod host_dispatch;
@@ -383,6 +389,21 @@ pub trait StepBack<const PORTS: usize> {
         None
     }
 
+    /// Physical workspace declaration from the independently prepared Back.
+    /// Root retains semantic, authority and complete resource admission.
+    #[cfg(feature = "execution-workspace")]
+    fn workspace_requirements(&self) -> Option<StepWorkspaceRequirements> {
+        None
+    }
+    #[cfg(feature = "execution-workspace")]
+    fn step_with_workspace(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        inputs: &StepInputBytes<'_, PORTS>,
+        _workspace: &mut StepWorkspace<'_>,
+    ) -> StepOutcome {
+        self.step(io, inputs)
+    }
     /// Finalize private state only after successful transactional I/O commit.
     fn step_committed(&mut self) {}
     fn step(
@@ -516,6 +537,8 @@ pub struct StepIo<const PORTS: usize> {
     outputs: [Option<ValueRef>; PORTS],
     canonical_output: Option<(PortId, CanonicalValue)>,
     prepared_outputs: [Option<PreparedStepValue>; PORTS],
+    #[cfg(feature = "execution-workspace")]
+    workspace_output_capacity: Option<u32>,
     #[cfg(feature = "alloc")]
     native_output_port: Option<PortId>,
     #[cfg(feature = "alloc")]
@@ -861,6 +884,8 @@ impl StepIo<1> {
             outputs: [None],
             canonical_output: None,
             prepared_outputs: [None; 1],
+            #[cfg(feature = "execution-workspace")]
+            workspace_output_capacity: None,
             #[cfg(feature = "alloc")]
             native_output_port: None,
             #[cfg(feature = "alloc")]
@@ -1072,6 +1097,10 @@ pub struct FixedScheduler<
     native_output_ports: [Option<PortId>; NODES],
     #[cfg(feature = "alloc")]
     compact_f32_bindings: Option<alloc::boxed::Box<CompactF32Bindings<NODES, PORTS>>>,
+    #[cfg(feature = "execution-workspace")]
+    execution_workspace: Option<PreparedStepWorkspace>,
+    #[cfg(feature = "execution-workspace")]
+    requires_execution_workspace: bool,
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
     debug_control: DebugControlState,
@@ -1151,6 +1180,10 @@ where
             &cord_specs,
             &routes,
         )?;
+        #[cfg(feature = "execution-workspace")]
+        let requires_execution_workspace = drivers[..active_nodes]
+            .iter()
+            .any(|back| back.workspace_requirements().is_some());
         Ok(Self {
             node_specs,
             terminal_transductions: [[None; PORTS]; NODES],
@@ -1192,6 +1225,10 @@ where
             native_output_ports: [None; NODES],
             #[cfg(feature = "alloc")]
             compact_f32_bindings: None,
+            #[cfg(feature = "execution-workspace")]
+            execution_workspace: None,
+            #[cfg(feature = "execution-workspace")]
+            requires_execution_workspace,
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
@@ -2140,6 +2177,8 @@ where
             outputs: [None; PORTS],
             canonical_output: None,
             prepared_outputs: [None; PORTS],
+            #[cfg(feature = "execution-workspace")]
+            workspace_output_capacity: None,
             #[cfg(feature = "alloc")]
             native_output_port: self.native_output_ports[node],
             #[cfg(feature = "alloc")]

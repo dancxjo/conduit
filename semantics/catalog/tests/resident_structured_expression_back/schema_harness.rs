@@ -26,7 +26,7 @@ impl StepBack<1> for Back {
     }
     fn canonical_output_schema(&self, _: PortId) -> Option<&[u8]> {
         match self {
-            Self::Source { schema, .. } => Some(schema),
+            Self::Source { schema, .. } => SEPARATED.then_some(schema),
             _ => None,
         }
     }
@@ -93,9 +93,17 @@ fn exercise(input: &[u8], invalid: bool) {
     let canonical = FixedValueStore::<2, 2048>::new(4096).unwrap();
     let mut values =
         SchemaValueStore::try_new(canonical, &[(validator, 1)], input.len() as u32, 4096).unwrap();
-    let value = values.store_structured(checked).unwrap();
-    assert!(values.get(value).is_err());
-    let expression = image::parts_back();
+    let value = if SEPARATED {
+        values.store_structured(checked).unwrap()
+    } else {
+        values.store(input).unwrap()
+    };
+    assert_eq!(values.get(value).is_err(), SEPARATED);
+    let expression = if SEPARATED {
+        image::parts_back()
+    } else {
+        image::canonical_back()
+    };
     let fuel = expression.required_step_fuel();
     let mut routes = FixedRoutes::<3, 2>::new(1);
     for n in 0..2 {

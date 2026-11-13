@@ -530,6 +530,10 @@ pub use prepared_expression_back::{
     prepared_expression_bounds, PreparedExpressionBack, StaticExpressionBackRefusal,
     StaticScalarExpressionBack, StaticStructuredExpressionBack, StructuredResidentEvaluator,
 };
+#[cfg(feature = "execution-workspace")]
+pub use prepared_expression_back::{
+    WorkspaceStructuredEvaluator, WorkspaceStructuredExpressionBack,
+};
 #[cfg(feature = "prepared-expression-session")]
 mod prepared_expression_offer;
 #[cfg(feature = "prepared-expression-session")]

@@ -2,6 +2,8 @@
 #[derive(Clone, Copy)]
 pub(super) enum PreparedStepValue {
     Bytes(u32),
+    #[cfg(feature = "execution-workspace")]
+    Workspace(u32),
     #[cfg(feature = "alloc")]
     NativeU64(u64),
     #[cfg(feature = "alloc")]
@@ -11,6 +13,8 @@ impl PreparedStepValue {
     pub(super) fn logical_bytes(self) -> u32 {
         match self {
             Self::Bytes(n) => n,
+            #[cfg(feature = "execution-workspace")]
+            Self::Workspace(n) => n,
             #[cfg(feature = "alloc")]
             Self::NativeU64(_) => 8,
             #[cfg(feature = "alloc")]

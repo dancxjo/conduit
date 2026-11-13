@@ -101,6 +101,10 @@ where
         if self.cancelled {
             return Ok(SchedulerStatus::Cancelled);
         }
+        #[cfg(feature = "execution-workspace")]
+        if self.requires_execution_workspace && self.execution_workspace.is_none() {
+            return Err(SchedulerError::InvalidPlan);
+        }
         if self.debug_control.suspension().is_some() {
             return Err(SchedulerError::DebugSuspended);
         }
@@ -297,6 +301,19 @@ where
             .logical_invocations
             .checked_add(1)
             .ok_or(SchedulerError::DecisionLimitExceeded)?;
+        #[cfg(feature = "execution-workspace")]
+        let outcome = if let Some(requirements) = self.drivers[node].workspace_requirements() {
+            let workspace = self
+                .execution_workspace
+                .as_mut()
+                .ok_or(SchedulerError::InvalidPlan)?;
+            let mut loan = workspace.loan(requirements)?;
+            io.workspace_output_capacity = Some(requirements.output_bytes);
+            self.drivers[node].step_with_workspace(&mut io, &input_bytes, &mut loan)
+        } else {
+            self.drivers[node].step(&mut io, &input_bytes)
+        };
+        #[cfg(not(feature = "execution-workspace"))]
         let outcome = self.drivers[node].step(&mut io, &input_bytes);
         if let Some(fault) = io.fault {
             if fault == SchedulerError::StepFuelExceeded {

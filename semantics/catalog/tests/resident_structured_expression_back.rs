@@ -18,14 +18,24 @@ fn field(ty: &StructuredInfoType, name: &str) -> StructuredInfoType {
 }
 #[test]
 fn actual_display_request_uses_the_common_back_and_fixed_kernel() {
-    proof(false);
+    proof(false, false);
 }
 #[test]
 #[cfg(feature = "schema-value-storage")]
 fn actual_display_request_accepts_separated_input_through_the_fixed_kernel() {
-    proof(true);
+    proof(true, false);
 }
-fn proof(separated: bool) {
+#[test]
+#[cfg(all(feature = "schema-value-storage", feature = "execution-workspace"))]
+fn actual_display_request_lends_one_execution_workspace_for_separated_input() {
+    proof(true, true);
+}
+#[test]
+#[cfg(all(feature = "schema-value-storage", feature = "execution-workspace"))]
+fn actual_display_request_lends_one_execution_workspace_for_canonical_input() {
+    proof(false, true);
+}
+fn proof(separated: bool, shared: bool) {
     let types = check_syntax_document(
         &parse_syntax_document(include_str!(
             "../../../plots/device-protocols/i2c-types.conduit"
@@ -115,33 +125,48 @@ fn proof(separated: bool) {
         4096,
     )
     .unwrap();
-    let mut additions =
-        include_str!("resident_structured_expression_back/image_back.rs").to_owned();
-    if separated {
-        additions.push_str("pub fn input_schema()->&'static[u8]{input_native::prepare().unwrap().schema_bytes()} pub fn parts_back()->Back{Back::from_resident_structured_parts(prepare().unwrap(),conduit_core::PortTemporal::Value).unwrap()}\n");
+    let mut additions = if shared {
+        "pub type Back=conduit_semantic_catalog::WorkspaceStructuredExpressionBack<{input_native::CONTRACT_COUNT},{output_native::CONTRACT_COUNT},{CHILD_COUNT}>;".to_owned()
+    } else {
+        include_str!("resident_structured_expression_back/image_back.rs").to_owned()
+    };
+    if separated || shared {
+        additions.push_str("pub fn input_schema()->&'static[u8]{input_native::prepare().unwrap().schema_bytes()} pub fn parts_back()->Back{Back::from_resident_structured_parts(prepare().unwrap(),conduit_core::PortTemporal::Value).unwrap()} pub fn canonical_back()->Back{Back::from_resident_structured(prepare().unwrap(),conduit_core::PortTemporal::Value).unwrap()}\n");
     }
     let generated = format!("mod image {{\n{image}\n{additions}\n}}");
     let probe = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../architecture/plot/tests/common/allocation_probe.rs");
-    let exercise_source = if separated {
+    let mut exercise_source = if separated || shared {
         include_str!("resident_structured_expression_back/schema_harness.rs")
     } else {
         include_str!("resident_structured_expression_back/harness.rs")
-    };
-    let exercise=format!("#[path={:?}]mod probe;#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;const INPUT:&[u8]=&{good:?};const BAD:&[u8]=&{bad:?};const EXPECTED:&[u8]=&{expected:?};\n{}",probe.to_str().unwrap(),exercise_source);
+    }
+    .to_owned();
+    if cfg!(feature = "execution-workspace") {
+        exercise_source=exercise_source.replace("impl StepBack<1> for Back {", "impl StepBack<1> for Back { fn workspace_requirements(&self)->Option<StepWorkspaceRequirements>{match self{Self::Expression(b)=><image::Back as StepBack<1>>::workspace_requirements(b),_=>None}} fn step_with_workspace(&mut self,io:&mut StepIo<1>,input:&StepInputBytes<'_,1>,workspace:&mut StepWorkspace<'_>)->StepOutcome{match self{Self::Expression(b)=>b.step_with_workspace(io,input,workspace),_=>self.step(io,input)}}");
+        exercise_source = format!("use conduit_kernel::scheduler::{{StepWorkspace,StepWorkspaceRequirements}};\n{exercise_source}");
+    }
+    if shared {
+        exercise_source=exercise_source.replace("let (result, cost) = probe::observe", "let req=kernel.drivers()[1].workspace_requirements().unwrap(); let bytes=(req.output_bytes as usize).checked_add(req.scratch_bytes as usize).unwrap(); kernel.install_execution_workspace(conduit_kernel::scheduler::PreparedStepWorkspace::try_new(req,bytes).unwrap()).unwrap(); let (result, cost) = probe::observe");
+    }
+    let exercise=format!("#[path={:?}]mod probe;#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;const INPUT:&[u8]=&{good:?};const BAD:&[u8]=&{bad:?};const EXPECTED:&[u8]=&{expected:?};const SEPARATED:bool={separated};\n{exercise_source}",probe.to_str().unwrap());
     let mut libraries = vec![
         "conduit_plot",
         "conduit_core",
         "conduit_kernel",
         "conduit_semantic_catalog",
     ];
-    if separated {
+    if separated || shared {
         libraries.push("conduit_plan_lowering");
     }
     compiled_rust::verify_with_libraries(
         &generated,
         &exercise,
-        if separated {
+        if shared && separated {
+            "structured-workspace-separated"
+        } else if shared {
+            "structured-workspace-canonical"
+        } else if separated {
             "structured-common-back-separated"
         } else {
             "structured-common-back"

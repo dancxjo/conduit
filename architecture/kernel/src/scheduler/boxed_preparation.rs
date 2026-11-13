@@ -244,6 +244,10 @@ where
             native_input_ports: [None; NODES],
             native_output_ports: [None; NODES],
             compact_f32_bindings: None,
+            #[cfg(feature = "execution-workspace")]
+            execution_workspace: None,
+            #[cfg(feature = "execution-workspace")]
+            requires_execution_workspace: false,
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: debug_control,
@@ -253,8 +257,19 @@ where
         let bind: unsafe fn(*mut Self, [D; NODES]) = |pointer, drivers| {
             // SAFETY: drivers is the one remaining uninitialized field in
             // uniquely owned exact-layout storage. No Self reference is formed.
+            #[cfg(feature = "execution-workspace")]
+            // SAFETY: active_nodes is an initialized Copy field in this exact
+            // owner; no reference to incomplete Self is formed.
+            let active = unsafe { core::ptr::addr_of!((*pointer).active_nodes).read() };
+            #[cfg(feature = "execution-workspace")]
+            let requires_workspace = drivers[..active]
+                .iter()
+                .any(|back| back.workspace_requirements().is_some());
             unsafe {
                 core::ptr::addr_of_mut!((*pointer).drivers).write(drivers);
+                #[cfg(feature = "execution-workspace")]
+                core::ptr::addr_of_mut!((*pointer).requires_execution_workspace)
+                    .write(requires_workspace);
             }
         };
         Ok(PreparedKernelStorage::new(storage, drop_initialized, bind))

@@ -53,7 +53,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         "cargo",
         &[
             "test", "-p", "conduit-kernel", "-p", "conduit-plan-lowering", "-p", "conduit-semantic-catalog",
-            "--features", "conduit-plan-lowering/schema-value-storage,conduit-semantic-catalog/schema-value-storage,conduit-semantic-catalog/prepared-expression-session",
+            "--features", "conduit-plan-lowering/schema-value-storage,conduit-semantic-catalog/schema-value-storage,conduit-semantic-catalog/prepared-expression-session,conduit-semantic-catalog/execution-workspace",
         ],
     ),
     Step::new(
