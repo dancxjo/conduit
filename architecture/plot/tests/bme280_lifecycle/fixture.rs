@@ -197,6 +197,17 @@ impl Fixture {
         .unwrap()
     }
     pub fn with_phase(&self, state: &StructuredInfoValue, phase: u8) -> StructuredInfoValue {
+        self.with_state_byte(state, "phase", phase)
+    }
+    pub fn with_index(&self, state: &StructuredInfoValue, index: u8) -> StructuredInfoValue {
+        self.with_state_byte(state, "index", index)
+    }
+    fn with_state_byte(
+        &self,
+        state: &StructuredInfoValue,
+        name: &str,
+        byte: u8,
+    ) -> StructuredInfoValue {
         let StructuredInfoValueShape::Record(fields) = state.shape() else {
             panic!("state")
         };
@@ -207,8 +218,8 @@ impl Fixture {
                 .map(|field| {
                     (
                         field.name(),
-                        if field.name() == "phase" {
-                            leaf(field.value().value_type(), &[phase])
+                        if field.name() == name {
+                            leaf(field.value().value_type(), &[byte])
                         } else {
                             field.value().clone()
                         },

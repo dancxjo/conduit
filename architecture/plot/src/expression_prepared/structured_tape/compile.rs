@@ -4,6 +4,8 @@ use crate::expression_prepared::fixed_projection;
 use crate::expression_prepared::structured::{constant_child, ChildEvaluator};
 use crate::{PortableExpressionNode as Node, PortableExpressionOperation as Expression};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
+#[path = "primitive_child.rs"]
+mod primitive_child;
 const MAX_DEPTH: u8 = 32;
 #[derive(Debug)]
 pub(super) enum CompileRefusal {
@@ -163,6 +165,16 @@ impl ConstructorTape {
                 self.push(Operation::InputNode { start, length })?;
                 return Ok(());
             }
+        }
+        // A fixed primitive conditional belongs to the existing scalar engine.
+        // Keep it as one constructor value only when that same finite scalar
+        // instruction profile can realize its entire checked computation.
+        if matches!(node.operation, Expression::Conditional { .. })
+            && primitive_child::fits(node, program.input_type)
+        {
+            let value = self.value(node, values)?;
+            self.push(Operation::Value(value))?;
+            return Ok(());
         }
         match &node.operation {
             Expression::Record(fields) => {

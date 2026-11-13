@@ -108,3 +108,111 @@ fn an_oversized_whole_constructor_reports_its_exact_value_limit() {
     );
     generic_semantics(&program);
 }
+
+#[path = "common/compiled_rust.rs"]
+mod compiled_rust;
+
+#[test]
+fn many_primitive_conditionals_use_the_existing_scalar_profile_in_the_emitted_image() {
+    let fields = (0..48)
+        .map(|index| format!(" field_{index:02}: U64"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    // Both branches compute a value: the old constructor lowering needed one
+    //condition plus two result slots per field (144>128), even though each
+    //complete Leaf conditional already fits the unchanged scalar profile.
+    let values = (0..48)
+        .map(|index| format!("field_{index:02}: (.flag ? .value + 1 : .value + 2)"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let source = format!(
+        "type Frame = {{\n flag: Boolean\n value: U64\n}}\n\
+         type Results = {{\n{fields}\n}}\n\
+         plot many (\n input: Frame >> output: Results\n) = ({{{values}}})\n",
+    );
+    let syntax = parse_syntax_document(&source);
+    assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+    let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
+    let expanded =
+        expand_canonical_plot_for_authoring(&checked, "many", &ProfileCatalog::new()).unwrap();
+    assert_eq!(expanded.expanded.gears.len(), 1);
+    let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
+    else {
+        panic!("program");
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    let image = generate_static_structured_expression(&checked, &program, bounds(), 4096)
+        .expect("48 bounded scalar children fit the original whole constructor limits");
+    assert_eq!(
+        image,
+        generate_static_structured_expression(&checked, &program, bounds(), 4096).unwrap(),
+    );
+    let allocator =
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/common/allocation_probe.rs");
+    let mut exercise = format!(
+        "#[path={allocator:?}]mod probe;\n\
+         #[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;\n\
+         fn main(){{\n\
+         let(mut expression,cost)=probe::observe(||image::prepare().unwrap());\n\
+         assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);\n\
+         let mut output=[0xa5;4096];let mut scratch=[0;4096];\n",
+    );
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    for (flag, value) in [
+        (false, 0),
+        (true, 0),
+        (true, u64::MAX - 1), // The unselected +2 branch would overflow.
+        (false, u64::MAX - 2),
+        (false, u64::MAX - 1),
+        (true, u64::MAX),
+    ] {
+        let input = input(&program, flag, value);
+        let expected = program.evaluate(&input);
+        assert_eq!(prepared.evaluate(&input).map(<[u8]>::to_vec), expected);
+        exercise.push_str(&format!(
+            "output.fill(0xa5);let(actual,cost)=probe::observe(||expression.evaluate_into(&{input:?},&mut output,&mut scratch));\n\
+             assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);\n",
+        ));
+        match expected {
+            Ok(bytes) => {
+                let expected_value = value.checked_add(if flag { 1 } else { 2 }).unwrap();
+                let decoded = StructuredInfoValue::from_canonical_bytes(&bytes).unwrap();
+                let conduit_core::StructuredInfoValueShape::Record(fields) = decoded.shape() else {
+                    panic!("results");
+                };
+                assert_eq!(fields.len(), 48);
+                for field in fields {
+                    assert_eq!(
+                        field.value().shape(),
+                        conduit_core::StructuredInfoValueShape::Leaf(&expected_value.to_le_bytes(),),
+                    );
+                }
+                exercise.push_str(&format!(
+                    "assert_eq!(actual,Ok({length}));assert_eq!(&output[..{length}],&{bytes:?});\n\
+                     assert!(output[{length}..].iter().all(|byte|*byte==0xa5));\n",
+                    length = bytes.len(),
+                ));
+            }
+            Err(error) => {
+                assert_eq!(error, PortableExpressionEvaluationRefusal::Arithmetic);
+                exercise.push_str(
+                    "assert_eq!(actual,Err(conduit_plot::StaticStructuredRefusal::Child{index:0,refusal:conduit_plot::StaticProjectedRefusal::Expression(conduit_plot::PortableExpressionEvaluationRefusal::Arithmetic)}));\n\
+                     assert_eq!(output,[0xa5;4096]);\n",
+                );
+            }
+        }
+    }
+    let mut malformed = input(&program, false, 0);
+    malformed.pop();
+    assert!(program.evaluate(&malformed).is_err());
+    assert!(prepared.evaluate(&malformed).is_err());
+    exercise.push_str(&format!(
+        "output.fill(0xa5);assert!(matches!(expression.evaluate_into(&{malformed:?},&mut output,&mut scratch),Err(conduit_plot::StaticStructuredRefusal::Input(_))));assert_eq!(output,[0xa5;4096]);\n}}\n",
+    ));
+    compiled_rust::verify_with_libraries(
+        &format!("mod image{{\n{image}\n}}"),
+        &exercise,
+        "bounded-primitive-constructor-children",
+        &["conduit_plot", "conduit_core"],
+    );
+}
