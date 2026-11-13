@@ -136,6 +136,18 @@ impl PreparedTypedTuplePairEncoder {
     pub fn maximum_bytes(&self) -> u32 {
         self.maximum_bytes
     }
+    /// Proven output extent for fixed primitive schemas. Unknown or variable
+    /// leaf payloads retain the selected conservative envelope. This does not
+    /// change either member's accepted domain or the selected input limits.
+    pub fn maximum_encoded_bytes(&self) -> u32 {
+        self.value_type
+            .canonical_value_upper_bound(|kind| {
+                crate::fixed_primitive_info_payload_bytes(kind.as_str())
+            })
+            .and_then(|bound| u32::try_from(bound).ok())
+            .map_or(self.maximum_bytes, |bound| self.maximum_bytes.min(bound))
+    }
+
     pub fn encoded(&self) -> &[u8] {
         self.composer.encoded()
     }

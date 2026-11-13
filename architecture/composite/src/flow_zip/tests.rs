@@ -222,6 +222,16 @@ fn finite_typed_pair_close_flush_is_bounded_under_pressure_without_allocation() 
     let mut encoder =
         conduit_core::PreparedTypedTuplePairEncoder::new(ty.clone(), 8, ty, 8).unwrap();
     let expected = encoder.encode(&left, &right).unwrap().to_vec();
+    assert_eq!(operation.output_maximum as usize, expected.len());
+    assert_eq!(
+        <FlowZipBack as StepBack<2>>::terminal_transductions(&operation)[0]
+            .unwrap()
+            .normal_close,
+        AssignedNormalCloseTransduction::FlushThenPropagate(AssignedFiniteTerminalEmission {
+            maximum_items: 1,
+            maximum_bytes: encoder.maximum_encoded_bytes(),
+        }),
+    );
     assert_eq!(
         <FlowZipBack as StepBack<2>>::terminal_transductions(&operation)[0]
             .unwrap()

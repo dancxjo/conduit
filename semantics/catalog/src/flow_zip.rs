@@ -90,11 +90,13 @@ pub fn flow_zip_typed_semantic_contract(
             .map_err(|_| "flow/zip pair profile is invalid")?
             .value_kind()
             .clone(),
-        encoder.maximum_bytes(),
+        encoder.maximum_encoded_bytes(),
         vec![],
     )
     .map_err(|_| "flow/zip pair value contract is invalid")?;
-    paired_semantic_contract(left, right, paired)
+    let mut kind = paired_semantic_contract(left, right, paired)?;
+    kind.kind_contract_revision = "conduit.flow/zip-typed@2".into();
+    Ok(kind)
 }
 
 fn paired_semantic_contract(
@@ -246,6 +248,19 @@ mod tests {
         assert_ne!(
             typed.outputs[0].value_kind,
             flow_zip_semantic_contract(&left, &right).unwrap().outputs[0].value_kind
+        );
+        let output = typed
+            .semantic_contract()
+            .value_contracts()
+            .iter()
+            .find(|entry| entry.location == FrontValueLocation::Output(port_id("paired")))
+            .unwrap()
+            .contract
+            .maximum_bytes;
+        assert_eq!(output, encoder.maximum_encoded_bytes());
+        assert_eq!(
+            typed.kind_contract_revision.as_str(),
+            "conduit.flow/zip-typed@2"
         );
         assert_eq!(typed.terminal_transductions().count(), 2);
         assert!(flow_zip_typed_semantic_contract(&right, &packet, &right, &primitive).is_err());

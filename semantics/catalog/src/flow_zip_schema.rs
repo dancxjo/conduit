@@ -69,7 +69,7 @@ pub fn flow_zip_schema_semantic_contract(
     }
     kind.kind_id = conduit_core::KindId::from(alloc::format!("flow/zip/schema-{suffix}"));
     kind.kind_contract_revision =
-        conduit_core::KindIdentity::from(alloc::format!("conduit.flow/zip-schema-{suffix}@1"));
+        conduit_core::KindIdentity::from(alloc::format!("conduit.flow/zip-schema-{suffix}@2"));
 
     for (key, ty) in [("left-schema", left_type), ("right-schema", right_type)] {
         kind.startup_parameters

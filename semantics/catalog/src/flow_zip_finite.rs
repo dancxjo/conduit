@@ -2,7 +2,7 @@
 use conduit_core::*;
 
 pub const FLOW_ZIP_FINITE_KIND: &str = "flow/zip/finite";
-pub const FLOW_ZIP_FINITE_REVISION: &str = "conduit.flow/zip-finite@1";
+pub const FLOW_ZIP_FINITE_REVISION: &str = "conduit.flow/zip-finite@2";
 
 /// Pair one pending value from each input. Closure flushes at most the pair
 /// already formed, discards an unmatched value, then closes the output.
@@ -63,7 +63,7 @@ pub fn flow_zip_feedback_semantic_contract(
 ) -> Result<Kind, &'static str> {
     let mut kind = flow_zip_finite_semantic_contract(left, left_type, right, right_type)?;
     kind.kind_id = kind_id(FLOW_ZIP_FEEDBACK_KIND);
-    kind.kind_contract_revision = KindIdentity::from("conduit.flow/zip-feedback@1");
+    kind.kind_contract_revision = KindIdentity::from("conduit.flow/zip-feedback@2");
     Ok(kind)
 }
 
@@ -133,7 +133,7 @@ mod tests {
                 profile.normal_close,
                 NormalCloseTransduction::FlushThenPropagate(FiniteTerminalEmission {
                     maximum_items: 1,
-                    maximum_bytes: encoder.maximum_bytes()
+                    maximum_bytes: encoder.maximum_encoded_bytes()
                 })
             );
             assert_eq!(profile.abnormal, AbnormalTerminalTransduction::NotAccepted);
@@ -204,7 +204,7 @@ pub fn flow_zip_exact_semantic_contract(
 ) -> Result<Kind, &'static str> {
     let mut kind = flow_zip_finite_semantic_contract(left, left_type, right, right_type)?;
     kind.kind_id = kind_id(FLOW_ZIP_EXACT_KIND);
-    kind.kind_contract_revision = KindIdentity::from("conduit.flow/zip-exact@1");
+    kind.kind_contract_revision = KindIdentity::from("conduit.flow/zip-exact@2");
     for law in &mut kind.semantic_laws {
         if let KindSemanticLaw::TerminalTransduction(profile) = law {
             let NormalCloseTransduction::FlushThenPropagate(bound) = profile.normal_close else {

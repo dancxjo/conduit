@@ -151,3 +151,38 @@ fn fixed_schema_composition_keeps_selected_envelope_without_reserving_it_all() {
     assert_eq!(cost.allocation_attempts, 0);
     assert_eq!(cost.reallocations, 0);
 }
+
+#[test]
+fn fixed_pair_output_bound_matches_actual_canonical_value_without_changing_input_limits() {
+    let mut pair = structured_encoder();
+    let selected = pair.maximum_bytes();
+    let exact = pair.maximum_encoded_bytes();
+    assert!(exact < selected);
+    for number in [0, 17, u64::MAX] {
+        assert_eq!(
+            pair.encode(
+                &record("test/pair-left", number),
+                &record("test/pair-right", number)
+            )
+            .unwrap()
+            .len(),
+            exact as usize
+        );
+    }
+    assert_eq!(pair.maximum_bytes(), selected);
+    assert!(pair
+        .encode(&vec![0; 1025], &record("test/pair-right", 0))
+        .is_err());
+}
+
+#[test]
+fn unknown_leaf_pair_keeps_the_full_selected_output_envelope() {
+    let pair = PreparedTypedTuplePairEncoder::new(
+        leaf("test/variable-payload"),
+        1024,
+        leaf("value/u64"),
+        8,
+    )
+    .unwrap();
+    assert_eq!(pair.maximum_encoded_bytes(), pair.maximum_bytes());
+}
