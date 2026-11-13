@@ -18,15 +18,18 @@ pub(super) fn selected(image: &HostImage) -> bool {
             .any(|base| base.driver == conduit_host_esp32_make::physical::DHT11)
 }
 pub(super) fn build(
-    profile: &Path,
-    output: &Path,
-    image: &HostImage,
-    description: &[u8],
-    private_input: Option<&Path>,
-    private_output: Option<&Path>,
-    workset: Option<&super::host_workset_source::WorksetSourceInput>,
+    input: super::host_build::EmbeddedInput<'_>,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let super::host_build::EmbeddedInput {
+        profile,
+        output,
+        image,
+        description,
+        private_input,
+        private_output,
+        workset,
+    } = input;
     let checked = super::load_configuration(profile)?;
     conduit_host_esp32_make::physical::CheckedPhysicalConstruction::from_configuration(&checked)?;
     if opts.dry_run {

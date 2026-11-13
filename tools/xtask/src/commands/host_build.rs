@@ -4,7 +4,10 @@ use super::{
     resolve_profile,
 };
 use crate::cli::GlobalOpts;
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 pub(super) struct Input {
     pub profile: PathBuf,
@@ -15,6 +18,16 @@ pub(super) struct Input {
     pub workset_specializations: Option<PathBuf>,
     pub private_seed_input: Option<PathBuf>,
     pub private_seed_output: Option<PathBuf>,
+}
+/// One resolved public image and its explicitly selected private build inputs.
+pub(super) struct EmbeddedInput<'a> {
+    pub profile: &'a Path,
+    pub output: &'a Path,
+    pub image: &'a conduit_host_make::HostImage,
+    pub description: &'a [u8],
+    pub private_input: Option<&'a Path>,
+    pub private_output: Option<&'a Path>,
+    pub workset: Option<&'a host_workset_source::WorksetSourceInput>,
 }
 pub(super) fn run(input: Input, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     let Input {
@@ -54,30 +67,21 @@ pub(super) fn run(input: Input, opts: &GlobalOpts) -> Result<(), Box<dyn std::er
             image.manifest.image_id
         );
     }
+    let embedded = EmbeddedInput {
+        profile: &profile_path,
+        output: &output,
+        image: &image,
+        description: &bytes,
+        private_input: private_seed_input.as_deref(),
+        private_output: private_seed_output.as_deref(),
+        workset: workset.as_ref(),
+    };
     if host_esp32_native::selected(&image) {
-        host_esp32_native::build(
-            &profile_path,
-            &output,
-            &image,
-            &bytes,
-            private_seed_input.as_deref(),
-            private_seed_output.as_deref(),
-            workset.as_ref(),
-            opts,
-        )?;
+        host_esp32_native::build(embedded, opts)?;
         return Ok(());
     }
     if image.manifest.target == conduit_host_rp2040::TARGET_ID {
-        host_rp2040::build(
-            &profile_path,
-            &output,
-            &image,
-            &bytes,
-            private_seed_input.as_deref(),
-            private_seed_output.as_deref(),
-            workset.as_ref(),
-            opts,
-        )?;
+        host_rp2040::build(embedded, opts)?;
         return Ok(());
     }
     if workset.is_some() {
