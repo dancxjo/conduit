@@ -144,9 +144,15 @@ fn encode(
         let index = usize::from(tag - 1);
         counts[index] = counts[index]
             .checked_add(1)
-            .ok_or(GenerationError::ArithmeticOverflow(
-                "assigned-plan record count",
-            ))?;
+            .ok_or(GenerationError::BoundExceeded {
+                table: if tag == ASSIGNED_SIGN {
+                    "assigned Sign records"
+                } else {
+                    "assigned-plan record count"
+                },
+                actual: u64::from(u8::MAX) + 1,
+                maximum: u64::from(u8::MAX),
+            })?;
         put_record(&mut payload, tag, &value)?;
         Ok(())
     };

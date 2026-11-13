@@ -5,7 +5,7 @@ use crate::{
 };
 use conduit_core::AssignedComputationRequirement;
 pub(crate) fn validate_bindings(plan: &GeneratedEmbeddedPlan, resident: &[B]) -> Result<(), E> {
-    if resident.len() > 32 {
+    if resident.len() > conduit_core::MAXIMUM_ASSIGNED_COMPUTATIONS {
         return Err(E::InvalidComputationConfiguration);
     }
     for (i, b) in resident.iter().enumerate() {
@@ -123,6 +123,33 @@ pub fn assigned_computation_requirements(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn physical_record_ceiling_reports_the_actual_shortage() {
+        let fragment = crate::tests::sealed_current_fragment();
+        let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&fragment).unwrap();
+        let mut plan = crate::generate_embedded_plan(
+            &fragment,
+            &lowered,
+            crate::EmbeddedImageBounds::HOST_TOOLING,
+        )
+        .unwrap();
+        plan.signs = vec![plan.signs[0].clone(); 256];
+        assert!(matches!(
+            crate::encode_assigned_plan(
+                &plan,
+                conduit_core::AssignedPlanMaxima {
+                    encoded_bytes: u16::MAX,
+                    runtime_state_bytes: u16::MAX,
+                    counts: [u8::MAX; conduit_core::ASSIGNED_PLAN_COUNT_KINDS],
+                }
+            ),
+            Err(E::BoundExceeded {
+                table: "assigned Sign records",
+                actual: 256,
+                maximum: 255
+            })
+        ));
+    }
     #[test]
     fn selector_reference_is_explicit_and_leaves_other_configuration_literal() {
         let entry = Entry {
