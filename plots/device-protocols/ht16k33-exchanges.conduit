@@ -76,4 +76,3 @@ plot ht16k33-write-exchange-selected (
     outcomes >> select(Ht16k33Action.refused, unmatched=drop) >> errors.right
     errors.merged >> refused
 }
-

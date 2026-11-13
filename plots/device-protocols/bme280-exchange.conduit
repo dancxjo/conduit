@@ -68,4 +68,3 @@ plot bme280-exchange-selected (
     outcomes >> select(BmeClockEvent.failed, unmatched=drop) >> clock_failed
     join.paired >> bme280-feedback-join-selected(pair-type = feedback-type) >> bme280-protocol-transition() >> bme280-protocol-frame() >> cell.next
 }
-
