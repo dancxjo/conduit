@@ -319,7 +319,7 @@ impl Workset {
         std::fs::write(out.join("workset.rs"), index).map_err(|e| e.to_string())
     }
 }
-fn install(
+pub(crate) fn install(
     kind: conduit_core::Kind,
     startup: &mut p::StartupCatalog,
     profiles: &mut p::ProfileCatalog,

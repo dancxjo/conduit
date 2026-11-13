@@ -10,6 +10,8 @@ pub struct ValueReference<'a> {
 pub enum Specialization<'a> {
     SeededUntil(ValueReference<'a>),
     Merge(ValueReference<'a>),
+    /// Explicit canonical typed-family import; no hidden Source rewrite.
+    MergeInstance(ValueReference<'a>),
     Zip {
         left: ValueReference<'a>,
         right: ValueReference<'a>,
@@ -50,10 +52,11 @@ pub(crate) fn install(
     // checked after installation; this temporary view confers no Plot authority.
     let mut declarations = syntax.clone();
     declarations.uses.retain(|import| {
-        !matches!(
-            import.path.as_str(),
-            "flow/zip/finite/paired" | "flow/zip/feedback/paired"
-        )
+        !import.path.starts_with("flow/merge/finite/typed-")
+            && !matches!(
+                import.path.as_str(),
+                "flow/zip/finite/paired" | "flow/zip/feedback/paired"
+            )
     });
     let types = p::prepare_source_types(&declarations, startup)
         .map_err(|e| format!("composite Types: {e:?}"))?;
@@ -95,6 +98,20 @@ pub(crate) fn install(
                     profiles,
                 )?;
             }
+            Specialization::MergeInstance(v) => {
+                let v = value(v)?;
+                let mut kind = conduit_semantic_catalog::flow_merge_finite_semantic_contract(
+                    &v.contract,
+                    &v.schema,
+                )
+                .map_err(str::to_owned)?;
+                kind.kind_id = c::typed_kind_instance_id(
+                    kind.kind_id.as_str(),
+                    core::iter::once((&v.schema, &v.contract)),
+                )
+                .map_err(debug)?;
+                crate::workset::install(kind, startup, profiles)?;
+            }
             Specialization::Zip {
                 left,
                 right,
@@ -124,7 +141,13 @@ pub(crate) fn selected(
     gear: &p::CheckedGear,
     types: Option<&p::CheckedSyntaxDocument>,
 ) -> Result<Option<(c::Kind, Role)>, String> {
-    let name = gear.kind_id.as_str();
+    let selected_name = gear.kind_id.as_str();
+    let typed_merge = selected_name.starts_with("flow/merge/finite/typed-");
+    let name = if typed_merge {
+        "flow/merge/finite"
+    } else {
+        selected_name
+    };
     if ![
         "state/seeded/flow/until",
         "flow/merge/finite",
@@ -159,7 +182,7 @@ pub(crate) fn selected(
             .ok_or("composite schema custody")?;
         Ok(Value { contract, schema })
     };
-    let (kind, role) = match name {
+    let (mut kind, role) = match name {
         "state/seeded/flow/until" => {
             let v = input("seed")?;
             conduit_composite::SeededStateBack::prepare_until(&v.contract, &v.schema)
@@ -217,6 +240,19 @@ pub(crate) fn selected(
             )
         }
     };
+    if typed_merge {
+        let Role::Merge(value) = &role else {
+            unreachable!("typed merge role")
+        };
+        kind.kind_id = c::typed_kind_instance_id(
+            "flow/merge/finite",
+            core::iter::once((&value.schema, &value.contract)),
+        )
+        .map_err(debug)?;
+        if kind.kind_id.as_str() != selected_name {
+            return Err("typed merge identity differs from checked schema/contract".into());
+        }
+    }
     Ok(Some((kind, role)))
 }
 
@@ -387,3 +423,7 @@ mod tests {
 #[cfg(test)]
 #[path = "correlated_i2c_tests.rs"]
 mod correlated_i2c_tests;
+
+#[cfg(test)]
+#[path = "composite_instance_tests.rs"]
+mod instance_tests;
