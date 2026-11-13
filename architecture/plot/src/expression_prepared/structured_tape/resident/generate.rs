@@ -161,13 +161,13 @@ pub fn generate_static_structured_expression(
         ));
     }
     let c = children.len();
-    source.push_str(&format!("];\nstatic PROGRAM: conduit_plot::StaticStructuredProgram = conduit_plot::StaticStructuredProgram {{ instructions:CODE,constants:&{:?},maximum_input_bytes:{maximum_input},maximum_output_bytes:{maximum_output} }};\npub const CHILD_COUNT: usize = {c};\npub type Expression = conduit_plot::StaticStructuredExpression<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},{c}>;\npub const RUNTIME_STATE_BYTES: usize=core::mem::size_of::<Expression>();\npub fn prepare()->Result<Expression,conduit_plot::StaticStructuredRefusal>{{Ok(Expression::new(input_native::prepare().map_err(conduit_plot::StaticStructuredRefusal::Input)?,output_native::prepare().map_err(conduit_plot::StaticStructuredRefusal::Output)?,[",tape.constants));
+    source.push_str(&format!("];\nstatic PROGRAM: conduit_plot::StaticStructuredProgram = conduit_plot::StaticStructuredProgram {{ instructions:CODE,constants:&{:?},maximum_input_bytes:{maximum_input},maximum_output_bytes:{maximum_output} }};\npub const CHILD_COUNT: usize = {c};\npub type Expression = conduit_plot::StaticStructuredExpression<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},{c}>;\npub const RUNTIME_STATE_BYTES: usize=core::mem::size_of::<Expression>();\npub fn prepare()->Result<Expression,conduit_plot::StaticStructuredRefusal>{{let input=input_native::prepare().map_err(conduit_plot::StaticStructuredRefusal::Input)?;let output=output_native::prepare().map_err(conduit_plot::StaticStructuredRefusal::Output)?;let children=[",tape.constants));
     for (i, child) in children.iter().enumerate() {
         match child {
-            ChildImage::Scalar(_)=>source.push_str(&format!("conduit_plot::StaticStructuredValue::Scalar(child_{i}::prepare().map_err(|refusal|conduit_plot::StaticStructuredRefusal::Child {{index:{i},refusal}})?),")),
+            ChildImage::Scalar(_)=>source.push_str(&format!("conduit_plot::StaticStructuredValue::Scalar(child_{i}::prepare_with_input(input.clone()).map_err(|refusal|conduit_plot::StaticStructuredRefusal::Child {{index:{i},refusal}})?),")),
             ChildImage::InputPath(path)=>source.push_str(&format!("conduit_plot::StaticStructuredValue::InputPath(&[{path}]),")),
         }
     }
-    source.push_str("],&PROGRAM)?) }\n");
+    source.push_str("];Ok(Expression::new(input,output,children,&PROGRAM)?) }\n");
     Ok(source)
 }

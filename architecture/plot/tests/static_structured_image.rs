@@ -502,11 +502,11 @@ pub fn check_state() {
         "fn main(){image::check_state();}",
         "parent-checked-child-state",
     );
-    // Keep children on the original Native definition; change only the parent.
+    // Supply one child a different prepared definition; the parent stays exact.
     // Equal shape alone cannot justify discarding a child's validator.
     for (name, bound, occurrences) in [("bound", 4095, 4096), ("occurrences", 4096, 4095)] {
         let altered = image.replacen("mod input_native {", &format!("mod input_native {{\npub fn altered()->Result<conduit_plot::rust_binding::ResidentNativeValidator<CONTRACT_COUNT>,conduit_plot::rust_binding::PreparedNativeRefusal>{{conduit_plot::rust_binding::ResidentNativeValidator::new(TYPE,{bound},&CONTRACTS,&SCOPES,{occurrences})}}\n"), 1)
-            .replace("Expression::new(input_native::prepare()", "Expression::new(input_native::altered()");
+            .replacen("prepare_with_input(input.clone())", "prepare_with_input(input_native::altered().unwrap())", 1);
         assert_ne!(altered, image);
         compiled_rust::verify(&format!("mod image{{\n{altered}\n}}"), "fn main(){assert!(matches!(image::prepare(),Err(conduit_plot::StaticStructuredRefusal::Expression(conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram))));}", &format!("parent-child-{name}-mismatch"));
     }

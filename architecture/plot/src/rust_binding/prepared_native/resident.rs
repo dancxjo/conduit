@@ -24,6 +24,10 @@ pub struct StaticNativeContract {
 /// This checks values only; it creates no ordinary Native admission witness,
 /// offer or authority. Root must bind the checked image and admit complete state,
 /// stack, schema traversal and predicate work before installing this realization.
+// Cloning copies validated immutable views only: no value, mutable equipment,
+// reservation or Native admission witness is duplicated. Constructor children
+// can reuse the parent's checked definition without preparing it repeatedly.
+#[derive(Clone)]
 pub struct ResidentNativeValidator<const CONTRACTS: usize> {
     schema: BorrowedStructuredValueValidator<'static>,
     contracts: &'static [StaticNativeContract; CONTRACTS],

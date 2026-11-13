@@ -133,7 +133,19 @@ pub(in crate::expression_prepared) fn generate_with_native(
     if maximum > bounds.canonical_bytes {
         return Err(Refusal::UnsupportedType("projected-image/input-bound@1".into()).into());
     }
-    source.push_str(&format!("];\npub const RUNTIME_STATE_BYTES: usize = core::mem::size_of::<conduit_plot::StaticProjectedExpression<{{native::CONTRACT_COUNT}}>>();\npub fn prepare() -> Result<conduit_plot::StaticProjectedExpression<{{native::CONTRACT_COUNT}}>, conduit_plot::StaticProjectedRefusal> {{ Ok(conduit_plot::StaticProjectedExpression::new(native::prepare()?, {maximum}, conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{output:?}, INSTRUCTIONS, {}, INPUTS, {output_contract})?) }}\n", tape.result));
+    // A structured parent has already prepared this exact immutable Native
+    // definition. Keep standalone preparation independent, but let its children
+    // copy the validated view rather than repeat schema/predicate preparation.
+    let (prepare_name, prepare_input, native_input) = if shared_native.is_some() {
+        (
+            "prepare_with_input",
+            "input:conduit_plot::rust_binding::ResidentNativeValidator<{native::CONTRACT_COUNT}>",
+            "input",
+        )
+    } else {
+        ("prepare", "", "native::prepare()?")
+    };
+    source.push_str(&format!("];\npub const RUNTIME_STATE_BYTES: usize = core::mem::size_of::<conduit_plot::StaticProjectedExpression<{{native::CONTRACT_COUNT}}>>();\npub fn {prepare_name}({prepare_input}) -> Result<conduit_plot::StaticProjectedExpression<{{native::CONTRACT_COUNT}}>, conduit_plot::StaticProjectedRefusal> {{ Ok(conduit_plot::StaticProjectedExpression::new({native_input}, {maximum}, conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{output:?}, INSTRUCTIONS, {}, INPUTS, {output_contract})?) }}\n", tape.result));
     Ok(source)
 }
 
