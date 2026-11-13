@@ -25,15 +25,25 @@ fn the_selected_plan_retains_why_the_reference_profile_was_offered() {
         offer.implementation.implementation_id.as_str(),
         conduit_std_offers::PURE_EXPRESSION_STD_IMPLEMENTATION
     );
-    let evidence = StructuredInfoValue::from_canonical_bytes(
-        offer.realization_properties[0].canonical_value(),
-    )
-    .unwrap();
+    let profile = super::selection_evidence::property("").unwrap();
+    let mut evidence = offer
+        .realization_properties
+        .iter()
+        .filter(|property| property.profile() == profile.profile());
+    let property = evidence.next().expect("exact selection evidence profile");
+    assert!(
+        evidence.next().is_none(),
+        "selection evidence must be unique"
+    );
+    let evidence = StructuredInfoValue::from_canonical_bytes(property.canonical_value()).unwrap();
     let StructuredInfoValueShape::Record(fields) = evidence.shape() else {
         panic!()
     };
-    assert_eq!(fields[0].name(), "tape-profile-refusal");
-    let StructuredInfoValueShape::Leaf(bytes) = fields[0].value().shape() else {
+    let refusal = fields
+        .iter()
+        .find(|field| field.name() == "tape-profile-refusal")
+        .expect("the selected profile must retain its exact refusal evidence");
+    let StructuredInfoValueShape::Leaf(bytes) = refusal.value().shape() else {
         panic!()
     };
     assert!(std::str::from_utf8(bytes)
