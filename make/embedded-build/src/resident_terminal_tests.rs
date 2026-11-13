@@ -1,8 +1,7 @@
 //! Production-emitted wrappers around a terminal-bearing test Back. Supported
 //! expression engines still reject planned terminal laws; this isolates exact
 //! forwarding without pretending that a new expression semantic was added.
-#[path = "../../../architecture/plot/tests/common/compiled_rust.rs"]
-mod compiled_rust;
+use crate::resident_expression_tests::compiled_rust;
 #[test]
 fn emitted_resident_wrappers_preserve_actual_nonempty_laws_without_withdrawal() {
     let mut code = String::from(

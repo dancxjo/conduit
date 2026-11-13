@@ -27,6 +27,8 @@ pub enum ResidentExpressionRefusal {
     Program,
     Generation(conduit_plot::StaticStructuredGenerationRefusal),
     Bounds,
+    ProgramBytes { required: usize, maximum: u32 },
+    GeneratedBytes { required: usize, maximum: u32 },
     Plan,
     Selection,
     Contract,
@@ -64,6 +66,20 @@ impl PreparedResidentExpression {
         temporal: c::PortTemporal,
         bounds: ResidentExpressionBounds,
     ) -> Result<Self, ResidentExpressionRefusal> {
+        Self::prepare_instance(document, program, temporal, bounds, None)
+    }
+    /// Prepare an explicitly distinct initialized owner for shared checked code.
+    /// The instance label describes cold construction; it grants no custody.
+    pub fn prepare_instance(
+        document: &CheckedSyntaxDocument,
+        program: &PortableExpressionProgram,
+        temporal: c::PortTemporal,
+        bounds: ResidentExpressionBounds,
+        instance: Option<&str>,
+    ) -> Result<Self, ResidentExpressionRefusal> {
+        if instance.is_some_and(|name| name.is_empty() || name.len() > 1024) {
+            return Err(ResidentExpressionRefusal::Bounds);
+        }
         use ResidentExpressionRefusal as R;
         if !matches!(
             temporal,
@@ -76,7 +92,10 @@ impl PreparedResidentExpression {
         }
         let binary = program.canonical_bytes().map_err(|_| R::Program)?;
         if binary.len() as u64 > u64::from(bounds.maximum_program_bytes) {
-            return Err(R::Bounds);
+            return Err(R::ProgramBytes {
+                required: binary.len(),
+                maximum: bounds.maximum_program_bytes,
+            });
         }
         let definition = conduit_plot::portable_expression_definition(program, temporal)
             .map_err(|_| R::Contract)?;
@@ -103,7 +122,19 @@ impl PreparedResidentExpression {
             bounds.private_work_units
         ));
         if code.len() as u64 > u64::from(bounds.maximum_generated_bytes) {
-            return Err(R::Bounds);
+            return Err(R::GeneratedBytes {
+                required: code.len(),
+                maximum: bounds.maximum_generated_bytes,
+            });
+        }
+        if let Some(instance) = instance {
+            let digest: [u8; 32] = Sha256::digest(instance.as_bytes()).into();
+            // The instance marker belongs to the generated realization, not the
+            // pure program's Kind. Assigned-node artifact pins distinguish the
+            // initialized owners even though they execute identical code.
+            code.push_str(&format!(
+                "pub const INITIALIZED_INSTANCE:[u8;32]={digest:?};\n"
+            ));
         }
         let digest = Sha256::digest(code.as_bytes());
         let artifact = format!("conduit.expression/resident-source@1/{digest:x}").into();
@@ -113,9 +144,13 @@ impl PreparedResidentExpression {
             temporal,
             &artifact,
             bounds.private_work_units,
+            instance,
         )?;
         if code.len() as u64 > u64::from(bounds.maximum_generated_bytes) {
-            return Err(R::Bounds);
+            return Err(R::GeneratedBytes {
+                required: code.len(),
+                maximum: bounds.maximum_generated_bytes,
+            });
         }
         Ok(Self {
             source_document: document.source_document_id.clone(),

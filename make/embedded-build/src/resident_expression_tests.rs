@@ -3,7 +3,7 @@ use crate::*;
 use conduit_core::*;
 use conduit_plot::*;
 #[path = "../../../architecture/plot/tests/common/compiled_rust.rs"]
-mod compiled_rust;
+pub(super) mod compiled_rust;
 pub(super) fn context() -> (CheckedSyntaxDocument, PortableExpressionProgram) {
     let types = check_syntax_document(
         &parse_syntax_document(include_str!(
@@ -77,7 +77,7 @@ fn seal(fragment: PlanFragment) -> Plan {
         vec![fragment],
     )
 }
-fn plan(
+pub(super) fn plan(
     d: &CheckedSyntaxDocument,
     p: &PortableExpressionProgram,
     image: &PreparedResidentExpression,
@@ -87,11 +87,7 @@ fn plan(
     f.source_document_id = d.source_document_id.clone();
     let def = portable_expression_definition(p, PortTemporal::Value).unwrap();
     let g = &mut f.placements[1];
-    g.capability_id = format!(
-        "{RESIDENT_EXPRESSION_PROFILE}/{}",
-        image.artifact_id().as_str()
-    )
-    .into();
+    g.capability_id = image.offer_description().capability_id.clone();
     g.limits = CapabilityLimits {
         max_active_instances: 1,
         max_queue_items: 1,
