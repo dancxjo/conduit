@@ -1,5 +1,8 @@
 //! Real commit/retry/cancellation semantics for an immutable typed fact.
-use conduit_core::{kind_id, StructuredInfoType as T, StructuredInfoValue as V};
+use conduit_core::{
+    kind_id, StructuredFieldType, StructuredFieldValue, StructuredInfoType as T,
+    StructuredInfoValue as V,
+};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
@@ -10,11 +13,19 @@ mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 fn fixture() -> (Vec<u8>, Vec<u8>) {
-    let ty = T::leaf(kind_id("value/u8")).unwrap();
-    let value = V::leaf(ty.clone(), vec![42])
-        .unwrap()
-        .canonical_bytes()
-        .unwrap();
+    let address = T::leaf(kind_id("value/u8")).unwrap();
+    let ty = T::record(
+        kind_id("fixture/public-base-configuration@1"),
+        vec![StructuredFieldType::new("address", address.clone()).unwrap()],
+    )
+    .unwrap();
+    let value = V::record(
+        ty.clone(),
+        vec![StructuredFieldValue::new("address", V::leaf(address, vec![118]).unwrap()).unwrap()],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
     (ty.canonical_bytes().unwrap(), value)
 }
 fn frame(ready: bool, fuel: u16) -> StepIo<1> {

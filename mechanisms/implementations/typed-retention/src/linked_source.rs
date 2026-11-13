@@ -9,6 +9,9 @@ use conduit_kernel::{
 /// as public Base configuration. This implementation creates no Kind, native
 /// law witness, readiness, resource grant or Start authority. The Source/Host
 /// factory must bind the exact output contract and discharge native laws.
+/// The value uses canonical structured-value framing, including for a leaf;
+/// this is not a raw primitive-byte producer. The selected output contract must
+/// accept that representation.
 /// Borrowed bytes must remain funded and immutable for the complete Play.
 /// Preparation and execution allocate nothing; no canonical value is copied.
 /// The emitting step requires two fuel units (the local action and prepared
