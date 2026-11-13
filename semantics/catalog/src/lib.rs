@@ -48,6 +48,8 @@ mod prepared_canonical_selector;
 pub use prepared_canonical_selector::PreparedCanonicalSelector;
 mod structured_values;
 pub use structured_values::*;
+mod installed_value;
+pub use installed_value::*;
 mod flow_coalesce_finite;
 pub use flow_coalesce_finite::*;
 mod flow_pressure;
