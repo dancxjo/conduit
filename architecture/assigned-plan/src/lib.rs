@@ -14,7 +14,9 @@ mod fore;
 pub use fore::*;
 mod native;
 mod records;
-pub use computation::{AssignedComputationProfile, AssignedComputationRequirement};
+pub use computation::{
+    AssignedComputationProfile, AssignedComputationRequirement, MAXIMUM_ASSIGNED_COMPUTATIONS,
+};
 pub use native::*;
 pub use records::{AssignedPlanRecords, AssignedRecord, AssignedRecordRequirement};
 mod sha256;
