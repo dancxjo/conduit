@@ -81,8 +81,10 @@ part of this protocol. Acknowledged means bus acknowledgement, not optical
 verification. CPU conformance checks command order, error propagation and
 allocation-free prepared evaluation. Installed MCU execution is still pending.
 
-`ht16k33-feedback.conduit` composes those expressions with the ordinary selected
-I2C Back. `ht16k33-initialize-display` uses the generic terminal state cell and
+`ht16k33-exchanges.conduit` owns the initialization/write topology and accepts
+exact checked state, pairing and error-merge selections through ordinary Type
+and Kind parameters. `ht16k33-feedback.conduit` supplies explicit isolated-device
+adapters selecting the ordinary families and I2C Back. `ht16k33-initialize-display` uses the generic terminal state cell and
 feedback zip to advance from each bus result, publishing acknowledgement or
 the original failure before closing. `ht16k33-write-display` routes one mapped
 RAM frame through the same transaction Kind. Neither Plot selects an attachment
@@ -118,9 +120,12 @@ and normal completion with the exact retained state and pairing owners. This
 proves Source feedback execution with supplied events. The autonomous entry
 adds native bus/time event production and terminal closure.
 
-`bme280-autonomous.conduit` now checks and expands the bus/time event topology
-into 52 gears including decoding, compensation and terminal closure. Source adapters request exact wait deadlines, timestamp bus
-results with the clock's observed time, and preserve clock failures separately.
+`bme280-exchange.conduit` owns the bus/time event topology, with explicit
+checked state, feedback-pair, clock-pair and context-merge parameters.
+`bme280-autonomous.conduit` supplies an isolated-device selection; its expanded
+topology includes decoding, compensation and terminal closure. Source adapters
+request exact wait deadlines, timestamp bus results with the clock's observed
+time, and preserve clock failures separately.
 The generic `flow/merge/finite` retains both input lifetimes and closes only
 after both inputs drain. The graph plans against separately retained I2C and
 clock offers with exact authority. Deterministic fixtures prepare, start and
@@ -243,3 +248,13 @@ those Fores through one admitted controller service. BME280 deadlines remain
 part of its protocol composition. No register, timing or failure behavior moves
 into the router. A supplied typed result alone is not hardware provenance: the
 containing exact Plan and granted physical provider still establish that path.
+
+`environmental-exchange.conduit` composes the selected BME exchange, HT setup
+and frame write with one selected correlated bus exchange. Two ordinary merge
+instances combine the three request lanes; responses route by explicit ordinary
+context, and unknown contexts remain observable. Routing sequence zero is not an
+observation identity. The caller must receive initialization acknowledgement
+before supplying display frames. Construction tests check the real libraries
+with nine distinct typed family selections and exactly one native bus and clock;
+they preserve typed bus failures and unknown contexts. This is checked Source
+composition, not proof of MCU memory fit, admission, recording or physical Play.

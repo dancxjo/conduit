@@ -1,0 +1,173 @@
+
+plot chosen-bme-cell (
+ >> seed: BmeProtocolFrame...|
+ >> next: BmeProtocolFrame...|
+ current: BmeProtocolFrame...| >>
+) {
+ cell: BmeCell
+ seed >> cell.seed
+ next >> cell.next
+ cell.current >> current
+}
+plot chosen-ht-cell (
+ >> seed: Ht16k33ProtocolFrame...|
+ >> next: Ht16k33ProtocolFrame...|
+ current: Ht16k33ProtocolFrame...| >>
+) {
+ cell: HtCell
+ seed >> cell.seed
+ next >> cell.next
+ cell.current >> current
+}
+plot chosen-bme-feedback (
+ >> left: BmeProtocolState...|
+ >> right: BmeProtocolEvent...|
+ paired: BmeFeedbackPair...| >>
+) {
+ pair: BmeFeedback
+ left >> pair.left
+ right >> pair.right
+ pair.paired >> paired
+}
+plot chosen-ht-feedback (
+ >> left: Ht16k33State...|
+ >> right: I2cResult...|
+ paired: HtFeedbackPair...| >>
+) {
+ pair: HtFeedback
+ left >> pair.left
+ right >> pair.right
+ pair.paired >> paired
+}
+plot chosen-clock-pair (
+ >> left: BmeClockContext...|
+ >> right: ClockResult...|
+ paired: BmeClockPair...| >>
+) {
+ pair: BmeClockPairing
+ left >> pair.left
+ right >> pair.right
+ pair.paired >> paired
+}
+plot chosen-bus-pair (
+ >> left: I2cCorrelation...|
+ >> right: I2cResult...|
+ paired: BusPair...| >>
+) {
+ pair: BusPairing
+ left >> pair.left
+ right >> pair.right
+ pair.paired >> paired
+}
+plot chosen-contexts (
+ >> left: BmeClockContext...|
+ >> right: BmeClockContext...|
+ merged: BmeClockContext...| >>
+) {
+ merge: BmeContexts
+ left >> merge.left
+ right >> merge.right
+ merge.merged >> merged
+}
+plot chosen-errors (
+ >> left: Ht16k33Failure...|
+ >> right: Ht16k33Failure...|
+ merged: Ht16k33Failure...| >>
+) {
+ merge: HtErrors
+ left >> merge.left
+ right >> merge.right
+ merge.merged >> merged
+}
+plot chosen-requests (
+ >> left: I2cCorrelatedRequest...|
+ >> right: I2cCorrelatedRequest...|
+ merged: I2cCorrelatedRequest...| >>
+) {
+ merge: Requests
+ left >> merge.left
+ right >> merge.right
+ merge.merged >> merged
+}
+plot chosen-sensor (
+ >> begin: BmeProtocolBegin...|
+ >> result: I2cResult...|
+ request: I2cTransaction...| >>
+ captured: BmeProtocolState...| >>
+ observation: BmeObservationResult...| >>
+ refused: BmeProtocolFailure...| >>
+ clock_failed: ClockResult...| >>
+) {
+ protocol: bme280-exchange-selected(feedback-type = BmeFeedbackPair, clock-pair-type = BmeClockPair, state-cell = chosen-bme-cell, feedback-pairing = chosen-bme-feedback, context-merge = chosen-contexts, clock-pairing = chosen-clock-pair)
+ begin >> protocol.begin
+ result >> protocol.result
+ protocol.request >> request
+ protocol.captured >> captured
+ protocol.observation >> observation
+ protocol.refused >> refused
+ protocol.clock_failed >> clock_failed
+}
+plot chosen-initialization (
+ >> configuration: Ht16k33Configuration...|
+ >> result: I2cResult...|
+ request: I2cTransaction...| >>
+ acknowledged: Ht16k33Acknowledgement...| >>
+ refused: Ht16k33Failure...| >>
+) {
+ protocol: ht16k33-initialize-exchange-selected(pair-type = HtFeedbackPair, state-cell = chosen-ht-cell, pairing = chosen-ht-feedback)
+ configuration >> protocol.configuration
+ result >> protocol.result
+ protocol.request >> request
+ protocol.acknowledged >> acknowledged
+ protocol.refused >> refused
+}
+plot chosen-write (
+ >> frame: Ht16k33Frame...|
+ >> result: I2cResult...|
+ request: I2cTransaction...| >>
+ acknowledged: Ht16k33Acknowledgement...| >>
+ refused: Ht16k33Failure...| <= 4096B >>
+) {
+ protocol: ht16k33-write-exchange-selected(error-merge = chosen-errors)
+ frame >> protocol.frame
+ result >> protocol.result
+ protocol.request >> request
+ protocol.acknowledged >> acknowledged
+ protocol.refused >> refused
+}
+plot chosen-bus (
+ >> request: I2cCorrelatedRequest...|
+ result: I2cCorrelatedResult...| >>
+) {
+ bus: i2c-correlated-exchange(pair-type = BusPair, pairing = chosen-bus-pair)
+ request >> bus.request
+ bus.result >> result
+}
+plot shared-environment (
+ >> begin: BmeProtocolBegin...|
+ >> configuration: Ht16k33Configuration...|
+ >> frame: Ht16k33Frame...|
+ captured: BmeProtocolState...| >>
+ observation: BmeObservationResult...| >>
+ sensor_refused: BmeProtocolFailure...| >>
+ clock_failed: ClockResult...| >>
+ initialized: Ht16k33Acknowledgement...| >>
+ initialization_refused: Ht16k33Failure...| >>
+ written: Ht16k33Acknowledgement...| >>
+ write_refused: Ht16k33Failure...| <= 4096B >>
+ unrouted: I2cCorrelatedResult...| >>
+) {
+ instrument: environmental-exchange(sensor-protocol = chosen-sensor, initialization-protocol = chosen-initialization, write-protocol = chosen-write, correlated-bus = chosen-bus, request-merge = chosen-requests)
+ begin >> instrument.begin
+ configuration >> instrument.configuration
+ frame >> instrument.frame
+ instrument.captured >> captured
+ instrument.observation >> observation
+ instrument.sensor_refused >> sensor_refused
+ instrument.clock_failed >> clock_failed
+ instrument.initialized >> initialized
+ instrument.initialization_refused >> initialization_refused
+ instrument.written >> written
+ instrument.write_refused >> write_refused
+ instrument.unrouted >> unrouted
+}

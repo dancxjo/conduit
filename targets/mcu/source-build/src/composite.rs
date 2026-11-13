@@ -209,16 +209,11 @@ mod tests {
     fn authored_bme_protocol_compiles_through_shared_mcu_source() {
         let units = [
             include_str!("../../../../plots/device-protocols/bme280-lifecycle.conduit"),
-            // This entry needs the shared join, not the separate externally
-            // driven finite-feedback demonstration in the same source file.
-            include_str!("../../../../plots/device-protocols/bme280-feedback.conduit")
-                .split("\nplot bme280-feedback")
-                .next()
-                .unwrap(),
             include_str!("../../../../plots/device-protocols/bme280-clock-events.conduit"),
             include_str!("../../../../plots/device-protocols/main.conduit"),
             include_str!("../../../../plots/device-protocols/bme280-capture-observation.conduit"),
             include_str!("../../../../plots/device-protocols/bme280-protocol-frame.conduit"),
+            include_str!("../../../../plots/device-protocols/bme280-exchange.conduit"),
             include_str!("../../../../plots/device-protocols/bme280-autonomous.conduit"),
         ];
         let imports = units
@@ -355,3 +350,11 @@ mod instance_tests;
 #[cfg(test)]
 #[path = "composite_zip_instance_tests.rs"]
 mod zip_instance_tests;
+
+#[cfg(test)]
+#[path = "composite_ht_protocol_tests.rs"]
+mod ht_protocol_tests;
+
+#[cfg(test)]
+#[path = "composite_shared_bus_tests.rs"]
+mod shared_bus_tests;

@@ -1,21 +1,42 @@
 with flow/zip/feedback/paired as Ht16k33Pair
 
-type Ht16k33ProtocolFrame = {
-    value: Ht16k33State
-    terminal: Boolean
+# Legacy single-specialization adapters. Combined workloads load the generic
+# ht16k33-exchanges library and supply their exact typed selections instead.
+plot ht16k33-default-state-cell (
+    >> seed: Ht16k33ProtocolFrame...|
+    >> next: Ht16k33ProtocolFrame...|
+    current: Ht16k33ProtocolFrame...| >>
+) {
+    cell: state/seeded/flow/until
+    seed >> cell.seed
+    next >> cell.next
+    cell.current >> current
 }
-plot ht16k33-protocol-frame (
-    state: Ht16k33State...| >> frame: Ht16k33ProtocolFrame...|
-) = ({ value: ., terminal: .phase >= 5 })
-plot ht16k33-protocol-state (
-    frame: Ht16k33ProtocolFrame...| >> state: Ht16k33State...|
-) = (.value)
+plot ht16k33-default-pairing (
+    >> left: Ht16k33State...|
+    >> right: I2cResult...|
+    paired: Ht16k33Pair...| >>
+) {
+    join: flow/zip/feedback
+    left >> join.left
+    right >> join.right
+    join.paired >> paired
+}
+plot ht16k33-default-error-merge (
+    >> left: Ht16k33Failure...|
+    >> right: Ht16k33Failure...|
+    merged: Ht16k33Failure...| >>
+) {
+    errors: flow/merge/finite
+    left >> errors.left
+    right >> errors.right
+    errors.merged >> merged
+}
 plot ht16k33-join (
     pair: Ht16k33Pair...| >> transition: Ht16k33Transition...|
-) = ({ state: .0, result: .1 })
-
-# Only the selected bus result advances the feedback cell. The terminal frame
-# is published before closing, including failures; there is no host-side retry.
+) {
+    pair >> ht16k33-join-selected(pair-type = Ht16k33Pair) >> transition
+}
 plot ht16k33-initialize-exchange (
     >> configuration: Ht16k33Configuration...|
     >> result: I2cResult...|
@@ -23,23 +44,13 @@ plot ht16k33-initialize-exchange (
     acknowledged: Ht16k33Acknowledgement...| >>
     refused: Ht16k33Failure...| >>
 ) {
-    cell: state/seeded/flow/until
-    states: ht16k33-protocol-state
-    actions: ht16k33-action
-    join: flow/zip/feedback
-    configuration >> ht16k33-initialize() >> ht16k33-protocol-frame() >> cell.seed
-    cell.current >> states
-    states >> join.left
-    states >> actions
-    actions >> select(Ht16k33Action.transact, unmatched=drop) >> request
-    actions >> select(Ht16k33Action.acknowledged, unmatched=drop) >> acknowledged
-    actions >> select(Ht16k33Action.refused, unmatched=drop) >> refused
-    result >> join.right
-    join.paired >> ht16k33-join() >> ht16k33-transition() >> ht16k33-protocol-frame() >> cell.next
+    protocol: ht16k33-initialize-exchange-selected(pair-type = Ht16k33Pair, state-cell = ht16k33-default-state-cell, pairing = ht16k33-default-pairing)
+    configuration >> protocol.configuration
+    result >> protocol.result
+    protocol.request >> request
+    protocol.acknowledged >> acknowledged
+    protocol.refused >> refused
 }
-
-# Mapping a Face to RAM is a separate Mask responsibility. This Plot transfers
-# that RAM once and reports only the selected bus's write outcome.
 plot ht16k33-write-exchange (
     >> frame: Ht16k33Frame...|
     >> result: I2cResult...|
@@ -47,16 +58,12 @@ plot ht16k33-write-exchange (
     acknowledged: Ht16k33Acknowledgement...| >>
     refused: Ht16k33Failure...| <= 4096B >>
 ) {
-    requests: ht16k33-frame-request
-    outcomes: ht16k33-write-outcome
-    errors: flow/merge/finite
-    frame >> requests
-    requests >> select(Ht16k33Action.transact, unmatched=drop) >> request
-    requests >> select(Ht16k33Action.refused, unmatched=drop) >> errors.left
-    result >> outcomes
-    outcomes >> select(Ht16k33Action.acknowledged, unmatched=drop) >> acknowledged
-    outcomes >> select(Ht16k33Action.refused, unmatched=drop) >> errors.right
-    errors.merged >> refused
+    protocol: ht16k33-write-exchange-selected(error-merge = ht16k33-default-error-merge)
+    frame >> protocol.frame
+    result >> protocol.result
+    protocol.request >> request
+    protocol.acknowledged >> acknowledged
+    protocol.refused >> refused
 }
 
 # Single-client composition. Shared-controller compositions connect the same

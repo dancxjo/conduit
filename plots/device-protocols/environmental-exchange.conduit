@@ -1,0 +1,101 @@
+# One finite shared-controller instrument. These routing contexts are ordinary
+# info, not observations, capabilities or Host identities. Sequence zero is
+# reserved for this fixed routing basis; each protocol still owns its lifecycle.
+type EnvironmentalBusResult =
+    sensor I2cResult
+    | initialization I2cResult
+    | write I2cResult
+    | unrouted I2cCorrelatedResult
+
+plot environmental-sensor-request (
+    transaction: I2cTransaction...| >> request: I2cCorrelatedRequest...|
+) = ({ correlation: { client: 1, sequence: 0 }, transaction: . })
+plot environmental-initialization-request (
+    transaction: I2cTransaction...| >> request: I2cCorrelatedRequest...|
+) = ({ correlation: { client: 2, sequence: 0 }, transaction: . })
+plot environmental-write-request (
+    transaction: I2cTransaction...| >> request: I2cCorrelatedRequest...|
+) = ({ correlation: { client: 3, sequence: 0 }, transaction: . })
+plot environmental-route-result (
+    result: I2cCorrelatedResult...| >> routed: EnvironmentalBusResult...|
+) = (.correlation.sequence != 0 ? unrouted(.) : (.correlation.client == 1 ? sensor(.result) : (.correlation.client == 2 ? initialization(.result) : (.correlation.client == 3 ? write(.result) : unrouted(.)))))
+
+# The caller must receive initialized before supplying frame. This composition
+# does not manufacture initialization readiness, retries, or optical evidence.
+# A single selected correlated bus owns all physical transactions. Request
+# merges only arbitrate finite payloads; they grant no extra controller owner.
+plot environmental-exchange (
+    sensor-protocol: kind (
+        >> begin: BmeProtocolBegin...|
+        >> result: I2cResult...|
+        request: I2cTransaction...| >>
+        captured: BmeProtocolState...| >>
+        observation: BmeObservationResult...| >>
+        refused: BmeProtocolFailure...| >>
+        clock_failed: ClockResult...| >>
+    )
+    initialization-protocol: kind (
+        >> configuration: Ht16k33Configuration...|
+        >> result: I2cResult...|
+        request: I2cTransaction...| >>
+        acknowledged: Ht16k33Acknowledgement...| >>
+        refused: Ht16k33Failure...| >>
+    )
+    write-protocol: kind (
+        >> frame: Ht16k33Frame...|
+        >> result: I2cResult...|
+        request: I2cTransaction...| >>
+        acknowledged: Ht16k33Acknowledgement...| >>
+        refused: Ht16k33Failure...| <= 4096B >>
+    )
+    correlated-bus: kind (
+        >> request: I2cCorrelatedRequest...|
+        result: I2cCorrelatedResult...| >>
+    )
+    request-merge: kind (
+        >> left: I2cCorrelatedRequest...|
+        >> right: I2cCorrelatedRequest...|
+        merged: I2cCorrelatedRequest...| >>
+    )
+    >> begin: BmeProtocolBegin...|
+    >> configuration: Ht16k33Configuration...|
+    >> frame: Ht16k33Frame...|
+    captured: BmeProtocolState...| >>
+    observation: BmeObservationResult...| >>
+    sensor_refused: BmeProtocolFailure...| >>
+    clock_failed: ClockResult...| >>
+    initialized: Ht16k33Acknowledgement...| >>
+    initialization_refused: Ht16k33Failure...| >>
+    written: Ht16k33Acknowledgement...| >>
+    write_refused: Ht16k33Failure...| <= 4096B >>
+    unrouted: I2cCorrelatedResult...| >>
+) {
+    sensor: sensor-protocol
+    initialize: initialization-protocol
+    write: write-protocol
+    first: request-merge
+    all: request-merge
+    bus: correlated-bus
+    routed: environmental-route-result
+    begin >> sensor.begin
+    configuration >> initialize.configuration
+    frame >> write.frame
+    sensor.request >> environmental-sensor-request() >> first.left
+    initialize.request >> environmental-initialization-request() >> first.right
+    first.merged >> all.left
+    write.request >> environmental-write-request() >> all.right
+    all.merged >> bus.request
+    bus.result >> routed
+    routed >> select(EnvironmentalBusResult.sensor, unmatched=drop) >> sensor.result
+    routed >> select(EnvironmentalBusResult.initialization, unmatched=drop) >> initialize.result
+    routed >> select(EnvironmentalBusResult.write, unmatched=drop) >> write.result
+    routed >> select(EnvironmentalBusResult.unrouted, unmatched=drop) >> unrouted
+    sensor.captured >> captured
+    sensor.observation >> observation
+    sensor.refused >> sensor_refused
+    sensor.clock_failed >> clock_failed
+    initialize.acknowledged >> initialized
+    initialize.refused >> initialization_refused
+    write.acknowledged >> written
+    write.refused >> write_refused
+}

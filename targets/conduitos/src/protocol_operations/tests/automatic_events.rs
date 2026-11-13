@@ -71,6 +71,8 @@ pub(super) fn prepare_with_body_edit<
         include_str!("../../../../../plots/device-protocols/bme280-capture-observation.conduit");
     let frames =
         include_str!("../../../../../plots/device-protocols/bme280-protocol-frame.conduit");
+    let generic_exchange =
+        include_str!("../../../../../plots/device-protocols/bme280-exchange.conduit");
     let automatic = include_str!("../../../../../plots/device-protocols/bme280-autonomous.conduit");
     let combine = |units: &[&str]| {
         let imports = units
@@ -123,6 +125,7 @@ pub(super) fn prepare_with_body_edit<
             frames,
             decoding,
             observation,
+            generic_exchange,
             automatic,
         ]),
         &[
@@ -150,14 +153,12 @@ pub(super) fn prepare_with_body_edit<
     let exchange =
         crate::protocol_source::PreparedProtocolEntry::prepare(&encoded_package, "bme280-exchange")
             .unwrap();
-    assert!(
-        exchange
-            .expanded()
-            .expanded
-            .gears
-            .iter()
-            .all(|gear| gear.kind_id.as_str() != "machine/i2c/transact")
-    );
+    assert!(exchange
+        .expanded()
+        .expanded
+        .gears
+        .iter()
+        .all(|gear| gear.kind_id.as_str() != "machine/i2c/transact"));
     assert_eq!(
         exchange.input_schema(&port_id("result")).unwrap(),
         i2c.decode_result_type().unwrap()

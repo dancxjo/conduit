@@ -36,6 +36,7 @@ impl I2cProvider for Bus {
 fn package() -> ProtocolSourcePackage {
     let units = [
         include_str!("../../../../../../plots/device-protocols/ht16k33.conduit"),
+        include_str!("../../../../../../plots/device-protocols/ht16k33-exchanges.conduit"),
         include_str!("../../../../../../plots/device-protocols/ht16k33-feedback.conduit"),
     ];
     let imports = units
@@ -377,14 +378,12 @@ fn ht16k33_exchange_fores_do_not_claim_a_controller() {
     let contract = I2cContract::prepare().unwrap();
     for entry in ["ht16k33-initialize-exchange", "ht16k33-write-exchange"] {
         let protocol = PreparedProtocolEntry::prepare(&bytes, entry).unwrap();
-        assert!(
-            protocol
-                .expanded()
-                .expanded
-                .gears
-                .iter()
-                .all(|gear| gear.kind_id.as_str() != "machine/i2c/transact")
-        );
+        assert!(protocol
+            .expanded()
+            .expanded
+            .gears
+            .iter()
+            .all(|gear| gear.kind_id.as_str() != "machine/i2c/transact"));
         assert_eq!(
             protocol.input_schema(&port_id("result")).unwrap(),
             contract.decode_result_type().unwrap()
