@@ -94,6 +94,16 @@ impl<'a> SoftwareBack<'a> {
             .map_err(|_| "merge-definition")
     }
 
+    pub fn merge_static(
+        schema: &conduit_core::StructuredInfoType,
+        canonical: &'static [u8],
+        maximum_bytes: u32,
+    ) -> Result<Self, &'static str> {
+        conduit_composite::FlowMergeFiniteBack::prepare_static(schema, canonical, maximum_bytes)
+            .map(|back| Self::Merge(Box::new(back)))
+            .map_err(|_| "merge-definition")
+    }
+
     /// The wait value is already retained in the selected kernel's value store.
     pub fn tick(wait: ValueRef, count: u64) -> Result<Self, &'static str> {
         conduit_time::TickBack::counted(wait, count)

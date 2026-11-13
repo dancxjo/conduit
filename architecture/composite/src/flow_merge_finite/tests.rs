@@ -181,3 +181,69 @@ fn exposed_close_precedes_the_other_inputs_preferred_payload() {
     );
     assert!(next.test_consumed(PortId(1)));
 }
+
+#[test]
+fn static_schema_merge_preserves_validation_pressure_and_exact_output() {
+    use conduit_core::{StructuredFieldType, StructuredFieldValue, StructuredInfoValue};
+    let leaf = StructuredInfoType::leaf(kind_id("value/bool")).unwrap();
+    let schema = StructuredInfoType::record(
+        kind_id("test/static-merge"),
+        vec![StructuredFieldType::new("flag", leaf.clone()).unwrap()],
+    )
+    .unwrap();
+    let canonical = Box::leak(schema.canonical_bytes().unwrap().into_boxed_slice());
+    let good = StructuredInfoValue::record(
+        schema.clone(),
+        vec![StructuredFieldValue::new(
+            "flag",
+            StructuredInfoValue::leaf(leaf.clone(), vec![1]).unwrap(),
+        )
+        .unwrap()],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let mut bad_leaf = good.clone();
+    *bad_leaf.last_mut().unwrap() = 2;
+    let oversized = vec![0; 513];
+    let mut trailing = good.clone();
+    trailing.push(0);
+    let mut wrong = good.clone();
+    wrong[0] ^= 1;
+    assert!(FlowMergeFiniteBack::prepare_static(&leaf, canonical, 512).is_err());
+    for input in [
+        &good[..],
+        &bad_leaf,
+        &oversized,
+        &trailing,
+        &wrong,
+        &good[..good.len() - 1],
+    ] {
+        for ready in [false, true] {
+            let mut owned = FlowMergeFiniteBack::prepare(&schema, 512).unwrap();
+            let mut linked = FlowMergeFiniteBack::prepare_static(&schema, canonical, 512).unwrap();
+            let value = ValueRef {
+                slot: 0,
+                generation: 1,
+                byte_len: input.len() as u32,
+            };
+            let capacity = if ready { Some(512) } else { None };
+            let mut a =
+                StepIo::test_frame([Some(value), None], [false; 2], [capacity, None], None, 16);
+            let mut b =
+                StepIo::test_frame([Some(value), None], [false; 2], [capacity, None], None, 16);
+            let allocations = crate::test_support::allocation::allocations_during(|| {
+                let bytes = StepInputBytes::test_frame([Some(input), None], None);
+                assert_eq!(owned.step(&mut a, &bytes), linked.step(&mut b, &bytes));
+                assert_eq!(a.test_consumed(PortId(0)), b.test_consumed(PortId(0)));
+                assert_eq!(
+                    <FlowMergeFiniteBack as StepBack<2>>::prepared_output(&owned, PortId(0)),
+                    <FlowMergeFiniteBack as StepBack<2>>::prepared_output(&linked, PortId(0))
+                );
+                commit(&mut owned);
+                commit(&mut linked);
+            });
+            assert_eq!(allocations, 0);
+        }
+    }
+}

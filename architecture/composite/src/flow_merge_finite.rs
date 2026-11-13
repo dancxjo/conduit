@@ -1,8 +1,8 @@
 //! Prepared two-input payload merge. Each input retains its own finite lifetime.
 use crate::prelude::*;
 use conduit_core::{
-    KindId, PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoTypeShape,
+    BorrowedStructuredValueValidator, KindId, PreparedStructuredValueValidator,
+    StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
 };
 use conduit_kernel::{
     scheduler::{
@@ -13,8 +13,21 @@ use conduit_kernel::{
     Failure, FailureCode, PortId,
 };
 
+enum Validator {
+    Owned(PreparedStructuredValueValidator),
+    Static(BorrowedStructuredValueValidator<'static>),
+}
+impl Validator {
+    fn validate(&self, bytes: &[u8]) -> Result<(), StructuredInfoRefusal> {
+        match self {
+            Self::Owned(validator) => validator.validate(bytes),
+            Self::Static(validator) => validator.validate(bytes).map(|_| ()),
+        }
+    }
+}
+
 pub struct FlowMergeFiniteBack {
-    validator: Option<PreparedStructuredValueValidator>,
+    validator: Option<Validator>,
     leaf: Option<KindId>,
     output: Vec<u8>,
     staged: Option<usize>,
@@ -25,6 +38,33 @@ pub struct FlowMergeFiniteBack {
     cancelled: bool,
 }
 impl FlowMergeFiniteBack {
+    /// Retain immutable linked schema bytes rather than a cloned inspection Type.
+    /// The checked Type must match exactly; limits and runtime laws are unchanged.
+    pub fn prepare_static(
+        schema: &StructuredInfoType,
+        canonical: &'static [u8],
+        maximum_bytes: u32,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        if schema.canonical_bytes()? != canonical {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
+        if matches!(schema.shape(), StructuredInfoTypeShape::Leaf(_)) {
+            return Self::prepare(schema, maximum_bytes);
+        }
+        let validator = BorrowedStructuredValueValidator::new(canonical, maximum_bytes as usize)?;
+        Ok(Self {
+            validator: Some(Validator::Static(validator)),
+            leaf: None,
+            output: vec![0; maximum_bytes as usize],
+            staged: None,
+            committed_close: [false; 2],
+            staged_close: None,
+            preferred: 0,
+            staged_side: None,
+            cancelled: false,
+        })
+    }
+
     pub fn prepare(
         schema: &StructuredInfoType,
         maximum_bytes: u32,
@@ -33,10 +73,10 @@ impl FlowMergeFiniteBack {
             validator: if matches!(schema.shape(), StructuredInfoTypeShape::Leaf(_)) {
                 None
             } else {
-                Some(PreparedStructuredValueValidator::new(
+                Some(Validator::Owned(PreparedStructuredValueValidator::new(
                     schema,
                     maximum_bytes as usize,
-                )?)
+                )?))
             },
             leaf: if let StructuredInfoTypeShape::Leaf(kind) = schema.shape() {
                 Some(kind.clone())

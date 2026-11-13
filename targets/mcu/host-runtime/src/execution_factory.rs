@@ -415,8 +415,8 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
                     schema,
                     maximum_bytes,
                 }) => {
-                    let (schema, _) = decode_composite(schema, maximum_bytes)?;
-                    Some(SoftwareBack::merge(&schema, maximum_bytes)?)
+                    let (decoded, _) = decode_composite(schema, maximum_bytes)?;
+                    Some(SoftwareBack::merge_static(&decoded, schema, maximum_bytes)?)
                 }
                 Some(SoftwareDefinition::ZipStatic {
                     left_schema,
