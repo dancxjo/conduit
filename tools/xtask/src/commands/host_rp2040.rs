@@ -78,6 +78,7 @@ pub(super) fn build(
         .env("CONDUIT_HOST_IMAGE_ID", &image.manifest.image_id)
         .env("CONDUIT_HOST_CONFIGURATION", profile)
         .env("CARGO_TARGET_DIR", &target_dir);
+    super::host_workset_source::clear_inputs(command);
     description.configure(command)?;
     if let Some(input) = workset {
         input.configure(command)?;

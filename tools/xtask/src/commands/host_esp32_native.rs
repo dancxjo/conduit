@@ -79,6 +79,7 @@ pub(super) fn build(
         .env("CARGO_INCREMENTAL", "0")
         .env("TMPDIR", &temporary)
         .env("CARGO_TARGET_XTENSA_ESP32_NONE_ELF_LINKER", &linker);
+    super::host_workset_source::clear_inputs(&mut command);
     image_description.configure(&mut command)?;
     if let Some(workset) = workset {
         workset.configure(&mut command)?;

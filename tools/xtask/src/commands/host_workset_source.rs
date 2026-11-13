@@ -6,6 +6,8 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
+#[path = "host_workset_specializations.rs"]
+mod specializations;
 const MAXIMUM_SOURCE_BYTES: u64 = 1024 * 1024;
 pub(super) struct WorksetSourceInput {
     pub source: PathBuf,
@@ -13,11 +15,13 @@ pub(super) struct WorksetSourceInput {
     pub entries: Vec<String>,
     pub git_revision: String,
     pub identity: String,
+    specializations: Option<specializations::Captured>,
 }
 impl WorksetSourceInput {
     pub fn capture(
         source: &Path,
         entries: &[String],
+        specialization_input: Option<&Path>,
         git_revision: &str,
         output: &Path,
         dry_run: bool,
@@ -46,8 +50,17 @@ impl WorksetSourceInput {
         }
         std::str::from_utf8(&bytes)?;
         let sha256 = format!("{:x}", Sha256::digest(&bytes));
+        let specializations = specialization_input
+            .map(|path| specializations::Captured::capture(path, &sha256, output, dry_run))
+            .transpose()?;
         let mut digest = Sha256::new();
-        digest.update(b"conduit.make/workset-source@1\0");
+        if let Some(input) = &specializations {
+            digest.update(b"conduit.make/workset-source@2\0");
+            digest.update((input.sha256.len() as u32).to_le_bytes());
+            digest.update(input.sha256.as_bytes());
+        } else {
+            digest.update(b"conduit.make/workset-source@1\0");
+        }
         for part in std::iter::once(git_revision)
             .chain(std::iter::once(sha256.as_str()))
             .chain(entries.iter().map(String::as_str))
@@ -70,10 +83,15 @@ impl WorksetSourceInput {
             entries: entries.to_vec(),
             git_revision: git_revision.into(),
             identity,
+            specializations,
         })
     }
     pub fn configure(&self, command: &mut Command) -> Result<(), Box<dyn std::error::Error>> {
         self.verify()?;
+        clear_inputs(command);
+        if let Some(input) = &self.specializations {
+            input.configure(command);
+        }
         command
             .env("CONDUIT_WORKSET_SOURCE", &self.source)
             .env("CONDUIT_WORKSET_SOURCE_SHA256", &self.sha256)
@@ -102,6 +120,9 @@ impl WorksetSourceInput {
         if format!("{:x}", digest.finalize()) != self.sha256 {
             return Err("captured fabrication Source changed during build".into());
         }
+        if let Some(input) = &self.specializations {
+            input.verify(&self.sha256)?;
+        }
         Ok(())
     }
     pub fn publish(&self, artifact_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
@@ -111,8 +132,27 @@ impl WorksetSourceInput {
         artifact.target_metadata.insert("conduit.make/workset-source@1".into(), serde_json::json!({
             "git_revision":self.git_revision,"sha256":self.sha256,"entries":self.entries,"identity":self.identity,
         }));
+        if let Some(input) = &self.specializations {
+            artifact.target_metadata.insert(
+                "conduit.make/workset-specializations@1".into(),
+                serde_json::json!({"sha256":input.sha256,"source_sha256":self.sha256}),
+            );
+        }
         fs::write(artifact_path, serde_json::to_vec_pretty(&artifact)?)?;
         Ok(())
+    }
+}
+
+/// A parent shell cannot add compilation inputs absent from the Make result.
+pub(super) fn clear_inputs(command: &mut Command) {
+    for name in [
+        "CONDUIT_WORKSET_SOURCE",
+        "CONDUIT_WORKSET_SOURCE_SHA256",
+        "CONDUIT_WORKSET_ENTRIES",
+        "CONDUIT_WORKSET_SPECIALIZATIONS",
+        "CONDUIT_WORKSET_SPECIALIZATIONS_SHA256",
+    ] {
+        command.env_remove(name);
     }
 }
 
@@ -163,3 +203,7 @@ impl ImageDescriptionInput {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "host_workset_source_tests.rs"]
+mod tests;
