@@ -153,3 +153,88 @@ fn seventy_two_packet_selection_reserves_input_bounded_scratch() {
         0
     );
 }
+
+#[test]
+fn conditional_literals_have_a_finite_output_without_an_explicit_input_bound() {
+    let boolean = StructuredInfoType::leaf(kind_id("value/bool")).unwrap();
+    let text = StructuredInfoType::leaf(kind_id("value/text")).unwrap();
+    let program = Program {
+        input_type: boolean.clone(),
+        input_maximum_bytes: None,
+        output_type: text.clone(),
+        root: Node {
+            value_type: text.clone(),
+            operation: Op::Conditional {
+                condition: Box::new(Node {
+                    value_type: boolean,
+                    operation: Op::Input,
+                }),
+                when_true: Box::new(Node {
+                    value_type: text.clone(),
+                    operation: Op::Literal("\"short\"".into()),
+                }),
+                when_false: Box::new(Node {
+                    value_type: text,
+                    operation: Op::Literal("\"longer μ text\"".into()),
+                }),
+            },
+        },
+    };
+    let maximum = "longer μ text".len();
+    assert_eq!(program.maximum_prepared_output_bytes(), Ok(maximum as u32));
+    let mut evaluator = Evaluator::new(&program).unwrap();
+    assert_eq!(evaluator.output_capacity(), maximum);
+    for input in [&[0][..], &[1][..]] {
+        let expected = program.evaluate(input).unwrap();
+        assert_eq!(
+            allocation::allocations(|| {
+                assert_eq!(evaluator.evaluate(input).unwrap(), expected);
+            }),
+            0
+        );
+    }
+}
+
+#[test]
+fn nested_constructors_do_not_exceed_their_exact_structural_ceiling() {
+    let byte = StructuredInfoType::leaf(kind_id("value/u8")).unwrap();
+    let row = StructuredInfoType::collection(byte.clone(), Some(3)).unwrap();
+    let rows = StructuredInfoType::collection(row.clone(), Some(2)).unwrap();
+    let row_value = Node {
+        value_type: row,
+        operation: Op::Collection(
+            (1..=3)
+                .map(|value| Node {
+                    value_type: byte.clone(),
+                    operation: Op::Literal(value.to_string()),
+                })
+                .collect(),
+        ),
+    };
+    let result = record("test/nested-bound", &[("rows", rows.clone())]);
+    let program = make_program(
+        Node {
+            value_type: result.clone(),
+            operation: Op::Record(vec![(
+                "rows".into(),
+                Node {
+                    value_type: rows,
+                    operation: Op::Collection(vec![row_value.clone(), row_value]),
+                },
+            )]),
+        },
+        Some(64),
+    );
+    let maximum = program.maximum_prepared_output_bytes().unwrap();
+    let structural = conduit_plot::maximum_prepared_canonical_value_bytes(&result).unwrap();
+    assert!(maximum <= structural);
+    let expected = program.evaluate(&[]).unwrap();
+    assert!(expected.len() <= maximum as usize);
+    let mut evaluator = Evaluator::new(&program).unwrap();
+    assert_eq!(
+        allocation::allocations(|| {
+            assert_eq!(evaluator.evaluate(&[]).unwrap(), expected);
+        }),
+        0
+    );
+}
