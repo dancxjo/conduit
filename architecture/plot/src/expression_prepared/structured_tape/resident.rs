@@ -1,5 +1,6 @@
 //! Resident constructor data; Root independently admits its full realization.
 use super::*;
+use crate::expression_prepared::canonical_input::CanonicalInput;
 use crate::expression_prepared::{StaticProjectedExpression, StaticProjectedRefusal};
 use crate::rust_binding::{PreparedNativeRefusal, ResidentNativeValidator};
 #[path = "resident/generate.rs"]
@@ -158,7 +159,42 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
             .input
             .validate_borrowed(input)
             .map_err(StaticStructuredRefusal::Input)?;
-        if input.len() > self.program.maximum_input_bytes {
+        self.evaluate_checked_into(CanonicalInput::Whole(input), validated, output, scratch)
+    }
+    /// Evaluate schema-separated input without concatenating it. Every Native
+    /// input/output check and the original combined byte ceilings remain.
+    pub fn evaluate_parts_into(
+        &mut self,
+        schema: &[u8],
+        node: &[u8],
+        output: &mut [u8],
+        scratch: &mut [u8],
+    ) -> Result<usize, StaticStructuredRefusal> {
+        let validated = self
+            .input
+            .validate_parts_borrowed(schema, node)
+            .map_err(StaticStructuredRefusal::Input)?;
+        self.evaluate_checked_into(
+            CanonicalInput::Separated {
+                schema: validated.type_bytes(),
+                node: validated.value_node(),
+            },
+            validated,
+            output,
+            scratch,
+        )
+    }
+    fn evaluate_checked_into(
+        &mut self,
+        input: CanonicalInput<'_>,
+        validated: conduit_core::ValidatedCanonicalStructuredValue<'_>,
+        output: &mut [u8],
+        scratch: &mut [u8],
+    ) -> Result<usize, StaticStructuredRefusal> {
+        if input
+            .len()
+            .is_none_or(|n| n > self.program.maximum_input_bytes)
+        {
             return Err(Refusal::InvalidInput.into());
         }
         if scratch.len() < self.program.maximum_output_bytes {
@@ -216,7 +252,7 @@ impl<const I: usize> ResidentValues<'_, I> {
     fn evaluate(
         &self,
         index: u16,
-        input: &[u8],
+        input: CanonicalInput<'_>,
         output: &mut [u8],
     ) -> Result<usize, StaticStructuredRefusal> {
         let StaticStructuredValue::Scalar(value) = self
@@ -227,7 +263,7 @@ impl<const I: usize> ResidentValues<'_, I> {
             return Err(Refusal::InvalidProgram.into());
         };
         value
-            .evaluate_checked_into(input, self.input, output)
+            .evaluate_checked_input_into(input, self.input, output)
             .map_err(|refusal| StaticStructuredRefusal::Child { index, refusal })
     }
 }
@@ -236,7 +272,7 @@ impl<const I: usize> Values for ResidentValues<'_, I> {
     fn append(
         &mut self,
         index: u16,
-        input: &[u8],
+        input: CanonicalInput<'_>,
         output: &mut impl Output,
     ) -> Result<(), Self::Error> {
         if let Some(StaticStructuredValue::InputPath(path)) = self.children.get(usize::from(index))
@@ -252,7 +288,7 @@ impl<const I: usize> Values for ResidentValues<'_, I> {
         output.write(&bytes[..n])?;
         Ok(())
     }
-    fn condition(&mut self, index: u16, input: &[u8]) -> Result<bool, Self::Error> {
+    fn condition(&mut self, index: u16, input: CanonicalInput<'_>) -> Result<bool, Self::Error> {
         let mut bytes = [0; 16];
         let n = self.evaluate(index, input, &mut bytes)?;
         match &bytes[..n] {

@@ -67,8 +67,16 @@ fn nested_nominal_record_and_variant_match_original_canonical_composition() {
         writer.encode_node_into(value, &mut node).unwrap(),
         expected.value_node()
     );
-    let validator = BorrowedStructuredValueValidator::new(&schema, owned.len()).unwrap();
-    assert_eq!(validator.validate_node(&node).unwrap(), expected);
+    let detached = {
+        let validator = BorrowedStructuredValueValidator::new(&schema, owned.len()).unwrap();
+        validator.validate_node(&node).unwrap()
+    };
+    assert_eq!(detached, expected);
+    let detached = {
+        let validator = BorrowedStructuredValueValidator::new(&schema, owned.len()).unwrap();
+        validator.validate(&owned).unwrap()
+    };
+    assert_eq!(detached, expected);
     // External canonical transport is unchanged when the schema is restored.
     let mut restored = schema.clone();
     restored.extend_from_slice(&node);

@@ -111,6 +111,13 @@ fn corpus(
                 Ok(v)
             });
         main.push_str(&format!("output.fill(0xa5);let(actual,c)=probe::observe(||e.evaluate_into(&{input:?},&mut output,&mut scratch));assert_eq!(c.allocations,0);assert_eq!(c.reallocations,0);\n"));
+        if let Some(node) = input.strip_prefix(p.input_type.canonical_bytes().unwrap().as_slice()) {
+            let schema = p.input_type.canonical_bytes().unwrap();
+            main.push_str(&format!("let saved=output;output.fill(0xa5);let(split,c)=probe::observe(||e.evaluate_parts_into(&{schema:?},&{node:?},&mut output,&mut scratch));assert_eq!(c.allocations,0);assert_eq!(c.reallocations,0);assert_eq!(split,actual);assert_eq!(output,saved);output.fill(0xa5);assert!(e.evaluate_parts_into(&[0],&{node:?},&mut output,&mut scratch).is_err());assert_eq!(output,[0xa5;4096]);output=saved;\n"));
+            if let Ok(bytes) = &expected {
+                main.push_str(&format!("output.fill(0xa5);assert!(e.evaluate_parts_into(&{schema:?},&{node:?},&mut output[..{}],&mut scratch).is_err());assert_eq!(output,[0xa5;4096]);assert!(e.evaluate_parts_into(&{schema:?},&{node:?},&mut output,&mut []).is_err());assert_eq!(output,[0xa5;4096]);output=saved;\n",bytes.len()-1));
+            }
+        }
         match expected {
             Ok(bytes) => {
                 main.push_str(&format!("assert_eq!(actual,Ok({}));assert_eq!(&output[..{}],&{bytes:?});assert!(output[{}..].iter().all(|n|*n==0xa5));\n",bytes.len(),bytes.len(),bytes.len()));

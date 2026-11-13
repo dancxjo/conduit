@@ -1,5 +1,6 @@
 //! Linear constructor encoding; owned and resident profiles share one loop.
 use super::{child, PreparedChild};
+use crate::expression_prepared::canonical_input::CanonicalInput;
 use crate::expression_prepared::{PreparedInput, ProgramView, Refusal};
 use crate::PortableExpressionOperation as Expression;
 use alloc::vec::Vec;
@@ -54,7 +55,7 @@ impl StructuredTape {
         execute(
             &self.program.code,
             &self.program.constants,
-            input,
+            CanonicalInput::Whole(input),
             output,
             &mut OwnedValues(&mut self.values),
         )
@@ -66,21 +67,21 @@ impl Values for OwnedValues<'_> {
     fn append(
         &mut self,
         index: u16,
-        input: &[u8],
+        input: CanonicalInput<'_>,
         output: &mut impl Output,
     ) -> Result<(), Refusal> {
         self.0
             .get_mut(usize::from(index))
             .ok_or(Refusal::InvalidProgram)?
-            .append_node(input, output)
+            .append_node(input.whole().ok_or(Refusal::InvalidInput)?, output)
     }
-    fn condition(&mut self, index: u16, input: &[u8]) -> Result<bool, Refusal> {
+    fn condition(&mut self, index: u16, input: CanonicalInput<'_>) -> Result<bool, Refusal> {
         match self
             .0
             .get_mut(usize::from(index))
             .ok_or(Refusal::InvalidProgram)?
             .evaluator
-            .evaluate(input)?
+            .evaluate(input.whole().ok_or(Refusal::InvalidInput)?)?
         {
             [0] => Ok(false),
             [1] => Ok(true),

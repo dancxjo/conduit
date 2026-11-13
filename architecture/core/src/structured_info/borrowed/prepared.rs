@@ -46,9 +46,12 @@ impl<'schema> BorrowedStructuredValueValidator<'schema> {
 
     /// Validate the whole self-describing value against the prepared exact Type.
     pub fn validate<'value>(
-        &'value self,
+        &self,
         encoded: &'value [u8],
-    ) -> Result<ValidatedCanonicalStructuredValue<'value>, StructuredInfoRefusal> {
+    ) -> Result<ValidatedCanonicalStructuredValue<'value>, StructuredInfoRefusal>
+    where
+        'schema: 'value,
+    {
         if encoded.len() > self.maximum_bytes {
             return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
         }
@@ -58,12 +61,17 @@ impl<'schema> BorrowedStructuredValueValidator<'schema> {
         self.validate_node(node)
     }
 
+    /// The returned view borrows schema and node storage, not this small
+    /// validator object. Their original lifetimes remain statically required.
     /// Validate a separately stored value node without copying its schema in
     /// front. The combined schema/node extent remains inside the same ceiling.
     pub fn validate_node<'value>(
-        &'value self,
+        &self,
         value_node: &'value [u8],
-    ) -> Result<ValidatedCanonicalStructuredValue<'value>, StructuredInfoRefusal> {
+    ) -> Result<ValidatedCanonicalStructuredValue<'value>, StructuredInfoRefusal>
+    where
+        'schema: 'value,
+    {
         if self
             .type_bytes
             .len()

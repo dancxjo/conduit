@@ -87,7 +87,7 @@ impl<const N: usize> ResidentNativeValidator<N> {
     /// Borrow the representation after all retained checks. This is not an
     /// AdmittedNativeCanonical witness and grants no execution authority.
     pub fn validate_borrowed<'a>(
-        &'a self,
+        &self,
         input: &'a [u8],
     ) -> Result<ValidatedCanonicalStructuredValue<'a>, PreparedNativeRefusal> {
         if self.intrinsic_empty && !input.is_empty() {
@@ -102,6 +102,28 @@ impl<const N: usize> ResidentNativeValidator<N> {
             .schema
             .validate(input)
             .map_err(|_| PreparedNativeRefusal::Shape)?;
+        self.check_contracts(value)
+    }
+    /// Validate a separately retained exact schema and value node through the
+    /// same whole-input Native checks. This creates no admission witness.
+    pub fn validate_parts_borrowed<'a>(
+        &self,
+        schema: &[u8],
+        node: &'a [u8],
+    ) -> Result<ValidatedCanonicalStructuredValue<'a>, PreparedNativeRefusal> {
+        if self.intrinsic_empty || schema != self.schema.type_bytes() {
+            return Err(PreparedNativeRefusal::Shape);
+        }
+        let value = self
+            .schema
+            .validate_node(node)
+            .map_err(|_| PreparedNativeRefusal::Shape)?;
+        self.check_contracts(value)
+    }
+    fn check_contracts<'a>(
+        &self,
+        value: ValidatedCanonicalStructuredValue<'a>,
+    ) -> Result<ValidatedCanonicalStructuredValue<'a>, PreparedNativeRefusal> {
         let mut checked = 0;
         for (index, entry) in self.contracts.iter().enumerate() {
             let predicate = self.predicates[index]

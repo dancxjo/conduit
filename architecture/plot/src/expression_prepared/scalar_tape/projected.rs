@@ -165,7 +165,19 @@ impl<const N: usize> StaticProjectedExpression<N> {
         validated: conduit_core::ValidatedCanonicalStructuredValue<'_>,
         output: &mut [u8],
     ) -> Result<usize, StaticProjectedRefusal> {
-        if input.len() > self.maximum_input_bytes {
+        self.evaluate_checked_input_into(
+            crate::expression_prepared::canonical_input::CanonicalInput::Whole(input),
+            validated,
+            output,
+        )
+    }
+    pub(in crate::expression_prepared) fn evaluate_checked_input_into(
+        &self,
+        input: crate::expression_prepared::canonical_input::CanonicalInput<'_>,
+        validated: conduit_core::ValidatedCanonicalStructuredValue<'_>,
+        output: &mut [u8],
+    ) -> Result<usize, StaticProjectedRefusal> {
+        if input.len().is_none_or(|n| n > self.maximum_input_bytes) {
             return Err(Refusal::InvalidInput.into());
         }
         let length = static_image::width(self.output).ok_or(Refusal::InvalidProgram)?;

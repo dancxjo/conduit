@@ -8,6 +8,7 @@ use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
+mod canonical_input;
 mod equality;
 mod evaluate;
 mod fixed_projection;
