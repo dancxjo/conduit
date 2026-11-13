@@ -1,11 +1,7 @@
 //! Actual generic Pico Host build. Public code and private native Seed stay separate.
 use crate::cli::GlobalOpts;
 use sha2::{Digest, Sha256};
-use std::{
-    fs,
-    path::PathBuf,
-    process::Command,
-};
+use std::{fs, path::PathBuf, process::Command};
 
 use super::host_rp2040_membership_seed::compose_private_seed;
 

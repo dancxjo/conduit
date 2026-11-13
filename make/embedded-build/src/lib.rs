@@ -31,8 +31,9 @@ mod resident_offer;
 pub use offer_image::{generate_capability_offer_image, CapabilityOfferImageError};
 pub use resident_expression::{
     bind_current_mixed_resident_expressions, bind_current_resident_expressions,
-    BoundResidentExpression, PreparedResidentExpression, ResidentExpressionBounds,
-    ResidentExecutionStorage, ResidentExpressionRefusal, RESIDENT_EXPRESSION_IMPLEMENTATION, RESIDENT_EXPRESSION_PROFILE,
+    BoundResidentExpression, PreparedResidentExpression, ResidentExecutionStorage,
+    ResidentExpressionBounds, ResidentExpressionRefusal, RESIDENT_EXPRESSION_IMPLEMENTATION,
+    RESIDENT_EXPRESSION_PROFILE,
 };
 pub use resident_library::generate_resident_library;
 mod assigned_layout;
