@@ -26,6 +26,9 @@ impl Validator {
     }
 }
 
+#[path = "flow_merge_finite/schema_input.rs"]
+mod schema_input;
+
 pub struct FlowMergeFiniteBack {
     validator: Option<Validator>,
     leaf: Option<KindId>,
@@ -94,6 +97,14 @@ impl FlowMergeFiniteBack {
     }
 }
 impl<const PORTS: usize> StepBack<PORTS> for FlowMergeFiniteBack {
+    #[cfg(feature = "schema-value-storage")]
+    fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
+        (port.0 < 2).then(|| self.linked_schema()).flatten()
+    }
+    #[cfg(feature = "schema-value-storage")]
+    fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0)).then(|| self.linked_schema()).flatten()
+    }
     fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; PORTS] {
         let mut contracts = [None; PORTS];
         for (side, contract) in contracts.iter_mut().enumerate().take(2) {
@@ -139,29 +150,17 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowMergeFiniteBack {
             let Some(reference) = io.input(port) else {
                 continue;
             };
-            if !io.output_ready(PortId(0)) {
+            if !io.output_ready_for(PortId(0), reference.byte_len) {
                 return StepOutcome::Await;
             }
-            let Some(bytes) = inputs.input(port) else {
-                return fail(1071);
+            let length = match self.copy_input(inputs, port, reference.byte_len as usize) {
+                Ok(length) => length,
+                Err(detail) => return fail(detail),
             };
-            if bytes.len() != reference.byte_len as usize
-                || bytes.len() > self.output.len()
-                || self
-                    .validator
-                    .as_ref()
-                    .is_some_and(|validator| validator.validate(bytes).is_err())
-                || self.leaf.as_ref().is_some_and(|kind| {
-                    conduit_core::validate_primitive_info(kind.as_str(), bytes).is_err()
-                })
-            {
-                return fail(1072);
-            }
-            self.output[..bytes.len()].copy_from_slice(bytes);
-            self.staged = Some(bytes.len());
+            self.staged = Some(length);
             self.staged_side = Some(side);
             io.consume(port).expect("finite merge input");
-            io.send_prepared(PortId(0), bytes.len() as u32)
+            io.send_prepared(PortId(0), length as u32)
                 .expect("finite merge admitted output");
             return StepOutcome::Progress;
         }
@@ -197,3 +196,7 @@ fn fail(detail: u16) -> StepOutcome {
 }
 #[cfg(test)]
 mod tests;
+
+#[cfg(all(test, feature = "schema-value-storage"))]
+#[path = "flow_merge_finite/schema_tests.rs"]
+mod schema_tests;

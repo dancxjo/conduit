@@ -9,6 +9,8 @@ use std::collections::BTreeMap;
 pub struct Inputs<'a> {
     /// Preserve the checked external Fore as well as the expanded Gear graph.
     pub plot: &'a conduit_plot::ExpandedAuthoringPlot,
+    /// Original checked Type custody for selected standard composite schemas.
+    pub checked_source: Option<&'a conduit_plot::CheckedSyntaxDocument>,
     pub host: &'a c::HostAdvertisement,
     pub placements: &'a p::PlacementChoices,
     pub planning: p::PlanningOptions<'a>,
@@ -329,6 +331,7 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             fragment,
             input.resident,
             &input.plot.expanded,
+            input.checked_source,
         )?,
         cord_value_slot_capacities,
         step_value_slot_capacities,

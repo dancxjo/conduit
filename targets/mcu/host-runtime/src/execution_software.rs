@@ -223,6 +223,11 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             Self::Selector(back) => {
                 <SelectorBack as StepBack<P>>::canonical_input_schema(back, port)
             }
+            Self::Merge(back) => {
+                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::canonical_input_schema(
+                    back, port,
+                )
+            }
             _ => None,
         }
     }
@@ -230,6 +235,11 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
         match self {
             Self::Selector(back) => {
                 <SelectorBack as StepBack<P>>::canonical_output_schema(back, port)
+            }
+            Self::Merge(back) => {
+                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::canonical_output_schema(
+                    back, port,
+                )
             }
             _ => None,
         }

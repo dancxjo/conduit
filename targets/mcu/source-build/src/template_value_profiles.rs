@@ -1,5 +1,7 @@
 //! Exact resident artifact selection into inert physical slot profiles.
 use crate::value_profiles;
+#[path = "template_merge_profiles.rs"]
+mod merges;
 #[path = "template_selector_profiles.rs"]
 mod selectors;
 use conduit_core as c;
@@ -10,6 +12,7 @@ pub(super) fn emit(
     fragment: &c::PlanFragment,
     residents: &[&e::PreparedResidentExpression],
     source: &conduit_plot::ExpandedCanonicalPlot,
+    types: Option<&conduit_plot::CheckedSyntaxDocument>,
 ) -> Result<Option<String>, String> {
     // Schema execution is an explicitly selected artifact profile. Merely
     // encountering a selector never enables another target representation.
@@ -85,6 +88,7 @@ pub(super) fn emit(
         }
     }
     selectors::append(&mut owned, kernel, fragment, source)?;
+    merges::append(&mut owned, kernel, fragment, source, types)?;
     if owned.is_empty() {
         return Ok(None);
     }

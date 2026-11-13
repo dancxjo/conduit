@@ -85,6 +85,7 @@ fn authored_resident_fore_lowers_independently_and_preserves_source_node() {
     let make = |host, boundaries| {
         compile(Inputs {
             plot: &plot,
+            checked_source: Some(&checked),
             host,
             placements: &placements,
             planning: p::PlanningOptions {

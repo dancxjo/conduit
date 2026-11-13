@@ -104,6 +104,7 @@ pub fn compile(workset: &workset::Workset, input: Inputs<'_>) -> Result<Calibrat
         let line_candidates = BTreeMap::new();
         let layout = template::compile(template::Inputs {
             plot: &source.plot,
+            checked_source: Some(&workset.checked_source),
             host: input.host,
             placements: &placements,
             planning: p::PlanningOptions {
