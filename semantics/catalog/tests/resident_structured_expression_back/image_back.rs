@@ -48,14 +48,18 @@ pub fn refuse_excess_work_and_mismatched_child_guards() {
         maximum_input_bytes: 4096,
         maximum_output_bytes: 2048,
     };
+    static SCALAR_PROGRAM: conduit_plot::StaticProjectedProgram =
+        conduit_plot::StaticProjectedProgram {
+            maximum_input_bytes: 4096,
+            output: K::Bool,
+            instructions: &LITERALS,
+            result: 0,
+            inputs: &[],
+            output_contract: None,
+        };
     let scalar = conduit_plot::StaticProjectedExpression::new(
         input_native::prepare().unwrap(),
-        4096,
-        K::Bool,
-        &LITERALS,
-        0,
-        &[],
-        None,
+        &SCALAR_PROGRAM,
     )
     .unwrap();
     let image = conduit_plot::StaticStructuredExpression::new(
@@ -109,9 +113,7 @@ pub fn refuse_excess_work_and_mismatched_child_guards() {
         4096,
     )
     .unwrap();
-    let scalar =
-        conduit_plot::StaticProjectedExpression::new(fake, 4096, K::Bool, &LITERALS, 0, &[], None)
-            .unwrap();
+    let scalar = conduit_plot::StaticProjectedExpression::new(fake, &SCALAR_PROGRAM).unwrap();
     assert!(conduit_plot::StaticStructuredExpression::new(
         input_native::prepare().unwrap(),
         output_native::prepare().unwrap(),

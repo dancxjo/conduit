@@ -20,7 +20,8 @@ pub use native_u64::PreparedNativeU64Expression;
 pub use scalar_tape::{
     generate_static_projected_expression, generate_static_scalar_expression, ScalarTapeInstruction,
     ScalarTapeOperation, StaticProjectedExpression, StaticProjectedGenerationRefusal,
-    StaticProjectedInput, StaticProjectedRefusal, StaticProjectedSource, StaticScalarExpression,
+    StaticProjectedInput, StaticProjectedProgram, StaticProjectedRefusal, StaticProjectedSource,
+    StaticScalarExpression,
 };
 mod inspection;
 mod shared_input;

@@ -107,16 +107,23 @@ pub(in crate::expression_prepared) fn generate_with_native(
         Ok(Operation::Input)
     })?;
     let output = node.kind;
-    let digest = sha2::Sha256::digest(
-        program
-            .canonical_bytes()
-            .map_err(|_| Refusal::InvalidProgram)?,
-    );
     let native_module = shared_native.map_or_else(
         || format!("mod native {{\n{native}\n}}\n"),
         |path| format!("use {path} as native;\n"),
     );
-    let mut source = format!("extern crate alloc;\npub const SOURCE_PROGRAM_SHA256: [u8;32] = {digest:?};\n{native_module}");
+    let mut source = format!("extern crate alloc;\n{native_module}");
+    // Nested children belong to the enclosing program's exact canonical hash.
+    // Do not repeat unused standalone receipts for every operand in that image.
+    if shared_native.is_none() {
+        let digest = sha2::Sha256::digest(
+            program
+                .canonical_bytes()
+                .map_err(|_| Refusal::InvalidProgram)?,
+        );
+        source.push_str(&format!(
+            "pub const SOURCE_PROGRAM_SHA256: [u8;32] = {digest:?};\n"
+        ));
+    }
     let output_contract = static_image::generate::contracts::emit(
         &mut source,
         prepared.output_value_contract.as_ref(),
@@ -145,7 +152,11 @@ pub(in crate::expression_prepared) fn generate_with_native(
     } else {
         ("prepare", "", "native::prepare()?")
     };
-    source.push_str(&format!("];\npub const RUNTIME_STATE_BYTES: usize = core::mem::size_of::<conduit_plot::StaticProjectedExpression<{{native::CONTRACT_COUNT}}>>();\npub fn {prepare_name}({prepare_input}) -> Result<conduit_plot::StaticProjectedExpression<{{native::CONTRACT_COUNT}}>, conduit_plot::StaticProjectedRefusal> {{ Ok(conduit_plot::StaticProjectedExpression::new({native_input}, {maximum}, conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{output:?}, INSTRUCTIONS, {}, INPUTS, {output_contract})?) }}\n", tape.result));
+    source.push_str(&format!("];\nstatic PROGRAM:conduit_plot::StaticProjectedProgram=conduit_plot::StaticProjectedProgram{{maximum_input_bytes:{maximum},output:conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{output:?},instructions:INSTRUCTIONS,result:{},inputs:INPUTS,output_contract:{output_contract}}};\n", tape.result));
+    if shared_native.is_none() {
+        source.push_str("pub const RUNTIME_STATE_BYTES:usize=core::mem::size_of::<conduit_plot::StaticProjectedExpression<{native::CONTRACT_COUNT}>>();\n");
+    }
+    source.push_str(&format!("pub fn {prepare_name}({prepare_input}) -> Result<conduit_plot::StaticProjectedExpression<{{native::CONTRACT_COUNT}}>, conduit_plot::StaticProjectedRefusal> {{ Ok(conduit_plot::StaticProjectedExpression::new({native_input}, &PROGRAM)?) }}\n"));
     Ok(source)
 }
 
