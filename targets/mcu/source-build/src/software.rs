@@ -24,6 +24,10 @@ pub(crate) fn implementation_identity(
 pub const PROFILE: &str = "conduit.mcu/prepared-software@1";
 pub const ARTIFACT: &str = "conduit-mcu-host-runtime/software@1";
 pub enum SoftwareRole {
+    Installed {
+        binding: usize,
+        digest: [u8; 32],
+    },
     Composite(crate::composite::Role),
     Tick {
         count: u64,
@@ -76,6 +80,24 @@ pub fn compile_with_types(
     types: Option<&p::CheckedSyntaxDocument>,
     maximum_image_bytes: usize,
 ) -> Result<SoftwareMaterial, String> {
+    compile_with_installed(
+        source,
+        types,
+        maximum_image_bytes,
+        &crate::installed_values::InstalledValueBindings::default(),
+    )
+}
+pub fn compile_with_installed(
+    source: &p::ExpandedCanonicalPlot,
+    types: Option<&p::CheckedSyntaxDocument>,
+    maximum_image_bytes: usize,
+    installed: &crate::installed_values::InstalledValueBindings,
+) -> Result<SoftwareMaterial, String> {
+    if let Some(types) = types {
+        installed.validate_source(types)?;
+    } else if !installed.is_empty() {
+        return Err("installed values require original checked Source".into());
+    }
     source
         .validate_expansion()
         .map_err(|e| format!("expanded Source: {e:?}"))?;
@@ -109,78 +131,86 @@ pub fn compile_with_types(
         {
             continue;
         }
-        let (kind, role, native) =
-            if let Some((kind, role)) = crate::composite::selected(gear, types)? {
-                (kind, SoftwareRole::Composite(role), false)
-            } else if gear.kind_id.as_str() == conduit_time::TICK_KIND {
-                let cadence = conduit_time::parse_tick_configuration(&gear.configuration)
-                    .map_err(|e| format!("Source clock: {e:?}"))?;
-                (
-                    conduit_time::tick_semantic_contract(),
-                    SoftwareRole::Tick {
-                        count: cadence.count,
-                        period_ms: cadence.period_ms,
-                    },
-                    true,
-                )
-            } else if gear.kind_id.as_str() == conduit_time::TICK_TRIGGER_KIND {
-                (
-                    conduit_time::tick_trigger_semantic_contract(),
-                    SoftwareRole::Trigger,
-                    false,
-                )
-            } else if gear.kind_id.as_str() == conduit_dht11_observation::KIND {
-                (
-                    ObservationContract::prepare()
-                        .map_err(|e| format!("observation: {e:?}"))?
-                        .kind()
-                        .clone(),
-                    SoftwareRole::Dht11Observation,
-                    false,
-                )
-            } else if gear.kind_id.as_str() == conduit_environment_runtime::recording::LOG_KIND {
-                if maximum_events == 0 {
-                    return Err("recording without finite checked clock".into());
-                }
-                (
-                    conduit_environment_runtime::recording::LogContract::prepare(
-                        &ObservationContract::prepare()
-                            .map_err(|e| format!("recording observation: {e:?}"))?,
-                    )
-                    .map_err(|e| format!("recording: {e:?}"))?
+        let (kind, role, native) = if let Some(value) = installed.select(gear)? {
+            (
+                value.kind,
+                SoftwareRole::Installed {
+                    binding: value.index,
+                    digest: value.digest,
+                },
+                false,
+            )
+        } else if let Some((kind, role)) = crate::composite::selected(gear, types)? {
+            (kind, SoftwareRole::Composite(role), false)
+        } else if gear.kind_id.as_str() == conduit_time::TICK_KIND {
+            let cadence = conduit_time::parse_tick_configuration(&gear.configuration)
+                .map_err(|e| format!("Source clock: {e:?}"))?;
+            (
+                conduit_time::tick_semantic_contract(),
+                SoftwareRole::Tick {
+                    count: cadence.count,
+                    period_ms: cadence.period_ms,
+                },
+                true,
+            )
+        } else if gear.kind_id.as_str() == conduit_time::TICK_TRIGGER_KIND {
+            (
+                conduit_time::tick_trigger_semantic_contract(),
+                SoftwareRole::Trigger,
+                false,
+            )
+        } else if gear.kind_id.as_str() == conduit_dht11_observation::KIND {
+            (
+                ObservationContract::prepare()
+                    .map_err(|e| format!("observation: {e:?}"))?
                     .kind()
                     .clone(),
-                    SoftwareRole::RecordingLog {
-                        maximum_samples: maximum_events,
-                    },
-                    false,
+                SoftwareRole::Dht11Observation,
+                false,
+            )
+        } else if gear.kind_id.as_str() == conduit_environment_runtime::recording::LOG_KIND {
+            if maximum_events == 0 {
+                return Err("recording without finite checked clock".into());
+            }
+            (
+                conduit_environment_runtime::recording::LogContract::prepare(
+                    &ObservationContract::prepare()
+                        .map_err(|e| format!("recording observation: {e:?}"))?,
                 )
-            } else if let Some(channel) = PublicationChannel::ALL
-                .into_iter()
-                .find(|c| c.kind_id() == gear.kind_id.as_str())
-            {
-                if maximum_events == 0 {
-                    return Err("publication without finite checked clock".into());
-                }
-                (
-                    PublicationContract::prepare(channel)
-                        .map_err(|e| format!("publication: {e:?}"))?
-                        .kind()
-                        .clone(),
-                    SoftwareRole::Publication {
-                        channel,
-                        maximum_events,
-                    },
-                    false,
-                )
-            } else if let Some((kind, role)) = selected_selector(gear)? {
-                (kind, role, false)
-            } else {
-                return Err(format!(
-                    "unsupported initialized software provider: {}",
-                    gear.kind_id.as_str()
-                ));
-            };
+                .map_err(|e| format!("recording: {e:?}"))?
+                .kind()
+                .clone(),
+                SoftwareRole::RecordingLog {
+                    maximum_samples: maximum_events,
+                },
+                false,
+            )
+        } else if let Some(channel) = PublicationChannel::ALL
+            .into_iter()
+            .find(|c| c.kind_id() == gear.kind_id.as_str())
+        {
+            if maximum_events == 0 {
+                return Err("publication without finite checked clock".into());
+            }
+            (
+                PublicationContract::prepare(channel)
+                    .map_err(|e| format!("publication: {e:?}"))?
+                    .kind()
+                    .clone(),
+                SoftwareRole::Publication {
+                    channel,
+                    maximum_events,
+                },
+                false,
+            )
+        } else if let Some((kind, role)) = selected_selector(gear)? {
+            (kind, role, false)
+        } else {
+            return Err(format!(
+                "unsupported initialized software provider: {}",
+                gear.kind_id.as_str()
+            ));
+        };
         if kind.kind_id != gear.kind_id
             || kind.kind_contract_revision != gear.kind_contract_revision
             || kind.startup_parameters != gear.startup_parameters
@@ -194,13 +224,21 @@ pub fn compile_with_types(
         let (implementation, artifact, offer) = if native {
             (None, None, None)
         } else {
-            let implementation = implementation_identity(&kind.kind_id, &gear.configuration)?;
+            let mut implementation = implementation_identity(&kind.kind_id, &gear.configuration)?;
+            if let SoftwareRole::Installed { digest, .. } = &role {
+                implementation = format!(
+                    "{}/installed/{:x}",
+                    implementation.as_str(),
+                    Sha256::digest(digest)
+                )
+                .into();
+            }
             let artifact: c::ArtifactId = ARTIFACT.into();
             let mut kind = kind;
             // Composite owners retain the independently constructed finite
             // storage shape (seed/current, pending sides and staged output).
             // A single-slot placeholder cannot realize their checked State law.
-            let (queue_items, queue_bytes) = if matches!(&role, SoftwareRole::Composite(_)) {
+            let (queue_items, queue_bytes) = if matches!(&role, SoftwareRole::Composite(_) | SoftwareRole::Installed { .. }) {
                 (kind.limits.max_queue_items, kind.limits.max_queue_bytes)
             } else {
                 (1, 4096)
@@ -306,6 +344,23 @@ pub fn emit_rust_for_layout_with_types(
     maximum_image_bytes: usize,
     maximum_generated_bytes: usize,
 ) -> Result<String, String> {
+    emit_rust_for_layout_with_installed(
+        source,
+        types,
+        source_to_kernel,
+        maximum_image_bytes,
+        maximum_generated_bytes,
+        &crate::installed_values::InstalledValueBindings::default(),
+    )
+}
+pub fn emit_rust_for_layout_with_installed(
+    source: &p::ExpandedCanonicalPlot,
+    types: Option<&p::CheckedSyntaxDocument>,
+    source_to_kernel: &[u16],
+    maximum_image_bytes: usize,
+    maximum_generated_bytes: usize,
+    installed: &crate::installed_values::InstalledValueBindings,
+) -> Result<String, String> {
     use std::fmt::Write;
     if source_to_kernel.len() != source.gears.len() {
         return Err("Source/kernel map length".into());
@@ -320,7 +375,7 @@ pub fn emit_rust_for_layout_with_types(
         }
         *slot = true;
     }
-    let mut material = compile_with_types(source, types, maximum_image_bytes)?;
+    let mut material = compile_with_installed(source, types, maximum_image_bytes, installed)?;
     for node in &mut material.nodes {
         node.node = source_to_kernel[usize::from(node.node)];
     }

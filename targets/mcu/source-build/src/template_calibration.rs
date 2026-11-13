@@ -60,10 +60,14 @@ pub struct Entry {
     pub offer_images: Vec<Vec<u8>>,
 }
 pub struct Calibration {
+    pub(crate) installed_values_identity: [u8; 32],
     pub entries: Vec<Entry>,
 }
 
 pub fn compile(workset: &workset::Workset, input: Inputs<'_>) -> Result<Calibration, String> {
+    workset
+        .installed_values
+        .validate_configuration(input.checked_host)?;
     h::verify_configuration_image(input.checked_host, input.image, input.catalog)?;
     if input.entries.len() != workset.entries.len()
         || input.internal_queue.item_capacity == 0
@@ -170,7 +174,10 @@ pub fn compile(workset: &workset::Workset, input: Inputs<'_>) -> Result<Calibrat
             offer_images,
         });
     }
-    Ok(Calibration { entries })
+    Ok(Calibration {
+        entries,
+        installed_values_identity: workset.installed_values.identity(),
+    })
 }
 
 impl Calibration {
@@ -183,6 +190,9 @@ impl Calibration {
         maximum_image_bytes: usize,
         maximum_generated_bytes: usize,
     ) -> Result<(), String> {
+        if self.installed_values_identity != workset.installed_values.identity() {
+            return Err("calibration belongs to different installed material".into());
+        }
         if self.entries.len() != workset.entries.len() {
             return Err("calibration differs from complete checked workset".into());
         }
@@ -195,12 +205,13 @@ impl Calibration {
             {
                 return Err("calibration lost exact checked entry identity".into());
             }
-            let mut rust = crate::software::emit_rust_for_layout_with_types(
+            let mut rust = crate::software::emit_rust_for_layout_with_installed(
                 &source.plot.expanded,
                 Some(&workset.checked_source),
                 &calibrated.source_to_kernel,
                 maximum_image_bytes,
                 maximum_generated_bytes,
+                &workset.installed_values,
             )?;
             workset::emit_mask_routing_images(&source.plot.expanded, &mut rust, mask)?;
             if rust.len() > maximum_generated_bytes {

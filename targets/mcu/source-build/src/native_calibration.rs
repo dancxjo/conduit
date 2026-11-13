@@ -187,6 +187,9 @@ pub fn compile_with_physical_bases(
         return Err("physical Base selection must cover each exact native slot once".into());
     }
 
+    workset
+        .installed_values
+        .validate_configuration(input.checked)?;
     h::verify_configuration_image(input.checked, input.image, input.catalog)?;
     for resource in input.shared_resources {
         if !input.checked.configuration().resources.iter().any(|r| {
@@ -280,10 +283,11 @@ pub fn compile_with_physical_bases(
     }
     let mut entries = Vec::new();
     for entry in &workset.entries {
-        let software = crate::software::compile_with_types(
+        let software = crate::software::compile_with_installed(
             &entry.plot.expanded,
             Some(&workset.checked_source),
             input.bounds.maximum_offer_image_bytes,
+            &workset.installed_values,
         )?;
         for offer in software.nodes.into_iter().filter_map(|n| n.offer) {
             insert(&mut host, offer)?;

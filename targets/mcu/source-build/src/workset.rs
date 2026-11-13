@@ -27,6 +27,7 @@ pub struct Entry {
     pub cords: usize,
 }
 pub struct Workset {
+    pub(crate) installed_values: crate::installed_values::InstalledValueBindings,
     pub(crate) calibrated: bool,
     pub(crate) checked_source: p::CheckedSyntaxDocument,
     pub sha256: [u8; 32],
@@ -70,6 +71,28 @@ pub fn compile_specialized(
     entries: &[String],
     mask: Option<MaskBounds>,
     specializations: &[crate::composite::Specialization<'_>],
+) -> Result<Workset, String> {
+    compile_specialized_with_installed(
+        bytes,
+        expected_sha256,
+        entries,
+        mask,
+        specializations,
+        &[],
+        |_| Ok(Default::default()),
+    )
+}
+/// Bind immutable equipment facts only after checking the original Source.
+pub fn compile_specialized_with_installed(
+    bytes: &[u8],
+    expected_sha256: &str,
+    entries: &[String],
+    mask: Option<MaskBounds>,
+    specializations: &[crate::composite::Specialization<'_>],
+    installed_selections: &[crate::composite::ValueReference<'_>],
+    prepare: impl FnOnce(
+        &p::CheckedSyntaxDocument,
+    ) -> Result<crate::installed_values::InstalledValueBindings, String>,
 ) -> Result<Workset, String> {
     if bytes.is_empty()
         || bytes.len() > MAXIMUM_SOURCE_BYTES
@@ -130,7 +153,10 @@ pub fn compile_specialized(
         return Err(format!("workset syntax: {:?}", syntax.diagnostics));
     }
     crate::composite::install(&syntax, specializations, &mut startup, &mut profiles)?;
+    crate::installed_values::install(&syntax, installed_selections, &mut startup, &mut profiles)?;
     let checked = p::check_syntax_document(&syntax, &startup).map_err(debug)?;
+    let installed_values = prepare(&checked)?;
+    installed_values.validate_source(&checked)?;
     // Install the ordinary checked selector definitions before expansion; the
     // Source compiler owns their meaning, not a target-side selector shortcut.
     for plot in &checked.plots {
@@ -169,7 +195,17 @@ pub fn compile_specialized(
     let mut material = Vec::with_capacity(prepared.len());
     for (name, plot) in entries.iter().zip(prepared) {
         let expanded = &plot.expanded;
-        let mut rust = software::emit_rust_with_types(expanded, &checked, 24 * 1024, 1024 * 1024)?;
+        let nodes = (0..expanded.gears.len())
+            .map(|n| u16::try_from(n).map_err(|_| "node bound".to_owned()))
+            .collect::<Result<Vec<_>, _>>()?;
+        let mut rust = software::emit_rust_for_layout_with_installed(
+            expanded,
+            Some(&checked),
+            &nodes,
+            24 * 1024,
+            1024 * 1024,
+            &installed_values,
+        )?;
         emit_mask_routing_images(expanded, &mut rust, mask)?;
         material.push(Entry {
             name: name.clone(),
@@ -180,6 +216,7 @@ pub fn compile_specialized(
         });
     }
     Ok(Workset {
+        installed_values,
         calibrated: false,
         checked_source: checked,
         sha256,

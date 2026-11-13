@@ -2,6 +2,7 @@
 //! Host adapters choose facts; this module checks their Source-owned meaning.
 use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
 
+#[derive(Clone)]
 pub struct LinkedSourceImage {
     schema: Vec<u8>,
     value: Vec<u8>,

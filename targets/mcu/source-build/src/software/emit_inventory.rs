@@ -7,6 +7,7 @@ pub(super) fn append(code: &mut String, material: &SoftwareMaterial) -> Result<(
     code.push_str("pub fn definition_at(index:usize,waits:&[(u16,conduit_kernel::ValueRef)])->Result<Option<conduit_mcu_host_runtime::execution_factory::SoftwareDefinition<'static>>,&'static str>{\nuse conduit_mcu_host_runtime::execution_factory::SoftwareDefinition as D;\nmatch index{\n");
     for node in &material.nodes {
         let definition = match &node.role {
+            SoftwareRole::Installed { binding, .. } => format!("D::LinkedSourceStatic{{schema:super::installed_values::SCHEMA_{binding},value:super::installed_values::VALUE_{binding},maximum_bytes:super::installed_values::MAXIMUM_{binding}}}"),
             SoftwareRole::Tick { count, .. } => format!("D::Tick{{wait:waits.iter().find(|v|v.0=={}).ok_or(\"missing-clock-value\")?.1,count:{count}}}",node.node),
             SoftwareRole::Composite(role) => crate::composite::emit_definition(role)?,
             SoftwareRole::Trigger => "D::Trigger".into(),

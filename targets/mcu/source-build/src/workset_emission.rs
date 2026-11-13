@@ -18,6 +18,7 @@ pub(super) fn emit(workset: &Workset, out: &Path, legacy_roles: bool) -> Result<
 }
 fn index(workset: &Workset, legacy_roles: bool) -> Result<String, String> {
     let mut index=format!("pub const SOURCE_SHA256:[u8;32]={:?};\npub const ENTRY_COUNT:usize={};\npub const ENTRY_NAMES:&[&str]=&{:?};\n",workset.sha256,workset.entries.len(),workset.entries.iter().map(|e|e.name.as_str()).collect::<Vec<_>>());
+    index.push_str(&workset.installed_values.emit_shared());
     if legacy_roles {
         // Bind this finite execution profile to actual checked operations,
         // independent of user entry names or the signed workset's ordering.

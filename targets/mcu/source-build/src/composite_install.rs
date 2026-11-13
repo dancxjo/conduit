@@ -20,6 +20,7 @@ pub(crate) fn install(
     let mut declarations = syntax.clone();
     declarations.uses.retain(|import| {
         typed_family(&import.path).is_none()
+            && !crate::installed_values::is_instance(&import.path)
             && !matches!(
                 import.path.as_str(),
                 "flow/zip/finite/paired" | "flow/zip/feedback/paired"

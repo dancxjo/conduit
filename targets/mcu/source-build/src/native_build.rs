@@ -158,10 +158,11 @@ pub fn check_source_clocks(
 ) -> Result<(), String> {
     let mut waits = 0usize;
     for entry in &workset.entries {
-        let material = crate::software::compile_with_types(
+        let material = crate::software::compile_with_installed(
             &entry.plot.expanded,
             Some(&workset.checked_source),
             24 * 1024,
+            &workset.installed_values,
         )?;
         for node in material.nodes {
             if let crate::software::SoftwareRole::Tick { period_ms, .. } = node.role {

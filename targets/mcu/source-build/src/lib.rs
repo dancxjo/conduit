@@ -6,6 +6,7 @@ pub mod composite;
 pub mod fore_carrier;
 pub mod image_input;
 pub mod linked_source;
+pub mod installed_values;
 pub mod native_build;
 pub mod native_calibration;
 pub mod protocol_catalog;
