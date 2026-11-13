@@ -1,0 +1,131 @@
+# Finite repeated acquisition policy. Configuration is supplied through an
+# admitted Fore by the selected Host Base; no address or epoch is invented here.
+# Cadence is completion-relative: one complete acquisition, then period_ms wait.
+# Each cycle deliberately repeats the checked full acquisition/calibration.
+# The supported-address check below is the BME device domain, matching the
+# existing protocol action. It does not choose a Host's configured address.
+type BmeSamplingBegin = {
+    sensor: BmeProtocolBegin
+    count: U64
+    period_ms: U64
+}
+type BmeSamplingFailure =
+    none
+    | invalid-count
+    | invalid-period
+    | deadline-overflow
+    | clock-reversed
+    | protocol BmeProtocolFailure
+    | unexpected
+
+# Protocol failure payload already lives in protocol.failure. Retain a small
+# marker here instead of duplicating its complete bus-result schema/storage.
+type BmeSamplingStatus =
+    none
+    | invalid-count
+    | invalid-period
+    | deadline-overflow
+    | clock-reversed
+    | protocol
+    | unsupported-address U8
+    | unexpected
+
+type BmeSamplingState = {
+    configuration: BmeSamplingBegin
+    protocol: BmeProtocolState
+    remaining: U64
+    next_due: U64
+    waiting: Boolean
+    captured: Boolean
+    terminal: Boolean
+    failure: BmeSamplingStatus
+}
+type BmeSamplingSeed = {
+    configuration: BmeSamplingBegin
+    initialized: BmeProtocolState
+}
+# Correlation retains only sampling control beside one lifecycle result.
+type BmeSamplingControl = {
+    configuration: BmeSamplingBegin
+    remaining: U64
+    next_due: U64
+}
+type BmeSamplingAdvanced = {
+    control: BmeSamplingControl
+    protocol: BmeProtocolState
+}
+type BmeSamplingControlOption =
+    available BmeSamplingControl
+    | absent
+type BmeSamplingIdle =
+    available BmeSamplingState
+    | absent
+type BmeSamplingIdleEvent =
+    tick U64
+    | clock-failed ClockResult
+    | unexpected
+type BmeSamplingIdleTransition = {
+    state: BmeSamplingState
+    event: BmeSamplingIdleEvent
+}
+type BmeSamplingIdleResult =
+    available BmeSamplingState
+    | absent
+
+type BmeSamplingRoute =
+    active BmeProtocolState
+    | waiting U64
+    | stopped
+
+type BmeSamplingCapture =
+    available BmeProtocolState
+    | absent
+
+type BmeSamplingRefusal =
+    available BmeSamplingFailure
+    | absent
+
+plot bme280-sampling-start (
+    seed: BmeSamplingSeed...| >> state: BmeSamplingState...|
+) = ({ configuration: .configuration, protocol: .initialized, remaining: .configuration.count, next_due: 0, waiting: false, captured: false, terminal: .configuration.count == 0 || .configuration.period_ms == 0 || (.configuration.sensor.address != 118 && .configuration.sensor.address != 119), failure: (.configuration.count == 0 ? invalid-count(empty) : (.configuration.period_ms == 0 ? invalid-period(empty) : (.configuration.sensor.address != 118 && .configuration.sensor.address != 119 ? unsupported-address(.configuration.sensor.address) : none(empty)))) })
+
+# Active control bypasses the protocol/event pair. Idle input carries only a
+# narrow cadence event; a full State and full bus event are never paired.
+plot bme280-sampling-idle (
+    state: BmeSamplingState...| >> idle: BmeSamplingIdle...|
+) = (.waiting && !.terminal ? available(.) : absent(empty))
+plot bme280-sampling-control (
+    state: BmeSamplingState...| >> control: BmeSamplingControlOption...|
+) = (.waiting || .terminal ? absent(empty) : available({ configuration: .configuration, remaining: .remaining, next_due: .next_due }))
+plot bme280-sampling-reset-input (
+    control: BmeSamplingControl...| >> begin: BmeProtocolBegin...|
+) = (.configuration.sensor)
+
+# The existing BME transition alone computes the next protocol state. A capture
+# is published before any later reset. Last capture needs no future deadline.
+plot bme280-sampling-finish (
+    input: BmeSamplingAdvanced...| >> state: BmeSamplingState...|
+) = (.protocol.phase == 15 ? { configuration: .control.configuration, protocol: .protocol, remaining: .control.remaining, next_due: .control.next_due, waiting: false, captured: false, terminal: true, failure: protocol(empty) } : (.protocol.phase == 14 ? (.control.remaining <= 1 ? { configuration: .control.configuration, protocol: .protocol, remaining: 0, next_due: .control.next_due, waiting: false, captured: true, terminal: true, failure: none(empty) } : (.protocol.clock > 18446744073709551615 - .control.configuration.period_ms ? { configuration: .control.configuration, protocol: .protocol, remaining: .control.remaining - 1, next_due: .control.next_due, waiting: false, captured: true, terminal: true, failure: deadline-overflow(empty) } : { configuration: .control.configuration, protocol: .protocol, remaining: .control.remaining - 1, next_due: .protocol.clock + .control.configuration.period_ms, waiting: true, captured: true, terminal: false, failure: none(empty) })) : { configuration: .control.configuration, protocol: .protocol, remaining: .control.remaining, next_due: .control.next_due, waiting: false, captured: false, terminal: false, failure: none(empty) }))
+plot bme280-sampling-restart (
+    input: BmeSamplingAdvanced...| >> state: BmeSamplingState...|
+) = ({ configuration: .control.configuration, protocol: .protocol, remaining: .control.remaining, next_due: .control.next_due, waiting: false, captured: false, terminal: false, failure: none(empty) })
+
+# Only a due idle tick starts initialization. Early ticks retain one original
+# state; unexpected events/provider loss refuse without retry or new IO.
+plot bme280-sampling-idle-step (
+    transition: BmeSamplingIdleTransition...| >> result: BmeSamplingIdleResult...|
+) = (.state.terminal ? available(.state) : (.event is clock-failed ? available({ configuration: .state.configuration, protocol: { address: .state.protocol.address, phase: 15, index: .state.protocol.index, polls: .state.protocol.polls, deadline: .state.protocol.deadline, clock: .state.protocol.clock, ready: .state.protocol.ready, first: .state.protocol.first, humidity_first: .state.protocol.humidity_first, humidity: .state.protocol.humidity, sample: .state.protocol.sample, failure: clock(.event.clock-failed) }, remaining: .state.remaining, next_due: .state.next_due, waiting: false, captured: false, terminal: true, failure: protocol(empty) }) : (.event is tick ? (.event.tick < .state.protocol.clock ? available({ configuration: .state.configuration, protocol: .state.protocol, remaining: .state.remaining, next_due: .state.next_due, waiting: false, captured: false, terminal: true, failure: clock-reversed(empty) }) : (.event.tick >= .state.next_due ? absent(empty) : available({ configuration: .state.configuration, protocol: .state.protocol, remaining: .state.remaining, next_due: .state.next_due, waiting: true, captured: false, terminal: false, failure: none(empty) }))) : available({ configuration: .state.configuration, protocol: .state.protocol, remaining: .state.remaining, next_due: .state.next_due, waiting: false, captured: false, terminal: true, failure: unexpected(empty) }))))
+
+plot bme280-sampling-idle-resume (
+    transition: BmeSamplingIdleTransition...| >> restart: BmeSamplingControlOption...|
+) = (.state.terminal ? absent(empty) : (.event is tick ? (.event.tick >= .state.next_due && .event.tick >= .state.protocol.clock ? available({ configuration: .state.configuration, remaining: .state.remaining, next_due: .state.next_due }) : absent(empty)) : absent(empty)))
+
+plot bme280-sampling-route (
+    state: BmeSamplingState...| >> route: BmeSamplingRoute...|
+) = (.terminal ? stopped(empty) : (.waiting ? waiting(.next_due) : active(.protocol)))
+plot bme280-sampling-capture (
+    state: BmeSamplingState...| >> capture: BmeSamplingCapture...|
+) = (.captured ? available(.protocol) : absent(empty))
+plot bme280-sampling-refusal (
+    state: BmeSamplingState...| >> refusal: BmeSamplingRefusal...|
+) = (.failure is none ? absent(empty) : available(.failure is protocol ? protocol(.protocol.failure) : (.failure is unsupported-address ? protocol(unsupported-address(.failure.unsupported-address)) : (.failure is invalid-count ? invalid-count(empty) : (.failure is invalid-period ? invalid-period(empty) : (.failure is deadline-overflow ? deadline-overflow(empty) : (.failure is clock-reversed ? clock-reversed(empty) : unexpected(empty))))))))

@@ -224,3 +224,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod bme_sampling_build_tests;
