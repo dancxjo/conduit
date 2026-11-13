@@ -50,6 +50,12 @@ pub(super) fn emit(
                 &program.output_type,
             ),
         ] {
+            // Intrinsic Empty travels as the zero-byte ABI. The actual Back
+            // advertises no separated schema for this boundary.
+            if matches!(ty.shape(), c::StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == "value/empty")
+            {
+                continue;
+            }
             let mut ports = ports.iter().filter(|p| p.node == node.node);
             let port = ports.next().ok_or("schema resident port absent")?;
             if ports.next().is_some() {
