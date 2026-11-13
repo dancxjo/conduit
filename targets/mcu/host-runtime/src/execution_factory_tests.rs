@@ -228,3 +228,45 @@ fn static_merge_workspace_requirement_survives_software_and_driver_wrappers() {
         expected
     );
 }
+
+#[cfg(feature = "execution-workspace")]
+#[test]
+fn typed_zip_workspace_requirement_survives_software_and_driver_wrappers() {
+    let left = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/u64")).unwrap();
+    let right = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/u8")).unwrap();
+    let contract = |ty: &conduit_core::StructuredInfoType, bytes| {
+        let conduit_core::StructuredInfoTypeShape::Leaf(kind) = ty.shape() else {
+            panic!("fixture uses the raw primitive ABI");
+        };
+        conduit_core::CheckedValueContract::new(kind.clone(), bytes, alloc::vec![]).unwrap()
+    };
+    let lc = contract(&left, 8);
+    let rc = contract(&right, 1);
+    for feedback in [false, true] {
+        let direct = if feedback {
+            conduit_composite::FlowZipBack::prepare_typed_feedback_workspace(
+                &lc,
+                left.clone(),
+                &rc,
+                right.clone(),
+            )
+        } else {
+            conduit_composite::FlowZipBack::prepare_typed_finite_workspace(
+                &lc,
+                left.clone(),
+                &rc,
+                right.clone(),
+            )
+        }
+        .unwrap();
+        let expected =
+            <conduit_composite::FlowZipBack as StepBack<2>>::workspace_requirements(&direct);
+        assert!(expected.is_some_and(|requirements| requirements.output_bytes != 0));
+        let software = SoftwareBack::zip(&lc, left.clone(), &rc, right.clone(), feedback).unwrap();
+        let wrapped: Driver<'_, HostCallBack> = Driver::Software(software);
+        assert_eq!(
+            <Driver<HostCallBack> as StepBack<2>>::workspace_requirements(&wrapped),
+            expected
+        );
+    }
+}

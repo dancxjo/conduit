@@ -96,14 +96,25 @@ impl<'a> SoftwareBack<'a> {
         right_type: conduit_core::StructuredInfoType,
         feedback: bool,
     ) -> Result<Self, &'static str> {
+        #[cfg(feature = "execution-workspace")]
+        let back = if feedback {
+            conduit_composite::FlowZipBack::prepare_typed_feedback_workspace(
+                left, left_type, right, right_type,
+            )
+        } else {
+            conduit_composite::FlowZipBack::prepare_typed_finite_workspace(
+                left, left_type, right, right_type,
+            )
+        };
+        #[cfg(not(feature = "execution-workspace"))]
         let back = if feedback {
             conduit_composite::FlowZipBack::prepare_typed_feedback(
                 left, left_type, right, right_type,
             )
         } else {
             conduit_composite::FlowZipBack::prepare_typed_finite(left, left_type, right, right_type)
-        }
-        .map_err(|_| "zip-definition")?;
+        };
+        let back = back.map_err(|_| "zip-definition")?;
         Ok(Self::Zip(Box::new(back)))
     }
     pub fn merge(

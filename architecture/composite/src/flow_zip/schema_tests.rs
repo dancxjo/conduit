@@ -44,164 +44,20 @@ fn fixture() -> (StructuredInfoType, &'static [u8], [Vec<u8>; 2]) {
     (ty, linked, bytes)
 }
 
-enum Back<'a> {
-    Source {
-        schema: &'a [u8],
-        bytes: &'a [u8],
-        separated: bool,
-        count: u8,
-        close_delay: u8,
-        staged: bool,
-    },
-    Zip {
-        back: FlowZipBack,
-        separated: u8,
-        canonical: u8,
-    },
-    Sink {
-        schema: &'a [u8],
-        expected: &'a [u8],
-        separated: bool,
-        delay: u8,
-        count: u8,
-        staged: bool,
-    },
-}
-impl StepBack<2> for Back<'_> {
-    fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
-        match self {
-            Self::Zip { back, .. } => {
-                <FlowZipBack as StepBack<2>>::canonical_input_schema(back, port)
-            }
-            Self::Sink {
-                schema,
-                separated: true,
-                ..
-            } if port == PortId(0) => Some(schema),
-            _ => None,
-        }
-    }
-    fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
-        match self {
-            Self::Zip { back, .. } => {
-                <FlowZipBack as StepBack<2>>::canonical_output_schema(back, port)
-            }
-            Self::Source {
-                schema,
-                separated: true,
-                ..
-            } if port == PortId(0) => Some(schema),
-            _ => None,
-        }
-    }
-    fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; 2] {
-        match self {
-            Self::Zip { back, .. } => back.terminal_transductions(),
-            _ => [None; 2],
-        }
-    }
-    fn step(&mut self, io: &mut StepIo<2>, input: &StepInputBytes<'_, 2>) -> StepOutcome {
-        match self {
-            Self::Source {
-                bytes,
-                count,
-                close_delay,
-                staged,
-                ..
-            } => {
-                if *count == 2 {
-                    // Keep the finite producers open until both pairs can form;
-                    // shortest-stream closure may otherwise discard an unmatched member.
-                    if *close_delay > 0 {
-                        *close_delay -= 1;
-                        io.exhaust_fuel();
-                        return StepOutcome::Yield;
-                    }
-                    return StepOutcome::Complete;
-                }
-                if !io.output_ready_for(PortId(0), bytes.len() as u32) {
-                    return StepOutcome::Await;
-                }
-                io.send_prepared(PortId(0), bytes.len() as u32).unwrap();
-                *staged = true;
-                StepOutcome::Progress
-            }
-            Self::Zip {
-                back,
-                separated,
-                canonical,
-            } => {
-                let result = back.step(io, input);
-                for port in [PortId(0), PortId(1)] {
-                    if io.test_consumed(port) {
-                        *separated += u8::from(input.canonical_parts(port).is_some());
-                        *canonical += u8::from(input.input(port).is_some());
-                    }
-                }
-                result
-            }
-            Self::Sink {
-                schema,
-                expected,
-                separated,
-                delay,
-                staged,
-                ..
-            } => {
-                if io.input(PortId(0)).is_none() {
-                    if io.input_closed(PortId(0)) {
-                        io.consume_closed(PortId(0)).unwrap();
-                        return StepOutcome::Complete;
-                    }
-                    return StepOutcome::Await;
-                }
-                if *delay > 0 {
-                    *delay -= 1;
-                    io.exhaust_fuel();
-                    return StepOutcome::Yield;
-                }
-                if *separated {
-                    let parts = input.canonical_parts(PortId(0)).unwrap();
-                    assert_eq!(parts.schema, *schema);
-                    assert_eq!(parts.node, &expected[schema.len()..]);
-                    assert!(input.input(PortId(0)).is_none());
-                } else {
-                    assert_eq!(input.input(PortId(0)), Some(*expected));
-                    assert!(input.canonical_parts(PortId(0)).is_none());
-                }
-                assert_eq!(
-                    io.input(PortId(0)).unwrap().byte_len as usize,
-                    expected.len()
-                );
-                io.consume(PortId(0)).unwrap();
-                *staged = true;
-                StepOutcome::Progress
-            }
-        }
-    }
-    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        match self {
-            Self::Source {
-                bytes,
-                staged: true,
-                ..
-            } if port == PortId(0) => Some(bytes),
-            Self::Zip { back, .. } => <FlowZipBack as StepBack<2>>::prepared_output(back, port),
-            _ => None,
-        }
-    }
-    fn step_committed(&mut self) {
-        match self {
-            Self::Source { count, staged, .. } | Self::Sink { count, staged, .. } => {
-                *count += u8::from(*staged);
-                *staged = false;
-            }
-            Self::Zip { back, .. } => <FlowZipBack as StepBack<2>>::step_committed(back),
-        }
-    }
-}
+#[path = "schema_test_back.rs"]
+mod back;
+use back::Back;
+
 #[test]
 fn actual_scheduler_pairs_mixed_inputs_with_pressure_and_canonical_fallback() {
+    run_schema_cases(false);
+}
+#[cfg(feature = "execution-workspace")]
+#[test]
+fn workspace_scheduler_preserves_pending_sides_feedback_close_and_canonical_fallback() {
+    run_schema_cases(true);
+}
+fn run_schema_cases(workspace: bool) {
     for (fallback, feedback, flush) in [
         (false, false, false),
         (true, false, false),
@@ -253,12 +109,47 @@ fn actual_scheduler_pairs_mixed_inputs_with_pressure_and_canonical_fallback() {
                 .unwrap();
         }
         routes.seal().unwrap();
+        #[cfg(feature = "execution-workspace")]
+        let shared_back = if workspace {
+            Some(
+                if feedback {
+                    FlowZipBack::prepare_typed_feedback_workspace(
+                        &contract,
+                        ty.clone(),
+                        &contract,
+                        ty.clone(),
+                    )
+                } else {
+                    FlowZipBack::prepare_typed_finite_workspace(
+                        &contract,
+                        ty.clone(),
+                        &contract,
+                        ty.clone(),
+                    )
+                }
+                .unwrap(),
+            )
+        } else {
+            None
+        };
         let mut back = if feedback {
             FlowZipBack::prepare_typed_feedback(&contract, ty.clone(), &contract, ty)
         } else {
             FlowZipBack::prepare_typed_finite(&contract, ty.clone(), &contract, ty)
         }
         .unwrap();
+        #[cfg(feature = "execution-workspace")]
+        if let Some(shared) = shared_back {
+            assert_eq!(shared.left.capacity(), back.left.capacity());
+            assert_eq!(shared.right.capacity(), back.right.capacity());
+            assert_eq!(
+                core::mem::size_of_val(&shared),
+                core::mem::size_of_val(&back)
+            );
+            back = shared;
+        }
+        #[cfg(not(feature = "execution-workspace"))]
+        let _ = workspace;
         if flush {
             // Enter with one committed pair, then expose the source closes.
             // This exercises schema-backed finite terminal emission in the scheduler.
@@ -354,6 +245,34 @@ fn actual_scheduler_pairs_mixed_inputs_with_pressure_and_canonical_fallback() {
             FixedSignLog::<512>::new((512 * core::mem::size_of::<KernelEvent>()) as u32).unwrap(),
         )
         .unwrap();
+        #[cfg(feature = "execution-workspace")]
+        if workspace {
+            let requirements =
+                <FlowZipBack as StepBack<2>>::workspace_requirements(match &kernel.drivers()[2] {
+                    Back::Zip { back, .. } => back,
+                    _ => unreachable!(),
+                })
+                .unwrap();
+            assert_eq!(requirements.output_bytes as usize, expected.len());
+            let insufficient = PreparedStepWorkspace::try_new(
+                StepWorkspaceRequirements {
+                    output_bytes: requirements.output_bytes - 1,
+                    scratch_bytes: 0,
+                },
+                requirements.output_bytes as usize,
+            )
+            .unwrap();
+            assert!(kernel.install_execution_workspace(insufficient).is_err());
+            kernel
+                .install_execution_workspace(
+                    PreparedStepWorkspace::try_new(
+                        requirements,
+                        requirements.output_bytes as usize,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+        }
         let allocations =
             crate::test_support::allocation::allocations_during(|| kernel.run(1024).unwrap());
         assert_eq!(allocations, 0);

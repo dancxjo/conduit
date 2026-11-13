@@ -14,6 +14,9 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
                     back,
                 )
             }
+            Self::Zip(back) => {
+                <conduit_composite::FlowZipBack as StepBack<P>>::workspace_requirements(back)
+            }
             _ => None,
         }
     }
@@ -32,6 +35,11 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             }
             Self::Merge(back) => {
                 <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::step_with_workspace(
+                    back, io, input, workspace,
+                )
+            }
+            Self::Zip(back) => {
+                <conduit_composite::FlowZipBack as StepBack<P>>::step_with_workspace(
                     back, io, input, workspace,
                 )
             }

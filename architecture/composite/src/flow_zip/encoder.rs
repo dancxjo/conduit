@@ -7,6 +7,8 @@ use conduit_core::{
 pub(super) enum PairEncoder {
     Leaf(Box<PreparedTuplePairEncoder>),
     Typed(Box<PreparedTypedTuplePairRuntimeEncoder>),
+    #[cfg(feature = "execution-workspace")]
+    Workspace(Box<super::workspace_encoder::WorkspacePair>),
 }
 impl PairEncoder {
     #[cfg(feature = "schema-value-storage")]
@@ -14,6 +16,8 @@ impl PairEncoder {
         match self {
             Self::Typed(encoder) => encoder.canonical_input_schema(side),
             Self::Leaf(_) => None,
+            #[cfg(feature = "execution-workspace")]
+            Self::Workspace(encoder) => encoder.input_schema(side),
         }
     }
     #[cfg(feature = "schema-value-storage")]
@@ -21,6 +25,8 @@ impl PairEncoder {
         match self {
             Self::Typed(encoder) => Some(encoder.canonical_output_schema()),
             Self::Leaf(_) => None,
+            #[cfg(feature = "execution-workspace")]
+            Self::Workspace(encoder) => Some(encoder.output_schema()),
         }
     }
     pub(super) fn encode(
@@ -31,12 +37,39 @@ impl PairEncoder {
         match self {
             Self::Leaf(encoder) => encoder.encode(left, right),
             Self::Typed(encoder) => encoder.encode(left, right),
+            #[cfg(feature = "execution-workspace")]
+            Self::Workspace(_) => Err(StructuredInfoRefusal::WrongType),
         }
     }
     pub(super) fn encoded(&self) -> &[u8] {
         match self {
             Self::Leaf(encoder) => encoder.encoded(),
             Self::Typed(encoder) => encoder.encoded(),
+            #[cfg(feature = "execution-workspace")]
+            Self::Workspace(_) => &[],
+        }
+    }
+}
+
+#[cfg(feature = "execution-workspace")]
+impl PairEncoder {
+    pub(super) fn workspace_maximum(&self) -> Option<u32> {
+        if let Self::Workspace(encoder) = self {
+            Some(encoder.maximum())
+        } else {
+            None
+        }
+    }
+    pub(super) fn encode_into<'out>(
+        &self,
+        left: &[u8],
+        right: &[u8],
+        output: &'out mut [u8],
+    ) -> Result<&'out [u8], StructuredInfoRefusal> {
+        if let Self::Workspace(encoder) = self {
+            encoder.encode_into([left, right], output)
+        } else {
+            Err(StructuredInfoRefusal::WrongType)
         }
     }
 }
