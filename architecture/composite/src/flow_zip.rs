@@ -320,7 +320,7 @@ impl FlowZipBack {
             candidate: vec![0; left.maximum_bytes.max(right.maximum_bytes) as usize],
             candidate_side: None,
             output_maximum: encoder.maximum_bytes(),
-            encoder: PairEncoder::Typed(Box::new(encoder)),
+            encoder: PairEncoder::Typed(Box::new(encoder.into_runtime())),
             output_staged: false,
             finish_after_commit: false,
             closing: false,

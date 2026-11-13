@@ -67,6 +67,16 @@ pub struct PreparedTypedTuplePairEncoder {
     maximum_bytes: u32,
 }
 
+/// Execution-only prepared pairing storage. Exact canonical member schemas,
+/// composition rules and finite buffers remain; the rich inspection Type tree
+/// is released by the consuming preparation boundary.
+pub struct PreparedTypedTuplePairRuntimeEncoder {
+    left: Member,
+    right: Member,
+    composer: PreparedStructuredComposer,
+    maximum_bytes: u32,
+}
+
 impl PreparedTypedTuplePairEncoder {
     pub fn new(
         left_type: StructuredInfoType,
@@ -122,11 +132,64 @@ impl PreparedTypedTuplePairEncoder {
         self.composer.encoded()
     }
 
-    pub fn encode(&mut self, left: &[u8], right: &[u8]) -> Result<&[u8], Refusal> {
-        let left = self.left.encode(left)?;
-        let right = self.right.encode(right)?;
-        self.composer.record(&[left, right])
+    /// Consume the checked preparation result without rebuilding buffers or
+    /// changing canonical identity/bounds. No authority or value is created.
+    pub fn into_runtime(self) -> PreparedTypedTuplePairRuntimeEncoder {
+        let Self {
+            left,
+            right,
+            value_type,
+            composer,
+            maximum_bytes,
+        } = self;
+        drop(value_type);
+        PreparedTypedTuplePairRuntimeEncoder {
+            left,
+            right,
+            composer,
+            maximum_bytes,
+        }
     }
+
+    pub fn encode(&mut self, left: &[u8], right: &[u8]) -> Result<&[u8], Refusal> {
+        encode_pair(
+            &mut self.left,
+            &mut self.right,
+            &mut self.composer,
+            left,
+            right,
+        )
+    }
+}
+
+impl PreparedTypedTuplePairRuntimeEncoder {
+    pub fn maximum_bytes(&self) -> u32 {
+        self.maximum_bytes
+    }
+    pub fn encoded(&self) -> &[u8] {
+        self.composer.encoded()
+    }
+    pub fn encode(&mut self, left: &[u8], right: &[u8]) -> Result<&[u8], Refusal> {
+        encode_pair(
+            &mut self.left,
+            &mut self.right,
+            &mut self.composer,
+            left,
+            right,
+        )
+    }
+}
+
+fn encode_pair<'a>(
+    left: &mut Member,
+    right: &mut Member,
+    composer: &'a mut PreparedStructuredComposer,
+    left_input: &[u8],
+    right_input: &[u8],
+) -> Result<&'a [u8], Refusal> {
+    let left = left.encode(left_input)?;
+    let right = right.encode(right_input)?;
+    composer.record(&[left, right])
 }
 
 fn maximum_value_nodes(ty: &StructuredInfoType) -> Result<usize, Refusal> {
@@ -162,3 +225,7 @@ fn maximum_value_nodes(ty: &StructuredInfoType) -> Result<usize, Refusal> {
         .filter(|count| *count <= MAXIMUM_STRUCTURED_INFO_NODES)
         .ok_or(Refusal::TooManyNodes)
 }
+
+#[cfg(test)]
+#[path = "typed_pair/runtime_tests.rs"]
+mod runtime_tests;

@@ -1,12 +1,12 @@
 //! Exact prepared pair representation, selected before execution.
 use crate::prelude::*;
 use conduit_core::{
-    PreparedTuplePairEncoder, PreparedTypedTuplePairEncoder, StructuredInfoRefusal,
+    PreparedTuplePairEncoder, PreparedTypedTuplePairRuntimeEncoder, StructuredInfoRefusal,
 };
 
 pub(super) enum PairEncoder {
     Leaf(Box<PreparedTuplePairEncoder>),
-    Typed(Box<PreparedTypedTuplePairEncoder>),
+    Typed(Box<PreparedTypedTuplePairRuntimeEncoder>),
 }
 impl PairEncoder {
     pub(super) fn encode(
