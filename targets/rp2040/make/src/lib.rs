@@ -12,6 +12,8 @@ pub use gpio_initialization::*;
 mod membership_seed;
 mod native_offer;
 mod resident_protocol;
+mod protocol_configuration;
+pub use protocol_configuration::CheckedProtocolConfigurationImages;
 pub use native_offer::{checked_i2c_offer_definition, checked_i2c_offer_image};
 mod resident_work;
 pub use bootstrap_contract::*;
