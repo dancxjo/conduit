@@ -203,3 +203,7 @@ mod reference_tests;
 #[cfg(test)]
 #[path = "computation_inventory_tests.rs"]
 mod inventory_tests;
+
+#[cfg(test)]
+#[path = "computation_bitmap_tests.rs"]
+mod bitmap_tests;
