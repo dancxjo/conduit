@@ -17,9 +17,11 @@ static REFUSAL: Mutex<Cell<Option<usize>>> = Mutex::new(Cell::new(None));
 
 /// Called once at boot; a failed member keeps the whole inventory unpublished.
 pub fn initialize() {
-    match generated::Initialized::prepare() {
-        Ok(owner) => {
-            let owner = OWNER.init(owner);
+    // Construct only empty slots in static storage, then fill them one at a
+    // time. Returning the whole inventory by value exceeds the cold stack.
+    let owner = OWNER.init_with(generated::Initialized::empty);
+    match owner.prepare_into() {
+        Ok(()) => {
             let count = owner.offers().into_iter().flatten().count();
             critical_section::with(|cs| {
                 INITIALIZED.borrow(cs).set(count);

@@ -10,6 +10,12 @@ impl PreparationRefusal {
 }
 pub struct Initialized;
 impl Initialized {
+    pub const fn empty() -> Self {
+        Self
+    }
+    pub fn prepare_into(&mut self) -> Result<(), PreparationRefusal> {
+        Ok(())
+    }
     pub fn prepare() -> Result<Self, PreparationRefusal> {
         Ok(Self)
     }

@@ -1,5 +1,8 @@
 //! Compose immutable images without publishing a partially initialized inventory.
 use crate::{PreparedResidentExpression, ResidentExpressionRefusal as R};
+#[cfg(test)]
+#[path = "resident_inventory_initialization_tests.rs"]
+mod initialization_tests;
 
 /// Emit one owner for an explicitly selected finite collection of resident Backs.
 /// This admits neither their storage nor a Host, work pool, reservation or Play.
@@ -50,13 +53,13 @@ pub fn generate_resident_library(
             return Err(R::Bounds);
         }
     }
-    code.push_str("#[derive(Debug)]pub enum PreparationRefusal{\n");
+    code.push_str("#[derive(Debug)]pub enum PreparationRefusal{Occupied(usize),\n");
     for index in 0..images.len() {
         code.push_str(&format!(
             "Entry{index}(entry_{index}::PreparationRefusal),\n"
         ));
     }
-    code.push_str("}\nimpl PreparationRefusal{pub fn entry(&self)->usize{match self{\n");
+    code.push_str("}\nimpl PreparationRefusal{pub fn entry(&self)->usize{match self{Self::Occupied(entry)=>*entry,\n");
     for index in 0..images.len() {
         code.push_str(&format!("Self::Entry{index}(_)=>{index},\n"));
     }
@@ -66,13 +69,23 @@ pub fn generate_resident_library(
             "entry_{index}:Option<entry_{index}::Initialized>,\n"
         ));
     }
-    code.push_str(
-        "}\nimpl Initialized{\npub fn prepare()->Result<Self,PreparationRefusal>{Ok(Self{\n",
-    );
+    code.push_str("}\nimpl Initialized{\n/// Empty reserved slots; no Back has been prepared or published.\npub const fn empty()->Self{Self{\n");
     for index in 0..images.len() {
-        code.push_str(&format!("entry_{index}:Some(entry_{index}::Initialized::prepare().map_err(PreparationRefusal::Entry{index})?),\n"));
+        code.push_str(&format!("entry_{index}:None,\n"));
     }
-    code.push_str("})}\n");
+    code.push_str("}}\npub fn prepare()->Result<Self,PreparationRefusal>{let mut owner=Self::empty();owner.prepare_into()?;Ok(owner)}\n/// Fill the caller's reserved owner in place. Refuse occupied slots unchanged;\n/// on failure retire all newly prepared entries before returning.\n#[inline(never)]pub fn prepare_into(&mut self)->Result<(),PreparationRefusal>{\n");
+    for index in 0..images.len() {
+        code.push_str(&format!("if self.entry_{index}.is_some(){{return Err(PreparationRefusal::Occupied({index}));}}\n"));
+    }
+    code.push_str("let result=(||{\n");
+    for index in 0..images.len() {
+        code.push_str(&format!("self.entry_{index}=Some(entry_{index}::Initialized::prepare().map_err(PreparationRefusal::Entry{index})?);\n"));
+    }
+    code.push_str("Ok(())})();if result.is_err(){\n");
+    for index in 0..images.len() {
+        code.push_str(&format!("self.entry_{index}=None;\n"));
+    }
+    code.push_str("}result}\n");
     code.push_str(&format!(
         "/// Lossless document images of unbound initialized owners only.\n/// This does not publish a Host generation.\npub fn offers(&self)->[Option<&'static [u8]>;{}]{{[\n",
         images.len()
