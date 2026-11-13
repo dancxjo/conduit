@@ -162,7 +162,7 @@ mod tests {
         .unwrap();
         assert_ne!(first, remapped);
         assert!(remapped.contains(&format!(
-            "result[{}]=Some(D::Tick",
+            "{}=>Ok(Some(D::Tick",
             mapping[usize::from(clock.node)]
         )));
         assert!(super::software::emit_rust_for_layout(

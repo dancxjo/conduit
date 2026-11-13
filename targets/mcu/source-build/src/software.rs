@@ -5,6 +5,8 @@ use conduit_dht11_observation::ObservationContract;
 use conduit_environment_runtime::publication::{PublicationChannel, PublicationContract};
 use conduit_plot as p;
 use sha2::{Digest, Sha256};
+#[path = "software/emit_inventory.rs"]
+mod emit_inventory;
 #[path = "software/selected.rs"]
 mod selected;
 #[path = "software/selector.rs"]
@@ -383,28 +385,8 @@ pub fn emit_rust_for_layout_with_types(
             writeln!(code, "&{image:?},").unwrap();
         }
     }
-    code.push_str("];\npub fn definitions(waits:&[(u16,conduit_kernel::ValueRef)])->Result<[Option<conduit_mcu_host_runtime::execution_factory::SoftwareDefinition<'static>>;NODE_COUNT],&'static str>{\nuse conduit_mcu_host_runtime::execution_factory::SoftwareDefinition as D;\nlet mut result=core::array::from_fn(|_|None);\n");
-    for node in &material.nodes {
-        let definition=match &node.role {
-            SoftwareRole::Tick{count,..}=>format!("D::Tick{{wait:waits.iter().find(|v|v.0=={}).ok_or(\"missing-clock-value\")?.1,count:{count}}}",node.node),
-            SoftwareRole::Composite(role)=>crate::composite::emit_definition(role)?,
-            SoftwareRole::Trigger=>"D::Trigger".into(),
-            SoftwareRole::Selector{canonical,input_bytes,output_bytes}=>format!("D::SelectorStatic{{canonical:&{canonical:?},input_bytes:{input_bytes},output_bytes:{output_bytes}}}"),
-            SoftwareRole::Dht11Observation=>"D::Dht11Observation".into(),
-            SoftwareRole::RecordingLog{maximum_samples}=>format!("D::RecordingLog{{maximum_samples:{maximum_samples}}}"),
-            SoftwareRole::Publication{channel,maximum_events}=>format!("D::Publication{{channel:conduit_environment_runtime::publication::PublicationChannel::{channel:?},maximum_events:{maximum_events}}}"),
-        };
-        writeln!(code, "result[{}]=Some({definition});", node.node).unwrap();
-    }
-    code.push_str("Ok(result)}\npub fn identities(clocks:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<[Option<conduit_plan_lowering::resident_inventory::OtherNodeIdentity>;NODE_COUNT],&'static str>{\nuse conduit_plan_lowering::resident_inventory::OtherNodeIdentity;let mut result=core::array::from_fn(|_|None);\n");
-    for node in &material.nodes {
-        if let (Some(implementation), Some(artifact)) = (&node.implementation, &node.artifact) {
-            writeln!(code,"result[{}]=Some(OtherNodeIdentity{{node:{},kind:conduit_core::AssignedIdentity({:?}),implementation:conduit_core::AssignedIdentity({:?}),artifact:conduit_core::AssignedIdentity({:?})}});",node.node,node.node,c::AssignedIdentity::from_text(node.kind.as_str()).0,c::AssignedIdentity::from_text(implementation.as_str()).0,c::AssignedIdentity::from_text(artifact.as_str()).0).unwrap();
-        } else if matches!(node.role, SoftwareRole::Tick { .. }) {
-            writeln!(code,"let clock=*clocks.iter().find(|v|v.node=={}).ok_or(\"missing-clock-owner\")?;if clock.kind!=conduit_core::AssignedIdentity({:?}){{return Err(\"clock-kind\");}}result[{}]=Some(clock);",node.node,c::AssignedIdentity::from_text(node.kind.as_str()).0,node.node).unwrap();
-        }
-    }
-    code.push_str("Ok(result)}\n");
+    code.push_str("];\n");
+    emit_inventory::append(&mut code, &material)?;
     if code.len() > maximum_generated_bytes {
         return Err("software generated-byte ceiling".into());
     }

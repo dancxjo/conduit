@@ -2358,6 +2358,7 @@ dependencies = [
  "conduit-host-make",
  "conduit-i2c-transaction",
  "conduit-kernel",
+ "conduit-mcu-host-runtime",
  "conduit-monotonic-wait",
  "conduit-plan-lowering",
  "conduit-planner",

@@ -29,3 +29,4 @@ conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["hos
 [dev-dependencies]
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", features = ["delegated-preparation"] }
+conduit-mcu-host-runtime = { path = "../host-runtime", features = ["execution"] }
