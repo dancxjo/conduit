@@ -1,3 +1,5 @@
+use super::super::tests::fixture::{self, Storage};
+use super::super::tests::rich::{grant, operation, Fixture};
 use super::*;
 use alloc::vec::Vec;
 use conduit_core::{
@@ -9,12 +11,6 @@ use conduit_plan_lowering::{
     assigned_play_scope::AssignedPlayScope,
     selected_assigned_operation::{AssignedOperationInput, SelectedAssignedOperationPlan},
 };
-#[path = "fixture.rs"]
-mod fixture;
-#[path = "rich.rs"]
-mod rich;
-use fixture::Storage;
-use rich::{grant, operation, Fixture};
 fn ready(f: &Fixture) -> ReadyRecordService<Storage> {
     let gear = &f.fragment.placements[0];
     let base = gear.base.as_ref().unwrap();

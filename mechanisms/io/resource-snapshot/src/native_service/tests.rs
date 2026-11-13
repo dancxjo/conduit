@@ -1,7 +1,7 @@
 //! Actual opaque operation + NOR provider tests; selection binder is separate.
 use super::*;
 #[path = "tests/fixture.rs"]
-mod fixture;
+pub(super) mod fixture;
 use fixture::*;
 fn invoke(
     owner: &mut RecordServiceHostCall<Storage>,
@@ -161,12 +161,12 @@ fn uncertain_append_custody_survives_revoked_idle_retirement() {
     let (ready, custody) = RecordServiceHostCall::retire_retained(&mut owner).unwrap();
     assert!(owner.is_none());
     assert_eq!(custody.unwrap().committed_index, None);
-    assert_eq!(ready.provider.recovered(), false);
+    assert!(!ready.provider.recovered());
     assert_eq!(ready.provider.residence_id(), RecordResidenceId([3; 32]));
 }
 
 #[path = "tests/rich.rs"]
-mod rich;
+pub(super) mod rich;
 
 #[test]
 fn report_complete_service_inline_and_retained_heap_charges() {

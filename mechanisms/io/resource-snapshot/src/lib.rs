@@ -23,3 +23,7 @@ pub mod native_append;
 
 #[cfg(feature = "native-host-call")]
 pub mod native_service;
+
+#[cfg(all(test, feature = "native-host-call"))]
+#[path = "../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs"]
+mod selection_fixture;

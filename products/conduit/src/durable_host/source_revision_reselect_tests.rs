@@ -319,3 +319,32 @@ fn reselection_accepts_pre_adoption_basis_only_when_file_matches_current_workset
     verify_capture_and_workset(&candidate, SOURCE).unwrap();
     fs::remove_dir_all(state.parent().unwrap()).unwrap();
 }
+
+#[test]
+fn selected_runtime_state_ceiling_preserves_high_word_without_widening_assignment_bytes() {
+    let mut value = serde_json::json!({
+        "port":"/dev/selected-test", "member_basis":"/private/basis.json",
+        "report_output":"/private/report.json", "wait_milliseconds":1000,
+        "maximum_program_bytes":100, "maximum_total_program_bytes":200,
+        "assigned_encoded_bytes":100, "assigned_runtime_state_bytes":0,
+        "assigned_counts":vec![1; conduit_core::ASSIGNED_PLAN_COUNT_KINDS],
+        "maximum_fore_ports":1, "maximum_document_bytes":100,
+        "image":{"maximum_nodes":1,"maximum_cords":1,"maximum_routes":1,
+            "maximum_route_targets":1,"maximum_host_calls":1,"maximum_resources":1,
+            "maximum_sign_expectations":1,"maximum_configuration_entries":1,
+            "maximum_ports_per_node":1,"maximum_remote_endpoints":1,
+            "maximum_cord_value_slots":1,"maximum_cord_value_bytes":100,
+            "maximum_sign_items":1,"maximum_sign_bytes":100}
+    });
+    for ceiling in [65535_u64, 65536, 218989, u64::from(u32::MAX)] {
+        value["assigned_runtime_state_bytes"] = ceiling.into();
+        let selected: UsbPlaySelection = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(u64::from(selected.assigned_runtime_state_bytes), ceiling);
+        assert_eq!(selected.assigned_encoded_bytes, 100);
+    }
+    value["assigned_runtime_state_bytes"] = (u64::from(u32::MAX) + 1).into();
+    assert!(serde_json::from_value::<UsbPlaySelection>(value.clone()).is_err());
+    value["assigned_runtime_state_bytes"] = 218989.into();
+    value["assigned_encoded_bytes"] = 65536.into();
+    assert!(serde_json::from_value::<UsbPlaySelection>(value).is_err());
+}

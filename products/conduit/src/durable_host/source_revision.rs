@@ -84,7 +84,7 @@ struct UsbPlaySelection {
     maximum_program_bytes: u32,
     maximum_total_program_bytes: u32,
     assigned_encoded_bytes: u16,
-    assigned_runtime_state_bytes: u16,
+    assigned_runtime_state_bytes: u32,
     assigned_counts: [u8; conduit_core::ASSIGNED_PLAN_COUNT_KINDS],
     maximum_fore_ports: usize,
     maximum_document_bytes: u32,
