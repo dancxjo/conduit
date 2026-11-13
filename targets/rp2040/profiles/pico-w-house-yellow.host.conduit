@@ -15,7 +15,7 @@ host pico-w-house-yellow {
   target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
   # Finite flash residence; these bytes are not a RAM need or write permission.
   base = {kind: "resource/nor-record-residence", implementation: "rp2040/nor-record-append@1", initialization: {prefix_bytes: 8192, slots: 1136}}
-  base = {kind: "clock/monotonic", implementation: "rp2040/monotonic-clock@1", initialization: {slots: 4, maximum_duration_ms: 60000}}
+  base = {kind: "clock/monotonic", implementation: "rp2040/monotonic-clock@1", initialization: {slots: 4, maximum_duration_ms: 60000, maximum_call_operations: 0}}
   base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
   base = {kind: "sensor/environment", implementation: "rp2040/dht11@1", initialization: {data: 3, start_low_us: 20000, maximum_transaction_us: 50000}}
   base = {kind: "display/segmented", implementation: "rp2040/tm1637@1", initialization: {clk: 7, dio: 6, brightness: 3, layout: "seven4", half_period_us: 50, settled_us: 100, maximum_clock_rise_us: 1000, maximum_transaction_us: 100000, pull: "up"}}
