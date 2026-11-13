@@ -130,6 +130,7 @@ fn observation(
             conduit_core::QuantityFormInteger::U16Le => {
                 u16::try_from(coefficient).diagnostic()?.to_le_bytes()
             }
+            conduit_core::QuantityFormInteger::I128Le => panic!("DHT11 retains its two-byte Form"),
         };
         let quantity = repr.decode(&bytes).diagnostic()?;
         // The checked semantic field contract validates family and point/delta role.
