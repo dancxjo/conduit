@@ -2,8 +2,8 @@
 //! One admitted kernel-pool reference retains Current between observations.
 //! Replacements retire that reference atomically; there is no private byte copy.
 use conduit_core::{
-    CheckedValueContract, PreparedStructuredValueValidator, StructuredInfoType,
-    StructuredInfoTypeShape,
+    BorrowedStructuredValueValidator, CheckedValueContract, PreparedStructuredValueValidator,
+    StructuredInfoType, StructuredInfoTypeShape,
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -13,6 +13,7 @@ use conduit_kernel::{
 enum Validator {
     Primitive(CheckedValueContract),
     Structured(PreparedStructuredValueValidator),
+    Static(BorrowedStructuredValueValidator<'static>),
 }
 
 pub struct SeededStateBack {
@@ -36,6 +37,23 @@ impl SeededStateBack {
         contract: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<Self, &'static str> {
+        Self::prepare_schema(contract, schema, None)
+    }
+
+    fn prepare_schema(
+        contract: &CheckedValueContract,
+        schema: &StructuredInfoType,
+        canonical: Option<&'static [u8]>,
+    ) -> Result<Self, &'static str> {
+        if let Some(canonical) = canonical {
+            if schema
+                .canonical_bytes()
+                .map_err(|_| "invalid state schema")?
+                != canonical
+            {
+                return Err("state schema differs from linked canonical bytes");
+            }
+        }
         contract
             .validate_definition()
             .map_err(|_| "invalid state value contract")?;
@@ -56,10 +74,23 @@ impl SeededStateBack {
                 {
                     return Err("unsupported state schema or additional value constraints");
                 }
-                Validator::Structured(
-                    PreparedStructuredValueValidator::new(schema, contract.maximum_bytes as usize)
+                if let Some(canonical) = canonical {
+                    Validator::Static(
+                        BorrowedStructuredValueValidator::new(
+                            canonical,
+                            contract.maximum_bytes as usize,
+                        )
                         .map_err(|_| "state schema exceeds its admitted envelope")?,
-                )
+                    )
+                } else {
+                    Validator::Structured(
+                        PreparedStructuredValueValidator::new(
+                            schema,
+                            contract.maximum_bytes as usize,
+                        )
+                        .map_err(|_| "state schema exceeds its admitted envelope")?,
+                    )
+                }
             }
         };
         Ok(Self {
@@ -90,13 +121,32 @@ impl SeededStateBack {
         contract: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<Self, &'static str> {
+        Self::prepare_until_schema(contract, schema, None)
+    }
+
+    /// Borrow an exact linked schema for the checked terminal-state lifetime.
+    /// Initialization, retained kernel references and terminal laws are unchanged.
+    pub fn prepare_until_static(
+        contract: &CheckedValueContract,
+        schema: &StructuredInfoType,
+        canonical: &'static [u8],
+    ) -> Result<Self, &'static str> {
+        Self::prepare_until_schema(contract, schema, Some(canonical))
+    }
+
+    fn prepare_until_schema(
+        contract: &CheckedValueContract,
+        schema: &StructuredInfoType,
+        canonical: Option<&'static [u8]>,
+    ) -> Result<Self, &'static str> {
         let StructuredInfoTypeShape::Record { fields, .. } = schema.shape() else {
             return Err("terminal state requires a record");
         };
         if !fields.iter().any(|field| field.name() == "terminal" && matches!(field.value_type().shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == conduit_core::BOOL_INFO_ID)) {
             return Err("terminal state requires an exact terminal Boolean");
         }
-        let mut back = Self::prepare_flow(contract, schema)?;
+        let mut back = Self::prepare_schema(contract, schema, canonical)?;
+        back.flow = true;
         back.until = true;
         Ok(back)
     }
@@ -105,6 +155,7 @@ impl SeededStateBack {
         match &self.validator {
             Validator::Primitive(contract) => contract.validate(bytes).is_ok(),
             Validator::Structured(validator) => validator.validate(bytes).is_ok(),
+            Validator::Static(validator) => validator.validate(bytes).is_ok(),
         }
     }
 }

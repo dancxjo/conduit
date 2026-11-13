@@ -408,8 +408,10 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
                     schema,
                     maximum_bytes,
                 }) => {
-                    let (schema, contract) = decode_composite(schema, maximum_bytes)?;
-                    Some(SoftwareBack::seeded_until(&contract, &schema)?)
+                    let (decoded, contract) = decode_composite(schema, maximum_bytes)?;
+                    Some(SoftwareBack::seeded_until_static(
+                        &contract, &decoded, schema,
+                    )?)
                 }
                 Some(SoftwareDefinition::MergeStatic {
                     schema,

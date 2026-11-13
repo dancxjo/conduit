@@ -68,6 +68,14 @@ impl<'a> SoftwareBack<'a> {
         conduit_composite::SeededStateBack::prepare_until(contract, schema)
             .map(|back| Self::SeededState(Box::new(back)))
     }
+    pub fn seeded_until_static(
+        contract: &conduit_core::CheckedValueContract,
+        schema: &conduit_core::StructuredInfoType,
+        canonical: &'static [u8],
+    ) -> Result<Self, &'static str> {
+        conduit_composite::SeededStateBack::prepare_until_static(contract, schema, canonical)
+            .map(|back| Self::SeededState(Box::new(back)))
+    }
     pub fn zip(
         left: &conduit_core::CheckedValueContract,
         left_type: conduit_core::StructuredInfoType,
