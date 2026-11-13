@@ -142,5 +142,14 @@ fn host_queue_ceiling_below_complete_quantity_refuses_before_play() {
         &placements,
         &[BaseImplementationId::from("conduit.base/local@1")],
     );
-    assert_storage_refusal(result);
+    // The default queue planner now rejects the unfundable checked envelope
+    // before a candidate Plan reaches per-Cord storage validation.
+    assert!(
+        matches!(
+            result,
+            Err(PlannerError::QueueRequirementAboveHostLimit(ref message))
+                if message == "guaranteed value minimum exceeds selected Back queue capacity"
+        ),
+        "unexpected result: {result:?}"
+    );
 }
