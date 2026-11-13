@@ -7,6 +7,18 @@ use conduit_plot as p;
 use sha2::{Digest, Sha256};
 #[path = "software/selected.rs"]
 mod selected;
+#[path = "software/selector.rs"]
+mod selector;
+pub(crate) use selector::selected as selected_selector;
+pub(crate) fn implementation_identity(
+    kind: &c::KindId,
+    configuration: &[c::ConfigurationEntry],
+) -> Result<c::ImplementationId, String> {
+    let mut hash = Sha256::new();
+    hash.update(kind.as_str().as_bytes());
+    hash.update(serde_json::to_vec(configuration).map_err(|e| e.to_string())?);
+    Ok(format!("conduit.mcu/software/{:x}", hash.finalize()).into())
+}
 pub const PROFILE: &str = "conduit.mcu/prepared-software@1";
 pub const ARTIFACT: &str = "conduit-mcu-host-runtime/software@1";
 pub enum SoftwareRole {
@@ -95,105 +107,78 @@ pub fn compile_with_types(
         {
             continue;
         }
-        let temporal = c::PortTemporal::Flow { closes: true };
-        let (kind, role, native) = if let Some((kind, role)) =
-            crate::composite::selected(gear, types)?
-        {
-            (kind, SoftwareRole::Composite(role), false)
-        } else if gear.kind_id.as_str() == conduit_time::TICK_KIND {
-            let cadence = conduit_time::parse_tick_configuration(&gear.configuration)
-                .map_err(|e| format!("Source clock: {e:?}"))?;
-            (
-                conduit_time::tick_semantic_contract(),
-                SoftwareRole::Tick {
-                    count: cadence.count,
-                    period_ms: cadence.period_ms,
-                },
-                true,
-            )
-        } else if gear.kind_id.as_str() == conduit_time::TICK_TRIGGER_KIND {
-            (
-                conduit_time::tick_trigger_semantic_contract(),
-                SoftwareRole::Trigger,
-                false,
-            )
-        } else if gear.kind_id.as_str() == conduit_dht11_observation::KIND {
-            (
-                ObservationContract::prepare()
-                    .map_err(|e| format!("observation: {e:?}"))?
-                    .kind()
-                    .clone(),
-                SoftwareRole::Dht11Observation,
-                false,
-            )
-        } else if gear.kind_id.as_str() == conduit_environment_runtime::recording::LOG_KIND {
-            if maximum_events == 0 {
-                return Err("recording without finite checked clock".into());
-            }
-            (
-                conduit_environment_runtime::recording::LogContract::prepare(
-                    &ObservationContract::prepare()
-                        .map_err(|e| format!("recording observation: {e:?}"))?,
+        let (kind, role, native) =
+            if let Some((kind, role)) = crate::composite::selected(gear, types)? {
+                (kind, SoftwareRole::Composite(role), false)
+            } else if gear.kind_id.as_str() == conduit_time::TICK_KIND {
+                let cadence = conduit_time::parse_tick_configuration(&gear.configuration)
+                    .map_err(|e| format!("Source clock: {e:?}"))?;
+                (
+                    conduit_time::tick_semantic_contract(),
+                    SoftwareRole::Tick {
+                        count: cadence.count,
+                        period_ms: cadence.period_ms,
+                    },
+                    true,
                 )
-                .map_err(|e| format!("recording: {e:?}"))?
-                .kind()
-                .clone(),
-                SoftwareRole::RecordingLog {
-                    maximum_samples: maximum_events,
-                },
-                false,
-            )
-        } else if let Some(channel) = PublicationChannel::ALL
-            .into_iter()
-            .find(|c| c.kind_id() == gear.kind_id.as_str())
-        {
-            if maximum_events == 0 {
-                return Err("publication without finite checked clock".into());
-            }
-            (
-                PublicationContract::prepare(channel)
-                    .map_err(|e| format!("publication: {e:?}"))?
+            } else if gear.kind_id.as_str() == conduit_time::TICK_TRIGGER_KIND {
+                (
+                    conduit_time::tick_trigger_semantic_contract(),
+                    SoftwareRole::Trigger,
+                    false,
+                )
+            } else if gear.kind_id.as_str() == conduit_dht11_observation::KIND {
+                (
+                    ObservationContract::prepare()
+                        .map_err(|e| format!("observation: {e:?}"))?
+                        .kind()
+                        .clone(),
+                    SoftwareRole::Dht11Observation,
+                    false,
+                )
+            } else if gear.kind_id.as_str() == conduit_environment_runtime::recording::LOG_KIND {
+                if maximum_events == 0 {
+                    return Err("recording without finite checked clock".into());
+                }
+                (
+                    conduit_environment_runtime::recording::LogContract::prepare(
+                        &ObservationContract::prepare()
+                            .map_err(|e| format!("recording observation: {e:?}"))?,
+                    )
+                    .map_err(|e| format!("recording: {e:?}"))?
                     .kind()
                     .clone(),
-                SoftwareRole::Publication {
-                    channel,
-                    maximum_events,
-                },
-                false,
-            )
-        } else if let Some(c::ConfigurationValue::Text(text)) = gear
-            .configuration
-            .iter()
-            .find(|c| c.key == "selector")
-            .map(|c| &c.value)
-        {
-            let selector = c::StructuredSelector::from_canonical_hex(text)
-                .map_err(|e| format!("selector: {e:?}"))?;
-            let kind = conduit_semantic_catalog::structured_selector_contract(&selector, temporal);
-            let input_bytes =
-                conduit_plot::maximum_prepared_canonical_value_bytes(selector.input_type())
-                    .map_err(|e| format!("selector input: {e:?}"))?;
-            let output_bytes =
-                conduit_plot::maximum_prepared_canonical_value_bytes(selector.output_type())
-                    .map_err(|e| format!("selector output: {e:?}"))?;
-            let canonical = selector
-                .canonical_bytes()
-                .map_err(|e| format!("selector material: {e:?}"))?;
-            (
-                kind,
-                SoftwareRole::Selector {
-                    canonical,
-                    input_bytes: input_bytes as usize,
-                    output_bytes: output_bytes as usize,
-                },
-                false,
-            )
-        } else {
-            return Err(format!(
-                "unsupported initialized software provider: {}",
-                gear.kind_id.as_str()
-            ));
-        };
+                    SoftwareRole::RecordingLog {
+                        maximum_samples: maximum_events,
+                    },
+                    false,
+                )
+            } else if let Some(channel) = PublicationChannel::ALL
+                .into_iter()
+                .find(|c| c.kind_id() == gear.kind_id.as_str())
+            {
+                if maximum_events == 0 {
+                    return Err("publication without finite checked clock".into());
+                }
+                (
+                    PublicationContract::prepare(channel)
+                        .map_err(|e| format!("publication: {e:?}"))?
+                        .kind()
+                        .clone(),
+                    SoftwareRole::Publication {
+                        channel,
+                        maximum_events,
+                    },
+                    false,
+                )
+            } else if let Some((kind, role)) = selected_selector(gear)? {
+                (kind, role, false)
+            } else {
+                return Err(format!(
+                    "unsupported initialized software provider: {}",
+                    gear.kind_id.as_str()
+                ));
+            };
         if kind.kind_id != gear.kind_id
             || kind.kind_contract_revision != gear.kind_contract_revision
             || kind.startup_parameters != gear.startup_parameters
@@ -207,13 +192,7 @@ pub fn compile_with_types(
         let (implementation, artifact, offer) = if native {
             (None, None, None)
         } else {
-            let mut h = Sha256::new();
-            h.update(kind.kind_id.as_str().as_bytes());
-            let configuration =
-                serde_json::to_vec(&gear.configuration).map_err(|e| e.to_string())?;
-            h.update(configuration);
-            let implementation: c::ImplementationId =
-                format!("conduit.mcu/software/{:x}", h.finalize()).into();
+            let implementation = implementation_identity(&kind.kind_id, &gear.configuration)?;
             let artifact: c::ArtifactId = ARTIFACT.into();
             let queue_bytes = if matches!(&role, SoftwareRole::Composite(_)) {
                 kind.semantic_contract()

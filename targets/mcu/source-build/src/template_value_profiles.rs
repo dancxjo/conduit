@@ -1,5 +1,7 @@
 //! Exact resident artifact selection into inert physical slot profiles.
-use crate::value_profiles::{self, PortSchema};
+use crate::value_profiles;
+#[path = "template_selector_profiles.rs"]
+mod selectors;
 use conduit_core as c;
 use conduit_embedded_build as e;
 
@@ -7,7 +9,19 @@ pub(super) fn emit(
     kernel: &e::GeneratedEmbeddedPlan,
     fragment: &c::PlanFragment,
     residents: &[&e::PreparedResidentExpression],
+    source: &conduit_plot::ExpandedCanonicalPlot,
 ) -> Result<Option<String>, String> {
+    // Schema execution is an explicitly selected artifact profile. Merely
+    // encountering a selector never enables another target representation.
+    if !residents.iter().any(|image| {
+        image.execution_storage() == e::ResidentExecutionStorage::SharedWorkspaceSchema
+            && kernel
+                .nodes
+                .iter()
+                .any(|node| node.artifact_id == image.artifact_id().as_str())
+    }) {
+        return Ok(None);
+    }
     let mut owned = Vec::new();
     for node in &kernel.nodes {
         let Some(image) = residents
@@ -70,19 +84,11 @@ pub(super) fn emit(
             ));
         }
     }
+    selectors::append(&mut owned, kernel, fragment, source)?;
     if owned.is_empty() {
         return Ok(None);
     }
-    let declarations = owned
-        .iter()
-        .map(|(node, port, direction, artifact, schema)| PortSchema {
-            node: *node,
-            port: *port,
-            direction: *direction,
-            artifact,
-            schema,
-        })
-        .collect::<Vec<_>>();
+    let declarations = selectors::declarations(&owned);
     let profiles = value_profiles::select(kernel, &declarations).map_err(str::to_owned)?;
     if !profiles
         .cords

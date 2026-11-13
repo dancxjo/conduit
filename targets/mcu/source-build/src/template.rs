@@ -324,7 +324,7 @@ pub fn compile(input: Inputs<'_>) -> Result<Layout, String> {
             .maximum_total_program_bytes
             .checked_mul(2)
             .ok_or("computation ceiling overflow")?,
-        value_profiles_rust: value_profiles::emit(kernel, fragment, input.resident)?,
+        value_profiles_rust: value_profiles::emit(kernel, fragment, input.resident, &input.plot.expanded)?,
         cord_value_slot_capacities,
         step_value_slot_capacities,
         host_call_value_slot_capacities,
