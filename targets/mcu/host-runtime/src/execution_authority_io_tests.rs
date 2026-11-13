@@ -37,6 +37,7 @@ fn owners(actual: &c::HostAdvertisement) -> (ReadyI2cBase<Bus>, ReadyClockAtBase
     unsafe {
         let bus = ReadyI2cBase::new(
             I2cNativeIdentity {
+                base_implementation_id: "fixture/base-i2c@1".into(),
                 host_id: actual.host_id.clone(),
                 boot_id: actual.boot_id.clone(),
                 base_id: "fixture/bus".into(),
@@ -102,6 +103,16 @@ fn io_facts_are_borrowed_without_allocation_and_publication_preserves_exact_pool
     publication.finish().unwrap();
     assert_eq!(actual.bases.len(), original_base_count + 2);
     assert_eq!(actual.resources.len(), original_pool_count + 2);
+    let bus_base = actual
+        .bases
+        .iter()
+        .find(|base| base.base_id == bus.native_identity().base_id)
+        .unwrap();
+    assert_eq!(
+        bus_base.implementation_id,
+        bus.native_identity().base_implementation_id
+    );
+    assert_ne!(bus_base.implementation_id.as_str(), I2C_CAPABILITY);
     let clock_base = actual
         .bases
         .iter()

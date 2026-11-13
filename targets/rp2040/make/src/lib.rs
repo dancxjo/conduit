@@ -12,7 +12,7 @@ pub use gpio_initialization::*;
 mod membership_seed;
 mod native_offer;
 mod resident_protocol;
-pub use native_offer::checked_i2c_offer_image;
+pub use native_offer::{checked_i2c_offer_definition, checked_i2c_offer_image};
 mod resident_work;
 pub use bootstrap_contract::*;
 pub use hardware_initialization::*;

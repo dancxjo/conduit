@@ -1,13 +1,13 @@
 //! Explicit checked Source closure for MCU firmware fabrication. This runs on
 //! the building Host; no parser, planner or duplicated Source graph enters MCU RAM.
 use crate::software;
+#[path = "workset_emission.rs"]
+mod emission;
+#[path = "workset_inputs.rs"]
+mod inputs;
 use conduit_plot as p;
 use sha2::{Digest, Sha256};
-use std::io::Read;
-use std::{
-    fmt::Write,
-    path::{Path, PathBuf},
-};
+use std::{fmt::Write, path::Path};
 const MAXIMUM_SOURCE_BYTES: usize = 1024 * 1024;
 /// Independently selected construction ceilings, not resource admission grants.
 #[derive(Clone, Copy)]
@@ -32,40 +32,25 @@ pub struct Workset {
 /// Absence is useful for equipment-only fabrication. The consuming selected
 /// execution profile decides whether it requires a Source closure.
 pub fn from_environment(mask: Option<MaskBounds>) -> Result<Option<Workset>, String> {
-    for name in [
-        "CONDUIT_WORKSET_SOURCE",
-        "CONDUIT_WORKSET_SOURCE_SHA256",
-        "CONDUIT_WORKSET_ENTRIES",
-    ] {
-        println!("cargo:rerun-if-env-changed={name}");
-    }
-    match (
-        std::env::var_os("CONDUIT_WORKSET_SOURCE"),
-        std::env::var("CONDUIT_WORKSET_SOURCE_SHA256"),
-        std::env::var("CONDUIT_WORKSET_ENTRIES"),
-    ) {
-        (None, Err(std::env::VarError::NotPresent), Err(std::env::VarError::NotPresent)) => {
-            Ok(None)
-        }
-        (Some(path), Ok(expected), Ok(entries)) => {
-            let entries: Vec<String> =
-                serde_json::from_str(&entries).map_err(|e| format!("workset entry list: {e}"))?;
-            let path = PathBuf::from(path);
-            println!("cargo:rerun-if-changed={}", path.display());
-            let mut bytes = Vec::new();
-            std::fs::File::open(&path)
-                .map_err(|e| format!("captured workset Source: {e}"))?
-                .take((MAXIMUM_SOURCE_BYTES + 1) as u64)
-                .read_to_end(&mut bytes)
-                .map_err(|e| format!("captured workset Source: {e}"))?;
-            compile(&bytes, &expected, &entries, mask).map(Some)
-        }
-        _ => Err(
-            "workset fabrication requires Source, expected SHA256 and ordered entries together"
-                .into(),
-        ),
-    }
+    inputs::from_environment(mask)
 }
+/// Internal finite Make subprocess receipt for existing typed-selection inputs.
+/// Original Source declarations/imports remain authoritative; this is not a
+/// human configuration language or an execution grant.
+pub struct CapturedTypedSelections<'a> {
+    pub bytes: &'a [u8],
+    pub sha256: &'a str,
+}
+pub fn compile_captured_specializations(
+    bytes: &[u8],
+    expected_sha256: &str,
+    entries: &[String],
+    mask: Option<MaskBounds>,
+    capture: CapturedTypedSelections<'_>,
+) -> Result<Workset, String> {
+    inputs::compile_captured(bytes, expected_sha256, entries, mask, capture)
+}
+
 pub fn compile(
     bytes: &[u8],
     expected_sha256: &str,
@@ -269,54 +254,15 @@ impl Workset {
         }
         Ok(selected)
     }
+    /// Existing explicit DHT/Mask/TM execution adapter. Generic equipment uses
+    /// emit_neutral_to so no role is inferred from unrelated native Kinds.
     pub fn emit_to(&self, out: &Path) -> Result<(), String> {
-        if !self.calibrated {
-            return Err(
-                "runtime factory emission requires independent checked structural calibration"
-                    .into(),
-            );
-        }
-        let mut index=format!("pub const SOURCE_SHA256:[u8;32]={:?};\npub const ENTRY_COUNT:usize={};\npub const ENTRY_NAMES:&[&str]=&{:?};\n",self.sha256,self.entries.len(),self.entries.iter().map(|e|e.name.as_str()).collect::<Vec<_>>());
-        // Bind this finite execution profile to actual checked operations,
-        // independent of user entry names or the signed workset's ordering.
-        for (role, kind) in [
-            ("sampling", "machine/pulse/read"),
-            ("mask", "face/renderer"),
-            ("output", "machine/tm1637/write"),
-        ] {
-            let selected = self
-                .entries
-                .iter()
-                .enumerate()
-                .filter(|(_, entry)| {
-                    entry
-                        .plot
-                        .expanded
-                        .gears
-                        .iter()
-                        .any(|g| g.kind_id.as_str() == kind)
-                })
-                .map(|(i, _)| i)
-                .collect::<Vec<_>>();
-            let [entry] = selected.as_slice() else {
-                return Err(format!(
-                    "execution profile requires exactly one checked {role} fragment"
-                ));
-            };
-            writeln!(index, "pub use entry_{entry} as {role};").unwrap();
-            writeln!(index, "pub use entry_{entry}_layout as {role}_layout;").unwrap();
-        }
-        for (i, entry) in self.entries.iter().enumerate() {
-            let filename = format!("workset_{i}.rs");
-            std::fs::write(out.join(&filename), &entry.rust).map_err(|e| e.to_string())?;
-            writeln!(
-                index,
-                "pub mod entry_{i}{{include!(concat!(env!(\"OUT_DIR\"),\"/{filename}\"));}}"
-            )
-            .unwrap();
-            writeln!(index,"pub mod entry_{i}_layout{{include!(concat!(env!(\"OUT_DIR\"),\"/workset_{i}_layout.rs\"));}}\n").unwrap();
-        }
-        std::fs::write(out.join("workset.rs"), index).map_err(|e| e.to_string())
+        emission::emit(self, out, true)
+    }
+    /// Emit exact checked entry definitions/layouts without execution role aliases.
+    /// Structural calibration is mandatory; this does not install board execution.
+    pub fn emit_neutral_to(&self, out: &Path) -> Result<(), String> {
+        emission::emit(self, out, false)
     }
 }
 pub(crate) fn install(

@@ -89,6 +89,26 @@ pub fn calibrate_and_emit(
     out: &Path,
     input: calibration::Input<'_>,
 ) -> Result<(), String> {
+    calibrate_and_emit_selected(workset, mask, out, input, None)
+}
+/// Equipment-neutral fabrication: exact physical Base selections and callable
+/// Backs are independently checked. No DHT roles or runtime composition is emitted.
+pub fn calibrate_and_emit_neutral(
+    workset: &mut workset::Workset,
+    mask: Option<workset::MaskBounds>,
+    out: &Path,
+    input: calibration::Input<'_>,
+    physical: &[calibration::NativeBaseSelection<'_>],
+) -> Result<(), String> {
+    calibrate_and_emit_selected(workset, mask, out, input, Some(physical))
+}
+fn calibrate_and_emit_selected(
+    workset: &mut workset::Workset,
+    mask: Option<workset::MaskBounds>,
+    out: &Path,
+    input: calibration::Input<'_>,
+    physical: Option<&[calibration::NativeBaseSelection<'_>]>,
+) -> Result<(), String> {
     let assignment_bytes = input
         .checked
         .configuration()
@@ -103,7 +123,11 @@ pub fn calibrate_and_emit(
     .map_err(|e| e.to_string())?;
     let image = input.image;
     let checked = input.checked;
-    let calibrated = calibration::compile(workset, input)?;
+    let neutral = physical.is_some();
+    let calibrated = match physical {
+        Some(physical) => calibration::compile_with_physical_bases(workset, input, physical)?,
+        None => calibration::compile(workset, input)?,
+    };
     calibrated.apply_software_mapping(workset, mask, 24 * 1024, 1024 * 1024)?;
     calibrated.emit_continuation_identity(out, workset.sha256)?;
     calibrated.emit_continuation_recipe(
@@ -113,8 +137,12 @@ pub fn calibrate_and_emit(
         checked.configuration_id(),
     )?;
     calibrated.emit_to(out, 2 * 1024 * 1024)?;
-    crate::source_composition::emit_to(out).map_err(|e| e.to_string())?;
-    workset.emit_to(out)
+    if neutral {
+        workset.emit_neutral_to(out)
+    } else {
+        crate::source_composition::emit_to(out).map_err(|e| e.to_string())?;
+        workset.emit_to(out)
+    }
 }
 
 /// Preserve the existing one-sampling-clock profile and renderer reservation;

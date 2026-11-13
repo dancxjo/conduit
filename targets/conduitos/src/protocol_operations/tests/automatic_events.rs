@@ -219,6 +219,7 @@ pub(super) fn prepare_with_body_edit<
     let bus = unsafe {
         ReadyI2cBase::new(
             I2cNativeIdentity {
+                base_implementation_id: "conduitos.base/i2c-controller@1".into(),
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
                 base_id: "fixture/bus".into(),

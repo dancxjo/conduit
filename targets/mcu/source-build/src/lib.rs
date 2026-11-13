@@ -97,6 +97,13 @@ pub fn selector_material(
 /// Reviewed implementation-generation envelope; execution fuel is independently
 /// admitted through the original private work resource.
 pub fn dht11_tm1637_resident_bounds() -> conduit_embedded_build::ResidentExpressionBounds {
+    resident_expression_bounds(DHT11_TM1637_PRIVATE_WORK_UNITS)
+}
+/// Shared static compilation envelope. The caller supplies the explicit private
+/// work requirement; this construction metadata grants no execution work.
+pub fn resident_expression_bounds(
+    private_work_units: u16,
+) -> conduit_embedded_build::ResidentExpressionBounds {
     conduit_embedded_build::ResidentExpressionBounds {
         native: p::rust_binding::PreparedNativeBounds {
             canonical_bytes: 4096,
@@ -107,7 +114,7 @@ pub fn dht11_tm1637_resident_bounds() -> conduit_embedded_build::ResidentExpress
         maximum_occurrences: 4096,
         maximum_program_bytes: MAXIMUM_RESIDENT_PROGRAM_BYTES,
         maximum_generated_bytes: 1024 * 1024,
-        private_work_units: DHT11_TM1637_PRIVATE_WORK_UNITS,
+        private_work_units,
     }
 }
 

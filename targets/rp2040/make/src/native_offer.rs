@@ -8,6 +8,19 @@ pub fn checked_i2c_offer_image(
     artifact_id: &str,
     maximum_image_bytes: usize,
 ) -> Result<Option<Vec<u8>>, String> {
+    let Some(offer) = checked_i2c_offer_definition(checked, artifact_id)? else {
+        return Ok(None);
+    };
+    conduit_embedded_build::generate_capability_offer_image(&offer, maximum_image_bytes)
+        .map(Some)
+        .map_err(|e| format!("I2C definition image: {e:?}"))
+}
+/// Original callable Back definition for an explicitly enabled physical I2C
+/// construction. Its implementation identity remains owned by the mechanism.
+pub fn checked_i2c_offer_definition(
+    checked: &CheckedHostConfiguration,
+    artifact_id: &str,
+) -> Result<Option<conduit_core::CapabilityOffer>, String> {
     let bus = crate::CheckedI2cConstruction::from_configuration(checked)?;
     if bus.maximum_call_operations == 0 {
         return Ok(None);
@@ -22,7 +35,5 @@ pub fn checked_i2c_offer_image(
         &conduit_core::ArtifactId::from(artifact_id),
     )
     .map_err(|e| format!("I2C definition: {e:?}"))?;
-    conduit_embedded_build::generate_capability_offer_image(&offer, maximum_image_bytes)
-        .map(Some)
-        .map_err(|e| format!("I2C definition image: {e:?}"))
+    Ok(Some(offer))
 }

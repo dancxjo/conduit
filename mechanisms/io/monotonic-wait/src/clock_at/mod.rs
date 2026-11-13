@@ -1,6 +1,7 @@
 //! Finite monotonic deadline execution through exact admitted possession.
 pub mod codec;
 pub mod contract;
+pub mod installation;
 pub mod owner;
 pub mod polling;
 

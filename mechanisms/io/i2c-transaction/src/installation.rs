@@ -21,6 +21,9 @@ pub const I2C_AUTHORITY: &str = "conduitos.authority/i2c-transaction@1";
 /// Native ownership facts. Protocol-level identity and probe success are absent.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct I2cNativeIdentity {
+    /// Exact physical Base implementation retained by this native owner.
+    /// Distinct from the callable Back's I2C_IMPLEMENTATION identity.
+    pub base_implementation_id: BaseImplementationId,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub base_id: HostBaseId,
@@ -80,7 +83,8 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
         attachment: I2cAttachment,
         provider: P,
     ) -> Result<Self, I2cInstallationRefusal> {
-        if identity.host_id.as_str().is_empty()
+        if identity.base_implementation_id.as_str().is_empty()
+            || identity.host_id.as_str().is_empty()
             || identity.boot_id.as_str().is_empty()
             || identity.base_id.as_str().is_empty()
             || identity.provider_instance_id.as_str().is_empty()
@@ -152,7 +156,7 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
                 base_id: self.identity.base_id.clone(),
                 provider_instance_id: self.identity.provider_instance_id.clone(),
                 provider_generation: self.identity.provider_generation,
-                implementation_id: BaseImplementationId::from("conduitos.base/i2c-controller@1"),
+                implementation_id: self.identity.base_implementation_id.clone(),
                 mechanism_family: HostBaseKindId::from(I2C_ATTACHMENT_CLASS),
                 enforcement_class: BaseEnforcementClass::Cooperative,
                 lifecycle: BaseLifecycle::Ready,
@@ -198,7 +202,7 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
                     && authority.subject_kind == selection.contract.kind().kind_id
             })
             || base.base_id != self.identity.base_id
-            || base.implementation_id.as_str() != "conduitos.base/i2c-controller@1"
+            || base.implementation_id != self.identity.base_implementation_id
             || base.mechanism_family.as_str() != I2C_ATTACHMENT_CLASS
             || base.enforcement_class != BaseEnforcementClass::Cooperative
         {
