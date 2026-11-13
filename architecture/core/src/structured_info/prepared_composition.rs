@@ -173,6 +173,11 @@ impl PreparedStructuredComposer {
         prefix + self.output.capacity() + shape
     }
 
+    /// Exact immutable schema retained by this prepared composer.
+    pub fn canonical_type_bytes(&self) -> &[u8] {
+        &self.prefix
+    }
+
     pub fn encoded(&self) -> &[u8] {
         &self.output
     }

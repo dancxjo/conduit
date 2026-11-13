@@ -6,6 +6,7 @@ use conduit_core::{
 };
 mod encoder;
 mod exact;
+mod schema_input;
 use conduit_kernel::{
     scheduler::{
         AssignedAbnormalTransduction, AssignedCancellationTransduction,
@@ -37,6 +38,16 @@ pub struct FlowZipBack {
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
+    #[cfg(feature = "schema-value-storage")]
+    fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
+        self.encoder.input_schema(usize::from(port.0))
+    }
+    #[cfg(feature = "schema-value-storage")]
+    fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0))
+            .then(|| self.encoder.output_schema())
+            .flatten()
+    }
     fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; PORTS] {
         let mut contracts = [None; PORTS];
         let flush =
@@ -123,16 +134,23 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
                 if pair_ready && !io.output_ready(PortId(0)) {
                     return StepOutcome::Await;
                 }
+                let output_len = if pair_ready {
+                    let Some(length) = self.encode_pair() else {
+                        return fail(911);
+                    };
+                    if !io.output_ready_for(PortId(0), length as u32) {
+                        return StepOutcome::Await;
+                    }
+                    Some(length)
+                } else {
+                    None
+                };
                 io.consume_closed(port)
                     .expect("present flow/zip normal close");
                 if self.feedback && port == PortId(0) && !self.right_closed {
                     self.drain_right_until_close = true;
                 }
-                if pair_ready {
-                    let output_len = self.encode_pair().unwrap_or(0);
-                    if output_len == 0 {
-                        return fail(911);
-                    }
+                if let Some(output_len) = output_len {
                     self.output_staged = true;
                     self.finish_after_commit = true;
                     io.send_prepared(PortId(0), output_len as u32)
@@ -179,6 +197,9 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
             if output_len == 0 {
                 return fail(912);
             }
+            if !io.output_ready_for(PortId(0), output_len as u32) {
+                return StepOutcome::Await;
+            }
             self.output_staged = true;
             io.send_prepared(PortId(0), output_len as u32)
                 .expect("ready admitted flow/zip output");
@@ -195,21 +216,13 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
             let Some(reference) = io.input(port) else {
                 continue;
             };
-            let Some(bytes) = inputs.input(port) else {
-                return fail(913 + side as u16);
+            let length = match self.copy_input(inputs, port, reference.byte_len as usize, maximum) {
+                Ok(length) => length,
+                Err(detail) => return fail(detail),
             };
-            if bytes.len() != reference.byte_len as usize || bytes.len() > maximum {
-                return fail(915 + side as u16);
-            }
             // Only an empty slot may stage input. Its length remains absent
             // until commit, so these bytes cannot form an observable pair.
-            let slot = if side == 0 {
-                &mut self.left
-            } else {
-                &mut self.right
-            };
-            slot[..bytes.len()].copy_from_slice(bytes);
-            self.candidate_side = Some((side, bytes.len()));
+            self.candidate_side = Some((side, length));
             io.consume(port).expect("present flow/zip input");
             return StepOutcome::Progress;
         }
@@ -381,3 +394,6 @@ fn fail(detail: u16) -> StepOutcome {
 mod exact_tests;
 #[cfg(test)]
 mod tests;
+
+#[cfg(all(test, feature = "schema-value-storage"))]
+mod schema_tests;

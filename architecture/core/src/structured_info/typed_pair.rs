@@ -183,6 +183,24 @@ impl PreparedTypedTuplePairEncoder {
 }
 
 impl PreparedTypedTuplePairRuntimeEncoder {
+    /// Exact structured member schema. Primitive members retain their raw ABI.
+    pub fn canonical_input_schema(&self, side: usize) -> Option<&[u8]> {
+        let member = match side {
+            0 => &self.left,
+            1 => &self.right,
+            _ => return None,
+        };
+        member
+            .primitive
+            .is_none()
+            .then_some(member.schema.as_slice())
+    }
+
+    /// Exact composed pair schema, without rebuilding an inspection Type tree.
+    pub fn canonical_output_schema(&self) -> &[u8] {
+        self.composer.canonical_type_bytes()
+    }
+
     pub fn maximum_bytes(&self) -> u32 {
         self.maximum_bytes
     }

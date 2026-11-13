@@ -213,3 +213,23 @@ fn schema_separated_composition_and_validation_do_not_allocate_during_execution(
     assert_eq!(cost.allocation_attempts, 0);
     assert_eq!(cost.reallocations, 0);
 }
+
+#[test]
+fn runtime_schema_views_keep_raw_primitive_abi_and_exact_pair_identity() {
+    let ty = record_type("test/linked-member");
+    let schema = ty.canonical_bytes().unwrap();
+    let mut prepared = PreparedTypedTuplePairEncoder::new(ty, 1024, leaf("value/u8"), 1).unwrap();
+    let output_schema = prepared.value_type().canonical_bytes().unwrap();
+    let value = record("test/linked-member", 17);
+    let expected = prepared.encode(&value, &[9]).unwrap().to_vec();
+    let mut runtime = prepared.into_runtime();
+    let ((), cost) = probe::observe(|| {
+        assert_eq!(runtime.canonical_input_schema(0), Some(schema.as_slice()));
+        assert_eq!(runtime.canonical_input_schema(1), None);
+        assert_eq!(runtime.canonical_input_schema(2), None);
+        assert_eq!(runtime.canonical_output_schema(), output_schema);
+        assert_eq!(runtime.encode(&value, &[9]).unwrap(), expected);
+    });
+    assert_eq!(cost.allocation_attempts, 0);
+    assert_eq!(cost.reallocations, 0);
+}

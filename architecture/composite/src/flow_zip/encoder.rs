@@ -9,6 +9,20 @@ pub(super) enum PairEncoder {
     Typed(Box<PreparedTypedTuplePairRuntimeEncoder>),
 }
 impl PairEncoder {
+    #[cfg(feature = "schema-value-storage")]
+    pub(super) fn input_schema(&self, side: usize) -> Option<&[u8]> {
+        match self {
+            Self::Typed(encoder) => encoder.canonical_input_schema(side),
+            Self::Leaf(_) => None,
+        }
+    }
+    #[cfg(feature = "schema-value-storage")]
+    pub(super) fn output_schema(&self) -> Option<&[u8]> {
+        match self {
+            Self::Typed(encoder) => Some(encoder.canonical_output_schema()),
+            Self::Leaf(_) => None,
+        }
+    }
     pub(super) fn encode(
         &mut self,
         left: &[u8],

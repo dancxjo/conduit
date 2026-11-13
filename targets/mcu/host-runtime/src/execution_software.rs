@@ -219,30 +219,10 @@ impl<'a> SoftwareBack<'a> {
 }
 impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
     fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
-        match self {
-            Self::Selector(back) => {
-                <SelectorBack as StepBack<P>>::canonical_input_schema(back, port)
-            }
-            Self::Merge(back) => {
-                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::canonical_input_schema(
-                    back, port,
-                )
-            }
-            _ => None,
-        }
+        self.input_schema::<P>(port)
     }
     fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
-        match self {
-            Self::Selector(back) => {
-                <SelectorBack as StepBack<P>>::canonical_output_schema(back, port)
-            }
-            Self::Merge(back) => {
-                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::canonical_output_schema(
-                    back, port,
-                )
-            }
-            _ => None,
-        }
+        self.output_schema::<P>(port)
     }
 
     fn terminal_transductions(
@@ -494,3 +474,6 @@ impl<const P: usize> StepBack<P> for PublicationFaceBack<'_> {
 #[cfg(all(test, feature = "schema-value-storage"))]
 #[path = "execution_selector_schema_tests.rs"]
 mod selector_schema_tests;
+
+#[path = "execution_software_schema.rs"]
+mod schema;
