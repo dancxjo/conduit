@@ -120,6 +120,8 @@ pub(crate) fn append_back(code: &mut String, entries: usize) {
         "}}}\nimpl<const P:usize>conduit_kernel::scheduler::StepBack<P> for BorrowedBack<'_>{\n",
     );
     for (signature, body) in [
+        ("fn canonical_input_schema(&self,port:conduit_kernel::PortId)->Option<&[u8]>", "conduit_kernel::scheduler::StepBack::<P>::canonical_input_schema(back,port)"),
+        ("fn canonical_output_schema(&self,port:conduit_kernel::PortId)->Option<&[u8]>", "conduit_kernel::scheduler::StepBack::<P>::canonical_output_schema(back,port)"),
         ("fn terminal_transductions(&self)->[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;P]", "conduit_kernel::scheduler::StepBack::<P>::terminal_transductions(back)"),
         ("fn step(&mut self,io:&mut conduit_kernel::scheduler::StepIo<P>,input:&conduit_kernel::scheduler::StepInputBytes<'_,P>)->conduit_kernel::scheduler::StepOutcome", "conduit_kernel::scheduler::StepBack::step(back,io,input)"),
         ("fn prepared_output(&self,port:conduit_kernel::PortId)->Option<&[u8]>", "conduit_kernel::scheduler::StepBack::<P>::prepared_output(back,port)"),

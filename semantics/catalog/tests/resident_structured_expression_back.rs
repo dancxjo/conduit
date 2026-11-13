@@ -18,6 +18,14 @@ fn field(ty: &StructuredInfoType, name: &str) -> StructuredInfoType {
 }
 #[test]
 fn actual_display_request_uses_the_common_back_and_fixed_kernel() {
+    proof(false);
+}
+#[test]
+#[cfg(feature = "schema-value-storage")]
+fn actual_display_request_accepts_separated_input_through_the_fixed_kernel() {
+    proof(true);
+}
+fn proof(separated: bool) {
     let types = check_syntax_document(
         &parse_syntax_document(include_str!(
             "../../../plots/device-protocols/i2c-types.conduit"
@@ -107,20 +115,37 @@ fn actual_display_request_uses_the_common_back_and_fixed_kernel() {
         4096,
     )
     .unwrap();
-    let additions = include_str!("resident_structured_expression_back/image_back.rs");
+    let mut additions =
+        include_str!("resident_structured_expression_back/image_back.rs").to_owned();
+    if separated {
+        additions.push_str("pub fn input_schema()->&'static[u8]{input_native::prepare().unwrap().schema_bytes()} pub fn parts_back()->Back{Back::from_resident_structured_parts(prepare().unwrap(),conduit_core::PortTemporal::Value).unwrap()}\n");
+    }
     let generated = format!("mod image {{\n{image}\n{additions}\n}}");
     let probe = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../architecture/plot/tests/common/allocation_probe.rs");
-    let exercise=format!("#[path={:?}]mod probe;#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;const INPUT:&[u8]=&{good:?};const BAD:&[u8]=&{bad:?};const EXPECTED:&[u8]=&{expected:?};\n{}",probe.to_str().unwrap(),include_str!("resident_structured_expression_back/harness.rs"));
+    let exercise_source = if separated {
+        include_str!("resident_structured_expression_back/schema_harness.rs")
+    } else {
+        include_str!("resident_structured_expression_back/harness.rs")
+    };
+    let exercise=format!("#[path={:?}]mod probe;#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;const INPUT:&[u8]=&{good:?};const BAD:&[u8]=&{bad:?};const EXPECTED:&[u8]=&{expected:?};\n{}",probe.to_str().unwrap(),exercise_source);
+    let mut libraries = vec![
+        "conduit_plot",
+        "conduit_core",
+        "conduit_kernel",
+        "conduit_semantic_catalog",
+    ];
+    if separated {
+        libraries.push("conduit_plan_lowering");
+    }
     compiled_rust::verify_with_libraries(
         &generated,
         &exercise,
-        "structured-common-back",
-        &[
-            "conduit_plot",
-            "conduit_core",
-            "conduit_kernel",
-            "conduit_semantic_catalog",
-        ],
+        if separated {
+            "structured-common-back-separated"
+        } else {
+            "structured-common-back"
+        },
+        &libraries,
     );
 }

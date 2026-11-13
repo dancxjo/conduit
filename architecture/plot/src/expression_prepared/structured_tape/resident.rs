@@ -107,6 +107,10 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
             program,
         })
     }
+    /// Exact immutable structured input schema; raw Empty has no such transport.
+    pub fn input_schema_bytes(&self) -> Option<&[u8]> {
+        (!self.input.is_intrinsic_empty()).then(|| self.input.schema_bytes())
+    }
     pub const fn maximum_input_bytes(&self) -> usize {
         self.program.maximum_input_bytes
     }

@@ -32,6 +32,17 @@ pub use resident_structured::{StaticStructuredExpressionBack, StructuredResident
 trait ExpressionEngine {
     type Refusal;
     fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Self::Refusal>;
+    #[cfg(feature = "schema-value-storage")]
+    fn evaluate_parts(
+        &mut self,
+        _schema: &[u8],
+        _node: &[u8],
+    ) -> Option<Result<&[u8], Self::Refusal>> {
+        None
+    }
+    fn input_schema(&self) -> Option<&[u8]> {
+        None
+    }
     fn output_bytes(&self) -> &[u8];
     fn private_fuel(&self) -> u16 {
         0
@@ -96,6 +107,11 @@ impl PreparedExpressionBack {
     }
 }
 impl<const PORTS: usize, E: ExpressionEngine> StepBack<PORTS> for PreparedExpressionBack<E> {
+    fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0))
+            .then(|| self.evaluator.input_schema())
+            .flatten()
+    }
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         // Discard only uncommitted intent on a retried transaction.
         self.staged = false;
@@ -124,11 +140,19 @@ impl<const PORTS: usize, E: ExpressionEngine> StepBack<PORTS> for PreparedExpres
         if !io.output_ready(PortId(0)) {
             return StepOutcome::Await;
         }
-        let Some(input) = inputs.input(PortId(0)) else {
+        let input = inputs.input(PortId(0));
+        #[cfg(feature = "schema-value-storage")]
+        let parts = inputs.canonical_parts(PortId(0));
+        #[cfg(not(feature = "schema-value-storage"))]
+        let parts: Option<conduit_kernel::CanonicalValueParts<'_>> = None;
+        if input.is_none() && parts.is_none() || input.is_some() && parts.is_some() {
             return fail(1642);
-        };
-        if input.len() != reference.byte_len as usize
-            || input.len() > self.maximum_input_bytes as usize
+        }
+        let length = input
+            .map(<[u8]>::len)
+            .or_else(|| parts.and_then(|p| p.schema.len().checked_add(p.node.len())));
+        if length != Some(reference.byte_len as usize)
+            || length.is_none_or(|n| n > self.maximum_input_bytes as usize)
         {
             return fail(1643);
         }
@@ -145,7 +169,21 @@ impl<const PORTS: usize, E: ExpressionEngine> StepBack<PORTS> for PreparedExpres
         if io.consume_fuel(private).is_err() {
             return StepOutcome::Yield; // sticky kernel fuel fault rejects the whole Step
         }
-        let Ok(output) = self.evaluator.evaluate(input) else {
+        let output = if let Some(input) = input {
+            self.evaluator.evaluate(input).ok()
+        } else {
+            #[cfg(feature = "schema-value-storage")]
+            {
+                parts
+                    .and_then(|p| self.evaluator.evaluate_parts(p.schema, p.node))
+                    .and_then(Result::ok)
+            }
+            #[cfg(not(feature = "schema-value-storage"))]
+            {
+                None
+            }
+        };
+        let Some(output) = output else {
             return fail(1644);
         };
         if output.len() > self.maximum_output_bytes as usize {
