@@ -75,16 +75,15 @@ fn add(a: usize, b: usize) -> usize {
 }
 
 /// Scratch follows the operation's actual byte provenance, not only its erased
-/// structural Type. Unbounded v2 programs retain their original allocation law.
+/// structural Type. Missing input bounds keep the structural input ceiling;
+/// independent literals and constructors still have their own finite bounds.
 pub(super) fn expression(
     value: &crate::PortableExpressionNode,
     input: &StructuredInfoType,
     admitted: Option<u32>,
 ) -> Result<usize, Refusal> {
     use crate::PortableExpressionOperation as Op;
-    let Some(maximum) = admitted else {
-        return output(&value.value_type);
-    };
+    let maximum = admitted.map_or_else(|| output(input), |maximum| Ok(maximum as usize))?;
     let recurse = |child: &crate::PortableExpressionNode| expression(child, input, admitted);
     let prefix = || {
         value
@@ -106,7 +105,7 @@ pub(super) fn expression(
     };
     let bound = match &value.operation {
         Op::ValueContract { value, .. } => recurse(value)?,
-        Op::Input => (maximum as usize).min(output(input)?),
+        Op::Input => maximum.min(output(input)?),
         Op::Projection { value: source, .. } => recurse(source)?.min(output(&value.value_type)?),
         Op::Conditional {
             when_true,
@@ -176,7 +175,10 @@ pub(super) fn expression(
         // existing conservative Type ceiling until their byte law is reviewed.
         _ => output(&value.value_type)?,
     };
-    Ok(bound.min(MAXIMUM_STRUCTURED_CANONICAL_BYTES))
+    // Nested constructor estimates may include a child's schema prefix. A
+    // value can never exceed its own checked Type's structural ceiling, which
+    // retains that prefix only once. Both bounds independently remain sound.
+    Ok(bound.min(output(&value.value_type)?))
 }
 
 /// Finite canonical frame ceiling from an exact checked Type, including leaf framing.
