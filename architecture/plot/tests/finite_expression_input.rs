@@ -194,15 +194,17 @@ fn semantic_call_arguments_keep_the_source_ceiling() {
                     assert_eq!(maximum, 8);
                 }
                 let front = argument.checked_front();
-                assert_eq!(argument.semantic_contract.value_contracts().len(), 2);
+                assert_eq!(
+                    argument.semantic_contract.value_contracts().len(),
+                    1 + usize::from(program.input_maximum_bytes.is_some())
+                );
                 assert_eq!(
                     front
                         .value_contract(&conduit_core::FrontValueLocation::Input(
                             conduit_core::port_id("input"),
                         ))
-                        .unwrap()
-                        .maximum_bytes,
-                    maximum,
+                        .map(|contract| contract.maximum_bytes),
+                    program.input_maximum_bytes,
                 );
                 assert_eq!(
                     front
@@ -259,12 +261,22 @@ fn authored_fore_limits_and_proved_gear_bounds_keep_physical_storage_exact() {
         assert_eq!(program.maximum_prepared_output_bytes().unwrap(), 8);
         let front = gear.checked_front();
         assert_eq!(gear.semantic_contract.value_contracts().len(), 2);
-        for location in [
-            FrontValueLocation::Input(port_id("input")),
-            FrontValueLocation::Output(port_id("output")),
-        ] {
-            assert_eq!(front.value_contract(&location).unwrap().maximum_bytes, 8);
-        }
+        // Preserve the authored input admission; the operation's output and
+        // its physical scratch independently retain their proved eight bytes.
+        assert_eq!(
+            front
+                .value_contract(&FrontValueLocation::Input(port_id("input")))
+                .unwrap()
+                .maximum_bytes,
+            64
+        );
+        assert_eq!(
+            front
+                .value_contract(&FrontValueLocation::Output(port_id("output")))
+                .unwrap()
+                .maximum_bytes,
+            8
+        );
         let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
         assert_eq!(prepared.output_capacity(), 8);
         for (input, expected) in [(0u64, zero_result), (255, 255)] {

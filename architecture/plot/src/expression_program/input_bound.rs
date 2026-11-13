@@ -89,23 +89,26 @@ impl PortableExpressionProgram {
             (
                 FrontValueLocation::Input(conduit_core::port_id("input")),
                 &self.input_type,
-                self.maximum_prepared_input_bytes().map_err(malformed)?,
+                // Preserve authored admission limits. A smaller physical
+                // scratch bound is not a newly authored input restriction.
+                self.input_maximum_bytes,
             ),
             (
                 FrontValueLocation::Output(conduit_core::port_id("output")),
                 &self.output_type,
-                self.maximum_prepared_output_bytes().map_err(malformed)?,
+                Some(self.maximum_prepared_output_bytes().map_err(malformed)?),
             ),
         ];
         laws.push(KindSemanticLaw::ValueContracts(
             bounds
-                .iter()
+                .into_iter()
+                .filter_map(|(location, ty, maximum)| maximum.map(|bytes| (location, ty, bytes)))
                 .map(|(location, ty, maximum)| {
                     Ok(FrontValueContract {
-                        location: location.clone(),
+                        location,
                         contract: CheckedValueContract::new(
                             crate::expression_definition::expression_port_kind(ty)?,
-                            *maximum,
+                            maximum,
                             vec![],
                         )
                         .map_err(|_| {

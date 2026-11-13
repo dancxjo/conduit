@@ -389,7 +389,7 @@ pub(super) fn prepare_with_body_edit<
     if let Ok(play) = &play {
         let plan = &play.kernel().unwrap().definition().internal_plan;
         assert_eq!(plan.fragments.len(), 1);
-        assert_eq!(plan.fragments[0].placements.len(), 52);
+        assert_eq!(plan.fragments[0].placements.len(), 53);
         assert_eq!(
             plan.fragments[0]
                 .placements
