@@ -177,13 +177,18 @@ impl<'a, S: ValueStorage> SchemaValueStore<'a, S> {
         let index = self
             .slots
             .iter()
-            .position(|slot| {
+            .enumerate()
+            .filter(|(_, slot)| {
                 let fits = slot.validator.type_bytes() == value.type_bytes()
                     && usize::try_from(len).is_ok_and(|n| n <= slot.validator.maximum_bytes());
                 known |= fits;
                 retired |= fits && slot.references == 0 && slot.generation == u16::MAX;
                 fits && slot.references == 0 && slot.generation != u16::MAX
             })
+            // Preserve uniquely large slots when a smaller prepared node
+            // buffer can hold this exact schema/value. Equal fits stay ordered.
+            .min_by_key(|(_, slot)| slot.node.capacity())
+            .map(|(index, _)| index)
             .ok_or(if retired {
                 E::GenerationExhausted
             } else if known {
@@ -241,7 +246,13 @@ impl<S: ValueStorage> ValueStorage for SchemaValueStore<'_, S> {
         let validator = self
             .slots
             .iter()
-            .find(|slot| slot.validator.type_bytes() == schema)
+            .filter(|slot| {
+                slot.validator.type_bytes() == schema
+                    && bytes.len() <= slot.validator.maximum_bytes()
+            })
+            // Validation must use an installed ceiling that admits this
+            // payload, independently of slot availability/declaration order.
+            .min_by_key(|slot| slot.validator.maximum_bytes())
             .map(|slot| slot.validator)
             .ok_or(E::RepresentationMismatch)?;
         let checked = validator

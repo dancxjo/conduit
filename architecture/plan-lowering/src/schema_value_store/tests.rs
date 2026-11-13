@@ -165,3 +165,168 @@ fn explicit_producer_publication_checks_schema_before_mutating_the_pool() {
     store.release(value).unwrap();
     assert_eq!(store.used_bytes(), 0);
 }
+
+fn variable_values() -> (Vec<u8>, Vec<u8>, Vec<u8>) {
+    let leaf = T::leaf(kind_id("value/bytes")).unwrap();
+    let ty = T::record(
+        kind_id("test/variable-schema"),
+        vec![F::new("payload", leaf.clone()).unwrap()],
+    )
+    .unwrap();
+    let value = |length| {
+        I::record(
+            ty.clone(),
+            vec![V::new("payload", I::leaf(leaf.clone(), vec![7; length]).unwrap()).unwrap()],
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap()
+    };
+    (ty.canonical_bytes().unwrap(), value(1), value(256))
+}
+
+#[test]
+fn variable_schema_best_fit_and_validation_work_in_both_declaration_orders() {
+    let (schema, small, large) = variable_values();
+    let small_validator = Validator::new(&schema, small.len()).unwrap();
+    let large_validator = Validator::new(&schema, large.len()).unwrap();
+    for reverse in [false, true] {
+        for producer_api in [false, true] {
+            let mut definitions = [(small_validator, 1), (large_validator, 1)];
+            if reverse {
+                definitions.reverse();
+            }
+            let mut store = SchemaValueStore::try_new(
+                canonical(),
+                &definitions,
+                (small.len() + large.len()) as u32,
+                4096,
+            )
+            .unwrap();
+            let backing = store.reserved_node_storage_bytes();
+            let ((first, second), cost) = scheduler::probe::observe(|| {
+                let mut publish = |bytes: &[u8]| {
+                    if producer_api {
+                        store.store_schema_canonical(&schema, bytes)
+                    } else {
+                        store.store_structured(large_validator.validate(bytes).unwrap())
+                    }
+                };
+                (publish(&small).unwrap(), publish(&large).unwrap())
+            });
+            assert_eq!(cost.allocations, 0);
+            assert_eq!(cost.reallocations, 0);
+            assert_eq!(
+                store.slots[store.index(first).unwrap()]
+                    .validator
+                    .maximum_bytes(),
+                small.len()
+            );
+            assert_eq!(
+                store.slots[store.index(second).unwrap()]
+                    .validator
+                    .maximum_bytes(),
+                large.len()
+            );
+            assert_eq!(
+                store.canonical_parts(first).unwrap().unwrap().node,
+                small_validator.validate(&small).unwrap().value_node()
+            );
+            assert_eq!(
+                store.canonical_parts(second).unwrap().unwrap().node,
+                large_validator.validate(&large).unwrap().value_node()
+            );
+            assert_eq!(store.used_items(), 2);
+            assert_eq!(store.used_bytes(), (small.len() + large.len()) as u32);
+            assert_eq!(store.reserved_node_storage_bytes(), backing);
+            store.release(first).unwrap();
+            store.release(second).unwrap();
+            assert_eq!(store.used_items(), 0);
+            assert_eq!(store.used_bytes(), 0);
+        }
+    }
+}
+
+#[test]
+fn schema_choice_keeps_pressure_retirement_and_validation_refusals_atomic() {
+    let (schema, small, large) = variable_values();
+    let small_validator = Validator::new(&schema, small.len()).unwrap();
+    let large_validator = Validator::new(&schema, large.len()).unwrap();
+    let mut store = SchemaValueStore::try_new(
+        canonical(),
+        &[(small_validator, 1), (large_validator, 1)],
+        (small.len() + large.len()) as u32,
+        4096,
+    )
+    .unwrap();
+    let backing = store.reserved_node_storage_bytes();
+    let first = store.store_schema_canonical(&schema, &small).unwrap();
+    let before = store
+        .slots
+        .iter()
+        .map(|slot| (slot.generation, slot.references, slot.node.clone()))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        store.store_schema_canonical(&schema, &large[..large.len() - 1]),
+        Err(E::RepresentationMismatch)
+    );
+    assert_eq!(
+        store
+            .slots
+            .iter()
+            .map(|slot| (slot.generation, slot.references, slot.node.clone()))
+            .collect::<Vec<_>>(),
+        before
+    );
+    assert_eq!(store.reference_count(first), Ok(1));
+    assert_eq!(store.used_bytes(), small.len() as u32);
+    let second = store.store_schema_canonical(&schema, &small).unwrap();
+    let generations = store
+        .slots
+        .iter()
+        .map(|slot| slot.generation)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        store.store_schema_canonical(&schema, &small),
+        Err(E::ItemCapacityExceeded)
+    );
+    assert_eq!(store.used_items(), 2);
+    assert_eq!(store.used_bytes(), 2 * small.len() as u32);
+    assert_eq!(
+        store
+            .slots
+            .iter()
+            .map(|slot| slot.generation)
+            .collect::<Vec<_>>(),
+        generations
+    );
+    store.release(second).unwrap();
+    let large_index = store.index(second).unwrap();
+    store.slots[large_index].generation = u16::MAX;
+    assert_eq!(
+        store.store_schema_canonical(&schema, &large),
+        Err(E::GenerationExhausted)
+    );
+    assert_eq!(store.used_items(), 1);
+    assert_eq!(store.used_bytes(), small.len() as u32);
+    assert_eq!(store.reference_count(first), Ok(1));
+    assert_eq!(store.slots[large_index].generation, u16::MAX);
+    assert_eq!(store.slots[large_index].references, 0);
+    assert!(store.slots[large_index].node.is_empty());
+    assert_eq!(store.reserved_node_storage_bytes(), backing);
+    store.clear();
+    assert_eq!(
+        store.store_schema_canonical(&schema, &large),
+        Err(E::GenerationExhausted)
+    );
+    assert_eq!(store.used_items(), 0);
+    assert_eq!(store.used_bytes(), 0);
+    // A known schema is not permission to exceed every selected envelope.
+    let mut oversized = large.clone();
+    oversized.push(0);
+    assert_eq!(
+        store.store_schema_canonical(&schema, &oversized),
+        Err(E::RepresentationMismatch)
+    );
+    assert_eq!(store.slots[large_index].generation, u16::MAX);
+}

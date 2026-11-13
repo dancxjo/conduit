@@ -3,7 +3,7 @@ use conduit_kernel::{
     scheduler::*, CordId, FixedRoutes, FixedSignLog, KernelEvent, NodeId, PortId, RouteRange,
     RouteTarget, ValueRef,
 };
-mod probe {
+pub(super) mod probe {
     use super::std;
     use std::thread_local;
     include!(concat!(
