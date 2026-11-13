@@ -2337,6 +2337,7 @@ dependencies = [
  "conduit-time",
  "conduit-tm1637-protocol",
  "conduit-tm1637-wire",
+ "conduit-typed-retention",
  "conduit-wire",
  "ed25519-dalek",
  "serde",

@@ -50,6 +50,7 @@ pub struct RecordingLogScope<'a> {
 /// This enum contains no parser, sensor decoder, packet encoder or scheduler.
 /// Resident expressions remain separately compiled, exactly selected owners.
 pub enum SoftwareBack<'a> {
+    LinkedSource(Box<conduit_typed_retention::PreparedLinkedSource<'static>>),
     SeededState(Box<conduit_composite::SeededStateBack>),
     Zip(Box<conduit_composite::FlowZipBack>),
     Merge(Box<conduit_composite::FlowMergeFiniteBack>),
@@ -61,6 +62,18 @@ pub enum SoftwareBack<'a> {
     Publication(Box<PublicationFaceBack<'a>>),
 }
 impl<'a> SoftwareBack<'a> {
+    /// Borrow immutable checked material from the installed image. Root still
+    /// selects the exact Kind/identity and funds this owner before Start.
+    pub fn linked_source_static(
+        schema: &'static [u8],
+        value: &'static [u8],
+        maximum_bytes: usize,
+    ) -> Result<Self, &'static str> {
+        conduit_typed_retention::PreparedLinkedSource::prepare(schema, value, maximum_bytes)
+            .map(|back| Self::LinkedSource(Box::new(back)))
+            .map_err(|_| "linked-source-material")
+    }
+
     pub fn seeded_until(
         contract: &conduit_core::CheckedValueContract,
         schema: &conduit_core::StructuredInfoType,

@@ -236,6 +236,15 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
             }
             pending.inventory.slots[index] = match definition {
                 None => None,
+                Some(SoftwareDefinition::LinkedSourceStatic {
+                    schema,
+                    value,
+                    maximum_bytes,
+                }) => Some(SoftwareBack::linked_source_static(
+                    schema,
+                    value,
+                    maximum_bytes,
+                )?),
                 Some(SoftwareDefinition::SeededUntilStatic {
                     schema,
                     maximum_bytes,
@@ -342,3 +351,7 @@ mod tests;
 #[cfg(test)]
 #[path = "execution_factory_initialize_by_tests.rs"]
 mod by_tests;
+
+#[cfg(test)]
+#[path = "execution_factory_linked_source_tests.rs"]
+mod linked_source_tests;

@@ -231,6 +231,13 @@ pub struct PreparedDrivers<
 /// a received assignment. Hardware decoders and packet encoders remain resident
 /// expressions; these cases instantiate only the ordinary software providers.
 pub enum SoftwareDefinition<'a> {
+    /// Exact checked canonical material retained in flash, not an input injected
+    /// by Root. The independently selected Kind must describe output port zero.
+    LinkedSourceStatic {
+        schema: &'static [u8],
+        value: &'static [u8],
+        maximum_bytes: usize,
+    },
     /// Flash schema images are decoded only inside measured inventory construction.
     SeededUntilStatic {
         schema: &'static [u8],

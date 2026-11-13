@@ -24,6 +24,7 @@ impl SoftwareBack<'_> {
     }
     pub(super) fn output_schema<const P: usize>(&self, port: PortId) -> Option<&[u8]> {
         match self {
+            Self::LinkedSource(back) => <conduit_typed_retention::PreparedLinkedSource as StepBack<P>>::canonical_output_schema(back, port),
             Self::Selector(back) => {
                 <SelectorBack as StepBack<P>>::canonical_output_schema(back, port)
             }

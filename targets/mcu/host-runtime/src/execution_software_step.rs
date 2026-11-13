@@ -56,6 +56,11 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
 
     fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
         match self {
+            Self::LinkedSource(back) => {
+                <conduit_typed_retention::PreparedLinkedSource as StepBack<P>>::step(
+                    back, io, input,
+                )
+            }
             Self::SeededState(back) => {
                 <conduit_composite::SeededStateBack as StepBack<P>>::step(back, io, input)
             }
@@ -75,6 +80,7 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
     }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
         match self {
+            Self::LinkedSource(back) => <conduit_typed_retention::PreparedLinkedSource as StepBack<P>>::prepared_output(back, port),
             Self::SeededState(back) => <conduit_composite::SeededStateBack as StepBack<P>>::prepared_output(back, port),
             Self::Zip(back) => <conduit_composite::FlowZipBack as StepBack<P>>::prepared_output(back, port),
             Self::Merge(back) => <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::prepared_output(back, port),
@@ -88,6 +94,7 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
     }
     fn step_committed(&mut self) {
         match self {
+            Self::LinkedSource(back) => <conduit_typed_retention::PreparedLinkedSource as StepBack<P>>::step_committed(back),
             Self::SeededState(back) => <conduit_composite::SeededStateBack as StepBack<P>>::step_committed(back),
             Self::Zip(back) => <conduit_composite::FlowZipBack as StepBack<P>>::step_committed(back),
             Self::Merge(back) => <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::step_committed(back),
@@ -103,6 +110,9 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
     }
     fn cancel(&mut self) {
         match self {
+            Self::LinkedSource(back) => {
+                <conduit_typed_retention::PreparedLinkedSource as StepBack<P>>::cancel(back)
+            }
             Self::SeededState(back) => {
                 <conduit_composite::SeededStateBack as StepBack<P>>::cancel(back)
             }
