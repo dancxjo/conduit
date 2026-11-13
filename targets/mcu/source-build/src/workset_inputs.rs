@@ -18,6 +18,15 @@ const SPECIALIZATIONS: [&str; 2] = [
 ];
 
 pub(super) fn from_environment(mask: Option<MaskBounds>) -> Result<Option<Workset>, String> {
+    from_environment_with_installed(mask, &[], |_| Ok(Default::default()))
+}
+pub(super) fn from_environment_with_installed(
+    mask: Option<MaskBounds>,
+    installed: &[ValueReference<'_>],
+    prepare: impl FnOnce(
+        &conduit_plot::CheckedSyntaxDocument,
+    ) -> Result<crate::installed_values::InstalledValueBindings, String>,
+) -> Result<Option<Workset>, String> {
     for name in SOURCE.into_iter().chain(SPECIALIZATIONS) {
         println!("cargo:rerun-if-env-changed={name}");
     }
@@ -41,12 +50,19 @@ pub(super) fn from_environment(mask: Option<MaskBounds>) -> Result<Option<Workse
         std::env::var_os(SPECIALIZATIONS[0]),
         std::env::var(SPECIALIZATIONS[1]),
     ) {
-        (None, Err(std::env::VarError::NotPresent)) => {
-            super::compile(&bytes, &expected, &entries, mask).map(Some)
-        }
+        (None, Err(std::env::VarError::NotPresent)) => super::compile_specialized_with_installed(
+            &bytes,
+            &expected,
+            &entries,
+            mask,
+            &[],
+            installed,
+            prepare,
+        )
+        .map(Some),
         (Some(path), Ok(digest)) => {
             let capture = read(PathBuf::from(path), MAXIMUM_SPECIALIZATION_BYTES)?;
-            compile_captured(
+            compile_captured_with_installed(
                 &bytes,
                 &expected,
                 &entries,
@@ -55,6 +71,8 @@ pub(super) fn from_environment(mask: Option<MaskBounds>) -> Result<Option<Workse
                     bytes: &capture,
                     sha256: &digest,
                 },
+                installed,
+                prepare,
             )
             .map(Some)
         }
@@ -68,6 +86,21 @@ pub(super) fn compile_captured(
     mask: Option<MaskBounds>,
     capture: CapturedTypedSelections<'_>,
 ) -> Result<Workset, String> {
+    compile_captured_with_installed(source, source_sha256, entries, mask, capture, &[], |_| {
+        Ok(Default::default())
+    })
+}
+pub(super) fn compile_captured_with_installed(
+    source: &[u8],
+    source_sha256: &str,
+    entries: &[String],
+    mask: Option<MaskBounds>,
+    capture: CapturedTypedSelections<'_>,
+    installed: &[ValueReference<'_>],
+    prepare: impl FnOnce(
+        &conduit_plot::CheckedSyntaxDocument,
+    ) -> Result<crate::installed_values::InstalledValueBindings, String>,
+) -> Result<Workset, String> {
     if capture.bytes.is_empty() || capture.bytes.len() > MAXIMUM_SPECIALIZATION_BYTES {
         return Err("captured specialization receipt extent".into());
     }
@@ -77,7 +110,15 @@ pub(super) fn compile_captured(
     let description: Value = serde_json::from_slice(capture.bytes)
         .map_err(|e| format!("captured specializations: {e}"))?;
     let selected = selections(&description, source_sha256)?;
-    super::compile_specialized(source, source_sha256, entries, mask, &selected)
+    super::compile_specialized_with_installed(
+        source,
+        source_sha256,
+        entries,
+        mask,
+        &selected,
+        installed,
+        prepare,
+    )
 }
 
 fn read(path: PathBuf, maximum: usize) -> Result<Vec<u8>, String> {

@@ -247,3 +247,43 @@ fn recalibration_cannot_replace_the_original_installed_material() {
         .contains("different installed material"));
     assert_eq!(changed.entries[0].rust, before);
 }
+
+#[test]
+fn captured_make_receipt_preserves_source_and_installed_material() {
+    let original = workset("sensor-settings", 118).unwrap();
+    let text = source("sensor-settings", 512);
+    let digest = format!("{:x}", Sha256::digest(text.as_bytes()));
+    let bytes = serde_json::to_vec(
+        &serde_json::json!({"schema":1,"source_sha256":digest,"specializations":[]}),
+    )
+    .unwrap();
+    let receipt_digest = format!("{:x}", Sha256::digest(&bytes));
+    let captured = crate::workset::compile_captured_specializations_with_installed(
+        text.as_bytes(),
+        &digest,
+        &["sample".into()],
+        None,
+        crate::workset::CapturedTypedSelections {
+            bytes: &bytes,
+            sha256: &receipt_digest,
+        },
+        &[ValueReference {
+            type_name: "Settings",
+            maximum_bytes: 512,
+        }],
+        |source| {
+            InstalledValueBindings::prepare(
+                "fixture/configuration",
+                source,
+                vec![input(source, "sensor-settings", 118, 512)],
+            )
+        },
+    )
+    .unwrap();
+    assert_eq!(captured.sha256, original.sha256);
+    assert_eq!(
+        captured.installed_values.identity(),
+        original.installed_values.identity()
+    );
+    assert_eq!(captured.entries[0].rust, original.entries[0].rust);
+}

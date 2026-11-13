@@ -38,6 +38,17 @@ pub struct Workset {
 pub fn from_environment(mask: Option<MaskBounds>) -> Result<Option<Workset>, String> {
     inputs::from_environment(mask)
 }
+/// Use the ordinary captured Make inputs with Host-owned immutable facts.
+/// The callback receives the original fully checked Source, never a rewrite.
+pub fn from_environment_with_installed(
+    mask: Option<MaskBounds>,
+    selections: &[crate::composite::ValueReference<'_>],
+    prepare: impl FnOnce(
+        &p::CheckedSyntaxDocument,
+    ) -> Result<crate::installed_values::InstalledValueBindings, String>,
+) -> Result<Option<Workset>, String> {
+    inputs::from_environment_with_installed(mask, selections, prepare)
+}
 /// Internal finite Make subprocess receipt for existing typed-selection inputs.
 /// Original Source declarations/imports remain authoritative; this is not a
 /// human configuration language or an execution grant.
@@ -53,6 +64,30 @@ pub fn compile_captured_specializations(
     capture: CapturedTypedSelections<'_>,
 ) -> Result<Workset, String> {
     inputs::compile_captured(bytes, expected_sha256, entries, mask, capture)
+}
+
+/// Preserve the captured Source and typed-selection receipt while binding
+/// separately checked immutable Host material after Source adoption.
+pub fn compile_captured_specializations_with_installed(
+    bytes: &[u8],
+    expected_sha256: &str,
+    entries: &[String],
+    mask: Option<MaskBounds>,
+    capture: CapturedTypedSelections<'_>,
+    selections: &[crate::composite::ValueReference<'_>],
+    prepare: impl FnOnce(
+        &p::CheckedSyntaxDocument,
+    ) -> Result<crate::installed_values::InstalledValueBindings, String>,
+) -> Result<Workset, String> {
+    inputs::compile_captured_with_installed(
+        bytes,
+        expected_sha256,
+        entries,
+        mask,
+        capture,
+        selections,
+        prepare,
+    )
 }
 
 pub fn compile(
