@@ -9,6 +9,11 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             Self::SeededState(back) => {
                 <conduit_composite::SeededStateBack as StepBack<P>>::workspace_requirements(back)
             }
+            Self::Merge(back) => {
+                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::workspace_requirements(
+                    back,
+                )
+            }
             _ => None,
         }
     }
@@ -22,6 +27,11 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
         match self {
             Self::SeededState(back) => {
                 <conduit_composite::SeededStateBack as StepBack<P>>::step_with_workspace(
+                    back, io, input, workspace,
+                )
+            }
+            Self::Merge(back) => {
+                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::step_with_workspace(
                     back, io, input, workspace,
                 )
             }

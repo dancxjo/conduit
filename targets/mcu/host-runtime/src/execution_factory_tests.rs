@@ -201,3 +201,30 @@ fn resident_and_extra_drivers_preserve_workspace_custody_through_the_kernel() {
         });
     }
 }
+
+#[cfg(all(feature = "execution-workspace", feature = "schema-value-storage"))]
+#[test]
+fn static_merge_workspace_requirement_survives_software_and_driver_wrappers() {
+    use conduit_core::{StructuredFieldType, StructuredInfoType};
+    let schema = StructuredInfoType::record(
+        conduit_core::kind_id("test/merge-workspace-reading"),
+        alloc::vec![StructuredFieldType::new(
+            "reading",
+            StructuredInfoType::leaf(conduit_core::kind_id("value/u8")).unwrap(),
+        )
+        .unwrap()],
+    )
+    .unwrap();
+    let canonical = alloc::boxed::Box::leak(schema.canonical_bytes().unwrap().into_boxed_slice());
+    let direct =
+        conduit_composite::FlowMergeFiniteBack::prepare_static(&schema, canonical, 512).unwrap();
+    let expected =
+        <conduit_composite::FlowMergeFiniteBack as StepBack<2>>::workspace_requirements(&direct);
+    assert!(expected.is_some_and(|requirements| requirements.output_bytes != 0));
+    let software = SoftwareBack::merge_static(&schema, canonical, 512).unwrap();
+    let wrapped: Driver<'_, HostCallBack> = Driver::Software(software);
+    assert_eq!(
+        <Driver<HostCallBack> as StepBack<2>>::workspace_requirements(&wrapped),
+        expected
+    );
+}

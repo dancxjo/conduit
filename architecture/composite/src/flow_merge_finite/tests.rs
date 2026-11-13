@@ -37,10 +37,8 @@ fn simultaneous_inputs_alternate_without_reordering_each_stream() {
         );
         assert!(io.test_consumed(PortId(expected)));
         assert!(!io.test_consumed(PortId(1 - expected)));
-        assert_eq!(
-            <FlowMergeFiniteBack as StepBack<2>>::prepared_output(&back, PortId(0)).unwrap(),
-            if expected == 0 { &left } else { &right }
-        );
+        assert_eq!(io.test_output(PortId(0)), Some(reference(expected)));
+        assert!(back.output.is_empty());
         commit(&mut back);
     }
 }
@@ -246,4 +244,46 @@ fn static_schema_merge_preserves_validation_pressure_and_exact_output() {
             assert_eq!(allocations, 0);
         }
     }
+}
+
+#[test]
+fn uncommitted_forward_does_not_advance_fairness_or_retain_a_stale_handle() {
+    let mut back = back();
+    let bytes = 7_u64.to_le_bytes();
+    let inputs = StepInputBytes::test_frame([Some(bytes.as_slice()), Some(bytes.as_slice())], None);
+    for _ in 0..2 {
+        let mut io = StepIo::test_frame(
+            [Some(reference(0)), Some(reference(1))],
+            [false; 2],
+            [Some(8), None],
+            None,
+            16,
+        );
+        assert_eq!(back.step(&mut io, &inputs), StepOutcome::Progress);
+        assert_eq!(io.test_output(PortId(0)), Some(reference(0)));
+        assert_eq!(back.preferred, 0);
+        assert!(back.output.is_empty());
+        // Simulate transaction refusal: no step_committed notification.
+    }
+    let mut empty = StepIo::test_frame([None; 2], [false; 2], [Some(8), None], None, 16);
+    assert_eq!(
+        back.step(&mut empty, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Await
+    );
+    commit(&mut back);
+    assert_eq!(
+        back.preferred, 0,
+        "no stale staged side survives a new attempt"
+    );
+    <FlowMergeFiniteBack as StepBack<2>>::cancel(&mut back);
+    let mut cancelled = StepIo::test_frame(
+        [Some(reference(0)), Some(reference(1))],
+        [false; 2],
+        [Some(8), None],
+        None,
+        16,
+    );
+    assert_eq!(back.step(&mut cancelled, &inputs), StepOutcome::Complete);
+    assert_eq!(cancelled.test_output(PortId(0)), None);
+    assert!(!cancelled.test_consumed(PortId(0)));
 }

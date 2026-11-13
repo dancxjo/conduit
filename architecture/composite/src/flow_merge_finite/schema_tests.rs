@@ -101,6 +101,47 @@ impl StepBack<2> for Back<'_> {
             _ => [None; 2],
         }
     }
+    #[cfg(feature = "execution-workspace")]
+    fn workspace_requirements(&self) -> Option<StepWorkspaceRequirements> {
+        if let Self::Merge { back, .. } = self {
+            <FlowMergeFiniteBack as StepBack<2>>::workspace_requirements(back)
+        } else {
+            None
+        }
+    }
+    #[cfg(feature = "execution-workspace")]
+    fn step_with_workspace(
+        &mut self,
+        io: &mut StepIo<2>,
+        input: &StepInputBytes<'_, 2>,
+        workspace: &mut StepWorkspace<'_>,
+    ) -> StepOutcome {
+        if let Self::Merge {
+            back,
+            canonical,
+            separated,
+            blocked,
+        } = self
+        {
+            let ready = io.output_ready(PortId(0));
+            let outcome = back.step_with_workspace(io, input, workspace);
+            for port in [PortId(0), PortId(1)] {
+                if !ready {
+                    assert!(!io.test_consumed(port));
+                }
+                if io.test_consumed(port) {
+                    *canonical += u8::from(input.input(port).is_some());
+                    *separated += u8::from(input.canonical_parts(port).is_some());
+                }
+            }
+            if !ready && (io.input(PortId(0)).is_some() || io.input(PortId(1)).is_some()) {
+                *blocked += 1;
+            }
+            outcome
+        } else {
+            self.step(io, input)
+        }
+    }
     fn step(&mut self, io: &mut StepIo<2>, input: &StepInputBytes<'_, 2>) -> StepOutcome {
         match self {
             Self::Source {
@@ -162,10 +203,11 @@ impl StepBack<2> for Back<'_> {
                     io.exhaust_fuel();
                     return StepOutcome::Yield;
                 }
-                let marker = if *expects_parts {
-                    let parts = input
-                        .canonical_parts(PortId(0))
-                        .expect("separated merged output");
+                let marker = if let Some(parts) = input.canonical_parts(PortId(0)) {
+                    assert!(
+                        *expects_parts,
+                        "canonical fallback recipient cannot receive separated output"
+                    );
                     assert!(input.input(PortId(0)).is_none());
                     assert_eq!(parts.schema, *schema);
                     if parts.node == &expected[0][schema.len()..] {
@@ -348,6 +390,32 @@ fn scheduler_merges_mixed_representations_and_falls_back_for_canonical_fanout() 
             FixedSignLog::<512>::new((512 * core::mem::size_of::<KernelEvent>()) as u32).unwrap(),
         )
         .unwrap();
+        #[cfg(feature = "execution-workspace")]
+        {
+            let insufficient = PreparedStepWorkspace::try_new(
+                StepWorkspaceRequirements {
+                    output_bytes: maximum - 1,
+                    scratch_bytes: 0,
+                },
+                maximum as usize,
+            )
+            .unwrap();
+            assert!(kernel.install_execution_workspace(insufficient).is_err());
+            let funded = PreparedStepWorkspace::try_new(
+                StepWorkspaceRequirements {
+                    output_bytes: maximum,
+                    scratch_bytes: 0,
+                },
+                maximum as usize,
+            )
+            .unwrap();
+            kernel.install_execution_workspace(funded).unwrap();
+            let Back::Merge { back, .. } = &kernel.drivers()[2] else {
+                unreachable!()
+            };
+            assert_eq!(back.output.capacity(), 0, "no per-owner output allocation");
+            assert_eq!(kernel.execution_workspace_backing_bytes(), maximum as usize);
+        }
         let allocations =
             crate::test_support::allocation::allocations_during(|| kernel.run(1024).unwrap());
         assert_eq!(allocations, 0);
@@ -454,10 +522,59 @@ fn partial_byte_capacity_preserves_input_and_preference_until_whole_frame_fits()
     );
     assert_eq!(back.step(&mut ready, &input), StepOutcome::Progress);
     assert!(ready.test_consumed(PortId(0)));
-    assert_eq!(
-        <FlowMergeFiniteBack as StepBack<2>>::prepared_output(&back, PortId(0)),
-        Some(bytes[0].as_slice())
-    );
+    assert_eq!(ready.test_output(PortId(0)), Some(reference));
+    assert!(<FlowMergeFiniteBack as StepBack<2>>::prepared_output(&back, PortId(0)).is_none());
     <FlowMergeFiniteBack as StepBack<2>>::step_committed(&mut back);
     assert_eq!(back.preferred, 1);
+}
+
+#[cfg(feature = "execution-workspace")]
+#[test]
+fn owner_output_backing_is_replaced_by_one_maximum_shared_loan() {
+    let (ty, schema, bytes) = fixture();
+    let original_per_owner = crate::value_backing::bytes(&ty, 1024);
+    assert_eq!(original_per_owner, bytes[0].len());
+    let owners = core::array::from_fn::<_, 3, _>(|_| {
+        FlowMergeFiniteBack::prepare_static(&ty, schema, 1024).unwrap()
+    });
+    assert!(owners.iter().all(|owner| owner.output.capacity() == 0));
+    let maximum = owners
+        .iter()
+        .map(|owner| {
+            <FlowMergeFiniteBack as StepBack<2>>::workspace_requirements(owner)
+                .unwrap()
+                .output_bytes
+        })
+        .max()
+        .unwrap();
+    assert_eq!(maximum as usize, original_per_owner);
+    let shared = PreparedStepWorkspace::try_new(
+        StepWorkspaceRequirements {
+            output_bytes: maximum,
+            scratch_bytes: 0,
+        },
+        maximum as usize,
+    )
+    .unwrap();
+    assert_eq!(shared.reserved_backing_bytes(), original_per_owner);
+    // Exact field set of the preceding retained-output owner. This receipt is
+    // for the current test ABI, not a claim about the MCU linker layout.
+    #[allow(dead_code)]
+    struct PreviousOwnerLayout {
+        validator: Option<Validator>,
+        leaf: Option<KindId>,
+        output: Vec<u8>,
+        staged: Option<usize>,
+        committed_close: [bool; 2],
+        staged_close: Option<usize>,
+        preferred: usize,
+        staged_side: Option<usize>,
+        cancelled: bool,
+    }
+    let old_inline = core::mem::size_of::<PreviousOwnerLayout>();
+    let new_inline = core::mem::size_of::<FlowMergeFiniteBack>();
+    let before = (old_inline + original_per_owner) * owners.len();
+    let after = new_inline * owners.len() + shared.reserved_backing_bytes();
+    assert!(after < before);
+    std::eprintln!("Merge current test ABI: owner inline {old_inline}->{new_inline} bytes; three original output buffers={} bytes ->0; shared maximum={} bytes; modeled inline+output total {before}->{after}; validators and kernel pool unchanged", original_per_owner * owners.len(), shared.reserved_backing_bytes());
 }
