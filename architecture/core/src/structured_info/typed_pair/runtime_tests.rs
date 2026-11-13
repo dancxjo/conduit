@@ -134,3 +134,20 @@ fn exclusive_inspection_tree_is_released_at_the_runtime_boundary() {
     assert!(cost.deallocations > 0);
     assert!(execution.maximum_bytes() > 2048);
 }
+
+#[test]
+fn fixed_schema_composition_keeps_selected_envelope_without_reserving_it_all() {
+    let mut preparation = structured_encoder();
+    let selected_maximum = preparation.maximum_bytes();
+    assert!(preparation.composer.prepared_heap_bytes() < selected_maximum as usize);
+    let left = record("test/pair-left", u64::MAX);
+    let right = record("test/pair-right", u64::MAX);
+    let expected = preparation.encode(&left, &right).unwrap().to_vec();
+    let mut runtime = preparation.into_runtime();
+    assert_eq!(runtime.maximum_bytes(), selected_maximum);
+    let ((), cost) = probe::observe(|| {
+        assert_eq!(runtime.encode(&left, &right).unwrap(), expected);
+    });
+    assert_eq!(cost.allocation_attempts, 0);
+    assert_eq!(cost.reallocations, 0);
+}

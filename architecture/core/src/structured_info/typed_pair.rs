@@ -112,7 +112,15 @@ impl PreparedTypedTuplePairEncoder {
             .and_then(|size| size.checked_add(leaf_framing(&right_type)))
             .filter(|size| *size <= MAXIMUM_STRUCTURED_CANONICAL_BYTES)
             .ok_or(Refusal::CanonicalEncodingTooLarge)?;
-        let composer = PreparedStructuredComposer::new(&value_type, maximum)?;
+        // The selected envelope remains `maximum`; private mutable storage
+        // needs only the complete bound enforced by the member validators.
+        // Domain or variable-width leaves keep the original selected bound.
+        let backing_maximum = value_type
+            .canonical_value_upper_bound(|kind| {
+                crate::fixed_primitive_info_payload_bytes(kind.as_str())
+            })
+            .map_or(maximum, |bound| bound.min(maximum));
+        let composer = PreparedStructuredComposer::new(&value_type, backing_maximum)?;
         Ok(Self {
             left: Member::new(&left_type, left_maximum)?,
             right: Member::new(&right_type, right_maximum)?,
