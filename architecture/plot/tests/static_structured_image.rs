@@ -90,7 +90,9 @@ fn corpus(
         allocation_probe::observe(|| PreparedPortableExpressionEvaluator::new(p).unwrap());
     eprintln!("{name}: owned_preparation={cost:?}");
     drop(owned);
-    let image = generate_static_structured_expression(d, p, bounds(), 4096).unwrap();
+    let generated = generate_static_structured_expression_with_work(d, p, bounds(), 4096).unwrap();
+    let reported_work = generated.computation_work;
+    let image = generated.source;
     assert_eq!(
         image,
         generate_static_structured_expression(d, p, bounds(), 4096).unwrap()
@@ -98,6 +100,9 @@ fn corpus(
     let allocator =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/common/allocation_probe.rs");
     let mut main=format!("#[path={:?}]mod probe;#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;fn main(){{let(mut e,c)=probe::observe(||image::prepare().unwrap());assert_eq!(c.allocations,0);assert_eq!(c.reallocations,0);assert!(image::RUNTIME_STATE_BYTES<4096);let mut scratch=[0u8;4096];let mut output=[0xa5u8;4096];\n",allocator.to_str().unwrap());
+    main.push_str(&format!(
+        "assert_eq!(e.computation_work(),{reported_work},\"compiler/runtime work drift\");\n"
+    ));
     main.push_str(&format!("println!(\"{name}: resident_state_bytes={{}}, output_stage_bytes={{}}\",image::RUNTIME_STATE_BYTES,e.scratch_bytes());\n"));
     for input in values {
         let expected = admit(d, &p.input_type, &input)
@@ -482,32 +487,7 @@ fn built_in_empty_constructor_input_preserves_canonical_validation_without_alloc
     );
 }
 
-#[test]
-fn parent_checked_children_drop_duplicate_state_only_after_exact_definition_matching() {
-    let d = ht();
-    let p = program(&d, "ht16k33-frame-request");
-    let image = generate_static_structured_expression(&d, &p, bounds(), 4096).unwrap();
-    let exercise = r#"
-pub fn check_state() {
- let _ = prepare().unwrap();
- assert!(CHILD_COUNT > 0);
- let old_children = core::mem::size_of::<[conduit_plot::StaticStructuredValue<{input_native::CONTRACT_COUNT}>; CHILD_COUNT]>();
- let parents = core::mem::size_of::<conduit_plot::rust_binding::ResidentNativeValidator<{input_native::CONTRACT_COUNT}>>()
-  + core::mem::size_of::<conduit_plot::rust_binding::ResidentNativeValidator<{output_native::CONTRACT_COUNT}>>();
- assert!(RUNTIME_STATE_BYTES < old_children + parents);
-}
-"#;
-    compiled_rust::verify(
-        &format!("mod image{{\n{image}\n{exercise}\n}}"),
-        "fn main(){image::check_state();}",
-        "parent-checked-child-state",
-    );
-    // Supply one child a different prepared definition; the parent stays exact.
-    // Equal shape alone cannot justify discarding a child's validator.
-    for (name, bound, occurrences) in [("bound", 4095, 4096), ("occurrences", 4096, 4095)] {
-        let altered = image.replacen("mod input_native {", &format!("mod input_native {{\npub fn altered()->Result<conduit_plot::rust_binding::ResidentNativeValidator<CONTRACT_COUNT>,conduit_plot::rust_binding::PreparedNativeRefusal>{{conduit_plot::rust_binding::ResidentNativeValidator::new(TYPE,{bound},&CONTRACTS,&SCOPES,{occurrences})}}\n"), 1)
-            .replace("Expression::from_child_programs(input,output,&CHILDREN,&PROGRAM)", "let mut children=core::array::from_fn(|_|conduit_plot::StaticStructuredValue::InputPath(&[]));children[0]=conduit_plot::StaticStructuredValue::Scalar(conduit_plot::StaticProjectedExpression::new(input_native::altered().unwrap(),&child_0::PROGRAM).unwrap());Ok(Expression::new(input,output,children,&PROGRAM)?)");
-        assert_ne!(altered, image);
-        compiled_rust::verify(&format!("mod image{{\n{altered}\n}}"), "fn main(){assert!(matches!(image::prepare(),Err(conduit_plot::StaticStructuredRefusal::Expression(conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram))));}", &format!("parent-child-{name}-mismatch"));
-    }
-}
+#[path = "static_structured_image/parent_correspondence.rs"]
+mod parent_correspondence;
+#[path = "static_structured_image/work_accounting.rs"]
+mod work_accounting;

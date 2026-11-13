@@ -179,17 +179,17 @@ impl ParentCheckedProjectedExpression {
     // One cold traversal over immutable operand metadata, shared by children.
     #[inline(never)]
     pub(in crate::expression_prepared) fn checked_work(&self) -> u32 {
-        let mut work = (self.program.instructions.len() as u32).saturating_add(4);
-        for operand in self.program.inputs {
-            let units = match operand.source {
-                StaticProjectedSource::Fixed { .. } => 2,
-                StaticProjectedSource::Path(path) => path.len() + 2,
-                StaticProjectedSource::VariantIs { path, .. } => path.len() + 3,
-                StaticProjectedSource::Length(path) => path.len() + 2,
-            };
-            work = work.saturating_add(units as u32);
-        }
-        work.saturating_add(self.output_contract.map_or(0, |c| c.validation_work()) as u32)
+        use crate::expression_prepared::resident_work::{projected_work, ProjectedInputWork as W};
+        projected_work(
+            self.program.instructions.len(),
+            self.program.inputs.iter().map(|input| match input.source {
+                StaticProjectedSource::Fixed { .. } => W::Fixed,
+                StaticProjectedSource::Path(path) => W::Path(path.len()),
+                StaticProjectedSource::VariantIs { path, .. } => W::VariantIs(path.len()),
+                StaticProjectedSource::Length(path) => W::Length(path.len()),
+            }),
+            self.output_contract.map_or(0, |c| c.validation_work()),
+        )
     }
     // Private reuse only after the enclosing evaluator checks its whole input.
     // Constructor-time definition equality preserves every child guard/bound.

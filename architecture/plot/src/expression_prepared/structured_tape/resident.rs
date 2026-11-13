@@ -5,7 +5,10 @@ use crate::expression_prepared::{StaticProjectedExpression, StaticProjectedRefus
 use crate::rust_binding::{PreparedNativeRefusal, ResidentNativeValidator};
 #[path = "resident/generate.rs"]
 mod generate;
-pub use generate::{generate_static_structured_expression, StaticStructuredGenerationRefusal};
+pub use generate::{
+    generate_static_structured_expression, generate_static_structured_expression_with_work,
+    GeneratedStaticStructuredExpression, StaticStructuredGenerationRefusal,
+};
 pub struct StaticStructuredProgram {
     pub instructions: &'static [StructuredTapeInstruction],
     pub constants: &'static [u8],
@@ -206,32 +209,23 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
     // through linked child tables duplicates traversal code per expression.
     #[inline(never)]
     pub fn computation_work(&self) -> u32 {
-        let mut work = self
-            .input
-            .validation_work(self.program.maximum_input_bytes)
-            .saturating_add(
-                self.output
-                    .validation_work(self.program.maximum_output_bytes),
-            )
-            .saturating_add(2); // schema prefix and final bounded result copy
-        let child_work = |index: u16| {
-            self.children
-                .get(usize::from(index))
-                .map_or(u32::MAX, |child| match child {
-                    ParentCheckedStructuredValue::Scalar(child) => child.checked_work(),
-                    ParentCheckedStructuredValue::InputPath(path) => (path.len() + 1) as u32,
-                })
-        };
-        for op in self.program.instructions {
-            let units = match *op {
-                Operation::Value(i) => child_work(i).saturating_add(4),
-                Operation::BranchFalse { value, .. } => child_work(value).saturating_add(2),
-                Operation::Bytes { .. } | Operation::InputNode { .. } => 2,
-                Operation::Jump(_) => 1,
-            };
-            work = work.saturating_add(units);
-        }
-        work
+        use crate::expression_prepared::resident_work::{direct_path_work, structured_work};
+        structured_work(
+            self.input.validation_work(self.program.maximum_input_bytes),
+            self.output
+                .validation_work(self.program.maximum_output_bytes),
+            self.program.instructions,
+            |index| {
+                self.children
+                    .get(usize::from(index))
+                    .map_or(u32::MAX, |child| match child {
+                        ParentCheckedStructuredValue::Scalar(child) => child.checked_work(),
+                        ParentCheckedStructuredValue::InputPath(path) => {
+                            direct_path_work(path.len())
+                        }
+                    })
+            },
+        )
     }
     pub fn scratch_bytes(&self) -> usize {
         self.program.maximum_output_bytes

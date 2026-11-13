@@ -27,6 +27,7 @@ mod inspection;
 mod shared_input;
 use shared_input::SharedBytes;
 mod resident_projection;
+pub(crate) mod resident_work;
 pub use resident_projection::StaticExpressionPathStep;
 mod member_selection;
 mod nominal;
@@ -50,9 +51,10 @@ use primitive::{
 };
 use structured::PreparedStructuredExpression;
 pub use structured::{
-    generate_static_structured_expression, StaticStructuredChildProgram,
-    StaticStructuredExpression, StaticStructuredGenerationRefusal, StaticStructuredProgram,
-    StaticStructuredRefusal, StaticStructuredValue, StructuredTapeInstruction,
+    generate_static_structured_expression, generate_static_structured_expression_with_work,
+    GeneratedStaticStructuredExpression, StaticStructuredChildProgram, StaticStructuredExpression,
+    StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
+    StaticStructuredValue, StructuredTapeInstruction,
 };
 
 fn prepare_info_kind(

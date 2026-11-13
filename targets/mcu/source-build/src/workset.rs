@@ -3,6 +3,9 @@
 use crate::software;
 #[path = "workset_emission.rs"]
 mod emission;
+#[cfg(test)]
+#[path = "workset_exact_work_tests.rs"]
+mod exact_work_tests;
 #[path = "workset_inputs.rs"]
 mod inputs;
 use conduit_plot as p;
@@ -200,14 +203,45 @@ impl Workset {
 
     /// Prepare the exact context-specialized expression programs selected by
     /// the expanded workset, rather than re-expanding separate named entries.
-    /// Repeated instances require distinct physical Back custody; the current
-    /// single-owner codebook profile refuses them instead of aliasing an owner.
+    /// Every selected Gear receives distinct initialized Back custody, including
+    /// repeated programs. Immutable program identity remains independent.
     pub fn prepare_selected_residents(
         &self,
         bounds: conduit_embedded_build::ResidentExpressionBounds,
     ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
+        self.prepare_selected_residents_with_storage(
+            bounds,
+            conduit_embedded_build::ResidentExecutionStorage::Owned,
+        )
+    }
+    /// Physical storage is selected before artifact sealing and calibration.
+    /// The returned inventory still grants no execution or workspace capacity.
+    pub fn prepare_selected_residents_with_storage(
+        &self,
+        bounds: conduit_embedded_build::ResidentExpressionBounds,
+        storage: conduit_embedded_build::ResidentExecutionStorage,
+    ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
+        self.prepare_selected_residents_with_work_pool(bounds, storage, None)
+    }
+    /// Select each owner's exact compiler-reported requirement, then refuse if
+    /// their checked aggregate exceeds the original shared private-work pool.
+    /// Distinct initialized owners, including repeated programs, count once each.
+    pub fn prepare_selected_residents_with_exact_work(
+        &self,
+        bounds: conduit_embedded_build::ResidentExpressionBounds,
+        storage: conduit_embedded_build::ResidentExecutionStorage,
+        capacity_units: u32,
+    ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
+        self.prepare_selected_residents_with_work_pool(bounds, storage, Some(capacity_units))
+    }
+    fn prepare_selected_residents_with_work_pool(
+        &self,
+        bounds: conduit_embedded_build::ResidentExpressionBounds,
+        storage: conduit_embedded_build::ResidentExecutionStorage,
+        capacity_units: Option<u32>,
+    ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
         let mut selected = Vec::new();
-        let mut identities = Vec::new();
+        let mut required_work = 0u32;
         for entry in &self.entries {
             for gear in &entry.plot.expanded.gears {
                 let Some(configuration) = gear.configuration.iter().find(|c| c.key == "program")
@@ -222,24 +256,33 @@ impl Workset {
                     .first()
                     .ok_or("selected resident input absent")?
                     .temporal;
-                if identities
-                    .iter()
-                    .any(|(old, mode)| old == text && *mode == temporal)
-                {
-                    return Err(
-                        "repeated resident program requires distinct initialized instance custody"
-                            .into(),
-                    );
-                }
                 let program = p::PortableExpressionProgram::from_canonical_hex(text)
                     .map_err(|e| format!("selected resident program: {e:?}"))?;
-                let image = conduit_embedded_build::PreparedResidentExpression::prepare(
+                let instance = format!(
+                    "{}:{}:{}",
+                    self.checked_source.source_document_id.as_str(),
+                    entry.name,
+                    gear.gear_id.as_str()
+                );
+                let prepare = if capacity_units.is_some() {
+                    conduit_embedded_build::PreparedResidentExpression::prepare_instance_with_exact_work
+                } else {
+                    conduit_embedded_build::PreparedResidentExpression::prepare_instance_with_storage
+                };
+                let image = prepare(
                     &self.checked_source,
                     &program,
                     temporal,
                     bounds,
+                    Some(&instance),
+                    storage,
                 )
-                .map_err(|e| format!("selected resident preparation: {e:?}"))?;
+                .map_err(|e| {
+                    format!(
+                        "selected resident preparation for {}: {e:?}",
+                        gear.gear_id.as_str()
+                    )
+                })?;
                 if image.kind_id() != &gear.kind_id
                     || image.offer_description().semantic_contract != gear.semantic_contract
                 {
@@ -248,7 +291,14 @@ impl Workset {
                         gear.gear_id.as_str()
                     ));
                 }
-                identities.push((text.clone(), temporal));
+                if let Some(capacity) = capacity_units {
+                    required_work = required_work
+                        .checked_add(u32::from(image.computation_work()))
+                        .ok_or("selected resident private-work sum overflow")?;
+                    if required_work > capacity {
+                        return Err(format!("selected resident private work requires {required_work} units; original pool has {capacity}"));
+                    }
+                }
                 selected.push(image);
             }
         }

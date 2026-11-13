@@ -26,6 +26,11 @@ pub fn generate_static_projected_expression(
     maximum_occurrences: usize,
 ) -> Result<String, StaticProjectedGenerationRefusal> {
     generate_with_native(document, program, bounds, maximum_occurrences, None)
+        .map(|image| image.source)
+}
+pub(in crate::expression_prepared) struct GeneratedProjected {
+    pub source: String,
+    pub checked_work: u32,
 }
 pub(in crate::expression_prepared) fn generate_with_native(
     document: &crate::CheckedSyntaxDocument,
@@ -33,7 +38,8 @@ pub(in crate::expression_prepared) fn generate_with_native(
     bounds: PreparedNativeBounds,
     maximum_occurrences: usize,
     shared_native: Option<&str>,
-) -> Result<String, StaticProjectedGenerationRefusal> {
+) -> Result<GeneratedProjected, StaticProjectedGenerationRefusal> {
+    use crate::expression_prepared::resident_work::{projected_work, ProjectedInputWork as W};
     let unsupported = || Refusal::UnsupportedType("projected-image/input-observation@1".into());
     let native = if matches!(program.input_type.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == "value/empty")
     {
@@ -78,32 +84,42 @@ pub(in crate::expression_prepared) fn generate_with_native(
     let tape = ScalarTape::prepare_with_inputs(node, &mut |pc, node| {
         use crate::expression_prepared::resident_projection::render;
         let prefix = "conduit_plot::StaticProjectedSource";
-        let source = match &node.operation {
+        let (source, work) = match &node.operation {
             PreparedOperation::Projection(selected) => {
                 if let Some((start, length)) = selected.fixed_scalar_input() {
-                    format!("{prefix}::Fixed {{start:{start},length:{length}}}")
+                    (
+                        format!("{prefix}::Fixed {{start:{start},length:{length}}}"),
+                        W::Fixed,
+                    )
                 } else {
                     let path = selected.direct_input_path().ok_or_else(unsupported)?;
-                    format!("{prefix}::Path(&[{}])", render(&path))
+                    (
+                        format!("{prefix}::Path(&[{}])", render(&path)),
+                        W::Path(path.len()),
+                    )
                 }
             }
             PreparedOperation::Inspection(value) => {
                 use crate::expression_prepared::inspection::ResidentObservation as O;
                 let (path, observation) = value.resident_source().ok_or_else(unsupported)?;
                 match observation {
-                    O::VariantIs(tag) if node.kind == PrimitiveInfoKind::Bool => format!(
-                        "{prefix}::VariantIs {{path:&[{}],tag:{tag:?}}}",
-                        render(&path)
+                    O::VariantIs(tag) if node.kind == PrimitiveInfoKind::Bool => (
+                        format!(
+                            "{prefix}::VariantIs {{path:&[{}],tag:{tag:?}}}",
+                            render(&path)
+                        ),
+                        W::VariantIs(path.len()),
                     ),
-                    O::Length if node.kind == PrimitiveInfoKind::U64 => {
-                        format!("{prefix}::Length(&[{}])", render(&path))
-                    }
+                    O::Length if node.kind == PrimitiveInfoKind::U64 => (
+                        format!("{prefix}::Length(&[{}])", render(&path)),
+                        W::Length(path.len()),
+                    ),
                     _ => return Err(unsupported()),
                 }
             }
             _ => return Err(unsupported()),
         };
-        inputs.push((pc, source));
+        inputs.push((pc, source, work));
         Ok(Operation::Input)
     })?;
     let output = node.kind;
@@ -124,7 +140,7 @@ pub(in crate::expression_prepared) fn generate_with_native(
             "pub const SOURCE_PROGRAM_SHA256: [u8;32] = {digest:?};\n"
         ));
     }
-    let output_contract = static_image::generate::contracts::emit(
+    let (output_contract, output_work) = static_image::generate::contracts::emit_with_work(
         &mut source,
         prepared.output_value_contract.as_ref(),
         "OUTPUT_CONTRACT",
@@ -132,7 +148,12 @@ pub(in crate::expression_prepared) fn generate_with_native(
     )?;
     static_image::generate::emit_tape(&mut source, &tape);
     source.push_str("static INPUTS: &[conduit_plot::StaticProjectedInput] = &[\n");
-    for (instruction, source_value) in inputs {
+    let work = projected_work(
+        tape.instruction_count(),
+        inputs.iter().map(|(_, _, work)| *work),
+        output_work,
+    );
+    for (instruction, source_value, _) in inputs {
         source.push_str(&format!("conduit_plot::StaticProjectedInput {{instruction:{instruction},source:{source_value}}},\n"));
     }
     let maximum = usize::try_from(program.maximum_prepared_input_bytes()?)
@@ -150,7 +171,10 @@ pub(in crate::expression_prepared) fn generate_with_native(
         source.push_str("pub const RUNTIME_STATE_BYTES:usize=core::mem::size_of::<conduit_plot::StaticProjectedExpression<{native::CONTRACT_COUNT}>>();\n");
         source.push_str("pub fn prepare() -> Result<conduit_plot::StaticProjectedExpression<{native::CONTRACT_COUNT}>, conduit_plot::StaticProjectedRefusal> { Ok(conduit_plot::StaticProjectedExpression::new(native::prepare()?, &PROGRAM)?) }\n");
     }
-    Ok(source)
+    Ok(GeneratedProjected {
+        source,
+        checked_work: work,
+    })
 }
 
 // Native values are allowed only as direct projections from the checked input.
