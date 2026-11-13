@@ -63,3 +63,77 @@ pub fn prepare<const W: usize>(
     }
     Ok((store, parameters))
 }
+
+/// One independently compiled physical slot selection. Canonical quotas remain
+/// full value extents; linked schema bytes are never counted as node backing.
+#[cfg(feature = "schema-value-storage")]
+#[derive(Clone, Copy)]
+pub enum ValueSlotProfile {
+    Canonical(u32),
+    Schema {
+        canonical: &'static [u8],
+        maximum_bytes: u32,
+    },
+}
+#[cfg(feature = "schema-value-storage")]
+pub type PreparedSchemaValues<const W: usize> = (
+    conduit_plan_lowering::schema_value_store::SchemaValueStore<
+        'static,
+        conduit_kernel::HostedValueStore,
+    >,
+    [(u16, conduit_kernel::ValueRef); W],
+);
+
+/// Construct the exact selected physical pool before Play. This grants no
+/// resource or semantic admission. The original retained-backing ceiling funds
+/// both owners, including actual buffer capacities and slot metadata. Root
+/// independently funds temporary preparation scratch and linked schema custody.
+#[cfg(feature = "schema-value-storage")]
+pub fn prepare_schema<const W: usize>(
+    profiles: &[ValueSlotProfile],
+    steps: &[u32],
+    results: &[u32],
+    clocks: &[(u16, u64, u64); W],
+    maximum_backing: usize,
+) -> Result<PreparedSchemaValues<W>, &'static str> {
+    use conduit_core::BorrowedStructuredValueValidator;
+    use conduit_plan_lowering::schema_value_store::SchemaValueStore;
+    let mut canonical = alloc::vec::Vec::new();
+    let mut definitions = alloc::vec::Vec::new();
+    canonical
+        .try_reserve_exact(profiles.len())
+        .map_err(|_| "value-capacities")?;
+    definitions
+        .try_reserve_exact(profiles.len())
+        .map_err(|_| "value-definitions")?;
+    let mut logical = 0u32;
+    for profile in profiles {
+        match *profile {
+            ValueSlotProfile::Canonical(bytes) => canonical.push(bytes),
+            ValueSlotProfile::Schema {
+                canonical,
+                maximum_bytes,
+            } => {
+                let validator =
+                    BorrowedStructuredValueValidator::new(canonical, maximum_bytes as usize)
+                        .map_err(|_| "value-schema")?;
+                logical = logical.checked_add(maximum_bytes).ok_or("value-bytes")?;
+                definitions.push((validator, 1));
+            }
+        }
+    }
+    if definitions.is_empty() {
+        return Err("value-schema-profile-empty");
+    }
+    let (canonical, parameters) = prepare(&canonical, steps, results, clocks, maximum_backing)?;
+    let remaining = maximum_backing
+        .checked_sub(canonical.reserved_storage_bytes())
+        .ok_or("value-backing")?;
+    let store = SchemaValueStore::try_new(canonical, &definitions, logical, remaining)
+        .map_err(|_| "value-schema-storage")?;
+    Ok((store, parameters))
+}
+
+#[cfg(all(test, feature = "schema-value-storage"))]
+#[path = "native_value_profile_tests.rs"]
+mod profile_tests;

@@ -115,6 +115,7 @@ impl<'a, P: SynchronousHostCall> Service<'a, P> {
     pub fn dispatch<
         D: StepBack<PORTS>,
         L: SignSink,
+        V: ValueStorage,
         const N: usize,
         const C: usize,
         const PORTS: usize,
@@ -124,7 +125,7 @@ impl<'a, P: SynchronousHostCall> Service<'a, P> {
         const K: usize,
     >(
         &mut self,
-        kernel: &mut StoredExecutionKernel<D, L, N, C, PORTS, R, T, H, K>,
+        kernel: &mut StoredExecutionKernel<D, L, N, C, PORTS, R, T, H, K, V>,
         activity: &NativeActivity,
     ) -> Result<Dispatch, Refusal> {
         let Some(_window) = activity.try_blocking() else {

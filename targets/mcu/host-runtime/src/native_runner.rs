@@ -17,7 +17,7 @@ use crate::{
     native_dispatch::{self, Dispatch},
 };
 use conduit_kernel::scheduler::{SchedulerError, SchedulerStatus, StepBack};
-use conduit_kernel::{HostCallId, SignSink};
+use conduit_kernel::{HostCallId, SignSink, ValueStorage};
 use conduit_monotonic_wait::{MonotonicWaitHostCall, MonotonicWaitProvider};
 use conduit_pulse_capture::owner::{PulseHostCall, PulseReadProvider};
 use conduit_tm1637_wire::{owner::WriteHostCall, OpenDrain};
@@ -69,8 +69,9 @@ pub struct Runner<
     F,
     L: SignSink,
     const K: usize = H,
+    V: ValueStorage = conduit_kernel::HostedValueStore,
 > {
-    kernel: RefCell<&'a mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>>,
+    kernel: RefCell<&'a mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>>,
     observer: RefCell<&'a mut O>,
     yield_to_host: &'a Y,
     cancelled: &'a F,
@@ -87,14 +88,15 @@ impl<
         const T: usize,
         const H: usize,
         Y: CooperativeYield,
-        O: Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H, K>>,
+        O: Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>>,
         F: Fn() -> bool,
         L: SignSink,
         const K: usize,
-    > Runner<'a, D, N, C, P, R, T, H, Y, O, F, L, K>
+        V: ValueStorage,
+    > Runner<'a, D, N, C, P, R, T, H, Y, O, F, L, K, V>
 {
     pub fn new(
-        kernel: &'a mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
+        kernel: &'a mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>,
         observer: &'a mut O,
         yield_to_host: &'a Y,
         cancelled: &'a F,

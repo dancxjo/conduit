@@ -13,11 +13,12 @@ impl<
         const T: usize,
         const H: usize,
         Y: CooperativeYield,
-        O: Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H, K>>,
+        O: Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>>,
         F: Fn() -> bool,
         L: SignSink,
         const K: usize,
-    > Runner<'_, D, N, C, P, R, T, H, Y, O, F, L, K>
+        V: ValueStorage,
+    > Runner<'_, D, N, C, P, R, T, H, Y, O, F, L, K, V>
 {
     async fn deadline<A: MonotonicDeadlineProvider>(
         &self,

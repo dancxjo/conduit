@@ -121,6 +121,11 @@ impl<'a, S: ValueStorage> SchemaValueStore<'a, S> {
             used_bytes: 0,
         })
     }
+    /// Borrow the original canonical owner for physical custody accounting.
+    /// This neither transfers storage nor changes references or availability.
+    pub fn canonical_storage(&self) -> &S {
+        &self.canonical
+    }
     pub fn reserved_node_storage_bytes(&self) -> usize {
         self.slots.capacity() * core::mem::size_of::<Slot<'a>>()
             + self.slots.iter().map(|s| s.node.capacity()).sum::<usize>()

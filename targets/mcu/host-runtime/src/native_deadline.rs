@@ -37,6 +37,7 @@ impl<'a, A: MonotonicDeadlineProvider> Service<'a, A> {
     pub fn dispatch<
         D: StepBack<P>,
         L: SignSink,
+        V: ValueStorage,
         const N: usize,
         const C: usize,
         const P: usize,
@@ -46,7 +47,7 @@ impl<'a, A: MonotonicDeadlineProvider> Service<'a, A> {
         const K: usize,
     >(
         &mut self,
-        kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
+        kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>,
     ) -> Result<Dispatch, SchedulerError> {
         if self.pending.is_none() {
             let node = self.owner.node();
@@ -126,6 +127,7 @@ fn failed(error: ClockCallRefusal) -> HostCallOutcome {
 fn complete<
     D: StepBack<P>,
     L: SignSink,
+    V: ValueStorage,
     const N: usize,
     const C: usize,
     const P: usize,
@@ -134,7 +136,7 @@ fn complete<
     const H: usize,
     const K: usize,
 >(
-    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>,
     request: HostCallRequest,
     mut outcome: HostCallOutcome,
 ) -> Result<Dispatch, SchedulerError> {
