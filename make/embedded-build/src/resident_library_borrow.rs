@@ -24,19 +24,16 @@ pub fn prepare_selected_profiles_array(&mut self,mut selected:[Option<ResidentAs
 #[inline(always)]
 pub fn prepare_selected_profiles_by<'s>(&mut self,mut selected:impl FnMut(usize)->Result<Option<ResidentAssignment<'s>>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>)->Result<PreparedResidentLoans<'_>,conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal>{{
 "#));
+    code.push_str(&format!("let mut nodes=[None;{entries}];\nfor (index,node) in nodes.iter_mut().enumerate(){{\nif let Some(selection)=selected(index)?{{\n*node=Some(match index{{\n"));
     for index in 0..entries {
         code.push_str(&format!(r#"
-let node_{index}=selected({index})?.map(|selection|{{
+{index}=>{{
 let owner=self.entry_{index}.as_ref().ok_or(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)?;
 match selection{{ResidentAssignment::Local(plan)=>owner.check_assigned(plan),ResidentAssignment::LineFore(plan)=>owner.check_assigned_with_line_fore(plan)}}
-}}).transpose()?;
+}},
 "#));
     }
-    code.push_str("Ok(PreparedResidentLoans{owner:self,nodes:[");
-    for index in 0..entries {
-        code.push_str(&format!("node_{index},"));
-    }
-    code.push_str("]})}\n");
+    code.push_str("_=>unreachable!(\"bounded resident entry index\"),} ?);\n}\n}\nOk(PreparedResidentLoans{owner:self,nodes})}\n");
     code.push_str(&format!("/// Check the entire selection before lending any backing.\npub fn borrow_selected(&mut self,selected:[Option<conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'_>>;{entries}])->Result<(\n"));
     for index in 0..entries {
         code.push_str(&format!("Option<(u16,entry_{index}::BorrowedBack<'_>)>,\n"));
