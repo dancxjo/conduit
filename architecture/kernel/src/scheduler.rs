@@ -34,6 +34,8 @@ mod derived_value;
 mod execution_dag;
 mod execution_region;
 mod generated_value;
+#[cfg(feature = "schema-value-storage")]
+mod schema_region;
 #[cfg(feature = "alloc")]
 use compact_f32::CompactF32Bindings;
 #[cfg(feature = "alloc")]
@@ -372,6 +374,15 @@ pub trait StepBack<const PORTS: usize> {
         None
     }
 
+    /// Exact prepared schemas for the optional schema-separated representation.
+    /// These physical declarations confer no semantic or execution authority.
+    fn canonical_input_schema(&self, _port: PortId) -> Option<&[u8]> {
+        None
+    }
+    fn canonical_output_schema(&self, _port: PortId) -> Option<&[u8]> {
+        None
+    }
+
     /// Finalize private state only after successful transactional I/O commit.
     fn step_committed(&mut self) {}
     fn step(
@@ -436,12 +447,22 @@ pub struct StepInputBytes<'a, const PORTS: usize> {
     native_u64: Option<&'a [Option<u64>; PORTS]>,
     #[cfg(feature = "alloc")]
     compact_f32: Option<&'a [Option<&'a [u8]>; PORTS]>,
+    #[cfg(feature = "schema-value-storage")]
+    canonical_parts: Option<&'a [Option<crate::CanonicalValueParts<'a>>; PORTS]>,
     host_output: Option<&'a [u8]>,
 }
 
 impl<const PORTS: usize> StepInputBytes<'_, PORTS> {
     pub fn input(&self, port: PortId) -> Option<&[u8]> {
         self.inputs.get(usize::from(port.0)).copied().flatten()
+    }
+
+    #[cfg(feature = "schema-value-storage")]
+    pub fn canonical_parts(&self, port: PortId) -> Option<crate::CanonicalValueParts<'_>> {
+        self.canonical_parts
+            .and_then(|values| values.get(usize::from(port.0)))
+            .copied()
+            .flatten()
     }
 
     pub fn host_output(&self) -> Option<&[u8]> {
@@ -462,6 +483,8 @@ impl<'a, const PORTS: usize> StepInputBytes<'a, PORTS> {
             native_u64: None,
             #[cfg(feature = "alloc")]
             compact_f32: None,
+            #[cfg(feature = "schema-value-storage")]
+            canonical_parts: None,
             host_output,
         }
     }
@@ -475,6 +498,8 @@ impl StepInputBytes<'static, 1> {
             native_u64: None,
             #[cfg(feature = "alloc")]
             compact_f32: None,
+            #[cfg(feature = "schema-value-storage")]
+            canonical_parts: None,
             host_output: None,
         }
     }
@@ -1356,6 +1381,10 @@ where
         if self.native_output_ports.iter().any(Option::is_some) || self.has_compact_f32_outputs() {
             return Err(DebugObservationRefusal::UnsupportedPhysicalProfile);
         }
+        #[cfg(feature = "schema-value-storage")]
+        if schema_region::has_schema_profile::<PORTS, _>(&self.drivers[..self.active_nodes]) {
+            return Err(DebugObservationRefusal::UnsupportedPhysicalProfile);
+        }
         self.signs.attach_debug_observer(history)
     }
 
@@ -1381,6 +1410,10 @@ where
         }
         #[cfg(feature = "alloc")]
         if self.native_output_ports.iter().any(Option::is_some) || self.has_compact_f32_outputs() {
+            return Err(DebugControlRefusal::UnsupportedPhysicalProfile);
+        }
+        #[cfg(feature = "schema-value-storage")]
+        if schema_region::has_schema_profile::<PORTS, _>(&self.drivers[..self.active_nodes]) {
             return Err(DebugControlRefusal::UnsupportedPhysicalProfile);
         }
         self.debug_control.arm(breakpoint, node)
@@ -2856,6 +2889,7 @@ where
                 value,
                 self.native_input_ports[node] == Some(PortId(as_u16(port)?))
                     || self.has_compact_f32_input(node, port),
+                self.drivers[node].canonical_input_schema(PortId(as_u16(port)?)),
             )?;
             #[cfg(not(feature = "alloc"))]
             let observed = Some(self.values.get(value)?);
@@ -3066,6 +3100,7 @@ where
                         || self
                             .compact_f32_output_binding(node)
                             .is_some_and(|(p, _)| usize::from(p.0) == port),
+                    self.drivers[node].canonical_output_schema(PortId(as_u16(port)?)),
                 )?;
                 #[cfg(not(feature = "alloc"))]
                 let observed = Some(self.values.get(value)?);
@@ -3193,7 +3228,18 @@ where
                     && self.values.compact_f32(value)?.is_some());
             #[cfg(not(feature = "alloc"))]
             let native = false;
-            if !native {
+            #[cfg(feature = "schema-value-storage")]
+            let separated = schema_region::checked_parts(
+                &self.values,
+                value,
+                self.drivers[node].canonical_output_schema(PortId(as_u16(port)?)),
+            )?;
+            #[cfg(not(feature = "schema-value-storage"))]
+            let separated: Option<crate::CanonicalValueParts<'_>> = None;
+            if separated.is_some() && self.signs.requires_canonical_debug_values() {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            if !native && separated.is_none() {
                 self.values.get(value)?;
             }
             for target in self
@@ -3208,6 +3254,21 @@ where
                     .ok_or(SchedulerError::InvalidPlan)?;
                 if spec.track != AssignedConnectionTrack::Payload {
                     continue;
+                }
+                #[cfg(feature = "schema-value-storage")]
+                if let Some(parts) = separated {
+                    let CordEndpoint::Local {
+                        node: receiver,
+                        port: input,
+                    } = target.sink
+                    else {
+                        return Err(SchedulerError::InvalidPlan);
+                    };
+                    if self.drivers[usize::from(receiver.0)].canonical_input_schema(input)
+                        != Some(parts.schema)
+                    {
+                        return Err(SchedulerError::InvalidPlan);
+                    }
                 }
                 self.preflight_payload_output(*spec, state, value.byte_len)?;
             }

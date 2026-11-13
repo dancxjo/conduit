@@ -48,6 +48,15 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &["test", "-p", "conduit-kernel", "--features", "alloc"],
     ),
     Step::new(
+        "check.schema-value-storage",
+        "Schema-separated storage and exact local scheduler conformance",
+        "cargo",
+        &[
+            "test", "-p", "conduit-kernel", "-p", "conduit-plan-lowering",
+            "--features", "conduit-plan-lowering/schema-value-storage",
+        ],
+    ),
+    Step::new(
         "check.system-continuity",
         "Durable system continuity conformance",
         "cargo",
