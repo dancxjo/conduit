@@ -133,7 +133,8 @@ impl Bounds {
                 counts: [u8::MAX; c::ASSIGNED_PLAN_COUNT_KINDS],
             },
             maximum_fore_ports: usize::try_from(limits.operation_slots)
-                .map_err(|_| "operation ceiling exceeds Host tooling")?,
+                .map_err(|_| "operation ceiling exceeds Host tooling")?
+                .min(e::MAXIMUM_LOCAL_FORE_PORTS),
             maximum_offer_image_bytes: 24 * 1024,
         })
     }

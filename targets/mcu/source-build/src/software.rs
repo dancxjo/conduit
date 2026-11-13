@@ -196,26 +196,32 @@ pub fn compile_with_types(
         } else {
             let implementation = implementation_identity(&kind.kind_id, &gear.configuration)?;
             let artifact: c::ArtifactId = ARTIFACT.into();
-            let queue_bytes = if matches!(&role, SoftwareRole::Composite(_)) {
-                kind.semantic_contract()
-                    .value_contracts()
-                    .iter()
-                    .map(|v| v.contract.maximum_bytes)
-                    .max()
-                    .ok_or("composite value envelopes absent")?
-            } else {
-                4096
-            };
             let mut kind = kind;
+            // Composite owners retain the independently constructed finite
+            // storage shape (seed/current, pending sides and staged output).
+            // A single-slot placeholder cannot realize their checked State law.
+            let (queue_items, queue_bytes) = if matches!(&role, SoftwareRole::Composite(_)) {
+                (kind.limits.max_queue_items, kind.limits.max_queue_bytes)
+            } else {
+                (1, 4096)
+            };
             kind.limits = c::CapabilityLimits {
                 max_active_instances: 1,
-                max_queue_items: 1,
+                max_queue_items: queue_items,
                 max_queue_bytes: queue_bytes,
             };
             let offer = c::BackOfferBuilder::new(
                 kind,
                 c::Back {
-                    capability_id: implementation.as_str().into(),
+                    // Equal code/configuration does not make two mutable Gear
+                    // owners interchangeable. Preserve one finite owner per
+                    // checked Source instance without enlarging its grant.
+                    capability_id: format!(
+                        "{}/instance/{:x}",
+                        implementation.as_str(),
+                        Sha256::digest(gear.gear_id.as_str().as_bytes())
+                    )
+                    .into(),
                     execution_profile_id: PROFILE.into(),
                     implementation_id: implementation.clone(),
                     artifact_id: artifact.clone(),

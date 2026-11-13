@@ -2,6 +2,9 @@
 use crate::*;
 use conduit_core as c;
 use conduit_plan_lowering::lowering::{lower_plan_fragment_from_plan, LoweredForePort};
+/// Maximum immutable Fore inventory supported by this local profile.
+pub const MAXIMUM_LOCAL_FORE_PORTS: usize = 16;
+
 /// The typed lowering remains available to the caller for value admission.
 /// Neither numeric tables nor ABI pins grant a Fore caller possession.
 pub struct GeneratedForePlan {
@@ -91,11 +94,11 @@ pub(crate) fn prepare_fore(
             UnsupportedPlanFeature::LocalFore,
         ));
     }
-    if maximum_fore_ports > 16 {
+    if maximum_fore_ports > MAXIMUM_LOCAL_FORE_PORTS {
         return Err(GenerationError::BoundExceeded {
             table: "local Fore profile capacity",
             actual: maximum_fore_ports as u64,
-            maximum: 16,
+            maximum: MAXIMUM_LOCAL_FORE_PORTS as u64,
         });
     }
     if lowered.fore_ports.len() > maximum_fore_ports {
@@ -121,11 +124,11 @@ pub fn assigned_fore_inventory(
     if !c::verify_plan(plan) {
         return Err(GenerationError::InvalidFragment);
     }
-    if maximum_fore_ports > 16 {
+    if maximum_fore_ports > MAXIMUM_LOCAL_FORE_PORTS {
         return Err(GenerationError::BoundExceeded {
             table: "local Fore profile capacity",
             actual: maximum_fore_ports as u64,
-            maximum: 16,
+            maximum: MAXIMUM_LOCAL_FORE_PORTS as u64,
         });
     }
     let (lowered, _) = lower_plan_fragment_from_plan(plan, fragment)

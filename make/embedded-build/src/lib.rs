@@ -46,7 +46,9 @@ mod fore;
 mod line_fore;
 pub use line_fore::{generate_line_fore_native_plan, GeneratedLineForePlan, SelectedForeSession};
 mod generate;
-pub use fore::{assigned_fore_inventory, generate_fore_native_plan, GeneratedForePlan};
+pub use fore::{
+    assigned_fore_inventory, generate_fore_native_plan, GeneratedForePlan, MAXIMUM_LOCAL_FORE_PORTS,
+};
 mod model;
 mod render;
 mod validate;

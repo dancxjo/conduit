@@ -9,6 +9,8 @@ use std::{collections::BTreeMap, fmt::Write, path::Path};
 
 #[path = "template_continuation_manifest.rs"]
 mod continuation_manifest;
+#[path = "template_resident_selection.rs"]
+mod resident_selection;
 #[path = "template_seal_emission.rs"]
 mod seal_emission;
 
@@ -73,13 +75,17 @@ pub fn compile(workset: &workset::Workset, input: Inputs<'_>) -> Result<Calibrat
         );
     }
     let mut entries = Vec::new();
+    let mut resident_owners = std::collections::BTreeSet::new();
     for (source, limits) in workset.entries.iter().zip(input.entries) {
         if source.name != limits.entry {
             return Err("calibration entry order differs from exact checked workset".into());
         }
-        let placements =
-            p::default_expanded_placements(&source.plot.expanded, std::slice::from_ref(input.host))
-                .map_err(debug)?;
+        let placements = resident_selection::select(
+            &source.plot.expanded,
+            input.host,
+            input.resident,
+            &mut resident_owners,
+        )?;
         let mut other = Vec::new();
         for placement in placements.by_gear.values() {
             let offer = input

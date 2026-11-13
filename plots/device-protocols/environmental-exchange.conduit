@@ -67,7 +67,7 @@ plot environmental-exchange (
     initialized: Ht16k33Acknowledgement...| >>
     initialization_refused: Ht16k33Failure...| >>
     written: Ht16k33Acknowledgement...| >>
-    write_refused: Ht16k33Failure...| <= 4096B >>
+    write_refused: Ht16k33Failure...| >>
     unrouted: I2cCorrelatedResult...| >>
 ) {
     sensor: sensor-protocol

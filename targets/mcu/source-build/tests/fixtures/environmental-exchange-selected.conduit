@@ -154,7 +154,7 @@ plot shared-environment (
  initialized: Ht16k33Acknowledgement...| >>
  initialization_refused: Ht16k33Failure...| >>
  written: Ht16k33Acknowledgement...| >>
- write_refused: Ht16k33Failure...| <= 4096B >>
+ write_refused: Ht16k33Failure...| >>
  unrouted: I2cCorrelatedResult...| >>
 ) {
  instrument: environmental-exchange(sensor-protocol = chosen-sensor, initialization-protocol = chosen-initialization, write-protocol = chosen-write, correlated-bus = chosen-bus, request-merge = chosen-requests)
