@@ -53,6 +53,8 @@ pub fn encode_assigned_native_plan(
 
 /// Project only code-backed selections through explicit resident bindings.
 /// These fingerprints do not initialize Backs or create execution authority.
+/// Descriptive Sign names remain in the complete sealed Plan; this execution
+/// projection preserves its identity and unchanged evidence-storage budget.
 pub fn encode_assigned_resident_native_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
@@ -277,7 +279,13 @@ fn encode(
         });
         record(ASSIGNED_RESOURCE_CORD, value)?;
     }
-    for sign in &plan.signs {
+    // Resident projections carry exact executable/configuration pins. Sign
+    // names remain in the full sealed Plan on the authoring Host; the kernel
+    // does not load these descriptive records (assigned::layout skips them).
+    // Keep runtime_state_bytes(plan), sign_items and sign_bytes unchanged: all
+    // original event generation and finite evidence storage remain mandatory.
+    // The explicit literal projection continues to carry the complete catalog.
+    for sign in plan.signs.iter().filter(|_| !pin_selectors) {
         let mut value = Vec::new();
         u16_to(&mut value, sign.expectation);
         identity_to(&mut value, sign.kind);

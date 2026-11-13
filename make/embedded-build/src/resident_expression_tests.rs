@@ -567,3 +567,6 @@ fn native_binding_metadata_requires_exact_plain_resources_and_authority_scope() 
         &placement, &offer
     ));
 }
+
+#[path = "resident_sign_projection_tests.rs"]
+mod sign_projection;
