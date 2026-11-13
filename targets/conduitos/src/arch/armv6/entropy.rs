@@ -1,7 +1,7 @@
 //! Finite BCM2835 hardware RNG source for Root capability material.
 use super::{read_counter, read32, write32};
 use crate::cryptographic_entropy::{CryptographicEntropySource, EntropyProvider, EntropyRefusal};
-const BASE: usize = 0x2010_4000;
+const BASE: usize = super::PERIPHERAL_BASE + 0x10_4000;
 pub struct HardwareEntropy;
 impl HardwareEntropy {
     /// Read control/readiness only. Random output words never enter diagnostics.

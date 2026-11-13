@@ -1,0 +1,17 @@
+# The same descriptor interpreters run as finite, reusable Source stages.
+# Their explicit typed cords let the containing machine retain the fixed native
+# operation profile; no byte or class interpretation moves into that machine.
+plot usb-configuration-decode-input (
+    input: UsbConfigurationTransfer...| <= 4096B >> output: UsbConfigurationTransfer...| <= 4096B
+) = (.)
+plot usb-configuration-decode-output (
+    input: UsbConfigurationTopologyResult...| <= 4096B >> output: UsbConfigurationTopologyResult...| <= 4096B
+) = (.)
+plot usb-configuration-decode (
+    >> input: UsbConfigurationTransfer...| <= 4096B
+    result: UsbConfigurationTopologyResult...| <= 4096B >>
+) {
+    walk: usb-configuration-walk
+    input >> usb-configuration-decode-input() >> walk.input
+    walk.result >> usb-configuration-decode-output() >> result
+}

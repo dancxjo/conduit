@@ -3,12 +3,20 @@ use conduitos::{
     arch, cryptographic_entropy::CryptographicEntropyBase, firmware_face::FirmwareFace,
     identity::BootIdentities, make::EMBEDDED_MAKE, offer::HostOffer,
 };
+#[cfg(feature = "native-startup-chime")]
+mod startup;
 pub(super) fn prepare_graphics(
     ids: &BootIdentities,
     offer: &HostOffer<'_>,
+    initial: Option<arch::FirmwareScanout>,
 ) -> Option<FirmwareFace<arch::FirmwareScanout>> {
     let result = (|| {
-        let display = arch::FirmwareScanout::prepare()?;
+        let mut display = match initial {
+            Some(display) => display.refresh_preferred_mode()?,
+            None => arch::FirmwareScanout::prepare()?,
+        };
+        conduitos::display::boot_canvas::prefill(&mut display).map_err(|e| e.as_str())?;
+        arch::present(b"CONDUIT_BOOT_STAGE final-canvas-periwinkle\n");
         let (physical, bytes) = display.physical_range();
         let (firmware, preferred) = display.mode_observation();
         let (clock, timing_set) = display.timing_set_observation();
@@ -72,6 +80,140 @@ pub(super) fn prepare_graphics(
             arch::present(reason.as_bytes());
             arch::present(b"\n");
             None
+        }
+    }
+}
+
+/// The product Root retains native input custody through all refusal paths.
+/// Root commits an initialized boot canvas before USB power can light a panel.
+/// EDID and the final mode are negotiated after USB power; the ordinary shared
+/// Mask is admitted before pointer delivery starts.
+pub(super) fn run_product(ids: &BootIdentities, offer: &HostOffer<'_>) -> ! {
+    use conduitos::raspberry_pi_usb_input::RaspberryPiUsbInput;
+    use core::fmt::Write;
+    let mut initial = if EMBEDDED_MAKE.includes(conduitos::make::IMPL_NATIVE_PRESENTER) {
+        match (|| {
+            let mut display = arch::FirmwareScanout::prepare_initial()?;
+            conduitos::display::boot_canvas::prefill(&mut display).map_err(|e| e.as_str())?;
+            arch::present(b"CONDUIT_BOOT_STAGE boot-canvas-periwinkle-before-usb\n");
+            Ok::<_, &'static str>(display)
+        })() {
+            Ok(display) => Some(display),
+            Err(reason) => {
+                arch::present(b"CONDUIT_BOOT_CANVAS_UNAVAILABLE ");
+                arch::present(reason.as_bytes());
+                arch::present(b"\n");
+                None
+            }
+        }
+    } else {
+        None
+    };
+    arch::present(b"CONDUIT_BOOT_STAGE usb-after-initial-canvas\n");
+    let mut input = match RaspberryPiUsbInput::prepare(ids) {
+        Ok(input) => Some(input),
+        Err(reason) => {
+            arch::present(b"CONDUIT_USB_INPUT_UNAVAILABLE ");
+            arch::present(reason.as_bytes());
+            arch::present(b"\n");
+            None
+        }
+    };
+    #[cfg(feature = "native-startup-chime")]
+    let mut _audio = None;
+    let mut graphic = None;
+    let mut graphics_prepared = false;
+    let mut started = false;
+    let mut refused = false;
+    loop {
+        if !graphics_prepared && (refused || input.as_ref().is_none_or(RaspberryPiUsbInput::ready))
+        {
+            #[cfg(feature = "native-startup-chime")]
+            {
+                _audio = startup::play(ids, offer);
+            }
+            graphic = prepare_graphics(ids, offer, initial.take());
+            graphics_prepared = true;
+            arch::present(if cfg!(feature = "aarch64-rpi-3b-plus") {
+                b"CONDUIT_BOOT_STAGE rpi3-product-ready\n"
+            } else {
+                b"CONDUIT_BOOT_STAGE armv6-product-ready\n"
+            });
+        }
+        if !refused {
+            if let Some(input) = input.as_mut() {
+                let outcome = (|| {
+                    if input.ready() && !started {
+                        if let Some(graphic) = graphic.as_mut() {
+                            // SAFETY: the actual selected endpoint owner is
+                            // retained above, and loss retires delivery below.
+                            if input.pointer_ready() {
+                                unsafe { graphic.admit_pointer() }?;
+                            }
+                            if input.keyboard_ready() {
+                                unsafe { graphic.admit_keyboard() }?;
+                            }
+                        }
+                        input.start_input()?;
+                        started = true;
+                    }
+                    if let Some(sample) = input.step()? {
+                        if let Some(graphic) = graphic.as_mut() {
+                            graphic.observe_pointer(sample)?;
+                        }
+                        let mut text = conduitos::sign_format::FixedText::new();
+                        let _ = writeln!(
+                            &mut text,
+                            "CONDUIT_POINTER_SAMPLE sequence={} x={} y={} primary={} coalesced={} dropped={}",
+                            sample.sequence,
+                            sample.position_x,
+                            sample.position_y,
+                            sample.primary_pressed,
+                            sample.coalesced,
+                            sample.dropped
+                        );
+                        arch::present(text.as_bytes());
+                    }
+                    if !input.keyboard_ready() {
+                        if let Some(graphic) = graphic.as_mut() {
+                            graphic.retire_keyboard()?;
+                        }
+                    }
+                    if let Some(event) = input.take_key() {
+                        if let Some(graphic) = graphic.as_mut() {
+                            graphic.observe_key(event)?;
+                        }
+                        let mut text = conduitos::sign_format::FixedText::new();
+                        let _ = writeln!(
+                            &mut text,
+                            "CONDUIT_KEYBOARD_EVENT usage={} transition={:?}",
+                            event.usage(),
+                            event.transition()
+                        );
+                        arch::present(text.as_bytes());
+                    }
+                    Ok::<_, &'static str>(())
+                })();
+                if let Err(reason) = outcome {
+                    refused = true;
+                    if let Some(graphic) = graphic.as_mut() {
+                        let _ = graphic.retire_keyboard();
+                        let _ = graphic.retire_pointer();
+                    }
+                    arch::present(b"CONDUIT_POINTER_UNAVAILABLE ");
+                    arch::present(reason.as_bytes());
+                    arch::present(b"\n");
+                }
+            }
+        }
+        if refused || input.as_ref().is_none_or(RaspberryPiUsbInput::needs_tick) {
+            // The native Root owns this one-shot machine wake path. Protocol
+            // waits themselves complete only through the admitted clock Play.
+            arch::timer_arm();
+            arch::enable_interrupts();
+            arch::interruptible_idle();
+            arch::disable_interrupts();
+            while arch::pop_interrupt().is_some() {}
         }
     }
 }

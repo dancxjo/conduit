@@ -285,3 +285,30 @@ fn class_recognition_is_specific_and_does_not_publish_offers() {
         );
     }
 }
+
+#[path = "usb_protocol_plots/hub_port_power.rs"]
+mod hub_port_power;
+
+#[path = "../src/arch/dwc2/mod.rs"]
+mod dwc2;
+
+#[path = "usb_protocol_plots/hub_port_status.rs"]
+mod hub_port_status;
+
+#[path = "usb_protocol_plots/hub_port_reset.rs"]
+mod hub_port_reset;
+
+#[path = "usb_protocol_plots/hid_absolute_layout.rs"]
+mod hid_absolute_layout;
+
+#[path = "usb_protocol_plots/enumeration.rs"]
+mod enumeration;
+
+#[path = "usb_protocol_plots/hid_input_profile.rs"]
+mod hid_input_profile;
+
+#[path = "usb_protocol_plots/hub_input_lifecycle.rs"]
+mod hub_input_lifecycle;
+
+#[path = "usb_protocol_plots/pure_filter.rs"]
+mod pure_filter;

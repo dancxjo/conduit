@@ -272,6 +272,11 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         {
             return Err(ProtocolCallRefusal::Unsupported);
         }
+        validate_fore(&definition)
+            .map_err(|error| preparation_diagnostic::observe("fore", error))?;
+        operations
+            .validate_plan(&definition.internal_plan)
+            .map_err(|error| preparation_diagnostic::invalid(error.family, error.reason))?;
         let crate::protocol_operations::ProtocolOperations {
             singletons,
             joins: zip,
@@ -279,25 +284,12 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
             merges,
             concats,
         } = operations;
-        validate_fore(&definition)
-            .map_err(|error| preparation_diagnostic::observe("fore", error))?;
-        zip.validate_plan(&definition.internal_plan)
-            .map_err(|error| preparation_diagnostic::invalid("zip", error))?;
-        states
-            .validate_plan(&definition.internal_plan)
-            .map_err(|error| preparation_diagnostic::invalid("states", error))?;
-        concats
-            .validate_plan(&definition.internal_plan)
-            .map_err(|error| preparation_diagnostic::invalid("concats", error))?;
-        merges
-            .validate_plan(&definition.internal_plan)
-            .map_err(|error| preparation_diagnostic::invalid("merges", error))?;
         let calls = prepare_calls(&definition.internal_plan, &zip, &states)
             .map_err(|error| preparation_diagnostic::observe("calls", error))?;
-        singletons
-            .validate_plan(&definition.internal_plan)
-            .map_err(|error| preparation_diagnostic::invalid("singletons", error))?;
         let mut registry = KernelOperationRegistry::new();
+        registry
+            .install(crate::filter_host_call::FilterOperationFactory::default())
+            .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
         registry
             .install(singletons)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;

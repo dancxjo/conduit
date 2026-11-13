@@ -1,0 +1,84 @@
+//! BCM2835 ownership, power and ordered MMIO adapter for class-neutral DWC2.
+//! Hub/device/HID exchanges belong to the shared reviewed protocol plots.
+use super::{mailbox, read_counter, read32, write32};
+use crate::arch::dwc2::{Controller, ControllerFacts, RegisterIo};
+use core::sync::atomic::{AtomicBool, Ordering};
+const USB_BASE: usize = super::PERIPHERAL_BASE + 0x98_0000;
+static OWNED: AtomicBool = AtomicBool::new(false);
+#[repr(C, align(64))]
+struct PowerMessage([u32; 8]);
+pub(crate) struct Registers {
+    _owned: (),
+}
+impl RegisterIo for Registers {
+    fn read(&mut self, offset: usize) -> u32 {
+        debug_assert!((offset <= 0xe00 || offset == 0x1000) && offset & 3 == 0);
+        unsafe { read32(USB_BASE + offset) }
+    }
+    fn write(&mut self, offset: usize, value: u32) {
+        debug_assert!((offset <= 0xe00 || offset == 0x1000) && offset & 3 == 0);
+        unsafe { write32(USB_BASE + offset, value) };
+    }
+    fn packet_failure(&mut self, failure: crate::arch::dwc2::PacketFailure) {
+        use core::fmt::Write;
+        let mut text = crate::sign_format::FixedText::new();
+        let _ = writeln!(
+            text,
+            "CONDUIT_USB_PACKET_FAILURE us={} {failure:x?}",
+            read_counter()
+        );
+        super::present(text.as_bytes());
+    }
+    fn control_observation(
+        &mut self,
+        route: crate::arch::dwc2::EndpointRoute,
+        setup: [u8; 8],
+        outcome: Result<usize, crate::arch::dwc2::PacketError>,
+        input: &[u8],
+    ) {
+        use core::fmt::Write;
+        let mut text = crate::sign_format::FixedText::new();
+        let _ = writeln!(
+            text,
+            "CONDUIT_USB_CONTROL us={} address={} packet={} translator={:?} setup={setup:02x?} outcome={outcome:?} input={input:02x?}",
+            read_counter(),
+            route.address,
+            route.maximum_packet,
+            route.translator
+        );
+        super::present(text.as_bytes());
+    }
+    fn now_us(&mut self) -> u32 {
+        read_counter() as u32
+    }
+}
+/// Root retains sole register ownership. This type supplies no USB attachment,
+/// endpoint claim or input provider merely because preparation succeeds.
+pub struct UsbHost {
+    controller: Controller<Registers>,
+    facts: ControllerFacts,
+}
+impl UsbHost {
+    pub fn prepare() -> Result<Self, &'static str> {
+        if OWNED.swap(true, Ordering::AcqRel) {
+            return Err("bcm2835-usb-already-owned");
+        }
+        let mut power = PowerMessage([32, 0, 0x28001, 8, 8, 3, 3, 0]);
+        mailbox::call(&mut power.0)?;
+        if power.0[4] != 0x8000_0008 || power.0[5] != 3 || power.0[6] & 3 != 1 {
+            return Err("bcm2835-usb-power-refused");
+        }
+        super::release_usb_hub()?;
+        let mut controller = Controller::new(Registers { _owned: () });
+        let facts = controller.prepare().map_err(|error| error.as_str())?;
+        Ok(Self { controller, facts })
+    }
+    /// Move the sole prepared register owner into a separately admitted call
+    /// owner. Constructing a route or inspecting facts cannot duplicate it.
+    pub(crate) fn into_controller(self) -> Controller<Registers> {
+        self.controller
+    }
+    pub fn facts(&self) -> ControllerFacts {
+        self.facts
+    }
+}

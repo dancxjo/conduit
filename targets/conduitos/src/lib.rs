@@ -52,6 +52,7 @@ mod execution_region;
 pub mod expression_host_call;
 #[path = "face_nucleus/offers.rs"]
 mod face_offers;
+pub mod filter_host_call;
 pub mod flow_concat_finite;
 pub mod flow_merge_finite;
 pub mod flow_singleton;
@@ -68,6 +69,7 @@ pub mod flow_zip;
 ))]
 pub mod front_door;
 pub mod functional_offers;
+pub mod hid_key_transition;
 #[cfg(target_arch = "x86_64")]
 pub mod hotplug_guest;
 #[cfg(any(test, feature = "native-http-client"))]
@@ -77,6 +79,7 @@ pub mod identity;
 #[cfg(test)]
 pub mod kernel_profile;
 pub mod keyboard_bridge;
+pub mod keyboard_ingress;
 #[cfg(target_arch = "x86_64")]
 pub mod keyboard_input;
 pub mod keyboard_offer;
@@ -216,7 +219,6 @@ mod pure_protocol_owner;
 pub mod pure_protocol_play;
 pub mod serial_base;
 pub mod service_memory;
-#[cfg(target_arch = "x86_64")]
 pub mod source_keyboard_batch;
 pub mod source_pointer_sample;
 
@@ -320,8 +322,20 @@ mod native_surface_possession;
     feature = "armv6-product"
 ))]
 mod native_surface_provider;
-#[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
+#[cfg(any(
+    test,
+    all(target_arch = "x86_64", feature = "native-compositor"),
+    feature = "native-compositor-core",
+    feature = "armv6-product"
+))]
 mod pointer_coordinates;
+#[cfg(any(
+    test,
+    all(target_arch = "x86_64", feature = "native-compositor"),
+    feature = "native-compositor-core",
+    feature = "armv6-product"
+))]
+mod pointer_state;
 #[cfg(any(
     test,
     target_arch = "x86_64",
@@ -469,6 +483,20 @@ pub mod compositor_semantic_recovery_proof;
         feature = "armv6-product"
     )
 ))]
+mod creche_arrival;
+#[cfg(all(
+    feature = "native-compositor-core",
+    any(
+        test,
+        target_arch = "x86_64",
+        feature = "ia32-product",
+        feature = "aarch64-product",
+        feature = "riscv64-product",
+        feature = "loongarch64-product",
+        feature = "aarch64-board",
+        feature = "armv6-product"
+    )
+))]
 pub mod firmware_face;
 #[cfg(any(test, feature = "native-compositor-core", feature = "hosted-tools"))]
 pub mod firmware_face_evidence;
@@ -482,3 +510,10 @@ mod service_zero_storage_tests;
 #[cfg(test)]
 #[path = "arch/armv6/framebuffer_response.rs"]
 mod bcm2835_framebuffer_response_tests;
+
+#[cfg(any(
+    all(target_arch = "arm", feature = "armv6-product"),
+    all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+))]
+#[path = "armv6_usb_input.rs"]
+pub mod raspberry_pi_usb_input;

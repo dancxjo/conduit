@@ -1,9 +1,19 @@
 //! Validate firmware observations before granting any framebuffer write access.
 use crate::display::DisplayFormat;
+#[cfg(test)]
 pub(crate) fn validate(
     w: &[u32; 40],
     width: u32,
     height: u32,
+) -> Result<(u32, u32, DisplayFormat), &'static str> {
+    validate_in_window(w, width, height, 0x1c00_0000, 0x2000_0000)
+}
+pub(crate) fn validate_in_window(
+    w: &[u32; 40],
+    width: u32,
+    height: u32,
+    scanout_start: u32,
+    scanout_end: u32,
 ) -> Result<(u32, u32, DisplayFormat), &'static str> {
     for (index, bytes) in [
         (2, 8),
@@ -40,10 +50,11 @@ pub(crate) fn validate(
         || physical & 4095 != 0
         || bytes == 0
         || bytes > (8 * 1024 * 1024)
+        || physical < scanout_start // Must remain inside the CPU adapter's uncached window.
         || physical < gpu_start
         || physical
             .checked_add(bytes)
-            .is_none_or(|end| end > gpu_end || end > 0x2000_0000)
+            .is_none_or(|end| end > gpu_end || end > scanout_end)
     {
         return Err("bcm2835-framebuffer-reservation-invalid");
     }
@@ -109,6 +120,21 @@ mod tests {
         let (_, _, format) = validate(&w, 1024, 600).unwrap();
         assert_eq!((format.width, format.height), (1024, 600));
         assert!(validate(&w, 800, 600).is_err());
+    }
+    #[test]
+    fn three_b_plus_scanout_must_match_both_firmware_and_cpu_mapping() {
+        let mut w = response();
+        w[28] = 0xfc00_0000; // GPU bus alias of physical 0x3c000000.
+        w[37] = 0x3c00_0000;
+        assert!(validate(&w, 800, 600).is_err());
+        let (physical, _, _) = validate_in_window(&w, 800, 600, 0x3000_0000, 0x3f00_0000).unwrap();
+        assert_eq!(physical, 0x3c00_0000);
+        // A firmware claim cannot grant writes into Device MMIO or cached RAM.
+        for address in [0x2f00_0000, 0x3eff_f000, 0x3f00_0000] {
+            w[28] = address;
+            w[37] = address;
+            assert!(validate_in_window(&w, 800, 600, 0x3000_0000, 0x3f00_0000).is_err());
+        }
     }
     #[test]
     fn malformed_response_cannot_grant_ram_or_invalid_pixel_access() {

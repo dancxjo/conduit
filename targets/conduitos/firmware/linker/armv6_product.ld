@@ -22,6 +22,7 @@ SECTIONS
         *(.bss.runtime_arena)
         *(.bss .bss.*)
         *(COMMON)
+        . = ALIGN(16);
         __bss_end = .;
     }
     /DISCARD/ :
@@ -32,3 +33,6 @@ SECTIONS
         *(.eh_frame*)
     }
 }
+
+ASSERT(__bss_end <= 0x1c000000, "product image and arena exceed cached ARM RAM")
+ASSERT((__bss_start & 7) == 0 && (__bss_end & 7) == 0, "boot BSS must be word aligned")

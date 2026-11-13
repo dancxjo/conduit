@@ -52,8 +52,7 @@ pub fn generate() {
         "aarch64" => {
             target_os == "none"
                 && env::var_os("CARGO_FEATURE_AARCH64_PRODUCT").is_some()
-                && env::var_os("CARGO_FEATURE_AARCH64_ORANGE_PI_5").is_none()
-                && env::var_os("CARGO_FEATURE_AARCH64_JETSON_NANO").is_none()
+                && env::var_os("CARGO_FEATURE_AARCH64_BOARD").is_none()
         }
         "riscv64" => target_os == "none" && env::var_os("CARGO_FEATURE_RISCV64_PRODUCT").is_some(),
         "loongarch64" => {
@@ -63,6 +62,9 @@ pub fn generate() {
     };
     if protected {
         println!("cargo:rustc-cfg=conduitos_protected_execution");
+    }
+    if architecture == "aarch64" && env::var_os("CARGO_FEATURE_AARCH64_BOARD").is_some() {
+        return;
     }
     if (target_os != "none" && !(architecture == "x86" && target_os == "linux"))
         || !matches!(

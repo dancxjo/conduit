@@ -33,6 +33,32 @@ Show and PCM completion separately from a person's confirmation of visible
 HDMI output and audible sound. These are local physical checks, not release
 acceptance or GPU acceleration evidence.
 
+## Raspberry Pi 3 Model B+ direct-boot development
+
+The AArch64 port is tracked in [#6859](https://github.com/dancxjo/conduit/issues/6859).
+It adds an exact `conduitos/aarch64/raspberry-pi-3-model-b-plus-rev-1.3`
+Make target alongside the existing Linux hosted target. The product reuses the
+B+ VideoCore display/EDID handling, startup-chime Plot, class-neutral DWC2
+mechanism, shared hub/HID protocol Plots and mouse/Mask input. Board adapters
+supply BCM2837B0 register addresses, GPIO40/41 audio and firmware-expander
+LAN_RUN control. Core 0 owns Root; the other three cores remain parked.
+This does not establish SMP execution or physical device operation.
+
+```sh
+cargo xtask make conduitos rpi3-image --locked
+cargo xtask make conduitos rpi3-flash --device /dev/sda --confirm-device /dev/sda --locked
+```
+
+The first command resolves the ordinary product profile, compiles for
+Cortex-A53, loads at `0x80000`, and packages `kernel8.img` with pinned firmware.
+The image receipt verifies partition geometry and every FAT boot file. FLASH
+uses the shared whole-removable-device guard, refuses mounted partitions and
+verifies written bytes. The image receipt makes no physical boot claim; UART,
+HDMI, audio and touchscreen observations must be collected on the actual 3B+.
+The USB policy admits at most two high-speed hubs with disjoint address ranges;
+unsupported deeper topology is explicit. Sustained input Play renewal remains
+tracked in [#6856](https://github.com/dancxjo/conduit/issues/6856).
+
 ## Raspberry Pi OS native release prerequisites
 
 The reviewed Raspberry Pi OS package is cross-compiled from a Linux development

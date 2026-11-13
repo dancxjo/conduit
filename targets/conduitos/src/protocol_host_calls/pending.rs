@@ -3,8 +3,13 @@
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
+use super::Owner;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
+))]
 use super::PendingUsbKind;
-use super::{I2cProvider, Owner, PreparedProtocolCalls, ProtocolCallRefusal};
+use super::{I2cProvider, PreparedProtocolCalls, ProtocolCallRefusal};
 use conduit_composite::{KernelCompositeHost, KernelCompositeHostRequest};
 
 impl<P: I2cProvider> PreparedProtocolCalls<P> {

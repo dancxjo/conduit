@@ -1,5 +1,6 @@
 //! Finite framebuffer mechanism below portable graphics meaning.
 
+pub mod boot_canvas;
 #[cfg(feature = "native-compositor-core")]
 mod coverage;
 pub mod edid;

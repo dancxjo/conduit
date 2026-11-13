@@ -2,7 +2,7 @@
 
 use core::{
     cell::UnsafeCell,
-    sync::atomic::{AtomicBool, Ordering, compiler_fence},
+    sync::atomic::{AtomicBool, Ordering},
 };
 
 #[cfg(all(feature = "armv6-product", feature = "native-startup-chime"))]
@@ -17,21 +17,21 @@ mod framebuffer;
 mod mailbox;
 mod memory;
 #[cfg(feature = "armv6-product")]
+pub(crate) mod usb;
+#[cfg(feature = "armv6-product")]
 pub use entropy::HardwareEntropy;
 #[cfg(feature = "armv6-product")]
 pub use framebuffer::FirmwareScanout;
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
 
-const GPIO_BASE: usize = 0x2020_0000;
+const PERIPHERAL_BASE: usize = super::raspberry_pi::Board::BPlus.peripheral_base();
+const GPIO_BASE: usize = PERIPHERAL_BASE + 0x20_0000;
+const SCANOUT_START: u32 = 0x1c00_0000;
+const SCANOUT_END: u32 = 0x2000_0000;
 const UART0_BASE: usize = 0x2020_1000;
 const SYSTEM_TIMER_BASE: usize = 0x2000_3000;
 const INTERRUPT_BASE: usize = 0x2000_b000;
-const MAILBOX_BASE: usize = 0x2000_b880;
-const MAILBOX_PROPERTY_CHANNEL: u32 = 8;
-const MAILBOX_EMPTY: u32 = 1 << 30;
-const MAILBOX_FULL: u32 = 1 << 31;
-const MAILBOX_POLL_LIMIT: usize = 1_000_000;
 const SYSTEM_TIMER_COMPARE_1: u32 = 1 << 1;
 const FACT_CAPACITY: usize = 1;
 
@@ -121,38 +121,10 @@ pub fn firmware_board_revision() -> Option<u32> {
     unsafe {
         *message = [28, 0, 0x0001_0002, 4, 0, 0, 0];
     }
-    compiler_fence(Ordering::SeqCst);
-    let address = message as usize;
-    if address >= 0x4000_0000 || address & 0xf != 0 {
-        return None;
-    }
-    for _ in 0..MAILBOX_POLL_LIMIT {
-        if unsafe { read32(MAILBOX_BASE + 0x18) } & MAILBOX_FULL == 0 {
-            unsafe {
-                write32(
-                    MAILBOX_BASE + 0x20,
-                    (address as u32 | 0x4000_0000) | MAILBOX_PROPERTY_CHANNEL,
-                )
-            };
-            for _ in 0..MAILBOX_POLL_LIMIT {
-                if unsafe { read32(MAILBOX_BASE + 0x18) } & MAILBOX_EMPTY != 0 {
-                    continue;
-                }
-                let response = unsafe { read32(MAILBOX_BASE) };
-                if response & 0xf != MAILBOX_PROPERTY_CHANNEL
-                    || response & !0xf != (address as u32 | 0x4000_0000)
-                {
-                    continue;
-                }
-                compiler_fence(Ordering::SeqCst);
-                let words = unsafe { &*message };
-                return (words[1] == 0x8000_0000 && words[4] & 0x8000_0000 != 0)
-                    .then_some(words[5]);
-            }
-            return None;
-        }
-    }
-    None
+    // Use the same bounded, cache-coherent exchange as every other property.
+    let words = unsafe { &mut *message };
+    mailbox::call(words).ok()?;
+    (words[4] & 0x8000_0000 != 0).then_some(words[5])
 }
 
 fn initialize_pl011() {
@@ -313,3 +285,45 @@ fn present_hex(value: u32) {
 }
 
 const _: usize = FACT_CAPACITY;
+
+// Shared VideoCore peripherals call CPU-specific visibility mechanisms.
+fn drain_writes() {
+    unsafe {
+        core::arch::asm!("mcr p15, 0, {0}, c7, c10, 4", in(reg) 0_u32, options(nostack));
+    }
+}
+fn invalidate_mailbox(address: usize, bytes: usize) {
+    for line in ((address & !31)..address + bytes).step_by(32) {
+        unsafe {
+            core::arch::asm!("mcr p15, 0, {0}, c7, c6, 1", in(reg) line, options(nostack));
+        }
+    }
+    drain_writes();
+}
+fn prepare_audio_pins() {
+    let [left, right] = super::raspberry_pi::Board::BPlus.audio_pins();
+    let fsel = GPIO_BASE + usize::from(left / 10) * 4;
+    let (left, right) = (u32::from(left % 10) * 3, u32::from(right % 10) * 3);
+    unsafe {
+        let value = read32(fsel) & !((7 << left) | (7 << right));
+        write32(fsel, value | (4 << left) | (4 << right));
+    }
+}
+fn release_usb_hub() -> Result<(), &'static str> {
+    let super::raspberry_pi::HubReset::Gpio(pin) = super::raspberry_pi::Board::BPlus.hub_reset()
+    else {
+        return Err("bplus-hub-reset-profile");
+    };
+    unsafe {
+        write32(GPIO_BASE + 0x1c, 1 << pin);
+        let fsel = GPIO_BASE + usize::from(pin / 10) * 4;
+        let shift = u32::from(pin % 10) * 3;
+        let select = read32(fsel) & !(7 << shift);
+        write32(fsel, select | (1 << shift));
+    }
+    Ok(())
+}
+
+fn prepare_mailbox(_address: usize, _bytes: usize) {
+    drain_writes();
+}

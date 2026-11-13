@@ -1,0 +1,112 @@
+# A high-speed root hub and at most one high-speed child hub.
+# Each hub has at most seven ports; their child address ranges are disjoint.
+# Addresses and port numbers here are USB wire facts. They grant no native
+# controller, attachment, endpoint or electrical authority.
+type UsbHubInputStart = {
+    hub-address: U8
+    first-child-address: U8
+    maximum-packet: U8
+}
+# Reason: 0 active; 1 ready; 2 no input; 3 malformed; 4 stalled;
+# 5 provider lost; 6 unsupported; 7 pressure; 8 overcurrent; 9 reset timeout;
+# 10 short descriptor. State is bounded and has the shared cell's terminal flag.
+type UsbHubInputState = {
+    phase: U8
+    boot-keyboard: Boolean
+    child-hub-used: Boolean
+    parent-active: Boolean
+    parent-hub-address: U8
+    parent-first-child-address: U8
+    parent-hub-packet: U8
+    parent-port: U8
+    parent-ports: U8
+    terminal: Boolean
+    reason: U8
+    last-failure: U8
+    last-port: U8
+    hub-address: U8
+    first-child-address: U8
+    hub-packet: U8
+    address: U8
+    maximum-packet: U8
+    translator-port: U8
+    port: U8
+    ports: U8
+    low-speed: Boolean
+    high-speed: Boolean
+    child-hub: Boolean
+    configuration-value: U8
+    interface-number: U8
+    endpoint: U8
+    input-packet: U64
+    interval-ms: U64
+    total-length: U64
+    delay-ms: U64
+    attempts: U8
+    wire: sequence U8 <= 256
+    actual: U16
+    short: Boolean
+    layout-octets: collection U8 = 4
+    layout-offsets: collection U64 = 3
+    layout-maxima: collection U16 = 2
+}
+type UsbHubWaitObservation = {
+    waited: Boolean
+}
+type UsbHubInputControl = {
+    address: U8
+    maximum-packet: U8
+    hub-address: U8
+    translator-port: U8
+    low-speed: Boolean
+    request: UsbControlRequest
+}
+type UsbHubInputReady = {
+    address: U8
+    hub-address: U8
+    translator-port: U8
+    low-speed: Boolean
+    endpoint: U8
+    maximum-packet: U64
+    interval-ms: U64
+    layout: UsbAbsoluteHidLayout
+}
+type UsbHubInputRefusal =
+    no-input
+    | malformed
+    | stalled
+    | provider-lost
+    | unsupported
+    | pressure
+    | overcurrent
+    | port-timeout
+    | short
+
+type UsbHubInputResult =
+    input UsbHubInputReady
+    | refused {
+        port: U8
+        reason: UsbHubInputRefusal
+    }
+
+# A successfully configured boot keyboard. This is wire evidence only; Root
+# must independently admit the actual endpoint before input can be delivered.
+type UsbHubKeyboardReady = {
+    address: U8
+    hub-address: U8
+    translator-port: U8
+    low-speed: Boolean
+    endpoint: U8
+    maximum-packet: U64
+    interval-ms: U64
+}
+
+# Source selects the next class work; Root only carries the selected payload.
+# A boot keyboard has no absolute-pointer layout. Its Source-authored
+# continuation acknowledges retained discovery without invoking that decoder.
+type UsbHubDescriptorWork =
+    descriptor UsbHidDescriptorTransfer
+    | keyboard {
+        input: UsbHubKeyboardReady
+        continuation: UsbAbsoluteHidLayoutResult
+    }

@@ -200,6 +200,7 @@ fn exact_conduitos_and_raspberry_pi_families_have_one_owner_each() {
 
     for target in [
         "conduitos/armv6/raspberry-pi-model-b-plus-v1.2",
+        "conduitos/aarch64/raspberry-pi-3-model-b-plus-rev-1.3",
         "conduitos/armv6/raspberry-pi-zero-v1",
         "conduitos/armv6/raspberry-pi-zero-w-v1.1",
         "conduitos/armv6/raspberry-pi-zero-wh-v1.1",

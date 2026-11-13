@@ -12,7 +12,7 @@ mod response;
 #[path = "framebuffer_timing.rs"]
 mod timing;
 
-#[repr(C, align(16))]
+#[repr(C, align(64))]
 struct Message<const WORDS: usize>([u32; WORDS]);
 
 pub struct FirmwareScanout {
@@ -27,16 +27,37 @@ pub struct FirmwareScanout {
 
 impl FirmwareScanout {
     pub fn prepare() -> Result<Self, &'static str> {
+        Self::claim()?;
+        Self::allocate(read_firmware_mode()?, read_preferred_mode())
+    }
+    /// Bootstrap scanout without requiring EDID from a still-unpowered panel.
+    pub fn prepare_initial() -> Result<Self, &'static str> {
+        Self::claim()?;
+        Self::allocate(read_firmware_mode()?, None)
+    }
+    /// Consume the old mapping before firmware may replace its buffer. Failure
+    /// cannot leave a caller holding a usable pointer into a retired allocation.
+    pub fn refresh_preferred_mode(self) -> Result<Self, &'static str> {
+        let Some(mode) = read_preferred_mode() else {
+            return Ok(self);
+        };
+        if self.preferred_mode == Some((mode.width, mode.height))
+            && self.preferred_clock_khz == Some(mode.pixel_clock_khz)
+        {
+            return Ok(self);
+        }
+        Self::allocate(self.firmware_mode, Some(mode))
+    }
+    fn claim() -> Result<(), &'static str> {
         if CLAIMED.swap(true, Ordering::AcqRel) {
             return Err("bcm2835-framebuffer-already-owned");
         }
-        let mut dimensions = Message([32, 0, 0x40003, 8, 0, 0, 0, 0]);
-        mailbox::call(&mut dimensions.0)?;
-        if dimensions.0[4] != 0x8000_0008 {
-            return Err("bcm2835-display-dimensions-invalid");
-        }
-        let firmware_mode = (dimensions.0[5], dimensions.0[6]);
-        let preferred = read_preferred_mode();
+        Ok(())
+    }
+    fn allocate(
+        firmware_mode: (u32, u32),
+        preferred: Option<crate::display::edid::PreferredTiming>,
+    ) -> Result<Self, &'static str> {
         let preferred_mode = preferred.map(|mode| (mode.width, mode.height));
         let (width, height) = preferred_mode.unwrap_or(firmware_mode);
         let pixels = u64::from(width) * u64::from(height);
@@ -64,11 +85,17 @@ impl FirmwareScanout {
             0x10006, 8, 0, 0, 0, 0,
         ]);
         mailbox::call(&mut message.0)?;
-        let (physical, bytes, format) = response::validate(&message.0, width, height)?;
+        let (physical, bytes, format) = response::validate_in_window(
+            &message.0,
+            width,
+            height,
+            super::SCANOUT_START,
+            super::SCANOUT_END,
+        )?;
         let address =
             NonNull::new(physical as *mut u8).ok_or("bcm2835-framebuffer-address-invalid")?;
-        // Firmware grants this sole Root the reserved buffer; identity-mapped
-        // Normal NC GPU RAM and disabled data caching expose stores to scanout.
+        // Firmware grants this sole Root the reserved buffer. The CPU adapter
+        // maps it as identity-mapped Normal NC RAM, independent of cached ARM RAM.
         let raw = unsafe { RawDisplay::new_word_writable(address, bytes as usize, format) }
             .map_err(|error| error.as_str())?;
         Ok(Self {
@@ -106,6 +133,20 @@ impl FirmwareScanout {
         let mut message = Message([0_u32; 15]);
         message.0[..6].copy_from_slice(&[60, 0, 0x40017, 36, 4, 2]); // HDMI0 display ID.
         mailbox::call(&mut message.0).ok()?;
+        {
+            use core::fmt::Write;
+            let mut text = crate::sign_format::FixedText::new();
+            let _ = writeln!(
+                text,
+                "CONDUIT_HDMI_TIMING_GET response={:#x} display={} clock_khz={} width={} height={}",
+                message.0[4],
+                message.0[5],
+                message.0[6],
+                message.0[7] & 0xffff,
+                message.0[9] >> 16
+            );
+            super::present(text.as_bytes());
+        }
         if message.0[4] != 0x8000_0024 || message.0[6] == 0 {
             return None;
         }
@@ -132,11 +173,18 @@ impl PixelTarget for FirmwareScanout {
         self.raw.write_span(x, y, pixels)
     }
     fn commit_frame(&mut self) -> Result<(), DisplayError> {
-        unsafe {
-            core::arch::asm!("mcr p15, 0, {0}, c7, c10, 4",in(reg) 0_u32,options(nostack));
-        }
+        super::drain_writes();
         Ok(())
     }
+}
+
+fn read_firmware_mode() -> Result<(u32, u32), &'static str> {
+    let mut dimensions = Message([32, 0, 0x40003, 8, 0, 0, 0, 0]);
+    mailbox::call(&mut dimensions.0)?;
+    if dimensions.0[4] != 0x8000_0008 {
+        return Err("bcm2835-display-dimensions-invalid");
+    }
+    Ok((dimensions.0[5], dimensions.0[6]))
 }
 
 fn read_preferred_mode() -> Option<crate::display::edid::PreferredTiming> {

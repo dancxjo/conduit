@@ -8,7 +8,7 @@ mod graphical;
 mod ia32;
 pub(super) use ia32::lower_ia32_pc;
 mod armv6;
-pub(super) use armv6::lower_armv6_bplus;
+pub(super) use armv6::{lower_armv6_bplus, lower_rpi3};
 mod aarch64;
 pub(super) use aarch64::lower_aarch64_virt;
 mod http;

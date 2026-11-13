@@ -297,8 +297,17 @@ impl PreparedProtocolSource {
     }
 }
 
-fn preparation_stage(stage: &str) {
-    #[cfg(all(target_os = "none", target_arch = "x86_64"))]
+pub(crate) fn preparation_stage(stage: &str) {
+    #[cfg(all(
+        target_os = "none",
+        any(
+            target_arch = "x86_64",
+            any(
+                all(target_arch = "arm", feature = "armv6-product"),
+                all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+            )
+        )
+    ))]
     {
         use core::fmt::Write;
         let mut text = crate::sign_format::FixedText::new();
@@ -308,9 +317,31 @@ fn preparation_stage(stage: &str) {
             crate::allocation::BOOT_ARENA.live_bytes(),
             crate::allocation::BOOT_ARENA.used()
         );
+        #[cfg(target_arch = "x86_64")]
         crate::arch::early_write(text.as_bytes());
+        #[cfg(any(
+            target_arch = "arm",
+            all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+        ))]
+        {
+            let _ = writeln!(
+                text,
+                "CONDUIT_PREPARATION_TIME us={}",
+                crate::arch::read_counter()
+            );
+            crate::arch::present(text.as_bytes());
+        }
     }
-    #[cfg(not(all(target_os = "none", target_arch = "x86_64")))]
+    #[cfg(not(all(
+        target_os = "none",
+        any(
+            target_arch = "x86_64",
+            any(
+                all(target_arch = "arm", feature = "armv6-product"),
+                all(target_arch = "aarch64", feature = "aarch64-rpi-3b-plus")
+            )
+        )
+    )))]
     let _ = stage;
 }
 
@@ -378,10 +409,17 @@ mod tests;
 
 mod storage_catalog;
 mod usb_catalog;
+mod usb_enumeration;
+pub use usb_enumeration::usb_enumeration_package;
 mod usb_hid;
+mod usb_hub_input;
 pub use usb_hid::{
-    usb_hid_endpoint_package, usb_hid_keyboard_order_package, usb_hid_mouse_order_package,
+    usb_configuration_decode_package, usb_hid_absolute_descriptor_package,
+    usb_hid_absolute_descriptor_stages_package, usb_hid_absolute_package,
+    usb_hid_configuration_package, usb_hid_endpoint_package, usb_hid_keyboard_order_package,
+    usb_hid_mouse_order_package,
 };
+pub use usb_hub_input::usb_hub_input_package;
 
 mod planning;
 pub use planning::ProtocolQueueLimits;
@@ -399,6 +437,10 @@ mod issuer;
 pub use issuer::{NativeProtocolIssueRefusal, NativeProtocolIssuer, NativeProtocolPossession};
 
 mod body_play;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
+))]
 pub(crate) use body_play::storage_preparation::StorageBodyPreparation;
 pub use body_play::{
     PreparedProtocolBodyPlay, ProtocolBodyPreparationRefusal, ProtocolBodyRefusal,
@@ -482,3 +524,9 @@ mod native_usb_isochronous_preparation;
     all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub(crate) use native_usb_isochronous_preparation::prepare_native_usb_isochronous_protocol;
+
+mod pure_pipe;
+pub use pure_pipe::{PreparedPureProtocolPipe, PurePipeRefusal};
+
+mod hid_descriptor_pipe;
+pub use hid_descriptor_pipe::PreparedHidDescriptorPipe;

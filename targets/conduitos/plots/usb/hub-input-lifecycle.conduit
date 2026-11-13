@@ -1,0 +1,160 @@
+plot usb-hub-input-control-state (
+    >> input: UsbHubInputState...| <= 4096B
+    state: UsbHubInputState...| <= 4096B >>
+) {
+    input >> when(!.terminal && ((((.phase == 0 || .phase == 2) || (.phase == 4 || .phase == 6)) || ((.phase == 8 || .phase == 10) || (.phase == 12 || (.phase == 16 || .phase == 18)))) || (((.phase == 20 || .phase == 22) || (.phase == 24 || (.phase == 25 || .phase == 26))) || ((.phase == 28 || .phase == 30) || (.phase == 32 || (.phase == 36 || .phase == 38)))))) >> state
+}
+plot usb-hub-input-wait-state (
+    >> input: UsbHubInputState...| <= 4096B
+    state: UsbHubInputState...| <= 4096B >>
+) {
+    input >> when(!.terminal && ((.phase == 3 || .phase == 14) || (.phase == 19 || (.phase == 23 || .phase == 29)))) >> state
+}
+plot usb-hub-input-device-state (
+    >> input: UsbHubInputState...| <= 4096B
+    state: UsbHubInputState...| <= 4096B >>
+) {
+    input >> when(!.terminal && (.phase == 1 || .phase == 27)) >> state
+}
+plot usb-hub-input-hub-state (
+    >> input: UsbHubInputState...| <= 4096B
+    state: UsbHubInputState...| <= 4096B >>
+) {
+    input >> when(!.terminal && .phase == 11) >> state
+}
+plot usb-hub-input-prefix-state (
+    >> input: UsbHubInputState...| <= 4096B
+    state: UsbHubInputState...| <= 4096B >>
+) {
+    input >> when(!.terminal && (.phase == 5 || .phase == 31)) >> state
+}
+plot usb-hub-input-topology-state (
+    >> input: UsbHubInputState...| <= 4096B
+    state: UsbHubInputState...| <= 4096B >>
+) {
+    input >> when(!.terminal && (.phase == 7 || .phase == 33)) >> state
+}
+plot usb-hub-input-layout-state (
+    >> input: UsbHubInputState...| <= 4096B
+    state: UsbHubInputState...| <= 4096B >>
+) {
+    input >> when(!.terminal && .phase == 39) >> state
+}
+
+# Every observation joins the state that requested it. There is no native
+# authority in this protocol; Root must admit each exchange and clock wait.
+plot usb-hub-input (
+    >> begin: UsbHubInputStart...| <= 4096B
+    >> received: UsbControlResult...| <= 4096B
+    >> woke: Empty...|
+    >> topology: UsbConfigurationTopologyResult...| <= 4096B
+    >> layout: UsbAbsoluteHidLayoutResult...| <= 4096B
+    configuration-decode: UsbConfigurationTransfer...| <= 4096B >>
+    descriptor-decode: UsbHubDescriptorWork...| <= 4096B >>
+    exchange: UsbHubInputControl...| <= 4096B >>
+    wait: U64...| >>
+    result: UsbHubInputResult...| <= 4096B >>
+) {
+    cell: UsbHubInputCell
+    gate-layout: usb-hub-input-layout-state
+    gate-topology: usb-hub-input-topology-state
+    gate-prefix: usb-hub-input-prefix-state
+    gate-hub: usb-hub-input-hub-state
+    gate-device: usb-hub-input-device-state
+    gate-wait: usb-hub-input-wait-state
+    gate-control: usb-hub-input-control-state
+    join-control: UsbHubControlJoin
+    step-control: usb-hub-input-control-step()
+    join-device: UsbHubDeviceJoin
+    step-device: usb-hub-input-device-step()
+    join-hub: UsbHubHubJoin
+    step-hub: usb-hub-input-hub-step()
+    join-prefix: UsbHubPrefixJoin
+    step-prefix: usb-hub-input-prefix-step()
+    join-topology: UsbHubTopologyJoin
+    step-topology: usb-hub-input-topology-step()
+    join-status: UsbHubStatusJoin
+    step-status: usb-hub-input-status-step()
+    join-profile: UsbHubProfileJoin
+    step-profile: usb-hub-input-profile-step()
+    join-layout: UsbHubLayoutJoin
+    step-layout: usb-hub-input-layout-step()
+    join-wait: UsbHubWaitJoin
+    step-wait: usb-hub-input-wait-step()
+    step-advance: usb-hub-input-advance-step()
+    decode-device: usb-device-initial-descriptor
+    decode-hub: usb-hub-descriptor
+    decode-prefix: usb-configuration-prefix
+    decode-status: usb-hub-port-status-result
+    decode-profile: usb-hid-input-profile
+    states-0: UsbHubStateMerge
+    states-1: UsbHubStateMerge
+    states-2: UsbHubStateMerge
+    states-3: UsbHubStateMerge
+    states-4: UsbHubStateMerge
+    states-5: UsbHubStateMerge
+    states-6: UsbHubStateMerge
+    states-7: UsbHubStateMerge
+    begin >> usb-hub-input-start() >> cell.seed
+    cell.current >> when(.terminal) >> usb-hub-input-finish() >> usb-hub-input-result-output() >> result
+    cell.current >> gate-control.input
+    gate-control.state >> join-control.left
+    gate-control.state >> usb-hub-input-control() >> usb-hub-input-control-output() >> exchange
+    received >> join-control.right
+    cell.current >> gate-wait.input
+    gate-wait.state >> join-wait.left
+    gate-wait.state >> usb-hub-input-delay() >> wait
+    woke >> usb-hub-input-wake() >> join-wait.right
+    cell.current >> gate-device.input
+    gate-device.state >> join-device.left
+    gate-device.state >> usb-hub-input-device-frame() >> decode-device.input
+    decode-device.result >> join-device.right
+    cell.current >> gate-hub.input
+    gate-hub.state >> join-hub.left
+    gate-hub.state >> usb-hub-input-device-frame() >> decode-hub.input
+    decode-hub.result >> join-hub.right
+    cell.current >> gate-prefix.input
+    gate-prefix.state >> join-prefix.left
+    gate-prefix.state >> usb-hub-input-prefix-frame() >> decode-prefix.frame
+    decode-prefix.result >> join-prefix.right
+    cell.current >> gate-topology.input
+    gate-topology.state >> join-topology.left
+    gate-topology.state >> usb-hub-input-configuration-frame() >> usb-hub-input-configuration-output() >> configuration-decode
+    topology >> join-topology.right
+    cell.current >> gate-layout.input
+    gate-layout.state >> join-layout.left
+    gate-layout.state >> usb-hub-input-layout-frame() >> usb-hub-input-descriptor-output() >> descriptor-decode
+    layout >> join-layout.right
+    cell.current >> when(!.terminal && (.phase == 17 || .phase == 21)) >> join-status.left
+    join-control.paired >> when(.0.phase == 16 || .0.phase == 20) >> usb-hub-input-port-reply() >> decode-status.result
+    decode-status.status >> join-status.right
+    cell.current >> when(!.terminal && .phase == 34) >> join-profile.left
+    join-topology.paired >> when(.0.port != 0 && !.0.child-hub) >> when(.1 is configuration) >> usb-hub-input-profile-input() >> decode-profile.input
+    decode-profile.result >> join-profile.right
+    join-control.paired >> step-control
+    join-device.paired >> step-device
+    join-hub.paired >> step-hub
+    join-prefix.paired >> step-prefix
+    join-topology.paired >> step-topology
+    join-status.paired >> step-status
+    join-profile.paired >> step-profile
+    join-layout.paired >> step-layout
+    join-wait.paired >> step-wait
+    step-control.result >> states-0.left
+    step-device.result >> states-0.right
+    step-hub.result >> states-1.left
+    step-prefix.result >> states-1.right
+    step-topology.result >> states-2.left
+    step-status.result >> states-2.right
+    step-profile.result >> states-3.left
+    step-layout.result >> states-3.right
+    states-0.merged >> states-4.left
+    states-1.merged >> states-4.right
+    states-2.merged >> states-5.left
+    states-3.merged >> states-5.right
+    states-4.merged >> states-6.left
+    states-5.merged >> states-6.right
+    states-6.merged >> states-7.left
+    step-wait.result >> states-7.right
+    states-7.merged >> step-advance >> cell.next
+}

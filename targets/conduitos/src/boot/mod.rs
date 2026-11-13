@@ -36,7 +36,8 @@ pub use modules::BootModuleRefusal;
         target_arch = "riscv64",
         target_arch = "loongarch64"
     ),
-    feature = "native-compositor-core"
+    feature = "native-compositor-core",
+    not(feature = "aarch64-board")
 ))]
 pub(crate) use limine::framebuffer_reserved_range;
 #[cfg(any(

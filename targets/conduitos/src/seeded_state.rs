@@ -149,7 +149,12 @@ impl SeededStateOperationFactory {
         if !verify_plan(plan) || plan.fragments.len() != 1 {
             return Err("native seeded state requires one exact sealed fragment".into());
         }
-        for gear in &plan.fragments[0].placements {
+        self.validate_selections(&plan.fragments[0])
+    }
+
+    /// Check this family against an immutable fragment whose seal the caller verified.
+    pub(crate) fn validate_selections(&self, fragment: &PlanFragment) -> Result<(), String> {
+        for gear in &fragment.placements {
             if gear.implementation_id.as_str() == IMPLEMENTATION {
                 self.selected(gear)?;
             }

@@ -31,6 +31,11 @@ pub struct FirmwareFace<D> {
     _bases: NativeProductBases,
     basis: conduit_observatory::FramebufferBasis,
     evidence: Vec<u8>,
+    pointer: Option<crate::pointer_state::PointerState>,
+    pointer_sequence: u64,
+    keyboard_admitted: bool,
+    born: bool,
+    presenter: crate::front_door::FrontDoorPresenter,
 }
 
 impl<D: PixelTarget> FirmwareFace<D> {
@@ -108,6 +113,16 @@ impl<D: PixelTarget> FirmwareFace<D> {
         });
         door.open_creche_reviewed(uuid, refusals)
             .map_err(|e| e.as_str())?;
+        let presenter = crate::front_door::FrontDoorPresenter::prepare(
+            host.clone(),
+            boot.clone(),
+            generation,
+            make.profile_id,
+            make.image_binding,
+            basis.base_id.clone(),
+            make.face_surface_slots,
+        )
+        .map_err(|error| error.as_str())?;
         let mut mask = NativeFaceMask::prepare_creche(
             host,
             boot,
@@ -171,7 +186,96 @@ impl<D: PixelTarget> FirmwareFace<D> {
             _bases: bases,
             basis,
             evidence,
+            pointer: None,
+            pointer_sequence: 1,
+            keyboard_admitted: false,
+            born: false,
+            presenter,
         })
+    }
+    /// Admit physical pointer delivery to the existing owner interaction route.
+    ///
+    /// # Safety
+    /// Root independently owns the live selected pointer provider and must keep
+    /// its original native owner retained, including on loss/retirement paths.
+    pub unsafe fn admit_pointer(&mut self) -> Result<(), &'static str> {
+        if self.pointer.is_some() {
+            return Err("firmware-pointer-already-admitted");
+        }
+        self._mask.suspend().map_err(|e| e.as_str())?;
+        unsafe { self._mask.admit_local_input_for_root() }.map_err(|e| e.as_str())?;
+        self.pointer = Some(crate::pointer_state::PointerState::new());
+        self.present_pointer_basis()
+    }
+    pub fn observe_pointer(
+        &mut self,
+        sample: conduit_semantic_catalog::NormalizedPointerSample,
+    ) -> Result<(), &'static str> {
+        let pointer = self
+            .pointer
+            .as_mut()
+            .ok_or("firmware-pointer-not-admitted")?;
+        let press = pointer.observe(sample)?;
+        let (x, y) = pointer.position(&self._display)?;
+        if self.born {
+            self.presenter
+                .route_pointer(x, y, false)
+                .map_err(|error| error.as_str())?;
+            self.presenter
+                .compose(&mut self._display)
+                .map_err(|error| error.as_str())?;
+            return Ok(());
+        }
+        self._mask
+            .pointer_motion(x, y, &mut self._display)
+            .map_err(|e| e.as_str())?;
+        if press {
+            let sequence = self
+                .pointer_sequence
+                .checked_add(1)
+                .ok_or("firmware-pointer-sequence")?;
+            self.pointer_sequence = sequence;
+            let show = self
+                ._mask
+                .show()
+                .ok_or("firmware-face-show-absent")?
+                .clone();
+            let input = match self._mask.pointer(x, y, sequence, &mut self._display) {
+                Ok(input) => input,
+                Err(_) if self._mask.acknowledged_input_refusal().is_some() => return Ok(()),
+                Err(error) => return Err(error.as_str()),
+            };
+            self.accept_input(input, show)?;
+        }
+        Ok(())
+    }
+    pub fn retire_pointer(&mut self) -> Result<(), &'static str> {
+        if let Some(pointer) = self.pointer.as_mut() {
+            pointer.retire();
+        }
+        self._mask.suspend().map_err(|e| e.as_str())?;
+        if !self.keyboard_admitted {
+            self._mask.retire_local_input_for_root();
+        }
+        self.present_pointer_basis()
+    }
+    fn present_pointer_basis(&mut self) -> Result<(), &'static str> {
+        let sequence = self
+            .pointer_sequence
+            .checked_add(1)
+            .ok_or("firmware-pointer-sequence")?;
+        self.pointer_sequence = sequence;
+        let basis = self._mask.birth_basis("conduitos/creche/current");
+        let face = self._door.creche_face(&basis).map_err(|e| e.as_str())?;
+        if self.keyboard_admitted || self.pointer.as_ref().is_some_and(|p| !p.is_retired()) {
+            self._mask
+                .present(face, sequence, sequence, &mut self._display)
+        } else {
+            self._mask
+                .present_read_only(face, sequence, sequence, &mut self._display)
+        }
+        .map_err(|e| e.as_str())?;
+        Ok(())
     }
     /// Root may inspect its retained scanout provider without transferring
     /// write ownership or granting a second presenter.
@@ -188,3 +292,6 @@ impl<D: PixelTarget> FirmwareFace<D> {
 
 #[cfg(test)]
 mod tests;
+
+#[path = "firmware_face/input.rs"]
+mod input;
