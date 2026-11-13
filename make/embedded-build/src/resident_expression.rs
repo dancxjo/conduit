@@ -11,14 +11,9 @@ mod offer_image_tests;
 pub const RESIDENT_EXPRESSION_PROFILE: &str = "conduit.expression/resident-structured@1";
 pub const RESIDENT_EXPRESSION_IMPLEMENTATION: &str =
     "conduit.expression/kernel-resident-structured@1";
-/// Physical execution storage selected by fabrication, never execution authority.
-/// SharedWorkspace requires the target's `execution-workspace` feature and a
-/// separately funded scheduler workspace before any Step may run.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ResidentExecutionStorage {
-    Owned,
-    SharedWorkspace,
-}
+#[path = "resident_storage.rs"]
+mod storage;
+pub use storage::ResidentExecutionStorage;
 #[derive(Clone, Copy)]
 pub struct ResidentExpressionBounds {
     pub native: PreparedNativeBounds,

@@ -152,3 +152,62 @@ fn main(){
         ],
     );
 }
+
+#[cfg(all(feature = "execution-workspace", feature = "schema-value-storage"))]
+#[test]
+fn schema_workspace_fabrication_seals_and_forwards_exact_profiles() {
+    let (document, program) = crate::resident_expression_tests::context();
+    let prepare = |storage| {
+        PreparedResidentExpression::prepare_instance_with_storage(
+            &document,
+            &program,
+            PortTemporal::Value,
+            bounds(),
+            Some("display/request"),
+            storage,
+        )
+        .unwrap()
+    };
+    let canonical = prepare(ResidentExecutionStorage::SharedWorkspace);
+    let schema = prepare(ResidentExecutionStorage::SharedWorkspaceSchema);
+    assert_eq!(canonical.kind_id(), schema.kind_id());
+    assert_ne!(canonical.artifact_id(), schema.artifact_id());
+    let plan = crate::resident_expression_tests::plan(&document, &program, &schema, 1000);
+    let f = &plan.fragments[0];
+    assert!(schema
+        .bind(&plan, &f.fragment_id, &f.placements[1].placement_id)
+        .is_ok());
+    assert!(matches!(
+        canonical.bind(&plan, &f.fragment_id, &f.placements[1].placement_id),
+        Err(ResidentExpressionRefusal::Selection)
+    ));
+    let code = generate_resident_library(&[canonical, schema], 4 * 1024 * 1024).unwrap();
+    compiled_rust::verify_with_libraries(
+        &code,
+        r#"
+fn main(){
+ use conduit_kernel::{PortId, scheduler::StepBack};
+ let mut owner=Initialized::prepare().unwrap();
+ let loans=PreparedResidentLoans{owner:&mut owner,nodes:[Some(0),Some(1)]};
+ assert_eq!(loans.execution_workspace_requirements_at::<1>(0),loans.execution_workspace_requirements_at::<1>(1));
+ let backs=loans.bind();
+ let canonical=&backs[0].as_ref().unwrap().1;
+ let schema=&backs[1].as_ref().unwrap().1;
+ assert!(StepBack::<1>::canonical_input_schema(canonical,PortId(0)).is_none());
+ assert!(StepBack::<1>::canonical_output_schema(canonical,PortId(0)).is_none());
+ assert!(StepBack::<1>::canonical_input_schema(schema,PortId(0)).is_some());
+ assert!(StepBack::<1>::canonical_output_schema(schema,PortId(0)).is_some());
+ assert!(StepBack::<1>::canonical_input_schema(schema,PortId(1)).is_none());
+ assert!(StepBack::<1>::workspace_requirements(schema).is_some());
+}
+"#,
+        "schema-workspace-resident-fabrication",
+        &[
+            "conduit_kernel",
+            "conduit_plot",
+            "conduit_core",
+            "conduit_semantic_catalog",
+            "conduit_plan_lowering",
+        ],
+    );
+}

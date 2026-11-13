@@ -7,7 +7,12 @@ pub(crate) fn append(
 ) {
     let engine = match storage {
         crate::ResidentExecutionStorage::Owned => format!("conduit_semantic_catalog::StaticStructuredExpressionBack<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},{{CHILD_COUNT}},{output}>"),
-        crate::ResidentExecutionStorage::SharedWorkspace => "conduit_semantic_catalog::WorkspaceStructuredExpressionBack<{input_native::CONTRACT_COUNT},{output_native::CONTRACT_COUNT},{CHILD_COUNT}>".into(),
+        crate::ResidentExecutionStorage::SharedWorkspace | crate::ResidentExecutionStorage::SharedWorkspaceSchema => "conduit_semantic_catalog::WorkspaceStructuredExpressionBack<{input_native::CONTRACT_COUNT},{output_native::CONTRACT_COUNT},{CHILD_COUNT}>".into(),
+    };
+    let constructor = if storage == crate::ResidentExecutionStorage::SharedWorkspaceSchema {
+        "from_resident_structured_parts"
+    } else {
+        "from_resident_structured"
     };
     code.push_str(&format!(r#"
 #[derive(Debug)]pub enum PreparationRefusal{{Image(conduit_plot::StaticStructuredRefusal),Back(conduit_semantic_catalog::StaticExpressionBackRefusal)}}
@@ -15,7 +20,7 @@ type EngineBack={engine};
 pub type Back=EngineBack;
 pub fn prepare_back()->Result<Back,PreparationRefusal>{{
 let image=prepare().map_err(PreparationRefusal::Image)?;
-let back=EngineBack::from_resident_structured(image,{temporal}).map_err(PreparationRefusal::Back)?;
+let back=EngineBack::{constructor}(image,{temporal}).map_err(PreparationRefusal::Back)?;
 if back.computation_fuel()>PRIVATE_WORK_UNITS{{return Err(PreparationRefusal::Back(conduit_semantic_catalog::StaticExpressionBackRefusal::Work));}}
 Ok(back)
 }}
@@ -36,7 +41,7 @@ self.owner.available=true;Ok(())
         code,
         "BorrowedBack<'_>",
         "self.owner.back",
-        storage == crate::ResidentExecutionStorage::SharedWorkspace,
+        storage.uses_workspace(),
     );
 }
 
