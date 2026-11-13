@@ -136,7 +136,10 @@ fn check(specs: [Spec; 2]) {
             .iter()
             .find(|v| v.location == c::FrontValueLocation::Output(c::port_id("paired")))
             .unwrap();
-        assert_eq!(output.contract.maximum_bytes, pair.maximum_bytes());
+        // The shared pair provider now proves the actual encoded extent;
+        // oversized input envelopes do not enlarge its output contract.
+        assert_eq!(output.contract.maximum_bytes, pair.maximum_encoded_bytes());
+        assert!(output.contract.maximum_bytes <= pair.maximum_bytes());
         assert_eq!(output.contract.value_kind, pair_kind);
         assert!(node.offer_image.is_some());
         let definition = emit_definition(role).unwrap();
