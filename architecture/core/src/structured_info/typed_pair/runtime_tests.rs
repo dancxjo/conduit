@@ -186,3 +186,30 @@ fn unknown_leaf_pair_keeps_the_full_selected_output_envelope() {
     .unwrap();
     assert_eq!(pair.maximum_encoded_bytes(), pair.maximum_bytes());
 }
+
+#[test]
+fn schema_separated_composition_and_validation_do_not_allocate_during_execution() {
+    use crate::{
+        BorrowedStructuredValue, BorrowedStructuredValueValidator, PreparedLinkedStructuredComposer,
+    };
+    let ty = record_type("test/shared-schema");
+    let schema = ty.canonical_bytes().unwrap();
+    let original = record("test/shared-schema", u64::MAX);
+    let checked = crate::validate_canonical_structured_value(&original).unwrap();
+    let composer = PreparedLinkedStructuredComposer::new(&schema, original.len()).unwrap();
+    let validator = BorrowedStructuredValueValidator::new(&schema, original.len()).unwrap();
+    let mut output = vec![0; checked.value_node().len()];
+    let number = u64::MAX.to_le_bytes();
+    let fields = [BorrowedStructuredValue::Leaf(&number)];
+    let ((), cost) = probe::observe(|| {
+        for _ in 0..32 {
+            let node = composer
+                .encode_node_into(BorrowedStructuredValue::Record(&fields), &mut output)
+                .unwrap();
+            assert_eq!(node, checked.value_node());
+            assert_eq!(validator.validate_node(node).unwrap(), checked);
+        }
+    });
+    assert_eq!(cost.allocation_attempts, 0);
+    assert_eq!(cost.reallocations, 0);
+}
