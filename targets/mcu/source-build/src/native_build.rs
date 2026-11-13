@@ -136,7 +136,12 @@ fn calibrate_and_emit_selected(
         &image.manifest.image_id,
         checked.configuration_id(),
     )?;
-    calibrated.emit_to(out, 2 * 1024 * 1024)?;
+    // This bounds generated Rust text on the fabrication Host, not target flash
+    // or an execution grant. Decimal formatting previously inflated canonical
+    // recipes; byte literals keep a full native layout below this finite 4 MiB
+    // tooling ceiling. Target linking and actual admission enforce their own
+    // unchanged physical/resource ceilings.
+    calibrated.emit_to(out, 4 * 1024 * 1024)?;
     if neutral {
         workset.emit_neutral_to(out)
     } else {

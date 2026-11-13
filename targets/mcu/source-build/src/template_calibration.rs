@@ -228,7 +228,8 @@ impl Calibration {
             );
             text.insert_str(0, &continuation);
             text.insert_str(0, &format!("pub const FRAGMENT_RECIPE_DIGEST:[u8;32]={:?};\npub const FRAGMENT_PLACEMENT_IDS:&[&str]=&{:?};\n", c::fragment_seal_recipe_identity(entry.layout.fragment_seal_recipe.pieces()), entry.layout.fragment_seal_placement_ids));
-            text.insert_str(0, &seal_emission::emit(&entry.layout.fragment_seal_recipe));
+            let seal_rust = seal_emission::emit(&entry.layout.fragment_seal_recipe);
+            text.insert_str(0, &seal_rust);
             text.insert_str(
                 0,
                 &format!(
@@ -350,7 +351,13 @@ impl Calibration {
                 .checked_add(text.len())
                 .ok_or("calibration generated length overflow")?;
             if total > maximum_generated_bytes {
-                return Err("calibration exceeds selected generated-byte bound".into());
+                return Err(format!(
+                    "calibration exceeds selected generated-byte bound: required {total}, maximum {maximum_generated_bytes}; entry {:?}: seal {}, projection {}, value profiles {}, terminal transductions {}, offer images {}",
+                    entry.name, seal_rust.len(), continuation.len(),
+                    entry.layout.value_profiles_rust.as_ref().map_or(0, String::len),
+                    entry.layout.terminal_transductions_rust.len(),
+                    entry.offer_images.iter().map(Vec::len).sum::<usize>(),
+                ));
             }
             modules.push((format!("workset_{index}_layout.rs"), text));
         }
