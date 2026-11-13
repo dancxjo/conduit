@@ -4,6 +4,8 @@
 //! This implementation declares no Kind, State initialization, resource grant,
 //! durable recording, clock, transport acknowledgment or producer authority.
 extern crate alloc;
+mod linked_source;
+pub use linked_source::PreparedLinkedSource;
 mod order;
 mod retention;
 pub use order::CommitOrder;
