@@ -33,9 +33,9 @@ impl Initialized {
 pub struct BorrowedBack<'a>{owner:&'a mut Initialized}
 impl BorrowedBack<'_>{pub fn finish_retired(self)->Result<(),Self>{self.owner.available=true;Ok(())}}
 "#);
-    crate::resident_back::forward(&mut code, "BorrowedBack<'_>", "self.owner.back");
+    crate::resident_back::forward(&mut code, "BorrowedBack<'_>", "self.owner.back", false);
     code.push_str("}\npub struct Initialized {entry_0:Option<entry_0::Initialized>}\n");
-    crate::resident_library_borrow::append_back(&mut code, 1);
+    crate::resident_library_borrow::append_back(&mut code, 1, false);
     let probe = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../architecture/plot/tests/common/allocation_probe.rs");
     let exercise = format!(

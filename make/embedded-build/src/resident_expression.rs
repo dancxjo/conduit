@@ -11,6 +11,14 @@ mod offer_image_tests;
 pub const RESIDENT_EXPRESSION_PROFILE: &str = "conduit.expression/resident-structured@1";
 pub const RESIDENT_EXPRESSION_IMPLEMENTATION: &str =
     "conduit.expression/kernel-resident-structured@1";
+/// Physical execution storage selected by fabrication, never execution authority.
+/// SharedWorkspace requires the target's `execution-workspace` feature and a
+/// separately funded scheduler workspace before any Step may run.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ResidentExecutionStorage {
+    Owned,
+    SharedWorkspace,
+}
 #[derive(Clone, Copy)]
 pub struct ResidentExpressionBounds {
     pub native: PreparedNativeBounds,
@@ -36,6 +44,7 @@ pub enum ResidentExpressionRefusal {
 }
 /// Prepared code is eligibility, never a Ready offer or execution grant.
 pub struct PreparedResidentExpression {
+    storage: ResidentExecutionStorage,
     source_document: c::SourceDocumentId,
     maximum_input: u32,
     maximum_output: u32,
@@ -77,6 +86,24 @@ impl PreparedResidentExpression {
         bounds: ResidentExpressionBounds,
         instance: Option<&str>,
     ) -> Result<Self, ResidentExpressionRefusal> {
+        Self::prepare_instance_with_storage(
+            document,
+            program,
+            temporal,
+            bounds,
+            instance,
+            ResidentExecutionStorage::Owned,
+        )
+    }
+    /// Select explicit physical storage before sealing the emitted artifact.
+    pub fn prepare_instance_with_storage(
+        document: &CheckedSyntaxDocument,
+        program: &PortableExpressionProgram,
+        temporal: c::PortTemporal,
+        bounds: ResidentExpressionBounds,
+        instance: Option<&str>,
+        storage: ResidentExecutionStorage,
+    ) -> Result<Self, ResidentExpressionRefusal> {
         if instance.is_some_and(|name| name.is_empty() || name.len() > 1024) {
             return Err(ResidentExpressionRefusal::Bounds);
         }
@@ -116,7 +143,7 @@ impl PreparedResidentExpression {
         let output = program
             .maximum_prepared_output_bytes()
             .map_err(|_| R::Bounds)?;
-        crate::resident_back::append(&mut code, output, temporal_rust);
+        crate::resident_back::append(&mut code, output, temporal_rust, storage);
         code.push_str(&format!(
             "pub const PRIVATE_WORK_UNITS:u16={};\n",
             bounds.private_work_units
@@ -153,6 +180,7 @@ impl PreparedResidentExpression {
             });
         }
         Ok(Self {
+            storage,
             source_document: document.source_document_id.clone(),
             maximum_input,
             maximum_output: output,
@@ -164,6 +192,10 @@ impl PreparedResidentExpression {
             kind: definition.kind_id,
             offer,
         })
+    }
+    /// Cold physical storage selection, not an allocation or resource grant.
+    pub fn execution_storage(&self) -> ResidentExecutionStorage {
+        self.storage
     }
     /// Identity of the emitted realization source, not the linked Seed's content
     /// hash, proof of flash placement, or authority to install it.

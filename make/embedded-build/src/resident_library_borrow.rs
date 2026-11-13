@@ -103,7 +103,7 @@ pub fn bind(self)->[Option<(u16,BorrowedBack<'a>)>;{entries}]{{let (
 }
 
 /// A representation adapter over the existing nominal loans, not another Back.
-pub(crate) fn append_back(code: &mut String, entries: usize) {
+pub(crate) fn append_back(code: &mut String, entries: usize, workspace: bool) {
     code.push_str(include_str!("resident_assignment_source.rs"));
     append_prepared(code, entries);
     code.push_str("/// Uniform selected loans; each variant still owns its exact entry's exclusive loan.\npub enum BorrowedBack<'a>{\n");
@@ -119,6 +119,16 @@ pub(crate) fn append_back(code: &mut String, entries: usize) {
     code.push_str(
         "}}}\nimpl<const P:usize>conduit_kernel::scheduler::StepBack<P> for BorrowedBack<'_>{\n",
     );
+    if workspace {
+        for (signature, body) in [
+            ("fn workspace_requirements(&self)->Option<conduit_kernel::scheduler::StepWorkspaceRequirements>", "conduit_kernel::scheduler::StepBack::<P>::workspace_requirements(back)"),
+            ("fn step_with_workspace(&mut self,io:&mut conduit_kernel::scheduler::StepIo<P>,input:&conduit_kernel::scheduler::StepInputBytes<'_,P>,workspace:&mut conduit_kernel::scheduler::StepWorkspace<'_>)->conduit_kernel::scheduler::StepOutcome", "conduit_kernel::scheduler::StepBack::step_with_workspace(back,io,input,workspace)"),
+        ] {
+            code.push_str(signature); code.push_str("{match self{\n");
+            for index in 0..entries { code.push_str(&format!("Self::Entry{index}(back)=>{body},\n")); }
+            code.push_str("}}\n");
+        }
+    }
     for (signature, body) in [
         ("fn canonical_input_schema(&self,port:conduit_kernel::PortId)->Option<&[u8]>", "conduit_kernel::scheduler::StepBack::<P>::canonical_input_schema(back,port)"),
         ("fn canonical_output_schema(&self,port:conduit_kernel::PortId)->Option<&[u8]>", "conduit_kernel::scheduler::StepBack::<P>::canonical_output_schema(back,port)"),

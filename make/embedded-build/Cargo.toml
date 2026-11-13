@@ -5,6 +5,7 @@ edition = "2021"
 description = "Host-only current-plan to fixed Conduit kernel table generator"
 
 [features]
+execution-workspace = ["conduit-semantic-catalog/execution-workspace"]
 delegated-preparation = ["conduit-plan-lowering/delegated-preparation", "conduit-body/authenticated-admission"]
 
 [dependencies]

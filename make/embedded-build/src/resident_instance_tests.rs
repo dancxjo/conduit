@@ -85,3 +85,61 @@ fn cold_codebook_refusal_reports_required_bytes_without_enlarging_the_limit() {
         matches!(PreparedResidentExpression::prepare(&document,&program,PortTemporal::Value,selected),Err(ResidentExpressionRefusal::GeneratedBytes{required,maximum:1}) if required > 1)
     );
 }
+
+#[cfg(feature = "execution-workspace")]
+#[test]
+fn shared_workspace_fabrication_seals_storage_and_preserves_exclusive_loans() {
+    let (document, program) = crate::resident_expression_tests::context();
+    let prepare = |storage| {
+        PreparedResidentExpression::prepare_instance_with_storage(
+            &document,
+            &program,
+            PortTemporal::Value,
+            bounds(),
+            Some("display/request"),
+            storage,
+        )
+        .unwrap()
+    };
+    let owned = prepare(ResidentExecutionStorage::Owned);
+    let shared = prepare(ResidentExecutionStorage::SharedWorkspace);
+    assert_eq!(owned.kind_id(), shared.kind_id());
+    assert_ne!(owned.artifact_id(), shared.artifact_id());
+    let plan = crate::resident_expression_tests::plan(&document, &program, &shared, 1000);
+    let f = &plan.fragments[0];
+    assert!(shared
+        .bind(&plan, &f.fragment_id, &f.placements[1].placement_id)
+        .is_ok());
+    assert!(matches!(
+        owned.bind(&plan, &f.fragment_id, &f.placements[1].placement_id),
+        Err(ResidentExpressionRefusal::Selection)
+    ));
+    // Mixed physical profiles must forward each exact owner's requirements;
+    // the owned sibling still needs no scheduler workspace.
+    let code = generate_resident_library(&[owned, shared], 4 * 1024 * 1024).unwrap();
+    compiled_rust::verify_with_libraries(
+        &code,
+        r#"
+fn main(){
+ use conduit_kernel::scheduler::StepBack;
+ let mut owner=Initialized::prepare().unwrap();
+ assert!(core::mem::size_of::<entry_1::Back>() < core::mem::size_of::<entry_0::Back>());
+ let borrowed=PreparedResidentLoans{owner:&mut owner,nodes:[Some(0),Some(1)]}.bind();
+ assert!(StepBack::<1>::workspace_requirements(&borrowed[0].as_ref().unwrap().1).is_none());
+ let expected=StepBack::<1>::workspace_requirements(&borrowed[1].as_ref().unwrap().1).unwrap();
+ assert!(expected.output_bytes>0 && expected.scratch_bytes>0);
+ drop(borrowed);
+ assert!(owner.available_identity(0).is_none());
+ assert!(owner.available_identity(1).is_none());
+}
+"#,
+        "shared-workspace-resident-fabrication",
+        &[
+            "conduit_kernel",
+            "conduit_plot",
+            "conduit_core",
+            "conduit_semantic_catalog",
+            "conduit_plan_lowering",
+        ],
+    );
+}

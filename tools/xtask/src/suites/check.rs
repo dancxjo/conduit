@@ -52,8 +52,8 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         "Schema-separated storage and exact local scheduler conformance",
         "cargo",
         &[
-            "test", "-p", "conduit-kernel", "-p", "conduit-plan-lowering", "-p", "conduit-semantic-catalog",
-            "--features", "conduit-plan-lowering/schema-value-storage,conduit-semantic-catalog/schema-value-storage,conduit-semantic-catalog/prepared-expression-session,conduit-semantic-catalog/execution-workspace",
+            "test", "-p", "conduit-kernel", "-p", "conduit-plan-lowering", "-p", "conduit-semantic-catalog", "-p", "conduit-embedded-build",
+            "--features", "conduit-plan-lowering/schema-value-storage,conduit-semantic-catalog/schema-value-storage,conduit-semantic-catalog/prepared-expression-session,conduit-semantic-catalog/execution-workspace,conduit-embedded-build/execution-workspace",
         ],
     ),
     Step::new(
