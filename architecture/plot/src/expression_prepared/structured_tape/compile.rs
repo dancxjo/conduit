@@ -5,6 +5,29 @@ use crate::expression_prepared::structured::{constant_child, ChildEvaluator};
 use crate::{PortableExpressionNode as Node, PortableExpressionOperation as Expression};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 const MAX_DEPTH: u8 = 32;
+#[derive(Debug)]
+pub(super) enum CompileRefusal {
+    Expression(Refusal),
+    Limit {
+        resource: &'static str,
+        required: usize,
+        maximum: usize,
+    },
+}
+impl From<Refusal> for CompileRefusal {
+    fn from(value: Refusal) -> Self {
+        Self::Expression(value)
+    }
+}
+impl CompileRefusal {
+    fn expression(self) -> Refusal {
+        match self {
+            Self::Expression(e) => e,
+            Self::Limit { .. } => Refusal::InvalidProgram,
+        }
+    }
+}
+
 pub(super) struct ConstructorTape {
     pub(super) code: Vec<Operation>,
     pub(super) constants: Vec<u8>,
@@ -16,6 +39,13 @@ impl ConstructorTape {
         input: &PreparedInput,
         values: &mut impl FnMut(&Node) -> Result<(), Refusal>,
     ) -> Result<Self, Refusal> {
+        Self::compile_reported(program, input, values).map_err(CompileRefusal::expression)
+    }
+    pub(super) fn compile_reported(
+        program: ProgramView<'_>,
+        input: &PreparedInput,
+        values: &mut impl FnMut(&Node) -> Result<(), Refusal>,
+    ) -> Result<Self, CompileRefusal> {
         let mut tape = Self {
             code: Vec::new(),
             constants: Vec::new(),
@@ -26,17 +56,25 @@ impl ConstructorTape {
         tape.constants.shrink_to_fit();
         Ok(tape)
     }
-    fn push(&mut self, operation: Operation) -> Result<usize, Refusal> {
+    fn push(&mut self, operation: Operation) -> Result<usize, CompileRefusal> {
         if self.code.len() == MAX_OPERATIONS {
-            return Err(Refusal::InvalidProgram);
+            return Err(CompileRefusal::Limit {
+                resource: "constructor-operations",
+                required: self.code.len() + 1,
+                maximum: MAX_OPERATIONS,
+            });
         }
         let position = self.code.len();
         self.code.push(operation);
         Ok(position)
     }
-    fn bytes(&mut self, bytes: &[u8]) -> Result<(), Refusal> {
+    fn bytes(&mut self, bytes: &[u8]) -> Result<(), CompileRefusal> {
         if self.constants.len().saturating_add(bytes.len()) > MAX_CONSTANT_BYTES {
-            return Err(Refusal::InvalidProgram);
+            return Err(CompileRefusal::Limit {
+                resource: "constructor-constant-bytes",
+                required: self.constants.len().saturating_add(bytes.len()),
+                maximum: MAX_CONSTANT_BYTES,
+            });
         }
         let start = self.constants.len() as u32;
         self.constants.extend_from_slice(bytes);
@@ -64,14 +102,14 @@ impl ConstructorTape {
         })?;
         Ok(())
     }
-    fn length(&mut self, length: usize) -> Result<(), Refusal> {
+    fn length(&mut self, length: usize) -> Result<(), CompileRefusal> {
         self.bytes(
             &u32::try_from(length)
                 .map_err(|_| Refusal::InvalidProgram)?
                 .to_le_bytes(),
         )
     }
-    fn text(&mut self, text: &str) -> Result<(), Refusal> {
+    fn text(&mut self, text: &str) -> Result<(), CompileRefusal> {
         self.length(text.len())?;
         self.bytes(text.as_bytes())
     }
@@ -79,9 +117,13 @@ impl ConstructorTape {
         &mut self,
         node: &Node,
         values: &mut impl FnMut(&Node) -> Result<(), Refusal>,
-    ) -> Result<u16, Refusal> {
+    ) -> Result<u16, CompileRefusal> {
         if self.value_count == MAX_VALUES {
-            return Err(Refusal::InvalidProgram);
+            return Err(CompileRefusal::Limit {
+                resource: "constructor-values",
+                required: self.value_count + 1,
+                maximum: MAX_VALUES,
+            });
         }
         let value = self.value_count as u16;
         values(node)?;
@@ -95,9 +137,13 @@ impl ConstructorTape {
         input: &PreparedInput,
         depth: u8,
         values: &mut impl FnMut(&Node) -> Result<(), Refusal>,
-    ) -> Result<(), Refusal> {
+    ) -> Result<(), CompileRefusal> {
         if depth == MAX_DEPTH {
-            return Err(Refusal::InvalidProgram);
+            return Err(CompileRefusal::Limit {
+                resource: "constructor-depth",
+                required: usize::from(depth) + 1,
+                maximum: usize::from(MAX_DEPTH),
+            });
         }
         let view = ProgramView {
             output_type: &node.value_type,
@@ -146,13 +192,13 @@ impl ConstructorTape {
             }
             Expression::Variant { tag, payload } => {
                 let StructuredInfoTypeShape::Variant { cases, .. } = node.value_type.shape() else {
-                    return Err(Refusal::InvalidProgram);
+                    return Err(Refusal::InvalidProgram.into());
                 };
                 if !cases
                     .iter()
                     .any(|case| case.tag() == tag && case.payload_type() == &payload.value_type)
                 {
-                    return Err(Refusal::InvalidProgram);
+                    return Err(Refusal::InvalidProgram.into());
                 }
                 self.bytes(&[3])?;
                 self.text(tag)?;
@@ -169,7 +215,7 @@ impl ConstructorTape {
                     || when_true.value_type != node.value_type
                     || when_false.value_type != node.value_type
                 {
-                    return Err(Refusal::InvalidProgram);
+                    return Err(Refusal::InvalidProgram.into());
                 }
                 let value = self.value(condition, values)?;
                 let branch = self.push(Operation::BranchFalse { value, target: 0 })?;

@@ -11,10 +11,31 @@ pub enum StaticStructuredGenerationRefusal {
     Expression(Refusal),
     Native(ResidentNativeGenerationRefusal),
     Child(StaticProjectedGenerationRefusal),
+    ConstructorLimit {
+        resource: &'static str,
+        required: usize,
+        maximum: usize,
+    },
 }
 impl From<Refusal> for StaticStructuredGenerationRefusal {
     fn from(value: Refusal) -> Self {
         Self::Expression(value)
+    }
+}
+impl From<super::super::compile::CompileRefusal> for StaticStructuredGenerationRefusal {
+    fn from(value: super::super::compile::CompileRefusal) -> Self {
+        match value {
+            super::super::compile::CompileRefusal::Expression(error) => Self::Expression(error),
+            super::super::compile::CompileRefusal::Limit {
+                resource,
+                required,
+                maximum,
+            } => Self::ConstructorLimit {
+                resource,
+                required,
+                maximum,
+            },
+        }
     }
 }
 pub fn generate_static_structured_expression(
@@ -73,7 +94,7 @@ pub fn generate_static_structured_expression(
     }
     let mut children = Vec::new();
     let mut child_refusal = None;
-    let tape = ConstructorTape::compile(view, &prepared.input, &mut |node| {
+    let tape = ConstructorTape::compile_reported(view, &prepared.input, &mut |node| {
         let child = PortableExpressionProgram {
             input_type: program.input_type.clone(),
             input_maximum_bytes: program.input_maximum_bytes,
