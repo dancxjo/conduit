@@ -14,7 +14,19 @@ impl NativePresentation {
 
     pub(super) fn retire_input(&mut self, runtime: &mut DurableHostRuntime) -> Result<(), String> {
         self.finish_input(runtime)?;
-        retire_frame(runtime)
+        retire_encounter_stores(runtime)
+    }
+
+    fn lose_input_encounter(
+        &mut self,
+        runtime: &mut DurableHostRuntime,
+        error: &str,
+    ) -> Result<(), String> {
+        self.retire_input(runtime)?;
+        drop(self.owner.take());
+        self.next_refresh = Instant::now() + self.reconnect_delay.unwrap_or(REFRESH_PERIOD);
+        eprintln!("native input encounter lost; occurrence discarded, no replay:{error}");
+        Ok(())
     }
 
     pub(in crate::durable_host) fn input(
@@ -37,6 +49,14 @@ impl NativePresentation {
         if self.pending_input.is_some() {
             return Ok(());
         }
+        // The driver loop dispatches input before its ordinary presence poll.
+        // Renew only this existing carrier; failure discards the old occurrence
+        // instead of applying it to a replacement Show.
+        if let Some(owner) = self.owner.as_mut() {
+            if let Err(error) = owner.poll_presence() {
+                return self.lose_input_encounter(runtime, &error);
+            }
+        }
         let (Some(owner), Some(route)) = (&mut self.owner, &self.current_input_route) else {
             return Ok(());
         };
@@ -56,7 +76,7 @@ impl NativePresentation {
                 key,
                 self.input_sequence,
                 output,
-            )?,
+            ),
             NativeInput::Pointer(sample) => host.selected_native_mask_pointer(
                 owner,
                 route,
@@ -65,8 +85,17 @@ impl NativePresentation {
                 activate,
                 self.input_sequence,
                 output,
-            )?,
+            ),
             _ => return Ok(()),
+        };
+        let result = match result {
+            Ok(result) => result,
+            // Account for expiry after preflight (for example OS preemption).
+            // All other errors, including kernel/output failures, remain fatal.
+            Err(error) if owner.expired_member_error(&error) => {
+                return self.lose_input_encounter(runtime, &error);
+            }
+            Err(error) => return Err(error),
         };
         if let SelectedNativeMaskInput::Submitted(interaction) = result {
             self.pending_input = Some(interaction);

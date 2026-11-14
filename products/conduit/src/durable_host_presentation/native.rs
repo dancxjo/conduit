@@ -1,6 +1,6 @@
 //! Shared native presentation on the installed Seed's actual initialized Host.
 //! Initial admission and current-member presentation retain distinct authority.
-use super::{RuntimeStatus, wire};
+use super::{wire, RuntimeStatus};
 use crate::durable_host::routed_join::MaskSelection;
 use crate::durable_host_control::DurableHostRuntime;
 use conduit_linux_display::Scanout;
@@ -35,6 +35,9 @@ enum NativeOwner {
     Member(wire::member_carrier_client::MemberRoute),
 }
 impl NativeOwner {
+    fn expired_member_error(&self, error: &str) -> bool {
+        matches!(self, Self::Member(_)) && error == wire::member_carrier_client::EXPIRED
+    }
     fn acknowledge(&self, show: &conduit_face::MaskShow) -> Result<(), String> {
         match self {
             Self::Joining(route) => route.acknowledge(show),
@@ -148,6 +151,10 @@ impl NativePresentation {
         let delay = self
             .reconnect_delay
             .ok_or("native continuing contact absent")?;
+        // Dispose the old Plan BEFORE allocating a fresh carrier/advertisement.
+        // This also covers initial presentation whose Show ACK was lost.
+        self.retire_input(runtime)?;
+        drop(self.owner.take());
         let connection = member_connection(runtime, &mut self.status, &self.state);
         self.next_refresh = Instant::now() + delay;
         match connection {
@@ -315,7 +322,7 @@ fn present(
             play_sequence,
             front,
             output,
-        )?
+        )
     } else {
         host.render_selected_native_mask(
             owner,
@@ -324,7 +331,18 @@ fn present(
             play_sequence,
             front,
             output,
-        )?
+        )
+    };
+    let frame = match frame {
+        Ok(frame) => frame,
+        Err(error) if owner.expired_member_error(&error) => {
+            // Only this closed adapter's explicit expiry is recoverable here.
+            // A kernel/output failure or uncertain retirement stays terminal.
+            retire_encounter_stores(runtime)?;
+            eprintln!("native presentation expired; displayed pixels are historical");
+            return Ok((false, None));
+        }
+        Err(error) => return Err(error),
     };
     // Acknowledge the actual Available Show only after the physical driver ACK.
     let acknowledgement = owner.acknowledge(
@@ -369,4 +387,11 @@ fn retire_frame(runtime: &mut DurableHostRuntime) -> Result<(), String> {
         host.retire_selected_native_mask_evidence(&mut evidence)?;
     }
     Ok(())
+}
+
+fn retire_encounter_stores(runtime: &mut DurableHostRuntime) -> Result<(), String> {
+    retire_frame(runtime)?;
+    runtime
+        .presentation_host_mut()?
+        .retire_selected_native_mask_plan()
 }

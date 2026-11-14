@@ -10,6 +10,8 @@ use std::{cell::RefCell, path::Path};
 #[path = "member_carrier_client/presence_deadline.rs"]
 mod presence_deadline;
 use presence_deadline::PresenceDeadline;
+pub(in crate::durable_host::presentation) const EXPIRED: &str =
+    "current-member presentation encounter expired";
 
 struct Carrier {
     line: SecureWebSocketClientLine,
@@ -180,7 +182,7 @@ impl MemberRoute {
             || Instant::now() >= carrier.presence.deadline
             || crate::durable_host::current_time_millis()? >= self.descriptor_expiry
         {
-            return Err("current-member presentation encounter expired".into());
+            return Err(EXPIRED.into());
         }
         Ok(())
     }
