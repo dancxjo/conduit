@@ -96,6 +96,20 @@ unsafe impl<S: ExecutionValues> ExecutionValues
     }
 }
 
+#[cfg(feature = "schema-value-storage")]
+// SAFETY: report the canonical owner's allocations plus every logical slot,
+// schema class and physical buffer owned by this prepared pool. Selection and
+// the graph's physical lifetime proof remain independent admission obligations.
+unsafe impl<S: ExecutionValues> ExecutionValues
+    for conduit_plan_lowering::shared_schema_value_store::SharedSchemaValueStore<'_, S>
+{
+    fn external_backing_bytes(&self) -> Option<usize> {
+        self.canonical_storage()
+            .external_backing_bytes()?
+            .checked_add(self.reserved_node_storage_bytes())
+    }
+}
+
 /// Physical backing outside the kernel's own inline storage.
 /// # Safety
 /// Count every external allocation retained by this exact Sign owner.
