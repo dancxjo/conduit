@@ -1,6 +1,6 @@
 # ExecutionKernel immutable-storage next gate
 
-Read-only audit; no build, experiment or production edit. Actual ARM geometry reports ExecutionKernel inline64,192B (`outputs/arm-shared-schema-geometry-20261114.json`). Actual positive CPU factory after shared stock retains189,469B/peaks191,508B; neither proves fit in the unchanged131,072B target heap.
+Read-only audit; no build, experiment or production edit. The pre-selection ARM geometry probe reports ExecutionKernel inline64,192B (`outputs/arm-shared-schema-geometry-20261114.json`). Actual positive CPU factory after shared stock retains189,469B/peaks191,508B; neither proves fit in the unchanged131,072B target heap.
 
 ## Verified substantial duplicate: exact terminal contracts
 
