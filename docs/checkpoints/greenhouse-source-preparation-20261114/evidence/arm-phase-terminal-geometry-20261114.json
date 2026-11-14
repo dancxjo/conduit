@@ -1,0 +1,24 @@
+{
+  "assurance": "Compile-only actual ARM ABI, not runtime heap/stack or admission proof",
+  "source_checkpoint": "25145af968b5f71eddf18bf50e48378146678c90",
+  "sizes": {
+    "LINKED_FULL_PHASE_KERNEL_BYTES": 47192,
+    "NEUTRAL_DRIVER_BYTES": 64,
+    "NEUTRAL_HOST_CALL_BACK_BYTES": 16,
+    "NEUTRAL_KERNEL_BYTES": 39592,
+    "NEUTRAL_RESIDENT_BYTES": 9016,
+    "NEUTRAL_ROOT_BYTES": 33432,
+    "NEUTRAL_SOFTWARE_BACK_BYTES": 64,
+    "NEUTRAL_VALUES_BYTES": 120,
+    "NEUTRAL_WRITE_BACK_BYTES": 28,
+    "OWNED_KERNEL_BYTES": 64216,
+    "TERMINAL_ENTRY_BYTES": 112,
+    "TERMINAL_TABLE_BYTES": 17024,
+    "SELECTED_PHASE_BYTES": 0
+  },
+  "phase_inline_saving_bytes": 7600,
+  "source_derived_selected_phase_bytes": 0,
+  "probe_sha256": "a7df7422d14a96e0ee64d0e4f136bd9595e8536c1a4e61ccef3f35640a6780d4",
+  "execution": false,
+  "zero_array_llvm_representation": "constant <{}> zeroinitializer"
+}

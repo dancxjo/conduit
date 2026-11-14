@@ -96,3 +96,9 @@ Receipt: `positive-phase-terminal-factory-20261114.json`; test log alongside it.
 ## Execution-handoff source audit
 
 A read-only follow-up records the exact missing execution handoff in `source76-execution-handoff-audit-20261114.md`. The neutral service intentionally prepares/drops and never calls the existing admission/Start APIs. The authored component has three inputs and nine outputs and already shares one I2C owner across sensor/display protocols. Structured ingress support exists; the production external carrier handles only one input/output pair and payload lifecycle. Complete local authored composition and actual Face/Mask owners are required, rather than removing the refusal or inventing Lines for local hardware. No build or device changes accompanied this audit.
+
+## Phase-profile ARM qualification
+
+The saved phase-profile release now builds and links for ARM. Compile-only actual ARM geometry is **39,592 bytes** for the selected kernel, versus47,192 bytes for linked contracts with full phase payloads: **7,600 bytes less**. The Source-derived phase capacity is0. Default full-inline/full-phase kernel geometry remains64,216 bytes. This is kernel type size, not total Host RAM.
+
+Newest preparation-entry ELF SHA-256: `557cf6092cec42178b3280746da51fb960394669bbcc841a77e192496df3e4cb`. Flash margin **49,636 bytes**; static extent209,088 bytes; stack region61,248 bytes; heap grant131,072 bytes unchanged. Build and ABI receipts are `rp2040-phase-terminal-build-receipt-20261114.json`, `rp2040-phase-terminal-footprint-20261114.json` and `arm-phase-terminal-geometry-20261114.json`. No device was flashed. Whole reachable application fit, actual runtime heap/stack and admitted execution remain unproved.
