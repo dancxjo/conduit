@@ -523,3 +523,6 @@ fn authenticated_two_line_viewer_cannot_mint_human_input_from_available_actions(
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+
+#[path = "presentation/owner_navigation.rs"]
+mod owner_navigation;

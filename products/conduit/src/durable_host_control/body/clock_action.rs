@@ -65,6 +65,14 @@ impl DurableHostRuntime {
         if interaction.action_id.starts_with("host-config/") && browser.is_none() {
             return Err("Crèche actions require an admitted selected Mask return".into());
         }
+        {
+            let HostSource::Body { owner, .. } = &mut self.host else {
+                return Err("installed Host does not own a live Body session".into());
+            };
+            if let Some(result) = owner.navigate_owner_context(show, interaction)? {
+                return Ok(result);
+            }
+        }
         let action = {
             let HostSource::Body { owner, .. } = &self.host else {
                 return Err("installed Host does not own a live Body session".into());

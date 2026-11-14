@@ -72,6 +72,8 @@ mod member_leave;
 mod member_offers;
 #[path = "member_return.rs"]
 mod member_return;
+#[path = "owner_navigation.rs"]
+mod owner_navigation;
 #[path = "planning.rs"]
 mod planning;
 #[cfg(target_os = "linux")]
@@ -244,6 +246,7 @@ pub(crate) struct Owner {
     resident: Option<ResidentPlot>,
     resident_name: Option<String>,
     clock_interval_ms: Option<u64>,
+    owner_navigation: owner_navigation::OwnerNavigation,
     last_execution: Option<serde_json::Value>,
     execution_persistence_pending: bool,
     workset_recovery_required: bool,
@@ -368,6 +371,7 @@ impl Owner {
             resident: Some(resident),
             resident_name: None,
             clock_interval_ms: None,
+            owner_navigation: owner_navigation::OwnerNavigation::default(),
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
@@ -409,6 +413,7 @@ impl Owner {
             resident,
             resident_name: None,
             clock_interval_ms: None,
+            owner_navigation: owner_navigation::OwnerNavigation::default(),
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,

@@ -106,6 +106,7 @@ impl Owner {
             resident: prepared.resident,
             resident_name: None,
             clock_interval_ms: None,
+            owner_navigation: super::owner_navigation::OwnerNavigation::default(),
             last_execution: None,
             runtime_face: None,
             execution_persistence_pending: false,
