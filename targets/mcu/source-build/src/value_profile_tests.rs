@@ -179,3 +179,45 @@ fn altered_artifacts_schemas_ports_duplicates_and_extents_refuse() {
         Err("schema-extent")
     ));
 }
+
+#[test]
+fn topology_associations_preserve_fanout_multioutput_queue_order_and_external_sinks() {
+    let schema = schema();
+    let mut graph = graph(&schema);
+    graph.cords[0].item_capacity = 3;
+    graph.cords[1].slot_start = 3;
+    let mut second = graph.cords[1].clone();
+    second.cord = 2;
+    second.source = Endpoint::Local { node: 0, port: 1 };
+    second.sink = Endpoint::Remote { endpoint: 7 };
+    second.slot_start = 4;
+    second.item_capacity = 2;
+    second.maximum_value_bytes += 9;
+    graph.cords.push(second);
+    let mut output = graph.output_ports[0].clone();
+    output.port = 1;
+    graph.output_ports.push(output);
+    // Unrouted outputs must not invent either a Step slot or an association.
+    let mut unused = graph.output_ports[0].clone();
+    unused.port = 2;
+    graph.output_ports.push(unused);
+    let selected = select(&graph, &declarations(&schema)).unwrap();
+    assert_eq!(
+        selected.cord_sinks,
+        vec![
+            Endpoint::Local { node: 1, port: 0 },
+            Endpoint::Local { node: 1, port: 0 },
+            Endpoint::Local { node: 1, port: 0 },
+            Endpoint::Local { node: 2, port: 0 },
+            Endpoint::Remote { endpoint: 7 },
+            Endpoint::Remote { endpoint: 7 },
+        ]
+    );
+    assert_eq!(selected.step_outputs, vec![(0, 0), (0, 1)]);
+    assert_eq!(selected.cord_sinks.len(), selected.cords.len());
+    assert_eq!(selected.step_outputs.len(), selected.steps.len());
+    assert_eq!(selected.steps[1], Slot::Canonical(schema.len() as u32 + 17));
+    let emitted = selected.emit_rust();
+    assert!(emitted.contains("pub const CORD_VALUE_SINKS:&[Option<(u16,u16)>]=&[\nSome((1,0)),\nSome((1,0)),\nSome((1,0)),\nSome((2,0)),\nNone,\nNone,\n];"));
+    assert!(emitted.contains("pub const STEP_VALUE_OUTPUTS:&[(u16,u16)]=&[(0, 0), (0, 1)];"));
+}
