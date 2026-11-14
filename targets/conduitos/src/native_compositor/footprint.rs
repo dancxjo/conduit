@@ -1,6 +1,6 @@
 //! Actual owned payload of the ordinary retained CPU compositor.
 //!
-//! Configured visual-expression/Look owners are deliberately unsupported here.
+//! Expression identity storage is counted; configured Look owners remain unsupported.
 //! This does not account allocator overhead, stack, GPU/SDL storage, or peak
 //! preparation workspace. A caller must not add the fixed raster receipt twice.
 use super::*;
@@ -18,10 +18,10 @@ impl Bytes {
 }
 
 impl CompositionReceipt {
-    /// Exact heap payload for an ordinary unconfigured presentation receipt.
-    /// Inline fields are excluded; configured visual owners refuse explicitly.
+    /// Exact heap payload for a presentation receipt, including its expression.
+    /// Inline fields are excluded; configured Look owners refuse explicitly.
     pub fn ordinary_retained_backing_bytes(&self) -> Option<usize> {
-        if self.visual_expression.is_some() || self.visual_look.is_some() {
+        if self.visual_look.is_some() {
             return None;
         }
         let Self {
@@ -41,7 +41,7 @@ impl CompositionReceipt {
             display_base_id,
             surface_id,
             display: _,
-            visual_expression: _,
+            visual_expression,
             visual_look: _,
         } = self;
         let mut bytes = Bytes(0);
@@ -61,6 +61,9 @@ impl CompositionReceipt {
             surface_id.capacity(),
         ] {
             bytes.add(capacity)?;
+        }
+        if let Some(expression) = visual_expression {
+            bytes.add(expression.expression.identity.capacity())?;
         }
         Some(bytes.0)
     }
@@ -124,8 +127,11 @@ impl NativeCompositor {
                 receipt,
                 input_ready: _,
             } = surface;
-            if visual_expression.is_some() || visual_look.is_some() {
+            if visual_look.is_some() {
                 return None;
+            }
+            if let Some(expression) = visual_expression {
+                bytes.add(expression.expression.identity.capacity())?;
             }
             bytes.add(surface_id.capacity())?;
             bytes.vector(&buffer.pixels)?;
@@ -185,5 +191,41 @@ mod tests {
             compositor.ordinary_retained_backing_bytes(),
             Some(before + added)
         );
+    }
+
+    #[test]
+    fn expression_identity_counts_allocated_capacity_on_each_surface() {
+        let raster = PreparedCompositorBacking::prepare("surface", 8, 8, usize::MAX).unwrap();
+        let admission = CompositorAdmission::new(
+            "host".into(),
+            "boot".into(),
+            conduit_core::OfferGeneration(1),
+            "renderer".into(),
+            "display".into(),
+            alloc::vec!["placement".into()],
+            alloc::vec!["surface".into()],
+        )
+        .unwrap();
+        let mut compositor = raster.bind(admission).unwrap();
+        let before = compositor.ordinary_retained_backing_bytes().unwrap();
+        let mut expression = conduit_face::admit_visual_expression(
+            Ok(conduit_face::VisualExpression::phosphor()),
+            conduit_face::VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 150,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        expression.expression.identity.reserve_exact(257);
+        let capacity = expression.expression.identity.capacity();
+        compositor.surfaces[0].visual_expression = Some(expression);
+        assert_eq!(
+            compositor.ordinary_retained_backing_bytes(),
+            Some(before + capacity)
+        );
+        compositor.surfaces[0].visual_expression = None;
+        assert_eq!(compositor.ordinary_retained_backing_bytes(), Some(before));
     }
 }
