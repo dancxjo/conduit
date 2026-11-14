@@ -59,9 +59,10 @@ These are CPU64 requested allocations, not target RAM fit:
 | Before shared physical buffers | 210,354 | 212,393 |
 | Shared buffers selected | 189,469 | 191,508 |
 | Shared buffers and linked terminal table | 172,453 | 174,492 |
-| Plus Source-derived phase capacity (CPU only) | **164,853** | **166,892** |
+| Plus Source-derived phase capacity | 164,853 | 166,892 |
+| Plus zero remote trace stock for checked local Fore (CPU only) | **159,165** | **161,204** |
 
-The verified combined CPU64 saving is **45,501 bytes** in both retained and peak allocation. Exclusions remain preexisting Root, equipment, resident inventory, issuer grants, allocator overhead and stack. The separately funded CPU test arena is **not** the MCU's unchanged 131,072-byte heap. The newest row includes the separately qualified7,600-byte full-factory phase-capacity saving; no new ARM saving is inferred.
+The verified combined CPU64 saving is **51,189 bytes** in both retained and peak allocation. Exclusions remain preexisting Root, equipment, resident inventory, issuer grants, allocator overhead and stack. The separately funded CPU test arena is **not** the MCU's unchanged 131,072-byte heap. The table includes the7,600-byte phase-capacity and5,688-byte local trace savings. The local-trace factory change has no new ARM release qualification.
 
 Latest kernel tests: **258 passed, three ignored**, including linked-contract and phase-capacity cases; no_alloc compilation and strict kernel library/test Clippy pass. Latest MCU forwarding tests: **139 passed, one ignored**. Source topology tests: five passed. Original whole-factory/Root preflight and no_std proof pass. The last MCU strict-Clippy run was at c7e14f11e2; the subsequent forwarding slice compiled and passed its runtime suite.
 
@@ -73,7 +74,7 @@ The latest ARM preparation-entrance release links with **49,636 bytes flash marg
 | Linked contracts, full phase payloads | 47,192 |
 | Linked contracts, Source-derived phase capacity | **39,592** |
 
-These kernel sizes exclude external value buffers, Sign backing, software-owned allocations and workspace. They must not be compared with the heap grant as if they were the complete footprint. Linking this preparation entrance does not prove the complete reachable application fits or executes. Receipts: `rp2040-phase-terminal-build-receipt-20261114.json`, `rp2040-phase-terminal-footprint-20261114.json` and `arm-phase-terminal-geometry-20261114.json`.
+This last ARM ELF predates the zero-remote-trace factory change. These kernel sizes exclude external value buffers, Sign backing, software-owned allocations and workspace. They must not be compared with the heap grant as if they were the complete footprint. Linking this preparation entrance does not prove the complete reachable application fits or executes. Receipts: `rp2040-phase-terminal-build-receipt-20261114.json`, `rp2040-phase-terminal-footprint-20261114.json` and `arm-phase-terminal-geometry-20261114.json`.
 
 ## What is running, and what is not established
 
@@ -93,9 +94,9 @@ The experimental MCU entrance still prepares/drops and refuses **`structured-for
 
 This work belongs principally to **#6341 and #6457**. Native Mask/Fore acceptance remains relevant to #6374/#6378; lifetime correctness to #6340/#6409; durable member/history acceptance to #6461/#6465 and the parent #6295. These preparation results do not close those acceptance obligations, and no new MCU memory epic is needed.
 
-## Remaining heap shortfall: bounded preparation evidence
+## Historical heap check before local-only trace reduction
 
-The current selected representation still cannot fit the unchanged131,072-byte heap. A conservative requested-backing lower bound is:
+The preceding full-remote-trace representation could not fit the unchanged131,072-byte heap. Its conservative requested-backing lower bound was:
 
 | Simultaneously retained term | Bytes |
 | --- | ---: |
@@ -105,7 +106,7 @@ The current selected representation still cannot fit the unchanged131,072-byte h
 | Schema/node u8 payload reservations in the selected profile | 55,524 |
 | **Minimum** | **134,571** |
 
-This exceeds the **entire heap by3,499 bytes**, before slot/class metadata, software owners, execution workspace, original Root/equipment/issuer allocations, allocator overhead and stack. It also excludes the unfinished application/Face/Mask/history integration. Further reduction is required; this is not a reason to increase grants or flash now.
+That former profile exceeded the **entire heap by3,499 bytes**, before slot/class metadata, software owners, execution workspace, original Root/equipment/issuer allocations, allocator overhead and stack. It also excludes the unfinished application/Face/Mask/history integration. Further reduction is required; this is not a reason to increase grants or flash now.
 
 The payload terms were observed twice, identically, from the exact actual prepared-owner selection using the explicitly enabled CPU diagnostic copy:31 canonical slots,144 logical schema slots,111 physical schema buffers,12 reduced classes, no unknown-owner fallback. They are reserved u8 byte extents, not CPU struct sizes. Kernel and Sign terms come from the actual ARM ABI; no CPU64 aggregate is added to an ARM size. The diagnostic preserves the original checks/refusals; the successful original uninstrumented preparation receipt remains separate. No firmware/device changed. See `source76-ARM-heap-lower-bound-20261114.json` and `selected-stock-diagnostic-20261114.log`.
 
