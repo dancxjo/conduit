@@ -65,7 +65,14 @@ impl NativeFaceScene {
     /// Bounded preparation work visits the existing finite document without
     /// allocating or retaining any old Face/Show owners. Drafts are not cursors.
     pub fn reading_position(&self) -> Option<NativeReadingPosition> {
-        if self.showing_diagram || self.has_pending_input() || self.local_notice.is_some() {
+        if self.showing_diagram
+            || self
+                .graph_reading
+                .as_ref()
+                .is_some_and(|reading| reading.active)
+            || self.has_pending_input()
+            || self.local_notice.is_some()
+        {
             return None;
         }
         Some(NativeReadingPosition {
@@ -80,6 +87,10 @@ impl NativeFaceScene {
     /// A changed identity, revision, layout, typography or draft refuses purely.
     pub fn restore_reading_position(&mut self, position: NativeReadingPosition) -> bool {
         if self.showing_diagram
+            || self
+                .graph_reading
+                .as_ref()
+                .is_some_and(|reading| reading.active)
             || self.has_pending_input()
             || self.local_notice.is_some()
             || self.typography != position.typography
