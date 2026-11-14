@@ -36,6 +36,8 @@ impl<'a> DelegatedBodyFragment<'a> {
     pub fn receiver_profile(&self) -> c::AssignedIdentity {
         self.receiver_profile
     }
+    /// Approved logical metadata. Schema4 resources borrow the verified installed
+    /// rows; ordinary wire encoders deliberately refuse this resolved view.
     pub fn metadata(&self) -> &BodyFragmentApprovalMetadata<'a> {
         &self.metadata
     }
@@ -135,6 +137,37 @@ pub(super) fn finish_checked<'a>(
 // receiving entrances; every decoder shares these exact scope/resource checks.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn finish_checked_with<'a>(
+    metadata: BodyFragmentApprovalMetadata<'a>,
+    projection: &'a [u8],
+    actual: &c::HostAdvertisement,
+    body: &str,
+    maximum_assignment_bytes: u32,
+    maximum_runtime_state_bytes: u32,
+    profile: AssignedBodyPreparationProfile<'_>,
+    decode: impl FnOnce(
+        &AssignedBodyPreparationProfile<'_>,
+    ) -> Result<c::AssignedPlanView, c::AssignedPlanRefusal>,
+) -> Result<DelegatedBodyFragment<'a>, DelegatedFragmentRefusal> {
+    if metadata.schema != 3 {
+        return Err(DelegatedFragmentRefusal::Document(
+            BodyFragmentDocumentRefusal::Metadata,
+        ));
+    }
+    finish_resolved_checked_with(
+        metadata,
+        projection,
+        actual,
+        body,
+        maximum_assignment_bytes,
+        maximum_runtime_state_bytes,
+        profile,
+        decode,
+    )
+}
+// Private shared laws after either inline-wire validation or explicit installed
+// resolution. Only authenticated public entrances may reach this constructor.
+#[allow(clippy::too_many_arguments)]
+pub(super) fn finish_resolved_checked_with<'a>(
     metadata: BodyFragmentApprovalMetadata<'a>,
     projection: &'a [u8],
     actual: &c::HostAdvertisement,

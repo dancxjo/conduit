@@ -71,6 +71,13 @@ pub(super) fn receive<'w, 'p, const I: usize, const F: usize, const PORTS: usize
                     context,
                     profile,
                 ),
+            AssignedPreparationProfile::InstalledPlainResources(profile) => set
+                .receive_fragment_with_installed_plain_resources::<PORTS>(
+                    index,
+                    policy.preparation,
+                    context,
+                    profile,
+                ),
         };
         let (fragment, fore) = received.map_err(Refusal::Workset)?;
         fragments.push(fragment);
