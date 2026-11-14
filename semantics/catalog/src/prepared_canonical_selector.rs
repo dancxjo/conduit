@@ -165,3 +165,7 @@ mod linked_selector_tests {
         );
     }
 }
+
+#[path = "prepared_canonical_selector/workspace.rs"]
+mod workspace;
+pub use workspace::PreparedLinkedWorkspaceSelector;

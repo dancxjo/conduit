@@ -45,7 +45,7 @@ pub use json::*;
 mod structured_selector;
 pub use structured_selector::*;
 mod prepared_canonical_selector;
-pub use prepared_canonical_selector::PreparedCanonicalSelector;
+pub use prepared_canonical_selector::{PreparedCanonicalSelector,PreparedLinkedWorkspaceSelector};
 mod structured_values;
 pub use structured_values::*;
 mod installed_value;

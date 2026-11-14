@@ -11,6 +11,10 @@ pub struct PreparedBorrowedStructuredSelector {
     operation: StructuredSelectorBack,
     maximum_output_bytes: usize,
 }
+enum Selected<'value> {
+    Value(crate::ValidatedCanonicalStructuredValue<'value>),
+    Unmatched(crate::UnmatchedVariantDisposition),
+}
 impl PreparedBorrowedStructuredSelector {
     pub fn new(
         material: &'static [u8],
@@ -121,6 +125,22 @@ impl PreparedBorrowedStructuredSelector {
         value: crate::ValidatedCanonicalStructuredValue<'_>,
         output: &mut Vec<u8>,
     ) -> Result<StructuredCanonicalSelection, StructuredSelectorRefusal> {
+        let selected = match self.selected(value)? {
+            Selected::Value(selected) => selected,
+            Selected::Unmatched(disposition) => {
+                return Ok(StructuredCanonicalSelection::Unmatched(disposition))
+            }
+        };
+        self.checked_size(selected, output.capacity())?;
+        output.clear();
+        output.extend_from_slice(self.output_type);
+        output.extend_from_slice(selected.value_node());
+        Ok(StructuredCanonicalSelection::Matched)
+    }
+    fn selected<'value>(
+        &self,
+        value: crate::ValidatedCanonicalStructuredValue<'value>,
+    ) -> Result<Selected<'value>, StructuredSelectorRefusal> {
         use StructuredSelectorRefusal as E;
         let malformed = |_| E::MalformedCheckedValue;
         let representation = value.representation().map_err(malformed)?;
@@ -135,7 +155,7 @@ impl PreparedBorrowedStructuredSelector {
                 .ok_or(E::IndexOutOfRange)?,
             StructuredSelectorBack::Variant { tag, unmatched } => {
                 let Some(payload) = representation.variant_payload(tag).map_err(malformed)? else {
-                    return Ok(StructuredCanonicalSelection::Unmatched(*unmatched));
+                    return Ok(Selected::Unmatched(*unmatched));
                 };
                 payload
             }
@@ -158,25 +178,86 @@ impl PreparedBorrowedStructuredSelector {
                 let identity = kind.text_ref().map_err(malformed)?;
                 let actual = leaf.primitive_bytes(identity).map_err(malformed)?;
                 if expected.iter().any(|v| v.as_slice() == actual) != *match_when_present {
-                    return Ok(StructuredCanonicalSelection::Unmatched(*unmatched));
+                    return Ok(Selected::Unmatched(*unmatched));
                 }
                 value
             }
         };
+        Ok(Selected::Value(selected))
+    }
+    fn checked_size(
+        &self,
+        selected: crate::ValidatedCanonicalStructuredValue<'_>,
+        capacity: usize,
+    ) -> Result<usize, StructuredSelectorRefusal> {
+        use StructuredSelectorRefusal as E;
         let bytes = self
             .output_type
             .len()
             .checked_add(selected.value_node().len())
             .ok_or(E::CanonicalEncodingTooLarge)?;
-        if bytes > self.maximum_output_bytes || bytes > output.capacity() {
+        if bytes > self.maximum_output_bytes || bytes > capacity {
             return Err(E::CanonicalEncodingTooLarge);
         }
         if selected.type_bytes() != self.output_type {
             return Err(E::MalformedCheckedValue);
         }
-        output.clear();
-        output.extend_from_slice(self.output_type);
-        output.extend_from_slice(selected.value_node());
-        Ok(StructuredCanonicalSelection::Matched)
+        Ok(bytes)
+    }
+    /// Complete validation and all size/type checks precede any destination write.
+    /// Unmatched dispositions preserve the destination and report zero bytes.
+    pub fn select_canonical_slice_into(
+        &self,
+        encoded: &[u8],
+        output: &mut [u8],
+    ) -> Result<(StructuredCanonicalSelection, usize), StructuredSelectorRefusal> {
+        let value = self
+            .input
+            .validate(encoded)
+            .map_err(selection_input_error)?;
+        self.select_validated_slice_into(value, output)
+    }
+    pub fn select_parts_slice_into(
+        &self,
+        schema: &[u8],
+        node: &[u8],
+        output: &mut [u8],
+    ) -> Result<(StructuredCanonicalSelection, usize), StructuredSelectorRefusal> {
+        if schema != self.input.type_bytes() {
+            return Err(StructuredSelectorRefusal::WrongInputType);
+        }
+        let value = self
+            .input
+            .validate_node(node)
+            .map_err(selection_input_error)?;
+        self.select_validated_slice_into(value, output)
+    }
+    fn select_validated_slice_into(
+        &self,
+        value: crate::ValidatedCanonicalStructuredValue<'_>,
+        output: &mut [u8],
+    ) -> Result<(StructuredCanonicalSelection, usize), StructuredSelectorRefusal> {
+        match self.selected(value)? {
+            Selected::Unmatched(disposition) => {
+                Ok((StructuredCanonicalSelection::Unmatched(disposition), 0))
+            }
+            Selected::Value(selected) => {
+                let length = self.checked_size(selected, output.len())?;
+                let (schema, node) = output[..length].split_at_mut(self.output_type.len());
+                schema.copy_from_slice(self.output_type);
+                node.copy_from_slice(selected.value_node());
+                Ok((StructuredCanonicalSelection::Matched, length))
+            }
+        }
+    }
+}
+
+fn selection_input_error(error: StructuredInfoRefusal) -> StructuredSelectorRefusal {
+    match error {
+        StructuredInfoRefusal::WrongType => StructuredSelectorRefusal::WrongInputType,
+        StructuredInfoRefusal::CanonicalEncodingTooLarge => {
+            StructuredSelectorRefusal::CanonicalEncodingTooLarge
+        }
+        _ => StructuredSelectorRefusal::MalformedCheckedValue,
     }
 }

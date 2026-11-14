@@ -57,6 +57,8 @@ pub enum SoftwareBack<'a> {
     Tick(conduit_time::TickBack),
     Trigger(conduit_time::TickTriggerBack),
     Selector(Box<SelectorBack>),
+    #[cfg(feature = "execution-workspace")]
+    WorkspaceSelector(Box<WorkspaceSelectorBack>),
     Observation(Box<ObservationBack>),
     RecordingLog(Box<conduit_environment_runtime::recording::RecordingLogBack>),
     Publication(Box<PublicationFaceBack<'a>>),
@@ -204,11 +206,20 @@ impl<'a> SoftwareBack<'a> {
         input_bytes: usize,
         output_bytes: usize,
     ) -> Result<Self, &'static str> {
-        Ok(Self::Selector(Box::new(SelectorBack::prepare_static(
-            canonical,
-            input_bytes,
-            output_bytes,
-        )?)))
+        #[cfg(feature = "execution-workspace")]
+        {
+            Ok(Self::WorkspaceSelector(Box::new(
+                WorkspaceSelectorBack::prepare_static(canonical, input_bytes, output_bytes)?,
+            )))
+        }
+        #[cfg(not(feature = "execution-workspace"))]
+        {
+            Ok(Self::Selector(Box::new(SelectorBack::prepare_static(
+                canonical,
+                input_bytes,
+                output_bytes,
+            )?)))
+        }
     }
     pub fn dht11_observation() -> Result<Self, &'static str> {
         let contract = ObservationContract::prepare().map_err(|_| "observation-contract")?;
@@ -293,128 +304,6 @@ fn fail(detail: u16) -> StepOutcome {
         detail,
     })
 }
-/// Pure checked selection runs as an ordinary StepBack, not a hardware Host Call.
-pub struct SelectorBack {
-    selector: PreparedCanonicalSelector,
-    maximum: usize,
-    staged: bool,
-}
-impl SelectorBack {
-    pub fn prepare(
-        selector: conduit_core::StructuredSelector,
-        input: usize,
-        output: usize,
-    ) -> Result<Self, &'static str> {
-        if input == 0
-            || output == 0
-            || input > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-            || output > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-        {
-            return Err("selector-bound");
-        }
-        Ok(Self {
-            selector: PreparedCanonicalSelector::prepare(selector, input, output)
-                .map_err(|_| "selector")?,
-            maximum: output,
-            staged: false,
-        })
-    }
-    pub fn prepare_static(
-        canonical: &'static [u8],
-        input: usize,
-        output: usize,
-    ) -> Result<Self, &'static str> {
-        if input == 0
-            || output == 0
-            || input > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-            || output > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-        {
-            return Err("selector-bound");
-        }
-        Ok(Self {
-            selector: PreparedCanonicalSelector::prepare_static(canonical, input, output)
-                .map_err(|_| "selector")?,
-            maximum: output,
-            staged: false,
-        })
-    }
-}
-impl<const P: usize> StepBack<P> for SelectorBack {
-    #[cfg(feature = "schema-value-storage")]
-    fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0))
-            .then(|| self.selector.input_schema_bytes())
-            .flatten()
-    }
-    #[cfg(feature = "schema-value-storage")]
-    fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0))
-            .then(|| self.selector.output_schema_bytes())
-            .flatten()
-    }
-
-    fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
-        self.staged = false;
-        if io.input_abnormal(PortId(0)).is_some() {
-            return fail(1);
-        }
-        let Some(reference) = io.input(PortId(0)) else {
-            return if io.input_closed(PortId(0)) {
-                if io.consume_closed(PortId(0)).is_ok() {
-                    StepOutcome::Complete
-                } else {
-                    fail(2)
-                }
-            } else {
-                StepOutcome::Await
-            };
-        };
-        if !io.output_ready(PortId(0)) {
-            return StepOutcome::Await;
-        }
-        let canonical = input.input(PortId(0));
-        #[cfg(feature = "schema-value-storage")]
-        let parts = input.canonical_parts(PortId(0));
-        #[cfg(not(feature = "schema-value-storage"))]
-        let parts: Option<conduit_kernel::CanonicalValueParts<'_>> = None;
-        let length = match (canonical, parts) {
-            (Some(bytes), None) => Some(bytes.len()),
-            (None, Some(parts)) => parts.schema.len().checked_add(parts.node.len()),
-            _ => None,
-        };
-        if length != Some(reference.byte_len as usize) || io.consume_fuel(1).is_err() {
-            return fail(4);
-        }
-        let selected = match (canonical, parts) {
-            (Some(bytes), None) => self.selector.select(bytes),
-            (None, Some(parts)) => self.selector.select_parts(parts.schema, parts.node),
-            _ => return fail(3),
-        };
-        match selected {
-            Ok(Some(value)) if value.len() <= self.maximum => {
-                if io.send_prepared(PortId(0), value.len() as u32).is_err() {
-                    return fail(5);
-                }
-                self.staged = true;
-            }
-            Ok(None) => {}
-            _ => return fail(6),
-        }
-        if io.consume(PortId(0)).is_err() {
-            return fail(7);
-        }
-        StepOutcome::Progress
-    }
-    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0) && self.staged).then_some(self.selector.output())
-    }
-    fn step_committed(&mut self) {
-        self.staged = false;
-    }
-    fn cancel(&mut self) {
-        self.staged = false;
-    }
-}
 pub struct PublicationFaceBack<'a> {
     back: PublicationBack,
     publisher: &'a dyn PublicationTarget,
@@ -451,3 +340,9 @@ mod selector_schema_tests;
 
 #[path = "execution_software_schema.rs"]
 mod schema;
+
+#[path = "execution_selector.rs"]
+mod selector;
+pub use selector::SelectorBack;
+#[cfg(feature = "execution-workspace")]
+pub use selector::WorkspaceSelectorBack;

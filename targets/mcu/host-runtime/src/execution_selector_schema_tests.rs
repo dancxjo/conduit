@@ -10,6 +10,7 @@ use conduit_kernel::{scheduler::*, *};
 use conduit_plan_lowering::schema_value_store::SchemaValueStore;
 struct End<'a> {
     source: bool,
+    separated: bool,
     schema: &'a [u8],
     bytes: &'a [u8],
     done: bool,
@@ -17,10 +18,10 @@ struct End<'a> {
 }
 impl StepBack<1> for End<'_> {
     fn canonical_input_schema(&self, _: PortId) -> Option<&[u8]> {
-        (!self.source).then_some(self.schema)
+        (!self.source && self.separated).then_some(self.schema)
     }
     fn canonical_output_schema(&self, _: PortId) -> Option<&[u8]> {
-        self.source.then_some(self.schema)
+        (self.source && self.separated).then_some(self.schema)
     }
     fn prepared_output(&self, _: PortId) -> Option<&[u8]> {
         (self.source && self.staged).then_some(self.bytes)
@@ -40,10 +41,14 @@ impl StepBack<1> for End<'_> {
             if io.input(PortId(0)).is_none() {
                 return StepOutcome::Await;
             }
-            let parts = input.canonical_parts(PortId(0)).unwrap();
-            assert_eq!(parts.schema, self.schema);
-            assert_eq!(parts.node, &self.bytes[self.schema.len()..]);
-            assert!(input.input(PortId(0)).is_none());
+            if self.separated {
+                let parts = input.canonical_parts(PortId(0)).unwrap();
+                assert_eq!(parts.schema, self.schema);
+                assert_eq!(parts.node, &self.bytes[self.schema.len()..]);
+                assert!(input.input(PortId(0)).is_none());
+            } else {
+                assert_eq!(input.input(PortId(0)), Some(self.bytes));
+            }
             io.consume(PortId(0)).unwrap();
         }
         self.staged = true;
@@ -56,6 +61,14 @@ impl StepBack<1> for End<'_> {
 }
 #[test]
 fn linked_selector_consumes_and_publishes_schema_nodes_without_canonical_pool_space() {
+    proof::<1>(true, 1);
+}
+#[cfg(feature = "execution-workspace")]
+#[test]
+fn workspace_selector_accepts_canonical_fallback_through_the_funded_driver() {
+    proof::<4096>(false, 8192);
+}
+fn proof<const C: usize>(separated: bool, canonical_backing: u32) {
     let u8_type = T::leaf(kind_id("value/u8")).unwrap();
     let boolean = T::leaf(kind_id("value/bool")).unwrap();
     let selected_type = T::record(
@@ -93,7 +106,7 @@ fn linked_selector_consumes_and_publishes_schema_nodes_without_canonical_pool_sp
     let material = Box::leak(selector.canonical_bytes().unwrap().into_boxed_slice());
     let selector = SoftwareBack::selector_static(material, input.len(), expected.len()).unwrap();
     let values = SchemaValueStore::try_new(
-        FixedValueStore::<2, 1>::new(1).unwrap(),
+        FixedValueStore::<2, C>::new(canonical_backing).unwrap(),
         &[
             (
                 BorrowedStructuredValueValidator::new(&input_schema, input.len()).unwrap(),
@@ -111,6 +124,7 @@ fn linked_selector_consumes_and_publishes_schema_nodes_without_canonical_pool_sp
     let drivers: [Driver<'_, End<'_>>; 3] = [
         Driver::Resident(End {
             source: true,
+            separated,
             schema: &input_schema,
             bytes: &input,
             done: false,
@@ -119,6 +133,7 @@ fn linked_selector_consumes_and_publishes_schema_nodes_without_canonical_pool_sp
         Driver::Software(selector),
         Driver::Resident(End {
             source: false,
+            separated,
             schema: &output_schema,
             bytes: &expected,
             done: false,
@@ -168,6 +183,28 @@ fn linked_selector_consumes_and_publishes_schema_nodes_without_canonical_pool_sp
         FixedSignLog::<128>::new((128 * core::mem::size_of::<KernelEvent>()) as u32).unwrap(),
     )
     .unwrap();
+    #[cfg(feature = "execution-workspace")]
+    {
+        let req =
+            <Driver<'_, End<'_>> as StepBack<1>>::workspace_requirements(&kernel.drivers()[1])
+                .unwrap();
+        assert_eq!(req.output_bytes, expected.len() as u32);
+        assert_eq!(req.scratch_bytes, 0);
+        let short = StepWorkspaceRequirements {
+            output_bytes: req.output_bytes - 1,
+            scratch_bytes: 0,
+        };
+        assert!(kernel
+            .install_execution_workspace(
+                PreparedStepWorkspace::try_new(short, short.output_bytes as usize).unwrap()
+            )
+            .is_err());
+        kernel
+            .install_execution_workspace(
+                PreparedStepWorkspace::try_new(req, req.output_bytes as usize).unwrap(),
+            )
+            .unwrap();
+    }
     let (result, cost) =
         crate::member_return_tests::return_allocation_probe::observe(|| kernel.run(64));
     result.unwrap();

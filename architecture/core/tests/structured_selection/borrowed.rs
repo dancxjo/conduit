@@ -33,16 +33,49 @@ fn parity(selector: StructuredSelector, values: &[StructuredInfoValue]) {
         assert_eq!((cost.allocations, cost.reallocations), (0, 0));
         assert_eq!(parts, actual);
         assert_eq!(separated, output);
+        let mut fixed = [0xa5; 4096];
+        let mut fixed_parts = [0xa5; 4096];
+        let (fixed_result, cost) =
+            probe::observe(|| linked.select_canonical_slice_into(&bytes, &mut fixed));
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        let (parts_result, cost) = probe::observe(|| {
+            linked.select_parts_slice_into(schema, &bytes[schema.len()..], &mut fixed_parts)
+        });
+        assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+        assert_eq!(parts_result, fixed_result);
+        assert_eq!(fixed_parts, fixed);
         match expected {
             StructuredSelection::Matched(value) => {
                 assert_eq!(actual, Ok(StructuredCanonicalSelection::Matched));
                 assert_eq!(output, value.canonical_bytes().unwrap());
+                let length = output.len();
+                assert_eq!(
+                    fixed_result,
+                    Ok((StructuredCanonicalSelection::Matched, length))
+                );
+                assert_eq!(&fixed[..length], output);
+                assert!(fixed[length..].iter().all(|n| *n == 0xa5));
+                fixed.fill(0xa5);
+                assert_eq!(
+                    linked.select_canonical_slice_into(&bytes, &mut fixed[..length - 1]),
+                    Err(StructuredSelectorRefusal::CanonicalEncodingTooLarge)
+                );
+                assert_eq!(fixed, [0xa5; 4096]);
+                assert_eq!(
+                    linked.select_canonical_slice_into(&bytes, &mut []),
+                    Err(StructuredSelectorRefusal::CanonicalEncodingTooLarge)
+                );
             }
             StructuredSelection::Unmatched(disposition) => {
                 assert_eq!(
                     actual,
                     Ok(StructuredCanonicalSelection::Unmatched(disposition))
                 );
+                assert_eq!(
+                    fixed_result,
+                    Ok((StructuredCanonicalSelection::Unmatched(disposition), 0))
+                );
+                assert_eq!(fixed, [0xa5; 4096]);
             }
         }
     }
@@ -161,6 +194,21 @@ fn full_validation_refuses_a_malformed_unselected_leaf_and_preserves_output() {
     );
     assert_eq!(output, b"previous");
     assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    let mut fixed = [0xa5; 4096];
+    assert_eq!(
+        linked.select_canonical_slice_into(&malformed, &mut fixed),
+        Err(StructuredSelectorRefusal::MalformedCheckedValue)
+    );
+    assert_eq!(fixed, [0xa5; 4096]);
+    assert_eq!(
+        linked.select_parts_slice_into(
+            linked.input_type_bytes(),
+            &malformed[linked.input_type_bytes().len()..],
+            &mut fixed
+        ),
+        Err(StructuredSelectorRefusal::MalformedCheckedValue)
+    );
+    assert_eq!(fixed, [0xa5; 4096]);
     let foreign = leaf("value/u8").canonical_bytes().unwrap();
     assert_eq!(
         linked.select_parts_into(
@@ -171,6 +219,15 @@ fn full_validation_refuses_a_malformed_unselected_leaf_and_preserves_output() {
         Err(StructuredSelectorRefusal::WrongInputType)
     );
     assert_eq!(output, b"previous");
+    assert_eq!(
+        linked.select_parts_slice_into(
+            &foreign,
+            &malformed[linked.input_type_bytes().len()..],
+            &mut fixed
+        ),
+        Err(StructuredSelectorRefusal::WrongInputType)
+    );
+    assert_eq!(fixed, [0xa5; 4096]);
 }
 #[test]
 fn linked_limits_short_sequences_and_wrong_schemas_refuse_without_growing() {

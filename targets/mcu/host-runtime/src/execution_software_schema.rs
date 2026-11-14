@@ -6,6 +6,10 @@ impl SoftwareBack<'_> {
             Self::Selector(back) => {
                 <SelectorBack as StepBack<P>>::canonical_input_schema(back, port)
             }
+            #[cfg(feature = "execution-workspace")]
+            Self::WorkspaceSelector(back) => {
+                <WorkspaceSelectorBack as StepBack<P>>::canonical_input_schema(back, port)
+            }
             Self::Merge(back) => {
                 <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::canonical_input_schema(
                     back, port,
@@ -28,6 +32,8 @@ impl SoftwareBack<'_> {
             Self::Selector(back) => {
                 <SelectorBack as StepBack<P>>::canonical_output_schema(back, port)
             }
+            #[cfg(feature = "execution-workspace")]
+            Self::WorkspaceSelector(back)=><WorkspaceSelectorBack as StepBack<P>>::canonical_output_schema(back,port),
             Self::Merge(back) => {
                 <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::canonical_output_schema(
                     back, port,

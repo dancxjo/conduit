@@ -17,6 +17,9 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             Self::Zip(back) => {
                 <conduit_composite::FlowZipBack as StepBack<P>>::workspace_requirements(back)
             }
+            Self::WorkspaceSelector(back) => {
+                <WorkspaceSelectorBack as StepBack<P>>::workspace_requirements(back)
+            }
             _ => None,
         }
     }
@@ -40,6 +43,11 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             }
             Self::Zip(back) => {
                 <conduit_composite::FlowZipBack as StepBack<P>>::step_with_workspace(
+                    back, io, input, workspace,
+                )
+            }
+            Self::WorkspaceSelector(back) => {
+                <WorkspaceSelectorBack as StepBack<P>>::step_with_workspace(
                     back, io, input, workspace,
                 )
             }
@@ -91,6 +99,8 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             Self::Tick(back) => back.step(io, input),
             Self::Trigger(back) => back.step(io, input),
             Self::Selector(back) => back.step(io, input),
+            #[cfg(feature = "execution-workspace")]
+            Self::WorkspaceSelector(back) => back.step(io, input),
             Self::Observation(back) => back.step(io, input),
             Self::RecordingLog(back) => back.step(io, input),
             Self::Publication(back) => back.step(io, input),
@@ -103,6 +113,8 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             Self::Zip(back) => <conduit_composite::FlowZipBack as StepBack<P>>::prepared_output(back, port),
             Self::Merge(back) => <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::prepared_output(back, port),
             Self::Selector(back) => <SelectorBack as StepBack<P>>::prepared_output(back, port),
+            #[cfg(feature = "execution-workspace")]
+            Self::WorkspaceSelector(back)=><WorkspaceSelectorBack as StepBack<P>>::prepared_output(back,port),
             Self::Observation(back) => {
                 <ObservationBack as StepBack<P>>::prepared_output(back, port)
             }
@@ -121,6 +133,8 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
                 <conduit_time::TickTriggerBack as StepBack<P>>::step_committed(back)
             }
             Self::Selector(back) => <SelectorBack as StepBack<P>>::step_committed(back),
+            #[cfg(feature = "execution-workspace")]
+            Self::WorkspaceSelector(back)=><WorkspaceSelectorBack as StepBack<P>>::step_committed(back),
             Self::Observation(back) => <ObservationBack as StepBack<P>>::step_committed(back),
             Self::RecordingLog(back) => <conduit_environment_runtime::recording::RecordingLogBack as StepBack<P>>::step_committed(back),
             Self::Publication(back) => <PublicationFaceBack as StepBack<P>>::step_committed(back),
@@ -141,6 +155,8 @@ impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
             Self::Tick(back) => <conduit_time::TickBack as StepBack<P>>::cancel(back),
             Self::Trigger(back) => <conduit_time::TickTriggerBack as StepBack<P>>::cancel(back),
             Self::Selector(back) => <SelectorBack as StepBack<P>>::cancel(back),
+            #[cfg(feature = "execution-workspace")]
+            Self::WorkspaceSelector(back) => <WorkspaceSelectorBack as StepBack<P>>::cancel(back),
             Self::Observation(back) => <ObservationBack as StepBack<P>>::cancel(back),
             Self::RecordingLog(back) => {
                 <conduit_environment_runtime::recording::RecordingLogBack as StepBack<P>>::cancel(
