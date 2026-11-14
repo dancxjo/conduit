@@ -51,6 +51,9 @@ mod static_scene;
 pub use static_scene::PreparedStaticNativeFaceScene;
 #[path = "native_face_scene/layout.rs"]
 mod layout;
+#[path = "native_face_scene/paging.rs"]
+mod paging;
+pub use paging::NativePageControls;
 #[path = "native_face_scene/ports.rs"]
 mod ports;
 #[path = "native_face_scene/semantic_icons.rs"]

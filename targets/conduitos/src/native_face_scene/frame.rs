@@ -271,12 +271,16 @@ impl NativeFaceScene {
                 GraphicsShapeStyle::Fill,
             ),
         )?;
-        let bounds = chrome.footer;
-        push(
-            &mut scene,
-            GraphicsCommand::text(bounds, self.screen, GraphicsPaintRole::Muted, &footer)
-                .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
-        )?;
+        if let Some(controls) = self.page_controls()? {
+            self.append_page_controls(&mut scene, controls, chrome.compact)?;
+        } else {
+            let bounds = chrome.footer;
+            push(
+                &mut scene,
+                GraphicsCommand::text(bounds, self.screen, GraphicsPaintRole::Muted, &footer)
+                    .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
+            )?;
+        }
         Ok(FaceFrame {
             continuation,
             scene,
