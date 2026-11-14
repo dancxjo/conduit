@@ -13,6 +13,11 @@ impl NativePresentation {
     }
 
     pub(super) fn retire_input(&mut self, runtime: &mut DurableHostRuntime) -> Result<(), String> {
+        if let Some(reading) = &mut self.reading {
+            runtime
+                .presentation_host_mut()?
+                .capture_selected_native_reading_state(reading)?;
+        }
         self.finish_input(runtime)?;
         retire_encounter_stores(runtime)
     }

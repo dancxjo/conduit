@@ -27,6 +27,7 @@ pub(in crate::durable_host) struct NativePresentation {
     pending_input: Option<conduit_std_host::SelectedNativeInteraction>,
     input_sequence: u64,
     primary_pressed: bool,
+    reading: Option<conduit_std_host::selected_native_mask::SelectedNativeReadingState>,
 }
 
 // Retain the original admitted route and its custody inline across input dispatch.
@@ -101,10 +102,23 @@ impl NativePresentation {
             )
             .map(|(route, snapshot)| (NativeOwner::Joining(route), snapshot))
         };
+        let mut reading = if runtime
+            .presentation_host_mut()?
+            .selected_native_mask_supports_input()
+        {
+            Some(
+                runtime
+                    .presentation_host_mut()?
+                    .prepare_selected_native_reading_state()?,
+            )
+        } else {
+            None
+        };
         let mut current_input_route = None;
         let owner = match connection {
             Ok((owner, snapshot)) => {
-                let (acknowledged, route) = present(runtime, output, &owner, snapshot, 1)?;
+                let (acknowledged, route) =
+                    present(runtime, output, &owner, snapshot, 1, &mut reading)?;
                 current_input_route = route;
                 acknowledged.then_some(owner)
             }
@@ -141,6 +155,7 @@ impl NativePresentation {
             pending_input: None,
             input_sequence: 0,
             primary_pressed: false,
+            reading,
         })
     }
 
@@ -166,8 +181,14 @@ impl NativePresentation {
                     .ok_or("native child Play sequence exhausted")?;
                 // Kernel/output failures remain terminal. Only an unavailable
                 // authenticated contact is retried by this explicit policy.
-                let (acknowledged, route) =
-                    present(runtime, output, &owner, snapshot, self.play_sequence)?;
+                let (acknowledged, route) = present(
+                    runtime,
+                    output,
+                    &owner,
+                    snapshot,
+                    self.play_sequence,
+                    &mut self.reading,
+                )?;
                 self.current_input_route = route;
                 if acknowledged {
                     self.owner = Some(owner);
@@ -268,10 +289,21 @@ impl NativePresentation {
             .play_sequence
             .checked_add(1)
             .ok_or("native child Play sequence exhausted")?;
+        if let Some(reading) = &mut self.reading {
+            runtime
+                .presentation_host_mut()?
+                .capture_selected_native_reading_state(reading)?;
+        }
         retire_frame(runtime)?;
         self.current_input_route = None;
-        let (owner_acknowledged, route) =
-            present(runtime, output, owner, snapshot, self.play_sequence)?;
+        let (owner_acknowledged, route) = present(
+            runtime,
+            output,
+            owner,
+            snapshot,
+            self.play_sequence,
+            &mut self.reading,
+        )?;
         self.current_input_route = route;
         if !owner_acknowledged {
             self.owner = None;
@@ -302,6 +334,7 @@ fn present(
     owner: &NativeOwner,
     snapshot: wire::Snapshot,
     play_sequence: u64,
+    reading: &mut Option<conduit_std_host::selected_native_mask::SelectedNativeReadingState>,
 ) -> Result<(bool, Option<conduit_face::RemoteOwnerMaskRouteSeal>), String> {
     let front = snapshot
         .face
@@ -316,13 +349,16 @@ fn present(
         return Err("owner did not admit native input for this Show".into());
     }
     let frame = if interactive {
-        host.render_selected_interactive_native_mask(
+        host.render_selected_interactive_native_mask_with_reading_state(
             owner,
             &snapshot.route,
             &snapshot.face,
             play_sequence,
             front,
             output,
+            reading
+                .as_mut()
+                .ok_or("native reading cursor owner absent")?,
         )
     } else {
         host.render_selected_native_mask(

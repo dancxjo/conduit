@@ -155,7 +155,7 @@ pub(super) struct BoundReadOnlyMask {
     height: u16,
     failed: bool,
     last_play: Option<u64>,
-    scene: Option<conduitos::native_face_scene::NativeFaceScene>,
+    pub(super) scene: Option<conduitos::native_face_scene::NativeFaceScene>,
 }
 impl BoundReadOnlyMask {
     #[cfg(test)]
@@ -197,6 +197,7 @@ impl BoundReadOnlyMask {
         front_subject: &str,
         output: &mut conduit_linux_display::Scanout<'_>,
         interaction_bytes: Option<()>,
+        reading: Option<conduitos::native_face_scene::NativeReadingPosition>,
     ) -> Result<SelectedNativeMaskFrame, String> {
         if self.failed || self.session.is_some() || self.frame.is_some() || self.storage.is_none() {
             return Err(
@@ -293,7 +294,7 @@ impl BoundReadOnlyMask {
             } else {
                 None
             };
-            let scene = PreparedSelectedScene::prepare(
+            let mut scene = PreparedSelectedScene::prepare(
                 face.clone(),
                 self.width,
                 self.height,
@@ -301,6 +302,7 @@ impl BoundReadOnlyMask {
                 expression.as_ref(),
             )
             .map_err(|error| format!("native semantic scene: {error:?}"))?;
+            scene.restore_reading_position(reading);
             let frame = scene
                 .frame()
                 .map_err(|error| format!("native semantic frame: {error:?}"))?;

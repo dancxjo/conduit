@@ -31,6 +31,15 @@ impl PreparedSelectedScene {
             PreparedStaticNativeFaceScene::prepare(face, width, height).map(Self::ReadOnly)
         }
     }
+    pub(super) fn restore_reading_position(
+        &mut self,
+        position: Option<conduitos::native_face_scene::NativeReadingPosition>,
+    ) {
+        if let (Self::Interactive(scene), Some(position)) = (self, position) {
+            // A changed exact document/layout refuses without mutating the fresh Scene.
+            scene.restore_reading_position(position);
+        }
+    }
     pub(super) fn frame(&self) -> Result<FaceFrame<'_>, FaceSceneError> {
         match self {
             Self::ReadOnly(scene) => scene.frame(),

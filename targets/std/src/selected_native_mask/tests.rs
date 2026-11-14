@@ -336,3 +336,6 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
 
 #[path = "interactive_tests.rs"]
 mod interactive_tests;
+
+#[path = "reading_tests.rs"]
+mod reading_tests;

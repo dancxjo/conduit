@@ -106,12 +106,14 @@ fn actual_sdl_keyboard_pointer_submit_original_show_and_retire_original_custody(
             "stale route cannot authorize even focus changes"
         );
         let result = if pointer {
-            // Geometry comes from the same semantic Scene, never an action ID
-            // inferred from a pixel or bypassed into a forged interaction.
-            let scene =
-                conduitos::native_face_scene::NativeFaceScene::prepare(face.clone(), 640, 480)
-                    .unwrap();
-            let frame = scene.frame().unwrap();
+            // Inspect the actual admitted Scene under the original Show. A
+            // separately prepared default Scene has different typography and
+            // spacing from this selected Spacious/150% input profile.
+            let Stores::Bound { renderer, .. } = &host.ready_selected_native_mask().unwrap().stores
+            else {
+                panic!("actual selected Mask binding required");
+            };
+            let frame = renderer.scene.as_ref().unwrap().frame().unwrap();
             let hit = frame
                 .hits
                 .iter()
@@ -165,7 +167,7 @@ fn actual_sdl_keyboard_pointer_submit_original_show_and_retire_original_custody(
                 .unwrap()
         };
         let SelectedNativeMaskInput::Submitted(submitted) = result else {
-            panic!("ordinary Mask must mint a submitted interaction")
+            panic!("ordinary Mask must mint a submitted interaction (phase={phase}, pointer={pointer})")
         };
         assert_eq!(submitted.show(), &show);
         assert_eq!(submitted.correlation().show_id, show.show_id);

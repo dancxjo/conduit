@@ -5,7 +5,9 @@ mod encounter_fixture;
 mod initialization;
 mod input;
 mod outer_bound;
+mod reading;
 mod render;
+pub use reading::SelectedNativeReadingState;
 mod retirement;
 #[cfg(test)]
 mod tests;
@@ -385,6 +387,7 @@ impl StdHost {
             front_subject,
             output,
             None,
+            None,
         )
     }
     /// Required per-invocation requested backing for this genuine provider and
@@ -432,6 +435,7 @@ impl StdHost {
             front_subject,
             output,
             Some(()),
+            None,
         )
     }
     #[allow(clippy::too_many_arguments)]
@@ -444,6 +448,7 @@ impl StdHost {
         front_subject: &str,
         output: &mut conduit_linux_display::Scanout<'_>,
         input_bytes: Option<()>,
+        reading: Option<conduitos::native_face_scene::NativeReadingPosition>,
     ) -> Result<SelectedNativeMaskFrame, String> {
         let scanout = self
             .ready_selected_scanout()
@@ -471,6 +476,7 @@ impl StdHost {
                     front_subject,
                     output,
                     input_bytes,
+                    reading,
                 ),
                 _ => Err("selected Mask binding failed".into()),
             }
