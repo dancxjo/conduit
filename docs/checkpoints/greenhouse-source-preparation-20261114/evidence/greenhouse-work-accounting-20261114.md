@@ -85,3 +85,9 @@ This work belongs principally to **#6341 and #6457**. Native Mask/Fore acceptanc
 ## Bounded follow-up: shared MCU adapter
 
 The saved shared MCU phase-capacity adapter now compiles and passes the complete runtime library suite: **139 passed, one ignored** (`mcu-phase-terminal-tests-20261114.log`). Its three forwarding files are committed separately. This updates only the adapter's qualification: the RP2040 Source-derived selection, whole-factory preparation, new memory savings and ARM target remain unverified after phase specialization. The complete measurements above still belong to `c7e14f11e2`. No target build, device change or live-service change was made in this follow-up.
+
+## Bounded follow-up: complete phase-profile CPU preparation
+
+The original uninstrumented signed Source76 factory, Root preflight and original no_std compilation now pass with the Source-derived zero-byte abnormal-finalization profile. CPU64 requested retained/peak allocation is **164,853 / 166,892 bytes**, compared with172,453 /174,492 for the linked-table profile: **another7,600 bytes saved**. The combined measured saving from210,354 /212,393 is now **45,501 bytes**. All earlier exclusions remain. Public abnormal values, Cord state and unresolved abnormal truth keep100-byte capacity. Native calls remain0 and all loans return; no admission or Start occurs.
+
+Receipt: `positive-phase-terminal-factory-20261114.json`; test log alongside it. These are CPU64 measurements. The newest profile has **not** been built or measured for ARM, and the last ARM ELF/geometry figures above still belong to c7e14f11e2. No hardware or service changes were made. Resume with target qualification rather than repeating this unchanged CPU proof.

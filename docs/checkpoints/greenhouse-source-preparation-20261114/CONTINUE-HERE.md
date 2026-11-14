@@ -4,9 +4,9 @@ Shared qualified source parent: 25145af968b5f71eddf18bf50e48378146678c90. This r
 
 ## Latest change: qualification boundary
 
-The shared kernel now also includes PHASE_BYTES specialization (258 kernel tests passed/3 ignored; no_alloc and strict lib/testsClippy pass). Default remains100. The new MCU adapter forwards this dimension, and the RP2040 prototype derives0 from the exact Source terminal matrix. The shared MCU adapter now compiles and passes139 runtime tests/1ignored. The NEW RP2040 Source-derived factory edits have NOT been compiled or measured as a whole. A bounded shared-adapter test was completed after preservation; no new target build or device changes followed.
+The shared kernel now also includes PHASE_BYTES specialization (258 kernel tests passed/3 ignored; no_alloc and strict lib/testsClippy pass). Default remains100. The new MCU adapter forwards this dimension, and the RP2040 prototype derives0 from the exact Source terminal matrix. The shared MCU adapter now compiles and passes139 runtime tests/1ignored. The NEW RP2040 Source-derived factory now passes complete original CPU64 preparation/Root preflight and no_std compilation: retained164853/peak166892 B, additional7600 B saved, total45501 B saved from the original baseline. This profile has NOT been built/measured for ARM. A bounded shared-adapter test was completed after preservation; no new target build or device changes followed.
 
-All complete MCU/factory/ARM measurements below belong to c7e14f11e2, BEFORE phase-byte specialization was selected. Do not extrapolate the tiny phase test's104-byte saving to Source76 or ARM. First resume by compiling the new adapter, repeating the whole factory test and actual ARM qualification. Public abnormal values, CordState and unresolved abnormal truth remain100-byte capacity.
+The historical MCU/factory/ARM measurements below belong to c7e14f11e2. The newest complete CPU measurement is164853/166892 B in positive-phase-terminal-factory-20261114.json; no new target measurement exists. Do not extrapolate the tiny phase test's104-byte saving to Source76 or ARM. Resume with actual target qualification when budget permits; do not repeat the unchanged successful CPU proof without a new change or concern. Public abnormal values, CordState and unresolved abnormal truth remain100-byte capacity.
 
 ## Last complete verified preparation (c7e14f11e2)
 
@@ -28,7 +28,7 @@ The firmware entrance still prepares/drops and refuses structured-fore-mask-unav
 
 ## Next substantive work
 
-First qualify the newly saved phase-byte integration, then continue substantial metadata/preparation-custody reduction under existing6341 and qualify actual target heap/stack including original Root, equipment, allocator and startup overlap. Mutable queues, phases, pending calls, refs and history stay funded in RAM. Do not widen grants or replace Source behavior with bespoke task loops to conceal refusal. Root command workspace and other immutable topology are candidates, not implemented savings.
+First qualify the newly saved phase-byte integration on target, then continue substantial metadata/preparation-custody reduction under existing6341 and qualify actual target heap/stack including original Root, equipment, allocator and startup overlap. Mutable queues, phases, pending calls, refs and history stay funded in RAM. Do not widen grants or replace Source behavior with bespoke task loops to conceal refusal. Root command workspace and other immutable topology are candidates, not implemented savings.
 
 Complete autonomous Source composition and actual admitted Fore/Face/Mask execution, durable history and restart/owner-loss recovery. Qualify the whole reachable executable and actual hardware before replacing working firmware. Preserve Body identity, observations and independent logical sampling/display. Seed fabrication must not hold this up.
 
