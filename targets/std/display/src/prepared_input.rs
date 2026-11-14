@@ -1,10 +1,12 @@
 //! Readiness of one actual, settled SDL window input stream. This token is not
 //! input authority, a Host offer, a Show, or an IMAGE memory reservation.
 use crate::InitializedDisplay;
+mod touch;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
+pub(crate) use touch::TouchBinding;
 
 #[derive(Clone)]
 pub struct PreparedNativeInput {
@@ -14,6 +16,7 @@ struct InputLease {
     display: InitializedDisplay,
     live: AtomicBool,
     claimed: AtomicBool,
+    touch: TouchBinding,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NativeInputClaimRefusal {
@@ -29,14 +32,21 @@ pub struct NativeInputHostClaim {
 impl PreparedNativeInput {
     // Only Scanout, after actual empty-queue observation and held-button
     // reconciliation, may construct readiness. Never decode this from metadata.
-    pub(crate) fn prepared(display: InitializedDisplay) -> Self {
+    pub(crate) fn prepared(display: InitializedDisplay, touch: TouchBinding) -> Self {
         Self {
             lease: Arc::new(InputLease {
                 display,
+                touch,
                 live: AtomicBool::new(true),
                 claimed: AtomicBool::new(false),
             }),
         }
+    }
+    pub(crate) fn check_touch(&self, window: &sdl2::video::Window) -> Result<(), ()> {
+        self.lease.touch.check(&self.lease.display, window)
+    }
+    pub(crate) fn global_touch_matches(&self, id: i64) -> bool {
+        self.is_live() && self.lease.touch.global_matches(id)
     }
     pub fn is_live(&self) -> bool {
         self.lease.live.load(Ordering::Acquire) && self.lease.display.is_live()
@@ -71,6 +81,7 @@ impl PreparedNativeInput {
     }
     pub(crate) fn revoke(&self) {
         self.lease.live.store(false, Ordering::Release);
+        self.lease.touch.retire();
     }
 }
 impl NativeInputHostClaim {

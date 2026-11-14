@@ -32,3 +32,12 @@ fn hid_transitions_preserve_side_specific_modifiers_and_refuse_inconsistent_keys
     assert!(key(Some(Scancode::LShift), Mod::NOMOD, KeyTransition::Released).is_ok());
     assert!(key(Some(Scancode::Mode), Mod::NOMOD, KeyTransition::Pressed).is_err());
 }
+
+#[test]
+fn global_scope_never_overrides_nonzero_foreign_window() {
+    assert!(touch_window_matches(Some(1), 1, false));
+    assert!(!touch_window_matches(Some(0), 1, false));
+    assert!(touch_window_matches(Some(0), 1, true));
+    assert!(!touch_window_matches(Some(2), 1, true));
+    assert!(!touch_window_matches(None, 1, true));
+}

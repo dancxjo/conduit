@@ -2296,6 +2296,7 @@ dependencies = [
  "conduit-human",
  "conduit-semantic-catalog",
  "conduitos",
+ "libc",
  "sdl2",
 ]
 

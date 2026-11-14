@@ -1,4 +1,5 @@
 //! Finite acquisition of actual SDL window input; semantic routing stays in Mask.
+use crate::prepared_input::TouchBinding;
 use crate::Scanout;
 pub(super) mod pointer;
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
@@ -62,6 +63,17 @@ fn poll_queued(_events: &mut EventPump) -> Option<QueuedEvent> {
         touch_window,
     })
 }
+fn touch_id(event: &Event) -> Option<i64> {
+    match event {
+        Event::FingerDown { touch_id, .. }
+        | Event::FingerMotion { touch_id, .. }
+        | Event::FingerUp { touch_id, .. } => Some(*touch_id),
+        _ => None,
+    }
+}
+fn touch_window_matches(window: Option<u32>, own: u32, global: bool) -> bool {
+    window == Some(own) || (window == Some(0) && global)
+}
 impl Scanout<'_> {
     /// Actual settled input readiness, with no resource or interaction grant.
     pub fn prepared_input(&self) -> Result<crate::PreparedNativeInput, NativeInputRefusal> {
@@ -94,11 +106,14 @@ impl Scanout<'_> {
                 .as_ref()
                 .is_some_and(|input| input.is_live())
             {
+                self.check_touch_inventory()?;
                 return Ok(NativeInput::Idle);
             }
             self.input_ready = false;
             self.input_owner = None;
         }
+        let touch = TouchBinding::observe(&self.initialized, self.canvas.window())
+            .map_err(|_| NativeInputRefusal::PreparationUnavailable)?;
         let queue = self
             .canvas
             .window()
@@ -107,7 +122,11 @@ impl Scanout<'_> {
             .event()
             .map_err(|_| NativeInputRefusal::PreparationUnavailable)?;
         for _ in 0..maximum_events {
-            match poll_queued(events) {
+            let queued = poll_queued(events);
+            touch
+                .check(&self.initialized, self.canvas.window())
+                .map_err(|_| NativeInputRefusal::PreparationUnavailable)?;
+            match queued {
                 Some(queued)
                     if matches!(
                         queued.event,
@@ -116,7 +135,12 @@ impl Scanout<'_> {
                             | Event::FingerUp { .. }
                     ) =>
                 {
-                    if queued.touch_window == Some(self.initialized.window_id()) {
+                    let global = touch_id(&queued.event).is_some_and(|id| touch.global_matches(id));
+                    if touch_window_matches(
+                        queued.touch_window,
+                        self.initialized.window_id(),
+                        global,
+                    ) {
                         self.pointer.discard_touch(&queued.event);
                     }
                 }
@@ -143,6 +167,7 @@ impl Scanout<'_> {
                         self.pointer.prepare(events.mouse_state().left());
                         self.input_owner = Some(crate::PreparedNativeInput::prepared(
                             self.initialized.clone(),
+                            touch,
                         ));
                         self.input_ready = true;
                         return Ok(NativeInput::Idle);
@@ -211,8 +236,11 @@ impl Scanout<'_> {
         {
             return Err(NativeInputRefusal::Lost);
         }
+        self.check_touch_inventory()?;
         for _ in 0..maximum_events {
-            let Some(event) = poll_queued(events) else {
+            let queued = poll_queued(events);
+            self.check_touch_inventory()?;
+            let Some(event) = queued else {
                 return Ok(NativeInput::Idle);
             };
             if let Some(input) = self.translate_input(event)? {
@@ -220,6 +248,20 @@ impl Scanout<'_> {
             }
         }
         Ok(NativeInput::Pending)
+    }
+    fn check_touch_inventory(&mut self) -> Result<(), NativeInputRefusal> {
+        if self
+            .input_owner
+            .as_ref()
+            .is_none_or(|input| input.check_touch(self.canvas.window()).is_err())
+        {
+            if let Some(input) = &self.input_owner {
+                input.revoke();
+            }
+            self.input_ready = false;
+            return Err(NativeInputRefusal::Lost);
+        }
+        Ok(())
     }
     fn translate_input(
         &mut self,
@@ -230,7 +272,12 @@ impl Scanout<'_> {
             event,
             touch_window,
         } = queued;
-        if touch_window.is_some() && touch_window != Some(own_window) {
+        let global = touch_id(&event).is_some_and(|id| {
+            self.input_owner
+                .as_ref()
+                .is_some_and(|input| input.global_touch_matches(id))
+        });
+        if touch_window.is_some() && !touch_window_matches(touch_window, own_window, global) {
             return Ok(None);
         }
         match event {
@@ -266,7 +313,7 @@ impl Scanout<'_> {
             event @ (Event::FingerDown { .. }
             | Event::FingerMotion { .. }
             | Event::FingerUp { .. })
-                if touch_window == Some(own_window) =>
+                if touch_window_matches(touch_window, own_window, global) =>
             {
                 let (width, height) = self.initialized.window_size();
                 self.pointer
