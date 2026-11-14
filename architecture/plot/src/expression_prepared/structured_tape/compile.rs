@@ -33,7 +33,6 @@ impl CompileRefusal {
 pub(super) struct ConstructorTape {
     pub(super) code: Vec<Operation>,
     pub(super) constants: Vec<u8>,
-    value_count: usize,
 }
 impl ConstructorTape {
     pub(super) fn compile(
@@ -43,17 +42,19 @@ impl ConstructorTape {
     ) -> Result<Self, Refusal> {
         Self::compile_reported(program, input, values).map_err(CompileRefusal::expression)
     }
-    pub(super) fn compile_reported(
-        program: ProgramView<'_>,
+    pub(super) fn compile_reported<'node>(
+        program: ProgramView<'node>,
         input: &PreparedInput,
         values: &mut impl FnMut(&Node) -> Result<(), Refusal>,
     ) -> Result<Self, CompileRefusal> {
         let mut tape = Self {
             code: Vec::new(),
             constants: Vec::new(),
-            value_count: 0,
         };
-        tape.lower(program, program.root, input, 0, values)?;
+        // Only descriptors are reused, never computed results. The borrowed
+        // authoring cache is dropped here; every invocation stays in code.
+        let mut children = Vec::new();
+        tape.lower(program, program.root, input, 0, values, &mut children)?;
         tape.code.shrink_to_fit();
         tape.constants.shrink_to_fit();
         Ok(tape)
@@ -115,30 +116,35 @@ impl ConstructorTape {
         self.length(text.len())?;
         self.bytes(text.as_bytes())
     }
-    fn value(
+    fn value<'node>(
         &mut self,
-        node: &Node,
+        node: &'node Node,
         values: &mut impl FnMut(&Node) -> Result<(), Refusal>,
+        children: &mut Vec<&'node Node>,
     ) -> Result<u16, CompileRefusal> {
-        if self.value_count == MAX_VALUES {
+        if let Some(index) = children.iter().position(|previous| *previous == node) {
+            return Ok(index as u16);
+        }
+        if children.len() == MAX_VALUES {
             return Err(CompileRefusal::Limit {
                 resource: "constructor-values",
-                required: self.value_count + 1,
+                required: children.len() + 1,
                 maximum: MAX_VALUES,
             });
         }
-        let value = self.value_count as u16;
+        let value = children.len() as u16;
         values(node)?;
-        self.value_count += 1;
+        children.push(node);
         Ok(value)
     }
-    fn lower(
+    fn lower<'node>(
         &mut self,
-        program: ProgramView<'_>,
-        node: &Node,
+        program: ProgramView<'node>,
+        node: &'node Node,
         input: &PreparedInput,
         depth: u8,
         values: &mut impl FnMut(&Node) -> Result<(), Refusal>,
+        children: &mut Vec<&'node Node>,
     ) -> Result<(), CompileRefusal> {
         if depth == MAX_DEPTH {
             return Err(CompileRefusal::Limit {
@@ -172,7 +178,7 @@ impl ConstructorTape {
         if matches!(node.operation, Expression::Conditional { .. })
             && primitive_child::fits(node, program.input_type)
         {
-            let value = self.value(node, values)?;
+            let value = self.value(node, values, children)?;
             self.push(Operation::Value(value))?;
             return Ok(());
         }
@@ -184,7 +190,7 @@ impl ConstructorTape {
                 ordered.sort_by(|left, right| left.0.cmp(&right.0));
                 for (name, value) in ordered {
                     self.text(name)?;
-                    self.lower(program, value, input, depth + 1, values)?;
+                    self.lower(program, value, input, depth + 1, values, children)?;
                 }
             }
             Expression::Tuple(items) => {
@@ -192,14 +198,14 @@ impl ConstructorTape {
                 self.length(items.len())?;
                 for (index, value) in items.iter().enumerate() {
                     self.text(&alloc::format!("item-{index:05}"))?;
-                    self.lower(program, value, input, depth + 1, values)?;
+                    self.lower(program, value, input, depth + 1, values, children)?;
                 }
             }
             Expression::Collection(items) => {
                 self.bytes(&[1])?;
                 self.length(items.len())?;
                 for value in items {
-                    self.lower(program, value, input, depth + 1, values)?;
+                    self.lower(program, value, input, depth + 1, values, children)?;
                 }
             }
             Expression::Variant { tag, payload } => {
@@ -214,7 +220,7 @@ impl ConstructorTape {
                 }
                 self.bytes(&[3])?;
                 self.text(tag)?;
-                self.lower(program, payload, input, depth + 1, values)?;
+                self.lower(program, payload, input, depth + 1, values, children)?;
             }
             Expression::Conditional {
                 condition,
@@ -229,22 +235,26 @@ impl ConstructorTape {
                 {
                     return Err(Refusal::InvalidProgram.into());
                 }
-                let value = self.value(condition, values)?;
+                let value = self.value(condition, values, children)?;
                 let branch = self.push(Operation::BranchFalse { value, target: 0 })?;
-                self.lower(program, when_true, input, depth + 1, values)?;
+                self.lower(program, when_true, input, depth + 1, values, children)?;
                 let jump = self.push(Operation::Jump(0))?;
                 self.code[branch] = Operation::BranchFalse {
                     value,
                     target: self.code.len() as u16,
                 };
-                self.lower(program, when_false, input, depth + 1, values)?;
+                self.lower(program, when_false, input, depth + 1, values, children)?;
                 self.code[jump] = Operation::Jump(self.code.len() as u16);
             }
             _ => {
-                let value = self.value(node, values)?;
+                let value = self.value(node, values, children)?;
                 self.push(Operation::Value(value))?;
             }
         }
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "compile_tests.rs"]
+mod tests;

@@ -502,3 +502,6 @@ mod work_accounting;
 
 #[path = "static_structured_image/borrowed_children.rs"]
 mod borrowed_children;
+
+#[path = "static_structured_image/descriptor_reuse.rs"]
+mod descriptor_reuse;

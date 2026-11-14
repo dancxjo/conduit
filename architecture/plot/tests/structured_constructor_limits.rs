@@ -85,25 +85,24 @@ fn generic_semantics(program: &PortableExpressionProgram) {
 #[test]
 fn a_smaller_balanced_constructor_emits_with_the_original_limits() {
     let (checked, program) = checked_program(7);
-    //127 conditions fit the128 child-value slots; direct input branches do
-    //not create scalar child values or relax the checked Native boundaries.
+    // All127 condition invocations share one exact descriptor; their original
+    // execution points and independently checked Native boundaries remain.
     let emitted = generate_static_structured_expression(&checked, &program, bounds(), 4096)
         .expect("bounded whole constructor");
     assert!(!emitted.is_empty());
     generic_semantics(&program);
 }
 #[test]
-fn an_oversized_whole_constructor_reports_its_exact_value_limit() {
+fn an_oversized_whole_constructor_keeps_its_exact_operation_limit() {
     let (checked, program) = checked_program(8);
-    // Depth-first lowering fills128 condition slots before visiting the129th.
-    // Whole resident emission refuses; generic preparation's existing recursive
-    // fallback remains valid and is not evidence that this tape can be emitted.
+    // Descriptor reuse does not remove any branch/value operation. This larger
+    // constructor still refuses at the unchanged instruction ceiling.
     assert_eq!(
         generate_static_structured_expression(&checked, &program, bounds(), 4096),
         Err(StaticStructuredGenerationRefusal::ConstructorLimit {
-            resource: "constructor-values",
-            required: 129,
-            maximum: 128,
+            resource: "constructor-operations",
+            required: 513,
+            maximum: 512,
         }),
     );
     generic_semantics(&program);
@@ -114,21 +113,15 @@ mod compiled_rust;
 
 #[test]
 fn many_primitive_conditionals_use_the_existing_scalar_profile_in_the_emitted_image() {
-    let fields = (0..48)
-        .map(|index| format!(" field_{index:02}: U64"))
-        .collect::<Vec<_>>()
-        .join("\n");
-    // Both branches compute a value: the old constructor lowering needed one
-    //condition plus two result slots per field (144>128), even though each
-    //complete Leaf conditional already fits the unchanged scalar profile.
-    let values = (0..48)
-        .map(|index| format!("field_{index:02}: (.flag ? .value + 1 : .value + 2)"))
+    //129 scalar invocations share one exact descriptor; their calls remain.
+    let values = (0..129)
+        .map(|_| "(.flag ? .value + 1 : .value + 2)")
         .collect::<Vec<_>>()
         .join(", ");
     let source = format!(
         "type Frame = {{\n flag: Boolean\n value: U64\n}}\n\
-         type Results = {{\n{fields}\n}}\n\
-         plot many (\n input: Frame >> output: Results\n) = ({{{values}}})\n",
+         type Results = {{\n values: collection U64 = 129\n}}\n\
+         plot many (\n input: Frame >> output: Results\n) = ({{values: [{values}]}})\n",
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
@@ -142,11 +135,12 @@ fn many_primitive_conditionals_use_the_existing_scalar_profile_in_the_emitted_im
     };
     let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
     let image = generate_static_structured_expression(&checked, &program, bounds(), 4096)
-        .expect("48 bounded scalar children fit the original whole constructor limits");
+        .expect("129 invocations share one descriptor under the original128-unique limit");
     assert_eq!(
         image,
         generate_static_structured_expression(&checked, &program, bounds(), 4096).unwrap(),
     );
+    assert!(image.contains("pub const CHILD_COUNT: usize = 1;"));
     let allocator =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/common/allocation_probe.rs");
     let mut exercise = format!(
@@ -180,11 +174,17 @@ fn many_primitive_conditionals_use_the_existing_scalar_profile_in_the_emitted_im
                 let conduit_core::StructuredInfoValueShape::Record(fields) = decoded.shape() else {
                     panic!("results");
                 };
-                assert_eq!(fields.len(), 48);
-                for field in fields {
+                assert_eq!(fields.len(), 1);
+                let conduit_core::StructuredInfoValueShape::Collection(items) =
+                    fields[0].value().shape()
+                else {
+                    panic!("collection")
+                };
+                assert_eq!(items.len(), 129);
+                for item in items {
                     assert_eq!(
-                        field.value().shape(),
-                        conduit_core::StructuredInfoValueShape::Leaf(&expected_value.to_le_bytes(),),
+                        item.shape(),
+                        conduit_core::StructuredInfoValueShape::Leaf(&expected_value.to_le_bytes())
                     );
                 }
                 exercise.push_str(&format!(
@@ -213,6 +213,19 @@ fn many_primitive_conditionals_use_the_existing_scalar_profile_in_the_emitted_im
         &format!("mod image{{\n{image}\n}}"),
         &exercise,
         "bounded-primitive-constructor-children",
+        &["conduit_plot", "conduit_core"],
+    );
+    let borrowed = generate_borrowed_static_structured_expression_with_work(
+        &checked,
+        &program,
+        bounds(),
+        4096,
+    )
+    .unwrap();
+    compiled_rust::verify_with_libraries(
+        &format!("mod image{{\n{}\n}}", borrowed.source),
+        &exercise,
+        "bounded-primitive-constructor-children-borrowed",
         &["conduit_plot", "conduit_core"],
     );
 }
