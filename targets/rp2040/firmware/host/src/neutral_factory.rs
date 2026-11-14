@@ -40,6 +40,7 @@ pub type Kernel<'a, 'f> = conduit_mcu_host_runtime::execution::ExecutionKernel<
     HostedSignLog,
     K,
     Values,
+    Q,
 >;
 pub type Bound<'a, 'f, I, D> = (
     Box<Kernel<'a, 'f>>,
@@ -265,12 +266,34 @@ pub fn prepare<'a, 'f: 'a, 'w, I: I2cProvider + 'a, D: MonotonicDeadlineProvider
                 conduit_kernel::remote_sign_storage_bytes(event_items).ok_or("sign-bound")?,
             )
             .map_err(|_| "sign-storage")?;
-            let mut prepared = PreparedFragment::<_, N, C, P, R, T, H, S, HostedSignLog, K, Values>::prepare_with_terminal_transductions_ref(
-                approved, profile, approved_fore,
-                &ResidentLayout { records: layout::RECORDS, counts: layout::COUNTS },
-                values, signs, policy.maximum_retained_bytes,
-                || Ok::<_, &'static str>(backs), &TERMINALS,
-            ).map_err(|_| "neutral-kernel")?;
+            let mut prepared = PreparedFragment::<
+                _,
+                N,
+                C,
+                P,
+                R,
+                T,
+                H,
+                S,
+                HostedSignLog,
+                K,
+                Values,
+                Q,
+            >::prepare_with_terminal_transductions_ref(
+                approved,
+                profile,
+                approved_fore,
+                &ResidentLayout {
+                    records: layout::RECORDS,
+                    counts: layout::COUNTS,
+                },
+                values,
+                signs,
+                policy.maximum_retained_bytes,
+                || Ok::<_, &'static str>(backs),
+                &TERMINALS,
+            )
+            .map_err(|_| "neutral-kernel")?;
             prepared
                 .prepare_execution_workspace()
                 .map_err(|_| "neutral-workspace")?;

@@ -12,6 +12,8 @@ pub mod native_images {
 use conduit_core as c;
 pub const N: usize = layout::COUNTS[(c::ASSIGNED_NODE - 1) as usize] as usize;
 pub const C: usize = layout::COUNTS[(c::ASSIGNED_CORD - 1) as usize] as usize;
+/// Actual independently lowered Cord item slots. Cord count is not queue depth.
+pub const Q: usize = layout::CORD_VALUE_SLOT_CAPACITIES.len();
 pub const P: usize = layout::PORTS_PER_NODE;
 pub const R: usize = N * P;
 pub const T: usize = layout::COUNTS[(c::ASSIGNED_ROUTE_TARGET - 1) as usize] as usize;

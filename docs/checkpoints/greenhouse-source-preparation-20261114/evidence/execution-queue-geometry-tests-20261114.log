@@ -1,0 +1,10 @@
+   Compiling conduit-mcu-host-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/host-runtime)
+    Finished `test` profile [unoptimized] target(s) in 3.62s
+     Running unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_mcu_host_runtime-635e7e6340470a27)
+
+running 2 tests
+test execution::queue_geometry_tests::exact_queue_geometry_refuses_short_storage_before_back_transfer ... ok
+test execution::queue_geometry_tests::independent_queue_slots_preserve_step_pressure_order_evidence_and_no_allocations ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 131 filtered out; finished in 0.00s
+

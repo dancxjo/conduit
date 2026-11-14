@@ -1,4 +1,4 @@
-//! Actual neutral board modules and ordinary Make emissions, CPU refusal proof.
+//! Actual neutral board modules and ordinary Make emissions, CPU preparation proof.
 //! Run explicitly with CONDUIT_NEUTRAL_CPU_OUT_DIR pointing at the selected
 //! neutral firmware build OUT_DIR. This never opens hardware or starts a Play.
 use conduit_mcu_source_build as source_build;
@@ -25,13 +25,28 @@ fn constant<'a>(source: &'a str, name: &str) -> &'a str {
         .unwrap()
 }
 #[test]
-#[ignore = "requires ordinary Make neutral OUT_DIR; CPU preparation/refusal proof only"]
-fn actual_board_factory_and_root_preflight_refuse_unadmitted_commands() {
+#[ignore = "requires ordinary Make neutral OUT_DIR; full CPU preparation only, no Start"]
+fn actual_board_factory_and_root_preflight_prepare_complete_checked_source_without_start() {
     let out = fs::canonicalize(
         std::env::var_os("CONDUIT_NEUTRAL_CPU_OUT_DIR")
             .expect("explicit ordinary Make neutral OUT_DIR"),
     )
     .unwrap();
+    let build_output_path = out.parent().unwrap().join("output");
+    let build_output = fs::read_to_string(&build_output_path).unwrap();
+    assert_eq!(
+        build_output
+            .lines()
+            .filter(|line| *line == "cargo:rustc-cfg=neutral_source_execution")
+            .count(),
+        1,
+        "CPU profile must match the original firmware build's emitted cfg"
+    );
+    let output_digest = conduit_core::assigned_plan_payload_digest(build_output.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>();
+    eprintln!("original_build_cfg_witness={:?} original_build_cfg_witness_sha256={output_digest} propagated_cfg=neutral_source_execution", build_output_path);
     let host = fs::read_to_string(out.join("host.rs")).unwrap();
     let fixture = environmental_exchange_source::selected_source();
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -96,23 +111,53 @@ fn actual_board_factory_and_root_preflight_refuse_unadmitted_commands() {
     // no_std compilation still consumes the unmodified production factory.
     let original_factory_path = board.join("neutral_factory.rs");
     let original_factory = fs::read_to_string(&original_factory_path).unwrap();
-    let mut observed_factory = original_factory.clone();
-    for stage in ["neutral-kernel", "neutral-workspace"] {
-        let erased = format!(".map_err(|_| \"{stage}\")?");
-        assert_eq!(observed_factory.matches(&erased).count(), 1);
-        let observed = format!(".map_err(|error| {{ eprintln!(\"original factory {stage}: {{error:?}}\"); \"{stage}\" }})?");
-        observed_factory = observed_factory.replace(&erased, &observed);
-    }
-    let observed_factory_path = temporary.join("neutral_factory_diagnostic.rs");
-    fs::write(&observed_factory_path, &observed_factory).unwrap();
     let digest = |text: &str| {
         conduit_core::assigned_plan_payload_digest(text.as_bytes())
             .iter()
             .map(|b| format!("{b:02x}"))
             .collect::<String>()
     };
-    eprintln!("factory_original_sha256={} factory_diagnostic_sha256={} diagnostic_only=error_observation original_checks_and_refusals_preserved",
-        digest(&original_factory), digest(&observed_factory));
+    let diagnose = match std::env::var("CONDUIT_NEUTRAL_DIAGNOSE_KERNEL") {
+        Err(std::env::VarError::NotPresent) => false,
+        Ok(value) if value == "1" => true,
+        _ => panic!("CONDUIT_NEUTRAL_DIAGNOSE_KERNEL accepts only explicit1"),
+    };
+    let observed_factory_path = if diagnose {
+        let mut observed_factory = original_factory.clone();
+        for stage in ["neutral-kernel", "neutral-workspace"] {
+            let erased = format!(".map_err(|_| \"{stage}\")?");
+            assert_eq!(observed_factory.matches(&erased).count(), 1);
+            let observed = format!(".map_err(|error| {{ eprintln!(\"original factory {stage}: {{error:?}}\"); \"{stage}\" }})?");
+            observed_factory = observed_factory.replace(&erased, &observed);
+        }
+        let preparation = "            let mut prepared = PreparedFragment";
+        assert_eq!(observed_factory.matches(preparation).count(), 1);
+        let reports = r#"
+                let mut diagnostic_reports = [[None; P]; N];
+                let available = conduit_mcu_host_runtime::execution::PreparedBacks::<N,P>::write_terminal_transductions(&backs, &mut diagnostic_reports);
+                eprintln!("original factory terminal report available={} source_nodes={N} ports={P}", available.is_some());
+                for node in 0..N {
+                    for port in 0..P {
+                        if diagnostic_reports[node][port] != TERMINALS[node][port] {
+                            eprintln!("original factory terminal mismatch node={node} port={port} actual={:?} expected={:?}", diagnostic_reports[node][port], TERMINALS[node][port]);
+                        }
+                    }
+                }
+    "#;
+        observed_factory =
+            observed_factory.replace(preparation, &format!("{reports}{preparation}"));
+        let observed_factory_path = temporary.join("neutral_factory_diagnostic.rs");
+        fs::write(&observed_factory_path, &observed_factory).unwrap();
+        eprintln!("factory_original_sha256={} factory_diagnostic_sha256={} diagnostic_only=error_and_immutable_terminal_report_observation original_checks_and_refusals_preserved",
+            digest(&original_factory), digest(&observed_factory));
+        Some(observed_factory_path)
+    } else {
+        eprintln!(
+            "factory_original_sha256={} factory_diagnostic_copy=false",
+            digest(&original_factory)
+        );
+        None
+    };
     let deps = std::env::current_exe()
         .unwrap()
         .parent()
@@ -144,20 +189,30 @@ fn actual_board_factory_and_root_preflight_refuse_unadmitted_commands() {
         ("no_std", format!("#![no_std]\n{generated}"), "rlib"),
     ] {
         let path = temporary.join(format!("{name}.rs"));
-        let source = if kind == "bin" {
-            let original = format!("#[path={original_factory_path:?}]mod neutral_factory;");
-            assert_eq!(source.matches(&original).count(), 1);
-            source.replace(
-                &original,
-                &format!("#[path={observed_factory_path:?}]mod neutral_factory;"),
-            )
-        } else {
-            source
+        let source = match (kind, observed_factory_path.as_ref()) {
+            ("bin", Some(observed_factory_path)) => {
+                let original = format!("#[path={original_factory_path:?}]mod neutral_factory;");
+                assert_eq!(source.matches(&original).count(), 1);
+                source.replace(
+                    &original,
+                    &format!("#[path={observed_factory_path:?}]mod neutral_factory;"),
+                )
+            }
+            _ => source,
         };
         fs::write(&path, source).unwrap();
         let mut compiler = Command::new("rustc");
         compiler
-            .args(["--edition=2021", "--crate-type", kind, "-L"])
+            .args([
+                "--edition=2021",
+                "--crate-type",
+                kind,
+                "--cfg",
+                "neutral_source_execution",
+                "--check-cfg",
+                "cfg(neutral_source_execution)",
+                "-L",
+            ])
             .arg(format!("dependency={}", deps.display()))
             .env("OUT_DIR", &out);
         for library in &libraries {
