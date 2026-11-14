@@ -2,6 +2,7 @@
 pub mod dispatch;
 pub mod factory;
 pub mod installation;
+pub mod play;
 
 #[cfg(test)]
 mod tests;

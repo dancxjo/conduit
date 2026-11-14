@@ -1,0 +1,33 @@
+# Standard and hub-class wire requests. These values carry protocol meaning;
+# they select no controller, attachment, native route or authority.
+type UsbEnumerationRequest =
+    request UsbControlRequest
+    | invalid-value
+
+type UsbHidReportDescriptorRequest = {
+    interface: U8
+    length: U64
+}
+
+# Eight initial octets establish EP0 geometry before a full device request.
+plot usb-device-initial-descriptor-request (
+    begin: Empty...| >> request: UsbControlRequest...|
+) = ({ setup: 0x0008000001000680, output: [] })
+
+plot usb-device-address-request (
+    address: U8...| >> prepared: UsbEnumerationRequest...|
+) = (. == 0 || . > 127 ? invalid-value(empty) : request({ setup: 0x0000000000000500 | (value/u64(.) * 65536), output: [] }))
+
+plot usb-device-configuration-request (
+    configuration: U8...| >> prepared: UsbEnumerationRequest...|
+) = (. == 0 ? invalid-value(empty) : request({ setup: 0x0000000000000900 | (value/u64(.) * 65536), output: [] }))
+
+plot usb-hub-descriptor-request (
+    begin: Empty...| >> request: UsbControlRequest...|
+) = ({ setup: 0x00090000290006a0, output: [] })
+
+# The bounded unsigned-contact profile needs a descriptor prefix, not a larger
+# transport envelope. The descriptor's declared length remains separate data.
+plot usb-hid-report-descriptor-request (
+    input: UsbHidReportDescriptorRequest...| >> prepared: UsbEnumerationRequest...|
+) = (.length == 0 ? invalid-value(empty) : request({ setup: 0x0000000022000681 | (value/u64(.interface) * 4294967296) | ((.length > 256 ? 256 : .length) * 281474976710656), output: [] }))
