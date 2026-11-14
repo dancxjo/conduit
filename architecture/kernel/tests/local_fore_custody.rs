@@ -219,6 +219,13 @@ fn prepared() -> Tables {
     tables
 }
 fn kernel(tables: Tables, cords: [CordSpec; 2]) -> Result<Kernel, SchedulerError> {
+    kernel_with_remote_capacity(tables, cords, 8)
+}
+fn kernel_with_remote_capacity(
+    tables: Tables,
+    cords: [CordSpec; 2],
+    remote_items: u16,
+) -> Result<Kernel, SchedulerError> {
     Kernel::new(
         tables.nodes,
         cords,
@@ -227,8 +234,8 @@ fn kernel(tables: Tables, cords: [CordSpec; 2]) -> Result<Kernel, SchedulerError
         FixedValueStore::new(4).unwrap(),
         FixedSignLog::new_with_remote_storage(
             (16 * size_of::<KernelEvent>()) as u32,
-            8,
-            remote_sign_storage_bytes(8).unwrap(),
+            remote_items,
+            remote_sign_storage_bytes(remote_items).unwrap(),
         )
         .unwrap(),
     )
@@ -310,6 +317,54 @@ fn checked_local_fore_rolls_value_evidence_while_line_custody_remains_mandatory(
         Err(SchedulerError::Sign(SignError::RemoteItemCapacityExceeded))
     );
     assert_eq!(line.cord_usage(CordId(0)).unwrap(), (0, 0));
+}
+#[test]
+fn checked_local_fore_needs_no_remote_trace_capacity_but_lines_still_do() {
+    let tables = prepared();
+    let cords = tables.cords;
+    let mut local = kernel_with_remote_capacity(tables, cords, 0).unwrap();
+    for sequence in 0..128 {
+        frame(&mut local, sequence);
+    }
+    local
+        .close_remote_input(RemoteEndpointId(0), CordId(0))
+        .unwrap();
+    let mut drained = false;
+    for _ in 0..4 {
+        if local.step().unwrap() == SchedulerStatus::Drained {
+            drained = true;
+            break;
+        }
+    }
+    assert!(drained);
+    assert_eq!(local.signs().remote_len(), 0);
+    assert!(local
+        .signs()
+        .events()
+        .any(|e| e.kind == KernelEventKind::BackCompleted));
+
+    let tables = prepared();
+    let plain = [
+        CordSpec::remote_ingress(
+            CordId(0),
+            RemoteEndpointId(0),
+            (NodeId(0), PortId(0)),
+            capacity(0),
+        ),
+        CordSpec::remote_egress(
+            CordId(1),
+            (NodeId(0), PortId(0)),
+            RemoteEndpointId(1),
+            capacity(1),
+        ),
+    ];
+    let mut line = kernel_with_remote_capacity(tables, plain, 0).unwrap();
+    assert_eq!(
+        line.admit_remote_input(RemoteEndpointId(0), CordId(0), 0, b"data"),
+        Err(SchedulerError::Sign(SignError::RemoteItemCapacityExceeded))
+    );
+    assert_eq!(line.cord_usage(CordId(0)).unwrap(), (0, 0));
+    assert_eq!(line.values().used_items(), 0);
 }
 #[test]
 fn changing_prepared_fore_endpoint_cannot_reclassify_another_boundary() {
