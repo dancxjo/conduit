@@ -322,7 +322,7 @@ impl OwnerFacePlan {
     }
 
     fn bind_identity(&self) -> Result<PlanId, OwnerFacePlanError> {
-        let bytes = serde_json::to_vec(&(
+        let basis = (
             "conduit.face/owner-face-plan@1",
             &self.body_id,
             self.workload_revision,
@@ -330,11 +330,28 @@ impl OwnerFacePlan {
             self.face_revision,
             &self.face_basis,
             &self.routes,
-        ))
-        .map_err(|_| OwnerFacePlanError::InvalidIdentity)?;
-        if bytes.len() > MAX_OWNER_FACE_PLAN_BYTES {
-            return Err(OwnerFacePlanError::CapacityExceeded);
-        }
+        );
+        #[cfg(feature = "std")]
+        let bytes =
+            crate::bounded_json::encode(&basis, MAX_OWNER_FACE_PLAN_BYTES).map_err(|error| {
+                match error {
+                    crate::bounded_json::EncodingError::Invalid => {
+                        OwnerFacePlanError::InvalidIdentity
+                    }
+                    crate::bounded_json::EncodingError::Capacity { .. } => {
+                        OwnerFacePlanError::CapacityExceeded
+                    }
+                }
+            })?;
+        #[cfg(not(feature = "std"))]
+        let bytes = {
+            let bytes =
+                serde_json::to_vec(&basis).map_err(|_| OwnerFacePlanError::InvalidIdentity)?;
+            if bytes.len() > MAX_OWNER_FACE_PLAN_BYTES {
+                return Err(OwnerFacePlanError::CapacityExceeded);
+            }
+            bytes
+        };
         let digest = Sha256::digest(&bytes);
         let mut hex = String::with_capacity(64);
         for byte in digest {

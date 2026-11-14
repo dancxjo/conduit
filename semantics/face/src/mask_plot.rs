@@ -14,6 +14,8 @@ use serde::{Deserialize, Serialize};
 use crate::{FACE_INTERACTION_VALUE_KIND, FACE_VALUE_KIND, SHOW_VALUE_KIND};
 
 mod wire;
+#[cfg(feature = "std")]
+pub use wire::PlannedMaskJsonWorkspace;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
