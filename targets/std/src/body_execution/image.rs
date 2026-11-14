@@ -3,7 +3,9 @@
 use super::*;
 use crate::kernel_preparation::ImageMemoryLease;
 mod prepared;
-pub use prepared::{ImageMemoryRetention, ImagePreparedValue, ImageRootPreparation};
+pub use prepared::{
+    ImageMemoryRetention, ImagePreparedValue, ImageRootPreparation, ImageRootPreparationOwner,
+};
 mod creche;
 mod face;
 mod input;

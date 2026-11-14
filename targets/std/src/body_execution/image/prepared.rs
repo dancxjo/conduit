@@ -97,6 +97,43 @@ impl<T> ImagePreparedValue<T> {
     }
 }
 impl StdHost {
+    /// Reserve on the original IMAGE counter before a Root factory borrows
+    /// immutable facts from this same actual Host. No Host clone, mutable Host
+    /// access, Source authority or additional memory grant is provided.
+    ///
+    /// # Safety
+    /// The caller must independently qualify the complete factory peak,
+    /// retained backing/capacity, lifetime mutation and bounded destruction,
+    /// exactly as for `prepare_selected_image_value`. Captures and shared
+    /// owners outside the result need independent custody. All effects and
+    /// workers must quiesce before return, refusal or unwind.
+    pub unsafe fn prepare_selected_image_value_with_host<T>(
+        &mut self,
+        preparation_bytes: usize,
+        retained_bytes: usize,
+        prepare: impl FnOnce(&Self) -> Result<T, String>,
+    ) -> Result<ImagePreparedValue<T>, String> {
+        if preparation_bytes == 0
+            || retained_bytes > preparation_bytes
+            || retained_bytes < core::mem::size_of::<T>()
+        {
+            return Err("IMAGE preparation/retention envelope is invalid".into());
+        }
+        let metadata = ImageMemoryLease::owned_backing_bytes();
+        let admitted = preparation_bytes
+            .checked_add(metadata)
+            .ok_or("IMAGE preparation size overflow")?;
+        let retained = retained_bytes
+            .checked_add(metadata)
+            .ok_or("IMAGE retention size overflow")?;
+        let mut memory = self
+            .kernel_resources
+            .reserve_managed_base_memory(admitted)?;
+        let value = prepare(self)?;
+        memory.retain_result(retained);
+        Ok(ImagePreparedValue { value, memory })
+    }
+
     /// Verify the original memory owner, rather than copied identity labels.
     /// This verifies cooperative backing custody only.
     pub fn verify_selected_image_prepared_value<T>(
@@ -138,9 +175,130 @@ impl StdHost {
         retained_bytes: usize,
         prepare: impl FnOnce() -> Result<T, String>,
     ) -> Result<ImagePreparedValue<T>, String> {
-        let mut reserve = |bytes| self.kernel_resources.reserve_managed_base_memory(bytes);
+        // SAFETY: preserve the caller's complete preparation/lifetime contract;
+        // the borrowed Host supplies no extra mutation or authority to prepare.
+        unsafe {
+            self.prepare_selected_image_value_with_host(preparation_bytes, retained_bytes, |_| {
+                prepare()
+            })
+        }
+    }
+}
+
+/// Memory-only Root preparation on the SAME original IMAGE counter while the
+/// sole actual Host is loaned to a Play. No provider, operation, Source, Line or
+/// action authority is exposed. No identity/deserialization constructor exists.
+#[derive(Clone)]
+pub struct ImageRootPreparationOwner {
+    state: std::sync::Arc<RootPreparationState>,
+}
+struct RootPreparationState {
+    active: std::sync::atomic::AtomicBool,
+    counter: crate::kernel_preparation::ImagePreparationCounter,
+    scope: [u8; 32],
+    // All state backing drops before the charge for this original Arc owner.
+    _memory: ImageMemoryLease,
+}
+impl ImageRootPreparationOwner {
+    /// Root lifetime withdrawal prevents new preparations; previously prepared
+    /// values and reply guards keep their original charges until actual drop.
+    pub fn invalidate(&self) {
+        self.state
+            .active
+            .store(false, std::sync::atomic::Ordering::Release);
+    }
+    pub fn verify_host(&self, host: &StdHost) -> Result<(), String> {
+        self.require_active()?;
+        let counter = host.kernel_resources.image_preparation_counter()?;
+        if !self.state.counter.same_owner(&counter) || image_scope(host)? != self.state.scope {
+            return Err("Root preparation belongs to another original IMAGE/Boot/counter".into());
+        }
+        Ok(())
+    }
+    pub fn verify_prepared<T>(&self, value: &ImagePreparedValue<T>) -> Result<(), String> {
+        self.require_active()?;
+        if !self.state.counter.owns(&value.memory) {
+            return Err("Root prepared value belongs to another original memory owner".into());
+        }
+        Ok(())
+    }
+    pub fn verify_retention(&self, value: &ImageMemoryRetention) -> Result<(), String> {
+        self.require_active()?;
+        if !self.state.counter.owns(&value._memory) {
+            return Err("Root retained value belongs to another original memory owner".into());
+        }
+        Ok(())
+    }
+    fn require_active(&self) -> Result<(), String> {
+        if !self.state.active.load(std::sync::atomic::Ordering::Acquire) {
+            return Err("Root preparation IMAGE lifetime is retired".into());
+        }
+        Ok(())
+    }
+    /// # Safety
+    /// The complete synchronous factory peak, retained descendants/spare
+    /// capacities, lifetime mutations and destruction must be independently
+    /// qualified as for ImageRootPreparation::prepare_value. Captures/shared
+    /// inputs require independent custody. Effects/workers must quiesce before
+    /// return, refusal or unwind. A scalar is never a verified memory claim.
+    pub unsafe fn prepare_value<T>(
+        &self,
+        peak: usize,
+        retained: usize,
+        prepare: impl FnOnce() -> Result<T, String>,
+    ) -> Result<ImagePreparedValue<T>, String> {
+        self.require_active()?;
+        let mut reserve = |bytes| self.state.counter.reserve(bytes);
         let scope = ImageRootPreparation::new(&mut reserve);
-        // SAFETY: preserve the caller's complete preparation/lifetime contract.
-        unsafe { scope.prepare_value(preparation_bytes, retained_bytes, prepare) }
+        // SAFETY: the caller supplies the unchanged closed factory/lifetime
+        // proof. The same original counter atomically arbitrates Play and Root.
+        let value = unsafe {
+            scope.prepare_value(peak, retained, || {
+                self.require_active()?;
+                prepare()
+            })
+        }?;
+        self.require_active()?;
+        Ok(value)
+    }
+}
+fn image_scope(host: &StdHost) -> Result<[u8; 32], String> {
+    use sha2::{Digest, Sha256};
+    let image = host
+        .image_identity()
+        .ok_or("Root preparation requires checked IMAGE")?;
+    let mut digest = Sha256::new();
+    for text in [
+        &image.profile_id,
+        &image.build_id,
+        &image.image_id,
+        &image.host_id.0,
+        &image.boot_id.0,
+    ] {
+        digest.update((text.len() as u64).to_le_bytes());
+        digest.update(text.as_bytes());
+    }
+    digest.update(image.offer_generation.0.to_le_bytes());
+    Ok(digest.finalize().into())
+}
+impl StdHost {
+    /// Capture only from this live verified ledger. State metadata itself is
+    /// reserved before Arc construction; cloning the handle allocates nothing.
+    pub fn image_root_preparation_owner(&self) -> Result<ImageRootPreparationOwner, String> {
+        let scope = image_scope(self)?;
+        let counter = self.kernel_resources.image_preparation_counter()?;
+        let bytes = core::mem::size_of::<RootPreparationState>()
+            .checked_add(2 * core::mem::size_of::<usize>())
+            .and_then(|bytes| bytes.checked_add(ImageMemoryLease::owned_backing_bytes()))
+            .ok_or("Root preparation metadata size overflow")?;
+        let memory = counter.reserve(bytes)?;
+        Ok(ImageRootPreparationOwner {
+            state: std::sync::Arc::new(RootPreparationState {
+                active: std::sync::atomic::AtomicBool::new(true),
+                counter,
+                scope,
+                _memory: memory,
+            }),
+        })
     }
 }
