@@ -571,3 +571,7 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
     fs::remove_dir_all(state.parent().unwrap()).unwrap();
     fs::remove_dir_all(owner_state).unwrap();
 }
+
+#[cfg(all(unix, feature = "native-display"))]
+#[path = "member_return_tests/member_actions.rs"]
+mod member_actions;
