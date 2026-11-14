@@ -84,7 +84,8 @@ impl<
         const T: usize,
         const H: usize,
         const A: usize,
-    > PreparedKernelSession<D, S, E, N, C, P, Q, R, T, H, A>
+        const TERMINAL_ROWS: usize,
+    > PreparedKernelSession<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
 where
     D: ReusableStepBack<P>,
     S: ValueStorage,

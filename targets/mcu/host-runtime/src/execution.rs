@@ -168,7 +168,8 @@ pub type ExecutionKernel<
     const K: usize = H,
     V = HostedValueStore,
     const Q: usize = C,
-> = StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V, Q>;
+    const M: usize = N,
+> = StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V, Q, M>;
 /// The same scheduler independent of its prepared Sign representation.
 pub type StoredExecutionKernel<
     D,
@@ -182,7 +183,8 @@ pub type StoredExecutionKernel<
     const K: usize = H,
     V = HostedValueStore,
     const Q: usize = C,
-> = FixedScheduler<D, V, L, N, C, P, Q, R, T, H, K>;
+    const M: usize = N,
+> = FixedScheduler<D, V, L, N, C, P, Q, R, T, H, K, M>;
 type Storage<
     B,
     const N: usize,
@@ -196,9 +198,10 @@ type Storage<
     const K: usize,
     V,
     const Q: usize = C,
+    const M: usize = N,
 > = PreparedKernelStorage<
     <B as PreparedBacks<N, P>>::Driver,
-    ExecutionKernel<<B as PreparedBacks<N, P>>::Driver, N, C, P, R, T, H, S, L, K, V, Q>,
+    ExecutionKernel<<B as PreparedBacks<N, P>>::Driver, N, C, P, R, T, H, S, L, K, V, Q, M>,
     N,
 >;
 #[derive(Clone, Copy)]
@@ -247,6 +250,10 @@ pub enum Refusal<E> {
         reason: super::execution_authority::Refusal,
     },
 }
+enum ExpectedTerminalTable<'a, const N: usize, const P: usize> {
+    Inline(&'a [[Option<AssignedTerminalTransduction>; P]; N]),
+    Linked(&'static [[Option<AssignedTerminalTransduction>; P]; N]),
+}
 /// One prepared fragment inside a heterogeneous, atomically admitted workset.
 /// This ticket has no independent admit/Start path; use PreparedLocalWorkset.
 pub struct PreparedFragment<
@@ -262,8 +269,9 @@ pub struct PreparedFragment<
     const K: usize = H,
     V: ExecutionValues = HostedValueStore,
     const Q: usize = C,
+    const M: usize = N,
 > {
-    storage: Storage<B, N, C, P, R, T, H, S, L, K, V, Q>,
+    storage: Storage<B, N, C, P, R, T, H, S, L, K, V, Q, M>,
     backs: B,
     retained: usize,
     #[cfg(feature = "execution-workspace")]
@@ -282,7 +290,8 @@ impl<
         const K: usize,
         V: ExecutionValues,
         const Q: usize,
-    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q>
+        const M: usize,
+    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M>
 {
     #[allow(clippy::too_many_arguments)]
     #[inline(never)] // Per-kernel table scratch must end before the next constructor.
@@ -332,7 +341,7 @@ impl<
             signs,
             maximum_retained_bytes,
             factory,
-            Some(&expected),
+            Some(ExpectedTerminalTable::Inline(&expected)),
         )
     }
 
@@ -360,7 +369,35 @@ impl<
             signs,
             maximum_retained_bytes,
             factory,
-            Some(expected),
+            Some(ExpectedTerminalTable::Inline(expected)),
+        )
+    }
+
+    /// Retain the exact checked Source table in immutable linked storage. M=0
+    /// removes its inline array; actual Back equality and all admission gates
+    /// are unchanged. The linked Source bytes keep independent image custody.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_with_linked_terminal_transductions<E>(
+        approved: &b::DelegatedBodyFragment<'_>,
+        profile: b::AssignedBodyPreparationProfile<'_>,
+        fore: &[c::AssignedForeRequirement],
+        layout: &ResidentLayout<'_>,
+        values: V,
+        signs: L,
+        maximum_retained_bytes: usize,
+        factory: impl FnOnce() -> Result<B, E>,
+        expected: &'static [[Option<AssignedTerminalTransduction>; P]; N],
+    ) -> Result<Self, Refusal<E>> {
+        Self::prepare_inner(
+            approved,
+            profile,
+            ForeProfile::Local(fore),
+            layout,
+            values,
+            signs,
+            maximum_retained_bytes,
+            factory,
+            Some(ExpectedTerminalTable::Linked(expected)),
         )
     }
 
@@ -374,7 +411,7 @@ impl<
         signs: L,
         maximum_retained_bytes: usize,
         factory: impl FnOnce() -> Result<B, E>,
-        expected: Option<&[[Option<AssignedTerminalTransduction>; P]; N]>,
+        expected: Option<ExpectedTerminalTable<'_, N, P>>,
     ) -> Result<Self, Refusal<E>> {
         let backs = terminal_gate::prepare_checked_backs::<B, E, N, C, P, R, T, H>(
             approved.projection(),
@@ -384,8 +421,14 @@ impl<
             factory,
         )?;
         let empty = &[[None; P]; N];
+        let linked = match &expected {
+            Some(ExpectedTerminalTable::Linked(table)) => Some(*table),
+            _ => None,
+        };
         let expected = match expected {
-            Some(expected) => {
+            Some(
+                ExpectedTerminalTable::Inline(expected) | ExpectedTerminalTable::Linked(expected),
+            ) => {
                 terminal_gate::check_actual::<B, N, P>(&backs, expected).map_err(|error| {
                     match error {
                         terminal_gate::ReportRefusal::Unavailable => Refusal::TerminalContracts,
@@ -409,6 +452,7 @@ impl<
             maximum_retained_bytes,
             backs,
             expected,
+            linked,
         )
     }
 
@@ -424,6 +468,7 @@ impl<
         maximum_retained_bytes: usize,
         backs: B,
         expected: &[[Option<AssignedTerminalTransduction>; P]; N],
+        linked: Option<&'static [[Option<AssignedTerminalTransduction>; P]; N]>,
     ) -> Result<Self, Refusal<E>> {
         // The independent actual-report scratch above is dead BEFORE table
         // construction. PreparedBacks guarantees these same reports are immutable
@@ -437,32 +482,32 @@ impl<
         let remaining = maximum_retained_bytes
             .checked_sub(backing)
             .ok_or(Refusal::Bounds)?;
-        let storage =
-            ExecutionKernel::<B::Driver, N, C, P, R, T, H, S, L, K, V, Q>::prepare_boxed_with_table_writer(
-                values,
-                signs,
-                remaining,
-                expected,
-                expected,
-                Refusal::Storage,
-                |nodes, cords, routes, calls| {
-                    let identity =
-                        fore.write::<N, C, P, R, T, H>(
-                            approved.projection(),
-                            &profile,
-                            layout,
-                            nodes,
-                            cords,
-                            routes,
-                            calls,
-                        )
-                        .map_err(Refusal::Tables)?;
-                    Ok((
-                        usize::from(identity.counts[0]),
-                        usize::from(identity.counts[3]),
-                    ))
-                },
-            )?;
+        let write = |nodes: &mut [NodeSpec<P>; N],
+                     cords: &mut [CordSpec; C],
+                     routes: &mut FixedRoutes<R, T>,
+                     calls: &mut FixedHostCallBindings<H>| {
+            let identity = fore
+                .write::<N, C, P, R, T, H>(
+                    approved.projection(),
+                    &profile,
+                    layout,
+                    nodes,
+                    cords,
+                    routes,
+                    calls,
+                )
+                .map_err(Refusal::Tables)?;
+            Ok((
+                usize::from(identity.counts[0]),
+                usize::from(identity.counts[3]),
+            ))
+        };
+        let storage = match linked {
+            Some(table) => ExecutionKernel::<B::Driver,N,C,P,R,T,H,S,L,K,V,Q,M>::prepare_boxed_with_linked_table_writer(
+                values,signs,remaining,table,expected,Refusal::Storage,write),
+            None => ExecutionKernel::<B::Driver,N,C,P,R,T,H,S,L,K,V,Q,M>::prepare_boxed_with_table_writer(
+                values,signs,remaining,expected,expected,Refusal::Storage,write),
+        }?;
         let retained = backing
             .checked_add(storage.storage_bytes())
             .ok_or(Refusal::Bounds)?;
@@ -490,11 +535,12 @@ unsafe impl<
         const K: usize,
         V: ExecutionValues,
         const Q: usize,
+        const M: usize,
     > super::execution_workset::PreparedLocalKernels
-    for PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q>
+    for PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M>
 {
     type Bound = (
-        Box<ExecutionKernel<B::Driver, N, C, P, R, T, H, S, L, K, V, Q>>,
+        Box<ExecutionKernel<B::Driver, N, C, P, R, T, H, S, L, K, V, Q, M>>,
         B::Calls,
     );
     fn retained_backing_bytes(&self) -> Option<usize> {

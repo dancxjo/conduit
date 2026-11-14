@@ -308,3 +308,7 @@ mod terminal_completion;
 
 #[path = "blocked_wakes.rs"]
 mod blocked_wakes;
+
+#[cfg(feature = "alloc")]
+#[path = "linked_terminal_tests.rs"]
+mod linked_terminal_tests;
