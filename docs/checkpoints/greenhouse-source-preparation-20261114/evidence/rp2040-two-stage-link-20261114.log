@@ -1,0 +1,754 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/plot)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/composite)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/language)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/alife)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/net)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/robotics)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/process)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/audio)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/pulse-capture)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/web)
+   Compiling conduit-dht11-observation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/devices/dht11)
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/plots/seven-segment-mask)
+   Compiling conduit-tm1637-protocol v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/devices/tm1637)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/text)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/education)
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/tm1637)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/protocols/midi)
+   Compiling conduit-resource-snapshot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/resource-snapshot)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/planner)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/wire)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/bodies/environment/runtime)
+   Compiling conduit-i2c-transaction v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/i2c-transaction)
+   Compiling conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/monotonic-wait)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/face)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/catalog)
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/environment-face)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/make/host)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/make/embedded-build)
+   Compiling conduit-mcu-source-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/source-build)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/make)
+   Compiling conduit-mcu-host-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/host-runtime)
+   Compiling conduit-rp2040-i2c v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/i2c)
+   Compiling conduit-rp2040-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/pulse-capture)
+   Compiling conduit-rp2040-snapshot-nor v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/snapshot-nor)
+   Compiling conduit-rp2040-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/firmware/host)
+warning: unused import: `MixedStep`
+  --> src/mixed_workset.rs:22:21
+   |
+22 | pub use execution::{MixedStep, RetiredMixedWorkset, StartedMixedWorkset};
+   |                     ^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `resources::OwnedObservations`
+  --> src/mixed_workset.rs:25:9
+   |
+25 | pub use resources::OwnedObservations;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `resources::observe_private_work`
+  --> src/resident_preparation.rs:21:9
+   |
+21 | pub use resources::observe_private_work;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `BoundKernel`, `BoundWorkset`, and `CommittedWorkset`
+  --> src/resident_preparation.rs:23:36
+   |
+23 |     AttemptStorage, BoundFragment, BoundKernel, BoundWorkset, CommittedWorkset, RetiredKernel,
+   |                                    ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+
+warning: unused variable: `waits`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-c79668900a21695b/out/workset_0.rs:60:34
+   |
+60 | pub fn definition_at(index:usize,waits:&[(u16,conduit_kernel::ValueRef)])->Result<Option<conduit_mcu_host_runtime::execution_factory...
+   |                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_waits`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `clocks`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-c79668900a21695b/out/workset_0.rs:121:32
+    |
+121 | pub fn identity_at(index:usize,clocks:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<Option<conduit_plan_...
+    |                                ^^^^^^ help: if this is intentional, prefix it with an underscore: `_clocks`
+
+warning: struct `Snapshot` is never constructed
+  --> src/environment.rs:12:8
+   |
+12 | struct Snapshot {
+   |        ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: static `STATE` is never used
+  --> src/environment.rs:23:8
+   |
+23 | static STATE: Mutex<RefCell<Snapshot>> = Mutex::new(RefCell::new(Snapshot {
+   |        ^^^^^
+
+warning: function `update` is never used
+  --> src/environment.rs:34:4
+   |
+34 | fn update(f: impl FnOnce(&mut Snapshot)) {
+   |    ^^^^^^
+
+warning: function `status` is never used
+  --> src/environment.rs:37:8
+   |
+37 | pub fn status() -> Result<heapless::String<1024>, ()> {
+   |        ^^^^^^
+
+warning: function `glyph` is never used
+ --> src/environment_show.rs:6:4
+  |
+6 | fn glyph(bits: u8) -> conduit_seven_segment_mask::SegmentPattern {
+  |    ^^^^^
+
+warning: function `prepare` is never used
+ --> src/environment_show.rs:9:8
+  |
+9 | pub fn prepare(reading: Reading, _revision: u64) -> Result<PreparedReading, ()> {
+  |        ^^^^^^^
+
+warning: struct `PreparedReading` is never constructed
+  --> src/environment_show.rs:45:12
+   |
+45 | pub struct PreparedReading {
+   |            ^^^^^^^^^^^^^^^
+
+warning: method `render` is never used
+  --> src/environment_show.rs:49:12
+   |
+48 | impl PreparedReading {
+   | -------------------- method in this implementation
+49 |     pub fn render(&self, elapsed: u64) -> [u8; 4] {
+   |            ^^^^^^
+
+warning: function `frame` is never used
+  --> src/environment_show.rs:56:8
+   |
+56 | pub fn frame(reading: &PreparedReading, elapsed: u64) -> Result<[u8; 16], ()> {
+   |        ^^^^^
+
+warning: enum `Profile` is never used
+ --> src/execution_selection.rs:6:10
+  |
+6 | pub enum Profile {
+  |          ^^^^^^^
+
+warning: enum `Refusal` is never used
+  --> src/execution_selection.rs:11:10
+   |
+11 | pub enum Refusal {
+   |          ^^^^^^^
+
+warning: function `select` is never used
+  --> src/execution_selection.rs:17:8
+   |
+17 | pub fn select<const N: usize, const F: usize>(
+   |        ^^^^^^
+
+warning: methods `is_started`, `start`, `step`, `retire`, `terminal_count`, and `terminal_event` are never used
+  --> src/execution_supervisor.rs:23:8
+   |
+20 | pub trait OwnedWorkset {
+   |           ------------ methods in this trait
+...
+23 |     fn is_started(&self) -> bool;
+   |        ^^^^^^^^^^
+24 |     fn start(
+   |        ^^^^^
+...
+30 |     fn step(&mut self) -> Result<bool, Self::StepError>;
+   |        ^^^^
+31 |     fn retire(
+   |        ^^^^^^
+...
+36 |     fn terminal_count(&self) -> usize;
+   |        ^^^^^^^^^^^^^^
+37 |     fn terminal_event(&self, fragment: usize, event: usize) -> Option<KernelEvent>;
+   |        ^^^^^^^^^^^^^^
+
+warning: enum `Phase` is never used
+  --> src/execution_supervisor.rs:40:6
+   |
+40 | enum Phase {
+   |      ^^^^^
+
+warning: function `supervise` is never used
+  --> src/execution_supervisor.rs:47:14
+   |
+47 | pub async fn supervise<W: OwnedWorkset>(
+   |              ^^^^^^^^^
+
+warning: function `serve_status` is never used
+   --> src/execution_supervisor.rs:146:10
+    |
+146 | async fn serve_status<W: OwnedWorkset>(
+    |          ^^^^^^^^^^^^
+
+warning: function `native_available` is never used
+  --> src/i2c_owner.rs:20:8
+   |
+20 | pub fn native_available() -> Option<bool> {
+   |        ^^^^^^^^^^^^^^^^
+
+warning: function `protocol_revision` is never used
+  --> src/i2c_owner.rs:28:8
+   |
+28 | pub fn protocol_revision() -> u64 {
+   |        ^^^^^^^^^^^^^^^^^
+
+warning: function `is_member` is never used
+  --> src/membership.rs:26:8
+   |
+26 | pub fn is_member() -> bool {
+   |        ^^^^^^^^^
+
+warning: function `append_status` is never used
+  --> src/membership.rs:30:8
+   |
+30 | pub fn append_status<const N: usize>(out: &mut heapless::String<N>) -> Result<(), ()> {
+   |        ^^^^^^^^^^^^^
+
+warning: struct `Membership` is never constructed
+  --> src/membership.rs:42:12
+   |
+42 | pub struct Membership {
+   |            ^^^^^^^^^^
+
+warning: associated items `new` and `run` are never used
+  --> src/membership.rs:48:12
+   |
+47 | impl Membership {
+   | --------------- associated items in this implementation
+48 |     pub fn new(seed: Seed<'static>, host_id: String, boot_nonce: [u64; 2]) -> Self {
+   |            ^^^
+...
+55 |     pub async fn run(&mut self, link: &mut Link) -> ! {
+   |                  ^^^
+
+warning: struct `MembershipState` is never constructed
+  --> src/membership.rs:77:8
+   |
+77 | struct MembershipState {
+   |        ^^^^^^^^^^^^^^^
+
+warning: associated items `new` and `serve_once` are never used
+   --> src/membership.rs:90:12
+    |
+ 89 | impl MembershipState {
+    | -------------------- associated items in this implementation
+ 90 |     pub fn new(seed: Seed<'static>, host_id: String, boot_nonce: [u64; 2]) -> Self {
+    |            ^^^
+...
+121 |     async fn serve_once(
+    |              ^^^^^^^^^^
+
+warning: method `run_retained` is never used
+  --> src/membership_execution.rs:10:25
+   |
+ 9 | impl MembershipState {
+   | -------------------- method in this implementation
+10 |     pub(super) async fn run_retained(
+   |                         ^^^^^^^^^^^^
+
+warning: struct `ResidentWorkset` is never constructed
+ --> src/resident_supervision.rs:9:12
+  |
+9 | pub struct ResidentWorkset<'w, 'o> {
+  |            ^^^^^^^^^^^^^^^
+
+warning: associated function `new` is never used
+  --> src/resident_supervision.rs:16:12
+   |
+15 | impl<'w, 'o> ResidentWorkset<'w, 'o> {
+   | ------------------------------------ associated function in this implementation
+16 |     pub fn new(
+   |            ^^^
+
+warning: method `run_mixed` is never used
+ --> src/membership_mixed.rs:7:25
+  |
+6 | impl MembershipState {
+  | -------------------- method in this implementation
+7 |     pub(super) async fn run_mixed(
+  |                         ^^^^^^^^^
+
+warning: constant `LIFETIME_MILLIS` is never used
+  --> src/membership_preparation.rs:10:7
+   |
+10 | const LIFETIME_MILLIS: u32 = 10_000;
+   |       ^^^^^^^^^^^^^^^
+
+warning: constant `MAXIMUM_CHUNKS` is never used
+  --> src/membership_preparation.rs:11:7
+   |
+11 | const MAXIMUM_CHUNKS: usize = 64;
+   |       ^^^^^^^^^^^^^^
+
+warning: methods `reclaim_expired_preparation` and `serve_preparation` are never used
+  --> src/membership_preparation.rs:17:19
+   |
+13 | impl MembershipState {
+   | -------------------- methods in this implementation
+...
+17 |     pub(super) fn reclaim_expired_preparation(
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+39 |     pub(super) async fn serve_preparation(
+   |                         ^^^^^^^^^^^^^^^^^
+
+warning: function `serve_retained_input` is never used
+   --> src/membership_preparation.rs:144:21
+    |
+144 | pub(super) async fn serve_retained_input(
+    |                     ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `report_retained_input` is never used
+   --> src/membership_preparation.rs:155:21
+    |
+155 | pub(super) async fn report_retained_input(
+    |                     ^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `encode_retained_input` is never used
+   --> src/membership_preparation.rs:164:4
+    |
+164 | fn encode_retained_input(
+    |    ^^^^^^^^^^^^^^^^^^^^^
+
+warning: method `serve_return` is never used
+ --> src/membership_return.rs:4:25
+  |
+3 | impl MembershipState {
+  | -------------------- method in this implementation
+4 |     pub(super) async fn serve_return(
+  |                         ^^^^^^^^^^^^
+
+warning: method `refresh_native_offer` is never used
+  --> src/membership_return.rs:85:8
+   |
+84 | impl MembershipState {
+   | -------------------- method in this implementation
+85 |     fn refresh_native_offer(&mut self) -> Result<(), ()> {
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: type alias `NativeKernel` is never used
+  --> src/native_preparation.rs:23:10
+   |
+23 | pub type NativeKernel = FixedScheduler<
+   |          ^^^^^^^^^^^^
+
+warning: type alias `Storage` is never used
+  --> src/native_preparation.rs:36:6
+   |
+36 | type Storage = PreparedKernelStorage<HostCallBack, NativeKernel, 1>;
+   |      ^^^^^^^
+
+warning: struct `PreparedNativeKernel` is never constructed
+  --> src/native_preparation.rs:55:12
+   |
+55 | pub struct PreparedNativeKernel<'a, P: I2cProvider> {
+   |            ^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `BoundNativeKernel` is never constructed
+  --> src/native_preparation.rs:60:12
+   |
+60 | pub struct BoundNativeKernel<P> {
+   |            ^^^^^^^^^^^^^^^^^
+
+warning: associated items `prepare`, `storage_bytes`, and `bind` are never used
+   --> src/native_preparation.rs:67:12
+    |
+ 64 | impl<'a, P: I2cProvider> PreparedNativeKernel<'a, P> {
+    | ---------------------------------------------------- associated items in this implementation
+...
+ 67 |     pub fn prepare(
+    |            ^^^^^^^
+...
+149 |     pub fn storage_bytes(&self) -> usize {
+    |            ^^^^^^^^^^^^^
+...
+153 |     pub fn bind(self) -> BoundNativeKernel<P> {
+    |            ^^^^
+
+warning: method `dispatch_one` is never used
+  --> src/native_dispatch.rs:27:12
+   |
+19 | impl<P: I2cProvider> BoundNativeKernel<P> {
+   | ----------------------------------------- method in this implementation
+...
+27 |     pub fn dispatch_one(&mut self) -> Result<NativeDispatch, SchedulerError> {
+   |            ^^^^^^^^^^^^
+
+warning: enum `Refusal` is never used
+ --> src/native_publication.rs:8:10
+  |
+8 | pub enum Refusal {
+  |          ^^^^^^^
+
+warning: function `prepare` is never used
+  --> src/native_publication.rs:20:8
+   |
+20 | pub fn prepare(
+   |        ^^^^^^^
+
+warning: function `copy` is never used
+   --> src/native_publication.rs:159:4
+    |
+159 | fn copy(text: &str, remaining: &mut usize) -> Result<String, Refusal> {
+    |    ^^^^
+
+warning: function `vector` is never used
+   --> src/native_publication.rs:173:4
+    |
+173 | fn vector<T>(count: usize, remaining: &mut usize) -> Result<Vec<T>, Refusal> {
+    |    ^^^^^^
+
+warning: field `identity_bytes` is never read
+ --> src/neutral_equipment_owners.rs:8:9
+  |
+5 | pub struct Equipment<I, C> {
+  |            --------- field in this struct
+...
+8 |     pub identity_bytes: usize,
+  |         ^^^^^^^^^^^^^^
+
+warning: function `summary` is never used
+  --> src/resident.rs:38:8
+   |
+38 | pub fn summary() -> (usize, usize, Option<usize>) {
+   |        ^^^^^^^
+
+warning: variants `Unavailable`, `Workset`, `Retention`, `Execution`, and `Storage` are never constructed
+  --> src/resident_preparation.rs:28:5
+   |
+27 | pub enum ValidationRefusal {
+   |          ----------------- variants in this enum
+28 |     Unavailable,
+   |     ^^^^^^^^^^^
+...
+35 |     Workset,
+   |     ^^^^^^^
+36 |     Retention(conduit_body::HostCommandRetentionRefusal),
+   |     ^^^^^^^^^
+37 |     Execution(conduit_body::ExecutionDelegationRefusal),
+   |     ^^^^^^^^^
+38 |     Storage(conduit_kernel::scheduler::KernelPreparationError),
+   |     ^^^^^^^
+   |
+   = note: `ValidationRefusal` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: struct `ExecutionPolicy` is never constructed
+  --> src/resident_preparation.rs:45:12
+   |
+45 | pub struct ExecutionPolicy<'a> {
+   |            ^^^^^^^^^^^^^^^
+
+warning: function `prepare_retained_execution_storage` is never used
+  --> src/resident_preparation.rs:53:8
+   |
+53 | pub fn prepare_retained_execution_storage<'a, 'o, const N: usize>(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `prepare_retained_workset_storage` is never used
+  --> src/resident_preparation.rs:84:8
+   |
+84 | pub fn prepare_retained_workset_storage<'a, 'o, const N: usize>(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `prepare_workset_storage` is never used
+   --> src/resident_preparation.rs:111:8
+    |
+111 | pub fn prepare_workset_storage<'a, 'o>(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_workset_with_inventory` is never used
+   --> src/resident_preparation.rs:130:8
+    |
+130 | pub fn validate_workset_with_inventory(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `check_workset` is never used
+   --> src/resident_preparation.rs:140:4
+    |
+140 | fn check_workset<'a>(
+    |    ^^^^^^^^^^^^^
+
+warning: struct `CheckedWorkset` is never constructed
+   --> src/resident_preparation.rs:195:8
+    |
+195 | struct CheckedWorkset<'a> {
+    |        ^^^^^^^^^^^^^^
+
+warning: fields `fragment`, `fore`, `selected`, `maxima`, and `used` are never read
+   --> src/resident_preparation.rs:316:5
+    |
+315 | struct CheckedDocument<'a> {
+    |        --------------- fields in this struct
+316 |     fragment: DelegatedBodyFragment<'a>,
+    |     ^^^^^^^^
+317 |     fore: ApprovedBodyForePorts<16>,
+    |     ^^^^
+318 |     selected: conduit_plan_lowering::resident_inventory::ResidentInventorySelection<
+    |     ^^^^^^^^
+...
+321 |     maxima: c::AssignedPlanMaxima,
+    |     ^^^^^^
+322 |     used: [bool; crate::resident::generated::ENTRY_COUNT],
+    |     ^^^^
+
+warning: method `profile` is never used
+   --> src/resident_preparation.rs:325:8
+    |
+324 | impl CheckedDocument<'_> {
+    | ------------------------ method in this implementation
+325 |     fn profile(&self) -> AssignedBodyPreparationProfile<'_> {
+    |        ^^^^^^^
+
+warning: struct `TerminalFragment` is never constructed
+ --> src/resident_execution.rs:6:12
+  |
+6 | pub struct TerminalFragment<'a> {
+  |            ^^^^^^^^^^^^^^^^
+
+warning: function `step_workset` is never used
+  --> src/resident_execution.rs:13:8
+   |
+13 | pub fn step_workset(
+   |        ^^^^^^^^^^^^
+
+warning: function `retire_workset` is never used
+  --> src/resident_execution.rs:29:8
+   |
+29 | pub fn retire_workset<'a, 'o>(
+   |        ^^^^^^^^^^^^^^
+
+warning: struct `WorkObservation` is never constructed
+ --> src/resident_resources.rs:7:12
+  |
+7 | pub struct WorkObservation {
+  |            ^^^^^^^^^^^^^^^
+
+warning: function `observe_private_work` is never used
+  --> src/resident_resources.rs:15:8
+   |
+15 | pub fn observe_private_work(
+   |        ^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAXIMUM_CORD_VALUE_BYTES` is never used
+  --> src/resident_storage.rs:12:7
+   |
+12 | const MAXIMUM_CORD_VALUE_BYTES: u32 = 2048;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> src/resident_storage.rs:13:7
+   |
+13 | const VALUE_BYTES: usize = {
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_ITEMS` is never used
+  --> src/resident_storage.rs:22:7
+   |
+22 | const SIGN_ITEMS: usize = 16;
+   |       ^^^^^^^^^^
+
+warning: type alias `Kernel` is never used
+  --> src/resident_storage.rs:23:6
+   |
+23 | type Kernel<'a, const N: usize, const C: usize, const V: usize> = FixedScheduler<
+   |      ^^^^^^
+
+warning: type alias `Slot` is never used
+  --> src/resident_storage.rs:36:6
+   |
+36 | type Slot<'a, const N: usize, const C: usize, const V: usize> =
+   |      ^^^^
+
+warning: enum `Storage` is never used
+  --> src/resident_storage.rs:41:6
+   |
+41 | enum Storage<'a> {
+   |      ^^^^^^^
+
+warning: struct `Fragment` is never constructed
+  --> src/resident_storage.rs:48:8
+   |
+48 | struct Fragment<'a, 'o> {
+   |        ^^^^^^^^
+
+warning: struct `AttemptStorage` is never constructed
+  --> src/resident_storage.rs:56:12
+   |
+56 | pub struct AttemptStorage<'a, 'o> {
+   |            ^^^^^^^^^^^^^^
+
+warning: method `storage_bytes` is never used
+  --> src/resident_storage.rs:63:12
+   |
+62 | impl AttemptStorage<'_, '_> {
+   | --------------------------- method in this implementation
+63 |     pub fn storage_bytes(&self) -> usize {
+   |            ^^^^^^^^^^^^^
+
+warning: struct `ReservedAttempt` is never constructed
+  --> src/resident_storage.rs:70:12
+   |
+70 | pub struct ReservedAttempt<'a, 'o, 'r> {
+   |            ^^^^^^^^^^^^^^^
+
+warning: methods `release_for_retention`, `admissions`, and `preparation_bytes` are never used
+  --> src/resident_storage.rs:78:12
+   |
+75 | impl ReservedAttempt<'_, '_, '_> {
+   | -------------------------------- methods in this implementation
+...
+78 |     pub fn release_for_retention(self) -> conduit_body::RetainedHostCommandStamp {
+   |            ^^^^^^^^^^^^^^^^^^^^^
+...
+91 |     pub fn admissions(&self) -> &[conduit_core::ResourceAdmission] {
+   |            ^^^^^^^^^^
+...
+94 |     pub fn preparation_bytes(&self) -> usize {
+   |            ^^^^^^^^^^^^^^^^^
+
+warning: methods `admit_observed`, `admit_and_bind`, `reserve_observed`, and `reserve` are never used
+   --> src/resident_storage.rs:102:12
+    |
+ 98 | impl<'a, 'o> AttemptStorage<'a, 'o> {
+    | ----------------------------------- methods in this implementation
+...
+102 |     pub fn admit_observed(
+    |            ^^^^^^^^^^^^^^
+...
+126 |     pub fn admit_and_bind(
+    |            ^^^^^^^^^^^^^^
+...
+159 |     pub fn reserve_observed<'r>(
+    |            ^^^^^^^^^^^^^^^^
+...
+183 |     pub fn reserve<'r>(
+    |            ^^^^^^^
+
+warning: function `prepare` is never used
+   --> src/resident_storage.rs:223:15
+    |
+223 | pub(super) fn prepare<'a, 'o>(
+    |               ^^^^^^^
+
+warning: function `slot` is never used
+   --> src/resident_storage.rs:306:4
+    |
+306 | fn slot<'o, const N: usize, const C: usize, const V: usize>(
+    |    ^^^^
+
+warning: enum `BoundKernel` is never used
+ --> src/resident_binding.rs:9:10
+  |
+9 | pub enum BoundKernel<'o> {
+  |          ^^^^^^^^^^^
+
+warning: method `step` is never used
+  --> src/resident_binding.rs:18:12
+   |
+16 | impl BoundKernel<'_> {
+   | -------------------- method in this implementation
+17 |     /// One ordinary bounded scheduler decision, never a second execution loop.
+18 |     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
+   |            ^^^^
+
+warning: struct `BoundFragment` is never constructed
+  --> src/resident_binding.rs:28:12
+   |
+28 | pub struct BoundFragment<'a, 'o> {
+   |            ^^^^^^^^^^^^^
+
+warning: struct `BoundWorkset` is never constructed
+  --> src/resident_binding.rs:34:12
+   |
+34 | pub struct BoundWorkset<'a, 'o, 'r> {
+   |            ^^^^^^^^^^^^
+
+warning: struct `CommittedWorkset` is never constructed
+  --> src/resident_binding.rs:42:12
+   |
+42 | pub struct CommittedWorkset<'a, 'o> {
+   |            ^^^^^^^^^^^^^^^^
+
+warning: method `into_parts` is never used
+  --> src/resident_binding.rs:47:12
+   |
+46 | impl<'a, 'o> CommittedWorkset<'a, 'o> {
+   | ------------------------------------- method in this implementation
+47 |     pub fn into_parts(
+   |            ^^^^^^^^^^
+
+warning: methods `admissions` and `into_parts` are never used
+  --> src/resident_binding.rs:57:12
+   |
+56 | impl<'a, 'o, 'r> BoundWorkset<'a, 'o, 'r> {
+   | ----------------------------------------- methods in this implementation
+57 |     pub fn admissions(&self) -> &[conduit_core::ResourceAdmission] {
+   |            ^^^^^^^^^^
+...
+62 |     pub fn into_parts(
+   |            ^^^^^^^^^^
+
+warning: method `bind` is never used
+  --> src/resident_binding.rs:76:12
+   |
+72 | impl<'a, 'o, 'r> ReservedAttempt<'a, 'o, 'r> {
+   | -------------------------------------------- method in this implementation
+...
+76 |     pub fn bind(self) -> BoundWorkset<'a, 'o, 'r> {
+   |            ^^^^
+
+warning: function `bind_admitted` is never used
+  --> src/resident_binding.rs:91:15
+   |
+91 | pub(super) fn bind_admitted<'a, 'o>(storage: AttemptStorage<'a, 'o>) -> CommittedWorkset<'a, 'o> {
+   |               ^^^^^^^^^^^^^
+
+warning: function `bind_storage` is never used
+  --> src/resident_binding.rs:95:4
+   |
+95 | fn bind_storage<'a, 'o>(
+   |    ^^^^^^^^^^^^
+
+warning: function `bind` is never used
+   --> src/resident_binding.rs:128:4
+    |
+128 | fn bind<'o, const N: usize, const C: usize, const V: usize>(
+    |    ^^^^
+
+warning: struct `RetiredKernel` is never constructed
+ --> src/resident_retirement.rs:6:12
+  |
+6 | pub struct RetiredKernel {
+  |            ^^^^^^^^^^^^^
+
+warning: method `cancel_and_retire` is never used
+  --> src/resident_retirement.rs:18:12
+   |
+11 | impl BoundKernel<'_> {
+   | -------------------- method in this implementation
+...
+18 |     pub fn cancel_and_retire(mut self) -> Result<RetiredKernel, (Self, SchedulerError)> {
+   |            ^^^^^^^^^^^^^^^^^
+
+warning: function `retire` is never used
+  --> src/resident_retirement.rs:39:4
+   |
+39 | fn retire<const N: usize, const C: usize, const V: usize>(
+   |    ^^^^^^
+
+warning: `conduit-rp2040-host` (bin "conduit-rp2040-host") generated 97 warnings (run `cargo fix --bin "conduit-rp2040-host" -p conduit-rp2040-host` to apply 6 suggestions)
+    Finished `release` profile [optimized] target(s) in 3m 17s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`

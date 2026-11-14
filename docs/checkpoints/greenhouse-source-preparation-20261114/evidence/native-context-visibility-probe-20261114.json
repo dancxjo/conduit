@@ -1,0 +1,13 @@
+{
+  "scope": "Software-only fixture using already-built shared Face and native Scene libraries; not live Body or physical input",
+  "result": [
+    "different_semantic_face_ids=true",
+    "overview_commands=16",
+    "library_commands=16",
+    "identical_primary_drawing=true",
+    "software_only=true; no_body_actions=true; no_physical_capture_claim=true"
+  ],
+  "source_sha256": "3518879d920b7b38320c5820eb952130dde22ce063f7238edb13302fbdf4d3cd",
+  "interpretation": "Distinct Overview/Library Face identities yield identical primary drawing for the ordinary born-Body fixture. Context/revision-only tests cannot prove visible navigation. Exact physical clicked action remains unproved.",
+  "limitations": "Standalone rustc diagnostic; no Cargo build or full integration qualification; no live state mutation."
+}

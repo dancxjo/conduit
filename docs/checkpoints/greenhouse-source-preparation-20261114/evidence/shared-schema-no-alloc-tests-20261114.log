@@ -1,0 +1,10 @@
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/plan-lowering)
+    Finished `test` profile [unoptimized] target(s) in 0.95s
+     Running tests/shared_schema_no_alloc.rs (/tmp/conduit-source-member-control-20261111/debug/deps/shared_schema_no_alloc-03688a9c0b787afe)
+
+running 2 tests
+test refused_cold_allocation_is_explicit_and_no_store_escapes ... ok
+test execution_and_partial_publication_rollback_allocate_nothing ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

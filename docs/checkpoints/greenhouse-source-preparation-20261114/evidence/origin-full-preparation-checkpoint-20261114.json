@@ -1,0 +1,8 @@
+{
+  "checkpoint": "1445a15a0dfe08bb218c1ac82465c688b5b07dfd",
+  "qualified_head": "63f8f9dd5a9438a3faba99e1a89bea4bf60a7932",
+  "files_verified": 26,
+  "branch": "checkpoint/greenhouse-source-preparation-20261114",
+  "pr": "https://github.com/dancxjo/conduit/pull/6902",
+  "source_files_verified_byte_for_byte": true
+}

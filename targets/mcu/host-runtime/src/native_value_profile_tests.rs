@@ -8,6 +8,42 @@ use conduit_core::{
 };
 use conduit_kernel::ValueStorage;
 #[test]
+fn shared_pool_charges_logical_metadata_and_physical_buffers_without_claiming_lifetimes() {
+    use conduit_core::BorrowedStructuredValueValidator;
+    use conduit_plan_lowering::shared_schema_value_store::SharedSchemaValueStore;
+    let ty = T::leaf(kind_id("value/u64")).unwrap();
+    let value = I::leaf(ty.clone(), 42u64.to_le_bytes().to_vec())
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    let schema = ty.canonical_bytes().unwrap();
+    let validator = BorrowedStructuredValueValidator::new(&schema, value.len()).unwrap();
+    let canonical =
+        conduit_kernel::HostedValueStore::try_new_with_slot_capacities(&[8], 8, 4096).unwrap();
+    let mut pool = SharedSchemaValueStore::try_new(
+        canonical,
+        &[(validator, 3)],
+        &[(validator, 1)],
+        3 * value.len() as u32,
+        4096,
+    )
+    .unwrap();
+    let backing = pool.external_backing_bytes().unwrap();
+    assert_eq!(
+        backing,
+        pool.canonical_storage().reserved_storage_bytes()
+            + pool.reserved_metadata_bytes()
+            + pool.reserved_payload_bytes()
+    );
+    assert_eq!(pool.item_capacity(), 4);
+    assert_eq!(pool.physical_item_capacity(&schema), 1);
+    let held = pool.store_schema_canonical(&schema, &value).unwrap();
+    assert!(pool.store_schema_canonical(&schema, &value).is_err());
+    assert_eq!(pool.external_backing_bytes(), Some(backing));
+    pool.release(held).unwrap();
+    assert_eq!(pool.external_backing_bytes(), Some(backing));
+}
+#[test]
 fn schema_profiles_fund_actual_backing_and_preserve_logical_quotas_and_clocks() {
     let leaf = T::leaf(kind_id("value/u64")).unwrap();
     let ty = T::record(

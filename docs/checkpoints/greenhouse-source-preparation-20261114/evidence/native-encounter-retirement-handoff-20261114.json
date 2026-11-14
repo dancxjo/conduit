@@ -1,0 +1,38 @@
+{
+  "prepared_unix": 1794625093.9184706,
+  "owner": "Threebee rollout coordinator",
+  "handoff_authority": "Display agent intended task message2026-11-14T02:41:55.150Z, recovered from its exact task record after stalled RPC",
+  "checkout": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/native-encounter-retirement-20261114",
+  "branch": "fix/native-encounter-retirement-20261114",
+  "base": "2892de918efef9e25e122f13eaccaad8babcdb75",
+  "commits": [
+    "86da2200af",
+    "198040a336"
+  ],
+  "patch": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-encounter-retirement-20261114.patch",
+  "patch_sha256": "bc6dc5d926ba28df75b1805cc321ae373a16cd419978347825c68c93189494b7",
+  "changes": [
+    "Extract existing native physical-input custody into native/input.rs",
+    "Public checked retirement wrapper uses existing private retire_bound_plan and original counters, preserves fixed provider/pixels, refuses active or quarantined custody",
+    "Retire full old encounter Plan before member_connection, including initial Show ACK loss",
+    "Pre-input original-carrier presence check discards failed occurrence; exact closed member expiry after preflight also recovers, unknown/kernel errors remain terminal",
+    "Current-member expiry during rendering retires only when actual stores safely permit; uncertain retirement blocks re-entry"
+  ],
+  "tests_updated": "Existing selected-native-mask CPU/SDL test now checks active-frame refusal, Plan charge returned to fixed-only baseline before replacement, idempotent unbound retirement, and quarantined-ledger refusal without charge loss",
+  "validation": [
+    "Rustfmt1.98.1, actual edition2021, skip_children=true",
+    "git diff --check"
+  ],
+  "NOT_RUN": [
+    "Cargo or any compilation (integration owner retains warm build cache)",
+    "new physical/HIL renewal test",
+    "new Root/device deployment"
+  ],
+  "required_qualification": [
+    "Focused std selected-native-mask tests, native runtime tests and strictClippy",
+    "Expired member input discards occurrence without Host exit; held input cannot trigger replacement Show",
+    "Retirement failure prevents fresh member connection and never becomes free capacity",
+    "Physical outage/reconnect under one Host Boot, no old action replay"
+  ],
+  "source_and_devices": "N untouched; current2892/f5 preserved"
+}

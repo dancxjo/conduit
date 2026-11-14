@@ -1,0 +1,62 @@
+{
+  "status": "qualified reusable physical storage prototype; not selected by MCU and no lifetime/admission claim",
+  "files": {
+    "architecture/plan-lowering/src/lib.rs": "9b405dfb843a9b0f201414b4bad7b08aab45238482d735d8a7bd216cf565421b",
+    "architecture/plan-lowering/src/shared_schema_value_store/mod.rs": "787b499fff585b693913423a9b9dbba0b510345e63eab6bfe79aa28c8f1e3915",
+    "architecture/plan-lowering/src/shared_schema_value_store/preparation.rs": "85b1f095cc3782e42b64f08ecbf17ccee15b9a22a320d4f867e0d7c9f6270ac0",
+    "architecture/plan-lowering/src/shared_schema_value_store/storage.rs": "ab4d2105ccde443eea2dc53636742465cc0ddefbe5ff3a7e23221a5fdde7baeb",
+    "architecture/plan-lowering/src/shared_schema_value_store/tests.rs": "1161ff786fdbe97d841781a111bdfd409b85ee77c86a9b5cdc0d77ef54bd99ba",
+    "architecture/plan-lowering/tests/shared_schema_no_alloc.rs": "3ac64f89d61063346320368549f0bf368d9147fca6b3c293861c7b59620205bf"
+  },
+  "API": "SharedSchemaValueStore::try_new(canonical, logical_definitions, physical_definitions, original_logical_byte_capacity, actual_backing_ceiling)",
+  "unit_tests": {
+    "passed": 7,
+    "log": "outputs/shared-schema-unit-tests-20261114.log",
+    "covers": [
+      "dense logical ValueRef/canonical delegation trace",
+      "65536-cycle dense/compact generation retirement parity",
+      "physical pressure and unchanged rejected generations",
+      "last-ref release, stale references and clear",
+      "foreign/malformed/quota/ref-overflow atomicity",
+      "exact cold backing and one-byte-short refusal",
+      "heterogeneous original logical max/order",
+      "held input + queue + staged replacement stock"
+    ]
+  },
+  "integration_tests": {
+    "passed": 2,
+    "log": "outputs/shared-schema-no-alloc-tests-20261114.log",
+    "run_allocations": 0,
+    "run_reallocations": 0,
+    "cold_allocation_refusal": true
+  },
+  "strict_clippy": {
+    "passed": true,
+    "scope": "conduit-plan-lowering --features schema-value-storage --lib --test shared_schema_no_alloc -D warnings",
+    "log": "outputs/shared-schema-clippy-20261114.log"
+  },
+  "small_fixture_actual_cpu64_backing": {
+    "schema_classes": 1,
+    "logical_schema_slots": 3,
+    "physical_schema_buffers": 1,
+    "metadata_bytes": 104,
+    "payload_bytes": 20,
+    "combined_bytes": 124,
+    "not_Source76_measurement": true
+  },
+  "preserved": [
+    "all logical identities and individual bounds/order",
+    "u16 generation domains/permanent retirement",
+    "canonical offset and delegation",
+    "original logical byte capacity",
+    "dense SchemaValueStore unchanged"
+  ],
+  "requires_before_MCU_selection": [
+    "independent actual owner/graph maximum-live proof",
+    "whole-factory and target RAM/stack measurement"
+  ],
+  "disk_free_after": {
+    "root": "6.1GiB",
+    "tmp": "7.4GiB"
+  }
+}
