@@ -299,12 +299,16 @@ impl BodyFace {
         };
         let mut text = vec![FaceText {
             subject: body_subject.clone(),
-            text: format!(
-                "{} is {} with {}.",
-                body_phrase,
-                lifecycle_label(&body.state),
-                resident_phrase,
-            ),
+            text: if matches!(context, FaceContext::Library) {
+                format!("{body_phrase} · Plots library: {resident_phrase}.")
+            } else {
+                format!(
+                    "{} is {} with {}.",
+                    body_phrase,
+                    lifecycle_label(&body.state),
+                    resident_phrase,
+                )
+            },
         }];
         let mut actions = Vec::new();
         let mut operator_actions = Vec::new();
@@ -371,7 +375,11 @@ impl BodyFace {
             ]);
             disclosures.push(FaceDisclosure {
                 subject: plot_subject,
-                level: FaceDisclosureLevel::Context,
+                level: if matches!(context, FaceContext::Library) {
+                    FaceDisclosureLevel::Primary
+                } else {
+                    FaceDisclosureLevel::Context
+                },
             });
         }
 
