@@ -1,0 +1,27 @@
+# EXPERIMENTAL compilation candidate only; not deployed or an admitted grant.
+# Explicit physical RAM partition leaves 40 KiB for other SRAM use; linker and
+# measured complete preparation/stack costs must still qualify before flashing.
+# Physical construction only. Runtime initialization and admission are separate.
+# Green's existing sensor/display share I2C1, GP6 SDA and GP7 SCL.
+host pico-w-house-green-neutral-candidate {
+  schema = 1
+  # Consider only the pinned Seed owner's finite preparation requests.
+  # Root still validates exact work, local resources and any native possessions.
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 32548, maximum_runtime_state_bytes: 223731}
+  # Explicitly opt in to one fully admitted, current Seed-owner workset.
+  execution = {authorizer: "seed-owner", maximum_active_worksets: 1}
+  target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
+  base = {kind: "clock/monotonic", implementation: "rp2040/monotonic-clock@1", initialization: {slots: 1, maximum_duration_ms: 60000, maximum_call_operations: 1024}}
+  base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
+  # Root may consider at most 1024 operations per exact native Play capability.
+  # Membership, signed workset checking, native possession and admission remain mandatory.
+  base = {kind: "bus/i2c", implementation: "rp2040/i2c@1", initialization: {controller: 1, sda_gpio: 6, scl_gpio: 7, frequency_hz: 100000, maximum_transaction_polls: 100000, minimum_call_address: 112, maximum_call_address: 118, maximum_call_operations: 1024}}
+  base = {kind: "sensor/environment", implementation: "rp2040/bosch-environment@1", initialization: {controller: 1, address: 118}}
+  base = {kind: "display/segmented", implementation: "rp2040/ht16k33@1", initialization: {controller: 1, address: 112, brightness: 3, layout: "adafruit-alpha4"}}
+  base = {kind: "network/wifi", implementation: "rp2040/cyw43-retained@1", initialization: {credential_source: "private-flash-network-journal", maximum_sockets: 4}}
+  need = {id: "pool/resident-step-work", class: "kernel/cooperative-step-work@1", slots: 65000, bytes: 98304}
+  # Uninstalled proposal: logical queue extents include immutable schemas.
+  # Mandatory evidence proposal: 267 items from the complete expanded Plan.
+  # Physical heap/static limits below are unchanged and must independently admit.
+  limits = {static_memory_bytes: 229376, heap_arena_bytes: 131072, queue_items: 128, buffered_bytes: 203448, active_instances: 128, operation_slots: 32, timer_slots: 4, line_sessions: 1, evidence_items: 267}
+}
