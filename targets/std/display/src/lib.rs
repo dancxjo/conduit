@@ -3,6 +3,7 @@
 // SDL is an explicitly selected hosted adapter, never a default Host dependency.
 #![cfg_attr(not(feature = "sdl"), no_std)]
 #![cfg(feature = "sdl")]
+mod cursor;
 mod initialized;
 mod input;
 mod prepared_input;
@@ -184,6 +185,9 @@ pub fn with_kmsdrm<T>(
     if !is_kmsdrm_backend(video.current_video_driver()) {
         return Err("kmsdrm-driver-unavailable".into());
     }
+    // Declared after the live video subsystem: Drop restores visibility on
+    // normal/error/unwind return before the subsystem or SDL can retire.
+    let _cursor_visibility = cursor::HiddenCursor::prepare(&sdl)?;
     let window = video
         .window("Conduit", width, height)
         .fullscreen_desktop()
