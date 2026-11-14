@@ -81,3 +81,7 @@ The experimental MCU entrance still prepares/drops and refuses **`structured-for
 5. Continue integration with the shared display/history lane and deliver reviewed slices into dev. At the last fetch, current dev was already included; preservation is not a merge claim.
 
 This work belongs principally to **#6341 and #6457**. Native Mask/Fore acceptance remains relevant to #6374/#6378; lifetime correctness to #6340/#6409; durable member/history acceptance to #6461/#6465 and the parent #6295. These preparation results do not close those acceptance obligations, and no new MCU memory epic is needed.
+
+## Bounded follow-up: shared MCU adapter
+
+The saved shared MCU phase-capacity adapter now compiles and passes the complete runtime library suite: **139 passed, one ignored** (`mcu-phase-terminal-tests-20261114.log`). Its three forwarding files are committed separately. This updates only the adapter's qualification: the RP2040 Source-derived selection, whole-factory preparation, new memory savings and ARM target remain unverified after phase specialization. The complete measurements above still belong to `c7e14f11e2`. No target build, device change or live-service change was made in this follow-up.

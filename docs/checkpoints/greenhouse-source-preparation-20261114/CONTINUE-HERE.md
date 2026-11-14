@@ -1,10 +1,10 @@
 # Continue the greenhouse MCU work
 
-Shared qualified source parent: 4c3999e4e47b04ecccf23447afa9daa5153268be. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+Shared qualified source parent: 25145af968b5f71eddf18bf50e48378146678c90. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
 
 ## Latest change: qualification boundary
 
-The shared kernel now also includes PHASE_BYTES specialization (258 kernel tests passed/3 ignored; no_alloc and strict lib/testsClippy pass). Default remains100. The new MCU adapter forwards this dimension, and the RP2040 prototype derives0 from the exact Source terminal matrix. Those NEW adapter/factory edits have NOT been compiled or measured as a whole. No new build was started after the user requested final preservation.
+The shared kernel now also includes PHASE_BYTES specialization (258 kernel tests passed/3 ignored; no_alloc and strict lib/testsClippy pass). Default remains100. The new MCU adapter forwards this dimension, and the RP2040 prototype derives0 from the exact Source terminal matrix. The shared MCU adapter now compiles and passes139 runtime tests/1ignored. The NEW RP2040 Source-derived factory edits have NOT been compiled or measured as a whole. A bounded shared-adapter test was completed after preservation; no new target build or device changes followed.
 
 All complete MCU/factory/ARM measurements below belong to c7e14f11e2, BEFORE phase-byte specialization was selected. Do not extrapolate the tiny phase test's104-byte saving to Source76 or ARM. First resume by compiling the new adapter, repeating the whole factory test and actual ARM qualification. Public abnormal values, CordState and unresolved abnormal truth remain100-byte capacity.
 
