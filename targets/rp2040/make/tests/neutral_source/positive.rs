@@ -425,7 +425,7 @@ pub fn measure_preparation<
         event_items,
         conduit_kernel::remote_sign_storage_bytes(event_items).unwrap(),
     );
-    println!("cpu_original_sign_items={} cpu_plan_named_sign_receipt_bytes={} cpu_kernel_event_bytes={} cpu_numeric_event_log_byte_capacity={event_bytes} cpu_remote_sign_extent={} cpu_numeric_event_log_constructor={:?}",
+    println!("baseline_full_remote_trace_diagnostic=true cpu_original_sign_items={} cpu_plan_named_sign_receipt_bytes={} cpu_kernel_event_bytes={} cpu_numeric_event_log_byte_capacity={event_bytes} cpu_remote_sign_extent={} cpu_numeric_event_log_constructor={:?}",
         layout::SIGN_ITEMS, layout::SIGN_BYTES, core::mem::size_of::<conduit_kernel::KernelEvent>(),
         conduit_kernel::remote_sign_storage_bytes(event_items).unwrap(), sign_shape.map(|_| "prepared"));
     let parts = root.execution_parts().unwrap();

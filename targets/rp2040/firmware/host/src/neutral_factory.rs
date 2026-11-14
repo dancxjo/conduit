@@ -276,11 +276,16 @@ pub fn prepare<'a, 'f: 'a, 'w, I: I2cProvider + 'a, D: MonotonicDeadlineProvider
                 .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>())
                 .and_then(|n| u32::try_from(n).ok())
                 .ok_or("sign-bound")?;
+            // This entrance uses checked local Fore and an exact profile with
+            // no remote bindings. Local boundaries retain ordinary value Signs;
+            // they do not create Line lifecycle trace entries. Actual network
+            // Lines require a different checked profile and funded trace stock.
+            let remote_items = 0;
             let signs = HostedSignLog::new_with_remote_storage(
                 event_items,
                 event_bytes,
-                event_items,
-                conduit_kernel::remote_sign_storage_bytes(event_items).ok_or("sign-bound")?,
+                remote_items,
+                conduit_kernel::remote_sign_storage_bytes(remote_items).ok_or("sign-bound")?,
             )
             .map_err(|_| "sign-storage")?;
             let mut prepared = PreparedFragment::<

@@ -1,0 +1,124 @@
+{
+  "assurance": "Original uninstrumented factory/Root preflight/no_std preparation for checked all-local Source76; remote trace capacity zero, ordinary Sign quota unchanged. CPU64 only; no new target build/runtime proof.",
+  "source_checkpoint": "d863617e78b1e27ef290b53e6f67e9f11906b5fe",
+  "source_sha256": "83291b6eac51ff63bcda99627b88e31a747cb83b660b310c2fea72af6cd1b07f",
+  "scope": {
+    "gears": 76,
+    "internal_cords": 83,
+    "all_cords": 95,
+    "queue_slots": 97,
+    "software_owners": 27,
+    "resident_owners": 47,
+    "native_call_owners": 2
+  },
+  "test_files": {
+    "targets/rp2040/make/tests/neutral_source.rs": "97b143e89850a508ed6d40cba847b70d74e2b02f5adb1f7b8c43aa9f60da224e",
+    "targets/rp2040/make/tests/neutral_source/exercise.rs": "ccb7e9965041636f10d88934a4884c843007e94f03fc9504b44ed054d11a2c18",
+    "targets/rp2040/make/tests/neutral_source/positive.rs": "d79ffc1b3c7ce88c5ce74c8e6cbb353b5065057c03064a0e2bcc1811515b632d"
+  },
+  "original_factory_sha256": "57f40fc00562ca52902bffaec7b482d1daa2d5b195d0790d9d99ef1cb693dafb",
+  "factory_diagnostic_copy": false,
+  "profile_cfg": {
+    "name": "neutral_source_execution",
+    "witness": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-c79668900a21695b/output",
+    "witness_sha256": "85b279f6b2c0fd9d245601d2f6a8204955320b9e2523d60e5cf75c8323545544",
+    "exact_emitted_line_required": true,
+    "propagated_to": [
+      "CPU BIN",
+      "no_std rlib"
+    ]
+  },
+  "generated_files": {
+    "host.rs": "5f2954b59522bb0d2c9c3c5b9cd6438e8fa5cbd23ff8bf080c4b4debcef7dfea",
+    "workset.rs": "62dbde86798dac837d4e93a954a88f39fd0050ed5086598edad915b165afb2a7",
+    "workset_0.rs": "7ed9bca42b36290a0e0e9027dafcbfe61f7735220d71191bd5bc3018b49b274b",
+    "workset_0_layout.rs": "a87386b13ce7e42ab405ed8c6d9d03b938dc60f8667be99543772e86498a4879",
+    "resident.rs": "7f42c18aa8b3fcd94bfa8c5534972dc316c93291d214c2082a0e729c71fafc3b"
+  },
+  "command": {
+    "signed_workset_bytes": 30314,
+    "projection_bytes": 29018,
+    "metadata_bytes": 1282,
+    "installed_input_bytes": 32548,
+    "resource_reference_bytes": 46,
+    "resolved_original_flash_resource_bytes": 6030,
+    "fore_metadata_bytes": 636,
+    "original_resource_requirements": 49,
+    "host_call_requirements": 2
+  },
+  "sign_representations": {
+    "original_Plan_named_receipt_bytes": 15277,
+    "numeric_event_items": 237,
+    "CPU_KernelEvent_bytes": 20,
+    "numeric_event_log_bytes": 4740,
+    "remote_numeric_trace_bytes": 5688,
+    "named_Plan_receipt_quota_unchanged": true
+  },
+  "measurements": {
+    "pointer_bits": 64,
+    "whole_factory_retained_requested_bytes": 159165,
+    "whole_factory_preparation_peak_requested_bytes": 161204,
+    "original_Root_preflight_peak_requested_bytes": 161204,
+    "software_retained_requested_bytes": 6254,
+    "inline_kernel_bytes": 42232,
+    "inline_Root_bytes": 33768,
+    "inline_equipment_bytes": 648,
+    "inline_resident_inventory_bytes": 13256
+  },
+  "funding_scope": {
+    "CPU_fixture_retained_preparation_ceiling_bytes": 1048576,
+    "unchanged_installed_image_heap_bytes": 131072,
+    "CPU_fixture_ceiling_is_not_target_funding": true
+  },
+  "exclusions": [
+    "preexisting Root heap backing and inline command storage",
+    "preexisting original equipment owners",
+    "preexisting resident inventory and static linked schemas",
+    "preexisting Issuer grant descriptions",
+    "allocator metadata/rounding",
+    "stack and CPU process/runtime memory"
+  ],
+  "verified": [
+    "original nonmember refusal",
+    "current member with unretained command refusal",
+    "zero storage refusal",
+    "signed retained command authentication and exact installed profile",
+    "complete kernel including separately funded shared execution workspace",
+    "original Root positive preflight returnsOk",
+    "all native Ready owners restored after drop",
+    "zero I2C transactions and zero native clock calls",
+    "original no_std module compilation",
+    "BIN uses unmodified original factory"
+  ],
+  "test_result": "passed1/1 original factory/Root preflight/no_std compilation; 15.48s",
+  "log": "outputs/positive-local-trace-factory-20261114.log",
+  "log_sha256": "1b8ea8919d258d140f6a09b9f4b0777ac4b463a22286a9e4c00875cede0af497",
+  "admission": false,
+  "Start": false,
+  "physical_deployment": false,
+  "target_heap_fit_proved": false,
+  "comparison": {
+    "prior_retained_requested_bytes": 164853,
+    "prior_peak_requested_bytes": 166892,
+    "incremental_remote_trace_saving_bytes": 5688,
+    "original_retained_requested_bytes": 210354,
+    "original_peak_requested_bytes": 212393,
+    "combined_retained_and_peak_saving_bytes": 51189,
+    "all_measurements_CPU64_requested_only": true
+  },
+  "prototype_files": {
+    "targets/rp2040/firmware/host/src/neutral_factory.rs": "57f40fc00562ca52902bffaec7b482d1daa2d5b195d0790d9d99ef1cb693dafb",
+    "targets/rp2040/firmware/host/src/neutral_workset.rs": "2cda988dea1ac2b36d33043a335f8af53dc633588ef357bd351cc323be38cec6"
+  },
+  "phase_profile": {
+    "Source_derived_bytes": 0,
+    "public_abnormal_Cord_and_unresolved_capacity_bytes": 100,
+    "default_profile_bytes": 100,
+    "unsupported_finalizer_refuses_before_effects": true
+  },
+  "new_target_build": false,
+  "selected_remote_trace_items": 0,
+  "ordinary_numeric_Sign_items": 237,
+  "ordinary_numeric_Sign_quota_unchanged": true,
+  "remote_trace_scope": "This exact factory uses ForeProfile::Local and remote_bindings:&[] and checks complete Source/layout; it is not a zero-trace default for Lines."
+}

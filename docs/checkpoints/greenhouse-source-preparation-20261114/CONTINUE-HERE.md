@@ -1,6 +1,6 @@
 # Continue the greenhouse MCU work
 
-Shared qualified source parent: 25145af968b5f71eddf18bf50e48378146678c90. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+Shared qualified source parent: d863617e78b1e27ef290b53e6f67e9f11906b5fe. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
 
 ## Latest change: qualification boundary
 
@@ -26,7 +26,11 @@ Actual ARM ABI: current same-code owned kernel64216 B versus linked47192 B, remo
 
 The firmware entrance still prepares/drops and refuses structured-fore-mask-unavailable. Linking this preparation entrance does NOT prove a complete application including reachable Play execution fits flash, heap or stack. No new physical sensing/display, admission, overnight history/restart or complete autonomous appliance is demonstrated. Devices remain on earlier firmware. DO NOT FLASH this as a qualified appliance.
 
-## Definite remaining heap shortfall
+## Latest local trace selection
+
+The exact local-only factory now reserves zero remote lifecycle entries, with all237 ordinary Sign items and named quota intact. CPU originalfactory/preflight/no_std PASS retained159165/peak161204 (additional5688 saved, total51189 frombaseline). Shared local-Fore zero-capacity regression4PASS +strictClippy; actualLinesstillrequiretracecapacity. No new ARM release for this profile. The older134571 minimum below describes FULL remote trace stock, not the new profile; total fit remains unproved because metadata/workspace/software/baseline are additional. Resume from newest positive-local-trace receipt.
+
+## Historical heap shortfall before local trace reduction
 
 Read evidence/source76-ARM-heap-lower-bound-20261114.json: actual ARM kernel39592 + actual ARM Sign backing9006 + observed u8 canonical payload30449 + schema payload55524 =134571 B, exceeding the entire131072-byte heap by3499 B BEFORE slot/class metadata, software/workspace, original baseline and allocator overhead. This is a conservative selected-profile bound, not an actual runtime high-water mark. The CPU diagnostic copy observes stock only; original successful unmodified factory proof stays separate. Do not flash this profile or widen grants. Further real reduction is required.
 
