@@ -249,11 +249,20 @@ pub fn prepare<'a, 'f: 'a, 'w, I: I2cProvider + 'a, D: MonotonicDeadlineProvider
                     clocks: [clock],
                 },
             )?;
+            // Kernel events and the Plan's named mandatory-Sign receipts are
+            // separate representations. Fund the actual numeric event log as
+            // in the shared Source execution entrance; do not reinterpret or
+            // change the Plan's original SIGN_BYTES receipt budget.
+            let event_items = u16::try_from(S).map_err(|_| "sign-bound")?;
+            let event_bytes = S
+                .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>())
+                .and_then(|n| u32::try_from(n).ok())
+                .ok_or("sign-bound")?;
             let signs = HostedSignLog::new_with_remote_storage(
-                S as u16,
-                layout::SIGN_BYTES,
-                S as u16,
-                conduit_kernel::remote_sign_storage_bytes(S as u16).ok_or("sign-bound")?,
+                event_items,
+                event_bytes,
+                event_items,
+                conduit_kernel::remote_sign_storage_bytes(event_items).ok_or("sign-bound")?,
             )
             .map_err(|_| "sign-storage")?;
             let mut prepared = PreparedFragment::<_, N, C, P, R, T, H, S, HostedSignLog, K, Values>::prepare_with_terminal_transductions_ref(

@@ -1,0 +1,11 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/kernel)
+    Finished `test` profile [unoptimized] target(s) in 6.31s
+     Running unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_kernel-53d002489c9db0d9)
+
+running 3 tests
+test assigned::layout_check::tests::exact_duplicate_multiplicity_and_tag_identity_survive_both_groups ... ok
+test assigned::layout_check::tests::per_tag_255_boundary_and_unmatchable_requirements_remain_checked ... ok
+test assigned::layout_check::tests::original_workspace_covers_721_source_shape_and_complete_canonical_domain ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 250 filtered out; finished in 0.08s
+

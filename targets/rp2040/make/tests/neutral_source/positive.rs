@@ -251,6 +251,18 @@ fn payload(
     )
     .unwrap();
     projection.truncate(n);
+    let pinned_fore = layout::fore();
+    let profile = crate::neutral_workset::profile(actual, &pinned_fore);
+    let validation = c::decode_assigned_plan_with_fore(
+        &projection,
+        profile.maxima,
+        profile.requirements,
+        profile.computations,
+        &pinned_fore,
+    );
+    println!("cpu_original_projection_resource_requirements={} cpu_original_projection_host_call_requirements={} cpu_original_projection_remote_requirements={} cpu_original_projection_validation={:?}",
+        profile.requirements.resources.len(), profile.requirements.host_calls.len(),
+        profile.requirements.remote_bindings.len(), validation.map(|_| "validated"));
     let mut fore = Vec::new();
     for record in c::AssignedPlanRecords::new(&projection).unwrap() {
         let record = record.unwrap();
@@ -398,6 +410,24 @@ pub fn measure_preparation<
     maximum: usize,
 ) {
     use conduit_mcu_host_runtime::{execution::Policy, execution_factory::SoftwareInventory};
+    // Named mandatory receipt bytes remain the original Plan quota. The concrete
+    // numeric event log uses its separate existing representation and extent.
+    let event_items = u16::try_from(layout::SIGN_ITEMS).unwrap();
+    let event_bytes = u32::try_from(
+        layout::SIGN_ITEMS
+            .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>())
+            .unwrap(),
+    )
+    .unwrap();
+    let sign_shape = conduit_kernel::HostedSignLog::new_with_remote_storage(
+        event_items,
+        event_bytes,
+        event_items,
+        conduit_kernel::remote_sign_storage_bytes(event_items).unwrap(),
+    );
+    println!("cpu_original_sign_items={} cpu_plan_named_sign_receipt_bytes={} cpu_kernel_event_bytes={} cpu_numeric_event_log_byte_capacity={event_bytes} cpu_remote_sign_extent={} cpu_numeric_event_log_constructor={:?}",
+        layout::SIGN_ITEMS, layout::SIGN_BYTES, core::mem::size_of::<conduit_kernel::KernelEvent>(),
+        conduit_kernel::remote_sign_storage_bytes(event_items).unwrap(), sign_shape.map(|_| "prepared"));
     let parts = root.execution_parts().unwrap();
     let actual = parts.resources.host();
     let context = b::NativePreparationContext {

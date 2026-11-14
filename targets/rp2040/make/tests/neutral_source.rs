@@ -92,6 +92,27 @@ fn actual_board_factory_and_root_preflight_refuse_unadmitted_commands() {
     let temporary =
         std::env::temp_dir().join(format!("conduit-neutral-source-cpu-{}", std::process::id()));
     fs::create_dir(&temporary).unwrap();
+    // CPU-only observation: preserve each original refusal and all checks. The
+    // no_std compilation still consumes the unmodified production factory.
+    let original_factory_path = board.join("neutral_factory.rs");
+    let original_factory = fs::read_to_string(&original_factory_path).unwrap();
+    let mut observed_factory = original_factory.clone();
+    for stage in ["neutral-kernel", "neutral-workspace"] {
+        let erased = format!(".map_err(|_| \"{stage}\")?");
+        assert_eq!(observed_factory.matches(&erased).count(), 1);
+        let observed = format!(".map_err(|error| {{ eprintln!(\"original factory {stage}: {{error:?}}\"); \"{stage}\" }})?");
+        observed_factory = observed_factory.replace(&erased, &observed);
+    }
+    let observed_factory_path = temporary.join("neutral_factory_diagnostic.rs");
+    fs::write(&observed_factory_path, &observed_factory).unwrap();
+    let digest = |text: &str| {
+        conduit_core::assigned_plan_payload_digest(text.as_bytes())
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>()
+    };
+    eprintln!("factory_original_sha256={} factory_diagnostic_sha256={} diagnostic_only=error_observation original_checks_and_refusals_preserved",
+        digest(&original_factory), digest(&observed_factory));
     let deps = std::env::current_exe()
         .unwrap()
         .parent()
@@ -123,6 +144,16 @@ fn actual_board_factory_and_root_preflight_refuse_unadmitted_commands() {
         ("no_std", format!("#![no_std]\n{generated}"), "rlib"),
     ] {
         let path = temporary.join(format!("{name}.rs"));
+        let source = if kind == "bin" {
+            let original = format!("#[path={original_factory_path:?}]mod neutral_factory;");
+            assert_eq!(source.matches(&original).count(), 1);
+            source.replace(
+                &original,
+                &format!("#[path={observed_factory_path:?}]mod neutral_factory;"),
+            )
+        } else {
+            source
+        };
         fs::write(&path, source).unwrap();
         let mut compiler = Command::new("rustc");
         compiler
