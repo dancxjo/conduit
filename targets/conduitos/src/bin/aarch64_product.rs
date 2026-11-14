@@ -20,9 +20,12 @@ use conduitos::{
     spore_join,
 };
 
+// Limine enters through assembly: a Rust prologue may spill FP/SIMD registers
+// before the first Rust statement, so enabling them inside Rust is too late.
+core::arch::global_asm!(include_str!("aarch64_product_entry.S"));
+
 #[unsafe(no_mangle)]
-pub extern "C" fn conduitos_aarch64_product_start() -> ! {
-    arch::enable_fp_simd();
+pub extern "C" fn conduitos_aarch64_product_rust_start() -> ! {
     let (l0, l1, l2) = arch::mmio_table_addresses();
     let l0 = boot::executable_physical_address(l0).unwrap_or_else(|| refuse("mmio-l0-invalid"));
     let l1 = boot::executable_physical_address(l1).unwrap_or_else(|| refuse("mmio-l1-invalid"));
