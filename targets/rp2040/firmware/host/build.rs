@@ -61,6 +61,7 @@ fn main() {
         .any(|(_, implementation)| implementation == conduit_host_rp2040::TM1637_IMPLEMENTATION);
     println!("cargo:rustc-check-cfg=cfg(sensor_dht11)");
     println!("cargo:rustc-check-cfg=cfg(shared_source_execution)");
+    println!("cargo:rustc-check-cfg=cfg(neutral_source_execution)");
     let dht = checked
         .resolved_bases()
         .iter()
@@ -152,8 +153,31 @@ fn main() {
             .expect("equipment-neutral checked Source fabrication")
     };
 
+    let neutral = dht.is_none() && resident_images.is_some();
+    if neutral {
+        println!("cargo:rustc-cfg=neutral_source_execution");
+        println!("cargo:rustc-cfg=shared_source_execution");
+    }
+    let deadline_clock = neutral.then(|| {
+        conduit_host_rp2040::CheckedClockConstruction::from_configuration(
+            &checked,
+            conduit_host_rp2040::CLOCK_IMPLEMENTATION,
+        )
+        .expect("checked selected deadline clock")
+    });
+    let clock_base_implementation = deadline_clock.as_ref().map(|_| {
+        checked
+            .resolved_bases()
+            .iter()
+            .find(|(kind, _)| kind == "clock/monotonic")
+            .expect("checked actual clock Base")
+            .1
+            .as_str()
+    });
     let resident = if let Some(images) = &resident_images {
-        conduit_embedded_build::generate_resident_library(images, 2 * 1024 * 1024)
+        // Compiler text only: the full checked library emits ~4 MB of Rust.
+        // Flash, static RAM, heap and stack remain independently bounded.
+        conduit_embedded_build::generate_resident_library(images, 4 * 1024 * 1024)
             .map_err(|e| format!("resident library: {e:?}"))
     } else if tm {
         // No HT16K33 computations or TM1637 Back are installed for this profile.
@@ -192,7 +216,12 @@ fn main() {
         conduit_host_rp2040::source_build::native_build::checked_assignment_bytes(&checked)
             .expect("checked finite command workspace");
     let heap = checked.configuration().limits.heap_arena_bytes;
-    assert!((32768..=110592).contains(&heap), "finite preparation arena");
+    // The checked Host supplies this finite partition. Its arena is part of
+    // static RAM; the linker independently enforces total BSS and stack space.
+    assert!(
+        heap >= 32768 && heap <= checked.configuration().limits.static_memory_bytes,
+        "configured preparation arena must fit the Host static bound"
+    );
     let local_io = if let Some(dht) = &dht {
         let d = &dht.display;
         format!(
@@ -251,6 +280,11 @@ pub(crate) use start_local_io;
 "#
         )
     };
+    let local_io = if neutral {
+        format!("macro_rules! start_local_io {{($spawner:expr,$p:ident)=>{{ crate::neutral_equipment::initialize_bus($p.I2C{c},$p.PIN_{scl},$p.PIN_{sda}); }}}}\npub(crate) use start_local_io;")
+    } else {
+        local_io
+    };
     let generated = format!(
         r#"
 include!(concat!(env!("OUT_DIR"), "/native_offer.rs"));
@@ -284,6 +318,9 @@ pub const MIXED_PREPARATION_MAXIMA:conduit_core::AssignedPlanMaxima={{
  limits
 }};
 pub const ROLE:&str="conduit.rp2040-host@1";
+pub const CLOCK_AT_BASE_IMPLEMENTATION:Option<&str>={clock_base_implementation:?};
+pub const CLOCK_AT_MAXIMUM_CALL_OPERATIONS:u32={clock_operations};
+pub const CLOCK_AT_SLOTS:usize={clock_slots};
 pub const I2C_CONTROLLER:u8={c};
 pub const I2C_BASE_IMPLEMENTATION:Option<&str>={i2c_base_implementation:?};
 pub const I2C_CALL_ADDRESS_RANGE:Option<(u8,u8)>={call_address_range:?};
@@ -301,6 +338,10 @@ pub type Sda=embassy_rp::peripherals::PIN_{sda};
 embassy_rp::bind_interrupts!(pub struct SensorIrqs {{ I2C{c}_IRQ => embassy_rp::i2c::InterruptHandler<Bus>; }});
 {local_io}
 "#,
+        clock_operations = deadline_clock
+            .as_ref()
+            .map_or(0, |clock| clock.maximum_call_operations),
+        clock_slots = deadline_clock.as_ref().map_or(0, |clock| clock.slots),
         mixed_calls = if bus.maximum_call_operations == 0 {
             0
         } else {

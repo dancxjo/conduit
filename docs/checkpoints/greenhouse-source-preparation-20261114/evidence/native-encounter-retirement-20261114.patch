@@ -1,0 +1,458 @@
+diff --git a/products/conduit/src/durable_host_presentation/member_carrier_client.rs b/products/conduit/src/durable_host_presentation/member_carrier_client.rs
+index 3dae706290..e0589023d3 100644
+--- a/products/conduit/src/durable_host_presentation/member_carrier_client.rs
++++ b/products/conduit/src/durable_host_presentation/member_carrier_client.rs
+@@ -10,6 +10,8 @@ use std::{cell::RefCell, path::Path};
+ #[path = "member_carrier_client/presence_deadline.rs"]
+ mod presence_deadline;
+ use presence_deadline::PresenceDeadline;
++pub(in crate::durable_host::presentation) const EXPIRED: &str =
++    "current-member presentation encounter expired";
+ 
+ struct Carrier {
+     line: SecureWebSocketClientLine,
+@@ -180,7 +182,7 @@ impl MemberRoute {
+             || Instant::now() >= carrier.presence.deadline
+             || crate::durable_host::current_time_millis()? >= self.descriptor_expiry
+         {
+-            return Err("current-member presentation encounter expired".into());
++            return Err(EXPIRED.into());
+         }
+         Ok(())
+     }
+diff --git a/products/conduit/src/durable_host_presentation/native.rs b/products/conduit/src/durable_host_presentation/native.rs
+index b4380f126f..f8a2d25589 100644
+--- a/products/conduit/src/durable_host_presentation/native.rs
++++ b/products/conduit/src/durable_host_presentation/native.rs
+@@ -9,6 +9,8 @@ use std::{
+     time::{Duration, Instant},
+ };
+ 
++mod input;
++
+ const REFRESH_PERIOD: Duration = Duration::from_secs(10);
+ const MAXIMUM_REFRESHES: u8 = 4;
+ 
+@@ -33,6 +35,9 @@ enum NativeOwner {
+     Member(wire::member_carrier_client::MemberRoute),
+ }
+ impl NativeOwner {
++    fn expired_member_error(&self, error: &str) -> bool {
++        matches!(self, Self::Member(_)) && error == wire::member_carrier_client::EXPIRED
++    }
+     fn acknowledge(&self, show: &conduit_face::MaskShow) -> Result<(), String> {
+         match self {
+             Self::Joining(route) => route.acknowledge(show),
+@@ -138,114 +143,6 @@ impl NativePresentation {
+         })
+     }
+ 
+-    fn finish_input(&mut self, runtime: &mut DurableHostRuntime) -> Result<(), String> {
+-        if self.pending_input.is_some() {
+-            runtime
+-                .presentation_host_mut()?
+-                .retire_selected_native_interaction(&mut self.pending_input)?;
+-        }
+-        self.current_input_route = None;
+-        Ok(())
+-    }
+-
+-    fn retire_input(&mut self, runtime: &mut DurableHostRuntime) -> Result<(), String> {
+-        self.finish_input(runtime)?;
+-        retire_frame(runtime)
+-    }
+-
+-    pub(in crate::durable_host) fn input(
+-        &mut self,
+-        runtime: &mut DurableHostRuntime,
+-        output: &mut Scanout<'_>,
+-        event: conduit_linux_display::NativeInput,
+-    ) -> Result<(), String> {
+-        use conduit_linux_display::NativeInput;
+-        use conduit_std_host::SelectedNativeMaskInput;
+-        // Track physical button state even without a current owner or Show.
+-        // A held touch never becomes a new click when a replacement Show arrives.
+-        let activate = if let NativeInput::Pointer(sample) = &event {
+-            let rising = sample.primary_pressed && !self.primary_pressed;
+-            self.primary_pressed = sample.primary_pressed;
+-            rising
+-        } else {
+-            false
+-        };
+-        if self.pending_input.is_some() {
+-            return Ok(());
+-        }
+-        let (Some(owner), Some(route)) = (&mut self.owner, &self.current_input_route) else {
+-            return Ok(());
+-        };
+-        self.input_sequence = self
+-            .input_sequence
+-            .checked_add(1)
+-            .ok_or("native interaction sequence exhausted")?;
+-        let input = output
+-            .prepared_input()
+-            .map_err(|error| format!("native input lost:{error:?}"))?;
+-        let host = runtime.presentation_host_mut()?;
+-        let result = match event {
+-            NativeInput::Key(key) => host.selected_native_mask_key(
+-                owner,
+-                route,
+-                &input,
+-                key,
+-                self.input_sequence,
+-                output,
+-            )?,
+-            NativeInput::Pointer(sample) => host.selected_native_mask_pointer(
+-                owner,
+-                route,
+-                &input,
+-                sample,
+-                activate,
+-                self.input_sequence,
+-                output,
+-            )?,
+-            _ => return Ok(()),
+-        };
+-        if let SelectedNativeMaskInput::Submitted(interaction) = result {
+-            self.pending_input = Some(interaction);
+-            let pending = self
+-                .pending_input
+-                .as_ref()
+-                .ok_or("native input custody absent")?;
+-            let request = pending.correlation().interaction.clone();
+-            let outcome = match owner {
+-                NativeOwner::Member(owner) => {
+-                    owner.begin_action(pending.show(), request).map(|()| false)
+-                }
+-                NativeOwner::Joining(owner) => {
+-                    owner
+-                        .action(pending.show(), request)
+-                        .and_then(|(reply, _)| {
+-                            if reply["accepted"].as_bool() == Some(true) {
+-                                Ok(true)
+-                            } else {
+-                                Err(format!("native owner refused:{}", reply["code"]))
+-                            }
+-                        })
+-                }
+-            };
+-            match outcome {
+-                Ok(false) => (), // The same carrier continues presence while waiting.
+-                Ok(true) => {
+-                    self.finish_input(runtime)?;
+-                    self.next_refresh = Instant::now();
+-                }
+-                Err(error) => {
+-                    // The action may have reached its owner. Retire, never replay.
+-                    self.retire_input(runtime)?;
+-                    self.owner = None;
+-                    self.next_refresh =
+-                        Instant::now() + self.reconnect_delay.unwrap_or(REFRESH_PERIOD);
+-                    eprintln!("native action outcome unavailable; no replay:{error}");
+-                }
+-            }
+-        }
+-        Ok(())
+-    }
+-
+     fn reconnect(
+         &mut self,
+         runtime: &mut DurableHostRuntime,
+@@ -254,6 +151,10 @@ impl NativePresentation {
+         let delay = self
+             .reconnect_delay
+             .ok_or("native continuing contact absent")?;
++        // Dispose the old Plan BEFORE allocating a fresh carrier/advertisement.
++        // This also covers initial presentation whose Show ACK was lost.
++        self.retire_input(runtime)?;
++        drop(self.owner.take());
+         let connection = member_connection(runtime, &mut self.status, &self.state);
+         self.next_refresh = Instant::now() + delay;
+         match connection {
+@@ -421,7 +322,7 @@ fn present(
+             play_sequence,
+             front,
+             output,
+-        )?
++        )
+     } else {
+         host.render_selected_native_mask(
+             owner,
+@@ -430,7 +331,18 @@ fn present(
+             play_sequence,
+             front,
+             output,
+-        )?
++        )
++    };
++    let frame = match frame {
++        Ok(frame) => frame,
++        Err(error) if owner.expired_member_error(&error) => {
++            // Only this closed adapter's explicit expiry is recoverable here.
++            // A kernel/output failure or uncertain retirement stays terminal.
++            retire_encounter_stores(runtime)?;
++            eprintln!("native presentation expired; displayed pixels are historical");
++            return Ok((false, None));
++        }
++        Err(error) => return Err(error),
+     };
+     // Acknowledge the actual Available Show only after the physical driver ACK.
+     let acknowledgement = owner.acknowledge(
+@@ -476,3 +388,10 @@ fn retire_frame(runtime: &mut DurableHostRuntime) -> Result<(), String> {
+     }
+     Ok(())
+ }
++
++fn retire_encounter_stores(runtime: &mut DurableHostRuntime) -> Result<(), String> {
++    retire_frame(runtime)?;
++    runtime
++        .presentation_host_mut()?
++        .retire_selected_native_mask_plan()
++}
+diff --git a/products/conduit/src/durable_host_presentation/native/input.rs b/products/conduit/src/durable_host_presentation/native/input.rs
+new file mode 100644
+index 0000000000..6cec702452
+--- /dev/null
++++ b/products/conduit/src/durable_host_presentation/native/input.rs
+@@ -0,0 +1,141 @@
++//! Physical occurrences keep their original Show and pending action custody.
++use super::*;
++
++impl NativePresentation {
++    pub(super) fn finish_input(&mut self, runtime: &mut DurableHostRuntime) -> Result<(), String> {
++        if self.pending_input.is_some() {
++            runtime
++                .presentation_host_mut()?
++                .retire_selected_native_interaction(&mut self.pending_input)?;
++        }
++        self.current_input_route = None;
++        Ok(())
++    }
++
++    pub(super) fn retire_input(&mut self, runtime: &mut DurableHostRuntime) -> Result<(), String> {
++        self.finish_input(runtime)?;
++        retire_encounter_stores(runtime)
++    }
++
++    fn lose_input_encounter(
++        &mut self,
++        runtime: &mut DurableHostRuntime,
++        error: &str,
++    ) -> Result<(), String> {
++        self.retire_input(runtime)?;
++        drop(self.owner.take());
++        self.next_refresh = Instant::now() + self.reconnect_delay.unwrap_or(REFRESH_PERIOD);
++        eprintln!("native input encounter lost; occurrence discarded, no replay:{error}");
++        Ok(())
++    }
++
++    pub(in crate::durable_host) fn input(
++        &mut self,
++        runtime: &mut DurableHostRuntime,
++        output: &mut Scanout<'_>,
++        event: conduit_linux_display::NativeInput,
++    ) -> Result<(), String> {
++        use conduit_linux_display::NativeInput;
++        use conduit_std_host::SelectedNativeMaskInput;
++        // Track physical button state even without a current owner or Show.
++        // A held touch never becomes a new click when a replacement Show arrives.
++        let activate = if let NativeInput::Pointer(sample) = &event {
++            let rising = sample.primary_pressed && !self.primary_pressed;
++            self.primary_pressed = sample.primary_pressed;
++            rising
++        } else {
++            false
++        };
++        if self.pending_input.is_some() {
++            return Ok(());
++        }
++        // The driver loop dispatches input before its ordinary presence poll.
++        // Renew only this existing carrier; failure discards the old occurrence
++        // instead of applying it to a replacement Show.
++        if let Some(owner) = self.owner.as_mut() {
++            if let Err(error) = owner.poll_presence() {
++                return self.lose_input_encounter(runtime, &error);
++            }
++        }
++        let (Some(owner), Some(route)) = (&mut self.owner, &self.current_input_route) else {
++            return Ok(());
++        };
++        self.input_sequence = self
++            .input_sequence
++            .checked_add(1)
++            .ok_or("native interaction sequence exhausted")?;
++        let input = output
++            .prepared_input()
++            .map_err(|error| format!("native input lost:{error:?}"))?;
++        let host = runtime.presentation_host_mut()?;
++        let result = match event {
++            NativeInput::Key(key) => host.selected_native_mask_key(
++                owner,
++                route,
++                &input,
++                key,
++                self.input_sequence,
++                output,
++            ),
++            NativeInput::Pointer(sample) => host.selected_native_mask_pointer(
++                owner,
++                route,
++                &input,
++                sample,
++                activate,
++                self.input_sequence,
++                output,
++            ),
++            _ => return Ok(()),
++        };
++        let result = match result {
++            Ok(result) => result,
++            // Account for expiry after preflight (for example OS preemption).
++            // All other errors, including kernel/output failures, remain fatal.
++            Err(error) if owner.expired_member_error(&error) => {
++                return self.lose_input_encounter(runtime, &error);
++            }
++            Err(error) => return Err(error),
++        };
++        if let SelectedNativeMaskInput::Submitted(interaction) = result {
++            self.pending_input = Some(interaction);
++            let pending = self
++                .pending_input
++                .as_ref()
++                .ok_or("native input custody absent")?;
++            let request = pending.correlation().interaction.clone();
++            let outcome = match owner {
++                NativeOwner::Member(owner) => {
++                    owner.begin_action(pending.show(), request).map(|()| false)
++                }
++                NativeOwner::Joining(owner) => {
++                    owner
++                        .action(pending.show(), request)
++                        .and_then(|(reply, _)| {
++                            if reply["accepted"].as_bool() == Some(true) {
++                                Ok(true)
++                            } else {
++                                Err(format!("native owner refused:{}", reply["code"]))
++                            }
++                        })
++                }
++            };
++            match outcome {
++                Ok(false) => (), // The same carrier continues presence while waiting.
++                Ok(true) => {
++                    self.finish_input(runtime)?;
++                    self.next_refresh = Instant::now();
++                }
++                Err(error) => {
++                    // The action may have reached its owner. Retire, never replay.
++                    self.retire_input(runtime)?;
++                    self.owner = None;
++                    self.next_refresh =
++                        Instant::now() + self.reconnect_delay.unwrap_or(REFRESH_PERIOD);
++                    eprintln!("native action outcome unavailable; no replay:{error}");
++                }
++            }
++        }
++        Ok(())
++    }
++}
+diff --git a/targets/std/src/selected_native_mask/retirement.rs b/targets/std/src/selected_native_mask/retirement.rs
+index ae18dfcb6e..5a95fe5b83 100644
+--- a/targets/std/src/selected_native_mask/retirement.rs
++++ b/targets/std/src/selected_native_mask/retirement.rs
+@@ -1,6 +1,33 @@
+ //! Explicit exact-Plan retirement before changed directional Lines are admitted.
+ use super::*;
+ 
++impl StdHost {
++    /// Retire the exact completed Plan before preparing a replacement encounter.
++    /// Frame/interaction evidence must already be disposed through its original
++    /// ledger. Fixed stores, the physical provider and displayed pixels survive.
++    /// An uncertain retirement remains terminal, never reusable capacity.
++    pub fn retire_selected_native_mask_plan(&mut self) -> Result<(), String> {
++        self.kernel_resources.require_available()?;
++        let mut mask = self
++            .selected_scanout
++            .as_mut()
++            .and_then(|scanout| scanout.native_mask.take())
++            .ok_or("selected native Mask absent during Plan retirement")?;
++        let result = mask.validate_binding(self).and_then(|()| {
++            if matches!(&mask.stores, Stores::Unbound { .. }) {
++                Ok(())
++            } else {
++                mask.retire_bound_plan(self)
++            }
++        });
++        // Even failure must retain the original reservation/quarantine owners.
++        if let Some(scanout) = self.selected_scanout.as_mut() {
++            scanout.native_mask = Some(mask);
++        }
++        result
++    }
++}
++
+ impl SelectedNativeMaskBase {
+     pub(super) fn retire_bound_plan(&mut self, host: &mut StdHost) -> Result<(), String> {
+         host.kernel_resources.require_available()?;
+diff --git a/targets/std/src/selected_native_mask/tests.rs b/targets/std/src/selected_native_mask/tests.rs
+index e6c930bdfd..193c64974f 100644
+--- a/targets/std/src/selected_native_mask/tests.rs
++++ b/targets/std/src/selected_native_mask/tests.rs
+@@ -207,6 +207,12 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
+     );
+     let during = observed.load(std::sync::atomic::Ordering::Acquire);
+     assert!(during > bound_bytes);
++    assert!(host.retire_selected_native_mask_plan().is_err());
++    assert_eq!(
++        observed.load(std::sync::atomic::Ordering::Acquire),
++        during,
++        "an active frame cannot release its Plan custody"
++    );
+     assert!(
+         host.render_selected_native_mask(
+             &encounter,
+@@ -244,6 +250,19 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
+         observed.load(std::sync::atomic::Ordering::Acquire),
+         bound_bytes
+     );
++    host.retire_selected_native_mask_plan().unwrap();
++    assert!(host.ready_selected_native_mask().unwrap().plan().is_none());
++    assert_eq!(
++        observed.load(std::sync::atomic::Ordering::Acquire),
++        fixed.image_heap_charge,
++        "old Plan metadata is gone BEFORE any replacement admission"
++    );
++    host.retire_selected_native_mask_plan().unwrap();
++    assert_eq!(
++        observed.load(std::sync::atomic::Ordering::Acquire),
++        fixed.image_heap_charge,
++        "already-unbound retirement does not release fixed custody twice"
++    );
+     host.render_selected_native_mask(
+         &next,
+         &next_route,
+@@ -293,6 +312,24 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
+         observed.load(std::sync::atomic::Ordering::Acquire),
+         bound_bytes
+     );
++    host.kernel_resources.quarantine_retirement(Vec::new());
++    assert!(host.retire_selected_native_mask_plan().is_err());
++    assert_eq!(
++        observed.load(std::sync::atomic::Ordering::Acquire),
++        bound_bytes,
++        "uncertain ledger custody blocks retirement and preserves its charge"
++    );
++    assert!(
++        host.selected_scanout
++            .as_ref()
++            .unwrap()
++            .native_mask
++            .as_ref()
++            .unwrap()
++            .plan()
++            .is_some(),
++        "quarantine cannot become an apparently reusable unbound Plan"
++    );
+     drop(host);
+     assert_eq!(observed.load(std::sync::atomic::Ordering::Acquire), 0);
+ }

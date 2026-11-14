@@ -1,0 +1,26 @@
+{
+  "commit": "a2864b2409",
+  "base": "81df5f30c7ba8434856a04de231bf22ed305bddc",
+  "checkout": "work/native-touch-paging-20261114",
+  "patch_sha256": "a5003fa14418c7ae63492d9ec4c9b9cfda74b6b50be84d7f1908124fb6789c11",
+  "scope": [
+    "targets/conduitos/src/native_face_scene.rs",
+    "targets/conduitos/src/native_face_scene/{chrome,frame,input,paging}.rs",
+    "targets/conduitos/tests/native_touch_paging.rs"
+  ],
+  "changes": [
+    "Visible footer Previous/Next controls, exact shared geometry for paint and hit testing",
+    "Existing current Show checked before local page change; no Body interaction or authority",
+    "Draft/notice footers and separate Patchbay geometry preserved",
+    "Chrome command bound increased6to9 to cover both button pairs; no grant changes",
+    "Regression walks all named Library plots at multiple scales/extents including read-only actions and rejects stale Show"
+  ],
+  "validation": [
+    "rustfmt edition2024 actual package",
+    "git diff --check"
+  ],
+  "not_run": [
+    "Cargo builds/tests or Clippy: integration owner retains qualification",
+    "hardware deployment/touch proof"
+  ]
+}

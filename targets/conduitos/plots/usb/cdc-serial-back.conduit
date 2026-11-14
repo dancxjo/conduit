@@ -20,7 +20,7 @@ plot cdc-serial-pending (
     route: CdcSerialRoute...| >> pending: CdcSerialPending...|
 ) = (. is stopped ? stopped(empty) : (. is ready ? running(.ready) : (. is control ? running(.control) : (. is write ? running(.write) : running(.read)))))
 plot cdc-serial-command (
-    request: SerialDuplexRequest...| >> event: CdcSerialEvent...|
+    request: SerialDuplexRequest...| <= 4096B >> event: CdcSerialEvent...| <= 4096B
 ) = (command(.))
 plot cdc-serial-command-event (
     pair: CdcSerialPair...| >> event: CdcSerialEvent...|

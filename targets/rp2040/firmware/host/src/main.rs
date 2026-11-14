@@ -13,6 +13,8 @@ mod panic_capture;
 mod stack_probe;
 use static_cell::StaticCell;
 mod bootsel;
+#[cfg(neutral_source_execution)]
+mod clock_at_installation;
 mod credential_source;
 #[cfg(all(not(display_tm1637), not(sensor_dht11)))]
 mod environment;
@@ -46,6 +48,22 @@ mod mixed_supervision;
 mod mixed_workset;
 mod native_preparation;
 mod native_publication;
+#[cfg(neutral_source_execution)]
+mod neutral_authority;
+#[cfg(neutral_source_execution)]
+mod neutral_equipment;
+#[cfg(neutral_source_execution)]
+mod neutral_equipment_owners;
+#[cfg(neutral_source_execution)]
+mod neutral_factory;
+#[cfg(neutral_source_execution)]
+mod neutral_preflight;
+#[cfg(neutral_source_execution)]
+mod neutral_root;
+#[cfg(neutral_source_execution)]
+mod neutral_service;
+#[cfg(neutral_source_execution)]
+mod neutral_workset;
 #[cfg(sensor_dht11)]
 mod play;
 #[cfg(sensor_dht11)]
@@ -186,11 +204,19 @@ async fn main(spawner: Spawner) {
     let mut link = boot.link;
     #[cfg(sensor_dht11)]
     let flash = boot.flash;
-    #[cfg(not(sensor_dht11))]
+    #[cfg(all(not(sensor_dht11), not(neutral_source_execution)))]
     let mut membership = serial.and_then(|serial| {
         let host = alloc::format!("rp2040/flash/{serial}");
         seed::Seed::load(&host).map(|seed| membership::Membership::new(seed, host, nonce))
     });
+    #[cfg(neutral_source_execution)]
+    if let Some(serial) = serial {
+        let host = alloc::format!("rp2040/flash/{serial}");
+        if let Some(seed) = seed::Seed::load(&host) {
+            let future = core::pin::pin!(neutral_root::run(seed, host, nonce, &mut link));
+            conduit_mcu_host_runtime::poll_boundary::separate(future).await;
+        }
+    }
     #[cfg(sensor_dht11)]
     if let Some(serial) = serial {
         let host = alloc::format!("rp2040/flash/{serial}");
@@ -199,7 +225,7 @@ async fn main(spawner: Spawner) {
             conduit_mcu_host_runtime::poll_boundary::separate(future).await;
         }
     }
-    #[cfg(not(sensor_dht11))]
+    #[cfg(all(not(sensor_dht11), not(neutral_source_execution)))]
     if let Some(member) = membership.as_mut() {
         member.run(&mut link).await;
     }

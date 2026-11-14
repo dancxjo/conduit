@@ -1,0 +1,11 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/assigned-plan)
+    Finished `test` profile [unoptimized] target(s) in 0.81s
+     Running unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_assigned_plan-326c3cdefb42efcd)
+
+running 3 tests
+test validation::resource_bitmap_tests::repeated_ordinals_are_consumed_once_per_requirement_and_payload_digest_stays_exact ... ok
+test validation::resource_bitmap_tests::original_storage_accepts_49_equal_resource_requirements_and_255_boundary ... ok
+test validation::resource_bitmap_tests::late_bits_preserve_unordered_exact_multiset_matching_and_missing_checks ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.00s
+

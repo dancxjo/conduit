@@ -1,0 +1,878 @@
+
+thread 'main' (3184175) panicked at src/tools/cargo/src/cargo/core/resolver/features.rs:325:13:
+did not find features for (PackageId { name: "conduit-mcu-host-runtime", version: "0.1.0", source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/host-runtime" }, NormalOrDev) within activated_features:
+[
+    (
+        PackageId {
+            name: "conduit-dht11-observation",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/devices/dht11",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "generic-array",
+            version: "0.14.7",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "unicode-ident",
+            version: "1.0.26",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "serde_core",
+            version: "1.0.229",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "digest",
+            version: "0.10.7",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "miniz_oxide",
+            version: "0.8.9",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-process",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/process",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "serde_json",
+            version: "1.0.151",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-audio",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/audio",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "stable_deref_trait",
+            version: "1.2.1",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "libm",
+            version: "0.2.16",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-data",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/data",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "version_check",
+            version: "0.9.5",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "serde",
+            version: "1.0.229",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "libm",
+            version: "0.2.16",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "crypto-common",
+            version: "0.1.7",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-core",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/core",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-semantic-catalog",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/catalog",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "block-buffer",
+            version: "0.10.4",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-planner",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/planner",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-plot",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/plot",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-language",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/language",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-assigned-plan",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/assigned-plan",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-time",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/time",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "thiserror",
+            version: "2.0.20",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "zmij",
+            version: "1.0.23",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "cpufeatures",
+            version: "0.2.17",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "portable-atomic",
+            version: "1.15.0",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "block-buffer",
+            version: "0.10.4",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-tm1637-protocol",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/devices/tm1637",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "toml_edit",
+            version: "0.22.27",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "zmij",
+            version: "1.0.23",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "itoa",
+            version: "1.0.18",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "generic-array",
+            version: "0.14.7",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-mcu-source-build",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/source-build",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "cfg-if",
+            version: "1.0.5",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "indexmap",
+            version: "2.14.2",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-alife",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/alife",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "postcard",
+            version: "1.1.3",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "unicode-normalization",
+            version: "0.1.25",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-resource-snapshot",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/resource-snapshot",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-human",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/human",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "winnow",
+            version: "0.7.15",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-composite",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/composite",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "toml_write",
+            version: "0.1.2",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-education",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/education",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-purpose",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/purpose",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "minicbor",
+            version: "2.3.0",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-audio",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/audio",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "serde_derive",
+            version: "1.0.229",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-time",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/time",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-tm1637-wire",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/tm1637",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "sha2",
+            version: "0.10.9",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "toml",
+            version: "0.8.23",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "hashbrown",
+            version: "0.17.1",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-kernel",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/kernel",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "serde",
+            version: "1.0.229",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "adler2",
+            version: "2.0.1",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-robotics",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/robotics",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "tinyvec",
+            version: "1.13.3",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "unicode-normalization",
+            version: "0.1.25",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "heapless",
+            version: "0.8.0",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-face",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/face",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-web",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/web",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-embedded-build",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/make/embedded-build",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "thiserror-impl",
+            version: "2.0.20",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "crypto-common",
+            version: "0.1.7",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-environment-runtime",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/bodies/environment/runtime",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "equivalent",
+            version: "1.0.2",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-assigned-plan",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/assigned-plan",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-data",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/data",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "syn",
+            version: "3.0.6",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-plan-lowering",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/plan-lowering",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "serde_core",
+            version: "1.0.229",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "memchr",
+            version: "2.8.3",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-net",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/net",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-wire",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/wire",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-plot",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/plot",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "cpufeatures",
+            version: "0.2.17",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-core",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/core",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "quote",
+            version: "1.0.47",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-host-make",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/make/host",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "itoa",
+            version: "1.0.18",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-monotonic-wait",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/monotonic-wait",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "serde-json-core",
+            version: "0.6.0",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "sha2",
+            version: "0.10.9",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "serde_spanned",
+            version: "0.6.9",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "serde_json",
+            version: "1.0.151",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "proc-macro2",
+            version: "1.0.107",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-text",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/text",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-typed-retention",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/implementations/typed-retention",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "hash32",
+            version: "0.3.1",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-pulse-capture",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/pulse-capture",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-human",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/human",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "typenum",
+            version: "1.20.1",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "digest",
+            version: "0.10.7",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "byteorder",
+            version: "1.5.0",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-rp2040-flash-layout",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/flash-layout",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "toml_datetime",
+            version: "0.6.11",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "ryu",
+            version: "1.0.23",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "portable-atomic-util",
+            version: "0.2.8",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "cobs",
+            version: "0.3.0",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "tinyvec",
+            version: "1.13.3",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-body",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/body",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "typenum",
+            version: "1.20.1",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "cfg-if",
+            version: "1.0.5",
+            source: "registry `crates-io`",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "conduit-midi",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/protocols/midi",
+        },
+        NormalOrDev,
+    ),
+    (
+        PackageId {
+            name: "memchr",
+            version: "2.8.3",
+            source: "registry `crates-io`",
+        },
+        HostDep,
+    ),
+    (
+        PackageId {
+            name: "conduit-i2c-transaction",
+            version: "0.1.0",
+            source: "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/i2c-transaction",
+        },
+        NormalOrDev,
+    ),
+]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

@@ -1,0 +1,16 @@
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/plan-lowering)
+    Finished `test` profile [unoptimized] target(s) in 1.43s
+     Running unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_plan_lowering-e865a6007d671208)
+
+running 7 tests
+shared schema backing metadata=104 payload=20 logical=5 physical=1
+test shared_schema_value_store::tests::cold_funding_covers_actual_metadata_and_payload_with_no_claim_of_admission ... ok
+test shared_schema_value_store::tests::held_state_queue_and_staged_replacement_need_independently_funded_stock ... ok
+test shared_schema_value_store::tests::last_reference_alone_frees_physical_stock_and_pressure_is_atomic ... ok
+test shared_schema_value_store::tests::exact_schema_and_malformed_or_quota_refusals_preserve_owners ... ok
+test shared_schema_value_store::tests::heterogeneous_logical_bounds_keep_dense_best_fit_and_original_order ... ok
+test shared_schema_value_store::tests::dense_trace_parity_preserves_original_identity_and_canonical_delegation ... ok
+test shared_schema_value_store::tests::all_original_generation_domains_survive_one_physical_buffer ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 42 filtered out; finished in 0.25s
+

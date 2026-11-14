@@ -1,0 +1,31 @@
+{
+  "observed_unix": 1794627229.18116,
+  "owner_source": "ef4fc2c786c2bff5f2e23ff325f08322f56d9c51",
+  "client_source": "2892de918efef9e25e122f13eaccaad8babcdb75",
+  "physical_result": "Native pointer/focus work; human reports neither Overview nor Library visibly changes the screen",
+  "wire_observation": {
+    "face_revision": 675,
+    "body_sequence_at_prior_inspection": 663,
+    "operator_context": "overview",
+    "primary_text": "Hamm Creek House is lulled with 3 resident plots.",
+    "all_resident_plot_disclosure": "Context"
+  },
+  "source_findings": [
+    "BodyFace::project_with_admission emits the same primary Body summary and operator actions, and always marks resident Plot subjects Context; selection changes context metadata/name, not selected-view primary content",
+    "OwnerNavigation test proves exact authorization, context property/revision and unchanged biography; it does NOT prove visible primary Library content",
+    "Native primary document intentionally leaves technical/context disclosures to Details; switching operator-context metadata alone is insufficient visible navigation"
+  ],
+  "limits": [
+    "The actual last clicked action identity was not captured; do not claim a library tap resolved to Overview or that hit geometry is wrong",
+    "Do not claim successful usable navigation from revision changes alone",
+    "No new actions replayed or injected; BodyLocalFace inspection is read-only"
+  ],
+  "required_next_proof": [
+    "Three distinct visible controls submit their own exact action identities at Spacious/150%",
+    "Selecting Library produces different visible primary content including actual resident Plots through shared semantic Face projection",
+    "Returning to Overview restores its distinct primary content; no biography/Source/Plan/Play mutation",
+    "Verify resulting view physically, then capture the real scanout"
+  ],
+  "renewal_patch": "outputs/native-encounter-retirement-handoff-20261114.json",
+  "ownership": "Owner navigation/source integration remains with display owner; coordinator made no shared Face source edits"
+}

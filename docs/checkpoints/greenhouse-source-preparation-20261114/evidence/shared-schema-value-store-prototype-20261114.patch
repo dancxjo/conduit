@@ -1,0 +1,906 @@
+diff --git a/architecture/plan-lowering/src/lib.rs b/architecture/plan-lowering/src/lib.rs
+index b8a1c8fd61..640b3ba04e 100644
+--- a/architecture/plan-lowering/src/lib.rs
++++ b/architecture/plan-lowering/src/lib.rs
+@@ -35,3 +35,7 @@ pub mod selected_assigned_operation;
+ /// Explicit pre-Play canonical representation with separately retained schemas.
+ #[cfg(feature = "schema-value-storage")]
+ pub mod schema_value_store;
++
++/// Explicit shared physical buffers; logical reference identities stay intact.
++#[cfg(feature = "schema-value-storage")]
++pub mod shared_schema_value_store;
+diff --git a/architecture/plan-lowering/src/shared_schema_value_store/mod.rs b/architecture/plan-lowering/src/shared_schema_value_store/mod.rs
+new file mode 100644
+index 0000000000..453ce08753
+--- /dev/null
++++ b/architecture/plan-lowering/src/shared_schema_value_store/mod.rs
+@@ -0,0 +1,176 @@
++//! Explicit shared physical node buffers behind unchanged logical references.
++//! Construction grants no Plan, lifetime proof, admission or execution authority.
++use alloc::vec::Vec;
++use conduit_core::{
++    BorrowedStructuredValueValidator as Validator, ValidatedCanonicalStructuredValue,
++};
++use conduit_kernel::{CanonicalValueParts, StorageError as E, ValueRef, ValueStorage};
++use core::num::NonZeroU16;
++mod preparation;
++mod storage;
++pub use preparation::PreparationError;
++
++struct LogicalSlot {
++    maximum_bytes: usize,
++    class: u16,
++    generation: u16,
++    references: u16,
++    buffer: Option<NonZeroU16>,
++}
++struct PhysicalBuffer {
++    node: Vec<u8>,
++    class: u16,
++    owner: Option<NonZeroU16>,
++}
++/// All original logical identities and generations survive physical reuse.
++/// `item_capacity` is their upper bound, not a physical concurrency promise.
++/// Before Play, the caller must independently prove the supplied physical stock
++/// covers its selected graph and actual prepared owners. Unknown lifetimes must
++/// retain dense stock. Every publication still checks actual free physical stock.
++pub struct SharedSchemaValueStore<'a, S> {
++    canonical: S,
++    canonical_slots: u16,
++    classes: Vec<Validator<'a>>,
++    logical: Vec<LogicalSlot>,
++    physical: Vec<PhysicalBuffer>,
++    byte_capacity: u32,
++    used_items: u16,
++    used_bytes: u32,
++}
++impl<S: ValueStorage> SharedSchemaValueStore<'_, S> {
++    pub fn canonical_storage(&self) -> &S {
++        &self.canonical
++    }
++    pub fn reserved_node_storage_bytes(&self) -> usize {
++        self.reserved_metadata_bytes() + self.reserved_payload_bytes()
++    }
++    pub fn reserved_metadata_bytes(&self) -> usize {
++        self.classes.capacity() * core::mem::size_of::<Validator<'_>>()
++            + self.logical.capacity() * core::mem::size_of::<LogicalSlot>()
++            + self.physical.capacity() * core::mem::size_of::<PhysicalBuffer>()
++    }
++    pub fn reserved_payload_bytes(&self) -> usize {
++        self.physical.iter().map(|b| b.node.capacity()).sum()
++    }
++    /// Physical buffers for this exact schema, independently of logical IDs.
++    pub fn physical_item_capacity(&self, schema: &[u8]) -> u16 {
++        self.physical
++            .iter()
++            .filter(|b| self.classes[usize::from(b.class)].type_bytes() == schema)
++            .count() as u16
++    }
++    pub fn free_physical_items(&self, schema: &[u8]) -> u16 {
++        self.physical
++            .iter()
++            .filter(|b| {
++                b.owner.is_none() && self.classes[usize::from(b.class)].type_bytes() == schema
++            })
++            .count() as u16
++    }
++    fn index(&self, value: ValueRef) -> Option<usize> {
++        value
++            .slot
++            .checked_sub(self.canonical_slots)
++            .map(usize::from)
++    }
++    fn resolve(&self, value: ValueRef) -> Result<(usize, usize), E> {
++        let i = self.index(value).ok_or(E::StaleReference)?;
++        let slot = self.logical.get(i).ok_or(E::StaleReference)?;
++        if slot.references == 0 || slot.generation != value.generation {
++            return Err(E::StaleReference);
++        }
++        let j = usize::from(slot.buffer.ok_or(E::StaleReference)?.get() - 1);
++        let buffer = self.physical.get(j).ok_or(E::StaleReference)?;
++        if buffer.owner.map(NonZeroU16::get) != u16::try_from(i + 1).ok()
++            || buffer.class != slot.class
++            || self.classes[usize::from(slot.class)]
++                .type_bytes()
++                .len()
++                .checked_add(buffer.node.len())
++                .and_then(|n| u32::try_from(n).ok())
++                != Some(value.byte_len)
++        {
++            return Err(E::StaleReference);
++        }
++        Ok((i, j))
++    }
++    /// Match the original logical slot order/extent and retirement policy.
++    /// Missing physical stock refuses atomically before generation changes.
++    pub fn store_structured(
++        &mut self,
++        value: ValidatedCanonicalStructuredValue<'_>,
++    ) -> Result<ValueRef, E> {
++        let len = value
++            .type_bytes()
++            .len()
++            .checked_add(value.value_node().len())
++            .and_then(|n| u32::try_from(n).ok())
++            .ok_or(E::ValueTooLarge)?;
++        let used = self
++            .used_bytes
++            .checked_add(len)
++            .filter(|n| *n <= self.byte_capacity)
++            .ok_or(E::ByteCapacityExceeded)?;
++        let mut retired = false;
++        let mut known = false;
++        let i = self
++            .logical
++            .iter()
++            .enumerate()
++            .filter(|(_, slot)| {
++                let fits = self.classes[usize::from(slot.class)].type_bytes() == value.type_bytes()
++                    && usize::try_from(len).is_ok_and(|n| n <= slot.maximum_bytes);
++                known |= fits;
++                retired |= fits && slot.references == 0 && slot.generation == u16::MAX;
++                fits && slot.references == 0 && slot.generation != u16::MAX
++            })
++            .min_by_key(|(_, slot)| slot.maximum_bytes)
++            .map(|(i, _)| i)
++            .ok_or(if retired {
++                E::GenerationExhausted
++            } else if known {
++                E::ItemCapacityExceeded
++            } else {
++                E::RepresentationMismatch
++            })?;
++        let slot = &self.logical[i];
++        let class = slot.class;
++        self.classes[usize::from(class)]
++            .validate_node(value.value_node())
++            .map_err(|_| E::RepresentationMismatch)?;
++        let j = self
++            .physical
++            .iter()
++            .enumerate()
++            .filter(|(_, b)| {
++                b.owner.is_none()
++                    && b.class == class
++                    && b.node.capacity() >= value.value_node().len()
++            })
++            .min_by_key(|(_, b)| b.node.capacity())
++            .map(|(j, _)| j)
++            .ok_or(E::ItemCapacityExceeded)?;
++        // All widths were checked in preparation, and every refusal precedes mutation.
++        let owner = NonZeroU16::new(u16::try_from(i + 1).map_err(|_| E::InvalidBudget)?)
++            .ok_or(E::InvalidBudget)?;
++        let physical = NonZeroU16::new(u16::try_from(j + 1).map_err(|_| E::InvalidBudget)?)
++            .ok_or(E::InvalidBudget)?;
++        let slot = &mut self.logical[i];
++        let buffer = &mut self.physical[j];
++        slot.generation += 1;
++        slot.references = 1;
++        slot.buffer = Some(physical);
++        buffer.owner = Some(owner);
++        buffer.node.clear();
++        buffer.node.extend_from_slice(value.value_node());
++        self.used_items += 1;
++        self.used_bytes = used;
++        Ok(ValueRef {
++            slot: self.canonical_slots + i as u16,
++            generation: slot.generation,
++            byte_len: len,
++        })
++    }
++}
++#[cfg(test)]
++mod tests;
+diff --git a/architecture/plan-lowering/src/shared_schema_value_store/preparation.rs b/architecture/plan-lowering/src/shared_schema_value_store/preparation.rs
+new file mode 100644
+index 0000000000..d0eeaa0534
+--- /dev/null
++++ b/architecture/plan-lowering/src/shared_schema_value_store/preparation.rs
+@@ -0,0 +1,204 @@
++use super::*;
++#[derive(Debug, PartialEq, Eq)]
++pub enum PreparationError {
++    Storage(E),
++    Capacity { required: usize, available: usize },
++    Allocation,
++}
++impl<'a, S: ValueStorage> SharedSchemaValueStore<'a, S> {
++    /// Explicit physical stock only: this constructor proves representation,
++    /// widths and backing, NOT a graph's maximum simultaneous live values.
++    /// Logical declarations preserve the original identities and byte quota.
++    pub fn try_new(
++        canonical: S,
++        logical: &[(Validator<'a>, u16)],
++        physical: &[(Validator<'a>, u16)],
++        byte_capacity: u32,
++        maximum_backing: usize,
++    ) -> Result<Self, PreparationError> {
++        use PreparationError as P;
++        let bad = || P::Storage(E::InvalidBudget);
++        let count = |definitions: &[(Validator<'a>, u16)]| {
++            definitions.iter().try_fold(0usize, |sum, (_, n)| {
++                if *n == 0 {
++                    return None;
++                }
++                sum.checked_add(usize::from(*n))
++            })
++        };
++        let logical_count = count(logical).ok_or_else(bad)?;
++        let physical_count = count(physical).ok_or_else(bad)?;
++        let canonical_slots = canonical.item_capacity();
++        let logical_slots = u16::try_from(logical_count).map_err(|_| bad())?;
++        u16::try_from(physical_count).map_err(|_| bad())?;
++        let logical_bytes = logical
++            .iter()
++            .try_fold(0u32, |sum, (v, n)| {
++                u32::try_from(v.maximum_bytes())
++                    .ok()?
++                    .checked_mul(u32::from(*n))?
++                    .checked_add(sum)
++            })
++            .ok_or_else(bad)?;
++        if logical_count == 0
++            || physical_count == 0
++            || byte_capacity == 0
++            || byte_capacity > logical_bytes
++            || canonical_slots.checked_add(logical_slots).is_none()
++            || canonical
++                .byte_capacity()
++                .checked_add(byte_capacity)
++                .is_none()
++        {
++            return Err(bad());
++        }
++        // No logical schema/extent may have zero usable physical backing.
++        // Counts can be smaller explicitly; runtime pressure remains checked.
++        for (v, _) in logical {
++            if !physical.iter().any(|(p, _)| {
++                p.type_bytes() == v.type_bytes() && p.maximum_bytes() >= v.maximum_bytes()
++            }) {
++                return Err(P::Storage(E::RepresentationMismatch));
++            }
++        }
++        for (p, _) in physical {
++            if !logical
++                .iter()
++                .any(|(v, _)| v.type_bytes() == p.type_bytes())
++            {
++                return Err(P::Storage(E::RepresentationMismatch));
++            }
++        }
++        let class_count = logical
++            .iter()
++            .enumerate()
++            .filter(|(i, (v, _))| {
++                !logical[..*i]
++                    .iter()
++                    .any(|(previous, _)| previous.type_bytes() == v.type_bytes())
++            })
++            .count();
++        let metadata = logical_count
++            .checked_mul(core::mem::size_of::<LogicalSlot>())
++            .and_then(|n| {
++                physical_count
++                    .checked_mul(core::mem::size_of::<PhysicalBuffer>())
++                    .and_then(|p| n.checked_add(p))
++            })
++            .and_then(|n| {
++                class_count
++                    .checked_mul(core::mem::size_of::<Validator<'a>>())
++                    .and_then(|p| n.checked_add(p))
++            })
++            .ok_or_else(bad)?;
++        let payload = physical
++            .iter()
++            .try_fold(0usize, |sum, (v, n)| {
++                v.maximum_bytes()
++                    .checked_sub(v.type_bytes().len())?
++                    .checked_mul(usize::from(*n))?
++                    .checked_add(sum)
++            })
++            .ok_or_else(bad)?;
++        let required = metadata.checked_add(payload).ok_or_else(bad)?;
++        if required > maximum_backing {
++            return Err(P::Capacity {
++                required,
++                available: maximum_backing,
++            });
++        }
++        let mut classes: Vec<Validator<'a>> = Vec::new();
++        let mut slots = Vec::new();
++        let mut buffers = Vec::new();
++        classes
++            .try_reserve_exact(class_count)
++            .map_err(|_| P::Allocation)?;
++        slots
++            .try_reserve_exact(logical_count)
++            .map_err(|_| P::Allocation)?;
++        buffers
++            .try_reserve_exact(physical_count)
++            .map_err(|_| P::Allocation)?;
++        let mut actual = classes
++            .capacity()
++            .checked_mul(core::mem::size_of::<Validator<'a>>())
++            .and_then(|n| {
++                slots
++                    .capacity()
++                    .checked_mul(core::mem::size_of::<LogicalSlot>())
++                    .and_then(|p| n.checked_add(p))
++            })
++            .and_then(|n| {
++                buffers
++                    .capacity()
++                    .checked_mul(core::mem::size_of::<PhysicalBuffer>())
++                    .and_then(|p| n.checked_add(p))
++            })
++            .ok_or_else(bad)?;
++        if actual > maximum_backing {
++            return Err(P::Capacity {
++                required: actual,
++                available: maximum_backing,
++            });
++        }
++        for (v, count) in logical {
++            let class = match classes
++                .iter()
++                .position(|c| c.type_bytes() == v.type_bytes())
++            {
++                Some(i) => {
++                    if classes[i].maximum_bytes() < v.maximum_bytes() {
++                        classes[i] = *v;
++                    }
++                    i
++                }
++                None => {
++                    classes.push(*v);
++                    classes.len() - 1
++                }
++            };
++            for _ in 0..*count {
++                slots.push(LogicalSlot {
++                    maximum_bytes: v.maximum_bytes(),
++                    class: class as u16,
++                    generation: 0,
++                    references: 0,
++                    buffer: None,
++                });
++            }
++        }
++        for (v, count) in physical {
++            let class = classes
++                .iter()
++                .position(|c| c.type_bytes() == v.type_bytes())
++                .ok_or(P::Storage(E::RepresentationMismatch))?;
++            for _ in 0..*count {
++                let mut node = Vec::new();
++                node.try_reserve_exact(v.maximum_bytes() - v.type_bytes().len())
++                    .map_err(|_| P::Allocation)?;
++                actual = actual.checked_add(node.capacity()).ok_or_else(bad)?;
++                if actual > maximum_backing {
++                    return Err(P::Capacity {
++                        required: actual,
++                        available: maximum_backing,
++                    });
++                }
++                buffers.push(PhysicalBuffer {
++                    node,
++                    class: class as u16,
++                    owner: None,
++                });
++            }
++        }
++        Ok(Self {
++            canonical,
++            canonical_slots,
++            classes,
++            logical: slots,
++            physical: buffers,
++            byte_capacity,
++            used_items: 0,
++            used_bytes: 0,
++        })
++    }
++}
+diff --git a/architecture/plan-lowering/src/shared_schema_value_store/storage.rs b/architecture/plan-lowering/src/shared_schema_value_store/storage.rs
+new file mode 100644
+index 0000000000..b3ce9aa46e
+--- /dev/null
++++ b/architecture/plan-lowering/src/shared_schema_value_store/storage.rs
+@@ -0,0 +1,107 @@
++use super::*;
++impl<S: ValueStorage> ValueStorage for SharedSchemaValueStore<'_, S> {
++    fn item_capacity(&self) -> u16 {
++        self.canonical_slots + self.logical.len() as u16
++    }
++    fn byte_capacity(&self) -> u32 {
++        self.canonical.byte_capacity() + self.byte_capacity
++    }
++    fn used_items(&self) -> u16 {
++        self.canonical.used_items() + self.used_items
++    }
++    fn used_bytes(&self) -> u32 {
++        self.canonical.used_bytes() + self.used_bytes
++    }
++    fn preflight_canonical_store(&self, len: u32) -> Result<(), E> {
++        self.canonical.preflight_canonical_store(len)
++    }
++    fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, E> {
++        self.canonical.store(bytes)
++    }
++    fn supports_schema_storage(&self, schema: &[u8]) -> bool {
++        self.classes.iter().any(|c| c.type_bytes() == schema)
++    }
++    fn store_schema_canonical(&mut self, schema: &[u8], bytes: &[u8]) -> Result<ValueRef, E> {
++        let validator = self
++            .classes
++            .iter()
++            .find(|c| c.type_bytes() == schema && bytes.len() <= c.maximum_bytes())
++            .copied()
++            .ok_or(E::RepresentationMismatch)?;
++        let value = validator
++            .validate(bytes)
++            .map_err(|_| E::RepresentationMismatch)?;
++        if value.type_bytes() != schema {
++            return Err(E::RepresentationMismatch);
++        }
++        self.store_structured(value)
++    }
++    fn get(&self, value: ValueRef) -> Result<&[u8], E> {
++        if self.index(value).is_some() {
++            self.resolve(value)?;
++            Err(E::RepresentationMismatch)
++        } else {
++            self.canonical.get(value)
++        }
++    }
++    fn canonical_parts(&self, value: ValueRef) -> Result<Option<CanonicalValueParts<'_>>, E> {
++        if self.index(value).is_none() {
++            return self.canonical.canonical_parts(value);
++        }
++        let (i, j) = self.resolve(value)?;
++        Ok(Some(CanonicalValueParts {
++            schema: self.classes[usize::from(self.logical[i].class)].type_bytes(),
++            node: &self.physical[j].node,
++        }))
++    }
++    fn reference_count(&self, value: ValueRef) -> Result<u16, E> {
++        if self.index(value).is_some() {
++            let (i, _) = self.resolve(value)?;
++            Ok(self.logical[i].references)
++        } else {
++            self.canonical.reference_count(value)
++        }
++    }
++    fn retain(&mut self, value: ValueRef) -> Result<(), E> {
++        if self.index(value).is_some() {
++            let (i, _) = self.resolve(value)?;
++            self.logical[i].references = self.logical[i]
++                .references
++                .checked_add(1)
++                .ok_or(E::ReferenceOverflow)?;
++            Ok(())
++        } else {
++            self.canonical.retain(value)
++        }
++    }
++    fn release(&mut self, value: ValueRef) -> Result<(), E> {
++        if self.index(value).is_some() {
++            let (i, j) = self.resolve(value)?;
++            let slot = &mut self.logical[i];
++            slot.references -= 1;
++            if slot.references == 0 {
++                slot.buffer = None;
++                self.physical[j].owner = None;
++                self.physical[j].node.clear();
++                self.used_items -= 1;
++                self.used_bytes -= value.byte_len;
++            }
++            Ok(())
++        } else {
++            self.canonical.release(value)
++        }
++    }
++    fn clear(&mut self) {
++        self.canonical.clear();
++        for slot in &mut self.logical {
++            slot.references = 0;
++            slot.buffer = None;
++        }
++        for buffer in &mut self.physical {
++            buffer.owner = None;
++            buffer.node.clear();
++        }
++        self.used_items = 0;
++        self.used_bytes = 0;
++    }
++}
+diff --git a/architecture/plan-lowering/src/shared_schema_value_store/tests.rs b/architecture/plan-lowering/src/shared_schema_value_store/tests.rs
+new file mode 100644
+index 0000000000..cc7198aff3
+--- /dev/null
++++ b/architecture/plan-lowering/src/shared_schema_value_store/tests.rs
+@@ -0,0 +1,297 @@
++extern crate std;
++use super::*;
++use crate::schema_value_store::SchemaValueStore;
++use alloc::{vec, vec::Vec};
++use conduit_core::{
++    kind_id, StructuredFieldType as F, StructuredFieldValue as V, StructuredInfoType as T,
++    StructuredInfoValue as I,
++};
++use conduit_kernel::FixedValueStore;
++fn fixture(name: &str, value: u8) -> (Vec<u8>, Vec<u8>) {
++    let leaf = T::leaf(kind_id("value/u8")).unwrap();
++    let ty = T::record(kind_id(name), vec![F::new("value", leaf.clone()).unwrap()]).unwrap();
++    let bytes = I::record(
++        ty.clone(),
++        vec![V::new("value", I::leaf(leaf, vec![value]).unwrap()).unwrap()],
++    )
++    .unwrap()
++    .canonical_bytes()
++    .unwrap();
++    (ty.canonical_bytes().unwrap(), bytes)
++}
++fn canonical() -> FixedValueStore<2, 16> {
++    FixedValueStore::new(32).unwrap()
++}
++fn shared<'a>(
++    v: Validator<'a>,
++    logical: u16,
++    physical: u16,
++) -> SharedSchemaValueStore<'a, FixedValueStore<2, 16>> {
++    SharedSchemaValueStore::try_new(
++        canonical(),
++        &[(v, logical)],
++        &[(v, physical)],
++        v.maximum_bytes() as u32 * u32::from(logical),
++        65536,
++    )
++    .unwrap()
++}
++#[test]
++fn dense_trace_parity_preserves_original_identity_and_canonical_delegation() {
++    let (schema, bytes) = fixture("test/shared-physical", 7);
++    let v = Validator::new(&schema, bytes.len()).unwrap();
++    let mut dense =
++        SchemaValueStore::try_new(canonical(), &[(v, 3)], bytes.len() as u32 * 3, 65536).unwrap();
++    let mut compact = shared(v, 3, 2);
++    assert_eq!(compact.item_capacity(), dense.item_capacity());
++    assert_eq!(compact.byte_capacity(), dense.byte_capacity());
++    for _ in 0..10 {
++        let a = dense.store_schema_canonical(&schema, &bytes).unwrap();
++        let b = compact.store_schema_canonical(&schema, &bytes).unwrap();
++        assert_eq!(a, b);
++        dense.retain(a).unwrap();
++        compact.retain(b).unwrap();
++        assert_eq!(dense.reference_count(a), compact.reference_count(b));
++        let c = dense.store_schema_canonical(&schema, &bytes).unwrap();
++        let d = compact.store_schema_canonical(&schema, &bytes).unwrap();
++        assert_eq!(c, d);
++        let mut out = vec![0; bytes.len()];
++        assert_eq!(compact.copy_canonical_into(b, &mut out).unwrap(), bytes);
++        dense.release(a).unwrap();
++        compact.release(b).unwrap();
++        dense.release(a).unwrap();
++        compact.release(b).unwrap();
++        dense.release(c).unwrap();
++        compact.release(d).unwrap();
++        assert_eq!(dense.used_items(), compact.used_items());
++        assert_eq!(dense.used_bytes(), compact.used_bytes());
++        assert_eq!(dense.reference_count(a), compact.reference_count(b));
++    }
++    let a = dense.store(&[1, 2, 3]).unwrap();
++    let b = compact.store(&[1, 2, 3]).unwrap();
++    assert_eq!(a, b);
++    assert_eq!(dense.get(a), compact.get(b));
++    dense.release(a).unwrap();
++    compact.release(b).unwrap();
++    assert_eq!(
++        dense.preflight_canonical_store(3),
++        compact.preflight_canonical_store(3)
++    );
++}
++#[test]
++fn last_reference_alone_frees_physical_stock_and_pressure_is_atomic() {
++    let (schema, bytes) = fixture("test/shared-last-reference", 1);
++    let v = Validator::new(&schema, bytes.len()).unwrap();
++    let mut store = shared(v, 3, 1);
++    let a = store.store_schema_canonical(&schema, &bytes).unwrap();
++    store.retain(a).unwrap();
++    assert_eq!(store.free_physical_items(&schema), 0);
++    assert_eq!(
++        store.store_schema_canonical(&schema, &bytes),
++        Err(E::ItemCapacityExceeded)
++    );
++    assert_eq!(store.logical[1].generation, 0);
++    store.release(a).unwrap();
++    assert_eq!(store.reference_count(a), Ok(1));
++    assert_eq!(store.free_physical_items(&schema), 0);
++    store.release(a).unwrap();
++    assert_eq!(store.free_physical_items(&schema), 1);
++    assert_eq!(store.reference_count(a), Err(E::StaleReference));
++    let b = store.store_schema_canonical(&schema, &bytes).unwrap();
++    assert_eq!(a.slot, b.slot);
++    assert_ne!(a.generation, b.generation);
++    let backing = store.reserved_node_storage_bytes();
++    store.clear();
++    assert_eq!(store.free_physical_items(&schema), 1);
++    assert_eq!(store.used_items(), 0);
++    assert_eq!(store.used_bytes(), 0);
++    let c = store.store_schema_canonical(&schema, &bytes).unwrap();
++    assert!(c.generation > b.generation);
++    assert_eq!(store.reserved_node_storage_bytes(), backing);
++}
++#[test]
++fn all_original_generation_domains_survive_one_physical_buffer() {
++    let (schema, bytes) = fixture("test/shared-generation", 2);
++    let v = Validator::new(&schema, bytes.len()).unwrap();
++    let mut dense =
++        SchemaValueStore::try_new(canonical(), &[(v, 2)], bytes.len() as u32 * 2, 65536).unwrap();
++    let mut compact = shared(v, 2, 1);
++    let mut first = None;
++    for _ in 0..=u16::MAX {
++        let a = dense.store_schema_canonical(&schema, &bytes).unwrap();
++        let b = compact.store_schema_canonical(&schema, &bytes).unwrap();
++        assert_eq!(a, b);
++        first.get_or_insert(b);
++        dense.release(a).unwrap();
++        compact.release(b).unwrap();
++    }
++    assert_eq!(compact.logical[0].generation, u16::MAX);
++    assert_eq!(compact.logical[1].generation, 1);
++    assert_eq!(compact.free_physical_items(&schema), 1);
++    assert_eq!(
++        compact.reference_count(first.unwrap()),
++        Err(E::StaleReference)
++    );
++    compact.logical[1].generation = u16::MAX;
++    assert_eq!(
++        compact.store_schema_canonical(&schema, &bytes),
++        Err(E::GenerationExhausted)
++    );
++    assert_eq!(compact.free_physical_items(&schema), 1);
++}
++#[test]
++fn exact_schema_and_malformed_or_quota_refusals_preserve_owners() {
++    let (schema, bytes) = fixture("test/shared-exact", 3);
++    let (foreign, other) = fixture("test/shared-foreign", 3);
++    let v = Validator::new(&schema, bytes.len()).unwrap();
++    let mut store = SharedSchemaValueStore::try_new(
++        canonical(),
++        &[(v, 3)],
++        &[(v, 2)],
++        bytes.len() as u32,
++        65536,
++    )
++    .unwrap();
++    assert!(!store.supports_schema_storage(&foreign));
++    assert_eq!(
++        store.store_schema_canonical(&foreign, &other),
++        Err(E::RepresentationMismatch)
++    );
++    assert_eq!(
++        store.store_schema_canonical(&schema, &bytes[..bytes.len() - 1]),
++        Err(E::RepresentationMismatch)
++    );
++    assert_eq!(store.logical[0].generation, 0);
++    let a = store.store_schema_canonical(&schema, &bytes).unwrap();
++    assert_eq!(
++        store.store_schema_canonical(&schema, &bytes),
++        Err(E::ByteCapacityExceeded)
++    );
++    assert_eq!(store.logical[1].generation, 0);
++    assert_eq!(store.free_physical_items(&schema), 1);
++    store.logical[0].references = u16::MAX;
++    assert_eq!(store.retain(a), Err(E::ReferenceOverflow));
++    store.logical[0].references = 1;
++    store.release(a).unwrap();
++    assert_eq!(store.used_bytes(), 0);
++}
++#[test]
++fn cold_funding_covers_actual_metadata_and_payload_with_no_claim_of_admission() {
++    let (schema, bytes) = fixture("test/shared-funding", 4);
++    let v = Validator::new(&schema, bytes.len()).unwrap();
++    let store = shared(v, 3, 1);
++    let backing = store.reserved_node_storage_bytes();
++    assert_eq!(
++        backing,
++        store.reserved_metadata_bytes() + store.reserved_payload_bytes()
++    );
++    assert!(matches!(
++        SharedSchemaValueStore::try_new(
++            canonical(),
++            &[(v, 3)],
++            &[(v, 1)],
++            bytes.len() as u32 * 3,
++            backing - 1
++        ),
++        Err(PreparationError::Capacity { .. })
++    ));
++    assert!(SharedSchemaValueStore::try_new(
++        canonical(),
++        &[(v, 3)],
++        &[(v, 1)],
++        bytes.len() as u32 * 3,
++        backing
++    )
++    .is_ok());
++    assert!(matches!(
++        SharedSchemaValueStore::try_new(canonical(), &[(v, 3)], &[], bytes.len() as u32 * 3, 65536),
++        Err(PreparationError::Storage(E::InvalidBudget))
++    ));
++    std::eprintln!(
++        "shared schema backing metadata={} payload={} logical={} physical={}",
++        store.reserved_metadata_bytes(),
++        store.reserved_payload_bytes(),
++        store.item_capacity(),
++        store.physical_item_capacity(&schema)
++    );
++}
++
++#[test]
++fn heterogeneous_logical_bounds_keep_dense_best_fit_and_original_order() {
++    let leaf = T::leaf(kind_id("value/bytes")).unwrap();
++    let ty = T::record(
++        kind_id("test/shared-variable"),
++        vec![F::new("payload", leaf.clone()).unwrap()],
++    )
++    .unwrap();
++    let value = |length| {
++        I::record(
++            ty.clone(),
++            vec![V::new("payload", I::leaf(leaf.clone(), vec![7; length]).unwrap()).unwrap()],
++        )
++        .unwrap()
++        .canonical_bytes()
++        .unwrap()
++    };
++    let schema = ty.canonical_bytes().unwrap();
++    let small = value(1);
++    let large = value(256);
++    let short = Validator::new(&schema, small.len()).unwrap();
++    let long = Validator::new(&schema, large.len()).unwrap();
++    for reverse in [false, true] {
++        let mut definitions = [(short, 1), (long, 1)];
++        if reverse {
++            definitions.reverse();
++        }
++        let quota = (small.len() + large.len()) as u32;
++        let mut dense = SchemaValueStore::try_new(canonical(), &definitions, quota, 65536).unwrap();
++        let mut compact =
++            SharedSchemaValueStore::try_new(canonical(), &definitions, &[(long, 2)], quota, 65536)
++                .unwrap();
++        let a = dense.store_schema_canonical(&schema, &small).unwrap();
++        let b = compact.store_schema_canonical(&schema, &small).unwrap();
++        assert_eq!(a, b);
++        let c = dense.store_schema_canonical(&schema, &large).unwrap();
++        let d = compact.store_schema_canonical(&schema, &large).unwrap();
++        assert_eq!(c, d);
++        assert!(
++            compact.logical[compact.index(b).unwrap()].maximum_bytes
++                < compact.logical[compact.index(d).unwrap()].maximum_bytes
++        );
++        dense.release(a).unwrap();
++        compact.release(b).unwrap();
++        dense.release(c).unwrap();
++        compact.release(d).unwrap();
++        assert_eq!(dense.used_items(), compact.used_items());
++        assert_eq!(
++            dense.store_schema_canonical(&schema, &large),
++            compact.store_schema_canonical(&schema, &large)
++        );
++    }
++}
++
++#[test]
++fn held_state_queue_and_staged_replacement_need_independently_funded_stock() {
++    let (schema, bytes) = fixture("test/shared-held-stock", 8);
++    let v = Validator::new(&schema, bytes.len()).unwrap();
++    for physical in [2, 3] {
++        let mut store = shared(v, 5, physical);
++        let held = store.store_schema_canonical(&schema, &bytes).unwrap();
++        let queued = store.store_schema_canonical(&schema, &bytes).unwrap();
++        let staged = store.store_schema_canonical(&schema, &bytes);
++        if physical == 2 {
++            assert_eq!(staged, Err(E::ItemCapacityExceeded));
++            assert_eq!(store.logical[2].generation, 0);
++        } else {
++            let staged = staged.unwrap();
++            // A rejected materialization/sign commit returns only its new
++            // output; held state and the unconsumed queue are still owned.
++            store.release(staged).unwrap();
++            assert_eq!(store.reference_count(held), Ok(1));
++            assert_eq!(store.reference_count(queued), Ok(1));
++        }
++        store.release(queued).unwrap();
++        store.release(held).unwrap();
++        assert_eq!(store.free_physical_items(&schema), physical);
++    }
++}
+diff --git a/architecture/plan-lowering/tests/shared_schema_no_alloc.rs b/architecture/plan-lowering/tests/shared_schema_no_alloc.rs
+new file mode 100644
+index 0000000000..e7df325423
+--- /dev/null
++++ b/architecture/plan-lowering/tests/shared_schema_no_alloc.rs
+@@ -0,0 +1,80 @@
++//! Standalone integration-test harness; register only after source-barrier release.
++use conduit_core::{
++    kind_id, BorrowedStructuredValueValidator as Validator, StructuredFieldType as F,
++    StructuredFieldValue as V, StructuredInfoType as T, StructuredInfoValue as I,
++};
++use conduit_kernel::{FixedValueStore, StorageError, ValueStorage};
++use conduit_plan_lowering::shared_schema_value_store::{PreparationError, SharedSchemaValueStore};
++mod probe {
++    include!(concat!(
++        env!("CARGO_MANIFEST_DIR"),
++        "/../plot/tests/common/allocation_probe.rs"
++    ));
++}
++#[global_allocator]
++static ALLOCATOR: probe::Allocator = probe::Allocator;
++fn fixture(name: &str) -> (Vec<u8>, Vec<u8>) {
++    let leaf = T::leaf(kind_id("value/u8")).unwrap();
++    let ty = T::record(kind_id(name), vec![F::new("value", leaf.clone()).unwrap()]).unwrap();
++    let value = I::record(
++        ty.clone(),
++        vec![V::new("value", I::leaf(leaf, vec![7]).unwrap()).unwrap()],
++    )
++    .unwrap()
++    .canonical_bytes()
++    .unwrap();
++    (ty.canonical_bytes().unwrap(), value)
++}
++#[test]
++fn execution_and_partial_publication_rollback_allocate_nothing() {
++    let (schema, bytes) = fixture("test/shared-allocation-a");
++    let (other_schema, other) = fixture("test/shared-allocation-b");
++    let a = Validator::new(&schema, bytes.len()).unwrap();
++    let b = Validator::new(&other_schema, other.len()).unwrap();
++    let mut store = SharedSchemaValueStore::try_new(
++        FixedValueStore::<2, 16>::new(32).unwrap(),
++        &[(a, 3), (b, 3)],
++        &[(a, 1), (b, 1)],
++        (bytes.len() as u32 + other.len() as u32) * 3,
++        65536,
++    )
++    .unwrap();
++    let (_, measured) = probe::observe(|| {
++        for _ in 0..50 {
++            let first = store.store_schema_canonical(&schema, &bytes).unwrap();
++            let second = store.store_schema_canonical(&other_schema, &other).unwrap();
++            assert_eq!(
++                store.store_schema_canonical(&schema, &bytes),
++                Err(StorageError::ItemCapacityExceeded)
++            );
++            // A later materialization refuses: return every unpublished owned
++            // output, just as the kernel's existing rollback does.
++            store.release(second).unwrap();
++            store.release(first).unwrap();
++            assert_eq!(store.used_items(), 0);
++            assert_eq!(store.free_physical_items(&schema), 1);
++            let value = store.store_schema_canonical(&schema, &bytes).unwrap();
++            store.retain(value).unwrap();
++            store.release(value).unwrap();
++            store.release(value).unwrap();
++        }
++    });
++    assert_eq!(measured.allocations, 0);
++    assert_eq!(measured.reallocations, 0);
++}
++#[test]
++fn refused_cold_allocation_is_explicit_and_no_store_escapes() {
++    let (schema, bytes) = fixture("test/shared-cold-refusal");
++    let v = Validator::new(&schema, bytes.len()).unwrap();
++    let (result, measured) = probe::observe_refusing(1, || {
++        SharedSchemaValueStore::try_new(
++            FixedValueStore::<2, 16>::new(32).unwrap(),
++            &[(v, 3)],
++            &[(v, 1)],
++            bytes.len() as u32 * 3,
++            65536,
++        )
++    });
++    assert!(matches!(result, Err(PreparationError::Allocation)));
++    assert_eq!(measured.refused_allocations, 1);
++}

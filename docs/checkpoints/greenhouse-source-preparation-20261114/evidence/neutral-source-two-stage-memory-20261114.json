@@ -1,0 +1,37 @@
+{
+  "assurance": "CPU64 allocation measurement; original Root refusal tests only. No admission, Start, target peak or physical proof.",
+  "source_checkpoint": "3f363e6b4e67a49da813e70336d5aa028b1210e0",
+  "source_sha256": "83291b6eac51ff63bcda99627b88e31a747cb83b660b310c2fea72af6cd1b07f",
+  "scope": {
+    "gears": 76,
+    "internal_cords": 83,
+    "software_owners": 27
+  },
+  "results": {
+    "software_retained_requested_bytes": 23473,
+    "software_preparation_peak_requested_bytes": 33625,
+    "software_plus_factory_refusal_interval_peak_requested_bytes": 144127,
+    "value_external_backing_bytes": 114426
+  },
+  "previous_86_gear_results": {
+    "software_retained_requested_bytes": 23473,
+    "software_plus_factory_refusal_interval_peak_requested_bytes": 165667,
+    "value_external_backing_bytes": 135246
+  },
+  "authored_source_change": true,
+  "source_transition_stages": 2,
+  "exclusions": [
+    "preexisting Root/equipment/resident owners",
+    "allocator rounding and metadata",
+    "stack/inline objects",
+    "successful complete factory preparation and execution"
+  ],
+  "generated_file_sha256": {
+    "workset.rs": "62dbde86798dac837d4e93a954a88f39fd0050ed5086598edad915b165afb2a7",
+    "workset_0_layout.rs": "403f0de97e7a632245f9e1a931e6c94894df0925a57dab443fbb622515caa475",
+    "resident.rs": "7f42c18aa8b3fcd94bfa8c5534972dc316c93291d214c2082a0e729c71fafc3b"
+  },
+  "log": "outputs/neutral-source-two-stage-memory-20261114.log",
+  "arm_footprint_receipt": "outputs/rp2040-two-stage-footprint-20261114.json",
+  "physical_deployment": false
+}

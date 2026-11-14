@@ -1,0 +1,1114 @@
+diff --git a/architecture/kernel/src/scheduler.rs b/architecture/kernel/src/scheduler.rs
+index 05f9dca7a2..57b1f7d7f9 100644
+--- a/architecture/kernel/src/scheduler.rs
++++ b/architecture/kernel/src/scheduler.rs
+@@ -57,6 +57,7 @@ mod queue_index;
+ mod quiescence;
+ use queue_index::queue_slot;
+ mod payload_admission;
++mod phase_terminal;
+ #[cfg(feature = "alloc")]
+ pub mod prepared_session;
+ #[cfg(feature = "linear-ready-reference-test")]
+@@ -138,14 +139,14 @@ pub enum AssignedCancellationTransduction {
+ }
+ 
+ #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+-enum ActiveTerminalPhase {
++enum ActiveTerminalPhase<const BYTES: usize> {
+     Normal {
+         input: PortId,
+         emitted: AssignedFiniteTerminalEmission,
+     },
+     Abnormal {
+         input: PortId,
+-        terminal: CanonicalValue,
++        terminal: phase_terminal::PhaseTerminal<BYTES>,
+         emitted: AssignedFiniteTerminalEmission,
+     },
+ }
+@@ -1044,6 +1045,9 @@ impl CordState {
+ /// `TERMINAL_ROWS=NODES` retains the ordinary inline law profile plus a small
+ /// immutable-storage handle. The explicit linked profile selects zero inline
+ /// rows; its complete `size_of::<Self>()` is still charged by preparation.
++/// `PHASE_BYTES` funds retained abnormal-finalization bytes only. A smaller
++/// profile refuses any such selected finalizer; public abnormal values and
++/// Cord/unresolved storage retain their full independent100-byte envelope.
+ pub struct FixedScheduler<
+     D,
+     S,
+@@ -1057,6 +1061,7 @@ pub struct FixedScheduler<
+     const HOST_BINDING_SLOTS: usize = 0,
+     const PENDING_REQUESTS: usize = 0,
+     const TERMINAL_ROWS: usize = NODES,
++    const PHASE_BYTES: usize = { CanonicalValue::MAXIMUM_BYTES },
+ > where
+     D: StepBack<PORTS>,
+     S: ValueStorage,
+@@ -1065,7 +1070,7 @@ pub struct FixedScheduler<
+     node_specs: [NodeSpec<PORTS>; NODES],
+     terminal_transductions: terminal_storage::TerminalContracts<NODES, PORTS, TERMINAL_ROWS>,
+     terminal_inputs_consumed: [[bool; PORTS]; NODES],
+-    terminal_phases: [Option<ActiveTerminalPhase>; NODES],
++    terminal_phases: [Option<ActiveTerminalPhase<PHASE_BYTES>>; NODES],
+     terminal_cancellation_pending: [bool; NODES],
+     unresolved_abnormal: [Option<UnresolvedAbnormal>; NODES],
+     projected_recovery_source: [Option<NodeId>; NODES],
+@@ -1126,6 +1131,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -1140,6 +1146,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+@@ -1323,6 +1330,7 @@ where
+         &mut self,
+         contracts: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+     ) -> Result<(), SchedulerError> {
++        phase_terminal::validate_capacity::<PHASE_BYTES, NODES, PORTS>(&contracts)?;
+         for (node, contract) in contracts.iter().copied().enumerate() {
+             #[cfg(feature = "alloc")]
+             if (self.native_input_ports[node].is_some()
+@@ -2509,7 +2517,7 @@ where
+         node: usize,
+         outcome: StepOutcome,
+         io: &StepIo<PORTS>,
+-    ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
++    ) -> Result<Option<ActiveTerminalPhase<PHASE_BYTES>>, SchedulerError> {
+         let active_input = self.terminal_phases[node].map(|phase| match phase {
+             ActiveTerminalPhase::Normal { input, .. }
+             | ActiveTerminalPhase::Abnormal { input, .. } => input,
+@@ -2633,7 +2641,7 @@ where
+                         } if port == contract.output && propagated == terminal => Ok(None),
+                         StepOutcome::Progress => Ok(Some(ActiveTerminalPhase::Abnormal {
+                             input: contract.input,
+-                            terminal,
++                            terminal: phase_terminal::PhaseTerminal::new(terminal)?,
+                             emitted,
+                         })),
+                         StepOutcome::Fail(_) => Ok(None),
+@@ -2757,10 +2765,10 @@ where
+     fn advance_terminal_phase(
+         &self,
+         contract: AssignedTerminalTransduction,
+-        phase: ActiveTerminalPhase,
++        phase: ActiveTerminalPhase<PHASE_BYTES>,
+         outcome: StepOutcome,
+         io: &StepIo<PORTS>,
+-    ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
++    ) -> Result<Option<ActiveTerminalPhase<PHASE_BYTES>>, SchedulerError> {
+         match phase {
+             ActiveTerminalPhase::Normal { input, emitted } => {
+                 let bound = match contract.normal_close {
+@@ -2793,7 +2801,11 @@ where
+                     StepOutcome::Abnormal {
+                         port,
+                         terminal: propagated,
+-                    } if port == contract.output && propagated == terminal => Ok(None),
++                    } if port == contract.output
++                        && propagated.as_slice() == terminal.as_slice() =>
++                    {
++                        Ok(None)
++                    }
+                     StepOutcome::Progress | StepOutcome::Await | StepOutcome::Yield => {
+                         Ok(Some(ActiveTerminalPhase::Abnormal {
+                             input,
+diff --git a/architecture/kernel/src/scheduler/boxed_preparation.rs b/architecture/kernel/src/scheduler/boxed_preparation.rs
+index 8eff66033c..f037322d00 100644
+--- a/architecture/kernel/src/scheduler/boxed_preparation.rs
++++ b/architecture/kernel/src/scheduler/boxed_preparation.rs
+@@ -18,6 +18,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -32,6 +33,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+@@ -146,6 +148,7 @@ where
+         contracts: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+         actual: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+     ) -> Result<PreparedKernelStorage<D, Self, NODES>, KernelPreparationError> {
++        phase_terminal::validate_capacity::<PHASE_BYTES, NODES, PORTS>(contracts)?;
+         validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
+         if PORTS == 0
+             || QUEUE_SLOTS == 0
+diff --git a/architecture/kernel/src/scheduler/boxed_preparation/fixed_signs.rs b/architecture/kernel/src/scheduler/boxed_preparation/fixed_signs.rs
+index b632d65222..0108e04809 100644
+--- a/architecture/kernel/src/scheduler/boxed_preparation/fixed_signs.rs
++++ b/architecture/kernel/src/scheduler/boxed_preparation/fixed_signs.rs
+@@ -13,6 +13,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -27,6 +28,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/boxed_preparation/table_writer.rs b/architecture/kernel/src/scheduler/boxed_preparation/table_writer.rs
+index a44db7e738..249470c1bb 100644
+--- a/architecture/kernel/src/scheduler/boxed_preparation/table_writer.rs
++++ b/architecture/kernel/src/scheduler/boxed_preparation/table_writer.rs
+@@ -13,6 +13,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -27,6 +28,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+@@ -118,6 +120,8 @@ where
+             &mut FixedHostCallBindings<HOST_BINDING_SLOTS>,
+         ) -> Result<(usize, usize), Q>,
+     ) -> Result<PreparedKernelStorage<D, Self, NODES>, Q> {
++        phase_terminal::validate_capacity::<PHASE_BYTES, NODES, PORTS>(contracts)
++            .map_err(|error| map_error(error.into()))?;
+         let terminal_contracts = match linked {
+             Some(table) if table == contracts => terminal_storage::TerminalContracts::linked(table),
+             Some(_) => return Err(map_error(SchedulerError::InvalidPlan.into())),
+diff --git a/architecture/kernel/src/scheduler/compact_f32.rs b/architecture/kernel/src/scheduler/compact_f32.rs
+index d91a1fb2b3..6fd94ea987 100644
+--- a/architecture/kernel/src/scheduler/compact_f32.rs
++++ b/architecture/kernel/src/scheduler/compact_f32.rs
+@@ -73,7 +73,8 @@ impl<
+         const H: usize,
+         const A: usize,
+         const TERMINAL_ROWS: usize,
+-    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
++        const PHASE_BYTES: usize,
++    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
+ where
+     D: StepBack<P>,
+     S: ValueStorage,
+diff --git a/architecture/kernel/src/scheduler/execution_dag.rs b/architecture/kernel/src/scheduler/execution_dag.rs
+index 527b5c5278..66051119ab 100644
+--- a/architecture/kernel/src/scheduler/execution_dag.rs
++++ b/architecture/kernel/src/scheduler/execution_dag.rs
+@@ -13,7 +13,8 @@ impl<
+         const H: usize,
+         const A: usize,
+         const TERMINAL_ROWS: usize,
+-    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
++        const PHASE_BYTES: usize,
++    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
+ where
+     D: StepBack<P>,
+     S: ValueStorage,
+diff --git a/architecture/kernel/src/scheduler/execution_region.rs b/architecture/kernel/src/scheduler/execution_region.rs
+index 4192ef3ddc..04f20a420a 100644
+--- a/architecture/kernel/src/scheduler/execution_region.rs
++++ b/architecture/kernel/src/scheduler/execution_region.rs
+@@ -14,6 +14,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -28,6 +29,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/execution_workspace.rs b/architecture/kernel/src/scheduler/execution_workspace.rs
+index 5df939b2c4..5cc709ce4b 100644
+--- a/architecture/kernel/src/scheduler/execution_workspace.rs
++++ b/architecture/kernel/src/scheduler/execution_workspace.rs
+@@ -138,7 +138,8 @@ impl<
+         const H: usize,
+         const A: usize,
+         const TERMINAL_ROWS: usize,
+-    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
++        const PHASE_BYTES: usize,
++    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
+ where
+     D: StepBack<P>,
+     S: ValueStorage,
+@@ -187,7 +188,13 @@ impl<
+         const H: usize,
+         const A: usize,
+         const TERMINAL_ROWS: usize,
+-    > PreparedKernelStorage<D, FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>, N>
++        const PHASE_BYTES: usize,
++    >
++    PreparedKernelStorage<
++        D,
++        FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>,
++        N,
++    >
+ where
+     D: StepBack<P>,
+     S: ValueStorage,
+diff --git a/architecture/kernel/src/scheduler/host_call_index.rs b/architecture/kernel/src/scheduler/host_call_index.rs
+index 1f664439fb..5365faa012 100644
+--- a/architecture/kernel/src/scheduler/host_call_index.rs
++++ b/architecture/kernel/src/scheduler/host_call_index.rs
+@@ -14,6 +14,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -28,6 +29,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/host_call_settlement.rs b/architecture/kernel/src/scheduler/host_call_settlement.rs
+index d23d33a6be..866a94b503 100644
+--- a/architecture/kernel/src/scheduler/host_call_settlement.rs
++++ b/architecture/kernel/src/scheduler/host_call_settlement.rs
+@@ -15,6 +15,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -29,6 +30,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/host_dispatch.rs b/architecture/kernel/src/scheduler/host_dispatch.rs
+index 089c849b2f..9f8d8022f1 100644
+--- a/architecture/kernel/src/scheduler/host_dispatch.rs
++++ b/architecture/kernel/src/scheduler/host_dispatch.rs
+@@ -14,6 +14,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -28,6 +29,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/host_input_ownership.rs b/architecture/kernel/src/scheduler/host_input_ownership.rs
+index 80291b7c00..fd0f82de32 100644
+--- a/architecture/kernel/src/scheduler/host_input_ownership.rs
++++ b/architecture/kernel/src/scheduler/host_input_ownership.rs
+@@ -14,6 +14,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -28,6 +29,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/host_values.rs b/architecture/kernel/src/scheduler/host_values.rs
+index 1bc2e51ecf..9ab36ad2ad 100644
+--- a/architecture/kernel/src/scheduler/host_values.rs
++++ b/architecture/kernel/src/scheduler/host_values.rs
+@@ -30,6 +30,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -44,6 +45,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/linked_terminal_tests.rs b/architecture/kernel/src/scheduler/linked_terminal_tests.rs
+index c249972029..a34a52b655 100644
+--- a/architecture/kernel/src/scheduler/linked_terminal_tests.rs
++++ b/architecture/kernel/src/scheduler/linked_terminal_tests.rs
+@@ -16,6 +16,7 @@ static CONTRACTS: [[Option<AssignedTerminalTransduction>; 2]; 1] = [[law(0), law
+ struct Back {
+     first_closed: bool,
+     changed_law: bool,
++    finalizes: bool,
+ }
+ impl StepBack<2> for Back {
+     fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; 2] {
+@@ -23,6 +24,15 @@ impl StepBack<2> for Back {
+         if self.changed_law {
+             contracts[0].as_mut().unwrap().normal_close = AssignedNormalCloseTransduction::Consume;
+         }
++        if self.finalizes {
++            contracts[0].as_mut().unwrap().abnormal =
++                AssignedAbnormalTransduction::FinalizeThenPropagate(
++                    AssignedFiniteTerminalEmission {
++                        maximum_items: 1,
++                        maximum_bytes: 1,
++                    },
++                );
++        }
+         contracts
+     }
+     fn step(&mut self, io: &mut StepIo<2>, _: &StepInputBytes<'_, 2>) -> StepOutcome {
+@@ -47,9 +57,9 @@ impl StepBack<2> for Back {
+         StepOutcome::Await
+     }
+ }
+-type Kernel<const M: usize> =
+-    FixedScheduler<Back, FixedValueStore<2, 8>, FixedSignLog<64>, 1, 2, 2, 2, 1, 1, 0, 1, M>;
+-type Prepared<const M: usize> = PreparedKernelStorage<Back, Kernel<M>, 1>;
++type Kernel<const M: usize, const B: usize = 100> =
++    FixedScheduler<Back, FixedValueStore<2, 8>, FixedSignLog<64>, 1, 2, 2, 2, 1, 1, 0, 1, M, B>;
++type Prepared<const M: usize, const B: usize = 100> = PreparedKernelStorage<Back, Kernel<M, B>, 1>;
+ fn write(
+     nodes: &mut [NodeSpec<2>; 1],
+     cords: &mut [CordSpec; 2],
+@@ -90,9 +100,16 @@ fn prepare<const M: usize>(
+     maximum: usize,
+     actual: &[[Option<AssignedTerminalTransduction>; 2]; 1],
+ ) -> Result<Prepared<M>, KernelPreparationError> {
++    prepare_profile::<M, 100>(linked, maximum, actual)
++}
++fn prepare_profile<const M: usize, const B: usize>(
++    linked: bool,
++    maximum: usize,
++    actual: &[[Option<AssignedTerminalTransduction>; 2]; 1],
++) -> Result<Prepared<M, B>, KernelPreparationError> {
+     let values = FixedValueStore::new(16).unwrap();
+     if linked {
+-        Kernel::<M>::prepare_boxed_with_linked_table_writer(
++        Kernel::<M, B>::prepare_boxed_with_linked_table_writer(
+             values,
+             signs(),
+             maximum,
+@@ -102,7 +119,7 @@ fn prepare<const M: usize>(
+             write,
+         )
+     } else {
+-        Kernel::<M>::prepare_boxed_with_table_writer(
++        Kernel::<M, B>::prepare_boxed_with_table_writer(
+             values,
+             signs(),
+             maximum,
+@@ -119,8 +136,12 @@ fn bound<const M: usize>(linked: bool) -> Box<Kernel<M>> {
+         .bind([Back {
+             first_closed: false,
+             changed_law: false,
++            finalizes: false,
+         }])
+ }
++
++#[path = "phase_terminal_tests.rs"]
++mod phase_terminal_tests;
+ #[test]
+ fn linked_terminal_normal_and_abnormal_execution_matches_inline_without_allocating() {
+     let mut inline = bound::<1>(false);
+@@ -155,7 +176,7 @@ fn linked_terminal_normal_and_abnormal_execution_matches_inline_without_allocati
+ trait NormalTerminal {
+     fn close_and_drain(&mut self);
+ }
+-impl<const M: usize> NormalTerminal for Kernel<M> {
++impl<const M: usize, const B: usize> NormalTerminal for Kernel<M, B> {
+     fn close_and_drain(&mut self) {
+         self.close_remote_input(RemoteEndpointId(0), CordId(0))
+             .unwrap();
+diff --git a/architecture/kernel/src/scheduler/local_fore.rs b/architecture/kernel/src/scheduler/local_fore.rs
+index 6dd043b8c4..f23e2281cc 100644
+--- a/architecture/kernel/src/scheduler/local_fore.rs
++++ b/architecture/kernel/src/scheduler/local_fore.rs
+@@ -15,7 +15,8 @@ impl<
+         const H: usize,
+         const A: usize,
+         const TERMINAL_ROWS: usize,
+-    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
++        const PHASE_BYTES: usize,
++    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
+ where
+     D: StepBack<P>,
+     S: ValueStorage,
+diff --git a/architecture/kernel/src/scheduler/native_region.rs b/architecture/kernel/src/scheduler/native_region.rs
+index 524010583e..8737937bdd 100644
+--- a/architecture/kernel/src/scheduler/native_region.rs
++++ b/architecture/kernel/src/scheduler/native_region.rs
+@@ -67,7 +67,8 @@ impl<
+         const H: usize,
+         const A: usize,
+         const TERMINAL_ROWS: usize,
+-    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
++        const PHASE_BYTES: usize,
++    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
+ where
+     D: StepBack<P>,
+     S: ValueStorage,
+diff --git a/architecture/kernel/src/scheduler/payload_admission.rs b/architecture/kernel/src/scheduler/payload_admission.rs
+index 80dea10551..045c6b44e8 100644
+--- a/architecture/kernel/src/scheduler/payload_admission.rs
++++ b/architecture/kernel/src/scheduler/payload_admission.rs
+@@ -33,6 +33,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -47,6 +48,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/prepared_session.rs b/architecture/kernel/src/scheduler/prepared_session.rs
+index 760d9f458a..d947b695f1 100644
+--- a/architecture/kernel/src/scheduler/prepared_session.rs
++++ b/architecture/kernel/src/scheduler/prepared_session.rs
+@@ -75,12 +75,13 @@ pub struct PreparedKernelSession<
+     const H: usize = 0,
+     const A: usize = 0,
+     const TERMINAL_ROWS: usize = N,
++    const PHASE_BYTES: usize = { crate::CanonicalValue::MAXIMUM_BYTES },
+ > where
+     D: ReusableStepBack<P>,
+     S: ValueStorage,
+     E: SignSink + SignQuery,
+ {
+-    kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++    kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+     phase: Phase,
+     remote_sign_reservation: u16,
+     has_owned_boundaries: bool,
+@@ -100,7 +101,8 @@ impl<
+         const H: usize,
+         const A: usize,
+         const TERMINAL_ROWS: usize,
+-    > PreparedKernelSession<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
++        const PHASE_BYTES: usize,
++    > PreparedKernelSession<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
+ where
+     D: ReusableStepBack<P>,
+     S: ValueStorage,
+@@ -110,12 +112,12 @@ where
+     /// transport epochs and remote acknowledgement are not inferred or reset.
+     #[allow(clippy::type_complexity)]
+     pub fn new(
+-        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+     ) -> Result<
+         Self,
+         (
+             SessionRefusal,
+-            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+         ),
+     > {
+         Self::new_with_owned_value_boundaries(kernel, &[], 0)
+@@ -127,14 +129,14 @@ where
+     /// Remote payload sequences survive rearm; evidence storage is pre-admitted.
+     #[allow(clippy::type_complexity)]
+     pub fn new_with_owned_value_boundaries(
+-        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+         boundaries: &[OwnedValueBoundary],
+         remote_sign_reservation: u16,
+     ) -> Result<
+         Self,
+         (
+             SessionRefusal,
+-            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+         ),
+     > {
+         Self::new_with_optional_owned_outputs(kernel, boundaries, &[], remote_sign_reservation)
+@@ -144,7 +146,7 @@ where
+     /// Inputs and other outputs retain the existing exactly-one-Value contract.
+     #[allow(clippy::type_complexity)]
+     pub fn new_with_optional_owned_outputs(
+-        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+         boundaries: &[OwnedValueBoundary],
+         optional_outputs: &[OwnedValueBoundary],
+         remote_sign_reservation: u16,
+@@ -152,7 +154,7 @@ where
+         Self,
+         (
+             SessionRefusal,
+-            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+         ),
+     > {
+         let storage = (!optional_outputs.is_empty()).then(OptionalOutputStorage::prepare);
+@@ -169,7 +171,7 @@ where
+     /// Refusal drops the unused tracking store; the untouched kernel is returned.
+     #[allow(clippy::type_complexity)]
+     pub fn new_with_preallocated_optional_outputs(
+-        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+         boundaries: &[OwnedValueBoundary],
+         optional_outputs: &[OwnedValueBoundary],
+         remote_sign_reservation: u16,
+@@ -178,7 +180,7 @@ where
+         Self,
+         (
+             SessionRefusal,
+-            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+         ),
+     > {
+         Self::new_with_optional_storage(
+@@ -192,7 +194,7 @@ where
+ 
+     #[allow(clippy::type_complexity)]
+     fn new_with_optional_storage(
+-        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+         boundaries: &[OwnedValueBoundary],
+         optional_outputs: &[OwnedValueBoundary],
+         remote_sign_reservation: u16,
+@@ -201,7 +203,7 @@ where
+         Self,
+         (
+             SessionRefusal,
+-            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
++            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
+         ),
+     > {
+         if optional_outputs.is_empty() != storage.is_none() {
+@@ -283,7 +285,9 @@ where
+             .as_ref()
+             .is_some_and(|state| state.optional[index])
+     }
+-    pub fn kernel(&self) -> &FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS> {
++    pub fn kernel(
++        &self,
++    ) -> &FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES> {
+         &self.kernel
+     }
+     /// Borrow the exact normally drained evidence before committing a rearm.
+diff --git a/architecture/kernel/src/scheduler/prepared_session/owned_boundaries.rs b/architecture/kernel/src/scheduler/prepared_session/owned_boundaries.rs
+index 3e93d3534c..f47ac6d4fa 100644
+--- a/architecture/kernel/src/scheduler/prepared_session/owned_boundaries.rs
++++ b/architecture/kernel/src/scheduler/prepared_session/owned_boundaries.rs
+@@ -85,7 +85,8 @@ impl<
+         const H: usize,
+         const A: usize,
+         const TERMINAL_ROWS: usize,
+-    > PreparedKernelSession<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
++        const PHASE_BYTES: usize,
++    > PreparedKernelSession<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
+ where
+     D: ReusableStepBack<P>,
+     S: ValueStorage,
+diff --git a/architecture/kernel/src/scheduler/quiescence.rs b/architecture/kernel/src/scheduler/quiescence.rs
+index 481a6ed9e6..c323b50b6f 100644
+--- a/architecture/kernel/src/scheduler/quiescence.rs
++++ b/architecture/kernel/src/scheduler/quiescence.rs
+@@ -24,6 +24,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -38,6 +39,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/remote_fanout.rs b/architecture/kernel/src/scheduler/remote_fanout.rs
+index 5eff83bd32..4f28d58593 100644
+--- a/architecture/kernel/src/scheduler/remote_fanout.rs
++++ b/architecture/kernel/src/scheduler/remote_fanout.rs
+@@ -14,6 +14,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -28,6 +29,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/retirement.rs b/architecture/kernel/src/scheduler/retirement.rs
+index a39b5e8077..dbe7ec539e 100644
+--- a/architecture/kernel/src/scheduler/retirement.rs
++++ b/architecture/kernel/src/scheduler/retirement.rs
+@@ -28,6 +28,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -42,6 +43,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/schema_region.rs b/architecture/kernel/src/scheduler/schema_region.rs
+index 383f622168..9351d84c2b 100644
+--- a/architecture/kernel/src/scheduler/schema_region.rs
++++ b/architecture/kernel/src/scheduler/schema_region.rs
+@@ -44,7 +44,8 @@ impl<
+         const H: usize,
+         const A: usize,
+         const TERMINAL_ROWS: usize,
+-    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
++        const PHASE_BYTES: usize,
++    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
+ {
+     /// Representation selection only. Every payload recipient must accept the
+     /// exact immutable schema; remote/canonical boundaries retain full bytes.
+diff --git a/architecture/kernel/src/scheduler/terminal_admission.rs b/architecture/kernel/src/scheduler/terminal_admission.rs
+index 0d7d0ebaca..a34005c34f 100644
+--- a/architecture/kernel/src/scheduler/terminal_admission.rs
++++ b/architecture/kernel/src/scheduler/terminal_admission.rs
+@@ -14,6 +14,7 @@ impl<
+         const HOST_BINDING_SLOTS: usize,
+         const PENDING_REQUESTS: usize,
+         const TERMINAL_ROWS: usize,
++        const PHASE_BYTES: usize,
+     >
+     FixedScheduler<
+         D,
+@@ -28,6 +29,7 @@ impl<
+         HOST_BINDING_SLOTS,
+         PENDING_REQUESTS,
+         TERMINAL_ROWS,
++        PHASE_BYTES,
+     >
+ where
+     D: StepBack<PORTS>,
+diff --git a/architecture/kernel/src/scheduler/tests.rs b/architecture/kernel/src/scheduler/tests.rs
+index fc2c8b0563..4441e0a47a 100644
+--- a/architecture/kernel/src/scheduler/tests.rs
++++ b/architecture/kernel/src/scheduler/tests.rs
+@@ -1637,6 +1637,11 @@ fn cancellation_request_remains_pending_until_typed_disposition_after_multiple_s
+ 
+ #[test]
+ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
++    exercise_abnormal_finalization::<4>(CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap(), false);
++    exercise_abnormal_finalization::<100>(CanonicalValue::new(&[7; 100]).unwrap(), false);
++    exercise_abnormal_finalization::<100>(CanonicalValue::new(&[7; 100]).unwrap(), true);
++}
++fn exercise_abnormal_finalization<const CAP: usize>(terminal: CanonicalValue, cancel: bool) {
+     let ingress = RemoteEndpointId(0);
+     let egress = RemoteEndpointId(1);
+     let abnormal_egress = RemoteEndpointId(2);
+@@ -1662,7 +1667,7 @@ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
+     let ingress_capacity = CordCapacity {
+         slot_start: 0,
+         item_capacity: 1,
+-        byte_capacity: 4,
++        byte_capacity: CAP as u32,
+         pressure_policy: Default::default(),
+     };
+     let egress_capacity = CordCapacity {
+@@ -1674,7 +1679,7 @@ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
+     let abnormal_capacity = CordCapacity {
+         slot_start: 2,
+         item_capacity: 1,
+-        byte_capacity: 4,
++        byte_capacity: CAP as u32,
+         pressure_policy: Default::default(),
+     };
+     let mut scheduler = FixedScheduler::<_, _, _, 1, 3, PORTS, 3, 2, 2>::new(
+@@ -1695,7 +1700,7 @@ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
+             phase: 0,
+             terminal: None,
+         }],
+-        FixedValueStore::<2, 4>::new(4).unwrap(),
++        FixedValueStore::<2, CAP>::new(CAP as u32).unwrap(),
+         FixedSignLog::<16>::new_with_remote_storage(
+             (16 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+             12,
+@@ -1708,7 +1713,6 @@ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
+     scheduler
+         .bind_terminal_transductions([[Some(contract), None]])
+         .unwrap();
+-    let terminal = CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap();
+     scheduler
+         .close_remote_input_abnormal(ingress, CordId(0), terminal)
+         .unwrap();
+@@ -1717,6 +1721,12 @@ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
+         scheduler.step().unwrap(),
+         SchedulerStatus::Progress { .. }
+     ));
++    if cancel {
++        scheduler.cancel().unwrap();
++        assert_eq!(scheduler.step(), Ok(SchedulerStatus::Cancelled));
++        assert_eq!(scheduler.values().used_items(), 0);
++        return;
++    }
+     let first = scheduler
+         .remote_egress_offer(egress, CordId(1))
+         .unwrap()
+diff --git a/architecture/kernel/src/scheduler/phase_terminal.rs b/architecture/kernel/src/scheduler/phase_terminal.rs
+new file mode 100644
+index 0000000000..951057d609
+--- /dev/null
++++ b/architecture/kernel/src/scheduler/phase_terminal.rs
+@@ -0,0 +1,44 @@
++//! Retained abnormal-finalization bytes, distinct from public abnormal values.
++use super::{
++    AssignedAbnormalTransduction, AssignedTerminalTransduction, CanonicalValue, SchedulerError,
++};
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(super) struct PhaseTerminal<const BYTES: usize> {
++    len: u8,
++    bytes: [u8; BYTES],
++}
++impl<const BYTES: usize> PhaseTerminal<BYTES> {
++    pub(super) fn new(value: CanonicalValue) -> Result<Self, SchedulerError> {
++        let source = value.as_slice();
++        if source.len() > BYTES {
++            return Err(SchedulerError::InvalidPlan);
++        }
++        let mut terminal = Self {
++            len: source.len() as u8,
++            bytes: [0; BYTES],
++        };
++        terminal.bytes[..source.len()].copy_from_slice(source);
++        Ok(terminal)
++    }
++    pub(super) fn as_slice(&self) -> &[u8] {
++        &self.bytes[..usize::from(self.len)]
++    }
++}
++/// Current contracts carry no smaller abnormal envelope. Any selected finite
++/// abnormal finalizer therefore requires the complete public100-byte profile.
++/// Other abnormal outcomes keep their original public value and Cord storage.
++pub(super) fn validate_capacity<const B: usize, const N: usize, const P: usize>(
++    contracts: &[[Option<AssignedTerminalTransduction>; P]; N],
++) -> Result<(), SchedulerError> {
++    if B < CanonicalValue::MAXIMUM_BYTES
++        && contracts.iter().flatten().flatten().any(|c| {
++            matches!(
++                c.abnormal,
++                AssignedAbnormalTransduction::FinalizeThenPropagate(_)
++            )
++        })
++    {
++        return Err(SchedulerError::InvalidPlan);
++    }
++    Ok(())
++}
+diff --git a/architecture/kernel/src/scheduler/phase_terminal_tests.rs b/architecture/kernel/src/scheduler/phase_terminal_tests.rs
+new file mode 100644
+index 0000000000..0e1c19d04d
+--- /dev/null
++++ b/architecture/kernel/src/scheduler/phase_terminal_tests.rs
+@@ -0,0 +1,244 @@
++//! Phase byte specialization must not erase ordinary abnormal truth.
++use super::*;
++static FINALIZE: [[Option<AssignedTerminalTransduction>; 2]; 1] = [[
++    Some(AssignedTerminalTransduction {
++        input: PortId(0),
++        output: PortId(0),
++        normal_close: AssignedNormalCloseTransduction::PropagateWhenAllClose,
++        abnormal: AssignedAbnormalTransduction::FinalizeThenPropagate(
++            AssignedFiniteTerminalEmission {
++                maximum_items: 1,
++                maximum_bytes: 1,
++            },
++        ),
++        cancellation: AssignedCancellationTransduction::NotCancellable,
++    }),
++    law(1),
++]];
++#[test]
++fn zero_phase_bytes_keep_normal_close_abnormal_and_cancellation_parity() {
++    let make = || {
++        prepare_profile::<0, 0>(true, usize::MAX, &CONTRACTS)
++            .unwrap()
++            .bind([Back {
++                first_closed: false,
++                changed_law: false,
++                finalizes: false,
++            }])
++    };
++    let mut full = bound::<0>(true);
++    let mut small = make();
++    let allocation = AllocationSample::begin();
++    full.close_and_drain();
++    small.close_and_drain();
++    let cost = allocation.finish();
++    assert_eq!(cost.allocations + cost.reallocations, 0);
++    assert_eq!(
++        full.signs.events().collect::<std::vec::Vec<_>>(),
++        small.signs.events().collect::<std::vec::Vec<_>>()
++    );
++    let mut full = bound::<0>(true);
++    let mut small = make();
++    let terminal = CanonicalValue::new(&[7; 100]).unwrap();
++    full.close_remote_input_abnormal(RemoteEndpointId(1), CordId(1), terminal)
++        .unwrap();
++    small
++        .close_remote_input_abnormal(RemoteEndpointId(1), CordId(1), terminal)
++        .unwrap();
++    assert_eq!(full.step(), small.step());
++    assert_eq!(small.cords[1].abnormal_terminal, Some(terminal));
++    assert_eq!(
++        full.signs.events().collect::<std::vec::Vec<_>>(),
++        small.signs.events().collect::<std::vec::Vec<_>>()
++    );
++    let mut full = bound::<0>(true);
++    let mut small = make();
++    full.cancel().unwrap();
++    small.cancel().unwrap();
++    assert_eq!(full.step(), small.step());
++    let exact = size_of::<Kernel<0, 0>>();
++    assert_eq!(
++        prepare_profile::<0, 0>(true, exact - 1, &CONTRACTS).err(),
++        Some(KernelPreparationError::Capacity {
++            required: exact,
++            available: exact - 1
++        })
++    );
++    assert!(exact < size_of::<Kernel<0, 100>>());
++    std::eprintln!(
++        "phase CPU full={} zero={} saved={}",
++        size_of::<Kernel<0, 100>>(),
++        exact,
++        size_of::<Kernel<0, 100>>() - exact
++    );
++}
++fn rejects_finalize_before_effects<const B: usize>() {
++    type Store = DroppedValues;
++    type Refused<const B: usize> =
++        FixedScheduler<Back, Store, FixedSignLog<64>, 1, 2, 2, 2, 1, 1, 0, 1, 0, B>;
++    let actual = Back {
++        first_closed: false,
++        changed_law: false,
++        finalizes: true,
++    };
++    assert_eq!([actual.terminal_transductions()], FINALIZE);
++    let drops = Rc::new(Cell::new(0));
++    let values = DroppedValues {
++        inner: FixedValueStore::new(16).unwrap(),
++        drops: drops.clone(),
++    };
++    let log = signs();
++    let calls = Cell::new(0);
++    let allocation = AllocationSample::begin();
++    let result = Refused::<B>::prepare_boxed_with_linked_table_writer(
++        values,
++        log,
++        usize::MAX,
++        &FINALIZE,
++        &[actual.terminal_transductions()],
++        |e| e,
++        |nodes, cords, routes, bindings| {
++            calls.set(calls.get() + 1);
++            write(nodes, cords, routes, bindings)
++        },
++    );
++    let cost = allocation.finish();
++    assert_eq!(
++        result.err(),
++        Some(KernelPreparationError::Topology(
++            SchedulerError::InvalidPlan
++        ))
++    );
++    assert_eq!(calls.get(), 0);
++    assert_eq!(cost.allocations + cost.reallocations, 0);
++    assert_eq!(drops.get(), 1);
++}
++#[test]
++fn smaller_phase_profiles_refuse_even_matching_finite_finalizers_before_effects() {
++    rejects_finalize_before_effects::<0>();
++    rejects_finalize_before_effects::<99>();
++    let prepared = Kernel::<0, 100>::prepare_boxed_with_linked_table_writer(
++        FixedValueStore::new(16).unwrap(),
++        signs(),
++        usize::MAX,
++        &FINALIZE,
++        &FINALIZE,
++        |e| e,
++        write,
++    )
++    .unwrap();
++    assert_eq!(prepared.storage_bytes(), size_of::<Kernel<0, 100>>());
++    // A direct owned bind must apply the same stock check before replacing laws.
++    let mut scheduler = prepare_profile::<1, 0>(false, usize::MAX, &CONTRACTS)
++        .unwrap()
++        .bind([Back {
++            first_closed: false,
++            changed_law: false,
++            finalizes: true,
++        }]);
++    assert_eq!(
++        scheduler.bind_terminal_transductions(FINALIZE),
++        Err(SchedulerError::InvalidPlan)
++    );
++    assert_eq!(scheduler.terminal_transductions, CONTRACTS);
++}
++struct Spontaneous;
++impl StepBack<1> for Spontaneous {
++    fn step(&mut self, _: &mut StepIo<1>, _: &StepInputBytes<'_, 1>) -> StepOutcome {
++        StepOutcome::Abnormal {
++            port: PortId(0),
++            terminal: CanonicalValue::new(&[9; 100]).unwrap(),
++        }
++    }
++}
++type SpontaneousKernel<const B: usize> = FixedScheduler<
++    Spontaneous,
++    FixedValueStore<2, 100>,
++    FixedSignLog<64>,
++    1,
++    2,
++    1,
++    2,
++    1,
++    2,
++    0,
++    1,
++    0,
++    B,
++>;
++fn spontaneous<const B: usize>() -> Box<SpontaneousKernel<B>> {
++    static NONE: [[Option<AssignedTerminalTransduction>; 1]; 1] = [[None]];
++    SpontaneousKernel::prepare_boxed_with_linked_table_writer(
++        FixedValueStore::new(100).unwrap(),
++        signs(),
++        usize::MAX,
++        &NONE,
++        &NONE,
++        |e| e,
++        |nodes, cords, routes, calls| {
++            nodes[0] = NodeSpec {
++                input_cords: [None],
++                maximum_step_fuel: 4,
++            };
++            let mut targets = [RouteTarget {
++                cord: CordId(0),
++                sink: crate::CordEndpoint::Remote(RemoteEndpointId(0)),
++            }; 2];
++            for (i, cord) in cords.iter_mut().enumerate() {
++                *cord = CordSpec::remote_egress(
++                    CordId(i as u16),
++                    (NodeId(0), PortId(0)),
++                    RemoteEndpointId(i as u16),
++                    CordCapacity {
++                        slot_start: i as u16,
++                        item_capacity: 1,
++                        byte_capacity: 100,
++                        pressure_policy: Default::default(),
++                    },
++                );
++                targets[i] = RouteTarget {
++                    cord: CordId(i as u16),
++                    sink: crate::CordEndpoint::Remote(RemoteEndpointId(i as u16)),
++                };
++            }
++            cords[0] = cords[0].with_track(AssignedConnectionTrack::AbnormalTerminal);
++            routes.install(
++                NodeId(0),
++                PortId(0),
++                crate::RouteRange { start: 0, len: 2 },
++                &targets,
++            )?;
++            routes.seal()?;
++            calls.seal()?;
++            Ok((1, 2))
++        },
++    )
++    .unwrap()
++    .bind([Spontaneous])
++}
++#[test]
++fn zero_phase_bytes_preserve_full_spontaneous_cord_and_unresolved_truth() {
++    let mut full = spontaneous::<100>();
++    let mut small = spontaneous::<0>();
++    assert_eq!(full.step(), small.step());
++    let terminal = CanonicalValue::new(&[9; 100]).unwrap();
++    assert_eq!(small.cords[1].abnormal_terminal, Some(terminal));
++    assert_eq!(small.unresolved_abnormal[0].unwrap().terminal, terminal);
++    let output = small
++        .remote_egress_offer(RemoteEndpointId(0), CordId(0))
++        .unwrap()
++        .unwrap();
++    let full_output = full
++        .remote_egress_offer(RemoteEndpointId(0), CordId(0))
++        .unwrap()
++        .unwrap();
++    assert_eq!(small.host_value(output.value).unwrap(), terminal.as_slice());
++    assert_eq!(
++        full.host_value(full_output.value).unwrap(),
++        terminal.as_slice()
++    );
++    assert_eq!(
++        full.signs.events().collect::<std::vec::Vec<_>>(),
++        small.signs.events().collect::<std::vec::Vec<_>>()
++    );
++}

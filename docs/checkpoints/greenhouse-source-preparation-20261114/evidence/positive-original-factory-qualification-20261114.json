@@ -1,0 +1,101 @@
+{
+  "assurance": "Original factory BIN and original no_std modules prepare the complete exact checked Source76 through original authenticated Root command custody; no diagnostic copy selected. CPU64 allocation qualification, not device/target admission.",
+  "source_checkpoint": "63f8f9dd5a9438a3faba99e1a89bea4bf60a7932",
+  "source_sha256": "83291b6eac51ff63bcda99627b88e31a747cb83b660b310c2fea72af6cd1b07f",
+  "scope": {
+    "gears": 76,
+    "internal_cords": 83,
+    "all_cords": 95,
+    "queue_slots": 97,
+    "software_owners": 27,
+    "resident_owners": 47,
+    "native_call_owners": 2
+  },
+  "test_files": {
+    "targets/rp2040/make/tests/neutral_source.rs": "43cdbebb1ca2ce5c93c458a00333edc2bab203e0f4b68f09e583bab98e4a9821",
+    "targets/rp2040/make/tests/neutral_source/exercise.rs": "a25de172edbaaf96e5f1524b8866dad06b7badfdc1a24c37ba37929822176600",
+    "targets/rp2040/make/tests/neutral_source/positive.rs": "b5e77b06c2c727d426efd9f89c0b4c853915d6ec40e2a61baa8147a38db87029"
+  },
+  "original_factory_sha256": "173c9a1f03447093c9ea389a7ee6397bb9fc4e70df4d3c405de6794c099fc510",
+  "factory_diagnostic_copy": false,
+  "profile_cfg": {
+    "name": "neutral_source_execution",
+    "witness": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-c79668900a21695b/output",
+    "witness_sha256": "abb036f197b64387be071bb60e166ac98b0c10330f3ce9dff363d6170f045ad1",
+    "exact_emitted_line_required": true,
+    "propagated_to": [
+      "CPU BIN",
+      "no_std rlib"
+    ]
+  },
+  "generated_files": {
+    "host.rs": "5f2954b59522bb0d2c9c3c5b9cd6438e8fa5cbd23ff8bf080c4b4debcef7dfea",
+    "workset.rs": "62dbde86798dac837d4e93a954a88f39fd0050ed5086598edad915b165afb2a7",
+    "workset_0.rs": "7ed9bca42b36290a0e0e9027dafcbfe61f7735220d71191bd5bc3018b49b274b",
+    "workset_0_layout.rs": "8bd91537db36f2476aab502337430a065fb0eb33df6e8f4bbec9f3912e3563b8",
+    "resident.rs": "7f42c18aa8b3fcd94bfa8c5534972dc316c93291d214c2082a0e729c71fafc3b"
+  },
+  "command": {
+    "signed_workset_bytes": 30314,
+    "projection_bytes": 29018,
+    "metadata_bytes": 1282,
+    "installed_input_bytes": 32548,
+    "resource_reference_bytes": 46,
+    "resolved_original_flash_resource_bytes": 6030,
+    "fore_metadata_bytes": 636,
+    "original_resource_requirements": 49,
+    "host_call_requirements": 2
+  },
+  "sign_representations": {
+    "original_Plan_named_receipt_bytes": 15277,
+    "numeric_event_items": 237,
+    "CPU_KernelEvent_bytes": 20,
+    "numeric_event_log_bytes": 4740,
+    "remote_numeric_trace_bytes": 5688,
+    "named_Plan_receipt_quota_unchanged": true
+  },
+  "measurements": {
+    "pointer_bits": 64,
+    "whole_factory_retained_requested_bytes": 210354,
+    "whole_factory_preparation_peak_requested_bytes": 212393,
+    "original_Root_preflight_peak_requested_bytes": 212393,
+    "software_retained_requested_bytes": 6254,
+    "value_backing_requested_bytes": 114426,
+    "inline_kernel_bytes": 66800,
+    "inline_Root_bytes": 33768,
+    "inline_equipment_bytes": 648,
+    "inline_resident_inventory_bytes": 13256
+  },
+  "funding_scope": {
+    "CPU_fixture_retained_preparation_ceiling_bytes": 1048576,
+    "unchanged_installed_image_heap_bytes": 131072,
+    "CPU_fixture_ceiling_is_not_target_funding": true
+  },
+  "exclusions": [
+    "preexisting Root heap backing and inline command storage",
+    "preexisting original equipment owners",
+    "preexisting resident inventory and static linked schemas",
+    "preexisting Issuer grant descriptions",
+    "allocator metadata/rounding",
+    "stack and CPU process/runtime memory"
+  ],
+  "verified": [
+    "original nonmember refusal",
+    "current member with unretained command refusal",
+    "zero storage refusal",
+    "signed retained command authentication and exact installed profile",
+    "complete kernel including separately funded shared execution workspace",
+    "original Root positive preflight returnsOk",
+    "all native Ready owners restored after drop",
+    "zero I2C transactions and zero native clock calls",
+    "original no_std module compilation",
+    "BIN uses unmodified original factory"
+  ],
+  "test_result": "passed1/1; generated qualification17.46s",
+  "log": "outputs/positive-original-factory-qualification-20261114.log",
+  "log_sha256": "5ec272e0ebb81dc4a8eba87dfc29069ee65e7850ebe2b91c0d5633e8478a0a07",
+  "admission": false,
+  "Start": false,
+  "physical_deployment": false,
+  "target_heap_fit_proved": false
+}

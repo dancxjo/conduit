@@ -1,0 +1,11 @@
+hit_center=(512,161); label=Open Plots library; action=body/action/open-library/0
+hit_center=(512,231); label=Open Body overview; action=body/action/open-overview/0
+hit_center=(512,301); label=Wake; action=body/action/wake/0
+hit_center=(512,161); label=Open Plots library; action=body/action/open-library/0
+hit_center=(512,231); label=Open Body overview; action=body/action/open-overview/0
+hit_center=(512,301); label=Wake; action=body/action/wake/0
+different_semantic_face_ids=true
+overview_commands=16
+library_commands=16
+identical_primary_drawing=true
+software_only=true; no_body_actions=true; no_physical_capture_claim=true

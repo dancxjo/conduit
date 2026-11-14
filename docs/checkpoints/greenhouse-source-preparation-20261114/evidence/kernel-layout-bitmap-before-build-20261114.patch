@@ -1,0 +1,255 @@
+diff --git a/architecture/kernel/src/assigned/layout.rs b/architecture/kernel/src/assigned/layout.rs
+index 45c7f82f1b..940892d92e 100644
+--- a/architecture/kernel/src/assigned/layout.rs
++++ b/architecture/kernel/src/assigned/layout.rs
+@@ -1,41 +1,90 @@
+ //! Exact trusted layout comparison after the shared complete Core decoder.
+ use super::*;
++// Preserve the original 256-byte preparation workspace. Each canonical tag has
++// at most255 records; eight tag-local bitmaps fit in one pass, and two passes
++// cover all13 tags without retaining a second inventory or allocating storage.
++const SEEN_BYTES: usize = 256;
++const TAG_BYTES: usize = (u8::MAX as usize).div_ceil(8);
++const TAGS_PER_PASS: usize = SEEN_BYTES / TAG_BYTES;
++#[cfg(test)]
++#[path = "layout_bitmap_tests.rs"]
++mod tests;
++fn ignored(tag: u8) -> bool {
++    matches!(
++        tag,
++        c::ASSIGNED_CONFIGURATION | c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL
++    )
++}
+ pub(super) fn validate(
+     input: RecordInput<'_>,
+     layout: &ResidentLayout<'_>,
+     fore: Option<ForeProfile<'_>>,
+ ) -> Result<(), AssignedKernelRefusal> {
+     use AssignedKernelRefusal as E;
+-    if layout.records.len() > 256 {
+-        return Err(E::Capacity);
+-    }
+-    let mut seen = [false; 256];
+-    for record in input.records()? {
+-        let record = record?;
+-        if matches!(
+-            record.tag,
+-            c::ASSIGNED_CONFIGURATION | c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL
+-        ) {
+-            continue;
++    // The separately trusted layout must remain within the SAME canonical
++    // per-tag count domain. Ignored or foreign requirements cannot disappear
++    // merely because actual configuration/Sign/terminal records are skipped.
++    for tag in 1..=c::ASSIGNED_PLAN_COUNT_KINDS as u8 {
++        if layout.records.iter().filter(|r| r.tag == tag).count() > u8::MAX as usize {
++            return Err(E::Capacity);
+         }
+-        let expected = match fore {
+-            Some(ForeProfile::Line(profile)) => {
+-                c::AssignedRecordRequirement::from_kernel_record_with_line_fore(record, profile)
+-            }
+-            _ => {
+-                c::AssignedRecordRequirement::from_kernel_record(record, u16_at(input.header(), 8)?)
+-            }
+-        };
+-        let index = layout
+-            .records
+-            .iter()
+-            .enumerate()
+-            .position(|(i, r)| !seen[i] && *r == expected)
+-            .ok_or(E::Layout)?;
+-        seen[index] = true;
+     }
+-    if seen[..layout.records.len()].contains(&false) {
++    if layout
++        .records
++        .iter()
++        .any(|r| r.tag == 0 || usize::from(r.tag) > c::ASSIGNED_PLAN_COUNT_KINDS || ignored(r.tag))
++    {
+         return Err(E::Layout);
+     }
++    let mut seen = [0u8; SEEN_BYTES];
++    for group in 0..c::ASSIGNED_PLAN_COUNT_KINDS.div_ceil(TAGS_PER_PASS) {
++        seen.fill(0);
++        for record in input.records()? {
++            let record = record?;
++            if ignored(record.tag) {
++                continue;
++            }
++            if record.tag == 0 || usize::from(record.tag) > c::ASSIGNED_PLAN_COUNT_KINDS {
++                return Err(E::Layout);
++            }
++            let tag = usize::from(record.tag - 1);
++            if tag / TAGS_PER_PASS != group {
++                continue;
++            }
++            // Hash only in the record's one selected group. The existing
++            // Fore/native normalization and full digest comparison are intact.
++            let expected = match fore {
++                Some(ForeProfile::Line(profile)) => {
++                    c::AssignedRecordRequirement::from_kernel_record_with_line_fore(record, profile)
++                }
++                _ => c::AssignedRecordRequirement::from_kernel_record(
++                    record,
++                    u16_at(input.header(), 8)?,
++                ),
++            };
++            let start = (tag % TAGS_PER_PASS) * TAG_BYTES;
++            let ordinal = layout
++                .records
++                .iter()
++                .filter(|r| r.tag == record.tag)
++                .enumerate()
++                .position(|(i, r)| seen[start + i / 8] & (1 << (i % 8)) == 0 && *r == expected)
++                .ok_or(E::Layout)?;
++            seen[start + ordinal / 8] |= 1 << (ordinal % 8);
++        }
++        for tag in (group * TAGS_PER_PASS + 1)
++            ..=((group + 1) * TAGS_PER_PASS).min(c::ASSIGNED_PLAN_COUNT_KINDS)
++        {
++            let count = layout
++                .records
++                .iter()
++                .filter(|r| usize::from(r.tag) == tag)
++                .count();
++            let start = ((tag - 1) % TAGS_PER_PASS) * TAG_BYTES;
++            if (0..count).any(|i| seen[start + i / 8] & (1 << (i % 8)) == 0) {
++                return Err(E::Layout);
++            }
++        }
++    }
+     Ok(())
+ }
+diff --git a/architecture/kernel/src/assigned/layout_bitmap_tests.rs b/architecture/kernel/src/assigned/layout_bitmap_tests.rs
+new file mode 100644
+index 0000000000..808e4e4d9e
+--- /dev/null
++++ b/architecture/kernel/src/assigned/layout_bitmap_tests.rs
+@@ -0,0 +1,127 @@
++//! Layout multiset checks after Core's separate canonical record validation.
++//! Shapes mirror canonical tag counts; these fixtures do not grant a Plan/Play.
++extern crate std;
++use super::*;
++use std::{vec, vec::Vec};
++
++type Row = (u8, [u8; 8]);
++fn rows(counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS]) -> Vec<Row> {
++    counts
++        .iter()
++        .enumerate()
++        .flat_map(|(index, count)| {
++            (0..*count).map(move |ordinal| {
++                let mut payload = [0; 8];
++                payload[0] = ordinal;
++                // Equal ordinals intentionally have equal payloads across tags.
++                (index as u8 + 1, payload)
++            })
++        })
++        .collect()
++}
++fn requirements(data: &[Row]) -> Vec<c::AssignedRecordRequirement> {
++    data.iter()
++        .filter(|r| !ignored(r.0))
++        .map(|(tag, payload)| {
++            c::AssignedRecordRequirement::from_kernel_record(
++                c::AssignedRecord { tag: *tag, payload },
++                c::ASSIGNED_KERNEL_PLAN_SCHEMA,
++            )
++        })
++        .collect()
++}
++fn check(
++    data: &[Row],
++    required: &[c::AssignedRecordRequirement],
++) -> Result<(), AssignedKernelRefusal> {
++    let records: Vec<_> = data
++        .iter()
++        .map(|(tag, payload)| c::AssignedRecord { tag: *tag, payload })
++        .collect();
++    let mut header = [0; c::ASSIGNED_PLAN_HEADER_BYTES];
++    header[8..10].copy_from_slice(&c::ASSIGNED_KERNEL_PLAN_SCHEMA.to_le_bytes());
++    validate(
++        RecordInput::Records {
++            header: &header,
++            records: &records,
++        },
++        &ResidentLayout {
++            records: required,
++            counts: [0; c::ASSIGNED_PLAN_COUNT_KINDS],
++        },
++        None,
++    )
++}
++#[test]
++fn original_workspace_covers_721_source_shape_and_complete_canonical_domain() {
++    assert_eq!(SEEN_BYTES, core::mem::size_of::<[bool; 256]>());
++    assert_eq!(TAG_BYTES, 32);
++    assert_eq!(TAGS_PER_PASS, 8);
++    let source = rows([76, 162, 64, 95, 76, 92, 2, 49, 0, 12, 157, 160, 0]);
++    let required = requirements(&source);
++    assert_eq!(required.len(), 721);
++    assert_eq!(check(&source, &required), Ok(()));
++    let mut complete = rows([255; c::ASSIGNED_PLAN_COUNT_KINDS]);
++    let mut required = requirements(&complete);
++    assert_eq!(complete.len(), 3315);
++    assert_eq!(required.len(), 2550); // All nonignored tags, beyond2048.
++    assert_eq!(check(&complete, &required), Ok(()));
++    complete.reverse();
++    required.rotate_left(1001);
++    assert_eq!(check(&complete, &required), Ok(()));
++}
++#[test]
++fn exact_duplicate_multiplicity_and_tag_identity_survive_both_groups() {
++    let first = (c::ASSIGNED_NODE, [7; 8]);
++    let second = (c::ASSIGNED_STARTUP, [7; 8]);
++    let data = vec![first, second, first, second];
++    let required = requirements(&data);
++    assert_eq!(check(&data, &required), Ok(()));
++    assert_eq!(
++        check(&data[..3], &required),
++        Err(AssignedKernelRefusal::Layout)
++    );
++    let mut excess = data.clone();
++    excess.push(second);
++    assert_eq!(
++        check(&excess, &required),
++        Err(AssignedKernelRefusal::Layout)
++    );
++    let mut changed_tag = data.clone();
++    changed_tag[3].0 = c::ASSIGNED_NODE;
++    assert_eq!(
++        check(&changed_tag, &required),
++        Err(AssignedKernelRefusal::Layout)
++    );
++    let mut changed_payload = data.clone();
++    changed_payload[3].1[7] ^= 1;
++    assert_eq!(
++        check(&changed_payload, &required),
++        Err(AssignedKernelRefusal::Layout)
++    );
++}
++#[test]
++fn per_tag_255_boundary_and_unmatchable_requirements_remain_checked() {
++    let data = rows([255; c::ASSIGNED_PLAN_COUNT_KINDS]);
++    let required = requirements(&data);
++    let mut excess = required.clone();
++    excess.push(required[0]);
++    assert_eq!(check(&data, &excess), Err(AssignedKernelRefusal::Capacity));
++    let mut foreign = required.clone();
++    foreign[0].tag = 14;
++    assert_eq!(check(&data, &foreign), Err(AssignedKernelRefusal::Layout));
++    foreign[0].tag = 0;
++    assert_eq!(check(&data, &foreign), Err(AssignedKernelRefusal::Layout));
++    foreign[0].tag = c::ASSIGNED_CONFIGURATION;
++    assert_eq!(check(&data, &foreign), Err(AssignedKernelRefusal::Layout));
++    let mut wrong_digest = required.clone();
++    wrong_digest[2048].payload_digest[31] ^= 1;
++    assert_eq!(
++        check(&data, &wrong_digest),
++        Err(AssignedKernelRefusal::Layout)
++    );
++    assert_eq!(
++        check(&data, &required[..required.len() - 1]),
++        Err(AssignedKernelRefusal::Layout)
++    );
++}

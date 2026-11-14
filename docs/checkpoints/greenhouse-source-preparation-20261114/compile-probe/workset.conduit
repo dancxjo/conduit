@@ -1,0 +1,899 @@
+with state/seeded/flow/until/typed-9defa89e7e9305d6f40b9bdbdca877764a14450d1413e0e63976739061395c2f as BmeCell
+with state/seeded/flow/until/typed-6585f36cdce7d7048d3f2b041febedbab9c15d91c16386dd417d238cce93a5c7 as HtCell
+with flow/merge/finite/typed-56efa1ec77a9a30e946633fb2af457259b520b2ffee90daba168750813da536e as BmeContexts
+with flow/merge/finite/typed-979189be9f650a3c86656e5e136a4c34e447107b3fddc6edd55045e710d9ea42 as HtErrors
+with flow/merge/finite/typed-7791c969d60ed897325ed0c90c470d7dcc424896a5e62cf86f0d83b6a1aab5e8 as Requests
+with flow/zip/feedback/typed-e9a5a185fa9af5691b5a304f3c9909a027a2affd01a2cdc36e6bae2bd4525cfc as BmeFeedback
+with flow/zip/feedback/typed-e9a5a185fa9af5691b5a304f3c9909a027a2affd01a2cdc36e6bae2bd4525cfc/paired as BmeFeedbackPair
+with flow/zip/finite/typed-a1f34eead4f0698488afb9354a682f2c5fa6c17587c034ea4d87620621206183 as BmeClockPairing
+with flow/zip/finite/typed-a1f34eead4f0698488afb9354a682f2c5fa6c17587c034ea4d87620621206183/paired as BmeClockPair
+with flow/zip/feedback/typed-898779bfac438170d1a9ee4e82dc88c3f03441f50caabbdec7d79f630dc416bf as HtFeedback
+with flow/zip/feedback/typed-898779bfac438170d1a9ee4e82dc88c3f03441f50caabbdec7d79f630dc416bf/paired as HtFeedbackPair
+with flow/zip/finite/typed-30a888009a1e0f7c8b1223e2dc7414ddfbf8fd9258cbaa3f88222438cdf0f584 as BusPairing
+with flow/zip/finite/typed-30a888009a1e0f7c8b1223e2dc7414ddfbf8fd9258cbaa3f88222438cdf0f584/paired as BusPair
+
+with machine/clock/at/request as ClockRequest
+with machine/clock/at/result as ClockResult
+with machine/i2c/transact/request as I2cTransaction
+with machine/i2c/transact/result as I2cResult
+# Protocol phases are source-owned. Host code sees only finite bus requests.
+# Clock events and bus completion times carry monotonic milliseconds.
+# Reset and conversion waits compare exact deadlines, never queued tick counts.
+# Polling consumes at most eight status reads. No retry follows a bus refusal.
+
+type BmeProtocolFailure =
+    none
+    | wrong-identity U8
+    | unsupported-address U8
+    | bus I2cResult
+    | clock ClockResult
+    | malformed
+    | timeout
+    | unexpected
+
+type BmeProtocolBegin = {
+    address: U8 in 8..=119
+}
+type BmeProtocolState = {
+    address: U8 in 8..=119
+    phase: U8
+    index: U8
+    polls: U8
+    deadline: U64
+    clock: U64
+    ready: Boolean
+    first: collection U8 = 24
+    humidity_first: U8
+    humidity: collection U8 = 7
+    sample: collection U8 = 8
+    failure: BmeProtocolFailure
+}
+type BmeTimedBusResult = {
+    result: I2cResult
+    now: U64
+}
+type BmeProtocolEvent =
+    bus BmeTimedBusResult
+    | tick U64
+    | clock-failed ClockResult
+
+type BmeProtocolTransition = {
+    state: BmeProtocolState
+    event: BmeProtocolEvent
+}
+type BmeProtocolAction =
+    transact I2cTransaction
+    | waiting U64
+    | pending
+    | captured BmeProtocolState
+    | refused BmeProtocolFailure
+
+plot bme280-protocol-initialize (
+ query: BmeProtocolBegin...| >> state: BmeProtocolState...|
+) = ({ address: .address, phase: 0, index: 0, polls: 0, deadline: 0, clock: 0, ready: true, first: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], humidity_first: 0, humidity: [0, 0, 0, 0, 0, 0, 0], sample: [0, 0, 0, 0, 0, 0, 0, 0], failure: none(empty) })
+
+plot bme280-protocol-action (
+    state: BmeProtocolState...| >> action: BmeProtocolAction...|
+) = (.address == 118 || .address == 119 ? (.ready ? (.phase < 8 ? (.phase < 4 ? (.phase < 2 ? (.phase < 1 ? (.phase == 0 ? (transact({ address: .address, write: [208], read: 1 })) : (refused(unexpected(empty)))) : (.phase == 1 ? (transact({ address: .address, write: [224, 182], read: 0 })) : (refused(unexpected(empty))))) : (.phase < 3 ? (.phase == 2 ? (waiting(.deadline)) : (refused(unexpected(empty)))) : (.phase == 3 ? (transact({ address: .address, write: [243], read: 1 })) : (refused(unexpected(empty)))))) : (.phase < 6 ? (.phase < 5 ? (.phase == 4 ? (transact({ address: .address, write: [244, 0], read: 0 })) : (refused(unexpected(empty)))) : (.phase == 5 ? (transact({ address: .address, write: [242, 1], read: 0 })) : (refused(unexpected(empty))))) : (.phase < 7 ? (.phase == 6 ? (transact({ address: .address, write: [245, 0], read: 0 })) : (refused(unexpected(empty)))) : (.phase == 7 ? (.index < 24 ? transact({ address: .address, write: [136 + .index], read: 1 }) : refused(unexpected(empty))) : (refused(unexpected(empty))))))) : (.phase < 12 ? (.phase < 10 ? (.phase < 9 ? (.phase == 8 ? (transact({ address: .address, write: [161], read: 1 })) : (refused(unexpected(empty)))) : (.phase == 9 ? (.index < 7 ? transact({ address: .address, write: [225 + .index], read: 1 }) : refused(unexpected(empty))) : (refused(unexpected(empty))))) : (.phase < 11 ? (.phase == 10 ? (transact({ address: .address, write: [244, 37], read: 0 })) : (refused(unexpected(empty)))) : (.phase == 11 ? (waiting(.deadline)) : (refused(unexpected(empty)))))) : (.phase < 14 ? (.phase < 13 ? (.phase == 12 ? (transact({ address: .address, write: [243], read: 1 })) : (refused(unexpected(empty)))) : (.phase == 13 ? (.index < 8 ? transact({ address: .address, write: [247 + .index], read: 1 }) : refused(unexpected(empty))) : (refused(unexpected(empty))))) : (.phase < 15 ? (.phase == 14 ? (captured(.)) : (refused(unexpected(empty)))) : (.phase == 15 ? (refused(.failure)) : (refused(unexpected(empty)))))))) : pending(empty)) : refused(unsupported-address(.address)))
+
+type BmeProtocolStep = {
+ state: BmeProtocolState
+ event: BmeProtocolEvent
+ handled: Boolean
+}
+
+# New checked Source graph, not backend fusion. One event is handled once.
+plot bme280-transition-guards (
+ input: BmeProtocolTransition...| >> output: BmeProtocolStep...|
+) = { state: { address: .state.address, phase: (.event is clock-failed ? 15 : (.state.phase >= 14 ? .state.phase : (.state.address == 118 || .state.address == 119 ? ((variant/is(.event, "tick") ? .event.tick : .event.bus.now) < .state.clock ? 15 : (variant/is(.event, "tick") ? ((.state.phase == 2 || .state.phase == 11) ? (.event.tick >= .state.deadline ? (.state.phase == 2 ? 3 : 12) : .state.phase) : .state.phase) : ((.state.phase == 2 || .state.phase == 11) ? 15 : (variant/is(.event.bus.result, "completed") ? .state.phase : 15)))) : 15))), index: .state.index, polls: .state.polls, deadline: (.event is clock-failed ? .state.deadline : (.state.phase >= 14 ? .state.deadline : (.state.address == 118 || .state.address == 119 ? ((variant/is(.event, "tick") ? .event.tick : .event.bus.now) < .state.clock ? .state.deadline : (variant/is(.event, "tick") ? ((.state.phase == 2 || .state.phase == 11) ? (.event.tick >= .state.deadline ? 0 : .state.deadline) : .state.deadline) : .state.deadline)) : .state.deadline))), clock: (.event is clock-failed ? .state.clock : (.state.phase >= 14 ? (variant/is(.event, "tick") ? .event.tick : .event.bus.now) : (.state.address == 118 || .state.address == 119 ? ((variant/is(.event, "tick") ? .event.tick : .event.bus.now) < .state.clock ? (variant/is(.event, "tick") ? .event.tick : .event.bus.now) : (variant/is(.event, "tick") ? ((.state.phase == 2 || .state.phase == 11) ? (.event.tick >= .state.deadline ? (variant/is(.event, "tick") ? .event.tick : .event.bus.now) : .event.tick) : (variant/is(.event, "tick") ? .event.tick : .event.bus.now)) : ((.state.phase == 2 || .state.phase == 11) ? (variant/is(.event, "tick") ? .event.tick : .event.bus.now) : (variant/is(.event.bus.result, "completed") ? .state.clock : (variant/is(.event, "tick") ? .event.tick : .event.bus.now))))) : (variant/is(.event, "tick") ? .event.tick : .event.bus.now)))), ready: (.event is clock-failed ? true : (.state.phase >= 14 ? false : (.state.address == 118 || .state.address == 119 ? ((variant/is(.event, "tick") ? .event.tick : .event.bus.now) < .state.clock ? true : (variant/is(.event, "tick") ? ((.state.phase == 2 || .state.phase == 11) ? (.event.tick >= .state.deadline ? true : .state.ready) : false) : ((.state.phase == 2 || .state.phase == 11) ? true : (variant/is(.event.bus.result, "completed") ? .state.ready : true)))) : true))), first: .state.first, humidity_first: .state.humidity_first, humidity: .state.humidity, sample: .state.sample, failure: (.event is clock-failed ? clock(.event.clock-failed) : (.state.phase >= 14 ? .state.failure : (.state.address == 118 || .state.address == 119 ? ((variant/is(.event, "tick") ? .event.tick : .event.bus.now) < .state.clock ? malformed(empty) : (variant/is(.event, "tick") ? .state.failure : ((.state.phase == 2 || .state.phase == 11) ? unexpected(empty) : (variant/is(.event.bus.result, "completed") ? .state.failure : bus(.event.bus.result))))) : unsupported-address(.state.address)))) }, event: .event, handled: (.event is clock-failed ? true : (.state.phase >= 14 ? true : (.state.address == 118 || .state.address == 119 ? ((variant/is(.event, "tick") ? .event.tick : .event.bus.now) < .state.clock ? true : (variant/is(.event, "tick") ? true : ((.state.phase == 2 || .state.phase == 11) ? true : (variant/is(.event.bus.result, "completed") ? false : true)))) : true))) }
+
+# Handled routes select original fields without evaluating phase conditions.
+# Unhandled routes preserve the original phase order and finish fallback.
+plot bme280-transition-phases-finish (
+ input: BmeProtocolStep...| >> output: BmeProtocolState...|
+) = { address: .state.address, phase: ((.handled ? false : .state.phase < 7) ? (.state.phase < 4 ? (.state.phase < 1 ? (.state.phase == 0 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.event.bus.result.completed.input.0 == 96 ? 1 : 15) : 15) : 15) : (.state.phase < 3 ? (.state.phase == 1 ? (sequence/length(.event.bus.result.completed.input) == 0 ? 2 : 15) : 15) : (.state.phase == 3 ? (sequence/length(.event.bus.result.completed.input) == 1 ? ((.event.bus.result.completed.input.0 & 1) == 0 ? 4 : (.state.polls < 7 ? .state.phase : 15)) : 15) : 15))) : (.state.phase < 5 ? (.state.phase == 4 ? (sequence/length(.event.bus.result.completed.input) == 0 ? 5 : 15) : 15) : (.state.phase < 6 ? (.state.phase == 5 ? (sequence/length(.event.bus.result.completed.input) == 0 ? 6 : 15) : 15) : (.state.phase == 6 ? (sequence/length(.event.bus.result.completed.input) == 0 ? 7 : 15) : 15)))) : ((.handled ? true : .state.phase < 10) ? ((.handled ? true : .state.phase < 8) ? ((.handled ? true : .state.phase == 7) ? ((.handled ? true : sequence/length(.event.bus.result.completed.input) == 1) ? ((.handled ? true : .state.index < 24) ? ((.handled ? false : .state.index == 23) ? 8 : .state.phase) : 15) : 15) : 15) : (.state.phase < 9 ? (.state.phase == 8 ? (sequence/length(.event.bus.result.completed.input) == 1 ? 9 : 15) : 15) : (.state.phase == 9 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 7 ? (.state.index == 6 ? 10 : .state.phase) : 15) : 15) : 15))) : (.state.phase < 12 ? (.state.phase == 10 ? (sequence/length(.event.bus.result.completed.input) == 0 ? 11 : 15) : 15) : (.state.phase < 13 ? (.state.phase == 12 ? (sequence/length(.event.bus.result.completed.input) == 1 ? ((.event.bus.result.completed.input.0 & 8) == 0 ? 13 : (.state.polls < 7 ? .state.phase : 15)) : 15) : 15) : (.state.phase == 13 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 8 ? (.state.index == 7 ? 14 : .state.phase) : 15) : 15) : 15))))), index: ((.handled ? true : .state.phase < 7) ? ((.handled ? true : .state.phase < 4) ? .state.index : (.state.phase < 5 ? .state.index : (.state.phase < 6 ? .state.index : (.state.phase == 6 ? (sequence/length(.event.bus.result.completed.input) == 0 ? 0 : .state.index) : .state.index)))) : (.state.phase < 10 ? (.state.phase < 8 ? (.state.phase == 7 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 24 ? (.state.index == 23 ? 0 : .state.index + 1) : .state.index) : .state.index) : .state.index) : (.state.phase < 9 ? (.state.phase == 8 ? (sequence/length(.event.bus.result.completed.input) == 1 ? 0 : .state.index) : .state.index) : (.state.phase == 9 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 7 ? (.state.index == 6 ? 0 : .state.index + 1) : .state.index) : .state.index) : .state.index))) : (.state.phase < 12 ? .state.index : (.state.phase < 13 ? (.state.phase == 12 ? (sequence/length(.event.bus.result.completed.input) == 1 ? ((.event.bus.result.completed.input.0 & 8) == 0 ? 0 : .state.index) : .state.index) : .state.index) : (.state.phase == 13 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 8 ? (.state.index == 7 ? 0 : .state.index + 1) : .state.index) : .state.index) : .state.index))))), polls: ((.handled ? false : .state.phase < 7) ? (.state.phase < 4 ? (.state.phase < 1 ? .state.polls : (.state.phase < 3 ? .state.polls : (.state.phase == 3 ? (sequence/length(.event.bus.result.completed.input) == 1 ? ((.event.bus.result.completed.input.0 & 1) == 0 ? 0 : (.state.polls < 7 ? .state.polls + 1 : .state.polls)) : .state.polls) : .state.polls))) : .state.polls) : ((.handled ? true : .state.phase < 10) ? .state.polls : (.state.phase < 12 ? .state.polls : (.state.phase < 13 ? (.state.phase == 12 ? (sequence/length(.event.bus.result.completed.input) == 1 ? ((.event.bus.result.completed.input.0 & 8) == 0 ? 0 : (.state.polls < 7 ? .state.polls + 1 : .state.polls)) : .state.polls) : .state.polls) : .state.polls)))), deadline: ((.handled ? false : .state.phase < 7) ? (.state.phase < 4 ? (.state.phase < 1 ? .state.deadline : (.state.phase < 3 ? (.state.phase == 1 ? (sequence/length(.event.bus.result.completed.input) == 0 ? .event.bus.now + 2 : .state.deadline) : .state.deadline) : .state.deadline)) : .state.deadline) : ((.handled ? true : .state.phase < 10) ? .state.deadline : (.state.phase < 12 ? (.state.phase == 10 ? (sequence/length(.event.bus.result.completed.input) == 0 ? .event.bus.now + 20 : .state.deadline) : .state.deadline) : .state.deadline))), clock: (.handled ? .state.clock : (variant/is(.event, "tick") ? .event.tick : .event.bus.now)), ready: (.handled ? .state.ready : true), first: ((.handled ? true : .state.phase < 7) ? .state.first : (.state.phase < 10 ? (.state.phase < 8 ? (.state.phase == 7 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 24 ? [(.state.index == 0 ? .event.bus.result.completed.input.0 : .state.first.0), (.state.index == 1 ? .event.bus.result.completed.input.0 : .state.first.1), (.state.index == 2 ? .event.bus.result.completed.input.0 : .state.first.2), (.state.index == 3 ? .event.bus.result.completed.input.0 : .state.first.3), (.state.index == 4 ? .event.bus.result.completed.input.0 : .state.first.4), (.state.index == 5 ? .event.bus.result.completed.input.0 : .state.first.5), (.state.index == 6 ? .event.bus.result.completed.input.0 : .state.first.6), (.state.index == 7 ? .event.bus.result.completed.input.0 : .state.first.7), (.state.index == 8 ? .event.bus.result.completed.input.0 : .state.first.8), (.state.index == 9 ? .event.bus.result.completed.input.0 : .state.first.9), (.state.index == 10 ? .event.bus.result.completed.input.0 : .state.first.10), (.state.index == 11 ? .event.bus.result.completed.input.0 : .state.first.11), (.state.index == 12 ? .event.bus.result.completed.input.0 : .state.first.12), (.state.index == 13 ? .event.bus.result.completed.input.0 : .state.first.13), (.state.index == 14 ? .event.bus.result.completed.input.0 : .state.first.14), (.state.index == 15 ? .event.bus.result.completed.input.0 : .state.first.15), (.state.index == 16 ? .event.bus.result.completed.input.0 : .state.first.16), (.state.index == 17 ? .event.bus.result.completed.input.0 : .state.first.17), (.state.index == 18 ? .event.bus.result.completed.input.0 : .state.first.18), (.state.index == 19 ? .event.bus.result.completed.input.0 : .state.first.19), (.state.index == 20 ? .event.bus.result.completed.input.0 : .state.first.20), (.state.index == 21 ? .event.bus.result.completed.input.0 : .state.first.21), (.state.index == 22 ? .event.bus.result.completed.input.0 : .state.first.22), (.state.index == 23 ? .event.bus.result.completed.input.0 : .state.first.23)] : .state.first) : .state.first) : .state.first) : .state.first) : .state.first)), humidity_first: ((.handled ? true : .state.phase < 7) ? .state.humidity_first : (.state.phase < 10 ? (.state.phase < 8 ? .state.humidity_first : (.state.phase < 9 ? (.state.phase == 8 ? (sequence/length(.event.bus.result.completed.input) == 1 ? .event.bus.result.completed.input.0 : .state.humidity_first) : .state.humidity_first) : .state.humidity_first)) : .state.humidity_first)), humidity: ((.handled ? true : .state.phase < 7) ? .state.humidity : (.state.phase < 10 ? (.state.phase < 8 ? .state.humidity : (.state.phase < 9 ? .state.humidity : (.state.phase == 9 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 7 ? [(.state.index == 0 ? .event.bus.result.completed.input.0 : .state.humidity.0), (.state.index == 1 ? .event.bus.result.completed.input.0 : .state.humidity.1), (.state.index == 2 ? .event.bus.result.completed.input.0 : .state.humidity.2), (.state.index == 3 ? .event.bus.result.completed.input.0 : .state.humidity.3), (.state.index == 4 ? .event.bus.result.completed.input.0 : .state.humidity.4), (.state.index == 5 ? .event.bus.result.completed.input.0 : .state.humidity.5), (.state.index == 6 ? .event.bus.result.completed.input.0 : .state.humidity.6)] : .state.humidity) : .state.humidity) : .state.humidity))) : .state.humidity)), sample: ((.handled ? true : .state.phase < 7) ? .state.sample : (.state.phase < 10 ? .state.sample : (.state.phase < 12 ? .state.sample : (.state.phase < 13 ? .state.sample : (.state.phase == 13 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 8 ? [(.state.index == 0 ? .event.bus.result.completed.input.0 : .state.sample.0), (.state.index == 1 ? .event.bus.result.completed.input.0 : .state.sample.1), (.state.index == 2 ? .event.bus.result.completed.input.0 : .state.sample.2), (.state.index == 3 ? .event.bus.result.completed.input.0 : .state.sample.3), (.state.index == 4 ? .event.bus.result.completed.input.0 : .state.sample.4), (.state.index == 5 ? .event.bus.result.completed.input.0 : .state.sample.5), (.state.index == 6 ? .event.bus.result.completed.input.0 : .state.sample.6), (.state.index == 7 ? .event.bus.result.completed.input.0 : .state.sample.7)] : .state.sample) : .state.sample) : .state.sample))))), failure: ((.handled ? true : .state.phase < 7) ? ((.handled ? false : .state.phase < 4) ? (.state.phase < 1 ? (.state.phase == 0 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.event.bus.result.completed.input.0 == 96 ? .state.failure : wrong-identity(.event.bus.result.completed.input.0)) : malformed(empty)) : unexpected(empty)) : (.state.phase < 3 ? (.state.phase == 1 ? (sequence/length(.event.bus.result.completed.input) == 0 ? .state.failure : malformed(empty)) : unexpected(empty)) : (.state.phase == 3 ? (sequence/length(.event.bus.result.completed.input) == 1 ? ((.event.bus.result.completed.input.0 & 1) == 0 ? .state.failure : (.state.polls < 7 ? .state.failure : timeout(empty))) : malformed(empty)) : unexpected(empty)))) : ((.handled ? true : .state.phase < 5) ? ((.handled ? true : .state.phase == 4) ? ((.handled ? true : sequence/length(.event.bus.result.completed.input) == 0) ? .state.failure : malformed(empty)) : unexpected(empty)) : (.state.phase < 6 ? (.state.phase == 5 ? (sequence/length(.event.bus.result.completed.input) == 0 ? .state.failure : malformed(empty)) : unexpected(empty)) : (.state.phase == 6 ? (sequence/length(.event.bus.result.completed.input) == 0 ? .state.failure : malformed(empty)) : unexpected(empty))))) : (.state.phase < 10 ? (.state.phase < 8 ? (.state.phase == 7 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 24 ? .state.failure : unexpected(empty)) : malformed(empty)) : unexpected(empty)) : (.state.phase < 9 ? (.state.phase == 8 ? (sequence/length(.event.bus.result.completed.input) == 1 ? .state.failure : malformed(empty)) : unexpected(empty)) : (.state.phase == 9 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 7 ? .state.failure : unexpected(empty)) : malformed(empty)) : unexpected(empty)))) : (.state.phase < 12 ? (.state.phase == 10 ? (sequence/length(.event.bus.result.completed.input) == 0 ? .state.failure : malformed(empty)) : unexpected(empty)) : (.state.phase < 13 ? (.state.phase == 12 ? (sequence/length(.event.bus.result.completed.input) == 1 ? ((.event.bus.result.completed.input.0 & 8) == 0 ? .state.failure : (.state.polls < 7 ? .state.failure : timeout(empty))) : malformed(empty)) : unexpected(empty)) : (.state.phase == 13 ? (sequence/length(.event.bus.result.completed.input) == 1 ? (.state.index < 8 ? .state.failure : unexpected(empty)) : malformed(empty)) : unexpected(empty)))))) }
+
+plot bme280-protocol-transition (
+ transition: BmeProtocolTransition...| >> state: BmeProtocolState...|
+) {
+ transition >> bme280-transition-guards() >> bme280-transition-phases-finish() >> state
+}
+# One admitted monotonic clock timestamps bus completions and waits for deadlines.
+
+type BmeClockContext =
+    bus I2cResult
+    | waiting U64
+
+type BmeClockCompletion = {
+    context: BmeClockContext
+    result: ClockResult
+}
+
+type BmeClockEvent =
+    event BmeProtocolEvent
+    | failed ClockResult
+
+plot bme280-clock-bus-context (
+    result: I2cResult...| >> context: BmeClockContext...|
+) = (bus(.))
+
+type BmeOptionalClockContext =
+    available BmeClockContext
+    | absent
+
+plot bme280-clock-action-context (
+    action: BmeProtocolAction...| >> context: BmeOptionalClockContext...|
+) = (. is waiting ? available(waiting(.waiting)) : absent(empty))
+
+plot bme280-clock-request (
+    context: BmeClockContext...| >> request: ClockRequest...|
+) = ({ deadline: (. is waiting ? .waiting : 0) })
+
+plot bme280-clock-event (
+    completion: BmeClockCompletion...| >> outcome: BmeClockEvent...|
+) = (.result is completed ? event(.context is bus ? bus({ result: .context.bus, now: .result.completed }) : tick(.result.completed)) : failed(.result))
+
+# Every clock refusal also advances Source to its explicit terminal state.
+plot bme280-clock-feedback-event (
+    outcome: BmeClockEvent...| >> event: BmeProtocolEvent...|
+) = (. is event ? .event : clock-failed(.failed))
+# Exact BME280 wire interpretation over finite closing flows; no host or attachment facts.
+# The 24 octets are registers 0x88..0x9f. H1 is 0xa1; skip reserved 0xa0.
+# The seven humidity octets are registers 0xe1..0xe7.
+type BmeCalibrationBytes = {
+    temperature_pressure: collection U8 = 24
+    humidity_first: U8
+    humidity: collection U8 = 7
+}
+type BmeCalibration = {
+    t1: I128
+    t2: I128
+    t3: I128
+    p1: I128
+    p2: I128
+    p3: I128
+    p4: I128
+    p5: I128
+    p6: I128
+    p7: I128
+    p8: I128
+    p9: I128
+    h1: I128
+    h2: I128
+    h3: I128
+    h4: I128
+    h5: I128
+    h6: I128
+}
+plot bme280-decode-calibration (
+    bytes: BmeCalibrationBytes...| >> calibration: BmeCalibration...|
+) {
+    begin: bme280-decode-calibration-begin
+    decode: bme280-decode-calibration-work
+    finish: bme280-decode-calibration-finish
+    bytes >> begin >> decode >> finish >> calibration
+}
+
+# Eight sample octets in register order 0xf7..0xfe; lower xlsb nibbles ignored.
+type BmeRawSample = {
+    pressure: I128
+    temperature: I128
+    humidity: I128
+}
+type BmeSampleBytes = {
+    wire: collection U8 = 8
+}
+plot bme280-decode-sample (
+    bytes: BmeSampleBytes...| >> sample: BmeRawSample...|
+) {
+    begin: bme280-decode-sample-begin
+    decode: bme280-decode-sample-work
+    finish: bme280-decode-sample-finish
+    bytes >> begin >> decode >> finish >> sample
+}
+plot bme280-sample-disabled (
+    sample: BmeRawSample...| >> disabled: Boolean...|
+) = (.pressure == 524288 || .temperature == 524288 || .humidity == 32768)
+
+# Source-owned fixed-point observation assembly. Inputs are decoded wire values.
+# Arithmetic remains checked I128. A failed stage cannot publish its numeric scratch.
+# Units are explicit in the observation fields; disabled raw samples are refused.
+type BmeObservationInput = {
+    calibration: BmeCalibration
+    sample: BmeRawSample
+}
+type BmeObservationFailure =
+    none
+    | malformed
+    | sample-disabled
+    | invalid-calibration
+type BmeObservation = {
+    temperature_centidegrees: I128
+    pressure_q24_8_pa: I128
+    humidity_q22_10_percent: I128
+}
+type BmeObservationResult =
+    observation BmeObservation
+    | unavailable BmeObservationFailure
+
+type BmeObservationWork = {
+    calibration: BmeCalibration
+    sample: BmeRawSample
+    fine: I128
+    temperature: I128
+    v1: I128
+    v2: I128
+    numerator: I128
+    denominator: I128
+    pressure: I128
+    humidity: I128
+    failure: BmeObservationFailure
+}
+
+plot bme280-observation-input-range-check (
+    input: BmeObservationInput...| >> output: BmeObservationWork...|
+) = ({ calibration: .calibration, sample: .sample, fine: 0, temperature: 0, v1: 0, v2: 0, numerator: 0, denominator: 0, pressure: 0, humidity: 0, failure: ((((.sample.pressure < 0 || .sample.pressure > 1048575) || (.sample.temperature < 0 || .sample.temperature > 1048575)) || ((.sample.humidity < 0 || .sample.humidity > 65535) || ((.calibration.t1 < 0 || .calibration.t1 > 65535) || (.calibration.p1 < 0 || .calibration.p1 > 65535)))) || (((.calibration.h1 < 0 || .calibration.h1 > 255) || (.calibration.h3 < 0 || .calibration.h3 > 255)) || ((.calibration.t2 < -32768 || .calibration.t2 > 32767) || ((.calibration.t3 < -32768 || .calibration.t3 > 32767) || (.calibration.p2 < -32768 || .calibration.p2 > 32767))))) ? malformed(empty) : .sample.pressure == 524288 || .sample.temperature == 524288 || .sample.humidity == 32768 ? sample-disabled(empty) : (.calibration.p1 == 0 ? invalid-calibration(empty) : none(empty)) })
+
+# Keep each numeric predicate inside the shared finite scalar instruction bound.
+# Malformed calibration outranks disabled/invalid sample outcomes, as in Begin.
+plot bme280-observation-calibration-range-check (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = ({ calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity, failure: ((((.calibration.p3 < -32768 || .calibration.p3 > 32767) || (.calibration.p4 < -32768 || .calibration.p4 > 32767)) || ((.calibration.p5 < -32768 || .calibration.p5 > 32767) || ((.calibration.p6 < -32768 || .calibration.p6 > 32767) || (.calibration.p7 < -32768 || .calibration.p7 > 32767)))) || (((.calibration.p8 < -32768 || .calibration.p8 > 32767) || ((.calibration.p9 < -32768 || .calibration.p9 > 32767) || (.calibration.h2 < -32768 || .calibration.h2 > 32767))) || ((.calibration.h4 < -2048 || .calibration.h4 > 2047) || ((.calibration.h5 < -2048 || .calibration.h5 > 2047) || (.calibration.h6 < -128 || .calibration.h6 > 127))))) ? malformed(empty) : .failure })
+
+plot bme280-observation-begin (
+    input: BmeObservationInput...| >> output: BmeObservationWork...|
+) {
+    input >> bme280-observation-input-range-check() >> bme280-observation-calibration-range-check() >> output
+}
+
+plot bme280-observation-fine (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: ((((.sample.temperature >>> 3) - (.calibration.t1 <<< 1)) * .calibration.t2) >>> 11) + (((((.sample.temperature >>> 4) - .calibration.t1) * ((.sample.temperature >>> 4) - .calibration.t1)) >>> 12) * .calibration.t3 >>> 14), temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity, failure: .failure } : .)
+
+plot bme280-observation-temperature (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: (.fine * 5 + 128) >>> 8, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity, failure: .failure } : .)
+
+plot bme280-observation-pressure-polynomial (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .fine - 128000, v2: (.fine - 128000) * (.fine - 128000) * .calibration.p6 + (((.fine - 128000) * .calibration.p5) <<< 17) + (.calibration.p4 <<< 35), numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity, failure: .failure } : .)
+
+plot bme280-observation-pressure-division (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: (((1048576 - .sample.pressure) <<< 31) - .v2) * 3125, denominator: (((1 <<< 47) + ((.v1 * .v1 * .calibration.p3) >>> 8) + ((.v1 * .calibration.p2) <<< 12)) * .calibration.p1) >>> 33, pressure: .pressure, humidity: .humidity, failure: .failure } : .)
+
+plot bme280-observation-pressure-check (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity, failure: .denominator == 0 ? invalid-calibration(empty) : .failure } : .)
+
+plot bme280-observation-pressure-quotient (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .numerator / .denominator, humidity: .humidity, failure: .failure } : .)
+
+plot bme280-observation-pressure-correction (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: ((.pressure + ((.calibration.p9 * (.pressure >>> 13) * (.pressure >>> 13)) >>> 25) + ((.calibration.p8 * .pressure) >>> 19)) >>> 8) + (.calibration.p7 <<< 4), humidity: .humidity, failure: .failure } : .)
+
+plot bme280-observation-humidity-polynomial (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: ((((.sample.humidity <<< 14) - (.calibration.h4 <<< 20) - .calibration.h5 * (.fine - 76800) + 16384) >>> 15) * (((((((.fine - 76800) * .calibration.h6) >>> 10) * ((((.fine - 76800) * .calibration.h3) >>> 11) + 32768)) >>> 10) + 2097152) * .calibration.h2 + 8192 >>> 14)), failure: .failure } : .)
+
+plot bme280-observation-humidity-correction (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity - (((((.humidity >>> 15) * (.humidity >>> 15)) >>> 7) * .calibration.h1) >>> 4), failure: .failure } : .)
+
+plot bme280-observation-humidity-clamp (
+    input: BmeObservationWork...| >> output: BmeObservationWork...|
+) = (variant/is(.failure, "none") ? { calibration: .calibration, sample: .sample, fine: .fine, temperature: .temperature, v1: .v1, v2: .v2, numerator: .numerator, denominator: .denominator, pressure: .pressure, humidity: .humidity < 0 ? (.humidity & 0) : (.humidity > 419430400 ? ((.humidity & 0) + 102400) : .humidity >>> 12), failure: .failure } : .)
+
+plot bme280-observation-finish (
+    input: BmeObservationWork...| >> result: BmeObservationResult...|
+) = (variant/is(.failure, "none") ? observation({ temperature_centidegrees: .temperature, pressure_q24_8_pa: .pressure, humidity_q22_10_percent: .humidity }) : unavailable(.failure))
+
+plot bme280-observation (
+    input: BmeObservationInput...| >> result: BmeObservationResult...|
+) {
+    begin: bme280-observation-begin
+    fine: bme280-observation-fine
+    temperature: bme280-observation-temperature
+    pressure-polynomial: bme280-observation-pressure-polynomial
+    pressure-division: bme280-observation-pressure-division
+    pressure-check: bme280-observation-pressure-check
+    pressure-quotient: bme280-observation-pressure-quotient
+    pressure-correction: bme280-observation-pressure-correction
+    humidity-polynomial: bme280-observation-humidity-polynomial
+    humidity-correction: bme280-observation-humidity-correction
+    humidity-clamp: bme280-observation-humidity-clamp
+    finish: bme280-observation-finish
+    input >> begin >> fine >> temperature >> pressure-polynomial >> pressure-division >> pressure-check >> pressure-quotient >> pressure-correction >> humidity-polynomial >> humidity-correction >> humidity-clamp >> finish >> result
+}
+
+
+# Shared decoding stages preserve the companion bytes and decoded values.
+# Standalone decoders and capture-to-observation use these same formulas.
+type BmeDecodeWork = {
+    bytes: BmeCalibrationBytes
+    wire: BmeSampleBytes
+    calibration: BmeCalibration
+    sample: BmeRawSample
+}
+plot bme280-decode-calibration-begin (
+    bytes: BmeCalibrationBytes...| >> work: BmeDecodeWork...|
+) = ({ bytes: ., wire: { wire: [0, 0, 0, 0, 0, 0, 0, 0] }, calibration: { t1: 0, t2: 0, t3: 0, p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, p7: 0, p8: 0, p9: 0, h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 }, sample: { pressure: 0, temperature: 0, humidity: 0 } })
+plot bme280-decode-sample-begin (
+    bytes: BmeSampleBytes...| >> work: BmeDecodeWork...|
+) = ({ bytes: { temperature_pressure: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], humidity_first: 0, humidity: [0, 0, 0, 0, 0, 0, 0] }, wire: ., calibration: { t1: 0, t2: 0, t3: 0, p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, p7: 0, p8: 0, p9: 0, h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 }, sample: { pressure: 0, temperature: 0, humidity: 0 } })
+plot bme280-decode-calibration-work (
+    work: BmeDecodeWork...| >> decoded: BmeDecodeWork...|
+) = ({ bytes: .bytes, wire: .wire, calibration: {     t1: (value/i128(.bytes.temperature_pressure.0) + (value/i128(.bytes.temperature_pressure.1) <<< 8)), t2: ((value/i128(.bytes.temperature_pressure.2) + (value/i128(.bytes.temperature_pressure.3) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.2) + (value/i128(.bytes.temperature_pressure.3) <<< 8)) : (value/i128(.bytes.temperature_pressure.2) + (value/i128(.bytes.temperature_pressure.3) <<< 8)) - 65536), t3: ((value/i128(.bytes.temperature_pressure.4) + (value/i128(.bytes.temperature_pressure.5) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.4) + (value/i128(.bytes.temperature_pressure.5) <<< 8)) : (value/i128(.bytes.temperature_pressure.4) + (value/i128(.bytes.temperature_pressure.5) <<< 8)) - 65536), p1: (value/i128(.bytes.temperature_pressure.6) + (value/i128(.bytes.temperature_pressure.7) <<< 8)), p2: ((value/i128(.bytes.temperature_pressure.8) + (value/i128(.bytes.temperature_pressure.9) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.8) + (value/i128(.bytes.temperature_pressure.9) <<< 8)) : (value/i128(.bytes.temperature_pressure.8) + (value/i128(.bytes.temperature_pressure.9) <<< 8)) - 65536), p3: ((value/i128(.bytes.temperature_pressure.10) + (value/i128(.bytes.temperature_pressure.11) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.10) + (value/i128(.bytes.temperature_pressure.11) <<< 8)) : (value/i128(.bytes.temperature_pressure.10) + (value/i128(.bytes.temperature_pressure.11) <<< 8)) - 65536), p4: ((value/i128(.bytes.temperature_pressure.12) + (value/i128(.bytes.temperature_pressure.13) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.12) + (value/i128(.bytes.temperature_pressure.13) <<< 8)) : (value/i128(.bytes.temperature_pressure.12) + (value/i128(.bytes.temperature_pressure.13) <<< 8)) - 65536), p5: ((value/i128(.bytes.temperature_pressure.14) + (value/i128(.bytes.temperature_pressure.15) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.14) + (value/i128(.bytes.temperature_pressure.15) <<< 8)) : (value/i128(.bytes.temperature_pressure.14) + (value/i128(.bytes.temperature_pressure.15) <<< 8)) - 65536), p6: ((value/i128(.bytes.temperature_pressure.16) + (value/i128(.bytes.temperature_pressure.17) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.16) + (value/i128(.bytes.temperature_pressure.17) <<< 8)) : (value/i128(.bytes.temperature_pressure.16) + (value/i128(.bytes.temperature_pressure.17) <<< 8)) - 65536), p7: ((value/i128(.bytes.temperature_pressure.18) + (value/i128(.bytes.temperature_pressure.19) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.18) + (value/i128(.bytes.temperature_pressure.19) <<< 8)) : (value/i128(.bytes.temperature_pressure.18) + (value/i128(.bytes.temperature_pressure.19) <<< 8)) - 65536), p8: ((value/i128(.bytes.temperature_pressure.20) + (value/i128(.bytes.temperature_pressure.21) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.20) + (value/i128(.bytes.temperature_pressure.21) <<< 8)) : (value/i128(.bytes.temperature_pressure.20) + (value/i128(.bytes.temperature_pressure.21) <<< 8)) - 65536), p9: ((value/i128(.bytes.temperature_pressure.22) + (value/i128(.bytes.temperature_pressure.23) <<< 8)) < 32768 ? (value/i128(.bytes.temperature_pressure.22) + (value/i128(.bytes.temperature_pressure.23) <<< 8)) : (value/i128(.bytes.temperature_pressure.22) + (value/i128(.bytes.temperature_pressure.23) <<< 8)) - 65536), h1: value/i128(.bytes.humidity_first), h2: ((value/i128(.bytes.humidity.0) + (value/i128(.bytes.humidity.1) <<< 8)) < 32768 ? (value/i128(.bytes.humidity.0) + (value/i128(.bytes.humidity.1) <<< 8)) : (value/i128(.bytes.humidity.0) + (value/i128(.bytes.humidity.1) <<< 8)) - 65536), h3: value/i128(.bytes.humidity.2), h4: (((value/i128(.bytes.humidity.3) <<< 4) + (value/i128(.bytes.humidity.4) & 15)) < 2048 ? ((value/i128(.bytes.humidity.3) <<< 4) + (value/i128(.bytes.humidity.4) & 15)) : ((value/i128(.bytes.humidity.3) <<< 4) + (value/i128(.bytes.humidity.4) & 15)) - 4096), h5: (((value/i128(.bytes.humidity.5) <<< 4) + (value/i128(.bytes.humidity.4) >>> 4)) < 2048 ? ((value/i128(.bytes.humidity.5) <<< 4) + (value/i128(.bytes.humidity.4) >>> 4)) : ((value/i128(.bytes.humidity.5) <<< 4) + (value/i128(.bytes.humidity.4) >>> 4)) - 4096), h6: (value/i128(.bytes.humidity.6) < 128 ? value/i128(.bytes.humidity.6) : value/i128(.bytes.humidity.6) - 256) }, sample: .sample })
+plot bme280-decode-sample-work (
+    work: BmeDecodeWork...| >> decoded: BmeDecodeWork...|
+) = ({ bytes: .bytes, wire: .wire, calibration: .calibration, sample: {     pressure: (value/i128(.wire.wire.0) <<< 12) + (value/i128(.wire.wire.1) <<< 4) + (value/i128(.wire.wire.2) >>> 4), temperature: (value/i128(.wire.wire.3) <<< 12) + (value/i128(.wire.wire.4) <<< 4) + (value/i128(.wire.wire.5) >>> 4), humidity: (value/i128(.wire.wire.6) <<< 8) + value/i128(.wire.wire.7) } })
+plot bme280-decode-calibration-finish (
+    work: BmeDecodeWork...| >> calibration: BmeCalibration...|
+) = (.calibration)
+plot bme280-decode-sample-finish (
+    work: BmeDecodeWork...| >> sample: BmeRawSample...|
+) = (.sample)
+plot bme280-decode-observation-finish (
+    work: BmeDecodeWork...| >> observation: BmeObservationInput...|
+) = ({ calibration: .calibration, sample: .sample })
+# Convert protocol capture into semantic values through shared Source decoding.
+plot bme280-capture-decode-begin (
+    state: BmeProtocolState...| >> work: BmeDecodeWork...|
+) = ({ bytes: { temperature_pressure: .first, humidity_first: .humidity_first, humidity: .humidity }, wire: { wire: .sample }, calibration: { t1: 0, t2: 0, t3: 0, p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, p7: 0, p8: 0, p9: 0, h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 }, sample: { pressure: 0, temperature: 0, humidity: 0 } })
+plot bme280-observation-from-capture (
+    state: BmeProtocolState...| >> result: BmeObservationResult...|
+) {
+    begin: bme280-capture-decode-begin
+    calibration: bme280-decode-calibration-work
+    sample: bme280-decode-sample-work
+    decoded: bme280-decode-observation-finish
+    compensate: bme280-observation
+    state >> begin >> calibration >> sample >> decoded >> compensate >> result
+}
+# Source marks the final protocol state; the generic state cell publishes it before closing.
+type BmeProtocolFrame = {
+    value: BmeProtocolState
+    terminal: Boolean
+}
+plot bme280-protocol-frame (
+    value: BmeProtocolState...| >> frame: BmeProtocolFrame...|
+) = ({ value: ., terminal: .phase == 14 || .phase == 15 })
+plot bme280-protocol-frame-value (
+    frame: BmeProtocolFrame...| >> value: BmeProtocolState...|
+) = (.value)
+# Protocol transitions and deadlines remain ordinary Source. The enclosing
+# instrument selects exact checked state/merge/pairing Plots and paired Types.
+# These selections create no controller, native capability or resource grant.
+plot bme280-clock-join-selected (
+    pair-type: type
+    pair: pair-type...| >> completion: BmeClockCompletion...|
+) = ({ context: .0, result: .1 })
+
+plot bme280-feedback-join-selected (
+    pair-type: type
+    pair: pair-type...| >> transition: BmeProtocolTransition...|
+) = ({ state: .0, event: .1 })
+
+plot bme280-exchange-selected (
+    feedback-type: type
+    clock-pair-type: type
+    state-cell: kind (
+        >> seed: BmeProtocolFrame...|
+        >> next: BmeProtocolFrame...|
+        current: BmeProtocolFrame...| >>
+    )
+    feedback-pairing: kind (
+        >> left: BmeProtocolState...|
+        >> right: BmeProtocolEvent...|
+        paired: feedback-type...| >>
+    )
+    context-merge: kind (
+        >> left: BmeClockContext...|
+        >> right: BmeClockContext...|
+        merged: BmeClockContext...| >>
+    )
+    clock-pairing: kind (
+        >> left: BmeClockContext...|
+        >> right: ClockResult...|
+        paired: clock-pair-type...| >>
+    )
+    >> begin: BmeProtocolBegin...|
+    >> result: I2cResult...|
+    request: I2cTransaction...| >>
+    captured: BmeProtocolState...| >>
+    observation: BmeObservationResult...| >>
+    refused: BmeProtocolFailure...| >>
+    clock_failed: ClockResult...| >>
+) {
+    cell: state-cell
+    states: bme280-protocol-frame-value
+    join: feedback-pairing
+    contexts: context-merge
+    timed: clock-pairing
+    clock: machine/clock/at
+    actions: bme280-protocol-action
+    outcomes: bme280-clock-event
+    begin >> bme280-protocol-initialize() >> bme280-protocol-frame() >> cell.seed
+    cell.current >> states
+    states >> join.left
+    states >> actions
+    actions >> select(BmeProtocolAction.transact, unmatched=drop) >> request
+    actions >> bme280-clock-action-context() >> select(BmeOptionalClockContext.available, unmatched=drop) >> contexts.left
+    actions >> select(BmeProtocolAction.captured, unmatched=drop) >> captured
+    actions >> select(BmeProtocolAction.captured, unmatched=drop) >> bme280-observation-from-capture() >> observation
+    actions >> select(BmeProtocolAction.refused, unmatched=drop) >> refused
+    result >> bme280-clock-bus-context() >> contexts.right
+    contexts.merged >> timed.left
+    contexts.merged >> bme280-clock-request() >> clock.request
+    clock.result >> timed.right
+    timed.paired >> bme280-clock-join-selected(pair-type = clock-pair-type) >> outcomes
+    outcomes >> bme280-clock-feedback-event() >> join.right
+    outcomes >> select(BmeClockEvent.failed, unmatched=drop) >> clock_failed
+    join.paired >> bme280-feedback-join-selected(pair-type = feedback-type) >> bme280-protocol-transition() >> bme280-protocol-frame() >> cell.next
+}
+# Register meaning only. Root independently admits the selected I2C attachment.
+# Initialization clears RAM while disabled and enables only after all five ACKs.
+# A failed/short result is terminal; these Plots do not retry or claim optical proof.
+
+type Ht16k33Configuration = {
+    address: U8 in 8..=119
+    brightness: U8
+    blink: U8
+    enabled: Boolean
+}
+type Ht16k33Failure =
+    none
+    | unsupported-address U8
+    | invalid-brightness U8
+    | invalid-blink U8
+    | bus I2cResult
+    | malformed
+    | unexpected
+type Ht16k33State = {
+    configuration: Ht16k33Configuration
+    phase: U8
+    failure: Ht16k33Failure
+}
+type Ht16k33Transition = {
+    state: Ht16k33State
+    result: I2cResult
+}
+type Ht16k33Acknowledgement = {
+    transactions: U8
+}
+type Ht16k33Action =
+    transact I2cTransaction
+    | acknowledged Ht16k33Acknowledgement
+    | refused Ht16k33Failure
+
+plot ht16k33-initialize (
+    configuration: Ht16k33Configuration...| >> state: Ht16k33State...|
+) = (.address < 112 ? { configuration: ., phase: 6, failure: unsupported-address(.address) } : (.brightness > 15 ? { configuration: ., phase: 6, failure: invalid-brightness(.brightness) } : (.blink > 3 ? { configuration: ., phase: 6, failure: invalid-blink(.blink) } : { configuration: ., phase: 0, failure: none(empty) })))
+
+plot ht16k33-action (
+    state: Ht16k33State...| >> action: Ht16k33Action...|
+) = (.configuration.address < 112 ? refused(unsupported-address(.configuration.address)) : (.configuration.brightness > 15 ? refused(invalid-brightness(.configuration.brightness)) : (.configuration.blink > 3 ? refused(invalid-blink(.configuration.blink)) : (.phase == 0 ? transact({ address: .configuration.address, write: [33], read: 0 }) : (.phase == 1 ? transact({ address: .configuration.address, write: [128], read: 0 }) : (.phase == 2 ? transact({ address: .configuration.address, write: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], read: 0 }) : (.phase == 3 ? transact({ address: .configuration.address, write: [224 | .configuration.brightness], read: 0 }) : (.phase == 4 ? transact({ address: .configuration.address, write: [128 | (.configuration.blink * 2) | (.configuration.enabled ? 1 : 0)], read: 0 }) : (.phase == 5 ? acknowledged({ transactions: 5 }) : (.phase == 6 ? refused(.failure) : refused(unexpected(empty))))))))))))
+
+plot ht16k33-transition (
+    transition: Ht16k33Transition...| >> state: Ht16k33State...|
+) = (.state.phase >= 5 ? .state : (.result is completed ? (sequence/length(.result.completed.input) == 0 ? { configuration: .state.configuration, phase: .state.phase + 1, failure: none(empty) } : { configuration: .state.configuration, phase: 6, failure: malformed(empty) }) : { configuration: .state.configuration, phase: 6, failure: bus(.result) }))
+
+# The caller supplies already mapped display RAM, independent of glyphs or domain.
+# One pointer+16-byte transaction avoids a visible clear between redraws.
+type Ht16k33Frame = {
+    address: U8 in 8..=119
+    ram: collection U8 = 16
+}
+plot ht16k33-frame-request (
+    frame: Ht16k33Frame...| >> action: Ht16k33Action...|
+) = (.address < 112 ? refused(unsupported-address(.address)) : transact({ address: .address, write: [0, .ram.0, .ram.1, .ram.2, .ram.3, .ram.4, .ram.5, .ram.6, .ram.7, .ram.8, .ram.9, .ram.10, .ram.11, .ram.12, .ram.13, .ram.14, .ram.15], read: 0 }))
+
+plot ht16k33-write-outcome (
+    result: I2cResult...| >> action: Ht16k33Action...|
+) = (. is completed ? (sequence/length(.completed.input) == 0 ? acknowledged({ transactions: 1 }) : refused(malformed(empty))) : refused(bus(.)))
+# Generic protocol topology. The caller supplies exact checked state/pair/merge
+# Plots (or compatible Kinds) and the paired Type. Native bounds remain inside
+# the selected implementations; this library selects no generic family itself.
+type Ht16k33ProtocolFrame = {
+    value: Ht16k33State
+    terminal: Boolean
+}
+plot ht16k33-protocol-frame (
+    state: Ht16k33State...| >> frame: Ht16k33ProtocolFrame...|
+) = ({ value: ., terminal: .phase >= 5 })
+plot ht16k33-protocol-state (
+    frame: Ht16k33ProtocolFrame...| >> state: Ht16k33State...|
+) = (.value)
+plot ht16k33-join-selected (
+    pair-type: type
+    pair: pair-type...| >> transition: Ht16k33Transition...|
+) = ({ state: .0, result: .1 })
+
+# Only the selected bus result advances the feedback cell. The terminal frame
+# is published before closing, including failures; there is no host-side retry.
+plot ht16k33-initialize-exchange-selected (
+    pair-type: type
+    state-cell: kind (
+        >> seed: Ht16k33ProtocolFrame...|
+        >> next: Ht16k33ProtocolFrame...|
+        current: Ht16k33ProtocolFrame...| >>
+    )
+    pairing: kind (
+        >> left: Ht16k33State...|
+        >> right: I2cResult...|
+        paired: pair-type...| >>
+    )
+    >> configuration: Ht16k33Configuration...|
+    >> result: I2cResult...|
+    request: I2cTransaction...| >>
+    acknowledged: Ht16k33Acknowledgement...| >>
+    refused: Ht16k33Failure...| >>
+) {
+    cell: state-cell
+    states: ht16k33-protocol-state
+    actions: ht16k33-action
+    join: pairing
+    configuration >> ht16k33-initialize() >> ht16k33-protocol-frame() >> cell.seed
+    cell.current >> states
+    states >> join.left
+    states >> actions
+    actions >> select(Ht16k33Action.transact, unmatched=drop) >> request
+    actions >> select(Ht16k33Action.acknowledged, unmatched=drop) >> acknowledged
+    actions >> select(Ht16k33Action.refused, unmatched=drop) >> refused
+    result >> join.right
+    join.paired >> ht16k33-join-selected(pair-type = pair-type) >> ht16k33-transition() >> ht16k33-protocol-frame() >> cell.next
+}
+
+# Mapping a Face to RAM is a separate Mask responsibility. This Plot transfers
+# that RAM once and reports only the selected bus's write outcome.
+plot ht16k33-write-exchange-selected (
+    error-merge: kind (
+        >> left: Ht16k33Failure...|
+        >> right: Ht16k33Failure...|
+        merged: Ht16k33Failure...| >>
+    )
+    >> frame: Ht16k33Frame...|
+    >> result: I2cResult...|
+    request: I2cTransaction...| >>
+    acknowledged: Ht16k33Acknowledgement...| >>
+    refused: Ht16k33Failure...| <= 4096B >>
+) {
+    requests: ht16k33-frame-request
+    outcomes: ht16k33-write-outcome
+    errors: error-merge
+    frame >> requests
+    requests >> select(Ht16k33Action.transact, unmatched=drop) >> request
+    requests >> select(Ht16k33Action.refused, unmatched=drop) >> errors.left
+    result >> outcomes
+    outcomes >> select(Ht16k33Action.acknowledged, unmatched=drop) >> acknowledged
+    outcomes >> select(Ht16k33Action.refused, unmatched=drop) >> errors.right
+    errors.merged >> refused
+}
+
+# Routing context is ordinary info. It neither names nor grants a Host, Base,
+# attachment or caller. The enclosing checked Plot supplies explicit routes.
+type I2cCorrelation = {
+    client: U64
+    sequence: U64
+}
+type I2cCorrelatedRequest = {
+    correlation: I2cCorrelation
+    transaction: I2cTransaction
+}
+type I2cCorrelatedResult = {
+    correlation: I2cCorrelation
+    result: I2cResult
+}
+
+plot i2c-correlated-context (
+    request: I2cCorrelatedRequest...| >> context: I2cCorrelation...|
+) = (.correlation)
+
+plot i2c-correlated-transaction (
+    request: I2cCorrelatedRequest...| >> transaction: I2cTransaction...|
+) = (.transaction)
+
+plot i2c-correlated-result (
+    pair-type: type
+    pair: pair-type...| >> result: I2cCorrelatedResult...|
+) = ({ correlation: .0, result: .1 })
+
+# Atomic fan-out and FIFO Cords keep contexts in the same order as requests.
+# One exact native operation owns the controller and returns typed outcomes.
+# This Plot adds no retry, timeout policy, second bus grant or mutable broker.
+# The caller selects an exact checked pairing Plot and its paired Type. A
+# wrapper Fore can preserve these protocol ports while its internal native zip
+# retains independently checked bounds; no Kind family is silently substituted.
+plot i2c-correlated-exchange (
+    pair-type: type
+    pairing: kind (
+        >> left: I2cCorrelation...|
+        >> right: I2cResult...|
+        paired: pair-type...| >>
+    )
+    >> request: I2cCorrelatedRequest...|
+    result: I2cCorrelatedResult...| >>
+) {
+    bus: machine/i2c/transact
+    paired: pairing
+    request >> i2c-correlated-context() >> paired.left
+    request >> i2c-correlated-transaction() >> bus.request
+    bus.result >> paired.right
+    paired.paired >> i2c-correlated-result(pair-type = pair-type) >> result
+}
+# One finite shared-controller instrument. These routing contexts are ordinary
+# info, not observations, capabilities or Host identities. Sequence zero is
+# reserved for this fixed routing basis; each protocol still owns its lifecycle.
+type EnvironmentalBusResult =
+    sensor I2cResult
+    | initialization I2cResult
+    | write I2cResult
+    | unrouted I2cCorrelatedResult
+
+plot environmental-sensor-request (
+    transaction: I2cTransaction...| >> request: I2cCorrelatedRequest...|
+) = ({ correlation: { client: 1, sequence: 0 }, transaction: . })
+plot environmental-initialization-request (
+    transaction: I2cTransaction...| >> request: I2cCorrelatedRequest...|
+) = ({ correlation: { client: 2, sequence: 0 }, transaction: . })
+plot environmental-write-request (
+    transaction: I2cTransaction...| >> request: I2cCorrelatedRequest...|
+) = ({ correlation: { client: 3, sequence: 0 }, transaction: . })
+plot environmental-route-result (
+    result: I2cCorrelatedResult...| >> routed: EnvironmentalBusResult...|
+) = (.correlation.sequence != 0 ? unrouted(.) : (.correlation.client == 1 ? sensor(.result) : (.correlation.client == 2 ? initialization(.result) : (.correlation.client == 3 ? write(.result) : unrouted(.)))))
+
+# The caller must receive initialized before supplying frame. This composition
+# does not manufacture initialization readiness, retries, or optical evidence.
+# A single selected correlated bus owns all physical transactions. Request
+# merges only arbitrate finite payloads; they grant no extra controller owner.
+plot environmental-exchange (
+    sensor-protocol: kind (
+        >> begin: BmeProtocolBegin...|
+        >> result: I2cResult...|
+        request: I2cTransaction...| >>
+        captured: BmeProtocolState...| >>
+        observation: BmeObservationResult...| >>
+        refused: BmeProtocolFailure...| >>
+        clock_failed: ClockResult...| >>
+    )
+    initialization-protocol: kind (
+        >> configuration: Ht16k33Configuration...|
+        >> result: I2cResult...|
+        request: I2cTransaction...| >>
+        acknowledged: Ht16k33Acknowledgement...| >>
+        refused: Ht16k33Failure...| >>
+    )
+    write-protocol: kind (
+        >> frame: Ht16k33Frame...|
+        >> result: I2cResult...|
+        request: I2cTransaction...| >>
+        acknowledged: Ht16k33Acknowledgement...| >>
+        refused: Ht16k33Failure...| <= 4096B >>
+    )
+    correlated-bus: kind (
+        >> request: I2cCorrelatedRequest...|
+        result: I2cCorrelatedResult...| >>
+    )
+    request-merge: kind (
+        >> left: I2cCorrelatedRequest...|
+        >> right: I2cCorrelatedRequest...|
+        merged: I2cCorrelatedRequest...| >>
+    )
+    >> begin: BmeProtocolBegin...|
+    >> configuration: Ht16k33Configuration...|
+    >> frame: Ht16k33Frame...|
+    captured: BmeProtocolState...| >>
+    observation: BmeObservationResult...| >>
+    sensor_refused: BmeProtocolFailure...| >>
+    clock_failed: ClockResult...| >>
+    initialized: Ht16k33Acknowledgement...| >>
+    initialization_refused: Ht16k33Failure...| >>
+    written: Ht16k33Acknowledgement...| >>
+    write_refused: Ht16k33Failure...| >>
+    unrouted: I2cCorrelatedResult...| >>
+) {
+    sensor: sensor-protocol
+    initialize: initialization-protocol
+    write: write-protocol
+    first: request-merge
+    all: request-merge
+    bus: correlated-bus
+    routed: environmental-route-result
+    begin >> sensor.begin
+    configuration >> initialize.configuration
+    frame >> write.frame
+    sensor.request >> environmental-sensor-request() >> first.left
+    initialize.request >> environmental-initialization-request() >> first.right
+    first.merged >> all.left
+    write.request >> environmental-write-request() >> all.right
+    all.merged >> bus.request
+    bus.result >> routed
+    routed >> select(EnvironmentalBusResult.sensor, unmatched=drop) >> sensor.result
+    routed >> select(EnvironmentalBusResult.initialization, unmatched=drop) >> initialize.result
+    routed >> select(EnvironmentalBusResult.write, unmatched=drop) >> write.result
+    routed >> select(EnvironmentalBusResult.unrouted, unmatched=drop) >> unrouted
+    sensor.captured >> captured
+    sensor.observation >> observation
+    sensor.refused >> sensor_refused
+    sensor.clock_failed >> clock_failed
+    initialize.acknowledged >> initialized
+    initialize.refused >> initialization_refused
+    write.acknowledged >> written
+    write.refused >> write_refused
+}
+
+plot chosen-bme-cell (
+ >> seed: BmeProtocolFrame...|
+ >> next: BmeProtocolFrame...|
+ current: BmeProtocolFrame...| >>
+) {
+ cell: BmeCell
+ seed >> cell.seed
+ next >> cell.next
+ cell.current >> current
+}
+plot chosen-ht-cell (
+ >> seed: Ht16k33ProtocolFrame...|
+ >> next: Ht16k33ProtocolFrame...|
+ current: Ht16k33ProtocolFrame...| >>
+) {
+ cell: HtCell
+ seed >> cell.seed
+ next >> cell.next
+ cell.current >> current
+}
+plot chosen-bme-feedback (
+ >> left: BmeProtocolState...|
+ >> right: BmeProtocolEvent...|
+ paired: BmeFeedbackPair...| >>
+) {
+ pair: BmeFeedback
+ left >> pair.left
+ right >> pair.right
+ pair.paired >> paired
+}
+plot chosen-ht-feedback (
+ >> left: Ht16k33State...|
+ >> right: I2cResult...|
+ paired: HtFeedbackPair...| >>
+) {
+ pair: HtFeedback
+ left >> pair.left
+ right >> pair.right
+ pair.paired >> paired
+}
+plot chosen-clock-pair (
+ >> left: BmeClockContext...|
+ >> right: ClockResult...|
+ paired: BmeClockPair...| >>
+) {
+ pair: BmeClockPairing
+ left >> pair.left
+ right >> pair.right
+ pair.paired >> paired
+}
+plot chosen-bus-pair (
+ >> left: I2cCorrelation...|
+ >> right: I2cResult...|
+ paired: BusPair...| >>
+) {
+ pair: BusPairing
+ left >> pair.left
+ right >> pair.right
+ pair.paired >> paired
+}
+plot chosen-contexts (
+ >> left: BmeClockContext...|
+ >> right: BmeClockContext...|
+ merged: BmeClockContext...| >>
+) {
+ merge: BmeContexts
+ left >> merge.left
+ right >> merge.right
+ merge.merged >> merged
+}
+plot chosen-errors (
+ >> left: Ht16k33Failure...|
+ >> right: Ht16k33Failure...|
+ merged: Ht16k33Failure...| >>
+) {
+ merge: HtErrors
+ left >> merge.left
+ right >> merge.right
+ merge.merged >> merged
+}
+plot chosen-requests (
+ >> left: I2cCorrelatedRequest...|
+ >> right: I2cCorrelatedRequest...|
+ merged: I2cCorrelatedRequest...| >>
+) {
+ merge: Requests
+ left >> merge.left
+ right >> merge.right
+ merge.merged >> merged
+}
+plot chosen-sensor (
+ >> begin: BmeProtocolBegin...|
+ >> result: I2cResult...|
+ request: I2cTransaction...| >>
+ captured: BmeProtocolState...| >>
+ observation: BmeObservationResult...| >>
+ refused: BmeProtocolFailure...| >>
+ clock_failed: ClockResult...| >>
+) {
+ protocol: bme280-exchange-selected(feedback-type = BmeFeedbackPair, clock-pair-type = BmeClockPair, state-cell = chosen-bme-cell, feedback-pairing = chosen-bme-feedback, context-merge = chosen-contexts, clock-pairing = chosen-clock-pair)
+ begin >> protocol.begin
+ result >> protocol.result
+ protocol.request >> request
+ protocol.captured >> captured
+ protocol.observation >> observation
+ protocol.refused >> refused
+ protocol.clock_failed >> clock_failed
+}
+plot chosen-initialization (
+ >> configuration: Ht16k33Configuration...|
+ >> result: I2cResult...|
+ request: I2cTransaction...| >>
+ acknowledged: Ht16k33Acknowledgement...| >>
+ refused: Ht16k33Failure...| >>
+) {
+ protocol: ht16k33-initialize-exchange-selected(pair-type = HtFeedbackPair, state-cell = chosen-ht-cell, pairing = chosen-ht-feedback)
+ configuration >> protocol.configuration
+ result >> protocol.result
+ protocol.request >> request
+ protocol.acknowledged >> acknowledged
+ protocol.refused >> refused
+}
+plot chosen-write (
+ >> frame: Ht16k33Frame...|
+ >> result: I2cResult...|
+ request: I2cTransaction...| >>
+ acknowledged: Ht16k33Acknowledgement...| >>
+ refused: Ht16k33Failure...| <= 4096B >>
+) {
+ protocol: ht16k33-write-exchange-selected(error-merge = chosen-errors)
+ frame >> protocol.frame
+ result >> protocol.result
+ protocol.request >> request
+ protocol.acknowledged >> acknowledged
+ protocol.refused >> refused
+}
+plot chosen-bus (
+ >> request: I2cCorrelatedRequest...|
+ result: I2cCorrelatedResult...| >>
+) {
+ bus: i2c-correlated-exchange(pair-type = BusPair, pairing = chosen-bus-pair)
+ request >> bus.request
+ bus.result >> result
+}
+plot shared-environment (
+ >> begin: BmeProtocolBegin...|
+ >> configuration: Ht16k33Configuration...|
+ >> frame: Ht16k33Frame...|
+ captured: BmeProtocolState...| >>
+ observation: BmeObservationResult...| >>
+ sensor_refused: BmeProtocolFailure...| >>
+ clock_failed: ClockResult...| >>
+ initialized: Ht16k33Acknowledgement...| >>
+ initialization_refused: Ht16k33Failure...| >>
+ written: Ht16k33Acknowledgement...| >>
+ write_refused: Ht16k33Failure...| >>
+ unrouted: I2cCorrelatedResult...| >>
+) {
+ instrument: environmental-exchange(sensor-protocol = chosen-sensor, initialization-protocol = chosen-initialization, write-protocol = chosen-write, correlated-bus = chosen-bus, request-merge = chosen-requests)
+ begin >> instrument.begin
+ configuration >> instrument.configuration
+ frame >> instrument.frame
+ instrument.captured >> captured
+ instrument.observation >> observation
+ instrument.sensor_refused >> sensor_refused
+ instrument.clock_failed >> clock_failed
+ instrument.initialized >> initialized
+ instrument.initialization_refused >> initialization_refused
+ instrument.written >> written
+ instrument.write_refused >> write_refused
+ instrument.unrouted >> unrouted
+}

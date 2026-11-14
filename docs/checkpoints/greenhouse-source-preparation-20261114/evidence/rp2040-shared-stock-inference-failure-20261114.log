@@ -1,0 +1,134 @@
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/plan-lowering)
+   Compiling conduit-resource-snapshot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/resource-snapshot)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/pulse-capture)
+   Compiling conduit-i2c-transaction v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/i2c-transaction)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/semantics/catalog)
+   Compiling conduit-tm1637-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/tm1637)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/composite)
+   Compiling conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/mechanisms/io/monotonic-wait)
+   Compiling conduit-rp2040-i2c v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/i2c)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/bodies/environment/runtime)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/make/embedded-build)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/make/host)
+   Compiling conduit-mcu-host-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/host-runtime)
+   Compiling conduit-rp2040-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/pulse-capture)
+   Compiling conduit-rp2040-snapshot-nor v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/snapshot-nor)
+   Compiling conduit-mcu-source-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/source-build)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/make)
+   Compiling conduit-rp2040-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/firmware/host)
+warning: unused import: `MixedStep`
+  --> src/mixed_workset.rs:22:21
+   |
+22 | pub use execution::{MixedStep, RetiredMixedWorkset, StartedMixedWorkset};
+   |                     ^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `resources::OwnedObservations`
+  --> src/mixed_workset.rs:25:9
+   |
+25 | pub use resources::OwnedObservations;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `layout`
+ --> src/neutral_preflight.rs:5:23
+  |
+5 |     neutral_workset::{layout, source, N},
+  |                       ^^^^^^
+
+warning: unused import: `resources::observe_private_work`
+  --> src/resident_preparation.rs:21:9
+   |
+21 | pub use resources::observe_private_work;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `BoundKernel`, `BoundWorkset`, and `CommittedWorkset`
+  --> src/resident_preparation.rs:23:36
+   |
+23 |     AttemptStorage, BoundFragment, BoundKernel, BoundWorkset, CommittedWorkset, RetiredKernel,
+   |                                    ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^
+
+error[E0284]: type annotations needed
+   --> src/neutral_factory.rs:258:17
+    |
+258 | /                 conduit_mcu_host_runtime::native_values::prepare_shared_schema(
+259 | |                     layout::CORD_VALUE_PROFILES,
+260 | |                     layout::CORD_VALUE_SINKS,
+261 | |                     layout::STEP_VALUE_PROFILES,
+...   |
+266 | |                     &backs,
+267 | |                 )?;
+    | |_________________^ cannot infer the value of const parameter `P` declared on the function `prepare_shared_schema`
+    |
+note: required by a const generic parameter in `prepare_shared_schema`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/host-runtime/src/native_value_stock.rs:46:62
+    |
+ 46 | pub fn prepare_shared_schema<const W: usize, const N: usize, const P: usize>(
+    |                                                              ^^^^^^^^^^^^^^ required by this const generic parameter in `prepare_shared_schema`
+
+error[E0284]: type annotations needed
+   --> src/neutral_factory.rs:266:21
+    |
+258 |                 conduit_mcu_host_runtime::native_values::prepare_shared_schema(
+    |                 -------------------------------------------------------------- required by a bound introduced by this call
+...
+266 |                     &backs,
+    |                     ^^^^^^ cannot infer the value of const parameter `P` declared on the function `prepare_shared_schema`
+    |
+    = note: required for `PreparedNativeDrivers<'_, '_, ..., ..., 47, 76>` to implement `PreparedBacks<76, _>`
+note: required by a bound in `prepare_shared_schema`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/host-runtime/src/native_value_stock.rs:54:18
+    |
+ 46 | pub fn prepare_shared_schema<const W: usize, const N: usize, const P: usize>(
+    |        --------------------- required by a bound in this function
+...
+ 54 |     backs: &impl PreparedBacks<N, P>,
+    |                  ^^^^^^^^^^^^^^^^^^^ required by this bound in `prepare_shared_schema`
+    = note: the full name for the type has been written to '/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/conduit_rp2040_host-cd938af1f3bd9b24.long-type-14081491671085280913.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0284]: type annotations needed
+     --> src/neutral_factory.rs:266:21
+      |
+  258 |                 conduit_mcu_host_runtime::native_values::prepare_shared_schema(
+      |                 -------------------------------------------------------------- required by a bound introduced by this call
+...
+  266 |                     &backs,
+      |                     ^^^^^^ cannot infer the value of const parameter `P` declared on the function `prepare_shared_schema`
+      |
+note: required for `resident::generated::BorrowedBack<'_>` to implement `conduit_kernel::scheduler::StepBack<_>`
+     --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-c79668900a21695b/out/resident.rs:15998:20
+      |
+15998 | impl<const P:usize>conduit_kernel::scheduler::StepBack<P> for BorrowedBack<'_>{
+      |      ------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^     ^^^^^^^^^^^^^^^^
+      |      |
+      |      unsatisfied trait bound introduced here
+      = note: required for `PreparedNativeDrivers<'_, '_, ..., ..., 47, 76>` to implement `PreparedBacks<76, _>`
+note: required by a bound in `prepare_shared_schema`
+     --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/host-runtime/src/native_value_stock.rs:54:18
+      |
+   46 | pub fn prepare_shared_schema<const W: usize, const N: usize, const P: usize>(
+      |        --------------------- required by a bound in this function
+...
+   54 |     backs: &impl PreparedBacks<N, P>,
+      |                  ^^^^^^^^^^^^^^^^^^^ required by this bound in `prepare_shared_schema`
+      = note: the full name for the type has been written to '/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/conduit_rp2040_host-cd938af1f3bd9b24.long-type-14081491671085280913.txt'
+      = note: consider using `--verbose` to print the full type name to the console
+
+warning: unused variable: `waits`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-c79668900a21695b/out/workset_0.rs:60:34
+   |
+60 | pub fn definition_at(index:usize,waits:&[(u16,conduit_kernel::ValueRef)])->Result<Option<conduit_mcu_host_runtime::execution_factory...
+   |                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_waits`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `clocks`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-c79668900a21695b/out/workset_0.rs:121:32
+    |
+121 | pub fn identity_at(index:usize,clocks:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<Option<conduit_plan_...
+    |                                ^^^^^^ help: if this is intentional, prefix it with an underscore: `_clocks`
+
+For more information about this error, try `rustc --explain E0284`.
+warning: `conduit-rp2040-host` (bin "conduit-rp2040-host") generated 7 warnings
+error: could not compile `conduit-rp2040-host` (bin "conduit-rp2040-host") due to 3 previous errors; 7 warnings emitted

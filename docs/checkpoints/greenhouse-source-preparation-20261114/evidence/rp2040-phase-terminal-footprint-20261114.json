@@ -1,0 +1,14 @@
+{
+  "assurance": "Preparation-entrance ARM link/static geometry only; not whole reachable application or runtime heap/stack/admission proof",
+  "source_checkpoint": "25145af968b5f71eddf18bf50e48378146678c90",
+  "elf_sha256": "557cf6092cec42178b3280746da51fb960394669bbcc841a77e192496df3e4cb",
+  "flash_load_end": "0x10160e1c",
+  "flash_margin": 49636,
+  "static_extent": 209088,
+  "static_extent_definition": "__sheap - __sdata, same convention as baseline",
+  "stack_available": 61248,
+  "resident_owner_bytes": 9024,
+  "main_future_pool_bytes": 46520,
+  "heap_grant_bytes": 131072,
+  "physical_deployment": false
+}

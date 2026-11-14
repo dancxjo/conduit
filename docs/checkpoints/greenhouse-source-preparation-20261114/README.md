@@ -1,0 +1,13 @@
+# Greenhouse Source preparation checkpoint — final 2026-11-14 update
+
+The ORIGINAL factory now passes complete CPU preparation and Root preflight for the exact checked76-Gear/83-internal-Cord instrument protocol component, including shared execution workspace. Command30314B fits unchanged32548B; all95Cords have their original97queue slots. All native loans return and no bus/clock calls occur. Original no_std modules also compile.
+
+CPU64 requested retained210354B and peak212393B; excludes preexistingRoot/equipment/residents/issuer grants, allocator overhead and stack. The diagnostic CPUarena is1MiB; installed MCUheap remains131072B. This is NOT ARMheap fit, resource admission, Start, physical sensing/display or complete autonomous application proof. Default test runs original factory, not the optional error-observer copy; exact original build cfg witness is required.
+
+Qualified common changes are pushed inPR6837 through63f8f9dd5a9438a3faba99e1a89bea4bf60a7932: authenticated installedresource references (6030B static rows referenced by46B), complete existing canonical resource tracking in the same32B bitmap, full trusted-layout multiset comparison in the same256B workspace, independent queue-slot geometry with backward-compatible Q=C default. Body12 tests, resource39 tests, focused default/product layout tests, queue2 tests and scoped strict checks passed; see exact receipts/logs.
+
+This draft branch preserves unfinished RP2040 entrance/integration, CPU fixture, exact compile inputs and authoring tools, measurements and continuation notes. It is not a deployable release. The most recent ARM ELF c1d665a3... predates the final resource/layout bitmap, numeric-event assembly and Q97 changes: relink/qualify before ANYflash. Devices, owner and private Body state were not changed.
+
+Next: measure complete target32-bit preparation/retention/stack and reduce value-pool/kernel backing rather than enlarge grants; schema staging audit derives possible21,245B CPU64 reduction but has not implemented it. The component still has external begin/config/frame ports. Close autonomous cadence/init/observation/Face/Mask/history through real authored Source and actual admitted Fore services, then qualify physical plays and restart/durable recovery. Root neutral service deliberately refuses unsupported Fore/Mask and never reportsPlaying. Shared Body/display/history acceptance remains unfinished.
+
+Credentials, actual private keys, private Body state and device journals are excluded. Historical failure logs remain evidence; the final original-factory qualification supersedes their old gate statuses. No active build/cachelease remains at this checkpoint.

@@ -1,0 +1,12 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/kernel)
+    Finished `test` profile [unoptimized] target(s) in 1.26s
+     Running tests/local_fore_custody.rs (/tmp/conduit-source-member-control-20261111/debug/deps/local_fore_custody-9b43186bf4b31583)
+
+running 4 tests
+test changing_prepared_fore_endpoint_cannot_reclassify_another_boundary ... ok
+test owned_local_value_session_rearms_without_fictitious_line_reservations ... ok
+test checked_local_fore_needs_no_remote_trace_capacity_but_lines_still_do ... ok
+test checked_local_fore_rolls_value_evidence_while_line_custody_remains_mandatory ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

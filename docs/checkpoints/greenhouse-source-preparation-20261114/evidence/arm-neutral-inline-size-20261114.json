@@ -1,0 +1,169 @@
+{
+  "assurance": "Compile-only ARM32 size_of using the same Source76 emitted modules and fingerprint-exact firmware dependencies; no Cargo rebuild, link, admission, Start, runtime peak or hardware fit claim.",
+  "target": "thumbv6m-none-eabi",
+  "pointer_bits": 32,
+  "source_checkpoint": "8c2e04a5998b8b1e15ae3af10670038b9fe400c1",
+  "firmware_elf_sha256": "6483edcb5d57b1dddb95ebac13191daf04cc69d9432126fab7d8fdc0ac38d778",
+  "firmware_cargo_artifact_suffix": "cd938af1f3bd9b24",
+  "fingerprint_manifest": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/.fingerprint/conduit-rp2040-host-cd938af1f3bd9b24/bin-conduit-rp2040-host.json",
+  "fingerprint_manifest_sha256": "3b431d1297b666ebbd20d6e7c20266b3c2a69d0aed800ae79c96ea4971bb3722",
+  "sizes": {
+    "NEUTRAL_DRIVER_BYTES": 64,
+    "NEUTRAL_HOST_CALL_BACK_BYTES": 16,
+    "NEUTRAL_KERNEL_BYTES": 64168,
+    "NEUTRAL_RESIDENT_BYTES": 9016,
+    "NEUTRAL_ROOT_BYTES": 33432,
+    "NEUTRAL_SOFTWARE_BACK_BYTES": 64,
+    "NEUTRAL_VALUES_BYTES": 96,
+    "NEUTRAL_WRITE_BACK_BYTES": 28
+  },
+  "scope": {
+    "gears": 76,
+    "internal_cords": 83,
+    "all_kernel_cords": 95,
+    "ports_per_node": 2,
+    "routes_capacity": 152,
+    "host_call_geometry_slots": 76,
+    "actual_pending_native_calls": 2,
+    "sign_items": 237
+  },
+  "source_probe": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-neutral-size-probe-20261114/probe.rs",
+  "source_probe_sha256": "161b22b50792d22b91ea813fb49258060907fc5f76d77fdb544227f1013047ac",
+  "llvm_ir": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-neutral-size-probe-20261114/probe.ll",
+  "llvm_ir_sha256": "14c0108d67a122394ace24e3cd398103a313556c6a0f3a0c7f3d4ce5bea5c21c",
+  "command": [
+    "rustc",
+    "+1.98.1",
+    "--edition=2021",
+    "--crate-type=rlib",
+    "--target",
+    "thumbv6m-none-eabi",
+    "-C",
+    "panic=abort",
+    "--emit=llvm-ir",
+    "-L",
+    "dependency=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/release/deps",
+    "-L",
+    "dependency=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps",
+    "--extern",
+    "conduit_core=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_core-dbfeb4eaeeff33ad.rlib",
+    "--extern",
+    "conduit_plot=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_plot-dc594e60d254e505.rlib",
+    "--extern",
+    "conduit_seven_segment_mask=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_seven_segment_mask-629afe218632d4f5.rlib",
+    "--extern",
+    "conduit_body=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_body-4c5fa976b5edc1db.rlib",
+    "--extern",
+    "conduit_mcu_host_runtime=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_mcu_host_runtime-dab0f021b8c1f9aa.rlib",
+    "--extern",
+    "conduit_kernel=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_kernel-1f4bc7eb5c166f7f.rlib",
+    "--extern",
+    "conduit_plan_lowering=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_plan_lowering-72fbee9c34191458.rlib",
+    "--extern",
+    "conduit_semantic_catalog=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_semantic_catalog-ea72e28027832878.rlib",
+    "--extern",
+    "conduit_i2c_transaction=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_i2c_transaction-cc3c9b8d25c1fc12.rlib",
+    "--extern",
+    "conduit_monotonic_wait=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_monotonic_wait-22964c6869544172.rlib",
+    "--extern",
+    "conduit_environment_runtime=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_environment_runtime-59c9e9f0babab6ff.rlib",
+    "--extern",
+    "heapless=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libheapless-279cce6539510b8f.rlib",
+    "--extern",
+    "critical_section=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libcritical_section-6da85eea353b93da.rlib",
+    "--extern",
+    "static_cell=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libstatic_cell-9f07d6b59978e852.rlib",
+    "--extern",
+    "conduit_tm1637_wire=/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_tm1637_wire-79bdbcce72c2c506.rlib",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-neutral-size-probe-20261114/probe.rs",
+    "-o",
+    "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-neutral-size-probe-20261114/probe.ll"
+  ],
+  "libraries": {
+    "conduit_core": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_core-dbfeb4eaeeff33ad.rlib",
+      "sha256": "807e97180fd0f1844034d689fd1ddd13c33b691a95af181689ed98f8e4f6ee98",
+      "cargo_fingerprint": "2cac19dcf6bed8df"
+    },
+    "conduit_plot": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_plot-dc594e60d254e505.rlib",
+      "sha256": "401a919a3a52afe8bf46a082cae0c56e5e0d2b749b699dd3707c0497ab8c0c5f",
+      "cargo_fingerprint": "58ee60450a793abc"
+    },
+    "conduit_seven_segment_mask": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_seven_segment_mask-629afe218632d4f5.rlib",
+      "sha256": "211f1a5ca5cfe68eb5a1e7ad7d88e9aa84205314f979d4d101831d7ef4b0886c",
+      "cargo_fingerprint": "1ae43d081343f181"
+    },
+    "conduit_body": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_body-4c5fa976b5edc1db.rlib",
+      "sha256": "a81c9d6bba468e22156dfff33ba717276ee0fc4f36856ce6550759d173536602",
+      "cargo_fingerprint": "b2c18bd531718bcd"
+    },
+    "conduit_mcu_host_runtime": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_mcu_host_runtime-dab0f021b8c1f9aa.rlib",
+      "sha256": "7b6c0834e3587b8f5fda146252a7fa0e8249a489bb1ba3ed1ace20c5e38cb1a4",
+      "cargo_fingerprint": "9ba435968dd7c5b9"
+    },
+    "conduit_kernel": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_kernel-1f4bc7eb5c166f7f.rlib",
+      "sha256": "d24faf6547f622a86fccaf78037d9dd828ad48ec9d1d7c9d681cb2914bcc0fe8",
+      "cargo_fingerprint": "b89e2b42ebba8cf6"
+    },
+    "conduit_plan_lowering": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_plan_lowering-72fbee9c34191458.rlib",
+      "sha256": "e6d7507f2a56356796034efd12b4db139794ebaa34f4d5e7e48cb06a729859b1",
+      "cargo_fingerprint": "65f44be9c3b603d6"
+    },
+    "conduit_semantic_catalog": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_semantic_catalog-ea72e28027832878.rlib",
+      "sha256": "0e00d65e24a3803a10941ba5c5ecf3cf003d9d5eef3ef8f42d2942d3a195e3c6",
+      "cargo_fingerprint": "9616c3f0c480f0b6"
+    },
+    "conduit_i2c_transaction": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_i2c_transaction-cc3c9b8d25c1fc12.rlib",
+      "sha256": "9456c73c26358222b7c4da414ae2c504aaa72060c09b2ce2bd3425426d7270b9",
+      "cargo_fingerprint": "be72929c9b808331"
+    },
+    "conduit_monotonic_wait": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_monotonic_wait-22964c6869544172.rlib",
+      "sha256": "a10cdeaf59b35f26d63128907f269fa2ae92589b5107a016dba55f6a4effcf50",
+      "cargo_fingerprint": "a92a72c45f6b3bb6"
+    },
+    "conduit_environment_runtime": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_environment_runtime-59c9e9f0babab6ff.rlib",
+      "sha256": "01041ae9dbda8b35c0cfc860ac848e65302ed3320673799cc59dbd8799f35c69",
+      "cargo_fingerprint": "c2a0027d987fe007"
+    },
+    "heapless": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libheapless-279cce6539510b8f.rlib",
+      "sha256": "a738a738e50e6cc0e0c20d13405db3bc9d785755dd35b4a6890574724ee42e38",
+      "cargo_fingerprint": "46d3f60bcc503b8c"
+    },
+    "critical_section": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libcritical_section-6da85eea353b93da.rlib",
+      "sha256": "120a5c95ace811f2119d1d3c0a20cd2120ca8a4f073a96dbe6e7e42b114140cd",
+      "cargo_fingerprint": "cd9f49319fe45eee"
+    },
+    "static_cell": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libstatic_cell-9f07d6b59978e852.rlib",
+      "sha256": "664f1793949b580e5212262f5caade62608f85a2dad32cd72b7128608116e3de",
+      "cargo_fingerprint": "9b4a248ffc75a00a"
+    },
+    "conduit_tm1637_wire": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/deps/libconduit_tm1637_wire-79bdbcce72c2c506.rlib",
+      "sha256": "5bfca8f02f48e89177237477b25f547e8ad2a57014f3a37655b405f31d9b74ad",
+      "cargo_fingerprint": "3789c6b4a63e1b25"
+    }
+  },
+  "compiler_exit": 0,
+  "production_source_modified": false,
+  "physical_deployment": false,
+  "notes": [
+    "Kernel inline bytes exclude externally owned value pool, Sign backing, execution workspace, software owner allocations, native capability tickets and allocator overhead.",
+    "Resident inline bytes are already in firmware static owner; do not add twice.",
+    "Driver equals SoftwareBack at64B; TM1637 WriteBack28B is not the largest variant.",
+    "Root33432B includes fixed32548B command input, not additional external backing.",
+    "Both target-dependency and host-proc-macro dependency search paths are required to use existing Cargo artifacts."
+  ]
+}

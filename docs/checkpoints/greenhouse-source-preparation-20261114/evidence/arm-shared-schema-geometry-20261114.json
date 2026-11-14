@@ -1,0 +1,20 @@
+{
+  "assurance": "ARM32 compile-only type geometry, no runtime/backing/fit or admission claim",
+  "sizes": {
+    "NEUTRAL_DRIVER_BYTES": 64,
+    "NEUTRAL_HOST_CALL_BACK_BYTES": 16,
+    "NEUTRAL_KERNEL_BYTES": 64192,
+    "NEUTRAL_RESIDENT_BYTES": 9016,
+    "NEUTRAL_ROOT_BYTES": 33432,
+    "NEUTRAL_SOFTWARE_BACK_BYTES": 64,
+    "NEUTRAL_VALUES_BYTES": 96,
+    "NEUTRAL_WRITE_BACK_BYTES": 28,
+    "SHARED_LOGICAL_SLOT_BYTES": 12,
+    "SHARED_PHYSICAL_BUFFER_BYTES": 16,
+    "SHARED_VALIDATOR_BYTES": 12
+  },
+  "original_shared_module_sha256": "787b499fff585b693913423a9b9dbba0b510345e63eab6bfe79aa28c8f1e3915",
+  "probe_sha256": "b9bb1785e652c7b0c67bdfb866e35c74569a9d8895c30232434b7889adba3216",
+  "target": "thumbv6m-none-eabi",
+  "original_module_instrumentation": "absolute helper paths and sizeof-only exported symbols; original behavior unchanged"
+}

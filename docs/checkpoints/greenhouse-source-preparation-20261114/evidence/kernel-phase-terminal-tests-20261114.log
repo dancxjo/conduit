@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized] target(s) in 0.22s
+     Running unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_kernel-53d002489c9db0d9)
+
+running 3 tests
+test scheduler::scan_characterization::linked_terminal_tests::phase_terminal_tests::smaller_phase_profiles_refuse_even_matching_finite_finalizers_before_effects ... ok
+test scheduler::scan_characterization::linked_terminal_tests::phase_terminal_tests::zero_phase_bytes_preserve_full_spontaneous_cord_and_unresolved_truth ... ok
+phase CPU full=4168 zero=4064 saved=104
+test scheduler::scan_characterization::linked_terminal_tests::phase_terminal_tests::zero_phase_bytes_keep_normal_close_abnormal_and_cancellation_parity ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 258 filtered out; finished in 0.00s
+

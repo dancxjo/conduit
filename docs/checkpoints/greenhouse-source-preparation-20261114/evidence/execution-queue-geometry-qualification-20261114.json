@@ -1,0 +1,46 @@
+{
+  "scope": [
+    "targets/mcu/host-runtime/src/execution.rs",
+    "targets/mcu/host-runtime/src/execution_workspace.rs",
+    "targets/mcu/host-runtime/src/execution_line_fore.rs",
+    "targets/mcu/host-runtime/src/execution_queue_geometry_tests.rs"
+  ],
+  "sha256": {
+    "targets/mcu/host-runtime/src/execution.rs": "768f12976fcdd23191086ce4aa394094457f206b42b91dff22624944b87e8b26",
+    "targets/mcu/host-runtime/src/execution_workspace.rs": "5552c8afbb7f9278ef859404c3dc6fcf38a86f43cfb2a248b5a5a99a5c685f5b",
+    "targets/mcu/host-runtime/src/execution_line_fore.rs": "0ac19dbc538838a6d16da297c2ef9b33560ead03a406ee59bad1b4e5d4eecd86",
+    "targets/mcu/host-runtime/src/execution_queue_geometry_tests.rs": "dde5948c47815eab4b979406d1aa75ca18d14a8a91569022a832529db9353a3d"
+  },
+  "change": "Independent constQ queue-slot geometry appended afterV to common execution aliases and prepared fragments",
+  "default": "Q=C",
+  "Cord_table_capacity_changed": false,
+  "semantic_queue_capacities_changed": false,
+  "Source_or_Plan_limits_changed": false,
+  "Line_Fore_behavior_changed": false,
+  "Kernel_or_Body_changed": false,
+  "qualification": {
+    "focused_runtime_tests": "2 passed",
+    "strict_runtime_library_clippy": "passed",
+    "coverage": [
+      "two actual Cords require three actual queue slots",
+      "Q2 refuses before inert Back transfer",
+      "Q3 one-byte-short storage refuses with exact required/available byte evidence",
+      "retained byte accounting includes actual Q-sized kernel allocation",
+      "workspace preparation works with explicitQ",
+      "no allocation or reallocation on transfer and execution",
+      "two ingress values retained, third pressure-refused without consuming sequence",
+      "pressure transition evidence followed byIdle while value retained",
+      "exact output order and delivery sequence retained",
+      "mandatory remote-input evidence retained"
+    ]
+  },
+  "source_checkpoint_patch": "outputs/execution-queue-geometry-before-build-20261114.patch",
+  "logs": [
+    "outputs/execution-queue-geometry-tests-20261114.log",
+    "outputs/execution-queue-geometry-clippy-20261114.log"
+  ],
+  "actual_Source76_full_factory": "passed original factory and original Root preflight with C95/Q97, no admission/Start",
+  "admission_or_Start_proved": false,
+  "physical_deployment": false,
+  "full_factory_receipt": "outputs/positive-original-factory-qualification-20261114.json"
+}

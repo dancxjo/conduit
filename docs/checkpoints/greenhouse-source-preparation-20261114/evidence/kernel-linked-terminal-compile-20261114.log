@@ -1,0 +1,3 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/kernel)
+    Finished `test` profile [unoptimized] target(s) in 10.85s
+  Executable unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_kernel-53d002489c9db0d9)

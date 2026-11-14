@@ -1,0 +1,21 @@
+{
+  "assurance": "Compile-only exact ARM ABI sizes, not runtime heap/stack or admission proof",
+  "source_checkpoint": "c7e14f11e214d0bb55ae837228b543e5278acbe1",
+  "sizes": {
+    "NEUTRAL_DRIVER_BYTES": 64,
+    "NEUTRAL_HOST_CALL_BACK_BYTES": 16,
+    "NEUTRAL_KERNEL_BYTES": 47192,
+    "NEUTRAL_RESIDENT_BYTES": 9016,
+    "NEUTRAL_ROOT_BYTES": 33432,
+    "NEUTRAL_SOFTWARE_BACK_BYTES": 64,
+    "NEUTRAL_VALUES_BYTES": 120,
+    "NEUTRAL_WRITE_BACK_BYTES": 28,
+    "OWNED_KERNEL_BYTES": 64216,
+    "TERMINAL_ENTRY_BYTES": 112,
+    "TERMINAL_TABLE_BYTES": 17024
+  },
+  "command_file": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-linked-terminal-geometry-20261114/command.json",
+  "probe_sha256": "28b57c1403d5e01a92400f3fec3975fb9416fb567d2e23193b0467ca5246f6e5",
+  "execution": false,
+  "owned_vs_linked_inline_saving_bytes": 17024
+}

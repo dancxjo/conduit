@@ -1,0 +1,3 @@
+Generic Body/runtime/Source integration committed a596741c4b1d3ecb88fb1dede529984750ee558c and pushed toPR6837. Body12 focused tests, exact Source emission1test, strict Body/runtime/SourceBuild checks pass in separate invocations. A combined multi-package Cargo invocation panicked in Cargo feature resolution; separate owning invocations passed.
+
+Unqualified neutralfactory andpositivefixture nowselecttheexplicitinstalledprofileandassertfreshresourcebytesmatchtheemittedtable. New actualARMbuild isrunninghandle18884, outputs/rp2040-installed-resources-link-20261114.log, under2GiBrootfreeguard. It mustfinishandemitmatchingOUT_DIRbeforethepositiveCPUfixturemayrun. No newdeviceeffects, no fullheap/admission/Start proof.

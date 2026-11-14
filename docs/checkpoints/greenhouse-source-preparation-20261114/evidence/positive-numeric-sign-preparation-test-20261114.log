@@ -1,0 +1,33 @@
+    Finished `test` profile [unoptimized] target(s) in 0.22s
+     Running tests/neutral_source.rs (/tmp/conduit-source-member-control-20261111/debug/deps/neutral_source-220f413cd4143fb8)
+
+running 1 test
+cpu_value_backing_bytes=114426 canonical_cord_bytes=166560 canonical_staging_bytes=120836 schema_cord_slots=81 schema_staging_slots=63
+cpu_software_owners=27 cpu_software_retained_requested_bytes=6254 cpu_software_peak_requested_bytes=22587 cpu_preparation_interval_peak_requested_bytes=126908 cpu_pointer_bits=64 exclusions=preexisting_Root_equipment_residents_and_values_allocator_overhead_stack no_admission_or_target_fit
+actual76-gear factory/preflight compiled;27 original software owners prepared; original Root nonmember, authenticated-member/unretained-command and zero-storage refusals preserved native custody; no admission, Start or physical proof
+cpu_inline_kernel_bytes=66776 cpu_inline_root_bytes=33768 cpu_inline_equipment_bytes=648 cpu_inline_residents_bytes=13256 cpu_pointer_bits=64 not_target_fit
+cpu_original_projection_resource_requirements=49 cpu_original_projection_host_call_requirements=2 cpu_original_projection_remote_requirements=0 cpu_original_projection_validation=Ok("validated")
+cpu_signed_assignment_projection_bytes=29018 cpu_signed_assignment_metadata_bytes=1282 cpu_signed_assignment_workset_bytes=30314 installed_assignment_bytes=32548 resource_reference_bytes=46 installed_resource_bytes=6030 fore_metadata_bytes=636 no_limit_change
+cpu_original_sign_items=237 cpu_plan_named_sign_receipt_bytes=15277 cpu_kernel_event_bytes=20 cpu_numeric_event_log_byte_capacity=4740 cpu_remote_sign_extent=5688 cpu_numeric_event_log_constructor=Ok("prepared")
+
+
+thread 'actual_board_factory_and_root_preflight_refuse_unadmitted_commands' (3231303) panicked at targets/rp2040/make/tests/neutral_source.rs:150:13:
+
+thread '<unnamed>' (3231582) panicked at /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/make/tests/neutral_source/positive.rs:488:29:
+positive whole factory preparation: Back("neutral-kernel")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'main' (3231581) panicked at /tmp/conduit-neutral-source-cpu-3231302/image.rs:87:10:
+called `Result::unwrap()` on an `Err` value: Any { .. }
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test actual_board_factory_and_root_preflight_refuse_unadmitted_commands ... FAILED
+
+failures:
+
+failures:
+    actual_board_factory_and_root_preflight_refuse_unadmitted_commands
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.55s
+
+error: test failed, to rerun pass `--test neutral_source`

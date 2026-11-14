@@ -1,0 +1,14 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/kernel)
+error[E0433]: cannot find type `CanonicalValue` in this scope
+  --> architecture/kernel/src/scheduler/prepared_session.rs:78:34
+   |
+78 |     const PHASE_BYTES: usize = { CanonicalValue::MAXIMUM_BYTES },
+   |                                  ^^^^^^^^^^^^^^ use of undeclared type `CanonicalValue`
+   |
+help: consider importing this struct through its public re-export
+   |
+ 7 + use crate::CanonicalValue;
+   |
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `conduit-kernel` (lib test) due to 1 previous error

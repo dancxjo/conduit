@@ -1,0 +1,55 @@
+{
+  "scope": [
+    "architecture/kernel/src/assigned/layout.rs",
+    "architecture/kernel/src/assigned/layout_bitmap_tests.rs"
+  ],
+  "sha256": {
+    "architecture/kernel/src/assigned/layout.rs": "d4cdf76cc74c7fd7903c6aa4248e533b4a9872277fdb2ebaf5bc0f16895775cc",
+    "architecture/kernel/src/assigned/layout_bitmap_tests.rs": "17999fb933b2de2488f3d480f11d95f20cc2ac9cd9810148d852b2b23d4babfa"
+  },
+  "physical_seen_workspace_bytes_before": 256,
+  "physical_seen_workspace_bytes_after": 256,
+  "canonical_tags": 13,
+  "maximum_records_per_tag": 255,
+  "canonical_input_record_domain": 3315,
+  "checked_nonignored_requirement_domain": 2550,
+  "passes": 2,
+  "tags_per_pass": 8,
+  "arbitrary_2048_record_ceiling": false,
+  "allocation": false,
+  "format_or_grant_changes": false,
+  "native_or_Fore_normalization_changes": false,
+  "proof": {
+    "focused_default_tests": "3 passed",
+    "focused_product_feature_tests": "3 passed",
+    "strict_product_feature_clippy_all_targets": "passed",
+    "tests": [
+      "721 immutable requirements with actual Source76 tag counts",
+      "full canonical3315 inputrecords,2550 nonignored layout requirements",
+      "reordered input and requirement inventory",
+      "cross-tag equal ordinals and equal payload hashes",
+      "duplicate exact requirement multiplicity in both groups",
+      "extra/missing/changed tag/changed payload refusal",
+      "per-tag255 accepted and256 requirements refused",
+      "foreign,zero and ignored layout requirements refused",
+      "wrong late payload digest refused",
+      "unchanged256-byte physical workspace"
+    ]
+  },
+  "logs": [
+    "outputs/kernel-layout-bitmap-tests-20261114.log",
+    "outputs/kernel-layout-bitmap-feature-tests-20261114.log",
+    "outputs/kernel-layout-bitmap-clippy-20261114.log"
+  ],
+  "checkpoint_patch": "outputs/kernel-layout-bitmap-before-build-20261114.patch",
+  "actual_Source76_factory_proof": {
+    "layout_capacity_gate": "passed after bitmap repair",
+    "strict_original_projection": "validated",
+    "immutable_actual_terminal_report": "all76nodes x2ports exact match",
+    "next_failure": "Storage(Topology(InvalidPlan))",
+    "cause": "95 active Cords require97 queue slots; ExecutionKernel alias currently setsQUEUE_SLOTS=C=95",
+    "log": "outputs/positive-terminal-report-diagnostic-20261114.log"
+  },
+  "physical_deployment": false,
+  "production_commit": "4a656534c1"
+}

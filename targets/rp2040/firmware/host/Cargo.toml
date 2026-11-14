@@ -8,7 +8,7 @@ publish = false
 conduit-tm1637-protocol = { path = "../../../../mechanisms/devices/tm1637" }
 conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
 conduit-rp2040-snapshot-nor = { path = "../../snapshot-nor", features = ["rp2040"] }
-conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
+conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution", "execution-workspace", "schema-value-storage"] }
 conduit-i2c-transaction = { path = "../../../../mechanisms/io/i2c-transaction", default-features = false }
 conduit-rp2040-i2c = { path = "../../i2c", features = ["rp2040"] }
 conduit-body = { path = "../../../../architecture/body" }
@@ -24,7 +24,7 @@ conduit-face = { path = "../../../../semantics/face", default-features = false }
 conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
 conduit-plot = { path = "../../../../architecture/plot", default-features = false }
 conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", features = ["delegated-preparation"] }
-conduit-semantic-catalog = { path = "../../../../semantics/catalog", default-features = false, features = ["kernel-step"] }
+conduit-semantic-catalog = { path = "../../../../semantics/catalog", default-features = false, features = ["kernel-step", "execution-workspace", "schema-value-storage"] }
 ed25519-dalek = { version = "2.2", default-features = false }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
 serde-json-core = "0.6"
@@ -61,7 +61,7 @@ conduit-core = { path = "../../../../architecture/core" }
 conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", features = ["host-call"] }
 conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637", features = ["host-call"] }
 conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait" }
-conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
+conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution", "execution-workspace", "schema-value-storage"] }
 [profile.release]
 # Leave room for admitted durable residences; keep the same execution limits.
 opt-level = "s"

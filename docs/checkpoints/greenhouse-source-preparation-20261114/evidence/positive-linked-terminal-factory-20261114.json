@@ -1,0 +1,110 @@
+{
+  "assurance": "Original factory selects linked immutable terminal table (M=0) and shared physical buffers after inspecting exact prepared owners. Complete signed Source76 factory and Root preflight pass on CPU64; original no_std modules compile. No admission/Start/physical fit.",
+  "source_checkpoint": "c7e14f11e214d0bb55ae837228b543e5278acbe1",
+  "source_sha256": "83291b6eac51ff63bcda99627b88e31a747cb83b660b310c2fea72af6cd1b07f",
+  "scope": {
+    "gears": 76,
+    "internal_cords": 83,
+    "all_cords": 95,
+    "queue_slots": 97,
+    "software_owners": 27,
+    "resident_owners": 47,
+    "native_call_owners": 2
+  },
+  "test_files": {
+    "targets/rp2040/make/tests/neutral_source.rs": "43cdbebb1ca2ce5c93c458a00333edc2bab203e0f4b68f09e583bab98e4a9821",
+    "targets/rp2040/make/tests/neutral_source/exercise.rs": "ccb7e9965041636f10d88934a4884c843007e94f03fc9504b44ed054d11a2c18",
+    "targets/rp2040/make/tests/neutral_source/positive.rs": "5c367158564274fa4ba63878834a4bf6bb02cd3574c5c8e73775ed95eb00903b"
+  },
+  "original_factory_sha256": "307a253e3cf3331680ebbb31dabf1175d18e8acf92424e19d4533ac8742153bd",
+  "factory_diagnostic_copy": false,
+  "profile_cfg": {
+    "name": "neutral_source_execution",
+    "witness": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-c79668900a21695b/output",
+    "witness_sha256": "85b279f6b2c0fd9d245601d2f6a8204955320b9e2523d60e5cf75c8323545544",
+    "exact_emitted_line_required": true,
+    "propagated_to": [
+      "CPU BIN",
+      "no_std rlib"
+    ]
+  },
+  "generated_files": {
+    "host.rs": "5f2954b59522bb0d2c9c3c5b9cd6438e8fa5cbd23ff8bf080c4b4debcef7dfea",
+    "workset.rs": "62dbde86798dac837d4e93a954a88f39fd0050ed5086598edad915b165afb2a7",
+    "workset_0.rs": "7ed9bca42b36290a0e0e9027dafcbfe61f7735220d71191bd5bc3018b49b274b",
+    "workset_0_layout.rs": "a87386b13ce7e42ab405ed8c6d9d03b938dc60f8667be99543772e86498a4879",
+    "resident.rs": "7f42c18aa8b3fcd94bfa8c5534972dc316c93291d214c2082a0e729c71fafc3b"
+  },
+  "command": {
+    "signed_workset_bytes": 30314,
+    "projection_bytes": 29018,
+    "metadata_bytes": 1282,
+    "installed_input_bytes": 32548,
+    "resource_reference_bytes": 46,
+    "resolved_original_flash_resource_bytes": 6030,
+    "fore_metadata_bytes": 636,
+    "original_resource_requirements": 49,
+    "host_call_requirements": 2
+  },
+  "sign_representations": {
+    "original_Plan_named_receipt_bytes": 15277,
+    "numeric_event_items": 237,
+    "CPU_KernelEvent_bytes": 20,
+    "numeric_event_log_bytes": 4740,
+    "remote_numeric_trace_bytes": 5688,
+    "named_Plan_receipt_quota_unchanged": true
+  },
+  "measurements": {
+    "pointer_bits": 64,
+    "whole_factory_retained_requested_bytes": 172453,
+    "whole_factory_preparation_peak_requested_bytes": 174492,
+    "original_Root_preflight_peak_requested_bytes": 174492,
+    "software_retained_requested_bytes": 6254,
+    "inline_kernel_bytes": 49832,
+    "inline_Root_bytes": 33768,
+    "inline_equipment_bytes": 648,
+    "inline_resident_inventory_bytes": 13256
+  },
+  "funding_scope": {
+    "CPU_fixture_retained_preparation_ceiling_bytes": 1048576,
+    "unchanged_installed_image_heap_bytes": 131072,
+    "CPU_fixture_ceiling_is_not_target_funding": true
+  },
+  "exclusions": [
+    "preexisting Root heap backing and inline command storage",
+    "preexisting original equipment owners",
+    "preexisting resident inventory and static linked schemas",
+    "preexisting Issuer grant descriptions",
+    "allocator metadata/rounding",
+    "stack and CPU process/runtime memory"
+  ],
+  "verified": [
+    "original nonmember refusal",
+    "current member with unretained command refusal",
+    "zero storage refusal",
+    "signed retained command authentication and exact installed profile",
+    "complete kernel including separately funded shared execution workspace",
+    "original Root positive preflight returnsOk",
+    "all native Ready owners restored after drop",
+    "zero I2C transactions and zero native clock calls",
+    "original no_std module compilation",
+    "BIN uses unmodified original factory"
+  ],
+  "test_result": "passed1/1; complete original Source factory and no_std modules; 23.33s",
+  "log": "outputs/positive-linked-terminal-factory-20261114.log",
+  "log_sha256": "9d03f714eebdfd6a8900a07c8edb0bc87e2ee2539043f0638327e031fd1adf24",
+  "admission": false,
+  "Start": false,
+  "physical_deployment": false,
+  "target_heap_fit_proved": false,
+  "comparison": {
+    "previous_shared_only_retained_requested_bytes": 189469,
+    "previous_shared_only_peak_requested_bytes": 191508,
+    "linked_terminal_incremental_saving_bytes": 17016,
+    "original_dense_retained_requested_bytes": 210354,
+    "original_dense_peak_requested_bytes": 212393,
+    "combined_retained_and_peak_saving_bytes": 37901,
+    "original_logical_slots_generations_and_quotas_preserved": true,
+    "baseline_dense_value_diagnostic_is_not_selected_store": true
+  }
+}

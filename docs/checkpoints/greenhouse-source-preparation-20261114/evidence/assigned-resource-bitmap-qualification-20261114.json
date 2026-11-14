@@ -1,0 +1,53 @@
+{
+  "production_commit": "75e89ad7be",
+  "scope": [
+    "architecture/assigned-plan/src/validation.rs",
+    "architecture/assigned-plan/src/resource_bitmap_tests.rs"
+  ],
+  "problem": "49 original generated resource requirements refused by a private 32-bool tracker before record validation",
+  "change": "Track a bit per exact multiset requirement across the existing u8 record-count domain",
+  "resource_tracker_bytes_before": 32,
+  "resource_tracker_bytes_after": 32,
+  "maximum_resource_record_count": 255,
+  "host_call_tracker_changed": false,
+  "remote_tracker_changed": false,
+  "format_changed": false,
+  "grants_changed": false,
+  "allocation_in_validator": false,
+  "tests": {
+    "new_focused_cases": "3 passed",
+    "all_assigned_plan_unit_tests": "39 passed",
+    "strict_assigned_plan_clippy_all_targets": "passed",
+    "coverage": [
+      "49 equal ordinal resource requirements",
+      "255-record canonical boundary",
+      "256 required entries refused",
+      "reverse matching crossing every bitmap byte and late index254",
+      "missing late requirement",
+      "duplicate and unexpected late resource",
+      "multiplicity consumes each original requirement once",
+      "extra repeated resource refused",
+      "payload mutation retains exact digest refusal",
+      "zero validator allocation and reallocation",
+      "physical resource tracking storage unchanged"
+    ]
+  },
+  "logs": [
+    "outputs/assigned-resource-bitmap-tests-20261114.log",
+    "outputs/assigned-resource-bitmap-all-tests-20261114.log",
+    "outputs/assigned-resource-bitmap-clippy-20261114.log"
+  ],
+  "precompile_checkpoint_patch": "outputs/assigned-resource-bitmap-before-build-20261114.patch",
+  "physical_deployment": false,
+  "whole_kernel_preparation": "Source76 now validates original49resourceprojection and retains30314-byte command; preparation advances to unrelated Sign storage InvalidBudget before kernel construction",
+  "admission_or_Start": false,
+  "next_gate": {
+    "log": "outputs/positive-sign-storage-diagnostic-20261114.log",
+    "failure": "Back(sign-storage)",
+    "sign_items": 237,
+    "planned_sign_byte_capacity": 15277,
+    "cpu64_KernelEvent_bytes": 20,
+    "constructor_event_extent_bytes": 4740,
+    "remote_sign_extent_bytes": 5688
+  }
+}
