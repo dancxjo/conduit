@@ -1,0 +1,14 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/kernel)
+    Finished `test` profile [unoptimized] target(s) in 5.66s
+     Running unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_kernel-53d002489c9db0d9)
+
+running 5 tests
+linked terminal CPU size inline=4392 linked=4168 saved=224 table=224
+test scheduler::scan_characterization::linked_terminal_tests::linked_terminal_unbound_drop_and_writer_refusal_release_owned_values_once ... ok
+test scheduler::scan_characterization::linked_terminal_tests::linked_terminal_size_charge_is_exact_and_owned_entrance_refuses_zero_inline_rows ... ok
+test scheduler::scan_characterization::linked_terminal_tests::linked_terminal_mismatch_and_inactive_contracts_refuse_before_bind ... ok
+test scheduler::scan_characterization::linked_terminal_tests::linked_terminal_cancellation_and_same_law_rebind_preserve_checked_custody ... ok
+test scheduler::scan_characterization::linked_terminal_tests::linked_terminal_normal_and_abnormal_execution_matches_inline_without_allocating ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 253 filtered out; finished in 0.00s
+

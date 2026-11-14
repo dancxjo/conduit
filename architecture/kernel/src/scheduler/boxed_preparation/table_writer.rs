@@ -12,6 +12,7 @@ impl<
         const ROUTE_TARGETS: usize,
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
+        const TERMINAL_ROWS: usize,
     >
     FixedScheduler<
         D,
@@ -25,6 +26,7 @@ impl<
         ROUTE_TARGETS,
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
+        TERMINAL_ROWS,
     >
 where
     D: StepBack<PORTS>,
@@ -59,6 +61,40 @@ where
                 maximum_storage_bytes,
                 contracts,
                 actual,
+                None,
+                map_error,
+                write,
+            )
+        }
+    }
+    /// Retain the exact immutable checked contract table without copying its
+    /// rows. M=0 removes the inline matrix; all other topology/report checks and
+    /// the complete allocation charge remain identical to the owned entrance.
+    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    pub fn prepare_boxed_with_linked_table_writer<Q>(
+        values: S,
+        signs: E,
+        maximum_storage_bytes: usize,
+        contracts: &'static [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+        actual: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+        map_error: impl Fn(KernelPreparationError) -> Q,
+        write: impl FnOnce(
+            &mut [NodeSpec<PORTS>; NODES],
+            &mut [CordSpec; CORDS],
+            &mut FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
+            &mut FixedHostCallBindings<HOST_BINDING_SLOTS>,
+        ) -> Result<(usize, usize), Q>,
+    ) -> Result<PreparedKernelStorage<D, Self, NODES>, Q> {
+        // SAFETY: the private initializer moves the exact owned sign sink into
+        // its final destination once, without invoking user code or failing.
+        unsafe {
+            Self::prepare_boxed_with_sign_initializer(
+                values,
+                |target| target.write(signs),
+                maximum_storage_bytes,
+                contracts,
+                actual,
+                Some(contracts),
                 map_error,
                 write,
             )
@@ -73,6 +109,7 @@ where
         maximum_storage_bytes: usize,
         contracts: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
         actual: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+        linked: Option<&'static [[Option<AssignedTerminalTransduction>; PORTS]; NODES]>,
         map_error: impl Fn(KernelPreparationError) -> Q,
         write: impl FnOnce(
             &mut [NodeSpec<PORTS>; NODES],
@@ -81,6 +118,12 @@ where
             &mut FixedHostCallBindings<HOST_BINDING_SLOTS>,
         ) -> Result<(usize, usize), Q>,
     ) -> Result<PreparedKernelStorage<D, Self, NODES>, Q> {
+        let terminal_contracts = match linked {
+            Some(table) if table == contracts => terminal_storage::TerminalContracts::linked(table),
+            Some(_) => return Err(map_error(SchedulerError::InvalidPlan.into())),
+            None => terminal_storage::TerminalContracts::owned(contracts)
+                .map_err(|error| map_error(error.into()))?,
+        };
         // Evaluate constructors before transferring any affine input owner.
         let ready = ReadySet::new(0);
         let debug_control = DebugControlState::new();
@@ -125,7 +168,7 @@ where
         }
         let drop_initialized = initialize! {
             node_specs: [NodeSpec { input_cords: [None; PORTS], maximum_step_fuel: 0 }; NODES],
-            terminal_transductions: *contracts,
+            terminal_transductions: terminal_contracts,
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],

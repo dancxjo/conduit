@@ -67,6 +67,7 @@ mod remote_target_prefix;
 mod retirement;
 mod route_membership;
 mod terminal_admission;
+mod terminal_storage;
 use ready_set::ReadySet;
 #[cfg(test)]
 mod scan_characterization;
@@ -1040,6 +1041,9 @@ impl CordState {
     };
 }
 
+/// `TERMINAL_ROWS=NODES` retains the ordinary inline law profile plus a small
+/// immutable-storage handle. The explicit linked profile selects zero inline
+/// rows; its complete `size_of::<Self>()` is still charged by preparation.
 pub struct FixedScheduler<
     D,
     S,
@@ -1052,13 +1056,14 @@ pub struct FixedScheduler<
     const ROUTE_TARGETS: usize,
     const HOST_BINDING_SLOTS: usize = 0,
     const PENDING_REQUESTS: usize = 0,
+    const TERMINAL_ROWS: usize = NODES,
 > where
     D: StepBack<PORTS>,
     S: ValueStorage,
     E: SignSink,
 {
     node_specs: [NodeSpec<PORTS>; NODES],
-    terminal_transductions: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    terminal_transductions: terminal_storage::TerminalContracts<NODES, PORTS, TERMINAL_ROWS>,
     terminal_inputs_consumed: [[bool; PORTS]; NODES],
     terminal_phases: [Option<ActiveTerminalPhase>; NODES],
     terminal_cancellation_pending: [bool; NODES],
@@ -1120,6 +1125,7 @@ impl<
         const ROUTE_TARGETS: usize,
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
+        const TERMINAL_ROWS: usize,
     >
     FixedScheduler<
         D,
@@ -1133,6 +1139,7 @@ impl<
         ROUTE_TARGETS,
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
+        TERMINAL_ROWS,
     >
 where
     D: StepBack<PORTS>,
@@ -1186,7 +1193,7 @@ where
             .any(|back| back.workspace_requirements().is_some());
         Ok(Self {
             node_specs,
-            terminal_transductions: [[None; PORTS]; NODES],
+            terminal_transductions: terminal_storage::TerminalContracts::empty_owned()?,
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
@@ -1334,7 +1341,7 @@ where
                 return Err(SchedulerError::InvalidPlan);
             }
         }
-        self.terminal_transductions = contracts;
+        self.terminal_transductions.replace(&contracts)?;
         self.bind_projected_recoveries()?;
         Ok(())
     }

@@ -41,7 +41,7 @@ const fn narrow<const W: usize>(
     }
     result
 }
-pub const TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]; N] =
+pub static TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P]; N] =
     narrow(&layout::GENERATED_TERMINAL_TRANSDUCTIONS);
 pub fn profile<'a>(
     actual: &'a c::HostAdvertisement,

@@ -105,7 +105,8 @@ impl<
         const K: usize,
         V: ExecutionValues,
         const Q: usize,
-    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q>
+        const M: usize,
+    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M>
 {
     /// Explicit schema-8 producer factory entrance with independently pinned
     /// Line/Fore and borrowed immutable terminal laws. Exact table/layout checks
@@ -137,7 +138,7 @@ impl<
             signs,
             maximum_retained_bytes,
             factory,
-            Some(expected),
+            Some(ExpectedTerminalTable::Inline(expected)),
         )
     }
 }

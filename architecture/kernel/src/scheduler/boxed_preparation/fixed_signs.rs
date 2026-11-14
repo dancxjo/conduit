@@ -12,6 +12,7 @@ impl<
         const ROUTE_TARGETS: usize,
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
+        const TERMINAL_ROWS: usize,
     >
     FixedScheduler<
         D,
@@ -25,6 +26,7 @@ impl<
         ROUTE_TARGETS,
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
+        TERMINAL_ROWS,
     >
 where
     D: StepBack<PORTS>,
@@ -69,6 +71,7 @@ where
                 maximum_storage_bytes,
                 contracts,
                 actual,
+                None,
                 map_error,
                 write,
             )

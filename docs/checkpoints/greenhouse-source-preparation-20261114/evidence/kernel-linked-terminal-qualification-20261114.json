@@ -1,0 +1,79 @@
+{
+  "status": "kernel linked immutable terminal profile qualified; parent owns MCU integration and target measurements",
+  "API": {
+    "FixedScheduler": "appended const TERMINAL_ROWS: usize = NODES",
+    "PreparedKernelSession": "appended const TERMINAL_ROWS: usize = N",
+    "linked_entry": "prepare_boxed_with_linked_table_writer(values, signs, max_storage, static_contracts, actual, map_error, write)",
+    "zero_inline": "TERMINAL_ROWS=0",
+    "owned_default": "TERMINAL_ROWS=NODES; original no_alloc profile plus a pointer-sized immutable storage handle",
+    "rebind": "linked exact same content accepted; changed content refused even if actual Back reports changed laws"
+  },
+  "qualification": {
+    "kernel_all_features_lib": {
+      "passed": 255,
+      "ignored": 3,
+      "log": "outputs/kernel-linked-terminal-all-tests-20261114.log"
+    },
+    "final_focused_tests": {
+      "passed": 5,
+      "log": "outputs/kernel-linked-terminal-tests-20261114.log",
+      "covers": [
+        "normal closure and abnormal Sign trace parity",
+        "zero execution allocation/reallocation",
+        "cancellation and actual matching changed-law immutable rebind refusal",
+        "exact size and one-byte-short allocation refusal",
+        "owned M0 refusal",
+        "mismatched and inactive actual-law refusal",
+        "unbound drop and writer refusal release original values exactly once"
+      ]
+    },
+    "no_alloc_library_check": {
+      "passed": true,
+      "log": "outputs/kernel-linked-terminal-noalloc-check-20261114.log"
+    },
+    "strict_kernel_lib_tests_clippy": {
+      "passed": true,
+      "log": "outputs/kernel-linked-terminal-clippy-20261114.log"
+    }
+  },
+  "actual_cpu64_fixture": {
+    "nodes": 1,
+    "ports": 2,
+    "inline_bytes": 4392,
+    "linked_bytes": 4168,
+    "saved_bytes": 224,
+    "table_bytes": 224,
+    "not_arm_geometry": true
+  },
+  "accounting": "existing allocation remains single Box; size_of::<Self>() funds actual selected profile, no extra heap allocation",
+  "physical_deployment": false,
+  "files": {
+    "architecture/kernel/src/scheduler.rs": "b4e0ae6c521196c1d3740dc695a754d7c7afab4fe2a92185985d753c7b1264be",
+    "architecture/kernel/src/scheduler/boxed_preparation.rs": "d6a77f7e1f5dd3f1df4db484bd32eea66e8eae5ab894f9c159467da545d5cadc",
+    "architecture/kernel/src/scheduler/boxed_preparation/fixed_signs.rs": "bd0ad6a260e88645ce7cee2f5371c069a6249d9c5bc88f2dc7632ec83a11ce14",
+    "architecture/kernel/src/scheduler/boxed_preparation/table_writer.rs": "3355afe86f14de9b606b2aaac835262d6afdc27dd864f5d99965b51a10e6ce5e",
+    "architecture/kernel/src/scheduler/compact_f32.rs": "33d20a2b00ca6d32ffda4aa7ddfb234c9a4cfe9c94562c583ac16f4359a5e19f",
+    "architecture/kernel/src/scheduler/execution_dag.rs": "18528e5c4ebbe37a8354fddf0c0837c3f1e6d44109e9769cce119a36c2cf6d6a",
+    "architecture/kernel/src/scheduler/execution_region.rs": "4688dfec9ebeb8d6eeab57c2418f2c450944fd4d7a330452c731a1800b223967",
+    "architecture/kernel/src/scheduler/execution_workspace.rs": "399efe4f2c41f437b9bc97433fc8096fc7e769ecc3c01cb597bf1fcc9bcfba3d",
+    "architecture/kernel/src/scheduler/host_call_index.rs": "43f3b5339fb59a4675487c132e5624dcbe79d99035042b05209372e578f85853",
+    "architecture/kernel/src/scheduler/host_call_settlement.rs": "89ed73cfb4e134399a41a3c339776e1e60e2bee37201d0ad0439c2cb0c6d4535",
+    "architecture/kernel/src/scheduler/host_dispatch.rs": "5f5a0ce5402bce12a5e7d1abcd8c90144920a62db2be8821fcbd1fa5c911ff15",
+    "architecture/kernel/src/scheduler/host_input_ownership.rs": "537eb840d1be66efaa8be691b3be0cb74b17b4ca62acd459ecc76db0cba2b569",
+    "architecture/kernel/src/scheduler/host_values.rs": "6ea312dd19f3344fe9cc57b7fb91c68da2304504e1e03e1675ea1ccf679b87be",
+    "architecture/kernel/src/scheduler/local_fore.rs": "f8d4cbe547372e032375bd0251e7592889bbad95a23e30c25fe67aaf27f93003",
+    "architecture/kernel/src/scheduler/native_region.rs": "16314dc41940cd37f9530e0aacd04e8b74556ac2082441083400315f0ad2705e",
+    "architecture/kernel/src/scheduler/payload_admission.rs": "dae564032883d516007cf4374768ef99e67622df92edbd902c770b21977ae50b",
+    "architecture/kernel/src/scheduler/prepared_session.rs": "6654faac9852537f07ee94a2cbf9a6111cca47d21e0cc60dd752239eb05057e5",
+    "architecture/kernel/src/scheduler/prepared_session/owned_boundaries.rs": "0e407853776a1a132ebdb22d5124b48aa9f43b1dc06cb1193fa8bc79accb5e0d",
+    "architecture/kernel/src/scheduler/quiescence.rs": "0043e55f7b5941e6d683b0460412fdc015c019dab8f9b4f3462a26e1222d72a6",
+    "architecture/kernel/src/scheduler/remote_fanout.rs": "a25a70052832022fcb2d4b8498f7271f9da0c30693849980c70e1b77c5b793bd",
+    "architecture/kernel/src/scheduler/retirement.rs": "553d6abcbcf08d13bdae7b1938dd7ca69f121d9bdb01ef3bfe953ccf08af9073",
+    "architecture/kernel/src/scheduler/scan_characterization.rs": "e7008c37e2a897558bcc47aa945d3c1184e48cddb128292be618bd7f53955c94",
+    "architecture/kernel/src/scheduler/schema_region.rs": "314b9fcdcf128d441d1b922f24050d03a1ba85a6171824c2a053b93ed53a5e34",
+    "architecture/kernel/src/scheduler/terminal_admission.rs": "442943e51992ea9ede3245c924db53676fa901f402ea71d518b8ba16ddbd811d",
+    "architecture/kernel/src/scheduler/linked_terminal_tests.rs": "81da5663eda4d5e6c41bdde2b23028e7c012cda48dd2a7602bbaf34c34b30c8e",
+    "architecture/kernel/src/scheduler/terminal_storage.rs": "4c44c217ecec9b30b92919875f758e301f3ef767ebccb9f2737070b0d5315452"
+  },
+  "source_cache_barrier": "released; all handles terminal0; no further edits or builds"
+}

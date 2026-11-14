@@ -19,26 +19,46 @@ try:
  paths=sorted(p for p in paths if p=='Cargo.lock' or p.startswith(('targets/mcu/','targets/rp2040/','targets/conduitos/plots/usb/','architecture/')))
  for p in paths:
   if (repo/p).is_file():git('add','--',p)
- names=['positive-shared-stock-factory-20261114.log','positive-shared-stock-factory-20261114.json','rp2040-shared-stock-build-receipt-20261114.json','rp2040-shared-stock-footprint-20261114.json','rp2040-shared-stock-link-20261114.log','rp2040-shared-stock-inference-failure-20261114.log','shared-stock-runtime-tests-20261114.log','shared-stock-runtime-clippy-20261114.log','shared-stock-topology-tests-20261114.log','shared-stock-topology-clippy-20261114.log','prepared-owner-retention-audit-20261114.md','kernel-immutable-storage-audit-20261114.md']
+ names=['positive-shared-stock-factory-20261114.log','positive-shared-stock-factory-20261114.json','rp2040-shared-stock-build-receipt-20261114.json','rp2040-shared-stock-footprint-20261114.json','rp2040-shared-stock-link-20261114.log','rp2040-shared-stock-inference-failure-20261114.log','shared-stock-runtime-tests-20261114.log','shared-stock-runtime-clippy-20261114.log','shared-stock-topology-tests-20261114.log','shared-stock-topology-clippy-20261114.log','prepared-owner-retention-audit-20261114.md','kernel-immutable-storage-audit-20261114.md','kernel-linked-terminal-qualification-20261114.json','kernel-linked-terminal-20261114.patch','kernel-linked-terminal-compile-20261114.log','kernel-linked-terminal-tests-20261114.log','kernel-linked-terminal-all-tests-20261114.log','kernel-linked-terminal-noalloc-check-20261114.log','kernel-linked-terminal-clippy-20261114.log','mcu-linked-terminal-tests-20261114.log','mcu-linked-terminal-clippy-20261114.log','positive-linked-terminal-factory-20261114.log','positive-linked-terminal-factory-20261114.json','rp2040-linked-terminal-build-receipt-20261114.json','rp2040-linked-terminal-footprint-20261114.json','rp2040-linked-terminal-link-20261114.log','arm-linked-terminal-geometry-20261114.json']
  for name in names:
   p=root/'outputs'/name
   if p.is_file():put('evidence/'+name,p.read_bytes())
- for name in ['run-rp2040-shared-stock-build-20261114.py','preserve-source-checkpoint-20261114.py']:
+ for name in ['run-rp2040-shared-stock-build-20261114.py','run-rp2040-linked-terminal-build-20261114.py','preserve-source-checkpoint-20261114.py']:
   put('scripts/'+name,(root/'work'/name).read_bytes())
- old_note=run('show',f'{old}:{base}/CONTINUE-HERE.md').decode()
- marker='\n## Current shared-stock integration\n'
- if marker in old_note:old_note=old_note.split(marker)[0]
- note=old_note+marker+f'''
-Shared-source parent: {head}. Experimental neutral factory now constructs its value store AFTER the actual prepared resident/software/native owners have passed the authenticated assignment, using the exact emitted Cord-sink and Step-output associations. Every original logical slot, generation, byte quota, queue capacity and canonical/native result extent is preserved. Unknown custody retains full original physical stock rather than deriving a reduction.
+ for name in ['command.json','probe.rs','compiler.log']:
+  put('scripts/arm-linked-terminal-geometry/'+name,(root/'work/arm-linked-terminal-geometry-20261114'/name).read_bytes())
+ note=f"""# Continue the greenhouse MCU work
 
-Full original Source76 CPU preparation and Root preflight pass with the selected shared store: retained189469 B, peak191508 B (CPU64 requested allocations; same exclusions as earlier receipts), versus210354/212393 B before:20885 B saved in each. CPU original uninstrumented factory SHA256 2cbb4e777fcccc76afbe8f88d25aa69c8af30c14c916c06e5ea280408337dd9a. no_std original modules compile. Runtime139testsPASS/1ignored; topology5testsPASS; both scoped strictClippy PASS. No admission/Start/sensor or native clock effects occurred; all loans returned.
+Shared qualified source parent: {head}. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
 
-Actual ARM release links, ELF SHA256 03e7cfcdff0ddfad4e9abbb7bfb695efc4c8597397f8631562772c4bf1113807. Flash margin49844 B; static extent209088 B (__sheap-__sdata, includes512B uninitialized); stack region61248 B. These are LINK/geometry observations, not execution/heap/stack fit. Installed heap remains131072 B. DO NOT FLASH as a qualified appliance: real target memory fit, autonomous Source composition, Fore/Face/Mask and durable history/restart integration are still unfinished. Devices remain on earlier firmware.
+## Current verified preparation
 
-Next substantive gate: reduce duplicated immutable kernel/Plan preparation metadata under existing workspace-custody obligations (#6341); consult any saved kernel immutable-storage audit. Keep semantic Source work, hardware facts, exact Plans and prepared execution separate. Do not increase grants, infer lifetime bounds from Kind names or replace Source behavior with bespoke task loops. Then repeat full preparation and actual target resource qualification before admission/physical tests. Existing neutral service still refuses structured-fore-mask-unavailable.
+The uninstrumented original factory and original no_std modules prepare the exact signed Source76 component through the existing Root entrance:76 Gears,95 Cords,97 queue slots;27 software,47 resident,2 native owners. Assignment30314 B fits the unchanged32548 B input. All native loans return and native calls stay0. No admission/Start occurs.
 
-Current dev refreshed and already ancestor of integration HEAD. Experiments remain in draftPR6902; qualified shared changes in PR6837. Private keys/credentials/journals remain intentionally excluded.
-'''
+Physical schema buffers are selected only after inspecting actual prepared owners and exact emitted topology. All logical slots, generation horizons, byte quotas, queue capacities and canonical/native-result extents remain. Unknown custody keeps original physical stock. Retained state, simultaneous Step outputs and kernel native pins are separate stock terms.
+
+The same ordinary kernel now supports linked immutable terminal contracts. TERMINAL_ROWS defaults to NODES for the fixed/no_alloc profile; M=0 retains the exact checked static matrix instead of copying it. Actual Back equality, inactive rows, native incompatibility, topology, projected recovery and storage-budget gates remain. Changed by-value rebind refuses; same-content rebind remains valid. Default inline profile pays a small storage handle, charged through actual sizeSelf.
+
+CPU64 requested retained/peak allocations:172453/174492 B versus189469/191508 with shared buffers alone and210354/212393 originally. Combined saving37901 B. These exclude preexisting Root/equipment/residents/issuer grants, allocator overhead and stack. The separately funded1MiB CPU arena is NOT target funding; installed heap remains131072 B.
+
+Kernel255testsPASS/3ignored; focused linked-profile5PASS; no_alloccheck and strict kernel lib/testsClippyPASS. MCUruntime139PASS/1ignored and strictallfeaturelibClippyPASS. Source topology5PASS. Original complete factory/Root preflight and no_std modules PASS.
+
+## ARM evidence and limitations
+
+Actual ARM ABI: current same-code owned kernel64216 B versus linked47192 B, removing17024 B (152 entries x112 B). This is type geometry, not complete memory fit. Linked-profile release ELF SHA2564f83f51d2e6b7b1b3041c65836e9fdb993451ca08f36a45f9e574d54d5ab518f links with49844 B flash margin; static209088 B (__sheap-__sdata), stack region61248 B. The static region and heap grant were not enlarged.
+
+The firmware entrance still prepares/drops and refuses structured-fore-mask-unavailable. Linking this preparation entrance does NOT prove a complete application including reachable Play execution fits flash, heap or stack. No new physical sensing/display, admission, overnight history/restart or complete autonomous appliance is demonstrated. Devices remain on earlier firmware. DO NOT FLASH this as a qualified appliance.
+
+## Next substantive work
+
+Continue substantial immutable metadata/preparation-custody reduction under existing6341, then qualify actual target heap/stack including original Root, equipment, allocator and startup overlap. Mutable queues, phases, pending calls, refs and history stay funded in RAM. Do not widen grants or replace Source behavior with bespoke task loops to conceal refusal. Root command workspace and other immutable topology are candidates, not implemented savings.
+
+Complete autonomous Source composition and actual admitted Fore/Face/Mask execution, durable history and restart/owner-loss recovery. Qualify the whole reachable executable and actual hardware before replacing working firmware. Preserve Body identity, observations and independent logical sampling/display. Seed fabrication must not hold this up.
+
+Reproduce CPU proof with the selected generated OUT_DIR from the ordinary target build; tests require its exact emitted neutral_source_execution cfg witness. Internal target wrapper: scripts/run-rp2040-linked-terminal-build-20261114.py (adapt task/repo paths). Full receipts/logs under evidence; ARM sizeof command/source under scripts/arm-linked-terminal-geometry. Generated binaries remain local regenerable artifacts; hashes are recorded. Private keys, credentials and journals are deliberately excluded.
+
+Current dev was refreshed and is already included. Threebee/owner UI is a separate coordinated lane (PR6895); use outputs/threebee-admission-handoff-20261111.md in the task workspace before touching its services or current owner context.
+"""
  put('CONTINUE-HERE.md',note.encode())
  tree=git('write-tree');commit=git('commit-tree',tree,'-p',old,'-p',head,input=b'Preserve selected shared-stock Source factory and measured preparation savings\n')
  for p in paths:

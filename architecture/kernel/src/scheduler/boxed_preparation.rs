@@ -17,6 +17,7 @@ impl<
         const ROUTE_TARGETS: usize,
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
+        const TERMINAL_ROWS: usize,
     >
     FixedScheduler<
         D,
@@ -30,6 +31,7 @@ impl<
         ROUTE_TARGETS,
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
+        TERMINAL_ROWS,
     >
 where
     D: StepBack<PORTS>,
@@ -172,6 +174,7 @@ where
             }
         }
         let recovery_for_cord = projected_recovery_map(active_cords, &cord_specs, contracts)?;
+        let terminal_contracts = terminal_storage::TerminalContracts::owned(contracts)?;
         // Evaluate constructors before transferring any affine input owner.
         let ready = ReadySet::new(active_nodes);
         let debug_control = DebugControlState::new();
@@ -209,7 +212,7 @@ where
         }
         let drop_initialized = initialize! {
             node_specs: node_specs,
-            terminal_transductions: *contracts,
+            terminal_transductions: terminal_contracts,
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],

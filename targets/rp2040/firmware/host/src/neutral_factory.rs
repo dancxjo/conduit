@@ -43,6 +43,7 @@ pub type Kernel<'a, 'f> = conduit_mcu_host_runtime::execution::ExecutionKernel<
     K,
     Values,
     Q,
+    0, // Linked immutable terminal contracts, no duplicate inline table.
 >;
 pub type Bound<'a, 'f, I, D> = (
     Box<Kernel<'a, 'f>>,
@@ -294,7 +295,8 @@ pub fn prepare<'a, 'f: 'a, 'w, I: I2cProvider + 'a, D: MonotonicDeadlineProvider
                 K,
                 Values,
                 Q,
-            >::prepare_with_terminal_transductions_ref(
+                0,
+            >::prepare_with_linked_terminal_transductions(
                 approved,
                 profile,
                 approved_fore,

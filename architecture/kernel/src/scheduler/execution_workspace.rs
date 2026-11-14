@@ -137,7 +137,8 @@ impl<
         const T: usize,
         const H: usize,
         const A: usize,
-    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>
+        const TERMINAL_ROWS: usize,
+    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
 where
     D: StepBack<P>,
     S: ValueStorage,
@@ -185,7 +186,8 @@ impl<
         const T: usize,
         const H: usize,
         const A: usize,
-    > PreparedKernelStorage<D, FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>, N>
+        const TERMINAL_ROWS: usize,
+    > PreparedKernelStorage<D, FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>, N>
 where
     D: StepBack<P>,
     S: ValueStorage,
