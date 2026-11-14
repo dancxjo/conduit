@@ -13,6 +13,8 @@ pub struct StructuredResidentEvaluator<
     length: usize,
     fuel: u16,
     refusal: Option<StaticStructuredRefusal>,
+    #[cfg(feature = "schema-value-storage")]
+    separated_input: bool,
 }
 impl<const I: usize, const O: usize, const C: usize, const B: usize> ExpressionEngine
     for StructuredResidentEvaluator<I, O, C, B>
@@ -32,6 +34,39 @@ impl<const I: usize, const O: usize, const C: usize, const B: usize> ExpressionE
             Err(refusal) => {
                 self.refusal = Some(refusal);
                 Err(())
+            }
+        }
+    }
+    #[cfg(feature = "schema-value-storage")]
+    fn output_schema(&self) -> Option<&[u8]> {
+        self.separated_input
+            .then(|| self.image.output_schema_bytes())
+            .flatten()
+    }
+    #[cfg(feature = "schema-value-storage")]
+    fn input_schema(&self) -> Option<&[u8]> {
+        self.separated_input
+            .then(|| self.image.input_schema_bytes())
+            .flatten()
+    }
+    #[cfg(feature = "schema-value-storage")]
+    fn evaluate_parts(&mut self, schema: &[u8], node: &[u8]) -> Option<Result<&[u8], ()>> {
+        if !self.separated_input {
+            return None;
+        }
+        self.length = 0;
+        self.refusal = None;
+        match self
+            .image
+            .evaluate_parts_into(schema, node, &mut self.output, &mut self.scratch)
+        {
+            Ok(length) => {
+                self.length = length;
+                Some(Ok(&self.output[..length]))
+            }
+            Err(refusal) => {
+                self.refusal = Some(refusal);
+                Some(Err(()))
             }
         }
     }
@@ -82,6 +117,8 @@ impl<const I: usize, const O: usize, const C: usize, const B: usize>
                 length: 0,
                 fuel,
                 refusal: None,
+                #[cfg(feature = "schema-value-storage")]
+                separated_input: false,
             },
             staged: false,
             closing: false,
@@ -90,6 +127,21 @@ impl<const I: usize, const O: usize, const C: usize, const B: usize>
             cancelled: false,
             committed_values: 0,
         })
+    }
+    /// Explicit preparation of schema-separated input and canonical output.
+    /// This selects physical representation only; Root still owns exact Source,
+    /// artifact, storage-profile, complete resource and Play admission.
+    #[cfg(feature = "schema-value-storage")]
+    pub fn from_resident_structured_parts(
+        image: StaticStructuredExpression<I, O, C>,
+        temporal: PortTemporal,
+    ) -> Result<Self, StaticExpressionBackRefusal> {
+        if image.input_schema_bytes().is_none() {
+            return Err(StaticExpressionBackRefusal::Bounds);
+        }
+        let mut back = Self::from_resident_structured(image, temporal)?;
+        back.evaluator.separated_input = true;
+        Ok(back)
     }
     pub fn computation_fuel(&self) -> u16 {
         self.evaluator.fuel

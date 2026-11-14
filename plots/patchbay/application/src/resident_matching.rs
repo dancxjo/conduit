@@ -157,17 +157,9 @@ impl PatchbayApplicationPort {
                 }
                 let new_subjects = &content.subjects[checked_subjects..];
                 let matches = face.zip(indexed.as_ref()).is_none_or(|(face, indexed)| {
-                    new_subjects
-                        .iter()
-                        .all(|item| indexed.subjects.contains(item))
-                        && content
-                            .relationships
-                            .iter()
-                            .all(|item| indexed.relationships.contains(item))
-                        && content
-                            .properties
-                            .iter()
-                            .all(|item| indexed.properties.contains(item))
+                    indexed.subjects.contains_all(new_subjects)
+                        && indexed.relationships.contains_all(content.relationships)
+                        && indexed.properties.contains_all(content.properties)
                         && content.texts.iter().all(|item| face.text.contains(item))
                         && content
                             .disclosures

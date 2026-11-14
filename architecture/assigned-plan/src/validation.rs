@@ -168,7 +168,7 @@ fn validate<'a>(
     if encoded_bytes > maxima.encoded_bytes {
         return Err(AssignedPlanRefusal::EncodedCapacityExceeded);
     }
-    let runtime_state_bytes = read_u16(bytes, 12)?;
+    let runtime_state_bytes = read_u32(bytes, 12)?;
     if runtime_state_bytes > maxima.runtime_state_bytes {
         return Err(AssignedPlanRefusal::RuntimeCapacityExceeded);
     }

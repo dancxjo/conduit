@@ -36,6 +36,7 @@ impl I2cProvider for Bus {
 fn package() -> ProtocolSourcePackage {
     let units = [
         include_str!("../../../../../../plots/device-protocols/ht16k33.conduit"),
+        include_str!("../../../../../../plots/device-protocols/ht16k33-exchanges.conduit"),
         include_str!("../../../../../../plots/device-protocols/ht16k33-feedback.conduit"),
     ];
     let imports = units
@@ -109,6 +110,7 @@ fn prepare(
         encoded: Vec::with_capacity(4096),
     });
     let id = I2cNativeIdentity {
+        base_implementation_id: "conduitos.base/i2c-controller@1".into(),
         host_id: "fixture/ht16k33".into(),
         boot_id: "fixture/ht16k33-boot".into(),
         base_id: "fixture/i2c".into(),

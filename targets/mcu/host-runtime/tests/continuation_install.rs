@@ -14,6 +14,8 @@ use std::{
     future::Future,
     task::{Context, Poll, Waker},
 };
+// This shared fixture also exposes constructors used by other proof surfaces.
+#[allow(dead_code)]
 #[path = "../../../../architecture/body/tests/continuation_scope/reference.rs"]
 mod reference;
 static PREP: b::HostPreparationDelegation = b::HostPreparationDelegation {

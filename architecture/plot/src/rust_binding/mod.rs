@@ -6,6 +6,7 @@
 mod bounded;
 mod native_contracts;
 mod prepared_native;
+pub(crate) use prepared_native::generate_native_with_work;
 pub(crate) mod resident_contract;
 pub use native_contracts::{validate_native_contracts_borrowed, BorrowedNativeContractRefusal};
 pub use prepared_native::{

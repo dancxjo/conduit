@@ -50,9 +50,52 @@ pub unsafe trait PreparedBacks<const N: usize, const P: usize> {
     fn requires_terminal_gate(&self) -> bool {
         false
     }
+    /// Immutable physical requirements of exactly the drivers returned by bind.
+    /// None is uninspectable, not an empty requirement or an execution grant.
+    /// A Some report must remain exact through bind, including inactive slots.
+    #[cfg(feature = "execution-workspace")]
+    fn execution_workspace_requirements(
+        &self,
+    ) -> Option<[Option<conduit_kernel::scheduler::StepWorkspaceRequirements>; N]> {
+        None
+    }
     fn retained_backing_bytes(&self) -> Option<usize>;
     fn bind(self) -> ([Self::Driver; N], Self::Calls);
 }
+/// The exact value owner installed in the original kernel.
+/// # Safety
+/// Report every reachable owned allocation outside inline Self. Execution must
+/// not introduce uncharged allocation or capacity growth; owned transfers must
+/// preserve the original workset's admitted custody. Borrowed immutable schemas
+/// retain their independent Source custody and funding.
+pub unsafe trait ExecutionValues: ValueStorage {
+    fn external_backing_bytes(&self) -> Option<usize>;
+}
+// SAFETY: this is the store's actual preallocated buffer and slot metadata.
+unsafe impl ExecutionValues for HostedValueStore {
+    fn external_backing_bytes(&self) -> Option<usize> {
+        Some(self.reserved_storage_bytes())
+    }
+}
+// SAFETY: all fixed slot/value arrays are inline in the kernel allocation.
+unsafe impl<const I: usize, const B: usize> ExecutionValues for FixedValueStore<I, B> {
+    fn external_backing_bytes(&self) -> Option<usize> {
+        Some(0)
+    }
+}
+#[cfg(feature = "schema-value-storage")]
+// SAFETY: one canonical owner plus actual schema slot/node backing, without
+// counting inline Self or borrowing another owner's immutable schemas twice.
+unsafe impl<S: ExecutionValues> ExecutionValues
+    for conduit_plan_lowering::schema_value_store::SchemaValueStore<'_, S>
+{
+    fn external_backing_bytes(&self) -> Option<usize> {
+        self.canonical_storage()
+            .external_backing_bytes()?
+            .checked_add(self.reserved_node_storage_bytes())
+    }
+}
+
 /// Physical backing outside the kernel's own inline storage.
 /// # Safety
 /// Count every external allocation retained by this exact Sign owner.
@@ -92,7 +135,8 @@ pub type ExecutionKernel<
     const S: usize,
     L = FixedSignLog<S>,
     const K: usize = H,
-> = StoredExecutionKernel<D, L, N, C, P, R, T, H, K>;
+    V = HostedValueStore,
+> = StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>;
 /// The same scheduler independent of its prepared Sign representation.
 pub type StoredExecutionKernel<
     D,
@@ -104,7 +148,8 @@ pub type StoredExecutionKernel<
     const T: usize,
     const H: usize,
     const K: usize = H,
-> = FixedScheduler<D, HostedValueStore, L, N, C, P, C, R, T, H, K>;
+    V = HostedValueStore,
+> = FixedScheduler<D, V, L, N, C, P, C, R, T, H, K>;
 type Storage<
     B,
     const N: usize,
@@ -116,9 +161,10 @@ type Storage<
     const S: usize,
     L,
     const K: usize,
+    V,
 > = PreparedKernelStorage<
     <B as PreparedBacks<N, P>>::Driver,
-    ExecutionKernel<<B as PreparedBacks<N, P>>::Driver, N, C, P, R, T, H, S, L, K>,
+    ExecutionKernel<<B as PreparedBacks<N, P>>::Driver, N, C, P, R, T, H, S, L, K, V>,
     N,
 >;
 #[derive(Clone, Copy)]
@@ -180,10 +226,13 @@ pub struct PreparedFragment<
     const S: usize,
     L: ExecutionSigns = FixedSignLog<S>,
     const K: usize = H,
+    V: ExecutionValues = HostedValueStore,
 > {
-    storage: Storage<B, N, C, P, R, T, H, S, L, K>,
+    storage: Storage<B, N, C, P, R, T, H, S, L, K, V>,
     backs: B,
     retained: usize,
+    #[cfg(feature = "execution-workspace")]
+    maximum_retained_bytes: usize,
 }
 impl<
         B: PreparedBacks<N, P>,
@@ -196,7 +245,8 @@ impl<
         const S: usize,
         L: ExecutionSigns,
         const K: usize,
-    > PreparedFragment<B, N, C, P, R, T, H, S, L, K>
+        V: ExecutionValues,
+    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V>
 {
     #[allow(clippy::too_many_arguments)]
     #[inline(never)] // Per-kernel table scratch must end before the next constructor.
@@ -205,7 +255,7 @@ impl<
         profile: b::AssignedBodyPreparationProfile<'_>,
         fore: &[c::AssignedForeRequirement],
         layout: &ResidentLayout<'_>,
-        values: HostedValueStore,
+        values: V,
         signs: L,
         maximum_retained_bytes: usize,
         factory: impl FnOnce() -> Result<B, E>,
@@ -231,7 +281,7 @@ impl<
         profile: b::AssignedBodyPreparationProfile<'_>,
         fore: &[c::AssignedForeRequirement],
         layout: &ResidentLayout<'_>,
-        values: HostedValueStore,
+        values: V,
         signs: L,
         maximum_retained_bytes: usize,
         factory: impl FnOnce() -> Result<B, E>,
@@ -259,7 +309,7 @@ impl<
         profile: b::AssignedBodyPreparationProfile<'_>,
         fore: &[c::AssignedForeRequirement],
         layout: &ResidentLayout<'_>,
-        values: HostedValueStore,
+        values: V,
         signs: L,
         maximum_retained_bytes: usize,
         factory: impl FnOnce() -> Result<B, E>,
@@ -284,7 +334,7 @@ impl<
         profile: b::AssignedBodyPreparationProfile<'_>,
         fore: ForeProfile<'_>,
         layout: &ResidentLayout<'_>,
-        values: HostedValueStore,
+        values: V,
         signs: L,
         maximum_retained_bytes: usize,
         factory: impl FnOnce() -> Result<B, E>,
@@ -333,7 +383,7 @@ impl<
         profile: b::AssignedBodyPreparationProfile<'_>,
         fore: ForeProfile<'_>,
         layout: &ResidentLayout<'_>,
-        values: HostedValueStore,
+        values: V,
         signs: L,
         maximum_retained_bytes: usize,
         backs: B,
@@ -345,14 +395,14 @@ impl<
         let backing = backs
             .retained_backing_bytes()
             .ok_or(Refusal::Bounds)?
-            .checked_add(values.reserved_storage_bytes())
+            .checked_add(values.external_backing_bytes().ok_or(Refusal::Bounds)?)
             .and_then(|n| n.checked_add(signs.external_backing_bytes()))
             .ok_or(Refusal::Bounds)?;
         let remaining = maximum_retained_bytes
             .checked_sub(backing)
             .ok_or(Refusal::Bounds)?;
         let storage =
-            ExecutionKernel::<B::Driver, N, C, P, R, T, H, S, L, K>::prepare_boxed_with_table_writer(
+            ExecutionKernel::<B::Driver, N, C, P, R, T, H, S, L, K, V>::prepare_boxed_with_table_writer(
                 values,
                 signs,
                 remaining,
@@ -384,6 +434,8 @@ impl<
             storage,
             backs,
             retained,
+            #[cfg(feature = "execution-workspace")]
+            maximum_retained_bytes,
         })
     }
 }
@@ -400,11 +452,12 @@ unsafe impl<
         const S: usize,
         L: ExecutionSigns,
         const K: usize,
+        V: ExecutionValues,
     > super::execution_workset::PreparedLocalKernels
-    for PreparedFragment<B, N, C, P, R, T, H, S, L, K>
+    for PreparedFragment<B, N, C, P, R, T, H, S, L, K, V>
 {
     type Bound = (
-        Box<ExecutionKernel<B::Driver, N, C, P, R, T, H, S, L, K>>,
+        Box<ExecutionKernel<B::Driver, N, C, P, R, T, H, S, L, K, V>>,
         B::Calls,
     );
     fn retained_backing_bytes(&self) -> Option<usize> {
@@ -416,3 +469,9 @@ unsafe impl<
         (self.storage.bind(drivers), calls)
     }
 }
+
+#[cfg(feature = "execution-workspace")]
+#[path = "execution_workspace.rs"]
+mod execution_workspace;
+#[cfg(feature = "execution-workspace")]
+pub use execution_workspace::WorkspaceFundingRefusal;

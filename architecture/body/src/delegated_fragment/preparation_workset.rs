@@ -93,16 +93,16 @@ impl<'a, const N: usize> WorksetDocuments<'a, N> {
             *slot = Some(scope);
             // An early aggregate ceiling only. Each child's Core decoder still
             // checks this declaration against its exact structural minimum.
-            let state = u16::from_le_bytes(
+            let state = u32::from_le_bytes(
                 projection
-                    .get(12..14)
+                    .get(12..16)
                     .ok_or(E::Encoding)?
                     .try_into()
                     .map_err(|_| E::Encoding)?,
             );
             result.declared_runtime_state_bytes = result
                 .declared_runtime_state_bytes
-                .checked_add(u32::from(state))
+                .checked_add(state)
                 .ok_or(E::Bounds)?;
             result.documents[index] = Some(document);
             remaining = &remaining[length..];

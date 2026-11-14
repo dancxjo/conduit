@@ -57,7 +57,7 @@ fn distinct_input_ceilings_remain_exact_in_one_graph() {
                 Some(program.maximum_prepared_input_bytes().unwrap())
             );
             let encoded = program.canonical_bytes().unwrap();
-            assert!(encoded.starts_with(b"conduit.pure-expression.program.v3"));
+            assert!(encoded.starts_with(b"conduit.pure-expression.program.v4"));
             assert_eq!(
                 PortableExpressionProgram::from_canonical_bytes(&encoded).unwrap(),
                 program
@@ -86,12 +86,12 @@ fn both_evaluators_enforce_the_exact_input_ceiling() {
 }
 
 #[test]
-fn legacy_identity_and_invalid_metadata_are_explicit() {
+fn unbounded_identity_and_invalid_metadata_are_explicit() {
     let mut legacy = programs(SOURCE, "legacy").remove(0);
     legacy.input_maximum_bytes = None;
     let unbounded = conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32;
     let bytes = legacy.canonical_bytes().unwrap();
-    assert!(bytes.starts_with(b"conduit.pure-expression.program.v2"));
+    assert!(bytes.starts_with(b"conduit.pure-expression.program.v4"));
     assert_eq!(
         PortableExpressionProgram::from_canonical_bytes(&bytes)
             .unwrap()
@@ -105,7 +105,7 @@ fn legacy_identity_and_invalid_metadata_are_explicit() {
         legacy.canonical_hex().unwrap()
     );
     let mut forged = bounded.canonical_bytes().unwrap();
-    let header = b"conduit.pure-expression.program.v3".len();
+    let header = b"conduit.pure-expression.program.v4".len() + 1;
     forged[header..header + 4].copy_from_slice(&(unbounded + 1).to_le_bytes());
     assert!(PortableExpressionProgram::from_canonical_bytes(&forged).is_err());
     forged[header..header + 4].copy_from_slice(&u32::MAX.to_le_bytes());
@@ -190,16 +190,32 @@ fn semantic_call_arguments_keep_the_source_ceiling() {
                 let maximum = program.maximum_prepared_input_bytes().unwrap();
                 if let Some(bound) = program.input_maximum_bytes {
                     assert_eq!(bound, maximum);
-                    assert_eq!(
-                        argument.semantic_contract.value_contracts()[0]
-                            .contract
-                            .maximum_bytes,
-                        maximum
-                    );
                 } else {
                     assert_eq!(maximum, 8);
-                    assert!(argument.semantic_contract.value_contracts().is_empty());
                 }
+                let front = argument.checked_front();
+                assert_eq!(
+                    argument.semantic_contract.value_contracts().len(),
+                    1 + usize::from(program.input_maximum_bytes.is_some())
+                );
+                assert_eq!(
+                    front
+                        .value_contract(&conduit_core::FrontValueLocation::Input(
+                            conduit_core::port_id("input"),
+                        ))
+                        .map(|contract| contract.maximum_bytes),
+                    program.input_maximum_bytes,
+                );
+                assert_eq!(
+                    front
+                        .value_contract(&conduit_core::FrontValueLocation::Output(
+                            conduit_core::port_id("output"),
+                        ))
+                        .unwrap()
+                        .maximum_bytes,
+                    8,
+                );
+                assert_eq!(program.maximum_prepared_output_bytes().unwrap(), 8);
                 maximum
             })
             .collect::<Vec<_>>();
@@ -209,14 +225,29 @@ fn semantic_call_arguments_keep_the_source_ceiling() {
 }
 
 #[test]
-fn exact_identity_retains_output_contract_without_claiming_transformed_bounds() {
+fn authored_fore_limits_and_proved_gear_bounds_keep_physical_storage_exact() {
     use conduit_core::{port_id, FrontValueLocation};
-    for (body, identity) in [(".", true), (". == 0 ? 1 : .", false)] {
+    for (body, zero_result) in [(".", 0u64), (". == 0 ? 1 : .", 1)] {
         let source =
             format!("plot relay (\n wire: U64 <= 64B >> result: U64 <= 64B\n) = ({body})\n");
         let parsed = parse_syntax_document(&source);
         assert!(parsed.diagnostics.is_empty());
         let checked = check_syntax_document(&parsed, &StartupCatalog::new()).unwrap();
+        let authored = &checked
+            .plots
+            .iter()
+            .find(|plot| plot.name == "relay")
+            .unwrap()
+            .runtime_front;
+        for location in [
+            FrontValueLocation::Input(port_id("wire")),
+            FrontValueLocation::Output(port_id("result")),
+        ] {
+            assert_eq!(
+                authored.value_contract(&location).unwrap().maximum_bytes,
+                64
+            );
+        }
         let expanded =
             expand_canonical_plot_for_authoring(&checked, "relay", &ProfileCatalog::new()).unwrap();
         let gear = &expanded.expanded.gears[0];
@@ -225,24 +256,40 @@ fn exact_identity_retains_output_contract_without_claiming_transformed_bounds() 
             gear.semantic_contract.laws,
             program.semantic_laws().unwrap()
         );
+        assert_eq!(program.input_maximum_bytes, Some(64));
+        assert_eq!(program.maximum_prepared_input_bytes().unwrap(), 8);
+        assert_eq!(program.maximum_prepared_output_bytes().unwrap(), 8);
         let front = gear.checked_front();
-        let output = front.value_contract(&FrontValueLocation::Output(port_id("output")));
-        assert_eq!(output.is_some(), identity);
-        if let Some(output) = output {
-            assert_eq!(program.maximum_prepared_input_bytes().unwrap(), 8);
-            assert_eq!(program.maximum_prepared_output_bytes().unwrap(), 8);
-            assert_eq!(output.maximum_bytes, 64);
-            assert_eq!(
-                Some(output),
-                front.value_contract(&FrontValueLocation::Input(port_id("input")))
-            );
-            let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
-            assert_eq!(prepared.output_capacity(), 8);
-            assert_eq!(
-                prepared.evaluate(&255u64.to_le_bytes()).unwrap(),
-                &255u64.to_le_bytes()
-            );
-            assert!(prepared.evaluate(&[0; 65]).is_err());
+        assert_eq!(gear.semantic_contract.value_contracts().len(), 2);
+        // Preserve the authored input admission; the operation's output and
+        // its physical scratch independently retain their proved eight bytes.
+        assert_eq!(
+            front
+                .value_contract(&FrontValueLocation::Input(port_id("input")))
+                .unwrap()
+                .maximum_bytes,
+            64
+        );
+        assert_eq!(
+            front
+                .value_contract(&FrontValueLocation::Output(port_id("output")))
+                .unwrap()
+                .maximum_bytes,
+            8
+        );
+        let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+        assert_eq!(prepared.output_capacity(), 8);
+        for (input, expected) in [(0u64, zero_result), (255, 255)] {
+            let input = input.to_le_bytes();
+            let expected = expected.to_le_bytes();
+            assert_eq!(program.evaluate(&input).unwrap(), expected);
+            assert_eq!(prepared.evaluate(&input).unwrap(), expected);
+        }
+        // Both the structural U64 representation and the authored transport
+        // ceiling remain enforced; the broader Fore never enlarges storage.
+        for invalid in [&[0; 9][..], &[0; 65][..]] {
+            assert!(program.evaluate(invalid).is_err());
+            assert!(prepared.evaluate(invalid).is_err());
         }
     }
 }

@@ -121,6 +121,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-composite"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
@@ -303,12 +313,15 @@ name = "conduit-mcu-source-build"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-composite",
  "conduit-core",
  "conduit-dht11-observation",
  "conduit-embedded-build",
  "conduit-environment-runtime",
  "conduit-face",
  "conduit-host-make",
+ "conduit-i2c-transaction",
+ "conduit-monotonic-wait",
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
@@ -325,6 +338,17 @@ version = "0.1.0"
 dependencies = [
  "conduit-audio",
  "conduit-core",
+]
+
+[[package]]
+name = "conduit-monotonic-wait"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+ "conduit-time",
 ]
 
 [[package]]

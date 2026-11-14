@@ -44,7 +44,7 @@ pub fn assigned_local_projection_template_digest(
         return Err(AssignedPlanRefusal::WrongSchema.into());
     }
     if bytes.len() > usize::from(maxima.encoded_bytes)
-        || crate::read_u16(bytes, 12)? > maxima.runtime_state_bytes
+        || crate::read_u32(bytes, 12)? > maxima.runtime_state_bytes
     {
         return Err(ProjectionTemplateRefusal::Bounds);
     }

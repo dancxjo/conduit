@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+execution-workspace = ["conduit-kernel/execution-workspace"]
+schema-value-storage = ["conduit-kernel/schema-value-storage"]
 default = ["kernel-executor"]
 # Finite StepBacks need only Core and the existing execution kernel.
 # Hosted/nested-Plan preparation remains an explicit, separately linked layer.
@@ -29,6 +31,7 @@ conduit-kernel = { path = "../kernel", features = ["alloc"] }
 conduit-plan-lowering = { path = "../plan-lowering", default-features = false, optional = true }
 
 [dev-dependencies]
+conduit-plan-lowering = { path = "../plan-lowering", default-features = false, features = ["schema-value-storage"] }
 conduit-kernel = { path = "../kernel", features = ["alloc", "step-test-support"] }
 conduit-planner = { path = "../planner" }
 conduit-signal = { path = "../../semantics/signal", default-features = false, features = ["host-profile"] }

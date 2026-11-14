@@ -101,6 +101,10 @@ where
         if self.cancelled {
             return Ok(SchedulerStatus::Cancelled);
         }
+        #[cfg(feature = "execution-workspace")]
+        if self.unmet_execution_workspace {
+            return Err(SchedulerError::InvalidPlan);
+        }
         if self.debug_control.suspension().is_some() {
             return Err(SchedulerError::DebugSuspended);
         }
@@ -236,6 +240,8 @@ where
         let mut native_inputs = self.native_input_ports[node].map(|_| [None; PORTS]);
         #[cfg(feature = "alloc")]
         let mut compact_inputs = self.has_compact_f32_inputs(node).then_some([None; PORTS]);
+        #[cfg(feature = "schema-value-storage")]
+        let mut canonical_parts = [None; PORTS];
         for (port, value) in io.inputs.iter().copied().enumerate() {
             if let Some(value) = value {
                 #[cfg(feature = "alloc")]
@@ -262,6 +268,18 @@ where
                         continue;
                     }
                 }
+                #[cfg(feature = "schema-value-storage")]
+                if let Some(parts) = schema_region::checked_parts(
+                    &self.values,
+                    value,
+                    self.drivers[node].canonical_input_schema(PortId(as_u16(port)?)),
+                )? {
+                    if self.signs.requires_canonical_debug_values() {
+                        return Err(SchedulerError::InvalidPlan);
+                    }
+                    canonical_parts[port] = Some(parts);
+                    continue;
+                }
                 current_input_bytes[port] = Some(self.values.get(value)?);
             }
         }
@@ -271,6 +289,8 @@ where
             native_u64: native_inputs.as_ref(),
             #[cfg(feature = "alloc")]
             compact_f32: compact_inputs.as_ref(),
+            #[cfg(feature = "schema-value-storage")]
+            canonical_parts: Some(&canonical_parts),
             host_output: io
                 .host_completion
                 .and_then(|(_, outcome)| outcome.output)
@@ -281,6 +301,19 @@ where
             .logical_invocations
             .checked_add(1)
             .ok_or(SchedulerError::DecisionLimitExceeded)?;
+        #[cfg(feature = "execution-workspace")]
+        let outcome = if let Some(requirements) = self.drivers[node].workspace_requirements() {
+            let workspace = self
+                .execution_workspace
+                .as_mut()
+                .ok_or(SchedulerError::InvalidPlan)?;
+            let mut loan = workspace.loan(requirements)?;
+            io.workspace_output_capacity = Some(requirements.output_bytes);
+            self.drivers[node].step_with_workspace(&mut io, &input_bytes, &mut loan)
+        } else {
+            self.drivers[node].step(&mut io, &input_bytes)
+        };
+        #[cfg(not(feature = "execution-workspace"))]
         let outcome = self.drivers[node].step(&mut io, &input_bytes);
         if let Some(fault) = io.fault {
             if fault == SchedulerError::StepFuelExceeded {

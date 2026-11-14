@@ -2,26 +2,13 @@
 use super::ProtocolValue;
 use alloc::{format, string::String};
 use conduit_core::KindId;
-use sha2::{Digest, Sha256};
 
 pub(crate) fn instance_kind_id(family: &str, values: &[&ProtocolValue]) -> Result<KindId, String> {
-    let mut digest = Sha256::new();
-    digest.update(b"conduit.protocol/typed-kind-instance@1\0");
-    digest.update((family.len() as u32).to_le_bytes());
-    digest.update(family.as_bytes());
-    digest.update((values.len() as u32).to_le_bytes());
-    for value in values {
-        let schema = value
-            .schema
-            .canonical_bytes()
-            .map_err(|error| format!("{error:?}"))?;
-        let contract = value.contract.identity_bytes();
-        digest.update((schema.len() as u32).to_le_bytes());
-        digest.update(schema);
-        digest.update((contract.len() as u32).to_le_bytes());
-        digest.update(contract);
-    }
-    Ok(format!("{family}/typed-{:x}", digest.finalize()).into())
+    conduit_core::typed_kind_instance_id(
+        family,
+        values.iter().map(|value| (&value.schema, &value.contract)),
+    )
+    .map_err(|error| format!("{error:?}"))
 }
 
 pub(crate) fn install_kind(

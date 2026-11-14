@@ -4,6 +4,7 @@ use conduit_core::{
     BorrowedFixedIntegerContract, BorrowedStructuredValueValidator, FixedIntegerContractSpec,
 };
 mod generate;
+pub(crate) use generate::generate_with_work as generate_native_with_work;
 pub use generate::{generate_resident_native_validator, ResidentNativeGenerationRefusal};
 
 #[derive(Clone, Copy, Debug)]
@@ -24,6 +25,10 @@ pub struct StaticNativeContract {
 /// This checks values only; it creates no ordinary Native admission witness,
 /// offer or authority. Root must bind the checked image and admit complete state,
 /// stack, schema traversal and predicate work before installing this realization.
+// Cloning copies validated immutable views only: no value, mutable equipment,
+// reservation or Native admission witness is duplicated. Constructor children
+// can reuse the parent's checked definition without preparing it repeatedly.
+#[derive(Clone)]
 pub struct ResidentNativeValidator<const CONTRACTS: usize> {
     schema: BorrowedStructuredValueValidator<'static>,
     contracts: &'static [StaticNativeContract; CONTRACTS],
@@ -87,7 +92,7 @@ impl<const N: usize> ResidentNativeValidator<N> {
     /// Borrow the representation after all retained checks. This is not an
     /// AdmittedNativeCanonical witness and grants no execution authority.
     pub fn validate_borrowed<'a>(
-        &'a self,
+        &self,
         input: &'a [u8],
     ) -> Result<ValidatedCanonicalStructuredValue<'a>, PreparedNativeRefusal> {
         if self.intrinsic_empty && !input.is_empty() {
@@ -102,6 +107,28 @@ impl<const N: usize> ResidentNativeValidator<N> {
             .schema
             .validate(input)
             .map_err(|_| PreparedNativeRefusal::Shape)?;
+        self.check_contracts(value)
+    }
+    /// Validate a separately retained exact schema and value node through the
+    /// same whole-input Native checks. This creates no admission witness.
+    pub fn validate_parts_borrowed<'a>(
+        &self,
+        schema: &[u8],
+        node: &'a [u8],
+    ) -> Result<ValidatedCanonicalStructuredValue<'a>, PreparedNativeRefusal> {
+        if self.intrinsic_empty || schema != self.schema.type_bytes() {
+            return Err(PreparedNativeRefusal::Shape);
+        }
+        let value = self
+            .schema
+            .validate_node(node)
+            .map_err(|_| PreparedNativeRefusal::Shape)?;
+        self.check_contracts(value)
+    }
+    fn check_contracts<'a>(
+        &self,
+        value: ValidatedCanonicalStructuredValue<'a>,
+    ) -> Result<ValidatedCanonicalStructuredValue<'a>, PreparedNativeRefusal> {
         let mut checked = 0;
         for (index, entry) in self.contracts.iter().enumerate() {
             let predicate = self.predicates[index]
@@ -143,38 +170,26 @@ impl<const N: usize> ResidentNativeValidator<N> {
     /// not CPU instructions or a hard time guarantee. Canonical byte/depth
     /// ceilings and complete stack/workspace require independent Root admission.
     pub fn validation_work(&self, maximum_bytes: usize) -> u32 {
-        let nodes = maximum_bytes.min(self.schema.maximum_bytes()) / 5 + 1;
-        let visits = |path: &[StaticNativePathStep]| -> u32 {
-            if path.iter().any(|s| matches!(s, StaticNativePathStep::Each)) {
-                ((path.len() + 1) as u32)
-                    .saturating_mul(nodes as u32)
-                    .saturating_mul(2)
-            } else {
-                (path.len() + 1) as u32
-            }
-        };
-        let mut work = 1u32; // one canonical validation with its admitted envelope
-        for (i, entry) in self.contracts.iter().enumerate() {
-            let leaves = if entry
-                .path
+        use crate::expression_prepared::resident_work::{native_validation_work, PathWork};
+        let path = |steps: &[StaticNativePathStep]| PathWork {
+            steps: steps.len(),
+            each: steps
                 .iter()
-                .any(|s| matches!(s, StaticNativePathStep::Each))
-            {
-                nodes as u32
-            } else {
-                1
-            };
-            let checks = self.predicates[i].map_or(u16::MAX, |p| p.validation_work()) as u32;
-            work = work
-                .saturating_add(1)
-                .saturating_add(visits(entry.path))
-                .saturating_add(leaves.saturating_mul(checks));
-        }
-        for path in self.scopes {
-            work = work.saturating_add(1).saturating_add(visits(path));
-        }
-        work
+                .any(|step| matches!(step, StaticNativePathStep::Each)),
+        };
+        native_validation_work(
+            maximum_bytes,
+            self.schema.maximum_bytes(),
+            self.contracts.iter().enumerate().map(|(index, entry)| {
+                (
+                    path(entry.path),
+                    self.predicates[index].map_or(u16::MAX, |p| p.validation_work()),
+                )
+            }),
+            self.scopes.iter().map(|steps| path(steps)),
+        )
     }
+
     pub(crate) fn same_definition(&self, other: &Self) -> bool {
         self.intrinsic_empty == other.intrinsic_empty
             && self.schema.type_bytes() == other.schema.type_bytes()

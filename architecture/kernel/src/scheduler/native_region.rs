@@ -32,13 +32,25 @@ impl<const P: usize> StepIo<P> {
         Ok(())
     }
 }
-pub(super) fn observed_bytes<S: ValueStorage>(
-    store: &S,
+pub(super) fn observed_bytes<'a, S: ValueStorage>(
+    store: &'a S,
     value: ValueRef,
     native: bool,
-) -> Result<Option<&[u8]>, SchedulerError> {
+    schema: Option<&[u8]>,
+) -> Result<Option<&'a [u8]>, SchedulerError> {
     if native && (store.native_u64(value)?.is_some() || store.compact_f32(value)?.is_some()) {
         return Ok(None);
+    }
+    #[cfg(not(feature = "schema-value-storage"))]
+    let _ = schema;
+    #[cfg(feature = "schema-value-storage")]
+    if let Some(schema) = schema {
+        if let Some(parts) = store.canonical_parts(value)? {
+            if parts.schema != schema {
+                return Err(StorageError::RepresentationMismatch.into());
+            }
+            return Ok(None);
+        }
     }
     Ok(Some(store.get(value)?))
 }

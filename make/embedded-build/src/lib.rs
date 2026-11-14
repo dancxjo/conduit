@@ -31,8 +31,9 @@ mod resident_offer;
 pub use offer_image::{generate_capability_offer_image, CapabilityOfferImageError};
 pub use resident_expression::{
     bind_current_mixed_resident_expressions, bind_current_resident_expressions,
-    BoundResidentExpression, PreparedResidentExpression, ResidentExpressionBounds,
-    ResidentExpressionRefusal, RESIDENT_EXPRESSION_IMPLEMENTATION, RESIDENT_EXPRESSION_PROFILE,
+    BoundResidentExpression, PreparedResidentExpression, ResidentExecutionStorage,
+    ResidentExpressionBounds, ResidentExpressionRefusal, RESIDENT_EXPRESSION_IMPLEMENTATION,
+    RESIDENT_EXPRESSION_PROFILE,
 };
 pub use resident_library::generate_resident_library;
 mod assigned_layout;
@@ -45,7 +46,9 @@ mod fore;
 mod line_fore;
 pub use line_fore::{generate_line_fore_native_plan, GeneratedLineForePlan, SelectedForeSession};
 mod generate;
-pub use fore::{assigned_fore_inventory, generate_fore_native_plan, GeneratedForePlan};
+pub use fore::{
+    assigned_fore_inventory, generate_fore_native_plan, GeneratedForePlan, MAXIMUM_LOCAL_FORE_PORTS,
+};
 mod model;
 mod render;
 mod validate;
@@ -74,6 +77,8 @@ mod renderer_tests;
 
 #[cfg(test)]
 mod resident_expression_tests;
+#[cfg(test)]
+mod resident_instance_tests;
 
 mod body_fragment;
 pub use body_fragment::*;

@@ -7,9 +7,12 @@ use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 #[path = "structured_tape.rs"]
 mod tape;
 pub use tape::{
-    generate_static_structured_expression, StaticStructuredExpression,
+    generate_borrowed_static_structured_expression_with_work,
+    generate_static_structured_expression, generate_static_structured_expression_with_work,
+    BorrowedStaticStructuredExpression, GeneratedStaticStructuredExpression,
+    StaticStructuredChildProgram, StaticStructuredChildTable, StaticStructuredExpression,
     StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
-    StaticStructuredValue, StructuredTapeInstruction,
+    StaticStructuredValue, StructuredExpressionImage, StructuredTapeInstruction,
 };
 
 pub(super) struct PreparedStructuredExpression {

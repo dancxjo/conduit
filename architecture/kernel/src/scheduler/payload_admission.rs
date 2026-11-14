@@ -247,6 +247,28 @@ where
             *slot = Some(value);
             return Ok(Some(GeneratedStepOutput::copied(value)));
         }
+        #[cfg(feature = "execution-workspace")]
+        let workspace_bytes = if matches!(output, PreparedStepValue::Workspace(_)) {
+            if io
+                .workspace_output_capacity
+                .is_none_or(|maximum| declared_len > maximum)
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            Some(
+                self.execution_workspace
+                    .as_ref()
+                    .ok_or(SchedulerError::InvalidPlan)?
+                    .output(declared_len)?,
+            )
+        } else {
+            None
+        };
+        #[cfg(feature = "execution-workspace")]
+        let bytes = workspace_bytes
+            .or_else(|| self.drivers[node].prepared_output(port))
+            .ok_or(SchedulerError::InvalidPlan)?;
+        #[cfg(not(feature = "execution-workspace"))]
         let bytes = self.drivers[node]
             .prepared_output(port)
             .ok_or(SchedulerError::InvalidPlan)?;
@@ -254,6 +276,16 @@ where
             return Err(SchedulerError::InvalidPlan);
         }
         self.ensure_output_value_envelope(node, port, declared_len)?;
+        #[cfg(feature = "schema-value-storage")]
+        let value = if self.prepared_output_uses_schema_storage(node, port)? {
+            let schema = self.drivers[node]
+                .canonical_output_schema(port)
+                .ok_or(SchedulerError::InvalidPlan)?;
+            self.values.store_schema_canonical(schema, bytes)?
+        } else {
+            self.values.store(bytes)?
+        };
+        #[cfg(not(feature = "schema-value-storage"))]
         let value = self.values.store(bytes)?;
         let output = io
             .outputs

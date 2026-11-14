@@ -164,7 +164,7 @@ pub fn prepare_retained_with_issuer<'w, 'n, 'o, P: I2cProvider, const N: usize>(
         )
         .map_err(Refusal::Execution)?;
     if workset.fragment_count() != 1
-        || workset.declared_runtime_state_bytes() > u32::from(policy.maxima.runtime_state_bytes)
+        || workset.declared_runtime_state_bytes() > policy.maxima.runtime_state_bytes
     {
         return Err(Refusal::Bounds);
     }

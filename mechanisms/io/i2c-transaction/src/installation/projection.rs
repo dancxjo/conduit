@@ -39,16 +39,16 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
             || actual
                 .capabilities
                 .iter()
-                .any(|c| c.capability_id.as_str() == I2C_IMPLEMENTATION)
+                .any(|c| c.capability_id.as_str() == I2C_CAPABILITY)
         {
             return Err(E::Context);
         }
         let fields = [
             id.base_id.as_str(),
             id.provider_instance_id.as_str(),
-            "conduitos.base/i2c-controller@1",
+            id.base_implementation_id.as_str(),
             I2C_ATTACHMENT_CLASS,
-            I2C_IMPLEMENTATION,
+            I2C_CAPABILITY,
             id.resource_pool_id.as_str(),
             id.resource_pool_id.as_str(),
             I2C_ATTACHMENT_CLASS,

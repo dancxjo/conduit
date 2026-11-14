@@ -18,6 +18,7 @@ conduit-plot = { path = "../../../architecture/plot" }
 conduit-mcu-source-build = { path = "../../mcu/source-build" }
 
 [dev-dependencies]
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", features = ["native-kernel"] }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["host-call"] }
 conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"] }

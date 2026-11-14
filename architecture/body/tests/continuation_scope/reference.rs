@@ -121,15 +121,6 @@ fn bindings<'a>(
     }
     result
 }
-pub fn with_reference(
-    check: impl for<'a> FnOnce(
-        &FreshContinuationScope<'a>,
-        &VerifiedContinuationIntent<'a>,
-        &c::HostAdvertisement,
-    ),
-) {
-    with_reference_kind(false, 0, |s, v, a, _, _, _| check(s, v, a));
-}
 pub fn with_typed_reference(
     check: impl for<'a> FnOnce(
         &FreshContinuationScope<'a>,

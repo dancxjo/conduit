@@ -27,7 +27,7 @@ impl ValuePairBack {
         })
     }
     pub fn output_maximum(&self) -> u32 {
-        self.encoder.maximum_bytes()
+        self.encoder.maximum_encoded_bytes()
     }
 }
 impl<const PORTS: usize> StepBack<PORTS> for ValuePairBack {

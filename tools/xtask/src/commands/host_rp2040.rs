@@ -1,25 +1,23 @@
 //! Actual generic Pico Host build. Public code and private native Seed stay separate.
 use crate::cli::GlobalOpts;
-use conduit_host_make::HostImage;
 use sha2::{Digest, Sha256};
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{fs, path::PathBuf, process::Command};
 
 use super::host_rp2040_membership_seed::compose_private_seed;
 
 pub(super) fn build(
-    profile: &Path,
-    output: &Path,
-    image: &HostImage,
-    description_bytes: &[u8],
-    private_input: Option<&Path>,
-    private_output: Option<&Path>,
-    workset: Option<&super::host_workset_source::WorksetSourceInput>,
+    input: super::host_build::EmbeddedInput<'_>,
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let super::host_build::EmbeddedInput {
+        profile,
+        output,
+        image,
+        description: description_bytes,
+        private_input,
+        private_output,
+        workset,
+    } = input;
     let checked = super::load_configuration(profile)?;
     conduit_host_rp2040::check_environmental_construction(&checked)?;
     conduit_host_rp2040::retained_wifi_selected(&checked)?;
@@ -78,6 +76,7 @@ pub(super) fn build(
         .env("CONDUIT_HOST_IMAGE_ID", &image.manifest.image_id)
         .env("CONDUIT_HOST_CONFIGURATION", profile)
         .env("CARGO_TARGET_DIR", &target_dir);
+    super::host_workset_source::clear_inputs(command);
     description.configure(command)?;
     if let Some(input) = workset {
         input.configure(command)?;

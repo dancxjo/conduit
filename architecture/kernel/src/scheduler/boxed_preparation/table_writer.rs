@@ -159,6 +159,10 @@ where
             native_input_ports: [None; NODES],
             native_output_ports: [None; NODES],
             compact_f32_bindings: None,
+            #[cfg(feature = "execution-workspace")]
+            execution_workspace: None,
+            #[cfg(feature = "execution-workspace")]
+            unmet_execution_workspace: false,
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: debug_control,
@@ -168,8 +172,28 @@ where
         let bind: unsafe fn(*mut Self, [D; NODES]) = |pointer, drivers| {
             // SAFETY: drivers is the one remaining uninitialized field in
             // uniquely owned exact-layout storage. No Self reference is formed.
+            #[cfg(feature = "execution-workspace")]
+            // SAFETY: active_nodes is initialized and Copy. Do not form an
+            // incomplete Self reference or charge inert capacity-tail Backs.
+            let active = unsafe { core::ptr::addr_of!((*pointer).active_nodes).read() };
+            #[cfg(feature = "execution-workspace")]
+            let requires_workspace = drivers[..active]
+                .iter()
+                .filter_map(|back| back.workspace_requirements())
+                .any(|requirements| {
+                    // SAFETY: this Option is initialized; no reference to the
+                    // incomplete scheduler or its driver field is formed.
+                    let workspace =
+                        unsafe { &*core::ptr::addr_of!((*pointer).execution_workspace) };
+                    workspace
+                        .as_ref()
+                        .is_none_or(|workspace| !workspace.supports(requirements))
+                });
             unsafe {
                 core::ptr::addr_of_mut!((*pointer).drivers).write(drivers);
+                #[cfg(feature = "execution-workspace")]
+                core::ptr::addr_of_mut!((*pointer).unmet_execution_workspace)
+                    .write(requires_workspace);
             }
         };
         let prepared = PreparedKernelStorage::new(storage, drop_initialized, bind);

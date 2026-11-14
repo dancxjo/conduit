@@ -5,11 +5,29 @@ use conduit_dht11_observation::ObservationContract;
 use conduit_environment_runtime::publication::{PublicationChannel, PublicationContract};
 use conduit_plot as p;
 use sha2::{Digest, Sha256};
+#[path = "software/emit_inventory.rs"]
+mod emit_inventory;
 #[path = "software/selected.rs"]
 mod selected;
+#[path = "software/selector.rs"]
+mod selector;
+pub(crate) use selector::selected as selected_selector;
+pub(crate) fn implementation_identity(
+    kind: &c::KindId,
+    configuration: &[c::ConfigurationEntry],
+) -> Result<c::ImplementationId, String> {
+    let mut hash = Sha256::new();
+    hash.update(kind.as_str().as_bytes());
+    hash.update(serde_json::to_vec(configuration).map_err(|e| e.to_string())?);
+    Ok(format!("conduit.mcu/software/{:x}", hash.finalize()).into())
+}
 pub const PROFILE: &str = "conduit.mcu/prepared-software@1";
 pub const ARTIFACT: &str = "conduit-mcu-host-runtime/software@1";
 pub enum SoftwareRole {
+    Installed {
+        binding: usize,
+        digest: [u8; 32],
+    },
     Composite(crate::composite::Role),
     Tick {
         count: u64,
@@ -62,6 +80,24 @@ pub fn compile_with_types(
     types: Option<&p::CheckedSyntaxDocument>,
     maximum_image_bytes: usize,
 ) -> Result<SoftwareMaterial, String> {
+    compile_with_installed(
+        source,
+        types,
+        maximum_image_bytes,
+        &crate::installed_values::InstalledValueBindings::default(),
+    )
+}
+pub fn compile_with_installed(
+    source: &p::ExpandedCanonicalPlot,
+    types: Option<&p::CheckedSyntaxDocument>,
+    maximum_image_bytes: usize,
+    installed: &crate::installed_values::InstalledValueBindings,
+) -> Result<SoftwareMaterial, String> {
+    if let Some(types) = types {
+        installed.validate_source(types)?;
+    } else if !installed.is_empty() {
+        return Err("installed values require original checked Source".into());
+    }
     source
         .validate_expansion()
         .map_err(|e| format!("expanded Source: {e:?}"))?;
@@ -95,10 +131,16 @@ pub fn compile_with_types(
         {
             continue;
         }
-        let temporal = c::PortTemporal::Flow { closes: true };
-        let (kind, role, native) = if let Some((kind, role)) =
-            crate::composite::selected(gear, types)?
-        {
+        let (kind, role, native) = if let Some(value) = installed.select(gear)? {
+            (
+                value.kind,
+                SoftwareRole::Installed {
+                    binding: value.index,
+                    digest: value.digest,
+                },
+                false,
+            )
+        } else if let Some((kind, role)) = crate::composite::selected(gear, types)? {
             (kind, SoftwareRole::Composite(role), false)
         } else if gear.kind_id.as_str() == conduit_time::TICK_KIND {
             let cadence = conduit_time::parse_tick_configuration(&gear.configuration)
@@ -161,33 +203,8 @@ pub fn compile_with_types(
                 },
                 false,
             )
-        } else if let Some(c::ConfigurationValue::Text(text)) = gear
-            .configuration
-            .iter()
-            .find(|c| c.key == "selector")
-            .map(|c| &c.value)
-        {
-            let selector = c::StructuredSelector::from_canonical_hex(text)
-                .map_err(|e| format!("selector: {e:?}"))?;
-            let kind = conduit_semantic_catalog::structured_selector_contract(&selector, temporal);
-            let input_bytes =
-                conduit_plot::maximum_prepared_canonical_value_bytes(selector.input_type())
-                    .map_err(|e| format!("selector input: {e:?}"))?;
-            let output_bytes =
-                conduit_plot::maximum_prepared_canonical_value_bytes(selector.output_type())
-                    .map_err(|e| format!("selector output: {e:?}"))?;
-            let canonical = selector
-                .canonical_bytes()
-                .map_err(|e| format!("selector material: {e:?}"))?;
-            (
-                kind,
-                SoftwareRole::Selector {
-                    canonical,
-                    input_bytes: input_bytes as usize,
-                    output_bytes: output_bytes as usize,
-                },
-                false,
-            )
+        } else if let Some((kind, role)) = selected_selector(gear)? {
+            (kind, role, false)
         } else {
             return Err(format!(
                 "unsupported initialized software provider: {}",
@@ -207,34 +224,45 @@ pub fn compile_with_types(
         let (implementation, artifact, offer) = if native {
             (None, None, None)
         } else {
-            let mut h = Sha256::new();
-            h.update(kind.kind_id.as_str().as_bytes());
-            let configuration =
-                serde_json::to_vec(&gear.configuration).map_err(|e| e.to_string())?;
-            h.update(configuration);
-            let implementation: c::ImplementationId =
-                format!("conduit.mcu/software/{:x}", h.finalize()).into();
+            let mut implementation = implementation_identity(&kind.kind_id, &gear.configuration)?;
+            if let SoftwareRole::Installed { digest, .. } = &role {
+                implementation = format!(
+                    "{}/installed/{:x}",
+                    implementation.as_str(),
+                    Sha256::digest(digest)
+                )
+                .into();
+            }
             let artifact: c::ArtifactId = ARTIFACT.into();
-            let queue_bytes = if matches!(&role, SoftwareRole::Composite(_)) {
-                kind.semantic_contract()
-                    .value_contracts()
-                    .iter()
-                    .map(|v| v.contract.maximum_bytes)
-                    .max()
-                    .ok_or("composite value envelopes absent")?
-            } else {
-                4096
-            };
             let mut kind = kind;
+            // Composite owners retain the independently constructed finite
+            // storage shape (seed/current, pending sides and staged output).
+            // A single-slot placeholder cannot realize their checked State law.
+            let (queue_items, queue_bytes) = if matches!(
+                &role,
+                SoftwareRole::Composite(_) | SoftwareRole::Installed { .. }
+            ) {
+                (kind.limits.max_queue_items, kind.limits.max_queue_bytes)
+            } else {
+                (1, 4096)
+            };
             kind.limits = c::CapabilityLimits {
                 max_active_instances: 1,
-                max_queue_items: 1,
+                max_queue_items: queue_items,
                 max_queue_bytes: queue_bytes,
             };
             let offer = c::BackOfferBuilder::new(
                 kind,
                 c::Back {
-                    capability_id: implementation.as_str().into(),
+                    // Equal code/configuration does not make two mutable Gear
+                    // owners interchangeable. Preserve one finite owner per
+                    // checked Source instance without enlarging its grant.
+                    capability_id: format!(
+                        "{}/instance/{:x}",
+                        implementation.as_str(),
+                        Sha256::digest(gear.gear_id.as_str().as_bytes())
+                    )
+                    .into(),
                     execution_profile_id: PROFILE.into(),
                     implementation_id: implementation.clone(),
                     artifact_id: artifact.clone(),
@@ -319,6 +347,23 @@ pub fn emit_rust_for_layout_with_types(
     maximum_image_bytes: usize,
     maximum_generated_bytes: usize,
 ) -> Result<String, String> {
+    emit_rust_for_layout_with_installed(
+        source,
+        types,
+        source_to_kernel,
+        maximum_image_bytes,
+        maximum_generated_bytes,
+        &crate::installed_values::InstalledValueBindings::default(),
+    )
+}
+pub fn emit_rust_for_layout_with_installed(
+    source: &p::ExpandedCanonicalPlot,
+    types: Option<&p::CheckedSyntaxDocument>,
+    source_to_kernel: &[u16],
+    maximum_image_bytes: usize,
+    maximum_generated_bytes: usize,
+    installed: &crate::installed_values::InstalledValueBindings,
+) -> Result<String, String> {
     use std::fmt::Write;
     if source_to_kernel.len() != source.gears.len() {
         return Err("Source/kernel map length".into());
@@ -333,7 +378,7 @@ pub fn emit_rust_for_layout_with_types(
         }
         *slot = true;
     }
-    let mut material = compile_with_types(source, types, maximum_image_bytes)?;
+    let mut material = compile_with_installed(source, types, maximum_image_bytes, installed)?;
     for node in &mut material.nodes {
         node.node = source_to_kernel[usize::from(node.node)];
     }
@@ -404,28 +449,8 @@ pub fn emit_rust_for_layout_with_types(
             writeln!(code, "&{image:?},").unwrap();
         }
     }
-    code.push_str("];\npub fn definitions(waits:&[(u16,conduit_kernel::ValueRef)])->Result<[Option<conduit_mcu_host_runtime::execution_factory::SoftwareDefinition<'static>>;NODE_COUNT],&'static str>{\nuse conduit_mcu_host_runtime::execution_factory::SoftwareDefinition as D;\nlet mut result=core::array::from_fn(|_|None);\n");
-    for node in &material.nodes {
-        let definition=match &node.role {
-            SoftwareRole::Tick{count,..}=>format!("D::Tick{{wait:waits.iter().find(|v|v.0=={}).ok_or(\"missing-clock-value\")?.1,count:{count}}}",node.node),
-            SoftwareRole::Composite(role)=>crate::composite::emit_definition(role)?,
-            SoftwareRole::Trigger=>"D::Trigger".into(),
-            SoftwareRole::Selector{canonical,input_bytes,output_bytes}=>format!("D::SelectorStatic{{canonical:&{canonical:?},input_bytes:{input_bytes},output_bytes:{output_bytes}}}"),
-            SoftwareRole::Dht11Observation=>"D::Dht11Observation".into(),
-            SoftwareRole::RecordingLog{maximum_samples}=>format!("D::RecordingLog{{maximum_samples:{maximum_samples}}}"),
-            SoftwareRole::Publication{channel,maximum_events}=>format!("D::Publication{{channel:conduit_environment_runtime::publication::PublicationChannel::{channel:?},maximum_events:{maximum_events}}}"),
-        };
-        writeln!(code, "result[{}]=Some({definition});", node.node).unwrap();
-    }
-    code.push_str("Ok(result)}\npub fn identities(clocks:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<[Option<conduit_plan_lowering::resident_inventory::OtherNodeIdentity>;NODE_COUNT],&'static str>{\nuse conduit_plan_lowering::resident_inventory::OtherNodeIdentity;let mut result=core::array::from_fn(|_|None);\n");
-    for node in &material.nodes {
-        if let (Some(implementation), Some(artifact)) = (&node.implementation, &node.artifact) {
-            writeln!(code,"result[{}]=Some(OtherNodeIdentity{{node:{},kind:conduit_core::AssignedIdentity({:?}),implementation:conduit_core::AssignedIdentity({:?}),artifact:conduit_core::AssignedIdentity({:?})}});",node.node,node.node,c::AssignedIdentity::from_text(node.kind.as_str()).0,c::AssignedIdentity::from_text(implementation.as_str()).0,c::AssignedIdentity::from_text(artifact.as_str()).0).unwrap();
-        } else if matches!(node.role, SoftwareRole::Tick { .. }) {
-            writeln!(code,"let clock=*clocks.iter().find(|v|v.node=={}).ok_or(\"missing-clock-owner\")?;if clock.kind!=conduit_core::AssignedIdentity({:?}){{return Err(\"clock-kind\");}}result[{}]=Some(clock);",node.node,c::AssignedIdentity::from_text(node.kind.as_str()).0,node.node).unwrap();
-        }
-    }
-    code.push_str("Ok(result)}\n");
+    code.push_str("];\n");
+    emit_inventory::append(&mut code, &material)?;
     if code.len() > maximum_generated_bytes {
         return Err("software generated-byte ceiling".into());
     }

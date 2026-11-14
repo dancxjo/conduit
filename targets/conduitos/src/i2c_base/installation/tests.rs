@@ -16,6 +16,7 @@ impl I2cProvider for Provider {
 }
 fn identity() -> I2cNativeIdentity {
     I2cNativeIdentity {
+        base_implementation_id: "conduitos.base/i2c-controller@1".into(),
         host_id: HostId::from("host/native"),
         boot_id: BootId::from("boot/native"),
         base_id: HostBaseId::from("base/native-i2c"),

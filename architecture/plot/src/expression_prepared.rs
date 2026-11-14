@@ -8,6 +8,7 @@ use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
+mod canonical_input;
 mod equality;
 mod evaluate;
 mod fixed_projection;
@@ -19,12 +20,14 @@ pub use native_u64::PreparedNativeU64Expression;
 pub use scalar_tape::{
     generate_static_projected_expression, generate_static_scalar_expression, ScalarTapeInstruction,
     ScalarTapeOperation, StaticProjectedExpression, StaticProjectedGenerationRefusal,
-    StaticProjectedInput, StaticProjectedRefusal, StaticProjectedSource, StaticScalarExpression,
+    StaticProjectedInput, StaticProjectedProgram, StaticProjectedRefusal, StaticProjectedSource,
+    StaticScalarExpression,
 };
 mod inspection;
 mod shared_input;
 use shared_input::SharedBytes;
 mod resident_projection;
+pub(crate) mod resident_work;
 pub use resident_projection::StaticExpressionPathStep;
 mod member_selection;
 mod nominal;
@@ -48,9 +51,12 @@ use primitive::{
 };
 use structured::PreparedStructuredExpression;
 pub use structured::{
-    generate_static_structured_expression, StaticStructuredExpression,
+    generate_borrowed_static_structured_expression_with_work,
+    generate_static_structured_expression, generate_static_structured_expression_with_work,
+    BorrowedStaticStructuredExpression, GeneratedStaticStructuredExpression,
+    StaticStructuredChildProgram, StaticStructuredChildTable, StaticStructuredExpression,
     StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
-    StaticStructuredValue, StructuredTapeInstruction,
+    StaticStructuredValue, StructuredExpressionImage, StructuredTapeInstruction,
 };
 
 fn prepare_info_kind(

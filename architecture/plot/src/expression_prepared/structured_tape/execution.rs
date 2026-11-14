@@ -1,5 +1,6 @@
 //! Shared bounded constructor execution, independent of instruction ownership.
 use super::*;
+use crate::expression_prepared::canonical_input::CanonicalInput;
 #[derive(Clone, Copy, Debug)]
 pub enum StructuredTapeInstruction {
     Bytes { start: u32, length: u32 },
@@ -21,15 +22,15 @@ pub(super) trait Values {
     fn append(
         &mut self,
         index: u16,
-        input: &[u8],
+        input: CanonicalInput<'_>,
         output: &mut impl Output,
     ) -> Result<(), Self::Error>;
-    fn condition(&mut self, index: u16, input: &[u8]) -> Result<bool, Self::Error>;
+    fn condition(&mut self, index: u16, input: CanonicalInput<'_>) -> Result<bool, Self::Error>;
 }
 pub(super) fn execute<V: Values>(
     code: &[Operation],
     constants: &[u8],
-    input: &[u8],
+    input: CanonicalInput<'_>,
     output: &mut impl Output,
     values: &mut V,
 ) -> Result<(), V::Error> {
@@ -40,7 +41,13 @@ pub(super) fn execute<V: Values>(
                 output.write(slice(constants, start, length, Refusal::InvalidProgram)?)?
             }
             Operation::InputNode { start, length } => {
-                output.write(slice(input, start, length, Refusal::InvalidInput)?)?
+                let start = usize::try_from(start).map_err(|_| Refusal::InvalidInput)?;
+                let length = usize::try_from(length).map_err(|_| Refusal::InvalidInput)?;
+                output.write(
+                    input
+                        .get(start..start.checked_add(length).ok_or(Refusal::InvalidInput)?)
+                        .ok_or(Refusal::InvalidInput)?,
+                )?
             }
             Operation::Value(value) => values.append(value, input, output)?,
             Operation::BranchFalse { value, target } => {

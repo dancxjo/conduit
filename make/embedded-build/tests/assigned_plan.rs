@@ -28,14 +28,14 @@ fn local_assigned_plan_has_a_deterministic_golden_round_trip() {
     )
     .unwrap();
     assert_eq!(view.encoded_bytes as usize, first.len());
-    assert!(view.encoded_bytes + view.runtime_state_bytes <= 2_560);
+    assert!(u64::from(view.encoded_bytes) + u64::from(view.runtime_state_bytes) <= 2_560);
     // This whole-image golden includes the current canonical plot identities
-    // in the header as well as the independently checked assigned payload.
+    // in the format-2 header as well as the independently checked assigned payload.
     assert_eq!(
         assigned_plan_payload_digest(&first),
         [
-            12, 157, 148, 175, 9, 233, 240, 92, 190, 121, 207, 71, 75, 232, 185, 163, 165, 57, 71,
-            42, 254, 45, 212, 180, 153, 254, 146, 25, 77, 26, 223, 50
+            146, 205, 228, 226, 246, 252, 151, 92, 141, 55, 236, 80, 2, 183, 235, 79, 245, 46, 102,
+            170, 239, 107, 228, 36, 116, 60, 123, 168, 29, 101, 120, 40
         ],
         "local assigned-plan golden changed"
     );
@@ -55,12 +55,12 @@ fn one_remote_assigned_plan_has_a_deterministic_golden_round_trip() {
         requirements(&generated, &operations, &resources, &remotes),
     )
     .unwrap();
-    assert!(view.encoded_bytes + view.runtime_state_bytes <= 2_560);
+    assert!(u64::from(view.encoded_bytes) + u64::from(view.runtime_state_bytes) <= 2_560);
     assert_eq!(
         assigned_plan_payload_digest(&bytes),
         [
-            74, 124, 180, 118, 83, 231, 177, 54, 66, 115, 193, 66, 76, 10, 23, 34, 253, 232, 153,
-            230, 52, 20, 14, 212, 136, 154, 19, 40, 170, 9, 148, 237
+            230, 173, 173, 44, 190, 41, 151, 76, 135, 183, 93, 169, 50, 26, 253, 169, 91, 207, 154,
+            84, 87, 168, 223, 75, 207, 0, 133, 207, 228, 139, 174, 13
         ],
         "remote assigned-plan golden changed"
     );

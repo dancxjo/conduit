@@ -30,6 +30,8 @@ conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
 conduit-planner = { path = "../../architecture/planner" }
 
 [features]
+execution-workspace = ["kernel-step", "conduit-kernel/execution-workspace"]
+schema-value-storage = ["kernel-step", "conduit-kernel/schema-value-storage", "conduit-plan-lowering/schema-value-storage"]
 kernel-step = ["dep:conduit-kernel"]
 prepared-expression-session = ["kernel-step", "conduit-kernel/alloc"]
 default = ["plot-catalog"]

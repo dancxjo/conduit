@@ -12,6 +12,11 @@ pub struct Slot<'a> {
     pub pool: &'a str,
     pub implementation: &'a str,
 }
+/// Checked physical Base selection, distinct from its callable Back implementation.
+pub struct NativeBaseSelection<'a> {
+    pub base: &'a str,
+    pub implementation: &'a str,
+}
 pub struct NativeDescription<'a> {
     pub slot: Slot<'a>,
     pub class: &'a str,
@@ -43,10 +48,7 @@ impl Bounds {
             .maximum_assignment_bytes
             .try_into()
             .map_err(|_| "assignment exceeds binary format")?;
-        let runtime = preparation
-            .maximum_runtime_state_bytes
-            .try_into()
-            .map_err(|_| "runtime exceeds binary format")?;
+        let runtime = preparation.maximum_runtime_state_bytes;
         let bytes = u32::try_from(limits.buffered_bytes)
             .map_err(|_| "buffer ceiling exceeds binary format")?;
         // Static topology is exact checked Source material, not a promise of
@@ -131,7 +133,8 @@ impl Bounds {
                 counts: [u8::MAX; c::ASSIGNED_PLAN_COUNT_KINDS],
             },
             maximum_fore_ports: usize::try_from(limits.operation_slots)
-                .map_err(|_| "operation ceiling exceeds Host tooling")?,
+                .map_err(|_| "operation ceiling exceeds Host tooling")?
+                .min(e::MAXIMUM_LOCAL_FORE_PORTS),
             maximum_offer_image_bytes: 24 * 1024,
         })
     }
@@ -149,6 +152,44 @@ pub struct Input<'a> {
 /// Calibrate exact local topology with checked finite construction. No native
 /// descriptive Boot, original-grant text or placeholder Host identity is emitted.
 pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibration, String> {
+    let physical: Vec<_> = input
+        .native
+        .iter()
+        .map(|native| NativeBaseSelection {
+            base: native.slot.base,
+            implementation: native.slot.implementation,
+        })
+        .collect();
+    compile_with_physical_bases(workset, input, &physical)
+}
+/// Calibrate only explicitly selected physical Bases and exact callable Backs.
+/// These inert descriptions create no current-Boot provider or execution grant.
+pub fn compile_with_physical_bases(
+    workset: &workset::Workset,
+    input: Input<'_>,
+    physical: &[NativeBaseSelection<'_>],
+) -> Result<t::Calibration, String> {
+    if physical.len() != input.native.len()
+        || physical.iter().enumerate().any(|(index, selected)| {
+            selected.base.is_empty()
+                || selected.implementation.is_empty()
+                || physical[..index]
+                    .iter()
+                    .any(|old| old.base == selected.base)
+                || input
+                    .native
+                    .iter()
+                    .filter(|native| native.slot.base == selected.base)
+                    .count()
+                    != 1
+        })
+    {
+        return Err("physical Base selection must cover each exact native slot once".into());
+    }
+
+    workset
+        .installed_values
+        .validate_configuration(input.checked)?;
     h::verify_configuration_image(input.checked, input.image, input.catalog)?;
     for resource in input.shared_resources {
         if !input.checked.configuration().resources.iter().any(|r| {
@@ -180,6 +221,11 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
     let mut grants = Vec::new();
     for description in input.native {
         let slot = &description.slot;
+        let physical_implementation = physical
+            .iter()
+            .find(|selected| selected.base == slot.base)
+            .ok_or("missing explicit physical Base selection")?
+            .implementation;
         let class = description.class;
         let offer = &description.definition;
         offer
@@ -189,7 +235,7 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
             .checked
             .resolved_bases()
             .iter()
-            .any(|(_, implementation)| implementation == slot.implementation)
+            .any(|(_, implementation)| implementation == physical_implementation)
             || offer.implementation.implementation_id.as_str() != slot.implementation
             || offer.implementation.artifact_id.as_str() != input.image.manifest.image_id
             || !offer
@@ -225,7 +271,7 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
             base_id: slot.base.into(),
             provider_instance_id: slot.base.into(),
             provider_generation: 1,
-            implementation_id: slot.implementation.into(),
+            implementation_id: physical_implementation.into(),
             mechanism_family: description.mechanism.into(),
             enforcement_class: c::BaseEnforcementClass::Cooperative,
             lifecycle: c::BaseLifecycle::Ready,
@@ -237,10 +283,11 @@ pub fn compile(workset: &workset::Workset, input: Input<'_>) -> Result<t::Calibr
     }
     let mut entries = Vec::new();
     for entry in &workset.entries {
-        let software = crate::software::compile_with_types(
+        let software = crate::software::compile_with_installed(
             &entry.plot.expanded,
             Some(&workset.checked_source),
             input.bounds.maximum_offer_image_bytes,
+            &workset.installed_values,
         )?;
         for offer in software.nodes.into_iter().filter_map(|n| n.offer) {
             insert(&mut host, offer)?;

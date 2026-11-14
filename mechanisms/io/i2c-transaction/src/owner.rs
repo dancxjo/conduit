@@ -175,6 +175,12 @@ impl<P: I2cProvider> I2cHostCall<P> {
         }
     }
 
+    /// Ordinal checked against the original selected Plan. Observation grants
+    /// no possession or permission to invoke another operation.
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
+
     pub fn invoke(
         &mut self,
         node: NodeId,

@@ -66,6 +66,7 @@ fn prepare(
         encoded: Vec::with_capacity(4096),
     });
     let id = I2cNativeIdentity {
+        base_implementation_id: "conduitos.base/i2c-controller@1".into(),
         host_id: "fixture/i2c-clients".into(),
         boot_id: "fixture/i2c-clients-boot".into(),
         base_id: "fixture/i2c".into(),

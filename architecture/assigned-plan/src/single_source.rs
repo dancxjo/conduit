@@ -62,7 +62,7 @@ fn validate_envelope(
     if encoded_bytes > maxima.encoded_bytes {
         return Err(AssignedPlanRefusal::EncodedCapacityExceeded);
     }
-    let runtime_state_bytes = u16_at(bytes, 12)?;
+    let runtime_state_bytes = u32_at(bytes, 12)?;
     if runtime_state_bytes > maxima.runtime_state_bytes {
         return Err(AssignedPlanRefusal::RuntimeCapacityExceeded);
     }
@@ -100,7 +100,7 @@ fn decode_records(
     required: AssignedSingleSourceRequirements<'_>,
 ) -> Result<AssignedSingleSourceView, AssignedPlanRefusal> {
     let encoded_bytes = u16_at(bytes, 10)?;
-    let runtime_state_bytes = u16_at(bytes, 12)?;
+    let runtime_state_bytes = u32_at(bytes, 12)?;
     let plan = identity_at(bytes, 16)?;
     let fragment = identity_at(bytes, 32)?;
     let host = identity_at(bytes, 48)?;

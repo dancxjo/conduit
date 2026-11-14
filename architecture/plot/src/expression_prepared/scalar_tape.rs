@@ -5,8 +5,8 @@ pub(in crate::expression_prepared) mod projected;
 mod static_image;
 pub use projected::{
     generate_static_projected_expression, StaticProjectedExpression,
-    StaticProjectedGenerationRefusal, StaticProjectedInput, StaticProjectedRefusal,
-    StaticProjectedSource,
+    StaticProjectedGenerationRefusal, StaticProjectedInput, StaticProjectedProgram,
+    StaticProjectedRefusal, StaticProjectedSource,
 };
 pub use static_image::{generate_static_scalar_expression, StaticScalarExpression};
 pub(super) struct ScalarTape {

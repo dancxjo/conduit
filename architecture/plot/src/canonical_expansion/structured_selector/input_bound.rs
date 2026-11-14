@@ -103,10 +103,12 @@ pub(super) fn retain_contracts(
         .and_then(|s| s.input.as_ref())
         .and_then(|s| s.first())
         .and_then(|sink| match sink {
-            StageSink::FaceOutput(name, ..) => retained(
-                plot.runtime_front
-                    .value_contract(&FrontValueLocation::Output(conduit_core::port_id(name))),
-            ),
+            // An authored output ceiling is a runtime obligation, independently
+            // of the evaluator's conservative construction scratch bound.
+            StageSink::FaceOutput(name, ..) => plot
+                .runtime_front
+                .value_contract(&FrontValueLocation::Output(conduit_core::port_id(name)))
+                .cloned(),
             StageSink::Internal(endpoint) => gears
                 .iter()
                 .find(|g| g.gear_id == endpoint.gear_id)

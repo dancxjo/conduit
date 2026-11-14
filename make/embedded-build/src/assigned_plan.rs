@@ -53,6 +53,8 @@ pub fn encode_assigned_native_plan(
 
 /// Project only code-backed selections through explicit resident bindings.
 /// These fingerprints do not initialize Backs or create execution authority.
+/// Descriptive Sign names remain in the complete sealed Plan; this execution
+/// projection preserves its identity and unchanged evidence-storage budget.
 pub fn encode_assigned_resident_native_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
@@ -144,9 +146,15 @@ fn encode(
         let index = usize::from(tag - 1);
         counts[index] = counts[index]
             .checked_add(1)
-            .ok_or(GenerationError::ArithmeticOverflow(
-                "assigned-plan record count",
-            ))?;
+            .ok_or(GenerationError::BoundExceeded {
+                table: if tag == ASSIGNED_SIGN {
+                    "assigned Sign records"
+                } else {
+                    "assigned-plan record count"
+                },
+                actual: u64::from(u8::MAX) + 1,
+                maximum: u64::from(u8::MAX),
+            })?;
         put_record(&mut payload, tag, &value)?;
         Ok(())
     };
@@ -271,7 +279,13 @@ fn encode(
         });
         record(ASSIGNED_RESOURCE_CORD, value)?;
     }
-    for sign in &plan.signs {
+    // Resident projections carry exact executable/configuration pins. Sign
+    // names remain in the full sealed Plan on the authoring Host; the kernel
+    // does not load these descriptive records (assigned::layout skips them).
+    // Keep runtime_state_bytes(plan), sign_items and sign_bytes unchanged: all
+    // original event generation and finite evidence storage remain mandatory.
+    // The explicit literal projection continues to carry the complete catalog.
+    for sign in plan.signs.iter().filter(|_| !pin_selectors) {
         let mut value = Vec::new();
         u16_to(&mut value, sign.expectation);
         identity_to(&mut value, sign.kind);
@@ -349,8 +363,7 @@ fn encode(
     bytes.extend_from_slice(&assigned_plan_magic());
     u16_to(&mut bytes, schema);
     u16_to(&mut bytes, total);
-    u16_to(&mut bytes, runtime_state_bytes);
-    u16_to(&mut bytes, 0);
+    u32_to(&mut bytes, runtime_state_bytes);
     for identity in [
         &plan.plan_id,
         &plan.fragment_id,
@@ -365,7 +378,7 @@ fn encode(
     Ok(bytes)
 }
 
-fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u16, GenerationError> {
+fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u32, GenerationError> {
     let table_state = plan.nodes.len() * 8
         + plan.cords.len() * 12
         + plan.route_targets.len() * 6
@@ -380,10 +393,10 @@ fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u16, GenerationEr
         .ok_or(GenerationError::ArithmeticOverflow(
             "assigned runtime state bytes",
         ))?;
-    u16::try_from(total).map_err(|_| GenerationError::BoundExceeded {
+    u32::try_from(total).map_err(|_| GenerationError::BoundExceeded {
         table: "assigned runtime state bytes",
         actual: total as u64,
-        maximum: u64::from(u16::MAX),
+        maximum: u64::from(u32::MAX),
     })
 }
 
@@ -441,3 +454,7 @@ fn bound(table: &'static str, actual: u64, maximum: u64) -> Result<(), Generatio
     }
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "assigned_state_tests.rs"]
+mod state_tests;

@@ -115,6 +115,11 @@ impl<P: MonotonicDeadlineProvider> MonotonicClockHostCall<P> {
             cancelled: false,
         }
     }
+    /// Original checked node ordinal, never execution authority.
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
+
     pub fn inspection(&self) -> &CapabilityInspection {
         self.operation.inspection()
     }

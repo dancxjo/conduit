@@ -9,7 +9,15 @@ pub struct ValueReference<'a> {
 }
 pub enum Specialization<'a> {
     SeededUntil(ValueReference<'a>),
+    SeededUntilInstance(ValueReference<'a>),
     Merge(ValueReference<'a>),
+    /// Explicit canonical typed-family import; no hidden Source rewrite.
+    MergeInstance(ValueReference<'a>),
+    ZipInstance {
+        left: ValueReference<'a>,
+        right: ValueReference<'a>,
+        feedback: bool,
+    },
     Zip {
         left: ValueReference<'a>,
         right: ValueReference<'a>,
@@ -32,99 +40,31 @@ pub enum Role {
     },
 }
 
-pub(crate) fn install(
-    syntax: &p::SyntaxDocument,
-    requests: &[Specialization<'_>],
-    startup: &mut p::StartupCatalog,
-    profiles: &mut p::ProfileCatalog,
-) -> Result<(), String> {
-    if requests.len() > 16 {
-        return Err("composite specialization count".into());
-    }
-    if requests.is_empty() {
-        return Ok(());
-    }
-    // Paired output aliases are produced by the specialization below. They
-    // cannot be required to exist while preparing its input declarations.
-    // The original, unmodified document (including every import) is fully
-    // checked after installation; this temporary view confers no Plot authority.
-    let mut declarations = syntax.clone();
-    declarations.uses.retain(|import| {
-        !matches!(
-            import.path.as_str(),
-            "flow/zip/finite/paired" | "flow/zip/feedback/paired"
-        )
-    });
-    let types = p::prepare_source_types(&declarations, startup)
-        .map_err(|e| format!("composite Types: {e:?}"))?;
-    let value = |reference: &ValueReference<'_>| -> Result<Value, String> {
-        if reference.maximum_bytes == 0 || reference.maximum_bytes > 4096 {
-            return Err(
-                "MCU composite envelope exceeds selected 4096-byte construction profile".into(),
-            );
-        }
-        let schema = types
-            .named_type(reference.type_name)
-            .ok_or("unknown composite Source Type")?
-            .clone();
-        let contract = c::CheckedValueContract::new(
-            schema.profile().map_err(debug)?.value_kind().clone(),
-            reference.maximum_bytes,
-            vec![],
-        )
-        .map_err(debug)?;
-        Ok(Value { contract, schema })
-    };
-    for request in requests {
-        match request {
-            Specialization::SeededUntil(v) => {
-                let v = value(v)?;
-                conduit_semantic_catalog::install_seeded_state_until_kind(
-                    &v.contract,
-                    &v.schema,
-                    startup,
-                    profiles,
-                )?;
-            }
-            Specialization::Merge(v) => {
-                let v = value(v)?;
-                conduit_semantic_catalog::install_flow_merge_finite_kind(
-                    &v.contract,
-                    &v.schema,
-                    startup,
-                    profiles,
-                )?;
-            }
-            Specialization::Zip {
-                left,
-                right,
-                feedback,
-            } => {
-                let (l, r) = (value(left)?, value(right)?);
-                let install = if *feedback {
-                    conduit_semantic_catalog::install_flow_zip_feedback_kind
-                } else {
-                    conduit_semantic_catalog::install_flow_zip_finite_kind
-                };
-                install(
-                    &l.contract,
-                    &l.schema,
-                    &r.contract,
-                    &r.schema,
-                    startup,
-                    profiles,
-                )?;
-            }
-        }
-    }
-    Ok(())
+#[path = "composite_install.rs"]
+mod construction;
+pub(crate) use construction::install;
+
+fn typed_family(name: &str) -> Option<&'static str> {
+    [
+        "state/seeded/flow/until",
+        "flow/merge/finite",
+        "flow/zip/finite",
+        "flow/zip/feedback",
+    ]
+    .into_iter()
+    .find(|family| {
+        name.strip_prefix(family)
+            .is_some_and(|tail| tail.starts_with("/typed-"))
+    })
 }
 
 pub(crate) fn selected(
     gear: &p::CheckedGear,
     types: Option<&p::CheckedSyntaxDocument>,
 ) -> Result<Option<(c::Kind, Role)>, String> {
-    let name = gear.kind_id.as_str();
+    let selected_name = gear.kind_id.as_str();
+    let typed = typed_family(selected_name);
+    let name = typed.unwrap_or(selected_name);
     if ![
         "state/seeded/flow/until",
         "flow/merge/finite",
@@ -159,7 +99,7 @@ pub(crate) fn selected(
             .ok_or("composite schema custody")?;
         Ok(Value { contract, schema })
     };
-    let (kind, role) = match name {
+    let (mut kind, role) = match name {
         "state/seeded/flow/until" => {
             let v = input("seed")?;
             conduit_composite::SeededStateBack::prepare_until(&v.contract, &v.schema)
@@ -217,6 +157,26 @@ pub(crate) fn selected(
             )
         }
     };
+    if let Some(family) = typed {
+        kind.kind_id = match &role {
+            Role::SeededUntil(value) | Role::Merge(value) => c::typed_kind_instance_id(
+                family,
+                core::iter::once((&value.schema, &value.contract)),
+            ),
+            Role::Zip { left, right, .. } => c::typed_kind_instance_id(
+                family,
+                [
+                    (&left.schema, &left.contract),
+                    (&right.schema, &right.contract),
+                ]
+                .into_iter(),
+            ),
+        }
+        .map_err(debug)?;
+        if kind.kind_id.as_str() != selected_name {
+            return Err("typed composite identity differs from checked schemas/contracts".into());
+        }
+    }
     Ok(Some((kind, role)))
 }
 
@@ -235,9 +195,31 @@ pub(crate) fn emit_definition(role: &Role) -> Result<String, String> {
         ))
     };
     Ok(match role {
-        Role::SeededUntil(v) => format!("D::SeededUntilStatic{{schema:{},maximum_bytes:{}}}", schema(v)?, v.contract.maximum_bytes),
-        Role::Merge(v) => format!("D::MergeStatic{{schema:{},maximum_bytes:{}}}", schema(v)?, v.contract.maximum_bytes),
-        Role::Zip { left, right, feedback } => format!("D::ZipStatic{{left_schema:{},left_maximum_bytes:{},right_schema:{},right_maximum_bytes:{},feedback:{feedback}}}", schema(left)?, left.contract.maximum_bytes, schema(right)?, right.contract.maximum_bytes),
+        Role::SeededUntil(v) => format!(
+            "D::SeededUntilStatic{{schema:{},maximum_bytes:{}}}",
+            schema(v)?,
+            v.contract.maximum_bytes
+        ),
+        Role::Merge(v) => format!(
+            "D::MergeStatic{{schema:{},maximum_bytes:{}}}",
+            schema(v)?,
+            v.contract.maximum_bytes
+        ),
+        Role::Zip {
+            left,
+            right,
+            feedback,
+        } => {
+            let pair = c::PreparedTypedTuplePairEncoder::new(
+                left.schema.clone(),
+                left.contract.maximum_bytes,
+                right.schema.clone(),
+                right.contract.maximum_bytes,
+            )
+            .map_err(debug)?;
+            let output = pair.value_type().canonical_bytes().map_err(debug)?;
+            format!("D::ZipStatic{{left_schema:{},left_maximum_bytes:{},right_schema:{},right_maximum_bytes:{},output_schema:&{output:?},feedback:{feedback}}}", schema(left)?, left.contract.maximum_bytes, schema(right)?, right.contract.maximum_bytes)
+        }
     })
 }
 
@@ -249,16 +231,11 @@ mod tests {
     fn authored_bme_protocol_compiles_through_shared_mcu_source() {
         let units = [
             include_str!("../../../../plots/device-protocols/bme280-lifecycle.conduit"),
-            // This entry needs the shared join, not the separate externally
-            // driven finite-feedback demonstration in the same source file.
-            include_str!("../../../../plots/device-protocols/bme280-feedback.conduit")
-                .split("\nplot bme280-feedback")
-                .next()
-                .unwrap(),
             include_str!("../../../../plots/device-protocols/bme280-clock-events.conduit"),
             include_str!("../../../../plots/device-protocols/main.conduit"),
             include_str!("../../../../plots/device-protocols/bme280-capture-observation.conduit"),
             include_str!("../../../../plots/device-protocols/bme280-protocol-frame.conduit"),
+            include_str!("../../../../plots/device-protocols/bme280-exchange.conduit"),
             include_str!("../../../../plots/device-protocols/bme280-autonomous.conduit"),
         ];
         let imports = units
@@ -383,3 +360,23 @@ mod tests {
         .is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "correlated_i2c_tests.rs"]
+mod correlated_i2c_tests;
+
+#[cfg(test)]
+#[path = "composite_instance_tests.rs"]
+mod instance_tests;
+
+#[cfg(test)]
+#[path = "composite_zip_instance_tests.rs"]
+mod zip_instance_tests;
+
+#[cfg(test)]
+#[path = "composite_ht_protocol_tests.rs"]
+mod ht_protocol_tests;
+
+#[cfg(test)]
+#[path = "composite_shared_bus_tests.rs"]
+mod shared_bus_tests;

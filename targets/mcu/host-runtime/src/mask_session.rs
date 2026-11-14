@@ -1,6 +1,7 @@
 //! Continuing execution of the admitted Value-input Mask through the ordinary
 //! prepared session. Local adapters are exact Fore owners, never network Lines.
 use crate::execution_mask::{self, FrameTicket, OutputFrame, RendererClock, RendererService};
+use conduit_environment_runtime::display_mask::PreparedFrameEncoder;
 extern crate alloc;
 use alloc::boxed::Box;
 use conduit_core::SignId;
@@ -55,9 +56,14 @@ impl From<execution_mask::Refusal> for Refusal {
 /// This owner is constructed only after the complete workset has Started.
 /// Storage for optional output tracking is allocated during original preparation.
 /// Its previous invocation's mandatory evidence is returned explicitly on rearm.
-pub struct MaskSession<'a, C: RendererClock> {
+pub struct MaskSession<
+    'a,
+    C: RendererClock,
+    E: PreparedFrameEncoder = conduit_environment_runtime::display_mask::Tm1637Encoder,
+    const FRAME: usize = { conduit_tm1637_protocol::DISPLAY_FRAME_BYTES },
+> {
     session: Session,
-    renderer: RendererService<'a, C>,
+    renderer: RendererService<'a, C, E, FRAME>,
     boundaries: Boundaries,
     sequence: u64,
     active: bool,
@@ -65,10 +71,12 @@ pub struct MaskSession<'a, C: RendererClock> {
     request: Option<HostCallRequest>,
     frame_pending: Option<FrameTicket>,
 }
-impl<'a, C: RendererClock> MaskSession<'a, C> {
+impl<'a, C: RendererClock, E: PreparedFrameEncoder, const FRAME: usize>
+    MaskSession<'a, C, E, FRAME>
+{
     pub fn bind_started(
         kernel: Box<Kernel>,
-        renderer: RendererService<'a, C>,
+        renderer: RendererService<'a, C, E, FRAME>,
         boundaries: Boundaries,
         remote_sign_reservation: u16,
         optional: OptionalOutputStorage<6>,
@@ -210,6 +218,29 @@ impl<'a, C: RendererClock> MaskSession<'a, C> {
         }
         self.frame_pending = None;
         Ok(())
+    }
+    /// Complete only an exact successful redraw outcome from the selected HT
+    /// output Plot. The initialization acknowledgement (five transactions), a
+    /// bus-result value, refusal or malformed bytes cannot publish Available.
+    /// # Safety
+    /// Root must correlate this ticket, bytes and Sign with the acknowledged
+    /// output of this frame's original admitted HT write Plot. Canonical bytes
+    /// alone are not authority or evidence of a physical effect.
+    #[cfg(feature = "ht16k33-mask")]
+    pub unsafe fn ht16k33_completion(
+        &mut self,
+        ticket: FrameTicket,
+        acknowledgement: &[u8],
+        available_sign: SignId,
+    ) -> Result<(), Refusal> {
+        if self.frame_pending != Some(ticket) {
+            return Err(Refusal::Lifecycle);
+        }
+        conduit_ht16k33::frame::validate_write_acknowledgement(acknowledgement)
+            .map_err(|_| Refusal::Lifecycle)?;
+        // SAFETY: exact selected output correlation remains this caller's
+        // obligation; the typed result has been checked before any mutation.
+        unsafe { self.electrical_completion(ticket, available_sign) }
     }
     /// Borrow drained evidence for exact archive preflight without rearming.
     pub fn drained_evidence(&self) -> Result<DrainedInvocation<&k::FixedSignLog<64>>, Refusal> {

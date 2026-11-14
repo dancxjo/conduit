@@ -61,6 +61,30 @@ fn nested_nominal_record_and_variant_match_original_canonical_composition() {
     let mut output = vec![0; owned.len()];
     assert_eq!(writer.encode_into(value, &mut output).unwrap(), owned);
     validate_canonical_structured_value(&output).unwrap();
+    let expected = validate_canonical_structured_value(&owned).unwrap();
+    let mut node = vec![0; expected.value_node().len()];
+    assert_eq!(
+        writer.encode_node_into(value, &mut node).unwrap(),
+        expected.value_node()
+    );
+    let detached = {
+        let validator = BorrowedStructuredValueValidator::new(&schema, owned.len()).unwrap();
+        validator.validate_node(&node).unwrap()
+    };
+    assert_eq!(detached, expected);
+    let detached = {
+        let validator = BorrowedStructuredValueValidator::new(&schema, owned.len()).unwrap();
+        validator.validate(&owned).unwrap()
+    };
+    assert_eq!(detached, expected);
+    // External canonical transport is unchanged when the schema is restored.
+    let mut restored = schema.clone();
+    restored.extend_from_slice(&node);
+    assert_eq!(restored, owned);
+    let limited = PreparedLinkedStructuredComposer::new(&schema, owned.len() - 1).unwrap();
+    node.fill(0xa5);
+    assert!(limited.encode_node_into(value, &mut node).is_err());
+    assert!(node.iter().all(|byte| *byte == 0xa5));
 }
 #[test]
 fn preflight_refusals_preserve_caller_buffer_and_valid_empty_is_not_an_arbitrary_leaf() {
@@ -77,11 +101,17 @@ fn preflight_refusals_preserve_caller_buffer_and_valid_empty_is_not_an_arbitrary
     ] {
         assert!(writer.encode_into(value, &mut output).is_err());
         assert_eq!(output, [0xa5; 64]);
+        assert!(writer.encode_node_into(value, &mut output).is_err());
+        assert_eq!(output, [0xa5; 64]);
     }
     let count = crate::encode_count(1);
     let mut short = [0xa5; 1];
     assert!(writer
         .encode_into(BorrowedStructuredValue::Leaf(&count), &mut short)
+        .is_err());
+    assert_eq!(short, [0xa5; 1]);
+    assert!(writer
+        .encode_node_into(BorrowedStructuredValue::Leaf(&count), &mut short)
         .is_err());
     assert_eq!(short, [0xa5; 1]);
     assert!(PreparedLinkedStructuredComposer::new(&[0; 3], 64).is_err());

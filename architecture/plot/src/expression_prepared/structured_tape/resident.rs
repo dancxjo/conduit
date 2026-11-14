@@ -1,10 +1,24 @@
 //! Resident constructor data; Root independently admits its full realization.
 use super::*;
+use crate::expression_prepared::canonical_input::CanonicalInput;
 use crate::expression_prepared::{StaticProjectedExpression, StaticProjectedRefusal};
 use crate::rust_binding::{PreparedNativeRefusal, ResidentNativeValidator};
+#[path = "resident/borrowed.rs"]
+mod borrowed;
+#[path = "resident/children.rs"]
+mod children;
 #[path = "resident/generate.rs"]
 mod generate;
-pub use generate::{generate_static_structured_expression, StaticStructuredGenerationRefusal};
+#[path = "resident/image.rs"]
+mod image;
+pub use borrowed::BorrowedStaticStructuredExpression;
+use children::ParentCheckedStructuredValue;
+pub use children::StaticStructuredChildTable;
+pub use generate::{
+    generate_borrowed_static_structured_expression_with_work,
+    generate_static_structured_expression, generate_static_structured_expression_with_work,
+    GeneratedStaticStructuredExpression, StaticStructuredGenerationRefusal,
+};
 pub struct StaticStructuredProgram {
     pub instructions: &'static [StructuredTapeInstruction],
     pub constants: &'static [u8],
@@ -31,19 +45,45 @@ pub enum StaticStructuredValue<const INPUT: usize> {
     Scalar(StaticProjectedExpression<INPUT>),
     InputPath(&'static [crate::StaticExpressionPathStep]),
 }
-/// No owned instructions, constants, schemas or result storage. This is a value
-/// evaluator, never an offered Back or an execution/native admission witness.
-/// The installing Root must bind the exact checked artifact and admit complete
-/// state, traversal, child validation, stack, scratch and cooperative work.
+/// Make-owned children sharing the enclosing expression's exact Native input.
+/// Descriptors are not prepared values or execution/admission witnesses.
+pub enum StaticStructuredChildProgram {
+    Scalar(&'static crate::StaticProjectedProgram),
+    InputPath(&'static [crate::StaticExpressionPathStep]),
+}
+/// Sealed resident images preserve the same checked Native execution boundary.
+/// Storage choices neither initialize a Back nor grant execution authority.
+pub trait StructuredExpressionImage: image::sealed::Sealed {
+    fn input_schema_bytes(&self) -> Option<&[u8]>;
+    fn output_schema_bytes(&self) -> Option<&[u8]>;
+    fn maximum_input_bytes(&self) -> usize;
+    fn maximum_output_bytes(&self) -> usize;
+    fn computation_work(&self) -> u32;
+    fn scratch_bytes(&self) -> usize;
+    fn evaluate_into(
+        &mut self,
+        input: &[u8],
+        output: &mut [u8],
+        scratch: &mut [u8],
+    ) -> Result<usize, StaticStructuredRefusal>;
+    fn evaluate_parts_into(
+        &mut self,
+        schema: &[u8],
+        node: &[u8],
+        output: &mut [u8],
+        scratch: &mut [u8],
+    ) -> Result<usize, StaticStructuredRefusal>;
+}
+/// Independently prepared children retain their checked views inline. No heap
+/// allocation is hidden in this owned metadata storage choice. Root must still
+/// bind the checked artifact and admit state, stack, scratch and mandatory work.
 pub struct StaticStructuredExpression<
     const INPUT: usize,
     const OUTPUT: usize,
     const CHILDREN: usize,
 > {
-    input: ResidentNativeValidator<INPUT>,
-    output: ResidentNativeValidator<OUTPUT>,
-    children: [StaticStructuredValue<INPUT>; CHILDREN],
-    program: &'static StaticStructuredProgram,
+    image: image::Image<INPUT, OUTPUT>,
+    children: [ParentCheckedStructuredValue; CHILDREN],
 }
 impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<I, O, C> {
     /// Data must be trusted Make output, never self-declared incoming authority.
@@ -53,18 +93,7 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
         children: [StaticStructuredValue<I>; C],
         program: &'static StaticStructuredProgram,
     ) -> Result<Self, Refusal> {
-        if C > MAX_VALUES
-            || program.instructions.is_empty()
-            || program.instructions.len() > MAX_OPERATIONS
-            || program.constants.len() > MAX_CONSTANT_BYTES
-            || [program.maximum_input_bytes, program.maximum_output_bytes]
-                .iter()
-                .any(|n| *n > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES)
-            || (program.maximum_input_bytes == 0 && !input.is_intrinsic_empty())
-            || program.maximum_output_bytes == 0
-        {
-            return Err(Refusal::InvalidProgram);
-        }
+        image::validate_program(&input, program, C)?;
         for child in &children {
             if let StaticStructuredValue::Scalar(child) = child {
                 if !child.input_matches(&input) {
@@ -77,188 +106,154 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
                 }
             }
         }
-        for (pc, op) in program.instructions.iter().enumerate() {
-            let valid = match *op {
-                Operation::Bytes { start, length } => (start as usize)
-                    .checked_add(length as usize)
-                    .is_some_and(|end| end <= program.constants.len()),
-                Operation::InputNode { start, length } => (start as usize)
-                    .checked_add(length as usize)
-                    .is_some_and(|end| end <= program.maximum_input_bytes),
-                Operation::Value(index) => usize::from(index) < C,
-                Operation::BranchFalse { value, target } => {
-                    usize::from(value) < C
-                        && usize::from(target) > pc
-                        && usize::from(target) <= program.instructions.len()
-                }
-                Operation::Jump(target) => {
-                    usize::from(target) > pc && usize::from(target) <= program.instructions.len()
-                }
-            };
-            if !valid {
-                return Err(Refusal::InvalidProgram);
+        let children = children.map(|child| match child {
+            StaticStructuredValue::Scalar(child) => {
+                ParentCheckedStructuredValue::Scalar(child.into_parent_checked())
             }
-        }
+            StaticStructuredValue::InputPath(path) => ParentCheckedStructuredValue::InputPath(path),
+        });
         Ok(Self {
-            input,
-            output,
+            image: image::Image {
+                input,
+                output,
+                program,
+            },
             children,
-            program,
         })
     }
+    /// Prepare immutable child descriptions through one bounded loop. Every
+    /// scalar inherits this exact already-prepared Native input; independently
+    /// prepared children still use `new` and its correspondence checks.
+    #[inline(never)]
+    pub fn from_child_programs(
+        input: ResidentNativeValidator<I>,
+        output: ResidentNativeValidator<O>,
+        descriptors: &'static [StaticStructuredChildProgram; C],
+        program: &'static StaticStructuredProgram,
+    ) -> Result<Self, StaticStructuredRefusal> {
+        image::validate_program(&input, program, C)?;
+        let mut refusal = None;
+        let children = core::array::from_fn(|index| {
+            if refusal.is_some() {
+                return ParentCheckedStructuredValue::InputPath(&[]);
+            }
+            let prepared = match &descriptors[index] {
+                StaticStructuredChildProgram::Scalar(program) => {
+                    StaticProjectedExpression::new(input.clone(), program)
+                        .map(|child| {
+                            ParentCheckedStructuredValue::Scalar(child.into_parent_checked())
+                        })
+                        .map_err(|error| StaticStructuredRefusal::Child {
+                            index: index as u16,
+                            refusal: StaticProjectedRefusal::Expression(error),
+                        })
+                }
+                StaticStructuredChildProgram::InputPath(path) => {
+                    if crate::expression_prepared::resident_projection::valid(path) {
+                        Ok(ParentCheckedStructuredValue::InputPath(path))
+                    } else {
+                        Err(Refusal::InvalidProgram.into())
+                    }
+                }
+            };
+            match prepared {
+                Ok(child) => child,
+                Err(error) => {
+                    refusal = Some(error);
+                    ParentCheckedStructuredValue::InputPath(&[])
+                }
+            }
+        });
+        if let Some(refusal) = refusal {
+            return Err(refusal);
+        }
+        Ok(Self {
+            image: image::Image {
+                input,
+                output,
+                program,
+            },
+            children,
+        })
+    }
+    pub fn input_schema_bytes(&self) -> Option<&[u8]> {
+        self.image.input_schema_bytes()
+    }
+    pub fn output_schema_bytes(&self) -> Option<&[u8]> {
+        self.image.output_schema_bytes()
+    }
     pub const fn maximum_input_bytes(&self) -> usize {
-        self.program.maximum_input_bytes
+        self.image.maximum_input_bytes()
     }
     pub const fn maximum_output_bytes(&self) -> usize {
-        self.program.maximum_output_bytes
+        self.image.maximum_output_bytes()
     }
-    /// Upper bound in cooperative bounded-operation units, not CPU cycles.
-    /// Both validation passes, all possible constructor/child operations and
-    /// publication staging are charged, including unselected branches.
     pub fn computation_work(&self) -> u32 {
-        let mut work = self
-            .input
-            .validation_work(self.program.maximum_input_bytes)
-            .saturating_add(
-                self.output
-                    .validation_work(self.program.maximum_output_bytes),
-            )
-            .saturating_add(2); // schema prefix and final bounded result copy
-        let child_work = |index: u16| {
-            self.children
-                .get(usize::from(index))
-                .map_or(u32::MAX, |child| match child {
-                    StaticStructuredValue::Scalar(child) => child.checked_work(),
-                    StaticStructuredValue::InputPath(path) => (path.len() + 1) as u32,
-                })
-        };
-        for op in self.program.instructions {
-            let units = match *op {
-                Operation::Value(i) => child_work(i).saturating_add(4),
-                Operation::BranchFalse { value, .. } => child_work(value).saturating_add(2),
-                Operation::Bytes { .. } | Operation::InputNode { .. } => 2,
-                Operation::Jump(_) => 1,
-            };
-            work = work.saturating_add(units);
-        }
-        work
+        self.image.computation_work(&self.children)
     }
     pub fn scratch_bytes(&self) -> usize {
-        self.program.maximum_output_bytes
+        self.image.scratch_bytes()
     }
-    /// Scratch is separately admitted staging, reused after success or refusal.
-    /// No bytes reach `output` until the full constructed Native value passes.
     pub fn evaluate_into(
         &mut self,
         input: &[u8],
         output: &mut [u8],
         scratch: &mut [u8],
     ) -> Result<usize, StaticStructuredRefusal> {
-        let validated = self
-            .input
-            .validate_borrowed(input)
-            .map_err(StaticStructuredRefusal::Input)?;
-        if input.len() > self.program.maximum_input_bytes {
-            return Err(Refusal::InvalidInput.into());
-        }
-        if scratch.len() < self.program.maximum_output_bytes {
-            return Err(Refusal::InvalidProgram.into());
-        }
-        let mut staged = SliceOutput {
-            bytes: &mut scratch[..self.program.maximum_output_bytes],
-            used: 0,
-        };
-        staged.write(self.output.schema_bytes())?;
-        execute(
-            self.program.instructions,
-            self.program.constants,
-            input,
-            &mut staged,
-            &mut ResidentValues {
-                children: &mut self.children,
-                input: validated,
-            },
-        )?;
-        let value = &staged.bytes[..staged.used];
-        self.output
-            .validate(value)
-            .map_err(StaticStructuredRefusal::Output)?;
-        if output.len() < value.len() {
-            return Err(Refusal::InvalidProgram.into());
-        }
-        output[..value.len()].copy_from_slice(value);
-        Ok(value.len())
+        self.image
+            .evaluate_into(input, output, scratch, &self.children)
+    }
+    pub fn evaluate_parts_into(
+        &mut self,
+        schema: &[u8],
+        node: &[u8],
+        output: &mut [u8],
+        scratch: &mut [u8],
+    ) -> Result<usize, StaticStructuredRefusal> {
+        self.image
+            .evaluate_parts_into(schema, node, output, scratch, &self.children)
     }
 }
-struct SliceOutput<'a> {
-    bytes: &'a mut [u8],
-    used: usize,
+impl<const I: usize, const O: usize, const C: usize> image::sealed::Sealed
+    for StaticStructuredExpression<I, O, C>
+{
 }
-impl Output for SliceOutput<'_> {
-    fn write(&mut self, bytes: &[u8]) -> Result<(), Refusal> {
-        let end = self
-            .used
-            .checked_add(bytes.len())
-            .ok_or(Refusal::InvalidProgram)?;
-        self.bytes
-            .get_mut(self.used..end)
-            .ok_or(Refusal::InvalidProgram)?
-            .copy_from_slice(bytes);
-        self.used = end;
-        Ok(())
+impl<const I: usize, const O: usize, const C: usize> StructuredExpressionImage
+    for StaticStructuredExpression<I, O, C>
+{
+    fn input_schema_bytes(&self) -> Option<&[u8]> {
+        self.input_schema_bytes()
     }
-}
-struct ResidentValues<'a, const I: usize> {
-    children: &'a mut [StaticStructuredValue<I>],
-    input: conduit_core::ValidatedCanonicalStructuredValue<'a>,
-}
-impl<const I: usize> ResidentValues<'_, I> {
-    fn evaluate(
-        &self,
-        index: u16,
+    fn output_schema_bytes(&self) -> Option<&[u8]> {
+        self.output_schema_bytes()
+    }
+    fn maximum_input_bytes(&self) -> usize {
+        self.maximum_input_bytes()
+    }
+    fn maximum_output_bytes(&self) -> usize {
+        self.maximum_output_bytes()
+    }
+    fn computation_work(&self) -> u32 {
+        self.computation_work()
+    }
+    fn scratch_bytes(&self) -> usize {
+        self.scratch_bytes()
+    }
+    fn evaluate_into(
+        &mut self,
         input: &[u8],
         output: &mut [u8],
+        scratch: &mut [u8],
     ) -> Result<usize, StaticStructuredRefusal> {
-        let StaticStructuredValue::Scalar(value) = self
-            .children
-            .get(usize::from(index))
-            .ok_or(Refusal::InvalidProgram)?
-        else {
-            return Err(Refusal::InvalidProgram.into());
-        };
-        value
-            .evaluate_checked_into(input, self.input, output)
-            .map_err(|refusal| StaticStructuredRefusal::Child { index, refusal })
+        self.evaluate_into(input, output, scratch)
     }
-}
-impl<const I: usize> Values for ResidentValues<'_, I> {
-    type Error = StaticStructuredRefusal;
-    fn append(
+    fn evaluate_parts_into(
         &mut self,
-        index: u16,
-        input: &[u8],
-        output: &mut impl Output,
-    ) -> Result<(), Self::Error> {
-        if let Some(StaticStructuredValue::InputPath(path)) = self.children.get(usize::from(index))
-        {
-            let value = crate::expression_prepared::resident_projection::select(self.input, path)?;
-            output.write(value.value_node())?;
-            return Ok(());
-        }
-        let mut bytes = [0; 16];
-        let n = self.evaluate(index, input, &mut bytes)?;
-        output.write(&[0])?;
-        output.write(&(n as u32).to_le_bytes())?;
-        output.write(&bytes[..n])?;
-        Ok(())
-    }
-    fn condition(&mut self, index: u16, input: &[u8]) -> Result<bool, Self::Error> {
-        let mut bytes = [0; 16];
-        let n = self.evaluate(index, input, &mut bytes)?;
-        match &bytes[..n] {
-            [0] => Ok(false),
-            [1] => Ok(true),
-            _ => Err(Refusal::InvalidProgram.into()),
-        }
+        schema: &[u8],
+        node: &[u8],
+        output: &mut [u8],
+        scratch: &mut [u8],
+    ) -> Result<usize, StaticStructuredRefusal> {
+        self.evaluate_parts_into(schema, node, output, scratch)
     }
 }

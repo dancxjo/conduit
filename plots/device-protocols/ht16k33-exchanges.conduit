@@ -1,0 +1,78 @@
+# Generic protocol topology. The caller supplies exact checked state/pair/merge
+# Plots (or compatible Kinds) and the paired Type. Native bounds remain inside
+# the selected implementations; this library selects no generic family itself.
+type Ht16k33ProtocolFrame = {
+    value: Ht16k33State
+    terminal: Boolean
+}
+plot ht16k33-protocol-frame (
+    state: Ht16k33State...| >> frame: Ht16k33ProtocolFrame...|
+) = ({ value: ., terminal: .phase >= 5 })
+plot ht16k33-protocol-state (
+    frame: Ht16k33ProtocolFrame...| >> state: Ht16k33State...|
+) = (.value)
+plot ht16k33-join-selected (
+    pair-type: type
+    pair: pair-type...| >> transition: Ht16k33Transition...|
+) = ({ state: .0, result: .1 })
+
+# Only the selected bus result advances the feedback cell. The terminal frame
+# is published before closing, including failures; there is no host-side retry.
+plot ht16k33-initialize-exchange-selected (
+    pair-type: type
+    state-cell: kind (
+        >> seed: Ht16k33ProtocolFrame...|
+        >> next: Ht16k33ProtocolFrame...|
+        current: Ht16k33ProtocolFrame...| >>
+    )
+    pairing: kind (
+        >> left: Ht16k33State...|
+        >> right: I2cResult...|
+        paired: pair-type...| >>
+    )
+    >> configuration: Ht16k33Configuration...|
+    >> result: I2cResult...|
+    request: I2cTransaction...| >>
+    acknowledged: Ht16k33Acknowledgement...| >>
+    refused: Ht16k33Failure...| >>
+) {
+    cell: state-cell
+    states: ht16k33-protocol-state
+    actions: ht16k33-action
+    join: pairing
+    configuration >> ht16k33-initialize() >> ht16k33-protocol-frame() >> cell.seed
+    cell.current >> states
+    states >> join.left
+    states >> actions
+    actions >> select(Ht16k33Action.transact, unmatched=drop) >> request
+    actions >> select(Ht16k33Action.acknowledged, unmatched=drop) >> acknowledged
+    actions >> select(Ht16k33Action.refused, unmatched=drop) >> refused
+    result >> join.right
+    join.paired >> ht16k33-join-selected(pair-type = pair-type) >> ht16k33-transition() >> ht16k33-protocol-frame() >> cell.next
+}
+
+# Mapping a Face to RAM is a separate Mask responsibility. This Plot transfers
+# that RAM once and reports only the selected bus's write outcome.
+plot ht16k33-write-exchange-selected (
+    error-merge: kind (
+        >> left: Ht16k33Failure...|
+        >> right: Ht16k33Failure...|
+        merged: Ht16k33Failure...| >>
+    )
+    >> frame: Ht16k33Frame...|
+    >> result: I2cResult...|
+    request: I2cTransaction...| >>
+    acknowledged: Ht16k33Acknowledgement...| >>
+    refused: Ht16k33Failure...| <= 4096B >>
+) {
+    requests: ht16k33-frame-request
+    outcomes: ht16k33-write-outcome
+    errors: error-merge
+    frame >> requests
+    requests >> select(Ht16k33Action.transact, unmatched=drop) >> request
+    requests >> select(Ht16k33Action.refused, unmatched=drop) >> errors.left
+    result >> outcomes
+    outcomes >> select(Ht16k33Action.acknowledged, unmatched=drop) >> acknowledged
+    outcomes >> select(Ht16k33Action.refused, unmatched=drop) >> errors.right
+    errors.merged >> refused
+}

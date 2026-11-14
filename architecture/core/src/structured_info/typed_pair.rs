@@ -67,6 +67,16 @@ pub struct PreparedTypedTuplePairEncoder {
     maximum_bytes: u32,
 }
 
+/// Execution-only prepared pairing storage. Exact canonical member schemas,
+/// composition rules and finite buffers remain; the rich inspection Type tree
+/// is released by the consuming preparation boundary.
+pub struct PreparedTypedTuplePairRuntimeEncoder {
+    left: Member,
+    right: Member,
+    composer: PreparedStructuredComposer,
+    maximum_bytes: u32,
+}
+
 impl PreparedTypedTuplePairEncoder {
     pub fn new(
         left_type: StructuredInfoType,
@@ -102,7 +112,15 @@ impl PreparedTypedTuplePairEncoder {
             .and_then(|size| size.checked_add(leaf_framing(&right_type)))
             .filter(|size| *size <= MAXIMUM_STRUCTURED_CANONICAL_BYTES)
             .ok_or(Refusal::CanonicalEncodingTooLarge)?;
-        let composer = PreparedStructuredComposer::new(&value_type, maximum)?;
+        // The selected envelope remains `maximum`; private mutable storage
+        // needs only the complete bound enforced by the member validators.
+        // Domain or variable-width leaves keep the original selected bound.
+        let backing_maximum = value_type
+            .canonical_value_upper_bound(|kind| {
+                crate::fixed_primitive_info_payload_bytes(kind.as_str())
+            })
+            .map_or(maximum, |bound| bound.min(maximum));
+        let composer = PreparedStructuredComposer::new(&value_type, backing_maximum)?;
         Ok(Self {
             left: Member::new(&left_type, left_maximum)?,
             right: Member::new(&right_type, right_maximum)?,
@@ -118,15 +136,98 @@ impl PreparedTypedTuplePairEncoder {
     pub fn maximum_bytes(&self) -> u32 {
         self.maximum_bytes
     }
+    /// Proven output extent for fixed primitive schemas. Unknown or variable
+    /// leaf payloads retain the selected conservative envelope. This does not
+    /// change either member's accepted domain or the selected input limits.
+    pub fn maximum_encoded_bytes(&self) -> u32 {
+        self.value_type
+            .canonical_value_upper_bound(|kind| {
+                crate::fixed_primitive_info_payload_bytes(kind.as_str())
+            })
+            .and_then(|bound| u32::try_from(bound).ok())
+            .map_or(self.maximum_bytes, |bound| self.maximum_bytes.min(bound))
+    }
+
     pub fn encoded(&self) -> &[u8] {
         self.composer.encoded()
     }
 
-    pub fn encode(&mut self, left: &[u8], right: &[u8]) -> Result<&[u8], Refusal> {
-        let left = self.left.encode(left)?;
-        let right = self.right.encode(right)?;
-        self.composer.record(&[left, right])
+    /// Consume the checked preparation result without rebuilding buffers or
+    /// changing canonical identity/bounds. No authority or value is created.
+    pub fn into_runtime(self) -> PreparedTypedTuplePairRuntimeEncoder {
+        let Self {
+            left,
+            right,
+            value_type,
+            composer,
+            maximum_bytes,
+        } = self;
+        drop(value_type);
+        PreparedTypedTuplePairRuntimeEncoder {
+            left,
+            right,
+            composer,
+            maximum_bytes,
+        }
     }
+
+    pub fn encode(&mut self, left: &[u8], right: &[u8]) -> Result<&[u8], Refusal> {
+        encode_pair(
+            &mut self.left,
+            &mut self.right,
+            &mut self.composer,
+            left,
+            right,
+        )
+    }
+}
+
+impl PreparedTypedTuplePairRuntimeEncoder {
+    /// Exact structured member schema. Primitive members retain their raw ABI.
+    pub fn canonical_input_schema(&self, side: usize) -> Option<&[u8]> {
+        let member = match side {
+            0 => &self.left,
+            1 => &self.right,
+            _ => return None,
+        };
+        member
+            .primitive
+            .is_none()
+            .then_some(member.schema.as_slice())
+    }
+
+    /// Exact composed pair schema, without rebuilding an inspection Type tree.
+    pub fn canonical_output_schema(&self) -> &[u8] {
+        self.composer.canonical_type_bytes()
+    }
+
+    pub fn maximum_bytes(&self) -> u32 {
+        self.maximum_bytes
+    }
+    pub fn encoded(&self) -> &[u8] {
+        self.composer.encoded()
+    }
+    pub fn encode(&mut self, left: &[u8], right: &[u8]) -> Result<&[u8], Refusal> {
+        encode_pair(
+            &mut self.left,
+            &mut self.right,
+            &mut self.composer,
+            left,
+            right,
+        )
+    }
+}
+
+fn encode_pair<'a>(
+    left: &mut Member,
+    right: &mut Member,
+    composer: &'a mut PreparedStructuredComposer,
+    left_input: &[u8],
+    right_input: &[u8],
+) -> Result<&'a [u8], Refusal> {
+    let left = left.encode(left_input)?;
+    let right = right.encode(right_input)?;
+    composer.record(&[left, right])
 }
 
 fn maximum_value_nodes(ty: &StructuredInfoType) -> Result<usize, Refusal> {
@@ -162,3 +263,7 @@ fn maximum_value_nodes(ty: &StructuredInfoType) -> Result<usize, Refusal> {
         .filter(|count| *count <= MAXIMUM_STRUCTURED_INFO_NODES)
         .ok_or(Refusal::TooManyNodes)
 }
+
+#[cfg(test)]
+#[path = "typed_pair/runtime_tests.rs"]
+mod runtime_tests;

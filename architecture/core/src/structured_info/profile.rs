@@ -42,3 +42,22 @@ impl StructuredInfoType {
         StructuredInfoProfile::new(self.clone())
     }
 }
+
+/// Compare the existing exact profile identity without constructing an owned
+/// Type tree or allocating a formatted KindId. Caller supplies validated schema.
+pub(super) fn matches_canonical_schema(schema: &[u8], identity: &str) -> bool {
+    let Some(hex) = identity
+        .strip_prefix("structured-info/profile-")
+        .and_then(|text| text.strip_suffix("@1"))
+    else {
+        return false;
+    };
+    let Ok(digest) = super::canonical::digest(super::TYPE_DIGEST_DOMAIN, schema) else {
+        return false;
+    };
+    hex.len() == 64
+        && digest.iter().enumerate().all(|(index, byte)| {
+            hex.as_bytes()[2 * index] == HEX[usize::from(byte >> 4)]
+                && hex.as_bytes()[2 * index + 1] == HEX[usize::from(byte & 15)]
+        })
+}

@@ -4,15 +4,11 @@ use super::*;
 pub(crate) fn checked_canonical_hex(
     checked: &CheckedExpression,
 ) -> Result<String, PortableExpressionProgramRefusal> {
-    let mut counted = ProgramSink {
-        storage: ProgramStorage::Count,
-        length: 0,
-    };
+    let mut counted = ProgramSink::new(ProgramStorage::Count);
     encode(checked, &mut counted)?;
-    let mut encoded = ProgramSink {
-        storage: ProgramStorage::Hex(String::with_capacity(counted.length * 2)),
-        length: 0,
-    };
+    let mut encoded = ProgramSink::new(ProgramStorage::Hex(String::with_capacity(
+        counted.length * 2,
+    )));
     encode(checked, &mut encoded)?;
     let ProgramStorage::Hex(text) = encoded.storage else {
         unreachable!("hex storage")
@@ -45,7 +41,9 @@ fn encode(
         value_contract::push_contract(sink, checked.output_value_contract.as_ref());
     }
     push_checked(sink, &checked.syntax, checked)?;
-    if sink.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
+    if sink.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES
+        || sink.expanded_length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES
+    {
         return Err(PortableExpressionProgramRefusal::TooLarge);
     }
     Ok(())
@@ -279,7 +277,7 @@ mod tests {
     }
 
     #[test]
-    fn streamed_checked_programs_match_the_retained_v2_tree_encoding() {
+    fn streamed_checked_programs_match_the_retained_typed_tree_encoding() {
         let input = crate::CheckedExpressionType::semantic("value/u8");
         let values = BTreeMap::new();
         let structures = BTreeMap::new();

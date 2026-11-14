@@ -21,6 +21,8 @@ impl<const PORTS: usize> StepIo<PORTS> {
             outputs: [None; PORTS],
             canonical_output: None,
             prepared_outputs: [None; PORTS],
+            #[cfg(feature = "execution-workspace")]
+            workspace_output_capacity: None,
             #[cfg(feature = "alloc")]
             native_output_port: None,
             #[cfg(feature = "alloc")]

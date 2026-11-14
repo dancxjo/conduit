@@ -1,8 +1,7 @@
 //! Bind ordinary lowered service terminal laws into the production scheduler.
 use super::*;
+use crate::selection_fixture;
 use conduit_core as c;
-#[path = "../../../../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs"]
-mod selection_fixture;
 
 fn fixture() -> Fixture<{ crate::read_result::READ_RESULT_BYTES }> {
     let kind = crate::service_contract::definition();
@@ -98,7 +97,7 @@ fn one_input_closes_without_stopping_other_operation_and_last_close_completes() 
         let mut f = fixture();
         close(&mut f, first);
         f.step();
-        assert_eq!(f.kernel.drivers()[0].back.closed[first], true);
+        assert!(f.kernel.drivers()[0].back.closed[first]);
         let other = 1 - first;
         f.input(other);
         let request = f.request(other, 0);

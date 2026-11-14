@@ -43,6 +43,7 @@ mod flow_merge_finite;
 #[cfg(feature = "kernel-executor")]
 mod flow_select;
 mod flow_zip;
+mod value_backing;
 mod value_pair;
 pub use value_pair::ValuePairBack;
 #[cfg(feature = "kernel-executor")]

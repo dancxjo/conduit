@@ -5,6 +5,8 @@ use crate::execution::StoredExecutionKernel;
 use conduit_kernel::{scheduler::*, *};
 #[path = "native_sync_append.rs"]
 mod append;
+#[path = "native_sync_i2c.rs"]
+mod i2c;
 #[path = "native_sync_service.rs"]
 mod service;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -63,6 +65,12 @@ pub unsafe trait SynchronousHostCall {
     ) -> Result<(), CallFailure> {
         self.acknowledge(request)
     }
+    /// Called after normal kernel drain and actor quiescence. Retire the exact
+    /// authority without asserting fresh readiness. A provider may preserve an
+    /// already idle physical controller; failures still require mandatory revoke.
+    fn finish(&mut self) -> Result<(), CallFailure> {
+        self.revoke()
+    }
     fn revoke(&mut self) -> Result<(), CallFailure>;
 }
 /// Original owner loan plus independently funded output storage. Input is
@@ -99,11 +107,15 @@ impl<'a, P: SynchronousHostCall> Service<'a, P> {
     pub fn revoke(&mut self) -> Result<(), CallFailure> {
         self.owner.revoke()
     }
+    pub fn finish(&mut self) -> Result<(), CallFailure> {
+        self.owner.finish()
+    }
     /// Acquire blocking exclusion before taking a request. Timing activity and
     /// result/Sign pressure leave that exact pending request untouched.
     pub fn dispatch<
         D: StepBack<PORTS>,
         L: SignSink,
+        V: ValueStorage,
         const N: usize,
         const C: usize,
         const PORTS: usize,
@@ -113,7 +125,7 @@ impl<'a, P: SynchronousHostCall> Service<'a, P> {
         const K: usize,
     >(
         &mut self,
-        kernel: &mut StoredExecutionKernel<D, L, N, C, PORTS, R, T, H, K>,
+        kernel: &mut StoredExecutionKernel<D, L, N, C, PORTS, R, T, H, K, V>,
         activity: &NativeActivity,
     ) -> Result<Dispatch, Refusal> {
         let Some(_window) = activity.try_blocking() else {

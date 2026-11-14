@@ -45,10 +45,32 @@ impl From<PreparedNativeRefusal> for StaticProjectedRefusal {
 /// installs an offer, reservation or Play.
 pub struct StaticProjectedExpression<const CONTRACTS: usize> {
     native: ResidentNativeValidator<CONTRACTS>,
-    tape: ScalarTape,
-    inputs: &'static [StaticProjectedInput],
-    output: PrimitiveInfoKind,
-    maximum_input_bytes: usize,
+    checked: ParentCheckedProjectedExpression,
+}
+/// Immutable Make-emitted code and operand metadata, retained once in flash.
+/// This is a program description, not a validation or execution witness.
+pub struct StaticProjectedProgram {
+    pub maximum_input_bytes: usize,
+    pub output: PrimitiveInfoKind,
+    pub instructions: &'static [ScalarTapeInstruction],
+    pub result: usize,
+    pub inputs: &'static [StaticProjectedInput],
+    pub output_contract: Option<&'static conduit_core::FixedIntegerContractSpec<'static>>,
+}
+impl StaticProjectedProgram {
+    fn tape(&self) -> ScalarTape {
+        ScalarTape {
+            instructions: Cow::Borrowed(self.instructions),
+            result: self.result,
+            scratch: ScratchProfile::prepare(self.instructions.len()),
+        }
+    }
+}
+/// Retained only after constructor checks, with the enclosing parent's exact
+/// Native definition matched before its input validator can be discarded.
+#[derive(Clone, Copy)]
+pub(in crate::expression_prepared) struct ParentCheckedProjectedExpression {
+    program: &'static StaticProjectedProgram,
     output_contract: Option<conduit_core::BorrowedFixedIntegerContract<'static>>,
 }
 impl<const N: usize> StaticProjectedExpression<N> {
@@ -56,13 +78,16 @@ impl<const N: usize> StaticProjectedExpression<N> {
     /// Every Input instruction requires one ordered, bounded payload descriptor.
     pub fn new(
         native: ResidentNativeValidator<N>,
-        maximum_input_bytes: usize,
-        output: PrimitiveInfoKind,
-        instructions: &'static [ScalarTapeInstruction],
-        result: usize,
-        inputs: &'static [StaticProjectedInput],
-        output_contract: Option<&'static conduit_core::FixedIntegerContractSpec<'static>>,
+        program: &'static StaticProjectedProgram,
     ) -> Result<Self, Refusal> {
+        let StaticProjectedProgram {
+            maximum_input_bytes,
+            output,
+            instructions,
+            result,
+            inputs,
+            output_contract,
+        } = *program;
         if (maximum_input_bytes == 0 && !native.is_intrinsic_empty())
             || maximum_input_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
             || inputs.len() > MAXIMUM_INSTRUCTIONS
@@ -113,22 +138,17 @@ impl<const N: usize> StaticProjectedExpression<N> {
             .transpose()?;
         Ok(Self {
             native,
-            tape: ScalarTape {
-                instructions: Cow::Borrowed(instructions),
-                result,
-                scratch: ScratchProfile::prepare(instructions.len()),
+            checked: ParentCheckedProjectedExpression {
+                program,
+                output_contract,
             },
-            inputs,
-            output,
-            maximum_input_bytes,
-            output_contract,
         })
     }
     pub fn instruction_count(&self) -> usize {
-        self.tape.instruction_count()
+        self.checked.program.instructions.len()
     }
     pub fn scratch_bytes(&self) -> usize {
-        self.tape.scratch_bytes()
+        self.checked.program.tape().scratch_bytes()
     }
     pub fn evaluate_into(
         &self,
@@ -136,7 +156,11 @@ impl<const N: usize> StaticProjectedExpression<N> {
         output: &mut [u8],
     ) -> Result<usize, StaticProjectedRefusal> {
         let validated = self.native.validate_borrowed(input)?;
-        self.evaluate_checked_into(input, validated, output)
+        self.checked.evaluate_checked_input_into(
+            crate::expression_prepared::canonical_input::CanonicalInput::Whole(input),
+            validated,
+            output,
+        )
     }
     pub(in crate::expression_prepared) fn input_matches(
         &self,
@@ -144,40 +168,73 @@ impl<const N: usize> StaticProjectedExpression<N> {
     ) -> bool {
         self.native.same_definition(native)
     }
-    pub(in crate::expression_prepared) fn checked_work(&self) -> u32 {
-        let mut work = (self.tape.instruction_count() as u32).saturating_add(4);
-        for operand in self.inputs {
-            let units = match operand.source {
-                StaticProjectedSource::Fixed { .. } => 2,
-                StaticProjectedSource::Path(path) => path.len() + 2,
-                StaticProjectedSource::VariantIs { path, .. } => path.len() + 3,
-                StaticProjectedSource::Length(path) => path.len() + 2,
-            };
-            work = work.saturating_add(units as u32);
+    /// Caller first checks `input_matches` against the retained parent. This
+    /// consumes the duplicate validator; it does not skip value validation.
+    pub(in crate::expression_prepared) fn into_parent_checked(
+        self,
+    ) -> ParentCheckedProjectedExpression {
+        self.checked
+    }
+}
+impl ParentCheckedProjectedExpression {
+    pub(in crate::expression_prepared) fn output_contract(
+        &self,
+    ) -> Option<conduit_core::BorrowedFixedIntegerContract<'static>> {
+        self.output_contract
+    }
+    /// Private reuse after the parent constructor validated the immutable
+    /// program and retained this exact output guard in its checked slot map.
+    pub(in crate::expression_prepared) fn from_parent_checked_program(
+        program: &'static StaticProjectedProgram,
+        output_contract: Option<conduit_core::BorrowedFixedIntegerContract<'static>>,
+    ) -> Self {
+        Self {
+            program,
+            output_contract,
         }
-        work.saturating_add(self.output_contract.map_or(0, |c| c.validation_work()) as u32)
+    }
+
+    // One cold traversal over immutable operand metadata, shared by children.
+    #[inline(never)]
+    pub(in crate::expression_prepared) fn checked_work(&self) -> u32 {
+        use crate::expression_prepared::resident_work::{projected_work, ProjectedInputWork as W};
+        projected_work(
+            self.program.instructions.len(),
+            self.program.inputs.iter().map(|input| match input.source {
+                StaticProjectedSource::Fixed { .. } => W::Fixed,
+                StaticProjectedSource::Path(path) => W::Path(path.len()),
+                StaticProjectedSource::VariantIs { path, .. } => W::VariantIs(path.len()),
+                StaticProjectedSource::Length(path) => W::Length(path.len()),
+            }),
+            self.output_contract.map_or(0, |c| c.validation_work()),
+        )
     }
     // Private reuse only after the enclosing evaluator checks its whole input.
     // Constructor-time definition equality preserves every child guard/bound.
-    pub(in crate::expression_prepared) fn evaluate_checked_into(
+    pub(in crate::expression_prepared) fn evaluate_checked_input_into(
         &self,
-        input: &[u8],
+        input: crate::expression_prepared::canonical_input::CanonicalInput<'_>,
         validated: conduit_core::ValidatedCanonicalStructuredValue<'_>,
         output: &mut [u8],
     ) -> Result<usize, StaticProjectedRefusal> {
-        if input.len() > self.maximum_input_bytes {
+        if input
+            .len()
+            .is_none_or(|n| n > self.program.maximum_input_bytes)
+        {
             return Err(Refusal::InvalidInput.into());
         }
-        let length = static_image::width(self.output).ok_or(Refusal::InvalidProgram)?;
+        let length = static_image::width(self.program.output).ok_or(Refusal::InvalidProgram)?;
         if output.len() < length {
             return Err(Refusal::InvalidProgram.into());
         }
-        let value = self.tape.evaluate_with_inputs(&|pc, kind| {
+        let tape = self.program.tape();
+        let value = tape.evaluate_with_inputs(&|pc, kind| {
             let index = self
+                .program
                 .inputs
                 .binary_search_by_key(&pc, |i| i.instruction)
                 .map_err(|_| Refusal::InvalidProgram)?;
-            let location = &self.inputs[index];
+            let location = &self.program.inputs[index];
             use super::super::resident_projection::select;
             match location.source {
                 StaticProjectedSource::Fixed { start, length } => {
@@ -216,10 +273,10 @@ impl<const N: usize> StaticProjectedExpression<N> {
                 ),
             }
         })?;
-        if value.kind != self.output {
+        if value.kind != self.program.output {
             return Err(Refusal::InvalidProgram.into());
         }
-        static_image::validate_leaf(self.output, value.as_slice())?;
+        static_image::validate_leaf(self.program.output, value.as_slice())?;
         if let Some(contract) = self.output_contract {
             contract
                 .validate(value.as_slice())

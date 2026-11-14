@@ -353,7 +353,7 @@ pub fn run(
     let kernel_bytes = prepared.kernel_storage_bytes();
     let total = prepared.preparation_bytes(&owner, &observations).unwrap();
     assert!(total <= policy.maximum_storage_bytes);
-    if crate::resident::generated::ENTRY_COUNT == 5 {
+    let unselected_extra = if crate::resident::generated::ENTRY_COUNT == 5 {
         let selected = image
             .maximum_input_bytes()
             .max(image.maximum_output_bytes())
@@ -362,9 +362,12 @@ pub fn run(
         let selected_bytes = HostedValueStore::canonical_storage_bytes([selected; 3]).unwrap();
         let global_bytes = HostedValueStore::canonical_storage_bytes([global; 3]).unwrap();
         let unselected_extra = global_bytes - selected_bytes;
-        assert!(total + unselected_extra > policy.maximum_storage_bytes);
+        assert!(unselected_extra > 0);
         println!("actual five-entry library: {total} B selected preparation versus {} B if unrelated widest entry were charged; {unselected_extra} B avoided",total+unselected_extra);
-    }
+        unselected_extra
+    } else {
+        0
+    };
 
     assert!(matches!(
         prepared.admit_and_bind(&mut owner, &[]),
@@ -375,6 +378,24 @@ pub fn run(
     assert!(slot.is_some());
     assert_eq!(owner, before);
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    if unselected_extra > 0 {
+        // Test the actual selected preparation boundary, rather than a stale
+        // fixed ceiling that later general memory reductions may undercut.
+        let exact_policy = Policy {
+            maximum_storage_bytes: total,
+            ..policy
+        };
+        let exact = prepare!(exact_policy, receiver.context()).unwrap();
+        assert!(
+            exact.preparation_bytes(&owner, &observations).unwrap()
+                <= exact_policy.maximum_storage_bytes
+        );
+        assert!(total + unselected_extra > exact_policy.maximum_storage_bytes);
+        drop(exact);
+        assert_eq!(owner, before);
+        assert_eq!(effects.get(), 0);
+        assert!(slot.is_some());
+    }
     let prepared = prepare!(policy, receiver.context()).unwrap();
     let (result, cost) =
         crate::probe::observe_refusing(1, || prepared.admit_and_bind(&mut owner, &observations));

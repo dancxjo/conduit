@@ -3,7 +3,12 @@
 extern crate alloc;
 use alloc::{string::String, vec::Vec};
 use conduit_core as c;
+use conduit_environment_runtime::display_mask::PreparedFrameEncoder;
 use core::mem::size_of;
+#[path = "native_images_io.rs"]
+mod io;
+pub use io::{clock_at, i2c};
+
 pub struct Projection {
     pub base: c::BaseProviderAdvertisement,
     pub resource: c::ResourceOffer,
@@ -100,9 +105,13 @@ impl<'a> Publication<'a> {
     ) -> Result<(), Refusal> {
         self.append(wait(owner, self.actual, self.remaining)?)
     }
-    pub fn renderer<P: crate::execution_mask::RendererClock>(
+    pub fn renderer<
+        P: crate::execution_mask::RendererClock,
+        E: PreparedFrameEncoder,
+        const FRAME: usize,
+    >(
         &mut self,
-        owner: &crate::execution_mask::ReadyRenderer<P>,
+        owner: &crate::execution_mask::ReadyRenderer<P, E, FRAME>,
     ) -> Result<(), Refusal> {
         self.append(renderer(owner, self.actual, self.remaining)?)
     }
@@ -130,9 +139,9 @@ struct Facts<'a> {
     generation: u64,
     implementation: &'a c::BaseImplementationId,
     pool: &'a c::ResourcePoolId,
-    class: &'static str,
-    mechanism: &'static str,
-    capability: &'static str,
+    class: &'a str,
+    mechanism: &'a str,
+    capability: &'a str,
 }
 macro_rules! facts {
     ($id:expr,$class:expr,$capability:expr) => {{
@@ -196,8 +205,12 @@ pub fn wait<P: conduit_monotonic_wait::MonotonicWaitProvider>(
         maximum_bytes,
     )
 }
-pub fn renderer<P: crate::execution_mask::RendererClock>(
-    owner: &crate::execution_mask::ReadyRenderer<P>,
+pub fn renderer<
+    P: crate::execution_mask::RendererClock,
+    E: PreparedFrameEncoder,
+    const FRAME: usize,
+>(
+    owner: &crate::execution_mask::ReadyRenderer<P, E, FRAME>,
     actual: &c::HostAdvertisement,
     maximum_bytes: usize,
 ) -> Result<Projection, Refusal> {

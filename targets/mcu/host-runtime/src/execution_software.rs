@@ -50,22 +50,45 @@ pub struct RecordingLogScope<'a> {
 /// This enum contains no parser, sensor decoder, packet encoder or scheduler.
 /// Resident expressions remain separately compiled, exactly selected owners.
 pub enum SoftwareBack<'a> {
+    LinkedSource(Box<conduit_typed_retention::PreparedLinkedSource<'static>>),
     SeededState(Box<conduit_composite::SeededStateBack>),
     Zip(Box<conduit_composite::FlowZipBack>),
     Merge(Box<conduit_composite::FlowMergeFiniteBack>),
     Tick(conduit_time::TickBack),
     Trigger(conduit_time::TickTriggerBack),
     Selector(Box<SelectorBack>),
+    #[cfg(feature = "execution-workspace")]
+    WorkspaceSelector(Box<WorkspaceSelectorBack>),
     Observation(Box<ObservationBack>),
     RecordingLog(Box<conduit_environment_runtime::recording::RecordingLogBack>),
     Publication(Box<PublicationFaceBack<'a>>),
 }
 impl<'a> SoftwareBack<'a> {
+    /// Borrow immutable checked material from the installed image. Root still
+    /// selects the exact Kind/identity and funds this owner before Start.
+    pub fn linked_source_static(
+        schema: &'static [u8],
+        value: &'static [u8],
+        maximum_bytes: usize,
+    ) -> Result<Self, &'static str> {
+        conduit_typed_retention::PreparedLinkedSource::prepare(schema, value, maximum_bytes)
+            .map(|back| Self::LinkedSource(Box::new(back)))
+            .map_err(|_| "linked-source-material")
+    }
+
     pub fn seeded_until(
         contract: &conduit_core::CheckedValueContract,
         schema: &conduit_core::StructuredInfoType,
     ) -> Result<Self, &'static str> {
         conduit_composite::SeededStateBack::prepare_until(contract, schema)
+            .map(|back| Self::SeededState(Box::new(back)))
+    }
+    pub fn seeded_until_static(
+        contract: &conduit_core::CheckedValueContract,
+        schema: &conduit_core::StructuredInfoType,
+        canonical: &'static [u8],
+    ) -> Result<Self, &'static str> {
+        conduit_composite::SeededStateBack::prepare_until_static(contract, schema, canonical)
             .map(|back| Self::SeededState(Box::new(back)))
     }
     pub fn zip(
@@ -75,21 +98,85 @@ impl<'a> SoftwareBack<'a> {
         right_type: conduit_core::StructuredInfoType,
         feedback: bool,
     ) -> Result<Self, &'static str> {
+        #[cfg(feature = "execution-workspace")]
+        let back = if feedback {
+            conduit_composite::FlowZipBack::prepare_typed_feedback_workspace(
+                left, left_type, right, right_type,
+            )
+        } else {
+            conduit_composite::FlowZipBack::prepare_typed_finite_workspace(
+                left, left_type, right, right_type,
+            )
+        };
+        #[cfg(not(feature = "execution-workspace"))]
         let back = if feedback {
             conduit_composite::FlowZipBack::prepare_typed_feedback(
                 left, left_type, right, right_type,
             )
         } else {
             conduit_composite::FlowZipBack::prepare_typed_finite(left, left_type, right, right_type)
-        }
-        .map_err(|_| "zip-definition")?;
+        };
+        let back = back.map_err(|_| "zip-definition")?;
         Ok(Self::Zip(Box::new(back)))
+    }
+    /// Explicit flash schema profile; runtime workspace selection remains finite.
+    pub fn zip_static(
+        left: &conduit_core::CheckedValueContract,
+        left_type: conduit_core::StructuredInfoType,
+        right: &conduit_core::CheckedValueContract,
+        right_type: conduit_core::StructuredInfoType,
+        schemas: [&'static [u8]; 3],
+        feedback: bool,
+    ) -> Result<Self, &'static str> {
+        #[cfg(feature = "execution-workspace")]
+        {
+            let back = if feedback {
+                conduit_composite::FlowZipBack::prepare_typed_feedback_static_workspace(
+                    left, left_type, right, right_type, schemas,
+                )
+            } else {
+                conduit_composite::FlowZipBack::prepare_typed_finite_static_workspace(
+                    left, left_type, right, right_type, schemas,
+                )
+            }
+            .map_err(|_| "zip-static-definition")?;
+            Ok(Self::Zip(Box::new(back)))
+        }
+        #[cfg(not(feature = "execution-workspace"))]
+        {
+            if left_type
+                .canonical_bytes()
+                .map_err(|_| "zip-static-schema")?
+                != schemas[0]
+                || right_type
+                    .canonical_bytes()
+                    .map_err(|_| "zip-static-schema")?
+                    != schemas[1]
+                || conduit_core::tuple_info_type(alloc::vec![left_type.clone(), right_type.clone()])
+                    .and_then(|ty| ty.canonical_bytes())
+                    .map_err(|_| "zip-static-schema")?
+                    != schemas[2]
+            {
+                return Err("zip-static-schema");
+            }
+            Self::zip(left, left_type, right, right_type, feedback)
+        }
     }
     pub fn merge(
         schema: &conduit_core::StructuredInfoType,
         maximum_bytes: u32,
     ) -> Result<Self, &'static str> {
         conduit_composite::FlowMergeFiniteBack::prepare(schema, maximum_bytes)
+            .map(|back| Self::Merge(Box::new(back)))
+            .map_err(|_| "merge-definition")
+    }
+
+    pub fn merge_static(
+        schema: &conduit_core::StructuredInfoType,
+        canonical: &'static [u8],
+        maximum_bytes: u32,
+    ) -> Result<Self, &'static str> {
+        conduit_composite::FlowMergeFiniteBack::prepare_static(schema, canonical, maximum_bytes)
             .map(|back| Self::Merge(Box::new(back)))
             .map_err(|_| "merge-definition")
     }
@@ -119,11 +206,20 @@ impl<'a> SoftwareBack<'a> {
         input_bytes: usize,
         output_bytes: usize,
     ) -> Result<Self, &'static str> {
-        Ok(Self::Selector(Box::new(SelectorBack::prepare_static(
-            canonical,
-            input_bytes,
-            output_bytes,
-        )?)))
+        #[cfg(feature = "execution-workspace")]
+        {
+            Ok(Self::WorkspaceSelector(Box::new(
+                WorkspaceSelectorBack::prepare_static(canonical, input_bytes, output_bytes)?,
+            )))
+        }
+        #[cfg(not(feature = "execution-workspace"))]
+        {
+            Ok(Self::Selector(Box::new(SelectorBack::prepare_static(
+                canonical,
+                input_bytes,
+                output_bytes,
+            )?)))
+        }
     }
     pub fn dht11_observation() -> Result<Self, &'static str> {
         let contract = ObservationContract::prepare().map_err(|_| "observation-contract")?;
@@ -199,197 +295,14 @@ impl<'a> SoftwareBack<'a> {
         })))
     }
 }
-impl<const P: usize> StepBack<P> for SoftwareBack<'_> {
-    fn terminal_transductions(
-        &self,
-    ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; P] {
-        match self {
-            Self::SeededState(back) => {
-                <conduit_composite::SeededStateBack as StepBack<P>>::terminal_transductions(back)
-            }
-            Self::Zip(back) => {
-                <conduit_composite::FlowZipBack as StepBack<P>>::terminal_transductions(back)
-            }
-            Self::Merge(back) => {
-                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::terminal_transductions(
-                    back,
-                )
-            }
-            _ => [None; P],
-        }
-    }
+#[path = "execution_software_step.rs"]
+mod step;
 
-    fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
-        match self {
-            Self::SeededState(back) => {
-                <conduit_composite::SeededStateBack as StepBack<P>>::step(back, io, input)
-            }
-            Self::Zip(back) => {
-                <conduit_composite::FlowZipBack as StepBack<P>>::step(back, io, input)
-            }
-            Self::Merge(back) => {
-                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::step(back, io, input)
-            }
-            Self::Tick(back) => back.step(io, input),
-            Self::Trigger(back) => back.step(io, input),
-            Self::Selector(back) => back.step(io, input),
-            Self::Observation(back) => back.step(io, input),
-            Self::RecordingLog(back) => back.step(io, input),
-            Self::Publication(back) => back.step(io, input),
-        }
-    }
-    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        match self {
-            Self::SeededState(back) => <conduit_composite::SeededStateBack as StepBack<P>>::prepared_output(back, port),
-            Self::Zip(back) => <conduit_composite::FlowZipBack as StepBack<P>>::prepared_output(back, port),
-            Self::Merge(back) => <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::prepared_output(back, port),
-            Self::Selector(back) => <SelectorBack as StepBack<P>>::prepared_output(back, port),
-            Self::Observation(back) => {
-                <ObservationBack as StepBack<P>>::prepared_output(back, port)
-            }
-            Self::RecordingLog(back) => <conduit_environment_runtime::recording::RecordingLogBack as StepBack<P>>::prepared_output(back,port),
-            _ => None,
-        }
-    }
-    fn step_committed(&mut self) {
-        match self {
-            Self::SeededState(back) => <conduit_composite::SeededStateBack as StepBack<P>>::step_committed(back),
-            Self::Zip(back) => <conduit_composite::FlowZipBack as StepBack<P>>::step_committed(back),
-            Self::Merge(back) => <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::step_committed(back),
-            Self::Tick(back) => <conduit_time::TickBack as StepBack<P>>::step_committed(back),
-            Self::Trigger(back) => {
-                <conduit_time::TickTriggerBack as StepBack<P>>::step_committed(back)
-            }
-            Self::Selector(back) => <SelectorBack as StepBack<P>>::step_committed(back),
-            Self::Observation(back) => <ObservationBack as StepBack<P>>::step_committed(back),
-            Self::RecordingLog(back) => <conduit_environment_runtime::recording::RecordingLogBack as StepBack<P>>::step_committed(back),
-            Self::Publication(back) => <PublicationFaceBack as StepBack<P>>::step_committed(back),
-        }
-    }
-    fn cancel(&mut self) {
-        match self {
-            Self::SeededState(back) => {
-                <conduit_composite::SeededStateBack as StepBack<P>>::cancel(back)
-            }
-            Self::Zip(back) => <conduit_composite::FlowZipBack as StepBack<P>>::cancel(back),
-            Self::Merge(back) => {
-                <conduit_composite::FlowMergeFiniteBack as StepBack<P>>::cancel(back)
-            }
-            Self::Tick(back) => <conduit_time::TickBack as StepBack<P>>::cancel(back),
-            Self::Trigger(back) => <conduit_time::TickTriggerBack as StepBack<P>>::cancel(back),
-            Self::Selector(back) => <SelectorBack as StepBack<P>>::cancel(back),
-            Self::Observation(back) => <ObservationBack as StepBack<P>>::cancel(back),
-            Self::RecordingLog(back) => {
-                <conduit_environment_runtime::recording::RecordingLogBack as StepBack<P>>::cancel(
-                    back,
-                )
-            }
-            Self::Publication(back) => <PublicationFaceBack as StepBack<P>>::cancel(back),
-        }
-    }
-}
 fn fail(detail: u16) -> StepOutcome {
     StepOutcome::Fail(Failure {
         code: FailureCode::InvalidInput,
         detail,
     })
-}
-/// Pure checked selection runs as an ordinary StepBack, not a hardware Host Call.
-pub struct SelectorBack {
-    selector: PreparedCanonicalSelector,
-    maximum: usize,
-    staged: bool,
-}
-impl SelectorBack {
-    pub fn prepare(
-        selector: conduit_core::StructuredSelector,
-        input: usize,
-        output: usize,
-    ) -> Result<Self, &'static str> {
-        if input == 0
-            || output == 0
-            || input > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-            || output > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-        {
-            return Err("selector-bound");
-        }
-        Ok(Self {
-            selector: PreparedCanonicalSelector::prepare(selector, input, output)
-                .map_err(|_| "selector")?,
-            maximum: output,
-            staged: false,
-        })
-    }
-    pub fn prepare_static(
-        canonical: &'static [u8],
-        input: usize,
-        output: usize,
-    ) -> Result<Self, &'static str> {
-        if input == 0
-            || output == 0
-            || input > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-            || output > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
-        {
-            return Err("selector-bound");
-        }
-        Ok(Self {
-            selector: PreparedCanonicalSelector::prepare_static(canonical, input, output)
-                .map_err(|_| "selector")?,
-            maximum: output,
-            staged: false,
-        })
-    }
-}
-impl<const P: usize> StepBack<P> for SelectorBack {
-    fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
-        self.staged = false;
-        if io.input_abnormal(PortId(0)).is_some() {
-            return fail(1);
-        }
-        let Some(reference) = io.input(PortId(0)) else {
-            return if io.input_closed(PortId(0)) {
-                if io.consume_closed(PortId(0)).is_ok() {
-                    StepOutcome::Complete
-                } else {
-                    fail(2)
-                }
-            } else {
-                StepOutcome::Await
-            };
-        };
-        if !io.output_ready(PortId(0)) {
-            return StepOutcome::Await;
-        }
-        let Some(bytes) = input.input(PortId(0)) else {
-            return fail(3);
-        };
-        if bytes.len() != reference.byte_len as usize || io.consume_fuel(1).is_err() {
-            return fail(4);
-        }
-        match self.selector.select(bytes) {
-            Ok(Some(value)) if value.len() <= self.maximum => {
-                if io.send_prepared(PortId(0), value.len() as u32).is_err() {
-                    return fail(5);
-                }
-                self.staged = true;
-            }
-            Ok(None) => {}
-            _ => return fail(6),
-        }
-        if io.consume(PortId(0)).is_err() {
-            return fail(7);
-        }
-        StepOutcome::Progress
-    }
-    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0) && self.staged).then_some(self.selector.output())
-    }
-    fn step_committed(&mut self) {
-        self.staged = false;
-    }
-    fn cancel(&mut self) {
-        self.staged = false;
-    }
 }
 pub struct PublicationFaceBack<'a> {
     back: PublicationBack,
@@ -420,3 +333,16 @@ impl<const P: usize> StepBack<P> for PublicationFaceBack<'_> {
         <PublicationBack as StepBack<P>>::cancel(&mut self.back);
     }
 }
+
+#[cfg(all(test, feature = "schema-value-storage"))]
+#[path = "execution_selector_schema_tests.rs"]
+mod selector_schema_tests;
+
+#[path = "execution_software_schema.rs"]
+mod schema;
+
+#[path = "execution_selector.rs"]
+mod selector;
+pub use selector::SelectorBack;
+#[cfg(feature = "execution-workspace")]
+pub use selector::WorkspaceSelectorBack;

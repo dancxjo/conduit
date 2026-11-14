@@ -18,14 +18,28 @@ use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 /// Actual dispatch still crosses the exact selected I2cHostCall owner.
 pub struct I2cOperationFactory {
     implementation: ImplementationId,
+    base_implementation: BaseImplementationId,
     contract: I2cContract,
 }
 impl I2cOperationFactory {
     pub fn prepare_contract() -> Result<Self, super::contract::I2cContractPreparationRefusal> {
         Ok(Self {
             implementation: ImplementationId::from(I2C_IMPLEMENTATION),
+            base_implementation: "conduitos.base/i2c-controller@1".into(),
             contract: I2cContract::prepare()?,
         })
+    }
+    /// Pin the physical Base independently from this unchanged callable Back.
+    /// This describes a scheduler adapter; actual provider custody is still
+    /// independently checked by ReadyI2cBase before any Host Call is bound.
+    pub fn prepare_for_base(base_implementation: BaseImplementationId) -> Result<Self, String> {
+        if base_implementation.as_str().is_empty() {
+            return Err("native I2C requires an exact Base implementation".into());
+        }
+        let mut factory = Self::prepare_contract()
+            .map_err(|_| String::from("native I2C contract preparation failed"))?;
+        factory.base_implementation = base_implementation;
+        Ok(factory)
     }
     fn validate(&self, gear: &PlannedGear) -> Result<(), String> {
         let expected = self.contract.kind();
@@ -46,7 +60,7 @@ impl I2cOperationFactory {
             || gear.semantic_contract != expected.semantic_contract()
             || gear.limits != expected.limits
             || !gear.configuration.is_empty()
-            || base.implementation_id.as_str() != "conduitos.base/i2c-controller@1"
+            || base.implementation_id != self.base_implementation
             || base.mechanism_family.as_str() != I2C_ATTACHMENT_CLASS
             || base.enforcement_class != BaseEnforcementClass::Cooperative
             || call.contract_id.as_str() != I2C_CALL

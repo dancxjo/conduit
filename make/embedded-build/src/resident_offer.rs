@@ -11,6 +11,7 @@ pub(crate) fn append(
     temporal: c::PortTemporal,
     artifact: &c::ArtifactId,
     private_work: u16,
+    instance: Option<&str>,
 ) -> Result<c::CapabilityOffer, R> {
     let kind = conduit_semantic_catalog::pure_expression_contract(program, temporal)
         .map_err(|_| R::Contract)?;
@@ -27,8 +28,19 @@ pub(crate) fn append(
             )
             .max(1),
     };
+    let capability_id = match instance {
+        None => format!("{RESIDENT_EXPRESSION_PROFILE}/{}", artifact.as_str()),
+        Some(instance) => {
+            use sha2::{Digest, Sha256};
+            let digest = Sha256::digest(instance.as_bytes());
+            format!(
+                "{RESIDENT_EXPRESSION_PROFILE}/{}/instance/{digest:x}",
+                artifact.as_str()
+            )
+        }
+    };
     let back = c::Back {
-        capability_id: format!("{RESIDENT_EXPRESSION_PROFILE}/{}", artifact.as_str()).into(),
+        capability_id: capability_id.into(),
         execution_profile_id: RESIDENT_EXPRESSION_PROFILE.into(),
         implementation_id: RESIDENT_EXPRESSION_IMPLEMENTATION.into(),
         artifact_id: artifact.clone(),

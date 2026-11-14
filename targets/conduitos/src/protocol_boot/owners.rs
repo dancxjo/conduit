@@ -55,6 +55,7 @@ pub unsafe fn admit(
         request.pci_function
     );
     let bus_identity = I2cNativeIdentity {
+        base_implementation_id: "conduitos.base/i2c-controller@1".into(),
         host_id: host.clone(),
         boot_id: boot.clone(),
         base_id: format!("{prefix}/bus").into(),

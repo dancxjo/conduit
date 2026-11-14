@@ -31,3 +31,7 @@ pub mod resident_inventory;
 pub mod selected_assigned_expression;
 /// Exact selected native operation from the constrained assigned projection.
 pub mod selected_assigned_operation;
+
+/// Explicit pre-Play canonical representation with separately retained schemas.
+#[cfg(feature = "schema-value-storage")]
+pub mod schema_value_store;

@@ -59,7 +59,7 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
         .base
         .as_mut()
         .unwrap()
-        .implementation_id = "conduitos.base/i2c-controller@1".into();
+        .implementation_id = "fixture/base-i2c@1".into();
     if fore {
         let gear = &fragment.placements[0];
         for (direction, port) in [
@@ -84,6 +84,7 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
         }
     }
     let identity = I2cNativeIdentity {
+        base_implementation_id: "fixture/base-i2c@1".into(),
         host_id: scope.host_id.clone(),
         boot_id: scope.boot_id.clone(),
         base_id: "base/i2c".into(),
@@ -252,6 +253,24 @@ fn exercise(borrowed: bool, fore: bool, body: bool) {
         }
         None => fixture::authorization(scope.clone(), fragment, &active),
     };
+    let mut foreign_identity = identity.clone();
+    foreign_identity.base_implementation_id = "fixture/other-base-i2c@1".into();
+    // SAFETY: a second inert provider with an independently named physical
+    // Base is deliberately incompatible with this exact selected Plan.
+    let mut foreign = Some(unsafe {
+        ReadyI2cBase::new(
+            foreign_identity,
+            slot.as_ref().unwrap().attachment(),
+            Provider::default(),
+        )
+        .unwrap()
+    });
+    let (table, handle, claim) = issue();
+    assert!(matches!(
+        bind(&mut foreign, table, handle, claim, valid_scope),
+        Err(I2cCallRefusal::WrongBinding)
+    ));
+    assert!(foreign.is_some());
     possession::reject_unusable_grants(&mut slot, &scope, &issue, |slot, table, handle, claim| {
         bind(slot, table, handle, claim, valid_scope)
     });

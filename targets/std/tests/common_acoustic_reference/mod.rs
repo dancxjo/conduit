@@ -85,7 +85,6 @@ pub fn prepare_with_catalogues(
     let authored = expand_canonical_plot_for_authoring(&checked, entry, &profiles).unwrap();
     let pair = PreparedValuePairFactory::new(&contract, &stage, &contract, &stage).unwrap();
     let mut offers = vec![pair.offer().clone()];
-    let mut expression_capacity = 0;
     for gear in &authored.expanded.gears {
         if gear.kind_id.as_str() == conduit_semantic_catalog::VALUE_PAIR_KIND {
             continue;
@@ -94,9 +93,6 @@ pub fn prepare_with_catalogues(
             panic!("Source program")
         };
         let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-        expression_capacity = expression_capacity
-            .max(program.maximum_prepared_input_bytes().unwrap())
-            .max(program.maximum_prepared_output_bytes().unwrap());
         let offer = if gear.inputs[0].temporal == PortTemporal::Value {
             conduit_std_offers::pure_expression_local_offer(&program).unwrap()
         } else {
@@ -136,18 +132,13 @@ pub fn prepare_with_catalogues(
             )
         })
         .collect();
-    let capacity = authored
-        .expanded
-        .gears
-        .iter()
-        .flat_map(|gear| gear.semantic_contract.value_contracts())
-        .map(|contract| contract.contract.maximum_bytes)
-        .max()
-        // Fixed-size records need no variable ValueContract; their prepared
-        // codec bounds still admit the exact connection storage.
-        .unwrap_or(expression_capacity);
-    assert!(capacity as usize <= MAXIMUM_STRUCTURED_CANONICAL_BYTES);
-    let plan = conduit_planner::plan_expanded_authoring_with_options(
+    let connection_limits = conduit_planner::default_expanded_connection_limits(
+        &authored.expanded,
+        &hosts,
+        &placements,
+    )
+    .unwrap();
+    let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
         &authored,
         &hosts,
         &placements,
@@ -156,11 +147,12 @@ pub fn prepare_with_catalogues(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: capacity,
+            connection_byte_capacity: 32768,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
         },
+        &connection_limits,
         &boundaries,
     )
     .unwrap();

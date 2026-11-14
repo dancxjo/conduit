@@ -2,7 +2,7 @@
 use super::*;
 use crate::fore_bridge::{
     self as bridge, BoundForeBridge, CarrierPort, EgressSpec, Event, ForeBridgeActivation,
-    ObserverPort, PreparedForeBridge, PrimitiveIngressSpec,
+    IngressSpec, ObserverPort, PreparedForeBridge,
 };
 use conduit_wire::{
     ExternalForeSessionBinding as Binding, ExternalForeSessionMachine as Machine,
@@ -51,16 +51,17 @@ unsafe impl PreparedLocalKernels for PreparedForeSessions {
         BoundForeSessions(self)
     }
 }
-impl<C: MessageTransport, const PORTS: usize> PreparedForeCarrier<'_, '_, C, PORTS> {
+impl<'p, C: MessageTransport, const PORTS: usize> PreparedForeCarrier<'_, 'p, C, PORTS> {
     /// Check BOTH actual selected routes, their ABI policy and original bridge
     /// before admission. Group native kernels, bridge and this result using the
     /// existing PreparedKernelGroup, then attach to THIS carrier ticket.
     pub fn prepare_bridge_sessions(
         &self,
         bridge: &PreparedForeBridge<'_, '_>,
-        input: PrimitiveIngressSpec<'_>,
+        input: impl Into<IngressSpec<'p>>,
         output: EgressSpec<'_>,
     ) -> Result<PreparedForeSessions, ForeIoRefusal> {
+        let input = input.into();
         bridge
             .check_original_policy(&self.custody, input.pin(), output.pin())
             .map_err(|_| ForeIoRefusal::Scope)?;

@@ -61,8 +61,9 @@ pub fn prepare(
         ),
         _ => return Err(Refusal::Context),
     };
+    let base_implementation = config::I2C_BASE_IMPLEMENTATION.ok_or(Refusal::Unselected)?;
     let boot = actual.boot_id.as_str();
-    let fields: [&[&str]; 8] = [
+    let fields: [&[&str]; 9] = [
         &[actual.host_id.as_str()],
         &[boot],
         &[base],
@@ -71,6 +72,7 @@ pub fn prepare(
         &[boot, generation_suffix],
         &[boot, envelope_suffix],
         &[config::IMAGE_ID],
+        &[base_implementation],
     ];
     let required = fields
         .iter()
@@ -103,6 +105,7 @@ pub fn prepare(
         Ok(text)
     };
     let identity = I2cNativeIdentity {
+        base_implementation_id: copy(fields[8])?.into(),
         host_id: copy(fields[0])?.into(),
         boot_id: copy(fields[1])?.into(),
         base_id: copy(fields[2])?.into(),

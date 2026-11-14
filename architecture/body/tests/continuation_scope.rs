@@ -5,7 +5,7 @@ mod reference;
 
 #[test]
 fn full_six_reference_authorizes_only_fresh_local_three_and_refuses_scope_tampering() {
-    reference::with_reference(|scope, _, _| {
+    reference::with_full_reference(|scope, _, _, _, _, _| {
         for i in 0..scope.fragment_count() {
             let document = scope.document(i).unwrap();
             let (metadata, projection) =

@@ -68,6 +68,11 @@ pub struct ControlCallOwner {
 }
 
 impl ControlCallOwner {
+    /// Non-authorizing structural check for an already selected native owner.
+    pub(crate) fn native_attachment(&self) -> ControlAttachment {
+        self.attachment
+    }
+
     /// Inspect the original lease; revoking its table is not retirement.
     pub(crate) fn has_pending_lease(&self) -> bool {
         self.pending.is_some()
@@ -76,10 +81,10 @@ impl ControlCallOwner {
     /// Bind existing possession and an actual native attachment before Play.
     ///
     /// # Safety
-    /// The native composition root must own this exact controller/slot and DMA
+    /// The native composition root must own this exact controller/slot and native transfer
     /// storage under the claim's resource generation/envelope. No request may
-    /// choose another slot or buffer. The physical owner must retain DMA/rings
-    /// until acknowledged hardware quiescence, including on software revocation,
+    /// choose another slot or buffer. The physical owner must retain transfer storage (including DMA/rings
+    /// when used) until acknowledged hardware quiescence, including on software revocation,
     /// provider loss and timeout. This constructor grants no resource authority
     /// and does not provide hostile-code containment in a shared address space.
     #[allow(dead_code)] // native composition installation remains a separate step

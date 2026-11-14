@@ -59,6 +59,9 @@ pub(super) enum HostCommand {
         workset_source: Option<PathBuf>,
         #[arg(long, requires = "workset_source")]
         workset_entry: Vec<String>,
+        /// Captured typed compilation selections pinned to the authored Source.
+        #[arg(long, requires = "workset_source")]
+        workset_specializations: Option<PathBuf>,
         /// Private local invitation/owner pin input, never part of public artifacts.
         #[arg(long, requires = "private_seed_output")]
         private_seed_input: Option<PathBuf>,

@@ -17,6 +17,7 @@ static ALLOC: probe::Allocator = probe::Allocator;
 mod config {
     pub type Bus = ();
     pub const I2C_CONTROLLER: u8 = 1;
+    pub const I2C_BASE_IMPLEMENTATION: Option<&str> = Some("rp2040/i2c@1");
     pub const I2C_CALL_MAXIMUM_OPERATIONS: u32 = 1024;
     pub const I2C_CALL_ADDRESS_RANGE: Option<(u8, u8)> = Some((112, 118));
     pub const CONFIGURATION_ID: &str = "fixture/config";

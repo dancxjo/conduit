@@ -391,6 +391,7 @@ fn ready_slot<'a>(
     Some(unsafe {
         ReadyI2cBase::new(
             I2cNativeIdentity {
+                base_implementation_id: "rp2040/i2c@1".into(),
                 host_id: authority.host_id.clone(),
                 boot_id: authority.boot_id.clone(),
                 base_id: "base/i2c".into(),

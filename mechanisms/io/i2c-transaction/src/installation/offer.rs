@@ -19,7 +19,7 @@ pub fn capability_offer(
         semantic_contract: kind.semantic_contract(),
         startup_parameters: kind.startup_parameters.clone(),
         shorthand: kind.shorthand.clone(),
-        capability_id: CapabilityId::from("conduitos/i2c-transaction@1"),
+        capability_id: CapabilityId::from(I2C_CAPABILITY),
         kind_id: kind.kind_id.clone(),
         kind_contract_revision: kind.kind_contract_revision.clone(),
         implementation: ImplementationOffer {

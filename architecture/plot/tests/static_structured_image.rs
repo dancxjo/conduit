@@ -90,7 +90,9 @@ fn corpus(
         allocation_probe::observe(|| PreparedPortableExpressionEvaluator::new(p).unwrap());
     eprintln!("{name}: owned_preparation={cost:?}");
     drop(owned);
-    let image = generate_static_structured_expression(d, p, bounds(), 4096).unwrap();
+    let generated = generate_static_structured_expression_with_work(d, p, bounds(), 4096).unwrap();
+    let reported_work = generated.computation_work;
+    let image = generated.source;
     assert_eq!(
         image,
         generate_static_structured_expression(d, p, bounds(), 4096).unwrap()
@@ -98,6 +100,9 @@ fn corpus(
     let allocator =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/common/allocation_probe.rs");
     let mut main=format!("#[path={:?}]mod probe;#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;fn main(){{let(mut e,c)=probe::observe(||image::prepare().unwrap());assert_eq!(c.allocations,0);assert_eq!(c.reallocations,0);assert!(image::RUNTIME_STATE_BYTES<4096);let mut scratch=[0u8;4096];let mut output=[0xa5u8;4096];\n",allocator.to_str().unwrap());
+    main.push_str(&format!(
+        "assert_eq!(e.computation_work(),{reported_work},\"compiler/runtime work drift\");\n"
+    ));
     main.push_str(&format!("println!(\"{name}: resident_state_bytes={{}}, output_stage_bytes={{}}\",image::RUNTIME_STATE_BYTES,e.scratch_bytes());\n"));
     for input in values {
         let expected = admit(d, &p.input_type, &input)
@@ -111,6 +116,13 @@ fn corpus(
                 Ok(v)
             });
         main.push_str(&format!("output.fill(0xa5);let(actual,c)=probe::observe(||e.evaluate_into(&{input:?},&mut output,&mut scratch));assert_eq!(c.allocations,0);assert_eq!(c.reallocations,0);\n"));
+        if let Some(node) = input.strip_prefix(p.input_type.canonical_bytes().unwrap().as_slice()) {
+            let schema = p.input_type.canonical_bytes().unwrap();
+            main.push_str(&format!("let saved=output;output.fill(0xa5);let(split,c)=probe::observe(||e.evaluate_parts_into(&{schema:?},&{node:?},&mut output,&mut scratch));assert_eq!(c.allocations,0);assert_eq!(c.reallocations,0);assert_eq!(split,actual);assert_eq!(output,saved);output.fill(0xa5);assert!(e.evaluate_parts_into(&[0],&{node:?},&mut output,&mut scratch).is_err());assert_eq!(output,[0xa5;4096]);output=saved;\n"));
+            if let Ok(bytes) = &expected {
+                main.push_str(&format!("output.fill(0xa5);assert!(e.evaluate_parts_into(&{schema:?},&{node:?},&mut output[..{}],&mut scratch).is_err());assert_eq!(output,[0xa5;4096]);assert!(e.evaluate_parts_into(&{schema:?},&{node:?},&mut output,&mut []).is_err());assert_eq!(output,[0xa5;4096]);output=saved;\n",bytes.len()-1));
+            }
+        }
         match expected {
             Ok(bytes) => {
                 main.push_str(&format!("assert_eq!(actual,Ok({}));assert_eq!(&output[..{}],&{bytes:?});assert!(output[{}..].iter().all(|n|*n==0xa5));\n",bytes.len(),bytes.len(),bytes.len()));
@@ -124,6 +136,14 @@ fn corpus(
     }
     main.push_str("}\n");
     compiled_rust::verify(&format!("mod image{{\n{image}\n}}"), &main, name);
+    let borrowed =
+        generate_borrowed_static_structured_expression_with_work(d, p, bounds(), 4096).unwrap();
+    assert_eq!(borrowed.computation_work, reported_work);
+    compiled_rust::verify(
+        &format!("mod image{{\n{}\n}}", borrowed.source),
+        &main,
+        &format!("{name}-borrowed"),
+    );
 }
 fn member(ty: &StructuredInfoType, name: &str) -> StructuredInfoType {
     let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
@@ -474,3 +494,14 @@ fn built_in_empty_constructor_input_preserves_canonical_validation_without_alloc
         "structured-empty-input",
     );
 }
+
+#[path = "static_structured_image/parent_correspondence.rs"]
+mod parent_correspondence;
+#[path = "static_structured_image/work_accounting.rs"]
+mod work_accounting;
+
+#[path = "static_structured_image/borrowed_children.rs"]
+mod borrowed_children;
+
+#[path = "static_structured_image/descriptor_reuse.rs"]
+mod descriptor_reuse;

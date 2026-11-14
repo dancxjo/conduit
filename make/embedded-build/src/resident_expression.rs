@@ -3,7 +3,8 @@ use conduit_core as c;
 use conduit_plot::{
     rust_binding::PreparedNativeBounds, CheckedSyntaxDocument, PortableExpressionProgram,
 };
-use sha2::{Digest, Sha256};
+#[path = "resident_expression/prepare.rs"]
+mod prepare;
 
 #[cfg(test)]
 #[path = "resident_offer_image_tests.rs"]
@@ -11,6 +12,9 @@ mod offer_image_tests;
 pub const RESIDENT_EXPRESSION_PROFILE: &str = "conduit.expression/resident-structured@1";
 pub const RESIDENT_EXPRESSION_IMPLEMENTATION: &str =
     "conduit.expression/kernel-resident-structured@1";
+#[path = "resident_storage.rs"]
+mod storage;
+pub use storage::ResidentExecutionStorage;
 #[derive(Clone, Copy)]
 pub struct ResidentExpressionBounds {
     pub native: PreparedNativeBounds,
@@ -27,6 +31,9 @@ pub enum ResidentExpressionRefusal {
     Program,
     Generation(conduit_plot::StaticStructuredGenerationRefusal),
     Bounds,
+    ProgramBytes { required: usize, maximum: u32 },
+    PrivateWork { required: u32, maximum: u16 },
+    GeneratedBytes { required: usize, maximum: u32 },
     Plan,
     Selection,
     Contract,
@@ -34,10 +41,12 @@ pub enum ResidentExpressionRefusal {
 }
 /// Prepared code is eligibility, never a Ready offer or execution grant.
 pub struct PreparedResidentExpression {
+    storage: ResidentExecutionStorage,
     source_document: c::SourceDocumentId,
     maximum_input: u32,
     maximum_output: u32,
     maximum_generated_bytes: u32,
+    computation_work: u16,
     text: String,
     temporal: c::PortTemporal,
     code: String,
@@ -58,77 +67,14 @@ pub struct BoundResidentExpression {
     code: String,
 }
 impl PreparedResidentExpression {
-    pub fn prepare(
-        document: &CheckedSyntaxDocument,
-        program: &PortableExpressionProgram,
-        temporal: c::PortTemporal,
-        bounds: ResidentExpressionBounds,
-    ) -> Result<Self, ResidentExpressionRefusal> {
-        use ResidentExpressionRefusal as R;
-        if !matches!(
-            temporal,
-            c::PortTemporal::Value | c::PortTemporal::Flow { closes: true }
-        ) {
-            return Err(R::Contract);
-        }
-        if bounds.private_work_units == 0 || bounds.private_work_units > u16::MAX - 3 {
-            return Err(R::Bounds);
-        }
-        let binary = program.canonical_bytes().map_err(|_| R::Program)?;
-        if binary.len() as u64 > u64::from(bounds.maximum_program_bytes) {
-            return Err(R::Bounds);
-        }
-        let definition = conduit_plot::portable_expression_definition(program, temporal)
-            .map_err(|_| R::Contract)?;
-        let mut code = conduit_plot::generate_static_structured_expression(
-            document,
-            program,
-            bounds.native,
-            bounds.maximum_occurrences,
-        )
-        .map_err(R::Generation)?;
-        let maximum_input = program
-            .maximum_prepared_input_bytes()
-            .map_err(|_| R::Bounds)?;
-        let temporal_rust = match temporal {
-            c::PortTemporal::Value => "conduit_core::PortTemporal::Value",
-            _ => "conduit_core::PortTemporal::Flow {closes:true}",
-        };
-        let output = program
-            .maximum_prepared_output_bytes()
-            .map_err(|_| R::Bounds)?;
-        crate::resident_back::append(&mut code, output, temporal_rust);
-        code.push_str(&format!(
-            "pub const PRIVATE_WORK_UNITS:u16={};\n",
-            bounds.private_work_units
-        ));
-        if code.len() as u64 > u64::from(bounds.maximum_generated_bytes) {
-            return Err(R::Bounds);
-        }
-        let digest = Sha256::digest(code.as_bytes());
-        let artifact = format!("conduit.expression/resident-source@1/{digest:x}").into();
-        let offer = crate::resident_offer::append(
-            &mut code,
-            program,
-            temporal,
-            &artifact,
-            bounds.private_work_units,
-        )?;
-        if code.len() as u64 > u64::from(bounds.maximum_generated_bytes) {
-            return Err(R::Bounds);
-        }
-        Ok(Self {
-            source_document: document.source_document_id.clone(),
-            maximum_input,
-            maximum_output: output,
-            maximum_generated_bytes: bounds.maximum_generated_bytes,
-            text: program.canonical_hex().map_err(|_| R::Program)?,
-            temporal,
-            code,
-            artifact,
-            kind: definition.kind_id,
-            offer,
-        })
+    /// Compiler report uses the same accounting as the initialized evaluator.
+    /// It excludes scheduler port/commit fuel and grants no work capacity.
+    pub fn computation_work(&self) -> u16 {
+        self.computation_work
+    }
+    /// Cold physical storage selection, not an allocation or resource grant.
+    pub fn execution_storage(&self) -> ResidentExecutionStorage {
+        self.storage
     }
     /// Identity of the emitted realization source, not the linked Seed's content
     /// hash, proof of flash placement, or authority to install it.

@@ -20,7 +20,9 @@ mod native;
 mod projection_template;
 pub use projection_template::*;
 mod records;
-pub use computation::{AssignedComputationProfile, AssignedComputationRequirement};
+pub use computation::{
+    AssignedComputationProfile, AssignedComputationRequirement, MAXIMUM_ASSIGNED_COMPUTATIONS,
+};
 pub use native::*;
 pub use records::{AssignedPlanRecords, AssignedRecord, AssignedRecordRequirement};
 mod sha256;
@@ -35,9 +37,11 @@ pub use single_source::*;
 pub const ASSIGNED_PLAN_SCHEMA: u16 = 4;
 /// Complete local Cord execution limits; admitted only by an explicit profile.
 pub const ASSIGNED_KERNEL_PLAN_SCHEMA: u16 = 5;
+/// Format 2 retains the 125-byte envelope. Runtime state occupies bytes 12..16;
+/// its upper half replaces reserved bytes. Older format magic is rejected.
 pub const ASSIGNED_PLAN_HEADER_BYTES: usize = 125;
 pub const TINY_HOST_TOTAL_BYTES: u16 = 2_560;
-const MAGIC: &[u8; 8] = b"CNDAP001";
+const MAGIC: &[u8; 8] = b"CNDAP002";
 pub const ASSIGNED_PLAN_COUNT_KINDS: usize = 13;
 
 pub const ASSIGNED_NODE: u8 = 1;
@@ -110,7 +114,7 @@ pub struct AssignedRemoteBinding {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AssignedPlanMaxima {
     pub encoded_bytes: u16,
-    pub runtime_state_bytes: u16,
+    pub runtime_state_bytes: u32,
     pub counts: [u8; ASSIGNED_PLAN_COUNT_KINDS],
 }
 
@@ -128,8 +132,8 @@ impl AssignedPlanMaxima {
         counts: [8, 16, 8, 8, 8, 8, 8, 8, 16, 2, 8, 8, 8],
     };
 
-    pub const fn total_bytes(self) -> u16 {
-        self.encoded_bytes + self.runtime_state_bytes
+    pub const fn total_bytes(self) -> u64 {
+        self.encoded_bytes as u64 + self.runtime_state_bytes as u64
     }
 }
 
@@ -149,7 +153,7 @@ pub struct AssignedPlanView {
     pub host: AssignedIdentity,
     pub boot: AssignedIdentity,
     pub encoded_bytes: u16,
-    pub runtime_state_bytes: u16,
+    pub runtime_state_bytes: u32,
     pub counts: [u8; ASSIGNED_PLAN_COUNT_KINDS],
 }
 
@@ -231,6 +235,23 @@ fn read_u16(bytes: &[u8], offset: usize) -> Result<u16, AssignedPlanRefusal> {
                 offset
                     ..offset
                         .checked_add(2)
+                        .ok_or(AssignedPlanRefusal::MalformedRecord)?,
+            )
+            .ok_or(AssignedPlanRefusal::MalformedRecord)?
+            .try_into()
+            .map_err(|_| AssignedPlanRefusal::MalformedRecord)?,
+    ))
+}
+
+// Version 2 uses the existing runtime-state word and its two formerly reserved
+// bytes. Packet length, identities, count fields and digest offsets do not grow.
+fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, AssignedPlanRefusal> {
+    Ok(u32::from_le_bytes(
+        bytes
+            .get(
+                offset
+                    ..offset
+                        .checked_add(4)
                         .ok_or(AssignedPlanRefusal::MalformedRecord)?,
             )
             .ok_or(AssignedPlanRefusal::MalformedRecord)?

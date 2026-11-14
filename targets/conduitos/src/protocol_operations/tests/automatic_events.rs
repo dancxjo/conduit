@@ -71,6 +71,8 @@ pub(super) fn prepare_with_body_edit<
         include_str!("../../../../../plots/device-protocols/bme280-capture-observation.conduit");
     let frames =
         include_str!("../../../../../plots/device-protocols/bme280-protocol-frame.conduit");
+    let generic_exchange =
+        include_str!("../../../../../plots/device-protocols/bme280-exchange.conduit");
     let automatic = include_str!("../../../../../plots/device-protocols/bme280-autonomous.conduit");
     let combine = |units: &[&str]| {
         let imports = units
@@ -123,6 +125,7 @@ pub(super) fn prepare_with_body_edit<
             frames,
             decoding,
             observation,
+            generic_exchange,
             automatic,
         ]),
         &[
@@ -218,6 +221,7 @@ pub(super) fn prepare_with_body_edit<
     let bus = unsafe {
         ReadyI2cBase::new(
             I2cNativeIdentity {
+                base_implementation_id: "conduitos.base/i2c-controller@1".into(),
                 host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(),
                 base_id: "fixture/bus".into(),
@@ -385,7 +389,7 @@ pub(super) fn prepare_with_body_edit<
     if let Ok(play) = &play {
         let plan = &play.kernel().unwrap().definition().internal_plan;
         assert_eq!(plan.fragments.len(), 1);
-        assert_eq!(plan.fragments[0].placements.len(), 52);
+        assert_eq!(plan.fragments[0].placements.len(), 53);
         assert_eq!(
             plan.fragments[0]
                 .placements

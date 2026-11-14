@@ -1,13 +1,16 @@
 //! Explicit checked Source closure for MCU firmware fabrication. This runs on
 //! the building Host; no parser, planner or duplicated Source graph enters MCU RAM.
-use crate::software;
+#[path = "workset_emission.rs"]
+mod emission;
+#[cfg(test)]
+#[path = "workset_exact_work_tests.rs"]
+mod exact_work_tests;
+#[path = "workset_inputs.rs"]
+mod inputs;
 use conduit_plot as p;
+#[cfg(test)]
 use sha2::{Digest, Sha256};
-use std::io::Read;
-use std::{
-    fmt::Write,
-    path::{Path, PathBuf},
-};
+use std::{fmt::Write, path::Path};
 const MAXIMUM_SOURCE_BYTES: usize = 1024 * 1024;
 /// Independently selected construction ceilings, not resource admission grants.
 #[derive(Clone, Copy)]
@@ -24,6 +27,7 @@ pub struct Entry {
     pub cords: usize,
 }
 pub struct Workset {
+    pub(crate) installed_values: crate::installed_values::InstalledValueBindings,
     pub(crate) calibrated: bool,
     pub(crate) checked_source: p::CheckedSyntaxDocument,
     pub sha256: [u8; 32],
@@ -32,172 +36,64 @@ pub struct Workset {
 /// Absence is useful for equipment-only fabrication. The consuming selected
 /// execution profile decides whether it requires a Source closure.
 pub fn from_environment(mask: Option<MaskBounds>) -> Result<Option<Workset>, String> {
-    for name in [
-        "CONDUIT_WORKSET_SOURCE",
-        "CONDUIT_WORKSET_SOURCE_SHA256",
-        "CONDUIT_WORKSET_ENTRIES",
-    ] {
-        println!("cargo:rerun-if-env-changed={name}");
-    }
-    match (
-        std::env::var_os("CONDUIT_WORKSET_SOURCE"),
-        std::env::var("CONDUIT_WORKSET_SOURCE_SHA256"),
-        std::env::var("CONDUIT_WORKSET_ENTRIES"),
-    ) {
-        (None, Err(std::env::VarError::NotPresent), Err(std::env::VarError::NotPresent)) => {
-            Ok(None)
-        }
-        (Some(path), Ok(expected), Ok(entries)) => {
-            let entries: Vec<String> =
-                serde_json::from_str(&entries).map_err(|e| format!("workset entry list: {e}"))?;
-            let path = PathBuf::from(path);
-            println!("cargo:rerun-if-changed={}", path.display());
-            let mut bytes = Vec::new();
-            std::fs::File::open(&path)
-                .map_err(|e| format!("captured workset Source: {e}"))?
-                .take((MAXIMUM_SOURCE_BYTES + 1) as u64)
-                .read_to_end(&mut bytes)
-                .map_err(|e| format!("captured workset Source: {e}"))?;
-            compile(&bytes, &expected, &entries, mask).map(Some)
-        }
-        _ => Err(
-            "workset fabrication requires Source, expected SHA256 and ordered entries together"
-                .into(),
-        ),
-    }
+    inputs::from_environment(mask)
 }
-pub fn compile(
+/// Use the ordinary captured Make inputs with Host-owned immutable facts.
+/// The callback receives the original fully checked Source, never a rewrite.
+pub fn from_environment_with_installed(
+    mask: Option<MaskBounds>,
+    selections: &[crate::composite::ValueReference<'_>],
+    prepare: impl FnOnce(
+        &p::CheckedSyntaxDocument,
+    ) -> Result<crate::installed_values::InstalledValueBindings, String>,
+) -> Result<Option<Workset>, String> {
+    inputs::from_environment_with_installed(mask, selections, prepare)
+}
+/// Internal finite Make subprocess receipt for existing typed-selection inputs.
+/// Original Source declarations/imports remain authoritative; this is not a
+/// human configuration language or an execution grant.
+pub struct CapturedTypedSelections<'a> {
+    pub bytes: &'a [u8],
+    pub sha256: &'a str,
+}
+pub fn compile_captured_specializations(
     bytes: &[u8],
     expected_sha256: &str,
     entries: &[String],
     mask: Option<MaskBounds>,
+    capture: CapturedTypedSelections<'_>,
 ) -> Result<Workset, String> {
-    compile_specialized(bytes, expected_sha256, entries, mask, &[])
+    inputs::compile_captured(bytes, expected_sha256, entries, mask, capture)
 }
-/// Explicit build-host specializations are checked against named Source Types.
-/// They confer no runtime budget or initialized availability.
-pub fn compile_specialized(
-    bytes: &[u8],
-    expected_sha256: &str,
-    entries: &[String],
-    mask: Option<MaskBounds>,
-    specializations: &[crate::composite::Specialization<'_>],
-) -> Result<Workset, String> {
-    if bytes.is_empty()
-        || bytes.len() > MAXIMUM_SOURCE_BYTES
-        || entries.is_empty()
-        || entries.len() > 8
-        || entries
-            .iter()
-            .enumerate()
-            .any(|(i, e)| e.is_empty() || e.len() > 128 || entries[..i].contains(e))
-    {
-        return Err("workset Source/entry bound".into());
-    }
-    let sha256: [u8; 32] = Sha256::digest(bytes).into();
-    let actual = sha256.iter().fold(String::new(), |mut out, b| {
-        write!(out, "{b:02x}").unwrap();
-        out
-    });
-    if expected_sha256 != actual {
-        return Err("captured workset Source SHA256 differs from fabrication input".into());
-    }
-    let source = core::str::from_utf8(bytes).map_err(|_| "workset Source is not UTF8")?;
-    let (mut startup, mut profiles) = (p::StartupCatalog::new(), p::ProfileCatalog::new());
-    conduit_pulse_capture::PulseReadContract::prepare()
-        .map_err(debug)?
-        .install(&mut startup, &mut profiles)?;
-    conduit_dht11_observation::ObservationContract::prepare()
-        .map_err(debug)?
-        .install(&mut startup, &mut profiles)?;
-    conduit_environment_runtime::recording::LogContract::prepare(
-        &conduit_dht11_observation::ObservationContract::prepare().map_err(debug)?,
-    )
-    .map_err(debug)?
-    .install(&mut startup, &mut profiles)?;
-    for channel in conduit_environment_runtime::publication::PublicationChannel::ALL {
-        conduit_environment_runtime::publication::PublicationContract::prepare(channel)
-            .map_err(debug)?
-            .install(&mut startup, &mut profiles)?;
-    }
-    conduit_semantic_catalog::install_resource_record_service_catalog(&mut startup, &mut profiles)?;
-    crate::protocol_catalog::install(&mut startup, &mut profiles)?;
-    conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
-    install(
-        conduit_time::tick_trigger_semantic_contract(),
-        &mut startup,
-        &mut profiles,
-    )?;
-    let tm = conduit_tm1637_wire::WriteContract::prepare().map_err(debug)?;
-    install(tm.kind().clone(), &mut startup, &mut profiles)?;
-    let absence =
-        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::EMPTY_INFO_ID))
-            .and_then(|ty| ty.profile())
-            .map_err(debug)?;
-    startup.insert_value_kind_alias("Tm1637Absence", absence.value_kind().clone())?;
-    conduit_face::install_mask_plot_value_aliases(&mut startup)?;
-    conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
-    let syntax = p::parse_syntax_document_with_glyph_notations(source, &startup);
-    if !syntax.diagnostics.is_empty() {
-        return Err(format!("workset syntax: {:?}", syntax.diagnostics));
-    }
-    crate::composite::install(&syntax, specializations, &mut startup, &mut profiles)?;
-    let checked = p::check_syntax_document(&syntax, &startup).map_err(debug)?;
-    // Install the ordinary checked selector definitions before expansion; the
-    // Source compiler owns their meaning, not a target-side selector shortcut.
-    for plot in &checked.plots {
-        for cord in &plot.cords {
-            for stage in &cord.stages {
-                if let p::CheckedCordStage::StructuredSelector { selector, .. } = stage {
-                    let definition = p::structured_selector_definition(
-                        selector,
-                        conduit_core::PortTemporal::Flow { closes: true },
-                    );
-                    // A checked closure can use the same selector at several
-                    // sites. Reuse only its identical semantic definition;
-                    // a conflicting definition still follows catalog refusal.
-                    if profiles.get(&definition.kind_id) != Some(&definition) {
-                        profiles.insert(definition).map_err(debug)?;
-                    }
-                }
-            }
-        }
-    }
 
-    // The broad checked-image index ceiling is only a host-tooling artifact
-    // limit. Independent board calibration must still pass before emit_to.
-    let image = conduit_embedded_build::EmbeddedImageBounds::HOST_TOOLING;
-    let names = entries.iter().map(String::as_str).collect::<Vec<_>>();
-    let prepared = conduit_embedded_build::prepare_checked_workset(
-        &checked,
-        &profiles,
-        &names,
-        conduit_embedded_build::CheckedWorksetBounds {
-            maximum_entries: 8,
-            maximum_nodes_per_entry: image.maximum_nodes,
-            maximum_cords_per_entry: image.maximum_cords,
-        },
-    )?;
-    let mut material = Vec::with_capacity(prepared.len());
-    for (name, plot) in entries.iter().zip(prepared) {
-        let expanded = &plot.expanded;
-        let mut rust = software::emit_rust_with_types(expanded, &checked, 24 * 1024, 1024 * 1024)?;
-        emit_mask_routing_images(expanded, &mut rust, mask)?;
-        material.push(Entry {
-            name: name.clone(),
-            rust,
-            nodes: expanded.gears.len(),
-            cords: expanded.connections.len(),
-            plot,
-        });
-    }
-    Ok(Workset {
-        calibrated: false,
-        checked_source: checked,
-        sha256,
-        entries: material,
-    })
+/// Preserve the captured Source and typed-selection receipt while binding
+/// separately checked immutable Host material after Source adoption.
+pub fn compile_captured_specializations_with_installed(
+    bytes: &[u8],
+    expected_sha256: &str,
+    entries: &[String],
+    mask: Option<MaskBounds>,
+    capture: CapturedTypedSelections<'_>,
+    selections: &[crate::composite::ValueReference<'_>],
+    prepare: impl FnOnce(
+        &p::CheckedSyntaxDocument,
+    ) -> Result<crate::installed_values::InstalledValueBindings, String>,
+) -> Result<Workset, String> {
+    inputs::compile_captured_with_installed(
+        bytes,
+        expected_sha256,
+        entries,
+        mask,
+        capture,
+        selections,
+        prepare,
+    )
 }
+
+#[path = "workset_compile.rs"]
+mod construction;
+pub use construction::{compile, compile_specialized, compile_specialized_with_installed};
+
 impl Workset {
     /// Generate resident implementations from the same checked Source closure
     /// as the authored Plans. The document remains on the fabrication Host.
@@ -215,14 +111,45 @@ impl Workset {
 
     /// Prepare the exact context-specialized expression programs selected by
     /// the expanded workset, rather than re-expanding separate named entries.
-    /// Repeated instances require distinct physical Back custody; the current
-    /// single-owner codebook profile refuses them instead of aliasing an owner.
+    /// Every selected Gear receives distinct initialized Back custody, including
+    /// repeated programs. Immutable program identity remains independent.
     pub fn prepare_selected_residents(
         &self,
         bounds: conduit_embedded_build::ResidentExpressionBounds,
     ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
+        self.prepare_selected_residents_with_storage(
+            bounds,
+            conduit_embedded_build::ResidentExecutionStorage::Owned,
+        )
+    }
+    /// Physical storage is selected before artifact sealing and calibration.
+    /// The returned inventory still grants no execution or workspace capacity.
+    pub fn prepare_selected_residents_with_storage(
+        &self,
+        bounds: conduit_embedded_build::ResidentExpressionBounds,
+        storage: conduit_embedded_build::ResidentExecutionStorage,
+    ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
+        self.prepare_selected_residents_with_work_pool(bounds, storage, None)
+    }
+    /// Select each owner's exact compiler-reported requirement, then refuse if
+    /// their checked aggregate exceeds the original shared private-work pool.
+    /// Distinct initialized owners, including repeated programs, count once each.
+    pub fn prepare_selected_residents_with_exact_work(
+        &self,
+        bounds: conduit_embedded_build::ResidentExpressionBounds,
+        storage: conduit_embedded_build::ResidentExecutionStorage,
+        capacity_units: u32,
+    ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
+        self.prepare_selected_residents_with_work_pool(bounds, storage, Some(capacity_units))
+    }
+    fn prepare_selected_residents_with_work_pool(
+        &self,
+        bounds: conduit_embedded_build::ResidentExpressionBounds,
+        storage: conduit_embedded_build::ResidentExecutionStorage,
+        capacity_units: Option<u32>,
+    ) -> Result<Vec<conduit_embedded_build::PreparedResidentExpression>, String> {
         let mut selected = Vec::new();
-        let mut identities = Vec::new();
+        let mut required_work = 0u32;
         for entry in &self.entries {
             for gear in &entry.plot.expanded.gears {
                 let Some(configuration) = gear.configuration.iter().find(|c| c.key == "program")
@@ -237,24 +164,33 @@ impl Workset {
                     .first()
                     .ok_or("selected resident input absent")?
                     .temporal;
-                if identities
-                    .iter()
-                    .any(|(old, mode)| old == text && *mode == temporal)
-                {
-                    return Err(
-                        "repeated resident program requires distinct initialized instance custody"
-                            .into(),
-                    );
-                }
                 let program = p::PortableExpressionProgram::from_canonical_hex(text)
                     .map_err(|e| format!("selected resident program: {e:?}"))?;
-                let image = conduit_embedded_build::PreparedResidentExpression::prepare(
+                let instance = format!(
+                    "{}:{}:{}",
+                    self.checked_source.source_document_id.as_str(),
+                    entry.name,
+                    gear.gear_id.as_str()
+                );
+                let prepare = if capacity_units.is_some() {
+                    conduit_embedded_build::PreparedResidentExpression::prepare_instance_with_exact_work
+                } else {
+                    conduit_embedded_build::PreparedResidentExpression::prepare_instance_with_storage
+                };
+                let image = prepare(
                     &self.checked_source,
                     &program,
                     temporal,
                     bounds,
+                    Some(&instance),
+                    storage,
                 )
-                .map_err(|e| format!("selected resident preparation: {e:?}"))?;
+                .map_err(|e| {
+                    format!(
+                        "selected resident preparation for {}: {e:?}",
+                        gear.gear_id.as_str()
+                    )
+                })?;
                 if image.kind_id() != &gear.kind_id
                     || image.offer_description().semantic_contract != gear.semantic_contract
                 {
@@ -263,63 +199,31 @@ impl Workset {
                         gear.gear_id.as_str()
                     ));
                 }
-                identities.push((text.clone(), temporal));
+                if let Some(capacity) = capacity_units {
+                    required_work = required_work
+                        .checked_add(u32::from(image.computation_work()))
+                        .ok_or("selected resident private-work sum overflow")?;
+                    if required_work > capacity {
+                        return Err(format!("selected resident private work requires {required_work} units; original pool has {capacity}"));
+                    }
+                }
                 selected.push(image);
             }
         }
         Ok(selected)
     }
+    /// Existing explicit DHT/Mask/TM execution adapter. Generic equipment uses
+    /// emit_neutral_to so no role is inferred from unrelated native Kinds.
     pub fn emit_to(&self, out: &Path) -> Result<(), String> {
-        if !self.calibrated {
-            return Err(
-                "runtime factory emission requires independent checked structural calibration"
-                    .into(),
-            );
-        }
-        let mut index=format!("pub const SOURCE_SHA256:[u8;32]={:?};\npub const ENTRY_COUNT:usize={};\npub const ENTRY_NAMES:&[&str]=&{:?};\n",self.sha256,self.entries.len(),self.entries.iter().map(|e|e.name.as_str()).collect::<Vec<_>>());
-        // Bind this finite execution profile to actual checked operations,
-        // independent of user entry names or the signed workset's ordering.
-        for (role, kind) in [
-            ("sampling", "machine/pulse/read"),
-            ("mask", "face/renderer"),
-            ("output", "machine/tm1637/write"),
-        ] {
-            let selected = self
-                .entries
-                .iter()
-                .enumerate()
-                .filter(|(_, entry)| {
-                    entry
-                        .plot
-                        .expanded
-                        .gears
-                        .iter()
-                        .any(|g| g.kind_id.as_str() == kind)
-                })
-                .map(|(i, _)| i)
-                .collect::<Vec<_>>();
-            let [entry] = selected.as_slice() else {
-                return Err(format!(
-                    "execution profile requires exactly one checked {role} fragment"
-                ));
-            };
-            writeln!(index, "pub use entry_{entry} as {role};").unwrap();
-            writeln!(index, "pub use entry_{entry}_layout as {role}_layout;").unwrap();
-        }
-        for (i, entry) in self.entries.iter().enumerate() {
-            let filename = format!("workset_{i}.rs");
-            std::fs::write(out.join(&filename), &entry.rust).map_err(|e| e.to_string())?;
-            writeln!(
-                index,
-                "pub mod entry_{i}{{include!(concat!(env!(\"OUT_DIR\"),\"/{filename}\"));}}"
-            )
-            .unwrap();
-            writeln!(index,"pub mod entry_{i}_layout{{include!(concat!(env!(\"OUT_DIR\"),\"/workset_{i}_layout.rs\"));}}\n").unwrap();
-        }
-        std::fs::write(out.join("workset.rs"), index).map_err(|e| e.to_string())
+        emission::emit(self, out, true)
+    }
+    /// Emit exact checked entry definitions/layouts without execution role aliases.
+    /// Structural calibration is mandatory; this does not install board execution.
+    pub fn emit_neutral_to(&self, out: &Path) -> Result<(), String> {
+        emission::emit(self, out, false)
     }
 }
-fn install(
+pub(crate) fn install(
     kind: conduit_core::Kind,
     startup: &mut p::StartupCatalog,
     profiles: &mut p::ProfileCatalog,

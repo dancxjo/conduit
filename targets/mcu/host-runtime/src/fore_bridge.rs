@@ -13,6 +13,9 @@ use core::cell::{Cell, RefCell};
 #[path = "fore_bridge/primitive.rs"]
 mod primitive;
 pub use primitive::PrimitiveIngressSpec;
+#[path = "fore_bridge/structured.rs"]
+mod structured;
+pub use structured::{IngressSpec, StructuredIngressSpec};
 #[path = "fore_bridge/mailbox.rs"]
 mod mailbox;
 pub use mailbox::{CarrierPort, Event};
@@ -58,11 +61,12 @@ pub struct PreparedForeBridge<'b, 'p> {
 impl<'b, 'p> PreparedForeBridge<'b, 'p> {
     pub fn prepare(
         custody: [u8; 32],
-        ingress: PrimitiveIngressSpec<'p>,
+        ingress: impl Into<IngressSpec<'p>>,
         egress: EgressSpec<'p>,
         ingress_bytes: &'b mut [u8],
         egress_bytes: &'b mut [u8],
     ) -> Result<Self, Refusal> {
+        let ingress = ingress.into();
         if egress.pin().fore().direction() != c::AssignedForeDirection::Output
             || egress.byte_capacity() == 0
             || ingress.byte_capacity() as usize > ingress_bytes.len()

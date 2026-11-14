@@ -103,7 +103,8 @@ impl<
         const S: usize,
         L: ExecutionSigns,
         const K: usize,
-    > PreparedFragment<B, N, C, P, R, T, H, S, L, K>
+        V: ExecutionValues,
+    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V>
 {
     /// Explicit schema-8 producer factory entrance with independently pinned
     /// Line/Fore and borrowed immutable terminal laws. Exact table/layout checks
@@ -117,7 +118,7 @@ impl<
         approved: &b::DelegatedBodyFragment<'_>,
         profile: b::AssignedBodyLineForePreparationProfile<'_>,
         layout: &ResidentLayout<'_>,
-        values: HostedValueStore,
+        values: V,
         signs: L,
         maximum_retained_bytes: usize,
         factory: impl FnOnce() -> Result<B, E>,

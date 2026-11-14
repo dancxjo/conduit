@@ -66,8 +66,10 @@ and private bootstrap sectors. See
 [`rp2040-ordinary-make-20261103.json`](../../../../proof/evidence/creche/rp2040-ordinary-make-20261103.json).
 
 The next sensor execution path should reuse the existing shared
-`plots/device-protocols/bme280-autonomous.conduit`, its capture-to-observation
-conversion, and finite I2C/clock Host Calls. The diagnostic Rust sensor loop is
+`plots/device-protocols/bme280-exchange.conduit`, its capture-to-observation
+conversion, and finite I2C/clock Host Calls. The parameterized
+`environmental-exchange.conduit` combines sensing and HT output through one
+selected bus; `bme280-autonomous.conduit` remains an isolated selection example. The diagnostic Rust sensor loop is
 not a replacement for that admitted Plot. A Body construction description can
 already enumerate Host configurations and Seed outputs; authored Line topology
 and complete multi-Host workload construction remain separate integration gaps.

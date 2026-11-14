@@ -5,7 +5,7 @@ use super::*;
 use crate::{
     execution::{PreparedBacks, PreparedFragment},
     execution_workset::{AssignedPreparationProfile, PreparedKernelGroup, PreparedLocalWorkset},
-    fore_bridge::ForeObserver,
+    fore_bridge::{ForeObserver, PrimitiveIngressSpec, StructuredIngressSpec},
     native_dispatch::Dispatch,
     native_runner::Observer,
 };
@@ -47,14 +47,15 @@ unsafe impl PreparedBacks<1, 1> for Backs {
         ([Echo], ())
     }
 }
-type Kernel = crate::execution::ExecutionKernel<Echo, 1, 2, 1, 1, 1, 1, 32>;
+type Kernel<V = HostedValueStore> =
+    crate::execution::ExecutionKernel<Echo, 1, 2, 1, 1, 1, 1, 32, FixedSignLog<32>, 1, V>;
 struct Existing;
-impl Observer<Kernel> for Existing {
+impl<V: ValueStorage> Observer<Kernel<V>> for Existing {
     type Error = Infallible;
-    fn before_step(&mut self, _: &mut Kernel) -> Result<(), Infallible> {
+    fn before_step(&mut self, _: &mut Kernel<V>) -> Result<(), Infallible> {
         Ok(())
     }
-    fn completed(&mut self, _: &mut Kernel, _: Dispatch) -> Result<(), Infallible> {
+    fn completed(&mut self, _: &mut Kernel<V>, _: Dispatch) -> Result<(), Infallible> {
         Ok(())
     }
 }
@@ -84,20 +85,35 @@ fn line(output: bool) -> c::AdmittedLine {
     line
 }
 fn pin(line: &c::AdmittedLine, output: bool) -> c::AssignedLineForeRequirement {
+    pin_with_kind(line, output, c::COUNT_INFO_ID)
+}
+fn pin_with_kind(
+    line: &c::AdmittedLine,
+    output: bool,
+    kind: &str,
+) -> c::AssignedLineForeRequirement {
+    pin_with_abi(line, output, kind, 8)
+}
+fn pin_with_abi(
+    line: &c::AdmittedLine,
+    output: bool,
+    kind: &str,
+    capacity: u32,
+) -> c::AssignedLineForeRequirement {
     let (local, peer) = if output {
         (&line.binding.source, &line.binding.sink)
     } else {
         (&line.binding.sink, &line.binding.source)
     };
     let abi = c::assigned_fore_abi_digest(c::AssignedForeAbi {
-        value_kind: c::COUNT_INFO_ID,
+        value_kind: kind,
         value_contract: None,
         abnormal_kind: None,
         temporal: "flow-open",
         track: c::ConnectionTrack::Payload,
         quantity_profile: c::QuantityValueProfile::Decimal,
         item_capacity: 1,
-        byte_capacity: 8,
+        byte_capacity: capacity,
     });
     c::AssignedLineForeRequirement::new(
         c::AssignedForeRequirement::new(
@@ -162,6 +178,32 @@ fn numeric(pins: &[c::AssignedLineForeRequirement; 2]) -> TablesFixture {
 }
 #[test]
 fn original_bound_root_carrier_exchanges_real_scoped_payloads_then_isolates_io_failure() {
+    exchange_with_values(HostedValueStore::new(4, 8, 32).unwrap());
+}
+#[cfg(feature = "schema-value-storage")]
+#[test]
+fn schema_value_owner_uses_original_root_admission_start_and_fore_exchange() {
+    use conduit_core::{
+        BorrowedStructuredValueValidator, StructuredFieldType as F, StructuredInfoType as T,
+    };
+    let ty = T::record(
+        c::kind_id("test/root-schema-custody"),
+        std::vec![F::new("reading", T::leaf(c::kind_id("value/u8")).unwrap()).unwrap()],
+    )
+    .unwrap();
+    let schema = std::boxed::Box::leak(ty.canonical_bytes().unwrap().into_boxed_slice());
+    let validator = BorrowedStructuredValueValidator::new(schema, 512).unwrap();
+    let values = conduit_plan_lowering::schema_value_store::SchemaValueStore::try_new(
+        HostedValueStore::new(4, 8, 32).unwrap(),
+        &[(validator, 1)],
+        512,
+        4096,
+    )
+    .unwrap();
+    exchange_with_values(values);
+}
+fn exchange_with_values<V: crate::execution::ExecutionValues>(values: V) {
+    let value_backing = values.external_backing_bytes().unwrap();
     let mut f = documents::Fixture::new();
     f.host.profile = "config/1".into();
     let seed = root_test::seed(&f);
@@ -214,7 +256,8 @@ fn original_bound_root_carrier_exchanges_real_scoped_payloads_then_isolates_io_f
         let carrier=parts.prepare_fore_carrier::<TestTransport<'_>,1,2>(11,selection.take(),&approved[0],&fore[0],n.preparation()).map_err(|_|ForeIoRefusal::Scope)?;
         let ingress=PrimitiveIngressSpec::checked(&pins[0], c::AssignedForeAbi {value_kind:c::COUNT_INFO_ID, value_contract:None, abnormal_kind:None, temporal:"flow-open",track:c::ConnectionTrack::Payload,quantity_profile:c::QuantityValueProfile::Decimal,item_capacity:1,byte_capacity:8}).unwrap();let egress=EgressSpec::checked(&pins[1],c::AssignedForeAbi{value_kind:c::COUNT_INFO_ID,value_contract:None,abnormal_kind:None,temporal:"flow-open",track:c::ConnectionTrack::Payload,quantity_profile:c::QuantityValueProfile::Decimal,item_capacity:1,byte_capacity:8}).unwrap();
         let bridge=PreparedForeBridge::prepare(*carrier.custody_digest(),ingress,egress,&mut input,&mut output).unwrap();let sessions=carrier.prepare_bridge_sessions(&bridge,ingress,egress)?;*peer.borrow_mut()=Some(peer::Peer::new(sessions.routes.each_ref().map(|r|r.machine.binding().clone())));
-        let kernel=PreparedFragment::<Backs,1,2,1,1,1,1,32>::prepare_with_line_fore_terminal_transductions_ref(&approved[0],n.preparation(),&n.layout(),HostedValueStore::new(4,8,32).unwrap(),FixedSignLog::new_with_remote_storage((32*size_of::<KernelEvent>())as u32,8,remote_sign_storage_bytes(8).unwrap()).unwrap(),65536,||Ok::<_,()>(Backs),&[[None]]).map_err(|_|ForeIoRefusal::Bounds)?;
+        let kernel=PreparedFragment::<Backs,1,2,1,1,1,1,32,FixedSignLog<32>,1,V>::prepare_with_line_fore_terminal_transductions_ref(&approved[0],n.preparation(),&n.layout(),values,FixedSignLog::new_with_remote_storage((32*size_of::<KernelEvent>())as u32,8,remote_sign_storage_bytes(8).unwrap()).unwrap(),65536,||Ok::<_,()>(Backs),&[[None]]).map_err(|_|ForeIoRefusal::Bounds)?;
+        assert_eq!(kernel.retained_backing_bytes(),Some(value_backing+core::mem::size_of::<Kernel<V>>()));
         Ok(carrier.attach(PreparedKernelGroup(kernel,bridge,sessions)))
     }).unwrap();
     assert_eq!(peer.borrow().as_ref().unwrap().writes, 0);
@@ -226,7 +269,7 @@ fn original_bound_root_carrier_exchanges_real_scoped_payloads_then_isolates_io_f
         .unwrap();
     let evidence = started.evidence();
     let (native, observer, mut actor) = started.kernels_mut().activate_actor(&evidence).unwrap();
-    let kernel: &mut Kernel = native.0.as_mut();
+    let kernel: &mut Kernel<V> = native.0.as_mut();
     let mut observer = ForeObserver::new(Existing, observer);
     for _ in 0..8 {
         if peer.borrow().as_ref().unwrap().queue.is_empty() {

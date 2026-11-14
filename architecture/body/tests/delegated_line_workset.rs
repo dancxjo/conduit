@@ -174,3 +174,60 @@ fn borrowed_workset_inspection_reuses_complete_envelope_checks_without_attributi
     *corrupted.last_mut().unwrap() ^= 1;
     assert!(BodyWorksetDocumentView::<2>::decode(&corrupted).is_err());
 }
+
+#[test]
+fn whole_workset_state_keeps_high_words_and_rejects_sum_overflow() {
+    fn with_states(states: [u32; 2]) -> Vec<u8> {
+        let fragments = ["fragment", "fragment/legacy"];
+        let mut projections = [
+            projection(conduit_core::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA),
+            projection(conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA),
+        ];
+        projections[1][32..48].copy_from_slice(&id(fragments[1]).0);
+        let documents: Vec<_> = projections
+            .iter_mut()
+            .zip(states)
+            .zip(fragments)
+            .map(|((projection, state), fragment)| {
+                projection[12..16].copy_from_slice(&state.to_le_bytes());
+                document_for(
+                    projection,
+                    "body/1",
+                    "boot/1",
+                    &inventory(),
+                    &[],
+                    fragment,
+                    &fragments,
+                )
+            })
+            .collect();
+        encode_body_workset_document(&[&documents[0], &documents[1]], 4096).unwrap()
+    }
+    let f = Fixture::new();
+    let bytes = with_states([70_000, 80_000]);
+    let mut policy = policy();
+    policy.maximum_runtime_state_bytes = 150_000;
+    let set = receive_delegated_body_workset::<2>(
+        Some(&policy),
+        f.context(),
+        workset_command(&f, &bytes),
+    )
+    .unwrap();
+    assert_eq!(set.declared_runtime_state_bytes(), 150_000);
+    policy.maximum_runtime_state_bytes -= 1;
+    assert!(matches!(
+        receive_delegated_body_workset::<2>(
+            Some(&policy),
+            f.context(),
+            workset_command(&f, &bytes)
+        ),
+        Err(DelegatedWorksetRefusal::Policy(
+            PreparationDelegationRefusal::Bounds
+        ))
+    ));
+    let overflow = with_states([u32::MAX, 1]);
+    assert!(matches!(
+        BodyWorksetDocumentView::<2>::decode(&overflow),
+        Err(BodyWorksetDocumentRefusal::Bounds)
+    ));
+}

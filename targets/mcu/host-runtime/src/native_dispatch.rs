@@ -7,6 +7,8 @@
 //! Clock waits instead retain an exact request and eight owned input bytes;
 //! they release the kernel loan, then recheck it when publishing completion.
 use crate::execution::StoredExecutionKernel;
+#[path = "native_deadline.rs"]
+pub mod deadline;
 #[path = "native_write_failure.rs"]
 pub mod write_failure;
 use conduit_kernel::{scheduler::*, *};
@@ -73,9 +75,10 @@ pub async fn pulse<
     const H: usize,
     const K: usize,
     L: SignSink,
+    V: ValueStorage,
     A: PulseReadProvider,
 >(
-    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>,
     call: &mut PulseHostCall<A>,
 ) -> Result<Dispatch, SchedulerError> {
     let room = kernel.preflight_host_result_storage(1024);
@@ -140,9 +143,10 @@ pub fn write<
     const H: usize,
     const K: usize,
     L: SignSink,
+    V: ValueStorage,
     A: OpenDrain,
 >(
-    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>,
     call: &mut WriteHostCall<A>,
     cancelled: impl FnMut() -> bool,
 ) -> Result<Dispatch, SchedulerError> {
@@ -230,9 +234,10 @@ pub fn begin_wait<
     const H: usize,
     const K: usize,
     L: SignSink,
+    V: ValueStorage,
     A: MonotonicWaitProvider,
 >(
-    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>,
     call: &MonotonicWaitHostCall<A>,
 ) -> Result<Option<PendingWait>, SchedulerError> {
     let room = kernel.signs().ensure_capacity(1);
@@ -268,8 +273,9 @@ pub fn complete_wait<
     const H: usize,
     const K: usize,
     L: SignSink,
+    V: ValueStorage,
 >(
-    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
+    kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>,
     pending: &PendingWait,
     completion: HostCallOutcome,
 ) -> Result<Dispatch, SchedulerError> {

@@ -5,6 +5,7 @@ use crate::{Quantity, QuantityRole, Unit, QUANTITY_MAX_EXPONENT};
 pub enum QuantityFormInteger {
     I16Le,
     U16Le,
+    I128Le,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -26,6 +27,14 @@ pub enum QuantityFormRefusal {
 }
 
 impl DecimalQuantityForm {
+    /// Exact selected representation width; semantic Quantity bytes are separate.
+    pub const fn exact_bytes(&self) -> usize {
+        match self.integer {
+            QuantityFormInteger::I16Le | QuantityFormInteger::U16Le => 2,
+            QuantityFormInteger::I128Le => 16,
+        }
+    }
+
     pub fn validate(&self) -> Result<(), QuantityFormRefusal> {
         if !(-QUANTITY_MAX_EXPONENT..=QUANTITY_MAX_EXPONENT).contains(&self.exponent)
             || !self.unit.admits_role(self.role)
@@ -37,20 +46,44 @@ impl DecimalQuantityForm {
 
     pub fn decode(&self, bytes: &[u8]) -> Result<Quantity, QuantityFormRefusal> {
         self.validate()?;
-        let bytes: [u8; 2] = bytes
-            .try_into()
-            .map_err(|_| QuantityFormRefusal::WrongLength)?;
+        let wrong_length = |_| QuantityFormRefusal::WrongLength;
         let coefficient = match self.integer {
-            QuantityFormInteger::I16Le => i128::from(i16::from_le_bytes(bytes)),
-            QuantityFormInteger::U16Le => i128::from(u16::from_le_bytes(bytes)),
+            QuantityFormInteger::I16Le => {
+                i128::from(i16::from_le_bytes(bytes.try_into().map_err(wrong_length)?))
+            }
+            QuantityFormInteger::U16Le => {
+                i128::from(u16::from_le_bytes(bytes.try_into().map_err(wrong_length)?))
+            }
+            QuantityFormInteger::I128Le => {
+                i128::from_le_bytes(bytes.try_into().map_err(wrong_length)?)
+            }
         };
-        Quantity::from_decimal_role(coefficient, self.exponent, self.unit, self.role)
-            .map_err(|_| QuantityFormRefusal::InvalidDefinition)
+        Quantity::from_decimal_role(coefficient, self.exponent, self.unit, self.role).map_err(
+            |error| match error {
+                crate::QuantityRefusal::SignificantDigitsExceeded => QuantityFormRefusal::Overflow,
+                _ => QuantityFormRefusal::InvalidDefinition,
+            },
+        )
     }
 
+    /// Fixed two-byte convenience. Other selected widths refuse rather than truncate.
     pub fn encode(&self, value: Quantity) -> Result<[u8; 2], QuantityFormRefusal> {
+        let mut bytes = [0; 2];
+        self.encode_into(value, &mut bytes)?;
+        Ok(bytes)
+    }
+
+    /// Encode into exactly the selected width without allocation or truncation.
+    pub fn encode_into(
+        &self,
+        value: Quantity,
+        bytes: &mut [u8],
+    ) -> Result<usize, QuantityFormRefusal> {
         use QuantityFormRefusal as R;
         self.validate()?;
+        if bytes.len() != self.exact_bytes() {
+            return Err(R::WrongLength);
+        }
         if value.family() != self.unit.family() {
             return Err(R::WrongFamily);
         }
@@ -78,13 +111,23 @@ impl DecimalQuantityForm {
             }
             value.coefficient() / scale
         };
-        Ok(match self.integer {
-            QuantityFormInteger::I16Le => i16::try_from(coefficient)
-                .map_err(|_| R::Overflow)?
-                .to_le_bytes(),
-            QuantityFormInteger::U16Le => u16::try_from(coefficient)
-                .map_err(|_| R::Overflow)?
-                .to_le_bytes(),
-        })
+        match self.integer {
+            QuantityFormInteger::I16Le => bytes.copy_from_slice(
+                &i16::try_from(coefficient)
+                    .map_err(|_| R::Overflow)?
+                    .to_le_bytes(),
+            ),
+            QuantityFormInteger::U16Le => bytes.copy_from_slice(
+                &u16::try_from(coefficient)
+                    .map_err(|_| R::Overflow)?
+                    .to_le_bytes(),
+            ),
+            QuantityFormInteger::I128Le => bytes.copy_from_slice(&coefficient.to_le_bytes()),
+        }
+        Ok(self.exact_bytes())
     }
 }
+
+#[cfg(test)]
+#[path = "quantity_form_tests.rs"]
+mod tests;

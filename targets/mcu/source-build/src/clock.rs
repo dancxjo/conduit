@@ -8,6 +8,9 @@ pub const BASE_KIND: &str = "clock/monotonic";
 pub struct CheckedClockConstruction {
     pub slots: usize,
     pub maximum_duration_ms: u64,
+    /// Explicit lifetime deadline-call ceiling. Zero selects no deadline calls;
+    /// it does not disable the independently bounded periodic wait provider.
+    pub maximum_call_operations: u32,
 }
 pub fn initialization_contract() -> BaseInitializationContract {
     BaseInitializationContract {
@@ -28,10 +31,29 @@ pub fn initialization_contract() -> BaseInitializationContract {
                     maximum: 86_400_000,
                 },
             },
+            KindConfigurationField {
+                key: "maximum_call_operations".into(),
+                // Contract defaults describe the type; initialization still
+                // requires an explicit Source value, including disabled zero.
+                default_value: ConfigurationValue::U64(0),
+                rule: KindConfigurationRule::U64Range {
+                    minimum: 0,
+                    maximum: u64::from(u32::MAX),
+                },
+            },
         ],
     }
 }
 impl CheckedClockConstruction {
+    /// Return only an explicitly selected finite deadline-call ceiling. This
+    /// grants no authority: Root's original Issuer must authorize the operation.
+    pub fn deadline_call_operations(&self) -> Result<u32, String> {
+        if self.maximum_call_operations == 0 {
+            return Err("deadline clock calls are explicitly unselected".into());
+        }
+        Ok(self.maximum_call_operations)
+    }
+
     pub fn from_configuration(
         checked: &CheckedHostConfiguration,
         implementation: &str,
@@ -66,6 +88,8 @@ impl CheckedClockConstruction {
         Ok(Self {
             slots: usize::try_from(slots).map_err(|_| "clock slot width")?,
             maximum_duration_ms: value("maximum_duration_ms")?,
+            maximum_call_operations: u32::try_from(value("maximum_call_operations")?)
+                .map_err(|_| "clock operation ceiling exceeds U32")?,
         })
     }
 }

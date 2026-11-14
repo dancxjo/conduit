@@ -1,13 +1,12 @@
 //! Production provider selection with the real capacity-one reservation ledger.
 use super::*;
+use crate::selection_fixture;
 use alloc::vec;
 use conduit_core::*;
 use conduit_plan_lowering::{
     lowering::{lower_plan_fragment, LoweredPlanFragment},
     selected_operation::SelectedOperationPlan,
 };
-#[path = "../../../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs"]
-mod selection_fixture;
 pub struct Fixture {
     pub fragment: PlanFragment,
     pub lowered: LoweredPlanFragment,
@@ -144,7 +143,6 @@ impl Fixture {
             })
             .collect();
         let resource = gear.resources[0].clone();
-        let requirement = capability.resource_requirements[0].clone();
         let fragment = seal_plan(
             PlotIdentity {
                 source_document_id: fragment.source_document_id.clone(),

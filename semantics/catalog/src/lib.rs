@@ -45,9 +45,11 @@ pub use json::*;
 mod structured_selector;
 pub use structured_selector::*;
 mod prepared_canonical_selector;
-pub use prepared_canonical_selector::PreparedCanonicalSelector;
+pub use prepared_canonical_selector::{PreparedCanonicalSelector,PreparedLinkedWorkspaceSelector};
 mod structured_values;
 pub use structured_values::*;
+mod installed_value;
+pub use installed_value::*;
 mod flow_coalesce_finite;
 pub use flow_coalesce_finite::*;
 mod flow_pressure;
@@ -531,6 +533,10 @@ mod prepared_expression_back;
 pub use prepared_expression_back::{
     prepared_expression_bounds, PreparedExpressionBack, StaticExpressionBackRefusal,
     StaticScalarExpressionBack, StaticStructuredExpressionBack, StructuredResidentEvaluator,
+};
+#[cfg(feature = "execution-workspace")]
+pub use prepared_expression_back::{
+    BorrowedWorkspaceStructuredExpressionBack, WorkspaceStructuredEvaluator, WorkspaceStructuredExpressionBack,
 };
 #[cfg(feature = "prepared-expression-session")]
 mod prepared_expression_offer;

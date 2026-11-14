@@ -7,8 +7,16 @@ pub(crate) fn emit(
     name: &str,
     kind: PrimitiveInfoKind,
 ) -> Result<String, Refusal> {
+    emit_with_work(source, contract, name, kind).map(|(source, _)| source)
+}
+pub(crate) fn emit_with_work(
+    source: &mut String,
+    contract: Option<&CheckedValueContract>,
+    name: &str,
+    kind: PrimitiveInfoKind,
+) -> Result<(String, u16), Refusal> {
     let Some(contract) = contract else {
-        return Ok("None".into());
+        return Ok(("None".into(), 0));
     };
     let unsupported =
         || Refusal::UnsupportedType("scalar-image/value-contract-witness-unavailable@1".into());
@@ -18,13 +26,16 @@ pub(crate) fn emit(
     if conduit_core::primitive_info_kind(contract.value_kind.as_str()) != Some(kind) {
         return Err(Refusal::InvalidProgram);
     }
-    crate::rust_binding::resident_contract::emit(source, contract, name).map_err(|reason| {
-        match reason {
-            crate::rust_binding::resident_contract::EmissionRefusal::Invalid => {
-                Refusal::InvalidProgram
+    let work =
+        crate::rust_binding::resident_contract::emit(source, contract, name).map_err(|reason| {
+            match reason {
+                crate::rust_binding::resident_contract::EmissionRefusal::Invalid => {
+                    Refusal::InvalidProgram
+                }
+                crate::rust_binding::resident_contract::EmissionRefusal::Unsupported => {
+                    unsupported()
+                }
             }
-            crate::rust_binding::resident_contract::EmissionRefusal::Unsupported => unsupported(),
-        }
-    })?;
-    Ok(format!("Some(&{name})"))
+        })?;
+    Ok((format!("Some(&{name})"), work))
 }

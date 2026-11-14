@@ -194,6 +194,25 @@ impl Profile {
         )
         .expect("constant wiring")
     }
+    /// Map logical A..G segments without interpreting characters or quantities.
+    /// Alpha14 splits G into two middle bars; the six perimeter bars correspond
+    /// directly. Decimal points are separate. This profile has no colon wiring.
+    /// No bus operation, frame acknowledgment or execution authority is created.
+    pub fn encode_seven_segment(
+        &self,
+        segments: [u8; 4],
+        decimal_points: [bool; 4],
+        colon: bool,
+    ) -> Result<[u8; 16], Refusal> {
+        if colon || segments.iter().any(|bits| bits & 0x80 != 0) {
+            return Err(Refusal::Glyph);
+        }
+        let glyphs = segments.map(|bits| {
+            let middle = if bits & 0x40 != 0 { 0x00c0 } else { 0 };
+            Glyph(u16::from(bits & 0x3f) | middle)
+        });
+        Ok(self.encode(glyphs, decimal_points))
+    }
     pub fn encode(&self, glyphs: [Glyph; 4], decimal_points: [bool; 4]) -> [u8; 16] {
         let mut ram = [0; 16];
         for (index, glyph) in glyphs.iter().enumerate() {
@@ -212,3 +231,6 @@ impl Profile {
         ram
     }
 }
+
+#[cfg(feature = "canonical-frame")]
+pub mod frame;

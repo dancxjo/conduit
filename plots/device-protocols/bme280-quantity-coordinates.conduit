@@ -1,0 +1,22 @@
+# Exact native representation boundary after Source-owned compensation.
+# These Forms preserve the standard semantic quantities. They choose neither
+# equipment nor sampling policy, and add no acquisition/time provenance.
+form device/bme280-temperature = Temperature as i128le(°C, -2)
+form device/bme280-pressure = Pressure as i128le(Pa, -8)
+form device/bme280-humidity = Ratio as i128le(%, -10)
+
+type BmeQuantityCoordinates = {
+    temperature: I128
+    pressure: I128
+    humidity: I128
+}
+type BmeQuantityCoordinatesResult =
+    coordinates BmeQuantityCoordinates
+    | unavailable BmeObservationFailure
+
+# q24.8 / 256 = coefficient * 390625 * 10^-8.
+# q22.10 / 1024 = coefficient * 9765625 * 10^-10.
+# Checked I128 arithmetic refuses overflow; no rounding precedes retention.
+plot bme280-quantity-coordinates (
+    result: BmeObservationResult...| >> coordinates: BmeQuantityCoordinatesResult...|
+) = (. is observation ? coordinates({ temperature: .observation.temperature_centidegrees, pressure: .observation.pressure_q24_8_pa * 390625, humidity: .observation.humidity_q22_10_percent * 9765625 }) : unavailable(.unavailable))

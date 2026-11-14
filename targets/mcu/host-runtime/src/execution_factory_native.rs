@@ -141,6 +141,22 @@ where
         }
         Some(())
     }
+    #[cfg(feature = "execution-workspace")]
+    fn execution_workspace_requirements(
+        &self,
+    ) -> Option<[Option<conduit_kernel::scheduler::StepWorkspaceRequirements>; N]> {
+        // Include actual selected software before the affine owners are bound.
+        // The constructor already proves complete, unique node ownership.
+        let mut actual = self.software.workspace_requirements::<P>()?;
+        for (slot, node) in self.resident_nodes.iter().enumerate() {
+            if let Some(node) = node {
+                actual[usize::from(*node)] = self
+                    .residents
+                    .execution_workspace_requirements_at::<P>(slot)?;
+            }
+        }
+        Some(actual)
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }
@@ -287,6 +303,11 @@ mod tests {
             <_ as PreparedBacks<2, 1>>::retained_backing_bytes(&prepared),
             Some(0)
         );
+        #[cfg(feature = "execution-workspace")]
+        assert_eq!(
+            <_ as PreparedBacks<2, 1>>::execution_workspace_requirements(&prepared),
+            None
+        );
         let (drivers, ()) = <_ as PreparedBacks<2, 1>>::bind(prepared);
         assert!(matches!(drivers[0], Driver::Native(_)));
         assert!(matches!(drivers[1], Driver::Resident(_)));
@@ -332,4 +353,82 @@ mod tests {
             );
         }
     }
+    #[cfg(all(feature = "execution-workspace", feature = "schema-value-storage"))]
+    #[test]
+    fn software_workspace_report_precedes_binding_and_matches_the_bound_driver() {
+        use conduit_core::{
+            kind_id, CheckedValueContract, StructuredFieldType, StructuredFieldValue,
+            StructuredInfoType, StructuredInfoValue,
+        };
+        let boolean = StructuredInfoType::leaf(kind_id("value/bool")).unwrap();
+        let schema = StructuredInfoType::record(
+            kind_id("test/workspace-state"),
+            alloc::vec![StructuredFieldType::new("terminal", boolean.clone()).unwrap()],
+        )
+        .unwrap();
+        let value = StructuredInfoValue::record(
+            schema.clone(),
+            alloc::vec![StructuredFieldValue::new(
+                "terminal",
+                StructuredInfoValue::leaf(boolean, alloc::vec![1]).unwrap()
+            )
+            .unwrap()],
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+        let canonical =
+            alloc::boxed::Box::leak(schema.canonical_bytes().unwrap().into_boxed_slice());
+        let contract = CheckedValueContract::new(
+            schema.profile().unwrap().value_kind().clone(),
+            1024,
+            alloc::vec![],
+        )
+        .unwrap();
+        let mut software = empty::<1>();
+        software.slots[0] =
+            Some(SoftwareBack::seeded_until_static(&contract, &schema, canonical).unwrap());
+        software.backing = core::mem::size_of::<conduit_composite::SeededStateBack>();
+        let ready = Cell::new(true);
+        let native_ready = Cell::new(true);
+        let probe = return_allocation_probe::ObservationInterval::begin();
+        let prepared = PreparedNativeDrivers::new(
+            Residents {
+                node: None,
+                available: &ready,
+            },
+            [None],
+            PreparedSoftware {
+                owner: &mut software,
+                selected: [true],
+            },
+            Calls {
+                nodes: &[],
+                available: &native_ready,
+            },
+        )
+        .unwrap();
+        let report =
+            <_ as PreparedBacks<1, 2>>::execution_workspace_requirements(&prepared).unwrap();
+        assert_eq!(
+            report,
+            [Some(conduit_kernel::scheduler::StepWorkspaceRequirements {
+                output_bytes: value.len() as u32,
+                scratch_bytes: 0
+            })]
+        );
+        assert!(ready.get() && native_ready.get());
+        let (drivers, ()) = <_ as PreparedBacks<1, 2>>::bind(prepared);
+        assert_eq!(
+            StepBack::<2>::workspace_requirements(&drivers[0]),
+            report[0]
+        );
+        assert!(matches!(drivers[0], Driver::Software(_)));
+        let observed = probe.finish();
+        assert_eq!((observed.allocations, observed.reallocations), (0, 0));
+    }
 }
+
+#[cfg(all(test, feature = "execution-workspace"))]
+#[path = "execution_factory_workspace_reports_tests.rs"]
+mod workspace_reports;

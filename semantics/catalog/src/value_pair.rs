@@ -8,7 +8,7 @@ use conduit_core::{
     StructuredInfoType,
 };
 pub const VALUE_PAIR_KIND: &str = "data/pair";
-pub const VALUE_PAIR_REVISION: &str = "conduit.data/pair@1";
+pub const VALUE_PAIR_REVISION: &str = "conduit.data/pair@2";
 
 /// Pairing transports exact semantic Types and payloads; it does not admit a
 /// foreign nominal, inspect resource contents, or grant resource authority.

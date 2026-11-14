@@ -44,6 +44,7 @@ impl<'a, 'b, 'p, O> ForeObserver<'a, 'b, 'p, O> {
 impl<
         D: StepBack<P>,
         L: SignSink,
+        V: ValueStorage,
         const N: usize,
         const C: usize,
         const P: usize,
@@ -51,13 +52,14 @@ impl<
         const T: usize,
         const H: usize,
         const K: usize,
-        O: Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H, K>>,
-    > Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H, K>> for ForeObserver<'_, '_, '_, O>
+        O: Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>>,
+    > Observer<StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>>
+    for ForeObserver<'_, '_, '_, O>
 {
     type Error = ObserverRefusal<O::Error>;
     fn before_step(
         &mut self,
-        kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
+        kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>,
     ) -> Result<(), Self::Error> {
         self.existing
             .before_step(kernel)
@@ -150,7 +152,7 @@ impl<
     }
     fn completed(
         &mut self,
-        kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K>,
+        kernel: &mut StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V>,
         dispatch: Dispatch,
     ) -> Result<(), Self::Error> {
         self.existing

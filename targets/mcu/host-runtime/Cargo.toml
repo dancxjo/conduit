@@ -7,6 +7,8 @@ publish = false
 [workspace]
 
 [dependencies]
+conduit-typed-retention = { path = "../../../mechanisms/implementations/typed-retention", optional = true }
+conduit-ht16k33 = { path = "../../../mechanisms/io/ht16k33", optional = true, features = ["canonical-frame"] }
 conduit-composite = { path = "../../../architecture/composite", default-features = false, optional = true }
 conduit-tm1637-protocol = { path = "../../../mechanisms/devices/tm1637", optional = true }
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, optional = true }
@@ -35,7 +37,10 @@ conduit-face = { path = "../../../semantics/face", default-features = false, fea
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", features = ["native-kernel"], optional = true }
 
 [features]
-execution = ["dep:conduit-i2c-transaction", "dep:conduit-composite", "dep:conduit-tm1637-protocol", "dep:conduit-semantic-catalog", "dep:conduit-dht11-observation", "dep:conduit-resource-snapshot", "dep:conduit-face", "dep:conduit-seven-segment-mask", "dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:conduit-time", "dep:conduit-environment-runtime", "dep:conduit-pulse-capture", "dep:conduit-tm1637-wire", "dep:conduit-monotonic-wait"]
+execution-workspace = ["execution", "conduit-kernel/execution-workspace", "conduit-composite/execution-workspace"]
+schema-value-storage = ["execution", "conduit-composite/schema-value-storage", "conduit-kernel/schema-value-storage", "conduit-plan-lowering/schema-value-storage"]
+ht16k33-mask = ["execution", "dep:conduit-ht16k33", "conduit-environment-runtime/display-mask-ht16k33"]
+execution = ["dep:conduit-typed-retention","dep:conduit-i2c-transaction", "dep:conduit-composite", "dep:conduit-tm1637-protocol", "dep:conduit-semantic-catalog", "dep:conduit-dht11-observation", "dep:conduit-resource-snapshot", "dep:conduit-face", "dep:conduit-seven-segment-mask", "dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:conduit-time", "dep:conduit-environment-runtime", "dep:conduit-pulse-capture", "dep:conduit-tm1637-wire", "dep:conduit-monotonic-wait"]
 
 [dev-dependencies]
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false }

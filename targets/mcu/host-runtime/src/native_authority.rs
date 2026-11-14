@@ -9,6 +9,7 @@ use crate::{
 use alloc::{string::String, vec::Vec};
 use conduit_body::NativePreparationContext;
 use conduit_core::AuthorityGrant;
+use conduit_environment_runtime::display_mask::PreparedFrameEncoder;
 use conduit_monotonic_wait::{MonotonicWaitProvider, ReadyMonotonicWaitBase};
 use conduit_pulse_capture::{installation::ReadyPulseBase, owner::PulseReadProvider};
 use conduit_tm1637_wire::{installation::ReadyWriteBase, OpenDrain};
@@ -163,13 +164,15 @@ impl<const W: usize> Issuers<W> {
         T: OpenDrain,
         C: RendererClock,
         M: MonotonicWaitProvider,
+        E: PreparedFrameEncoder,
+        const FRAME: usize,
     >(
         &mut self,
         context: NativePreparationContext<'_>,
         policy: Policy<'_>,
         pulse: &ReadyPulseBase<P>,
         write: &ReadyWriteBase<T>,
-        renderer: &ReadyRenderer<C>,
+        renderer: &ReadyRenderer<C, E, FRAME>,
         waits: &[Option<ReadyMonotonicWaitBase<M>>; W],
         operations: &Operations<'_, W>,
         remaining: impl Fn() -> usize,
