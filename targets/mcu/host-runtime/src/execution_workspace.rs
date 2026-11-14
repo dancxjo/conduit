@@ -22,7 +22,8 @@ impl<
         L: ExecutionSigns,
         const K: usize,
         V: ExecutionValues,
-    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V>
+        const Q: usize,
+    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q>
 {
     /// Derive one pair of physical extents from the exact selected owners.
     /// All allocation is cold, fallible and bounded by the original remaining

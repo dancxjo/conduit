@@ -100,3 +100,8 @@ mod content_wire;
 pub use content_wire::{FragmentContent, FragmentContentContract};
 mod projection;
 pub use projection::{FragmentResource, FragmentResources};
+
+pub(super) mod installed;
+pub use installed::{
+    plain_resource_table_reference, InstalledPlainResourceTable, PLAIN_RESOURCE_REFERENCE_BYTES,
+};

@@ -218,3 +218,6 @@ impl<'payload, const N: usize> DelegatedBodyWorkset<'_, 'payload, N> {
             .map_err(E::Fragment)
     }
 }
+
+#[path = "installed_receiving.rs"]
+mod installed_resources;

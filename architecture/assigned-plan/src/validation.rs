@@ -1,5 +1,12 @@
 //! One validator over contiguous bytes or borrowed standard record payloads.
 use crate::*;
+// A bit per requirement covers the existing one-byte record-count domain in
+// exactly the former 32-byte boolean inventory. This changes no Plan ceiling.
+const MAXIMUM_RESOURCE_REQUIREMENTS: usize = u8::MAX as usize;
+const RESOURCE_SEEN_BYTES: usize = MAXIMUM_RESOURCE_REQUIREMENTS.div_ceil(8);
+#[cfg(test)]
+#[path = "resource_bitmap_tests.rs"]
+mod resource_bitmap_tests;
 
 pub(crate) fn decode(
     bytes: &[u8],
@@ -199,10 +206,10 @@ fn validate<'a>(
 
     let mut seen = [0_u8; ASSIGNED_PLAN_COUNT_KINDS];
     let mut host_calls = [false; 32];
-    let mut resources = [false; 32];
+    let mut resources = [0u8; RESOURCE_SEEN_BYTES];
     let mut remotes = [false; 16];
     if requirements.host_calls.len() > host_calls.len()
-        || requirements.resources.len() > resources.len()
+        || requirements.resources.len() > MAXIMUM_RESOURCE_REQUIREMENTS
         || requirements.remote_bindings.len() > remotes.len()
     {
         return Err(AssignedPlanRefusal::MalformedRecord);
@@ -335,10 +342,12 @@ fn validate<'a>(
                     .resources
                     .iter()
                     .enumerate()
-                    .find(|(index, required)| !resources[*index] && **required == resource)
+                    .find(|(index, required)| {
+                        resources[*index / 8] & (1 << (*index % 8)) == 0 && **required == resource
+                    })
                     .map(|(index, _)| index)
                     .ok_or(AssignedPlanRefusal::UnknownResource)?;
-                resources[index] = true;
+                resources[index / 8] |= 1 << (index % 8);
             }
             ASSIGNED_RESOURCE_CORD => {
                 let resource = read_u16(payload, 8)?;
@@ -397,9 +406,7 @@ fn validate<'a>(
     {
         return Err(AssignedPlanRefusal::MissingHostCall);
     }
-    if resources[..requirements.resources.len()]
-        .iter()
-        .any(|seen| !seen)
+    if (0..requirements.resources.len()).any(|index| resources[index / 8] & (1 << (index % 8)) == 0)
     {
         return Err(AssignedPlanRefusal::MissingResource);
     }
