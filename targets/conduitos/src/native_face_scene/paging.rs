@@ -130,7 +130,13 @@ impl NativeFaceScene {
             }
             push(
                 scene,
-                GraphicsCommand::rect(bounds, self.screen, paint, GraphicsShapeStyle::Stroke),
+                GraphicsCommand::rect(
+                    bounds,
+                    self.screen,
+                    paint,
+                    GraphicsShapeStyle::RoundedStroke,
+                )
+                .and_then(|command| corners::apply(command, self.look_corners.map(|c| c.control))),
             )?;
             push(
                 scene,
