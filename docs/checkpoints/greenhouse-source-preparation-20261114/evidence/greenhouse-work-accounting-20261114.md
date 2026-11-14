@@ -1,10 +1,10 @@
 # Greenhouse MCU work: preservation and handoff accounting
 
-The shared preparation path has made substantial, measured progress, but this is **not a completed greenhouse appliance**. The complete checked Source component now passes CPU preparation; the newest phase-capacity integration passes complete CPU preparation but has not received target qualification. No device was flashed during this memory-reduction sequence.
+The shared preparation path has made substantial, measured progress, but this is **not a completed greenhouse appliance**. The complete checked Source component now passes CPU preparation; the newest phase-capacity integration passes complete CPU preparation and an ARM preparation-entrance build, but actual target execution and total RAM/stack fit remain unproved. No device was flashed during this memory-reduction sequence.
 
 ## What is saved
 
-- **#6837:** shared integration/delivery branch. Last complete MCU/runtime/factory/ARM qualification: `c7e14f11e2`. Latest additional shared-kernel commit: `4c3999e4e4`, qualified at kernel scope only.
+- **#6837:** shared integration/delivery branch. Shared kernel phase-capacity work is at `4c3999e4e4`; MCU forwarding is at `25145af968`. Complete CPU preparation and the ARM preparation-entry build now include both. This is not runtime/hardware qualification.
 - **#6902:** draft recovery branch, preserving all current experimental MCU source, tests, public evidence, reproduction scripts and `CONTINUE-HERE.md`. The checkpoint process verifies source files byte-for-byte without resetting the working checkout or its normal index.
 - Private credentials, Body keys and observation journals remain outside Git. Generated ELF files are retained locally as regenerable artifacts; their hashes and build receipts are saved in the checkpoint.
 
@@ -48,7 +48,7 @@ ARM layout inspection identified large abnormal-terminal state: Cord state 13,68
 
 Only the retained abnormal-finalization payload has a justified narrower capacity now. The current Source has no `FinalizeThenPropagate` contract. The new `PHASE_BYTES` profile defaults to 100; smaller profiles refuse any selected abnormal finalizer before allocation or effects. Public abnormal values, Cord storage and unresolved abnormal truth **retain their full 100-byte capacity**. `NotAccepted` was deliberately not treated as proof that abnormal emission is impossible.
 
-Kernel scope passes **258 tests, three ignored**, focused phase tests, no_alloc compilation and strict library/test Clippy. The MCU adapter and Source-derived zero-byte selection initially remained unqualified; the bounded follow-ups below now qualify them together for CPU preparation, while ARM remains unverified. The small fixture's savings are not a Source76 or ARM saving claim.
+Kernel scope passes **258 tests, three ignored**, focused phase tests, no_alloc compilation and strict library/test Clippy. The MCU adapter and Source-derived zero-byte selection now compile together in the original whole-factory CPU/no_std proof and ARM preparation-entry build. Actual ARM kernel size is39,592 bytes versus47,192 with linked contracts and full phase payloads. Whole target runtime fit remains unproved. The small fixture's savings are not a Source76 or ARM saving claim.
 
 ## Comparable full-factory measurements
 
@@ -63,42 +63,32 @@ These are CPU64 requested allocations, not target RAM fit:
 
 The verified combined CPU64 saving is **45,501 bytes** in both retained and peak allocation. Exclusions remain preexisting Root, equipment, resident inventory, issuer grants, allocator overhead and stack. The separately funded CPU test arena is **not** the MCU's unchanged 131,072-byte heap. The newest row includes the separately qualified7,600-byte full-factory phase-capacity saving; no new ARM saving is inferred.
 
-At `c7e14f11e2`, MCU runtime tests passed **139, one ignored**; topology tests passed five; scoped strict Clippy passed. Kernel tests then passed 255, three ignored, before the latest kernel-only phase change.
+Latest kernel tests: **258 passed, three ignored**, including linked-contract and phase-capacity cases; no_alloc compilation and strict kernel library/test Clippy pass. Latest MCU forwarding tests: **139 passed, one ignored**. Source topology tests: five passed. Original whole-factory/Root preflight and no_std proof pass. The last MCU strict-Clippy run was at c7e14f11e2; the subsequent forwarding slice compiled and passed its runtime suite.
 
-The last ARM preparation-entrance release links with **49,844 bytes flash margin**, **209,088 bytes static extent** and a **61,248-byte stack region**. ELF SHA-256: `4f83f51d2e6b7b1b3041c65836e9fdb993451ca08f36a45f9e574d54d5ab518f`. Type geometry and linking do not prove heap/stack safety or that the complete reachable application fits.
+The latest ARM preparation-entrance release links with **49,636 bytes flash margin**, **209,088 bytes static extent** and a **61,248-byte stack region**. ELF SHA-256: `557cf6092cec42178b3280746da51fb960394669bbcc841a77e192496df3e4cb`. Heap grant remains131,072 bytes. The stack region is available space, not a measured peak stack use.
+
+| ARM kernel storage profile (same current code) | Inline bytes |
+| --- | ---: |
+| Inline contracts, full phase payloads | 64,216 |
+| Linked contracts, full phase payloads | 47,192 |
+| Linked contracts, Source-derived phase capacity | **39,592** |
+
+These kernel sizes exclude external value buffers, Sign backing, software-owned allocations and workspace. They must not be compared with the heap grant as if they were the complete footprint. Linking this preparation entrance does not prove the complete reachable application fits or executes. Receipts: `rp2040-phase-terminal-build-receipt-20261114.json`, `rp2040-phase-terminal-footprint-20261114.json` and `arm-phase-terminal-geometry-20261114.json`.
 
 ## What is running, and what is not established
 
 The devices remain on their previous firmware; the live fleet was not reverified in this preservation pass. Earlier sensing/display and admission evidence must not be represented as execution of this new Source path. Threebee's UI/startup work is coordinated separately through #6895 and the shared handoff file; this accounting does not claim its latest package is deployed or that its graph contains every thermometer.
 
+The read-only execution-handoff audit also verifies that this component exposes three inputs and nine outputs and already shares one I2C owner across sensor/display protocols. The existing structured ingress codec is reusable; the production external carrier handles only one input/output pair and payload lifecycle. Close application-internal ports through authored Source and actual local Fore/Face/Mask custody rather than inventing network Lines for local equipment. See `source76-execution-handoff-audit-20261114.md`.
+
 The experimental MCU entrance still prepares/drops and refuses **`structured-fore-mask-unavailable`**. It does not Start the complete application. This checkpoint does not establish a single fully operating Body across all devices, independent sampling/display, complete committed overnight history, restart recovery, NAT interruption recovery, provisioning/failover, browser joining, or a unified live/history Face. General extraction of remaining application-specific runtime dependencies is also unfinished.
 
 ## Resume here
 
-1. Qualify the phase-capacity profile on target when budget permits. The complete CPU/no_std proof now passes; the last ARM figures belong to `c7e14f11e2`.
+1. Qualify actual target execution memory when budget permits. CPU/no_std preparation and ARM linking now pass; runtime heap/stack and complete application execution remain unproved.
 2. Qualify actual target heap, startup/preparation overlap and stack, including the original Root/equipment/allocator. Keep grants truthful; do not increase them merely to hide refusal.
 3. Finish autonomous authored Source composition and actual Fore/Face/Mask admission and execution. Link the whole reachable application before claiming flash fit.
 4. Verify real sensing/display, durable committed history, power cycles and owner/network loss on hardware before replacing working firmware. Preserve the same Body and provenance.
 5. Continue integration with the shared display/history lane and deliver reviewed slices into dev. At the last fetch, current dev was already included; preservation is not a merge claim.
 
 This work belongs principally to **#6341 and #6457**. Native Mask/Fore acceptance remains relevant to #6374/#6378; lifetime correctness to #6340/#6409; durable member/history acceptance to #6461/#6465 and the parent #6295. These preparation results do not close those acceptance obligations, and no new MCU memory epic is needed.
-
-## Bounded follow-up: shared MCU adapter
-
-The saved shared MCU phase-capacity adapter now compiles and passes the complete runtime library suite: **139 passed, one ignored** (`mcu-phase-terminal-tests-20261114.log`). Its three forwarding files are committed separately. This updates only the adapter's qualification: the RP2040 Source-derived selection, whole-factory preparation, new memory savings and ARM target remain unverified after phase specialization. The complete measurements above still belong to `c7e14f11e2`. No target build, device change or live-service change was made in this follow-up.
-
-## Bounded follow-up: complete phase-profile CPU preparation
-
-The original uninstrumented signed Source76 factory, Root preflight and original no_std compilation now pass with the Source-derived zero-byte abnormal-finalization profile. CPU64 requested retained/peak allocation is **164,853 / 166,892 bytes**, compared with172,453 /174,492 for the linked-table profile: **another7,600 bytes saved**. The combined measured saving from210,354 /212,393 is now **45,501 bytes**. All earlier exclusions remain. Public abnormal values, Cord state and unresolved abnormal truth keep100-byte capacity. Native calls remain0 and all loans return; no admission or Start occurs.
-
-Receipt: `positive-phase-terminal-factory-20261114.json`; test log alongside it. These are CPU64 measurements. The newest profile has **not** been built or measured for ARM, and the last ARM ELF/geometry figures above still belong to c7e14f11e2. No hardware or service changes were made. Resume with target qualification rather than repeating this unchanged CPU proof.
-
-## Execution-handoff source audit
-
-A read-only follow-up records the exact missing execution handoff in `source76-execution-handoff-audit-20261114.md`. The neutral service intentionally prepares/drops and never calls the existing admission/Start APIs. The authored component has three inputs and nine outputs and already shares one I2C owner across sensor/display protocols. Structured ingress support exists; the production external carrier handles only one input/output pair and payload lifecycle. Complete local authored composition and actual Face/Mask owners are required, rather than removing the refusal or inventing Lines for local hardware. No build or device changes accompanied this audit.
-
-## Phase-profile ARM qualification
-
-The saved phase-profile release now builds and links for ARM. Compile-only actual ARM geometry is **39,592 bytes** for the selected kernel, versus47,192 bytes for linked contracts with full phase payloads: **7,600 bytes less**. The Source-derived phase capacity is0. Default full-inline/full-phase kernel geometry remains64,216 bytes. This is kernel type size, not total Host RAM.
-
-Newest preparation-entry ELF SHA-256: `557cf6092cec42178b3280746da51fb960394669bbcc841a77e192496df3e4cb`. Flash margin **49,636 bytes**; static extent209,088 bytes; stack region61,248 bytes; heap grant131,072 bytes unchanged. Build and ABI receipts are `rp2040-phase-terminal-build-receipt-20261114.json`, `rp2040-phase-terminal-footprint-20261114.json` and `arm-phase-terminal-geometry-20261114.json`. No device was flashed. Whole reachable application fit, actual runtime heap/stack and admitted execution remain unproved.
