@@ -1,8 +1,8 @@
 //! Exact planning for retained Source and observed current member equipment.
-use super::{debug, Owner};
+use super::{Owner, debug};
 use conduit_body::{BodyPlotPlan, BodyState, BodyWorkset, ResidentPlot};
 use conduit_core::{
-    port_id, BaseImplementationId, ConnectionTrack, HostAdvertisement, PortDirection,
+    BaseImplementationId, ConnectionTrack, HostAdvertisement, PortDirection, port_id,
 };
 use std::collections::BTreeMap;
 
@@ -21,6 +21,8 @@ impl Owner {
         if self.resident.as_ref() == Some(&resident) {
             self.set_resident_plot_name(checked)?;
         }
+        self.wake_ingress_requirements
+            .observe(&self.session.evidence().body, checked)?;
         Ok(())
     }
 

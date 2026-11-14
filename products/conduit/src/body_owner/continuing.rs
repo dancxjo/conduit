@@ -14,7 +14,7 @@ mod fore;
 mod spawn;
 pub(crate) use fore::ImageIngress;
 use fore::ReceiptFore;
-pub(super) use fore::{boundaries_for_plots, boundaries_for_plots_with_local};
+pub(super) use fore::{boundaries_for_plots, boundaries_for_plots_with_local, requires_selected_input_adapter};
 use std::{
     path::Path,
     sync::mpsc::{self, Receiver, SyncSender, TryRecvError},

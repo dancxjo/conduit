@@ -1,11 +1,11 @@
 //! Finite local results for the owner receipt, not a durable recorder or Line ack.
 use conduit_body::ResidentPlot;
 use conduit_core::{
-    ConnectionTrack, PortDirection, DEFAULT_CONNECTION_BYTE_CAPACITY,
-    DEFAULT_CONNECTION_ITEM_CAPACITY,
+    ConnectionTrack, DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY,
+    PortDirection,
 };
 use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey};
-use conduit_std_host::{body_execution::BodyForeOutputAdapter, ExternalForeDelivery};
+use conduit_std_host::{ExternalForeDelivery, body_execution::BodyForeOutputAdapter};
 use std::collections::{BTreeMap, BTreeSet};
 
 type Boundaries = BTreeMap<ResidentPlot, BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>>;
@@ -60,6 +60,14 @@ pub(crate) struct ImageIngress {
     pub(crate) limits: ConnectionQueueLimits,
 }
 
+/// Same checked requirement used by Start and its availability projection.
+/// The installed Creche owns its existing explicit adapter separately.
+pub(in super::super) fn requires_selected_input_adapter(
+    plot: &conduit_plot::ExpandedAuthoringPlot,
+) -> bool {
+    plot.expanded.name != "creche/main" && !plot.input_bindings.is_empty()
+}
+
 #[cfg(test)]
 pub(super) fn boundaries(
     sources: &[super::super::super::retained_source::RetainedPlotSource],
@@ -101,7 +109,7 @@ pub(in super::super) fn boundaries_for_plots_with_local<'a>(
         );
         let local_ports = local.and_then(|set| set.boundaries(&resident));
         let mut ports = local_ports.cloned().unwrap_or_default();
-        if !plot.input_bindings.is_empty() && local_ports.is_none() {
+        if requires_selected_input_adapter(plot) && local_ports.is_none() {
             let resident = ResidentPlot::new(
                 plot.expanded.source_document_id.clone(),
                 plot.expanded.checked_plot_id.clone(),
@@ -198,9 +206,11 @@ mod tests {
         assert!(capture.deliver(&output).is_err());
         assert_eq!(capture.snapshot(), before);
         let mut capture = ReceiptFore::new();
-        assert!(capture
-            .deliver(&value(0, DEFAULT_CONNECTION_BYTE_CAPACITY as usize + 1))
-            .is_err());
+        assert!(
+            capture
+                .deliver(&value(0, DEFAULT_CONNECTION_BYTE_CAPACITY as usize + 1))
+                .is_err()
+        );
         assert_eq!(capture.len, 0);
     }
     fn source(text: &str) -> super::super::super::super::retained_source::RetainedPlotSource {
@@ -216,9 +226,11 @@ mod tests {
         assert!(boundaries(&[input]).unwrap_err().contains("input adapter"));
         let one = "plot one (\n ticks: Tick...| >>\n) {\n clock: time/tick(count = 1, period-ms = 0)\n clock.tick >> ticks\n}\n";
         let sources = [source(one), source(&one.replace("plot one", "plot two"))];
-        assert!(boundaries(&sources)
-            .unwrap_err()
-            .contains("unique port/track"));
+        assert!(
+            boundaries(&sources)
+                .unwrap_err()
+                .contains("unique port/track")
+        );
     }
     #[test]
     fn explicit_ingress_requires_exact_resident_port_and_finite_capacity() {

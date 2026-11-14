@@ -8,8 +8,8 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
-use conduit_core::bind_sign;
 use conduit_core::HostAdvertisement;
+use conduit_core::bind_sign;
 use conduit_face::{Face, OwnerFaceSnapshotRequest};
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
@@ -76,6 +76,8 @@ mod member_return;
 mod owner_navigation;
 #[path = "planning.rs"]
 mod planning;
+#[path = "wake_readiness.rs"]
+mod wake_readiness;
 #[cfg(target_os = "linux")]
 pub(crate) use fore_line_planning::OwnedForeLineSelection;
 #[path = "remote_preparation.rs"]
@@ -104,7 +106,7 @@ mod remote_spoken_route;
 mod remote_terminal_route;
 #[path = "wardrobe_face.rs"]
 mod wardrobe_face;
-pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
+pub(crate) use clock_interval::{CLOCK_RUN_MAXIMUM_MILLIS, ClockAction, is_clock_control_intent};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
 mod terminal_route;
@@ -250,6 +252,7 @@ pub(crate) struct Owner {
     last_execution: Option<serde_json::Value>,
     execution_persistence_pending: bool,
     workset_recovery_required: bool,
+    wake_ingress_requirements: wake_readiness::WakeIngressRequirements,
     local_fore_adapters: Option<crate::durable_host::local_fore_policy::SelectedLocalForeSet>,
     #[cfg(target_os = "linux")]
     selected_file_workset: Option<crate::durable_host::source_revision::RetainedFileWorkset>,
@@ -375,6 +378,7 @@ impl Owner {
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            wake_ingress_requirements: wake_readiness::WakeIngressRequirements::default(),
             local_fore_adapters: None,
             #[cfg(target_os = "linux")]
             selected_file_workset: None,
@@ -417,6 +421,7 @@ impl Owner {
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            wake_ingress_requirements: wake_readiness::WakeIngressRequirements::default(),
             local_fore_adapters: None,
             #[cfg(target_os = "linux")]
             selected_file_workset: None,
@@ -471,6 +476,8 @@ impl Owner {
         }
         self.resident_name = Some(checked.expanded.name.clone());
         self.clock_interval_ms = clock_interval::recognized_interval(&resident);
+        self.wake_ingress_requirements
+            .observe(&self.session.evidence().body, checked)?;
         Ok(())
     }
     pub(super) fn restore_execution(&mut self, root: &Path) -> Result<(), String> {
@@ -514,7 +521,7 @@ impl Owner {
     /// The installed owner's current Face. Only the authenticated local
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
-    pub(crate) fn local_face_snapshot(&self) -> Result<Face, String> {
+    pub(super) fn local_face_snapshot_without_wake_input_readiness(&self) -> Result<Face, String> {
         self.require_workset_recovered()?;
         if let Some(face) = self.project_runtime_face()? {
             return Ok(face);
