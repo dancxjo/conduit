@@ -32,7 +32,7 @@ fn request(f: &mut Fixture, state: &StructuredInfoValue, write: &[u8], read: u8)
 #[test]
 fn one_event_advances_one_phase_and_deadlines_use_monotonic_time() {
     let mut f = Fixture::new();
-    assert!(f.checked_plot_count() > 10);
+    assert_eq!(f.transition_gear_count(), 2);
     let mut state = f.initial();
     request(&mut f, &state, &[0xd0], 1);
     state = f.advance(state, f.bus("completed", &[0x60], 0));

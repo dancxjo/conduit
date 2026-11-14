@@ -5,7 +5,6 @@ use conduit_core::{
 };
 
 pub struct Fixture {
-    checked_plot_count: usize,
     transition: Vec<PreparedPortableExpressionEvaluator>,
     pub state_type: StructuredInfoType,
     event_type: StructuredInfoType,
@@ -18,13 +17,17 @@ pub struct Fixture {
 }
 impl Fixture {
     pub fn new() -> Self {
-        let checked = check_syntax_document(
-            &parse_syntax_document(include_str!(
-                "../../../../plots/device-protocols/bme280-lifecycle.conduit"
-            )),
-            &lifecycle_catalog(),
-        )
-        .unwrap();
+        Self::from_source(include_str!(
+            "../../../../plots/device-protocols/bme280-lifecycle.conduit"
+        ))
+    }
+    pub fn staged_oracle() -> Self {
+        Self::from_source(include_str!("staged_oracle.conduit"))
+    }
+    pub fn from_source(source: &str) -> Self {
+        let syntax = parse_syntax_document(source);
+        assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+        let checked = check_syntax_document(&syntax, &lifecycle_catalog()).unwrap();
         let program = |name: &str| {
             let expanded =
                 expand_canonical_plot_for_authoring(&checked, name, &ProfileCatalog::new())
@@ -57,30 +60,16 @@ impl Fixture {
             .unwrap()
             .value_type
             .clone();
-        let transition = [
-            "bme280-step-begin",
-            "bme280-step-address",
-            "bme280-step-time",
-            "bme280-step-clock",
-            "bme280-step-bus",
-            "bme280-step-probe-reset",
-            "bme280-step-nvm-sleep",
-            "bme280-step-humidity-config",
-            "bme280-step-calibration",
-            "bme280-step-humidity-conversion",
-            "bme280-step-sample",
-            "bme280-step-finish",
-        ]
-        .iter()
-        .map(|name| PreparedPortableExpressionEvaluator::new(&program(name)).unwrap())
-        .collect();
+        let transition = transition_programs(&checked)
+            .iter()
+            .map(|program| PreparedPortableExpressionEvaluator::new(program).unwrap())
+            .collect();
         let action =
             PreparedPortableExpressionEvaluator::new(&program("bme280-protocol-action")).unwrap();
         let initializer = program("bme280-protocol-initialize");
         let begin_type = initializer.input_type.clone();
         let initialize = PreparedPortableExpressionEvaluator::new(&initializer).unwrap();
         Self {
-            checked_plot_count: checked.plots.len(),
             state_type,
             event_type,
             transition_type,
@@ -167,17 +156,23 @@ impl Fixture {
         StructuredInfoValue::from_canonical_bytes(self.advance_bytes(&bytes)).unwrap()
     }
     pub fn advance_bytes(&mut self, input: &[u8]) -> &[u8] {
+        self.try_advance_bytes(input).unwrap()
+    }
+    pub fn try_advance_bytes(
+        &mut self,
+        input: &[u8],
+    ) -> Result<&[u8], conduit_plot::PortableExpressionEvaluationRefusal> {
         assert!(input.len() <= self.first.capacity());
         self.first.clear();
         self.first.extend_from_slice(input);
         for evaluator in &mut self.transition {
-            let output = evaluator.evaluate(&self.first).unwrap();
+            let output = evaluator.evaluate(&self.first)?;
             assert!(output.len() <= self.second.capacity());
             self.second.clear();
             self.second.extend_from_slice(output);
             core::mem::swap(&mut self.first, &mut self.second);
         }
-        &self.first
+        Ok(&self.first)
     }
     pub fn input_bytes(&self, state: StructuredInfoValue, event: StructuredInfoValue) -> Vec<u8> {
         record(
@@ -228,8 +223,8 @@ impl Fixture {
                 .collect(),
         )
     }
-    pub fn checked_plot_count(&self) -> usize {
-        self.checked_plot_count
+    pub fn transition_gear_count(&self) -> usize {
+        self.transition.len()
     }
 }
 pub fn field_type<'a>(ty: &'a StructuredInfoType, name: &str) -> &'a StructuredInfoType {
@@ -304,4 +299,60 @@ pub fn bytes(value: &StructuredInfoValue) -> Vec<u8> {
         panic!("collection")
     };
     values.iter().map(byte).collect()
+}
+
+/// Follow exact authored binding/Cord order, never lexical Gear IDs or a list of
+/// stage names. Refuse any shape beyond this test fixture's unary pure chain.
+pub(super) fn transition_programs(
+    checked: &conduit_plot::CheckedSyntaxDocument,
+) -> Vec<PortableExpressionProgram> {
+    let authored = expand_canonical_plot_for_authoring(
+        checked,
+        "bme280-protocol-transition",
+        &ProfileCatalog::new(),
+    )
+    .unwrap();
+    assert_eq!(authored.input_bindings.len(), 1);
+    assert_eq!(authored.output_bindings.len(), 1);
+    let graph = &authored.expanded;
+    let mut current = &authored.input_bindings[0].gear_id;
+    let mut ordered = Vec::new();
+    let mut programs = Vec::new();
+    loop {
+        assert!(!ordered.contains(current), "cyclic transition fixture");
+        ordered.push(current.clone());
+        let gear = graph
+            .gears
+            .iter()
+            .find(|gear| &gear.gear_id == current)
+            .unwrap();
+        assert_eq!(gear.configuration.len(), 1);
+        let ConfigurationValue::Text(encoded) = &gear.configuration[0].value else {
+            panic!("program")
+        };
+        assert_eq!(gear.configuration[0].key, "program");
+        programs.push(PortableExpressionProgram::from_canonical_hex(encoded).unwrap());
+        let outgoing: Vec<_> = graph
+            .connections
+            .iter()
+            .filter(|cord| &cord.source_gear_id == current)
+            .collect();
+        if outgoing.is_empty() {
+            assert_eq!(current, &authored.output_bindings[0].gear_id);
+            break;
+        }
+        assert_eq!(outgoing.len(), 1, "transition fanout");
+        current = &outgoing[0].sink_gear_id;
+        assert_eq!(
+            graph
+                .connections
+                .iter()
+                .filter(|cord| &cord.sink_gear_id == current)
+                .count(),
+            1,
+            "transition merge"
+        );
+    }
+    assert_eq!(ordered.len(), graph.gears.len(), "disconnected transition");
+    programs
 }

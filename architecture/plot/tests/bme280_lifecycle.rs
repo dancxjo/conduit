@@ -62,7 +62,7 @@ fn lifecycle_policy_is_checked_source_and_prepares_without_device_code() {
             .unwrap_or_else(|error| panic!("{name}: {error:?}"))
             .expanded;
         if name == "bme280-protocol-transition" {
-            assert!(expanded.gears.len() > 1);
+            assert_eq!(expanded.gears.len(), 2);
         } else {
             assert_eq!(expanded.gears.len(), 1);
         }
@@ -141,24 +141,13 @@ fn all_primitive_transition_stages_fit_the_original_static_constructor_limits() 
         &lifecycle_catalog(),
     )
     .unwrap();
+    let programs = fixture::transition_programs(&checked);
+    assert_eq!(programs.len(), 2);
     let mut refusals = Vec::new();
-    for name in checked
-        .plots
-        .iter()
-        .map(|plot| plot.name.as_str())
-        .filter(|name| name.starts_with("bme280-step-"))
-    {
-        let expanded =
-            expand_canonical_plot_for_authoring(&checked, name, &ProfileCatalog::new()).unwrap();
-        assert_eq!(expanded.expanded.gears.len(), 1);
-        let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
-        else {
-            panic!("program");
-        };
-        let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-        if let Err(error) = conduit_plot::generate_static_structured_expression(
+    for (index, program) in programs.iter().enumerate() {
+        if let Err(error) = conduit_plot::generate_borrowed_static_structured_expression_with_work(
             &checked,
-            &program,
+            program,
             conduit_plot::rust_binding::PreparedNativeBounds {
                 canonical_bytes: 4096,
                 scopes: 64,
@@ -167,7 +156,7 @@ fn all_primitive_transition_stages_fit_the_original_static_constructor_limits() 
             },
             4096,
         ) {
-            refusals.push((name, error));
+            refusals.push((index, error));
         }
     }
     assert!(
@@ -179,7 +168,7 @@ fn all_primitive_transition_stages_fit_the_original_static_constructor_limits() 
 #[test]
 fn preparation_footprint_is_finite_and_reported() {
     let (fixture, observation) = allocation_probe::observe(fixture::Fixture::new);
-    assert!(fixture.checked_plot_count() > 10);
+    assert_eq!(fixture.transition_gear_count(), 2);
     assert!(observation.peak_bytes < 16 * 1024 * 1024, "{observation:?}");
     eprintln!("BME280 policy preparation: {observation:?}");
 }
@@ -348,3 +337,9 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
         );
     }
 }
+
+#[path = "bme280_lifecycle/transition_equivalence.rs"]
+mod transition_equivalence;
+
+#[path = "bme280_lifecycle/static_execution.rs"]
+mod static_execution;
