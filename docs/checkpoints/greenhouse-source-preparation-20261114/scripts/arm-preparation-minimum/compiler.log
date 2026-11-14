@@ -1,0 +1,98 @@
+warning: unused import: `layout`
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/make/../firmware/host/src/neutral_preflight.rs:5:23
+  |
+5 |     neutral_workset::{layout, source, N},
+  |                       ^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `waits`
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-c79668900a21695b/out/workset_0.rs:60:34
+   |
+60 | pub fn definition_at(index:usize,waits:&[(u16,conduit_kernel::ValueRef)])->Result<Option<conduit_mcu_host_runtime::execution_factory...
+   |                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_waits`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `clocks`
+   --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-c79668900a21695b/out/workset_0.rs:121:32
+    |
+121 | pub fn identity_at(index:usize,clocks:&[conduit_plan_lowering::resident_inventory::OtherNodeIdentity])->Result<Option<conduit_plan_...
+    |                                ^^^^^^ help: if this is intentional, prefix it with an underscore: `_clocks`
+
+warning: constant `EXPECTED_SOURCE_SHA256` is never used
+  --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:10:7
+   |
+10 | const EXPECTED_SOURCE_SHA256:[u8;32]=[131, 41, 27, 110, 172, 81, 255, 99, 188, 218, 153, 98, 123, 136, 227, 26, 116, 124, 184, 59, 1...
+   |       ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `IMAGE_ID` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:41
+  |
+2 | extern crate alloc;mod config{pub const IMAGE_ID:&str="image:sha256:49408324ec1cdab5341021bc8612bb8459600f39fdea48cb47cb3b49bffcff29"...
+  |                                         ^^^^^^^^
+
+warning: constant `CONFIGURATION_ID` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:145
+  |
+2 | ...021bc8612bb8459600f39fdea48cb47cb3b49bffcff29";pub const CONFIGURATION_ID:&str="sha256:547d4a34c80afdbd33249f11feaae89acd23daff40e...
+  |                                                             ^^^^^^^^^^^^^^^^
+
+warning: constant `PREPARATION_DELEGATION` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:393
+  |
+2 | ...t CLOCK_AT_MAXIMUM_CALL_OPERATIONS:u32=1024;pub const PREPARATION_DELEGATION:Option<conduit_body::HostPreparationDelegation>=Some(...
+  |                                                          ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `EXECUTION_DELEGATION` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:649
+  |
+2 | ...s:32548,maximum_runtime_state_bytes:223731});pub const EXECUTION_DELEGATION:Option<conduit_body::HostExecutionDelegation>=Some(con...
+  |                                                           ^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `RESIDENT_WORK_POOL` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:875
+  |
+2 | ...maximum_active_worksets:1,continuation:None});pub const RESIDENT_WORK_POOL:&str="pool/resident-step-work";pub const RESIDENT_WORK_...
+  |                                                            ^^^^^^^^^^^^^^^^^^
+
+warning: constant `RESIDENT_WORK_UNITS` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:935
+  |
+2 | ...ENT_WORK_POOL:&str="pool/resident-step-work";pub const RESIDENT_WORK_UNITS:u32=65000;pub const I2C_CONTROLLER:u8=1;pub const I2C_B...
+  |                                                           ^^^^^^^^^^^^^^^^^^^
+
+warning: constant `I2C_CONTROLLER` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:975
+  |
+2 | ...p-work";pub const RESIDENT_WORK_UNITS:u32=65000;pub const I2C_CONTROLLER:u8=1;pub const I2C_BASE_IMPLEMENTATION:Option<&str>=Some(...
+  |                                                              ^^^^^^^^^^^^^^
+
+warning: constant `I2C_BASE_IMPLEMENTATION` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:1005
+  |
+2 | ...TS:u32=65000;pub const I2C_CONTROLLER:u8=1;pub const I2C_BASE_IMPLEMENTATION:Option<&str>=Some("rp2040/i2c@1");pub const I2C_CALL_...
+  |                                                         ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `I2C_CALL_ADDRESS_RANGE` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:1073
+  |
+2 | ...MENTATION:Option<&str>=Some("rp2040/i2c@1");pub const I2C_CALL_ADDRESS_RANGE:Option<(u8,u8)>=Some((112, 118));pub const CLOCK_AT_B...
+  |                                                          ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `CLOCK_AT_BASE_IMPLEMENTATION` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:1139
+  |
+2 | ...S_RANGE:Option<(u8,u8)>=Some((112, 118));pub const CLOCK_AT_BASE_IMPLEMENTATION:Option<&str>=Some("rp2040/monotonic-clock@1");pub ...
+  |                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `HEAP_BYTES` is never used
+ --> /home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/arm-preparation-minimum-20261114/probe.rs:2:1224
+  |
+2 | ...ION:Option<&str>=Some("rp2040/monotonic-clock@1");pub const HEAP_BYTES:usize=131072;}
+  |                                                                ^^^^^^^^^^
+
+warning: 15 warnings emitted
+

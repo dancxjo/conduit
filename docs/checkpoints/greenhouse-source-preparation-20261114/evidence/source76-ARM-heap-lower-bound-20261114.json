@@ -1,0 +1,43 @@
+{
+  "assurance": "Conservative requested-backing lower bound for the same checked selected Source profile; combines actual ARM kernel/Sign ABI with architecture-independent u8 payload reservations, NOT CPU64 aggregate allocation or a physical runtime measurement",
+  "source_checkpoint": "25145af968b5f71eddf18bf50e48378146678c90",
+  "source_sha256": "83291b6eac51ff63bcda99627b88e31a747cb83b660b310c2fea72af6cd1b07f",
+  "observed_selected_stock": {
+    "canonical_slots": 31,
+    "schema_logical_slots": 144,
+    "schema_physical_slots": 111,
+    "reduced_classes": 12,
+    "unknown_fallback": false,
+    "canonical_payload_bytes": 30449,
+    "schema_payload_bytes": 55524,
+    "schema_metadata_bytes": 6528,
+    "canonical_backing_cpu_bytes": 31441
+  },
+  "terms": {
+    "ARM_inline_kernel_bytes": 39592,
+    "ARM_HostedSignLog_dedicated_backing_bytes": 9006,
+    "canonical_payload_reservation_bytes": 30449,
+    "schema_node_payload_reservation_bytes": 55524
+  },
+  "minimum_simultaneous_requested_bytes": 134571,
+  "entire_configured_heap_bytes": 131072,
+  "minimum_excess_bytes": 3499,
+  "excludes": [
+    "canonical and schema slot metadata",
+    "schema class validators",
+    "software owners",
+    "execution workspace",
+    "preexisting Root/equipment/issuer allocations",
+    "allocator overhead and fragmentation",
+    "stack",
+    "unimplemented complete Face/Mask/history/application integration"
+  ],
+  "stock_scope": "CPU diagnostic copy observes exact actual prepared-owner selected store, same Source/configuration/cfg; small counts and u8 capacity facts are independent of pointer width. Original uninstrumented successful CPU receipt remains separate.",
+  "diagnostic_only": true,
+  "production_factory_modified": false,
+  "original_no_std_compilation": true,
+  "ARM_probe_sha256": "ca643e8dc91761782d1d437803ee9f5a4fde59d558ba21531d350907bd360dfd",
+  "diagnostic_log_sha256": "7e82bbdbe0d620d83c9a69d65e900f06927ac59cf4e4a122ef9af41d979931f6",
+  "conclusion": "Current selected representation cannot fit the unchanged heap. Reduce backing before target execution; do not flash or widen grants to hide the shortage.",
+  "physical_deployment": false
+}

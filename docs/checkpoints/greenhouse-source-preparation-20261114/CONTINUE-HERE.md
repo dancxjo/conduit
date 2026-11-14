@@ -26,6 +26,10 @@ Actual ARM ABI: current same-code owned kernel64216 B versus linked47192 B, remo
 
 The firmware entrance still prepares/drops and refuses structured-fore-mask-unavailable. Linking this preparation entrance does NOT prove a complete application including reachable Play execution fits flash, heap or stack. No new physical sensing/display, admission, overnight history/restart or complete autonomous appliance is demonstrated. Devices remain on earlier firmware. DO NOT FLASH this as a qualified appliance.
 
+## Definite remaining heap shortfall
+
+Read evidence/source76-ARM-heap-lower-bound-20261114.json: actual ARM kernel39592 + actual ARM Sign backing9006 + observed u8 canonical payload30449 + schema payload55524 =134571 B, exceeding the entire131072-byte heap by3499 B BEFORE slot/class metadata, software/workspace, original baseline and allocator overhead. This is a conservative selected-profile bound, not an actual runtime high-water mark. The CPU diagnostic copy observes stock only; original successful unmodified factory proof stays separate. Do not flash this profile or widen grants. Further real reduction is required.
+
 ## Next substantive work
 
 Read evidence/source76-execution-handoff-audit-20261114.md first: exact three-input/nine-output component, intentional prepare/drop-only service, existing admission/Start APIs, existing shared bus and carrier limits. Do not remove the refusal without installing the actual services.

@@ -130,6 +130,24 @@ fn actual_board_factory_and_root_preflight_prepare_complete_checked_source_witho
             let observed = format!(".map_err(|error| {{ eprintln!(\"original factory {stage}: {{error:?}}\"); \"{stage}\" }})?");
             observed_factory = observed_factory.replace(&erased, &observed);
         }
+        let stock_marker =
+            "            // Kernel events and the Plan's named mandatory-Sign receipts are";
+        assert_eq!(observed_factory.matches(stock_marker).count(), 1);
+        let stock_report = r#"
+            let diagnostic_canonical_payload: u64 = layout::CORD_VALUE_PROFILES.iter()
+                .chain(layout::STEP_VALUE_PROFILES)
+                .filter_map(|p| match p {
+                    conduit_mcu_host_runtime::native_values::ValueSlotProfile::Canonical(n) => Some(u64::from(*n)),
+                    _ => None,
+                }).sum::<u64>() + layout::HOST_CALL_VALUE_SLOT_CAPACITIES.iter().map(|n| u64::from(*n)).sum::<u64>();
+            eprintln!("selected_stock canonical_slots={} schema_logical_slots={} schema_physical_slots={} reduced_classes={} unknown_fallback={} canonical_payload_bytes={} schema_payload_bytes={} schema_metadata_bytes={} canonical_backing_cpu_bytes={}",
+                conduit_kernel::ValueStorage::item_capacity(values.canonical_storage()),
+                _stock.logical_schema_slots, _stock.physical_schema_slots, _stock.reduced_classes,
+                _stock.unknown_owner_fallback, diagnostic_canonical_payload, values.reserved_payload_bytes(),
+                values.reserved_metadata_bytes(), values.canonical_storage().reserved_storage_bytes());
+"#;
+        observed_factory =
+            observed_factory.replace(stock_marker, &format!("{stock_report}{stock_marker}"));
         let preparation = "            let mut prepared = PreparedFragment";
         assert_eq!(observed_factory.matches(preparation).count(), 1);
         let reports = r#"
@@ -148,7 +166,7 @@ fn actual_board_factory_and_root_preflight_prepare_complete_checked_source_witho
             observed_factory.replace(preparation, &format!("{reports}{preparation}"));
         let observed_factory_path = temporary.join("neutral_factory_diagnostic.rs");
         fs::write(&observed_factory_path, &observed_factory).unwrap();
-        eprintln!("factory_original_sha256={} factory_diagnostic_sha256={} diagnostic_only=error_and_immutable_terminal_report_observation original_checks_and_refusals_preserved",
+        eprintln!("factory_original_sha256={} factory_diagnostic_sha256={} diagnostic_only=error_and_immutable_terminal_and_stock_observation original_checks_and_refusals_preserved",
             digest(&original_factory), digest(&observed_factory));
         Some(observed_factory_path)
     } else {
@@ -233,6 +251,9 @@ fn actual_board_factory_and_root_preflight_prepare_complete_checked_source_witho
         if kind == "bin" {
             let ran = Command::new(executable).output().unwrap();
             eprintln!("{}", String::from_utf8_lossy(&ran.stdout));
+            if diagnose {
+                eprintln!("{}", String::from_utf8_lossy(&ran.stderr));
+            }
             assert!(
                 ran.status.success(),
                 "{}",

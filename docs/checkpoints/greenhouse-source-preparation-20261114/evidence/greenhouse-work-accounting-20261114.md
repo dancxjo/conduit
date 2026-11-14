@@ -92,3 +92,19 @@ The experimental MCU entrance still prepares/drops and refuses **`structured-for
 5. Continue integration with the shared display/history lane and deliver reviewed slices into dev. At the last fetch, current dev was already included; preservation is not a merge claim.
 
 This work belongs principally to **#6341 and #6457**. Native Mask/Fore acceptance remains relevant to #6374/#6378; lifetime correctness to #6340/#6409; durable member/history acceptance to #6461/#6465 and the parent #6295. These preparation results do not close those acceptance obligations, and no new MCU memory epic is needed.
+
+## Remaining heap shortfall: bounded preparation evidence
+
+The current selected representation still cannot fit the unchanged131,072-byte heap. A conservative requested-backing lower bound is:
+
+| Simultaneously retained term | Bytes |
+| --- | ---: |
+| Actual ARM inline kernel | 39,592 |
+| Actual ARM HostedSignLog backing from its const sizing API | 9,006 |
+| Canonical u8 payload reservations in the selected profile | 30,449 |
+| Schema/node u8 payload reservations in the selected profile | 55,524 |
+| **Minimum** | **134,571** |
+
+This exceeds the **entire heap by3,499 bytes**, before slot/class metadata, software owners, execution workspace, original Root/equipment/issuer allocations, allocator overhead and stack. It also excludes the unfinished application/Face/Mask/history integration. Further reduction is required; this is not a reason to increase grants or flash now.
+
+The payload terms were observed twice, identically, from the exact actual prepared-owner selection using the explicitly enabled CPU diagnostic copy:31 canonical slots,144 logical schema slots,111 physical schema buffers,12 reduced classes, no unknown-owner fallback. They are reserved u8 byte extents, not CPU struct sizes. Kernel and Sign terms come from the actual ARM ABI; no CPU64 aggregate is added to an ARM size. The diagnostic preserves the original checks/refusals; the successful original uninstrumented preparation receipt remains separate. No firmware/device changed. See `source76-ARM-heap-lower-bound-20261114.json` and `selected-stock-diagnostic-20261114.log`.
