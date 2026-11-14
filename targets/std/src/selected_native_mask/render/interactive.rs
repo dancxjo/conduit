@@ -16,9 +16,17 @@ impl PreparedSelectedScene {
         width: u16,
         height: u16,
         interactive: bool,
+        expression: Option<&conduit_face::AdmittedVisualExpression>,
     ) -> Result<Self, FaceSceneError> {
         if interactive {
-            NativeFaceScene::prepare(face, width, height).map(Self::Interactive)
+            NativeFaceScene::prepare_visual_fallback(
+                face,
+                width,
+                height,
+                true,
+                expression.ok_or(FaceSceneError::UnsupportedInput)?,
+            )
+            .map(Self::Interactive)
         } else {
             PreparedStaticNativeFaceScene::prepare(face, width, height).map(Self::ReadOnly)
         }

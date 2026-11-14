@@ -215,10 +215,8 @@ impl BoundReadOnlyMask {
         }
         let scene_bounds = if interactive {
             Some(
-                conduitos::native_face_scene::NativeFaceScene::standard_interactive_memory_bounds(
-                    face,
-                )
-                .map_err(|error| format!("native interactive Scene qualification:{error:?}"))?,
+                conduitos::native_face_scene::NativeFaceScene::visual_fallback_memory_bounds(face)
+                    .map_err(|error| format!("native interactive Scene qualification:{error:?}"))?,
             )
         } else {
             None
@@ -289,9 +287,20 @@ impl BoundReadOnlyMask {
                 face.validate()
                     .map_err(|error| format!("native Face validation: {error:?}"))?;
             }
-            let scene =
-                PreparedSelectedScene::prepare(face.clone(), self.width, self.height, interactive)
-                    .map_err(|error| format!("native semantic scene: {error:?}"))?;
+            // Construct the preference only under the original invocation lease.
+            let expression = if interactive {
+                Some(super::outer_bound::interactive_expression()?)
+            } else {
+                None
+            };
+            let scene = PreparedSelectedScene::prepare(
+                face.clone(),
+                self.width,
+                self.height,
+                interactive,
+                expression.as_ref(),
+            )
+            .map_err(|error| format!("native semantic scene: {error:?}"))?;
             let frame = scene
                 .frame()
                 .map_err(|error| format!("native semantic frame: {error:?}"))?;
@@ -325,16 +334,25 @@ impl BoundReadOnlyMask {
             possession.authorize().map_err(|error| {
                 format!("native Mask actual resource-Cord authority refused: {error:?}")
             })?;
-            let composition = self
-                .compositor
-                .update_pending_mask_surface(
+            // The same admitted metrics govern hit targets and painted text.
+            let composition = if let Some(expression) = expression.as_ref() {
+                self.compositor.update_pending_configured_mask_surface(
+                    request.face(),
+                    request.prepared_show(),
+                    request.display_base_id(),
+                    &frame.scene,
+                    expression,
+                )
+            } else {
+                self.compositor.update_pending_mask_surface(
                     request.face(),
                     request.prepared_show(),
                     request.display_base_id(),
                     &frame.scene,
                 )
-                .map_err(|error| format!("native Mask offscreen raster: {error:?}"))?
-                .clone();
+            }
+            .map_err(|error| format!("native Mask offscreen raster: {error:?}"))?
+            .clone();
             let bytes = cold
                 .retained_metadata_bytes()
                 .and_then(|bytes| bytes.checked_add(possession.retained_backing_bytes()?))

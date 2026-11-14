@@ -28,7 +28,7 @@ pub(super) fn checked_invocation_bytes(
     }
     let plan = conduitos::product_bases::native_mask_plan_backing_bytes(planned)
         .ok_or("unsupported native invocation Plan owners")?;
-    let scene = NativeFaceScene::standard_interactive_memory_bounds(face)
+    let scene = NativeFaceScene::visual_fallback_memory_bounds(face)
         .map_err(|error| format!("native Scene bound:{error:?}"))?
         .lifetime_peak_bytes()
         .ok_or("native Scene bound overflow")?;
@@ -170,6 +170,29 @@ pub(super) fn checked_invocation_bytes(
         fore_clones,
         possession,
         compositor,
+        // Local admitted expression, surface selection, surface receipt and
+        // caller receipt each own one identity clone. No expression is grown.
+        conduit_face::PHOSPHOR_LOOK_ID
+            .len()
+            .checked_mul(4)
+            .ok_or("native expression ownership overflow")?,
         completion,
     ])
+}
+
+/// Shared touch-friendly native presentation policy; layout and raster consume
+/// this same admitted expression. This grants no input or execution authority.
+pub(super) fn interactive_expression() -> Result<conduit_face::AdmittedVisualExpression, String> {
+    let mut expression = conduit_face::VisualExpression::phosphor();
+    expression.density = conduit_face::VisualDensity::Spacious;
+    conduit_face::admit_visual_expression(
+        Ok(expression),
+        conduit_face::VisualUserConstraints {
+            forced_colors: false,
+            reduced_motion: true,
+            minimum_text_scale_percent: 150,
+            maximum_supported_text_scale_percent: 200,
+        },
+    )
+    .map_err(|error| format!("native visual constraints:{error:?}"))
 }

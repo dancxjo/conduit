@@ -218,6 +218,34 @@ fn document_text_bytes(face: &Face) -> Result<(usize, usize), FaceSceneError> {
     }
     Ok((primary, details))
 }
+// Standard and visual-fallback rows share the same immutable documents. Scale,
+// fixed typography and density alter wrapping, never the <=one-row-per-byte
+// limit. Both Vec capacities and retained row text are charged here.
+fn row_document_backing_bytes(
+    primary_text: usize,
+    details_text: usize,
+) -> Result<(usize, usize), FaceSceneError> {
+    let row_bytes = |text: usize| {
+        mul(
+            mul(
+                text.min(layout::MAX_DOCUMENT_BYTES)
+                    .clamp(4, layout::MAX_ROWS),
+                2,
+            )?,
+            size_of::<layout::Row>(),
+        )
+    };
+    let primary_rows = row_bytes(primary_text)?;
+    let details_rows = row_bytes(details_text)?;
+    let documents = add(
+        add(primary_rows, details_rows)?,
+        add(
+            primary_text.min(layout::MAX_DOCUMENT_BYTES),
+            details_text.min(layout::MAX_DOCUMENT_BYTES),
+        )?,
+    )?;
+    Ok((documents, primary_rows.max(details_rows)))
+}
 impl NativeFaceScene {
     /// Pure checked arithmetic, not semantic Face validation/readiness. Qualifies only `NativeFaceScene::prepare` with
     /// its borrowed default keymap and no configured Look/local preference API.
@@ -276,25 +304,8 @@ impl NativeFaceScene {
         // Successful layout has independent document/row hard limits. Every
         // row consumes >=1 source UTF-8 byte. Count the TWO documents separately
         // instead of projecting a worst-case entire Face into every clause.
-        let row_bytes = |text: usize| {
-            mul(
-                mul(
-                    text.min(layout::MAX_DOCUMENT_BYTES)
-                        .clamp(4, layout::MAX_ROWS),
-                    2,
-                )?,
-                size_of::<layout::Row>(),
-            )
-        };
-        let primary_rows = row_bytes(primary_text)?;
-        let details_rows = row_bytes(details_text)?;
-        let documents = add(
-            add(primary_rows, details_rows)?,
-            add(
-                primary_text.min(layout::MAX_DOCUMENT_BYTES),
-                details_text.min(layout::MAX_DOCUMENT_BYTES),
-            )?,
-        )?;
+        let (documents, row_growth_overlap) =
+            row_document_backing_bytes(primary_text, details_text)?;
         let values_table = mul(maximum_arguments, size_of::<Option<Vec<u8>>>())?;
         // At most one active action; its successful total bytes <=8192. Each
         // byte Vec can retain geometric spare capacity/minimum allocation.
@@ -372,10 +383,7 @@ impl NativeFaceScene {
                     document_items,
                     add(
                         document_strings,
-                        add(
-                            mul(formatting_scratch, 2)?,
-                            add(primary_rows.max(details_rows), frame)?,
-                        )?,
+                        add(mul(formatting_scratch, 2)?, add(row_growth_overlap, frame)?)?,
                     )?,
                 )?,
             )?,
@@ -386,6 +394,28 @@ impl NativeFaceScene {
             input_transient_bytes: input,
             frame_transient_bytes: frame,
         })
+    }
+
+    /// Requested-backing bound for `prepare_visual_fallback`, with built-in
+    /// borrowed typography, text scale 100..200 and either admitted density.
+    /// Expression creation/identity copies belong to the caller, under its own
+    /// existing reservation; this preflight takes no expression and allocates
+    /// nothing. Configured recipes, Look metrics/corners, local preferences and
+    /// general graph projections are outside this scoped construction path.
+    pub fn visual_fallback_memory_bounds(
+        face: &Face,
+    ) -> Result<StandardNativeSceneBounds, FaceSceneError> {
+        let mut bounds = Self::standard_interactive_memory_bounds(face)?;
+        let (primary_text, details_text) = document_text_bytes(face)?;
+        let (original_documents, _) = row_document_backing_bytes(primary_text, details_text)?;
+        // prepare_visual_typography first prepares the default Scene, then
+        // prepares new document Items/rows while the old primary/details rows
+        // remain owned. Assignment drops old primary before rebuilding details.
+        // Standard already funds the new construction's Face/documents/scratch;
+        // only the original row pair additionally overlaps. Face/keymap stay in
+        // the same Scene, and fixed typography/scale/spacing are inline fields.
+        bounds.preparation_peak_bytes = add(bounds.preparation_peak_bytes, original_documents)?;
+        Ok(bounds)
     }
 
     /// Actual retained requested backing, independently useful for checking a

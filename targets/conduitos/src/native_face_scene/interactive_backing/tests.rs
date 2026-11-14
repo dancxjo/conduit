@@ -151,3 +151,99 @@ fn administrative_face_uses_linear_document_bounds_within_original_display_grant
         "{bounds:?}"
     );
 }
+
+#[test]
+fn visual_fallback_funds_default_document_overlap_and_selected_scale_density() {
+    use conduit_face::{
+        VisualDensity, VisualExpression, VisualTypography, VisualUserConstraints,
+        admit_visual_expression,
+    };
+    let face = super::super::tests::face(1);
+    let standard = NativeFaceScene::standard_interactive_memory_bounds(&face).unwrap();
+    let mut bound = None;
+    assert_eq!(
+        crate::test_allocations::allocations(|| {
+            bound = Some(NativeFaceScene::visual_fallback_memory_bounds(&face).unwrap());
+        }),
+        0,
+        "preflight precedes the expression/Scene allocation lease"
+    );
+    let bound = bound.unwrap();
+    assert_eq!(bound.retained_bytes, standard.retained_bytes);
+    assert_eq!(bound.input_transient_bytes, standard.input_transient_bytes);
+    assert_eq!(bound.frame_transient_bytes, standard.frame_transient_bytes);
+    let original = NativeFaceScene::prepare(face.clone(), 1024, 600).unwrap();
+    let mut actual_documents = 0;
+    for rows in [&original.primary, &original.details] {
+        actual_documents += rows.capacity() * size_of::<layout::Row>();
+        actual_documents += rows.iter().map(|row| row.text.capacity()).sum::<usize>();
+    }
+    assert!(bound.preparation_peak_bytes >= standard.preparation_peak_bytes + actual_documents);
+    for scale in [100, 150, 200] {
+        for density in [VisualDensity::Compact, VisualDensity::Spacious] {
+            for typography in [VisualTypography::Editorial, VisualTypography::Engineering] {
+                let mut value = VisualExpression::phosphor();
+                value.text_scale_percent = scale;
+                value.density = density;
+                value.typography = typography;
+                let expression = admit_visual_expression(
+                    Ok(value),
+                    VisualUserConstraints {
+                        forced_colors: false,
+                        reduced_motion: true,
+                        minimum_text_scale_percent: 100,
+                        maximum_supported_text_scale_percent: 200,
+                    },
+                )
+                .unwrap();
+                let mut scene = NativeFaceScene::prepare_visual_fallback(
+                    face.clone(),
+                    1024,
+                    600,
+                    true,
+                    &expression,
+                )
+                .unwrap();
+                assert_eq!(scene.face(), &face);
+                assert_eq!(scene.text_scale_percent, scale);
+                assert!(
+                    scene.standard_interactive_retained_backing_bytes().unwrap()
+                        <= bound.retained_bytes
+                );
+                assert!(
+                    scene.frame().unwrap().retained_backing_bytes().unwrap()
+                        <= bound.frame_transient_bytes
+                );
+                scene
+                    .focus_named(&FaceFocusRequest {
+                        action_id: "edit".into(),
+                        argument_name: Some("value".into()),
+                    })
+                    .unwrap();
+                let show = super::super::tests::fixture::show(&face);
+                let key = conduit_human::KeyEvent::new(
+                    4,
+                    conduit_human::KeyTransition::Pressed,
+                    conduit_human::KeyModifiers::NONE,
+                )
+                .unwrap();
+                assert!(matches!(
+                    scene.key(key, &show, 1).unwrap(),
+                    FaceSceneInput::Changed
+                ));
+                assert!(
+                    scene.standard_interactive_retained_backing_bytes().unwrap()
+                        <= bound.retained_bytes
+                );
+                assert!(
+                    scene.frame().unwrap().retained_backing_bytes().unwrap()
+                        <= bound.frame_transient_bytes
+                );
+            }
+        }
+    }
+    assert_eq!(
+        NativeFaceScene::standard_interactive_memory_bounds(&face).unwrap(),
+        standard
+    );
+}
