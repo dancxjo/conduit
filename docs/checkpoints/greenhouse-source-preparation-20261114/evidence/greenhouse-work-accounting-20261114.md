@@ -1,6 +1,6 @@
 # Greenhouse MCU work: preservation and handoff accounting
 
-The shared preparation path has made substantial, measured progress, but this is **not a completed greenhouse appliance**. The complete checked Source component now passes CPU preparation; the newest phase-capacity integration is saved but has not received whole-factory or target qualification. No device was flashed during this memory-reduction sequence.
+The shared preparation path has made substantial, measured progress, but this is **not a completed greenhouse appliance**. The complete checked Source component now passes CPU preparation; the newest phase-capacity integration passes complete CPU preparation but has not received target qualification. No device was flashed during this memory-reduction sequence.
 
 ## What is saved
 
@@ -48,7 +48,7 @@ ARM layout inspection identified large abnormal-terminal state: Cord state 13,68
 
 Only the retained abnormal-finalization payload has a justified narrower capacity now. The current Source has no `FinalizeThenPropagate` contract. The new `PHASE_BYTES` profile defaults to 100; smaller profiles refuse any selected abnormal finalizer before allocation or effects. Public abnormal values, Cord storage and unresolved abnormal truth **retain their full 100-byte capacity**. `NotAccepted` was deliberately not treated as proof that abnormal emission is impossible.
 
-Kernel scope passes **258 tests, three ignored**, focused phase tests, no_alloc compilation and strict library/test Clippy. The MCU adapter and Source-derived zero-byte selection are preserved but **not yet compiled or measured together**. The small fixture's savings are not a Source76 or ARM saving claim.
+Kernel scope passes **258 tests, three ignored**, focused phase tests, no_alloc compilation and strict library/test Clippy. The MCU adapter and Source-derived zero-byte selection initially remained unqualified; the bounded follow-ups below now qualify them together for CPU preparation, while ARM remains unverified. The small fixture's savings are not a Source76 or ARM saving claim.
 
 ## Comparable full-factory measurements
 
@@ -58,9 +58,10 @@ These are CPU64 requested allocations, not target RAM fit:
 | --- | ---: | ---: |
 | Before shared physical buffers | 210,354 | 212,393 |
 | Shared buffers selected | 189,469 | 191,508 |
-| Shared buffers and linked terminal table | **172,453** | **174,492** |
+| Shared buffers and linked terminal table | 172,453 | 174,492 |
+| Plus Source-derived phase capacity (CPU only) | **164,853** | **166,892** |
 
-The verified combined saving is **37,901 bytes** in both retained and peak allocation. Exclusions remain preexisting Root, equipment, resident inventory, issuer grants, allocator overhead and stack. The separately funded CPU test arena is **not** the MCU's unchanged 131,072-byte heap. No full-factory phase-capacity saving is included.
+The verified combined CPU64 saving is **45,501 bytes** in both retained and peak allocation. Exclusions remain preexisting Root, equipment, resident inventory, issuer grants, allocator overhead and stack. The separately funded CPU test arena is **not** the MCU's unchanged 131,072-byte heap. The newest row includes the separately qualified7,600-byte full-factory phase-capacity saving; no new ARM saving is inferred.
 
 At `c7e14f11e2`, MCU runtime tests passed **139, one ignored**; topology tests passed five; scoped strict Clippy passed. Kernel tests then passed 255, three ignored, before the latest kernel-only phase change.
 
@@ -74,7 +75,7 @@ The experimental MCU entrance still prepares/drops and refuses **`structured-for
 
 ## Resume here
 
-1. Compile the newest phase-capacity MCU adapter; repeat the complete factory/no_std proof and actual ARM measurement. Last complete figures above belong to `c7e14f11e2`.
+1. Qualify the phase-capacity profile on target when budget permits. The complete CPU/no_std proof now passes; the last ARM figures belong to `c7e14f11e2`.
 2. Qualify actual target heap, startup/preparation overlap and stack, including the original Root/equipment/allocator. Keep grants truthful; do not increase them merely to hide refusal.
 3. Finish autonomous authored Source composition and actual Fore/Face/Mask admission and execution. Link the whole reachable application before claiming flash fit.
 4. Verify real sensing/display, durable committed history, power cycles and owner/network loss on hardware before replacing working firmware. Preserve the same Body and provenance.
