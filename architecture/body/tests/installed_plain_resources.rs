@@ -2,6 +2,8 @@
 //! Signed table resolution is preparation data, never an admission grant.
 use conduit_body::*;
 use conduit_core as c;
+// Shared probe also provides allocation-refusal hooks used by other fixtures.
+#[allow(dead_code)]
 #[path = "common/admission_allocation_probe.rs"]
 mod probe;
 #[global_allocator]

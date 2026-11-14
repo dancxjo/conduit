@@ -3,8 +3,9 @@
 use super::*;
 const MAGIC: &[u8; 8] = b"\xff\xff\xffRSR01";
 pub const PLAIN_RESOURCE_REFERENCE_BYTES: usize = 46;
-const MAXIMUM_TABLE_BYTES: usize =
-    conduit_core::MAXIMUM_BINDINGS_PER_ADMISSION * (3 * MAX_LIFECYCLE_ID_BYTES + 64);
+const MAXIMUM_TABLE_ROWS: usize =
+    conduit_core::MAXIMUM_RESOURCE_ADMISSIONS * conduit_core::MAXIMUM_BINDINGS_PER_ADMISSION;
+const MAXIMUM_TABLE_BYTES: usize = MAXIMUM_TABLE_ROWS * (3 * MAX_LIFECYCLE_ID_BYTES + 64);
 #[derive(Clone, Copy)]
 pub struct InstalledPlainResourceTable {
     bytes: &'static [u8],
@@ -25,6 +26,7 @@ impl InstalledPlainResourceTable {
     pub fn reference(&self) -> [u8; PLAIN_RESOURCE_REFERENCE_BYTES] {
         self.reference
     }
+    #[cfg(feature = "authenticated-admission")]
     pub(in crate::delegated_fragment) fn resolve<'a>(
         &self,
         mut metadata: BodyFragmentApprovalMetadata<'a>,

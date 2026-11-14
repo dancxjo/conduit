@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized] target(s) in 0.21s
+     Running unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_mcu_source_build-4d5e36b8aee23a00)
+
+running 1 test
+test template::tests::authored_resident_fore_lowers_independently_and_preserves_source_node ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 48 filtered out; finished in 0.16s
+
