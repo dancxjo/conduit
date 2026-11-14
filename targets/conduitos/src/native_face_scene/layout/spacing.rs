@@ -7,6 +7,7 @@ use super::*;
 pub(in crate::native_face_scene) enum NativePart {
     Content,
     Control,
+    MeasurementChart(usize),
 }
 #[derive(Clone, Copy)]
 pub(in crate::native_face_scene) struct RowInsets {

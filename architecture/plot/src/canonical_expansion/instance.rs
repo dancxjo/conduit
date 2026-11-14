@@ -29,6 +29,7 @@ pub(super) fn expand_instance_inner(
         let instance = instantiate_gear(
             gear,
             None,
+            None,
             name,
             plot,
             plots,
@@ -76,6 +77,7 @@ pub(super) fn expand_instance_inner(
                     *count += 1;
                     let instance = instantiate_gear(
                         gear,
+                        None,
                         Some(operands.len()),
                         &name,
                         plot,
@@ -177,6 +179,7 @@ pub(super) fn expand_instance_inner(
                     *count += 1;
                     let instance = instantiate_gear(
                         gear,
+                        None,
                         None,
                         &name,
                         plot,

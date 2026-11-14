@@ -67,6 +67,7 @@ try {
   assert(listing.includes("browser-sdk.mjs"));
   assert(listing.includes("browser-sdk-plots.mjs"));
   assert(listing.includes("browser-sdk-continuity.mjs"));
+  assert(listing.includes("browser-sdk-seed-admission.mjs"));
   assert(listing.includes("browser-sdk-syntax.mjs"));
   assert(listing.includes("browser-sdk-events.mjs"));
   assert(listing.includes("browser-sdk-face.mjs"));

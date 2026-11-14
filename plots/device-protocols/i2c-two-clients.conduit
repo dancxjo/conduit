@@ -1,0 +1,47 @@
+# One selected controller owner, two explicitly wired protocol callers.
+# Pairing retains FIFO request context; neither addresses nor results select
+# authority. Sharing is transaction-level, not a multi-transaction lock.
+with machine/i2c/transact/request as I2cTransaction
+with machine/i2c/transact/result as I2cResult
+with flow/zip/exact/paired as I2cClientPair
+
+type I2cClientRequest = {
+ second: Boolean
+ request: I2cTransaction
+}
+type I2cClientResult =
+ first I2cResult
+ | second I2cResult
+
+plot i2c-first-request (
+ request: I2cTransaction...| >> tagged: I2cClientRequest...|
+) = ({ second: false, request: . })
+plot i2c-second-request (
+ request: I2cTransaction...| >> tagged: I2cClientRequest...|
+) = ({ second: true, request: . })
+plot i2c-client-transaction (
+ tagged: I2cClientRequest...| >> request: I2cTransaction...|
+) = (.request)
+plot i2c-client-result (
+ pair: I2cClientPair...| >> result: I2cClientResult...|
+) = (.0.second ? second(.1) : first(.1))
+
+plot i2c-two-clients (
+ >> first: I2cTransaction...|
+ >> second: I2cTransaction...|
+ first_result: I2cResult...| >>
+ second_result: I2cResult...| >>
+) {
+ requests: flow/merge/finite
+ bus: machine/i2c/transact
+ replies: flow/zip/exact
+ results: i2c-client-result
+ first >> i2c-first-request() >> requests.left
+ second >> i2c-second-request() >> requests.right
+ requests.merged >> i2c-client-transaction() >> bus.request
+ requests.merged >> replies.left
+ bus.result >> replies.right
+ replies.paired >> results
+ results >> select(I2cClientResult.first, unmatched=drop) >> first_result
+ results >> select(I2cClientResult.second, unmatched=drop) >> second_result
+}

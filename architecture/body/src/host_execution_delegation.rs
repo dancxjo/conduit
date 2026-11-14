@@ -24,4 +24,8 @@ impl HostExecutionAuthorizer {
 pub struct HostExecutionDelegation {
     pub authorizer: HostExecutionAuthorizer,
     pub maximum_active_worksets: u16,
+    /// Separate opt-in for owner-signed cross-Boot recipe permission. Absence
+    /// preserves current-Boot-only execution. No ceiling supplies a grant.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub continuation: Option<crate::ContinuationCeilings>,
 }

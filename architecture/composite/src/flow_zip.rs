@@ -6,6 +6,15 @@ use conduit_core::{
 };
 mod encoder;
 mod exact;
+mod schema_input;
+#[cfg(feature = "execution-workspace")]
+mod static_input;
+#[cfg(feature = "execution-workspace")]
+mod static_prepare;
+#[cfg(feature = "execution-workspace")]
+mod static_workspace_encoder;
+#[cfg(feature = "execution-workspace")]
+mod workspace_encoder;
 use conduit_kernel::{
     scheduler::{
         AssignedAbnormalTransduction, AssignedCancellationTransduction,
@@ -22,7 +31,6 @@ pub struct FlowZipBack {
     left_len: Option<usize>,
     right: Vec<u8>,
     right_len: Option<usize>,
-    candidate: Vec<u8>,
     candidate_side: Option<(usize, usize)>,
     encoder: PairEncoder,
     output_staged: bool,
@@ -38,6 +46,16 @@ pub struct FlowZipBack {
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
+    #[cfg(feature = "schema-value-storage")]
+    fn canonical_input_schema(&self, port: PortId) -> Option<&[u8]> {
+        self.encoder.input_schema(usize::from(port.0))
+    }
+    #[cfg(feature = "schema-value-storage")]
+    fn canonical_output_schema(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0))
+            .then(|| self.encoder.output_schema())
+            .flatten()
+    }
     fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; PORTS] {
         let mut contracts = [None; PORTS];
         let flush =
@@ -61,156 +79,39 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
         contracts
     }
 
-    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
-        if self.terminal {
-            return StepOutcome::Complete;
-        }
-        // A finite close discards already-admitted unmatched queue entries,
-        // one bounded consumption per step, before retiring this operation.
-        if self.closing {
-            // LEFT-first feedback closure cannot retire from an empty queue
-            // snapshot: the finite event producer may still publish later.
-            if self.drain_right_until_close && !self.right_closed {
-                if io.input_abnormal(PortId(1)).is_some() {
-                    return fail(917);
-                }
-                if io.input_closed(PortId(1)) {
-                    io.consume_closed(PortId(1))
-                        .expect("remaining feedback event close");
-                    self.right_closed = true;
-                    return StepOutcome::Progress;
-                }
+    #[cfg(feature = "execution-workspace")]
+    fn workspace_requirements(
+        &self,
+    ) -> Option<conduit_kernel::scheduler::StepWorkspaceRequirements> {
+        self.encoder.workspace_maximum().map(|output_bytes| {
+            conduit_kernel::scheduler::StepWorkspaceRequirements {
+                output_bytes,
+                scratch_bytes: 0,
             }
-            for port in [PortId(0), PortId(1)] {
-                if io.input(port).is_some() {
-                    io.consume(port).expect("queued unmatched finite zip value");
-                    return StepOutcome::Progress;
-                }
-            }
-            if self.drain_right_until_close && !self.right_closed {
-                return StepOutcome::Await;
-            }
-            self.terminal = true;
-            return StepOutcome::Complete;
-        }
-
-        // Fault is not normal close: never emit a buffered pair as a side
-        // effect of abnormal terminal truth.
-        for port in [PortId(0), PortId(1)] {
-            if let Some(terminal) = io.input_abnormal(port) {
-                if self.finite {
-                    return fail(917);
-                }
-                io.consume_abnormal(port)
-                    .expect("present flow/zip abnormal terminal");
-                self.terminal = true;
-                return StepOutcome::Abnormal {
-                    port: PortId(0),
-                    terminal,
-                };
-            }
-        }
-
-        // Ordinary zip closure flushes only an already formed pair. The
-        // feedback profile instead waits for the declared state return.
-        for port in [PortId(0), PortId(1)] {
-            if io.input_closed(port) {
-                if self.feedback && port == PortId(1) {
-                    io.consume_closed(port).expect("feedback event close");
-                    self.right_closed = true;
-                    return StepOutcome::Progress;
-                }
-                let pair_ready = self.left_len.is_some() && self.right_len.is_some();
-                if pair_ready && !io.output_ready(PortId(0)) {
-                    return StepOutcome::Await;
-                }
-                io.consume_closed(port)
-                    .expect("present flow/zip normal close");
-                if self.feedback && port == PortId(0) && !self.right_closed {
-                    self.drain_right_until_close = true;
-                }
-                if pair_ready {
-                    let output_len = self.encode_pair().unwrap_or(0);
-                    if output_len == 0 {
-                        return fail(911);
-                    }
-                    self.output_staged = true;
-                    self.finish_after_commit = true;
-                    io.send_prepared(PortId(0), output_len as u32)
-                        .expect("ready admitted flow/zip output");
-                    return StepOutcome::Progress;
-                }
-                self.left_len = None;
-                self.right_len = None;
-                if self.drain_right_until_close {
-                    self.closing = true;
-                    return StepOutcome::Progress;
-                }
-                if self.finite {
-                    for other in [PortId(0), PortId(1)] {
-                        if io.input(other).is_some() {
-                            io.consume(other)
-                                .expect("queued unmatched finite zip value");
-                            self.closing = true;
-                            return StepOutcome::Progress;
-                        }
-                    }
-                }
-                self.terminal = true;
-                return StepOutcome::Complete;
-            }
-        }
-
-        if self.feedback && self.right_closed && self.right_len.is_none() && !self.return_owed {
-            self.left_len = None;
-            if io.input(PortId(0)).is_some() {
-                io.consume(PortId(0)).expect("final feedback state");
-                self.closing = true;
-                return StepOutcome::Progress;
-            }
-            self.terminal = true;
-            return StepOutcome::Complete;
-        }
-
-        if self.left_len.is_some() && self.right_len.is_some() {
-            if !io.output_ready(PortId(0)) {
-                return StepOutcome::Await;
-            }
-            let output_len = self.encode_pair().unwrap_or(0);
-            if output_len == 0 {
-                return fail(912);
-            }
-            self.output_staged = true;
-            io.send_prepared(PortId(0), output_len as u32)
-                .expect("ready admitted flow/zip output");
-            return StepOutcome::Progress;
-        }
-
-        for (side, port, pending, maximum) in [
-            (0, PortId(0), self.left_len, self.left.len()),
-            (1, PortId(1), self.right_len, self.right.len()),
-        ] {
-            if pending.is_some() {
-                continue;
-            }
-            let Some(reference) = io.input(port) else {
-                continue;
-            };
-            let Some(bytes) = inputs.input(port) else {
-                return fail(913 + side as u16);
-            };
-            if bytes.len() != reference.byte_len as usize || bytes.len() > maximum {
-                return fail(915 + side as u16);
-            }
-            self.candidate[..bytes.len()].copy_from_slice(bytes);
-            self.candidate_side = Some((side, bytes.len()));
-            io.consume(port).expect("present flow/zip input");
-            return StepOutcome::Progress;
-        }
-        StepOutcome::Await
+        })
     }
-
+    #[cfg(feature = "execution-workspace")]
+    fn step_with_workspace(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        inputs: &StepInputBytes<'_, PORTS>,
+        workspace: &mut conduit_kernel::scheduler::StepWorkspace<'_>,
+    ) -> StepOutcome {
+        if self.encoder.workspace_maximum().is_some() {
+            let (output, _) = workspace.buffers();
+            self.step_inner(io, inputs, Some(output))
+        } else {
+            self.step_inner(io, inputs, None)
+        }
+    }
+    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        self.step_inner(io, inputs, None)
+    }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        #[cfg(feature = "execution-workspace")]
+        if self.encoder.workspace_maximum().is_some() {
+            return None;
+        }
         (port == PortId(0) && self.output_staged).then(|| {
             // The last encode length is the exact staged length. The encoder
             // exposes it through the prepared slice without allocating.
@@ -221,11 +122,9 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
     fn step_committed(&mut self) {
         if let Some((side, len)) = self.candidate_side.take() {
             if side == 0 {
-                self.left[..len].copy_from_slice(&self.candidate[..len]);
                 self.left_len = Some(len);
                 self.return_owed = false;
             } else {
-                self.right[..len].copy_from_slice(&self.candidate[..len]);
                 self.right_len = Some(len);
             }
         }
@@ -249,14 +148,43 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
         self.left_len = None;
         self.right_len = None;
         self.candidate_side = None;
+        self.output_staged = false;
+        self.finish_after_commit = false;
         self.terminal = true;
     }
 }
 
 impl FlowZipBack {
+    fn stage_output<const P: usize>(io: &mut StepIo<P>, length: usize, workspace: bool) {
+        #[cfg(feature = "execution-workspace")]
+        if workspace {
+            io.send_workspace_output(PortId(0), length as u32)
+                .expect("admitted flow/zip workspace output");
+            return;
+        }
+        let _ = workspace;
+        io.send_prepared(PortId(0), length as u32)
+            .expect("admitted flow/zip output");
+    }
     fn encode_pair(&mut self) -> Option<usize> {
-        let left = &self.left[..self.left_len?];
-        let right = &self.right[..self.right_len?];
+        self.encode_pair_into(None)
+    }
+    fn encode_pair_into(&mut self, output: Option<&mut [u8]>) -> Option<usize> {
+        let left = self
+            .left
+            .get(..self.encoder.pending_length(0, self.left_len?)?)?;
+        let right = self
+            .right
+            .get(..self.encoder.pending_length(1, self.right_len?)?)?;
+        #[cfg(feature = "execution-workspace")]
+        if let Some(output) = output {
+            return self
+                .encoder
+                .encode_into(left, right, output)
+                .ok()
+                .map(<[u8]>::len);
+        }
+        let _ = output;
         self.encoder.encode(left, right).ok().map(<[u8]>::len)
     }
 }
@@ -297,6 +225,48 @@ impl FlowZipBack {
         right: &CheckedValueContract,
         right_type: StructuredInfoType,
     ) -> Result<Self, StructuredInfoRefusal> {
+        Self::prepare_typed_mode(left, left_type, right, right_type, false, None)
+    }
+    #[cfg(feature = "execution-workspace")]
+    pub fn prepare_typed_workspace(
+        left: &CheckedValueContract,
+        left_type: StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: StructuredInfoType,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        Self::prepare_typed_mode(left, left_type, right, right_type, true, None)
+    }
+    #[cfg(feature = "execution-workspace")]
+    pub fn prepare_typed_finite_workspace(
+        left: &CheckedValueContract,
+        left_type: StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: StructuredInfoType,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        let mut back = Self::prepare_typed_workspace(left, left_type, right, right_type)?;
+        back.finite = true;
+        Ok(back)
+    }
+    #[cfg(feature = "execution-workspace")]
+    pub fn prepare_typed_feedback_workspace(
+        left: &CheckedValueContract,
+        left_type: StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: StructuredInfoType,
+    ) -> Result<Self, StructuredInfoRefusal> {
+        let mut back = Self::prepare_typed_finite_workspace(left, left_type, right, right_type)?;
+        back.feedback = true;
+        back.return_owed = true;
+        Ok(back)
+    }
+    fn prepare_typed_mode(
+        left: &CheckedValueContract,
+        left_type: StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: StructuredInfoType,
+        workspace: bool,
+        static_schemas: Option<[&'static [u8]; 3]>,
+    ) -> Result<Self, StructuredInfoRefusal> {
         let transport_kind = |ty: &StructuredInfoType| match ty.shape() {
             StructuredInfoTypeShape::Leaf(kind) => Ok(kind.clone()),
             _ => ty.profile().map(|profile| profile.value_kind().clone()),
@@ -306,21 +276,51 @@ impl FlowZipBack {
         {
             return Err(StructuredInfoRefusal::WrongType);
         }
+        let left_backing = crate::value_backing::bytes(&left_type, left.maximum_bytes);
+        let right_backing = crate::value_backing::bytes(&right_type, right.maximum_bytes);
         let encoder = PreparedTypedTuplePairEncoder::new(
             left_type,
             left.maximum_bytes,
             right_type,
             right.maximum_bytes,
         )?;
+        let output_maximum = encoder.maximum_encoded_bytes();
+        let encoder = {
+            #[cfg(feature = "execution-workspace")]
+            if workspace {
+                if let Some(schemas) = static_schemas {
+                    PairEncoder::StaticWorkspace(Box::new(
+                        static_workspace_encoder::StaticWorkspacePair::prepare(
+                            &encoder,
+                            [left.maximum_bytes, right.maximum_bytes],
+                            schemas,
+                        )?,
+                    ))
+                } else {
+                    PairEncoder::Workspace(Box::new(workspace_encoder::WorkspacePair::prepare(
+                        &encoder,
+                        [left.maximum_bytes, right.maximum_bytes],
+                    )?))
+                }
+            } else {
+                PairEncoder::Typed(Box::new(encoder.into_runtime()))
+            }
+            #[cfg(not(feature = "execution-workspace"))]
+            {
+                let _ = (workspace, static_schemas);
+                PairEncoder::Typed(Box::new(encoder.into_runtime()))
+            }
+        };
+        let left_backing = encoder.pending_capacity(0, left_backing)?;
+        let right_backing = encoder.pending_capacity(1, right_backing)?;
         Ok(Self {
-            left: vec![0; left.maximum_bytes as usize],
+            left: vec![0; left_backing],
             left_len: None,
-            right: vec![0; right.maximum_bytes as usize],
+            right: vec![0; right_backing],
             right_len: None,
-            candidate: vec![0; left.maximum_bytes.max(right.maximum_bytes) as usize],
             candidate_side: None,
-            output_maximum: encoder.maximum_bytes(),
-            encoder: PairEncoder::Typed(Box::new(encoder)),
+            output_maximum,
+            encoder,
             output_staged: false,
             finish_after_commit: false,
             closing: false,
@@ -349,7 +349,6 @@ impl FlowZipBack {
             left_len: None,
             right: vec![0; right.maximum_bytes as usize],
             right_len: None,
-            candidate: vec![0; left.maximum_bytes.max(right.maximum_bytes) as usize],
             candidate_side: None,
             output_maximum: encoder.maximum_bytes(),
             encoder: PairEncoder::Leaf(Box::new(encoder)),
@@ -377,3 +376,9 @@ fn fail(detail: u16) -> StepOutcome {
 mod exact_tests;
 #[cfg(test)]
 mod tests;
+
+#[cfg(all(test, feature = "schema-value-storage"))]
+mod schema_tests;
+
+#[path = "flow_zip/step.rs"]
+mod step;

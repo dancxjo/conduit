@@ -1579,6 +1579,7 @@ dependencies = [
 name = "conduit"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "clap",
  "conduit-ai",
  "conduit-alife",
@@ -1592,12 +1593,17 @@ dependencies = [
  "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-data",
+ "conduit-dht11-observation",
+ "conduit-embedded-build",
+ "conduit-environment-runtime",
  "conduit-face",
  "conduit-finance",
  "conduit-host-browser-make",
  "conduit-host-make",
+ "conduit-i2c-transaction",
  "conduit-kernel",
  "conduit-language",
+ "conduit-linux-display",
  "conduit-net",
  "conduit-observatory",
  "conduit-patchbay-workbench",
@@ -1605,6 +1611,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-protected-line",
+ "conduit-pulse-capture",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-speech",
@@ -1615,6 +1622,7 @@ dependencies = [
  "conduit-thermostat-plot",
  "conduit-thermostat-runtime",
  "conduit-time",
+ "conduit-tm1637-wire",
  "conduit-todo-face",
  "conduit-todo-plot",
  "conduit-tongues",
@@ -1623,6 +1631,7 @@ dependencies = [
  "conduit-workspace-make",
  "conduitos",
  "getrandom 0.3.4",
+ "miniz_oxide 0.8.9",
  "patchbay-hosted",
  "patchbay-svg-mask",
  "rcgen",
@@ -1729,6 +1738,7 @@ name = "conduit-body"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-embedded-build",
  "ed25519-dalek",
  "minicbor",
  "miniz_oxide 0.8.9",
@@ -1736,6 +1746,7 @@ dependencies = [
  "portable-atomic-util",
  "postcard",
  "serde",
+ "serde-json-core",
  "serde_json",
  "sha2 0.10.9",
 ]
@@ -2013,6 +2024,7 @@ dependencies = [
 name = "conduit-embedded-build"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-kernel",
  "conduit-net",
@@ -2023,6 +2035,12 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
+ "conduit-wire",
+ "ed25519-dalek",
+ "miniz_oxide 0.8.9",
+ "postcard",
+ "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -2040,11 +2058,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-environment-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-dht11-observation",
+ "conduit-environment-face",
+ "conduit-face",
+ "conduit-kernel",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-seven-segment-mask",
+ "conduit-time",
+ "conduit-tm1637-protocol",
+ "conduit-typed-retention",
+]
+
+[[package]]
 name = "conduit-face"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-environment-face",
  "conduit-human",
  "conduit-planner",
  "conduit-plot",
@@ -2087,6 +2125,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-host-make",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -2101,6 +2142,7 @@ name = "conduit-host-esp32-make"
 version = "0.1.0"
 dependencies = [
  "conduit-host-make",
+ "conduit-mcu-source-build",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -2110,6 +2152,7 @@ dependencies = [
 name = "conduit-host-hosted"
 version = "0.1.0"
 dependencies = [
+ "conduit-body-make",
  "conduit-host-make",
  "conduit-semantic-catalog",
  "conduit-std-offers",
@@ -2153,7 +2196,32 @@ dependencies = [
 name = "conduit-host-rp2040"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-embedded-build",
  "conduit-host-make",
+ "conduit-i2c-transaction",
+ "conduit-kernel",
+ "conduit-mcu-host-runtime",
+ "conduit-mcu-source-build",
+ "conduit-monotonic-wait",
+ "conduit-plan-lowering",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-resource-snapshot",
+ "conduit-rp2040-flash-layout",
+ "conduit-semantic-catalog",
+ "conduit-seven-segment-mask",
+ "conduit-tm1637-wire",
+ "conduit-wire",
+ "critical-section",
+ "ed25519-dalek",
+ "heapless 0.8.0",
+ "serde",
+ "serde-json-core",
+ "serde_json",
+ "sha2 0.10.9",
+ "static_cell",
 ]
 
 [[package]]
@@ -2174,8 +2242,10 @@ dependencies = [
 name = "conduit-i2c-transaction"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-composite",
  "conduit-core",
+ "conduit-embedded-build",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
@@ -2247,11 +2317,78 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-mcu-host-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-composite",
+ "conduit-core",
+ "conduit-dht11-observation",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-i2c-transaction",
+ "conduit-kernel",
+ "conduit-monotonic-wait",
+ "conduit-plan-lowering",
+ "conduit-pulse-capture",
+ "conduit-resource-snapshot",
+ "conduit-semantic-catalog",
+ "conduit-seven-segment-mask",
+ "conduit-time",
+ "conduit-tm1637-protocol",
+ "conduit-tm1637-wire",
+ "conduit-typed-retention",
+ "conduit-wire",
+ "ed25519-dalek",
+ "serde",
+ "serde-json-core",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-mcu-source-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-composite",
+ "conduit-core",
+ "conduit-dht11-observation",
+ "conduit-embedded-build",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-host-make",
+ "conduit-i2c-transaction",
+ "conduit-kernel",
+ "conduit-mcu-host-runtime",
+ "conduit-monotonic-wait",
+ "conduit-plan-lowering",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-time",
+ "conduit-tm1637-wire",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "conduit-midi"
 version = "0.1.0"
 dependencies = [
  "conduit-audio",
  "conduit-core",
+]
+
+[[package]]
+name = "conduit-monotonic-wait"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+ "conduit-time",
 ]
 
 [[package]]
@@ -2491,6 +2628,8 @@ name = "conduit-pulse-capture"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-plot",
 ]
 
@@ -2523,6 +2662,11 @@ name = "conduit-resource-snapshot"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-embedded-build",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-semantic-catalog",
+ "conduit-web",
 ]
 
 [[package]]
@@ -2595,6 +2739,7 @@ dependencies = [
  "conduit-plot",
  "conduit-process",
  "conduit-purpose",
+ "conduit-resource-snapshot",
  "conduit-robotics",
  "conduit-text",
  "conduit-time",
@@ -2608,6 +2753,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-face",
+ "conduit-kernel",
  "conduit-plot",
 ]
 
@@ -2677,6 +2823,7 @@ dependencies = [
  "conduit-burn-model",
  "conduit-chat",
  "conduit-composite",
+ "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-create-oi",
  "conduit-data",
@@ -2687,6 +2834,8 @@ dependencies = [
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
+ "conduit-linear-framebuffer-make",
+ "conduit-linux-display",
  "conduit-linux-snapshot-store",
  "conduit-midi",
  "conduit-net",
@@ -2724,6 +2873,7 @@ dependencies = [
  "rcgen",
  "rustls",
  "rustls-pemfile",
+ "sdl2",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -2967,6 +3117,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+ "miniz_oxide 0.8.9",
+ "serde_json",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -2996,6 +3149,7 @@ dependencies = [
  "clap",
  "conduit-host-browser-make",
  "conduit-host-make",
+ "conduit-workspace-make",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -3019,6 +3173,7 @@ dependencies = [
  "conduit-human",
  "conduit-i2c-transaction",
  "conduit-kernel",
+ "conduit-monotonic-wait",
  "conduit-observatory",
  "conduit-plan-lowering",
  "conduit-planner",
@@ -8991,6 +9146,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "static_cell"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0530892bb4fa575ee0da4b86f86c667132a94b74bb72160f58ee5a4afec74c23"
+dependencies = [
+ "portable-atomic",
+]
+
+[[package]]
 name = "str-newtype"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -11035,6 +11199,7 @@ dependencies = [
  "conduit-host-esp32-make",
  "conduit-host-make",
  "conduit-host-raspberry-pi",
+ "conduit-host-rp2040",
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
@@ -11051,6 +11216,7 @@ dependencies = [
  "conduit-plot-library",
  "conduit-r1-network-conformance",
  "conduit-robotics",
+ "conduit-rp2040-flash-layout",
  "conduit-rp2040-network-realization",
  "conduit-semantic-catalog",
  "conduit-signal",

@@ -1,0 +1,66 @@
+{
+  "source": "016305fd7fe2058b4c1f6bb4de03c6a2a4133ffb",
+  "proof_class": "CPU tests and static checks; no Seed Boot or membership acceptance",
+  "checks": [
+    {
+      "command": "cargo +stable test --locked -p conduit-workspace-make --test selected_capabilities",
+      "passed": 5
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit-host-make -p conduit-body-make --lib configuration",
+      "passed": 26
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit-body-make --test joining_host_package",
+      "passed": 9
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit --bin conduit pending_seed",
+      "passed": 3
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit --bin conduit native_package_install",
+      "passed": 7
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit --bin conduit selected_host_configuration",
+      "passed": 14,
+      "ignored": 1
+    },
+    {
+      "command": "cargo +stable clippy --locked -p conduit -p conduit-workspace-make -p conduit-host-make -p conduit-body-make --all-targets -- -D warnings",
+      "exit_code": 0
+    },
+    {
+      "command": "cargo +stable fmt --all -- --check",
+      "exit_code": 0
+    }
+  ],
+  "first_failures": [
+    "Encounter fixture attempted target choice without navigating to its acknowledged page; corrected fixture and all26 configuration/authoring tests passed.",
+    "Strict Clippy refused a complex tuple result; named ResolvedOperations fields replaced it. Strict recheck and selected5 tests passed."
+  ],
+  "retained_logs": [
+    {
+      "name": "producer.log",
+      "sha256": "2c2716ded454aa8eab865d60cf040b689544a424d8a64ff4aaf9496d61a6deef"
+    },
+    {
+      "name": "strict.log",
+      "sha256": "7943621529cbb3cd3b36d6d19c494405c402f584836a649e8ad0276547baa211"
+    },
+    {
+      "name": "pending.log",
+      "sha256": "dc324d029b5a523392075e4ab2eb72b7e8ba9297e9323efe1539c17986d12d58"
+    },
+    {
+      "name": "native.log",
+      "sha256": "9badce9f2b9029fb553371bde32e134c3253e57808811f457c222d152bb93ce3"
+    },
+    {
+      "name": "selection.log",
+      "sha256": "a118219e8e3480d348976af474691eaa152538f0f967d84940d4166fd55501fd"
+    }
+  ],
+  "boundary": "Configured Seeds refuse before runtime publication until the actual selected IMAGE initializer is integrated; this checkpoint proves that safety boundary and source/IMAGE custody. It does not prove an initialized destination Host, physical Pi boot, live browser admission, graphical display, MCU deployment, or distributed Body journey."
+}

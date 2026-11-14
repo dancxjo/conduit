@@ -32,15 +32,15 @@ pub enum ProtocolCallRefusal {
     Expression(ExpressionCallRefusal),
     Selector(SelectorCallRefusal),
     I2c(I2cCallRefusal),
-    Clock(crate::monotonic_clock::owner::ClockCallRefusal),
+    Clock(conduit_monotonic_wait::clock_at::owner::ClockCallRefusal),
 }
 
 impl ProtocolCallRefusal {
     pub fn failure(&self) -> Failure {
-        use crate::monotonic_clock::owner::ClockCallRefusal as Clock;
         use ExpressionCallRefusal as Expression;
         use I2cCallRefusal as I2c;
         use SelectorCallRefusal as Selector;
+        use conduit_monotonic_wait::clock_at::owner::ClockCallRefusal as Clock;
         let (code, detail) = match self {
             #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
             Self::EthernetFrame(error) => {
@@ -139,8 +139,18 @@ impl ProtocolCallRefusal {
             }
             Self::I2c(I2c::Possession | I2c::Capability(_)) => (FailureCode::HostCallDenied, 1031),
             Self::I2c(I2c::SequenceExhausted) => (FailureCode::IdentityCapacityExhausted, 1032),
+            Self::I2c(I2c::Preparation(
+                conduit_core::StructuredCompositionPreparationRefusal::Capacity
+                | conduit_core::StructuredCompositionPreparationRefusal::Allocation,
+            )) => (FailureCode::StorageExhausted, 1035),
             Self::I2c(I2c::Decode(_)) => (FailureCode::InvalidInput, 1033),
-            Self::I2c(I2c::Result(_) | I2c::Canonical(_)) => (FailureCode::HostCallFailed, 1034),
+            Self::I2c(
+                I2c::Result(_)
+                | I2c::Canonical(_)
+                | I2c::Preparation(conduit_core::StructuredCompositionPreparationRefusal::Canonical(
+                    _,
+                )),
+            ) => (FailureCode::HostCallFailed, 1034),
         };
         Failure { code, detail }
     }
@@ -263,6 +273,19 @@ mod tests {
         }
     }
     use super::*;
+    #[test]
+    fn i2c_preparation_shortages_report_storage_exhaustion() {
+        use conduit_core::StructuredCompositionPreparationRefusal as Preparation;
+        for reason in [Preparation::Capacity, Preparation::Allocation] {
+            assert_eq!(
+                ProtocolCallRefusal::I2c(I2cCallRefusal::Preparation(reason)).failure(),
+                Failure {
+                    code: FailureCode::StorageExhausted,
+                    detail: 1035,
+                }
+            );
+        }
+    }
     use crate::arch::{
         EndpointNativeRefusal as Endpoint, UsbControlCallRefusal as Control,
         UsbNativeHostRefusal as Host, UsbNativeProtocolRefusal as Usb,

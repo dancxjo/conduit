@@ -37,10 +37,8 @@ fn simultaneous_inputs_alternate_without_reordering_each_stream() {
         );
         assert!(io.test_consumed(PortId(expected)));
         assert!(!io.test_consumed(PortId(1 - expected)));
-        assert_eq!(
-            <FlowMergeFiniteBack as StepBack<2>>::prepared_output(&back, PortId(0)).unwrap(),
-            if expected == 0 { &left } else { &right }
-        );
+        assert_eq!(io.test_output(PortId(0)), Some(reference(expected)));
+        assert!(back.output.is_empty());
         commit(&mut back);
     }
 }
@@ -180,4 +178,112 @@ fn exposed_close_precedes_the_other_inputs_preferred_payload() {
         StepOutcome::Progress
     );
     assert!(next.test_consumed(PortId(1)));
+}
+
+#[test]
+fn static_schema_merge_preserves_validation_pressure_and_exact_output() {
+    use conduit_core::{StructuredFieldType, StructuredFieldValue, StructuredInfoValue};
+    let leaf = StructuredInfoType::leaf(kind_id("value/bool")).unwrap();
+    let schema = StructuredInfoType::record(
+        kind_id("test/static-merge"),
+        vec![StructuredFieldType::new("flag", leaf.clone()).unwrap()],
+    )
+    .unwrap();
+    let canonical = Box::leak(schema.canonical_bytes().unwrap().into_boxed_slice());
+    let good = StructuredInfoValue::record(
+        schema.clone(),
+        vec![StructuredFieldValue::new(
+            "flag",
+            StructuredInfoValue::leaf(leaf.clone(), vec![1]).unwrap(),
+        )
+        .unwrap()],
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let mut bad_leaf = good.clone();
+    *bad_leaf.last_mut().unwrap() = 2;
+    let oversized = vec![0; 513];
+    let mut trailing = good.clone();
+    trailing.push(0);
+    let mut wrong = good.clone();
+    wrong[0] ^= 1;
+    assert!(FlowMergeFiniteBack::prepare_static(&leaf, canonical, 512).is_err());
+    for input in [
+        &good[..],
+        &bad_leaf,
+        &oversized,
+        &trailing,
+        &wrong,
+        &good[..good.len() - 1],
+    ] {
+        for ready in [false, true] {
+            let mut owned = FlowMergeFiniteBack::prepare(&schema, 512).unwrap();
+            let mut linked = FlowMergeFiniteBack::prepare_static(&schema, canonical, 512).unwrap();
+            let value = ValueRef {
+                slot: 0,
+                generation: 1,
+                byte_len: input.len() as u32,
+            };
+            let capacity = if ready { Some(512) } else { None };
+            let mut a =
+                StepIo::test_frame([Some(value), None], [false; 2], [capacity, None], None, 16);
+            let mut b =
+                StepIo::test_frame([Some(value), None], [false; 2], [capacity, None], None, 16);
+            let allocations = crate::test_support::allocation::allocations_during(|| {
+                let bytes = StepInputBytes::test_frame([Some(input), None], None);
+                assert_eq!(owned.step(&mut a, &bytes), linked.step(&mut b, &bytes));
+                assert_eq!(a.test_consumed(PortId(0)), b.test_consumed(PortId(0)));
+                assert_eq!(
+                    <FlowMergeFiniteBack as StepBack<2>>::prepared_output(&owned, PortId(0)),
+                    <FlowMergeFiniteBack as StepBack<2>>::prepared_output(&linked, PortId(0))
+                );
+                commit(&mut owned);
+                commit(&mut linked);
+            });
+            assert_eq!(allocations, 0);
+        }
+    }
+}
+
+#[test]
+fn uncommitted_forward_does_not_advance_fairness_or_retain_a_stale_handle() {
+    let mut back = back();
+    let bytes = 7_u64.to_le_bytes();
+    let inputs = StepInputBytes::test_frame([Some(bytes.as_slice()), Some(bytes.as_slice())], None);
+    for _ in 0..2 {
+        let mut io = StepIo::test_frame(
+            [Some(reference(0)), Some(reference(1))],
+            [false; 2],
+            [Some(8), None],
+            None,
+            16,
+        );
+        assert_eq!(back.step(&mut io, &inputs), StepOutcome::Progress);
+        assert_eq!(io.test_output(PortId(0)), Some(reference(0)));
+        assert_eq!(back.preferred, 0);
+        assert!(back.output.is_empty());
+        // Simulate transaction refusal: no step_committed notification.
+    }
+    let mut empty = StepIo::test_frame([None; 2], [false; 2], [Some(8), None], None, 16);
+    assert_eq!(
+        back.step(&mut empty, &StepInputBytes::test_frame([None; 2], None)),
+        StepOutcome::Await
+    );
+    commit(&mut back);
+    assert_eq!(
+        back.preferred, 0,
+        "no stale staged side survives a new attempt"
+    );
+    <FlowMergeFiniteBack as StepBack<2>>::cancel(&mut back);
+    let mut cancelled = StepIo::test_frame(
+        [Some(reference(0)), Some(reference(1))],
+        [false; 2],
+        [Some(8), None],
+        None,
+        16,
+    );
+    assert_eq!(back.step(&mut cancelled, &inputs), StepOutcome::Complete);
+    assert_eq!(cancelled.test_output(PortId(0)), None);
+    assert!(!cancelled.test_consumed(PortId(0)));
 }

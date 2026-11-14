@@ -8,6 +8,8 @@ use conduit_core::{
 };
 use ed25519_dalek::{Signer, SigningKey};
 
+#[path = "continuity/receipt_capacity.rs"]
+mod receipt_capacity;
 #[path = "continuity/receipt_retirement.rs"]
 mod receipt_retirement;
 

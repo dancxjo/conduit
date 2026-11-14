@@ -31,19 +31,25 @@ impl Owner {
         let [requirement] = offer.authority_requirements.as_slice() else {
             return Err("Text file offer has unexpected authority requirements".into());
         };
-        let grant = AuthorityGrant {
-            grant_id: format!(
-                "grant/data-text/{}/{}",
-                ad.boot_id.as_str(),
-                ad.offer_generation.0
-            )
-            .into(),
-            contract_id: requirement.contract_id.clone(),
-            host_call_contract_id: requirement.host_call_contract_id.clone(),
-            subject_kind: requirement.subject_kind.clone(),
-            host_id: ad.host_id.clone(),
-            boot_id: ad.boot_id.clone(),
-            capability_id: offer.capability_id.clone(),
+        let grant = if let Some(grant) = self.host.text_file_authority_grant() {
+            grant.clone()
+        } else if self.host.image_identity().is_some() {
+            return Err("selected IMAGE file Plan lacks its original operation grant".into());
+        } else {
+            AuthorityGrant {
+                grant_id: format!(
+                    "grant/data-text/{}/{}",
+                    ad.boot_id.as_str(),
+                    ad.offer_generation.0
+                )
+                .into(),
+                contract_id: requirement.contract_id.clone(),
+                host_call_contract_id: requirement.host_call_contract_id.clone(),
+                subject_kind: requirement.subject_kind.clone(),
+                host_id: ad.host_id.clone(),
+                boot_id: ad.boot_id.clone(),
+                capability_id: offer.capability_id.clone(),
+            }
         };
         let hosts = [ad.clone()];
         let placements =

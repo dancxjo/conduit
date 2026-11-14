@@ -1,4 +1,17 @@
+pub mod allocation_observation;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub mod hosted_display;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub mod selected_native_mask;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub use selected_native_mask::NativeMaskEncounter;
+#[cfg(target_os = "linux")]
+mod selected_text_file;
+#[cfg(target_os = "linux")]
+pub use selected_text_file::{NativeTextFileDefinition, TextFileInitialization};
 mod selected_native_source;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub mod selected_scanout;
 pub mod source_check;
 pub mod source_file;
 use conduit_core::{
@@ -9,9 +22,9 @@ use conduit_planner::{default_placements, parse_placements, plan, PlacementChoic
 use conduit_plot::CheckedPlot;
 use conduit_signal::{PULSE_KIND, SHOW_KIND};
 pub use selected_native_source::{
-    ImmediateNativeSource, NativeReadContext, NativeSourceDefinition, NativeSourceWorkerProvider,
-    NativeWorkerBudget, NativeWorkerInspection, RetiredNativeSource, WorkerBackingObservation,
-    WorkerFailure, NATIVE_SOURCE_WORKER_PROFILE,
+    ImmediateNativeSource, ImmediateSourcePreparationBudget, NativeReadContext,
+    NativeSourceDefinition, NativeSourceWorkerProvider, NativeWorkerBudget, NativeWorkerInspection,
+    RetiredNativeSource, WorkerBackingObservation, WorkerFailure, NATIVE_SOURCE_WORKER_PROFILE,
 };
 use std::fs;
 use std::io::Write;
@@ -26,6 +39,8 @@ pub mod body_clock_line;
 pub mod body_coordination;
 pub mod body_execution;
 mod boot_identity;
+mod provider_resources;
+pub use kernel_preparation::ProviderResourceReservation;
 pub mod browser_admission;
 pub mod carried_formant;
 pub mod civil_deadline_wait;
@@ -93,9 +108,11 @@ pub mod hosted_indicator;
 pub mod hosted_job;
 pub mod hosted_keyboard;
 mod hosted_language;
+pub mod hosted_measurement;
 mod hosted_process;
 #[cfg(feature = "local-model-proof")]
 mod house_conversation_topology;
+pub mod measurement_face;
 #[cfg(unix)]
 pub mod pico_indicator;
 mod whisper_installation;
@@ -257,86 +274,7 @@ pub mod usb_cdc;
 pub mod websocket;
 
 #[cfg(test)]
-mod allocation_probe {
-    use std::alloc::{GlobalAlloc, Layout, System};
-    use std::cell::Cell;
-
-    pub struct TrackingAllocator;
-
-    thread_local! {
-        static TRACKING: Cell<bool> = const { Cell::new(false) };
-        static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
-    }
-
-    fn record() {
-        let _ = TRACKING.try_with(|tracking| {
-            if tracking.get() {
-                let _ = ALLOCATIONS.try_with(|allocations| {
-                    allocations.set(allocations.get().saturating_add(1));
-                });
-            }
-        });
-    }
-
-    unsafe impl GlobalAlloc for TrackingAllocator {
-        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-            let pointer = unsafe { System.alloc(layout) };
-            if !pointer.is_null() {
-                record();
-            }
-            pointer
-        }
-
-        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-            let pointer = unsafe { System.alloc_zeroed(layout) };
-            if !pointer.is_null() {
-                record();
-            }
-            pointer
-        }
-
-        unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
-            unsafe { System.dealloc(pointer, layout) };
-        }
-
-        unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-            let pointer = unsafe { System.realloc(pointer, layout, new_size) };
-            if !pointer.is_null() {
-                record();
-            }
-            pointer
-        }
-    }
-
-    #[global_allocator]
-    static ALLOCATOR: TrackingAllocator = TrackingAllocator;
-
-    pub struct Guard {
-        finished: bool,
-    }
-
-    impl Guard {
-        pub fn finish(mut self) -> usize {
-            self.finished = true;
-            TRACKING.with(|tracking| tracking.set(false));
-            ALLOCATIONS.with(Cell::get)
-        }
-    }
-
-    impl Drop for Guard {
-        fn drop(&mut self) {
-            if !self.finished {
-                TRACKING.with(|tracking| tracking.set(false));
-            }
-        }
-    }
-
-    pub fn begin() -> Guard {
-        ALLOCATIONS.with(|allocations| allocations.set(0));
-        TRACKING.with(|tracking| tracking.set(true));
-        Guard { finished: false }
-    }
-}
+mod allocation_probe;
 
 #[derive(Debug, Clone)]
 pub struct StdHostConfig {
@@ -437,6 +375,12 @@ pub trait TimerAdapter {
         None
     }
 
+    /// Allocation-free scalar sample on the exact previously prepared basis.
+    /// Unsupported adapters refuse; the default never guesses correspondence.
+    fn monotonic_ticks_on(&mut self, _basis: &conduit_core::MonotonicClockIdentity) -> Option<u64> {
+        None
+    }
+
     /// Returns the current host/boot-scoped monotonic millisecond reading when
     /// this adapter offers the admitted deadline contract.
     fn monotonic_now_ms(&mut self) -> Option<u64> {
@@ -487,6 +431,18 @@ impl TimerAdapter for ThreadTimer {
                 .as_micros(),
         )
         .ok()
+    }
+
+    fn monotonic_ticks_on(&mut self, basis: &conduit_core::MonotonicClockIdentity) -> Option<u64> {
+        if basis.validate().is_err()
+            || basis.scale() != conduit_core::TemporalScale::Microseconds
+            || basis.resolution_ticks() != 1
+            || basis.uncertainty_ticks() != 1
+            || THREAD_TIMER_BASIS.get()?.as_deref()? != basis.basis_id()
+        {
+            return None;
+        }
+        self.monotonic_now_micros()
     }
 
     fn monotonic_observation(
@@ -585,6 +541,10 @@ struct TodoCheckpointResidenceRoot {
 }
 
 pub struct StdHost {
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    native_display: Option<hosted_display::ReadyShowBase>,
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    selected_scanout: Option<selected_scanout::SelectedScanoutBase>,
     advertisement: HostAdvertisement,
     #[cfg(unix)]
     terminal_attachment: Option<std::os::unix::net::UnixStream>,
@@ -976,6 +936,10 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1052,6 +1016,10 @@ impl StdHost {
             microphone: None,
             base_registry,
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1141,6 +1109,10 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1192,6 +1164,10 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: Some(adapter),
             model_work: None,
             calendar: None,
@@ -1243,6 +1219,10 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: Some(adapter),
             calendar: None,
@@ -1294,6 +1274,10 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: Some(adapter),
@@ -1330,6 +1314,10 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1390,6 +1378,10 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1445,6 +1437,10 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1489,6 +1485,10 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1546,6 +1546,10 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -2351,3 +2355,5 @@ pub mod worker_text_result;
 
 mod creche_host;
 pub mod hosted_creche;
+
+mod image_initialization;

@@ -1,0 +1,24 @@
+{
+  "schema": "conduit.proof/rp2040-make@1",
+  "build": {
+    "application_uf2_sha256": "ab3b3da9a6493e7afcc9dc88b708ef930a43c5e84c2df92d579257e07fb1b041",
+    "body_membership_proven": false,
+    "configuration_id": "sha256:041e8836c0425a5b8e28c4dd2c1d277f1802fd5064f5be5f9165418346c1cfd7",
+    "firmware_elf_sha256": "82054ad053a217d6fa53ef96536e8d09aed29d83f025b7908edd9eb6eb1381d9",
+    "local_sampling_plan_proven": false,
+    "resolved_description_binding": "image:sha256:5cb6e6b991470b5be6d9634575317325c703adfc5358153917f2841ad5b7d22d",
+    "schema": "conduit.rp2040-host/build@1",
+    "source_identity": "c8b4d6cef323f30192788f3878845db8f853e5bb",
+    "target": "conduitos/thumbv6m/pico-w"
+  },
+  "flash_bytes": 863692,
+  "static_ram_bytes": 93640,
+  "heap_arena_in_static_ram_bytes": 49152,
+  "uf2_address_start": "0x10000000",
+  "uf2_address_end_exclusive": "0x100d2e00",
+  "credential_and_bootstrap_sectors_excluded": true,
+  "physical_deployment": false,
+  "peak_ram_measured": false,
+  "scope": "Successful ordinary Make build with checked Host image and code-only UF2; no physical Body membership or sampling Play claim",
+  "resolved_image_matches_binding": true
+}

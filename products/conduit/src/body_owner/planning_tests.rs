@@ -67,7 +67,7 @@ fn complete_checked_workset_uses_one_body_plan_and_actual_kernel_play() {
         .plan_workset_with_sources(&[(&a, &pa), (&b, &pb)])
         .is_err());
     assert_eq!(owner.session.realization().unwrap().plan, sealed);
-    owner.execute(1_000).unwrap();
+    owner.execute_reference_fixture(1_000).unwrap();
     let actual = owner.last_execution.as_ref().unwrap();
     assert_eq!(actual["play"], serde_json::to_value(&prospective).unwrap());
     assert_eq!(
@@ -103,6 +103,13 @@ fn incomplete_duplicate_or_forged_source_preparation_preserves_idle_owner() {
         vec![(&a, &pa), (&b, &forged)],
     ] {
         assert!(owner.plan_workset_with_sources(&sources).is_err());
+        assert!(owner
+            .plan_workset_with_source_boundaries_and_provider(
+                &sources,
+                &BTreeMap::new(),
+                &mut |_| panic!("native provider must not see unchecked or incomplete Source"),
+            )
+            .is_err());
         assert_eq!(owner.session.evidence(), &before);
         assert!(owner.session.realization().is_none());
         assert!(owner.last_execution.is_none());

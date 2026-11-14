@@ -1,5 +1,12 @@
 //! One validator over contiguous bytes or borrowed standard record payloads.
 use crate::*;
+// A bit per requirement covers the existing one-byte record-count domain in
+// exactly the former 32-byte boolean inventory. This changes no Plan ceiling.
+const MAXIMUM_RESOURCE_REQUIREMENTS: usize = u8::MAX as usize;
+const RESOURCE_SEEN_BYTES: usize = MAXIMUM_RESOURCE_REQUIREMENTS.div_ceil(8);
+#[cfg(test)]
+#[path = "resource_bitmap_tests.rs"]
+mod resource_bitmap_tests;
 
 pub(crate) fn decode(
     bytes: &[u8],
@@ -15,6 +22,7 @@ pub(crate) fn decode(
         maxima,
         requirements,
         profile,
+        None,
         None,
     )
 }
@@ -35,6 +43,27 @@ pub(crate) fn decode_fore(
         required,
         Some(computations),
         Some(fore),
+        None,
+    )
+}
+
+pub(crate) fn decode_line_fore(
+    bytes: &[u8],
+    maxima: AssignedPlanMaxima,
+    requirements: AssignedPlanRequirements<'_>,
+    computations: AssignedComputationProfile<'_>,
+    profile: AssignedLineForeProfile<'_>,
+) -> Result<AssignedPlanView, AssignedPlanRefusal> {
+    validate(
+        bytes,
+        bytes.len(),
+        None,
+        AssignedPlanRecords::payload_records(bytes),
+        maxima,
+        requirements,
+        Some(computations),
+        None,
+        Some(profile),
     )
 }
 
@@ -90,6 +119,7 @@ pub(crate) fn decode_records(
         requirements,
         Some(profile),
         fore,
+        None,
     )
 }
 
@@ -103,7 +133,11 @@ fn validate<'a>(
     requirements: AssignedPlanRequirements<'_>,
     profile: Option<AssignedComputationProfile<'_>>,
     fore: Option<&[AssignedForeRequirement]>,
+    line_fore: Option<AssignedLineForeProfile<'_>>,
 ) -> Result<AssignedPlanView, AssignedPlanRefusal> {
+    let mut line_validation = line_fore
+        .map(|profile| crate::line_fore::Validation::new(profile, requirements))
+        .transpose()?;
     let mut fore_validation = crate::fore::Validation::new(fore.unwrap_or(&[]))?;
     let mut computations = computation::Validation::new(profile)?;
     if bytes.len() < ASSIGNED_PLAN_HEADER_BYTES {
@@ -118,7 +152,13 @@ fn validate<'a>(
     {
         return Err(AssignedPlanRefusal::WrongSchema);
     }
+    if line_fore.is_some() && schema != ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA {
+        return Err(AssignedPlanRefusal::WrongSchema);
+    }
     if schema != ASSIGNED_PLAN_SCHEMA
+        && !(schema == ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
+            && line_fore.is_some()
+            && profile.is_some())
         && !(schema == ASSIGNED_FORE_NATIVE_PLAN_SCHEMA && fore.is_some() && profile.is_some())
         && !(profile.is_some()
             && matches!(
@@ -135,7 +175,7 @@ fn validate<'a>(
     if encoded_bytes > maxima.encoded_bytes {
         return Err(AssignedPlanRefusal::EncodedCapacityExceeded);
     }
-    let runtime_state_bytes = read_u16(bytes, 12)?;
+    let runtime_state_bytes = read_u32(bytes, 12)?;
     if runtime_state_bytes > maxima.runtime_state_bytes {
         return Err(AssignedPlanRefusal::RuntimeCapacityExceeded);
     }
@@ -166,10 +206,10 @@ fn validate<'a>(
 
     let mut seen = [0_u8; ASSIGNED_PLAN_COUNT_KINDS];
     let mut host_calls = [false; 32];
-    let mut resources = [false; 32];
+    let mut resources = [0u8; RESOURCE_SEEN_BYTES];
     let mut remotes = [false; 16];
     if requirements.host_calls.len() > host_calls.len()
-        || requirements.resources.len() > resources.len()
+        || requirements.resources.len() > MAXIMUM_RESOURCE_REQUIREMENTS
         || requirements.remote_bindings.len() > remotes.len()
     {
         return Err(AssignedPlanRefusal::MalformedRecord);
@@ -196,7 +236,9 @@ fn validate<'a>(
             ASSIGNED_HOST_CALL => {
                 if matches!(
                     schema,
-                    ASSIGNED_NATIVE_PLAN_SCHEMA | ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                    ASSIGNED_NATIVE_PLAN_SCHEMA
+                        | ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                        | ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
                 ) {
                     length == 47 || length == ASSIGNED_NATIVE_CALL_BYTES
                 } else {
@@ -206,7 +248,9 @@ fn validate<'a>(
             ASSIGNED_RESOURCE => length == 8,
             ASSIGNED_SIGN => length == 37,
             ASSIGNED_REMOTE_ENDPOINT => {
-                if schema == ASSIGNED_FORE_NATIVE_PLAN_SCHEMA {
+                if schema == ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA {
+                    length == ASSIGNED_LINE_FORE_LOCAL_BYTES || length == ASSIGNED_LINE_FORE_BYTES
+                } else if schema == ASSIGNED_FORE_NATIVE_PLAN_SCHEMA {
                     length == ASSIGNED_LOCAL_FORE_BYTES
                 } else {
                     length == 250
@@ -225,6 +269,7 @@ fn validate<'a>(
             ASSIGNED_CONFIGURATION => match payload[18] {
                 0..=2 => length == 27,
                 3 => computations.text(payload)?,
+                4 => computations.resident(payload)?,
                 _ => false,
             },
             ASSIGNED_CORD => {
@@ -239,6 +284,11 @@ fn validate<'a>(
             ASSIGNED_ROUTE_TARGET => length == 6 || payload[2] == 1,
             ASSIGNED_SIGN => payload[34] <= 3,
             ASSIGNED_RESOURCE_CORD => payload[10] <= 1 && payload[11] <= 2,
+            ASSIGNED_REMOTE_ENDPOINT if schema == ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA => {
+                payload[5] <= 1
+                    && ((payload[0] == 0 && length == ASSIGNED_LINE_FORE_LOCAL_BYTES)
+                        || (payload[0] == 1 && length == ASSIGNED_LINE_FORE_BYTES))
+            }
             ASSIGNED_REMOTE_ENDPOINT if schema == ASSIGNED_FORE_NATIVE_PLAN_SCHEMA => {
                 payload[4] <= 1
             }
@@ -255,7 +305,9 @@ fn validate<'a>(
             ASSIGNED_HOST_CALL
                 if matches!(
                     schema,
-                    ASSIGNED_NATIVE_PLAN_SCHEMA | ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                    ASSIGNED_NATIVE_PLAN_SCHEMA
+                        | ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                        | ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
                 ) =>
             {
                 assigned_native_binding(payload).is_ok()
@@ -290,15 +342,31 @@ fn validate<'a>(
                     .resources
                     .iter()
                     .enumerate()
-                    .find(|(index, required)| !resources[*index] && **required == resource)
+                    .find(|(index, required)| {
+                        resources[*index / 8] & (1 << (*index % 8)) == 0 && **required == resource
+                    })
                     .map(|(index, _)| index)
                     .ok_or(AssignedPlanRefusal::UnknownResource)?;
-                resources[index] = true;
+                resources[index / 8] |= 1 << (index % 8);
             }
             ASSIGNED_RESOURCE_CORD => {
                 let resource = read_u16(payload, 8)?;
                 if !requirements.resources.contains(&resource) {
                     return Err(AssignedPlanRefusal::UnknownResource);
+                }
+            }
+            ASSIGNED_REMOTE_ENDPOINT if schema == ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA => {
+                if let Some(binding) = line_validation
+                    .as_mut()
+                    .ok_or(AssignedPlanRefusal::WrongSchema)?
+                    .record(payload)?
+                {
+                    let index = requirements
+                        .remote_bindings
+                        .iter()
+                        .position(|expected| *expected == binding)
+                        .ok_or(AssignedPlanRefusal::StaleRemoteEndpoint)?;
+                    remotes[index] = true;
                 }
             }
             ASSIGNED_REMOTE_ENDPOINT if schema == ASSIGNED_FORE_NATIVE_PLAN_SCHEMA => {
@@ -326,6 +394,9 @@ fn validate<'a>(
     }
     computations.finish()?;
     fore_validation.finish()?;
+    if let Some(validation) = line_validation {
+        validation.finish()?;
+    }
     if seen != counts {
         return Err(AssignedPlanRefusal::ExtraRecords);
     }
@@ -335,9 +406,7 @@ fn validate<'a>(
     {
         return Err(AssignedPlanRefusal::MissingHostCall);
     }
-    if resources[..requirements.resources.len()]
-        .iter()
-        .any(|seen| !seen)
+    if (0..requirements.resources.len()).any(|index| resources[index / 8] & (1 << (index % 8)) == 0)
     {
         return Err(AssignedPlanRefusal::MissingResource);
     }

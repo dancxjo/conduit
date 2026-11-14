@@ -50,23 +50,10 @@ pub(super) fn checked_bound(
 pub(super) fn semantic_laws(
     checked: &crate::CheckedExpression,
 ) -> Result<Vec<KindSemanticLaw>, CanonicalExpansionDiagnostic> {
-    let mut laws = crate::expression_program::input_bound::semantic_laws_for_identity(
-        checked
-            .input_type
-            .value_kind()
-            .expect("checked expression has semantic input")
-            .clone(),
-        checked.input_maximum_bytes,
-        checked.input_type == checked.value_type
-            && matches!(checked.syntax, crate::ExpressionSyntax::Input(_)),
-    )
-    .map_err(diagnostic)?;
-    crate::expression_program::value_contract::retain_laws(
-        &mut laws,
-        checked.input_value_contract.as_ref(),
-        checked.output_value_contract.as_ref(),
-    );
-    Ok(laws)
+    crate::PortableExpressionProgram::from_checked(checked)
+        .map_err(diagnostic)?
+        .semantic_laws()
+        .map_err(diagnostic)
 }
 
 fn diagnostic(error: impl core::fmt::Debug) -> CanonicalExpansionDiagnostic {
@@ -116,10 +103,12 @@ pub(super) fn retain_contracts(
         .and_then(|s| s.input.as_ref())
         .and_then(|s| s.first())
         .and_then(|sink| match sink {
-            StageSink::FaceOutput(name, ..) => retained(
-                plot.runtime_front
-                    .value_contract(&FrontValueLocation::Output(conduit_core::port_id(name))),
-            ),
+            // An authored output ceiling is a runtime obligation, independently
+            // of the evaluator's conservative construction scratch bound.
+            StageSink::FaceOutput(name, ..) => plot
+                .runtime_front
+                .value_contract(&FrontValueLocation::Output(conduit_core::port_id(name)))
+                .cloned(),
             StageSink::Internal(endpoint) => gears
                 .iter()
                 .find(|g| g.gear_id == endpoint.gear_id)

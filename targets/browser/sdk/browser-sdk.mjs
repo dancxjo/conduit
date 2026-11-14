@@ -1,3 +1,4 @@
+import { createPortableSeedAdmission } from "./browser-sdk-seed-admission.mjs";
 import { admitOwnerFaceComponentBack } from "./browser-sdk-owner-component.mjs";
 import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow, ownerVisualPreferences, ownerFaceSnapshotOptions, ownerVisualPreferencesRequireFullFrame } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
@@ -128,6 +129,7 @@ export class BrowserHost {
   /** Join this already-admitted Host and Boot to one external Body invitation. */
   async participate({ invitation, expectedBodyId = null, retainedCredential = null, onCredential,
     onState, onBiographyEvidence, onOfferEvidence, renewPresence = true, reconnectPresence = true } = {}) {
+    this.#state.seedAdmission.assertMayOwnBody();
     if (typeof invitation !== "string" || invitation.length < 1 || invitation.length > 2048) {
       throw new TypeError("BrowserHost.participate requires one bounded Body invitation URL");
     }
@@ -158,7 +160,14 @@ export class BrowserHost {
     });
   }
 
+  prepareSeedAdmission(options) { return this.#state.seedAdmission.prepare(options); }
+  completeSeedAdmission(options) { return this.#state.seedAdmission.complete(options); }
+  retrySeedAdmissionRetention() { return this.#state.seedAdmission.retryRetention(); }
+  cancelSeedAdmission() { return this.#state.seedAdmission.cancel(); }
+  seedMembershipCredential() { return this.#state.seedAdmission.credential(); }
+
   async birth({ name, plots }) {
+    this.#state.seedAdmission.assertMayOwnBody();
     if (typeof name !== "string" || !Array.isArray(plots)) throw new TypeError("BrowserHost.birth requires a name and checked Plots");
     return this.#state.continuity.run("birth", () => birthBrowserBody({
       bridge: this.#state.bridge,
@@ -181,6 +190,7 @@ export class BrowserHost {
 
   /** Recover the exact retained Body into this fresh Boot without resurrecting an old Play. */
   async recover() {
+    this.#state.seedAdmission.assertMayOwnBody();
     return this.#state.continuity.run("recover", () => recoverBrowserBody({
       bridge: this.#state.bridge,
       host: this.id,
@@ -194,8 +204,8 @@ export class BrowserHost {
     }));
   }
 
-  close() { return this.#state.continuity.close(); }
-  forget() { return this.#state.continuity.close(true); }
+  async close() { await this.#state.seedAdmission.close(); return this.#state.continuity.close(); }
+  async forget() { await this.#state.seedAdmission.close(); return this.#state.continuity.close(true); }
 }
 
 /** Current participation of this SDK Host incarnation in one external Body. */
@@ -726,6 +736,8 @@ export const Conduit = Object.freeze({
           this.offers = Object.freeze(this.boot.offers.map((offer) => Object.freeze({ ...offer })));
         },
       };
+      state.seedAdmission = createPortableSeedAdmission({ api, storage,
+        assertCurrent: () => state.continuity.assertCurrent() });
       const host = new BrowserHost(BROWSER_HOST_KEY, state);
       return host;
     } catch (error) {

@@ -2,6 +2,11 @@
 //! Finite seven-segment interpretation of an immutable semantic Face revision.
 //! Rendering has no clock, storage, GPIO, transport or manifestation side effects.
 
+#[cfg(feature = "native-kernel")]
+extern crate alloc;
+#[cfg(feature = "native-kernel")]
+pub mod native_kernel;
+
 #[allow(dead_code)]
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/types.rs"));

@@ -25,7 +25,14 @@ fn event(window_id: u32, win_event: WindowEvent) -> Event {
     }
 }
 #[test]
-fn historical_startup_hidden_shown_is_settled_but_post_ready_hidden_is_terminal() {
+fn startup_settlement_keeps_post_ready_input_loss_terminal() {
+    assert_startup_settlement_and_post_ready_loss(false);
+}
+#[test]
+fn startup_settlement_keeps_post_ready_output_loss_terminal() {
+    assert_startup_settlement_and_post_ready_loss(true);
+}
+fn assert_startup_settlement_and_post_ready_loss(output_only: bool) {
     let _sdl_test = crate::SDL_TEST_LOCK.lock().unwrap();
     let (sdl, mut canvas, textures) = setup();
     let window = canvas.window().id();
@@ -46,24 +53,31 @@ fn historical_startup_hidden_shown_is_settled_but_post_ready_hidden_is_terminal(
         output.poll_input(&mut events, 1),
         Err(NativeInputRefusal::NotPrepared)
     );
-    let mut input_prepared = false;
-    for _ in 0..4 {
-        match output.prepare_input(&mut events, 256).unwrap() {
-            NativeInput::Idle => {
-                input_prepared = true;
-                break;
+    if !output_only {
+        let mut input_prepared = false;
+        for _ in 0..4 {
+            match output.prepare_input(&mut events, 256).unwrap() {
+                NativeInput::Idle => {
+                    input_prepared = true;
+                    break;
+                }
+                NativeInput::Pending => (),
+                other => panic!("unexpected preparation input: {other:?}"),
             }
-            NativeInput::Pending => (),
-            other => panic!("unexpected preparation input: {other:?}"),
         }
+        assert!(input_prepared);
     }
-    assert!(input_prepared);
     queue
         .push_event(event(window, WindowEvent::Hidden))
         .unwrap();
     let mut lost = false;
     for _ in 0..4 {
-        if output.poll_input(&mut events, 256) == Err(NativeInputRefusal::Lost) {
+        let observed = if output_only {
+            output.poll_output_lifecycle(&mut events, 256)
+        } else {
+            output.poll_input(&mut events, 256)
+        };
+        if observed == Err(NativeInputRefusal::Lost) {
             lost = true;
             break;
         }
@@ -72,7 +86,11 @@ fn historical_startup_hidden_shown_is_settled_but_post_ready_hidden_is_terminal(
     assert!(!token.is_live());
     queue.push_event(event(window, WindowEvent::Shown)).unwrap();
     assert_eq!(
-        output.poll_input(&mut events, 256),
+        if output_only {
+            output.poll_output_lifecycle(&mut events, 256)
+        } else {
+            output.poll_input(&mut events, 256)
+        },
         Err(NativeInputRefusal::Lost)
     );
 }

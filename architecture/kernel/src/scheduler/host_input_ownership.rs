@@ -13,6 +13,8 @@ impl<
         const ROUTE_TARGETS: usize,
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
+        const TERMINAL_ROWS: usize,
+        const PHASE_BYTES: usize,
     >
     FixedScheduler<
         D,
@@ -26,6 +28,8 @@ impl<
         ROUTE_TARGETS,
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
+        TERMINAL_ROWS,
+        PHASE_BYTES,
     >
 where
     D: StepBack<PORTS>,

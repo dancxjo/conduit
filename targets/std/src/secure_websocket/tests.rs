@@ -1,9 +1,14 @@
 use super::*;
 use rcgen::{generate_simple_self_signed, CertifiedKey};
-use rustls::pki_types::PrivatePkcs8KeyDer;
+use rustls::client::danger::ServerCertVerifier;
+use rustls::pki_types::{PrivatePkcs8KeyDer, ServerName, UnixTime};
+use rustls::{CertificateError, Error as TlsError};
 use std::fs;
 use std::net::{Ipv4Addr, SocketAddrV4};
 use std::thread;
+
+#[path = "tests/io_deadline.rs"]
+mod io_deadline;
 
 #[test]
 fn secure_remote_listener_cannot_rebrand_loopback() {
@@ -151,6 +156,156 @@ fn native_client_verifies_exact_certificate_binding_and_bounded_frames() {
             CertificateError::ApplicationVerificationFailure
         ))
     ));
+}
+
+fn pinned_server() -> (Arc<ServerConfig>, [u8; 32]) {
+    let CertifiedKey { cert, signing_key } =
+        generate_simple_self_signed(vec!["localhost".into()]).unwrap();
+    let binding = Sha256::digest(cert.der().as_ref()).into();
+    let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(signing_key.serialize_der()));
+    let config =
+        ServerConfig::builder_with_provider(rustls::crypto::ring::default_provider().into())
+            .with_safe_default_protocol_versions()
+            .unwrap()
+            .with_no_client_auth()
+            .with_single_cert(vec![cert.der().clone()], key)
+            .unwrap();
+    (Arc::new(config), binding)
+}
+
+#[test]
+fn native_client_absolute_connection_deadline_ends_trickled_tls() {
+    let (config, binding) = pinned_server();
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        stream
+            .set_read_timeout(Some(Duration::from_secs(2)))
+            .unwrap();
+        let mut connection = ServerConnection::new(config).unwrap();
+        while !connection.wants_write() {
+            assert_ne!(connection.read_tls(&mut stream).unwrap(), 0);
+            connection.process_new_packets().unwrap();
+        }
+        let mut response = Vec::new();
+        while connection.wants_write() {
+            connection.write_tls(&mut response).unwrap();
+        }
+        assert!(!response.is_empty());
+        let started = Instant::now();
+        // Valid TLS response bytes arrive well inside every individual read
+        // timeout. The old per-read bound lasts until the peer finally closes.
+        for byte in response {
+            if started.elapsed() >= Duration::from_secs(2) || stream.write_all(&[byte]).is_err() {
+                break;
+            }
+            thread::sleep(Duration::from_millis(20));
+        }
+        started.elapsed()
+    });
+    let started = Instant::now();
+    let result = SecureWebSocketClientLine::connect_pinned(
+        address,
+        &format!("wss://localhost:{}/conduit", address.port()),
+        "localhost",
+        binding,
+        Duration::from_millis(250),
+        32,
+    );
+    let elapsed = started.elapsed();
+    let peer_closed_after = server.join().unwrap();
+    assert!(result.is_err());
+    assert!(elapsed < Duration::from_secs(1), "client took {elapsed:?}");
+    assert!(
+        peer_closed_after < Duration::from_secs(1),
+        "failed attempt left its exact socket open for {peer_closed_after:?}"
+    );
+}
+
+#[test]
+fn native_client_completed_handshake_cancels_connection_watchdog() {
+    let (config, binding) = pinned_server();
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        stream
+            .set_read_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        let connection = ServerConnection::new(config).unwrap();
+        let mut socket = tungstenite::accept(StreamOwned::new(connection, stream)).unwrap();
+        assert_eq!(
+            socket.read().unwrap(),
+            Message::binary(&b"still-admitted"[..])
+        );
+        socket
+            .send(Message::binary(&b"still-connected"[..]))
+            .unwrap();
+    });
+    let timeout = Duration::from_secs(1);
+    let started = Instant::now();
+    let mut client = SecureWebSocketClientLine::connect_pinned(
+        address,
+        &format!("wss://localhost:{}/conduit", address.port()),
+        "localhost",
+        binding,
+        timeout,
+        32,
+    )
+    .unwrap();
+    thread::sleep(
+        (started + timeout + Duration::from_millis(100)).saturating_duration_since(Instant::now()),
+    );
+    client.send_binary(b"still-admitted").unwrap();
+    let mut response = [0; 32];
+    let count = client.receive_binary(&mut response).unwrap();
+    assert_eq!(&response[..count], b"still-connected");
+    server.join().unwrap();
+}
+
+#[test]
+fn native_client_exchange_deadline_also_ends_trickled_response_frames() {
+    let (config, binding) = pinned_server();
+    let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        stream
+            .set_read_timeout(Some(Duration::from_secs(3)))
+            .unwrap();
+        let connection = ServerConnection::new(config).unwrap();
+        let mut socket = tungstenite::accept(StreamOwned::new(connection, stream)).unwrap();
+        // One valid server binary frame, deliberately incomplete until well
+        // after the attempt cutoff, despite continuously arriving TLS records.
+        socket.get_mut().write_all(&[0x82, 64]).unwrap();
+        socket.get_mut().flush().unwrap();
+        for _ in 0..64 {
+            if socket.get_mut().write_all(&[1]).is_err() || socket.get_mut().flush().is_err() {
+                break;
+            }
+            thread::sleep(Duration::from_millis(20));
+        }
+    });
+    let started = Instant::now();
+    let mut client = SecureWebSocketClientLine::connect_pinned_for_exchange(
+        address,
+        &format!("wss://localhost:{}/conduit", address.port()),
+        "localhost",
+        binding,
+        Duration::from_millis(300),
+        128,
+    )
+    .unwrap();
+    let result = client.receive_binary(&mut [0; 128]);
+    let elapsed = started.elapsed();
+    drop(client);
+    server.join().unwrap();
+    assert!(result.is_err());
+    assert!(
+        elapsed < Duration::from_secs(1),
+        "exchange took {elapsed:?}"
+    );
 }
 
 #[test]

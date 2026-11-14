@@ -11,6 +11,7 @@ mod capability_intent;
 mod catalog;
 mod configuration;
 mod configuration_descriptors;
+mod configuration_image;
 mod construction_source;
 mod deployment_carrier;
 mod deployment_download;
@@ -19,6 +20,7 @@ mod deployment_network_boot;
 mod deployment_removable;
 mod deployment_uf2;
 mod deployment_vm;
+pub mod fore_carrier;
 mod initialization;
 mod model;
 mod package_contract;
@@ -38,8 +40,10 @@ pub use canonical::{canonical_profile_json, ProfileId};
 pub use capability_intent::*;
 pub use catalog::MakeCatalog;
 pub use conduit_core::{ConfigurationValue, KindConfigurationField, KindConfigurationRule};
+pub use configuration::host_configuration_identity;
 pub use configuration::*;
 pub use configuration_descriptors::*;
+pub use configuration_image::verify_configuration_image;
 pub use construction_source::*;
 pub use deployment_carrier::*;
 pub use deployment_download::*;
@@ -66,8 +70,15 @@ mod runtime_base_tests;
 #[cfg(test)]
 mod tests;
 
+mod native_release_configuration;
+pub use native_release_configuration::{
+    bind_native_release_configuration, verify_native_release_build,
+};
+
 pub use conduit_body::{HostPreparationAuthorizer, HostPreparationDelegation};
-mod preparation_delegation_rust;
+
 #[cfg(test)]
 mod preparation_delegation_tests;
+
+mod preparation_delegation_rust;
 pub use preparation_delegation_rust::{rust_execution_delegation, rust_preparation_delegation};

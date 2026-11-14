@@ -1,0 +1,25 @@
+{
+  "schema": "conduit.proof/retained-native-mask-backing@1",
+  "source": "3f19f2265d",
+  "tests": {
+    "retained_backing": 4,
+    "native_mask_play": 12,
+    "native_face_mask_including_retained_backing": 43,
+    "native_face_mask_ignored": 3
+  },
+  "strict": "conduitos library native-compositor Clippy -D warnings passed",
+  "log_sha256": {
+    "retained-specialized-tests.log": "7e93ed4a33e9bc411d38f6d566d71c0ecee15469989ea4904538af69c62e3159",
+    "mask-specialized-regressions.log": "4fc2a4c6c4a5406bd931c66b89a6aa773fe350a242796be87a4f82e3f70996c8",
+    "face-specialized-regressions.log": "1f798c389641941927361e45be38cb8e0767053425bf39513a277683a6a56045",
+    "retained-specialized-strict.log": "077fb8d2d16a99af8e368651d2b68445c6007632d6ed4d5d2666bf37e592ca31"
+  },
+  "boundary": "Actual kernel/scheduler/value/sign storage retained across successive authored Faces; prior evidence must transfer through bounded local custody before reuse. Cancellation/loss retires storage.",
+  "receipt_scope": "Scheduler inline, Value storage and optional-output tracking only; excludes Plan/Face metadata, compositor/scanout, serialization, allocator overhead and total preparation peak.",
+  "not_proved": [
+    "plan-independent backing before provider Ready",
+    "final installed Host ledger admission",
+    "authorized remote Face route",
+    "graphical Seed manufacture or physical deployment"
+  ]
+}

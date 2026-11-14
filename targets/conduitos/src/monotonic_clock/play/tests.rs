@@ -7,7 +7,7 @@ impl MonotonicDeadlineProvider for Provider {
     fn poll_until(
         &mut self,
         deadline: u64,
-    ) -> Result<Option<u64>, super::super::codec::ClockDisposition> {
+    ) -> Result<Option<u64>, conduit_monotonic_wait::clock_at::codec::ClockDisposition> {
         let now = self.0.load(Ordering::SeqCst);
         Ok((now >= deadline).then_some(now))
     }

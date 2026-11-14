@@ -36,6 +36,26 @@ impl<'schema> PreparedLinkedStructuredComposer<'schema> {
         value: BorrowedStructuredValue<'_>,
         output: &'out mut [u8],
     ) -> Result<&'out [u8], StructuredInfoRefusal> {
+        self.encode(value, output, true)
+    }
+
+    /// Write only the canonical value node for storage whose exact immutable
+    /// schema is retained separately. The original combined envelope ceiling
+    /// still applies; output is not self-describing transport or authority.
+    pub fn encode_node_into<'out>(
+        &self,
+        value: BorrowedStructuredValue<'_>,
+        output: &'out mut [u8],
+    ) -> Result<&'out [u8], StructuredInfoRefusal> {
+        self.encode(value, output, false)
+    }
+
+    fn encode<'out>(
+        &self,
+        value: BorrowedStructuredValue<'_>,
+        output: &'out mut [u8],
+        include_schema: bool,
+    ) -> Result<&'out [u8], StructuredInfoRefusal> {
         let schema = self.validator.type_bytes();
         let mut count = Sink {
             output: None,
@@ -47,19 +67,26 @@ impl<'schema> PreparedLinkedStructuredComposer<'schema> {
             .len()
             .checked_add(count.position)
             .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)?;
-        if total > self.validator.maximum_bytes() || total > output.len() {
+        let written = if include_schema {
+            total
+        } else {
+            count.position
+        };
+        if total > self.validator.maximum_bytes() || written > output.len() {
             return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
         }
         let mut writer = Sink {
-            output: Some(&mut output[..total]),
+            output: Some(&mut output[..written]),
             position: 0,
         };
-        writer.put(schema)?;
+        if include_schema {
+            writer.put(schema)?;
+        }
         let mut nodes = MAXIMUM_STRUCTURED_INFO_NODES;
         // Preflight and writing deliberately share one checked traversal. Safe
         // Rust cannot mutate these borrowed schema/value bytes between passes.
         visit(schema, value, 1, &mut nodes, &mut writer)?;
-        Ok(&output[..total])
+        Ok(&output[..written])
     }
 }
 struct Sink<'a> {

@@ -59,6 +59,7 @@ impl Owner {
             None,
         )?;
         self.session = next;
+        self.current_host_offers.reconcile(self.session.evidence());
         self.retire_native_member_route(credential);
         Ok(self.session.evidence().clone())
     }

@@ -3,10 +3,7 @@
 //! membership and matching identifiers cannot create them.
 
 use super::{super::MemberPresentationBasis, Owner};
-use conduit_body::{
-    BodyLifecycleSession, MembershipCredential, PortableAdmissionReceipt,
-    SPAWN_ADMISSION_RECEIPT_SCHEMA,
-};
+use conduit_body::{BodyLifecycleSession, MembershipCredential};
 use conduit_core::{HostAdvertisement, LineAvailability, LineOffer};
 use conduit_face::{Face, MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
 use conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection;
@@ -17,7 +14,6 @@ mod member_basis;
 mod member_leave;
 #[path = "native_mask_route/profile.rs"]
 mod profile;
-pub(super) use profile::InvitedMaskOffer;
 
 enum SelectedRemoteMask<'a> {
     Native(
@@ -45,6 +41,7 @@ pub(super) struct NativeMaskRoute {
     seal: RemoteOwnerMaskRouteSeal,
     acknowledged_show: Option<MaskShow>,
     expires_at_millis: u64,
+    carrier_presence_deadline: Option<std::time::Instant>,
 }
 
 impl NativeMaskRoute {
@@ -64,7 +61,10 @@ impl NativeMaskRoute {
         &LineOffer,
         Option<&LineOffer>,
     )> {
-        if now_millis >= self.expires_at_millis
+        if self
+            .carrier_presence_deadline
+            .is_some_and(|deadline| std::time::Instant::now() >= deadline)
+            || now_millis >= self.expires_at_millis
             || self.seal.body_id != session.evidence().body_id
             || self.seal.workload_revision != session.evidence().body.workload_revision
             || self.seal.face_id != face.identity
@@ -100,7 +100,7 @@ impl NativeMaskRoute {
 impl Owner {
     pub(crate) fn seal_native_mask_route(
         &mut self,
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         face_line: &LineOffer,
         return_line: &LineOffer,
         expires_at_millis: u64,
@@ -108,20 +108,32 @@ impl Owner {
         let selection = self
             .pending_native_mask
             .as_ref()
-            .filter(|route| route.credential == receipt.credential)
+            .filter(|route| route.credential == member.credential)
             .and_then(|route| route.component_selection);
-        self.seal_native_mask_route_with_selection(
-            receipt,
-            face_line,
-            return_line,
-            expires_at_millis,
-            SelectedRemoteMask::Native(selection),
-        )
+        let previous_route = self.pending_native_mask.clone();
+        let previous_wardrobe = self.face_wardrobe.clone();
+        let result = self
+            .seal_native_mask_route_with_selection(
+                member,
+                face_line,
+                return_line,
+                expires_at_millis,
+                SelectedRemoteMask::Native(selection),
+            )
+            .and_then(|seal| {
+                self.select_component_face_route(&seal)?;
+                Ok(seal)
+            });
+        if result.is_err() {
+            self.pending_native_mask = previous_route;
+            self.face_wardrobe = previous_wardrobe;
+        }
+        result
     }
 
     pub(crate) fn seal_remote_terminal_mask_route(
         &mut self,
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         face_line: &LineOffer,
         return_line: &LineOffer,
         interaction_line: &LineOffer,
@@ -134,7 +146,7 @@ impl Owner {
         let previous_wardrobe = self.face_wardrobe.clone();
         let result = self
             .seal_native_mask_route_with_selection(
-                receipt,
+                member,
                 face_line,
                 return_line,
                 expires_at_millis,
@@ -153,7 +165,7 @@ impl Owner {
 
     pub(crate) fn seal_remote_spoken_mask_route(
         &mut self,
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         face_line: &LineOffer,
         return_line: &LineOffer,
         expires_at_millis: u64,
@@ -163,7 +175,7 @@ impl Owner {
         let previous_wardrobe = self.face_wardrobe.clone();
         let result = self
             .seal_native_mask_route_with_selection(
-                receipt,
+                member,
                 face_line,
                 return_line,
                 expires_at_millis,
@@ -182,7 +194,7 @@ impl Owner {
 
     fn seal_native_mask_route_with_selection(
         &mut self,
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         face_line: &LineOffer,
         return_line: &LineOffer,
         expires_at_millis: u64,
@@ -196,49 +208,13 @@ impl Owner {
         if super::super::super::current_time_millis()? >= expires_at_millis {
             return Err("native-mask-return-expired".into());
         }
-        let credential = &receipt.credential;
-        let native_offer = &receipt.host_advertisement;
-        let current = self.session.evidence().membership.parts.iter().any(|part| {
-            part.part_id == credential.part_id
-                && part.current.as_ref().is_some_and(|host| {
-                    host.host_id == native_offer.host_id
-                        && host.boot_id == native_offer.boot_id
-                        && host.offer_generation == native_offer.offer_generation
-                })
-        });
-        let admitted = self.admissions.as_ref().is_some_and(|manager| {
-            manager
-                .receipts
-                .iter()
-                .rev()
-                .any(|admitted| admitted.credential == *credential)
-        });
-        if interaction_line.is_some() || spoken.is_some() {
-            let digest = super::super::super::digest(
-                &serde_json::to_vec(native_offer).map_err(|error| error.to_string())?,
-            );
-            if self
-                .invited_mask_offers
-                .get(&native_offer.host_id)
-                .map(|offer| &offer.digest)
-                != Some(&digest)
-            {
-                return Err("remote-terminal-offer-not-observed-at-admission".into());
-            }
-        }
-        let retained_offer_mismatch = self.pending_native_mask.as_ref().is_some_and(|route| {
-            route.credential == *credential && route.host_offer != *native_offer
-        });
-        if !current
-            || !admitted
-            || retained_offer_mismatch
-            || receipt.schema != SPAWN_ADMISSION_RECEIPT_SCHEMA
-            || !receipt.membership_admitted
-            || receipt.plan_created
-            || receipt.play_created
-            || credential.body_id != self.session.evidence().body_id
+        let credential = &member.credential;
+        let native_offer = &member.host_advertisement;
+        self.require_current_native_member(member)?;
+        if (interaction_line.is_some() || spoken.is_some())
+            && self.require_observed_member_offer(native_offer).is_err()
         {
-            return Err("native-mask-part-unavailable".into());
+            return Err("remote-terminal-offer-not-observed-at-admission".into());
         }
         // This Part's admission changed the owner Face. Keep the already
         // attached browser route in the same new-Face Plan only after its
@@ -263,13 +239,69 @@ impl Owner {
                 interaction_line,
             )?
         } else {
-            conduit_conduitos_mask_offer::prepare_advertised_native_stage_from_offer(
+            let planned = conduit_conduitos_mask_offer::prepare_advertised_native_stage_from_offer(
                 native_offer,
                 component_selection.map(|(look, recipe)| (look.into(), recipe)),
             )
             .map_err(|error| format!("native-mask-plan-refused:{error:?}"))?
-            .planned_mask
+            .planned_mask;
+            let choices = [
+                (
+                    conduit_core::PortDirection::Input,
+                    &planned.mask.face_input.front_port_id,
+                    face_line,
+                ),
+                (
+                    conduit_core::PortDirection::Output,
+                    &planned.mask.show_output.front_port_id,
+                    return_line,
+                ),
+            ]
+            .map(
+                |(direction, port, line)| conduit_planner::ExternalForeLineChoice {
+                    host_id: native_offer.host_id.clone(),
+                    boot_id: native_offer.boot_id.clone(),
+                    direction,
+                    front_port_id: port.clone(),
+                    track: conduit_core::ConnectionTrack::Payload,
+                    peer_host_id: self.host.advertisement().host_id.clone(),
+                    peer_boot_id: self.host.advertisement().boot_id.clone(),
+                    line_id: line.line_id.clone(),
+                },
+            );
+            let mut bases = vec![
+                face_line.binding.base.clone(),
+                return_line.binding.base.clone(),
+            ];
+            bases.sort();
+            bases.dedup();
+            let plan = conduit_planner::bind_external_fore_lines(
+                &planned.plan,
+                &choices,
+                &[face_line.clone(), return_line.clone()],
+                &bases,
+            )
+            .map_err(|error| format!("native-mask-lines-refused:{error:?}"))?;
+            conduit_face::PlannedMaskPlot::admit(&planned.mask, &plan)
+                .map_err(|error| format!("native-mask-fore-refused:{error:?}"))?
         };
+        let selected_input = planned
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|f| &f.placements)
+            .find(|p| p.gear_id == planned.mask.interaction_output.gear_id)
+            .ok_or("native-mask-input-back-absent")?;
+        let native_read_only = matches!(
+            selected_input.execution_profile_id.as_str(),
+            conduit_conduitos_mask_offer::READ_ONLY_INTERACTION_PROFILE
+                | conduit_conduitos_mask_offer::READ_ONLY_COLLECTION_INTERACTION_PROFILE
+        );
+        if native_read_only
+            && (!selected_input.resources.is_empty() || !selected_input.authority.is_empty())
+        {
+            return Err("native-read-only-input-has-unexpected-authority".into());
+        }
         let seal = if let Some(interaction_line) = interaction_line {
             RemoteOwnerMaskRouteSeal::seal_current_with_interaction(
                 &self.session,
@@ -310,10 +342,11 @@ impl Owner {
             face_line: face_line.clone(),
             return_line: return_line.clone(),
             interaction_line: interaction_line.cloned(),
-            read_only: spoken.is_some(),
+            read_only: spoken.is_some() || native_read_only,
             seal: seal.clone(),
             acknowledged_show: None,
             expires_at_millis,
+            carrier_presence_deadline: None,
         });
         if let Err(error) = self.admit_native_face_route(&seal) {
             self.pending_native_mask = previous;
@@ -326,7 +359,7 @@ impl Owner {
         &mut self,
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         look: conduit_face::ComponentMaskLook,
         recipe: conduit_face::TodoComponentRecipe,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
@@ -335,15 +368,15 @@ impl Owner {
             .pending_native_mask
             .clone()
             .ok_or("native-mask-route-not-selected")?;
-        if previous_route.credential != receipt.credential
-            || previous_route.host_offer != receipt.host_advertisement
+        if previous_route.credential != member.credential
+            || previous_route.host_offer != member.host_advertisement
         {
             return Err("native-mask-route-credential-mismatch".into());
         }
         let previous_wardrobe = self.face_wardrobe.clone();
         let result = self
             .seal_native_mask_route_with_selection(
-                receipt,
+                member,
                 &previous_route.face_line,
                 &previous_route.return_line,
                 previous_route.expires_at_millis,
@@ -431,7 +464,11 @@ impl Owner {
             .pending_native_mask
             .as_ref()
             .ok_or("native-mask-route-not-selected")?;
-        if super::super::super::current_time_millis()? >= route.expires_at_millis {
+        if route
+            .carrier_presence_deadline
+            .is_some_and(|deadline| std::time::Instant::now() >= deadline)
+            || super::super::super::current_time_millis()? >= route.expires_at_millis
+        {
             return Err("native-mask-return-expired".into());
         }
         let credential = &route.credential;

@@ -16,11 +16,14 @@ use std::{
 static NEXT_STATE: AtomicU64 = AtomicU64::new(0);
 
 fn runtime() -> DurableHostRuntime {
-    let checked =
-        crate::plot_source::parse(include_str!("../../../../../plots/clock/main.conduit"))
-            .unwrap()
-            .expand_entry_for_authoring()
-            .unwrap();
+    runtime_with_source(include_str!("../../../../../plots/clock/main.conduit"))
+}
+
+fn runtime_with_source(source: &str) -> DurableHostRuntime {
+    let checked = crate::plot_source::parse(source)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
     let resident = ResidentPlot::new(
         checked.expanded.source_document_id.clone(),
         checked.expanded.checked_plot_id.clone(),

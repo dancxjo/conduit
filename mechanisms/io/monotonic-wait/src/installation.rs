@@ -1,10 +1,14 @@
 //! Retained initialized timer slot, offered before planning and transferred once.
 #[path = "assigned.rs"]
 mod assigned;
+#[path = "installation_offer.rs"]
+mod offer;
 use crate::*;
 use alloc::vec;
+pub use assigned::PreparedAssignedWait;
 use conduit_core::*;
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
+pub use offer::capability_offer;
 
 pub const WAIT_CAPABILITY: &str = "conduit/monotonic-wait@1";
 pub const WAIT_EXECUTION_PROFILE: &str = "conduit/monotonic-wait-cooperative-bounded@1";
@@ -100,30 +104,7 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
         {
             return Err(R::Advertisement);
         }
-        let kind = conduit_time::tick_semantic_contract();
-        let offer = BackOfferBuilder::new(
-            kind.clone(),
-            Back {
-                capability_id: WAIT_CAPABILITY.into(),
-                execution_profile_id: WAIT_EXECUTION_PROFILE.into(),
-                implementation_id: identity.implementation_id.clone(),
-                artifact_id: identity.artifact_id.clone(),
-                host_calls: vec![HostCallRequirement {
-                    contract_id: WAIT_HOST_CALL_CONTRACT.into(),
-                    target_kind: Some(kind.kind_id.clone()),
-                    maximum_in_flight: 1,
-                    maximum_input_bytes: PARAMETER_BYTES,
-                    maximum_output_bytes: 0,
-                }],
-                resource_requirements: vec![resource_requirement(WAIT_ATTACHMENT_CLASS, 1)],
-                authority_requirements: vec![AuthorityRequirement {
-                    contract_id: WAIT_AUTHORITY.into(),
-                    host_call_contract_id: WAIT_HOST_CALL_CONTRACT.into(),
-                    subject_kind: kind.kind_id.clone(),
-                }],
-            },
-        )
-        .build();
+        let offer = capability_offer(&identity.artifact_id, &identity.implementation_id)?;
         let mut registry = BaseRegistry::new(BaseRegistryLimits {
             maximum_bases: 1,
             maximum_capabilities_per_base: 1,
@@ -209,11 +190,11 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             configuration,
             selection,
         )?;
+        let operation = conduit_core::BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WaitCallRefusal::Capability(reason))?;
         let owner = slot.take().expect("preflighted retained timer");
         Ok(MonotonicWaitHostCall::from_bound(
-            table,
-            handle,
-            claim,
+            operation,
             owner.attachment,
             owner.provider,
             node,

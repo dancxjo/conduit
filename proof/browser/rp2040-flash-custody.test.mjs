@@ -146,13 +146,15 @@ test("erase ranges do not widen the accepted sparse-image or command bounds", ()
 });
 
 
-test("credential payloads refuse even when contiguous with the firmware image", () => {
+test("durable and credential payloads refuse even when contiguous with firmware", () => {
   const credentials = RP2040_UF2.credentialsAddress;
   assert.equal(RP2040_UF2.credentialsBytes, 8192);
-  for (const address of [credentials, spore - 256]) {
+  assert.equal(RP2040_UF2.durableBytes, 576 * 1024);
+  assert.equal(RP2040_UF2.firmwareEnd, RP2040_UF2.durableAddress);
+  for (const address of [RP2040_UF2.durableAddress, credentials - 256, credentials, spore - 256]) {
     assert.throws(() => parseRp2040Uf2(image([address]), 4096), { code: "ReservedFlash" });
   }
-  const lastSector = credentials - 4096;
+  const lastSector = RP2040_UF2.durableAddress - 4096;
   assert.throws(() => parseRp2040Uf2(image(Array.from({ length: 17 }, (_, i) => lastSector + i * 256)), 4096),
     { code: "ReservedFlash" });
 });

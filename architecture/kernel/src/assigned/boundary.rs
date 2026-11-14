@@ -3,18 +3,14 @@ use super::*;
 pub(super) fn endpoint<const N: usize, const P: usize>(
     data: &[u8],
     offset: usize,
-    fore: Option<&[c::AssignedForeRequirement]>,
+    fore: Option<ForeProfile<'_>>,
     cord: u16,
     source: bool,
 ) -> Result<k::CordEndpoint, AssignedKernelRefusal> {
     if data[offset] == 1 {
         let endpoint = u16_at(data, offset + 1)?;
         if u16_at(data, offset + 3)? != 0
-            || !fore.unwrap_or(&[]).iter().any(|f| {
-                f.endpoint() == endpoint
-                    && f.cord() == cord
-                    && (f.direction() == c::AssignedForeDirection::Input) == source
-            })
+            || !fore.is_some_and(|profile| profile.matches(endpoint, cord, source))
         {
             return Err(AssignedKernelRefusal::Unsupported);
         }
@@ -32,7 +28,7 @@ pub(super) fn endpoint<const N: usize, const P: usize>(
 }
 pub(super) fn route_sink(
     data: &[u8],
-    fore: Option<&[c::AssignedForeRequirement]>,
+    fore: Option<ForeProfile<'_>>,
 ) -> Result<k::CordEndpoint, AssignedKernelRefusal> {
     if data.len() == 6 {
         return Ok(k::CordEndpoint::local(

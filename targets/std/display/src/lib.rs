@@ -5,8 +5,8 @@
 #![cfg(feature = "sdl")]
 mod initialized;
 mod input;
-mod preparation;
 pub use input::{NativeInput, NativeInputRefusal};
+mod preparation;
 mod surface;
 use conduit_face::GraphicsScene;
 use conduitos::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget};
@@ -56,6 +56,11 @@ impl<'a> Scanout<'a> {
             initialized,
         })
     }
+    /// Actual finite CPU raster allocation; excludes SDL/GPU and allocator overhead.
+    pub fn cpu_backing_bytes(&self) -> usize {
+        self.surface.backing_bytes()
+    }
+
     /// Observe this exact live preparation; neither a CPU Surface nor copied
     /// advertisement bytes can construct an InitializedDisplay.
     pub fn initialized_display(&self) -> Result<InitializedDisplay, String> {

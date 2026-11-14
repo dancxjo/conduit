@@ -1,7 +1,6 @@
 //! Exact pre-Play child-pool handoff for supported pure domain-owned scans.
 
 use super::super::{back::BackBudget, body_scan_back::BodyScanBack};
-use conduit_body::BodyPlotPlan;
 use conduit_core::{
     prepare_plan_on_hosts, ActivePlayId, PlacementId, PlannedActivationEntry,
     PreparationHostIdentity,
@@ -15,39 +14,35 @@ pub(super) struct PreparedBodyScan {
 }
 
 pub(super) fn prepare(
-    partitions: &[BodyPlotPlan],
+    partitions: &[&conduit_core::Plan],
     parent_play: &ActivePlayId,
 ) -> Result<Vec<PreparedBodyScan>, String> {
     prepare_with_parsec_sources(partitions, parent_play, None)
 }
 
 pub(super) fn prepare_with_parsec_sources(
-    partitions: &[BodyPlotPlan],
+    partitions: &[&conduit_core::Plan],
     parent_play: &ActivePlayId,
     parsec_sources: Option<&std::sync::Arc<crate::flow_activation::ParsecSourcePlans>>,
 ) -> Result<Vec<PreparedBodyScan>, String> {
     let mut scans = Vec::new();
     for (partition_index, partition) in partitions.iter().enumerate() {
-        if partition.plan.activations.is_empty() {
+        if partition.activations.is_empty() {
             continue;
         }
-        if partition.plan.activations.len() != 1 {
+        if partition.activations.len() != 1 {
             return Err("installed Body supports at most one exact scan per Plot".into());
         }
-        let PlannedActivationEntry::Scan(planned) = &partition.plan.activations[0] else {
-            if matches!(
-                &partition.plan.activations[0],
-                PlannedActivationEntry::Unary(_)
-            ) {
+        let PlannedActivationEntry::Scan(planned) = &partition.activations[0] else {
+            if matches!(&partition.activations[0], PlannedActivationEntry::Unary(_)) {
                 continue;
             }
             return Err("installed Body activation Kind is unsupported".into());
         };
         let fragment = partition
-            .plan
             .fragments
             .first()
-            .filter(|_| partition.plan.fragments.len() == 1)
+            .filter(|_| partition.fragments.len() == 1)
             .ok_or("installed scan requires one local parent fragment")?;
         let owner = fragment
             .placements
@@ -95,7 +90,7 @@ pub(super) fn prepare_with_parsec_sources(
             crate::flow_activation::standard_child_registry()?
         };
         let mut host = crate::flow_activation::StdActivationHost::new(identity, registry);
-        let mut prepared = prepare_plan_on_hosts(&partition.plan, &mut [&mut host])
+        let mut prepared = prepare_plan_on_hosts(partition, &mut [&mut host])
             .map_err(|error| format!("prepare exact scan Plan: {error:?}"))?;
         let install = if parsec {
             crate::flow_activation::install_pure_parsec_scan
@@ -104,12 +99,7 @@ pub(super) fn prepare_with_parsec_sources(
         } else {
             crate::flow_activation::install_pure_todo_scan
         };
-        let scan = install(
-            &partition.plan,
-            &mut prepared,
-            &planned.activation_id,
-            &mut host,
-        )?;
+        let scan = install(partition, &mut prepared, &planned.activation_id, &mut host)?;
         let mut back = BodyScanBack::prepare(scan, planned)?;
         back.bind_parent_play(parent_play)?;
         let items = planned
@@ -149,19 +139,11 @@ pub(super) fn prepare_with_parsec_sources(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_body::ResidentPlot;
 
     #[test]
     fn fixture_scan_owner_is_not_a_production_offer() {
         let plan = crate::flow_activation::tests::todo_scan_plan();
-        let partition = BodyPlotPlan {
-            plot: ResidentPlot::new(
-                plan.source_document_id.clone(),
-                plan.checked_plot_id.clone(),
-            ),
-            plan,
-        };
-        assert!(prepare(&[partition], &ActivePlayId::from("body/play/test"))
+        assert!(prepare(&[&plan], &ActivePlayId::from("body/play/test"))
             .err()
             .expect("fixture-only scan owner must be refused")
             .contains("exact std production offer"));

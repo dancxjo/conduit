@@ -3,17 +3,31 @@
 //! durable-acceptance claim. Root must admit and complete publication separately.
 use conduit_dht11_observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
+    PreparedObservationQuantityPacker,
 };
+mod encoder;
+mod log_encoder;
+mod log_reader;
+pub use encoder::{RecordingClock, RecordingEncoderBack};
+pub use log_encoder::{
+    LogContext, LogContract, LogRefusal, PreparedLogContext, RecordingLogBack, LOG_CLOCK,
+    LOG_CONTEXT_BYTES, LOG_CONTEXT_PART_BYTES, LOG_KIND, LOG_RECORD_BYTES,
+};
+pub use log_reader::{LogFrame, LogReadRefusal, PreparedLogReader, RecoveredLogContext};
 mod history;
 mod host_call;
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};
 mod reader;
 mod snapshot;
+#[cfg(feature = "text-recording")]
+mod text_generation;
 use alloc::string::String;
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId, StructuredInfoRefusal};
 pub use history::{PreparedRecordingHistory, RecordingHistoryRefusal, RecoveredHistory};
 pub use reader::{PreparedRecordingReader, RecordedSample, RecordingReadRefusal};
 pub use snapshot::{PreparedRecordingSnapshot, RecordingSnapshotRefusal};
+#[cfg(feature = "text-recording")]
+pub use text_generation::{PreparedRecordingText, RecordingTextRefusal};
 #[allow(dead_code)]
 mod forms {
     include!(concat!(env!("OUT_DIR"), "/recording-forms.rs"));
@@ -25,6 +39,7 @@ pub const MAXIMUM_CHUNK_SAMPLES: usize = 64;
 pub const SAMPLE_BYTES: usize = 21; // sequence u64le, boot ms u64le, status Form, quantity Forms
 const PREFIX_BYTES: usize = MAXIMUM_CHUNK_BYTES - MAXIMUM_CHUNK_SAMPLES * SAMPLE_BYTES * 2 - 2;
 
+#[derive(Clone, Copy)]
 pub struct RecordingContext<'a> {
     pub host: &'a HostId,
     pub boot: &'a BootId,
@@ -65,7 +80,7 @@ pub enum ChunkAppend {
 /// preserves the exact bytes across failed publication attempts. No implicit
 /// flush, retry, eviction, next generation or mutable store is hidden here.
 pub struct PreparedRecordingChunk {
-    quantities: PreparedObservationQuantityForms,
+    quantities: PreparedObservationQuantityPacker,
     prefix: String,
     output: String,
     samples: [[u8; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES],
@@ -107,7 +122,7 @@ impl PreparedRecordingChunk {
             return Err(RecordingRefusal::ContextExtent);
         }
         Ok(Self {
-            quantities: PreparedObservationQuantityForms::prepare(contract)?,
+            quantities: PreparedObservationQuantityPacker::prepare(contract)?,
             prefix,
             output: String::with_capacity(MAXIMUM_CHUNK_BYTES),
             samples: [[0; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES],
@@ -176,6 +191,14 @@ impl PreparedRecordingChunk {
         self.samples[self.count] = entry;
         self.count += 1;
         Ok(ChunkAppend::Buffered { gap_before })
+    }
+    /// Owned heap capacities only. Inline Self includes the fixed 64-sample
+    /// array; static schemas and allocator overhead are accounted separately.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.quantities
+            .retained_backing_bytes()
+            .checked_add(self.prefix.capacity())?
+            .checked_add(self.output.capacity())
     }
     pub fn len(&self) -> usize {
         self.count

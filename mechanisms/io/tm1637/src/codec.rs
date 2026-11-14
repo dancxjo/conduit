@@ -22,11 +22,22 @@ impl DecodedPackets {
         })
     }
 }
-pub(crate) struct PreparedPackets(c::PreparedStructuredValueValidator);
+// The same checked build artifact defines WriteContract and this retained
+// validator. Its immutable bytes live in the image rather than Play's heap.
+const PACKETS_TYPE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/packets.type"));
+pub(crate) struct PreparedPackets(c::BorrowedStructuredValueValidator<'static>);
 impl PreparedPackets {
+    pub(crate) fn retained_backing_bytes(&self) -> Option<usize> {
+        Some(0)
+    }
     pub(crate) fn prepare(contract: &WriteContract) -> Result<Self, c::StructuredInfoRefusal> {
-        Ok(Self(c::PreparedStructuredValueValidator::new(
-            contract.packets_type(),
+        // Keep the full runtime Type comparison: linking bytes is storage
+        // sharing, not permission to substitute a different packet contract.
+        if contract.packets_type().canonical_bytes()? != PACKETS_TYPE {
+            return Err(c::StructuredInfoRefusal::WrongType);
+        }
+        Ok(Self(c::BorrowedStructuredValueValidator::new(
+            PACKETS_TYPE,
             MAXIMUM_BYTES as usize,
         )?))
     }
@@ -69,5 +80,31 @@ impl PreparedPackets {
             result.lengths[index] = *length;
         }
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn linked_packet_validator_keeps_exact_schema_without_heap_backing() {
+        let contract = WriteContract::prepare().unwrap();
+        let prepared = PreparedPackets::prepare(&contract).unwrap();
+        assert_eq!(prepared.retained_backing_bytes(), Some(0));
+        assert_eq!(
+            prepared.0.type_bytes(),
+            contract.packets_type().canonical_bytes().unwrap()
+        );
+        let owned = c::PreparedStructuredValueValidator::new(
+            contract.packets_type(),
+            MAXIMUM_BYTES as usize,
+        )
+        .unwrap();
+        assert!(owned.retained_backing_bytes().unwrap() >= PACKETS_TYPE.len());
+        assert!(matches!(
+            prepared.0.validate(b"foreign schema"),
+            Err(c::StructuredInfoRefusal::WrongType)
+        ));
     }
 }

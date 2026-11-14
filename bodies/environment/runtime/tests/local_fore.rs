@@ -8,8 +8,8 @@ mod fixture;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core as c;
 use conduit_embedded_build as b;
-use conduit_kernel::assigned::*;
 use conduit_environment_runtime::CaptureBack;
+use conduit_kernel::assigned::*;
 use conduit_kernel::{self as k, scheduler::*};
 type Tables = AssignedKernelTables<1, 2, 1, 1, 1, 0>;
 #[test]
@@ -45,7 +45,7 @@ fn exact_fore_tables_preserve_checked_execution_and_refuse_wrong_resident_pins()
     let requirements = generated.layout_requirements(maxima).unwrap();
     let computations = b::assigned_computation_requirements(generated.kernel()).unwrap();
     let profile = c::AssignedComputationProfile {
-        maximum_text_bytes: u16::MAX,
+        maximum_text_bytes: u32::from(u16::MAX),
         maximum_total_text_bytes: u32::MAX,
         requirements: &computations,
     };
@@ -108,7 +108,33 @@ fn exact_fore_tables_preserve_checked_execution_and_refuse_wrong_resident_pins()
         lowered.node_specs[0].maximum_step_fuel
     );
     for (actual, expected) in tables.cords.iter().zip(&lowered.cords) {
-        assert_eq!(actual, &expected.spec);
+        // Assigned tables additionally retain private checked Fore provenance.
+        // Compare every public lowering field without manufacturing that proof.
+        let expected = &expected.spec;
+        assert_eq!(
+            (
+                actual.cord,
+                actual.source,
+                actual.sink,
+                actual.slot_start,
+                actual.item_capacity,
+                actual.byte_capacity,
+                actual.maximum_value_bytes,
+                actual.pressure_policy,
+                actual.track
+            ),
+            (
+                expected.cord,
+                expected.source,
+                expected.sink,
+                expected.slot_start,
+                expected.item_capacity,
+                expected.byte_capacity,
+                expected.maximum_value_bytes,
+                expected.pressure_policy,
+                expected.track
+            ),
+        );
     }
     for change in 0..5 {
         let mut pins = generated.fore().to_vec();

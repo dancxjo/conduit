@@ -38,7 +38,8 @@ fn ordinary_i2c_catalogue_supplies_complete_checked_native_result_closure() {
 }
 
 fn completed_result(contract: &I2cContract) -> StructuredInfoValue {
-    let StructuredInfoTypeShape::Variant { cases, .. } = contract.result_type().shape() else {
+    let result_type = contract.decode_result_type().unwrap();
+    let StructuredInfoTypeShape::Variant { cases, .. } = result_type.shape() else {
         panic!("variant")
     };
     let payload = cases
@@ -63,7 +64,7 @@ fn completed_result(contract: &I2cContract) -> StructuredInfoValue {
     )
     .unwrap();
     StructuredInfoValue::variant(
-        contract.result_type().clone(),
+        result_type.clone(),
         "completed",
         StructuredInfoValue::record(
             payload.clone(),

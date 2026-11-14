@@ -15,3 +15,6 @@ mod exact_profile;
 mod placement_resources;
 #[path = "../../src/kernel_preparation/region_resources.rs"]
 pub(crate) mod region_resources;
+
+#[path = "../../src/kernel_preparation/image_bounds/admission.rs"]
+mod image_bounds;

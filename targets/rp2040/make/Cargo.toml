@@ -5,4 +5,32 @@ edition = "2021"
 description = "RP2040/Pico W Host make anchor package"
 
 [dependencies]
+conduit-i2c-transaction = { path = "../../../mechanisms/io/i2c-transaction", default-features = false }
+conduit-core = { path = "../../../architecture/core", default-features = false }
 conduit-host-make = { path = "../../../make/host" }
+conduit-body = { path = "../../../architecture/body" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+conduit-rp2040-flash-layout = { path = "../flash-layout" }
+conduit-embedded-build = { path = "../../../make/embedded-build" }
+conduit-plot = { path = "../../../architecture/plot" }
+
+conduit-mcu-source-build = { path = "../../mcu/source-build" }
+
+[dev-dependencies]
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
+conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", features = ["native-kernel"] }
+conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["host-call"] }
+conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"] }
+conduit-monotonic-wait = { path = "../../../mechanisms/io/monotonic-wait" }
+conduit-mcu-host-runtime = { path = "../../mcu/host-runtime", features = ["execution"] }
+heapless = "0.8"
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+ed25519-dalek = { version = "2.2", default-features = false }
+critical-section = { version = "1.2", features = ["std"] }
+static_cell = "2"
+conduit-wire = { path = "../../../architecture/wire", features = ["offer-images"] }
+sha2 = "0.10"
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering", features = ["body-plan-binding", "delegated-preparation"] }
+serde-json-core = "0.6"
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["kernel-step"] }

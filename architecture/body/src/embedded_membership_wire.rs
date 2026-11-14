@@ -140,6 +140,27 @@ impl BorrowedAdmissionReceiptAttestation<'_> {
         expected_owner: &crate::FederationPeer,
         expected_member_key: &[u8; 32],
     ) -> Result<(), crate::AdmissionReceiptAttestationRefusal> {
+        let mut verifier = self.begin_verification(
+            crate::AdmissionReceiptStreamBounds {
+                receipt_bytes: receipt_json.len(),
+                maximum_chunks: 1,
+            },
+            expected_owner,
+            expected_member_key,
+        )?;
+        verifier.push(receipt_json)?;
+        verifier.finish()
+    }
+
+    /// Pin metadata before accepting a bounded sequence of receipt bytes. This
+    /// authenticates transport evidence only; it does not decode/admit a member.
+    pub fn begin_verification<'a>(
+        &'a self,
+        bounds: crate::AdmissionReceiptStreamBounds,
+        expected_owner: &'a crate::FederationPeer,
+        expected_member_key: &[u8; 32],
+    ) -> Result<crate::AdmissionReceiptVerifier<'a>, crate::AdmissionReceiptAttestationRefusal>
+    {
         use crate::AdmissionReceiptAttestationRefusal as Refusal;
         if self.schema != crate::SIGNED_ADMISSION_RECEIPT_SCHEMA
             || self.owner.host_id != expected_owner.host_id.as_str()
@@ -152,12 +173,19 @@ impl BorrowedAdmissionReceiptAttestation<'_> {
         if &self.member_verifying_key != expected_member_key {
             return Err(Refusal::MemberKey);
         }
-        crate::verify_admission_receipt_attestation(
-            receipt_json,
-            expected_owner,
+        let transcript = crate::AdmissionReceiptTranscript::new(
+            bounds,
+            expected_owner.host_id.as_str(),
+            expected_owner.boot_id.as_str(),
+            expected_owner.offer_generation.0,
+            &expected_owner.verifying_key,
             expected_member_key,
+        )?;
+        Ok(crate::AdmissionReceiptVerifier::new(
+            transcript,
+            expected_owner,
             &self.signature,
-        )
+        ))
     }
 }
 

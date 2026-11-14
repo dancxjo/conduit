@@ -10,7 +10,7 @@ use crate::{
 use conduit_body::BodyPlotPlan;
 use conduit_core::{
     BodyClockCorrelation, BodyTimeQuality, BodyTimeRefusal, BodyTimeRequirement,
-    CancellationReason, FailureReason, PlanFragment, TerminalDisposition,
+    CancellationReason, FailureReason, Plan, PlanFragment, TerminalDisposition,
 };
 use conduit_kernel::{
     scheduler::{HostCallRequest, SchedulerStatus},
@@ -40,8 +40,18 @@ use crate::body_execution::ObservedKernelEvent;
 use clock_observation::KernelClockObservations;
 use fore_route::BodyForeRoute;
 
+mod diagnostic;
+mod native_source;
+mod preparation_body;
+pub(crate) use native_source::NativeBodySource;
+pub(crate) mod memory;
+
 pub(crate) struct BodyKernel<'a> {
+    terminal_events: Option<Vec<KernelEvent>>,
+    error_diagnostic: Option<diagnostic::Diagnostic>,
+    cleanup_diagnostic: Option<diagnostic::Diagnostic>,
     creche: Option<CrecheRoute>,
+    native_source: Option<native_source::NativeSourceRoute<'a>>,
     scheduler: Box<InstalledScheduler>,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
@@ -175,8 +185,13 @@ impl<'a> BodyKernel<'a> {
         sequential_fore: bool,
         has_fore_output: bool,
     ) -> Result<Self, String> {
+        let plans = partitions
+            .iter()
+            .map(|partition| &partition.plan)
+            .collect::<Vec<_>>();
         Self::prepare_with_live(
-            partitions,
+            None,
+            &plans,
             has_keyboard,
             parent_play,
             fore_inputs,
@@ -191,19 +206,21 @@ impl<'a> BodyKernel<'a> {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_on_host(
-        partitions: &[BodyPlotPlan],
+        partitions: &[&Plan],
         has_keyboard: bool,
         parent_play: &conduit_core::ActivePlayId,
         fore_inputs: &'a [ExternalForeInput],
         sequential_fore: bool,
         has_fore_output: bool,
         host: &conduit_core::HostAdvertisement,
+        native: Option<NativeBodySource<'a, '_>>,
         #[cfg(target_os = "linux")] selected_file: Option<
             &'a crate::text_file::SelectedTextFileResidence,
         >,
     ) -> Result<Self, String> {
         let sources = parsec_sources::prepare(partitions, host)?;
         Self::prepare_with_live(
+            native,
             partitions,
             has_keyboard,
             parent_play,
@@ -218,7 +235,7 @@ impl<'a> BodyKernel<'a> {
     }
 
     pub(crate) fn prepare_live_on_host(
-        partitions: &[BodyPlotPlan],
+        partitions: &[&Plan],
         has_keyboard: bool,
         parent_play: &conduit_core::ActivePlayId,
         queue: &BodyLiveForeQueue,
@@ -228,14 +245,15 @@ impl<'a> BodyKernel<'a> {
             &'a crate::text_file::SelectedTextFileResidence,
         >,
     ) -> Result<Self, String> {
-        if partitions.len() != 1 || !queue.matches_plan(&partitions[0].plan, control) {
+        if partitions.len() != 1 || !queue.matches_plan(partitions[0], control) {
             return Err("live Fore queue differs from the exact Body Plan or stop control".into());
         }
         if has_keyboard {
-            BodyLiveForeQueue::validate_parsec_input_plan(&partitions[0].plan, host)?;
+            BodyLiveForeQueue::validate_parsec_input_plan(partitions[0], host)?;
         }
         let sources = parsec_sources::prepare(partitions, host)?;
         Self::prepare_with_live(
+            None,
             partitions,
             has_keyboard,
             parent_play,
@@ -247,302 +265,6 @@ impl<'a> BodyKernel<'a> {
             #[cfg(target_os = "linux")]
             selected_file,
         )
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn prepare_with_live(
-        partitions: &[BodyPlotPlan],
-        has_keyboard: bool,
-        parent_play: &conduit_core::ActivePlayId,
-        fore_inputs: &'a [ExternalForeInput],
-        sequential_fore: bool,
-        has_fore_output: bool,
-        live: Option<&BodyLiveForeQueue>,
-        parsec_sources: Option<&std::sync::Arc<crate::flow_activation::ParsecSourcePlans>>,
-        #[cfg(target_os = "linux")] selected_file: Option<
-            &'a crate::text_file::SelectedTextFileResidence,
-        >,
-    ) -> Result<Self, String> {
-        let fragments = partitions
-            .iter()
-            .map(|partition| {
-                partition
-                    .plan
-                    .fragments
-                    .first()
-                    .filter(|_| partition.plan.fragments.len() == 1)
-                    .ok_or("local body execution requires one local fragment per Plot")
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        // Activation coordinators belong to the whole sealed Plan. Bind each
-        // entry to its exact local fragment before lowering ordinary nodes.
-        let activations = bind_body_activations(partitions, &fragments)?;
-        let mut scans = if parsec_sources.is_some() {
-            scan_route::prepare_with_parsec_sources(partitions, parent_play, parsec_sources)?
-        } else {
-            scan_route::prepare(partitions, parent_play)?
-        };
-        let mut each = each_route::prepare(partitions, parent_play, fore_inputs.len())?;
-        if scans.len() == 1 {
-            let conduit_core::PlannedActivationEntry::Scan(planned) =
-                &partitions[scans[0].partition].plan.activations[0]
-            else {
-                return Err("installed scan activation changed during preparation".into());
-            };
-            if fore_inputs.len() > usize::from(planned.limits.maximum_items) {
-                return Err("preloaded Todo commands exceed the selected scan bound".into());
-            }
-        }
-        let supported_pure_activation = scans.len() + each.len() == 1
-            && partitions.len() == 1
-            && fragments[0].placements.len() == 1
-            && !has_keyboard
-            && sequential_fore
-            && has_fore_output
-            && (live.is_some() || fore_inputs.len() <= 256)
-            && fragments[0].placements[0].host_calls.is_empty();
-        let supported_parsec_input_scan = has_keyboard
-            && live.is_some()
-            && scans.len() == 1
-            && partitions.len() == 1
-            && parsec_sources.is_some();
-        let plans = partitions
-            .iter()
-            .map(|partition| &partition.plan)
-            .collect::<Vec<_>>();
-        let lowered = lower_local_fragment_set_from_plans(
-            &plans,
-            FIXED_KERNEL_STORAGE_PROFILE,
-            FragmentSetBounds {
-                fragments: conduit_body::MAX_BODY_PLOTS as u16,
-                nodes: MAX_NODES as u16,
-                cords: MAX_CORDS as u16,
-                queue_slots: MAX_QUEUE_SLOTS as u16,
-                value_bytes: 16 * 1024 * 1024,
-                sign_items: 4096,
-                sign_bytes: 4 * 1024 * 1024,
-            },
-        )
-        .map_err(|error| format!("Body fragment lowering: {error:?}"))?;
-        let fore = if let Some(queue) = live {
-            BodyForeRoute::prepare_live(&lowered.partitions, queue)?
-        } else {
-            BodyForeRoute::prepare(
-                &lowered.partitions,
-                fore_inputs,
-                sequential_fore,
-                has_fore_output,
-            )?
-        };
-        for operation in lowered.partitions.iter().flat_map(|part| &part.host_calls) {
-            if keyboard(&operation.contract_id) || button(&operation.contract_id) {
-                if !has_keyboard {
-                    return Err("Body keyboard has no admitted adapter".into());
-                }
-            } else if !scalar_math::supports(operation)
-                && !timer(&operation.contract_id)
-                && !typed_record_codec(&operation.contract_id)
-                && !image_text(&operation.contract_id)
-                && !text_state(&operation.contract_id)
-                && !data_text::is_file(&operation.contract_id)
-                && !input_semantic(&operation.contract_id)
-                && !todo_checkpoint(operation)
-                && !todo_checkpoint_read(operation)
-                && !face(operation)
-                && operation.contract_id.as_str()
-                    != conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
-            {
-                return Err(format!(
-                    "Body Host Call is unsupported: {}",
-                    operation.contract_id.as_str()
-                ));
-            }
-        }
-        let mut items = 0_u16;
-        let mut bytes = 0_u32;
-        let mut maximum = 1_u32;
-        let mut sign_items = 32_u16;
-        let mut request_capacity = 0_usize;
-        for (partition_index, fragment) in fragments.iter().enumerate() {
-            for placement in &fragment.placements {
-                let ordinary;
-                let budget = if let Some(scan) = scans.iter().find(|scan| {
-                    scan.partition == partition_index && scan.owner == placement.placement_id
-                }) {
-                    &scan.budget
-                } else if let Some(each) = each.iter().find(|each| {
-                    each.partition == partition_index && each.owner == placement.placement_id
-                }) {
-                    &each.budget
-                } else {
-                    // Ordinary Backs are budgeted only after exact activation
-                    // owners have been consumed by the whole-Plan scan route.
-                    ordinary = preparation::back_budget(placement)?;
-                    &ordinary
-                };
-                items = items
-                    .checked_add(budget.value_items)
-                    .ok_or("Body value item overflow")?;
-                bytes = bytes
-                    .checked_add(budget.value_bytes)
-                    .filter(|bytes| *bytes <= 16 * 1024 * 1024)
-                    .ok_or("Body value byte capacity exceeded")?;
-                maximum = maximum.max(budget.maximum_value_bytes);
-                sign_items = sign_items
-                    .checked_add(budget.sign_items)
-                    .ok_or("Body Sign overflow")?;
-                request_capacity = request_capacity
-                    .checked_add(budget.host_requests)
-                    .ok_or("Body request overflow")?;
-            }
-        }
-        for port in fore.input_ports() {
-            items = items
-                .checked_add(port.item_capacity)
-                .ok_or("Body Fore value item overflow")?;
-            bytes = bytes
-                .checked_add(port.byte_capacity)
-                .filter(|bytes| *bytes <= 16 * 1024 * 1024)
-                .ok_or("Body Fore value byte capacity exceeded")?;
-            maximum = maximum.max(port.byte_capacity);
-        }
-        sign_items = sign_items
-            .checked_add(fore.sign_items()?)
-            .ok_or("Body Fore Sign overflow")?;
-        let mut values = HostedValueStore::new(items.max(1), maximum, bytes.max(1))
-            .map_err(|error| format!("Body value store: {error:?}"))?;
-        let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
-        for (partition_index, (fragment, part)) in
-            fragments.iter().zip(&lowered.partitions).enumerate()
-        {
-            for node in &part.nodes {
-                drivers[usize::from(node.node.0)] = if let Some(scan) =
-                    scans.iter_mut().find(|scan| {
-                        scan.partition == partition_index && scan.owner == node.placement_id
-                    }) {
-                    InstalledBack::BodyScan(Box::new(
-                        scan.back
-                            .take()
-                            .ok_or("installed scan owner was prepared twice")?,
-                    ))
-                } else if let Some(each) = each.iter_mut().find(|each| {
-                    each.partition == partition_index && each.owner == node.placement_id
-                }) {
-                    InstalledBack::BodyEach(Box::new(
-                        each.back
-                            .take()
-                            .ok_or("installed Each owner was prepared twice")?,
-                    ))
-                } else {
-                    preparation::prepare_ordinary_operation(
-                        fragment,
-                        &node.placement_id,
-                        &mut values,
-                    )?
-                };
-            }
-        }
-        if each.iter().any(|each| each.back.is_some()) {
-            return Err("installed Each has no lowered owner node".into());
-        }
-        if scans.iter().any(|scan| scan.back.is_some()) {
-            return Err("installed scan has no lowered owner node".into());
-        }
-        let mut tables = KernelTables::prepare(&lowered.partitions.iter().collect::<Vec<_>>())?;
-        for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
-            tables.bind_fusions(fragment, partition)?;
-        }
-        let signs = fore_sign_storage::prepare(sign_items, fore.has_ports())?;
-        let typed_record_hosts = fragments
-            .iter()
-            .flat_map(|fragment| super::typed_record_back::prepare_hosts(fragment))
-            .collect();
-        let image_text_hosts = fragments
-            .iter()
-            .flat_map(|fragment| super::image_text_back::prepare_hosts(fragment))
-            .collect();
-        let image_text_record_hosts = fragments
-            .iter()
-            .flat_map(|fragment| super::image_text_record_back::prepare_hosts(fragment))
-            .collect();
-        let text_state_hosts = fragments
-            .iter()
-            .flat_map(|fragment| {
-                fragment
-                    .placements
-                    .iter()
-                    .map(super::text_state_back::TextStateHost::from_placement)
-            })
-            .collect::<Result<Vec<_>, String>>()?;
-        let data_text_hosts = data_text::prepare(
-            &fragments,
-            &lowered.partitions,
-            #[cfg(target_os = "linux")]
-            selected_file,
-        )?;
-        let mut face_labels = vec![None; MAX_NODES];
-        for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
-            for placement in &fragment.placements {
-                if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
-                    let node = partition
-                        .identity
-                        .node_for_placement(&placement.placement_id)
-                        .ok_or("named Face Gear was not lowered")?;
-                    face_labels[usize::from(node.0)] = Some(
-                        conduit_semantic_catalog::face_data_label(&placement.configuration)?.into(),
-                    );
-                }
-            }
-        }
-        let input_keymaps = super::input_semantic_backs::prepare_keymaps::<MAX_NODES>(
-            fragments
-                .iter()
-                .zip(&lowered.partitions)
-                .flat_map(|(fragment, partition)| {
-                    fragment.placements.iter().map(|placement| {
-                        (
-                            partition
-                                .identity
-                                .node_for_placement(&placement.placement_id)
-                                .map(|node| usize::from(node.0)),
-                            placement,
-                        )
-                    })
-                }),
-        )?;
-        let scheduler = tables.install(drivers, values, signs)?;
-        Ok(Self {
-            creche: None,
-            scheduler,
-            face_labels,
-            input_origin: None,
-            fore,
-            activations,
-            operations: lowered
-                .partitions
-                .iter()
-                .flat_map(|part| part.host_calls.clone())
-                .collect(),
-            partitions: lowered
-                .partitions
-                .into_iter()
-                .map(|part| part.identity)
-                .collect(),
-            typed_record_hosts,
-            image_text_hosts,
-            image_text_record_hosts,
-            text_state_hosts,
-            data_text_hosts,
-            input_keymaps,
-            requests: Vec::with_capacity(request_capacity),
-            clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
-            supported_pure_activation,
-            supported_parsec_input_scan,
-            parsec_map: None,
-            parsec_terminal: None,
-            todo_checkpoint: None,
-            todo_checkpoint_read: None,
-        })
     }
 
     /// Prepare input origin descriptors without granting issued-Play authority.
@@ -767,6 +489,7 @@ impl<'a> BodyKernel<'a> {
                     &mut fore_output,
                     self.supported_parsec_input_scan.then_some(&mut keys),
                     self.parsec_map.as_mut(),
+                    &mut self.error_diagnostic,
                 )?;
                 if !cancelling && !control.stop_requested() {
                     if let (Some(owner), Some(map), Some(attachment)) = (
@@ -832,9 +555,12 @@ impl<'a> BodyKernel<'a> {
                     if let Some(owner) = creche.as_deref_mut() {
                         owner.retire()?;
                     }
-                    self.scheduler
-                        .cancel()
-                        .map_err(|error| format!("Body cancel: {error:?}"))?;
+                    self.scheduler.cancel().map_err(|error| {
+                        diagnostic::error(
+                            &mut self.error_diagnostic,
+                            format_args!("Body cancel: {error:?}"),
+                        )
+                    })?;
                     keys.cancel();
                     // No acknowledged map remains current while the owning
                     // Body Play is being cancelled.
@@ -851,7 +577,8 @@ impl<'a> BodyKernel<'a> {
                 }
                 let live_observed = self.fore.activity_generation();
                 if !cancelling {
-                    self.fore.start_and_feed(&mut self.scheduler)?;
+                    self.fore
+                        .start_and_feed(&mut self.scheduler, &mut self.error_diagnostic)?;
                     if let Some((requirement, correlation)) = body_time {
                         let sample = match clock.monotonic_observation(host_id, boot_id) {
                             Some(sample) => sample,
@@ -883,6 +610,9 @@ impl<'a> BodyKernel<'a> {
                     }
                 }
                 while let Some(cancellation) = self.scheduler.next_host_cancellation() {
+                    if self.cancel_native_source(cancellation)? {
+                        continue;
+                    }
                     let operation = self
                         .operations
                         .iter()
@@ -906,7 +636,14 @@ impl<'a> BodyKernel<'a> {
                             )
                             .map_err(|error| format!("Body keyboard cancellation: {error:?}"))?;
                     } else {
-                        deadlines.cancel(cancellation, &mut self.scheduler)?;
+                        deadlines
+                            .cancel(cancellation, &mut self.scheduler)
+                            .map_err(|error| {
+                                diagnostic::error(
+                                    &mut self.error_diagnostic,
+                                    format_args!("{error}"),
+                                )
+                            })?;
                     }
                 }
                 while let Some(request) = self.scheduler.next_host_request() {
@@ -920,15 +657,26 @@ impl<'a> BodyKernel<'a> {
                         observed.node == request.node && observed.call == request.call
                     }) {
                         if self.requests.len() == self.requests.capacity() {
-                            return Err("Body observed-operation capacity exceeded".into());
+                            return Err(diagnostic::error(
+                                &mut self.error_diagnostic,
+                                format_args!("Body observed-operation capacity exceeded"),
+                            ));
                         }
                         self.requests.push(request);
+                    }
+                    if self.begin_native_source(request)? {
+                        continue;
                     }
                     let operation = self
                         .operations
                         .iter()
                         .find(|op| op.node == request.node && op.call == request.call)
-                        .ok_or("Body request has no exact partition operation")?;
+                        .ok_or_else(|| {
+                            diagnostic::error(
+                                &mut self.error_diagnostic,
+                                format_args!("Body request has no exact partition operation"),
+                            )
+                        })?;
                     if operation.contract_id.as_str()
                         == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
                     {
@@ -938,10 +686,15 @@ impl<'a> BodyKernel<'a> {
                     if scalar_math::complete(operation, request, &mut self.scheduler)? {
                         continue;
                     }
-                    let input = self
-                        .scheduler
-                        .host_value(request.input.value)
-                        .map_err(|error| format!("Body request value: {error:?}"))?;
+                    let input =
+                        self.scheduler
+                            .host_value(request.input.value)
+                            .map_err(|error| {
+                                diagnostic::error(
+                                    &mut self.error_diagnostic,
+                                    format_args!("Body request value: {error:?}"),
+                                )
+                            })?;
                     if data_text::is_file(&operation.contract_id) {
                         let source = self
                             .data_text_hosts
@@ -1288,12 +1041,18 @@ impl<'a> BodyKernel<'a> {
                         continue;
                     }
                     if timer(&operation.contract_id) {
-                        let duration =
-                            conduit_time::decode_tick(input).map_err(|error| error.to_string())?;
-                        let now = clock.monotonic_now_ms().ok_or_else(|| {
-                            "admitted monotonic wait Base is unavailable".to_string()
+                        let duration = conduit_time::decode_tick(input).map_err(|error| {
+                            diagnostic::error(&mut self.error_diagnostic, format_args!("{error}"))
                         })?;
-                        deadlines.arm(request, duration, now)?;
+                        let now = clock.monotonic_now_ms().ok_or_else(|| {
+                            diagnostic::error(
+                                &mut self.error_diagnostic,
+                                format_args!("admitted monotonic wait Base is unavailable"),
+                            )
+                        })?;
+                        deadlines.arm(request, duration, now).map_err(|error| {
+                            diagnostic::error(&mut self.error_diagnostic, format_args!("{error}"))
+                        })?;
                         continue;
                     } else if !simple_face_host::present_named(
                         operation.target_kind.as_ref(),
@@ -1313,13 +1072,21 @@ impl<'a> BodyKernel<'a> {
                                 failure: None,
                             },
                         )
-                        .map_err(|error| format!("Body Host completion: {error:?}"))?;
+                        .map_err(|error| {
+                            diagnostic::error(
+                                &mut self.error_diagnostic,
+                                format_args!("Body Host completion: {error:?}"),
+                            )
+                        })?;
                 }
                 let status = self.scheduler.step().map_err(|error| {
                     if let conduit_kernel::scheduler::SchedulerError::BackFailed(failure) = error {
                         kernel_failure = Some(failure);
                     }
-                    format!("Body kernel: {error:?}")
+                    diagnostic::error(
+                        &mut self.error_diagnostic,
+                        format_args!("Body kernel: {error:?}"),
+                    )
                 })?;
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
@@ -1359,7 +1126,8 @@ impl<'a> BodyKernel<'a> {
                 keys.set_input_view_epoch(input_view_epoch);
                 match status {
                     SchedulerStatus::Drained => {
-                        self.fore.require_normal_terminal(&self.scheduler)?;
+                        self.fore
+                            .require_normal_terminal(&self.scheduler, &mut self.error_diagnostic)?;
                         return Ok(TerminalDisposition::Completed);
                     }
                     SchedulerStatus::Cancelled => {
@@ -1374,7 +1142,14 @@ impl<'a> BodyKernel<'a> {
                     }
                     SchedulerStatus::Idle => {
                         if keys.poll(&mut self.scheduler)?
-                            || deadlines.complete_next(&mut self.scheduler, clock)?
+                            || deadlines
+                                .complete_next(&mut self.scheduler, clock)
+                                .map_err(|error| {
+                                    diagnostic::error(
+                                        &mut self.error_diagnostic,
+                                        format_args!("{error}"),
+                                    )
+                                })?
                         {
                             continue;
                         }
@@ -1388,7 +1163,10 @@ impl<'a> BodyKernel<'a> {
                             }
                         }
                         if !keys.is_pending() && deadlines.is_empty() && !self.creche_pending() {
-                            return Err("Body kernel has no admitted progress source".into());
+                            return Err(diagnostic::error(
+                                &mut self.error_diagnostic,
+                                format_args!("Body kernel has no admitted progress source"),
+                            ));
                         }
                         if self.creche_pending() {
                             if let Some(owner) = creche.as_deref() {
@@ -1433,14 +1211,16 @@ impl<'a> BodyKernel<'a> {
         let (terminal, failure) = match result {
             Ok(terminal) => (terminal, None),
             Err(error) => {
+                let error = diagnostic::retained_error(&mut self.error_diagnostic, error);
                 keys.cancel();
                 deadlines.clear();
                 if retirement.is_ok() {
-                    let failure = self
-                        .scheduler
-                        .cancel()
-                        .err()
-                        .map(|error| format!("Body failure cleanup: {error:?}"));
+                    let failure = self.scheduler.cancel().err().map(|error| {
+                        diagnostic::error(
+                            &mut self.cleanup_diagnostic,
+                            format_args!("Body failure cleanup: {error:?}"),
+                        )
+                    });
                     if cleanup_failure.is_none() {
                         cleanup_failure = failure;
                     }
@@ -1504,7 +1284,12 @@ impl<'a> BodyKernel<'a> {
             cleanup_failure,
             partitions: self.partitions,
             requests: self.requests,
-            events: self.scheduler.signs().events().collect(),
+            events: if let Some(mut prepared) = self.terminal_events.take() {
+                prepared.extend(self.scheduler.signs().events());
+                prepared
+            } else {
+                self.scheduler.signs().events().collect()
+            },
             scan_child_signs,
             scan_cancellation_failed,
             scan_output_completion_failed,
@@ -1521,7 +1306,7 @@ impl<'a> BodyKernel<'a> {
 }
 
 fn bind_body_activations(
-    partitions: &[BodyPlotPlan],
+    partitions: &[&Plan],
     fragments: &[&PlanFragment],
 ) -> Result<Vec<LoweredFragmentActivations>, String> {
     if partitions.len() != fragments.len() {
@@ -1531,13 +1316,13 @@ fn bind_body_activations(
         .iter()
         .zip(fragments)
         .map(|(partition, fragment)| {
-            if partition.plan.fragments.len() != 1
-                || partition.plan.fragments[0].fragment_id != fragment.fragment_id
-                || partition.plan.fragments[0].plan_id != fragment.plan_id
+            if partition.fragments.len() != 1
+                || partition.fragments[0].fragment_id != fragment.fragment_id
+                || partition.fragments[0].plan_id != fragment.plan_id
             {
                 return Err("Body activation binding fragment differs from exact Plan".into());
             }
-            lower_fragment_activations(&partition.plan, &fragment.fragment_id)
+            lower_fragment_activations(partition, &fragment.fragment_id)
                 .map_err(|error| format!("Body activation binding: {error:?}"))
         })
         .collect()

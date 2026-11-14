@@ -258,6 +258,18 @@ fn generate_nodes(
             {
                 return Err(GenerationError::InconsistentLowering("node table"));
             }
+            let mut terminal_transductions =
+                [None; conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE];
+            for law in &node.terminal_transductions {
+                let slot = terminal_transductions
+                    .get_mut(usize::from(law.input.0))
+                    .ok_or(GenerationError::InconsistentLowering("terminal input"))?;
+                if slot.replace(law.assigned()).is_some() {
+                    return Err(GenerationError::InconsistentLowering(
+                        "duplicate terminal input",
+                    ));
+                }
+            }
             Ok(GeneratedStaticNode {
                 node: node.node.0,
                 placement_id: node.placement_id.as_str().to_owned(),
@@ -265,6 +277,7 @@ fn generate_nodes(
                 implementation_id: placement.implementation_id.as_str().to_owned(),
                 artifact_id: placement.artifact_id.as_str().to_owned(),
                 input_cords: spec.input_cords.map(|cord| cord.map(|cord| cord.0)),
+                terminal_transductions,
                 maximum_step_fuel: node.maximum_step_fuel,
             })
         })

@@ -1,0 +1,175 @@
+# The context distinguishes acquisition timestamps/deadlines from cadence waits
+# before either is paired with state. There is still one native clock owner.
+type BmeSamplingClockContext =
+    protocol BmeClockContext
+    | cadence U64
+type BmeSamplingClockCompletion = {
+    context: BmeSamplingClockContext
+    result: ClockResult
+}
+type BmeSamplingProtocolClock =
+    available BmeClockCompletion
+    | absent
+type BmeSamplingCadenceClock =
+    available BmeSamplingIdleEvent
+    | absent
+type BmeSamplingClockFailure =
+    available ClockResult
+    | absent
+plot bme280-sampling-clock-failure (
+    result: ClockResult...| >> failed: BmeSamplingClockFailure...|
+) = (. is completed ? absent(empty) : available(.))
+plot bme280-sampling-clock-request (
+    context: BmeSamplingClockContext...| >> request: ClockRequest...|
+) = ({ deadline: (. is cadence ? .cadence : (.protocol is waiting ? .protocol.waiting : 0)) })
+plot bme280-sampling-protocol-clock (
+    completion: BmeSamplingClockCompletion...| >> protocol: BmeSamplingProtocolClock...|
+) = (.context is protocol ? available({ context: .context.protocol, result: .result }) : absent(empty))
+plot bme280-sampling-cadence-clock (
+    completion: BmeSamplingClockCompletion...| >> cadence: BmeSamplingCadenceClock...|
+) = (.context is cadence ? available(.result is completed ? tick(.result.completed) : clock-failed(.result)) : absent(empty))
+
+# Begin has a proven canonical maximum of 359B. Its fanout to the selected
+# seed pair and pure initializer uses that same explicit finite contract.
+# Every parameter is an ordinary checked Plot/Kind selection. `advance-pairing`
+# has two separate Gear owners; no mutable pair workspace is shared.
+plot bme280-sampling-exchange-selected (
+    seed-pair-type: type
+    advance-pair-type: type
+    idle-pair-type: type
+    feedback-pair-type: type
+    clock-pair-type: type
+    state-cell: kind (
+        >> seed: BmeSamplingState...|
+        >> next: BmeSamplingState...|
+        current: BmeSamplingState...| >>
+    )
+    seed-pairing: kind (
+        >> left: BmeSamplingBegin...|
+        >> right: BmeProtocolState...|
+        paired: seed-pair-type...| >>
+    )
+    advance-pairing: kind (
+        >> left: BmeSamplingControl...|
+        >> right: BmeProtocolState...|
+        paired: advance-pair-type...| >>
+    )
+    idle-pairing: kind (
+        >> left: BmeSamplingState...|
+        >> right: BmeSamplingIdleEvent...|
+        paired: idle-pair-type...| >>
+    )
+    feedback-pairing: kind (
+        >> left: BmeProtocolState...|
+        >> right: BmeProtocolEvent...|
+        paired: feedback-pair-type...| >>
+    )
+    context-merge: kind (
+        >> left: BmeSamplingClockContext...|
+        >> right: BmeSamplingClockContext...|
+        merged: BmeSamplingClockContext...| >>
+    )
+    state-merge: kind (
+        >> left: BmeSamplingState...|
+        >> right: BmeSamplingState...|
+        merged: BmeSamplingState...| >>
+    )
+    clock-pairing: kind (
+        >> left: BmeSamplingClockContext...|
+        >> right: ClockResult...|
+        paired: clock-pair-type...| >>
+    )
+    >> begin: BmeSamplingBegin...| <= 359B
+    >> result: I2cResult...|
+    request: I2cTransaction...| >>
+    captured: BmeProtocolState...| >>
+    observation: BmeObservationResult...| >>
+    refused: BmeSamplingFailure...| >>
+    clock_failed: ClockResult...| >>
+) {
+    plot sensor-begin (
+        input: BmeSamplingBegin...| <= 359B >> output: BmeProtocolBegin...|
+    ) = (.sensor)
+    plot seed-value (
+        input: seed-pair-type...| >> output: BmeSamplingSeed...|
+    ) = ({ configuration: .0, initialized: .1 })
+    plot advance-value (
+        input: advance-pair-type...| >> output: BmeSamplingAdvanced...|
+    ) = ({ control: .0, protocol: .1 })
+    plot idle-value (
+        input: idle-pair-type...| >> output: BmeSamplingIdleTransition...|
+    ) = ({ state: .0, event: .1 })
+    plot clock-value (
+        input: clock-pair-type...| >> output: BmeSamplingClockCompletion...|
+    ) = ({ context: .0, result: .1 })
+    plot cadence-context (
+        input: BmeSamplingState...| >> output: BmeSamplingClockContext...|
+    ) = (cadence(.next_due))
+    plot protocol-context (
+        input: BmeClockContext...| >> output: BmeSamplingClockContext...|
+    ) = (protocol(.))
+    plot restart-value (
+        input: BmeSamplingControl...| >> output: BmeSamplingControl...|
+    ) = (.)
+    seed: seed-pairing
+    cell: state-cell
+    feedback: feedback-pairing
+    idle: idle-pairing
+    step: advance-pairing
+    reset: advance-pairing
+    next-first: state-merge
+    next-all: state-merge
+    waits: context-merge
+    contexts: context-merge
+    timed: clock-pairing
+    clock: machine/clock/at
+    acquired: advance-value
+    idle-state: bme280-sampling-idle
+    idle-work: idle-value
+    idle-result: bme280-sampling-idle-step
+    restart-control: restart-value
+    route: bme280-sampling-route
+    capture: bme280-sampling-capture
+    failure: bme280-sampling-refusal
+    actions: bme280-protocol-action
+    completion: clock-value
+    outcomes: bme280-clock-event
+    begin >> seed.left
+    begin >> sensor-begin() >> bme280-protocol-initialize() >> seed.right
+    seed.paired >> seed-value() >> bme280-sampling-start() >> cell.seed
+    cell.current >> route
+    cell.current >> idle-state
+    cell.current >> bme280-sampling-control() >> select(BmeSamplingControlOption.available, unmatched=drop) >> step.left
+    cell.current >> capture
+    cell.current >> failure
+    route >> select(BmeSamplingRoute.active, unmatched=drop) >> feedback.left
+    route >> select(BmeSamplingRoute.active, unmatched=drop) >> actions
+    idle-state >> select(BmeSamplingIdle.available, unmatched=drop) >> idle.left
+    idle-state >> select(BmeSamplingIdle.available, unmatched=drop) >> cadence-context() >> waits.left
+    actions >> select(BmeProtocolAction.transact, unmatched=drop) >> request
+    actions >> bme280-clock-action-context() >> select(BmeOptionalClockContext.available, unmatched=drop) >> protocol-context() >> waits.right
+    capture >> select(BmeSamplingCapture.available, unmatched=drop) >> captured
+    capture >> select(BmeSamplingCapture.available, unmatched=drop) >> bme280-observation-from-capture() >> observation
+    failure >> select(BmeSamplingRefusal.available, unmatched=drop) >> refused
+    waits.merged >> contexts.left
+    result >> bme280-clock-bus-context() >> protocol-context() >> contexts.right
+    contexts.merged >> timed.left
+    contexts.merged >> bme280-sampling-clock-request() >> clock.request
+    clock.result >> timed.right
+    timed.paired >> completion
+    completion >> bme280-sampling-protocol-clock() >> select(BmeSamplingProtocolClock.available, unmatched=drop) >> outcomes
+    outcomes >> bme280-clock-feedback-event() >> feedback.right
+    clock.result >> bme280-sampling-clock-failure() >> select(BmeSamplingClockFailure.available, unmatched=drop) >> clock_failed
+    completion >> bme280-sampling-cadence-clock() >> select(BmeSamplingCadenceClock.available, unmatched=drop) >> idle.right
+    feedback.paired >> bme280-feedback-join-selected(pair-type = feedback-pair-type) >> bme280-protocol-transition() >> step.right
+    step.paired >> acquired >> bme280-sampling-finish() >> next-first.left
+    idle.paired >> idle-work
+    idle-work >> idle-result
+    idle-result >> select(BmeSamplingIdleResult.available, unmatched=drop) >> next-first.right
+    idle-work >> bme280-sampling-idle-resume() >> select(BmeSamplingControlOption.available, unmatched=drop) >> restart-control
+    restart-control >> reset.left
+    restart-control >> bme280-sampling-reset-input() >> bme280-protocol-initialize() >> reset.right
+    reset.paired >> advance-value() >> bme280-sampling-restart() >> next-all.right
+    next-first.merged >> next-all.left
+    next-all.merged >> cell.next
+}

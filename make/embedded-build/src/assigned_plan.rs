@@ -7,10 +7,7 @@ use conduit_core::{
 };
 use conduit_plan_lowering::lowering::RemoteCordDirection;
 
-use crate::{
-    GeneratedConfigurationValue, GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedSignTarget,
-    GenerationError,
-};
+use crate::{GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedSignTarget, GenerationError};
 
 /// Encodes the already selected, sealed Host fragment. This is deliberately a
 /// projection, not a planner: every record comes from `GeneratedEmbeddedPlan`.
@@ -18,7 +15,7 @@ pub fn encode_assigned_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA, &[])
+    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA, &[], &[], false, None)
 }
 
 /// Kernel projection with explicit single-value envelopes and pressure policy.
@@ -27,7 +24,15 @@ pub fn encode_assigned_kernel_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA, &[])
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA,
+        &[],
+        &[],
+        false,
+        None,
+    )
 }
 /// Exact single cooperative Base/resource/authority facts for constrained native
 /// possession admission. Legacy and kernel-only projections remain unchanged.
@@ -35,7 +40,51 @@ pub fn encode_assigned_native_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
-    encode(plan, maxima, conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA, &[])
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA,
+        &[],
+        &[],
+        false,
+        None,
+    )
+}
+
+/// Project only code-backed selections through explicit resident bindings.
+/// These fingerprints do not initialize Backs or create execution authority.
+/// Descriptive Sign names remain in the complete sealed Plan; this execution
+/// projection preserves its identity and unchanged evidence-storage budget.
+pub fn encode_assigned_resident_native_plan(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+    resident: &[crate::BoundResidentExpression],
+) -> Result<Vec<u8>, GenerationError> {
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA,
+        &[],
+        resident,
+        true,
+        None,
+    )
+}
+pub(crate) fn encode_resident_fore(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+    fore: &[conduit_core::AssignedForeRequirement],
+    resident: &[crate::BoundResidentExpression],
+) -> Result<Vec<u8>, GenerationError> {
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA,
+        fore,
+        resident,
+        true,
+        None,
+    )
 }
 
 pub(crate) fn encode_fore(
@@ -48,16 +97,44 @@ pub(crate) fn encode_fore(
         maxima,
         conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA,
         fore,
+        &[],
+        false,
+        None,
     )
 }
+pub(crate) fn encode_line_fore(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+    profile: conduit_core::AssignedLineForeProfile<'_>,
+    resident: &[crate::BoundResidentExpression],
+    pin_selectors: bool,
+) -> Result<Vec<u8>, GenerationError> {
+    encode(
+        plan,
+        maxima,
+        conduit_core::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA,
+        &[],
+        resident,
+        pin_selectors,
+        Some(profile),
+    )
+}
+mod endpoints;
 fn encode(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
     schema: u16,
     fore: &[conduit_core::AssignedForeRequirement],
+    resident: &[crate::BoundResidentExpression],
+    pin_selectors: bool,
+    line_fore: Option<conduit_core::AssignedLineForeProfile<'_>>,
 ) -> Result<Vec<u8>, GenerationError> {
-    if schema != conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
-        && crate::fore::has_local_fore_endpoint(plan)
+    crate::configuration_record::validate_bindings(plan, resident)?;
+    if !matches!(
+        schema,
+        conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+            | conduit_core::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
+    ) && crate::fore::has_local_fore_endpoint(plan)
     {
         return Err(GenerationError::Unsupported(
             crate::UnsupportedPlanFeature::LocalFore,
@@ -69,9 +146,15 @@ fn encode(
         let index = usize::from(tag - 1);
         counts[index] = counts[index]
             .checked_add(1)
-            .ok_or(GenerationError::ArithmeticOverflow(
-                "assigned-plan record count",
-            ))?;
+            .ok_or(GenerationError::BoundExceeded {
+                table: if tag == ASSIGNED_SIGN {
+                    "assigned Sign records"
+                } else {
+                    "assigned-plan record count"
+                },
+                actual: u64::from(u8::MAX) + 1,
+                maximum: u64::from(u8::MAX),
+            })?;
         put_record(&mut payload, tag, &value)?;
         Ok(())
     };
@@ -97,28 +180,10 @@ fn encode(
         }
     }
     for entry in &plan.configuration {
-        let mut value = Vec::new();
-        u16_to(&mut value, entry.node);
-        identity_to(&mut value, &entry.key);
-        match &entry.value {
-            GeneratedConfigurationValue::Text(item) => {
-                value.push(3);
-                value.extend_from_slice(item.as_bytes());
-            }
-            GeneratedConfigurationValue::Bool(item) => {
-                value.push(0);
-                value.extend_from_slice(&[u8::from(*item), 0, 0, 0, 0, 0, 0, 0]);
-            }
-            GeneratedConfigurationValue::I64(item) => {
-                value.push(1);
-                value.extend_from_slice(&item.to_le_bytes());
-            }
-            GeneratedConfigurationValue::U64(item) => {
-                value.push(2);
-                value.extend_from_slice(&item.to_le_bytes());
-            }
-        }
-        record(ASSIGNED_CONFIGURATION, value)?;
+        record(
+            ASSIGNED_CONFIGURATION,
+            crate::configuration_record::encode(entry, resident, pin_selectors)?,
+        )?;
     }
     for cord in &plan.cords {
         let mut value = Vec::new();
@@ -135,6 +200,7 @@ fn encode(
             conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA
                 | conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA
                 | conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                | conduit_core::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
         ) {
             u32_to(&mut value, cord.maximum_value_bytes);
             value.push(cord.pressure_policy as u8);
@@ -182,6 +248,7 @@ fn encode(
             schema,
             conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA
                 | conduit_core::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                | conduit_core::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
         ) {
             crate::assigned_native::append(plan, operation, &mut value)?;
         }
@@ -212,7 +279,13 @@ fn encode(
         });
         record(ASSIGNED_RESOURCE_CORD, value)?;
     }
-    for sign in &plan.signs {
+    // Resident projections carry exact executable/configuration pins. Sign
+    // names remain in the full sealed Plan on the authoring Host; the kernel
+    // does not load these descriptive records (assigned::layout skips them).
+    // Keep runtime_state_bytes(plan), sign_items and sign_bytes unchanged: all
+    // original event generation and finite evidence storage remain mandatory.
+    // The explicit literal projection continues to carry the complete catalog.
+    for sign in plan.signs.iter().filter(|_| !pin_selectors) {
         let mut value = Vec::new();
         u16_to(&mut value, sign.expectation);
         identity_to(&mut value, sign.kind);
@@ -238,50 +311,7 @@ fn encode(
         }
         record(ASSIGNED_SIGN, value)?;
     }
-    for port in fore {
-        record(conduit_core::ASSIGNED_LOCAL_FORE, port.payload().to_vec())?;
-    }
-    for remote in &plan.remote_endpoints {
-        let mut value = Vec::new();
-        for item in [
-            &remote.line_id,
-            &remote.local_host,
-            &remote.local_boot,
-            &remote.peer_host,
-            &remote.peer_boot,
-            &remote.connection_id,
-            &remote.source_fragment_id,
-            &remote.sink_fragment_id,
-            &remote.local_endpoint,
-            &remote.peer_endpoint,
-            &remote.base_instance_id,
-            &remote.link_binding_id,
-            &remote.value_kind,
-        ] {
-            identity_to(&mut value, item);
-        }
-        u16_to(&mut value, remote.endpoint);
-        u16_to(&mut value, remote.cord);
-        identity_to(&mut value, remote.base.as_str());
-        value.push(match remote.direction {
-            RemoteCordDirection::Egress => 0,
-            RemoteCordDirection::Ingress => 1,
-        });
-        value.extend_from_slice(&[
-            remote.contract.scope as u8,
-            remote.contract.traffic_shape as u8,
-            remote.contract.duplex as u8,
-            remote.contract.ordering as u8,
-            remote.contract.reliability as u8,
-            remote.contract.continuation as u8,
-            remote.contract.security as u8,
-        ]);
-        u16_to(&mut value, remote.maximum_in_flight_items);
-        u32_to(&mut value, remote.maximum_payload_bytes);
-        u32_to(&mut value, remote.maximum_buffered_bytes);
-        u32_to(&mut value, remote.maximum_frame_bytes);
-        record(ASSIGNED_REMOTE_ENDPOINT, value)?;
-    }
+    endpoints::encode(plan, fore, line_fore, &mut record)?;
     for dependency in &plan.startup_dependencies {
         let mut value = vec![0];
         u16_to(&mut value, dependency.prerequisite_node);
@@ -300,9 +330,9 @@ fn encode(
         record(ASSIGNED_TERMINAL, value)?;
     }
 
-    for (index, (actual, maximum)) in counts.iter().zip(maxima.counts).enumerate() {
+    for (actual, maximum) in counts.iter().zip(maxima.counts) {
         bound(
-            &format!("assigned record {}", index + 1),
+            "assigned record count",
             u64::from(*actual),
             u64::from(maximum),
         )?;
@@ -333,8 +363,7 @@ fn encode(
     bytes.extend_from_slice(&assigned_plan_magic());
     u16_to(&mut bytes, schema);
     u16_to(&mut bytes, total);
-    u16_to(&mut bytes, runtime_state_bytes);
-    u16_to(&mut bytes, 0);
+    u32_to(&mut bytes, runtime_state_bytes);
     for identity in [
         &plan.plan_id,
         &plan.fragment_id,
@@ -349,7 +378,7 @@ fn encode(
     Ok(bytes)
 }
 
-fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u16, GenerationError> {
+fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u32, GenerationError> {
     let table_state = plan.nodes.len() * 8
         + plan.cords.len() * 12
         + plan.route_targets.len() * 6
@@ -364,10 +393,10 @@ fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u16, GenerationEr
         .ok_or(GenerationError::ArithmeticOverflow(
             "assigned runtime state bytes",
         ))?;
-    u16::try_from(total).map_err(|_| GenerationError::BoundExceeded {
+    u32::try_from(total).map_err(|_| GenerationError::BoundExceeded {
         table: "assigned runtime state bytes",
         actual: total as u64,
-        maximum: u64::from(u16::MAX),
+        maximum: u64::from(u32::MAX),
     })
 }
 
@@ -415,81 +444,17 @@ fn u32_to(target: &mut Vec<u8>, value: u32) {
     target.extend_from_slice(&value.to_le_bytes());
 }
 
-fn bound(table: &str, actual: u64, maximum: u64) -> Result<(), GenerationError> {
+fn bound(table: &'static str, actual: u64, maximum: u64) -> Result<(), GenerationError> {
     if actual > maximum {
-        // Error table labels are static elsewhere; this encoder reports the
-        // stable category while retaining exact values.
         return Err(GenerationError::BoundExceeded {
-            table: "assigned projection",
+            table,
             actual,
             maximum,
         });
     }
-    let _ = table;
     Ok(())
 }
 
-/// Trusted image inventory for the computation-aware assigned-Plan decoder.
-/// Call after fixed-image generation validated each computation's exact contract.
-/// Deploy this inventory with the resident image, never derive it from an incoming
-/// assignment on the device. These digests do not admit evaluator heap or work.
-pub fn assigned_computation_requirements(
-    plan: &GeneratedEmbeddedPlan,
-) -> Result<Vec<conduit_core::AssignedComputationRequirement>, GenerationError> {
-    plan.configuration
-        .iter()
-        .filter(|entry| matches!(entry.key.as_str(), "program" | "selector" | "reference"))
-        .map(|entry| {
-            let GeneratedConfigurationValue::Text(text) = &entry.value else {
-                return Err(GenerationError::InvalidComputationConfiguration);
-            };
-            conduit_core::AssignedComputationRequirement::from_text(entry.node, &entry.key, text)
-                .map_err(|_| GenerationError::InvalidComputationConfiguration)
-        })
-        .collect()
-}
-
-/// Resident structural inventory for a fixed-source assigned-kernel layout.
-/// Configurations have their separate exact inventory. Sign and terminal IDs
-/// depend on the current Plan/Boot and are not executable structural tables.
-/// Only derive this from a validated generated image on the trusted Make side.
-pub fn assigned_layout_requirements(
-    plan: &GeneratedEmbeddedPlan,
-    maxima: AssignedPlanMaxima,
-) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
-    layout_records(
-        encode_assigned_kernel_plan(plan, maxima)?,
-        conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA,
-    )
-}
-pub fn assigned_native_layout_requirements(
-    plan: &GeneratedEmbeddedPlan,
-    maxima: AssignedPlanMaxima,
-) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
-    layout_records(
-        encode_assigned_native_plan(plan, maxima)?,
-        conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA,
-    )
-}
-pub(crate) fn layout_records(
-    bytes: Vec<u8>,
-    schema: u16,
-) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
-    conduit_core::AssignedPlanRecords::new(&bytes)
-        .map_err(|_| GenerationError::InvalidFragment)?
-        .filter_map(|record| match record {
-            Ok(record)
-                if !matches!(
-                    record.tag,
-                    ASSIGNED_CONFIGURATION | ASSIGNED_SIGN | ASSIGNED_TERMINAL
-                ) =>
-            {
-                Some(Ok(
-                    conduit_core::AssignedRecordRequirement::from_kernel_record(record, schema),
-                ))
-            }
-            Ok(_) => None,
-            Err(_) => Some(Err(GenerationError::InvalidFragment)),
-        })
-        .collect()
-}
+#[cfg(test)]
+#[path = "assigned_state_tests.rs"]
+mod state_tests;

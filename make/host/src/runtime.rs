@@ -134,6 +134,11 @@ pub fn bind_runtime_offer(
         inputs.candidate_bases,
         &mut advertisement,
     )?;
+    // Base inventories retain their exact ownership/order. The complete Host
+    // pool inventory must additionally obey the planner's global pool-id order.
+    advertisement
+        .resources
+        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let identity = ImageBootIdentity {
         profile_id: manifest.profile_id.clone(),
         build_id: manifest.build_id.clone(),

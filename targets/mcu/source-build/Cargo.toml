@@ -1,0 +1,32 @@
+[package]
+name = "conduit-mcu-source-build"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[dependencies]
+conduit-composite = { path = "../../../architecture/composite" }
+conduit-dht11-observation = { path = "../../../mechanisms/devices/dht11" }
+conduit-body = { path = "../../../architecture/body", default-features = false }
+conduit-core = { path = "../../../architecture/core" }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-embedded-build = { path = "../../../make/embedded-build" }
+conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["plot-catalog"] }
+conduit-i2c-transaction = { path = "../../../mechanisms/io/i2c-transaction", features = ["source-catalog"] }
+conduit-monotonic-wait = { path = "../../../mechanisms/io/monotonic-wait", features = ["clock-at-catalog"] }
+conduit-time = { path = "../../../semantics/time" }
+conduit-environment-runtime = { path = "../../../bodies/environment/runtime", features = ["appliance", "construction"] }
+conduit-semantic-catalog = { path = "../../../semantics/catalog" }
+sha2 = "0.10"
+serde_json = "1"
+
+conduit-host-make = { path = "../../../make/host" }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-face = { path = "../../../semantics/face" }
+conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"] }
+
+
+
+[dev-dependencies]
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering", features = ["delegated-preparation"] }
+conduit-mcu-host-runtime = { path = "../host-runtime", features = ["execution"] }

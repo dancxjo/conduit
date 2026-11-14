@@ -5,7 +5,11 @@ use crate::{
 use conduit_core::{BootId, HostId};
 use conduit_kernel::KernelEvent;
 
+mod prepared;
+use prepared::PreparedClock;
+
 pub struct KernelClockObservations {
+    prepared: Option<PreparedClock>,
     seen: usize,
     last: Option<conduit_core::MonotonicInstant>,
     supported: bool,
@@ -107,13 +111,36 @@ mod tests {
 }
 
 impl KernelClockObservations {
+    pub(super) fn event_capacity(&self) -> usize {
+        self.observations.capacity()
+    }
+
     pub fn with_capacity(event_capacity: usize) -> Self {
         Self {
+            prepared: None,
             seen: 0,
             last: None,
             supported: true,
             observations: Vec::with_capacity(event_capacity),
         }
+    }
+
+    pub(super) fn prepare_bounded<T: TimerAdapter>(
+        &mut self,
+        timer: &mut T,
+        host: &HostId,
+        boot: &BootId,
+    ) -> Result<(), String> {
+        if self.seen != 0 || self.prepared.is_some() {
+            return Err("clock capture already started".into());
+        }
+        let prepared = PreparedClock::prepare(timer, host, boot, self.observations.capacity())?;
+        self.observations = Vec::new();
+        self.prepared = Some(prepared);
+        Ok(())
+    }
+    pub(super) fn retained_backing_bytes(&self) -> Option<usize> {
+        self.prepared.as_ref()?.retained_backing_bytes()
     }
 
     pub fn capture_new<T: TimerAdapter>(
@@ -123,6 +150,11 @@ impl KernelClockObservations {
         host_id: &HostId,
         boot_id: &BootId,
     ) {
+        if let Some(prepared) = &mut self.prepared {
+            prepared.capture(events.skip(self.seen), timer);
+            self.seen = prepared.seen;
+            return;
+        }
         for event in events.skip(self.seen) {
             self.seen += 1;
             if !self.supported {
@@ -156,6 +188,10 @@ impl KernelClockObservations {
     }
 
     pub fn into_observations(self) -> Vec<ObservedKernelEvent> {
-        self.observations
+        if let Some(prepared) = self.prepared {
+            prepared.finish()
+        } else {
+            self.observations
+        }
     }
 }

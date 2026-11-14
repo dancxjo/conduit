@@ -40,6 +40,15 @@ impl NativeFaceScene {
         height: u16,
         interaction_admitted: bool,
     ) -> Result<Self, FaceSceneError> {
+        Self::prepare_with_local_input(face, width, height, interaction_admitted, true)
+    }
+    pub(super) fn prepare_with_local_input(
+        face: Face,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        local_input_available: bool,
+    ) -> Result<Self, FaceSceneError> {
         face.validate().map_err(|_| FaceSceneError::InvalidFace)?;
         if width < 320 || height < 240 || width > 16_384 || height > 16_384 {
             return Err(FaceSceneError::InvalidExtent);
@@ -69,7 +78,11 @@ impl NativeFaceScene {
             details: layout::admit_with_expression_selected(
                 details, SPACE_XL, 1, spacing, &viewport,
             )?,
-            graph_reading: graph_reading::GraphReading::prepare(&face)?,
+            graph_reading: if local_input_available {
+                graph_reading::GraphReading::prepare(&face)?
+            } else {
+                None
+            },
             face,
             screen,
             text_scale_percent: 100,
@@ -83,7 +96,7 @@ impl NativeFaceScene {
             showing_diagram: false,
             input: input::InputState::default(),
             interaction_admitted,
-            local_input_available: true,
+            local_input_available,
             local_creche_preferences: false,
             local_notice: None,
         })

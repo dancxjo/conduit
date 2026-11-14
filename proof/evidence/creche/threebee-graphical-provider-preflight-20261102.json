@@ -1,0 +1,34 @@
+{
+  "schema": "conduit.proof/graphical-seed-preflight@1",
+  "host": "threebee",
+  "physical_model": "Raspberry Pi 3 Model B Plus Rev 1.3",
+  "architecture": "aarch64",
+  "framebuffer": {
+    "device": "/dev/fb0",
+    "width": 1024,
+    "height": 600,
+    "bits_per_pixel": 16,
+    "stride_bytes": 2048
+  },
+  "drm": {
+    "card": "/dev/dri/card0",
+    "render_node": "/dev/dri/renderD128",
+    "HDMI-A-1": "connected"
+  },
+  "services": {
+    "conduit-host.service": "active",
+    "conduit-face-display.service": "active"
+  },
+  "legacy_renderer_source": "153be296f2aff165d21a6f3f733f94acb1359599",
+  "screenshot": "outputs/threebee-seed-admission-20261102/legacy-display-after-seed.png",
+  "screenshot_scope": "Actual framebuffer RGB565 readback; legacy delayed environmental Face, not Hamm graphical Seed.",
+  "sdl_runtime_probe": "No SDL entry from ldconfig and requested libsdl2-2.0-0 package not found. Runtime preparation not yet attempted.",
+  "existing_owners": [
+    6484,
+    6551,
+    6458
+  ],
+  "construction_gap": "Current native graphical presenter and linear-framebuffer driver catalog target lists exclude std/aarch64/Pi3; current IMAGE-bound startup initializes timer subset only.",
+  "recovery_source": "origin/work/creche-retained-birth-20261024 contains initialized Linux display custody f4e039a3f and subsequent input/provider bridge. Inspect/adapt rather than duplicate.",
+  "execution_gap": "Installed ordinary Owner has no generic output consumer or selected IMAGE worker dispatch; a diagnostics Write sink is not a typed Fore adapter. No synthetic acceptance added."
+}

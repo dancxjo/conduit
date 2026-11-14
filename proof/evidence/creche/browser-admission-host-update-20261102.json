@@ -1,0 +1,21 @@
+{
+  "source": "834dfe0207d884a0067727e0205f844c4f963d2c",
+  "release_build_exit_code": 0,
+  "release_platforms": [
+    "linux/x86_64",
+    "linux/aarch64"
+  ],
+  "deployed_platform": "linux/x86_64",
+  "runtime": {
+    "schema": "conduit.install/durable-host-runtime@1",
+    "host_id": "host/installed/f0ccc266877e6d1c192e22246ddaef8be554c52c408a6a8bcbc967c1b1775ed8",
+    "boot_id": "boot/installed/4d25547397e27108be4438bc815f1b0b4dd0395c85778e8cf0dbab8043533f9d",
+    "offer_generation": 2,
+    "process_id": 3185333,
+    "release_bundle_sha256": "sha256:de86e0c38cc6aa52e4eed4d10066b592fccab554c76089bfe25b99b74558362f",
+    "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7"
+  },
+  "binary_sha256": "9ec8d053f414204543d4c02a4cd00c966940ff48ec95e6596d295368a572d88a",
+  "preserved": "Existing installed Host identity and once-born Hamm Creek House; actual new Boot verified after supported service install +daemon-reload/start",
+  "boundary": "No browser admission, rendered UI, Seed deployment, physical MCU or new fleet membership proof yet."
+}

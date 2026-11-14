@@ -128,6 +128,7 @@ fn planned_named_source_with_joins<P: I2cProvider>(
     let expanded = &authoring.expanded;
     assert!(expanded.gears.len() >= 2);
     let identity = I2cNativeIdentity {
+        base_implementation_id: "conduitos.base/i2c-controller@1".into(),
         host_id: HostId::from("host/native"),
         boot_id: BootId::from("boot/native"),
         base_id: HostBaseId::from("base/native-i2c"),
@@ -319,3 +320,5 @@ fn complete_bme280_transition_and_next_action_have_finite_native_admission() {
 
 mod ht16k33;
 mod state;
+
+mod two_clients;

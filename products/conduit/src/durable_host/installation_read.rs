@@ -67,6 +67,13 @@ fn read(
     if !explicit_configuration_reselection {
         if let Some(selection) = &value.selected_host_configuration {
             selection.validate()?;
+            if selection.host_image().is_some_and(|image| {
+                image.manifest.source_identity != value.release_source_identity
+            }) {
+                return Err(
+                    "retained Seed IMAGE source differs from installed Make release".into(),
+                );
+            }
             if !explicit_reselection {
                 selection.validate_speech_overlap(value.selected_speech.as_ref())?;
             }

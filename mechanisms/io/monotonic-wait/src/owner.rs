@@ -44,15 +44,18 @@ pub enum WaitRetirementRefusal {
 }
 
 pub struct MonotonicWaitHostCall<P> {
-    table: c::BaseCapabilityTable,
-    handle: c::BaseCapabilityHandle,
-    claim: c::BaseOperationClaim,
+    operation: c::BoundBaseOperation,
     attachment: WaitAttachment,
     provider: P,
     node: NodeId,
     next_request: u32,
 }
 impl<P: MonotonicWaitProvider> MonotonicWaitHostCall<P> {
+    /// Exact node retained by the original checked assignment binding.
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
+
     /// Bind actual native possession to the exact planned Tick and Play.
     /// # Safety
     /// Root must own this initialized timer slot and generation, independently
@@ -69,22 +72,18 @@ impl<P: MonotonicWaitProvider> MonotonicWaitHostCall<P> {
         selection: SelectedOperationPlan<'_>,
     ) -> Result<Self, WaitCallRefusal> {
         let node = checked_binding(&table, &claim, attachment, configuration, selection)?;
-        Ok(Self::from_bound(
-            table, handle, claim, attachment, provider, node,
-        ))
+        let operation = c::BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WaitCallRefusal::Capability(reason))?;
+        Ok(Self::from_bound(operation, attachment, provider, node))
     }
     pub(crate) fn from_bound(
-        table: c::BaseCapabilityTable,
-        handle: c::BaseCapabilityHandle,
-        claim: c::BaseOperationClaim,
+        operation: c::BoundBaseOperation,
         attachment: WaitAttachment,
         provider: P,
         node: NodeId,
     ) -> Self {
         Self {
-            table,
-            handle,
-            claim,
+            operation,
             attachment,
             provider,
             node,
@@ -113,16 +112,12 @@ impl<P: MonotonicWaitProvider> MonotonicWaitHostCall<P> {
         if duration > self.attachment.maximum_duration_ms {
             return Err(E::InvalidDuration);
         }
-        let lease = self
-            .table
-            .authorize(&self.handle, &self.claim)
-            .map_err(E::Capability)?;
+        let lease = self.operation.authorize().map_err(E::Capability)?;
         self.next_request = next;
         // Created before the provider future: cancellation drops provider work
         // first, then revokes the unfinished capability. No implicit retry.
         let pending = Pending {
-            table: &mut self.table,
-            handle: &mut self.handle,
+            operation: &mut self.operation,
             lease: Some(lease),
         };
         let result = self.provider.wait(duration).await.map_err(E::Provider);
@@ -131,9 +126,7 @@ impl<P: MonotonicWaitProvider> MonotonicWaitHostCall<P> {
     }
     pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), WaitCallRefusal> {
         self.check_binding(node, call)?;
-        self.table
-            .revoke(&self.handle)
-            .map_err(WaitCallRefusal::Capability)
+        self.operation.revoke().map_err(WaitCallRefusal::Capability)
     }
     /// Consume only revoked, idle possession and return the exact provider and
     /// attachment. Refusal leaves `owner` intact. No capability, claim or Play
@@ -156,10 +149,7 @@ impl<P: MonotonicWaitProvider> MonotonicWaitHostCall<P> {
     }
 
     pub fn inspection(&self) -> &c::CapabilityInspection {
-        self.table
-            .inspections()
-            .next()
-            .expect("single prepared capability")
+        self.operation.inspection()
     }
     fn check_binding(&self, node: NodeId, call: HostCallId) -> Result<(), WaitCallRefusal> {
         if node != self.node || call != HostCallId(0) {
@@ -169,17 +159,13 @@ impl<P: MonotonicWaitProvider> MonotonicWaitHostCall<P> {
     }
 }
 struct Pending<'a> {
-    table: &'a mut c::BaseCapabilityTable,
-    handle: &'a mut c::BaseCapabilityHandle,
+    operation: &'a mut c::BoundBaseOperation,
     lease: Option<c::BaseOperationLease>,
 }
 impl Pending<'_> {
     fn complete(mut self) -> Result<(), c::BaseCapabilityRefusal> {
-        self.table.complete(
-            self.handle,
-            self.lease.as_ref().expect("pending").clone(),
-            0,
-        )?;
+        self.operation
+            .complete(self.lease.as_ref().expect("pending").clone(), 0)?;
         self.lease = None;
         Ok(())
     }
@@ -187,7 +173,7 @@ impl Pending<'_> {
 impl Drop for Pending<'_> {
     fn drop(&mut self) {
         if self.lease.is_some() {
-            let _ = self.table.revoke(self.handle);
+            let _ = self.operation.revoke();
         }
     }
 }

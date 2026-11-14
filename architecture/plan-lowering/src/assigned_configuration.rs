@@ -1,10 +1,13 @@
 //! Exact borrowed configuration comparison for a selected assigned node.
-use crate::selected_operation::SelectedCallRefusal as E;
+use crate::{
+    selected_assigned_operation::AssignedOperationInput,
+    selected_operation::SelectedCallRefusal as E,
+};
 use conduit_core as c;
 use conduit_kernel::NodeId;
 
 pub(super) fn check(
-    input: super::AssignedOperationInput<'_>,
+    input: AssignedOperationInput<'_>,
     node: NodeId,
     expected: &[c::ConfigurationEntry],
 ) -> Result<(), E> {

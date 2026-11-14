@@ -6,7 +6,12 @@ publish = false
 
 [workspace]
 
+[features]
+default = []
+native-kernel = ["dep:conduit-kernel"]
+
 [dependencies]
+conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"], optional = true }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-face = { path = "../../semantics/face", default-features = false }
@@ -15,5 +20,6 @@ conduit-face = { path = "../../semantics/face", default-features = false }
 conduit-plot = { path = "../../architecture/plot" }
 
 [dev-dependencies]
+conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
 serde_json = "1"
 conduit-face = { path = "../../semantics/face", features = ["plot-catalog"] }

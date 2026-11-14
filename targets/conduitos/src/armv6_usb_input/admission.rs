@@ -4,7 +4,7 @@ use crate::{
     cryptographic_entropy::CryptographicEntropyBase,
     identity::{self, BootIdentities},
     make::EMBEDDED_MAKE,
-    monotonic_clock::{contract::*, installation::*, owner::MAXIMUM_POLL_STEPS},
+    monotonic_clock::installation::*,
     protocol_source::NativeProtocolIssuer,
     usb_base::{
         control_contract::*, control_factory::*, endpoint_read_contract::*,
@@ -13,6 +13,7 @@ use crate::{
 };
 use alloc::format;
 use conduit_core::*;
+use conduit_monotonic_wait::clock_at::{contract::*, owner::MAXIMUM_POLL_STEPS};
 pub(super) type Entropy = CryptographicEntropyBase<arch::HardwareEntropy, 3>;
 pub(super) fn usb_identity(ids: &BootIdentities, role: &str) -> UsbNativeIdentity {
     let boot = identity::hex(&ids.boot);

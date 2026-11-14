@@ -1,0 +1,25 @@
+{
+  "scope": "CPU synthetic command-selection and verified-release binding; no actual native release compilation or device deployment",
+  "qualified_source_change": "c1d0659943",
+  "tests": {
+    "passed": 2,
+    "filter": "host_release::checked::tests",
+    "command": "cargo +stable test --locked --offline -p xtask --bin xtask host_release::checked::tests -- --nocapture"
+  },
+  "strict": {
+    "passed": true,
+    "command": "cargo +stable clippy --locked --offline -p xtask --bin xtask --tests -p conduit-host-make --lib -- -D warnings"
+  },
+  "source_files": {
+    "tools/xtask/src/commands/host_release_checked.rs": "8e081840742b682d6874d67e0306c2c1eb51abe8b452a6f716b3ffb3a902108d",
+    "tools/xtask/src/commands/host_release_checked_tests.rs": "188da0f27390b605541a0d437bba0b043085bd286875ac6bb39616342d8180f0",
+    "make/host/src/native_release_configuration.rs": "b72a0a9b9980ede145f7931e96c9f1ae6b04da4b29480e6ff9006ba7534a783b",
+    "make/host/src/release_bundle.rs": "dd39c6de2eab3ac4bffac7dc673a3b0307907c09c4f8a09cc9c88f16413379f6"
+  },
+  "remaining": [
+    "Actual feature-selected AArch64 build and executable observation",
+    "Initialized declared Mask resources and exact Face route",
+    "Body-made graphical Seed deployment and physical display verification"
+  ],
+  "threebee_graphical_deployment": false
+}

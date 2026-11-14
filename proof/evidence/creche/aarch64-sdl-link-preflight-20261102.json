@@ -1,0 +1,24 @@
+{
+  "schema": "conduit.proof/aarch64-sdl-link-preflight@1",
+  "host": "threebee",
+  "package_sha256": "6312ccbc29645ac5cc9dde9f9ed8bd5c85a0233690c270c83c963b49f8cd49d5",
+  "verified_target_packages": 35,
+  "target_package_download_bytes": 53656284,
+  "installed_library_snapshot": {
+    "source": "Threebee ldconfig regular ELF libraries over pinned SSH",
+    "archive_sha256": "b20ea0aceda1f5ead7eca698474ebb8b1523c75e17da97415e4b84b9120f32a9",
+    "archive_bytes": 78178219,
+    "source_file_count": 428,
+    "source_bytes": 216641848,
+    "device_modified": false,
+    "purpose": "cross-link dependencies only; not runtime/deployment proof"
+  },
+  "link_result": "AArch64 ELF link succeeded against actual SDL and dependencies, with normal undefined-symbol checks",
+  "executable_sha256": "df0cb08fd18e974d13befb2cb4486049de7bd04d0e1683112c37ad9c53bc9344",
+  "not_proved": [
+    "Conduit AArch64 selected-feature build",
+    "target execution",
+    "runtime installation or initialized KMSDRM custody",
+    "graphical Seed deployment"
+  ]
+}

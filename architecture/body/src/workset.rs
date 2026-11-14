@@ -83,6 +83,24 @@ impl BodyWorkset {
         Ok(workset)
     }
 
+    /// Retained immutable payload capacity, excluding inline Arc/allocator
+    /// bookkeeping. Sharing does not copy this payload; multiple custodians
+    /// may conservatively reserve its retained closure independently.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let Some(plots) = &self.plots else {
+            return Some(0);
+        };
+        let mut bytes = plots
+            .capacity()
+            .checked_mul(core::mem::size_of::<ResidentPlot>())?;
+        for plot in plots.iter() {
+            bytes = bytes
+                .checked_add(plot.source_document_id.0.capacity())?
+                .checked_add(plot.checked_plot_id.0.capacity())?;
+        }
+        Some(bytes)
+    }
+
     pub fn plots(&self) -> &[ResidentPlot] {
         self.plots.as_deref().map(Vec::as_slice).unwrap_or(&[])
     }
@@ -201,5 +219,29 @@ mod shared_plots {
         } else {
             Some(Arc::new(plots))
         })
+    }
+}
+
+#[cfg(test)]
+mod retained_backing_tests {
+    use super::*;
+    #[test]
+    fn immutable_backing_receipt_preserves_sharing_and_counts_actual_payload() {
+        let workset =
+            BodyWorkset::from_plots([ResidentPlot::new("source/a".into(), "checked/a".into())])
+                .unwrap();
+        let shared = workset.clone();
+        assert_eq!(workset.plots().as_ptr(), shared.plots().as_ptr());
+        let plots = workset.plots.as_ref().unwrap();
+        let expected = plots.capacity() * core::mem::size_of::<ResidentPlot>()
+            + plots
+                .iter()
+                .map(|plot| {
+                    plot.source_document_id.0.capacity() + plot.checked_plot_id.0.capacity()
+                })
+                .sum::<usize>();
+        assert_eq!(workset.retained_backing_bytes(), Some(expected));
+        assert_eq!(shared.retained_backing_bytes(), Some(expected));
+        assert_eq!(BodyWorkset::default().retained_backing_bytes(), Some(0));
     }
 }

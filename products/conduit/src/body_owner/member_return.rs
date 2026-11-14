@@ -2,7 +2,10 @@
 //! Local control authenticates the caller; the continuity signature authenticates
 //! the member. A route or public credential alone cannot attach a Part.
 use super::{state, Owner};
-use conduit_body::{MembershipCredential, PartReturnChallenge, PartReturnProof};
+use conduit_body::{
+    AuthenticatedHostObservation, BodyLifecycleSession, MembershipCredential, PartReturnChallenge,
+    PartReturnProof,
+};
 use conduit_core::HostAdvertisement;
 use std::{
     path::Path,
@@ -12,18 +15,140 @@ use std::{
 pub(super) struct PendingMemberReturn {
     challenge: PartReturnChallenge,
     prior: MembershipCredential,
+    recover_retained_key: bool,
+    prior_attachment: Option<AuthenticatedHostObservation>,
     completed: Option<(PartReturnProof, MembershipCredential)>,
     advertisement: HostAdvertisement,
     deadline: Instant,
     attempts: u8,
+    presentation: Option<conduit_body::MemberReturnImagePresentation>,
 }
 
 impl Owner {
+    /// Conditional replacement is preparation only. The real attachment stays
+    /// current until its continuity key proves the exact new Boot and the
+    /// combined retirement/return commits. Transport loss alone is not leave.
+    fn member_return_preparation(
+        &self,
+        prior: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+    ) -> Result<(BodyLifecycleSession, Option<AuthenticatedHostObservation>), String> {
+        let latest = self.admissions.as_ref().and_then(|manager| {
+            manager
+                .receipts
+                .iter()
+                .rev()
+                .find(|receipt| receipt.credential.part_id == prior.part_id)
+        });
+        if latest.is_none_or(|receipt| receipt.credential != *prior) {
+            return Err("member return credential is stale or unknown".into());
+        }
+        let attachment = self
+            .session
+            .evidence()
+            .membership
+            .parts
+            .iter()
+            .find(|part| part.part_id == prior.part_id)
+            .ok_or("member return Part absent")?
+            .current
+            .clone();
+        let mut next = self.session.clone();
+        if let Some(current) = &attachment {
+            if current.host_id != prior.host_id
+                || current.boot_id != prior.boot_id
+                || advertisement.host_id != prior.host_id
+                || advertisement.boot_id == current.boot_id
+            {
+                return Err("member return does not replace its prior Host Boot".into());
+            }
+            let authority = self.host.advertisement();
+            next.observe_host_lost(
+                &current.host_id,
+                &current.boot_id,
+                &authority.host_id,
+                &authority.boot_id,
+            )
+            .map_err(|error| format!("member return preparation: {error:?}"))?;
+        }
+        Ok((next, attachment))
+    }
+
+    /// Release only this completed return slot after its signed durable receipt
+    /// has been delivered. Retirement cannot attach a member or create offers.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn retire_completed_selected_return(
+        &mut self,
+        credential: &MembershipCredential,
+    ) -> Result<(), String> {
+        let pending = self
+            .pending_member_return
+            .as_ref()
+            .ok_or("member return slot absent")?;
+        if pending
+            .completed
+            .as_ref()
+            .is_none_or(|(_, accepted)| accepted != credential)
+        {
+            return Err("cannot retire an incomplete or different member return".into());
+        }
+        self.pending_member_return = None;
+        Ok(())
+    }
+
     pub(crate) fn begin_member_return(
         &mut self,
         credential: &MembershipCredential,
         advertisement: &HostAdvertisement,
     ) -> Result<PartReturnChallenge, String> {
+        self.begin_member_image_return(credential, advertisement, None)
+    }
+
+    /// The control boundary independently resolves images before entering here.
+    pub(crate) fn begin_member_image_return(
+        &mut self,
+        credential: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+        presentation: Option<conduit_body::MemberReturnImagePresentation>,
+    ) -> Result<PartReturnChallenge, String> {
+        self.begin_member_image_return_with_policy(credential, advertisement, presentation, false)
+    }
+
+    /// Protected owner-local recovery entrance. The wire credential is only an
+    /// identity hint; the durable latest credential and current continuity key
+    /// remain the transition authority. Never selected by member wire data.
+    pub(crate) fn begin_recovered_member_image_return(
+        &mut self,
+        wire_prior: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+        presentation: conduit_body::MemberReturnImagePresentation,
+    ) -> Result<PartReturnChallenge, String> {
+        self.begin_member_image_return_with_policy(
+            wire_prior,
+            advertisement,
+            Some(presentation),
+            true,
+        )
+    }
+
+    fn begin_member_image_return_with_policy(
+        &mut self,
+        credential: &MembershipCredential,
+        advertisement: &HostAdvertisement,
+        presentation: Option<conduit_body::MemberReturnImagePresentation>,
+        recover_retained_key: bool,
+    ) -> Result<PartReturnChallenge, String> {
+        if let Some(claim) = &presentation {
+            let mut context = advertisement.clone();
+            context.capabilities.clear();
+            if claim.credential != *credential || claim.projection.context != context {
+                return Err("member return presentation differs from pending context".into());
+            }
+            claim
+                .projection
+                .validate()
+                .map_err(|e| format!("member grants: {e:?}"))?;
+        }
         if self.host.is_playing() {
             return Err("body-play-active".into());
         }
@@ -32,7 +157,19 @@ impl Owner {
             .as_ref()
             .filter(|p| Instant::now() < p.deadline)
         {
-            if pending.prior == *credential && pending.advertisement == *advertisement {
+            let same_prior = if recover_retained_key {
+                pending
+                    .presentation
+                    .as_ref()
+                    .is_some_and(|claim| claim.credential == *credential)
+            } else {
+                pending.prior == *credential
+            };
+            if pending.recover_retained_key == recover_retained_key
+                && same_prior
+                && pending.advertisement == *advertisement
+                && pending.presentation == presentation
+            {
                 if let Some((_, current)) = &pending.completed {
                     self.require_current_native_member(
                         &super::super::MemberPresentationBasis::new(
@@ -51,19 +188,37 @@ impl Owner {
         {
             return Err("member return differs from retained Body and Host".into());
         }
+        let transition_prior = if recover_retained_key {
+            let latest = self
+                .admissions
+                .as_ref()
+                .and_then(|manager| {
+                    manager
+                        .receipts
+                        .iter()
+                        .rev()
+                        .find(|receipt| receipt.credential.part_id == credential.part_id)
+                })
+                .ok_or("member recovery has no retained credential")?;
+            if latest.credential.body_id != credential.body_id
+                || latest.credential.host_id != credential.host_id
+            {
+                return Err("member recovery differs from retained identity".into());
+            }
+            if latest.credential.boot_id == advertisement.boot_id {
+                return Err("member recovery requires a fresh Host Boot".into());
+            }
+            latest.credential.clone()
+        } else {
+            credential.clone()
+        };
+        // This still requires a distinct Boot and an eligible Admitted Part.
         let mut manager = self
             .admissions
             .clone()
             .ok_or("member return has no admission custody")?;
-        if manager
-            .receipts
-            .iter()
-            .rev()
-            .find(|receipt| receipt.credential.part_id == credential.part_id)
-            .is_none_or(|receipt| receipt.credential != *credential)
-        {
-            return Err("member return credential is stale or unknown".into());
-        }
+        let (basis, prior_attachment) =
+            self.member_return_preparation(&transition_prior, advertisement)?;
         let at = crate::durable_host::current_time_millis()?;
         let mut nonce = [0; 32];
         getrandom::fill(&mut nonce).map_err(|e| e.to_string())?;
@@ -71,7 +226,7 @@ impl Owner {
         // recreates it against current biography before any durable mutation.
         let challenge = manager
             .begin_return(
-                &self.session.evidence().membership,
+                &basis.evidence().membership,
                 &credential.part_id,
                 advertisement,
                 nonce,
@@ -83,9 +238,12 @@ impl Owner {
         self.pending_member_return = Some(PendingMemberReturn {
             challenge: challenge.clone(),
             advertisement: advertisement.clone(),
-            prior: credential.clone(),
+            prior: transition_prior,
+            recover_retained_key,
+            prior_attachment,
             completed: None,
             attempts: 0,
+            presentation,
             deadline: Instant::now() + Duration::from_secs(10),
         });
         Ok(challenge)
@@ -141,7 +299,11 @@ impl Owner {
             .admissions
             .clone()
             .ok_or("member return admission custody absent")?;
-        let mut next = self.session.clone();
+        let (mut next, attachment) =
+            self.member_return_preparation(&pending.prior, &pending.advertisement)?;
+        if attachment != pending.prior_attachment {
+            return Err("member return prior attachment changed".into());
+        }
         let challenge = manager
             .begin_return(
                 &next.evidence().membership,
@@ -177,19 +339,27 @@ impl Owner {
             .pending_member_return
             .as_ref()
             .ok_or("member return pending custody lost")?;
-        if !self
-            .invited_mask_offers
-            .contains_key(&pending.advertisement.host_id)
-            && self.invited_mask_offers.len() >= conduit_body::MAX_BODY_PARTS
-        {
-            return Err("member return observed-offer pressure".into());
-        }
-        let digest = crate::durable_host::digest(
-            &serde_json::to_vec(&pending.advertisement).map_err(|e| e.to_string())?,
-        );
-        let observed =
-            super::native_mask_route::InvitedMaskOffer::observed(&pending.advertisement, digest);
-        let host_id = pending.advertisement.host_id.clone();
+        let grants = if let Some(presentation) = &pending.presentation {
+            let witness = manager
+                .current_member_continuity(
+                    &next.evidence().membership,
+                    &credential.part_id,
+                    &pending.advertisement,
+                )
+                .map_err(|e| format!("member return continuity: {e:?}"))?;
+            presentation
+                .verify(&witness.peer().verifying_key)
+                .map_err(|e| format!("member return grant signature: {e:?}"))?;
+            presentation.projection.authority_grants.clone()
+        } else {
+            Vec::new()
+        };
+        let offers = self.next_member_offers_with_grants(
+            next.evidence(),
+            pending.advertisement.clone(),
+            grants,
+        )?;
+        let prior = pending.prior.clone();
         state::retain_session(
             root,
             &mut next,
@@ -200,7 +370,8 @@ impl Owner {
         )?;
         self.session = next;
         self.admissions = Some(manager);
-        self.invited_mask_offers.insert(host_id, observed);
+        self.current_host_offers = offers;
+        self.retire_native_member_route(&prior);
         self.pending_member_return
             .as_mut()
             .ok_or("member return pending custody lost")?

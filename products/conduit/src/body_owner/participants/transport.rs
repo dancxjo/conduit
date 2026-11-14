@@ -13,17 +13,26 @@ use conduit_std_host::{
         decode_browser_admission_frame, encode_browser_admission_frame, BrowserAdmissionEgress,
         BrowserAdmissionIngress, MAX_BROWSER_ADMISSION_FRAME_BYTES,
     },
+    secure_websocket::{SecureWebSocketError, SecureWebSocketLine},
     websocket::{NativeWebSocketError, NativeWebSocketLine, NativeWebSocketListener},
 };
 use std::time::Duration;
 
 pub(super) struct Listener(NativeWebSocketListener);
-pub(super) struct Socket {
-    line: NativeWebSocketLine,
+pub(crate) struct Socket {
+    line: Carrier,
     binding: LinkBindingId,
     closed: bool,
     input: Box<[u8]>,
     output: Box<[u8]>,
+}
+#[allow(
+    clippy::large_enum_variant,
+    reason = "Retain one initialized transport inline for the Socket lifetime."
+)]
+enum Carrier {
+    Native(NativeWebSocketLine),
+    Secure(SecureWebSocketLine),
 }
 impl Listener {
     pub(super) fn bind() -> Result<Self, String> {
@@ -41,7 +50,7 @@ impl Listener {
     ) -> Result<Option<Socket>, String> {
         match self.0.accept_with_timeout(timeout) {
             Ok(line) => Ok(Some(Socket {
-                line,
+                line: Carrier::Native(line),
                 binding: LinkBindingId::from(format!("{binding_prefix}/{}", hex(&nonce()?))),
                 closed: false,
                 input: vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES].into_boxed_slice(),
@@ -53,7 +62,73 @@ impl Listener {
     }
 }
 impl Socket {
-    pub(super) fn binding(&self) -> &LinkBindingId {
+    /// Consume an actual authenticated TLS incarnation. The caller supplies its
+    /// exact authorized binding and completes any prior bounded input deadline
+    /// only after authentication. This constructor grants no Line or membership.
+    pub(super) fn from_secure(
+        line: SecureWebSocketLine,
+        binding: LinkBindingId,
+    ) -> Result<Self, String> {
+        let maximum_frame_bytes = line
+            .maximum_message_bytes()
+            .min(MAX_BROWSER_ADMISSION_FRAME_BYTES);
+        if binding.as_str().is_empty() || binding.as_str().len() > 256 || maximum_frame_bytes == 0 {
+            return Err("secure participant carrier extent or binding invalid".into());
+        }
+        Ok(Self {
+            line: Carrier::Secure(line),
+            binding,
+            closed: false,
+            input: vec![0; maximum_frame_bytes].into_boxed_slice(),
+            output: vec![0; maximum_frame_bytes].into_boxed_slice(),
+        })
+    }
+
+    /// An authorized lease, not raw traffic, replaces this exact TLS lifetime.
+    pub(super) fn replace_input_deadline(
+        &mut self,
+        deadline: std::time::Instant,
+    ) -> Result<(), String> {
+        if self.closed {
+            return Err("participant carrier closed".into());
+        }
+        match &mut self.line {
+            Carrier::Secure(line) => line.replace_input_deadline(deadline).map_err(debug),
+            Carrier::Native(_) => Err("TLS deadline requires an actual secure carrier".into()),
+        }
+    }
+
+    /// Actual bounded TLS carrier custody is required before offering native
+    /// document directions. The owner separately authorizes and selects them.
+    pub(crate) fn native_lines(
+        &self,
+        owner: &conduit_core::HostAdvertisement,
+        member: &crate::durable_host::owner::MemberPresentationBasis,
+    ) -> Result<(LineOffer, LineOffer), String> {
+        let Carrier::Secure(line) = &self.line else {
+            return Err("native document Lines require actual TLS carrier".into());
+        };
+        if self.closed {
+            return Err("participant carrier closed".into());
+        }
+        let pair = crate::durable_host::routed_join::native_lines::offer_pair(
+            owner,
+            member,
+            self.binding.as_str(),
+        );
+        for offer in [&pair.0, &pair.1] {
+            let needed = offer.binding.limits.maximum_frame_bytes as usize;
+            if needed > line.maximum_message_bytes()
+                || needed > self.input.len()
+                || needed > self.output.len()
+            {
+                return Err("native document Line exceeds initialized carrier buffers".into());
+            }
+        }
+        Ok(pair)
+    }
+
+    pub(crate) fn binding(&self) -> &LinkBindingId {
         &self.binding
     }
 
@@ -64,6 +139,9 @@ impl Socket {
         snapshot: &BrowserAdmittedSnapshot,
         window_id: &str,
     ) -> Result<BrowserCarrierLineEvidence, String> {
+        let Carrier::Native(line) = &self.line else {
+            return Err("secure carrier requires its actual TLS Line evidence".into());
+        };
         let authorization = snapshot
             .line_authorization
             .as_ref()
@@ -84,7 +162,7 @@ impl Socket {
             return Err("carrier-line-authorization-stale".into());
         }
         let descriptor = &conduit_host_browser_make::BROWSER_LINE_REALIZATIONS[0];
-        if self.line.maximum_message_bytes() < descriptor.maximum_frame_bytes as usize {
+        if line.maximum_message_bytes() < descriptor.maximum_frame_bytes as usize {
             return Err("carrier-line-frame-limit".into());
         }
         let offer = |direction: &str,
@@ -161,15 +239,31 @@ impl Socket {
         &mut self,
         timeout: Duration,
     ) -> Result<Option<(BrowserAdmissionIngress, u32)>, String> {
-        self.line
-            .set_read_timeout(Some(timeout.max(Duration::from_millis(1))))
-            .map_err(debug)?;
-        let bytes = match self.line.receive_binary(&mut self.input) {
-            Ok(bytes) => bytes,
-            Err(NativeWebSocketError::Transport(
-                std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut,
-            )) => return Ok(None),
-            Err(error) => return Err(debug(error)),
+        if self.closed {
+            return Err("participant carrier closed".into());
+        }
+        let timeout = Some(timeout.max(Duration::from_millis(1)));
+        let bytes = match &mut self.line {
+            Carrier::Native(line) => {
+                line.set_read_timeout(timeout).map_err(debug)?;
+                match line.receive_binary(&mut self.input) {
+                    Ok(bytes) => bytes,
+                    Err(NativeWebSocketError::Transport(
+                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut,
+                    )) => return Ok(None),
+                    Err(error) => return Err(debug(error)),
+                }
+            }
+            Carrier::Secure(line) => {
+                line.set_read_timeout(timeout).map_err(debug)?;
+                match line.receive_binary(&mut self.input) {
+                    Ok(bytes) => bytes,
+                    Err(SecureWebSocketError::Transport(
+                        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut,
+                    )) => return Ok(None),
+                    Err(error) => return Err(debug(error)),
+                }
+            }
         };
         Ok(Some((
             decode_browser_admission_frame(&self.input[..bytes]).map_err(debug)?,
@@ -178,11 +272,24 @@ impl Socket {
     }
     pub(super) fn send(&mut self, frame: &BrowserAdmissionEgress) -> Result<(), String> {
         let length = encode_browser_admission_frame(frame, &mut self.output).map_err(debug)?;
-        self.line.send_binary(&self.output[..length]).map_err(debug)
+        if self.closed {
+            return Err("participant carrier closed".into());
+        }
+        match &mut self.line {
+            Carrier::Native(line) => line.send_binary(&self.output[..length]).map_err(debug),
+            Carrier::Secure(line) => line.send_binary(&self.output[..length]).map_err(debug),
+        }
     }
     pub(super) fn close(&mut self) {
         self.closed = true;
-        let _ = self.line.close();
+        match &mut self.line {
+            Carrier::Native(line) => {
+                let _ = line.close();
+            }
+            Carrier::Secure(line) => {
+                let _ = line.close();
+            }
+        }
     }
 }
 fn hex(bytes: &[u8]) -> String {
@@ -251,5 +358,72 @@ mod tests {
         let (actual, _) = socket.receive(Duration::from_secs(2)).unwrap();
         assert_eq!(actual, expected);
         client.join().unwrap();
+    }
+    #[test]
+    fn pinned_tls_socket_preserves_binding_and_poll_timeout() {
+        use conduit_std_host::secure_websocket::{
+            SecureWebSocketClientLine, SecureWebSocketListener,
+        };
+        use rcgen::{generate_simple_self_signed, CertifiedKey};
+        let CertifiedKey { cert, signing_key } =
+            generate_simple_self_signed(vec!["localhost".into()]).unwrap();
+        let directory =
+            std::env::temp_dir().join(format!("conduit-participant-tls-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let certificate = directory.join("certificate.pem");
+        let private_key = directory.join("private-key.pem");
+        std::fs::write(&certificate, cert.pem()).unwrap();
+        std::fs::write(&private_key, signing_key.serialize_pem()).unwrap();
+        let reservation = std::net::TcpListener::bind("0.0.0.0:0").unwrap();
+        let address = reservation.local_addr().unwrap();
+        drop(reservation);
+        let listener = SecureWebSocketListener::bind(
+            address,
+            &certificate,
+            &private_key,
+            MAX_BROWSER_ADMISSION_FRAME_BYTES as u32,
+            true,
+        )
+        .unwrap();
+        let address =
+            std::net::SocketAddr::from(([127, 0, 0, 1], listener.local_addr().unwrap().port()));
+        let pin = listener.certificate_binding_sha256();
+        let (finish, ready) = mpsc::sync_channel(1);
+        let client = std::thread::spawn(move || {
+            let mut line = SecureWebSocketClientLine::connect_pinned(
+                address,
+                &format!("wss://localhost:{}/conduit", address.port()),
+                "localhost",
+                pin,
+                Duration::from_secs(2),
+                MAX_BROWSER_ADMISSION_FRAME_BYTES as u32,
+            )
+            .unwrap();
+            ready.recv_timeout(Duration::from_secs(2)).unwrap();
+            line.send_binary(br#"{"kind":"presence-leave","protocol":1,"credential_id":"credential/test","body_id":"body/test","part_id":"part/test","host_id":"host/test","boot_id":"boot/test","sequence":2}"#).unwrap();
+        });
+        let mut accepted = listener
+            .accept_with_timeout(Duration::from_secs(2))
+            .unwrap();
+        accepted.complete_bounded_input();
+        let binding: LinkBindingId = "fixture/exact-tls-incarnation".into();
+        let mut socket = Socket::from_secure(accepted, binding.clone()).unwrap();
+        assert_eq!(socket.binding(), &binding);
+        assert!(socket
+            .receive_polled(Duration::from_millis(20))
+            .unwrap()
+            .is_none());
+        finish.send(()).unwrap();
+        let (frame, _) = socket.receive(Duration::from_secs(2)).unwrap();
+        assert!(matches!(
+            frame,
+            BrowserAdmissionIngress::PresenceLeave { sequence: 2, .. }
+        ));
+        socket.close();
+        assert!(socket.receive_polled(Duration::from_millis(1)).is_err());
+        client.join().unwrap();
+        drop(socket);
+        drop(listener);
+        std::fs::remove_dir_all(directory).unwrap();
     }
 }

@@ -65,7 +65,7 @@ pub(super) fn prepare(
         NativeProtocolPreparationLimits {
             body_play_sequence: 0,
             bus_work_units: 1,
-            clock_work_units: crate::monotonic_clock::owner::MAXIMUM_POLL_STEPS,
+            clock_work_units: conduit_monotonic_wait::clock_at::owner::MAXIMUM_POLL_STEPS,
         },
     )
     .map_err(|_| "protocol-plan-admission-refused")?;

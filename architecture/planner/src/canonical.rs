@@ -142,7 +142,7 @@ pub fn default_expanded_placements(
 }
 
 mod default_queues;
-pub use default_queues::plan_expanded_canonical;
+pub use default_queues::{default_expanded_connection_limits, plan_expanded_canonical};
 
 pub fn plan_expanded_canonical_with_options(
     plot: &ExpandedCanonicalPlot,

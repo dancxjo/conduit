@@ -8,7 +8,7 @@ use crate::{read_identity, read_u16, sha256, AssignedIdentity, AssignedPlanRefus
 pub struct AssignedComputationRequirement {
     pub node: u16,
     pub key: AssignedIdentity,
-    pub text_bytes: u16,
+    pub text_bytes: u32,
     pub text_digest: [u8; 32],
 }
 impl AssignedComputationRequirement {
@@ -22,7 +22,7 @@ impl AssignedComputationRequirement {
         Ok(Self {
             node,
             key: AssignedIdentity::from_text(key),
-            text_bytes: u16::try_from(text.len())
+            text_bytes: u32::try_from(text.len())
                 .map_err(|_| AssignedPlanRefusal::ComputationCapacityExceeded)?,
             text_digest: sha256::digest(text.as_bytes()),
         })
@@ -30,16 +30,17 @@ impl AssignedComputationRequirement {
 }
 
 /// This inventory must come from the resident trusted image, never the incoming
-/// assigned Plan. Both per-record and aggregate limits cover encoded text bytes.
+/// assigned Plan. Both per-record and aggregate limits cover logical canonical text bytes,
+/// including text omitted by an exact resident digest record.
 #[derive(Clone, Copy)]
 pub struct AssignedComputationProfile<'a> {
-    pub maximum_text_bytes: u16,
+    pub maximum_text_bytes: u32,
     pub maximum_total_text_bytes: u32,
     pub requirements: &'a [AssignedComputationRequirement],
 }
 
-/// The configuration-record count is one byte. One bit per computation covers
-/// its complete finite domain in the original 32-byte validation budget.
+/// The existing configuration-record count is one byte. A bit per installed
+/// computation covers that full finite domain without growing validator state.
 pub const MAXIMUM_ASSIGNED_COMPUTATIONS: usize = u8::MAX as usize;
 const SEEN_BYTES: usize = MAXIMUM_ASSIGNED_COMPUTATIONS.div_ceil(8);
 
@@ -90,12 +91,13 @@ impl<'a> Validation<'a> {
         {
             return Ok(ordinary_text());
         }
-        // Exact references remain independently pinned and funded; this
-        // neither enlarges ordinary text nor grants access to content.
+        // A portable reference has at most 512 encoded bytes. It remains
+        // independently pinned and charged in the existing artifact inventory;
+        // this grants no access to its referenced content.
         if reference && text.len() > 1024 {
             return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
         }
-        if text.len() > usize::from(profile.maximum_text_bytes) {
+        if text.len() as u64 > u64::from(profile.maximum_text_bytes) {
             return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
         }
         self.total = self
@@ -118,8 +120,54 @@ impl<'a> Validation<'a> {
                 !self.was_seen(index)
                     && r.node == node
                     && r.key == key
-                    && usize::from(r.text_bytes) == text.len()
+                    && u64::from(r.text_bytes) == text.len() as u64
                     && r.text_digest == digest
+            })
+            .ok_or(AssignedPlanRefusal::UnknownComputation)?;
+        self.seen[index / 8] |= 1 << (index % 8);
+        Ok(true)
+    }
+    /// Digest-only records require the resident trusted inventory. The Plan's
+    /// claim never creates that inventory or bypasses logical artifact bounds.
+    pub(crate) fn resident(&mut self, payload: &[u8]) -> Result<bool, AssignedPlanRefusal> {
+        if payload.len() != 55 {
+            return Ok(false);
+        }
+        let profile = self
+            .profile
+            .ok_or(AssignedPlanRefusal::UnknownComputation)?;
+        let node = read_u16(payload, 0)?;
+        let key = read_identity(payload, 2)?;
+        if key != AssignedIdentity::from_text("program")
+            && key != AssignedIdentity::from_text("selector")
+        {
+            return Err(AssignedPlanRefusal::UnknownComputation);
+        }
+        let length = u32::from_le_bytes(
+            payload[19..23]
+                .try_into()
+                .map_err(|_| AssignedPlanRefusal::MalformedRecord)?,
+        );
+        if length == 0 || length & 1 != 0 || length > profile.maximum_text_bytes {
+            return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
+        }
+        self.total = self
+            .total
+            .checked_add(length)
+            .ok_or(AssignedPlanRefusal::ComputationCapacityExceeded)?;
+        if self.total > profile.maximum_total_text_bytes {
+            return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
+        }
+        let index = profile
+            .requirements
+            .iter()
+            .enumerate()
+            .position(|(i, r)| {
+                !self.was_seen(i)
+                    && r.node == node
+                    && r.key == key
+                    && r.text_bytes == length
+                    && r.text_digest == payload[23..55]
             })
             .ok_or(AssignedPlanRefusal::UnknownComputation)?;
         self.seen[index / 8] |= 1 << (index % 8);
@@ -151,6 +199,10 @@ fn canonical_hex(bytes: &[u8]) -> bool {
 #[cfg(test)]
 #[path = "reference_artifact_tests.rs"]
 mod reference_tests;
+
+#[cfg(test)]
+#[path = "computation_inventory_tests.rs"]
+mod inventory_tests;
 
 #[cfg(test)]
 #[path = "computation_bitmap_tests.rs"]

@@ -139,11 +139,13 @@ pub fn canonical_host_configuration_conduit(
             .map_err(|error| ConfigurationDiagnostic::Encode { detail: error.to_string() })?;
     }
     if let Some(policy) = canonical.execution {
+        let continuation = policy.continuation.map_or_else(String::new, |c| format!(", continuation: {{assignment_bytes: {}, runtime_bytes: {}, durable_bytes: {}, operation_slots: {}, active_worksets: {}}}", c.assignment_bytes,c.runtime_bytes,c.durable_bytes,c.operation_slots,c.active_worksets));
         writeln!(
             &mut source,
-            "  execution = {{authorizer: {}, maximum_active_worksets: {}}}",
+            "  execution = {{authorizer: {}, maximum_active_worksets: {}{}}}",
             string(policy.authorizer.as_str())?,
-            policy.maximum_active_worksets
+            policy.maximum_active_worksets,
+            continuation
         )
         .map_err(|error| ConfigurationDiagnostic::Encode {
             detail: error.to_string(),

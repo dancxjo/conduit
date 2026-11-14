@@ -46,6 +46,8 @@ pub struct StreamFrameDecoder<const MAX: usize> {
 impl<const MAX: usize> StreamFrameDecoder<MAX> {
     /// Creates a new streaming decoder with an explicit runtime maximum frame length.
     ///
+    /// `MAX` bounds buffered wire bytes: callers must fund the two-byte header
+    /// and read-packet overlap in addition to `runtime_max` payload bytes.
     /// `runtime_max` must be `<= MAX` and `<= u16::MAX as usize`.
     pub fn new(runtime_max: usize) -> Result<Self, StreamFrameError> {
         let max_allowed = MAX.min(u16::MAX as usize);
@@ -68,7 +70,7 @@ impl<const MAX: usize> StreamFrameDecoder<MAX> {
         if input.is_empty() {
             return Ok(());
         }
-        self.compact_if_needed();
+        self.compact_if_needed(input.len());
         if self.write_pos + input.len() > MAX {
             return Err(StreamFrameError::BufferOverflow);
         }
@@ -120,12 +122,12 @@ impl<const MAX: usize> StreamFrameDecoder<MAX> {
         }
     }
 
-    fn compact_if_needed(&mut self) {
+    fn compact_if_needed(&mut self, incoming: usize) {
         if self.read_pos > 0 {
             if self.read_pos == self.write_pos {
                 self.read_pos = 0;
                 self.write_pos = 0;
-            } else if self.read_pos >= MAX / 2 {
+            } else if self.read_pos >= MAX / 2 || incoming > MAX - self.write_pos {
                 self.buf.copy_within(self.read_pos..self.write_pos, 0);
                 self.write_pos -= self.read_pos;
                 self.read_pos = 0;
@@ -260,5 +262,29 @@ mod tests {
             decoder.finish().unwrap_err(),
             StreamFrameError::TruncatedStream
         );
+    }
+    #[test]
+    fn short_frame_then_maximum_frame_compacts_before_capacity_is_exhausted() {
+        let mut wire = [0u8; 4096 + 2 + 800 + 2];
+        let first = encode_stream_frame(&[1; 800], 4096, &mut wire).unwrap();
+        let second = encode_stream_frame(&[2; 4096], 4096, &mut wire[first..]).unwrap();
+        let mut decoder = StreamFrameDecoder::<{ 4096 + 2 + 64 }>::new(4096).unwrap();
+        let mut frames = 0;
+        for packet in wire[..first + second].chunks(64) {
+            decoder.accept_bytes(packet).unwrap();
+            while let Some(frame) = decoder.next_frame().unwrap() {
+                frames += 1;
+                assert_eq!(
+                    frame,
+                    if frames == 1 {
+                        &[1; 800][..]
+                    } else {
+                        &[2; 4096][..]
+                    }
+                );
+            }
+        }
+        assert_eq!(frames, 2);
+        decoder.finish().unwrap();
     }
 }

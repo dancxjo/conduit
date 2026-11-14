@@ -40,6 +40,10 @@ pub enum ProtocolSpecializationRequest {
         alias: String,
         value: ProtocolValueReference,
     },
+    ExactZip {
+        left: ProtocolValueReference,
+        right: ProtocolValueReference,
+    },
     Zip {
         left: ProtocolValueReference,
         right: ProtocolValueReference,
@@ -65,7 +69,7 @@ impl ProtocolSourcePackage {
             return Err(Error::Bounds);
         }
         let (mut startup, mut profile) = crate::i2c_base::contract::I2cContract::prepare()
-            .map_err(Error::Contract)?
+            .map_err(Error::I2cPreparation)?
             .catalogs();
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
@@ -188,6 +192,10 @@ impl ProtocolSourcePackage {
                     );
                     ProtocolSpecialization::MergeInstance { value }
                 }
+                Request::ExactZip { left, right } => ProtocolSpecialization::ExactZip {
+                    left: value(left)?,
+                    right: value(right)?,
+                },
                 Request::Zip { left, right } => ProtocolSpecialization::Zip {
                     left: value(left)?,
                     right: value(right)?,

@@ -1,4 +1,6 @@
+mod browser_window_key;
 mod host_service;
+pub(crate) use browser_window_key::parse_browser_verifying_key;
 pub(crate) use host_service::HostServiceCommand;
 #[cfg(target_os = "linux")]
 mod notebook;
@@ -113,6 +115,10 @@ pub(crate) enum DiagramFormat {
 }
 
 #[derive(Debug, Subcommand)]
+#[allow(
+    clippy::large_enum_variant,
+    reason = "One bounded command is parsed once; keep its arguments inline."
+)]
 pub(crate) enum HostCommand {
     /// Install one exact reviewed target, or inspect its plan with --dry-run.
     Install {
@@ -391,6 +397,14 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         todo_new_list: Option<String>,
     },
+    /// Export the owner's prepared joining Seed to a new local file.
+    /// Lull an active Body first; a lost reply leaves the export outcome unknown.
+    ExportSeed {
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicit local destination; an existing file is never overwritten.
+        destination: PathBuf,
+    },
     /// Request that the current service-owned Body Play stop and lull.
     Lull {
         #[arg(long)]
@@ -404,10 +418,15 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         owner_show: bool,
         /// Join this fresh installed presentation Host through a pinned owner invitation.
-        #[arg(long, conflicts_with = "owner_show")]
+        #[arg(long, conflicts_with_all = ["owner_show", "member"])]
         invitation: Option<PathBuf>,
         #[arg(long, requires = "invitation")]
         authorize_join: bool,
+        /// Present through this installed member's retained, pinned encounter.
+        #[arg(long, conflicts_with_all = ["owner_show", "invitation"])]
+        member: bool,
+        #[arg(long, requires = "member")]
+        authorize_return: bool,
     },
     /// Issue one bounded invitation from the body owned by this installed host.
     Invite {
@@ -437,7 +456,7 @@ pub(crate) enum BodyCommand {
         #[arg(long, requires_all = ["route_bind", "route_url", "route_tls_cert", "route_tls_key", "authorize_route"])]
         prepare: bool,
     },
-    /// Explicitly withdraw one member's attachment, preserving its Part and keys.
+    /// Explicitly withdraw one member's current attachment, preserving its Part.
     MemberLeave {
         #[arg(long)]
         state_dir: PathBuf,
@@ -445,6 +464,24 @@ pub(crate) enum BodyCommand {
         member_credential: PathBuf,
         #[arg(long)]
         authorize_leave: bool,
+    },
+    /// Select an owner TLS encounter for an existing stopped installed member.
+    MemberEncounter {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        descriptor: PathBuf,
+        #[arg(long)]
+        authorize_route: bool,
+    },
+    /// Select a standing contact policy; fresh finite evidence and authentication remain required.
+    MemberContact {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        descriptor: PathBuf,
+        #[arg(long)]
+        authorize_route: bool,
     },
     /// Return an existing member using its private continuity key and actual running Boot.
     Return {
@@ -455,10 +492,14 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         authorize_return: bool,
     },
-    /// Expose a finite pinned TLS return entrance for one retained member.
+    /// Expose a finite signed-return entrance for one existing member.
     MemberRoute {
+        /// Keep a one-connection contact service; each returned encounter still expires.
+        #[arg(long)]
+        continuing: bool,
         #[arg(long)]
         state_dir: PathBuf,
+        /// Public credential selects Body/Part/Host; possession is proved separately.
         #[arg(long)]
         member_credential: PathBuf,
         #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=600))]
@@ -479,10 +520,10 @@ pub(crate) enum BodyCommand {
         /// Installed Host state whose running service owns the Body.
         #[arg(long)]
         state_dir: PathBuf,
-        /// Exact Host ID shown by the browser's "Join an owned Body" view.
-        #[arg(long)]
-        expected_host_id: String,
-        /// JSON byte array copied from the browser for first admission; omit on return.
+        /// Known browser Host ID; omit only for first admission with an explicit key pin.
+        #[arg(long, required_unless_present = "new_host_verifying_key")]
+        expected_host_id: Option<String>,
+        /// Base64 public key copied from the browser; legacy JSON arrays also work. Omit on return.
         #[arg(long)]
         new_host_verifying_key: Option<String>,
         /// Finite admission and presence window, at most one minute.
@@ -503,6 +544,13 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_join: bool,
     },
+    /// Request admission using this freshly installed Seed's original invitation.
+    AcceptSeed {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_join: bool,
+    },
     /// Accept one bounded invitation on this installed host and emit an admission request.
     #[command(hide = true)]
     Accept {
@@ -520,6 +568,9 @@ pub(crate) enum BodyCommand {
     Admit {
         /// Admission-request JSON path, or `-` to read the exact document from standard input.
         request: PathBuf,
+        /// Independently selected owner peer pin for a signed transport receipt.
+        #[arg(long)]
+        attest_owner: Option<PathBuf>,
         /// Installed durable host state that owns the body.
         #[arg(long)]
         state_dir: PathBuf,
@@ -527,6 +578,43 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_admission: bool,
     },
+    /// Admit a prepared RP2040 Seed over its bounded USB carrier.
+    AdmitUsb {
+        /// Exact runtime USB serial path; BOOTSEL volumes are not runtime Hosts.
+        port: PathBuf,
+        /// Public construction pins produced alongside the private Seed.
+        basis: PathBuf,
+        /// New private file retaining the committed signed receipt before delivery.
+        #[arg(long)]
+        receipt_output: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_admission: bool,
+    },
+    /// Return an existing Part over the selected bounded USB carrier.
+    ReturnUsb {
+        port: PathBuf,
+        /// Use an already forwarded raw TTY without physical USB modem controls.
+        /// This changes carriage only; owner pins and signed return are unchanged.
+        #[arg(long)]
+        forwarded_tty: bool,
+        /// Recover a fresh Boot using the owner's latest durable Part/key custody.
+        /// Normal strict credential checking remains the default.
+        #[arg(long)]
+        recover_retained_key: bool,
+        /// Public retained credential, physical profile, member key and owner pin.
+        basis: PathBuf,
+        #[arg(long)]
+        receipt_output: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_return: bool,
+    },
+    /// Restore private signing custody from the original Seed and admission evidence.
+    #[command(hide = true)]
+    RestoreMemberKey(crate::durable_host::MemberKeyRecoveryArgs),
     /// Retain the owner's exact admission receipt as this host's durable membership.
     #[command(hide = true)]
     CompleteJoin {
@@ -544,6 +632,47 @@ pub(crate) enum BodyCommand {
 mod public_surface_tests {
     use super::*;
     use clap::{CommandFactory, Parser};
+
+    #[test]
+    fn usb_return_requires_authorization_and_retained_receipt() {
+        let args = [
+            "conduit",
+            "body",
+            "return-usb",
+            "/dev/serial/by-id/device",
+            "usb-return.json",
+            "--state-dir",
+            "/state",
+            "--receipt-output",
+            "/private/return.json",
+        ];
+        assert!(Cli::try_parse_from(args).is_err());
+        assert!(Cli::try_parse_from(args.into_iter().chain(["--authorize-return"])).is_ok());
+        assert!(Cli::try_parse_from(args.into_iter().chain(["--recover-retained-key"])).is_err());
+        assert!(Cli::try_parse_from(args.into_iter().chain([
+            "--authorize-return",
+            "--recover-retained-key",
+            "--forwarded-tty",
+        ]))
+        .is_ok());
+    }
+
+    #[test]
+    fn usb_admission_requires_authorization_and_retained_receipt() {
+        let args = [
+            "conduit",
+            "body",
+            "admit-usb",
+            "/dev/serial/by-id/device",
+            "usb-admission.json",
+            "--state-dir",
+            "/state",
+            "--receipt-output",
+            "/private/receipt.json",
+        ];
+        assert!(Cli::try_parse_from(args).is_err());
+        assert!(Cli::try_parse_from(args.into_iter().chain(["--authorize-admission"])).is_ok());
+    }
 
     #[test]
     fn no_arguments_enters_conduit() {
@@ -980,3 +1109,15 @@ mod public_surface_tests {
         .is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "cli/seed_export_tests.rs"]
+mod seed_export_tests;
+
+#[cfg(test)]
+#[path = "cli/browser_window_tests.rs"]
+mod browser_window_tests;
+
+#[cfg(test)]
+#[path = "cli/seed_accept_tests.rs"]
+mod seed_accept_tests;

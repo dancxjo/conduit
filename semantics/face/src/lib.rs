@@ -11,6 +11,8 @@
 
 extern crate alloc;
 mod host_attribution;
+#[cfg(feature = "postcard-wire")]
+pub mod postcard_wire;
 pub use host_attribution::HostAttributionRefusal;
 
 pub mod application_canvas;
@@ -157,6 +159,7 @@ mod linear;
 mod linear_navigation;
 mod local_look;
 mod look;
+mod retained_backing;
 pub use local_look::*;
 mod look_selection;
 mod manifestation;

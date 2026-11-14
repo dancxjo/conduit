@@ -43,7 +43,7 @@ pub(super) fn possession(
         resource_generation_id: scope.resource_generation_id.clone(),
         envelope_id: scope.envelope_id.clone(),
         parameter_bytes: CLOCK_MAXIMUM_BYTES,
-        work_units: super::super::super::owner::MAXIMUM_POLL_STEPS,
+        work_units: conduit_monotonic_wait::clock_at::owner::MAXIMUM_POLL_STEPS,
     };
     let mut table = BaseCapabilityTable::new(
         scope.host_id.clone(),

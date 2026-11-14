@@ -233,3 +233,23 @@ membership mutations while the owner is running.
   silently discard evidence.
 - Unit and local CLI smoke evidence are development evidence, not release,
   distributed, or human enactment acceptance for #4807.
+
+### Updating a Seed-derived native Host
+
+A retained Seed IMAGE is bound to the release source and the checked Host
+configuration. An executable-only update from another source is refused before
+replacing installation state. Build the replacement release and IMAGE from the
+same source, then install both on the stopped destination:
+
+```sh
+conduit host service install path/to/checked-native.json \
+  --host-image path/to/image.json --state-dir "$HOST_STATE" --no-start
+```
+
+This entrance checks the replacement IMAGE against the existing Host source and
+its configuration identity; it does not change equipment or grant membership.
+It preserves the Host identity and Body bindings. The final installation record
+must still fit its existing 64 KiB reader bound. Changing a Seed-bound Host's
+configuration requires a replacement Seed; reselecting identical source retains
+its checked IMAGE. After installation, a returning member still needs a current
+authorized encounter and signed return for its new Boot.

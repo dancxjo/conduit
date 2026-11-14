@@ -25,6 +25,12 @@ pub struct RetainedHostCommandStamp {
 }
 
 impl RetainedHostCommandStamp {
+    /// Read-only identity of the original authenticated custody attempt.
+    /// This digest grants no preparation, admission, or execution rights.
+    pub fn custody_identity(&self) -> [u8; 32] {
+        self.transcript
+    }
+
     /// Match the original attributed attempt, not merely an identical payload.
     /// A fresh challenge for the same bytes cannot replace admitted custody.
     /// The command must first be reborrowed under current independent facts.
@@ -75,6 +81,18 @@ impl<const N: usize> Default for HostCommandInput<N> {
     }
 }
 impl<const N: usize> HostCommandInput<N> {
+    /// Initialize the caller's original storage without a second N-byte value.
+    pub fn initialize_in_place(storage: &mut core::mem::MaybeUninit<Self>) -> &mut Self {
+        let target = storage.as_mut_ptr();
+        // SAFETY: both fields are fully initialized before the reference exists.
+        unsafe {
+            core::ptr::addr_of_mut!((*target).stamp).write(None);
+            core::ptr::addr_of_mut!((*target).bytes)
+                .cast::<u8>()
+                .write_bytes(0, N);
+            storage.assume_init_mut()
+        }
+    }
     pub const fn new() -> Self {
         Self {
             stamp: None,
@@ -89,6 +107,11 @@ impl<const N: usize> HostCommandInput<N> {
             return Err(HostCommandRetentionRefusal::Occupied);
         }
         Ok(&mut self.bytes)
+    }
+    /// Original attribution deadline, never renewed by RAM custody. This is
+    /// inspection only: expiry does not prove worker or resource retirement.
+    pub fn expires_at_millis(&self) -> Option<u64> {
+        self.stamp.as_ref().map(|stamp| stamp.expires_at)
     }
     pub fn payload(&self) -> Option<&[u8]> {
         self.stamp

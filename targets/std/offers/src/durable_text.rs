@@ -2,6 +2,14 @@
 //! These offers are never part of the ambient std inventory.
 use conduit_core::*;
 
+/// Checked construction intent only; an initialized directory is independent.
+pub const DURABLE_TEXT_BASE_KIND: &str = "storage/text-generation";
+pub const DURABLE_TEXT_SAVE_KIND: &str = conduit_data::DATA_SAVE_TEXT_KIND;
+pub const DURABLE_TEXT_LOAD_KIND: &str = conduit_data::DATA_LOAD_TEXT_KIND;
+pub const DURABLE_TEXT_CONTRACT_REVISION: &str = conduit_data::DATA_TEXT_CONTRACT_REVISION;
+pub const DURABLE_TEXT_RESOURCE: &str = conduit_data::DATA_GENERATION_ACCESS_CLASS;
+pub const DURABLE_TEXT_MAXIMUM_BYTES: u32 = conduit_data::MAXIMUM_DATA_TEXT_BYTES;
+
 pub const DURABLE_TEXT_SAVE_IMPLEMENTATION: &str = "std/file-data-save-text@1";
 pub const DURABLE_TEXT_LOAD_IMPLEMENTATION: &str = "std/file-data-load-text@1";
 pub const DURABLE_TEXT_ARTIFACT: &str = "conduit-std-host/file-text-generations@1";
@@ -11,6 +19,16 @@ pub const DURABLE_TEXT_RESIDENCE: &str = "std/selected-file-snapshot@1";
 pub const DURABLE_TEXT_PUBLISH_CALL: &str = "conduit.host/resource-snapshot-publish@1";
 pub const DURABLE_TEXT_READ_CALL: &str = "conduit.host/resource-snapshot-read@1";
 pub const DURABLE_TEXT_AUTHORITY: &str = "authority/resource-snapshot@1";
+
+/// Pure semantic metadata shared with fabrication. No content identity,
+/// directory, initialized provider or authority is created here.
+pub fn durable_text_contract(write: bool) -> Kind {
+    if write {
+        conduit_data::data_save_text_contract()
+    } else {
+        conduit_data::data_load_text_contract()
+    }
+}
 
 /// The caller selects one exact content identity and generation before Plan.
 /// The reference is descriptive; publication still requires current authority.
@@ -31,18 +49,11 @@ pub fn durable_text_offer(
         return Err("durable Text requires one finite immutable generation");
     }
     let write = content.access == ResourceAccessMode::WriteCandidatePublish;
-    let (contract, implementation, call) = if write {
-        (
-            conduit_data::data_save_text_contract(),
-            DURABLE_TEXT_SAVE_IMPLEMENTATION,
-            DURABLE_TEXT_PUBLISH_CALL,
-        )
+    let contract = durable_text_contract(write);
+    let (implementation, call) = if write {
+        (DURABLE_TEXT_SAVE_IMPLEMENTATION, DURABLE_TEXT_PUBLISH_CALL)
     } else {
-        (
-            conduit_data::data_load_text_contract(),
-            DURABLE_TEXT_LOAD_IMPLEMENTATION,
-            DURABLE_TEXT_READ_CALL,
-        )
+        (DURABLE_TEXT_LOAD_IMPLEMENTATION, DURABLE_TEXT_READ_CALL)
     };
     let kind = contract.kind_id.clone();
     Ok(BackOfferBuilder::new(

@@ -5,6 +5,7 @@
 //! pixels. Only then does its Show Fore become available for typed input.
 
 use alloc::string::{String, ToString};
+use conduit_conduitos_mask_offer::{Adapter, MaskStage, prepare_stage};
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_face::{
     Face, FaceInteraction, FaceRole, MaskInteractionCorrelation, MaskShow, RemoteOwnerMaskRouteSeal,
@@ -13,11 +14,13 @@ use conduit_human::{KeyEvent, KeyTransition};
 
 use crate::{
     display::PixelTarget,
-    mask_control::{Adapter, MaskStage, prepare_stage},
     native_compositor::{CompositionReceipt, CompositorAdmission, InputRoute, NativeCompositor},
     native_face_scene::{FaceFocusRequest, FaceSceneError, FaceSceneInput, NativeFaceScene},
     native_face_snapshot::{FaceSnapshotReceipt, FaceSnapshotRefusal},
-    native_mask_play::{NativeMaskInteractionSession, NativeMaskPlayError, PreparedNativeMaskPlay},
+    native_mask_play::{
+        NativeMaskBackingReceipt, NativeMaskInteractionSession, NativeMaskPlayError,
+        PreparedNativeMaskPlay, RetainedNativeMaskStorage, RetiredNativeMaskEvidence,
+    },
     native_surface_provider::NativeSurfaceProvider,
 };
 
@@ -30,6 +33,8 @@ mod input;
 #[path = "native_face_mask/scanout.rs"]
 mod scanout;
 
+#[path = "native_face_mask/backing.rs"]
+mod backing;
 #[path = "native_face_mask/preparation.rs"]
 mod preparation;
 
@@ -112,6 +117,8 @@ pub struct NativeFaceMask {
     scene: Option<NativeFaceScene>,
     input_refusal: Option<FaceSceneError>,
     session: Option<NativeMaskInteractionSession>,
+    retained_backing: bool,
+    retained_storage: Option<RetainedNativeMaskStorage>,
     publication: Option<FaceSnapshotReceipt>,
     surface_admitted: bool,
     interaction_admitted: bool,
@@ -205,6 +212,9 @@ impl NativeFaceMask {
     /// Release the arrival surface before the Body's ordinary presenter takes
     /// the finite display. No pending Show remains after this transition.
     pub fn suspend(&mut self) -> Result<(), NativeFaceMaskError> {
+        if self.retained_backing && self.session.is_some() {
+            return Err(NativeFaceMaskError::Mask(NativeMaskPlayError::Pressure));
+        }
         if let Some(session) = self.session.take() {
             session
                 .close_without_input()
@@ -282,6 +292,9 @@ impl NativeFaceMask {
         interaction_admitted: bool,
         plot_owner_subject: Option<&str>,
     ) -> Result<CompositionReceipt, NativeFaceMaskError> {
+        if self.retained_backing && (self.session.is_some() || self.retained_storage.is_none()) {
+            return Err(NativeFaceMaskError::Mask(NativeMaskPlayError::Pressure));
+        }
         let interaction_admitted = interaction_admitted && self.local_input_available;
         self.input_refusal = None;
         let format = display.format().validate().map_err(|error| {
@@ -343,15 +356,32 @@ impl NativeFaceMask {
             .producer
             .forward(face, observation_sequence, play_sequence)
             .map_err(NativeFaceMaskError::Producer)?;
-        let pending = PreparedNativeMaskPlay::prepare_with_profile(
-            &self.mask.planned_mask,
-            &published.face,
-            play_sequence,
-            &front_subject,
-            &self.surface_id,
-            self.display_base_id.clone(),
-            self.producer.storage_profile(),
-        )
+        let pending = if self.retained_backing {
+            let storage = self
+                .retained_storage
+                .take()
+                .ok_or(NativeFaceMaskError::Mask(NativeMaskPlayError::Pressure))?;
+            PreparedNativeMaskPlay::prepare_with_storage(
+                &self.mask.planned_mask,
+                &published.face,
+                play_sequence,
+                &front_subject,
+                &self.surface_id,
+                self.display_base_id.clone(),
+                self.producer.storage_profile(),
+                storage,
+            )
+        } else {
+            PreparedNativeMaskPlay::prepare_with_profile(
+                &self.mask.planned_mask,
+                &published.face,
+                play_sequence,
+                &front_subject,
+                &self.surface_id,
+                self.display_base_id.clone(),
+                self.producer.storage_profile(),
+            )
+        }
         .map_err(NativeFaceMaskError::Mask)?;
         let request = pending.renderer_request();
         let bounds = conduit_face::LayoutRect {

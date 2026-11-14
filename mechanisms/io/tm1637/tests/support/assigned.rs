@@ -7,21 +7,29 @@ use conduit_plan_lowering::selected_assigned_operation::{
 use conduit_tm1637_wire::installation::*;
 #[test]
 fn assigned_output_preserves_slot_on_refusal_then_transfers_and_writes() {
-    assigned_output_control(false, false);
+    assigned_output_control(false, false, false);
 }
 #[test]
 fn borrowed_assignment_preserves_slot_then_transfers_and_writes() {
-    assigned_output_control(true, false);
+    assigned_output_control(true, false, false);
 }
 #[test]
 fn local_fore_assignment_preserves_slot_then_transfers_and_writes() {
-    assigned_output_control(false, true);
+    assigned_output_control(false, true, false);
 }
 #[test]
 fn borrowed_local_fore_preserves_slot_then_transfers_and_writes() {
-    assigned_output_control(true, true);
+    assigned_output_control(true, true, false);
 }
-fn assigned_output_control(borrowed: bool, fore: bool) {
+#[test]
+fn prepared_output_retains_provider_until_allocation_free_bind() {
+    assigned_output_control(false, false, true);
+}
+#[test]
+fn prepared_fore_output_retains_provider_until_allocation_free_bind() {
+    assigned_output_control(false, true, true);
+}
+fn assigned_output_control(borrowed: bool, fore: bool, deferred: bool) {
     let state = Rc::new(State::default());
     let mut slot = Some(installation::ready(state.clone()));
     let (mut fragment, _, _, _) = fixture::selected();
@@ -40,7 +48,10 @@ fn assigned_output_control(borrowed: bool, fore: bool) {
             placement_id: gear.placement_id.clone(),
             gear_port_id: port.port_id.clone(),
             value_kind: port.value_kind.clone(),
-            value_contract: None,
+            value_contract: gear
+                .checked_port_front()
+                .value_contract(&FrontValueLocation::Input(port.port_id.clone()))
+                .cloned(),
             abnormal_kind: None,
             track: ConnectionTrack::Payload,
             temporal: port.temporal,
@@ -141,8 +152,8 @@ fn assigned_output_control(borrowed: bool, fore: bool) {
             maximum_total_text_bytes: 32768,
             requirements: &[],
         },
-        fragment_id: &fragment.fragment_id,
-        active,
+        fragment_id: fragment.fragment_id.as_str(),
+        scope: conduit_plan_lowering::assigned_play_scope::AssignedPlayScope::Plot(active),
         node: lowered.nodes[0].node,
     };
     let contract = WriteContract::prepare().unwrap();
@@ -176,6 +187,36 @@ fn assigned_output_control(borrowed: bool, fore: bool) {
         scope.authority_contract_id = WRITE_AUTHORITY.into();
         fixture::authorization(scope, fragment, &active)
     };
+    // Complete native preparation alone must not withdraw the provider: another
+    // member of the workset can still refuse before atomic Core admission.
+    let (table, handle, claim) = issue();
+    let prepared = if let Some(image) = &fore_image {
+        ReadyWriteBase::prepare_assigned_fore_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &contract,
+            SelectedAssignedForeOperationPlan {
+                operation: selected(&active),
+                fore: image.fore(),
+            },
+        )
+    } else {
+        ReadyWriteBase::prepare_assigned_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &contract,
+            selected(&active),
+        )
+    }
+    .unwrap();
+    assert_eq!(prepared.node(), lowered.nodes[0].node);
+    drop(prepared);
+    assert!(slot.is_some());
+    assert_eq!(state.edges.get(), 0);
     if let Some(image) = &fore_image {
         let (table, _, claim) = issue();
         assert!(slot
@@ -207,6 +248,16 @@ fn assigned_output_control(borrowed: bool, fore: bool) {
         assert!(slot.is_some());
         assert_eq!(state.edges.get(), 0);
     }
+    // Existing selected-possession checks reject a revoked table before
+    // bound-operation construction and before withdrawing the provider.
+    let (mut table, handle, claim) = issue();
+    table.revoke(&handle).unwrap();
+    assert!(matches!(
+        bind(&mut slot, table, handle, claim, &active),
+        Err(WriteCallRefusal::Possession)
+    ));
+    assert!(slot.is_some());
+    assert_eq!(state.edges.get(), 0);
     let mut foreign = active.clone();
     foreign.boot_id = "stale/boot".into();
     let (table, handle, claim) = issue();
@@ -219,7 +270,36 @@ fn assigned_output_control(borrowed: bool, fore: bool) {
     assert!(slot.is_some());
     assert_eq!(state.edges.get(), 0);
     let (table, handle, claim) = issue();
-    let mut owner = bind(&mut slot, table, handle, claim, &active).unwrap();
+    let mut owner = if deferred {
+        let prepared = if let Some(image) = &fore_image {
+            ReadyWriteBase::prepare_assigned_fore_retained(
+                &mut slot,
+                table,
+                handle,
+                claim,
+                &contract,
+                SelectedAssignedForeOperationPlan {
+                    operation: selected(&active),
+                    fore: image.fore(),
+                },
+            )
+        } else {
+            ReadyWriteBase::prepare_assigned_retained(
+                &mut slot,
+                table,
+                handle,
+                claim,
+                &contract,
+                selected(&active),
+            )
+        }
+        .unwrap();
+        let (owner, memory) = allocation_probe::observe(|| prepared.bind());
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+        owner
+    } else {
+        bind(&mut slot, table, handle, claim, &active).unwrap()
+    };
     assert!(slot.is_none());
     assert_eq!(state.edges.get(), 0);
     let (table, handle, claim) = issue();

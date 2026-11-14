@@ -125,4 +125,29 @@ mod tests {
         .is_err());
         assert!(oversized.0.is_empty());
     }
+    #[test]
+    fn admitted_standard_logical_frame_assembles_with_actual_hosted_client_bounds() {
+        // Exact complete-message extent, while every physical chunk stays small.
+        // Matches wire::document's 128 KiB / 32-chunk hosted receiver; it does
+        // not claim that receiver supports the larger Collection profile.
+        let value = serde_json::Value::String("x".repeat(MAX_OWNER_DOCUMENT_BYTES - 2));
+        assert_eq!(
+            serde_json::to_vec(&value).unwrap().len(),
+            MAX_OWNER_DOCUMENT_BYTES
+        );
+        let mut frames = Frames::default();
+        send(&mut frames, &value).unwrap();
+        let mut assembly = BoundedDocumentAssembly::new(128 * 1024, 32);
+        assert!(frames.0.len() <= 32);
+        for (index, frame) in frames.0.iter().enumerate() {
+            assert!(frame.len() <= MAX_NATIVE_FRAME_BYTES);
+            assert_eq!(assembly.push(frame).unwrap(), index + 1 == frames.0.len());
+        }
+        let (document, _) = assembly.completed().unwrap();
+        assert_eq!(document.len(), MAX_OWNER_DOCUMENT_BYTES);
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(document).unwrap(),
+            value
+        );
+    }
 }

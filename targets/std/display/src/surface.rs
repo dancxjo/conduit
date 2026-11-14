@@ -8,6 +8,9 @@ pub struct Surface {
     live: bool,
 }
 impl Surface {
+    pub fn backing_bytes(&self) -> usize {
+        self.bytes.capacity()
+    }
     pub fn prepare(width: u32, height: u32) -> Result<Self, &'static str> {
         let format = DisplayFormat {
             width,

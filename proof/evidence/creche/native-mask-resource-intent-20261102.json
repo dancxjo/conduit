@@ -1,0 +1,52 @@
+{
+  "source_commit": "cf5645fb7e",
+  "scope": "CPU construction, initialized CPU-driver resource custody and actual native Mask pixel commit; no physical SDL/KMSDRM or Threebee deployment",
+  "tests": [
+    {
+      "package": "conduitos",
+      "features": [],
+      "filter": "native_surface_provider",
+      "passed": 6
+    },
+    {
+      "package": "conduitos",
+      "features": [
+        "native-compositor-core"
+      ],
+      "filter": "native_surface_provider",
+      "passed": 7
+    },
+    {
+      "package": "conduit-workspace-make",
+      "target": "lib",
+      "passed": 6
+    }
+  ],
+  "strict": {
+    "libraries_passed": [
+      "conduitos",
+      "conduit-conduitos-mask-offer",
+      "conduit-workspace-make"
+    ],
+    "features": [
+      "conduitos/native-compositor"
+    ],
+    "warnings_denied": true,
+    "integration_test_attempt": "stopped on ENOSPC; not a passing integration check"
+  },
+  "source_sha256": {
+    "targets/conduitos/src/native_surface_provider.rs": "b202b58adc5fec4abd5c4cda0b6e43724f9de68193515198f53d3e2f4e1fe128",
+    "targets/conduitos/src/native_surface_provider/tests.rs": "be8d47fddaf611fc7e3c00d0d27c6bb6040e6b4b67731562bc420215ee12b356",
+    "targets/conduitos/src/native_surface_possession.rs": "7abbe3a4dc014b765d0102f00127430fc3daeabb4d007979df1a3526bc2cdcad",
+    "targets/conduitos/mask-offer/src/lib.rs": "2f4e814aaa2c0d9dc9550975271f8dea9d7bf47e290c9d156b6ff023f729e82b",
+    "mechanisms/implementations/linear-framebuffer-make/src/native_mask_initialization.rs": "f269d0fd14711f1a59a1d1b87e50ee8cd8a723cfc1ecfb29874df6f9fa61330c",
+    "mechanisms/implementations/linear-framebuffer-make/src/lib.rs": "11543d360846d557c2dda2cf6e05d7eb451340f746ebd7c6a0a6597fc05c0a47",
+    "make/workspace/src/graphical_host_tests.rs": "2e281cf59f3147fc46a5b563f686bf879d9670f5b2edba9a7ca1379c6f56faa1"
+  },
+  "actual_ready_mask_on_threebee": false,
+  "remaining": [
+    "Initialize selected Mask and retain declared backing custody",
+    "Authenticated current-member Face route and bounded foreground poll",
+    "Actual feature-selected AArch64 release, Body-made Seed and physical display verification"
+  ]
+}

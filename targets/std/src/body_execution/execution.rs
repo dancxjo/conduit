@@ -35,6 +35,8 @@ impl StdHost {
             terminal,
             None,
             started,
+            None,
+            None,
         )
     }
 
@@ -61,12 +63,50 @@ impl StdHost {
         terminal: Option<parsec_terminal::ParsecTerminalAttachment<'a>>,
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
         mut started: F,
+        mut image_result: Option<&mut Option<crate::kernel_preparation::ImageMemoryLease>>,
+        issuing_scope: Option<&issuing_host::IssuingHostScope<'_>>,
     ) -> Result<BodyRunReport, String>
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
+        let selected_memory = image_result.is_some();
+        if issuing_scope.is_some()
+            && (request.keyboard.is_some()
+                || live.is_some()
+                || checkpoint.is_some()
+                || terminal.is_some()
+                || creche.is_some())
+        {
+            return Err("issued Host-local profile does not support encounter attachments".into());
+        }
+        if selected_memory
+            && (request.keyboard.is_some()
+                || request.plan.body_time_requirement.is_some()
+                || correlation.is_some()
+                || execution_bounds.is_some()
+                || live.is_some()
+                || checkpoint.is_some()
+                || terminal.is_some()
+                || creche.as_ref().is_some_and(|owner| !owner.image_prepared()))
+        {
+            return Err("selected IMAGE owned-memory profile supports qualified finite local Backs only; keyboard/activation/BodyTime attachments unsupported".into());
+        }
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         let prospective_play = self.prospective_body_play(request.wake, request.plan)?;
+        if let Some(scope) = issuing_scope {
+            scope.recheck(&request, &prospective_play, &self.advertisement)?;
+        }
+        let whole_plans = if issuing_scope.is_none() {
+            request
+                .plan
+                .plots
+                .iter()
+                .map(|part| &part.plan)
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        let execution_plans = issuing_scope.map_or(whole_plans.as_slice(), |scope| scope.plans());
         let admitted_clock_quality = if let Some(requirement) = &request.plan.body_time_requirement
         {
             let correlation = correlation.ok_or_else(|| {
@@ -95,10 +135,42 @@ impl StdHost {
         // Bind the prospective identity without consuming the sequence. The
         // exact child pool must be prepared and correlated before Play start;
         // a preparation refusal leaves the Host sequence untouched.
+        let fragments = execution_plans
+            .iter()
+            .flat_map(|plan| plan.fragments.iter());
+        if selected_memory {
+            self.kernel_resources.preflight_image_shape(fragments)?;
+        } else {
+            self.kernel_resources.preflight_image_workset(fragments)?;
+        }
+        let mut prepared_lifecycle = if selected_memory && issuing_scope.is_some() {
+            let terminal_sequence = self
+                .next_kernel_sign_sequence
+                .max(issuing_host::FIRST_LOCAL_SIGN_SEQUENCE)
+                .checked_add(1)
+                .ok_or("Host Sign sequence exhausted")?;
+            Some((
+                request.wake.clone(),
+                bind_sign(
+                    &self.advertisement.host_id,
+                    &self.advertisement.boot_id,
+                    Some(&prospective_play.active_play_id),
+                    terminal_sequence,
+                ),
+            ))
+        } else if selected_memory {
+            Some(image::prepare_lifecycle(
+                &request,
+                &prospective_play,
+                &self.advertisement,
+            )?)
+        } else {
+            None
+        };
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
         let mut kernel = if let Some((queue, _)) = &live {
             BodyKernel::prepare_live_on_host(
-                &request.plan.plots,
+                execution_plans,
                 request.keyboard.is_some(),
                 &prospective_play.active_play_id,
                 queue,
@@ -109,13 +181,23 @@ impl StdHost {
             )?
         } else {
             BodyKernel::prepare_on_host(
-                &request.plan.plots,
+                execution_plans,
                 request.keyboard.is_some(),
                 &prospective_play.active_play_id,
                 fore_inputs,
                 sequential_fore,
                 has_fore_output,
                 &self.advertisement,
+                self.native_source.as_mut().map(|owner| {
+                    crate::installed_std::body_kernel::NativeBodySource {
+                        owner,
+                        registry: &self.base_registry,
+                        host: &self.advertisement,
+                        wake: request.wake,
+                        plan: request.plan,
+                        play: &prospective_play,
+                    }
+                }),
                 #[cfg(target_os = "linux")]
                 self.selected_text_file.as_ref(),
             )?
@@ -136,23 +218,60 @@ impl StdHost {
             kernel.attach_creche(owner, request.plan, &prospective_play, &self.advertisement)?;
         }
         kernel.require_supported_execution()?;
-        let reservations = self.kernel_resources.prepare_and_reserve_plans(
-            &self.advertisement,
-            &request
-                .plan
-                .plots
-                .iter()
-                .map(|part| (&part.plan, false))
-                .collect::<Vec<_>>(),
-        )?;
+        let plans = execution_plans
+            .iter()
+            .map(|plan| (*plan, false))
+            .collect::<Vec<_>>();
+        let (reservations, mut memory_lease) = if let Some((wake, sign)) = &prepared_lifecycle {
+            let lifecycle = crate::installed_std::body_kernel::memory::lifecycle_bytes(
+                &prospective_play,
+                wake,
+                sign,
+            )?;
+            let receipt = kernel.prepare_memory(
+                timer,
+                &self.advertisement.host_id,
+                &self.advertisement.boot_id,
+                lifecycle,
+            )?;
+            let (reservations, lease) =
+                self.kernel_resources
+                    .reserve_body_memory(&self.advertisement, &plans, &receipt)?;
+            kernel.attach_image_memory(&lease);
+            (reservations, Some(lease))
+        } else {
+            (
+                self.kernel_resources
+                    .prepare_and_reserve_plans(&self.advertisement, &plans)?,
+                None,
+            )
+        };
+        drop(plans);
+        drop(whole_plans);
         let result = (|| {
             let sequence = self.next_kernel_play_sequence;
-            self.next_kernel_play_sequence = sequence
+            let next_play = sequence
                 .checked_add(1)
                 .ok_or_else(|| "Body Play sequence exhausted".to_string())?;
             let play = prospective_play;
             if play.play_sequence != sequence {
                 return Err("Body prospective Play identity changed before start".into());
+            }
+            let local_signs = if issuing_scope.is_some() {
+                // Global lifecycle owns ordinals 0/1/2 for this parent Play.
+                // Reserve distinct local evidence from the ordinary Host cursor;
+                // never recycle it after a callback or effect uncertainty.
+                let first = self
+                    .next_kernel_sign_sequence
+                    .max(issuing_host::FIRST_LOCAL_SIGN_SEQUENCE);
+                let next = first.checked_add(2).ok_or("Host Sign sequence exhausted")?;
+                Some((first, next))
+            } else {
+                None
+            };
+            self.next_kernel_play_sequence = next_play;
+            if let Some((_, next)) = local_signs {
+                self.next_kernel_sign_sequence = next;
             }
             kernel.confirm_input_play(&self.advertisement, &play)?;
             // Body lifecycle signs are scoped by this unique admitted Play.
@@ -167,11 +286,22 @@ impl StdHost {
                     sequence,
                 )
             };
-            let wake_at_start = request
-                .wake
-                .body_plan_ready(request.plan, sign(0).sign_id)
-                .and_then(|wake| wake.body_play_started(request.plan, &play, sign(1).sign_id))
-                .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
+            let (wake_at_start, prepared_terminal_sign) = if let Some(prepared) =
+                prepared_lifecycle.take()
+            {
+                prepared
+            } else if let Some((first, _)) = local_signs {
+                // Preserve the original Wake unchanged: local kernel evidence
+                // never manufactures global Ready/Playing or settlement.
+                (request.wake.clone(), sign(first + 1))
+            } else {
+                let wake_at_start = request
+                    .wake
+                    .body_plan_ready(request.plan, sign(0).sign_id)
+                    .and_then(|wake| wake.body_play_started(request.plan, &play, sign(1).sign_id))
+                    .map_err(|error| format!("Body start lifecycle: {error:?}"))?;
+                (wake_at_start, sign(2))
+            };
             if let Err(error) = started(&play, &wake_at_start) {
                 if let Some(queue) = live_queue {
                     queue.mark_play_terminal();
@@ -184,7 +314,7 @@ impl StdHost {
             if let Some(queue) = live_queue {
                 queue.mark_play_started();
             }
-            let terminal_sign = sign(2);
+            let terminal_sign = prepared_terminal_sign;
             let fore_output = if let Some((_, adapter)) = live {
                 Some(adapter)
             } else {
@@ -250,6 +380,14 @@ impl StdHost {
                 release_errors.push(error);
             }
         }
-        finish_body_release(result, release_errors)
+        let result = finish_body_release(result, release_errors);
+        if let (Some(slot), Some(mut lease), Ok(report)) =
+            (image_result.as_mut(), memory_lease.take(), result.as_ref())
+        {
+            let bytes = crate::installed_std::body_kernel::memory::result_bytes(report)?;
+            lease.retain_result(bytes);
+            **slot = Some(lease);
+        }
+        result
     }
 }

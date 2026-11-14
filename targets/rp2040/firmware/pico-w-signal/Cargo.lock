@@ -343,6 +343,7 @@ dependencies = [
  "portable-atomic-util",
  "postcard",
  "serde",
+ "serde-json-core",
  "serde_json",
  "sha2",
 ]
@@ -403,11 +404,16 @@ dependencies = [
 name = "conduit-embedded-build"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "conduit-wire",
+ "miniz_oxide",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -588,6 +594,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-resource-snapshot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
 name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
@@ -622,11 +635,13 @@ dependencies = [
  "conduit-education",
  "conduit-face",
  "conduit-human",
+ "conduit-kernel",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
  "conduit-process",
  "conduit-purpose",
+ "conduit-resource-snapshot",
  "conduit-robotics",
  "conduit-text",
  "conduit-time",
@@ -739,6 +754,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+ "sha2",
 ]
 
 [[package]]

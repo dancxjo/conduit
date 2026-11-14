@@ -74,12 +74,27 @@ pub fn prepare_stage_from_offer(
     prepare_stage_for_profile(adapter, advertisement, NativeMaskStorageProfile::Standard)
 }
 
+/// Plan the ordinary native Mask using an explicitly checked storage selection
+/// and the actual Host offer. This never changes the Host profile or infers a
+/// larger storage profile from a historical label.
+pub fn prepare_native_stage_with_profile(
+    advertisement: &HostAdvertisement,
+    profile: NativeMaskStorageProfile,
+) -> Result<MaskStage, MaskOfferError> {
+    prepare_stage_for_profile(Adapter::Native, advertisement, profile)
+}
+
 fn prepare_stage_for_profile(
     adapter: Adapter,
     advertisement: &HostAdvertisement,
     profile: NativeMaskStorageProfile,
 ) -> Result<MaskStage, MaskOfferError> {
-    profile.admit_host(advertisement, "renderer-conduitos")?;
+    match adapter {
+        Adapter::Native => {
+            profile.admit_native_implementation_profile(advertisement, "renderer-conduitos")?
+        }
+        Adapter::Speech => profile.admit_host(advertisement, "renderer-conduitos")?,
+    }
     let mut catalog = ProfileCatalog::new();
     for projection in [
         renderer_kind_projection(),
@@ -444,8 +459,24 @@ mod tests {
             );
         }
 
+        // The Host's general profile does not select its initialized Mask closure.
+        let mut other_host_profile = offer.clone();
+        other_host_profile.profile = "conduitos/other".into();
+        assert_eq!(
+            prepare_stage_from_offer(Adapter::Native, &other_host_profile)
+                .unwrap()
+                .planned_mask,
+            owner
+        );
+
+        // An incompatible execution profile in that closure must still refuse.
         let mut wrong_profile = offer;
-        wrong_profile.profile = "conduitos/other".into();
+        let renderer = wrong_profile
+            .capabilities
+            .iter_mut()
+            .find(|offer| offer.capability_id.as_str() == "renderer-conduitos")
+            .unwrap();
+        renderer.implementation.execution_profile_id = "conduitos/other".into();
         assert!(prepare_stage_from_offer(Adapter::Native, &wrong_profile).is_err());
     }
 }

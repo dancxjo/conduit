@@ -139,3 +139,70 @@ fn queued(
     }
     panic!("injected observation absent after finite queue inspections")
 }
+
+/// Output lifetime remains observable without making keyboard input Ready.
+pub(crate) fn output_lifecycle(scanout: &mut Scanout<'_>, sdl: &sdl2::Sdl) {
+    let token = scanout.initialized_display().unwrap();
+    let mut pump = sdl.event_pump().unwrap();
+    pump.poll_iter().for_each(drop);
+    let queue = sdl.event().unwrap();
+    for bound in [0, 257] {
+        assert_eq!(
+            scanout.poll_output_lifecycle(&mut pump, bound),
+            Err(NativeInputRefusal::InvalidBound)
+        );
+    }
+    // No keyboard capability was selected: even an invalid key is discarded.
+    queue
+        .push_event(Event::KeyDown {
+            timestamp: 0,
+            window_id: token.window_id(),
+            keycode: None,
+            scancode: None,
+            keymod: Mod::NOMOD,
+            repeat: false,
+        })
+        .unwrap();
+    queue
+        .push_event(Event::Window {
+            timestamp: 0,
+            window_id: token.window_id().wrapping_add(1),
+            win_event: WindowEvent::Close,
+        })
+        .unwrap();
+    for _ in 0..4 {
+        assert!(matches!(
+            scanout.poll_output_lifecycle(&mut pump, 1),
+            Ok(NativeInput::Idle | NativeInput::Pending)
+        ));
+    }
+    assert!(token.is_live());
+    assert_eq!(
+        scanout.poll_input(&mut pump, 1),
+        Err(NativeInputRefusal::NotPrepared)
+    );
+    queue
+        .push_event(Event::Window {
+            timestamp: 0,
+            window_id: token.window_id(),
+            win_event: WindowEvent::Close,
+        })
+        .unwrap();
+    let mut closed = false;
+    for _ in 0..4 {
+        match scanout.poll_output_lifecycle(&mut pump, 1) {
+            Ok(NativeInput::Quit) => {
+                closed = true;
+                break;
+            }
+            Ok(NativeInput::Idle | NativeInput::Pending) => {}
+            other => panic!("unexpected lifecycle observation: {other:?}"),
+        }
+    }
+    assert!(closed);
+    assert!(!token.is_live());
+    assert_eq!(
+        scanout.poll_output_lifecycle(&mut pump, 1),
+        Err(NativeInputRefusal::Lost)
+    );
+}

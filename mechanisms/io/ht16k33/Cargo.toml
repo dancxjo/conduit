@@ -1,0 +1,23 @@
+[package]
+name = "conduit-ht16k33"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+[workspace]
+[features]
+default = []
+canonical-frame = ["dep:conduit-core", "dep:conduit-plot"]
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core", optional = true }
+embedded-hal = "=1.0.0"
+embedded-hal-async = "=1.0.0"
+
+[build-dependencies]
+conduit-core = { path = "../../../architecture/core", optional = true }
+conduit-plot = { path = "../../../architecture/plot", optional = true }
+
+[[test]]
+name = "canonical_frame"
+required-features = ["canonical-frame"]

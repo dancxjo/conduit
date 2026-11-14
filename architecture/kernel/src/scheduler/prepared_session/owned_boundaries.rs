@@ -11,6 +11,19 @@ pub struct OwnedValueBoundary {
     pub endpoint: RemoteEndpointId,
 }
 
+pub(super) fn has_external(cords: &[CordSpec]) -> bool {
+    cords
+        .iter()
+        .any(|cord| cord.source_local().is_none() || cord.sink_local().is_none())
+}
+/// Only full assigned preparation can classify local Fore. Its owned Value
+/// sequencing remains independent from actual Line lifecycle Sign custody.
+pub(super) fn requires_line_signs(cords: &[CordSpec]) -> bool {
+    cords.iter().any(|cord| {
+        !cord.is_local_fore() && (cord.source_local().is_none() || cord.sink_local().is_none())
+    })
+}
+
 pub(super) fn exact(cords: &[CordSpec], boundaries: &[OwnedValueBoundary]) -> bool {
     if boundaries.len() > cords.len() {
         return false;
@@ -42,6 +55,23 @@ pub(super) fn exact(cords: &[CordSpec], boundaries: &[OwnedValueBoundary]) -> bo
     })
 }
 
+pub(super) fn optional_outputs_exact(
+    cords: &[CordSpec],
+    boundaries: &[OwnedValueBoundary],
+    optional: &[OwnedValueBoundary],
+) -> bool {
+    optional.len() <= boundaries.len() && optional.iter().enumerate().all(|(index, output)| {
+        boundaries.contains(output)
+            && !optional[..index].iter().any(|prior| prior.cord == output.cord)
+            && cords.get(usize::from(output.cord.0)).is_some_and(|cord|
+                matches!((cord.source, cord.sink),
+                    (CordEndpoint::Local { .. }, CordEndpoint::Remote(endpoint)) if endpoint == output.endpoint))
+    })
+}
+pub(super) fn sequence_completed(start: u64, actual: u64, optional: bool) -> bool {
+    (optional && actual == start) || start.checked_add(1) == Some(actual)
+}
+
 impl<
         D,
         S,
@@ -54,16 +84,23 @@ impl<
         const T: usize,
         const H: usize,
         const A: usize,
-    > PreparedKernelSession<D, S, E, N, C, P, Q, R, T, H, A>
+        const TERMINAL_ROWS: usize,
+        const PHASE_BYTES: usize,
+    > PreparedKernelSession<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
 where
     D: ReusableStepBack<P>,
     S: ValueStorage,
     E: SignSink + SignQuery,
 {
+    pub fn optional_output_storage_bytes(&self) -> usize {
+        if self.optional_outputs.is_some() {
+            Self::optional_output_storage_requirement()
+        } else {
+            0
+        }
+    }
     fn owned_io(&self) -> Result<(), SchedulerError> {
-        if self.remote_sign_reservation == 0
-            || !matches!(self.phase, Phase::Prepared | Phase::Active)
-        {
+        if !self.has_owned_boundaries || !matches!(self.phase, Phase::Prepared | Phase::Active) {
             return Err(SchedulerError::InvalidRemoteCordAccess);
         }
         Ok(())
@@ -96,12 +133,12 @@ where
         // One Value per declared input in each invocation. A subsequent Value
         // is pressured until an explicit acknowledged drain and rearm; it is
         // never smuggled into an already consumed Value input queue.
-        if sequence == self.owned_value_index + 1
+        if self.owned_sequence(index).checked_add(1) == Some(sequence)
             && self.kernel.cords[index].next_remote_sequence == sequence
         {
             return Ok(RemoteIngressOutcome::Full { sequence });
         }
-        if sequence != self.owned_value_index {
+        if sequence != self.owned_sequence(index) {
             return self.observe_io(Err(SchedulerError::RemoteSequenceRejected));
         }
         let result = self
@@ -124,7 +161,9 @@ where
         {
             return self.observe_io(Err(SchedulerError::InvalidRemoteCordAccess));
         }
-        if self.kernel.cords[index].next_remote_sequence != self.owned_value_index + 1 {
+        if self.owned_sequence(index).checked_add(1)
+            != Some(self.kernel.cords[index].next_remote_sequence)
+        {
             return self.observe_io(Err(SchedulerError::ValueOwnershipViolation));
         }
         let result = self.kernel.close_remote_input(endpoint, cord);
@@ -136,11 +175,14 @@ where
         cord: CordId,
     ) -> Result<Option<RemoteValueOffer>, SchedulerError> {
         self.owned_io()?;
+        let index = usize::from(cord.0);
+        if index >= self.kernel.active_cords {
+            return self.observe_io(Err(SchedulerError::InvalidRemoteCordAccess));
+        }
         let result = self.kernel.remote_egress_offer(endpoint, cord);
-        if result
-            .as_ref()
-            .is_ok_and(|offer| offer.is_some_and(|offer| offer.sequence != self.owned_value_index))
-        {
+        if result.as_ref().is_ok_and(|offer| {
+            offer.is_some_and(|offer| offer.sequence != self.owned_sequence(index))
+        }) {
             return self.observe_io(Err(SchedulerError::RemoteSequenceRejected));
         }
         self.observe_io(result)
@@ -154,7 +196,11 @@ where
         sequence: u64,
     ) -> Result<(), SchedulerError> {
         self.owned_io()?;
-        if sequence != self.owned_value_index {
+        let index = usize::from(cord.0);
+        if index >= self.kernel.active_cords {
+            return self.observe_io(Err(SchedulerError::InvalidRemoteCordAccess));
+        }
+        if sequence != self.owned_sequence(index) {
             return self.observe_io(Err(SchedulerError::RemoteSequenceRejected));
         }
         let result = self
@@ -170,3 +216,6 @@ where
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod optional_output_tests;

@@ -46,6 +46,8 @@ fn admitted_terminal_controls_the_same_running_thermostat_and_rejects_stale_show
             "host/thermostat-terminal",
         )
         .unwrap();
+    let receipt =
+        crate::durable_host::owner::MemberPresentationBasis::from_admission(&receipt).unwrap();
     let credential = &receipt.credential;
     let request = OwnerFaceSnapshotRequest {
         schema: conduit_face::OWNER_FACE_REQUEST_SCHEMA.into(),

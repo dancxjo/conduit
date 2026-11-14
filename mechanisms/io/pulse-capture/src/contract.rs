@@ -40,13 +40,35 @@ impl PulseReadContract {
         let output = port("result", &result, PortDirection::Output)?;
         let kind = Kind {
             kind_id: kind_id(PULSE_READ_KIND),
-            kind_contract_revision: "machine/pulse/read@1".into(),
+            kind_contract_revision: "machine/pulse/read@2".into(),
             startup_parameters: vec![],
             shorthand: Some((input.port_id.clone(), output.port_id.clone())),
             inputs: vec![input],
             outputs: vec![output],
             configuration: vec![],
-            semantic_laws: vec![],
+            // These canonical items cross ordinary Cords as well as the
+            // native Host Call. The Host Call's storage limit alone does not
+            // bound a planner's default queue selection.
+            semantic_laws: vec![conduit_core::KindSemanticLaw::ValueContracts(vec![
+                conduit_core::FrontValueContract {
+                    location: conduit_core::FrontValueLocation::Input(port_id("request")),
+                    contract: conduit_core::CheckedValueContract::new(
+                        request.profile()?.value_kind().clone(),
+                        fixed_value_bound(&request)?,
+                        vec![],
+                    )
+                    .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?,
+                },
+                conduit_core::FrontValueContract {
+                    location: conduit_core::FrontValueLocation::Output(port_id("result")),
+                    contract: conduit_core::CheckedValueContract::new(
+                        result.profile()?.value_kind().clone(),
+                        fixed_value_bound(&result)?,
+                        vec![],
+                    )
+                    .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?,
+                },
+            ])],
             limits: CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 1,
@@ -95,4 +117,28 @@ impl PulseReadContract {
             .map_err(|e| alloc::format!("pulse profile: {e:?}"))?;
         Ok(())
     }
+}
+
+// These schemas contain only fixed-width integers and Empty; both codec sides
+// enforce those exact primitive widths. Unknown leaf owners refuse this proof.
+pub(crate) fn fixed_value_bound(ty: &StructuredInfoType) -> Result<u32, StructuredInfoRefusal> {
+    let bound = ty
+        .canonical_value_upper_bound(|kind| {
+            let primitive = conduit_core::primitive_info_kind(kind.as_str())?;
+            let bytes = conduit_core::fixed_integer_bytes(primitive);
+            if bytes != 0 {
+                Some(bytes)
+            } else if primitive == conduit_core::PrimitiveInfoKind::Empty {
+                Some(0)
+            } else {
+                None
+            }
+        })
+        .ok_or(StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    let bound =
+        u32::try_from(bound).map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+    if bound > PULSE_READ_MAXIMUM_BYTES {
+        return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
+    }
+    Ok(bound)
 }

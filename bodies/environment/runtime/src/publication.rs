@@ -101,7 +101,7 @@ impl PublicationContract {
         };
         let kind = c::Kind {
             kind_id: c::kind_id(channel.kind_id()),
-            kind_contract_revision: "environment/observation-publication@1".into(),
+            kind_contract_revision: "environment/observation-publication@2".into(),
             startup_parameters: vec![],
             shorthand: None,
             inputs: vec![c::PortDescriptor {
@@ -113,9 +113,19 @@ impl PublicationContract {
             }],
             outputs: vec![],
             configuration: vec![],
-            semantic_laws: vec![c::KindSemanticLaw::Terminal(
-                c::KindTerminalBehavior::CompletesWhenInputsClose,
-            )],
+            semantic_laws: vec![
+                c::KindSemanticLaw::Terminal(c::KindTerminalBehavior::CompletesWhenInputsClose),
+                c::KindSemanticLaw::ValueContracts(vec![c::FrontValueContract {
+                    location: c::FrontValueLocation::Input(c::port_id("value")),
+                    contract: c::CheckedValueContract::new(
+                        value_type.profile()?.value_kind().clone(),
+                        crate::canonical_storage::bytes(&value_type, channel.maximum_bytes())?
+                            as u32,
+                        vec![],
+                    )
+                    .map_err(|_| c::StructuredInfoRefusal::MalformedCanonicalEncoding)?,
+                }]),
+            ],
             limits: c::CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 1,

@@ -194,6 +194,29 @@ impl PreparedSnapshotRecord {
         })
     }
 
+    /// Exact immutable envelope extent before any content or media operation.
+    pub fn record_bytes(&self) -> usize {
+        self.prefix.len() + 32 + self.extent
+    }
+    /// Retained heap payload only; inline record workspace and allocator overhead
+    /// are separate Root charges.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let a = &self.authority;
+        [
+            &a.grant_id.0,
+            &a.contract_id.0,
+            &a.host_call_contract_id.0,
+            &a.subject_kind.0,
+            &a.host_id.0,
+            &a.boot_id.0,
+            &a.capability_id.0,
+        ]
+        .iter()
+        .try_fold(
+            self.key.capacity().checked_add(self.prefix.capacity())?,
+            |n, s| n.checked_add(s.capacity()),
+        )
+    }
     pub fn candidate_record(&self) -> Option<&[u8]> {
         (self.buffer_len != 0).then_some(&self.buffer[..self.buffer_len])
     }

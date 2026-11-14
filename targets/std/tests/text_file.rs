@@ -92,10 +92,14 @@ fn explicit_text_publication_reopens_the_exact_data_generation_after_new_boot() 
     let encoded = {
         let directory = SnapshotDirectory::prepare(File::open(root.path()).unwrap()).unwrap();
         let mut writer = PreparedTextFile::prepare(&directory, &write, &reference).unwrap();
-        writer
+        let backing = writer.retained_backing_bytes().unwrap();
+        assert!(backing > 0);
+        let encoded = writer
             .publish(&write.authority[0], b"I was here.")
             .unwrap()
-            .to_vec()
+            .to_vec();
+        assert_eq!(writer.retained_backing_bytes(), Some(backing));
+        encoded
     };
     assert_eq!(
         conduit_data::DataReference::decode_for(&kind_id("value/text"), &encoded)
@@ -106,12 +110,16 @@ fn explicit_text_publication_reopens_the_exact_data_generation_after_new_boot() 
     let (read, _) = binding("boot/two", false);
     let directory = SnapshotDirectory::prepare(File::open(root.path()).unwrap()).unwrap();
     let mut reader = PreparedTextFile::prepare(&directory, &read, &reference).unwrap();
+    let backing = reader.retained_backing_bytes().unwrap();
+    assert!(backing > 0);
     assert_eq!(
         reader.load(&read.authority[0], &encoded).unwrap(),
         b"I was here."
     );
+    assert_eq!(reader.retained_backing_bytes(), Some(backing));
     assert_eq!(fs::read_dir(root.path()).unwrap().count(), 1);
     reader.retire();
+    assert_eq!(reader.retained_backing_bytes(), Some(backing));
     assert!(matches!(
         reader.load(&read.authority[0], &encoded),
         Err(TextFileRefusal::Unavailable)

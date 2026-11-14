@@ -5,6 +5,8 @@ mod codec;
 mod contract;
 #[cfg(feature = "host-call")]
 pub mod installation;
+#[cfg(feature = "prepared-kernel")]
+pub mod kernel;
 #[cfg(feature = "host-call")]
 pub mod owner;
 pub use codec::{PreparedPulseCodec, PulseCodecRefusal};

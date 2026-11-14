@@ -38,7 +38,7 @@ fn full_membership_refuses_signed_browser_proof_with_a_public_capacity_code() {
     .unwrap();
     owner.persist(&root).unwrap();
     let authorized = owner
-        .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-test"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let challenge = advertise(&mut owner, &authorized.window_id);
     let secret = SpawnInvitationSecret::from_csprng_bytes([7; 32]).unwrap();

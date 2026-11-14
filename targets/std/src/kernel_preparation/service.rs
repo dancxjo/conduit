@@ -82,6 +82,7 @@ impl<'host> InitializedRegionService<'host> {
         config: RegionServiceConfig,
     ) -> Result<Self, String> {
         config.validate()?;
+        host.kernel_resources.require_reference_reconfiguration()?;
         if !host.kernel_resources.is_idle() {
             return Err("worker service cannot replace active Host reservations".into());
         }

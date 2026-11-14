@@ -1,9 +1,15 @@
 //! Ready native ownership advertised before planning, consumed by exact Play.
 //! Follows the retained I2C installation lifecycle; no peripheral protocol lives here.
 use crate::{owner::*, *};
+#[path = "assigned.rs"]
+mod assigned;
+#[path = "installation_offer.rs"]
+mod offer;
 use alloc::vec;
+pub use assigned::PreparedAssignedPulse;
 use conduit_core::*;
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
+pub use offer::capability_offer;
 
 pub const PULSE_CAPABILITY: &str = "conduit/pulse-read@1";
 pub const PULSE_EXECUTION_PROFILE: &str = "conduit/pulse-cooperative-bounded@1";
@@ -36,6 +42,11 @@ pub enum PulseInstallationRefusal {
     Advertisement,
 }
 impl<P: PulseReadProvider> ReadyPulseBase<P> {
+    /// Descriptive retained native facts; never an opaque capability or grant.
+    pub fn identity(&self) -> &PulseNativeIdentity {
+        &self.identity
+    }
+
     /// Retain exclusively owned electrical resources before advertising them.
     ///
     /// # Safety
@@ -100,30 +111,7 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
         {
             return Err(R::Advertisement);
         }
-        let kind = contract.kind();
-        let offer = BackOfferBuilder::new(
-            kind.clone(),
-            Back {
-                capability_id: PULSE_CAPABILITY.into(),
-                execution_profile_id: PULSE_EXECUTION_PROFILE.into(),
-                implementation_id: identity.implementation_id.clone(),
-                artifact_id: identity.artifact_id.clone(),
-                host_calls: vec![HostCallRequirement {
-                    contract_id: PULSE_READ_CALL.into(),
-                    target_kind: Some(kind.kind_id.clone()),
-                    maximum_in_flight: 1,
-                    maximum_input_bytes: PULSE_READ_MAXIMUM_BYTES,
-                    maximum_output_bytes: PULSE_READ_MAXIMUM_BYTES,
-                }],
-                resource_requirements: vec![resource_requirement(PULSE_ATTACHMENT_CLASS, 1)],
-                authority_requirements: vec![AuthorityRequirement {
-                    contract_id: PULSE_AUTHORITY.into(),
-                    host_call_contract_id: PULSE_READ_CALL.into(),
-                    subject_kind: kind.kind_id.clone(),
-                }],
-            },
-        )
-        .build();
+        let offer = capability_offer(contract, &identity.artifact_id, &identity.implementation_id)?;
         let mut registry = BaseRegistry::new(BaseRegistryLimits {
             maximum_bases: 1,
             maximum_capabilities_per_base: 1,

@@ -1,0 +1,51 @@
+{
+  "schema": "conduit.proof/physical-current-member-presentation@1",
+  "source": "421ea52dd659d06fdce001763056ff182f7ec177",
+  "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "owner": {
+    "host_id": "host/installed/f0ccc266877e6d1c192e22246ddaef8be554c52c408a6a8bcbc967c1b1775ed8",
+    "executable_sha256": "5d0eb9cadaf4bd6c58fd5a5e62f9f7bee158e74fb2fc5e49ef6535db2ede4b3c",
+    "cold_snapshot_regular_files": 66
+  },
+  "threebee": {
+    "installation_source": "421ea52dd659d06fdce001763056ff182f7ec177",
+    "host_id": "host/installed/cc57fbea73ca7dda2995fab12b47aaf806ee2279c538a46ec11d52e4f98aefad",
+    "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+    "boot_id": "boot/installed/b92d6447872058fa1b3add03d0e78973af82d0e63c555be255aa1d7b7608e2cd",
+    "pid": 8190,
+    "executable_sha256": "e52a12d0e2257882a086fd684bef71989d87232f5a9adabf037c1b81a8faf6c1",
+    "image_source": "421ea52dd659d06fdce001763056ff182f7ec177",
+    "continuity_key_unchanged": true,
+    "cold_snapshot_regular_files": 14,
+    "drm_fds": [
+      "/dev/dri/card0",
+      "/dev/dri/card0",
+      "/dev/dri/card0",
+      "/dev/dri/card0"
+    ],
+    "service": "NRestarts=0\nActiveState=active\n",
+    "native_log": "native Mask displayed Face eb37da2e13ee867ff282755f1776aa3c854799a7d2787a98bf66ec97d94a5fe4 revision 151 on frame 1; pixels 614400\ndurable host host/installed/cc57fbea73ca7dda2995fab12b47aaf806ee2279c538a46ec11d52e4f98aefad boot boot/installed/b92d6447872058fa1b3add03d0e78973af82d0e63c555be255aa1d7b7608e2cd is running\nnative Mask displayed Face eb37da2e13ee867ff282755f1776aa3c854799a7d2787a98bf66ec97d94a5fe4 revision 151 on frame 2; pixels 614400\nnative Mask displayed Face eb37da2e13ee867ff282755f1776aa3c854799a7d2787a98bf66ec97d94a5fe4 revision 151 on frame 3; pixels 614400\nnative Mask displayed Face eb37da2e13ee867ff282755f1776aa3c854799a7d2787a98bf66ec97d94a5fe4 revision 151 on frame 4; pixels 614400\nnative Mask displayed Face eb37da2e13ee867ff282755f1776aa3c854799a7d2787a98bf66ec97d94a5fe4 revision 151 on frame 5; pixels 614400\nnative Mask displayed Face eb37da2e13ee867ff282755f1776aa3c854799a7d2787a98bf66ec97d94a5fe4 revision 151 on frame 6; pixels 614400\nnative carrier lost; displayed Show is historical: member lease acknowledgment scope, sequence or bounds differ\n"
+  },
+  "after_signed_return": {
+    "membership_revision": 79,
+    "receipt_count": 18
+  },
+  "after_session_end": {
+    "membership_revision": 79,
+    "receipt_count": 18,
+    "part_current": {
+      "host_id": "host/installed/cc57fbea73ca7dda2995fab12b47aaf806ee2279c538a46ec11d52e4f98aefad",
+      "boot_id": "boot/installed/b92d6447872058fa1b3add03d0e78973af82d0e63c555be255aa1d7b7608e2cd",
+      "offer_generation": 1,
+      "proof_id": "20af77af446644da0837dc082d3d536a0555b69defd3b4e2f2a69fb3f88bbfd5",
+      "sequence": 79
+    }
+  },
+  "proof_class": "physical SDL/KMSDRM commits and owner Show acknowledgments through installed Unix control/current-member TLS; no optical/screenshot proof",
+  "limits": [
+    "session ended at128inputframe budget; displayed Show is now historical",
+    "no automatic overall authorization renewal/reconnect",
+    "not shared environmental feeds or graph acceptance",
+    "no browser/MCU joining proven by this deployment"
+  ]
+}

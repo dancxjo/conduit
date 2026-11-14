@@ -11,20 +11,27 @@ use conduit_body::{
 use conduit_core::bind_sign;
 use conduit_core::HostAdvertisement;
 use conduit_face::{Face, OwnerFaceSnapshotRequest};
-use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
 pub(crate) use participants::run_service_window;
+pub(crate) use participants::serve_member_presence;
+#[cfg(test)]
+pub(crate) use participants::serve_with_carrier;
+#[cfg(test)]
+pub(crate) use participants::serve_with_dispatch;
 pub(crate) use participants::{
     BrowserAdmittedSnapshot, BrowserCarrierLineEvidence, BrowserWindowAuthorization,
 };
 use std::{
-    collections::BTreeMap,
     io::Write,
     ops::{Deref, DerefMut},
     path::Path,
     time::{Duration, Instant},
 };
+
+#[cfg(test)]
+#[path = "reference_execution_fixture.rs"]
+mod reference_execution_fixture;
 
 // The installed request entrance remains gated on admitted restore and Face
 // action routing; this exact first-action path is exercised by focused proof.
@@ -43,14 +50,34 @@ mod admission_retirement;
 mod birth;
 #[path = "clock_interval.rs"]
 mod clock_interval;
+#[path = "creche_export.rs"]
+mod creche_export;
+#[path = "creche_planning.rs"]
+mod creche_planning;
+#[path = "creche_route_custody.rs"]
+mod creche_route_custody;
+#[path = "creche_worker.rs"]
+mod creche_worker;
 #[path = "direct_spoken_route.rs"]
 mod direct_spoken_route;
+#[path = "fore_line_planning.rs"]
+mod fore_line_planning;
+#[path = "member_carrier.rs"]
+mod member_carrier;
 #[path = "member_leave.rs"]
 mod member_leave;
+#[path = "member_offers.rs"]
+mod member_offers;
 #[path = "member_return.rs"]
 mod member_return;
 #[path = "planning.rs"]
 mod planning;
+#[cfg(target_os = "linux")]
+pub(crate) use fore_line_planning::OwnedForeLineSelection;
+#[path = "remote_preparation.rs"]
+mod remote_preparation;
+#[path = "retained_planning.rs"]
+mod retained_planning;
 #[path = "workset_revision.rs"]
 mod workset_revision;
 pub(crate) use direct_spoken_route::DirectSpokenStart;
@@ -168,6 +195,16 @@ impl OwnerHost {
         Ok(())
     }
 
+    pub(crate) fn verify_selected_image_fore_input(
+        &self,
+        input: &conduit_std_host::body_execution::ImageForeInput,
+    ) -> Result<(), String> {
+        self.current
+            .as_ref()
+            .ok_or("selected IMAGE ingress requires an idle owner Host")?
+            .verify_selected_image_fore_input(input)
+    }
+
     pub(crate) fn current(&self) -> &StdHost {
         self.current
             .as_ref()
@@ -208,12 +245,16 @@ pub(crate) struct Owner {
     last_execution: Option<serde_json::Value>,
     execution_persistence_pending: bool,
     workset_recovery_required: bool,
+    local_fore_adapters: Option<crate::durable_host::local_fore_policy::SelectedLocalForeSet>,
+    #[cfg(target_os = "linux")]
+    selected_file_workset: Option<crate::durable_host::source_revision::RetainedFileWorkset>,
     admissions: Option<conduit_body::AdmissionManager>,
     prepared_admission_route: Option<crate::durable_host::PreparedAdmissionRoute>,
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
     pending_member_return: Option<member_return::PendingMemberReturn>,
-    invited_mask_offers: BTreeMap<conduit_core::HostId, native_mask_route::InvitedMaskOffer>,
+    member_carrier: Option<Box<member_carrier::MemberCarrierCustody>>,
+    current_host_offers: conduit_body::CurrentHostOffers,
     attached_terminal_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_template:
@@ -228,6 +269,9 @@ pub(crate) struct Owner {
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
     /// Canonical document projection adopted from completed notebook Source steps.
     notebook: Option<notebook::NotebookDocument>,
+    creche_factory: Option<conduit::creche_encounter::RetainedCrecheFactory>,
+    creche_live: Option<creche_worker::CrecheLive>,
+    creche_products: Option<conduit::creche_encounter::CrecheProducts>,
     /// Bounded display cache from an exact selected read Host Call and both
     /// terminal Signs. It is never a reducer or a source of authority.
     todo_verified: Option<(
@@ -323,12 +367,16 @@ impl Owner {
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            local_fore_adapters: None,
+            #[cfg(target_os = "linux")]
+            selected_file_workset: None,
             admissions: None,
             prepared_admission_route: None,
             pending_browser: None,
             pending_native_mask: None,
             pending_member_return: None,
-            invited_mask_offers: BTreeMap::new(),
+            member_carrier: None,
+            current_host_offers: conduit_body::CurrentHostOffers::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,
             direct_spoken_template: None,
@@ -338,6 +386,9 @@ impl Owner {
             todo_live: None,
             todo_verified: None,
             notebook: None,
+            creche_factory: None,
+            creche_live: None,
+            creche_products: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -356,12 +407,16 @@ impl Owner {
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            local_fore_adapters: None,
+            #[cfg(target_os = "linux")]
+            selected_file_workset: None,
             admissions: None,
             prepared_admission_route: None,
             pending_browser: None,
             pending_native_mask: None,
             pending_member_return: None,
-            invited_mask_offers: BTreeMap::new(),
+            member_carrier: None,
+            current_host_offers: conduit_body::CurrentHostOffers::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,
             direct_spoken_template: None,
@@ -371,6 +426,9 @@ impl Owner {
             todo_live: None,
             todo_verified: None,
             notebook: None,
+            creche_factory: None,
+            creche_live: None,
+            creche_products: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
@@ -411,7 +469,7 @@ impl Owner {
         Ok(())
     }
     pub(crate) fn truth(&self) -> serde_json::Value {
-        serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending})
+        serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending, "current_member_offers":self.current_offer_summary()})
     }
     /// Project one canonical Face from the current retained owner session.
     /// Credential matching and current incarnation are checked here, even
@@ -447,6 +505,15 @@ impl Owner {
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Face, String> {
         self.require_workset_recovered()?;
+        if let Some(live) = &self.creche_live {
+            if let Some(face) = live.controller.face()? {
+                if face.basis.active_play_id.as_ref() == self.current_play_id()
+                    && self.current_play_id().is_some()
+                {
+                    return Ok((*face).clone());
+                }
+            }
+        }
         if self.has_open_notebook() {
             return if self.current_play_id().is_some() {
                 self.project_notebook_face()
@@ -457,7 +524,7 @@ impl Owner {
         if let Some(live) = &self.thermostat_live {
             return self.project_thermostat_face(live);
         }
-        match self.todo_live.as_ref() {
+        let face = match self.todo_live.as_ref() {
             Some((play, state)) if self.current_play_id() == Some(play) => {
                 self.project_face(Some((state, true)))
             }
@@ -466,87 +533,8 @@ impl Owner {
                 Some((basis, state)) => self.project_verified_todo_face(basis, state),
                 None => self.project_face(None),
             },
-        }
-    }
-    pub(super) fn execute(&mut self, maximum_millis: u64) -> Result<(), String> {
-        if !(1..=60_000).contains(&maximum_millis) {
-            return Err("run duration must be 1..60000 milliseconds".into());
-        }
-        let proposed = self
-            .session
-            .realization()
-            .ok_or("plan required before run")?
-            .clone();
-        if proposed
-            .plan
-            .plots
-            .iter()
-            .any(|plot| !plot.plan.activations.is_empty())
-        {
-            return Err("installed Body Play has no activation ingress or egress".into());
-        }
-        let control = RunControl::default();
-        let mut timer = DeadlineTimer {
-            until: Instant::now() + Duration::from_millis(maximum_millis),
-            control: control.clone(),
-        };
-        let mut output = BoundedOutput(Vec::with_capacity(32 * 1024));
-        let result = std::thread::scope(|scope| {
-            let (finished, receiver) = std::sync::mpsc::sync_channel::<()>(1);
-            let stop = control.clone();
-            scope.spawn(move || {
-                if receiver
-                    .recv_timeout(Duration::from_millis(maximum_millis))
-                    .is_err()
-                {
-                    let _ = stop.request_stop(
-                        RunControlRequestId::new("owner/run-deadline").expect("bounded request"),
-                    );
-                }
-            });
-            let result = self.host.run_body_plan_to(
-                BodyRunRequest {
-                    wake: &proposed.wake,
-                    plan: &proposed.plan,
-                    control: &control,
-                    keyboard: None,
-                },
-                &mut output,
-                &mut timer,
-            );
-            let _ = finished.send(());
-            result
-        });
-        match result {
-            Ok(report) => {
-                let host = self.host.advertisement();
-                self.session
-                    .started(
-                        &host.host_id,
-                        &host.boot_id,
-                        report.play.clone(),
-                        report.wake_at_start.clone(),
-                    )
-                    .map_err(debug)?;
-                self.last_execution = Some(
-                    serde_json::json!({"host_id":host.host_id, "boot_id":host.boot_id, "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id, "wake_id":proposed.wake.wake_id, "play":report.play, "wake_at_start":report.wake_at_start, "terminal":report.terminal, "failure":report.failure, "cleanup_failure":report.cleanup_failure, "terminal_sign":report.terminal_sign, "output_utf8":String::from_utf8_lossy(&output.0)}),
-                );
-                self.execution_persistence_pending = true;
-                self.session
-                    .lull(&host.host_id, &host.boot_id, Some(&report.play))
-                    .map_err(debug)?;
-                Ok(())
-            }
-            Err(error) => {
-                self.last_execution = Some(
-                    serde_json::json!({"host_id":self.host.advertisement().host_id, "boot_id":self.host.advertisement().boot_id, "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id, "wake_id":proposed.wake.wake_id, "play":null, "pre_play_refusal":error, "refusal_scope":"untyped-host-admission"}),
-                );
-                self.execution_persistence_pending = true;
-                // The Host API returns an untyped error. Keep the failed proposal
-                // and exact durable refusal; do not invent resource rejection facts.
-                Err(error)
-            }
-        }
+        }?;
+        self.project_creche_products(face)
     }
     pub(crate) fn lull(&mut self) -> Result<(), String> {
         if let Some(realization) = self.session.realization() {
@@ -593,6 +581,10 @@ impl TimerAdapter for DeadlineTimer {
                 RunControlRequestId::new("owner/run-deadline").expect("bounded request"),
             );
         }
+    }
+
+    fn monotonic_ticks_on(&mut self, basis: &conduit_core::MonotonicClockIdentity) -> Option<u64> {
+        ThreadTimer.monotonic_ticks_on(basis)
     }
 
     fn monotonic_observation(

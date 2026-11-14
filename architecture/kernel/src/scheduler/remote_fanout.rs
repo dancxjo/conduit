@@ -13,6 +13,8 @@ impl<
         const ROUTE_TARGETS: usize,
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
+        const TERMINAL_ROWS: usize,
+        const PHASE_BYTES: usize,
     >
     FixedScheduler<
         D,
@@ -26,6 +28,8 @@ impl<
         ROUTE_TARGETS,
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
+        TERMINAL_ROWS,
+        PHASE_BYTES,
     >
 where
     D: StepBack<PORTS>,
@@ -79,7 +83,12 @@ where
             return Ok(RemoteIngressOutcome::Full { sequence });
         }
         self.ensure_sign_capacity(targets.len())?;
-        self.ensure_remote_sign_capacity(targets.len())?;
+        self.ensure_remote_sign_capacity(
+            targets
+                .iter()
+                .filter(|(_, cord)| !self.cord_specs[usize::from(cord.0)].is_local_fore())
+                .count(),
+        )?;
         let value = store_fanout_value(&mut self.values, bytes, targets.len())?;
         for (endpoint, cord) in targets.iter().copied() {
             let cord_index = usize::from(cord.0);
@@ -90,7 +99,8 @@ where
             }
             self.cords[cord_index].next_remote_sequence = next_sequence;
             self.set_ready(usize::from(sink_node.0), true);
-            self.signs.record_remote(
+            self.record_boundary_sign(
+                cord_index,
                 sink_node,
                 sink_port,
                 KernelEventKind::RemoteInputAdmitted,
@@ -134,6 +144,7 @@ where
             return Err(SchedulerError::InvalidRemoteCordAccess);
         }
         let mut open = 0;
+        let mut remote_open = 0;
         let mut seen = super::remote_target_prefix::RemoteTargetPrefix::default();
         for (index, (endpoint, cord)) in targets.iter().copied().enumerate() {
             if seen.contains(&targets[..index], (endpoint, cord)) {
@@ -156,10 +167,11 @@ where
                 }
             } else {
                 open += 1;
+                remote_open += usize::from(!spec.is_local_fore());
             }
         }
         self.ensure_sign_capacity(open)?;
-        self.ensure_remote_sign_capacity(open)?;
+        self.ensure_remote_sign_capacity(remote_open)?;
         for (endpoint, cord) in targets.iter().copied() {
             self.close_remote_input_terminal(endpoint, cord, terminal)?;
         }

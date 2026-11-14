@@ -1,0 +1,70 @@
+# Protocol transitions and deadlines remain ordinary Source. The enclosing
+# instrument selects exact checked state/merge/pairing Plots and paired Types.
+# These selections create no controller, native capability or resource grant.
+plot bme280-clock-join-selected (
+    pair-type: type
+    pair: pair-type...| >> completion: BmeClockCompletion...|
+) = ({ context: .0, result: .1 })
+
+plot bme280-feedback-join-selected (
+    pair-type: type
+    pair: pair-type...| >> transition: BmeProtocolTransition...|
+) = ({ state: .0, event: .1 })
+
+plot bme280-exchange-selected (
+    feedback-type: type
+    clock-pair-type: type
+    state-cell: kind (
+        >> seed: BmeProtocolFrame...|
+        >> next: BmeProtocolFrame...|
+        current: BmeProtocolFrame...| >>
+    )
+    feedback-pairing: kind (
+        >> left: BmeProtocolState...|
+        >> right: BmeProtocolEvent...|
+        paired: feedback-type...| >>
+    )
+    context-merge: kind (
+        >> left: BmeClockContext...|
+        >> right: BmeClockContext...|
+        merged: BmeClockContext...| >>
+    )
+    clock-pairing: kind (
+        >> left: BmeClockContext...|
+        >> right: ClockResult...|
+        paired: clock-pair-type...| >>
+    )
+    >> begin: BmeProtocolBegin...|
+    >> result: I2cResult...|
+    request: I2cTransaction...| >>
+    captured: BmeProtocolState...| >>
+    observation: BmeObservationResult...| >>
+    refused: BmeProtocolFailure...| >>
+    clock_failed: ClockResult...| >>
+) {
+    cell: state-cell
+    states: bme280-protocol-frame-value
+    join: feedback-pairing
+    contexts: context-merge
+    timed: clock-pairing
+    clock: machine/clock/at
+    actions: bme280-protocol-action
+    outcomes: bme280-clock-event
+    begin >> bme280-protocol-initialize() >> bme280-protocol-frame() >> cell.seed
+    cell.current >> states
+    states >> join.left
+    states >> actions
+    actions >> select(BmeProtocolAction.transact, unmatched=drop) >> request
+    actions >> bme280-clock-action-context() >> select(BmeOptionalClockContext.available, unmatched=drop) >> contexts.left
+    actions >> select(BmeProtocolAction.captured, unmatched=drop) >> captured
+    actions >> select(BmeProtocolAction.captured, unmatched=drop) >> bme280-observation-from-capture() >> observation
+    actions >> select(BmeProtocolAction.refused, unmatched=drop) >> refused
+    result >> bme280-clock-bus-context() >> contexts.right
+    contexts.merged >> timed.left
+    contexts.merged >> bme280-clock-request() >> clock.request
+    clock.result >> timed.right
+    timed.paired >> bme280-clock-join-selected(pair-type = clock-pair-type) >> outcomes
+    outcomes >> bme280-clock-feedback-event() >> join.right
+    outcomes >> select(BmeClockEvent.failed, unmatched=drop) >> clock_failed
+    join.paired >> bme280-feedback-join-selected(pair-type = feedback-type) >> bme280-protocol-transition() >> bme280-protocol-frame() >> cell.next
+}

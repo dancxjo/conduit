@@ -2,10 +2,7 @@ use super::*;
 use crate::thermostat_run::prepare;
 use conduit_thermostat_plot::{Command, Mode};
 
-#[path = "../../../../../architecture/plot/tests/common/allocation_probe.rs"]
-mod allocation_probe;
-#[global_allocator]
-static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+use crate::allocation_probe;
 
 struct Fixture {
     source: CanonicalSource,
@@ -59,7 +56,7 @@ fn ordinary_reportless_execution_avoids_descriptive_reconstruction() {
     assert!(skipped.unwrap().is_none());
     assert_eq!(skipped_allocations.allocations, 0);
     assert_eq!(skipped_allocations.reallocations, 0);
-    assert_eq!(skipped_allocations.peak_bytes, 0);
+    assert_eq!(skipped_allocations.peak_live_bytes, 0);
 
     let (rendered, requested_allocations) = allocation_probe::observe(|| fixture.render(true));
     let rendered = rendered.unwrap().unwrap();
@@ -134,7 +131,7 @@ fn ordinary_reportless_execution_avoids_descriptive_reconstruction() {
             "unrequested_allocations":skipped_allocations.allocations,
             "requested_allocations":requested_allocations.allocations,
             "requested_reallocations":requested_allocations.reallocations,
-            "requested_peak_new_bytes":requested_allocations.peak_bytes,
+            "requested_peak_new_bytes":requested_allocations.peak_live_bytes,
             "numeric_event_bytes":std::mem::size_of::<conduit_kernel::KernelEvent>(),
             "retained_parent_event_storage_bytes":fixture.report.kernel_events.capacity() * std::mem::size_of::<conduit_kernel::KernelEvent>(),
             "retained_child_event_storage_bytes":children.iter().map(|c| c.events.capacity() * std::mem::size_of::<conduit_kernel::KernelEvent>()).sum::<usize>(),

@@ -87,6 +87,13 @@ pub struct CrecheBack {
     staged: Option<Phase>,
 }
 impl CrecheBack {
+    /// Heap backing owned by this finite state machine, excluding its inline
+    /// storage and the independently owned Host worker, values and receipts.
+    /// Every field is inline; stepping and transactional staging add no backing.
+    pub const fn retained_backing_bytes(&self) -> usize {
+        0
+    }
+
     /// Installed preparation cannot know the actual producing Play yet. Pin the
     /// first exact typed request at successful kernel commit. The selected Host
     /// owner must validate it against actual admitted execution before effects.

@@ -6,11 +6,12 @@ mod face_snapshot;
 mod prepared;
 pub(crate) use prepared::PreparedAdmissionRoute;
 #[path = "durable_body_join_route/native_lines.rs"]
-mod native_lines;
+pub(crate) mod native_lines;
 #[path = "durable_body_join_route/response_document.rs"]
 mod response_document;
 #[path = "durable_body_join_route/return_route.rs"]
 mod return_route;
+pub(crate) use return_route::MaskSelection;
 
 use super::invitation::{
     prepare_body_join, PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
@@ -142,7 +143,10 @@ fn serve_existing_invitation_route(
                     },
                 )?;
                 face_snapshot::serve_optional_face_snapshot(
-                    &mut line, listener, state_dir, &receipt,
+                    &mut line,
+                    listener,
+                    state_dir,
+                    &crate::durable_host::owner::MemberPresentationBasis::from_admission(&receipt)?,
                 )
             }
             Err(error) => {
@@ -400,11 +404,21 @@ mod tests {
     }
 }
 
+#[path = "durable_body_join_route/current_member.rs"]
+pub(crate) mod current_member;
 #[path = "durable_body_join_route/member_return.rs"]
 mod member_return;
-pub(crate) use member_return::serve_body_member_route;
+pub(crate) use member_return::{
+    install_member_encounter, serve_body_member_route, MemberEncounter, MemberReturnFrame,
+    MEMBER_RETURN_SCHEMA, MEMBER_ROUTE_SCHEMA,
+};
+
 #[path = "durable_body_join_route/return_client.rs"]
 mod return_client;
-pub(crate) use member_return::MemberEncounter;
-pub(crate) use return_client::return_installed_member;
-pub(crate) use return_client::return_on_actual_host;
+pub(crate) use return_client::{return_installed_member, return_on_actual_host};
+
+#[path = "durable_body_join_route/member_contact.rs"]
+mod member_contact;
+pub(crate) use member_contact::{install_member_contact, serve_body_member_contact};
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+pub(crate) use member_contact::{load_and_resolve_member_contact, reconnect_delay};

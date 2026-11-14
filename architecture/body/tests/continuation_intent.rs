@@ -23,6 +23,8 @@ fn intent(key: &SigningKey) -> ContinuationIntent<'static> {
         issuer_key: key.verifying_key().to_bytes(),
         source_digest: [1; 32],
         workset_digest: [2; 32],
+        authority: ContinuationAuthority::LocalWorksetReplacement,
+        scope_digest: [3; 32],
         image_id: "image/1",
         configuration_id: "config/1",
         ceilings: ceilings(),
@@ -104,6 +106,8 @@ fn scope_generation_and_every_signed_field_refuse_before_any_consumer_receives_r
         }};
     }
     change!(schema, "wrong");
+    change!(schema, "conduit.body/continuation-intent@1");
+    change!(scope_digest, [9; 32]);
     change!(body_id, "body/other");
     change!(part_id, "part/other");
     change!(host_id, "host/other");

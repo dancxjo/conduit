@@ -154,3 +154,6 @@ fn matching_identifiers_cannot_replace_lowered_call_or_active_play() {
         Some(I2cCallRefusal::WrongBinding)
     );
 }
+
+mod assigned;
+mod retirement;

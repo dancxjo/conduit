@@ -66,7 +66,7 @@ fn checked_todo_initial_selects_the_installed_host_before_owner_planning() {
     }));
     assert_eq!(owner.host.advertisement(), &advertised);
     assert_eq!(
-        owner.execute(1).unwrap_err(),
+        owner.execute_reference_fixture(1).unwrap_err(),
         "installed Body Play has no activation ingress or egress"
     );
 }
@@ -401,9 +401,9 @@ fn recovery_refuses_same_boot_wrong_source_and_corrupt_biography() {
 fn ordinary_kernel_execution_supplies_actual_play_and_output_then_retains_lull() {
     let plot = source();
     let mut owner = Owner::open(host("boot/run"), resident(&plot), None, "Test Body").unwrap();
-    assert!(owner.execute(100).is_err());
+    assert!(owner.execute_reference_fixture(100).is_err());
     owner.plan(&plot).unwrap();
-    owner.execute(1000).unwrap();
+    owner.execute_reference_fixture(1000).unwrap();
     let execution = owner.last_execution.as_ref().unwrap();
     assert_eq!(
         execution["terminal"],
@@ -866,10 +866,10 @@ fn subsequent_runs_keep_body_and_create_distinct_admitted_plays() {
     let mut owner = Owner::open(host("boot/repeated"), resident(&plot), None, "Test Body").unwrap();
     let body = owner.session.evidence().body_id.clone();
     owner.plan(&plot).unwrap();
-    owner.execute(1000).unwrap();
+    owner.execute_reference_fixture(1000).unwrap();
     let first = owner.last_execution.as_ref().unwrap()["play"]["active_play_id"].clone();
     owner.plan(&plot).unwrap();
-    owner.execute(1000).unwrap();
+    owner.execute_reference_fixture(1000).unwrap();
     assert_eq!(owner.session.evidence().body_id, body);
     assert_ne!(
         owner.last_execution.as_ref().unwrap()["play"]["active_play_id"],
@@ -889,7 +889,7 @@ fn unsupported_advertised_call_retains_untyped_refusal_without_inventing_play() 
     owner.plan(&plot).unwrap();
     let proposal = owner.session.realization().unwrap().plan.plan_id.clone();
     assert!(owner
-        .execute(1000)
+        .execute_reference_fixture(1000)
         .unwrap_err()
         .contains("Body Host Call is unsupported"));
     let receipt = owner.last_execution.as_ref().unwrap();
@@ -929,7 +929,7 @@ fn actual_execution_receipt_survives_fresh_boot_as_history_only() {
     )
     .unwrap();
     owner.plan(&plot).unwrap();
-    owner.execute(1000).unwrap();
+    owner.execute_reference_fixture(1000).unwrap();
     owner.persist(&root).unwrap();
     let historical = owner.last_execution.clone();
     let mut reopened = Owner::open(
@@ -1094,14 +1094,31 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
 
 #[path = "tests/invitation_retirement.rs"]
 mod invitation_retirement;
+
 #[path = "tests/member_leave.rs"]
 mod member_leave;
 
+#[path = "tests/member_presentation.rs"]
+mod member_presentation;
+
+#[path = "tests/member_planning.rs"]
+mod member_planning;
 #[path = "tests/member_return.rs"]
 mod member_return;
+
 pub(crate) fn member_return_owner_fixture() -> (Owner, std::path::PathBuf) {
     member_leave::owner_fixture()
 }
 
+#[path = "tests/member_carrier.rs"]
+mod member_carrier;
+
 #[path = "tests/admission_custody.rs"]
 mod admission_custody;
+
+#[path = "tests/remote_preparation.rs"]
+mod remote_preparation;
+
+#[cfg(target_os = "linux")]
+#[path = "tests/continuation_generation.rs"]
+mod continuation_generation;

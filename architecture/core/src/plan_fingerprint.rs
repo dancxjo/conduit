@@ -33,10 +33,16 @@ fn push_optional_string(
     }
 }
 
+mod plot_seal;
+pub use plot_seal::{PlainPlotPlanSeal, PlotFragmentSeal, PlotPlanSealRefusal};
+
 mod fragment;
 pub use fragment::{
-    compute_fragment_id, FragmentFingerprintBuilder, FragmentFingerprintHeader,
-    FragmentFingerprintRefusal, FragmentFingerprintTail,
+    compute_fragment_id, fragment_seal_recipe_digest, fragment_seal_recipe_identity,
+    fragment_seal_resource_matches, FragmentFingerprintBuilder, FragmentFingerprintHeader,
+    FragmentFingerprintRefusal, FragmentFingerprintTail, FragmentSealBinding, FragmentSealField,
+    FragmentSealLimits, FragmentSealPiece, FragmentSealRecipe, FragmentSealRefusal,
+    FragmentSealValue,
 };
 
 pub(crate) fn push_configuration_value(
@@ -249,6 +255,16 @@ fn push_bound_link(
     push_u32(canonical, binding.limits.maximum_frame_bytes);
 }
 
+/// Commitment to the complete immutable Line already selected by a Plan.
+/// Uses the Plan's canonical field encoding and no intermediate allocation.
+/// This fingerprint establishes neither live availability nor carrier custody.
+pub fn admitted_line_commitment(line: &AdmittedLine) -> [u8; 32] {
+    let mut canonical = CanonicalHash::new();
+    push_string(&mut canonical, "conduit.admitted-line/commitment@1");
+    push_admitted_line(&mut canonical, line);
+    canonical.finish()
+}
+
 fn push_admitted_line(
     canonical: &mut impl crate::canonical_bytes::CanonicalSink,
     line: &AdmittedLine,
@@ -272,9 +288,14 @@ pub(crate) fn compute_plan_id(
     activation_preparations: &[PlannedActivationPreparationBinding],
 ) -> PlanId {
     let mut canonical = CanonicalHash::new();
-    push_string(&mut canonical, plot_identity.source_document_id.as_str());
-    push_string(&mut canonical, plot_identity.checked_plot_id.as_str());
-    push_string(&mut canonical, plot_identity.expanded_plot_id.as_str());
+    plot_seal::push_identity(
+        &mut canonical,
+        PlainPlotPlanSeal {
+            source_document_id: plot_identity.source_document_id.as_str(),
+            checked_plot_id: plot_identity.checked_plot_id.as_str(),
+            expanded_plot_id: plot_identity.expanded_plot_id.as_str(),
+        },
+    );
     if !realization_backs.is_empty() {
         plan_realization::push_canonical(&mut canonical, realization_backs);
     }
@@ -395,11 +416,13 @@ pub(crate) fn compute_plan_id(
             }
         }
     }
-    push_u32(&mut canonical, commitments.len() as u32);
-    for commitment in commitments {
-        push_string(&mut canonical, commitment.host_id.as_str());
-        push_string(&mut canonical, commitment.fragment_id.as_str());
-    }
+    plot_seal::push_commitments(
+        &mut canonical,
+        commitments.iter().map(|commitment| PlotFragmentSeal {
+            host_id: commitment.host_id.as_str(),
+            fragment_id: commitment.fragment_id.as_str(),
+        }),
+    );
     PlanId::from(crate::hex_digest(&canonical.finish()))
 }
 

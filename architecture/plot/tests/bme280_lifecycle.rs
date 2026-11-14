@@ -17,13 +17,15 @@ fn lifecycle_catalog() -> StartupCatalog {
         ("I2cResult", "machine/i2c/transact/result"),
     ] {
         catalog
-            .insert_checked_native_type(
+            .insert_checked_native_type_from_document(
                 path,
-                checked
+                &checked,
+                &checked
                     .native_types
                     .iter()
                     .find(|ty| ty.name == name)
-                    .unwrap(),
+                    .unwrap()
+                    .identity,
             )
             .unwrap();
     }
@@ -35,13 +37,15 @@ fn lifecycle_catalog() -> StartupCatalog {
     )
     .unwrap();
     catalog
-        .insert_checked_native_type(
+        .insert_checked_native_type_from_document(
             "machine/clock/at/result",
-            clock
+            &clock,
+            &clock
                 .native_types
                 .iter()
                 .find(|ty| ty.name == "MonotonicClockResult")
-                .unwrap(),
+                .unwrap()
+                .identity,
         )
         .unwrap();
     catalog
@@ -58,15 +62,17 @@ fn lifecycle_policy_is_checked_source_and_prepares_without_device_code() {
             .unwrap_or_else(|error| panic!("{name}: {error:?}"))
             .expanded;
         if name == "bme280-protocol-transition" {
-            assert!(expanded.gears.len() > 1);
+            assert_eq!(expanded.gears.len(), 2);
         } else {
             assert_eq!(expanded.gears.len(), 1);
         }
-        let ConfigurationValue::Text(encoded) = &expanded.gears[0].configuration[0].value else {
-            panic!("program")
-        };
-        let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-        PreparedPortableExpressionEvaluator::new(&program).unwrap();
+        for gear in &expanded.gears {
+            let ConfigurationValue::Text(encoded) = &gear.configuration[0].value else {
+                panic!("program")
+            };
+            let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+            PreparedPortableExpressionEvaluator::new(&program).unwrap();
+        }
     }
 }
 #[path = "common/allocation_probe.rs"]
@@ -79,9 +85,90 @@ mod transcript;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 
 #[test]
+fn completed_status_advances_to_data_without_consuming_the_status_byte_twice() {
+    use fixture::{byte, bytes, field, tag, Fixture};
+    let mut fixture = Fixture::new();
+    let initial = fixture.initial();
+    let status = fixture.with_phase(&initial, 12);
+    let sample_before = field(&status, "sample").clone();
+    let status_event = fixture.bus("completed", &[0], 1);
+    let data = fixture.advance(status, status_event);
+    assert_eq!(byte(field(&data, "phase")), 13);
+    assert_eq!(byte(field(&data, "index")), 0);
+    assert_eq!(field(&data, "sample"), &sample_before);
+    assert_eq!(tag(field(&data, "failure")), "none");
+    // Only the next independently supplied bus result is a sample byte.
+    let data_event = fixture.bus("completed", &[0x55], 2);
+    let next = fixture.advance(data, data_event);
+    assert_eq!(byte(field(&next, "phase")), 13);
+    assert_eq!(byte(field(&next, "index")), 1);
+    assert_eq!(
+        bytes(field(&next, "sample")),
+        vec![0x55, 0, 0, 0, 0, 0, 0, 0]
+    );
+    assert_eq!(tag(field(&next, "failure")), "none");
+}
+
+#[test]
+fn completed_calibration_block_does_not_consume_the_humidity_first_byte() {
+    use fixture::{byte, bytes, field, tag, Fixture};
+    let mut fixture = Fixture::new();
+    let initial = fixture.initial();
+    let block = fixture.with_phase(&initial, 7);
+    let block = fixture.with_index(&block, 23);
+    let block_event = fixture.bus("completed", &[0x55], 1);
+    let humidity = fixture.advance(block, block_event);
+    assert_eq!(byte(field(&humidity, "phase")), 8);
+    assert_eq!(byte(field(&humidity, "index")), 0);
+    assert_eq!(bytes(field(&humidity, "first"))[23], 0x55);
+    assert_eq!(byte(field(&humidity, "humidity_first")), 0);
+    assert_eq!(tag(field(&humidity, "failure")), "none");
+    let humidity_event = fixture.bus("completed", &[0x66], 2);
+    let next = fixture.advance(humidity, humidity_event);
+    assert_eq!(byte(field(&next, "phase")), 9);
+    assert_eq!(byte(field(&next, "index")), 0);
+    assert_eq!(byte(field(&next, "humidity_first")), 0x66);
+    assert_eq!(bytes(field(&next, "first"))[23], 0x55);
+    assert_eq!(tag(field(&next, "failure")), "none");
+}
+
+#[test]
+fn all_primitive_transition_stages_fit_the_original_static_constructor_limits() {
+    let checked = check_syntax_document(
+        &parse_syntax_document(include_str!(
+            "../../../plots/device-protocols/bme280-lifecycle.conduit"
+        )),
+        &lifecycle_catalog(),
+    )
+    .unwrap();
+    let programs = fixture::transition_programs(&checked);
+    assert_eq!(programs.len(), 2);
+    let mut refusals = Vec::new();
+    for (index, program) in programs.iter().enumerate() {
+        if let Err(error) = conduit_plot::generate_borrowed_static_structured_expression_with_work(
+            &checked,
+            program,
+            conduit_plot::rust_binding::PreparedNativeBounds {
+                canonical_bytes: 4096,
+                scopes: 64,
+                invariants: 64,
+                contracts: 64,
+            },
+            4096,
+        ) {
+            refusals.push((index, error));
+        }
+    }
+    assert!(
+        refusals.is_empty(),
+        "primitive static generation refusals: {refusals:?}"
+    );
+}
+
+#[test]
 fn preparation_footprint_is_finite_and_reported() {
     let (fixture, observation) = allocation_probe::observe(fixture::Fixture::new);
-    assert!(fixture.checked_plot_count() > 10);
+    assert_eq!(fixture.transition_gear_count(), 2);
     assert!(observation.peak_bytes < 16 * 1024 * 1024, "{observation:?}");
     eprintln!("BME280 policy preparation: {observation:?}");
 }
@@ -250,3 +337,9 @@ fn automatic_clock_event_adapters_check_and_prepare_as_ordinary_source() {
         );
     }
 }
+
+#[path = "bme280_lifecycle/transition_equivalence.rs"]
+mod transition_equivalence;
+
+#[path = "bme280_lifecycle/static_execution.rs"]
+mod static_execution;

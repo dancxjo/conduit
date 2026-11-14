@@ -1,7 +1,7 @@
 //! Exact byte inventory of an existing reviewed Host release. This preserves
 //! the established host-bundle@1 aggregate; it does not equate a raw file SHA
 //! with a bundle identity, or prove a target's richer IMAGE/Boot semantics.
-use crate::ReleaseTargetProfile;
+use crate::{MakeBuildSelection, ReleaseTargetProfile};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::Read;
@@ -29,9 +29,29 @@ pub struct HostReleaseManifest {
     pub source_identity: String,
     pub bundle_sha256: String,
     pub files: Vec<HostReleaseFile>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reviewed_native_build: Option<ReviewedNativeBuild>,
     #[serde(flatten)]
     pub target_metadata: serde_json::Map<String, serde_json::Value>,
 }
+
+/// Receipt of the fixed native compilation operation. The release verifier still
+/// observes every executable byte; this receipt binds its reviewed build closure.
+/// It is not device initialization, a Boot, a sandbox, or independent attestation.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReviewedNativeBuild {
+    pub schema: String,
+    pub configuration_id: String,
+    pub profile_id: String,
+    pub build_id: String,
+    pub image_id: String,
+    pub source_identity: String,
+    pub selection: MakeBuildSelection,
+    pub executable_path: String,
+    pub executable_sha256: String,
+}
+pub const REVIEWED_NATIVE_BUILD_SCHEMA: &str = "conduit.release/reviewed-native-build@1";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HostReleaseBounds {

@@ -171,9 +171,27 @@ impl SourceCheckNativeSchema {
             .find(|n| n.name == name)
             .ok_or(SourceCheckNativeRefusal::Schema)?;
         let bytes = value(&native.value_type)?.canonical_bytes()?;
-        if bytes.len() > maximum_bytes {
+        self.admit_bytes(name, &bytes, maximum_bytes)?;
+        Ok(bytes)
+    }
+    /// Preparation-only validation against the retained exact S1 declaration,
+    /// not a schema or law vector supplied by the returned bytes.
+    pub fn admit_reply(&self, bytes: &[u8], maximum_bytes: usize) -> Result<()> {
+        self.admit_bytes("SourceCheckReply", bytes, maximum_bytes)
+    }
+    fn admit_bytes(&self, name: &str, bytes: &[u8], maximum_bytes: usize) -> Result<()> {
+        if maximum_bytes == 0
+            || maximum_bytes > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || bytes.len() > maximum_bytes
+        {
             return Err(SourceCheckNativeRefusal::Bytes);
         }
+        let native = self
+            .document
+            .native_types
+            .iter()
+            .find(|native| native.name == name)
+            .ok_or(SourceCheckNativeRefusal::Schema)?;
         let mut admission = PreparedNativeAdmission::new(
             &self.document,
             &native.identity,
@@ -186,14 +204,14 @@ impl SourceCheckNativeSchema {
         )
         .map_err(SourceCheckNativeRefusal::Admission)?;
         admission
-            .begin(&bytes)
+            .begin(bytes)
             .map_err(SourceCheckNativeRefusal::Admission)?;
         while admission
             .step()
             .map_err(SourceCheckNativeRefusal::Admission)?
             != PreparedNativeProgress::Admitted
         {}
-        Ok(bytes)
+        Ok(())
     }
 }
 fn leaf(ty: &Type, bytes: &[u8]) -> Result<Value> {

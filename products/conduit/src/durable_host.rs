@@ -41,17 +41,35 @@ mod installation_configured;
 use installation_configured::install_configured;
 use installation_configured::install_configured_with_todo;
 
+#[path = "durable_host/local_fore_policy.rs"]
+pub(crate) mod local_fore_policy;
+#[path = "durable_host/source_continuation.rs"]
+pub(crate) mod source_continuation;
+#[path = "durable_host/source_revision.rs"]
+pub(crate) mod source_revision;
+#[cfg(target_os = "linux")]
+#[path = "durable_host/text_file_policy.rs"]
+mod text_file_policy;
+
+#[path = "durable_host/linux_direct_display.rs"]
+mod linux_direct_display;
+
 #[path = "durable_host/runtime_marker.rs"]
 mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
 #[path = "durable_host/selected_host_configuration.rs"]
 mod selected_host_configuration;
+pub(crate) use selected_host_configuration::check_seed_image as check_seed_host_image;
 #[path = "durable_host/selected_model.rs"]
 mod selected_model;
 #[path = "durable_host/selected_speech.rs"]
 pub(crate) mod selected_speech;
 #[path = "durable_host/selected_todo.rs"]
 mod selected_todo;
+
+#[path = "durable_host/pending_seed.rs"]
+mod pending_seed;
+pub(crate) use pending_seed::{accept_pending_seed, has_pending_seed, install_pending_seed};
 
 #[path = "durable_host_invitation.rs"]
 mod invitation;
@@ -60,9 +78,22 @@ mod membership;
 #[path = "durable_body_join_route.rs"]
 mod routed_join;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
+#[path = "durable_host/usb_admission.rs"]
+mod usb_admission;
+pub(crate) use usb_admission::admit_usb;
+#[path = "durable_host/usb_member_return.rs"]
+mod usb_member_return;
+pub(crate) use usb_member_return::return_usb;
+#[path = "durable_host/membership_receipt_custody.rs"]
+mod membership_receipt_custody;
+pub(crate) use membership::leave_member_from_file;
+pub(crate) use membership::recovery::{run as restore_member_key, Args as MemberKeyRecoveryArgs};
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
 pub(crate) use routed_join::PreparedAdmissionRoute;
-pub(crate) use routed_join::{join_body_over_route, serve_body_invitation_route};
+pub(crate) use routed_join::{
+    install_member_encounter, join_body_over_route, serve_body_invitation_route,
+    serve_body_member_route,
+};
 
 #[derive(Debug, Deserialize)]
 struct ReleaseManifest {
@@ -119,6 +150,14 @@ struct RuntimeStatus {
 
 pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
     match command {
+        HostServiceCommand::AdoptSource {
+            selection,
+            prepare_only,
+            state_dir,
+        } => source_revision::adopt(&state_dir, &selection, prepare_only),
+        HostServiceCommand::ReselectSource { request, state_dir } => {
+            source_revision::reselect(&state_dir, &request)
+        }
         HostServiceCommand::Configure {
             configuration,
             clear,
@@ -126,12 +165,33 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
         } => selected_host_configuration::configure(&state_dir, configuration.as_deref(), clear),
         HostServiceCommand::Install {
             manifest,
+            host_image,
             state_dir,
             no_start,
             speech,
             model,
             todo_checkpoint,
-        } => (if no_start {
+        } => (if let Some(image) = host_image {
+            let _host = owner_lock::acquire(&state_dir)?;
+            let _body = owner_lock::body(&state_dir)?;
+            let installation = installation_configured::install_configured_with_image(
+                &manifest,
+                &state_dir,
+                selected_speech::change(speech)?,
+                selected_model::change(model)?,
+                selected_todo::change(todo_checkpoint)?,
+                Some(&image),
+            )?;
+            drop(_body);
+            drop(_host);
+            if !no_start {
+                activate_service(&state_dir)?;
+            }
+            Ok(InstalledHostIdentity {
+                host_id: installation.host_id,
+                release_bundle_sha256: installation.release_bundle_sha256,
+            })
+        } else if no_start {
             install_with_equipment(
                 &manifest,
                 &state_dir,
@@ -154,6 +214,13 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
                 installation.host_id, installation.release_bundle_sha256
             );
         }),
+        HostServiceCommand::PrepareDirectDisplay {
+            manifest,
+            state_dir,
+            output,
+            user,
+            tty,
+        } => linux_direct_display::prepare(&manifest, &state_dir, &output, &user, tty),
         HostServiceCommand::Run { state_dir } => run(&state_dir),
         HostServiceCommand::Status { state_dir, json } => status(&state_dir, json),
         HostServiceCommand::OwnBody {
@@ -239,15 +306,6 @@ pub(crate) fn selected_todo_checkpoint(
             root: selection.root().to_owned(),
             content: selection.content(),
         }))
-}
-
-pub(crate) fn install_and_activate(
-    manifest: &Path,
-    state_dir: &Path,
-) -> Result<InstalledHostIdentity, String> {
-    let installation = install_without_start(manifest, state_dir)?;
-    activate_service(state_dir)?;
-    Ok(installation)
 }
 
 fn install_and_activate_with_equipment(
@@ -441,7 +499,88 @@ fn run(state_dir: &Path) -> Result<(), String> {
     })?;
     // Routed admission enters through authenticated local control while the
     // service owns this lock. No second process may edit its Body biography.
-    let (status, mut truth) = runtime_preparation::prepare_traced_runtime(state_dir, &trace)?;
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    if let Some(selection) = read_installation(&state_dir.join("installation.json"))?
+        .selected_host_configuration
+        .as_ref()
+    {
+        if let Some(parameters) = selection.scanout_parameters()? {
+            return conduit_linux_display::with_kmsdrm(
+                parameters.width(),
+                parameters.height(),
+                |scanout, events| {
+                    let (mut status, mut truth) =
+                        runtime_preparation::prepare_traced_runtime_with_scanout(
+                            state_dir, &trace, scanout,
+                        )?;
+                    let mut presentation = if owns_body {
+                        None
+                    } else {
+                        match presentation::NativePresentation::join_seed(
+                            state_dir,
+                            &mut status,
+                            &mut truth,
+                            scanout,
+                        ) {
+                            Ok(presentation) => Some(presentation),
+                            Err(error) => {
+                                let _ = fs::remove_file(state_dir.join("runtime.json"));
+                                return Err(error);
+                            }
+                        }
+                    };
+                    let mut progress =
+                        |runtime: &mut crate::durable_host_control::DurableHostRuntime| {
+                            match scanout.poll_output_lifecycle(events, 16) {
+                                Ok(
+                                    conduit_linux_display::NativeInput::Idle
+                                    | conduit_linux_display::NativeInput::Pending,
+                                ) => (),
+                                Ok(_) => return Err("native output lifetime ended".into()),
+                                Err(error) => {
+                                    return Err(format!("native output lifetime lost: {error:?}"));
+                                }
+                            }
+                            if let Some(presentation) = &mut presentation {
+                                presentation.poll(runtime, scanout)?;
+                            }
+                            Ok(())
+                        };
+                    serve_prepared_runtime(
+                        state_dir,
+                        &trace,
+                        owns_body,
+                        (status, truth),
+                        Some(&mut progress),
+                    )
+                },
+            );
+        }
+    }
+    let prepared = runtime_preparation::prepare_traced_runtime(state_dir, &trace)?;
+    serve_prepared_runtime(
+        state_dir,
+        &trace,
+        owns_body,
+        prepared,
+        #[cfg(all(unix, feature = "native-display"))]
+        None,
+    )
+}
+
+fn serve_prepared_runtime(
+    state_dir: &Path,
+    trace: &startup_trace::Trace,
+    owns_body: bool,
+    (status, mut truth): (
+        RuntimeStatus,
+        crate::durable_host_control::DurableHostRuntime,
+    ),
+    #[cfg(all(unix, feature = "native-display"))] foreground: Option<
+        &mut crate::durable_host_control::ForegroundPoll<'_>,
+    >,
+) -> Result<(), String> {
+    use startup_trace::Phase;
     let runtime = state_dir.join("runtime.json");
     if owns_body {
         truth = match trace.run(Phase::OwnedBody, || truth.with_owned_body(state_dir)) {
@@ -457,6 +596,12 @@ fn run(state_dir: &Path) -> Result<(), String> {
         "durable host {} boot {} is running",
         status.host_id, status.boot_id
     );
+    #[cfg(all(unix, feature = "native-display"))]
+    let outcome = match foreground {
+        Some(poll) => crate::durable_host_control::serve_with_foreground(state_dir, truth, poll),
+        None => crate::durable_host_control::serve(state_dir, truth),
+    };
+    #[cfg(not(all(unix, feature = "native-display")))]
     let outcome = crate::durable_host_control::serve(state_dir, truth);
     match fs::remove_file(&runtime) {
         Ok(()) => outcome,
@@ -951,6 +1096,38 @@ fn write_bytes_atomic(path: &Path, bytes: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// Hash one selected bounded descriptor without duplicating the executable in
+/// heap. Growth/shrink evidence refuses; the immutable byte digest is descriptive.
+fn bounded_file_digest(path: &Path, maximum: u64) -> Result<String, String> {
+    let mut file = fs::File::open(path).map_err(|e| format!("open {}: {e}", path.display()))?;
+    let metadata = file.metadata().map_err(|e| e.to_string())?;
+    if !metadata.is_file() || metadata.len() == 0 || metadata.len() > maximum {
+        return Err(format!("{} violates its finite file bound", path.display()));
+    }
+    let mut hash = Sha256::new();
+    let mut buffer = [0_u8; 8192];
+    let mut total = 0_u64;
+    loop {
+        let count = file
+            .read(&mut buffer)
+            .map_err(|e| format!("hash {}: {e}", path.display()))?;
+        if count == 0 {
+            break;
+        }
+        total = total
+            .checked_add(count as u64)
+            .ok_or("file digest extent overflow")?;
+        if total > metadata.len() {
+            return Err("selected digest file grew during capture".into());
+        }
+        hash.update(&buffer[..count]);
+    }
+    if total != metadata.len() {
+        return Err("selected digest file shrank during capture".into());
+    }
+    Ok(format!("sha256:{:x}", hash.finalize()))
+}
+
 fn bounded_read(path: &Path, maximum: u64) -> Result<Vec<u8>, String> {
     let metadata =
         fs::metadata(path).map_err(|error| format!("inspect {}: {error}", path.display()))?;
@@ -1021,11 +1198,8 @@ fn make_executable(_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) use routed_join::{
-    return_installed_member, return_on_actual_host, serve_body_member_route, MemberEncounter,
-};
-
-pub(crate) use membership::leave_member_from_file;
+pub(crate) use routed_join::{install_member_contact, serve_body_member_contact};
+pub(crate) use routed_join::{return_installed_member, return_on_actual_host, MemberEncounter};
 
 #[cfg(test)]
 mod tests {
@@ -1077,6 +1251,7 @@ mod tests {
         let (manifest, state) = fixture();
         dispatch(HostServiceCommand::Install {
             manifest: manifest.clone(),
+            host_image: None,
             state_dir: state.clone(),
             no_start: true,
             speech: Default::default(),

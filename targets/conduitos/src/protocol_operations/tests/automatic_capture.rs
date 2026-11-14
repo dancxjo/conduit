@@ -37,11 +37,11 @@ struct ScriptedTime {
     pending: bool,
     waits: Arc<AtomicUsize>,
 }
-impl crate::monotonic_clock::owner::MonotonicDeadlineProvider for ScriptedTime {
+impl conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider for ScriptedTime {
     fn poll_until(
         &mut self,
         deadline: u64,
-    ) -> Result<Option<u64>, crate::monotonic_clock::codec::ClockDisposition> {
+    ) -> Result<Option<u64>, conduit_monotonic_wait::clock_at::codec::ClockDisposition> {
         match deadline {
             0 => Ok(Some(self.now)),
             19 | 40 => {

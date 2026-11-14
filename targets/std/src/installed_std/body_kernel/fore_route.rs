@@ -1,4 +1,5 @@
 //! Exact, finite local Fore boundary for one installed Body Play.
+use super::diagnostic::{self, Diagnostic};
 use crate::{
     body_execution::BodyForeOutputAdapter, BodyLiveForeQueue, ExternalForeDelivery,
     ExternalForeInput,
@@ -10,6 +11,7 @@ use super::super::keyboard_input_completion::{CompletedInputEvent, MAX_COMPLETED
 use std::collections::VecDeque;
 
 mod custody;
+mod memory;
 use crate::body_execution::BodyForePendingOutput;
 
 use super::super::{
@@ -46,6 +48,17 @@ struct OutputSlots {
 }
 
 impl<'a> BodyForeRoute<'a> {
+    pub(super) fn attach_image_memory(
+        &mut self,
+        lease: &crate::kernel_preparation::ImageMemoryLease,
+    ) {
+        for slot in &mut self.output_slots {
+            for delivery in &mut slot.available {
+                delivery.attach_image_memory(lease);
+            }
+        }
+    }
+
     pub(super) fn prepare(
         partitions: &[LoweredPlanFragment],
         supplied: &'a [ExternalForeInput],
@@ -206,10 +219,12 @@ impl<'a> BodyForeRoute<'a> {
     pub(super) fn start_and_feed(
         &mut self,
         scheduler: &mut InstalledScheduler,
+        diagnostic: &mut Option<Diagnostic>,
     ) -> Result<(), String> {
         if !self.started {
             // Ingress lifecycle Signs belong to the admitted Body Play.
-            self.inputs.start(scheduler)?;
+            self.inputs
+                .start_with_format(scheduler, |args| diagnostic::error(diagnostic, args))?;
             self.started = true;
         }
         self.inputs.feed_next(scheduler)
@@ -229,25 +244,37 @@ impl<'a> BodyForeRoute<'a> {
         output: &mut Option<&mut dyn BodyForeOutputAdapter>,
         mut input: Option<&mut super::super::keyboard_input_host::KeyboardInputHost<'_>>,
         mut map: Option<&mut super::parsec_acknowledged_map::ParsecAcknowledgedMap>,
+        diagnostic: &mut Option<Diagnostic>,
     ) -> Result<(), String> {
         if self.pending_output.is_some() {
-            return Err("Body Fore stopped output cannot be retried".into());
+            return Err(diagnostic::error(
+                diagnostic,
+                format_args!("Body Fore stopped output cannot be retried"),
+            ));
         }
         for slots in &mut self.output_slots {
             let planned = &slots.port;
             while let Some(offer) = scheduler
                 .remote_egress_offer(planned.endpoint, planned.cord)
-                .map_err(|error| format!("Body Fore offer: {error:?}"))?
+                .map_err(|error| {
+                    diagnostic::error(diagnostic, format_args!("Body Fore offer: {error:?}"))
+                })?
             {
                 if self.deliveries.len() == self.deliveries.capacity() {
-                    return Err("Body Fore delivery capacity exceeded".into());
+                    return Err(diagnostic::error(
+                        diagnostic,
+                        format_args!("Body Fore delivery capacity exceeded"),
+                    ));
                 }
-                let bytes = scheduler
-                    .host_value(offer.value)
-                    .map_err(|error| format!("Body Fore value: {error:?}"))?;
-                planned
-                    .validate_value(bytes)
-                    .map_err(|error| format!("Body Fore output contract: {error:?}"))?;
+                let bytes = scheduler.host_value(offer.value).map_err(|error| {
+                    diagnostic::error(diagnostic, format_args!("Body Fore value: {error:?}"))
+                })?;
+                planned.validate_value(bytes).map_err(|error| {
+                    diagnostic::error(
+                        diagnostic,
+                        format_args!("Body Fore output contract: {error:?}"),
+                    )
+                })?;
                 let completed = if let (Some(input), Some((node, call, realization))) =
                     (input.as_deref_mut(), slots.input_origin)
                 {
@@ -272,18 +299,23 @@ impl<'a> BodyForeRoute<'a> {
                 } else {
                     None
                 };
-                let mut delivery = slots
-                    .available
-                    .pop()
-                    .ok_or("Body Fore delivery slots exhausted")?;
-                delivery.fill_prepared(offer.sequence, bytes)?;
-                let delivery = match custody::deliver(scheduler, output, planned, delivery) {
-                    Ok(delivery) => delivery,
-                    Err((pending, error)) => {
-                        self.pending_output = Some(pending);
-                        return Err(error);
-                    }
-                };
+                let mut delivery = slots.available.pop().ok_or_else(|| {
+                    diagnostic::error(
+                        diagnostic,
+                        format_args!("Body Fore delivery slots exhausted"),
+                    )
+                })?;
+                delivery
+                    .fill_prepared(offer.sequence, bytes)
+                    .map_err(|e| diagnostic::error(diagnostic, format_args!("{e}")))?;
+                let delivery =
+                    match custody::deliver(scheduler, output, planned, delivery, diagnostic) {
+                        Ok(delivery) => delivery,
+                        Err((pending, error)) => {
+                            self.pending_output = Some(pending);
+                            return Err(error);
+                        }
+                    };
                 // Retain confirmed delivery even if a subsequent source/map
                 // acknowledgement fails. Those are distinct custody facts.
                 let delivery_index = self.deliveries.len();
@@ -332,16 +364,22 @@ impl<'a> BodyForeRoute<'a> {
     pub(super) fn require_normal_terminal(
         &self,
         scheduler: &InstalledScheduler,
+        diagnostic: &mut Option<Diagnostic>,
     ) -> Result<(), String> {
         for slots in &self.output_slots {
             let planned = &slots.port;
             if !scheduler
                 .remote_egress_terminal(planned.endpoint, planned.cord)
-                .map_err(|error| format!("Body Fore terminal: {error:?}"))?
+                .map_err(|error| {
+                    diagnostic::error(diagnostic, format_args!("Body Fore terminal: {error:?}"))
+                })?
             {
-                return Err(format!(
-                    "Body Fore output '{}' did not reach an observed normal terminal",
-                    planned.front_port_id.as_str(),
+                return Err(diagnostic::error(
+                    diagnostic,
+                    format_args!(
+                        "Body Fore output '{}' did not reach an observed normal terminal",
+                        planned.front_port_id.as_str(),
+                    ),
                 ));
             }
         }

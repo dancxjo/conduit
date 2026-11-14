@@ -32,6 +32,23 @@ impl SurfaceBufferPool {
         }
     }
 
+    pub(super) fn metadata_backing_bytes(&self) -> usize {
+        self.available.capacity() * core::mem::size_of::<SurfaceBuffer>()
+    }
+
+    pub(super) fn retained_backing_bytes(&self) -> Option<usize> {
+        self.available
+            .iter()
+            .try_fold(self.metadata_backing_bytes(), |bytes, buffer| {
+                bytes.checked_add(
+                    buffer
+                        .pixels
+                        .capacity()
+                        .checked_mul(core::mem::size_of::<u32>())?,
+                )
+            })
+    }
+
     pub(super) const fn allocated_pixels(&self) -> usize {
         self.allocated_pixels
     }

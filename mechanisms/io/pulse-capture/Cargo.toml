@@ -17,8 +17,12 @@ conduit-plan-lowering = { path = "../../../architecture/plan-lowering", optional
 conduit-plot = { path = "../../../architecture/plot" }
 
 [dev-dependencies]
+conduit-embedded-build = { path = "../../../make/embedded-build" }
 conduit-plot = { path = "../../../architecture/plot" }
 
 [features]
 plot-catalog = ["dep:conduit-plot"]
 host-call = ["dep:conduit-kernel", "dep:conduit-plan-lowering"]
+
+# Boxed assigned scheduler preparation is opt-in; electrical Host Calls stay lean.
+prepared-kernel = ["host-call", "conduit-kernel/alloc"]

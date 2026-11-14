@@ -1,16 +1,15 @@
 //! Ready native ownership projected into ordinary planning, then consumed by Play.
-use super::{
-    contract::{CLOCK_CALL, CLOCK_MAXIMUM_BYTES, MonotonicClockContract},
+use alloc::vec;
+use conduit_core::*;
+use conduit_monotonic_wait::clock_at::{
+    contract::{CLOCK_CALL, MonotonicClockContract},
     owner::MonotonicDeadlineProvider,
     owner::{ClockCallRefusal, ClockCallSelection, MonotonicClockHostCall},
 };
-use alloc::vec;
-use conduit_core::*;
 
-pub const CLOCK_IMPLEMENTATION: &str = "conduitos/monotonic-clock-at@1";
-pub const CLOCK_EXECUTION_PROFILE: &str = "conduitos/monotonic-clock-bounded@1";
-pub const CLOCK_RESOURCE_CLASS: &str = "machine/monotonic-clock";
-pub const CLOCK_AUTHORITY: &str = "conduitos.authority/monotonic-clock-at@1";
+pub use conduit_monotonic_wait::clock_at::installation::{
+    CLOCK_AUTHORITY, CLOCK_EXECUTION_PROFILE, CLOCK_IMPLEMENTATION, CLOCK_RESOURCE_CLASS,
+};
 
 /// Native clock ownership and generation facts. No device protocol is present.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -88,36 +87,11 @@ impl<P: MonotonicDeadlineProvider> ReadyClockBase<P> {
         {
             return Err(ClockInstallationRefusal::Advertisement);
         }
-        let kind = contract.kind();
-        let capability = conduit_core::capability_offer_from_parts! {
-            semantic_contract: kind.semantic_contract(),
-            startup_parameters: kind.startup_parameters.clone(),
-            shorthand: kind.shorthand.clone(),
-            capability_id: CapabilityId::from("conduitos/monotonic-clock-at@1"),
-            kind_id: kind.kind_id.clone(),
-            kind_contract_revision: kind.kind_contract_revision.clone(),
-            implementation: ImplementationOffer {
-                execution_profile_id: ExecutionProfileId::from(CLOCK_EXECUTION_PROFILE),
-                implementation_id: ImplementationId::from(CLOCK_IMPLEMENTATION),
-                artifact_id: self.identity.artifact_id.clone(),
-            },
-            inputs: kind.inputs.clone(),
-            outputs: kind.outputs.clone(),
-            host_calls: vec![HostCallRequirement {
-                contract_id: HostCallContractId::from(CLOCK_CALL),
-                target_kind: Some(kind.kind_id.clone()),
-                maximum_in_flight: 1,
-                maximum_input_bytes: CLOCK_MAXIMUM_BYTES,
-                maximum_output_bytes: CLOCK_MAXIMUM_BYTES,
-            }],
-            resource_requirements: vec![resource_requirement(CLOCK_RESOURCE_CLASS, 1)],
-            authority_requirements: vec![AuthorityRequirement {
-                contract_id: AuthorityContractId::from(CLOCK_AUTHORITY),
-                host_call_contract_id: HostCallContractId::from(CLOCK_CALL),
-                subject_kind: kind.kind_id.clone(),
-            }],
-            limits: kind.limits.clone(),
-        };
+        let capability = conduit_monotonic_wait::clock_at::installation::capability_offer(
+            contract,
+            &self.identity.artifact_id,
+        )
+        .map_err(|_| ClockInstallationRefusal::InvalidIdentity)?;
         let resource = resource_offer(
             self.identity.resource_pool_id.as_str(),
             CLOCK_RESOURCE_CLASS,

@@ -93,4 +93,15 @@ fn reference_ceiling_does_not_enlarge_ordinary_text_or_skip_aggregate_accounting
     );
     assert!(AssignedComputationRequirement::from_text(1, "reference", &"ab".repeat(513)).is_err());
     assert!(AssignedComputationRequirement::from_text(1, "reference", "AB").is_err());
+    // Digest-only resident records remain computation-only. The native binder
+    // must still receive and check the complete independently authored reference.
+    let mut resident = payload(1, "reference", "");
+    resident.truncate(19);
+    resident[18] = 4;
+    resident.extend_from_slice(&244u32.to_le_bytes());
+    resident.extend_from_slice(&pins[0].text_digest);
+    assert_eq!(
+        Validation::new(Some(profile)).unwrap().resident(&resident),
+        Err(AssignedPlanRefusal::UnknownComputation)
+    );
 }

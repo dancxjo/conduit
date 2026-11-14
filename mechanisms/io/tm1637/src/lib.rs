@@ -25,6 +25,12 @@ pub use contract::{WriteContract, MAXIMUM_BYTES, WRITE_CALL, WRITE_KIND};
 /// authority, voltage translation, timing realization and shifter enable.
 pub trait OpenDrain {
     type Error;
+    /// Begin one admitted finite transaction, after geometry/cancellation checks.
+    /// A provider may reset its transaction deadline here; no retry or readiness
+    /// is implied. Default adapters need no additional setup.
+    fn begin_transaction(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
     fn clock(&mut self, released: bool) -> Result<(), Self::Error>;
     fn data(&mut self, released: bool) -> Result<(), Self::Error>;
     fn read_data(&mut self) -> Result<bool, Self::Error>;
@@ -86,6 +92,7 @@ fn send<P: OpenDrain>(
             return Err(Failure::Cancelled);
         }
         if packet == 0 {
+            pins.begin_transaction().map_err(Failure::Provider)?;
             // TM1637 datasheet: STOP during command/data transfer initializes
             // serial communication and invalidates that unfinished transfer.
             // This runs only inside the admitted write, never at advertisement.

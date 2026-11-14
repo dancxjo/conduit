@@ -17,3 +17,16 @@ pub use transaction::{I2cDisposition, I2cProvider, I2cTransaction};
 mod test_support;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+#[cfg(test)]
+#[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[cfg(test)]
+#[global_allocator]
+static TEST_ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+
+#[cfg(test)]
+extern crate self as conduit_i2c_transaction;

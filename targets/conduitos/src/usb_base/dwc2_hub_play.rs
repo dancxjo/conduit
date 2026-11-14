@@ -10,15 +10,13 @@ use super::{
 };
 use crate::{
     arch::dwc2::{Controller, RegisterIo, TransactionTranslator},
-    monotonic_clock::{
-        owner::MonotonicDeadlineProvider,
-        play::{ClockPlay, ClockPlayRefusal},
-    },
+    monotonic_clock::play::{ClockPlay, ClockPlayRefusal},
     protocol_host_calls::ProtocolCallRefusal,
     protocol_source::*,
 };
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::*;
+use conduit_monotonic_wait::clock_at::owner::MonotonicDeadlineProvider;
 pub(crate) enum HubPlayRefusal {
     Binding,
     Source(ProtocolSourceRefusal),

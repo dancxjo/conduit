@@ -14,13 +14,14 @@ mod member_leave;
 mod refresh;
 #[path = "return_route/show_ack.rs"]
 mod show_ack;
-use conduit_body::PortableAdmissionReceipt;
+use crate::durable_host::owner::MemberPresentationBasis;
 use conduit_face::{
     FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse,
     MAX_OWNER_FACE_RESPONSE_BYTES,
 };
 use conduit_std_host::secure_websocket::{SecureWebSocketError, SecureWebSocketListener};
-pub(super) use face_request::{decode_face_request, MaskSelection};
+pub(super) use face_request::decode_face_request;
+pub(crate) use face_request::MaskSelection;
 #[path = "return_route/mask_selection.rs"]
 mod mask_selection;
 #[cfg(test)]
@@ -58,7 +59,7 @@ pub(super) struct Grant {
     #[serde(skip)]
     expires_at_millis: u64,
     #[serde(skip)]
-    receipt: PortableAdmissionReceipt,
+    member: MemberPresentationBasis,
     #[serde(skip)]
     mask: MaskSelection,
     #[serde(skip)]
@@ -68,14 +69,14 @@ pub(super) struct Grant {
 
 impl Grant {
     pub(super) fn issue(
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         mask: MaskSelection,
     ) -> Result<Self, String> {
         let now = current_time_millis()?;
         let remaining = MAX_LIFETIME_MILLIS;
         let mut token = [0; 32];
         getrandom::fill(&mut token).map_err(|error| format!("native return entropy: {error}"))?;
-        let credential = &receipt.credential;
+        let credential = &member.credential;
         Ok(Self {
             schema: GRANT_SCHEMA,
             token,
@@ -87,7 +88,7 @@ impl Grant {
             remaining_millis: remaining as u32,
             maximum_actions: MAX_ACTIONS,
             expires_at_millis: now + remaining,
-            receipt: receipt.clone(),
+            member: member.clone(),
             mask,
             spoken_selection: None,
         })
@@ -114,7 +115,7 @@ impl Grant {
         {
             return Err("native return replacement expired or sequence invalid".into());
         }
-        let mut grant = Self::issue(&self.receipt, self.mask)?;
+        let mut grant = Self::issue(&self.member, self.mask)?;
         grant.spoken_selection = self.spoken_selection.clone();
         grant.expires_at_millis = self.expires_at_millis;
         grant.remaining_millis = self
@@ -310,7 +311,7 @@ pub(super) fn serve(
         );
         let profile =
             conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
-                &grant.receipt.host_advertisement,
+                &grant.member.host_advertisement,
             );
         super::response_document::send_for_profile(
             &mut line,

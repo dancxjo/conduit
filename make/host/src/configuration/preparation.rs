@@ -20,6 +20,49 @@ pub(super) fn check(configuration: &HostConfiguration, diagnostics: &mut Vec<D>)
             });
         }
     }
+    if let Some(execution) = configuration.execution {
+        if let Some(continuation) = execution.continuation {
+            if !continuation.has_finite_bounds() {
+                diagnostics.push(D::PreparationDelegation {
+                    detail: "continuation ceilings must all be positive".into(),
+                });
+            }
+            // Policy ceilings confer no physical storage or native possession.
+            // The selected provider and current admission must fund those too.
+            for (field, requested, maximum) in [
+                (
+                    "continuation.assignment_bytes",
+                    u64::from(continuation.assignment_bytes),
+                    configuration
+                        .preparation
+                        .map_or(0, |p| u64::from(p.maximum_assignment_bytes)),
+                ),
+                (
+                    "continuation.runtime_bytes",
+                    u64::from(continuation.runtime_bytes),
+                    configuration.limits.heap_arena_bytes,
+                ),
+                (
+                    "continuation.operation_slots",
+                    u64::from(continuation.operation_slots),
+                    u64::from(configuration.limits.operation_slots),
+                ),
+                (
+                    "continuation.active_worksets",
+                    u64::from(continuation.active_worksets),
+                    u64::from(execution.maximum_active_worksets),
+                ),
+            ] {
+                if requested > maximum {
+                    diagnostics.push(D::LimitExceeded {
+                        field,
+                        requested,
+                        maximum,
+                    });
+                }
+            }
+        }
+    }
     let Some(policy) = configuration.preparation else {
         return;
     };

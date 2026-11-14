@@ -29,7 +29,14 @@ impl ExternalForeOutputAdapter for Collector {
 
 #[test]
 fn ordinary_pipeline_retains_typed_outputs_and_signs() -> Result<(), String> {
-    for (gears, alternate) in [(1, false), (8, false), (32, false), (33, false), (33, true)] {
+    for (gears, alternate) in [
+        (1, false),
+        (8, false),
+        (32, false),
+        (33, false),
+        (35, false),
+        (33, true),
+    ] {
         let source = format!("plot baseline (\n >> input: U64...|\n output: U64...| >>\n) {{\n input{} >> output\n}}\n", (0..gears).map(|i| if alternate && i % 2 == 1 { " >> (. + 2)" } else { " >> (. + 1)" }).collect::<String>());
         let syntax = parse_syntax_document(&source);
         assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
@@ -48,6 +55,7 @@ fn ordinary_pipeline_retains_typed_outputs_and_signs() -> Result<(), String> {
             StdHostComposition::minimal(),
         );
         let mut advertisement = base.advertisement().clone();
+        let mut instances = BTreeMap::new();
         for gear in &authoring.expanded.gears {
             let conduit_core::ConfigurationValue::Text(program) = &gear.configuration[0].value
             else {
@@ -60,6 +68,9 @@ fn ordinary_pipeline_retains_typed_outputs_and_signs() -> Result<(), String> {
                     .map_err(|e| format!("offer: {e:?}"))?;
             assert!(gear.accepts_realization(&offer));
             assert_eq!(offer.limits.max_active_instances, 32);
+            *instances
+                .entry(offer.capability_id.clone())
+                .or_insert(0_usize) += 1;
             if !advertisement
                 .capabilities
                 .iter()
@@ -74,13 +85,20 @@ fn ordinary_pipeline_retains_typed_outputs_and_signs() -> Result<(), String> {
         let mut host = StdHost::from_advertisement(advertisement)?;
         let hosts = [host.advertisement().clone()];
         let selection = default_expanded_placements(&authoring.expanded, &hosts);
-        if gears == 33 && !alternate {
+        let exceeds_same_capability = instances.values().any(|count| *count > 32);
+        if gears == 35 && !alternate {
+            assert!(
+                exceeds_same_capability,
+                "negative fixture needs 33 identical offers"
+            );
+        }
+        if exceeds_same_capability {
             assert!(
                 matches!(
                     selection,
                     Err(conduit_planner::PlannerError::UnknownCapability(_))
                 ),
-                "33 repeated instances must exceed the offer"
+                "more than 32 instances of the same exact capability must refuse"
             );
             continue;
         }
@@ -137,8 +155,8 @@ fn ordinary_pipeline_retains_typed_outputs_and_signs() -> Result<(), String> {
             &mut std::io::sink(),
             &mut NoTimer,
         );
-        if gears == 33 {
-            let refusal = report.expect_err("aggregate profile must refuse 33 nodes");
+        if gears > 32 {
+            let refusal = report.expect_err("aggregate profile must refuse more than 32 nodes");
             assert!(
                 refusal.contains("fragment exceeds the installed std kernel profile"),
                 "{refusal}"

@@ -3,11 +3,8 @@
 Source audit, 11 November 2026. This is a decomposition and dependency audit,
 not hardware, installed Play, recorder, or release acceptance.
 
-The original inventory compares `dev` at `5e0d01d0a156cd17002a9714e1a33677547889c8`
+The comparison is current `dev` at `5e0d01d0a156cd17002a9714e1a33677547889c8`
 and the environmental integration checkpoint at `a28a11877c7bd3424b41de1284e098f990f1d7cc`.
-The focused shared-package delivery is based on current `dev`
-`a464d6d5189b57a3d42b2fab6e36f9103efd1429`; its five extraction commits
-apply without API reconciliation or changes to that base's semantics.
 The latter is draft work under #6837; its capabilities and dependencies must not
 be attributed to `dev`. SDL extraction is independently owned and is not part
 of this change.
@@ -156,39 +153,133 @@ the environmental application, its authored files determine application
 composition, and the resulting installed Plots/Plans/Plays and shared Masks are
 verified. A directory relocation or an isolated green test is not that gate.
 
+## Active-draft reconciliation
 
-## Focused current-dev qualification
+The isolated integration is based on exact committed draft
+`a28a11877c7bd3424b41de1284e098f990f1d7cc`, rather than replacing that draft
+with current-dev implementations. It preserves inert Face backing and rebinding,
+owned and linked/static canonical selection, allocation-free quantity packing,
+static schema composition, retained-backing accounting and the DHT11 `@2`
+ValueContracts. The device-local private storage ceiling preserves the existing
+canonical bound/refusal and conversion order; it introduces no Body dependency.
 
-This delivery contains only the shared Face, canonical selector, TM1637 output
-preparation/Plot, and DHT11 observation moves described above, with their actual
-consumers, workspace registration, proof entrances and standalone lock updates.
-It does not contain the preservation draft's MCU continuation, native startup,
-Source reselection, linked selector/packing APIs or newer `@2` pulse/expression
-contracts. Current-dev runtime golden assertions are unchanged. The separate
-draft's historical baseline failures and their repairs are not claims about
-this source tree.
+The draft product device catalog, MCU Source builder and execution runtime now
+consume the shared DHT11 realization directly. The execution runtime consumes
+the shared selector, including its static constructor. The draft's selector
+custody test moves with that helper. Remaining recording, publication and
+application display policy dependencies are retained explicitly: this is not a
+claim that the production compiler is yet independent of the Body runtime.
 
-On the exact five-commit extraction, bounded hosted checks passed:
+No live owner, device, shared build cache or deployed Source identity is changed
+by this reconciliation. SDL startup and contact renewal remain separately owned.
 
-- Default shared-package tests: DHT11 observation 4, environmental Face 10,
-  semantic catalog 325 (199 unit and 126 integration), TM1637 output Make 2:
-  341 tests total, with no failing doc tests.
-- DHT11 observation with all features: 5 tests, including optional kernel and
-  source-capture coverage.
-- `thumbv6m-none-eabi` compilation: DHT11 observation with all features;
-  environmental Face and semantic catalog with default features disabled.
-- The changed standalone environmental runtime consumer compiles with all
-  features and its unchanged lock, using the same bounded local target cache.
-- All 6 workspace-shard unit guards, including exact-once workspace coverage.
-- The supported `cargo xtask ci pipeline evidence-retention` guard.
+### Reconciliation validation, 11 November 2026
 
-Normal/build/dev dependency inventories for DHT11 observation and TM1637 output
-Make contain no environmental Body package. Raw receipts are retained outside
-Git in the task outputs as `dev-extraction-*-20261111` logs and inventories.
-The complete standalone environmental runtime suite was not rerun on this
-current-dev extraction under the available disk headroom. These focused CPU and
-cross-compilation checks do not prove device operation, installed Play or
-accepted release publication.
+The source checkpoint `21f51ad532747c680c4561d97e847b984638f544` passed:
+
+- DHT11 device tests: 7; shared selector/catalog tests: 200; environmental Face
+  tests: 11; TM1637 output planning tests: 2.
+- MCU Source-builder library tests: 8, including one checked sampling/Mask/output
+  closure and exact scoped recording constructors.
+- MCU Host runtime compilation with `execution` enabled.
+- `thumbv6m-none-eabi` checks for DHT11 with all features, environmental Face,
+  and the semantic catalog with default features disabled.
+- DHT11 and TM1637 output normal/build/dev dependency inventories contain no
+  environmental Body package.
+
+The complete environmental runtime audit reports 67 passed and 2 failed across
+21 test binaries. At that checkpoint neither failure had been repaired:
+
+1. `capture_kernel::checked_source_traverses_the_production_kernel_and_closes_after_each_outcome`
+   expects an obsolete Plan/Fragment snapshot.
+2. `local_fore::exact_fore_tables_preserve_checked_execution_and_refuse_wrong_resident_pins`
+   compares decoded retained Local Fore provenance with an unannotated lowered
+   cord.
+
+Both tests were also run, without changing their assertions, in a separate
+checkout of exact base `a28a11877c7bd3424b41de1284e098f990f1d7cc`.
+Both fail there, and their actual/expected assertion payloads are byte-identical
+between baseline and extraction. This proves these observed failures predate
+this extraction; it does not establish their repair or overall release
+acceptance. Cargo resolved already-declared missing standalone lock dependencies
+for that baseline build; its tracked source remained unchanged.
+
+Evidence retained in the task outputs includes
+`extraction-baseline-a28-runtime-tests-20261111.log`,
+`integration-runtime-full-audit-20261111.log` and
+`extraction-baseline-comparison-20261111.json`, alongside the focused test/check
+logs. No device or installed Body was changed by these checks.
+
+## Baseline-gate follow-up qualification
+
+The test-only follow-up passes both formerly failing test binaries with the
+current compiler: five `capture_kernel` tests and one `local_fore` test. This is
+focused CPU evidence; the complete runtime audit and release acceptance have
+not been rerun or inferred from it.
+
+The capture snapshot predates several reviewed semantic changes. Commit
+`79bf21bec9` advances pure-expression and structured-selector contracts to `@2`
+and publishes exact input/output value bounds; `9fd3adfc99` propagates finite
+contracts through expanded Fore; `a90bc5f9f5` advances the pulse contract to `@2`
+and adds its two value contracts. Raw authored Source remaining unchanged does
+not preserve these compiler- and selected-contract-dependent seals.
+
+The regression controls only pulse `@1` versus `@2` under the **current**
+compiler. Both runs retain three expression `@2` and four selector `@2`
+placements, each with two value contracts, and have identical Source identity.
+The planning-only pulse `@1` case has no pulse semantic laws and pins Plan
+`9844ee7e…` / Fragment `6ef34a17…`; pulse `@2` has two value contracts and pins
+`afe8a353…` / `08eca8a7…`. The tests contain the complete digests and verify zero
+provider effects during comparison. This does not reproduce the October 22
+compiler or its old `4c8197ae…` / `664dab5f…` snapshot. The four existing capture
+execution/custody tests remain strict and pass using the current contract.
+
+Commit `989996bc2b` intentionally retains private Local Fore provenance only
+after complete assigned-table checks. General lowering has not earned that
+provenance. The corrected test compares every public topology, capacity,
+maximum-value, pressure and track field with lowering, while preserving full
+equality between contiguous and borrowed assigned tables. Wrong-pin refusal,
+allocation-free preparation/execution, pressure and cancellation checks pass;
+no provenance constructor or production behavior changed.
+
+Focused qualification is retained in
+`extraction-baseline-repair-qualified-20261111.log` in the task outputs.
+
+The final post-repair runtime audit passes all 70 tests across 21 test binaries
+with all features enabled, including the controlled current-compiler pulse
+revision comparison. The two reproduced baseline gates are now repaired in tests:
+checked assigned Fore provenance remains intact, and the current exact seals are
+pinned without claiming to recreate the historical compiler. The shared fixture
+change was followed by this full runtime audit, not only the two focused tests.
+No production behavior, live owner, device firmware or installed Body was changed
+by those baseline repairs. The final log is
+`outputs/extraction-runtime-final-audit-20261111.log` in the task evidence area.
+
+### Shared retention integration
+
+The terminal publication Back now delegates staging and local ordering to the
+shared `conduit-typed-retention` implementation; application channel contracts
+remain in the Body. The duplicate private canonical-input implementation was
+removed and its validation regressions moved into shared tests. Both validators
+already check primitive representations, so this is not a semantic tightening.
+
+In the combined integration source, all 71 environmental runtime tests across
+21 binaries and all 10 shared-helper tests pass. Workspace registration and all
+six shard guards pass. The independent current-dev adapter cohort additionally
+passes strict all-target Clippy and Cortex-M0+ compilation, with byte-identical
+CPU64 inline/buffer/preparation allocation measurements before and after. Those
+measurements are not a new firmware or hardware acceptance claim. Running
+MCU/owner/display artifacts were left unchanged during this source integration.
+
+## Accepted dev delivery reconciliation
+
+Focused extraction PR #6867 passed its complete Candidate matrix and merged to
+`dev` at `3ebde90bccce34a7bc36c8a4e190ce860f4cde60`. This integration retains
+its later linked/static selector, pack-only quantity codec, typed retention,
+and shared TM1637 realization. Those follow-ups avoid restoring decoded schema
+copies or the removed Body-local display generator when reconciling the focused
+extraction. Every external package shared with the accepted base retains its version and
+checksum; additional existing entries fund integration-only runtime features.
 
 ## Delivery reconciliation, 11 November 2026
 

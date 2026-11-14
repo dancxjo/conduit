@@ -288,6 +288,7 @@ pub mod linear_presenter;
 mod mask_control;
 #[cfg(any(
     test,
+    feature = "native-compositor-core",
     target_arch = "x86_64",
     feature = "ia32-product",
     feature = "aarch64-product",
@@ -301,6 +302,7 @@ mod native_mask_play;
 pub mod native_participant;
 #[cfg(any(
     test,
+    feature = "native-compositor-core",
     target_arch = "x86_64",
     feature = "ia32-product",
     feature = "aarch64-product",
@@ -312,6 +314,7 @@ pub mod native_participant;
 mod native_surface_possession;
 #[cfg(any(
     test,
+    feature = "native-compositor-core",
     target_arch = "x86_64",
     feature = "ia32-product",
     feature = "aarch64-product",

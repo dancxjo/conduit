@@ -429,6 +429,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     &secret_bytes,
                     &image_content_digest,
                     selection,
+                    now_millis,
                 )
                 .map_err(|message| Refusal::new("Make.Prepare", &message))?;
                 let response = encode(&prepared)?;

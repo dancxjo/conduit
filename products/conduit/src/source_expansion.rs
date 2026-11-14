@@ -250,7 +250,7 @@ mod tests {
         std::fs::remove_file(path).unwrap();
 
         assert!(human.contains("`= .` in plot `identity`"));
-        assert!(human.contains("ordinary Gear: conduitese/pure-expression-operation@1"));
+        assert!(human.contains("ordinary Gear: conduitese/pure-expression-operation@2"));
         assert!(human.contains("value >> . >> result"));
         let value: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(value["expansions"][0]["authored"], "= .");

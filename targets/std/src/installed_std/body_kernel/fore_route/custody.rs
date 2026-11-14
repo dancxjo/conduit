@@ -7,22 +7,27 @@ pub(super) fn deliver(
     output: &mut Option<&mut dyn BodyForeOutputAdapter>,
     planned: &LoweredForePort,
     delivery: ExternalForeDelivery,
+    diagnostic: &mut Option<Diagnostic>,
 ) -> Result<ExternalForeDelivery, (BodyForePendingOutput, String)> {
     let mut stage = BodyForeDeliveryStage::NotAttempted;
     let result = (|| {
-        let adapter = output
-            .as_deref_mut()
-            .ok_or("Body Fore output adapter lost")?;
+        let adapter = output.as_deref_mut().ok_or_else(|| {
+            diagnostic::error(diagnostic, format_args!("Body Fore output adapter lost"))
+        })?;
         stage = BodyForeDeliveryStage::AdapterOutcomeUnknown;
         adapter.deliver(&delivery)?;
         stage = BodyForeDeliveryStage::AdapterAccepted;
         scheduler
             .remote_egress_accept(planned.endpoint, planned.cord, delivery.sequence)
-            .map_err(|error| format!("Body Fore accept: {error:?}"))?;
+            .map_err(|error| {
+                diagnostic::error(diagnostic, format_args!("Body Fore accept: {error:?}"))
+            })?;
         stage = BodyForeDeliveryStage::KernelAccepted;
         scheduler
             .remote_egress_delivered(planned.endpoint, planned.cord, delivery.sequence)
-            .map_err(|error| format!("Body Fore acknowledge: {error:?}"))?;
+            .map_err(|error| {
+                diagnostic::error(diagnostic, format_args!("Body Fore acknowledge: {error:?}"))
+            })?;
         Ok::<_, String>(())
     })();
     match result {

@@ -3,18 +3,17 @@ use super::{
     contract::{I2cContract, I2C_MAXIMUM_BYTES},
     transaction::{I2cDisposition, MAXIMUM_TRANSACTION_BYTES},
 };
-use alloc::vec::Vec;
 use conduit_core::{
-    kind_id, validate_canonical_structured_value, PreparedLeafSequenceEncoder,
-    PreparedStructuredComposer, StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
+    validate_canonical_structured_value, PreparedStructuredComposer,
+    StructuredCompositionPreparationRefusal, StructuredInfoRefusal,
 };
 
 pub struct PreparedI2cResultEncoder {
     result: PreparedStructuredComposer,
     completed: PreparedStructuredComposer,
     short: PreparedStructuredComposer,
-    input: PreparedLeafSequenceEncoder,
-    unit: Vec<u8>,
+    input: PreparedStructuredComposer,
+    unit: &'static [u8],
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -30,53 +29,37 @@ impl PreparedI2cResultEncoder {
             + self.completed.prepared_heap_bytes()
             + self.short.prepared_heap_bytes()
             + self.input.prepared_heap_bytes()
-            + self.unit.capacity()
     }
 
-    pub fn new(contract: &I2cContract) -> Result<Self, StructuredInfoRefusal> {
-        let StructuredInfoTypeShape::Variant { cases, .. } = contract.result_type().shape() else {
-            return Err(StructuredInfoRefusal::WrongType);
-        };
-        let payload = |tag| {
-            cases
-                .iter()
-                .find(|case| case.tag() == tag)
-                .map(|case| case.payload_type())
-                .ok_or(StructuredInfoRefusal::UnknownVariantTag)
-        };
+    pub fn new(_contract: &I2cContract) -> Result<Self, StructuredCompositionPreparationRefusal> {
         let bound = |text: &str| {
             text.parse::<usize>()
                 .ok()
                 .filter(|bytes| *bytes <= I2C_MAXIMUM_BYTES as usize)
                 .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge)
         };
-        let mut unit = PreparedStructuredComposer::new(
-            &StructuredInfoType::leaf(kind_id("value/empty"))?,
-            64,
-        )?;
-        let unit = unit.leaf(&[])?.to_vec();
         Ok(Self {
-            result: PreparedStructuredComposer::with_static_schema(
-                contract.result_type(),
+            result: PreparedStructuredComposer::try_from_static_schema(
                 include_bytes!(concat!(env!("OUT_DIR"), "/result.type")),
                 bound(include_str!(concat!(env!("OUT_DIR"), "/result.bound")))?,
+                usize::MAX,
             )?,
-            completed: PreparedStructuredComposer::with_static_schema(
-                payload("completed")?,
+            completed: PreparedStructuredComposer::try_from_static_schema(
                 include_bytes!(concat!(env!("OUT_DIR"), "/completed.type")),
                 bound(include_str!(concat!(env!("OUT_DIR"), "/completed.bound")))?,
+                usize::MAX,
             )?,
-            short: PreparedStructuredComposer::with_static_schema(
-                payload("short")?,
+            short: PreparedStructuredComposer::try_from_static_schema(
                 include_bytes!(concat!(env!("OUT_DIR"), "/short.type")),
                 bound(include_str!(concat!(env!("OUT_DIR"), "/short.bound")))?,
+                usize::MAX,
             )?,
-            input: PreparedLeafSequenceEncoder::new(
-                kind_id("value/u8"),
-                1,
-                MAXIMUM_TRANSACTION_BYTES as u16,
+            input: PreparedStructuredComposer::try_from_static_schema(
+                include_bytes!(concat!(env!("OUT_DIR"), "/input.type")),
+                bound(include_str!(concat!(env!("OUT_DIR"), "/input.bound")))?,
+                usize::MAX,
             )?,
-            unit,
+            unit: include_bytes!(concat!(env!("OUT_DIR"), "/unit.value")),
         })
     }
     pub fn completed(&mut self, requested: u8, input: &[u8]) -> Result<&[u8], I2cResultRefusal> {
@@ -94,7 +77,9 @@ impl PreparedI2cResultEncoder {
         input: &[u8],
     ) -> Result<&[u8], StructuredInfoRefusal> {
         let short = input.len() < usize::from(requested);
-        let input = self.input.encode(input.iter().map(core::slice::from_ref))?;
+        let input = self
+            .input
+            .leaf_collection(input.iter().map(core::slice::from_ref))?;
         let payload = if short {
             &mut self.short
         } else {
@@ -121,6 +106,6 @@ impl PreparedI2cResultEncoder {
             I2cDisposition::Refused => "refused",
         };
         self.result
-            .variant(tag, validate_canonical_structured_value(&self.unit)?)
+            .variant(tag, validate_canonical_structured_value(self.unit)?)
     }
 }

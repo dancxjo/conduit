@@ -34,9 +34,7 @@ pub enum RetirementRefusal {
 }
 
 pub struct WriteHostCall<P> {
-    table: c::BaseCapabilityTable,
-    handle: c::BaseCapabilityHandle,
-    claim: c::BaseOperationClaim,
+    operation: c::BoundBaseOperation,
     attachment: WriteAttachment,
     provider: P,
     node: NodeId,
@@ -44,6 +42,11 @@ pub struct WriteHostCall<P> {
     packets: PreparedPackets,
 }
 impl<P: OpenDrain> WriteHostCall<P> {
+    /// Exact node retained by the original checked assignment binding.
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
+
     /// # Safety
     /// Root must independently own the exact initialized electrical pins and
     /// generation, authorize this Plan/Play, and admit provider storage and work.
@@ -59,8 +62,10 @@ impl<P: OpenDrain> WriteHostCall<P> {
         selection: SelectedOperationPlan<'_>,
     ) -> Result<Self, WriteCallRefusal<P::Error>> {
         let prepared = Self::prepare_selected(&table, &claim, attachment, contract, selection)?;
+        let operation = c::BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, reason)| WriteCallRefusal::Capability(reason))?;
         Ok(Self::from_prepared(
-            table, handle, claim, attachment, provider, prepared,
+            operation, attachment, provider, prepared,
         ))
     }
     pub(crate) fn prepare_selected(
@@ -97,17 +102,13 @@ impl<P: OpenDrain> WriteHostCall<P> {
         Ok(PreparedWriteBinding { node, packets })
     }
     pub(crate) fn from_prepared(
-        table: c::BaseCapabilityTable,
-        handle: c::BaseCapabilityHandle,
-        claim: c::BaseOperationClaim,
+        operation: c::BoundBaseOperation,
         attachment: WriteAttachment,
         provider: P,
         prepared: PreparedWriteBinding,
     ) -> Self {
         Self {
-            table,
-            handle,
-            claim,
+            operation,
             attachment,
             provider,
             node: prepared.node,
@@ -137,22 +138,18 @@ impl<P: OpenDrain> WriteHostCall<P> {
             .checked_add(1)
             .ok_or(E::SequenceExhausted)?;
         let decoded = self.packets.decode(input).map_err(E::Packets)?;
-        let lease = self
-            .table
-            .authorize(&self.handle, &self.claim)
-            .map_err(E::Capability)?;
+        let lease = self.operation.authorize().map_err(E::Capability)?;
         self.next_request = next;
         // The guard fences a panic/unwind too. Normal electrical failures have
         // an explicit completion before revocation; uncertain work is not reused.
         let pending = Pending {
-            table: &mut self.table,
-            handle: &mut self.handle,
+            operation: &mut self.operation,
             lease: Some(lease),
         };
         let result = crate::transmit(&mut self.provider, &decoded.packets(), cancelled);
         pending.complete().map_err(E::Capability)?;
         if result.is_err() {
-            self.table.revoke(&self.handle).map_err(E::Capability)?;
+            self.operation.revoke().map_err(E::Capability)?;
         }
         result.map_err(E::Electrical)
     }
@@ -162,15 +159,12 @@ impl<P: OpenDrain> WriteHostCall<P> {
         call: HostCallId,
     ) -> Result<(), WriteCallRefusal<P::Error>> {
         self.check_binding(node, call)?;
-        self.table
-            .revoke(&self.handle)
+        self.operation
+            .revoke()
             .map_err(WriteCallRefusal::Capability)
     }
     pub fn inspection(&self) -> &c::CapabilityInspection {
-        self.table
-            .inspections()
-            .next()
-            .expect("single prepared capability")
+        self.operation.inspection()
     }
     pub fn retire_retained(
         owner: &mut Option<Self>,
@@ -197,17 +191,13 @@ impl<P: OpenDrain> WriteHostCall<P> {
     }
 }
 struct Pending<'a> {
-    table: &'a mut c::BaseCapabilityTable,
-    handle: &'a mut c::BaseCapabilityHandle,
+    operation: &'a mut c::BoundBaseOperation,
     lease: Option<c::BaseOperationLease>,
 }
 impl Pending<'_> {
     fn complete(mut self) -> Result<(), c::BaseCapabilityRefusal> {
-        self.table.complete(
-            self.handle,
-            self.lease.as_ref().expect("pending").clone(),
-            0,
-        )?;
+        self.operation
+            .complete(self.lease.as_ref().expect("pending").clone(), 0)?;
         self.lease = None;
         Ok(())
     }
@@ -215,7 +205,7 @@ impl Pending<'_> {
 impl Drop for Pending<'_> {
     fn drop(&mut self) {
         if self.lease.is_some() {
-            let _ = self.table.revoke(self.handle);
+            let _ = self.operation.revoke();
         }
     }
 }
@@ -247,7 +237,46 @@ pub(crate) fn check_possession<E>(
     Ok(())
 }
 impl WriteAttachment {
+    /// Provider ownership and the packet storage retained by its Host Call.
+    /// This is descriptive accounting; the ordinary ledger must still admit it.
+    pub const fn retained_bytes_for_provider<P>() -> u64 {
+        (core::mem::size_of::<P>() + core::mem::size_of::<PreparedPackets>()) as u64
+    }
     pub(crate) fn valid(self) -> bool {
-        self.generation != 0 && self.resource_bytes >= 24
+        // This is the retained codec footprint, not a wire-protocol minimum.
+        // Linked schema storage changes this size, especially on 32-bit hosts.
+        self.generation != 0
+            && self.resource_bytes >= core::mem::size_of::<PreparedPackets>() as u64
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn zero_sized_provider_storage_is_valid_at_the_actual_codec_footprint() {
+        struct ZeroSizedProvider;
+        let bytes = WriteAttachment::retained_bytes_for_provider::<ZeroSizedProvider>();
+        assert_eq!(bytes, core::mem::size_of::<PreparedPackets>() as u64);
+        assert!(WriteAttachment {
+            generation: 1,
+            resource_bytes: bytes
+        }
+        .valid());
+        assert!(!WriteAttachment {
+            generation: 1,
+            resource_bytes: bytes - 1
+        }
+        .valid());
+        assert!(!WriteAttachment {
+            generation: 0,
+            resource_bytes: bytes
+        }
+        .valid());
+        // This test also runs unchanged on 32-bit targets: the borrowed
+        // validator retains one slice and one usize, rather than 24 bytes.
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(bytes, 12);
     }
 }

@@ -1,0 +1,50 @@
+{
+  "schema": "conduit.proof/body-made-seed-native-admission@1",
+  "credential": {
+    "credential_id": "2f167e36cbfeeb2c4ca47014eff7e48ac4693409218518f233158214d6037139",
+    "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+    "part_id": "e4acf902f3f697c90fb9cb9a4d74586d52bfb186b4d1f4c86b662348cf9546af",
+    "host_id": "host/installed/003b3c350c44034f5834e541220bbf31e4d9152e5d95a4582536acb5382e11fc",
+    "boot_id": "boot/installed/3e54b9ef71d99b17286e3ccc9ec17d9329d45d694a2780cb8c3c06f59ec4595d",
+    "issued_at_millis": 1793597119033
+  },
+  "source_export": "proof/evidence/creche/hamm-authored-threebee-timer.host.conduit",
+  "authoring_source": "a6bfe2aaa409446ea0cbf780aa33855526d9cdbc",
+  "destination_payload_source": "f3e9b7f87707f28f968643c4c1c109ff20be97e7",
+  "carrier_receipt": {
+    "schema": "conduit.carrier/realization@1",
+    "carrier_id": "installed/seed-native-install",
+    "implementation_id": "conduit/native-install-start@1",
+    "target_id": "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3",
+    "spore_id": "spore:sha256:531c339ffe41d11b2b427ffe3bb4b56a04ec82d0e02674dfafb839c3e2ec6304",
+    "artifact_content_sha256": "sha256:25bc4f0862c2137867720c858b2882556e591961fb088f4eaff9c4aa21d5ebab",
+    "terminal": "completed",
+    "bytes_realized": 55133360,
+    "byte_verification_completed": true,
+    "explicit_authority_observed": true,
+    "boot_observed": false,
+    "join_observed": false,
+    "membership_admitted": false
+  },
+  "package_sha256": "sha256:25bc4f0862c2137867720c858b2882556e591961fb088f4eaff9c4aa21d5ebab",
+  "membership_admitted": true,
+  "current_offers_available": true,
+  "plan_created": false,
+  "play_created": false,
+  "initialized_capability_kinds": [
+    "time/tick"
+  ],
+  "resource_pools": [
+    {
+      "pool_id": "timer/main",
+      "class_id": "conduit.resource/timer-slot@1",
+      "capacity_units": 8,
+      "compute": null
+    }
+  ],
+  "physical_model": "Raspberry Pi 3 Model B Plus Rev 1.3",
+  "deployment_transport": "Operator-carried Seed and signed admission messages over SSH; not an admitted execution Line.",
+  "continuity": "Old installation preserved inactive at ~/.local/state/conduit-before-hamm-seed-20261102; no cold-power continuity proof.",
+  "display": "Legacy HDMI renderer remains running separately; no Hamm graph or graphical Seed claim.",
+  "personal_browser": "Latimer admission unfinished; user canceled further interactive joining."
+}

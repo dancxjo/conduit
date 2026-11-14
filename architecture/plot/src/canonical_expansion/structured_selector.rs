@@ -17,6 +17,37 @@ use semantic_call::expand_semantic_call_graph;
 use substitution::substitute_immutable_values;
 use temporal::{input_temporal, output_temporal};
 
+/// The selection's proved output extent, shared by Source and Back offers.
+/// Input Type validation and physical scratch do not invent a semantic input
+/// ceiling: a selector carries no authored input-budget metadata.
+pub fn structured_selector_semantic_laws(
+    selector: &StructuredSelector,
+) -> Result<Vec<conduit_core::KindSemanticLaw>, conduit_core::StructuredInfoRefusal> {
+    use conduit_core::{
+        CheckedValueContract, FrontValueContract, FrontValueLocation, KindSemanticLaw,
+    };
+    let contracts = [(
+        FrontValueLocation::Output(conduit_core::port_id("output")),
+        selector.output_type(),
+    )]
+    .into_iter()
+    .map(|(location, ty)| {
+        let maximum = crate::maximum_prepared_canonical_value_bytes(ty)
+            .map_err(|_| conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+        Ok(FrontValueContract {
+            location,
+            contract: CheckedValueContract::new(
+                ty.profile()?.value_kind().clone(),
+                maximum,
+                vec![],
+            )
+            .map_err(|_| conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding)?,
+        })
+    })
+    .collect::<Result<Vec<_>, conduit_core::StructuredInfoRefusal>>()?;
+    Ok(vec![KindSemanticLaw::ValueContracts(contracts)])
+}
+
 pub fn structured_selector_definition(
     selector: &StructuredSelector,
     temporal: PortTemporal,
@@ -26,7 +57,7 @@ pub fn structured_selector_definition(
         .expect("checked selector has a finite semantic identity");
     KindProjection {
         kind_id,
-        kind_contract_revision: KindIdentity::from("structured-info/selector-operation@1"),
+        kind_contract_revision: KindIdentity::from("structured-info/selector-operation@2"),
         inputs: vec![PortDescriptor {
             port_id: conduit_core::port_id("input"),
             value_kind: selector
@@ -214,6 +245,7 @@ pub(super) fn resolve_selectors(
         let mut generated_activations = Vec::new();
         let instance = instantiate_gear(
             &gear,
+            Some((selector, temporal)),
             None,
             &name,
             source_plot,

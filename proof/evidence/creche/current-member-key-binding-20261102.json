@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.proof/current-member-key-binding@1",
+  "source": "8ea68fa3221d30180b7cab0c6fc19948b8f221ba",
+  "tests": {
+    "owning_current_member": 3,
+    "complete_body_library_including_owning": 51
+  },
+  "strict": "conduit-body library and tests -D warnings passed",
+  "boundary": "Admission-manager stored continuity key bound to exact Body/Part/current Host/Boot/offer; receiver-local capability authorization unchanged",
+  "log_sha256": {
+    "current-member-tests.log": "8f41ea7282d8f1b24b3020e5d4e26fb649986631d1618bcc2b76c5e80afe1fd7",
+    "body-library-tests.log": "202e43afb871708f9ba866bb8ccff7bea9ba0155c9e670b7060a9f8f776ed246",
+    "body-strict.log": "912d574cdf25bd5a1b21f4013cd27184fd82ce8a3cb585e936e6c6d1d81c90a7"
+  },
+  "not_proved": [
+    "one-use challenge issuance/consumption and receiver pin custody",
+    "actual encrypted authorized Line",
+    "installed returning-member connection",
+    "physical new Boot return",
+    "graphical Seed or Face deployment"
+  ],
+  "dependency_cache_revalidation": "Fresh checkout-isolated complete Body suite: 51 passed; Body/kernel strict library/tests passed.",
+  "fresh_log_sha256": {
+    "fresh-body-kernel-library-tests.log": "ddf7336105cfb4c2f90db860e04373771a5a5fd8f3bcb41d229ec6eee6525ba0",
+    "fresh-body-kernel-strict.log": "98d1f91023ba2c8418f4dcbda844848e2f9787ad11654fb017e606b1c3288107"
+  }
+}

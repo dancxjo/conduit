@@ -1,0 +1,21 @@
+{
+  "schema": "conduit.proof/optional-owned-output-kernel-reuse@1",
+  "source": "3f19f2265d",
+  "feature": "alloc",
+  "tests": {
+    "kernel_library_passed": 226,
+    "kernel_library_ignored": 3
+  },
+  "strict": "Fresh checkout-isolated kernel and Body library/tests Clippy -D warnings passed",
+  "log_sha256": {
+    "kernel-specialized-tracking-tests.log": "0b34b279dd61c891d05537ae17bb738d897f38ec3ff05940f16523b1759eba6b",
+    "fresh-body-kernel-strict.log": "98d1f91023ba2c8418f4dcbda844848e2f9787ad11654fb017e606b1c3288107"
+  },
+  "scope": "Explicit optional process-local output boundary; independent actual per-Cord sequences; original exactly-one entrance unchanged",
+  "not_proved": [
+    "complete Root preparation memory or physical initialization",
+    "installed graphical Host readiness or Seed deployment"
+  ],
+  "dependency_cache_revalidation": "Passed after invalidating workspace dev artifacts; Cargo target now exclusive to this checkout.",
+  "storage": "Mandatory mode has no per-Cord tracking allocation; optional mode allocates bounded tracking explicitly and native Mask receipt charges it."
+}

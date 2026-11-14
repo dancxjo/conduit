@@ -1,0 +1,28 @@
+{
+  "schema": "conduit.proof/remote-plot-face-route@1",
+  "source_commit": "a6bfe2aaa409446ea0cbf780aa33855526d9cdbc",
+  "related_existing_issue": 6470,
+  "proof_class": "hosted CPU regression with real ordinary Creche worker and explicit fixture carrier Lines",
+  "contract": "Remote Mask seal retains and validates exact current producer Source, checked/expanded Plot, producer PlotPlan, issued BodyPlay, and owner Host/Boot/offer generation; BodyPlan identity is distinct.",
+  "checks": [
+    {
+      "log": "target/remote-plot-route-20261102/owning-test-after-module-path.log",
+      "sha256": "d1666e985375ed5d664b2be26586c1a09ff673f84fa1f220f37aa63eb39d4d34",
+      "result": "1 real Creche producer route regression passed"
+    },
+    {
+      "log": "target/remote-plot-route-20261102/face-all.log",
+      "sha256": "66836fce6f401d08146b83d4078b2de17dc2c8269b384fa25e94c779e502778b",
+      "result": "87 Face library tests passed; 2 ignored"
+    },
+    {
+      "log": "target/remote-plot-route-20261102/strict.log",
+      "sha256": "fe50ceba9c6cf27ca8afc2370cb0099d00067df53cb7f9ef3147a7fd59914081",
+      "result": "strict conduit-face and conduit all-targets Clippy passed"
+    }
+  ],
+  "initial_failure": "Test module path lookup E0583; fixed explicit path and reran. Initial log retained.",
+  "live_browser_proof": false,
+  "deployment": "Matching owner and browser runtime builds in progress; current installed owner remains previous release.",
+  "selected_image_memory_work": "Independent experimental receipt tests found failures; not integrated into this qualified slice."
+}

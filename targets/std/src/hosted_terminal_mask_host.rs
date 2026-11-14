@@ -1,6 +1,6 @@
 //! A foreground terminal connection is a selected, short-lived I/O provider
 //! of this exact std Host. The background service has no ambient terminal.
-use crate::{kernel_preparation::KernelResourceLedger, terminal_mask_execution, StdHost};
+use crate::{terminal_mask_execution, StdHost};
 use conduit_core::OfferGeneration;
 use std::{
     io,
@@ -48,6 +48,7 @@ impl StdHost {
     /// detachment, and each transition invalidates plans from the prior offer
     /// generation. This method does not acknowledge a Show.
     pub fn attach_terminal_mask(&mut self, stream: UnixStream) -> Result<(), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         if self.terminal_attachment.is_some() || !self.kernel_resources.is_idle() {
             return Err("terminal attachment requires an idle, unattached Host".into());
         }
@@ -83,7 +84,7 @@ impl StdHost {
         advertisement.resources.sort();
         crate::normalize_capability_offers(&mut advertisement.capabilities)?;
         advertisement.offer_generation = next_generation(advertisement.offer_generation)?;
-        let ledger = KernelResourceLedger::new(&advertisement)?;
+        let ledger = self.kernel_resources.replacement_for(&advertisement)?;
         self.advance_retained_spoken_offer_generation(advertisement.offer_generation)?;
         self.advertisement = advertisement;
         self.kernel_resources = ledger;
@@ -94,6 +95,7 @@ impl StdHost {
     /// On EOF or any provider failure, the owner must call this before making
     /// another terminal availability claim. Already sealed plans become stale.
     pub fn detach_terminal_mask(&mut self) -> Result<(), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         if self.terminal_attachment.is_none() || !self.kernel_resources.is_idle() {
             return Err("terminal detachment requires an idle attached Host".into());
         }
@@ -117,7 +119,7 @@ impl StdHost {
             .resources
             .retain(|offer| !pool_ids.contains(&offer.pool_id));
         advertisement.offer_generation = next_generation(advertisement.offer_generation)?;
-        let ledger = KernelResourceLedger::new(&advertisement)?;
+        let ledger = self.kernel_resources.replacement_for(&advertisement)?;
         self.advance_retained_spoken_offer_generation(advertisement.offer_generation)?;
         self.terminal_attachment = None;
         self.advertisement = advertisement;

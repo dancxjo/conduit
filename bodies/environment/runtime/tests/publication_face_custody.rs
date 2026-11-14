@@ -274,3 +274,99 @@ fn one_retained_face_resolves_pages_and_typed_frames_without_new_source_events()
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
 }
+
+#[test]
+fn inert_handles_require_actual_scope_and_failed_binding_preserves_storage() {
+    use conduit_environment_runtime::retained_publication_face::RetainedPublicationBacking;
+    let owner =
+        LocalPublicationFace::from_backing(RetainedPublicationBacking::prepare(3, 100).unwrap());
+    let (mut publisher, reader) = owner.claim().unwrap();
+    let bytes = reading();
+    assert_eq!(
+        publisher.publish(snapshot(&bytes, 1), 1000),
+        Err(E::Unbound)
+    );
+    assert!(matches!(
+        reader.with_current(1000, |_, _| ()),
+        Err(E::Unbound)
+    ));
+    assert!(owner
+        .bind_scope(FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![]
+        })
+        .is_err());
+    assert!(matches!(
+        reader.with_current(1000, |_, _| ()),
+        Err(E::Unbound)
+    ));
+    let basis = FaceBasis {
+        body_id: None,
+        wake_id: None,
+        source_document_id: Some("source/CPU-fixture".into()),
+        checked_plot_id: Some("checked/CPU-fixture".into()),
+        expanded_plot_id: Some("expanded/CPU-fixture".into()),
+        plan_id: Some("plan/CPU-fixture".into()),
+        active_play_id: Some("play/CPU-fixture".into()),
+        sign_ids: vec![],
+    };
+    let (bound, memory) = allocation_probe::observe(|| owner.bind_scope(basis));
+    bound.unwrap();
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    publisher.publish(snapshot(&bytes, 1), 1000).unwrap();
+    reader
+        .with_current(1000, |face, status| {
+            assert_eq!(face.revision, 1);
+            assert_eq!(status.source_sequence, 1);
+        })
+        .unwrap();
+    assert_eq!(
+        owner.bind_scope(FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![]
+        }),
+        Err(E::AlreadyBound)
+    );
+}
+
+#[test]
+fn owner_inspection_borrows_actual_revision_without_claiming_or_aging_it() {
+    let owner = owner();
+    owner
+        .with_retained(|_, status| {
+            assert_eq!(status.source_sequence, 0);
+            assert!(!status.publisher_retained);
+        })
+        .unwrap();
+    let (mut publisher, reader) = owner.claim().unwrap();
+    let bytes = reading();
+    publisher.publish(snapshot(&bytes, 1), 1000).unwrap();
+    let revision = reader.with_retained(|face, _| face.revision).unwrap();
+    owner
+        .with_retained(|face, status| {
+            assert_eq!(face.revision, revision);
+            assert_eq!(status.source_sequence, 1);
+            assert!(status.publisher_retained);
+            assert_eq!(publisher.publish(snapshot(&bytes, 2), 1001), Err(E::Busy));
+        })
+        .unwrap();
+    assert_eq!(
+        reader
+            .with_retained(|face, status| (face.revision, status.source_sequence))
+            .unwrap(),
+        (revision, 1)
+    );
+    assert!(matches!(owner.claim(), Err(E::AlreadyClaimed)));
+}

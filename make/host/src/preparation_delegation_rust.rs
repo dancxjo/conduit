@@ -20,10 +20,14 @@ pub fn rust_execution_delegation(checked: &CheckedHostConfiguration) -> String {
     let Some(policy) = checked.configuration().execution else {
         return "None".into();
     };
+    let continuation = match policy.continuation {
+        None => "None".into(),
+        Some(c) => format!("Some(conduit_body::ContinuationCeilings{{assignment_bytes:{},runtime_bytes:{},durable_bytes:{},operation_slots:{},active_worksets:{}}})", c.assignment_bytes,c.runtime_bytes,c.durable_bytes,c.operation_slots,c.active_worksets),
+    };
     match policy.authorizer {
         conduit_body::HostExecutionAuthorizer::SeedOwner => format!(
-            "Some(conduit_body::HostExecutionDelegation{{authorizer:conduit_body::HostExecutionAuthorizer::SeedOwner,maximum_active_worksets:{}}})",
-            policy.maximum_active_worksets
+            "Some(conduit_body::HostExecutionDelegation{{authorizer:conduit_body::HostExecutionAuthorizer::SeedOwner,maximum_active_worksets:{},continuation:{}}})",
+            policy.maximum_active_worksets, continuation
         ),
     }
 }

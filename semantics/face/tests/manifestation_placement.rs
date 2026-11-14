@@ -1,6 +1,10 @@
 #![cfg(feature = "plot-catalog")]
 
+#[path = "../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
 mod common;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 
 use std::collections::BTreeMap;
 
@@ -58,6 +62,53 @@ fn two_presenter_plan() -> (conduit_plot::CheckedPlot, conduit_core::Plan) {
     };
     let plan = plan(&plot, &[native, browser], &placements, &[]).unwrap();
     (plot, plan)
+}
+
+#[test]
+fn owned_show_transition_preserves_identity_storage_and_lifecycle_evidence() {
+    let (plot, plan) = two_presenter_plan();
+    let face = face(&plot, &plan);
+    let fragment = &plan.fragments[0];
+    let mut shown = Manifestation::prepared(
+        &face,
+        &plan,
+        bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 1),
+        fragment.placements[0].placement_id.clone(),
+        "patchbay/plot".into(),
+        "display".into(),
+        "prepared".into(),
+    )
+    .unwrap();
+    shown.signs.reserve(2);
+    let signs = shown.signs.as_ptr();
+    let target = shown.target_subject.as_ptr();
+    let (expected, copied) = allocation_probe::observe(|| {
+        shown
+            .transition(ManifestationLifecycle::Available, "available".into())
+            .unwrap()
+    });
+    let (shown, moved) = allocation_probe::observe(|| {
+        shown
+            .into_transition(ManifestationLifecycle::Available, "available".into())
+            .unwrap()
+    });
+    assert_eq!(shown, expected);
+    assert!(moved.requested_bytes < copied.requested_bytes);
+    assert!(moved.peak_bytes < copied.peak_bytes);
+    assert_eq!(moved.reallocations, 0);
+    eprintln!("Show transition scoped allocation: copied={copied:?}; moved={moved:?}");
+    assert_eq!(shown.signs.as_ptr(), signs);
+    assert_eq!(shown.target_subject.as_ptr(), target);
+    assert_eq!(
+        shown
+            .clone()
+            .into_transition(ManifestationLifecycle::Available, "other".into()),
+        Err(ManifestationError::InvalidTransition)
+    );
+    assert_eq!(
+        shown.into_transition(ManifestationLifecycle::Closed, "available".into()),
+        Err(ManifestationError::InvalidTransition)
+    );
 }
 
 #[test]

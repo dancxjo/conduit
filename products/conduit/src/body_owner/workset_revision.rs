@@ -1,4 +1,4 @@
-//! One trusted Root effect after an owner action's policy/return is authorized.
+//! Consume policy-owned Source custody before the guarded Root workset effect.
 //! Incoming proposal Info, copied IDs or matching Source do not grant this call.
 use super::{debug, state, Owner};
 use conduit_body::{BodyBiographyEvidence, BodyState, BodyWorkset, ResidentPlot};
@@ -13,8 +13,53 @@ impl Owner {
         }
     }
 
-    /// Consume original finite-policy Source custody. Copied IDs and public
-    /// proposal Info cannot construct this approval or reach the shared effect.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn selected_source_current_basis(&self) -> BodyBiographyEvidence {
+        self.session.evidence().clone()
+    }
+
+    /// Consume the single-use local OS-selected File policy, preserving original
+    /// Source and caller workspace custody through the guarded complete revision.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn commit_authorized_file_revision(
+        &mut self,
+        root: &Path,
+        authorization: crate::durable_host::source_revision::AuthorizedFileRevision,
+    ) -> Result<(), String> {
+        let (expected, checked) = authorization.verify(&self.host)?;
+        let sources = checked
+            .plots
+            .iter()
+            .map(|plot| (&checked.source, plot))
+            .collect::<Vec<_>>();
+        let selected = crate::durable_host::local_fore_policy::SelectedLocalForeSet::prepare(
+            self.host.advertisement(),
+            &checked.plots,
+            &self.planning_hosts(),
+            authorization.local_fore_adapters(),
+        )?;
+        let boundaries = super::continuing::boundaries_for_plots_with_local(
+            sources.iter().map(|(_, plot)| *plot),
+            None,
+            Some(&selected),
+        )?;
+        let previous = self.local_fore_adapters.replace(selected);
+        if let Err(error) = self.commit_admitted_workset_revision_with_boundaries(
+            root,
+            expected,
+            &sources,
+            &boundaries,
+            true,
+        ) {
+            self.local_fore_adapters = previous;
+            return Err(error);
+        }
+        self.selected_file_workset = Some(authorization.into_retained());
+        Ok(())
+    }
+
+    /// Consume the actual immutable Sources selected by the admitted clock policy.
+    /// The token cannot be cloned or constructed outside that policy module.
     pub(super) fn commit_authorized_clock_revision(
         &mut self,
         root: &Path,
@@ -28,11 +73,20 @@ impl Owner {
         {
             return Err("workset approval belongs to another Host/Boot or offer generation".into());
         }
-        self.commit_reviewed_workset_revision(root, &expected, &[(&source, &checked)])
+        let sources = [(&source, &checked)];
+        let boundaries =
+            super::continuing::boundaries_for_plots(sources.iter().map(|(_, plot)| *plot), None)?;
+        self.commit_admitted_workset_revision_with_boundaries(
+            root,
+            &expected,
+            &sources,
+            &boundaries,
+            false,
+        )
     }
 
-    /// Trusted reference-fixture entrance; borrowed metadata is not production
-    /// adoption authority. Installed actions must consume policy-owned approval.
+    /// Trusted reference-fixture entrance. Production must consume the private
+    /// policy-owned authorization above; these borrowed values confer no authority.
     #[cfg(test)]
     pub(super) fn commit_admitted_workset_revision(
         &mut self,
@@ -43,14 +97,13 @@ impl Owner {
             &conduit_plot::ExpandedAuthoringPlot,
         )],
     ) -> Result<(), String> {
-        self.commit_reviewed_workset_revision(root, expected, sources)
+        self.commit_admitted_workset_revision_with_ingress(root, expected, sources, None)
     }
 
-    /// Only an already-authorized Root action may invoke this continuation. Its
-    /// semantic policy must constrain these actual owned Sources (as the clock
-    /// action does), not merely approve a caller-supplied digest or description.
-    /// No public command or ordinary Plot receives this privilege here.
-    fn commit_reviewed_workset_revision(
+    /// Trusted reference-fixture preflight with the exact subsequent adapter.
+    /// Adapter custody does not authorize production adoption.
+    #[cfg(test)]
+    pub(super) fn commit_admitted_workset_revision_with_ingress(
         &mut self,
         root: &Path,
         expected: &BodyBiographyEvidence,
@@ -58,8 +111,46 @@ impl Owner {
             &crate::plot_source::CanonicalSource,
             &conduit_plot::ExpandedAuthoringPlot,
         )],
+        ingress: Option<&super::continuing::ImageIngress>,
+    ) -> Result<(), String> {
+        if let Some(ingress) = ingress {
+            self.host.verify_selected_image_fore_input(&ingress.input)?;
+        }
+        let boundaries = super::continuing::boundaries_for_plots(
+            sources.iter().map(|(_, plot)| *plot),
+            ingress,
+        )?;
+        self.commit_admitted_workset_revision_with_boundaries(
+            root,
+            expected,
+            sources,
+            &boundaries,
+            false,
+        )
+    }
+
+    /// Existing independently selected adapter bounds participate in revision
+    /// preflight exactly as they do in ordinary subsequent workset planning.
+    /// Supplying budgets confers neither Source nor adoption authority.
+    fn commit_admitted_workset_revision_with_boundaries(
+        &mut self,
+        root: &Path,
+        expected: &BodyBiographyEvidence,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        boundaries: &std::collections::BTreeMap<
+            ResidentPlot,
+            std::collections::BTreeMap<
+                conduit_planner::ForeBoundaryKey,
+                conduit_planner::ConnectionQueueLimits,
+            >,
+        >,
+        allow_retained_workset: bool,
     ) -> Result<(), String> {
         self.ensure_execution_retained(root)?;
+        self.require_remote_workset_retired()?;
         if self.host.is_playing()
             || self.session.realization().is_some()
             || self.session.evidence().body.state != BodyState::Lulled
@@ -79,12 +170,17 @@ impl Owner {
             )
         }))
         .map_err(debug)?;
-        if desired == expected.body.workset {
+        if desired == expected.body.workset && !allow_retained_workset {
             return Err("workset revision has no change".into());
         }
         // The same ordinary planner independently rechecks every exact Source
         // and current offer. Preparation is not reservation or permission to run.
-        self.prepare_workset_partitions_for(&desired, sources)?;
+        self.prepare_workset_partitions_for(&desired, sources, boundaries)?;
+        // A freshly authorized exact File may revalidate its already retained
+        // workset against this Boot without inventing a biography revision.
+        if desired == expected.body.workset {
+            return Ok(());
+        }
         let ad = self.host.advertisement();
         let mut staged = self.session.clone();
         for plot in expected
@@ -163,6 +259,10 @@ impl Owner {
         self.resident = foreground;
         self.resident_name = name;
         self.clock_interval_ms = None;
+        #[cfg(target_os = "linux")]
+        {
+            self.selected_file_workset = None;
+        }
         Ok(())
     }
 }

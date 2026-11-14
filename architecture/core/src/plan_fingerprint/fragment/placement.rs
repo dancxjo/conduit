@@ -1,7 +1,8 @@
 //! Historical canonical placement fields, shared by complete and incremental hashing.
 use super::*;
 pub(super) fn push_placement(canonical: &mut impl CanonicalSink, gear: &crate::PlannedGear) {
-    push_string(canonical, gear.placement_id.as_str());
+    let scope = |role, index| Field::Placement(&gear.placement_id, role, index);
+    canonical.scope_string(scope(Role::PlacementId, 0), gear.placement_id.as_str());
     push_string(canonical, gear.gear_id.as_str());
     push_string(canonical, gear.kind_id.as_str());
     push_string(canonical, gear.kind_contract_revision.as_str());
@@ -11,9 +12,9 @@ pub(super) fn push_placement(canonical: &mut impl CanonicalSink, gear: &crate::P
         push_string(canonical, &entry.key);
         push_configuration_value(canonical, &entry.value);
     }
-    push_string(canonical, gear.host_id.as_str());
-    push_string(canonical, gear.boot_id.as_str());
-    push_u64(canonical, gear.offer_generation.0);
+    canonical.scope_string(scope(Role::Host, 0), gear.host_id.as_str());
+    canonical.scope_string(scope(Role::Boot, 0), gear.boot_id.as_str());
+    canonical.scope_u64(scope(Role::OfferGeneration, 0), gear.offer_generation.0);
     push_string(canonical, gear.capability_id.as_str());
     push_string(canonical, gear.implementation_id.as_str());
     push_string(canonical, gear.artifact_id.as_str());
@@ -29,8 +30,11 @@ pub(super) fn push_placement(canonical: &mut impl CanonicalSink, gear: &crate::P
     if let Some(base) = &gear.base {
         push_string(canonical, "base-provider-binding@1");
         push_string(canonical, base.base_id.as_str());
-        push_string(canonical, base.provider_instance_id.as_str());
-        push_u64(canonical, base.provider_generation);
+        canonical.scope_string(
+            scope(Role::ProviderInstance, 0),
+            base.provider_instance_id.as_str(),
+        );
+        canonical.scope_u64(scope(Role::ProviderGeneration, 0), base.provider_generation);
         push_string(canonical, base.implementation_id.as_str());
         push_string(canonical, base.mechanism_family.as_str());
         canonical.push(base.enforcement_class as u8);
@@ -68,21 +72,28 @@ pub(super) fn push_placement(canonical: &mut impl CanonicalSink, gear: &crate::P
         push_u32(canonical, requirement.maximum_output_bytes);
     }
     push_u32(canonical, gear.resources.len() as u32);
-    for binding in &gear.resources {
-        push_resource_binding(canonical, binding);
+    for (index, binding) in gear.resources.iter().enumerate() {
+        crate::resource_canonical::push_resource_binding_scoped(
+            canonical,
+            binding,
+            Some(scope(Role::ResourcePool, index)),
+        );
     }
     push_u32(canonical, gear.authority.len() as u32);
-    for binding in &gear.authority {
-        push_string(canonical, binding.grant_id.as_str());
+    for (index, binding) in gear.authority.iter().enumerate() {
+        canonical.scope_string(
+            scope(Role::AuthorityGrant, index),
+            binding.grant_id.as_str(),
+        );
         push_string(canonical, binding.contract_id.as_str());
         push_string(canonical, binding.host_call_contract_id.as_str());
         push_string(canonical, binding.subject_kind.as_str());
-        push_string(canonical, binding.host_id.as_str());
-        push_string(canonical, binding.boot_id.as_str());
+        canonical.scope_string(scope(Role::AuthorityHost, index), binding.host_id.as_str());
+        canonical.scope_string(scope(Role::AuthorityBoot, index), binding.boot_id.as_str());
         push_string(canonical, binding.capability_id.as_str());
     }
     push_u32(canonical, gear.pool_references.len() as u32);
-    for pool in &gear.pool_references {
-        push_string(canonical, pool.as_str());
+    for (index, pool) in gear.pool_references.iter().enumerate() {
+        canonical.scope_string(scope(Role::PoolReference, index), pool.as_str());
     }
 }

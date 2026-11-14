@@ -11,12 +11,17 @@ use conduit_std_host::StdHost;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+#[path = "selected_host_configuration/creche.rs"]
+mod creche;
+#[path = "selected_host_configuration/image.rs"]
+mod image;
 #[path = "selected_host_configuration/microphone.rs"]
 mod microphone;
 #[path = "selected_host_configuration/playback.rs"]
 mod playback;
 #[path = "selected_host_configuration/recognition.rs"]
 mod recognition;
+pub(crate) use image::check_seed_image;
 const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -24,8 +29,64 @@ const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 pub(super) struct Selection {
     source: String,
     configuration_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    host_image: Option<conduit_host_make::HostImage>,
 }
 impl Selection {
+    #[cfg(test)]
+    pub(super) fn require_timer_image_initialization(&self) -> Result<(), String> {
+        self.require_image_initialization(false)
+    }
+    #[cfg(test)]
+    pub(super) fn require_image_initialization(
+        &self,
+        scanout_prepared: bool,
+    ) -> Result<(), String> {
+        self.require_prepared_image_initialization(scanout_prepared, false)
+    }
+    pub(super) fn require_prepared_image_initialization(
+        &self,
+        scanout_prepared: bool,
+        source_prepared: bool,
+    ) -> Result<(), String> {
+        for base in &self.checked()?.configuration().bases {
+            if base.initialization.is_some()
+                && !(scanout_prepared && base.kind == "display/scanout")
+                && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
+                && !(source_prepared && base.kind == "creche/encounter")
+            {
+                return Err(
+                    "selected IMAGE cannot initialize this physical equipment or Crèche provider"
+                        .into(),
+                );
+            }
+        }
+        Ok(())
+    }
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    pub(super) fn scanout_parameters(
+        &self,
+    ) -> Result<Option<conduit_workspace_make::CheckedScanoutInitialization>, String> {
+        let checked = self.checked()?;
+        if !checked
+            .configuration()
+            .bases
+            .iter()
+            .any(|base| base.kind == "display/scanout" && base.initialization.is_some())
+        {
+            return Ok(None);
+        }
+        if self.host_image.is_none() {
+            return Err("selected scanout requires the Seed's checked IMAGE".into());
+        }
+        conduit_workspace_make::CheckedScanoutInitialization::from_configuration(&checked).map(Some)
+    }
+    pub(super) fn host_image(&self) -> Option<&conduit_host_make::HostImage> {
+        self.host_image.as_ref()
+    }
+    pub(super) fn configuration_id(&self) -> &str {
+        &self.configuration_id
+    }
     fn from_source(source: &str, target: &str) -> Result<Self, String> {
         let checked = check(source)?;
         require_target(&checked, target)?;
@@ -37,6 +98,7 @@ impl Selection {
         Ok(Self {
             source,
             configuration_id: checked.configuration_id().into(),
+            host_image: None,
         })
     }
     pub(super) fn validate_speech_overlap(
@@ -55,8 +117,11 @@ impl Selection {
         }
         Ok(())
     }
-    fn checked(&self) -> Result<CheckedHostConfiguration, String> {
-        let checked = check(&self.source)?;
+    pub(super) fn checked(&self) -> Result<CheckedHostConfiguration, String> {
+        let checked = match &self.host_image {
+            Some(image) => check_seed_image(&self.source, image)?,
+            None => check(&self.source)?,
+        };
         if checked.configuration_id() != self.configuration_id {
             return Err("retained Host configuration identity changed".into());
         }
@@ -65,7 +130,30 @@ impl Selection {
     pub(super) fn validate(&self) -> Result<(), String> {
         self.checked().map(|_| ())
     }
+    pub(super) fn prepare_creche(
+        &self,
+    ) -> Result<Option<conduit::creche_encounter::CrecheEncounterFactory>, String> {
+        let checked = self.checked()?;
+        require_target(&checked, running_target_id()?)?;
+        for base in &checked.configuration().bases {
+            if base.kind == "creche/encounter" {
+                let Some(initialization) = base.initialization.as_ref() else {
+                    continue;
+                };
+                return creche::initialize(initialization).map(Some);
+            }
+        }
+        Ok(None)
+    }
+    #[cfg(test)]
     pub(super) fn attach_to_fresh_host(&self, host: &mut StdHost) -> Result<(), String> {
+        self.attach_to_prepared_host(host, None)
+    }
+    pub(super) fn attach_to_prepared_host(
+        &self,
+        host: &mut StdHost,
+        creche_factory: Option<&conduit::creche_encounter::CrecheEncounterFactory>,
+    ) -> Result<(), String> {
         let checked = self.checked()?;
         require_target(&checked, running_target_id()?)?;
         host.set_declared_name(
@@ -93,6 +181,23 @@ impl Selection {
                 ) => {
                     let adapter = microphone::initialize(initialization, implementation)?;
                     host.attach_microphone(adapter)?;
+                }
+                Some(conduit_body_make::deployment_runtime_catalog::CRECHE_IMPLEMENTATION) => {
+                    let factory = creche_factory
+                        .ok_or("Crèche provider was not prepared before Host construction")?;
+                    if !host
+                        .advertisement()
+                        .resources
+                        .contains(&factory.resource_offer())
+                        || !host.advertisement().capabilities.contains(
+                            &conduit_body_make::deployment_runtime_catalog::creche_std_offer(),
+                        )
+                    {
+                        return Err(
+                            "Crèche prepared provider differs from initial Host advertisement"
+                                .into(),
+                        );
+                    }
                 }
                 Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
                     let selected = playback::initialize(initialization, host)?;
@@ -131,11 +236,26 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                     implementation @ (conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
                     | conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION),
                 ) => microphone::validate(initialization, implementation)?,
+                Some(conduit_body_make::deployment_runtime_catalog::CRECHE_IMPLEMENTATION) => {
+                    creche::validate(initialization)?
+                }
                 Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
                     playback::validate(initialization)?
                 }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     recognition::validate(initialization)?;
+                }
+                Some(conduit_std_offers::SOURCE_CHECK_IMPLEMENTATION) => {
+                    // Validation only: the original selected IMAGE factory must
+                    // still initialize and retain the actual compiler provider.
+                    conduit_workspace_make::CheckedSourceCheckInitialization::from_configuration(
+                        &checked,
+                    )?;
+                }
+                Some("display/linear-framebuffer@1") => {
+                    conduit_workspace_make::CheckedScanoutInitialization::from_configuration(
+                        &checked,
+                    )?;
                 }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
@@ -161,7 +281,7 @@ pub(super) fn configure(
     let _host = owner_lock::acquire(state_dir)?;
     let _body = owner_lock::body(state_dir)?;
     let path = state_dir.join("installation.json");
-    let mut installation = installation_read::read_for_configuration_change(&path)?;
+    let installation = installation_read::read_for_configuration_change(&path)?;
     let selection = if let Some(path) = source {
         if !path
             .file_name()
@@ -172,7 +292,16 @@ pub(super) fn configure(
         }
         let bytes = bounded_read(path, MAXIMUM_SOURCE_BYTES)?;
         let source = std::str::from_utf8(&bytes).map_err(|_| "Host configuration must be UTF-8")?;
-        let selection = Selection::from_source(source, running_target_id()?)?;
+        let mut selection = Selection::from_source(source, running_target_id()?)?;
+        if let Some(prior) = &installation.selected_host_configuration {
+            if prior.configuration_id == selection.configuration_id {
+                // Reselecting the same source must retain its construction evidence.
+                prior.validate()?;
+                selection.host_image = prior.host_image.clone();
+            } else if prior.host_image.is_some() {
+                return Err("changing Seed-bound Host source requires a replacement Seed".into());
+            }
+        }
         if installation.selected_todo_checkpoint.is_some() {
             return Err(
                 "scoped Todo checkpoint Host cannot initialize additional checked equipment".into(),
@@ -182,6 +311,45 @@ pub(super) fn configure(
     } else {
         None
     };
+    retain_selection(state_dir, installation, selection)?;
+    println!("retained checked Host configuration for the next Boot");
+    Ok(())
+}
+
+/// Only the fresh, stopped Seed installer uses this source-bearing entrance.
+pub(super) fn select_seed_source(
+    state_dir: &Path,
+    source: &str,
+    expected_id: &str,
+    image: &conduit_host_make::HostImage,
+) -> Result<(), String> {
+    let _host = owner_lock::acquire(state_dir)?;
+    let _body = owner_lock::body(state_dir)?;
+    let installation =
+        installation_read::read_for_configuration_change(&state_dir.join("installation.json"))?;
+    if installation.body_state.is_some()
+        || installation.joined_body_state.is_some()
+        || installation.selected_host_configuration.is_some()
+        || installation.selected_speech.is_some()
+        || installation.selected_model.is_some()
+        || installation.selected_todo_checkpoint.is_some()
+    {
+        return Err("Seed configuration requires a fresh stopped Host".into());
+    }
+    let mut selection = Selection::from_source(source, running_target_id()?)?;
+    selection.host_image = Some(image.clone());
+    selection.validate()?;
+    if selection.configuration_id != expected_id {
+        return Err("Seed configuration identity changed before installation".into());
+    }
+    retain_selection(state_dir, installation, Some(selection))
+}
+
+fn retain_selection(
+    state_dir: &Path,
+    mut installation: super::Installation,
+    selection: Option<Selection>,
+) -> Result<(), String> {
     if let Some(selection) = &selection {
         selection.validate_speech_overlap(installation.selected_speech.as_ref())?;
     }
@@ -190,12 +358,44 @@ pub(super) fn configure(
     if bytes.len() > 64 * 1024 {
         return Err("installed Host selection exceeds retained installation bound".into());
     }
+    let path = state_dir.join("installation.json");
     write_json_atomic(&path, &installation)?;
     read_installation(&path)?;
-    println!("retained checked Host configuration for the next Boot");
     Ok(())
 }
 
 #[cfg(test)]
 #[path = "selected_host_configuration/tests.rs"]
 mod tests;
+
+/// Bind a new checked IMAGE to the unchanged retained Host source before release commit.
+pub(super) fn replacement_image(
+    selection: Option<Selection>,
+    image_path: Option<&Path>,
+    release_source: &str,
+) -> Result<Option<Selection>, String> {
+    let Some(mut selection) = selection else {
+        if image_path.is_some() {
+            return Err("replacement IMAGE requires retained checked Host source".into());
+        }
+        return Ok(None);
+    };
+    if let Some(path) = image_path {
+        let image: conduit_host_make::HostImage =
+            serde_json::from_slice(&bounded_read(path, 64 * 1024)?)
+                .map_err(|error| format!("replacement Host IMAGE: {error}"))?;
+        check_seed_image(&selection.source, &image)?;
+        selection.host_image = Some(image);
+    }
+    selection.validate()?;
+    if selection
+        .host_image
+        .as_ref()
+        .is_some_and(|image| image.manifest.source_identity != release_source)
+    {
+        return Err(
+            "release update requires a checked replacement IMAGE from the same source".into(),
+        );
+    }
+    Ok(Some(selection))
+}

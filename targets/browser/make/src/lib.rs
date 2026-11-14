@@ -5,6 +5,8 @@ use conduit_host_make::{
 };
 use std::collections::BTreeMap;
 
+mod bundle_verification;
+pub use bundle_verification::*;
 mod device;
 mod inventory;
 mod line;

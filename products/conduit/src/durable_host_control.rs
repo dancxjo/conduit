@@ -1,8 +1,8 @@
 //! Authenticated local control plane into the durable installed host owner.
 
+use crate::durable_host::owner::MemberPresentationBasis;
 use conduit_body::{
-    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt,
-    PortableSpawnAdmissionRequest, RendezvousCandidate,
+    BodyBiographyEvidence, MembershipCredential, PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
 use conduit_body::{
     BodyConversationContext, HostOfferProjection, OfferDisclosureRequest, SpawnInvitationClaim,
@@ -34,7 +34,16 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-const PROTOCOL: u16 = 1;
+#[path = "durable_host_control/request.rs"]
+mod request;
+#[path = "durable_host_control/response.rs"]
+mod response;
+use request::Request;
+use response::Response;
+
+// Typed receipt inputs changed: mixed product revisions must refuse before
+// consuming a member-return challenge or committing a new credential.
+const PROTOCOL: u16 = 2;
 pub(crate) const CONTROL_OUTCOME_UNKNOWN: &str = "control-outcome-unknown";
 const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 // Local admission snapshots carry both complete reviewed Host advertisements.
@@ -42,11 +51,14 @@ const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 pub(crate) const MAXIMUM_LOCAL_CONTROL_FRAME_BYTES: usize = 2 * 1024 * 1024;
 
 fn supports_remote_mask_action_intent(intent: &str) -> bool {
-    intent == crate::durable_host::owner::clock_interval_action()
+    intent.starts_with("conduit.intent/host-config/")
+        || intent == crate::durable_host::owner::clock_interval_action()
         || (cfg!(target_os = "linux") && matches!(intent, "notebook/replace@1" | "notebook/save@1"))
         || matches!(
             intent,
-            "todo/add@1"
+            "conduit.intent/wake@1"
+                | "conduit.intent/lull@1"
+                | "todo/add@1"
                 | "todo/complete@1"
                 | "todo/reopen@1"
                 | "todo/remove@1"
@@ -85,6 +97,8 @@ mod body;
 mod body_birth;
 #[path = "durable_host_control/body_run.rs"]
 mod body_run;
+mod body_seed_export;
+pub(crate) use body_seed_export::export_owned_seed;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
@@ -126,7 +140,15 @@ pub(crate) use body::{
     local_face_snapshot, prepare_owned_invitation_route, submit_local_face_interaction,
     submit_local_face_interaction_until,
 };
-pub(crate) use body::{begin_member_return, complete_member_return, leave_member, return_member};
+pub(crate) use body::{
+    attest_admission_receipt, attest_image_return_acknowledgement, begin_carrier,
+    carrier_mask_route, carrier_receiver, carrier_show, complete_carrier, renew_carrier_presence,
+    retire_carrier,
+};
+pub(crate) use body::{
+    begin_image_member_return, begin_member_return, begin_recovered_image_member_return,
+    complete_member_return, leave_member, return_member,
+};
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
 };
@@ -152,11 +174,19 @@ mod worker_text;
 use remote_fragment_driver::drive_remote_fragment;
 
 pub(crate) struct DurableHostRuntime {
+    #[cfg(target_os = "linux")]
+    _source_preparation: Option<(
+        conduit_std_host::body_execution::ImagePreparedValue<
+            conduit_std_host::source_check::process::OwnedSourceCheckInput,
+        >,
+        conduit_std_host::body_execution::ImagePreparedValue<()>,
+    )>,
     target_id: String,
     image_content_digest: String,
     host: HostSource,
     birth: Option<body_birth::ServiceBirth>,
     birth_root: Option<PathBuf>,
+    creche_factory: Option<conduit::creche_encounter::RetainedCrecheFactory>,
     remote_fragment: Option<AdmittedRemoteFragment>,
     pending_worker_text: Option<conduit_kernel::scheduler::HostCallRequest>,
     pool_member: Option<AdmittedLocalModelPoolMember>,
@@ -174,6 +204,19 @@ pub(crate) struct DurableHostRuntime {
 }
 
 impl DurableHostRuntime {
+    #[cfg(target_os = "linux")]
+    pub(crate) fn retain_source_preparation(
+        &mut self,
+        preparation: Option<(
+            conduit_std_host::body_execution::ImagePreparedValue<
+                conduit_std_host::source_check::process::OwnedSourceCheckInput,
+            >,
+            conduit_std_host::body_execution::ImagePreparedValue<()>,
+        )>,
+    ) {
+        self._source_preparation = preparation;
+    }
+
     pub(crate) fn into_owner_host(self) -> StdHost {
         match self.host {
             HostSource::Bare(host) => *host,
@@ -183,12 +226,41 @@ impl DurableHostRuntime {
     }
 
     pub(crate) fn new(target_id: String, image_content_digest: String, host: StdHost) -> Self {
-        Self {
+        Self::from_host_source(
             target_id,
             image_content_digest,
-            host: HostSource::Bare(Box::new(host)),
+            HostSource::Bare(Box::new(host)),
+        )
+    }
+
+    #[cfg(target_os = "linux")]
+    pub(crate) fn from_selected_owner(
+        target_id: String,
+        image_content_digest: String,
+        owner: crate::durable_host::owner::Owner,
+        root: &Path,
+    ) -> Self {
+        Self::from_host_source(
+            target_id,
+            image_content_digest,
+            HostSource::Body {
+                owner: Box::new(owner),
+                root: root.to_path_buf(),
+                running: None,
+            },
+        )
+    }
+
+    fn from_host_source(target_id: String, image_content_digest: String, host: HostSource) -> Self {
+        Self {
+            #[cfg(target_os = "linux")]
+            _source_preparation: None,
+            target_id,
+            image_content_digest,
+            host,
             birth: None,
             birth_root: None,
+            creche_factory: None,
             remote_fragment: None,
             pending_worker_text: None,
             pool_member: None,
@@ -203,6 +275,14 @@ impl DurableHostRuntime {
             owner_spoken_terminal: None,
             spoken_template_session: None,
         }
+    }
+
+    pub(crate) fn with_prepared_creche(
+        mut self,
+        factory: Option<conduit::creche_encounter::RetainedCrecheFactory>,
+    ) -> Self {
+        self.creche_factory = factory;
+        self
     }
 
     pub(crate) fn with_selected_speech_equipment(
@@ -922,503 +1002,6 @@ pub(crate) struct DurableJoinProof {
     pub(crate) observed_at_millis: u64,
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
-enum Request {
-    Status {
-        protocol: u16,
-        token: Vec<u8>,
-    },
-    BodyInspect {
-        protocol: u16,
-        token: Vec<u8>,
-    },
-    BodyInvite {
-        protocol: u16,
-        token: Vec<u8>,
-        ttl_seconds: u64,
-        candidates: Option<Vec<RendezvousCandidate>>,
-    },
-    BodyPrepareInvitationRoute {
-        protocol: u16,
-        token: Vec<u8>,
-        ttl_seconds: u64,
-        bind: std::net::SocketAddr,
-        public_url: String,
-        certificate: std::path::PathBuf,
-        private_key: std::path::PathBuf,
-        authorize_route: bool,
-    },
-    BodyAdmit {
-        protocol: u16,
-        token: Vec<u8>,
-        request: Box<PortableSpawnAdmissionRequest>,
-    },
-    BodyBrowserStart {
-        protocol: u16,
-        token: Vec<u8>,
-        expected_host_id: String,
-        new_host_verifying_key: Option<[u8; 32]>,
-        maximum_millis: u64,
-    },
-    BodyBrowserBegin {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-        binding: LinkBindingId,
-        frame: Box<BrowserAdmissionIngress>,
-        encoded_bytes: u32,
-    },
-    BodyBrowserComplete {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-        frame: Box<BrowserAdmissionIngress>,
-    },
-    BodyBrowserOffer {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-        credential: MembershipCredential,
-        disclosure: OfferDisclosureRequest,
-    },
-    BodyBrowserMaskRoute {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-        credential: MembershipCredential,
-        binding: LinkBindingId,
-        #[serde(default)]
-        evidence: Option<Box<crate::durable_host::owner::BrowserCarrierLineEvidence>>,
-    },
-    BodyBrowserShow {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-        binding: LinkBindingId,
-        request: OwnerFaceSnapshotRequest,
-        show: Box<MaskShow>,
-    },
-    BodyBrowserComponentMask {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-        binding: LinkBindingId,
-        request: OwnerFaceSnapshotRequest,
-        show: Box<MaskShow>,
-        look: conduit_std_host::browser_admission::BrowserComponentLook,
-        recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
-    },
-    BodyBrowserWardrobe {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-        binding: LinkBindingId,
-        request: OwnerFaceSnapshotRequest,
-        owner_plan_id: Option<conduit_core::PlanId>,
-        basis_revision: u64,
-        action: Option<MaskWardrobeAction>,
-    },
-    BodyBrowserAbort {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-    },
-    BodyBrowserCancel {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-    },
-    BodyBrowserLeave {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-        credential: MembershipCredential,
-    },
-    BodyReturn {
-        protocol: u16,
-        token: Vec<u8>,
-        encounter: Box<crate::durable_host::MemberEncounter>,
-    },
-    BodyMemberReturnBegin {
-        protocol: u16,
-        token: Vec<u8>,
-        credential: MembershipCredential,
-        advertisement: Box<HostAdvertisement>,
-    },
-    BodyMemberReturnComplete {
-        protocol: u16,
-        token: Vec<u8>,
-        proof: Box<crate::durable_host::owner::MemberReturnProofDocument>,
-    },
-    BodyMemberLeave {
-        protocol: u16,
-        token: Vec<u8>,
-        credential: MembershipCredential,
-    },
-    Face {
-        protocol: u16,
-        token: Vec<u8>,
-        request: OwnerFaceSnapshotRequest,
-    },
-    BodyLocalFace {
-        protocol: u16,
-        token: Vec<u8>,
-    },
-    BodyLocalWardrobe {
-        protocol: u16,
-        token: Vec<u8>,
-        body_id: conduit_body::BodyId,
-        face_id: String,
-        face_revision: u64,
-        advertisement: conduit_core::HostAdvertisement,
-        owner_plan_id: Option<conduit_core::PlanId>,
-        basis_revision: u64,
-        action: Option<MaskWardrobeAction>,
-    },
-    BodyNativeMaskRoute {
-        protocol: u16,
-        token: Vec<u8>,
-        receipt: Box<PortableAdmissionReceipt>,
-        face_line: Box<LineOffer>,
-        return_line: Box<LineOffer>,
-        #[serde(default)]
-        terminal_interaction_line: Option<Box<LineOffer>>,
-        #[serde(default)]
-        spoken_selection: Option<
-            Box<conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection>,
-        >,
-        expires_at_millis: u64,
-    },
-    BodyNativeComponentMask {
-        protocol: u16,
-        token: Vec<u8>,
-        receipt: Box<PortableAdmissionReceipt>,
-        request: OwnerFaceSnapshotRequest,
-        show: Box<MaskShow>,
-        look: conduit_face::ComponentMaskLook,
-        recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
-    },
-    BodyNativeMaskShow {
-        protocol: u16,
-        token: Vec<u8>,
-        request: OwnerFaceSnapshotRequest,
-        show: Box<MaskShow>,
-    },
-    BirthWidgetFace {
-        protocol: u16,
-        token: Vec<u8>,
-    },
-    BirthInteraction {
-        protocol: u16,
-        token: Vec<u8>,
-        show: Box<MaskShow>,
-        interaction: FaceInteraction,
-    },
-    BodyInteraction {
-        protocol: u16,
-        token: Vec<u8>,
-        show: Box<MaskShow>,
-        interaction: FaceInteraction,
-        #[serde(default)]
-        not_after_millis: Option<u64>,
-    },
-    #[cfg(unix)]
-    BodyAttachedTerminalInteraction {
-        protocol: u16,
-        token: Vec<u8>,
-        route_plan_id: conduit_core::PlanId,
-        show: Box<MaskShow>,
-        interaction: FaceInteraction,
-    },
-    #[cfg(unix)]
-    BodyAttachedTerminalWardrobe {
-        protocol: u16,
-        token: Vec<u8>,
-        route_plan_id: conduit_core::PlanId,
-        show: Box<MaskShow>,
-        basis_revision: u64,
-        command: terminal_attach::TerminalWardrobeCommand,
-    },
-    #[cfg(unix)]
-    BodyAttachedTerminalRefreshShow {
-        protocol: u16,
-        token: Vec<u8>,
-        route_plan_id: conduit_core::PlanId,
-        show: Box<MaskShow>,
-    },
-    BodyBrowserInteraction {
-        protocol: u16,
-        token: Vec<u8>,
-        window_id: String,
-        binding: LinkBindingId,
-        request: OwnerFaceSnapshotRequest,
-        show: Box<MaskShow>,
-        interaction: FaceInteraction,
-        #[serde(default)]
-        not_after_millis: Option<u64>,
-    },
-    BodyNativeGuestInteraction {
-        protocol: u16,
-        token: Vec<u8>,
-        request: OwnerFaceSnapshotRequest,
-        show: Box<MaskShow>,
-        interaction: FaceInteraction,
-        not_after_millis: u64,
-    },
-    #[cfg(target_os = "linux")]
-    Notebook {
-        protocol: u16,
-        token: Vec<u8>,
-        command: crate::cli::NotebookCommand,
-    },
-    BodyStart {
-        protocol: u16,
-        token: Vec<u8>,
-        maximum_millis: u64,
-        #[serde(default)]
-        todo_new_list: Option<String>,
-    },
-    BodyLull {
-        protocol: u16,
-        token: Vec<u8>,
-    },
-    Join {
-        protocol: u16,
-        token: Vec<u8>,
-        expected_boot_id: String,
-        expected_offer_generation: u64,
-        claim: SpawnInvitationClaim,
-        secret: Vec<u8>,
-    },
-    InstallBodyContext {
-        protocol: u16,
-        token: Vec<u8>,
-        expected_boot_id: String,
-        expected_offer_generation: u64,
-        context: BodyConversationContext,
-    },
-    ObserveLocalModelPool {
-        protocol: u16,
-        token: Vec<u8>,
-        realization: PoolRealizationEnvelope,
-    },
-    PrepareRemote {
-        protocol: u16,
-        token: Vec<u8>,
-        expected_boot_id: String,
-        expected_offer_generation: u64,
-        plan: Box<Plan>,
-    },
-    PreparePoolMember {
-        protocol: u16,
-        token: Vec<u8>,
-        expected_boot_id: String,
-        expected_offer_generation: u64,
-        plan: Box<Plan>,
-        selection: PoolSelectionEvidence,
-        consumer_placement_id: PlacementId,
-    },
-    ExchangeRemote {
-        protocol: u16,
-        token: Vec<u8>,
-        frame: Vec<u8>,
-    },
-    ReleaseRemote {
-        protocol: u16,
-        token: Vec<u8>,
-    },
-    InspectWorkerText {
-        protocol: u16,
-        token: Vec<u8>,
-        identity: ActivePlayIdentity,
-        expected_offer_generation: u64,
-    },
-    CompleteWorkerText {
-        protocol: u16,
-        token: Vec<u8>,
-        result: Box<conduit_std_host::worker_text_result::WorkerTextResult>,
-    },
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "kind", rename_all = "kebab-case")]
-enum Response {
-    Status {
-        protocol: u16,
-        target_id: String,
-        image_content_digest: String,
-        advertisement: HostAdvertisement,
-    },
-    BodyTruth {
-        protocol: u16,
-        truth: serde_json::Value,
-    },
-    BodyInvitation {
-        protocol: u16,
-        invitation: Box<conduit_body::PortableInvitation>,
-    },
-    BodyInvitationRoutePrepared {
-        protocol: u16,
-        candidate: RendezvousCandidate,
-    },
-    BodyAdmitted {
-        protocol: u16,
-        receipt: Box<conduit_body::PortableAdmissionReceipt>,
-    },
-    BodyBrowserWindow {
-        protocol: u16,
-        window_id: String,
-        url: String,
-        body_id: conduit_body::BodyId,
-        maximum_millis: u64,
-    },
-    BodyBrowserChallenge {
-        protocol: u16,
-        frame: Box<BrowserAdmissionEgress>,
-    },
-    BodyBrowserSnapshot {
-        protocol: u16,
-        snapshot: Box<crate::durable_host::owner::BrowserAdmittedSnapshot>,
-    },
-    BodyBrowserOffer {
-        protocol: u16,
-        offer: Box<HostOfferProjection>,
-    },
-    BodyBrowserMaskRoute {
-        protocol: u16,
-        route: Box<RemoteOwnerMaskRouteSeal>,
-    },
-    BodyBrowserShowAccepted {
-        protocol: u16,
-    },
-    BodyBrowserComponentMaskAccepted {
-        protocol: u16,
-    },
-    BodyBrowserWardrobeReport {
-        protocol: u16,
-        report: Box<serde_json::Value>,
-    },
-    BodyBrowserAborted {
-        protocol: u16,
-    },
-    BodyBrowserCancelled {
-        protocol: u16,
-    },
-    BodyBrowserLeft {
-        protocol: u16,
-        biography: Box<BodyBiographyEvidence>,
-    },
-    BodyMemberReturnChallenge {
-        protocol: u16,
-        challenge: Box<conduit_body::PartReturnChallenge>,
-    },
-    BodyMemberReturned {
-        protocol: u16,
-        credential: MembershipCredential,
-    },
-    BodyMemberLeft {
-        protocol: u16,
-    },
-    Face {
-        protocol: u16,
-        response: Box<OwnerFaceSnapshotResponse>,
-    },
-    BodyLocalFace {
-        protocol: u16,
-        face: Box<Face>,
-        advertisement: HostAdvertisement,
-    },
-    BodyLocalWardrobe {
-        protocol: u16,
-        report: Box<serde_json::Value>,
-        face: Option<Box<Face>>,
-        reading_refusal: Option<String>,
-    },
-    BodyNativeMaskRoute {
-        protocol: u16,
-        route: Box<RemoteOwnerMaskRouteSeal>,
-    },
-    BodyNativeMaskShowAccepted {
-        protocol: u16,
-    },
-    BirthWidgetFace {
-        protocol: u16,
-        face: Box<Face>,
-        advertisement: HostAdvertisement,
-    },
-    BirthChanged {
-        protocol: u16,
-        face: Box<Face>,
-    },
-    BirthCompleted {
-        protocol: u16,
-        body_id: conduit_body::BodyId,
-        face: Box<Face>,
-    },
-    BodyInteraction {
-        protocol: u16,
-        result: Box<serde_json::Value>,
-    },
-    #[cfg(unix)]
-    BodyAttachedTerminalWardrobe {
-        protocol: u16,
-        report: Box<serde_json::Value>,
-    },
-    #[cfg(unix)]
-    BodyAttachedTerminalRefreshedShow {
-        protocol: u16,
-        show: Box<MaskShow>,
-        advertisement: HostAdvertisement,
-    },
-    BodyRunRequested {
-        protocol: u16,
-        maximum_millis: u64,
-    },
-    BodyLullRequested {
-        protocol: u16,
-        active_play_id: Option<String>,
-    },
-    Join {
-        protocol: u16,
-        advertisement: HostAdvertisement,
-        invitation_id: String,
-        body_id: String,
-        nonce: [u8; 32],
-        signature: Vec<u8>,
-        observed_at_millis: u64,
-    },
-    BodyContextInstalled {
-        protocol: u16,
-        advertisement: HostAdvertisement,
-    },
-    LocalModelPoolObserved {
-        protocol: u16,
-        observation: PoolRealizationObservation,
-    },
-    RemotePrepared {
-        protocol: u16,
-        identity: ActivePlayIdentity,
-        hello_frames: Vec<Vec<u8>>,
-    },
-    RemoteExchanged {
-        protocol: u16,
-        responses: Vec<Vec<u8>>,
-        active: bool,
-    },
-    RemoteReleased {
-        protocol: u16,
-    },
-    WorkerText {
-        protocol: u16,
-        result: Option<Box<conduit_std_host::worker_text_result::WorkerTextResult>>,
-    },
-    Refused {
-        protocol: u16,
-        code: String,
-    },
-}
-
 pub(crate) fn ensure_secret(state_dir: &Path) -> Result<(), String> {
     let path = state_dir.join("control.token");
     if path.exists() {
@@ -1468,56 +1051,14 @@ pub(crate) fn signal_remote_cancellation(
 }
 
 #[cfg(unix)]
-pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result<(), String> {
-    use std::os::unix::{fs::PermissionsExt, net::UnixListener};
-
-    runtime.install_cancellation_signal(state_dir);
-    runtime.birth_root = Some(state_dir.to_path_buf());
-    let socket = state_dir.join("control.sock");
-    if socket.exists() {
-        fs::remove_file(&socket)
-            .map_err(|error| format!("remove stale control endpoint: {error}"))?;
-    }
-    let listener = UnixListener::bind(&socket)
-        .map_err(|error| format!("bind durable host control endpoint: {error}"))?;
-    fs::set_permissions(&socket, fs::Permissions::from_mode(0o600))
-        .map_err(|error| format!("restrict durable host control endpoint: {error}"))?;
-    let token = read_secret(&state_dir.join("control.token"))?;
-    let mut polling_play = false;
-    loop {
-        terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
-        let running = runtime.host.body_is_running()
-            || runtime.speech_worker.is_some()
-            || runtime.owner_spoken_worker.is_some()
-            || terminal_attach::is_attached(&mut runtime);
-        if running != polling_play {
-            listener
-                .set_nonblocking(running)
-                .map_err(|error| format!("set Body owner control responsiveness: {error}"))?;
-            polling_play = running;
-        }
-        runtime.progress_owned_body()?;
-        runtime.progress_browser_speech()?;
-        runtime.progress_owner_spoken()?;
-        let mut stream = match listener.accept() {
-            Ok((stream, _)) => stream,
-            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                let pause = if runtime.host.body_is_running()
-                    || runtime.speech_worker.is_some()
-                    || runtime.owner_spoken_worker.is_some()
-                {
-                    10
-                } else {
-                    100
-                };
-                std::thread::sleep(std::time::Duration::from_millis(pause));
-                continue;
-            }
-            Err(error) => return Err(format!("accept local host control: {error}")),
-        };
-        client_frame::serve_client(state_dir, &mut stream, &mut runtime, &token)?;
-    }
-}
+#[path = "durable_host_control/service.rs"]
+mod service;
+#[cfg(unix)]
+pub(crate) use service::serve;
+#[cfg(all(unix, feature = "native-display"))]
+pub(crate) use service::serve_with_foreground;
+#[cfg(all(unix, feature = "native-display"))]
+pub(crate) use service::ForegroundPoll;
 
 #[cfg(not(unix))]
 pub(crate) fn serve(_state_dir: &Path, _runtime: DurableHostRuntime) -> Result<(), String> {
@@ -1913,8 +1454,18 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
+        | Request::BodyMemberCarrierReceiver { token, .. }
+        | Request::BodyAttestAdmissionReceipt { token, .. }
+        | Request::BodyMemberCarrierBegin { token, .. }
+        | Request::BodyMemberCarrierComplete { token, .. }
+        | Request::BodyMemberCarrierMaskRoute { token, .. }
+        | Request::BodyMemberCarrierShow { token, .. }
+        | Request::BodyMemberPresenceRenew { token, .. }
+        | Request::BodyMemberCarrierInspect { token, .. }
+        | Request::BodyMemberCarrierRetire { token, .. }
         | Request::BodyReturn { token, .. }
         | Request::BodyMemberReturnBegin { token, .. }
+        | Request::BodyMemberRecoverReturnBegin { token, .. }
         | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
@@ -1929,6 +1480,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
+        | Request::BodyExportSeed { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
         | Request::ObserveLocalModelPool { token, .. }
@@ -1984,6 +1536,11 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyBrowserCancel { .. }
                 | Request::BodyBrowserLeave { .. }
                 | Request::BodyMemberLeave { .. }
+                | Request::BodyMemberCarrierMaskRoute { .. }
+                | Request::BodyMemberCarrierShow { .. }
+                | Request::BodyMemberPresenceRenew { .. }
+                | Request::BodyMemberCarrierInspect { .. }
+                | Request::BodyMemberCarrierRetire { .. }
         )
     {
         return refused("body-play-active");
@@ -2060,7 +1617,11 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             maximum_millis,
             ..
         } if protocol == PROTOCOL => runtime
-            .start_browser_window(&expected_host_id, new_host_verifying_key, maximum_millis)
+            .start_browser_window(
+                expected_host_id.as_deref(),
+                new_host_verifying_key,
+                maximum_millis,
+            )
             .map(|(authorization, url)| Response::BodyBrowserWindow {
                 protocol: PROTOCOL,
                 window_id: authorization.window_id,
@@ -2200,6 +1761,113 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 biography: Box::new(biography),
             })
             .unwrap_or_else(|code| refused(&code)),
+        Request::BodyAttestAdmissionReceipt {
+            protocol,
+            receipt,
+            expected_owner,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_attest_admission_receipt(&receipt, &expected_owner)
+            .map(|receipt| Response::BodyAttestedAdmissionReceipt {
+                protocol: PROTOCOL,
+                receipt: Box::new(receipt),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierReceiver { protocol, .. } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_receiver()
+            .map(|receiver| Response::BodyMemberCarrierReceiver {
+                protocol: PROTOCOL,
+                receiver: Box::new(receiver),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierBegin {
+            protocol,
+            credential,
+            advertisement,
+            line,
+            security,
+            expires_at_millis,
+            maximum_frames,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_begin(
+                &credential,
+                &advertisement,
+                line,
+                security,
+                expires_at_millis,
+                maximum_frames,
+            )
+            .map(
+                |(challenge, signature)| Response::BodyMemberCarrierChallenge {
+                    protocol: PROTOCOL,
+                    challenge: Box::new(challenge),
+                    signature: signature.to_vec(),
+                },
+            )
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierComplete {
+            protocol,
+            challenge,
+            signature,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_complete(&challenge, signature)
+            .map(|inspection| Response::BodyMemberCarrierInspection {
+                protocol: PROTOCOL,
+                inspection: Box::new(inspection),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierMaskRoute {
+            protocol,
+            session,
+            face_line,
+            return_line,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_mask_route(&session, &face_line, &return_line)
+            .map(|route| Response::BodyNativeMaskRoute {
+                protocol: PROTOCOL,
+                route: Box::new(route),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierShow {
+            protocol,
+            session,
+            request,
+            show,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_show(&session, &request, &show)
+            .map(|()| Response::BodyNativeMaskShowAccepted { protocol: PROTOCOL })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberPresenceRenew {
+            protocol,
+            session,
+            sequence,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_presence_renew(&session, sequence)
+            .map(|lease| Response::BodyMemberPresenceRenewed {
+                protocol: PROTOCOL,
+                lease: Box::new(lease),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierInspect {
+            protocol, session, ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_inspect(&session)
+            .map(|inspection| Response::BodyMemberCarrierInspection {
+                protocol: PROTOCOL,
+                inspection: Box::new(inspection),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierRetire {
+            protocol, session, ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_retire(&session)
+            .map(|()| Response::BodyMemberCarrierRetired { protocol: PROTOCOL })
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyReturn {
             protocol,
             encounter,
@@ -2215,9 +1883,35 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             protocol,
             credential,
             advertisement,
+            presentation,
+            images,
             ..
         } if protocol == PROTOCOL => runtime
-            .owned_body_member_return_begin(&credential, &advertisement)
+            .owned_body_member_return_begin(
+                &credential,
+                &advertisement,
+                presentation.map(|p| *p),
+                &images,
+            )
+            .map(|challenge| Response::BodyMemberReturnChallenge {
+                protocol: PROTOCOL,
+                challenge: Box::new(challenge),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberRecoverReturnBegin {
+            protocol,
+            credential,
+            advertisement,
+            presentation,
+            images,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_recovered_member_return_begin(
+                &credential,
+                &advertisement,
+                *presentation,
+                &images,
+            )
             .map(|challenge| Response::BodyMemberReturnChallenge {
                 protocol: PROTOCOL,
                 challenge: Box::new(challenge),
@@ -2505,6 +2199,17 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyExportSeed {
+            protocol,
+            destination,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .export_owned_seed(&destination)
+            .map(|receipt| Response::BodySeedExported {
+                protocol: PROTOCOL,
+                receipt,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyLull { protocol, .. } if protocol == PROTOCOL => runtime

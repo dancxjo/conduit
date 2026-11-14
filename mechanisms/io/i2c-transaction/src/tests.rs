@@ -11,7 +11,8 @@ use conduit_plot::expand_canonical_plot_for_authoring;
 use conduit_plot::{check_syntax_document, parse_syntax_document};
 
 pub(super) fn request(contract: &I2cContract, address: u8, write: &[u8], read: u8) -> Vec<u8> {
-    let StructuredInfoTypeShape::Record { fields, .. } = contract.request_type().shape() else {
+    let request_type = contract.decode_request_type().unwrap();
+    let StructuredInfoTypeShape::Record { fields, .. } = request_type.shape() else {
         panic!("request");
     };
     let ty = |name| {
@@ -24,7 +25,7 @@ pub(super) fn request(contract: &I2cContract, address: u8, write: &[u8], read: u
     };
     let octet = StructuredInfoType::leaf(kind_id("value/u8")).unwrap();
     StructuredInfoValue::record(
-        contract.request_type().clone(),
+        request_type.clone(),
         vec![
             StructuredFieldValue::new(
                 "address",
@@ -76,6 +77,40 @@ fn checked_i2c_topology_has_one_class_neutral_call() {
     assert_eq!(contract.kind().limits.max_queue_items, 1);
 }
 
+#[cfg(feature = "source-catalog")]
+#[test]
+fn authoring_catalogue_addition_preserves_existing_declarations_and_rolls_back_conflicts() {
+    let contract = I2cContract::prepare().unwrap();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profiles = conduit_plot::ProfileCatalog::new();
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: "fixture/other".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
+    contract
+        .install_catalogs(&mut startup, &mut profiles)
+        .unwrap();
+    assert!(startup.signature("fixture/other").is_some());
+    assert!(profiles.get(&contract.kind().kind_id).is_some());
+    let before = (startup.clone(), profiles.clone());
+    assert!(contract
+        .install_catalogs(&mut startup, &mut profiles)
+        .is_err());
+    assert_eq!((startup, profiles), before);
+
+    // A late profile conflict must also roll back earlier Type/Fore imports.
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profiles = conduit_plot::ProfileCatalog::new();
+    profiles.insert_kind(contract.kind().clone()).unwrap();
+    let before = (startup.clone(), profiles.clone());
+    assert!(contract
+        .install_catalogs(&mut startup, &mut profiles)
+        .is_err());
+    assert_eq!((startup, profiles), before);
+}
+
 #[test]
 fn bounded_request_decoding_is_exact_and_does_not_interpret_registers() {
     let contract = I2cContract::prepare().unwrap();
@@ -98,6 +133,59 @@ fn bounded_request_decoding_is_exact_and_does_not_interpret_registers() {
     assert!(decoder.decode(&trailing).is_err());
     let empty = request(&contract, 0x76, &[], 0);
     assert!(decoder.decode(&empty).is_err());
+}
+
+#[test]
+fn fabricated_value_slots_hold_all_request_result_extents_without_growth() {
+    use super::contract::{I2C_REQUEST_VALUE_BYTES, I2C_RESULT_VALUE_BYTES, I2C_VALUE_SLOT_BYTES};
+    use conduit_kernel::{FixedValueStore, ValueStorage};
+    let contract = I2cContract::prepare().unwrap();
+    let bytes = [255; 32];
+    for length in 0..=32 {
+        let input = request(&contract, 119, &bytes[..length], 32);
+        assert!(input.len() <= I2C_REQUEST_VALUE_BYTES);
+        if length == 32 {
+            assert_eq!(input.len(), I2C_REQUEST_VALUE_BYTES);
+        }
+    }
+    let input = request(&contract, 119, &bytes, 32);
+    let mut encoder = PreparedI2cResultEncoder::new(&contract).unwrap();
+    let mut values =
+        FixedValueStore::<2, I2C_VALUE_SLOT_BYTES>::new((2 * I2C_VALUE_SLOT_BYTES) as u32).unwrap();
+    let mut maximum_result = 0;
+    let ((), cost) = crate::allocation_probe::observe(|| {
+        let input_slot = values.store(&input).unwrap();
+        for requested in 0..=32 {
+            for actual in 0..=requested {
+                let output = encoder
+                    .completed(requested, &bytes[..usize::from(actual)])
+                    .unwrap();
+                maximum_result = maximum_result.max(output.len());
+                assert!(output.len() <= I2C_RESULT_VALUE_BYTES);
+                let output_slot = values.store(output).unwrap();
+                assert_eq!(values.get(output_slot).unwrap(), output);
+                values.release(output_slot).unwrap();
+            }
+        }
+        for disposition in [
+            I2cDisposition::DeviceError,
+            I2cDisposition::NotAcknowledged,
+            I2cDisposition::ArbitrationLost,
+            I2cDisposition::TimedOut,
+            I2cDisposition::ProviderLost,
+            I2cDisposition::Unsupported,
+            I2cDisposition::StaleAttachment,
+            I2cDisposition::Refused,
+        ] {
+            let output = encoder.disposition(disposition).unwrap();
+            assert!(output.len() <= I2C_RESULT_VALUE_BYTES);
+            let output_slot = values.store(output).unwrap();
+            values.release(output_slot).unwrap();
+        }
+        values.release(input_slot).unwrap();
+    });
+    assert_eq!(maximum_result, I2C_RESULT_VALUE_BYTES);
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
 }
 
 #[test]
@@ -173,7 +261,7 @@ fn register_idioms_construct_exact_bounded_requests_as_ordinary_plots() {
             panic!("expression")
         };
         let p = conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-        assert_eq!(&p.output_type, contract.request_type());
+        assert_eq!(p.output_type, contract.decode_request_type().unwrap());
         let mut prepared = conduit_plot::PreparedPortableExpressionEvaluator::new(&p).unwrap();
         let decoder = PreparedI2cDecoder::new(&contract).unwrap();
         let StructuredInfoTypeShape::Record { fields, .. } = p.input_type.shape() else {
@@ -230,12 +318,12 @@ fn fabricated_schemas_match_the_checked_authored_types_and_fore_profiles() {
     for (name, actual, port) in [
         (
             "I2cTransaction",
-            contract.request_type(),
+            contract.decode_request_type().unwrap(),
             &contract.kind().inputs[0],
         ),
         (
             "I2cResult",
-            contract.result_type(),
+            contract.decode_result_type().unwrap(),
             &contract.kind().outputs[0],
         ),
     ] {
@@ -244,7 +332,7 @@ fn fabricated_schemas_match_the_checked_authored_types_and_fore_profiles() {
             .iter()
             .find(|ty| ty.name == name)
             .unwrap();
-        assert_eq!(actual, &source.value_type);
+        assert_eq!(actual, source.value_type);
         assert_eq!(
             &port.value_kind,
             source.value_type.profile().unwrap().value_kind()

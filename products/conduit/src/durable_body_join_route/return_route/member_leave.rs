@@ -21,7 +21,7 @@ pub(super) fn serve(
     let permitted = authorize_document(grant, document, current_time_millis()?).is_ok();
     let outcome = if permitted {
         line.complete_bounded_input();
-        crate::durable_host_control::leave_member(state_dir, grant.receipt.credential.clone())
+        crate::durable_host_control::leave_member(state_dir, grant.member.credential.clone())
     } else {
         Err("member-leave-grant-or-basis-invalid".into())
     };

@@ -10,7 +10,9 @@ use super::{
     StructuredInfoValue, StructuredInfoValueNode, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 
+mod borrowed_selection;
 mod canonical_selection;
+pub use borrowed_selection::PreparedBorrowedStructuredSelector;
 mod predicate;
 
 fn selection_shape(value_type: &StructuredInfoType) -> StructuredInfoTypeShape<'_> {

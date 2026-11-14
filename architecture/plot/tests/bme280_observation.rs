@@ -13,7 +13,8 @@ mod allocation_probe;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 const SOURCE: &str = include_str!("../../../plots/device-protocols/main.conduit");
 const STAGES: &[&str] = &[
-    "begin",
+    "input-range-check",
+    "calibration-range-check",
     "fine",
     "temperature",
     "pressure-polynomial",
@@ -216,5 +217,87 @@ fn disabled_samples_and_invalid_calibration_never_publish_numeric_defaults() {
             panic!("failure")
         };
         assert_eq!(tag, wanted);
+    }
+}
+
+fn replace_field(
+    value: &StructuredInfoValue,
+    name: &str,
+    replacement: StructuredInfoValue,
+) -> StructuredInfoValue {
+    let StructuredInfoValueShape::Record(fields) = value.shape() else {
+        panic!("record")
+    };
+    StructuredInfoValue::record(
+        value.value_type().clone(),
+        fields
+            .iter()
+            .map(|field| {
+                StructuredFieldValue::new(
+                    field.name(),
+                    if field.name() == name {
+                        replacement.clone()
+                    } else {
+                        field.value().clone()
+                    },
+                )
+                .unwrap()
+            })
+            .collect(),
+    )
+    .unwrap()
+}
+
+#[test]
+fn remaining_calibration_ranges_keep_malformed_priority_over_other_failures() {
+    let mut prepared = Prepared::new();
+    for (field, minimum, maximum) in [
+        ("p3", -32768_i128, 32767_i128),
+        ("p4", -32768, 32767),
+        ("p5", -32768, 32767),
+        ("p6", -32768, 32767),
+        ("p7", -32768, 32767),
+        ("p8", -32768, 32767),
+        ("p9", -32768, 32767),
+        ("h2", -32768, 32767),
+        ("h4", -2048, 2047),
+        ("h5", -2048, 2047),
+        ("h6", -128, 127),
+    ] {
+        for pressure in [415148, 524288] {
+            let input = StructuredInfoValue::from_canonical_bytes(
+                &prepared.input(pressure, 519888, 30000, 0),
+            )
+            .unwrap();
+            let StructuredInfoValueShape::Record(fields) = input.shape() else {
+                panic!("input")
+            };
+            let calibration = fields
+                .iter()
+                .find(|field| field.name() == "calibration")
+                .unwrap()
+                .value();
+            for invalid in [minimum - 1, maximum + 1] {
+                let replacement = StructuredInfoValue::leaf(
+                    field_type(calibration.value_type(), field).clone(),
+                    invalid.to_le_bytes().to_vec(),
+                )
+                .unwrap();
+                let calibration = replace_field(calibration, field, replacement);
+                let input = replace_field(&input, "calibration", calibration)
+                    .canonical_bytes()
+                    .unwrap();
+                let output =
+                    StructuredInfoValue::from_canonical_bytes(prepared.evaluate(&input)).unwrap();
+                let StructuredInfoValueShape::Variant { tag, payload } = output.shape() else {
+                    panic!("result")
+                };
+                assert_eq!(tag, "unavailable");
+                let StructuredInfoValueShape::Variant { tag, .. } = payload.shape() else {
+                    panic!("failure")
+                };
+                assert_eq!(tag, "malformed", "{field}={invalid}, pressure={pressure}");
+            }
+        }
     }
 }

@@ -1,9 +1,15 @@
 //! Persistent finite native compositor service above the scanout mechanism.
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+mod backing;
 mod contracts;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+pub use backing::PreparedCompositorBacking;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod damage;
 mod damage_rect;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+mod footprint;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod frame_composition;
 mod input_routing;

@@ -1,0 +1,18 @@
+{
+  "source": "cd84dacc44",
+  "proof_class": "checked hosted construction intent only; no TLS files read, no socket initialized, no Ready Line",
+  "tests": {
+    "passed": 2,
+    "failed": 0,
+    "strict_warnings": true,
+    "log": "checked-tls-listener-initialization.log",
+    "sha256": "84c6c1c40de64d4e957ff6e9c562de07a6c7029764ec5316948e94437ede9290"
+  },
+  "accepted_dev": "5475e716b05bbb09bccf36091627d100f7e81bcc",
+  "remaining": [
+    "Actual initialized listener Base and its Boot-owned custody",
+    "Affine session-pool reservation and separately charged protocol backing before accepting/publishing a Line",
+    "Bounded authorized replacement policy and fresh route admission",
+    "Live deployment, continuous display and screenshots"
+  ]
+}

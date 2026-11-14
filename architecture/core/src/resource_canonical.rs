@@ -4,13 +4,21 @@ pub(crate) fn push_resource_binding(
     canonical: &mut impl crate::canonical_bytes::CanonicalSink,
     binding: &ResourceBinding,
 ) {
-    push_string(canonical, binding.pool_id.as_str());
-    push_string(canonical, binding.class_id.as_str());
-    push_u32(canonical, binding.units);
-    if let Some(content) = &binding.content {
-        canonical.extend_from_slice(b"resource-content@1");
-        push_content(canonical, content);
-    }
+    push_resource_binding_scoped(canonical, binding, None);
+}
+pub(crate) fn push_resource_binding_scoped(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    binding: &ResourceBinding,
+    scope: Option<crate::canonical_bytes::FragmentScopeField<'_>>,
+) {
+    push_resource_head(
+        canonical,
+        binding.pool_id.as_str(),
+        binding.class_id.as_str(),
+        binding.units,
+        binding.content.as_ref(),
+        scope,
+    );
     match &binding.compute {
         Some(compute) => {
             canonical.push(1);
@@ -58,6 +66,7 @@ pub(crate) fn push_resource_binding(
 fn push_content(
     bytes: &mut impl crate::canonical_bytes::CanonicalSink,
     offer: &ResourceContentOffer,
+    scope: Option<crate::canonical_bytes::FragmentScopeField<'_>>,
 ) {
     let c = &offer.contract;
     bytes.extend_from_slice(&c.identity.digest());
@@ -74,12 +83,62 @@ fn push_content(
     for bound in [c.generation_slots, c.reader_leases, c.publication_slots] {
         bytes.extend_from_slice(&bound.to_le_bytes());
     }
-    for id in [
-        offer.owner_host.as_str(),
-        offer.owner_boot.as_str(),
-        offer.base_id.as_str(),
-        offer.residence_profile.as_str(),
+    use crate::canonical_bytes::{FragmentScopeField as F, FragmentScopeRole as R};
+    for (role, id) in [
+        (R::ContentOwnerHost, offer.owner_host.as_str()),
+        (R::ContentOwnerBoot, offer.owner_boot.as_str()),
     ] {
+        if let Some(field) = scope {
+            let field = match field {
+                F::Header(_) => F::Header(role),
+                F::Placement(id, _, entry) => F::Placement(id, role, entry),
+            };
+            bytes.scope_string(field, id);
+        } else {
+            push_string(bytes, id);
+        }
+    }
+    for id in [offer.base_id.as_str(), offer.residence_profile.as_str()] {
         push_string(bytes, id);
     }
+}
+
+fn push_resource_head(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    pool: &str,
+    class: &str,
+    units: u32,
+    content: Option<&ResourceContentOffer>,
+    scope: Option<crate::canonical_bytes::FragmentScopeField<'_>>,
+) {
+    if let Some(scope) = scope {
+        canonical.scope_string(scope, pool);
+    } else {
+        push_string(canonical, pool);
+    }
+    push_string(canonical, class);
+    push_u32(canonical, units);
+    if let Some(content) = content {
+        canonical.extend_from_slice(b"resource-content@1");
+        push_content(canonical, content, scope);
+    }
+}
+/// Same primitive resource encoding, borrowing an actual selected pool.
+pub(crate) fn push_offer_binding(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    offer: &crate::ResourceOffer,
+    units: u32,
+) {
+    push_resource_head(
+        canonical,
+        offer.pool_id.as_str(),
+        offer.class_id.as_str(),
+        units,
+        offer.content.as_ref(),
+        Some(crate::canonical_bytes::FragmentScopeField::Header(
+            crate::canonical_bytes::FragmentScopeRole::ResourcePool,
+        )),
+    );
+    canonical.push(0); // no compute binding
+    canonical.push(0); // no protected binding
 }

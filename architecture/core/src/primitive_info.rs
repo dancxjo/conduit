@@ -294,6 +294,24 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
     }
 }
 
+/// Exact payload width enforced by the reviewed primitive decoder. Unknown or
+/// variable-width leaves return None; this is no domain-leaf size inference.
+pub fn fixed_primitive_info_payload_bytes(identity: &str) -> Option<usize> {
+    let kind = primitive_info_kind(identity)?;
+    let integer = fixed_integer_bytes(kind);
+    if integer != 0 {
+        return Some(integer);
+    }
+    match kind {
+        PrimitiveInfoKind::Empty | PrimitiveInfoKind::CancellationRequest => Some(0),
+        PrimitiveInfoKind::Bool => Some(crate::BOOL_ENCODED_LEN),
+        PrimitiveInfoKind::Count => Some(COUNT_ENCODED_LEN),
+        PrimitiveInfoKind::F32 => Some(crate::IeeeF32::ENCODED_LEN),
+        PrimitiveInfoKind::F64 => Some(crate::IeeeF64::ENCODED_LEN),
+        _ => None,
+    }
+}
+
 pub const fn fixed_integer_bytes(kind: PrimitiveInfoKind) -> usize {
     match kind {
         PrimitiveInfoKind::U8 | PrimitiveInfoKind::I8 => 1,

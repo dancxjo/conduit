@@ -1,62 +1,7 @@
 //! Trusted continuation and custody tests; ordinary-Plot authority is separate.
+use super::super::service_workset_tests::{fixture, SOURCE};
 use super::*;
 use std::fs;
-const SOURCE: &str = "plot alpha {\n show: face/text(\"Alpha\")\n \"first output\" >> show\n}\nplot beta {\n show: face/text(\"Beta\")\n \"second output\" >> show\n}.";
-
-fn fixture() -> (std::path::PathBuf, Owner) {
-    let root = std::env::temp_dir().join(super::super::super::super::fresh_identity(
-        "service-workset",
-        "resume",
-    ));
-    fs::create_dir_all(&root).unwrap();
-    let installation = super::super::super::super::Installation {
-        schema: super::super::super::super::INSTALL_SCHEMA.into(),
-        host_id: "host/workset-service".into(),
-        release_source_identity: "source/test".into(),
-        release_bundle_sha256: super::super::super::super::digest(b"bundle"),
-        product_executable: "fixture-unused".into(),
-        body_state: None,
-        joined_body_state: None,
-        selected_speech: None,
-        selected_model: None,
-        selected_host_configuration: None,
-        selected_todo_checkpoint: None,
-    };
-    super::super::super::super::write_json_atomic(&root.join("installation.json"), &installation)
-        .unwrap();
-    let host = conduit_std_host::StdHost::new_with_config(conduit_std_host::StdHostConfig {
-        host_id: installation.host_id.into(),
-        boot_id: "boot/workset-service".into(),
-        offer_generation: conduit_core::OfferGeneration(1),
-    });
-    let source = crate::plot_source::parse(SOURCE).unwrap();
-    let a = source.expand_named_for_authoring("alpha").unwrap();
-    let b = source.expand_named_for_authoring("beta").unwrap();
-    let resident = |plot: &conduit_plot::ExpandedAuthoringPlot| {
-        ResidentPlot::new(
-            plot.expanded.source_document_id.clone(),
-            plot.expanded.checked_plot_id.clone(),
-        )
-    };
-    let mut owner = Owner::open(host, resident(&a), None, "Two checked Plots").unwrap();
-    let ad = owner.host.advertisement();
-    owner
-        .session
-        .admit_plot(0, resident(&b), &ad.host_id, &ad.boot_id)
-        .unwrap();
-    let sources = state::WorksetSources::checked(
-        owner.session.evidence(),
-        vec![
-            (SOURCE.into(), "alpha".into()),
-            (SOURCE.into(), "beta".into()),
-        ],
-    )
-    .unwrap();
-    state::retain_session_with_workset_sources(&root, &mut owner.session, &sources, None, None)
-        .unwrap();
-    (root, owner)
-}
-
 fn checked(
     entry: &str,
 ) -> (
@@ -71,6 +16,7 @@ fn checked(
 #[test]
 fn trusted_continuation_adds_and_removes_complete_meaning_without_waking() {
     let (root, mut owner) = fixture();
+    let workspace_probe = crate::allocation_probe::begin();
     let original = owner.session.evidence().clone();
     let (a, pa) = checked("alpha");
     let (b, pb) = checked("beta");
@@ -109,6 +55,8 @@ fn trusted_continuation_adds_and_removes_complete_meaning_without_waking() {
     );
     assert!(owner.session.realization().is_none());
     fs::remove_dir_all(root).unwrap();
+    let workspace = workspace_probe.finish_statistics();
+    println!("Trusted workset revision current-thread allocation diagnostic: {workspace:?}");
 }
 
 #[test]
@@ -209,5 +157,148 @@ fn stale_retained_writer_is_fenced_without_overwriting_the_newer_workset() {
     assert!(owner.start_service_run(&root, 5_000).is_err());
     assert_eq!(fs::read(root.join("body/biography.json")).unwrap(), bytes);
     assert_eq!(state::load(&root).unwrap().unwrap(), *committed.evidence());
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn revision_preflight_preserves_selected_external_fore_bounds() {
+    use conduit_core::{ConnectionTrack, PortDirection};
+    use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey};
+    use std::collections::BTreeMap;
+    let (root, mut owner) = fixture();
+    let source = crate::plot_source::parse(
+        "plot external-message (\n >> message: Text\n) {\n show: face/text(\"External message\")\n message >> show\n}.",
+    ).unwrap();
+    let plot = source.expand_entry_for_authoring().unwrap();
+    let resident = ResidentPlot::new(
+        plot.expanded.source_document_id.clone(),
+        plot.expanded.checked_plot_id.clone(),
+    );
+    let key = ForeBoundaryKey {
+        direction: PortDirection::Input,
+        front_port_id: "message".into(),
+        track: ConnectionTrack::Payload,
+    };
+    let boundaries = BTreeMap::from([(
+        resident.clone(),
+        BTreeMap::from([(
+            key.clone(),
+            ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: 64,
+            },
+        )]),
+    )]);
+    let expected = owner.session.evidence().clone();
+    let before = fs::read(root.join("body/biography.json")).unwrap();
+    let mut invalid = boundaries.clone();
+    invalid
+        .get_mut(&resident)
+        .unwrap()
+        .get_mut(&key)
+        .unwrap()
+        .item_capacity = 0;
+    assert!(owner
+        .commit_admitted_workset_revision_with_boundaries(
+            &root,
+            &expected,
+            &[(&source, &plot)],
+            &invalid,
+            false,
+        )
+        .is_err());
+    assert_eq!(owner.session.evidence(), &expected);
+    assert_eq!(fs::read(root.join("body/biography.json")).unwrap(), before);
+    assert!(!root.join("body/owner-transaction.json").exists());
+    let mut foreign = boundaries.clone();
+    foreign.insert(expected.body.workset.plots()[0].clone(), BTreeMap::new());
+    assert!(owner
+        .commit_admitted_workset_revision_with_boundaries(
+            &root,
+            &expected,
+            &[(&source, &plot)],
+            &foreign,
+            false,
+        )
+        .is_err());
+    assert_eq!(owner.session.evidence(), &expected);
+    owner
+        .commit_admitted_workset_revision_with_boundaries(
+            &root,
+            &expected,
+            &[(&source, &plot)],
+            &boundaries,
+            false,
+        )
+        .unwrap();
+    assert!(owner.session.realization().is_none());
+    assert!(!owner.host.is_playing());
+    assert_eq!(
+        state::load(&root).unwrap().unwrap(),
+        *owner.session.evidence()
+    );
+    let partitions = owner
+        .prepare_workset_partitions(&[(&source, &plot)], &boundaries)
+        .unwrap();
+    let ports: Vec<_> = partitions[0]
+        .plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.fore_ports)
+        .filter(|port| {
+            port.front_port_id == key.front_port_id
+                && port.direction == key.direction
+                && port.track == key.track
+        })
+        .collect();
+    assert_eq!(ports.len(), 1);
+    assert_eq!(ports[0].item_capacity, 1);
+    assert_eq!(ports[0].byte_capacity, 64);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn exact_retained_workset_revalidation_preserves_biography_and_checks_basis() {
+    let (root, mut owner) = fixture();
+    let before = owner.session.evidence().clone();
+    let (a, pa) = checked("alpha");
+    let (b, pb) = checked("beta");
+    let sources = [(&b, &pb), (&a, &pa)];
+    let boundaries =
+        super::super::continuing::boundaries_for_plots(sources.iter().map(|(_, plot)| *plot), None)
+            .unwrap();
+    let bytes = fs::read(root.join("body/biography.json")).unwrap();
+    owner
+        .commit_admitted_workset_revision_with_boundaries(
+            &root,
+            &before,
+            &sources,
+            &boundaries,
+            true,
+        )
+        .unwrap();
+    assert_eq!(owner.session.evidence(), &before);
+    assert_eq!(fs::read(root.join("body/biography.json")).unwrap(), bytes);
+    assert!(owner.session.realization().is_none());
+    assert!(owner
+        .commit_admitted_workset_revision_with_boundaries(
+            &root,
+            &before,
+            &sources,
+            &boundaries,
+            false
+        )
+        .is_err());
+    let mut stale = before.clone();
+    stale.body.workload_revision += 1;
+    assert!(owner
+        .commit_admitted_workset_revision_with_boundaries(
+            &root,
+            &stale,
+            &sources,
+            &boundaries,
+            true
+        )
+        .is_err());
     fs::remove_dir_all(root).unwrap();
 }

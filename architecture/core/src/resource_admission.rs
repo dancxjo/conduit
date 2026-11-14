@@ -162,10 +162,16 @@ impl ResourceAdmissionOwner {
         for request in requests {
             pending.push(self.prepare_admission(&pending, request, observations)?);
         }
-        self.admissions
-            .try_reserve_exact(pending.len())
-            .map_err(|_| ResourceAdmissionRefusal::Allocation)?;
-        self.admissions.extend(pending);
+        if self.admissions.is_empty() {
+            // All checks succeeded. Transfer the actual staged backing rather
+            // than allocating a duplicate empty-ledger commit table.
+            self.admissions = pending;
+        } else {
+            self.admissions
+                .try_reserve_exact(pending.len())
+                .map_err(|_| ResourceAdmissionRefusal::Allocation)?;
+            self.admissions.extend(pending);
+        }
         Ok(&self.admissions[first..])
     }
 
@@ -250,13 +256,29 @@ impl ResourceAdmissionOwner {
         placement_id: &PlacementId,
         cause: ResourceReleaseCause,
     ) -> Result<ReleasedResourceAdmission, ResourceAdmissionRefusal> {
+        self.release_borrowed(plan_id.as_str(), placement_id.as_str(), cause)
+    }
+
+    /// Release an exact retained reservation without copying its identity text.
+    /// Like `release_for`, this is trusted lifecycle bookkeeping: the caller
+    /// must separately establish retirement and retain terminal evidence. It
+    /// neither admits new work nor revalidates against newer published offers.
+    pub fn release_borrowed(
+        &mut self,
+        plan_id: &str,
+        placement_id: &str,
+        cause: ResourceReleaseCause,
+    ) -> Result<ReleasedResourceAdmission, ResourceAdmissionRefusal> {
         let index = self
             .admissions
             .iter()
-            .position(|item| &item.plan_id == plan_id && &item.placement_id == placement_id)
+            .position(|item| {
+                item.plan_id.as_str() == plan_id && item.placement_id.as_str() == placement_id
+            })
             .ok_or(ResourceAdmissionRefusal::UnknownAdmission)?;
-        self.assignments
-            .retain(|item| &item.plan_id != plan_id || &item.placement_id != placement_id);
+        self.assignments.retain(|item| {
+            item.plan_id.as_str() != plan_id || item.placement_id.as_str() != placement_id
+        });
         Ok(ReleasedResourceAdmission {
             admission: self.admissions.remove(index),
             cause,

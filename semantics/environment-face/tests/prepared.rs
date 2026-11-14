@@ -283,3 +283,21 @@ fn committed_name_projection_is_allocation_free_and_preserves_observations() {
         .unwrap();
     assert_eq!(owner.current().identity, identity);
 }
+
+#[test]
+fn preplanning_backing_binds_real_execution_without_runtime_allocation() {
+    let storage = conduit_environment_face::PreparedObservationBacking::prepare(8, 120000).unwrap();
+    let actual = basis();
+    let expected = actual.clone();
+    let (face, allocations) = allocation_probe::observe(|| storage.bind(actual).unwrap());
+    assert_eq!(face.current().basis, expected);
+    face.current().validate().unwrap();
+    assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
+    let storage = conduit_environment_face::PreparedObservationBacking::prepare(8, 120000).unwrap();
+    let mut missing = basis();
+    missing.plan_id = None;
+    assert!(matches!(
+        storage.bind(missing),
+        Err(conduit_environment_face::PublicationRefusal::InvalidBasis)
+    ));
+}

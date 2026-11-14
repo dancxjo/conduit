@@ -9,6 +9,31 @@ fn ready() -> BoundBaseOperation {
     }
 }
 #[test]
+fn bound_budget_observation_reports_actual_claim_without_enlarging_scope_or_work() {
+    for (bytes, work) in [(1, 1), (32, 2)] {
+        let mut table = table(7);
+        let handle = table.issue(request()).unwrap();
+        let mut selected = claim();
+        selected.parameter_bytes = bytes;
+        selected.work_units = work;
+        let mut bound = match BoundBaseOperation::bind(table, handle, selected) {
+            Ok(value) => value,
+            Err((_, _, _, error)) => panic!("{error:?}"),
+        };
+        let before = bound.inspection().clone();
+        assert_eq!(bound.bound_parameter_bytes(), bytes);
+        assert_eq!(bound.bound_work_units(), work);
+        assert!(bound.bound_parameter_bytes() < before.scope.maximum_parameter_bytes);
+        assert!(bound.bound_work_units() < before.scope.maximum_work_units);
+        assert_eq!(bound.inspection(), &before);
+        let lease = bound.authorize().unwrap();
+        bound.complete(lease, 0).unwrap();
+        assert_eq!(bound.bound_parameter_bytes(), bytes);
+        assert_eq!(bound.bound_work_units(), work);
+        assert_eq!(bound.inspection().completed_operations, 1);
+    }
+}
+#[test]
 fn bound_operation_keeps_current_limits_rotation_revocation_and_exact_lease_checks() {
     let mut actual = ready();
     let first = actual.authorize().unwrap();

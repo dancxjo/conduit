@@ -9,6 +9,7 @@ impl KernelResourceLedger {
         fragment: &PlanFragment,
         lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
     ) -> Result<KernelResourceReservation, String> {
+        self.preflight_image_workset(core::iter::once(fragment))?;
         let mut instances = Vec::new();
         for (id, used) in &mut self.instances {
             let requested = u16::try_from(

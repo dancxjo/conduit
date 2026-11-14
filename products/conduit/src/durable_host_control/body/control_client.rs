@@ -117,8 +117,18 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
+        | Request::BodyMemberCarrierReceiver { token, .. }
+        | Request::BodyAttestAdmissionReceipt { token, .. }
+        | Request::BodyMemberCarrierBegin { token, .. }
+        | Request::BodyMemberCarrierComplete { token, .. }
+        | Request::BodyMemberCarrierMaskRoute { token, .. }
+        | Request::BodyMemberCarrierShow { token, .. }
+        | Request::BodyMemberPresenceRenew { token, .. }
+        | Request::BodyMemberCarrierInspect { token, .. }
+        | Request::BodyMemberCarrierRetire { token, .. }
         | Request::BodyReturn { token, .. }
         | Request::BodyMemberReturnBegin { token, .. }
+        | Request::BodyMemberRecoverReturnBegin { token, .. }
         | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
@@ -136,6 +146,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
+        | Request::BodyExportSeed { token, .. }
         | Request::InspectWorkerText { token, .. }
         | Request::CompleteWorkerText { token, .. } => token.fill(0),
         Request::Status { .. }
@@ -197,7 +208,7 @@ mod tests {
         let request = |size| Request::BodyBrowserStart {
             protocol: 1,
             token: vec![7; 32],
-            expected_host_id: "x".repeat(size),
+            expected_host_id: Some("x".repeat(size)),
             new_host_verifying_key: None,
             maximum_millis: 10,
         };
@@ -219,7 +230,7 @@ mod tests {
             let decoded: Request = serde_json::from_slice(&bytes).unwrap();
             assert!(
                 matches!(decoded, Request::BodyBrowserStart { expected_host_id, .. }
-                if expected_host_id.len() == 600 * 1024)
+                if expected_host_id.as_ref().is_some_and(|host| host.len() == 600 * 1024))
             );
             let response = Response::BodyTruth {
                 protocol: 1,
@@ -288,5 +299,27 @@ mod tests {
         }
         assert!(matches!(reply(MAXIMUM_LOCAL_CONTROL_FRAME_BYTES + 1),
             Err(code) if code == CONTROL_OUTCOME_UNKNOWN));
+    }
+}
+
+#[cfg(test)]
+mod browser_key_pin_wire_tests {
+    use super::*;
+    #[test]
+    fn browser_key_pin_control_preserves_legacy_host_strings_and_optional_selector() {
+        let legacy = br#"{"kind":"body-browser-start","protocol":1,"token":[],"expected_host_id":"host/known","new_host_verifying_key":null,"maximum_millis":1000}"#;
+        assert!(
+            matches!(serde_json::from_slice::<Request>(legacy).unwrap(),Request::BodyBrowserStart {expected_host_id:Some(host),..} if host=="host/known")
+        );
+        let omitted = br#"{"kind":"body-browser-start","protocol":1,"token":[],"new_host_verifying_key":null,"maximum_millis":1000}"#;
+        assert!(matches!(
+            serde_json::from_slice::<Request>(omitted).unwrap(),
+            Request::BodyBrowserStart {
+                expected_host_id: None,
+                ..
+            }
+        ));
+        // Missing selector alone is not authorization: the Owner refuses this
+        // wire-compatible shape unless an explicit first-admission key exists.
     }
 }

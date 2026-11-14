@@ -24,6 +24,24 @@ pub(super) fn install_configured_with_todo(
     model_change: selected_model::Change,
     todo_change: selected_todo::Change,
 ) -> Result<Installation, String> {
+    install_configured_with_image(
+        manifest_path,
+        state_dir,
+        speech_change,
+        model_change,
+        todo_change,
+        None,
+    )
+}
+
+pub(super) fn install_configured_with_image(
+    manifest_path: &Path,
+    state_dir: &Path,
+    speech_change: selected_speech::Change,
+    model_change: selected_model::Change,
+    todo_change: selected_todo::Change,
+    image_path: Option<&Path>,
+) -> Result<Installation, String> {
     let manifest_bytes = bounded_read(manifest_path, 256 * 1024)?;
     let manifest: ReleaseManifest = serde_json::from_slice(&manifest_bytes)
         .map_err(|error| format!("release manifest: {error}"))?;
@@ -48,6 +66,15 @@ pub(super) fn install_configured_with_todo(
     } else {
         None
     };
+    // Validate the replacement before copying a release or committing installation state.
+    let retained_configuration = existing
+        .as_ref()
+        .and_then(|value| value.selected_host_configuration.clone());
+    let retained_configuration = selected_host_configuration::replacement_image(
+        retained_configuration,
+        image_path,
+        &manifest.source_identity,
+    )?;
     let executable = manifest
         .files
         .iter()
@@ -94,9 +121,6 @@ pub(super) fn install_configured_with_todo(
         }
         selected_todo::Change::Remove => None,
     };
-    let retained_configuration = existing
-        .as_ref()
-        .and_then(|value| value.selected_host_configuration.clone());
     if let Some(configuration) = &retained_configuration {
         configuration.validate_speech_overlap(retained_selection.as_ref())?;
     }
@@ -113,7 +137,17 @@ pub(super) fn install_configured_with_todo(
         selected_todo_checkpoint: retained_todo,
         selected_host_configuration: retained_configuration,
     };
-    write_json_atomic(&install_path, &installation)?;
+    let installation_bytes = bounded_installation_bytes(&installation)?;
+    write_bytes_atomic(&install_path, &installation_bytes)?;
     write_service_definition(state_dir, &installation)?;
     Ok(installation)
+}
+
+pub(super) fn bounded_installation_bytes(installation: &Installation) -> Result<Vec<u8>, String> {
+    let bytes = serde_json::to_vec_pretty(installation)
+        .map_err(|error| format!("encode installed Host state: {error}"))?;
+    if bytes.len() > 64 * 1024 {
+        return Err("installed Host state exceeds its 64 KiB read bound".into());
+    }
+    Ok(bytes)
 }

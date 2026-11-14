@@ -1,0 +1,93 @@
+{
+  "source": "a564fbf32d7726ebac9cf98697d8e7e147bc72fb",
+  "tree": "aa210b42ff58f8352ea03e913dc091457f6ad44b",
+  "base": "9a61d38899",
+  "commits": {
+    "host_authoring": "23bdb351c89b9ebeb660cdb5c5376cfc03ede6b7",
+    "outcome_representation": "973496f6f4",
+    "backend_cherry_pick": "a564fbf32d7726ebac9cf98697d8e7e147bc72fb",
+    "backend_original": "7d393c534080439e9507b1ce6086c03de8cd10b9"
+  },
+  "checks": [
+    {
+      "command": "cargo +stable test --locked -p conduit-body-make --lib host_configuration_encounter -- --nocapture",
+      "result": "5 passed on combined source",
+      "log": "host-configuration-encounter-combined.log"
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit-body-make --lib joining_host_production::tests -- --nocapture",
+      "result": "6 passed on combined source",
+      "log": "joining-host-production-combined.log"
+    },
+    {
+      "command": "cargo +stable clippy --locked -p conduit-body-make --lib -- -D warnings",
+      "result": "passed on combined source",
+      "log": "host-configuration-combined-clippy.log"
+    }
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-threebee-dev-release-20261031",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/host-configuration-encounter-1.log",
+      "sha256": "f6683110cbbd2e24d2a79302ebae0bc1e0508715ed7e8dc9d6fc75e9877bd95e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/host-configuration-encounter-2.log",
+      "sha256": "837a0a6f0b49c2d51c34a2042a4eba0c5c24b81dc02cfbd9b9b910ddd02a40df"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/host-configuration-encounter-3.log",
+      "sha256": "6d62174a39e880d6b2d3841c4d29b014d86966b744cfb14852eba7ddeec6eada"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/host-configuration-encounter-clippy.log",
+      "sha256": "824e265af96cc807008dfbffa8ff19f9fd16bd5c7c57a2740a6c97fd98414dac"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/host-configuration-encounter-clippy-2.log",
+      "sha256": "af54fbfe1dff23a71859f0c770c0c428eea178afdb1a4d1abf308be565b7b8af"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/host-configuration-encounter-combined.log",
+      "sha256": "b8afc8264a23891136d9dc991b4d14e3580caa7afb7868bbd8c6110b3f30d8cf"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/joining-host-production-combined.log",
+      "sha256": "84056fe283dde86367ccf38adc823bfad2bec5e6def2ca9bfec8806b911750ec"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/host-configuration-combined-clippy.log",
+      "sha256": "5a40fd90b874e61ae163537128b32cc9f258aace319b13745b5d5097902e413f"
+    }
+  ],
+  "test_executable": {
+    "path": "/tmp/conduit-threebee-dev-release-20261031/debug/deps/conduit_body_make-adad296981d01b3c",
+    "bytes": 60937840,
+    "sha256": "37bc3e31f53cfa6577159adcde782b0462ae452e7ca4f2a7214737b575492b2e"
+  },
+  "intermediate_failures": [
+    "fixture WakeId string conversion refused; replaced by actual Body::wake fixture",
+    "Clippy dependency write hit per-UID tmp quota; terminal; verified no active cache users and package-native language cleanup reclaimed3.2GiB preserving test executable/logs",
+    "Clippy large enum variant fixed by boxing checked outcome; no suppression"
+  ],
+  "bounds": {
+    "source_bytes": 16384,
+    "selected_bases": 8,
+    "base_alternatives": 8,
+    "resources": 16,
+    "initialization_fields": 16,
+    "initialization_text_bytes": 1024,
+    "accepted_interactions": 1024,
+    "choices_per_page": 8,
+    "catalogue_targets": 256,
+    "target_offers": 256,
+    "source_chunk_bytes": 768
+  },
+  "boundary": "CPU canonical Face/acknowledged software Mask fixture and checked construction proof only. Actual execution basis and renderer-retained acknowledgement must be supplied by owner. Immutable catalogues borrowed, bounded draft staged. No Host/ledger, readiness, authority, Make, I/O, birth, deployment or screenshot performed by authoring module. Production backend tests use explicitly selected opened artifact fixtures; no real manufacture, immutable-file confinement, installation, Boot/member or issue-closure claim. Public artifact handle remains mutable: verification attests bytes observed at this operation, not future immutability. finite validation bounds are not allocator/workspace admission."
+}

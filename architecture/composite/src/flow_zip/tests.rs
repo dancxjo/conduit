@@ -134,14 +134,15 @@ fn typed_pairing_preserves_nested_schema_under_pressure_without_play_allocation(
     .canonical_bytes()
     .unwrap();
     let expected = packet.canonical_bytes().unwrap();
-    let left = CheckedValueContract::new(
-        packet.profile().unwrap().value_kind().clone(),
-        input.len() as u32,
-        vec![],
-    )
-    .unwrap();
-    let right = CheckedValueContract::new(kind_id("value/count"), 8, vec![]).unwrap();
+    let left =
+        CheckedValueContract::new(packet.profile().unwrap().value_kind().clone(), 4096, vec![])
+            .unwrap();
+    let right = CheckedValueContract::new(kind_id("value/count"), 1024, vec![]).unwrap();
     let mut operation = FlowZipBack::prepare_typed(&left, packet, &right, leaf).unwrap();
+    assert_eq!(operation.left.len(), input.len());
+    assert_eq!(operation.right.len(), 8);
+    assert_eq!(left.maximum_bytes, 4096);
+    assert_eq!(right.maximum_bytes, 1024);
     let count = conduit_core::encode_count(8);
     let allocations = crate::test_support::allocation::allocations_during(|| {
         for (side, bytes) in [(0, input.as_slice()), (1, count.as_slice())] {
@@ -221,6 +222,16 @@ fn finite_typed_pair_close_flush_is_bounded_under_pressure_without_allocation() 
     let mut encoder =
         conduit_core::PreparedTypedTuplePairEncoder::new(ty.clone(), 8, ty, 8).unwrap();
     let expected = encoder.encode(&left, &right).unwrap().to_vec();
+    assert_eq!(operation.output_maximum as usize, expected.len());
+    assert_eq!(
+        <FlowZipBack as StepBack<2>>::terminal_transductions(&operation)[0]
+            .unwrap()
+            .normal_close,
+        AssignedNormalCloseTransduction::FlushThenPropagate(AssignedFiniteTerminalEmission {
+            maximum_items: 1,
+            maximum_bytes: encoder.maximum_encoded_bytes(),
+        }),
+    );
     assert_eq!(
         <FlowZipBack as StepBack<2>>::terminal_transductions(&operation)[0]
             .unwrap()
@@ -413,3 +424,35 @@ fn feedback_left_close_waits_for_delayed_right_payload_and_its_real_close() {
 
 #[path = "feedback_close_tests.rs"]
 mod feedback_close_tests;
+
+#[test]
+fn staged_input_is_not_published_before_commit_and_cancel_discards_it() {
+    for side in 0..2 {
+        let mut operation = operation();
+        let bytes: &[u8] = b"next";
+        let mut references = [None; 2];
+        references[side] = Some(reference(1, bytes));
+        let mut values = [None; 2];
+        values[side] = Some(bytes);
+        let mut io = StepIo::test_frame(
+            references,
+            [false; 2],
+            [Some(operation.output_maximum), None],
+            None,
+            16,
+        );
+        assert_eq!(
+            operation.step(&mut io, &StepInputBytes::test_frame(values, None)),
+            StepOutcome::Progress
+        );
+        assert!(operation.left_len.is_none());
+        assert!(operation.right_len.is_none());
+        assert!(operation.encode_pair().is_none());
+        assert!(<FlowZipBack as StepBack<2>>::prepared_output(&operation, PortId(0)).is_none());
+        <FlowZipBack as StepBack<2>>::cancel(&mut operation);
+        <FlowZipBack as StepBack<2>>::step_committed(&mut operation);
+        assert!(operation.left_len.is_none());
+        assert!(operation.right_len.is_none());
+        assert!(operation.encode_pair().is_none());
+    }
+}

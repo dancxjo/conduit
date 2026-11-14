@@ -1,3 +1,20 @@
+#[cfg(all(feature = "root-allocation-observation", not(test)))]
+#[global_allocator]
+static ROOT_ALLOCATION_OBSERVER:
+    conduit_std_host::allocation_observation::SystemAllocationObserver =
+    conduit_std_host::allocation_observation::SystemAllocationObserver;
+
+#[cfg(test)]
+#[path = "../../../targets/std/src/allocation_probe.rs"]
+mod allocation_probe;
+
+#[cfg(test)]
+mod source_preparation_memory_tests;
+
+#[cfg(test)]
+#[path = "../../../make/body/tests/common/joining_host_package.rs"]
+mod joining_host_package_test_common;
+
 #[cfg(test)]
 #[path = "../../../semantics/face/tests/common/mod.rs"]
 mod mask_test_common;
@@ -315,10 +332,13 @@ fn main() {
             command: Some(cli::BodyCommand::Start { state_dir, maximum_millis, todo_new_list }),
         }) => durable_host_control::start_owned_body(&state_dir, maximum_millis, todo_new_list),
         Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::ExportSeed { state_dir, destination }),
+        }) => durable_host_control::export_owned_seed(&state_dir, &destination),
+        Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Lull { state_dir }),
         }) => durable_host_control::lull_owned_body(&state_dir),
         Some(cli::Command::Body {
-            command: Some(cli::BodyCommand::Terminal { state_dir, owner_show, invitation, authorize_join }),
+            command: Some(cli::BodyCommand::Terminal { state_dir, owner_show, invitation, authorize_join, member, authorize_return }),
         }) => {
             if let Some(invitation) = invitation {
                 #[cfg(unix)]
@@ -326,6 +346,12 @@ fn main() {
                     &mut io::stdin().lock(), &mut io::stdout().lock()) }
                 #[cfg(not(unix))]
                 { let _ = (invitation, authorize_join); Err("presentation terminal requires a local Unix Host".into()) }
+            } else if member {
+                #[cfg(unix)]
+                { durable_host::presentation::run_member(&state_dir, authorize_return,
+                    &mut io::stdin().lock(), &mut io::stdout().lock()) }
+                #[cfg(not(unix))]
+                { let _ = authorize_return; Err("member terminal requires a local Unix Host".into()) }
             } else if owner_show {
                 #[cfg(unix)]
                 {
@@ -384,14 +410,21 @@ fn main() {
             }
             _ => Err("a routed invitation requires --route-bind, --route-url, --route-tls-cert, --route-tls-key, and --authorize-route together".into()),
         },
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::MemberEncounter {
+            state_dir, descriptor, authorize_route,
+        }) }) => durable_host::install_member_encounter(&state_dir, &descriptor, authorize_route),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::MemberContact {
+            state_dir, descriptor, authorize_route,
+        }) }) => durable_host::install_member_contact(&state_dir, &descriptor, authorize_route),
         Some(cli::Command::Body { command: Some(cli::BodyCommand::Return {
             state_dir, descriptor, authorize_return,
         }) }) => durable_host::return_installed_member(&state_dir, &descriptor, authorize_return),
         Some(cli::Command::Body { command: Some(cli::BodyCommand::MemberRoute {
             state_dir, member_credential, ttl_seconds, route_bind, route_url,
-            route_tls_cert, route_tls_key, authorize_route,
-        }) }) => durable_host::serve_body_member_route(&state_dir, &member_credential,
-            ttl_seconds, route_bind, &route_url, &route_tls_cert, &route_tls_key, authorize_route),
+            route_tls_cert, route_tls_key, authorize_route, continuing,
+        }) }) => (if continuing { durable_host::serve_body_member_contact } else { durable_host::serve_body_member_route })(
+            &state_dir, &member_credential, ttl_seconds, route_bind, &route_url,
+            (&route_tls_cert, &route_tls_key), authorize_route),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::BrowserWindow {
@@ -407,15 +440,12 @@ fn main() {
             } else {
                 let key = new_host_verifying_key
                     .as_deref()
-                    .map(|text| {
-                        serde_json::from_str::<[u8; 32]>(text)
-                            .map_err(|error| format!("browser verifying key must be a 32-byte JSON array: {error}"))
-                    })
+                    .map(cli::parse_browser_verifying_key)
                     .transpose();
                 key.and_then(|key| {
                     durable_host_control::start_browser_window(
                         &state_dir,
-                        &expected_host_id,
+                        expected_host_id.as_deref(),
                         key,
                         maximum_millis,
                     )
@@ -438,14 +468,25 @@ fn main() {
                     authorize_join,
                 }),
         }) => durable_host::accept_body_invitation(&invitation, &state_dir, authorize_join),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::AcceptSeed { state_dir, authorize_join }) }) =>
+            durable_host::accept_pending_seed(&state_dir, authorize_join),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::Admit {
                     request,
+                    attest_owner,
                     state_dir,
                     authorize_admission,
                 }),
-        }) => durable_host::admit_body_request(&request, &state_dir, authorize_admission),
+        }) => durable_host::admit_body_request(&request, &state_dir, authorize_admission, attest_owner.as_deref()),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::AdmitUsb {
+            port, basis, receipt_output, state_dir, authorize_admission,
+        }) }) => durable_host::admit_usb(&port, &basis, &receipt_output, &state_dir, authorize_admission),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::ReturnUsb {
+            port, basis, receipt_output, state_dir, authorize_return, forwarded_tty, recover_retained_key,
+        }) }) => durable_host::return_usb(&port, &basis, &receipt_output, &state_dir, authorize_return,
+            if forwarded_tty { conduit_std_host::pico_spawn::ProvisioningCarrier::ForwardedTty }
+            else { conduit_std_host::pico_spawn::ProvisioningCarrier::UsbCdc }, recover_retained_key),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::CompleteJoin {
@@ -454,6 +495,9 @@ fn main() {
                     authorize_membership,
                 }),
         }) => durable_host::complete_body_join(&receipt, &state_dir, authorize_membership),
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::RestoreMemberKey(args)),
+        }) => durable_host::restore_member_key(args),
         Some(cli::Command::Body {
             command: Some(command),
         }) => match command {

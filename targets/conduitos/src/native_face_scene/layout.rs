@@ -46,6 +46,7 @@ pub(super) struct Row {
     pub paint: GraphicsPaintRole,
     pub control: Option<FaceControl>,
     pub subject_index: Option<usize>,
+    pub chart_subject: Option<usize>,
     pub region: Option<u8>,
     /// Padding already reserved by checked, single-region ancestor groups.
     pub region_inset: u16,
@@ -223,9 +224,9 @@ pub(super) fn admit_with_expression_selected(
         }
         let mut remaining = item.text.as_str();
         while !remaining.is_empty() {
-            let (end, height) = measure_prefix(
+            let (end, height) = measure_item_prefix(
+                &item,
                 remaining,
-                item.role,
                 text_width,
                 if after_heading && remaining.len() == item.text.len() {
                     maximum_height.min(bottom.saturating_sub(y + insets.block * 2))
@@ -236,9 +237,9 @@ pub(super) fn admit_with_expression_selected(
                 typography,
             )
             .or_else(|_| {
-                measure_prefix(
+                measure_item_prefix(
+                    &item,
                     remaining,
-                    item.role,
                     text_width,
                     maximum_height,
                     text_scale_percent,
@@ -276,6 +277,7 @@ pub(super) fn admit_with_expression_selected(
                 paint: item.paint,
                 control: item.control,
                 subject_index: item.subject_index,
+                chart_subject: crate::native_face_scene::measurement_chart::subject(item.part),
                 region: item.region,
                 region_inset: 0,
                 page,
@@ -321,7 +323,8 @@ fn fit_padding<'a>(
 }
 
 fn row_commands(item: &document::Item, region_start: bool) -> usize {
-    1 + usize::from(item.icon.is_some())
+    let ordinary = 1
+        + usize::from(item.icon.is_some())
         + usize::from(item.checkbox.is_some())
         + usize::from(item.control.is_some() && item.checkbox.is_none())
         + usize::from(region_start)
@@ -331,7 +334,39 @@ fn row_commands(item: &document::Item, region_start: bool) -> usize {
                     item.role,
                     GraphicsTextRole::Title | GraphicsTextRole::Heading
                 ),
-        )
+        );
+    if super::measurement_chart::subject(item.part).is_some() {
+        ordinary + super::measurement_chart::COMMANDS - 1
+    } else {
+        ordinary
+    }
+}
+
+fn measure_item_prefix(
+    item: &document::Item,
+    remaining: &str,
+    width: u16,
+    maximum_height: u16,
+    scale: u16,
+    typography: Typography,
+) -> Result<(usize, u16), FaceSceneError> {
+    if super::measurement_chart::subject(item.part).is_some() {
+        return super::measurement_chart::measure(
+            remaining,
+            width,
+            maximum_height,
+            scale,
+            typography,
+        );
+    }
+    measure_prefix(
+        remaining,
+        item.role,
+        width,
+        maximum_height,
+        scale,
+        typography,
+    )
 }
 
 fn measure_prefix(

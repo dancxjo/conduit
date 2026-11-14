@@ -12,6 +12,8 @@ pub const PICO_ADMISSION_PROTOCOL: u16 = 1;
 pub const PICO_ADMISSION_REQUEST: &[u8] = b"CONDUIT_BODY_ADVERTISE_V1";
 pub const PICO_SPAWN_PROTOCOL: u16 = 2;
 pub const PICO_SPAWN_REQUEST: &[u8] = b"CONDUIT_SPORE_JOIN@1";
+/// USB carriage activation only; the following proof is canonical Part return.
+pub const PICO_MEMBER_RETURN_REQUEST: &[u8] = b"CONDUIT_MEMBER_RETURN@1";
 pub const MAX_PICO_ADMISSION_FRAME_BYTES: usize = 4_096;
 pub const MAX_PICO_ADMISSION_ID_BYTES: usize = 128;
 

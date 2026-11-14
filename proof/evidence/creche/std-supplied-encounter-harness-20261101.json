@@ -1,0 +1,39 @@
+{
+  "source": "15954cc67efd54327c878219be755f5ca6bd53fd",
+  "proof_class": "native Rust software test/build; no installed provider or physical proof",
+  "repair": "Move owning Cr\u00e8che quarantine regression out of ledger.rs reused by region integration harness. Keep regression intact. retirement_hold is visible only to owning kernel-preparation module. No production behavior change.",
+  "checks": [
+    {
+      "command": "cargo +stable clippy -p conduit-std-host --test region_service_lifecycle -- -D warnings",
+      "result": "passed"
+    },
+    {
+      "command": "cargo +stable test -p conduit-std-host --lib exact_creche_reservation_hold_moves_without_allocation_or_release",
+      "result": "1 passed; 965 filtered"
+    },
+    {
+      "command": "cargo +1.98.1 fmt --all --check",
+      "result": "passed"
+    }
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-local-native-provider-check",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "profile": "default dev/test debug; prior low-debug proof remains separately scoped"
+  },
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/canonical-lifecycle-journey-20261101/pr6706-region-clippy.log",
+      "sha256": "74ff686970918f5b1fecc4d7791965749ac0ec79432d0fa0bf590eb8d75388a3"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/canonical-lifecycle-journey-20261101/pr6706-quarantine-test.log",
+      "sha256": "db6542246d36b0b81a9374726640d77434c5cbcd16475a604afbc24db00d3f8a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/canonical-lifecycle-journey-20261101/pr6706-fmt-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

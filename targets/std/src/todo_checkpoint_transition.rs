@@ -1,5 +1,5 @@
 //! Idle transition between exact Todo checkpoint offers on one std Host Boot.
-use crate::{kernel_preparation::KernelResourceLedger, StdHost, StdHostConfig};
+use crate::{StdHost, StdHostConfig};
 use conduit_core::{OfferGeneration, ResourceAccessMode, ResourceContentRequirement};
 use std::path::Path;
 
@@ -14,6 +14,7 @@ impl StdHost {
         root: &Path,
         content: ResourceContentRequirement,
     ) -> Result<(), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() {
             return Err("Todo checkpoint transition requires an idle Host".into());
         }
@@ -151,7 +152,7 @@ impl StdHost {
         advertisement.capabilities.push(next_offer);
         advertisement.resources.sort();
         crate::normalize_capability_offers(&mut advertisement.capabilities)?;
-        let ledger = KernelResourceLedger::new(&advertisement)?;
+        let ledger = self.kernel_resources.replacement_for(&advertisement)?;
         self.advance_retained_spoken_offer_generation(next_generation)?;
         self.advertisement = advertisement;
         self.kernel_resources = ledger;

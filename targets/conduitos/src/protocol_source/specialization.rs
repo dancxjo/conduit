@@ -30,6 +30,10 @@ pub enum ProtocolSpecialization {
     MergeInstance {
         value: ProtocolValue,
     },
+    ExactZip {
+        left: ProtocolValue,
+        right: ProtocolValue,
+    },
     Zip {
         left: ProtocolValue,
         right: ProtocolValue,

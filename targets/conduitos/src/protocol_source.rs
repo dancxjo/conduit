@@ -58,6 +58,7 @@ pub enum ProtocolSourceRefusal {
     Encoding,
     UnsupportedSchema,
     Contract(conduit_core::StructuredInfoRefusal),
+    I2cPreparation(crate::i2c_base::contract::I2cContractPreparationRefusal),
     Specialization(&'static str),
     Catalog(String),
     Source(conduit_plot::SyntaxCheckDiagnostic),
@@ -113,7 +114,8 @@ impl PreparedProtocolSource {
     ) -> Result<Self, ProtocolSourceRefusal> {
         use ProtocolSourceRefusal as Error;
         package.validate_bounds()?;
-        let i2c = crate::i2c_base::contract::I2cContract::prepare().map_err(Error::Contract)?;
+        let i2c =
+            crate::i2c_base::contract::I2cContract::prepare().map_err(Error::I2cPreparation)?;
         let (mut startup, mut profile) = i2c.catalogs();
         install_clock(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
@@ -210,6 +212,21 @@ impl PreparedProtocolSource {
                 }
                 ProtocolSpecialization::MergeInstance { value } => {
                     instances::install_merge(value, &mut startup, &mut profile, &mut operations)
+                }
+                ProtocolSpecialization::ExactZip { left, right } => {
+                    conduit_semantic_catalog::install_flow_zip_exact_kind(
+                        &left.contract,
+                        &left.schema,
+                        &right.contract,
+                        &right.schema,
+                        &mut startup,
+                        &mut profile,
+                    )
+                    .map_err(Error::Catalog)?;
+                    operations
+                        .joins
+                        .install_exact(&left.contract, &left.schema, &right.contract, &right.schema)
+                        .map_err(Error::Catalog)
                 }
                 ProtocolSpecialization::Zip { left, right } => {
                     conduit_semantic_catalog::install_flow_zip_finite_kind(
@@ -341,10 +358,10 @@ fn install_clock(
     profile: &mut ProfileCatalog,
 ) -> Result<(), ProtocolSourceRefusal> {
     use ProtocolSourceRefusal as Error;
-    let clock = crate::monotonic_clock::contract::MonotonicClockContract::prepare()
+    let clock = conduit_monotonic_wait::clock_at::contract::MonotonicClockContract::prepare()
         .map_err(Error::Contract)?;
     let types = check_syntax_document(
-        &parse_syntax_document(crate::monotonic_clock::contract::CLOCK_TYPES),
+        &parse_syntax_document(conduit_monotonic_wait::clock_at::contract::CLOCK_TYPES),
         &StartupCatalog::new(),
     )
     .map_err(Error::Source)?;

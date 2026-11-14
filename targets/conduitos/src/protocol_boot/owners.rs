@@ -55,6 +55,7 @@ pub unsafe fn admit(
         request.pci_function
     );
     let bus_identity = I2cNativeIdentity {
+        base_implementation_id: "conduitos.base/i2c-controller@1".into(),
         host_id: host.clone(),
         boot_id: boot.clone(),
         base_id: format!("{prefix}/bus").into(),
@@ -108,11 +109,11 @@ pub unsafe fn admit(
         ),
         OperationAuthority {
             contract: crate::monotonic_clock::installation::CLOCK_AUTHORITY,
-            call: crate::monotonic_clock::contract::CLOCK_CALL,
+            call: conduit_monotonic_wait::clock_at::contract::CLOCK_CALL,
             kind: "machine/clock/at",
             capability: "conduitos/monotonic-clock-at@1",
-            bytes: crate::monotonic_clock::contract::CLOCK_MAXIMUM_BYTES,
-            work: crate::monotonic_clock::owner::MAXIMUM_POLL_STEPS,
+            bytes: conduit_monotonic_wait::clock_at::contract::CLOCK_MAXIMUM_BYTES,
+            work: conduit_monotonic_wait::clock_at::owner::MAXIMUM_POLL_STEPS,
             operations: request.maximum_clock_operations,
         },
     );

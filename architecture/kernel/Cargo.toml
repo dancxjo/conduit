@@ -6,6 +6,8 @@ edition = "2021"
 [features]
 default = []
 alloc = []
+schema-value-storage = ["alloc"]
+execution-workspace = ["alloc"]
 step-test-support = []
 # Repository diagnostic only; never selected by a product profile.
 linear-ready-reference-test = []

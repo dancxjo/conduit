@@ -1,5 +1,6 @@
 //! Borrowed representation dispatch; all validation remains in Core and the
 //! existing fixed-table builder. No runtime allocation or execution lives here.
+use super::line_fore::ForeProfile;
 use conduit_assigned_plan as c;
 #[derive(Clone, Copy)]
 pub(crate) enum RecordInput<'a> {
@@ -40,9 +41,21 @@ impl<'a> RecordInput<'a> {
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
-        fore: Option<&[c::AssignedForeRequirement]>,
+        fore: Option<ForeProfile<'_>>,
     ) -> Result<c::AssignedPlanView, c::AssignedPlanRefusal> {
-        if let Some(fore) = fore {
+        if let Some(ForeProfile::Line(profile)) = fore {
+            return match self {
+                Self::Bytes(bytes) => c::decode_assigned_plan_with_line_fore(
+                    bytes,
+                    maxima,
+                    required,
+                    computations,
+                    profile,
+                ),
+                Self::Records { .. } => Err(c::AssignedPlanRefusal::WrongSchema),
+            };
+        }
+        if let Some(ForeProfile::Local(fore)) = fore {
             return match self {
                 Self::Bytes(bytes) => {
                     c::decode_assigned_plan_with_fore(bytes, maxima, required, computations, fore)

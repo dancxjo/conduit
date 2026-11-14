@@ -10,6 +10,7 @@ use serde::Deserialize;
 use std::cell::RefCell;
 
 pub(crate) mod owner_component;
+mod portable_seed;
 
 const INPUT_CAPACITY: usize = 4_096;
 const OUTPUT_CAPACITY: usize = conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
@@ -245,6 +246,7 @@ pub extern "C" fn conduit_browser_membership_advertisement() -> i32 {
 }
 
 fn clear_identity_and_output() {
+    portable_seed::reset();
     owner_component::reset();
     IDENTITY.with(|slot| slot.borrow_mut().take());
     clear_output();

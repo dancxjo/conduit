@@ -6,6 +6,14 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 #[path = "structured_tape.rs"]
 mod tape;
+pub use tape::{
+    generate_borrowed_static_structured_expression_with_work,
+    generate_static_structured_expression, generate_static_structured_expression_with_work,
+    BorrowedStaticStructuredExpression, GeneratedStaticStructuredExpression,
+    StaticStructuredChildProgram, StaticStructuredChildTable, StaticStructuredExpression,
+    StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
+    StaticStructuredValue, StructuredExpressionImage, StructuredTapeInstruction,
+};
 
 pub(super) struct PreparedStructuredExpression {
     type_prefix: Vec<u8>,
@@ -70,6 +78,16 @@ enum ChildOutput {
 }
 
 impl PreparedStructuredExpression {
+    pub(super) fn direct_input_path(
+        &self,
+    ) -> Option<Vec<super::resident_projection::OwnedExpressionPathStep>> {
+        match &self.shape {
+            PreparedShape::Input => Some(Vec::new()),
+            PreparedShape::Selected(value) => value.direct_input_path(),
+            _ => None,
+        }
+    }
+
     pub(super) fn type_prefix(&self) -> &[u8] {
         &self.type_prefix
     }
@@ -266,14 +284,22 @@ impl PreparedStructuredExpression {
 }
 
 impl PreparedChild {
-    fn append_node(&mut self, input: &[u8], output: &mut Vec<u8>) -> Result<(), Refusal> {
+    fn append_node(
+        &mut self,
+        input: &[u8],
+        output: &mut impl tape::execution::Output,
+    ) -> Result<(), Refusal> {
         self.evaluator.evaluate(input)?;
         let encoded = self.evaluator.output_bytes();
         match &self.output {
             ChildOutput::Leaf => {
-                push(output, 0)?;
-                push_len(output, encoded.len())?;
-                append(output, encoded)
+                output.write(&[0])?;
+                output.write(
+                    &u32::try_from(encoded.len())
+                        .map_err(|_| Refusal::InvalidProgram)?
+                        .to_le_bytes(),
+                )?;
+                output.write(encoded)
             }
             ChildOutput::Structured => {
                 let type_prefix = self
@@ -283,7 +309,7 @@ impl PreparedChild {
                 let node = encoded
                     .strip_prefix(type_prefix)
                     .ok_or(Refusal::InvalidProgram)?;
-                append(output, node)
+                output.write(node)
             }
         }
     }
@@ -335,14 +361,16 @@ fn child(
     })
 }
 
-/// Cache only ordinary Boolean/octet leaves using the existing literal codec.
+/// Cache only ordinary empty/Boolean/octet leaves using the existing literal codec.
 /// Other Types, predicates and expression operations retain normal preparation.
 /// Codec refusal falls back without changing its original refusal phase.
 fn constant_child(node: &PortableExpressionNode) -> Option<ChildEvaluator> {
     if !matches!(node.value_type.shape(), StructuredInfoTypeShape::Leaf(_))
         || !matches!(
             super::leaf_kind(&node.value_type).ok()?,
-            conduit_core::PrimitiveInfoKind::Bool | conduit_core::PrimitiveInfoKind::U8
+            conduit_core::PrimitiveInfoKind::Bool
+                | conduit_core::PrimitiveInfoKind::U8
+                | conduit_core::PrimitiveInfoKind::Empty
         )
     {
         return None;

@@ -326,16 +326,22 @@ fn impossible_panel_width_refuses_without_an_overflow_scene() {
 fn panel_metadata_has_a_finite_preparation_storage_delta() {
     #[allow(dead_code)]
     struct BeforePanelMetadata {
+        continuation: Option<LayoutContinuation>,
         text: String,
         role: GraphicsTextRole,
         paint: GraphicsPaintRole,
         control: Option<FaceControl>,
         subject_index: Option<usize>,
+        chart_subject: Option<usize>,
+        region: Option<u8>,
+        region_inset: u16,
         page: usize,
         bounds: LayoutRect,
         region_start: bool,
-        padding: u16,
+        insets: PackedRowInsets,
         checkbox: Option<bool>,
+        icon: Option<conduit_face::FaceIconKey>,
+        icon_size: u16,
     }
     let permutation = core::mem::size_of::<(usize, usize, usize)>();
     let indexed_item = core::mem::size_of::<(usize, document::Item)>();

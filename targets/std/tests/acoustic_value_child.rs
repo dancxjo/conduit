@@ -147,17 +147,10 @@ fn check_child() {
         )
     })
     .collect();
-    let connection_capacity = child
-        .expanded
-        .gears
-        .iter()
-        .flat_map(|gear| gear.semantic_contract.value_contracts())
-        .map(|contract| contract.contract.maximum_bytes)
-        .max()
-        .unwrap();
-    assert!(connection_capacity as usize <= conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES);
-    eprintln!("acoustic child admitted Cord bytes: {connection_capacity}");
-    let plan = conduit_planner::plan_expanded_authoring_with_options(
+    let connection_limits =
+        conduit_planner::default_expanded_connection_limits(&child.expanded, &hosts, &placements)
+            .unwrap();
+    let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
         &child,
         &hosts,
         &placements,
@@ -166,11 +159,12 @@ fn check_child() {
             connection_bases: &std::collections::BTreeMap::new(),
             line_candidates: &std::collections::BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: connection_capacity,
+            connection_byte_capacity: 32768,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
         },
+        &connection_limits,
         &boundaries,
     )
     .unwrap();

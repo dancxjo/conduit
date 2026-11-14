@@ -4,7 +4,7 @@
 use super::*;
 use conduit_core::{DEFAULT_CONNECTION_BYTE_CAPACITY, DEFAULT_CONNECTION_ITEM_CAPACITY};
 
-fn required_value_bytes(
+fn preferred_value_bytes(
     source: &conduit_core::CheckedFront,
     source_port: &conduit_core::PortId,
     sink: &conduit_core::CheckedFront,
@@ -34,12 +34,39 @@ fn required_value_bytes(
         .map_err(|_| PlannerError::InvalidConnectionBudget("value bound overflow".into()))
 }
 
-pub fn plan_expanded_canonical(
+// An opaque Value has no checked byte envelope from which to size a single
+// retained value. Prefer the finite capacity supported by both selected Backs;
+// this is storage planning, not a new semantic domain or resource grant.
+// A maximum describes accepted values, not a mandatory full-size reservation.
+// Keep it as a preference when affordable; only the shared guaranteed minimum
+// can make finite selected support insufficient before a value is presented.
+fn preferred_bytes(
+    temporal: conduit_core::PortTemporal,
+    minimum: u32,
+    preferred: u32,
+    source: u32,
+    sink: u32,
+) -> Result<u32, PlannerError> {
+    if source == 0 || sink == 0 || minimum > source || minimum > sink {
+        return Err(PlannerError::QueueRequirementAboveHostLimit(
+            "guaranteed value minimum exceeds selected Back queue capacity".into(),
+        ));
+    }
+    let preference = if temporal == conduit_core::PortTemporal::Value && preferred == 0 {
+        source.min(sink)
+    } else {
+        DEFAULT_CONNECTION_BYTE_CAPACITY
+    };
+    Ok(preference.max(preferred).min(source).min(sink).max(minimum))
+}
+
+/// Queue preferences bounded by both selected Backs and checked value contracts.
+/// Explicit required capacities must still use the strict planning entrances.
+pub fn default_expanded_connection_limits(
     plot: &ExpandedCanonicalPlot,
     hosts: &[HostAdvertisement],
     placements: &PlacementChoices,
-    bases: &[BaseImplementationId],
-) -> Result<Plan, PlannerError> {
+) -> Result<BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>, PlannerError> {
     plot.validate_expansion()
         .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
     let mut limits = BTreeMap::new();
@@ -67,13 +94,20 @@ pub fn plan_expanded_canonical(
             .ok_or_else(|| {
                 PlannerError::MissingPlacement(connection.sink_gear_id.as_str().to_string())
             })?;
-        let required_value_bytes = required_value_bytes(
+        let preferred_value_bytes = preferred_value_bytes(
             &source_gear.checked_front(),
             &connection.source_port_id,
             &sink_gear.checked_front(),
             &connection.sink_port_id,
             connection.track,
         )?;
+        let minimum_value_bytes = crate::value_storage::required_minimum(
+            &source_gear.checked_front(),
+            &connection.source_port_id,
+            &sink_gear.checked_front(),
+            &connection.sink_port_id,
+            connection.track,
+        );
         if [source, sink]
             .iter()
             .any(|offer| offer.limits.max_queue_items == 0 || offer.limits.max_queue_bytes == 0)
@@ -95,13 +129,26 @@ pub fn plan_expanded_canonical(
                 item_capacity: DEFAULT_CONNECTION_ITEM_CAPACITY
                     .min(source.limits.max_queue_items)
                     .min(sink.limits.max_queue_items),
-                byte_capacity: DEFAULT_CONNECTION_BYTE_CAPACITY
-                    .max(required_value_bytes)
-                    .min(source.limits.max_queue_bytes)
-                    .min(sink.limits.max_queue_bytes),
+                byte_capacity: preferred_bytes(
+                    connection.temporal,
+                    minimum_value_bytes,
+                    preferred_value_bytes,
+                    source.limits.max_queue_bytes,
+                    sink.limits.max_queue_bytes,
+                )?,
             },
         );
     }
+    Ok(limits)
+}
+
+pub fn plan_expanded_canonical(
+    plot: &ExpandedCanonicalPlot,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+) -> Result<Plan, PlannerError> {
+    let limits = default_expanded_connection_limits(plot, hosts, placements)?;
     plan_expanded_canonical_with_connection_limits(
         plot,
         hosts,
@@ -165,7 +212,7 @@ mod tests {
             ]);
 
         assert_eq!(
-            required_value_bytes(
+            preferred_value_bytes(
                 &source,
                 &port_id("work"),
                 &sink,
@@ -175,7 +222,7 @@ mod tests {
             Ok(73)
         );
         assert_eq!(
-            required_value_bytes(
+            preferred_value_bytes(
                 &source,
                 &port_id("work"),
                 &sink,
@@ -183,6 +230,56 @@ mod tests {
                 conduit_core::ConnectionTrack::Payload,
             ),
             Ok(8_192)
+        );
+    }
+}
+
+#[cfg(test)]
+mod opaque_value_tests {
+    use super::*;
+    use conduit_core::PortTemporal;
+
+    #[test]
+    fn permitted_maximum_does_not_enlarge_selected_support_or_hide_a_minimum() {
+        assert_eq!(
+            preferred_bytes(PortTemporal::Value, 0, 262144, 8192, 4096).unwrap(),
+            4096
+        );
+        assert_eq!(
+            preferred_bytes(PortTemporal::Flow { closes: true }, 73, 262144, 8192, 4096).unwrap(),
+            4096
+        );
+        assert!(preferred_bytes(
+            PortTemporal::Flow { closes: true },
+            4097,
+            262144,
+            8192,
+            4096
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn opaque_value_capacity_uses_finite_selected_back_support() {
+        assert_eq!(
+            preferred_bytes(PortTemporal::Value, 0, 0, 6144, 8192).unwrap(),
+            6144
+        );
+        assert_eq!(
+            preferred_bytes(PortTemporal::Value, 0, 0, 8192, 4096).unwrap(),
+            4096
+        );
+        assert!(preferred_bytes(PortTemporal::Value, 0, 0, 0, 8192).is_err());
+        assert!(preferred_bytes(PortTemporal::Value, 8193, 8193, 6144, 8192).is_err());
+        // Authored envelopes retain their existing capacity preference rather
+        // than inheriting a wider implementation storage ceiling.
+        assert_eq!(
+            preferred_bytes(PortTemporal::Value, 0, 256, 6144, 8192).unwrap(),
+            256
+        );
+        assert_eq!(
+            preferred_bytes(PortTemporal::Flow { closes: true }, 0, 0, 6144, 8192).unwrap(),
+            DEFAULT_CONNECTION_BYTE_CAPACITY
         );
     }
 }

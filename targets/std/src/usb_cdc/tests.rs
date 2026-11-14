@@ -226,3 +226,49 @@ fn test_8_operator_terminal_initializes_and_restores_tty() {
         }
     }
 }
+
+#[cfg(unix)]
+#[test]
+fn forwarded_tty_is_explicit_and_keeps_bounded_framing() {
+    let (mut master, mut slave) = (-1, -1);
+    assert_eq!(
+        unsafe {
+            libc::openpty(
+                &mut master,
+                &mut slave,
+                std::ptr::null_mut(),
+                std::ptr::null(),
+                std::ptr::null(),
+            )
+        },
+        0
+    );
+    let master = FdGuard(master);
+    let slave = FdGuard(slave);
+    let mut name = [0 as libc::c_char; 128];
+    assert_eq!(
+        unsafe { libc::ttyname_r(slave.0, name.as_mut_ptr(), name.len()) },
+        0
+    );
+    let path = unsafe { std::ffi::CStr::from_ptr(name.as_ptr()) }
+        .to_str()
+        .unwrap();
+    // Physical USB mode never silently accepts an endpoint lacking modem pins.
+    assert!(matches!(
+        NativePathCdcLine::open(path, 64),
+        Err(NativeUsbCdcError::TtyConfig(_))
+    ));
+    let mut line = NativePathCdcLine::open_forwarded_tty(path, 64).unwrap();
+    assert!(!line.controls_dtr);
+    line.send_raw_stream_frame(b"scope", Duration::from_secs(1))
+        .unwrap();
+    let mut bytes = [0; 7];
+    assert_eq!(
+        unsafe { libc::read(master.0, bytes.as_mut_ptr().cast(), bytes.len()) },
+        7
+    );
+    assert_eq!(&bytes, b"\0\x05scope");
+    assert!(line
+        .send_raw_stream_frame(&[0; 65], Duration::from_secs(1))
+        .is_err());
+}

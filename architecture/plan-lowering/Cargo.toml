@@ -6,6 +6,8 @@ edition = "2021"
 [features]
 default = []
 body-plan-binding = ["dep:conduit-body"]
+delegated-preparation = ["dep:conduit-body", "conduit-body/authenticated-admission"]
+schema-value-storage = ["conduit-kernel/schema-value-storage"]
 hosted-region-storage = ["conduit-kernel/alloc"]
 
 [dependencies]

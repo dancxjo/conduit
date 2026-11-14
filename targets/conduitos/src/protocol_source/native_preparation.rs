@@ -9,16 +9,17 @@ use crate::{
         contract::I2cContract,
         installation::{I2C_IMPLEMENTATION, I2cInstallationRefusal, ReadyI2cBase},
     },
-    monotonic_clock::{
-        contract::MonotonicClockContract,
-        installation::{CLOCK_IMPLEMENTATION, ClockInstallationRefusal, ReadyClockBase},
-        owner::MonotonicDeadlineProvider,
+    monotonic_clock::installation::{
+        CLOCK_IMPLEMENTATION, ClockInstallationRefusal, ReadyClockBase,
     },
     protocol_play::{ClockAdmission, I2cAdmission},
 };
 use alloc::{boxed::Box, collections::BTreeMap, vec};
 use conduit_body::{BodyLifecycleSession, BodyLifecycleSessionError};
 use conduit_core::*;
+use conduit_monotonic_wait::clock_at::{
+    contract::MonotonicClockContract, owner::MonotonicDeadlineProvider,
+};
 use conduit_planner::PlanningOptions;
 
 /// Possession enters from the native Root, never from Source or planner metadata.
@@ -38,6 +39,7 @@ pub struct NativeProtocolPreparationLimits {
 #[derive(Debug)]
 pub enum NativeProtocolPreparationReason {
     Contract(StructuredInfoRefusal),
+    I2cPreparation(crate::i2c_base::contract::I2cContractPreparationRefusal),
     #[cfg(any(
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-board"))
@@ -72,7 +74,7 @@ pub fn prepare_native_protocol<P: I2cProvider, C: MonotonicDeadlineProvider>(
     use NativeProtocolPreparationReason as Reason;
     let mut retained_session = Some(session);
     let prepared = (|| {
-        let i2c = I2cContract::prepare().map_err(Reason::Contract)?;
+        let i2c = I2cContract::prepare().map_err(Reason::I2cPreparation)?;
         let clock = MonotonicClockContract::prepare().map_err(Reason::Contract)?;
         owners
             .bus

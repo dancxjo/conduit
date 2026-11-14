@@ -38,6 +38,13 @@ pub use bounded_document::*;
 
 mod segmented_document;
 pub use segmented_document::SegmentedBoundedDocument;
+mod deflated_document;
+pub use deflated_document::*;
+
+#[cfg(feature = "offer-images")]
+mod offer_images;
+#[cfg(feature = "offer-images")]
+pub use offer_images::*;
 
 const MAGIC: [u8; 4] = *b"CNDW";
 const WIRE_FORMAT_VERSION: u8 = 1;

@@ -41,6 +41,70 @@ fn typed<T: serde::de::DeserializeOwned>(value: &str) -> T {
 }
 
 #[test]
+fn workspace_browser_seed_uses_shared_checked_host_and_original_birth() {
+    born();
+    session::with_session(|session| {
+        let before = serde_json::to_vec(&session.biography).unwrap();
+        let invitation = session
+            .admission
+            .issue_spawn_invitation(
+                SpawnInvitationSecret::from_csprng_bytes([91; 32]).unwrap(),
+                [92; 32],
+                100,
+                1000,
+            )
+            .unwrap();
+        let claim = invitation.claim();
+        let secret = invitation.secret.copy_for_target_provisioning();
+        let selection = || super::super::browser_configuration::BrowserConfigurationSelection {
+            catalog_generation: 1,
+            implementations: vec!["browser/dom@1".into(), "browser/pointer-events@1".into()],
+        };
+        let digest = format!("sha256:{}", "9".repeat(64));
+        let prepared = prepare_workspace_browser(
+            &session.biography,
+            &claim,
+            &secret,
+            &digest,
+            selection(),
+            101,
+        )?;
+        assert_eq!(prepared.body_id, session.biography.body_id.as_str());
+        assert_eq!(prepared.invitation_id, claim.invitation_id.as_str());
+        assert_eq!(prepared.image_content_digest, digest);
+        assert!(prepared.browser_configuration_id.is_some());
+        assert_eq!(
+            prepared.source_identity,
+            session
+                .biography
+                .body
+                .events
+                .first()
+                .and_then(|event| {
+                    match event {
+                        BodyLifecycleEvent::Born { sign_id, .. } => Some(sign_id.as_str()),
+                        _ => None,
+                    }
+                })
+                .unwrap()
+        );
+        assert!(prepare_workspace_browser(
+            &session.biography,
+            &claim,
+            &secret,
+            &digest,
+            selection(),
+            1000,
+        )
+        .unwrap_err()
+        .contains("Expired"));
+        assert_eq!(serde_json::to_vec(&session.biography).unwrap(), before);
+        Ok(())
+    })
+    .unwrap();
+}
+
+#[test]
 fn fresh_body_changes_spore_while_reviewed_image_identity_stays_fixed() {
     born();
     let first = prepare([11; 32], 1_000).unwrap();

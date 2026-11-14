@@ -161,6 +161,14 @@ pub(crate) fn run(
                 interaction,
             );
             match result {
+                Ok(value) if value["schema"] == "conduit.body/clock-start-requested@1" => {
+                    writeln!(output, "{value}")
+                        .map_err(|error| format!("write owner lifecycle action: {error}"))?;
+                    writeln!(output, "The Body is starting. This terminal Mask has retired; return when the Body is at rest.")
+                        .map_err(|error| format!("write terminal retirement: {error}"))?;
+                    output.flush().map_err(|error| error.to_string())?;
+                    return Ok(());
+                }
                 Ok(value) if value["schema"] == "conduit.todo/committed-action@1" => writeln!(
                     output,
                     "Todo saved at revision {}.",

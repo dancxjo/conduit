@@ -28,30 +28,7 @@ impl<P: OpenDrain> ReadyWriteBase<P> {
         {
             return Err(R::Advertisement);
         }
-        let kind = contract.kind();
-        let offer = BackOfferBuilder::new(
-            kind.clone(),
-            Back {
-                capability_id: WRITE_CAPABILITY.into(),
-                execution_profile_id: WRITE_EXECUTION_PROFILE.into(),
-                implementation_id: identity.implementation_id.clone(),
-                artifact_id: identity.artifact_id.clone(),
-                host_calls: vec![HostCallRequirement {
-                    contract_id: WRITE_CALL.into(),
-                    target_kind: Some(kind.kind_id.clone()),
-                    maximum_in_flight: 1,
-                    maximum_input_bytes: MAXIMUM_BYTES,
-                    maximum_output_bytes: 0,
-                }],
-                resource_requirements: vec![resource_requirement(WRITE_ATTACHMENT_CLASS, 1)],
-                authority_requirements: vec![AuthorityRequirement {
-                    contract_id: WRITE_AUTHORITY.into(),
-                    host_call_contract_id: WRITE_CALL.into(),
-                    subject_kind: kind.kind_id.clone(),
-                }],
-            },
-        )
-        .build();
+        let offer = capability_offer(contract, &identity.artifact_id, &identity.implementation_id)?;
         let mut registry = BaseRegistry::new(BaseRegistryLimits {
             maximum_bases: 1,
             maximum_capabilities_per_base: 1,

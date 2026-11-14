@@ -245,7 +245,24 @@ fn host_for(
         .iter()
         .map(|gear| {
             BackOfferBuilder::new(
-                profiles.canonical_kind(&gear.kind_id).unwrap().clone(),
+                profiles
+                    .canonical_kind(&gear.kind_id)
+                    .cloned()
+                    .unwrap_or_else(|| Kind {
+                        startup_parameters: gear.startup_parameters.clone(),
+                        shorthand: gear.shorthand.clone(),
+                        kind_id: gear.kind_id.clone(),
+                        kind_contract_revision: gear.kind_contract_revision.clone(),
+                        inputs: gear.inputs.clone(),
+                        outputs: gear.outputs.clone(),
+                        configuration: gear.semantic_contract.configuration.clone(),
+                        semantic_laws: gear.semantic_contract.laws.clone(),
+                        limits: CapabilityLimits {
+                            max_active_instances: 4,
+                            max_queue_items: 4,
+                            max_queue_bytes: 64 * 1024,
+                        },
+                    }),
                 Back {
                     capability_id: CapabilityId::from(format!("cap/{}", gear.gear_id.as_str())),
                     execution_profile_id: ExecutionProfileId::from("mask/test@1"),
@@ -694,6 +711,14 @@ fn the_ordinary_planner_seals_the_mask_plot_without_a_mask_planner() {
     )
     .unwrap();
     show.validate(&face).unwrap();
+    let face_wire_bytes = serde_json::to_vec(&face).unwrap().len();
+    let show_wire_bytes = serde_json::to_vec(&show.show).unwrap().len();
+    println!(
+        "prepared_mask_face_bytes={face_wire_bytes} available_mask_show_bytes={show_wire_bytes}"
+    );
+    assert!(face_wire_bytes <= 3072);
+    assert!(show_wire_bytes <= 3072);
+
     // This ordinary planner fixture is not a complete typed Mask topology.
     // A valid Face still reaches that unchanged plan admission refusal.
     assert_eq!(
@@ -792,3 +817,41 @@ fn seven_segment_source_is_an_ordinary_mask_with_one_role_boundary() {
 
 #[path = "mask_plot/wire.rs"]
 mod wire;
+
+#[test]
+fn seven_segment_default_queues_carry_selected_opaque_face_and_show_values() {
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    install_mask_plot_value_aliases(&mut startup).unwrap();
+    conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles).unwrap();
+    let checked = check_syntax_document(
+        &parse_syntax_document(include_str!(
+            "../../../plots/seven-segment-mask/main.conduit"
+        )),
+        &startup,
+    )
+    .unwrap();
+    let expanded =
+        expand_canonical_plot_for_authoring(&checked, "seven-segment", &profiles).unwrap();
+    let mut host = host_for(&expanded.expanded, &profiles, "host/finite-mask");
+    for offer in &mut host.capabilities {
+        offer.limits.max_queue_items = 1;
+        offer.limits.max_queue_bytes = 3072;
+    }
+    let placements = conduit_planner::default_expanded_placements(
+        &expanded.expanded,
+        core::slice::from_ref(&host),
+    )
+    .unwrap();
+    let queues = conduit_planner::default_expanded_connection_limits(
+        &expanded.expanded,
+        core::slice::from_ref(&host),
+        &placements,
+    )
+    .unwrap();
+    assert_eq!(queues.len(), 3);
+    assert!(queues
+        .values()
+        .all(|q| q.item_capacity == 1 && q.byte_capacity == 3072));
+    assert_eq!(queues.values().map(|q| q.byte_capacity).sum::<u32>(), 9216);
+}

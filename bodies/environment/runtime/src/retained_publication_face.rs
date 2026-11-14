@@ -1,7 +1,9 @@
 //! Retained semantic state for one admitted local publication stream. This is a
 //! Face owner, not another sensor, scheduler, recorder or source of authority.
 use crate::publication::PublicationSnapshot;
-use conduit_environment_face::{PreparedObservationFace, PublicationRefusal};
+use conduit_environment_face::{
+    PreparedObservationBacking, PreparedObservationFace, PublicationRefusal,
+};
 use conduit_face::{Face, FaceBasis};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -26,6 +28,46 @@ impl RetainedPublicationRefusal {
         }
     }
 }
+/// Actual preplanning semantic storage, with no readable or publishable Face.
+pub struct RetainedPublicationBacking {
+    storage: PreparedObservationBacking,
+}
+impl RetainedPublicationBacking {
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.storage.retained_backing_bytes()
+    }
+    pub fn prepare(
+        maximum_publications: u32,
+        stale_after_ms: u64,
+    ) -> Result<Self, RetainedPublicationRefusal> {
+        Ok(Self {
+            storage: PreparedObservationBacking::prepare(maximum_publications, stale_after_ms)
+                .map_err(RetainedPublicationRefusal::Publication)?,
+        })
+    }
+    pub fn bind(
+        self,
+        basis: FaceBasis,
+    ) -> Result<RetainedPublicationFace, RetainedPublicationRefusal> {
+        self.try_bind(basis).map_err(|(_, error)| error)
+    }
+    pub fn try_bind(
+        self,
+        basis: FaceBasis,
+    ) -> Result<RetainedPublicationFace, (Self, RetainedPublicationRefusal)> {
+        match self.storage.try_bind(basis) {
+            Ok(face) => Ok(RetainedPublicationFace {
+                face,
+                last_sequence: 0,
+            }),
+            Err((storage, error)) => Err((
+                Self { storage },
+                RetainedPublicationRefusal::Publication(error),
+            )),
+        }
+    }
+}
+
 /// Channel Types are linked; all mutable Face storage is prepared before Play. Root still
 /// supplies its actual admitted basis, publication limit, clock and age policy.
 /// Retaining claimed IDs alone establishes neither admission nor membership.
@@ -34,6 +76,9 @@ pub struct RetainedPublicationFace {
     last_sequence: u64,
 }
 impl RetainedPublicationFace {
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.face.retained_backing_bytes()
+    }
     pub fn prepare(
         basis: FaceBasis,
         maximum_publications: u32,

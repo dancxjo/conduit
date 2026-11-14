@@ -152,6 +152,34 @@ pub(super) fn prepare(
     })
 }
 impl PreparedMemberSelection {
+    pub(super) fn direct_input_path(
+        &self,
+    ) -> Option<Vec<super::resident_projection::OwnedExpressionPathStep>> {
+        use super::resident_projection::OwnedExpressionPathStep as P;
+        if self.source.is_some() || self.fixed.is_some() {
+            return None;
+        }
+        Some(
+            self.steps
+                .iter()
+                .map(|step| match step {
+                    Member::Field(name) => P::Field(name.clone()),
+                    Member::Index(index) => P::Index(*index),
+                    Member::Variant(name) => P::Variant(name.clone()),
+                })
+                .collect(),
+        )
+    }
+
+    /// Raw fixed leaf payload in an independently validated exact input.
+    pub(super) fn fixed_scalar_input(&self) -> Option<(u32, u32)> {
+        if self.source.is_some() || !self.primitive {
+            return None;
+        }
+        let (start, length) = self.fixed?;
+        Some((start.checked_add(5)?, length.checked_sub(5)?))
+    }
+
     pub(super) fn evaluate<'a>(&'a mut self, input: &'a [u8]) -> Result<&'a [u8], Refusal> {
         if !self.primitive {
             return Err(Refusal::InvalidProgram);

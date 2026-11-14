@@ -7,6 +7,7 @@
 //! bindings before Play start. The fixed and hosted storage profiles implement
 //! the same value/sign contracts.
 
+mod fixed_sign_preparation;
 #[cfg(feature = "alloc")]
 mod packed_sign;
 mod sign_retention;
@@ -26,6 +27,7 @@ pub mod debug_observation;
 mod execution_disposition;
 mod failure;
 pub mod fault_disposition;
+pub mod invocation_archive;
 pub use execution_disposition::{DrainedPlayDisposition, ExecutionDisposition};
 pub use failure::{Failure, FailureCode};
 pub mod scheduler;
@@ -418,6 +420,14 @@ pub enum StorageError {
     RepresentationMismatch,
 }
 
+/// Two borrowed segments of one canonical encoding. These bytes carry no
+/// semantic witness or execution authority; consumers retain exact checking.
+#[derive(Clone, Copy)]
+pub struct CanonicalValueParts<'a> {
+    pub schema: &'a [u8],
+    pub node: &'a [u8],
+}
+
 pub trait ValueStorage {
     fn item_capacity(&self) -> u16;
     fn byte_capacity(&self) -> u32;
@@ -429,7 +439,58 @@ pub trait ValueStorage {
         Err(StorageError::RepresentationMismatch)
     }
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError>;
+    /// Immutable representation support, independent of live free slots. This
+    /// advertises physical storage only, never semantic or execution authority.
+    fn supports_schema_storage(&self, _schema: &[u8]) -> bool {
+        false
+    }
+    /// Explicit publication into a configured schema/node pool. Unsupported
+    /// stores refuse; canonical publication remains an independent operation.
+    fn store_schema_canonical(
+        &mut self,
+        _schema: &[u8],
+        _bytes: &[u8],
+    ) -> Result<ValueRef, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError>;
+    /// An explicitly selected representation may retain an immutable prefix
+    /// separately. Ordinary stores expose no such representation.
+    fn canonical_parts(
+        &self,
+        value: ValueRef,
+    ) -> Result<Option<CanonicalValueParts<'_>>, StorageError> {
+        self.reference_count(value)?;
+        Ok(None)
+    }
+    /// Materialize a boundary value into caller-funded storage. Insufficient
+    /// output capacity refuses before writing either canonical segment.
+    fn copy_canonical_into<'out>(
+        &self,
+        value: ValueRef,
+        output: &'out mut [u8],
+    ) -> Result<&'out [u8], StorageError> {
+        let parts = match self.canonical_parts(value)? {
+            Some(parts) => parts,
+            None => CanonicalValueParts {
+                schema: &[],
+                node: self.get(value)?,
+            },
+        };
+        let size = parts
+            .schema
+            .len()
+            .checked_add(parts.node.len())
+            .ok_or(StorageError::ValueTooLarge)?;
+        if u32::try_from(size).ok() != Some(value.byte_len) {
+            return Err(StorageError::RepresentationMismatch);
+        }
+        let out = output.get_mut(..size).ok_or(StorageError::ValueTooLarge)?;
+        let (schema, node) = out.split_at_mut(parts.schema.len());
+        schema.copy_from_slice(parts.schema);
+        node.copy_from_slice(parts.node);
+        Ok(out)
+    }
     fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError>;
     fn retain(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn release(&mut self, value: ValueRef) -> Result<(), StorageError>;
@@ -695,33 +756,21 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
         remote_item_capacity: u16,
         remote_byte_capacity: u32,
     ) -> Result<Self, SignError> {
-        let physical_bytes = EVENTS
-            .checked_mul(size_of::<KernelEvent>())
-            .and_then(|value| u32::try_from(value).ok())
-            .ok_or(SignError::InvalidBudget)?;
-        let remote_physical_bytes =
-            remote_sign_storage_bytes(remote_item_capacity).ok_or(SignError::InvalidBudget)?;
-        if EVENTS == 0
-            || EVENTS > usize::from(u16::MAX)
-            || byte_capacity == 0
-            || byte_capacity > physical_bytes
-            || usize::from(remote_item_capacity) > EVENTS
-            || (remote_item_capacity == 0 && remote_byte_capacity != 0)
-            || (remote_item_capacity != 0
-                && (remote_byte_capacity == 0 || remote_byte_capacity > remote_physical_bytes))
-        {
-            return Err(SignError::InvalidBudget);
-        }
+        let budgets = fixed_sign_preparation::FixedSignBudgets::checked::<EVENTS>(
+            byte_capacity,
+            remote_item_capacity,
+            remote_byte_capacity,
+        )?;
         Ok(Self {
             entries: [None; EVENTS],
             len: 0,
             retained_items: 0,
-            byte_capacity,
+            byte_capacity: budgets.byte_capacity,
             used_bytes: 0,
             next_sequence: 0,
             remote_entries: [None; EVENTS],
-            remote_item_capacity,
-            remote_byte_capacity,
+            remote_item_capacity: budgets.remote_item_capacity,
+            remote_byte_capacity: budgets.remote_byte_capacity,
             remote_len: 0,
             remote_used_bytes: 0,
             retention_gap: None,

@@ -33,16 +33,10 @@ impl I2cProvider for Bus {
     }
     fn revoke(&mut self) {}
 }
-fn prepare(
-    bus: Bus,
-    initialization: bool,
-) -> (
-    PreparedProtocolPlay<Bus>,
-    StructuredInfoType,
-    [ValuePayload; 2],
-) {
+fn package() -> ProtocolSourcePackage {
     let units = [
         include_str!("../../../../../../plots/device-protocols/ht16k33.conduit"),
+        include_str!("../../../../../../plots/device-protocols/ht16k33-exchanges.conduit"),
         include_str!("../../../../../../plots/device-protocols/ht16k33-feedback.conduit"),
     ];
     let imports = units
@@ -63,7 +57,7 @@ fn prepare(
         type_name: name.into(),
         maximum_bytes: 4096,
     };
-    let package = ProtocolSourcePackage::compile(
+    ProtocolSourcePackage::compile(
         alloc::format!("{imports}\n{bodies}"),
         &[
             Request::SeededUntil {
@@ -78,7 +72,17 @@ fn prepare(
             },
         ],
     )
-    .unwrap();
+    .unwrap()
+}
+fn prepare(
+    bus: Bus,
+    initialization: bool,
+) -> (
+    PreparedProtocolPlay<Bus>,
+    StructuredInfoType,
+    [ValuePayload; 2],
+) {
+    let package = package();
     let source = PreparedProtocolEntry::prepare(
         &serde_json::to_vec(&package).unwrap(),
         if initialization {
@@ -106,6 +110,7 @@ fn prepare(
         encoded: Vec::with_capacity(4096),
     });
     let id = I2cNativeIdentity {
+        base_implementation_id: "conduitos.base/i2c-controller@1".into(),
         host_id: "fixture/ht16k33".into(),
         boot_id: "fixture/ht16k33-boot".into(),
         base_id: "fixture/i2c".into(),
@@ -365,5 +370,30 @@ fn ht16k33_unsupported_protocol_address_has_no_bus_effect() {
         let (writes, terminal, _) = run(initialization, 0x6f, None);
         assert_eq!(terminal, "refused");
         assert!(writes.is_empty());
+    }
+}
+
+#[test]
+fn ht16k33_exchange_fores_do_not_claim_a_controller() {
+    let bytes = serde_json::to_vec(&package()).unwrap();
+    let contract = I2cContract::prepare().unwrap();
+    for entry in ["ht16k33-initialize-exchange", "ht16k33-write-exchange"] {
+        let protocol = PreparedProtocolEntry::prepare(&bytes, entry).unwrap();
+        assert!(
+            protocol
+                .expanded()
+                .expanded
+                .gears
+                .iter()
+                .all(|gear| gear.kind_id.as_str() != "machine/i2c/transact")
+        );
+        assert_eq!(
+            protocol.input_schema(&port_id("result")).unwrap(),
+            contract.decode_result_type().unwrap()
+        );
+        assert_eq!(
+            protocol.output_schema(&port_id("request")).unwrap(),
+            contract.decode_request_type().unwrap()
+        );
     }
 }

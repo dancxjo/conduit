@@ -20,17 +20,39 @@ pub struct AssignedRecordRequirement {
 }
 impl AssignedRecordRequirement {
     /// The boot-specific native tail is checked against actual possession by
-    /// the native operation binder. The resident graph pins its presence/ABI.
+    /// the native operation binder for schemas 6, 7 and 8. The resident graph
+    /// pins its presence/ABI; this does not validate or erase the full tail.
     pub fn from_kernel_record(record: AssignedRecord<'_>, schema: u16) -> Self {
         if matches!(
             schema,
-            ASSIGNED_NATIVE_PLAN_SCHEMA | crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+            ASSIGNED_NATIVE_PLAN_SCHEMA
+                | crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                | crate::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
         ) && record.tag == crate::ASSIGNED_HOST_CALL
             && record.payload.len() >= 47
         {
             Self::from_record(AssignedRecord {
                 tag: record.tag,
                 payload: &record.payload[..47],
+            })
+        // Schema 8 mixes local Fores and selected Lines. A bare Cord record
+        // cannot distinguish them, so its complete connection identity remains
+        // exact; never apply schema-7 local-name normalization to a real Line.
+        } else if schema == crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+            && record.tag == crate::ASSIGNED_CORD
+            && record.payload.len() == 42
+            && (record.payload[18] == 1 || record.payload[23] == 1)
+        {
+            // A local Fore's synthetic connection name includes the current
+            // placement ID (and hence Boot). It is not immutable topology.
+            // Exact endpoints, capacities, track and the separate Fore ABI
+            // remain pinned; the authenticated full command retains that name.
+            let mut structural = [0u8; 42];
+            structural.copy_from_slice(record.payload);
+            structural[2..18].fill(0);
+            Self::from_record(AssignedRecord {
+                tag: record.tag,
+                payload: &structural,
             })
         } else {
             Self::from_record(record)
@@ -73,6 +95,7 @@ impl<'a> AssignedPlanRecords<'a> {
                 | ASSIGNED_KERNEL_PLAN_SCHEMA
                 | ASSIGNED_NATIVE_PLAN_SCHEMA
                 | crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
+                | crate::ASSIGNED_LINE_FORE_NATIVE_PLAN_SCHEMA
         ) {
             return Err(AssignedPlanRefusal::WrongSchema);
         }
@@ -144,4 +167,36 @@ mod tests {
         );
         assert!(read_record(&[1], 0).is_err());
     }
+    #[test]
+    fn local_fore_pins_shape_without_its_boot_specific_connection_name() {
+        let mut a = [0u8; 42];
+        a[18] = 1;
+        let mut b = a;
+        b[2..18].fill(9);
+        let pin = |bytes: &[u8], schema| {
+            AssignedRecordRequirement::from_kernel_record(
+                AssignedRecord {
+                    tag: crate::ASSIGNED_CORD,
+                    payload: bytes,
+                },
+                schema,
+            )
+        };
+        let fore = crate::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA;
+        assert_eq!(pin(&a, fore), pin(&b, fore));
+        b[19] = 1; // The actual endpoint remains exact.
+        assert_ne!(pin(&a, fore), pin(&b, fore));
+        b[19] = 0;
+        assert_ne!(
+            pin(&a, crate::ASSIGNED_NATIVE_PLAN_SCHEMA),
+            pin(&b, crate::ASSIGNED_NATIVE_PLAN_SCHEMA)
+        );
+        a[18] = 0;
+        b[18] = 0; // Ordinary local Cord identities remain exact.
+        assert_ne!(pin(&a, fore), pin(&b, fore));
+    }
 }
+
+#[cfg(test)]
+#[path = "records/native_line_tests.rs"]
+mod native_line_tests;

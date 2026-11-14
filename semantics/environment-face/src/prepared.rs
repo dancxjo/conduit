@@ -19,6 +19,69 @@ pub enum PublicationRefusal {
     InvalidFace,
 }
 
+/// Inert, exclusively owned storage. No Face revision can be read or published
+/// before binding a real execution basis; absence here is not a fabricated Play.
+pub struct PreparedObservationBacking {
+    prepared: PreparedObservationFace,
+}
+impl PreparedObservationBacking {
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.prepared.retained_backing_bytes()
+    }
+    pub fn prepare(maximum_samples: u32, stale_after_ms: u64) -> Result<Self, PublicationRefusal> {
+        let unbound = FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: alloc::vec::Vec::new(),
+        };
+        Ok(Self {
+            prepared: PreparedObservationFace::prepare_observed(
+                unbound,
+                maximum_samples,
+                stale_after_ms,
+            )?,
+        })
+    }
+    /// Consume actual pre-Start scope ownership. No allocation or sample is
+    /// introduced here; original Root admission and provenance remain mandatory.
+    pub fn bind(self, basis: FaceBasis) -> Result<PreparedObservationFace, PublicationRefusal> {
+        self.try_bind(basis).map_err(|(_, error)| error)
+    }
+    /// Invalid scope returns the original inert allocation for another attempt.
+    #[expect(
+        clippy::result_large_err,
+        reason = "Return the original affine backing without a new allocation on no_std targets"
+    )]
+    pub fn try_bind(
+        mut self,
+        basis: FaceBasis,
+    ) -> Result<PreparedObservationFace, (Self, PublicationRefusal)> {
+        if basis.source_document_id.is_none()
+            || basis.checked_plot_id.is_none()
+            || basis.expanded_plot_id.is_none()
+            || basis.plan_id.is_none()
+            || basis.active_play_id.is_none()
+            || basis.body_id.is_some() != basis.wake_id.is_some()
+        {
+            return Err((self, PublicationRefusal::InvalidBasis));
+        }
+        let previous = core::mem::replace(&mut self.prepared.face.basis, basis);
+        if self.prepared.face.reseal_prepared().is_err() {
+            self.prepared.face.basis = previous;
+            // This restores the previously valid inert revision, using the same
+            // bounded identity/hash storage. No publication has occurred.
+            let _ = self.prepared.face.reseal_prepared();
+            return Err((self, PublicationRefusal::InvalidBasis));
+        }
+        Ok(self.prepared)
+    }
+}
+
 pub struct PreparedObservationFace {
     face: Face,
     measurement: Option<[FaceProperty; 3]>,
@@ -29,6 +92,20 @@ pub struct PreparedObservationFace {
     time_property: &'static str,
 }
 impl PreparedObservationFace {
+    /// Include the spare property payloads held outside the current revision.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        let mut bytes = self.face.retained_backing_bytes()?;
+        if let Some(measurement) = &self.measurement {
+            for property in measurement {
+                bytes = bytes.checked_add(property.retained_backing_bytes()?)?;
+            }
+        }
+        if let Some(failure) = &self.failure {
+            bytes = bytes.checked_add(failure.retained_backing_bytes()?)?;
+        }
+        Some(bytes)
+    }
+
     /// All quantity leaves, wording, properties and identity storage are
     /// reserved here. No measurement is present in the warming Face.
     pub fn prepare(

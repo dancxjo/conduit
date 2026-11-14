@@ -1,8 +1,6 @@
 //! Root's calibrated read-only BCM2835 counter provider; no protocol delays.
-use crate::{
-    arch,
-    monotonic_clock::{codec::ClockDisposition, owner::MonotonicDeadlineProvider},
-};
+use crate::arch;
+use conduit_monotonic_wait::clock_at::{codec::ClockDisposition, owner::MonotonicDeadlineProvider};
 pub(super) struct Counter {
     live: bool,
     last: u64,

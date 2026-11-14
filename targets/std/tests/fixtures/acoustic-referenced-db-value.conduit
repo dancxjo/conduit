@@ -17,7 +17,7 @@ type AcousticDecibelObservation = {
 }
 plot decibel-retain-original (
     >> value: AcousticAdmittedDecibelProjection
-    result: AcousticDecibelStage >>
+    result: AcousticDecibelStage <= 32768B >>
 ) = (AcousticDecibelStage.original(.original))
 plot decibel-admitted-profile (
     >> value: AcousticAdmittedDecibelProjection

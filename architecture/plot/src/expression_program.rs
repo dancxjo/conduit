@@ -118,20 +118,18 @@ impl PortableExpressionProgram {
     }
 
     pub(crate) fn canonical_size(&self) -> Result<usize, PortableExpressionProgramRefusal> {
-        let mut encoded = ProgramSink {
-            storage: ProgramStorage::Count,
-            length: 0,
-        };
+        let mut encoded = ProgramSink::new(ProgramStorage::Count);
         self.encode(&mut encoded)?;
         Ok(encoded.length)
     }
 
+    /// Version4 interns node Type descriptors in first-use order.
+    /// References change representation, never a node's checked Type or meaning.
+    /// New program identities include this versioned encoding. Original v2/v3
+    /// inputs remain readable, but their bytes are not relabeled as v4.
     pub fn canonical_bytes(&self) -> Result<Vec<u8>, PortableExpressionProgramRefusal> {
         let length = self.canonical_size()?;
-        let mut encoded = ProgramSink {
-            storage: ProgramStorage::Bytes(Vec::with_capacity(length)),
-            length: 0,
-        };
+        let mut encoded = ProgramSink::new(ProgramStorage::Bytes(Vec::with_capacity(length)));
         self.encode(&mut encoded)?;
         let ProgramStorage::Bytes(bytes) = encoded.storage else {
             unreachable!("byte encoder owns its admitted storage");
@@ -139,12 +137,16 @@ impl PortableExpressionProgram {
         Ok(bytes)
     }
 
+    pub(crate) fn canonical_legacy_bytes(
+        &self,
+        capacity: usize,
+    ) -> Result<Vec<u8>, PortableExpressionProgramRefusal> {
+        ProgramSink::legacy_bytes(self, capacity)
+    }
+
     pub fn canonical_hex(&self) -> Result<String, PortableExpressionProgramRefusal> {
         let length = self.canonical_size()?;
-        let mut encoded = ProgramSink {
-            storage: ProgramStorage::Hex(String::with_capacity(length * 2)),
-            length: 0,
-        };
+        let mut encoded = ProgramSink::new(ProgramStorage::Hex(String::with_capacity(length * 2)));
         self.encode(&mut encoded)?;
         let ProgramStorage::Hex(text) = encoded.storage else {
             unreachable!("hex encoder owns its admitted storage");
@@ -164,13 +166,38 @@ enum ProgramStorage {
 struct ProgramSink {
     storage: ProgramStorage,
     length: usize,
+    expanded_length: usize,
+    intern_types: bool,
+    types: alloc::collections::BTreeMap<Vec<u8>, u16>,
 }
 impl ProgramSink {
+    fn new(storage: ProgramStorage) -> Self {
+        Self {
+            storage,
+            length: 0,
+            expanded_length: 0,
+            intern_types: true,
+            types: Default::default(),
+        }
+    }
+    fn legacy_bytes(
+        program: &PortableExpressionProgram,
+        capacity: usize,
+    ) -> Result<Vec<u8>, PortableExpressionProgramRefusal> {
+        let mut sink = Self::new(ProgramStorage::Bytes(Vec::with_capacity(capacity)));
+        sink.intern_types = false;
+        program.encode(&mut sink)?;
+        let ProgramStorage::Bytes(bytes) = sink.storage else {
+            unreachable!()
+        };
+        Ok(bytes)
+    }
     fn push(&mut self, byte: u8) {
         self.extend_from_slice(core::slice::from_ref(&byte));
     }
     fn extend_from_slice(&mut self, value: &[u8]) {
         self.length = self.length.saturating_add(value.len());
+        self.expanded_length = self.expanded_length.saturating_add(value.len());
         match &mut self.storage {
             ProgramStorage::Count => {}
             ProgramStorage::Bytes(bytes) => bytes.extend_from_slice(value),
@@ -308,8 +335,32 @@ fn push_type(
     value_type: &StructuredInfoType,
 ) -> Result<(), PortableExpressionProgramRefusal> {
     let bytes = value_type.canonical_bytes()?;
-    push_len(encoded, bytes.len());
-    encoded.extend_from_slice(&bytes);
+    let expanded = encoded
+        .expanded_length
+        .checked_add(8)
+        .and_then(|n| n.checked_add(bytes.len()))
+        .filter(|n| *n <= MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES)
+        .ok_or(PortableExpressionProgramRefusal::TooLarge)?;
+    if encoded.intern_types {
+        if let Some(index) = encoded.types.get(&bytes).copied() {
+            encoded.push(1);
+            encoded.extend_from_slice(&index.to_le_bytes());
+        } else {
+            if encoded.types.len() >= conduit_core::MAXIMUM_STRUCTURED_INFO_NODES + 2 {
+                return Err(PortableExpressionProgramRefusal::TooLarge);
+            }
+            let index = u16::try_from(encoded.types.len())
+                .map_err(|_| PortableExpressionProgramRefusal::TooLarge)?;
+            encoded.push(0);
+            push_len(encoded, bytes.len());
+            encoded.extend_from_slice(&bytes);
+            encoded.types.insert(bytes, index);
+        }
+    } else {
+        push_len(encoded, bytes.len());
+        encoded.extend_from_slice(&bytes);
+    }
+    encoded.expanded_length = expanded;
     Ok(())
 }
 

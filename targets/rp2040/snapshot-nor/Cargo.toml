@@ -1,0 +1,17 @@
+[package]
+name = "conduit-rp2040-snapshot-nor"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+resolver = "2"
+
+[features]
+default = []
+rp2040 = ["dep:embassy-rp"]
+
+[dependencies]
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }
+conduit-rp2040-flash-layout = { path = "../flash-layout" }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true, features = ["rp2040", "critical-section-impl"] }

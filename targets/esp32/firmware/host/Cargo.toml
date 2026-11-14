@@ -1,0 +1,62 @@
+[package]
+name = "conduit-esp32-host"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[workspace]
+[features]
+default = []
+native-host = []
+[dependencies]
+conduit-tm1637-protocol = { path = "../../../../mechanisms/devices/tm1637" }
+conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
+sha2 = { version = "0.10", default-features = false }
+conduit-esp32-snapshot-nor = { path = "../../snapshot-nor" }
+conduit-esp32-electrical = { path = "../../electrical", features = ["host-call", "host-carrier"] }
+conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
+conduit-body = { path = "../../../../architecture/body" }
+conduit-plot = { path = "../../../../architecture/plot", default-features = false }
+conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", features = ["delegated-preparation"] }
+conduit-semantic-catalog = { path = "../../../../semantics/catalog", default-features = false, features = ["kernel-step"] }
+conduit-core = { path = "../../../../architecture/core", default-features = false }
+conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait" }
+conduit-kernel = { path = "../../../../architecture/kernel", default-features = false, features = ["alloc"] }
+conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", features = ["host-call"] }
+conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637", features = ["host-call"] }
+embassy-executor = "0.10.0"
+embassy-time = "0.5.1"
+esp-alloc = { version = "0.10.0", features = ["esp32"] }
+esp-bootloader-esp-idf = { version = "0.5.0", features = ["esp32"] }
+esp-hal = { version = "=1.1.2", features = ["esp32", "unstable"] }
+esp-rtos = { version = "0.3.0", features = ["embassy", "esp32"] }
+panic-halt = "1.0"
+static_cell = "2.1.1"
+conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
+conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", features = ["appliance", "face-projection", "display-mask"] }
+heapless = "0.8"
+serde-json-core = "0.6"
+conduit-time = { path = "../../../../semantics/time", features = ["kernel-step"] }
+serde = { version = "1", default-features = false }
+conduit-face = { path = "../../../../semantics/face", default-features = false }
+[build-dependencies]
+conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
+conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
+conduit-core = { path = "../../../../architecture/core" }
+conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", features = ["host-call", "plot-catalog"] }
+conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637", features = ["host-call"] }
+conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait" }
+conduit-mcu-source-build = { path = "../../../mcu/source-build" }
+conduit-embedded-build = { path = "../../../../make/embedded-build" }
+conduit-plot = { path = "../../../../architecture/plot" }
+conduit-host-make = { path = "../../../../make/host" }
+conduit-host-esp32-make = { path = "../../make" }
+sha2 = "0.10"
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = "s"
+debug = 1
+
+# ESP32 flash ROM/cache wrappers require optimized code even during type checks.
+[profile.dev.package.esp-storage]
+opt-level = "s"

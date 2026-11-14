@@ -14,6 +14,9 @@ pub mod deployment_runtime;
 pub mod deployment_runtime_catalog;
 mod evidence_attachment;
 mod host_configuration_encounter;
+mod joining_host;
+mod joining_host_production;
+mod joining_host_release;
 mod planning;
 mod prepared_birth;
 mod readable_history;
@@ -32,6 +35,9 @@ pub use deployment_draft::*;
 pub use deployment_encounter::*;
 pub use evidence_attachment::*;
 pub use host_configuration_encounter::*;
+pub use joining_host::*;
+pub use joining_host_production::*;
+pub use joining_host_release::*;
 pub use planning::*;
 pub use prepared_birth::*;
 pub use readable_history::*;
@@ -45,3 +51,9 @@ pub use workset_proposal::*;
 mod body_building_tests;
 #[cfg(test)]
 mod planning_session_tests;
+
+mod joining_host_package;
+pub use joining_host_package::*;
+
+mod joining_zip;
+pub use joining_zip::{read_stored_joining_zip, JoiningZipEntry};

@@ -19,3 +19,19 @@ cargo +stable check --locked --manifest-path mechanisms/io/i2c-transaction/Cargo
 ```
 
 Private-owner tests move with the implementation. ConduitOS retains its public contract, installation, i801 and authored protocol integration suites against the forwarding API.
+
+Compact assigned binding also supports an exclusive prepared ticket. Preparation
+checks exact assignment/Fore/possession and retains codecs while the controller
+stays in its original ready slot. Dropping the ticket cancels preparation;
+consuming it transfers that same controller without allocation. Root must still
+admit the complete workset and authorize Start and retirement independently.
+
+Assigned preparation also validates the actual opaque bearer against its owned
+capability table before creating a ticket. A valid serialized assignment with a
+foreign, revoked or exhausted local grant cannot take the initialized controller.
+The ticket exclusively owns that non-Clone table and move-only bearer, so safe
+public APIs cannot change its lifecycle after preflight. Its read-only backing
+receipt and node inspection neither authorize nor mutate work. Binding remains
+allocation-free and transfers the original provider once; Root still controls
+whole-workset admission, Start and retirement. Electrical address checks and
+finite attachment/operation bounds are unchanged.

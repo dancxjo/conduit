@@ -106,6 +106,7 @@ pub fn configure_cdc_port<F: AsRawFd>(
 
 /// Configure raw serial CDC line settings (115200 8N1, raw mode, CLOCAL | CREAD, VMIN=0, VTIME=0, tcflush)
 #[cfg(unix)]
+/// Configure in place without discarding unread input or pending output.
 pub fn configure_raw_termios(fd: libc::c_int) -> Result<(), NativeUsbCdcError> {
     unsafe {
         let mut term: libc::termios = std::mem::zeroed();
@@ -123,7 +124,6 @@ pub fn configure_raw_termios(fd: libc::c_int) -> Result<(), NativeUsbCdcError> {
         if libc::tcsetattr(fd, libc::TCSANOW, &term) != 0 {
             return Err(NativeUsbCdcError::TtyConfig(std::io::Error::last_os_error()));
         }
-        libc::tcflush(fd, libc::TCIOFLUSH);
     }
     Ok(())
 }
@@ -236,22 +236,41 @@ impl Drop for OperatorTerminal {
 #[cfg(unix)]
 pub struct NativePathCdcLine {
     fd: FdGuard,
+    controls_dtr: bool,
+    local_exclusive: bool,
     maximum_frame_bytes: usize,
-    decoder: StreamFrameDecoder<4096>,
+    // Payload plus its length header and one native read packet of overlap.
+    decoder: StreamFrameDecoder<{ 4096 + 2 + 64 }>,
 }
 
 #[cfg(unix)]
-impl Drop for NativePathCdcLine {
-    fn drop(&mut self) {
-        clear_dtr_fd(self.fd.0);
-    }
-}
+#[path = "usb_cdc/native_custody.rs"]
+mod native_custody;
 
 #[cfg(unix)]
 impl NativePathCdcLine {
     pub fn open<P: AsRef<Path>>(
         path: P,
         maximum_frame_bytes: usize,
+    ) -> Result<Self, NativeUsbCdcError> {
+        Self::open_tty(path, maximum_frame_bytes, true, false)
+    }
+
+    /// Explicit raw TTY byte stream supplied by an external forwarder. This
+    /// makes no claim to local USB attachment or modem-control observation.
+    /// Framing, limits and authenticated protocol checks remain unchanged.
+    pub fn open_forwarded_tty<P: AsRef<Path>>(
+        path: P,
+        maximum_frame_bytes: usize,
+    ) -> Result<Self, NativeUsbCdcError> {
+        Self::open_tty(path, maximum_frame_bytes, false, false)
+    }
+
+    fn open_tty<P: AsRef<Path>>(
+        path: P,
+        maximum_frame_bytes: usize,
+        controls_dtr: bool,
+        exclusive: bool,
     ) -> Result<Self, NativeUsbCdcError> {
         if maximum_frame_bytes == 0 || maximum_frame_bytes > 4096 {
             return Err(NativeUsbCdcError::InvalidLimit);
@@ -268,22 +287,28 @@ impl NativePathCdcLine {
         let fd = unsafe {
             libc::open(
                 path_c.as_ptr(),
-                libc::O_RDWR | libc::O_NOCTTY | libc::O_NONBLOCK,
+                libc::O_RDWR | libc::O_NOCTTY | libc::O_NONBLOCK | libc::O_CLOEXEC,
             )
         };
         if fd < 0 {
             return Err(NativeUsbCdcError::TtyConfig(std::io::Error::last_os_error()));
         }
-        let guard = FdGuard(fd);
-        configure_raw_termios(fd)?;
-        assert_dtr_fd(fd)?;
-
-        let decoder = StreamFrameDecoder::new(maximum_frame_bytes)?;
-        Ok(Self {
-            fd: guard,
+        let mut line = Self {
+            fd: FdGuard(fd),
+            controls_dtr: false,
+            local_exclusive: false,
             maximum_frame_bytes,
-            decoder,
-        })
+            decoder: StreamFrameDecoder::new(maximum_frame_bytes)?,
+        };
+        if exclusive {
+            line.claim_local_exclusive()?;
+        }
+        configure_raw_termios(fd)?;
+        if controls_dtr {
+            assert_dtr_fd(fd)?;
+            line.controls_dtr = true;
+        }
+        Ok(line)
     }
 
     pub fn send_frame(

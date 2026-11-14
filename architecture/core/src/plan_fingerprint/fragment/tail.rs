@@ -4,9 +4,15 @@ pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFinger
     push_u32(canonical, tail.connections.len() as u32);
     for connection in tail.connections {
         push_string(canonical, connection.connection_id.as_str());
-        push_string(canonical, connection.source_placement_id.as_str());
+        canonical.scope_string(
+            Field::Placement(&connection.source_placement_id, Role::PlacementId, 0),
+            connection.source_placement_id.as_str(),
+        );
         push_string(canonical, connection.source_port_id.as_str());
-        push_string(canonical, connection.sink_placement_id.as_str());
+        canonical.scope_string(
+            Field::Placement(&connection.sink_placement_id, Role::PlacementId, 0),
+            connection.sink_placement_id.as_str(),
+        );
         push_string(canonical, connection.sink_port_id.as_str());
         push_string(canonical, connection.value_kind.as_str());
         match &connection.resource {
@@ -60,7 +66,10 @@ pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFinger
     for port in tail.fore_ports {
         push_string(canonical, port.front_port_id.as_str());
         canonical.push(port.direction as u8);
-        push_string(canonical, port.placement_id.as_str());
+        canonical.scope_string(
+            Field::Placement(&port.placement_id, Role::PlacementId, 0),
+            port.placement_id.as_str(),
+        );
         push_string(canonical, port.gear_port_id.as_str());
         push_string(canonical, port.value_kind.as_str());
         match &port.value_contract {
@@ -155,12 +164,21 @@ pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFinger
     }
     push_u32(canonical, tail.startup_dependencies.len() as u32);
     for dependency in tail.startup_dependencies {
-        push_string(canonical, dependency.prerequisite_placement_id.as_str());
-        push_string(canonical, dependency.dependent_placement_id.as_str());
+        canonical.scope_string(
+            Field::Placement(&dependency.prerequisite_placement_id, Role::PlacementId, 0),
+            dependency.prerequisite_placement_id.as_str(),
+        );
+        canonical.scope_string(
+            Field::Placement(&dependency.dependent_placement_id, Role::PlacementId, 0),
+            dependency.dependent_placement_id.as_str(),
+        );
     }
     push_u32(canonical, tail.startup_order.len() as u32);
     for placement_id in tail.startup_order {
-        push_string(canonical, placement_id.as_str());
+        canonical.scope_string(
+            Field::Placement(placement_id, Role::PlacementId, 0),
+            placement_id.as_str(),
+        );
     }
     canonical.push(match tail.cancellation_policy {
         CancellationPolicy::CancelAllAndRejectLateCompletion => 0,
@@ -175,7 +193,10 @@ pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFinger
         match terminal {
             ExpectedTerminal::PlacementCompleted(placement_id) => {
                 canonical.push(0);
-                push_string(canonical, placement_id.as_str());
+                canonical.scope_string(
+                    Field::Placement(placement_id, Role::PlacementId, 0),
+                    placement_id.as_str(),
+                );
             }
             ExpectedTerminal::ConnectionCompleted(connection_id) => {
                 canonical.push(1);
@@ -190,11 +211,17 @@ pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFinger
             ExpectedSign::PlanFragmentReceived => canonical.push(0),
             ExpectedSign::PlacementPrepared(placement_id) => {
                 canonical.push(1);
-                push_string(canonical, placement_id.as_str());
+                canonical.scope_string(
+                    Field::Placement(placement_id, Role::PlacementId, 0),
+                    placement_id.as_str(),
+                );
             }
             ExpectedSign::PlacementTerminal(placement_id) => {
                 canonical.push(2);
-                push_string(canonical, placement_id.as_str());
+                canonical.scope_string(
+                    Field::Placement(placement_id, Role::PlacementId, 0),
+                    placement_id.as_str(),
+                );
             }
             ExpectedSign::ConnectionTerminal(connection_id) => {
                 canonical.push(3);

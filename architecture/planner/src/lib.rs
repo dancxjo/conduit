@@ -136,15 +136,15 @@ pub use advice::{
 };
 pub use body_envelope::plan_with_resource_allowances;
 pub use canonical::{
-    default_expanded_placements, plan_canonical_realization_with_options,
-    plan_expanded_authoring_with_activations, plan_expanded_authoring_with_connection_limits,
-    plan_expanded_authoring_with_options, plan_expanded_canonical,
-    plan_expanded_canonical_with_activations, plan_expanded_canonical_with_connection_limits,
-    plan_expanded_canonical_with_options, plan_expanded_canonical_with_shared_pool_policies,
-    plan_expanded_canonical_with_shared_pools, CanonicalRealizationMode,
-    CanonicalRealizationSelectionError, ForeBoundaryKey, PlannedCanonicalRealization,
-    SharedPoolPlanningRequirement, SharedPoolPolicyPlanningError, SharedPoolPolicySelection,
-    MAXIMUM_SHARED_POOL_POLICY_SELECTIONS,
+    default_expanded_connection_limits, default_expanded_placements,
+    plan_canonical_realization_with_options, plan_expanded_authoring_with_activations,
+    plan_expanded_authoring_with_connection_limits, plan_expanded_authoring_with_options,
+    plan_expanded_canonical, plan_expanded_canonical_with_activations,
+    plan_expanded_canonical_with_connection_limits, plan_expanded_canonical_with_options,
+    plan_expanded_canonical_with_shared_pool_policies, plan_expanded_canonical_with_shared_pools,
+    CanonicalRealizationMode, CanonicalRealizationSelectionError, ForeBoundaryKey,
+    PlannedCanonicalRealization, SharedPoolPlanningRequirement, SharedPoolPolicyPlanningError,
+    SharedPoolPolicySelection, MAXIMUM_SHARED_POOL_POLICY_SELECTIONS,
 };
 pub use characteristics::{
     plan_selected_realizations_with_characteristics,

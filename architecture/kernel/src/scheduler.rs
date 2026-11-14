@@ -1,4 +1,11 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
+#[cfg(feature = "execution-workspace")]
+mod execution_workspace;
+mod local_fore;
+#[cfg(feature = "execution-workspace")]
+pub use execution_workspace::{
+    PreparedStepWorkspace, StepWorkspace, StepWorkspaceRequirements, WorkspacePreparationError,
+};
 
 mod host_call_back;
 mod host_dispatch;
@@ -33,6 +40,8 @@ mod derived_value;
 mod execution_dag;
 mod execution_region;
 mod generated_value;
+#[cfg(feature = "schema-value-storage")]
+mod schema_region;
 #[cfg(feature = "alloc")]
 use compact_f32::CompactF32Bindings;
 #[cfg(feature = "alloc")]
@@ -48,6 +57,7 @@ mod queue_index;
 mod quiescence;
 use queue_index::queue_slot;
 mod payload_admission;
+mod phase_terminal;
 #[cfg(feature = "alloc")]
 pub mod prepared_session;
 #[cfg(feature = "linear-ready-reference-test")]
@@ -58,6 +68,7 @@ mod remote_target_prefix;
 mod retirement;
 mod route_membership;
 mod terminal_admission;
+mod terminal_storage;
 use ready_set::ReadySet;
 #[cfg(test)]
 mod scan_characterization;
@@ -128,14 +139,14 @@ pub enum AssignedCancellationTransduction {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ActiveTerminalPhase {
+enum ActiveTerminalPhase<const BYTES: usize> {
     Normal {
         input: PortId,
         emitted: AssignedFiniteTerminalEmission,
     },
     Abnormal {
         input: PortId,
-        terminal: CanonicalValue,
+        terminal: phase_terminal::PhaseTerminal<BYTES>,
         emitted: AssignedFiniteTerminalEmission,
     },
 }
@@ -143,6 +154,7 @@ enum ActiveTerminalPhase {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct CordSpec {
+    local_fore: Option<crate::assigned::LocalForeProvenance>,
     pub cord: CordId,
     pub source: CordEndpoint,
     pub sink: CordEndpoint,
@@ -166,6 +178,13 @@ pub struct CordCapacity {
 }
 
 impl CordSpec {
+    pub(crate) fn retain_local_fore(&mut self, provenance: crate::assigned::LocalForeProvenance) {
+        self.local_fore = Some(provenance);
+    }
+    fn is_local_fore(&self) -> bool {
+        self.local_fore.is_some()
+    }
+
     pub const fn new(
         cord: CordId,
         source: CordEndpoint,
@@ -182,6 +201,7 @@ impl CordSpec {
             maximum_value_bytes: capacity.byte_capacity,
             pressure_policy: capacity.pressure_policy,
             track: AssignedConnectionTrack::Payload,
+            local_fore: None,
         }
     }
 
@@ -198,6 +218,7 @@ impl CordSpec {
             maximum_value_bytes: 0,
             pressure_policy: AssignedPressurePolicy::PreserveOrder,
             track: AssignedConnectionTrack::Payload,
+            local_fore: None,
         }
     }
 
@@ -361,6 +382,30 @@ pub trait StepBack<const PORTS: usize> {
         None
     }
 
+    /// Exact prepared schemas for the optional schema-separated representation.
+    /// These physical declarations confer no semantic or execution authority.
+    fn canonical_input_schema(&self, _port: PortId) -> Option<&[u8]> {
+        None
+    }
+    fn canonical_output_schema(&self, _port: PortId) -> Option<&[u8]> {
+        None
+    }
+
+    /// Physical workspace declaration from the independently prepared Back.
+    /// Root retains semantic, authority and complete resource admission.
+    #[cfg(feature = "execution-workspace")]
+    fn workspace_requirements(&self) -> Option<StepWorkspaceRequirements> {
+        None
+    }
+    #[cfg(feature = "execution-workspace")]
+    fn step_with_workspace(
+        &mut self,
+        io: &mut StepIo<PORTS>,
+        inputs: &StepInputBytes<'_, PORTS>,
+        _workspace: &mut StepWorkspace<'_>,
+    ) -> StepOutcome {
+        self.step(io, inputs)
+    }
     /// Finalize private state only after successful transactional I/O commit.
     fn step_committed(&mut self) {}
     fn step(
@@ -425,12 +470,22 @@ pub struct StepInputBytes<'a, const PORTS: usize> {
     native_u64: Option<&'a [Option<u64>; PORTS]>,
     #[cfg(feature = "alloc")]
     compact_f32: Option<&'a [Option<&'a [u8]>; PORTS]>,
+    #[cfg(feature = "schema-value-storage")]
+    canonical_parts: Option<&'a [Option<crate::CanonicalValueParts<'a>>; PORTS]>,
     host_output: Option<&'a [u8]>,
 }
 
 impl<const PORTS: usize> StepInputBytes<'_, PORTS> {
     pub fn input(&self, port: PortId) -> Option<&[u8]> {
         self.inputs.get(usize::from(port.0)).copied().flatten()
+    }
+
+    #[cfg(feature = "schema-value-storage")]
+    pub fn canonical_parts(&self, port: PortId) -> Option<crate::CanonicalValueParts<'_>> {
+        self.canonical_parts
+            .and_then(|values| values.get(usize::from(port.0)))
+            .copied()
+            .flatten()
     }
 
     pub fn host_output(&self) -> Option<&[u8]> {
@@ -451,6 +506,8 @@ impl<'a, const PORTS: usize> StepInputBytes<'a, PORTS> {
             native_u64: None,
             #[cfg(feature = "alloc")]
             compact_f32: None,
+            #[cfg(feature = "schema-value-storage")]
+            canonical_parts: None,
             host_output,
         }
     }
@@ -464,6 +521,8 @@ impl StepInputBytes<'static, 1> {
             native_u64: None,
             #[cfg(feature = "alloc")]
             compact_f32: None,
+            #[cfg(feature = "schema-value-storage")]
+            canonical_parts: None,
             host_output: None,
         }
     }
@@ -480,6 +539,8 @@ pub struct StepIo<const PORTS: usize> {
     outputs: [Option<ValueRef>; PORTS],
     canonical_output: Option<(PortId, CanonicalValue)>,
     prepared_outputs: [Option<PreparedStepValue>; PORTS],
+    #[cfg(feature = "execution-workspace")]
+    workspace_output_capacity: Option<u32>,
     #[cfg(feature = "alloc")]
     native_output_port: Option<PortId>,
     #[cfg(feature = "alloc")]
@@ -825,6 +886,8 @@ impl StepIo<1> {
             outputs: [None],
             canonical_output: None,
             prepared_outputs: [None; 1],
+            #[cfg(feature = "execution-workspace")]
+            workspace_output_capacity: None,
             #[cfg(feature = "alloc")]
             native_output_port: None,
             #[cfg(feature = "alloc")]
@@ -979,6 +1042,12 @@ impl CordState {
     };
 }
 
+/// `TERMINAL_ROWS=NODES` retains the ordinary inline law profile plus a small
+/// immutable-storage handle. The explicit linked profile selects zero inline
+/// rows; its complete `size_of::<Self>()` is still charged by preparation.
+/// `PHASE_BYTES` funds retained abnormal-finalization bytes only. A smaller
+/// profile refuses any such selected finalizer; public abnormal values and
+/// Cord/unresolved storage retain their full independent100-byte envelope.
 pub struct FixedScheduler<
     D,
     S,
@@ -991,15 +1060,17 @@ pub struct FixedScheduler<
     const ROUTE_TARGETS: usize,
     const HOST_BINDING_SLOTS: usize = 0,
     const PENDING_REQUESTS: usize = 0,
+    const TERMINAL_ROWS: usize = NODES,
+    const PHASE_BYTES: usize = { CanonicalValue::MAXIMUM_BYTES },
 > where
     D: StepBack<PORTS>,
     S: ValueStorage,
     E: SignSink,
 {
     node_specs: [NodeSpec<PORTS>; NODES],
-    terminal_transductions: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    terminal_transductions: terminal_storage::TerminalContracts<NODES, PORTS, TERMINAL_ROWS>,
     terminal_inputs_consumed: [[bool; PORTS]; NODES],
-    terminal_phases: [Option<ActiveTerminalPhase>; NODES],
+    terminal_phases: [Option<ActiveTerminalPhase<PHASE_BYTES>>; NODES],
     terminal_cancellation_pending: [bool; NODES],
     unresolved_abnormal: [Option<UnresolvedAbnormal>; NODES],
     projected_recovery_source: [Option<NodeId>; NODES],
@@ -1036,6 +1107,10 @@ pub struct FixedScheduler<
     native_output_ports: [Option<PortId>; NODES],
     #[cfg(feature = "alloc")]
     compact_f32_bindings: Option<alloc::boxed::Box<CompactF32Bindings<NODES, PORTS>>>,
+    #[cfg(feature = "execution-workspace")]
+    execution_workspace: Option<PreparedStepWorkspace>,
+    #[cfg(feature = "execution-workspace")]
+    unmet_execution_workspace: bool,
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
     debug_control: DebugControlState,
@@ -1055,6 +1130,8 @@ impl<
         const ROUTE_TARGETS: usize,
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
+        const TERMINAL_ROWS: usize,
+        const PHASE_BYTES: usize,
     >
     FixedScheduler<
         D,
@@ -1068,6 +1145,8 @@ impl<
         ROUTE_TARGETS,
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
+        TERMINAL_ROWS,
+        PHASE_BYTES,
     >
 where
     D: StepBack<PORTS>,
@@ -1115,9 +1194,13 @@ where
             &cord_specs,
             &routes,
         )?;
+        #[cfg(feature = "execution-workspace")]
+        let unmet_execution_workspace = drivers[..active_nodes]
+            .iter()
+            .any(|back| back.workspace_requirements().is_some());
         Ok(Self {
             node_specs,
-            terminal_transductions: [[None; PORTS]; NODES],
+            terminal_transductions: terminal_storage::TerminalContracts::empty_owned()?,
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
@@ -1156,6 +1239,10 @@ where
             native_output_ports: [None; NODES],
             #[cfg(feature = "alloc")]
             compact_f32_bindings: None,
+            #[cfg(feature = "execution-workspace")]
+            execution_workspace: None,
+            #[cfg(feature = "execution-workspace")]
+            unmet_execution_workspace,
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
@@ -1243,6 +1330,7 @@ where
         &mut self,
         contracts: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
     ) -> Result<(), SchedulerError> {
+        phase_terminal::validate_capacity::<PHASE_BYTES, NODES, PORTS>(&contracts)?;
         for (node, contract) in contracts.iter().copied().enumerate() {
             #[cfg(feature = "alloc")]
             if (self.native_input_ports[node].is_some()
@@ -1261,54 +1349,23 @@ where
                 return Err(SchedulerError::InvalidPlan);
             }
         }
-        self.terminal_transductions = contracts;
+        self.terminal_transductions.replace(&contracts)?;
         self.bind_projected_recoveries()?;
         Ok(())
     }
 
     fn bind_projected_recoveries(&mut self) -> Result<(), SchedulerError> {
-        self.recovery_for_cord = [None; CORDS];
-        for cord in 0..self.active_cords {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.cord_scans += 1;
-                self.scan_counts.set(counts);
-            }
-            let spec = self.cord_specs[cord];
-            if spec.track != AssignedConnectionTrack::AbnormalTerminal {
-                continue;
-            }
-            let CordEndpoint::Local {
-                node: sink,
-                port: sink_port,
-            } = spec.sink
-            else {
-                continue;
-            };
-            let Some(contract) = self.terminal_transductions[usize::from(sink.0)]
-                .get(usize::from(sink_port.0))
-                .copied()
-                .flatten()
-            else {
-                continue;
-            };
-            if contract.input == sink_port
-                && matches!(contract.abnormal, AssignedAbnormalTransduction::Recover)
-            {
-                if self.recovery_for_cord[..cord]
-                    .iter()
-                    .enumerate()
-                    .any(|(other, recovery)| {
-                        *recovery == Some(sink)
-                            || (*recovery).is_some() && self.cord_specs[other].source == spec.source
-                    })
-                {
-                    return Err(SchedulerError::InvalidPlan);
-                }
-                self.recovery_for_cord[cord] = Some(sink);
-            }
+        #[cfg(test)]
+        {
+            let mut counts = self.scan_counts.get();
+            counts.cord_scans += self.active_cords as u64;
+            self.scan_counts.set(counts);
         }
+        self.recovery_for_cord = projected_recovery_map(
+            self.active_cords,
+            &self.cord_specs,
+            &self.terminal_transductions,
+        )?;
         Ok(())
     }
 
@@ -1376,6 +1433,10 @@ where
         if self.native_output_ports.iter().any(Option::is_some) || self.has_compact_f32_outputs() {
             return Err(DebugObservationRefusal::UnsupportedPhysicalProfile);
         }
+        #[cfg(feature = "schema-value-storage")]
+        if schema_region::has_schema_profile::<PORTS, _>(&self.drivers[..self.active_nodes]) {
+            return Err(DebugObservationRefusal::UnsupportedPhysicalProfile);
+        }
         self.signs.attach_debug_observer(history)
     }
 
@@ -1401,6 +1462,10 @@ where
         }
         #[cfg(feature = "alloc")]
         if self.native_output_ports.iter().any(Option::is_some) || self.has_compact_f32_outputs() {
+            return Err(DebugControlRefusal::UnsupportedPhysicalProfile);
+        }
+        #[cfg(feature = "schema-value-storage")]
+        if schema_region::has_schema_profile::<PORTS, _>(&self.drivers[..self.active_nodes]) {
             return Err(DebugControlRefusal::UnsupportedPhysicalProfile);
         }
         self.debug_control.arm(breakpoint, node)
@@ -1431,7 +1496,9 @@ where
         Ok((state.len, state.queued_bytes))
     }
 
-    /// Offers the head of a remote egress cord without transferring ownership.
+    /// Offers an external output head without transferring ownership. A checked
+    /// local Fore records local Value evidence; an actual Line retains its
+    /// mandatory delivery lifecycle.
     /// Repeated calls return the same sequence and value until exact delivery
     /// is acknowledged.
     pub fn remote_egress_offer(
@@ -1465,9 +1532,10 @@ where
         let sequence = existing.unwrap_or(self.cords[cord_index].next_remote_sequence);
         if existing.is_none() {
             self.ensure_sign_capacity(1)?;
-            self.ensure_remote_sign_capacity(1)?;
+            self.ensure_boundary_remote_capacity(cord_index, 1)?;
             self.cords[cord_index].offered_remote_sequence = Some(sequence);
-            self.signs.record_remote(
+            self.record_boundary_sign(
+                cord_index,
                 source_node,
                 source_port,
                 KernelEventKind::RemoteValueOffered,
@@ -1523,9 +1591,10 @@ where
             return Ok(());
         }
         self.ensure_sign_capacity(1)?;
-        self.ensure_remote_sign_capacity(1)?;
+        self.ensure_boundary_remote_capacity(cord_index, 1)?;
         self.cords[cord_index].remote_accepted = true;
-        self.signs.record_remote(
+        self.record_boundary_sign(
+            cord_index,
             source_node,
             source_port,
             KernelEventKind::RemoteValueAccepted,
@@ -1539,8 +1608,8 @@ where
         Ok(())
     }
 
-    /// Releases the source value only after the line reports the exact
-    /// sequence as delivered by the peer kernel.
+    /// Releases the source value only after exact endpoint acceptance. An actual
+    /// Line reports peer delivery; a checked local Fore transfers local custody.
     pub fn remote_egress_delivered(
         &mut self,
         endpoint: RemoteEndpointId,
@@ -1578,7 +1647,7 @@ where
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
         self.ensure_sign_capacity(1)?;
-        self.ensure_remote_sign_capacity(1)?;
+        self.ensure_boundary_remote_capacity(cord_index, 1)?;
         let value = self.pop(cord_index)?;
         self.values.release(value)?;
         let state = &mut self.cords[cord_index];
@@ -1586,7 +1655,8 @@ where
         state.offered_remote_sequence = None;
         state.remote_accepted = false;
         self.set_ready(usize::from(source_node.0), true);
-        self.signs.record_remote(
+        self.record_boundary_sign(
+            cord_index,
             source_node,
             source_port,
             KernelEventKind::RemoteValueDelivered,
@@ -1600,9 +1670,9 @@ where
         Ok(())
     }
 
-    /// Admits bytes through a remote ingress cord into the kernel-owned value
-    /// store and queue. `Full` performs no allocation or sequence advance, so
-    /// the line must retry the same sequence.
+    /// Admits an external input into the kernel-owned value store and queue.
+    /// Schema7 local Fore has no Line lifecycle. Actual Lines retain mandatory
+    /// remote evidence. `Full` allocates nothing and preserves the same sequence.
     pub fn admit_remote_input(
         &mut self,
         endpoint: RemoteEndpointId,
@@ -1645,7 +1715,7 @@ where
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
         self.ensure_sign_capacity(1)?;
-        self.ensure_remote_sign_capacity(1)?;
+        self.ensure_boundary_remote_capacity(cord_index, 1)?;
         let value = self.values.store(bytes)?;
         match self.push(cord_index, value) {
             Ok(Some(superseded)) => self.values.release(superseded)?,
@@ -1657,7 +1727,8 @@ where
         }
         self.cords[cord_index].next_remote_sequence = next_sequence;
         self.set_ready(usize::from(sink_node.0), true);
-        self.signs.record_remote(
+        self.record_boundary_sign(
+            cord_index,
             sink_node,
             sink_port,
             KernelEventKind::RemoteInputAdmitted,
@@ -1740,12 +1811,13 @@ where
             };
         }
         self.ensure_sign_capacity(1)?;
-        self.ensure_remote_sign_capacity(1)?;
+        self.ensure_boundary_remote_capacity(cord_index, 1)?;
         self.cords[cord_index].producer_closed = true;
         self.cords[cord_index].producer_abnormal = abnormal_terminal.is_some();
         self.cords[cord_index].abnormal_terminal = abnormal_terminal;
         self.set_ready(usize::from(sink_node.0), true);
-        self.signs.record_remote(
+        self.record_boundary_sign(
+            cord_index,
             sink_node,
             sink_port,
             KernelEventKind::RemoteInputClosed,
@@ -2120,6 +2192,8 @@ where
             outputs: [None; PORTS],
             canonical_output: None,
             prepared_outputs: [None; PORTS],
+            #[cfg(feature = "execution-workspace")]
+            workspace_output_capacity: None,
             #[cfg(feature = "alloc")]
             native_output_port: self.native_output_ports[node],
             #[cfg(feature = "alloc")]
@@ -2443,7 +2517,7 @@ where
         node: usize,
         outcome: StepOutcome,
         io: &StepIo<PORTS>,
-    ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
+    ) -> Result<Option<ActiveTerminalPhase<PHASE_BYTES>>, SchedulerError> {
         let active_input = self.terminal_phases[node].map(|phase| match phase {
             ActiveTerminalPhase::Normal { input, .. }
             | ActiveTerminalPhase::Abnormal { input, .. } => input,
@@ -2567,7 +2641,7 @@ where
                         } if port == contract.output && propagated == terminal => Ok(None),
                         StepOutcome::Progress => Ok(Some(ActiveTerminalPhase::Abnormal {
                             input: contract.input,
-                            terminal,
+                            terminal: phase_terminal::PhaseTerminal::new(terminal)?,
                             emitted,
                         })),
                         StepOutcome::Fail(_) => Ok(None),
@@ -2691,10 +2765,10 @@ where
     fn advance_terminal_phase(
         &self,
         contract: AssignedTerminalTransduction,
-        phase: ActiveTerminalPhase,
+        phase: ActiveTerminalPhase<PHASE_BYTES>,
         outcome: StepOutcome,
         io: &StepIo<PORTS>,
-    ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
+    ) -> Result<Option<ActiveTerminalPhase<PHASE_BYTES>>, SchedulerError> {
         match phase {
             ActiveTerminalPhase::Normal { input, emitted } => {
                 let bound = match contract.normal_close {
@@ -2727,7 +2801,11 @@ where
                     StepOutcome::Abnormal {
                         port,
                         terminal: propagated,
-                    } if port == contract.output && propagated == terminal => Ok(None),
+                    } if port == contract.output
+                        && propagated.as_slice() == terminal.as_slice() =>
+                    {
+                        Ok(None)
+                    }
                     StepOutcome::Progress | StepOutcome::Await | StepOutcome::Yield => {
                         Ok(Some(ActiveTerminalPhase::Abnormal {
                             input,
@@ -2869,6 +2947,7 @@ where
                 value,
                 self.native_input_ports[node] == Some(PortId(as_u16(port)?))
                     || self.has_compact_f32_input(node, port),
+                self.drivers[node].canonical_input_schema(PortId(as_u16(port)?)),
             )?;
             #[cfg(not(feature = "alloc"))]
             let observed = Some(self.values.get(value)?);
@@ -3079,6 +3158,7 @@ where
                         || self
                             .compact_f32_output_binding(node)
                             .is_some_and(|(p, _)| usize::from(p.0) == port),
+                    self.drivers[node].canonical_output_schema(PortId(as_u16(port)?)),
                 )?;
                 #[cfg(not(feature = "alloc"))]
                 let observed = Some(self.values.get(value)?);
@@ -3206,7 +3286,18 @@ where
                     && self.values.compact_f32(value)?.is_some());
             #[cfg(not(feature = "alloc"))]
             let native = false;
-            if !native {
+            #[cfg(feature = "schema-value-storage")]
+            let separated = schema_region::checked_parts(
+                &self.values,
+                value,
+                self.drivers[node].canonical_output_schema(PortId(as_u16(port)?)),
+            )?;
+            #[cfg(not(feature = "schema-value-storage"))]
+            let separated: Option<crate::CanonicalValueParts<'_>> = None;
+            if separated.is_some() && self.signs.requires_canonical_debug_values() {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            if !native && separated.is_none() {
                 self.values.get(value)?;
             }
             for target in self
@@ -3221,6 +3312,21 @@ where
                     .ok_or(SchedulerError::InvalidPlan)?;
                 if spec.track != AssignedConnectionTrack::Payload {
                     continue;
+                }
+                #[cfg(feature = "schema-value-storage")]
+                if let Some(parts) = separated {
+                    let CordEndpoint::Local {
+                        node: receiver,
+                        port: input,
+                    } = target.sink
+                    else {
+                        return Err(SchedulerError::InvalidPlan);
+                    };
+                    if self.drivers[usize::from(receiver.0)].canonical_input_schema(input)
+                        != Some(parts.schema)
+                    {
+                        return Err(SchedulerError::InvalidPlan);
+                    }
                 }
                 self.preflight_payload_output(*spec, state, value.byte_len)?;
             }
@@ -3280,7 +3386,9 @@ where
             consumed_host_value,
         )?;
         for discard in discards.iter().copied().flatten() {
-            self.values.get(discard)?;
+            // Retirement needs a live exact reference, not a canonical byte
+            // representation. Schema/native values retain the same custody.
+            self.values.reference_count(discard)?;
             if retained_values
                 .iter()
                 .flatten()
@@ -3397,7 +3505,10 @@ where
                 .checked_add(
                     targets
                         .iter()
-                        .filter(|target| matches!(target.sink, CordEndpoint::Remote(_)))
+                        .filter(|target| {
+                            matches!(target.sink, CordEndpoint::Remote(_))
+                                && !self.cord_specs[usize::from(target.cord.0)].is_local_fore()
+                        })
                         .count(),
                 )
                 .ok_or(SchedulerError::InvalidPlan)?;
@@ -3461,7 +3572,8 @@ where
                     let CordEndpoint::Remote(endpoint) = target.sink else {
                         unreachable!("remote output closure has remote sink")
                     };
-                    self.signs.record_remote(
+                    self.record_boundary_sign(
+                        cord,
                         NodeId(as_u16(node)?),
                         PortId(as_u16(port)?),
                         KernelEventKind::RemoteOutputClosed,
@@ -3496,7 +3608,9 @@ where
             let cord = usize::from(target.cord.0);
             let spec = self.cord_specs[cord];
             remote_closures = remote_closures
-                .checked_add(usize::from(matches!(target.sink, CordEndpoint::Remote(_))))
+                .checked_add(usize::from(
+                    matches!(target.sink, CordEndpoint::Remote(_)) && !spec.is_local_fore(),
+                ))
                 .ok_or(SchedulerError::InvalidPlan)?;
             if spec.track != AssignedConnectionTrack::AbnormalTerminal {
                 continue;
@@ -3557,7 +3671,8 @@ where
                 let CordEndpoint::Remote(endpoint) = target.sink else {
                     unreachable!("remote output closure has remote sink")
                 };
-                self.signs.record_remote(
+                self.record_boundary_sign(
+                    cord,
                     NodeId(as_u16(node)?),
                     output,
                     KernelEventKind::RemoteOutputClosed,
@@ -3713,10 +3828,15 @@ fn validate_plan<
     }
     let mut prefix = cord_prefix::CordPrefix::default();
     for (cord_index, cord) in cords[..active_cords].iter().copied().enumerate() {
+        if cord
+            .local_fore
+            .is_some_and(|provenance| !provenance.matches(&cord))
+        {
+            return Err(SchedulerError::InvalidPlan);
+        }
         if usize::from(cord.cord.0) != cord_index
             || cord.item_capacity == 0
             || cord.byte_capacity == 0
-            || cord.maximum_value_bytes == 0
             || cord.maximum_value_bytes > cord.byte_capacity
         {
             return Err(SchedulerError::InvalidPlan);
@@ -3834,3 +3954,47 @@ impl<I: Iterator<Item = RouteTarget>> CollectTargets for I {}
 
 #[cfg(test)]
 mod tests;
+
+fn projected_recovery_map<const NODES: usize, const CORDS: usize, const PORTS: usize>(
+    active_cords: usize,
+    cord_specs: &[CordSpec; CORDS],
+    contracts: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+) -> Result<[Option<NodeId>; CORDS], SchedulerError> {
+    let mut recovery_for_cord = [None; CORDS];
+    for cord in 0..active_cords {
+        let spec = cord_specs[cord];
+        if spec.track != AssignedConnectionTrack::AbnormalTerminal {
+            continue;
+        }
+        let CordEndpoint::Local {
+            node: sink,
+            port: sink_port,
+        } = spec.sink
+        else {
+            continue;
+        };
+        let Some(contract) = contracts[usize::from(sink.0)]
+            .get(usize::from(sink_port.0))
+            .copied()
+            .flatten()
+        else {
+            continue;
+        };
+        if contract.input == sink_port
+            && matches!(contract.abnormal, AssignedAbnormalTransduction::Recover)
+        {
+            if recovery_for_cord[..cord]
+                .iter()
+                .enumerate()
+                .any(|(other, recovery)| {
+                    *recovery == Some(sink)
+                        || (*recovery).is_some() && cord_specs[other].source == spec.source
+                })
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            recovery_for_cord[cord] = Some(sink);
+        }
+    }
+    Ok(recovery_for_cord)
+}

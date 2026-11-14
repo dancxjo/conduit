@@ -148,3 +148,192 @@ fn invalid_issuer_and_descriptor_are_refused_without_effects() {
     }
     assert_eq!((output.writes, output.commits), (0, 0));
 }
+
+#[test]
+fn same_base_retains_physical_surface_and_exact_show_pool_in_either_order() {
+    for show_first in [false, true] {
+        let mut output = CpuDriver::initialized();
+        let mut descriptor = entry();
+        descriptor.resources.push(conduit_core::resource_offer(
+            "fixture/display/raster",
+            "face/surface",
+            1,
+        ));
+        if !show_first {
+            descriptor.resources.reverse();
+        }
+        let provider = NativeSurfaceProvider::from_initialized_output(
+            descriptor.clone(),
+            [9; 32],
+            &mut output,
+        )
+        .unwrap();
+        assert_eq!(provider.entry, descriptor);
+        assert_eq!(
+            exact_show_resource(&provider.entry)
+                .unwrap()
+                .pool_id
+                .as_str(),
+            "fixture/display/show"
+        );
+        let host = crate::product_bases::native_mask_host_advertisement(
+            &"fixture/host".into(),
+            &"fixture/boot".into(),
+            1,
+            &provider,
+        );
+        for resource in &descriptor.resources {
+            assert!(host.resources.contains(resource));
+        }
+        assert_eq!(
+            host.bases[0].resource_pool_ids,
+            descriptor
+                .resources
+                .iter()
+                .map(|resource| resource.pool_id.clone())
+                .collect::<alloc::vec::Vec<_>>()
+        );
+        let plan = conduit_conduitos_mask_offer::prepare_stage_from_offer(
+            conduit_conduitos_mask_offer::Adapter::Native,
+            &host,
+        )
+        .unwrap()
+        .planned_mask;
+        let connection = plan
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.connections)
+            .find(|connection| connection.resource.is_some())
+            .unwrap();
+        assert_eq!(
+            connection
+                .resource
+                .as_ref()
+                .unwrap()
+                .source_binding
+                .pool_id
+                .as_str(),
+            "fixture/display/show"
+        );
+        let active =
+            conduit_core::bind_active_play(&plan.plan.plan_id, &host.host_id, &host.boot_id, 1);
+        let mut possession =
+            crate::native_surface_possession::ActiveNativeSurfacePossession::begin(
+                &provider,
+                &plan.plan,
+                active.active_play_id,
+            )
+            .unwrap();
+        possession.authorize().unwrap();
+        assert_eq!(
+            possession
+                .complete_and_retire()
+                .unwrap()
+                .resource_pool_id
+                .as_str(),
+            "fixture/display/show"
+        );
+        assert_eq!((output.writes, output.commits), (0, 0));
+    }
+}
+
+#[test]
+fn additional_resources_cannot_hide_duplicate_show_or_invalid_inventory() {
+    let mut output = CpuDriver::initialized();
+    let mut invalid = alloc::vec::Vec::new();
+    let mut duplicate_show = entry();
+    duplicate_show.resources.push(conduit_core::resource_offer(
+        "fixture/another-show",
+        conduit_face::SHOW_RESOURCE_CLASS,
+        1,
+    ));
+    invalid.push(duplicate_show);
+    for (pool, class, capacity) in [
+        ("", "face/surface", 1),
+        ("fixture/raster", "", 1),
+        ("fixture/raster", "face/surface", 0),
+        ("fixture/display/show", "face/surface", 1),
+    ] {
+        let mut descriptor = entry();
+        descriptor
+            .resources
+            .push(conduit_core::resource_offer(pool, class, capacity));
+        invalid.push(descriptor);
+    }
+    for descriptor in invalid {
+        assert!(matches!(
+            NativeSurfaceProvider::from_initialized_output(descriptor, [9; 32], &mut output),
+            Err(SurfaceProviderError::InvalidProvider)
+        ));
+    }
+    assert_eq!((output.writes, output.commits), (0, 0));
+}
+
+#[cfg(feature = "native-compositor-core")]
+#[test]
+fn multi_resource_provider_completes_actual_cpu_mask_scanout() {
+    use crate::native_face_mask::NativeFaceMask;
+    let mut output = CpuDriver::initialized();
+    output.format.width = 640;
+    output.format.height = 480;
+    output.format.pitch = 2560;
+    let mut descriptor = entry();
+    descriptor.resources.insert(
+        0,
+        conduit_core::resource_offer("fixture/raster", "face/surface", 1),
+    );
+    let provider =
+        NativeSurfaceProvider::from_initialized_output(descriptor, [9; 32], &mut output).unwrap();
+    let mut mask = NativeFaceMask::prepare(
+        "fixture/host".into(),
+        "fixture/boot".into(),
+        conduit_core::OfferGeneration(1),
+        "fixture/build",
+        provider.entry.base_id.clone(),
+        "fixture/surface",
+        &provider,
+    )
+    .unwrap();
+    let face = crate::native_face_mask::tests::draft()
+        .face(&mask.birth_basis("fixture/multi-resource"))
+        .unwrap();
+    mask.present_read_only(face, 1, 1, &mut output).unwrap();
+    assert!(output.writes > 0);
+    // Initial presentation and focus repaint may commit separate frames. The
+    // contract is a real successful commit before Available, not one upload.
+    assert!(output.commits > 0);
+    assert_eq!(
+        mask.show().unwrap().show.lifecycle,
+        conduit_face::ManifestationLifecycle::Available
+    );
+    let receipt = mask.render_receipt().unwrap();
+    assert!(receipt.scanout_frame_sequence > 0);
+    assert!(receipt.scanout_pixels_written > 0);
+    assert_eq!(receipt.display_base_id, provider.entry.base_id);
+}
+
+#[test]
+fn supplied_provider_without_show_does_not_gain_a_synthetic_pool() {
+    let mut descriptor = entry();
+    descriptor.resources[0].class_id = "face/surface".into();
+    let host = conduit_conduitos_mask_offer::native_host_advertisement(
+        &"fixture/host".into(),
+        &"fixture/boot".into(),
+        1,
+        &descriptor,
+    );
+    assert!(
+        !host
+            .resources
+            .iter()
+            .any(|resource| resource.class_id.as_str() == conduit_face::SHOW_RESOURCE_CLASS)
+    );
+    assert!(
+        conduit_conduitos_mask_offer::prepare_stage_from_offer(
+            conduit_conduitos_mask_offer::Adapter::Native,
+            &host
+        )
+        .is_err()
+    );
+}

@@ -246,3 +246,62 @@ fn typed_replies_preserve_checked_results_and_distinct_refusal_tags() {
         assert_eq!(tag(payload), expected);
     }
 }
+
+#[test]
+fn incoming_reply_admission_uses_expected_schema_and_actual_primitive_laws() {
+    let schema = SourceCheckNativeSchema::prepare().unwrap();
+    let mut owner = projection(VALID);
+    let request = request(&owner);
+    let report = owner.project(&request).unwrap();
+    let valid = schema
+        .encode_reply(
+            SourceCheckReply::Checked(&report),
+            MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+        )
+        .unwrap();
+    schema
+        .admit_reply(&valid, MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+        .unwrap();
+    let wrong = schema
+        .encode_request(&request, MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+        .unwrap();
+    assert!(schema
+        .admit_reply(&wrong, MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+        .is_err());
+    assert!(matches!(
+        schema.admit_reply(&valid, 1),
+        Err(SourceCheckNativeRefusal::Bytes)
+    ));
+    let value = StructuredInfoValue::from_canonical_bytes(&valid).unwrap();
+    let StructuredInfoValueShape::Variant { payload, .. } = value.shape() else {
+        panic!("reply")
+    };
+    let StructuredInfoValueShape::Record(fields) = payload.shape() else {
+        panic!("report")
+    };
+    let fields = fields
+        .iter()
+        .map(|field| {
+            let value = if field.name() == "schema_version" {
+                StructuredInfoValue::leaf(
+                    field.value().value_type().clone(),
+                    2u16.to_le_bytes().to_vec(),
+                )
+                .unwrap()
+            } else {
+                field.value().clone()
+            };
+            StructuredFieldValue::new(field.name(), value).unwrap()
+        })
+        .collect();
+    let bad = StructuredInfoValue::record(payload.value_type().clone(), fields).unwrap();
+    let bad = StructuredInfoValue::variant(value.value_type().clone(), "checked", bad)
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    // This is well-shaped Core data. The independently retained S1 law refuses it.
+    assert!(conduit_core::validate_canonical_structured_value(&bad).is_ok());
+    assert!(schema
+        .admit_reply(&bad, MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+        .is_err());
+}

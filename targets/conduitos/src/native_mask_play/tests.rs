@@ -443,7 +443,10 @@ fn prepared_storage_never_grows_and_runs_on_the_native_preparation_stack_bound()
         let mut session = session;
         let value = session.play.scheduler.store_host_value(&[0; STORAGE_VALUE_BYTES]).unwrap();
         assert_eq!(session.play.scheduler.values().allocation_capacities(), before);
-        session.play.scheduler.discard_host_value(value).unwrap();
+        let MaskScheduler::Ephemeral(scheduler) = &mut session.play.scheduler else {
+            panic!("standalone fixture requires ephemeral backing");
+        };
+        scheduler.discard_host_value(value).unwrap();
         session.interact(interaction).unwrap();
         assert!(core::mem::size_of::<Scheduler>() < 32 * 1024);
         assert!(core::mem::size_of::<PreparedNativeMaskPlay>() < 4 * 1024);
@@ -519,3 +522,6 @@ fn interaction_fore_waits_for_delivery_without_changing_or_duplicating_the_value
 
 #[path = "tests/read_only.rs"]
 mod read_only;
+
+#[path = "tests/cold.rs"]
+mod cold;

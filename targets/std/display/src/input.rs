@@ -67,6 +67,34 @@ impl Scanout<'_> {
         }
         Ok(NativeInput::Pending)
     }
+    /// Observe output lifetime without preparing or granting local input.
+    /// Keys are discarded; only this preparation's lifecycle events are handled.
+    /// Work is bounded even while no Body Play or input provider is active.
+    pub fn poll_output_lifecycle(
+        &mut self,
+        events: &mut EventPump,
+        maximum_events: u16,
+    ) -> Result<NativeInput, NativeInputRefusal> {
+        self.require_live().map_err(|_| NativeInputRefusal::Lost)?;
+        if maximum_events == 0 || maximum_events > 256 {
+            return Err(NativeInputRefusal::InvalidBound);
+        }
+        for _ in 0..maximum_events {
+            let Some(event) = events.poll_event() else {
+                return Ok(NativeInput::Idle);
+            };
+            match event {
+                Event::KeyDown { .. } | Event::KeyUp { .. } => {}
+                event => {
+                    if let Some(input) = self.translate_input(event)? {
+                        return Ok(input);
+                    }
+                }
+            }
+        }
+        Ok(NativeInput::Pending)
+    }
+
     /// Inspect at most `maximum_events` actual queue entries without waiting.
     /// Only this live window's keys leave the driver. A key is an observation,
     /// not an action: the selected Mask must check its acknowledged Show/focus.

@@ -70,7 +70,7 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<PortableExpressionProg
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || !placement.pool_references.is_empty()
-        || !placement.realization_properties.is_empty()
+        || placement.realization_properties != expected.realization_properties
         || !placement.realization_characteristics.is_empty()
         || !placement.terminal_transductions.is_empty()
     {
@@ -109,3 +109,7 @@ impl<const P: usize> StepBack<P> for PreparedLocalExpressionBack {
         <PreparedExpressionBack as StepBack<P>>::cancel(&mut self.0);
     }
 }
+
+#[cfg(test)]
+#[path = "local_expression_tests.rs"]
+mod tests;

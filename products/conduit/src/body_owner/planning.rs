@@ -1,4 +1,4 @@
-//! Exact planning for the installed owner's retained Source and live Host.
+//! Exact planning for retained Source and observed current member equipment.
 use super::{debug, Owner};
 use conduit_body::{BodyPlotPlan, BodyState, BodyWorkset, ResidentPlot};
 use conduit_core::{
@@ -57,13 +57,41 @@ impl Owner {
             &conduit_plot::ExpandedAuthoringPlot,
         )],
     ) -> Result<(), String> {
-        let partitions =
-            self.prepare_workset_partitions_for(&self.session.evidence().body.workset, sources)?;
-        let advertised = self.host.advertisement();
-        self.session
-            .propose(partitions, &advertised.host_id, &advertised.boot_id)
-            .map_err(debug)?;
-        Ok(())
+        self.plan_workset_with_source_boundaries(sources, &BTreeMap::new())
+    }
+
+    /// Boundary budgets belong to the selected external adapter. They cannot
+    /// adopt Source, add connectivity, or enlarge the selected Back's limits.
+    pub(super) fn plan_workset_with_source_boundaries(
+        &mut self,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        boundaries: &BTreeMap<
+            ResidentPlot,
+            BTreeMap<conduit_planner::ForeBoundaryKey, conduit_planner::ConnectionQueueLimits>,
+        >,
+    ) -> Result<(), String> {
+        self.plan_workset_with_source_boundaries_and_lines(sources, boundaries, &BTreeMap::new())
+    }
+
+    pub(super) fn prepare_workset_partitions(
+        &self,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+        boundaries: &BTreeMap<
+            ResidentPlot,
+            BTreeMap<conduit_planner::ForeBoundaryKey, conduit_planner::ConnectionQueueLimits>,
+        >,
+    ) -> Result<Vec<BodyPlotPlan>, String> {
+        self.prepare_workset_partitions_for(
+            &self.session.evidence().body.workset,
+            sources,
+            boundaries,
+        )
     }
 
     pub(super) fn prepare_workset_partitions_for(
@@ -73,6 +101,10 @@ impl Owner {
             &crate::plot_source::CanonicalSource,
             &conduit_plot::ExpandedAuthoringPlot,
         )],
+        boundaries: &BTreeMap<
+            ResidentPlot,
+            BTreeMap<conduit_planner::ForeBoundaryKey, conduit_planner::ConnectionQueueLimits>,
+        >,
     ) -> Result<Vec<BodyPlotPlan>, String> {
         self.require_workset_recovered()?;
         if self.session.evidence().body.state != BodyState::Lulled
@@ -93,6 +125,9 @@ impl Owner {
         if &supplied != workset {
             return Err("checked Sources must cover the exact retained Body workset".into());
         }
+        if boundaries.keys().any(|plot| !supplied.contains(plot)) {
+            return Err("Fore budget names a Plot outside the retained workset".into());
+        }
         let mut partitions = Vec::with_capacity(sources.len());
         for (source, expected) in sources {
             let checked = source.expand_named_for_authoring(&expected.expanded.name)?;
@@ -103,12 +138,18 @@ impl Owner {
                 checked.expanded.source_document_id.clone(),
                 checked.expanded.checked_plot_id.clone(),
             );
-            partitions.push(self.plan_partition_with_source(
-                source,
-                &checked,
-                &resident,
-                self.host.advertisement(),
-            )?);
+            let partition = match boundaries.get(&resident) {
+                Some(boundary) => {
+                    self.plan_partition_with_boundaries(&checked, &resident, boundary)?
+                }
+                None => self.plan_partition_with_source(
+                    source,
+                    &checked,
+                    &resident,
+                    self.host.advertisement(),
+                )?,
+            };
+            partitions.push(partition);
         }
         Ok(partitions)
     }
@@ -118,7 +159,31 @@ impl Owner {
         plot: &conduit_plot::ExpandedAuthoringPlot,
         resident: &ResidentPlot,
     ) -> Result<BodyPlotPlan, String> {
-        let hosts = [self.host.advertisement().clone()];
+        self.plan_partition_with_boundaries(plot, resident, &BTreeMap::new())
+    }
+
+    fn plan_partition_with_boundaries(
+        &self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+        boundary: &BTreeMap<
+            conduit_planner::ForeBoundaryKey,
+            conduit_planner::ConnectionQueueLimits,
+        >,
+    ) -> Result<BodyPlotPlan, String> {
+        if let Some(partition) = self.shipped_creche_partition(plot, resident)? {
+            if !boundary.is_empty() {
+                return Err("Crèche boundary budgets belong to its installed adapter".into());
+            }
+            return Ok(partition);
+        }
+        let mut hosts = self.planning_hosts();
+        if let Some(selected) = &self.local_fore_adapters {
+            selected.verify(self.host.advertisement(), &hosts)?;
+            if let Some(target) = selected.target(resident) {
+                hosts.retain(|host| &host.host_id == target);
+            }
+        }
         // Ordinary planning does not attach child Plans for scan/fold/make.
         // Refuse before sealing a deceptively runnable parent-only Body Plan.
         if !plot.expanded.activations.is_empty() {
@@ -126,7 +191,21 @@ impl Owner {
         }
         let placements =
             conduit_planner::default_expanded_placements(&plot.expanded, &hosts).map_err(debug)?;
-        let plan = conduit_planner::plan_expanded_authoring_with_options(
+        let limits = conduit_planner::default_expanded_connection_limits(
+            &plot.expanded,
+            &hosts,
+            &placements,
+        )
+        .map_err(debug)?;
+        let mut grants: Vec<_> = self
+            .current_host_offers
+            .current_grants(self.session.evidence())
+            .cloned()
+            .collect();
+        grants.extend(self.host.native_source_authority_grant().cloned());
+        #[cfg(target_os = "linux")]
+        grants.extend(self.host.text_file_authority_grant().cloned());
+        let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
             plot,
             &hosts,
             &placements,
@@ -136,11 +215,14 @@ impl Owner {
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
                 connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
-                authority_grants: &[],
+                // Original local authority plus authenticated current-member
+                // descriptions; never grants inferred from advertised needs.
+                authority_grants: &grants,
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
-            &BTreeMap::new(),
+            &limits,
+            boundary,
         )
         .map_err(debug)?;
         Ok(BodyPlotPlan {
@@ -246,3 +328,7 @@ impl Owner {
 #[cfg(test)]
 #[path = "planning_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "planning_source_authority_tests.rs"]
+mod source_authority_tests;

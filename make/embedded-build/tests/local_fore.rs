@@ -107,7 +107,7 @@ fn checked_local_fore_projects_exactly_and_legacy_paths_refuse_it() {
     assert_eq!(bytes, generated.encode(maxima).unwrap());
     let computations = b::assigned_computation_requirements(generated.kernel()).unwrap();
     let profile = c::AssignedComputationProfile {
-        maximum_text_bytes: u16::MAX,
+        maximum_text_bytes: u32::from(u16::MAX),
         maximum_total_text_bytes: u32::MAX,
         requirements: &computations,
     };
@@ -197,3 +197,20 @@ fn checked_local_fore_projects_exactly_and_legacy_paths_refuse_it() {
 
 #[path = "local_fore/bounded_tables.rs"]
 mod bounded_tables;
+
+#[path = "local_fore/line.rs"]
+mod line;
+
+#[test]
+fn cold_fore_inventory_matches_firmware_and_refuses_unsealed_or_unbounded_input() {
+    let plan = plan(64);
+    let fragment = &plan.fragments[0].fragment_id;
+    let inventory = b::assigned_fore_inventory(&plan, fragment, 2).unwrap();
+    assert_eq!(inventory, generate(&plan).fore());
+    assert!(b::assigned_fore_inventory(&plan, fragment, 1).is_err());
+    assert!(b::assigned_fore_inventory(&plan, fragment, 17).is_err());
+    assert!(b::assigned_fore_inventory(&plan, &"fixture/absent".into(), 2).is_err());
+    let mut unsealed = plan.clone();
+    unsealed.plan_id = "fixture/forged-plan".into();
+    assert!(b::assigned_fore_inventory(&unsealed, fragment, 2).is_err());
+}

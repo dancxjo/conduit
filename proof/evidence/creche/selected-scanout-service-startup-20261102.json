@@ -1,0 +1,31 @@
+{
+  "schema": "conduit.proof/selected-scanout-service-startup@1",
+  "integration_head": "b79bd1060ade7be681264d6503eb5d5d10b80191",
+  "accepted_dev": "dc465dbd44",
+  "lower_layer_source": "a3f76355f5ee89910f4e9b04b59532451c394845",
+  "constructor_source": "cc4c95c3bf",
+  "feature": "base-linear-framebuffer",
+  "behavior": "Checked Source/IMAGE and actual exclusive KMSDRM claim precede final Host advertisement. The selected physical surface remains scoped around the installed service lifetime. Native Show and renderer custody remain separate and are not invented.",
+  "tests": {
+    "retained_configuration": 9,
+    "configured_and_corrupt_seed": 3,
+    "strict_product_binary_and_tests": "passed",
+    "default_normal_dependencies": "No SDL adapter or SDL2"
+  },
+  "log_sha256": {
+    "selected-driver-tests.log": "7d5ef532a0ff7e1d0d8654105a20d6d16396b6aad3bde5d8a1af28fa7f549130",
+    "selected-driver-seed-tests.log": "a08994eef2a33a9b29b922b35634e4d021c87fee5b9b5a031c1914d4c6ca0900",
+    "selected-driver-strict.log": "2d621237249470697448c1c780e4721966f4925d53aaff20cfcb25ae59dc6593",
+    "default-dependencies.txt": "dbbd494cc52156a780f2ec891b0f3e36afa4f6f276bc2e624c852bf72c9b5608"
+  },
+  "physical_kmsdrm_proved": false,
+  "new_graphical_seed_made": false,
+  "new_graphical_seed_deployed": false,
+  "new_mask_pixels_proved": false,
+  "remaining": [
+    "Checked native release compilation must consume exact Make feature selection and seal its typed build receipt; current generic Linux release compiles default features.",
+    "Admit the actual renderer/Show path and drive the current Body Face on the initialized surface.",
+    "Qualify ARM artifact and required runtime, manufacture through the installed Creche, deploy and verify physical KMSDRM/Face."
+  ],
+  "ci_delivery": "PR6717 first exact-head Candidate failed x86 runner ENOSPC; one failed-jobs-only retry launched on same head. No authority assertion failure observed."
+}

@@ -69,7 +69,15 @@ impl Esp32FamilyTarget {
             outputs: vec![SporeOutputKind::Esp32Image],
             default_output: SporeOutputKind::Esp32Image,
             post_build_actions: facts.post_build_actions.to_vec(),
-            make_descriptors: vec![descriptor_binding],
+            make_descriptors: if self == Self::Wroom {
+                vec![
+                    descriptor_binding,
+                    esp32_descriptor_binding(&crate::blue_descriptor::blue_wroom32_native())
+                        .expect("checked native board descriptor"),
+                ]
+            } else {
+                vec![descriptor_binding]
+            },
             maxima: HostBounds {
                 static_memory_bytes: 64 * 1024 * 1024,
                 heap_arena_bytes: 64 * 1024 * 1024,

@@ -168,3 +168,32 @@ fn every_single_admission_allocation_preserves_old_reservations_and_lanes() {
         assert_eq!(owner, before);
     }
 }
+
+#[test]
+fn every_empty_owner_batch_allocation_refuses_before_commit() {
+    for content in [false, true] {
+        let (existing, observed, requests) = fixture(content);
+        let before = ResourceAdmissionOwner::new(existing.host().clone());
+        let mut owner = before.clone();
+        let inputs = requests.clone();
+        let (result, baseline) =
+            probe::observe(|| owner.admit_batch(inputs, &observed).map(|r| r.len()));
+        assert_eq!(result, Ok(2));
+        for nth in 1..=baseline.allocation_attempts + 1 {
+            let mut owner = before.clone();
+            let inputs = requests.clone();
+            let (result, cost) = probe::observe_refusing(nth, || {
+                owner.admit_batch(inputs, &observed).map(|r| r.len())
+            });
+            if nth <= baseline.allocation_attempts {
+                assert_eq!(result, Err(ResourceAdmissionRefusal::Allocation));
+                assert_eq!(cost.refused_allocations, 1);
+                assert_eq!(owner, before);
+            } else {
+                assert_eq!(result, Ok(2));
+                assert_eq!(cost.refused_allocations, 0);
+                assert_eq!(owner.assignments(), before.assignments());
+            }
+        }
+    }
+}

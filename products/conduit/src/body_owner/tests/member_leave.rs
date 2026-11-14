@@ -7,13 +7,22 @@ use conduit_body::{
 use std::path::{Path, PathBuf};
 
 pub(super) fn owner_fixture() -> (Owner, PathBuf) {
+    owner_fixture_with_host(host("boot/member-leave-owner"))
+}
+pub(super) fn owner_fixture_with_host(host: StdHost) -> (Owner, PathBuf) {
+    owner_fixture_with_plot(host, &source())
+}
+pub(super) fn owner_fixture_with_plot(
+    host: StdHost,
+    plot: &conduit_plot::ExpandedAuthoringPlot,
+) -> (Owner, PathBuf) {
     let root = std::env::temp_dir().join(installed::fresh_identity("owner-member-leave", "test"));
     std::fs::create_dir_all(&root).unwrap();
     installed::write_json_atomic(
         &root.join("installation.json"),
         &installed::Installation {
             schema: installed::INSTALL_SCHEMA.into(),
-            host_id: "host/owner-test".into(),
+            host_id: host.advertisement().host_id.as_str().into(),
             release_source_identity: "source/test".into(),
             release_bundle_sha256: installed::digest(b"test"),
             product_executable: "fixture-unused".into(),
@@ -26,14 +35,7 @@ pub(super) fn owner_fixture() -> (Owner, PathBuf) {
         },
     )
     .unwrap();
-    let plot = source();
-    let mut owner = Owner::open(
-        host("boot/member-leave-owner"),
-        resident(&plot),
-        None,
-        "Shared",
-    )
-    .unwrap();
+    let mut owner = Owner::open(host, resident(plot), None, "Shared").unwrap();
     owner.persist(&root).unwrap();
     (owner, root)
 }
@@ -49,13 +51,25 @@ pub(super) fn admit_with_key(
     SpawnInvitationSecret,
     conduit_core::HostAdvertisement,
 ) {
-    let invitation = owner.issue_invitation(root, 60, None).unwrap();
     let guest = StdHost::new_with_config(StdHostConfig {
         host_id: name.into(),
         boot_id: format!("boot/{name}/1").into(),
         offer_generation: OfferGeneration(1),
     });
-    let advertisement = guest.advertisement().clone();
+    admit_advertisement(owner, root, name, guest.advertisement().clone())
+}
+
+pub(super) fn admit_advertisement(
+    owner: &mut Owner,
+    root: &Path,
+    name: &str,
+    advertisement: conduit_core::HostAdvertisement,
+) -> (
+    MembershipCredential,
+    SpawnInvitationSecret,
+    conduit_core::HostAdvertisement,
+) {
+    let invitation = owner.issue_invitation(root, 60, None).unwrap();
     let key = SpawnInvitationSecret::from_csprng_bytes(invitation.secret).unwrap();
     let request = PortableSpawnAdmissionRequest {
         schema: SPAWN_ADMISSION_REQUEST_SCHEMA.into(),

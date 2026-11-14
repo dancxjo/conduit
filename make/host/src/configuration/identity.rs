@@ -1,4 +1,17 @@
 use crate::{ConfigurationDiagnostic, HostConfiguration};
+use sha2::{Digest, Sha256};
+
+/// Descriptive identity of this Host construction using the existing stable
+/// declaration encoding. This hashes data only: success proves neither catalog
+/// checking, native initialization, carrier custody, resource admission nor any
+/// runtime authority. Callers must independently validate the original source.
+/// The encoding remains private; this is not an alternative source format.
+pub fn host_configuration_identity(
+    configuration: &HostConfiguration,
+) -> Result<String, ConfigurationDiagnostic> {
+    let canonical = stable_host_configuration_identity_source(configuration)?;
+    Ok(format!("sha256:{:x}", Sha256::digest(canonical.as_bytes())))
+}
 
 // Configuration identity predates the canonical Conduit construction source.
 // Keep this encoding private so accepted identities remain stable without
@@ -23,3 +36,6 @@ impl HostConfiguration {
         self.capabilities.sort_by(|a, b| a.kind.cmp(&b.kind));
     }
 }
+
+#[cfg(test)]
+mod tests;

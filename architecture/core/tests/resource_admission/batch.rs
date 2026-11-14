@@ -128,3 +128,45 @@ fn batch_preparation_does_not_copy_unrelated_host_inventory() {
     assert_eq!(large.requested_bytes, small.requested_bytes);
     assert_eq!(large.peak_bytes, small.peak_bytes);
 }
+
+#[test]
+fn empty_owner_adopts_one_exact_staging_table_after_full_validation() {
+    let host = host();
+    let observed = [observation(&host, 16, "sign/empty-batch")];
+    let mut owner = ResourceAdmissionOwner::new(host.clone());
+    let inputs = vec![request(&host, "first", 4), request(&host, "second", 4)];
+    let ((), cost) = probe::observe(|| {
+        assert_eq!(owner.admit_batch(inputs, &observed).unwrap().len(), 2);
+    });
+    // One outer table, one evidence table and one copied Sign per request.
+    // All request IDs and item backing transfer without copying.
+    assert_eq!(cost.allocations, 5);
+    assert_eq!(cost.reallocations, 0);
+    assert_eq!(
+        cost.requested_bytes,
+        2 * core::mem::size_of::<conduit_core::ResourceAdmission>()
+            + 2 * core::mem::size_of::<SignId>()
+            + 2 * observed[0].sign_id.as_str().len()
+    );
+    assert_eq!(
+        owner.admissions()[0].placement_id.as_str(),
+        "placement/first"
+    );
+    assert_eq!(
+        owner.admissions()[1].placement_id.as_str(),
+        "placement/second"
+    );
+    assert!(owner.assignments().is_empty());
+
+    let mut empty = ResourceAdmissionOwner::new(host);
+    let before = empty.clone();
+    let inputs = vec![
+        request(empty.host(), "first", 8),
+        request(empty.host(), "late", 9),
+    ];
+    assert_eq!(
+        empty.admit_batch(inputs, &observed),
+        Err(ResourceAdmissionRefusal::Overcommitted)
+    );
+    assert_eq!(empty, before);
+}

@@ -4,11 +4,21 @@
 
 #[path = "body/face_snapshot.rs"]
 mod face_snapshot;
+#[path = "body/member_carrier.rs"]
+mod member_carrier;
+pub(crate) use member_carrier::{
+    attest_admission_receipt, attest_image_return_acknowledgement, begin_carrier,
+    carrier_mask_route, carrier_receiver, carrier_show, complete_carrier, renew_carrier_presence,
+    retire_carrier,
+};
 #[path = "body/member_leave.rs"]
 mod member_leave;
 #[path = "body/member_return.rs"]
 mod member_return;
-pub(crate) use member_return::{begin_member_return, complete_member_return, return_member};
+pub(crate) use member_return::{
+    begin_image_member_return, begin_member_return, begin_recovered_image_member_return,
+    complete_member_return, return_member,
+};
 #[path = "body/native_mask_route.rs"]
 mod native_mask_route;
 #[cfg(unix)]
@@ -16,6 +26,7 @@ use super::read_secret;
 use super::DurableHostRuntime;
 #[cfg(any(unix, test))]
 use super::{Request, Response, PROTOCOL};
+use crate::durable_host::owner::MemberPresentationBasis;
 use conduit_body::{
     BodyBiographyEvidence, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
     PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
@@ -139,7 +150,7 @@ impl DurableHostRuntime {
 
     pub(super) fn start_browser_window(
         &mut self,
-        expected_host_id: &str,
+        expected_host_id: Option<&str>,
         new_host_verifying_key: Option<[u8; 32]>,
         maximum_millis: u64,
     ) -> Result<
@@ -341,11 +352,14 @@ impl DurableHostRuntime {
 
     pub(crate) fn with_owned_body(self, root: &Path) -> Result<Self, String> {
         let Self {
+            #[cfg(target_os = "linux")]
+            _source_preparation,
             target_id,
             image_content_digest,
             host,
             birth,
             birth_root,
+            mut creche_factory,
             remote_fragment,
             pending_worker_text,
             pool_member,
@@ -364,7 +378,10 @@ impl DurableHostRuntime {
             return Err("durable Host already owns a Body session".into());
         };
         let previous_generation = host.advertisement().offer_generation;
-        let owner = crate::durable_host::owner::resume_service(*host, root)?;
+        let mut owner = crate::durable_host::owner::resume_service(*host, root)?;
+        if let Some(factory) = creche_factory.take() {
+            owner.install_creche_factory(factory)?;
+        }
         let current = owner.host.advertisement();
         if current.offer_generation != previous_generation {
             crate::durable_host::refresh_offer_generation(
@@ -378,6 +395,8 @@ impl DurableHostRuntime {
             equipment.advance_offer_generation(owner.host.current())?;
         }
         Ok(Self {
+            #[cfg(target_os = "linux")]
+            _source_preparation,
             target_id,
             image_content_digest,
             host: HostSource::Body {
@@ -387,6 +406,7 @@ impl DurableHostRuntime {
             },
             birth,
             birth_root,
+            creche_factory,
             remote_fragment,
             pending_worker_text,
             pool_member,
@@ -423,7 +443,7 @@ impl DurableHostRuntime {
         &mut self,
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
-        receipt: &PortableAdmissionReceipt,
+        receipt: &MemberPresentationBasis,
         look: conduit_face::ComponentMaskLook,
         recipe: conduit_face::TodoComponentRecipe,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
@@ -505,7 +525,7 @@ impl DurableHostRuntime {
 #[cfg(unix)]
 pub(crate) fn start_browser_window(
     state_dir: &Path,
-    expected_host_id: &str,
+    expected_host_id: Option<&str>,
     new_host_verifying_key: Option<[u8; 32]>,
     maximum_millis: u64,
 ) -> Result<(), String> {
@@ -514,7 +534,7 @@ pub(crate) fn start_browser_window(
         Request::BodyBrowserStart {
             protocol: PROTOCOL,
             token: token(state_dir)?,
-            expected_host_id: expected_host_id.into(),
+            expected_host_id: expected_host_id.map(str::to_owned),
             new_host_verifying_key,
             maximum_millis,
         },
@@ -548,7 +568,7 @@ pub(crate) fn start_browser_window(
 #[cfg(not(unix))]
 pub(crate) fn start_browser_window(
     _state_dir: &Path,
-    _expected_host_id: &str,
+    _expected_host_id: Option<&str>,
     _new_host_verifying_key: Option<[u8; 32]>,
     _maximum_millis: u64,
 ) -> Result<(), String> {
@@ -652,7 +672,7 @@ pub(crate) fn face_snapshot(
 #[cfg(unix)]
 pub(crate) fn select_native_mask_route(
     state_dir: &Path,
-    receipt: PortableAdmissionReceipt,
+    receipt: MemberPresentationBasis,
     face_line: conduit_core::LineOffer,
     return_line: conduit_core::LineOffer,
     terminal_interaction_line: Option<conduit_core::LineOffer>,
@@ -707,7 +727,7 @@ pub(crate) fn acknowledge_native_mask_show(
 #[cfg(not(unix))]
 pub(crate) fn select_native_mask_route(
     _state_dir: &Path,
-    _receipt: PortableAdmissionReceipt,
+    _receipt: MemberPresentationBasis,
     _face_line: conduit_core::LineOffer,
     _return_line: conduit_core::LineOffer,
     _terminal_interaction_line: Option<conduit_core::LineOffer>,
@@ -1024,7 +1044,7 @@ mod tests;
 #[cfg(unix)]
 pub(crate) fn select_native_component_mask(
     state_dir: &Path,
-    receipt: PortableAdmissionReceipt,
+    receipt: MemberPresentationBasis,
     request: OwnerFaceSnapshotRequest,
     show: MaskShow,
     look: conduit_face::ComponentMaskLook,
@@ -1065,7 +1085,7 @@ pub(crate) fn select_native_component_mask(
 #[cfg(not(unix))]
 pub(crate) fn select_native_component_mask(
     _state_dir: &Path,
-    _receipt: PortableAdmissionReceipt,
+    _receipt: MemberPresentationBasis,
     _request: OwnerFaceSnapshotRequest,
     _show: MaskShow,
     _look: conduit_face::ComponentMaskLook,

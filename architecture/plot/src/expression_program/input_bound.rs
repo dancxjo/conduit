@@ -3,10 +3,16 @@ use super::*;
 use conduit_core::{CheckedValueContract, FrontValueContract, FrontValueLocation, KindSemanticLaw};
 
 pub(super) const V2: &[u8] = b"conduit.pure-expression.program.v2";
+pub(crate) const V4: &[u8] = b"conduit.pure-expression.program.v4";
 pub(crate) const V3: &[u8] = b"conduit.pure-expression.program.v3";
 
 pub(super) fn push_header(sink: &mut ProgramSink, bound: Option<u32>) {
-    sink.extend_from_slice(if bound.is_some() { V3 } else { V2 });
+    if sink.intern_types {
+        sink.extend_from_slice(V4);
+        sink.push(u8::from(bound.is_some()));
+    } else {
+        sink.extend_from_slice(if bound.is_some() { V3 } else { V2 });
+    }
     if let Some(maximum) = bound {
         sink.extend_from_slice(&maximum.to_le_bytes());
     }
@@ -22,7 +28,9 @@ impl PortableExpressionProgram {
         push_type(encoded, &self.input_type)?;
         push_type(encoded, &self.output_type)?;
         push_node(encoded, &self.root)?;
-        if encoded.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {
+        if encoded.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES
+            || encoded.expanded_length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES
+        {
             Err(PortableExpressionProgramRefusal::TooLarge)
         } else {
             Ok(())
@@ -74,36 +82,45 @@ impl PortableExpressionProgram {
     ) -> Result<Vec<KindSemanticLaw>, conduit_core::StructuredInfoRefusal> {
         self.validate_input_bound()
             .map_err(|_| conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding)?;
-        let (input, output, body) = super::value_contract::boundary(&self.root);
-        let mut laws = semantic_laws_for_identity(
-            crate::expression_definition::expression_port_kind(&self.input_type)?,
-            self.input_maximum_bytes,
-            self.input_type == self.output_type
-                && matches!(body.operation, PortableExpressionOperation::Input),
-        )?;
+        let (input, output, _) = super::value_contract::boundary(&self.root);
+        let mut laws = crate::pure_expression_semantic_laws();
+        let malformed = |_| conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding;
+        let bounds = [
+            (
+                FrontValueLocation::Input(conduit_core::port_id("input")),
+                &self.input_type,
+                // Preserve authored admission limits. A smaller physical
+                // scratch bound is not a newly authored input restriction.
+                self.input_maximum_bytes,
+            ),
+            (
+                FrontValueLocation::Output(conduit_core::port_id("output")),
+                &self.output_type,
+                Some(self.maximum_prepared_output_bytes().map_err(malformed)?),
+            ),
+        ];
+        laws.push(KindSemanticLaw::ValueContracts(
+            bounds
+                .into_iter()
+                .filter_map(|(location, ty, maximum)| maximum.map(|bytes| (location, ty, bytes)))
+                .map(|(location, ty, maximum)| {
+                    Ok(FrontValueContract {
+                        location,
+                        contract: CheckedValueContract::new(
+                            crate::expression_definition::expression_port_kind(ty)?,
+                            maximum,
+                            vec![],
+                        )
+                        .map_err(|_| {
+                            conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding
+                        })?,
+                    })
+                })
+                .collect::<Result<Vec<_>, conduit_core::StructuredInfoRefusal>>()?,
+        ));
         super::value_contract::retain_laws(&mut laws, input, output);
         Ok(laws)
     }
-}
-
-// An exact identity emits the admitted input bytes unchanged. Other
-// expressions cannot inherit this bound, even when their shapes match.
-pub(crate) fn semantic_laws_for_identity(
-    input: conduit_core::KindId,
-    bound: Option<u32>,
-    identity: bool,
-) -> Result<Vec<KindSemanticLaw>, conduit_core::StructuredInfoRefusal> {
-    let mut laws = semantic_laws_for_input(input.clone(), bound)?;
-    if let (true, Some(maximum)) = (identity, bound) {
-        if let Some(KindSemanticLaw::ValueContracts(contracts)) = laws.last_mut() {
-            contracts.push(FrontValueContract {
-                location: FrontValueLocation::Output(conduit_core::port_id("output")),
-                contract: CheckedValueContract::new(input, maximum, vec![])
-                    .map_err(|_| conduit_core::StructuredInfoRefusal::MalformedCanonicalEncoding)?,
-            });
-        }
-    }
-    Ok(laws)
 }
 
 pub(crate) fn semantic_laws_for_input(

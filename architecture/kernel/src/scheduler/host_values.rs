@@ -29,6 +29,8 @@ impl<
         const ROUTE_TARGETS: usize,
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
+        const TERMINAL_ROWS: usize,
+        const PHASE_BYTES: usize,
     >
     FixedScheduler<
         D,
@@ -42,6 +44,8 @@ impl<
         ROUTE_TARGETS,
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
+        TERMINAL_ROWS,
+        PHASE_BYTES,
     >
 where
     D: StepBack<PORTS>,
@@ -49,9 +53,14 @@ where
     E: SignSink,
 {
     /// Preflight a bounded synchronous Host result and its completion Sign.
-    /// The trusted adapter must not await or mutate value/Sign custody between
-    /// this check, the physical effect and publication. Unsupported storage
-    /// refuses; this creates no capability or long-lived reservation.
+    /// The trusted adapter must not mutate value/Sign custody between this
+    /// check, the physical effect and publication. An asynchronous adapter may
+    /// await a bounded cancellable provider only while retaining the exclusive
+    /// mutable kernel loan throughout. It must quiesce/drop that provider future
+    /// before cancelling the kernel or reusing request/result custody. Releasing
+    /// the loan across an await requires a fresh preflight and exact pending
+    /// request check after wake. Unsupported storage refuses; this creates no
+    /// capability or long-lived reservation.
     pub fn preflight_host_result_storage(&self, maximum_bytes: u32) -> Result<(), SchedulerError> {
         if self.cancelled {
             return Err(SchedulerError::Cancelled);

@@ -17,7 +17,7 @@ fn minimum_at(front: &CheckedFront, location: FrontValueLocation) -> u32 {
         .unwrap_or_default()
 }
 
-fn required_minimum(
+pub(crate) fn required_minimum(
     source: &CheckedFront,
     source_port: &conduit_core::PortId,
     sink: &CheckedFront,

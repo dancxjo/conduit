@@ -1,6 +1,10 @@
 //! Selected cooperative native-operation facts carried by schema 6. These are
 //! descriptive bindings; an actual local opaque capability remains mandatory.
 use crate::{AssignedIdentity as Id, AssignedPlanRefusal as E};
+#[path = "native_encoding.rs"]
+mod encoding;
+pub use encoding::encode_assigned_native_binding;
+pub const ASSIGNED_NATIVE_CALL_PREFIX_BYTES: usize = 46;
 pub const ASSIGNED_NATIVE_PLAN_SCHEMA: u16 = 6;
 pub const ASSIGNED_NATIVE_CALL_BYTES: usize = 326;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -28,6 +32,11 @@ pub struct AssignedNativeBinding {
     pub pool: Id,
     pub resource_class: Id,
     pub units: u32,
+}
+impl AssignedNativeBinding {
+    fn valid(&self) -> bool {
+        self.enforcement == 0 && self.generation != 0 && self.units != 0
+    }
 }
 pub fn assigned_native_binding(payload: &[u8]) -> Result<Option<AssignedNativeBinding>, E> {
     match (payload.len(), payload.get(46)) {
@@ -64,7 +73,7 @@ pub fn assigned_native_binding(payload: &[u8]) -> Result<Option<AssignedNativeBi
         resource_class: at.id()?,
         units: at.u32()?,
     };
-    if binding.enforcement != 0 || binding.generation == 0 || binding.units == 0 {
+    if !binding.valid() {
         return Err(E::MalformedRecord);
     }
     Ok(Some(binding))
@@ -101,3 +110,7 @@ impl Cursor<'_> {
         Ok(u64::from_le_bytes(self.bytes()?))
     }
 }
+
+#[cfg(test)]
+#[path = "native_encoding_tests.rs"]
+mod encoding_tests;

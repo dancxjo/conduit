@@ -59,6 +59,30 @@ pub(super) fn run() -> Result<(), String> {
             return Err(format!("Linux display {action} failed: {status}"));
         }
     }
+    for action in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command
+            .current_dir(&root)
+            .args([
+                action,
+                "--locked",
+                "-p",
+                "conduit-std-host",
+                "--lib",
+                "--features",
+                "linux-display",
+            ])
+            .env("LIBRARY_PATH", &search);
+        if action == "test" {
+            command.args(["hosted_display::", "--", "--test-threads=1"]);
+        } else {
+            command.args(["--tests", "--", "-D", "warnings"]);
+        }
+        let status = command.status().map_err(|e| e.to_string())?;
+        if !status.success() {
+            return Err(format!("Linux display Host {action} failed: {status}"));
+        }
+    }
     Ok(())
 }
 

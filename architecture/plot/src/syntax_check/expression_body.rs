@@ -29,7 +29,7 @@ pub(super) fn expression_body_expansion(plot: &PlotSyntax) -> Option<PendingSour
         plot: plot.name.text.clone(),
         authored: alloc::format!("= {}", body.expression.text),
         source_span: body.span,
-        ordinary_kind: "conduitese/pure-expression-operation@1".into(),
+        ordinary_kind: "conduitese/pure-expression-operation@2".into(),
         input_ports: alloc::vec![input.name.text.clone()],
         output_ports: alloc::vec![output.name.text.clone()],
         operand_bindings: alloc::vec![SourceSugarOperandBinding {

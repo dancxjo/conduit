@@ -1,0 +1,50 @@
+{
+  "schema": "conduit.proof/member-carrier-presentation-local@1",
+  "base_commit": "7344cffaec1686af0d0e1ca5f803ff0cab1cca31",
+  "source_files": {
+    "products/conduit/src/body_owner/controller.rs": "01335bc9cff390e323afe7bc1e3e55e20216e502934ad65f02061645b33c7d1a",
+    "products/conduit/src/body_owner/member_carrier.rs": "f33b270e07f027c73c3b66869ea60eee5176002e5340f1d4995bfee7bceb6f0e",
+    "products/conduit/src/body_owner/mod.rs": "bee61ad56c63b3e3ed511d025a8709e1c34eef7c46d12a707d6ff43d1e37c0dd",
+    "products/conduit/src/body_owner/native_mask_route.rs": "226c0373550e673d110c1d3cec90b3fa57b5e917d4f8cee9d8791ed8e5190f33",
+    "products/conduit/src/body_owner/native_mask_route/member_leave.rs": "a8c961ba0b932f8366a1ed4a077dca24f0a70dba0fa7faf7a769f1d4782b8880",
+    "products/conduit/src/body_owner/participants/member_presence.rs": "68ef6a32604e3e41a09b813fd9f0f9b7b2981363b5e2c86f5ce0d064e29815e8",
+    "products/conduit/src/body_owner/participants/mod.rs": "8f9c8cbf91c57715a86aa8017bcfe9cc46a1b713f8b844e4d84d6b0c8d112f4d",
+    "products/conduit/src/body_owner/participants/transport.rs": "eb6a44d5da0fcbe6541adc014767a27700c7d6f398fdb77fbe04e501f09f0cc4",
+    "products/conduit/src/body_owner/tests/member_carrier.rs": "157c40430033035f4f1647dd8aae7bac26680d487f1d9f52f7dbdb738a293d91",
+    "products/conduit/src/durable_body_join_route.rs": "a08eabadd08bb2fd77bc79f34e5f3038a5f28f28a6b64afad08850162706726e",
+    "products/conduit/src/durable_body_join_route/member_return.rs": "4ed40151cfe420564c14ce32114f283d5cd7e4abc50fc787e86932610fbf786f",
+    "products/conduit/src/durable_body_join_route/native_lines.rs": "f8a9e57876a1cb89e9eb1b236018d88abc843052714ad6b01993fb58b0736aca",
+    "products/conduit/src/durable_host_control.rs": "4a48299a863809537ab9c88bf2364f5faf5fb5a3d45b1ecc784862098876d9ec",
+    "products/conduit/src/durable_host_control/body.rs": "0e9d8cfdeed9c770b57f6929c21bdd1c249f83c3bbc73423463a64ce0691538a",
+    "products/conduit/src/durable_host_control/body/control_client.rs": "a87e8f719cd67b6943bd0599bcc0fec249a97e935f7196d4c26e06f15f33c5ed",
+    "products/conduit/src/durable_host_control/body/member_carrier.rs": "f4cd4f34c62cd1408ecc3dff9d769e0f16e99a14a1cecbc73fbb85d306c4f7a9",
+    "products/conduit/src/durable_host_presentation/member_return_tests.rs": "6444430c409565498f5d116b27402cfd908319f05d0e61638cbf8e414f6c136b",
+    "products/conduit/src/durable_host_presentation/native.rs": "249167df8c7f97f5211e3b42d7ae306b8232e390ef47ed5f51ef184829fcd45b",
+    "products/conduit/src/durable_host_presentation/wire.rs": "f0981aff94c3db93bc0ea85dca8118f15a3d5d7bb211c8d9eb8ecf0a548f70fa",
+    "products/conduit/src/body_owner/member_carrier/presentation.rs": "2bcb079292eb35627eef87dc80f0ec69398dea2b5ff2cd7992f8b876480e4fdb",
+    "products/conduit/src/body_owner/participants/presence_pump.rs": "08c3a7a94188cf2eea89308df4817f5d09bdf3b67c5d1e3295189b54cb80cfb9",
+    "products/conduit/src/body_owner/tests/member_carrier/presentation.rs": "20f99b6e82dc04bb01e18296b2dae613fc6bde41d37e837b2ff40878992491ef",
+    "products/conduit/src/durable_host_presentation/member_carrier_client.rs": "022f67455018daf1aa6388c6c8b00cf28c56e6eaf13b89b58a9024896c315bc8"
+  },
+  "logs": {
+    "member-presentation-owner-final.log": "472f4cda0429e58449be80d10dbe411532450139bc92c5a246fcbf8608e1586f",
+    "member-presentation-tls-v2.log": "1519323b0f851187d6334936889bd66444b1a2037e6ff87187d9d4cf093151de",
+    "member-presentation-browser-regression.log": "5055a96b75969f8a5d6f78f7591591b269598499c5ff52a6a0e3160b8ec8be57",
+    "member-presentation-native-check-v2.log": "902c3fe9f93348a5d52444244990aa3c70c0a4918e2ecbcb2e345836b65a8eff"
+  },
+  "proof_class": "local pinned TLS, production member client/shared pump, owner callbacks and typed CPU Show fixtures; native compilation",
+  "passed": {
+    "owner_tests": 8,
+    "tls_integration_tests": 1,
+    "participant_tests": 19,
+    "native_check": "-Dwarnings"
+  },
+  "limits": [
+    "native provider/Available Shows are CPU fixtures, not physical initialization/receipts",
+    "installed Unix-control worker not exercised by this test",
+    "no automatic overall session renewal/reconnect",
+    "finite60s/128frame session and finite selected encounter",
+    "no online Workspace join or screenshots",
+    "no device deployment in this checkpoint"
+  ]
+}

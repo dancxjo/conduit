@@ -7,31 +7,11 @@ fn attached_action_replaces_lulled_workset_and_cannot_replay_after_new_show() {
     let mut runtime = runtime();
     let state = state(&runtime);
     let token = [7; 32];
-    let HostSource::Body { owner, root, .. } = &mut runtime.host else {
-        unreachable!()
-    };
-    *root = state.clone();
-    fs::write(
-        state.join("installation.json"),
-        serde_json::to_vec(&serde_json::json!({
-            "schema": "conduit.install/durable-host@1",
-            "host_id": owner.host.advertisement().host_id.as_str(),
-            "release_source_identity": "source/test",
-            "release_bundle_sha256": format!("sha256:{}", "0".repeat(64)),
-            "product_executable": "fixture-unused",
-            "body_state": null,
-            "joined_body_state": null,
-            "selected_speech": null
-        }))
-        .unwrap(),
-    )
-    .unwrap();
-    owner.persist(&state).unwrap();
-    fs::write(
-        state.join("body/source.conduit"),
+    persist_fixture(
+        &mut runtime,
+        &state,
         include_str!("../../../../../plots/clock/main.conduit"),
-    )
-    .unwrap();
+    );
 
     let (client, plan, show) = attach_once(&mut runtime, &state, &token);
     let HostSource::Body { owner, .. } = &runtime.host else {
@@ -133,5 +113,88 @@ fn actual_terminal_seal_refuses_matching_ids_without_back_or_resource() {
     );
     drop(client);
     retire_closed_attachment(&state, &mut runtime).unwrap();
+    fs::remove_dir_all(state).unwrap();
+}
+
+fn persist_fixture(runtime: &mut DurableHostRuntime, state: &Path, source: &str) {
+    let HostSource::Body { owner, root, .. } = &mut runtime.host else {
+        unreachable!()
+    };
+    *root = state.to_path_buf();
+    fs::write(
+        state.join("installation.json"),
+        serde_json::to_vec(&serde_json::json!({
+            "schema": "conduit.install/durable-host@1",
+            "host_id": owner.host.advertisement().host_id.as_str(),
+            "release_source_identity": "source/test",
+            "release_bundle_sha256": format!("sha256:{}", "0".repeat(64)),
+            "product_executable": "fixture-unused",
+            "body_state": null,
+            "joined_body_state": null,
+            "selected_speech": null
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    owner.persist(state).unwrap();
+    fs::write(state.join("body/source.conduit"), source).unwrap();
+}
+
+#[test]
+fn attached_wake_retires_mask_before_start_and_cannot_replay() {
+    let source = include_str!("../../../../../plots/clock/main.conduit")
+        .replace("plot clock-demo", "plot terminal-wake");
+    let mut runtime = runtime_with_source(&source);
+    let state = state(&runtime);
+    persist_fixture(&mut runtime, &state, &source);
+    let (client, plan, show) = attach_once(&mut runtime, &state, &[7; 32]);
+    let HostSource::Body { owner, .. } = &runtime.host else {
+        unreachable!()
+    };
+    let face = owner.local_face_snapshot().unwrap();
+    let wake = face
+        .actions
+        .iter()
+        .find(|a| a.intent == "conduit.intent/wake@1")
+        .unwrap();
+    assert!(wake.availability.is_available());
+    let interaction =
+        FaceInteraction::new(&face, &show, &wake.identity, &wake.target, vec![], 1).unwrap();
+    let result = runtime
+        .attached_terminal_interaction(&plan, &show, interaction.clone())
+        .unwrap();
+    assert_eq!(result["play_state"], "preparing");
+    assert!(runtime.terminal_route.is_none());
+    assert!(!is_attached(&mut runtime));
+    assert!(matches!(
+        &runtime.host,
+        HostSource::Body {
+            running: Some(_),
+            ..
+        }
+    ));
+    assert!(runtime
+        .attached_terminal_interaction(&plan, &show, interaction)
+        .is_err());
+    drop(client);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        runtime.progress_owned_body().unwrap();
+        if matches!(&runtime.host, HostSource::Body { owner, .. } if owner.current_play_id().is_some())
+        {
+            break;
+        }
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(2));
+    }
+    runtime.request_owned_body_lull().unwrap();
+    loop {
+        runtime.progress_owned_body().unwrap();
+        if matches!(&runtime.host, HostSource::Body { running: None, .. }) {
+            break;
+        }
+        assert!(std::time::Instant::now() < deadline);
+        std::thread::sleep(std::time::Duration::from_millis(2));
+    }
     fs::remove_dir_all(state).unwrap();
 }

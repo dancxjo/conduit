@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "authenticated-admission")]
 mod browser_admission;
+#[cfg(test)]
+mod capacity_tests;
 mod continuity;
 mod flow;
 mod membership;
@@ -157,18 +159,21 @@ impl BodyLifecycleSession {
         if expected != wake_at_start {
             return Err(BodyLifecycleSessionError::StalePlay);
         }
-        let mut evidence = self.evidence.clone();
+        let mut next = self.clone();
+        next.make_lifecycle_room(0, 0)?;
+        let mut evidence = next.evidence.clone();
         evidence
             .append_wake(
                 evidence.body.clone(),
                 expected.clone(),
-                self.next_sequence()?,
+                next.next_sequence()?,
             )
             .map_err(BodyLifecycleSessionError::Biography)?;
-        self.evidence = evidence;
-        let realization = self.realization.as_mut().expect("validated realization");
+        next.evidence = evidence;
+        let realization = next.realization.as_mut().expect("validated realization");
         realization.wake = expected;
         realization.play = Some(play);
+        *self = next;
         Ok(())
     }
 
@@ -188,7 +193,10 @@ impl BodyLifecycleSession {
         if current.play.as_ref() != terminated_play {
             return Err(BodyLifecycleSessionError::StalePlay);
         }
-        let sequence = self.next_sequence()?;
+        let current = current.clone();
+        let mut next = self.clone();
+        next.make_lifecycle_room(1, 0)?;
+        let sequence = next.next_sequence()?;
         let retain_sequence = sequence
             .checked_add(1)
             .ok_or(BodyLifecycleSessionError::SequenceExhausted)?;
@@ -196,17 +204,18 @@ impl BodyLifecycleSession {
             .wake
             .lull(sign(host, boot, sequence))
             .map_err(BodyLifecycleSessionError::Lifecycle)?;
-        let body = self
+        let body = next
             .evidence
             .body
             .retain_after_lull(&wake, sign(host, boot, retain_sequence))
             .map_err(BodyLifecycleSessionError::Lifecycle)?;
-        let mut evidence = self.evidence.clone();
+        let mut evidence = next.evidence.clone();
         evidence
             .append_wake(body, wake, sequence)
             .map_err(BodyLifecycleSessionError::Biography)?;
-        self.evidence = evidence;
-        self.realization = None;
+        next.evidence = evidence;
+        next.realization = None;
+        *self = next;
         Ok(())
     }
 
@@ -243,7 +252,10 @@ impl BodyLifecycleSession {
         {
             return Err(BodyLifecycleSessionError::StalePlay);
         }
-        let plan_sequence = self.next_sequence()?;
+        let current = current.clone();
+        let mut next = self.clone();
+        next.make_lifecycle_room(1, 0)?;
+        let plan_sequence = next.next_sequence()?;
         let failure_sequence = plan_sequence
             .checked_add(1)
             .ok_or(BodyLifecycleSessionError::SequenceExhausted)?;
@@ -257,17 +269,18 @@ impl BodyLifecycleSession {
                 wake.fail_with_rejections(sign(host, boot, failure_sequence), rejections)
             })
             .map_err(BodyLifecycleSessionError::Lifecycle)?;
-        let body = self
+        let body = next
             .evidence
             .body
             .retain_after_lull(&wake, sign(host, boot, retain_sequence))
             .map_err(BodyLifecycleSessionError::Lifecycle)?;
-        let mut evidence = self.evidence.clone();
+        let mut evidence = next.evidence.clone();
         evidence
             .append_wake(body, wake, plan_sequence)
             .map_err(BodyLifecycleSessionError::Biography)?;
-        self.evidence = evidence;
-        self.realization = None;
+        next.evidence = evidence;
+        next.realization = None;
+        *self = next;
         Ok(())
     }
 
@@ -353,46 +366,13 @@ impl BodyLifecycleSession {
         body_signs: usize,
         wakes: usize,
     ) -> Result<(), BodyLifecycleSessionError> {
-        while self.evidence.body.sign_ids.len().saturating_add(body_signs) > crate::MAX_BODY_SIGNS
-            || self.evidence.wakes.len().saturating_add(wakes) > crate::MAX_BODY_BIOGRAPHY_WAKES
-            || self.evidence.records.len().saturating_add(5) > crate::MAX_BODY_BIOGRAPHY_RECORDS
-        {
-            if self.pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
-                return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
-            }
-            let segment = self
-                .evidence
-                .seal_oldest_terminal_wake()
-                .map_err(BodyLifecycleSessionError::Biography)?;
-            let segment = match segment {
-                Some(segment) => Some(segment),
-                None => self
-                    .evidence
-                    .seal_body_workload_history()
-                    .map_err(BodyLifecycleSessionError::Biography)?,
-            };
-            let segment = match segment {
-                Some(segment) => Some(segment),
-                None => self
-                    .evidence
-                    .seal_membership_history()
-                    .map_err(BodyLifecycleSessionError::Biography)?,
-            };
-            let segment = match segment {
-                Some(segment) => Some(segment),
-                None => self
-                    .evidence
-                    .seal_name_history()
-                    .map_err(BodyLifecycleSessionError::Biography)?,
-            };
-            let Some(segment) = segment else {
-                return Err(BodyLifecycleSessionError::Biography(
-                    BodyBiographyError::CapacityExhausted,
-                ));
-            };
-            self.pending_archives.push(segment);
-        }
-        Ok(())
+        make_history_room(
+            &mut self.evidence,
+            &mut self.pending_archives,
+            body_signs,
+            wakes,
+            5,
+        )
     }
 
     fn make_membership_room(&mut self, events: usize) -> Result<(), BodyLifecycleSessionError> {
@@ -416,6 +396,53 @@ impl BodyLifecycleSession {
         self.pending_archives.push(segment);
         Ok(())
     }
+}
+
+// The same bounded archive transaction protects both normal termination and
+// restart reconciliation. Returned segments remain explicit persistence debts.
+fn make_history_room(
+    evidence: &mut BodyBiographyEvidence,
+    pending_archives: &mut Vec<BodyBiographyArchiveSegment>,
+    body_signs: usize,
+    wakes: usize,
+    records: usize,
+) -> Result<(), BodyLifecycleSessionError> {
+    while evidence.body.sign_ids.len().saturating_add(body_signs) > crate::MAX_BODY_SIGNS
+        || evidence.wakes.len().saturating_add(wakes) > crate::MAX_BODY_BIOGRAPHY_WAKES
+        || evidence.records.len().saturating_add(records) > crate::MAX_BODY_BIOGRAPHY_RECORDS
+    {
+        if pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
+            return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
+        }
+        let segment = evidence
+            .seal_oldest_terminal_wake()
+            .map_err(BodyLifecycleSessionError::Biography)?;
+        let segment = match segment {
+            Some(segment) => Some(segment),
+            None => evidence
+                .seal_body_workload_history()
+                .map_err(BodyLifecycleSessionError::Biography)?,
+        };
+        let segment = match segment {
+            Some(segment) => Some(segment),
+            None => evidence
+                .seal_membership_history()
+                .map_err(BodyLifecycleSessionError::Biography)?,
+        };
+        let segment = match segment {
+            Some(segment) => Some(segment),
+            None => evidence
+                .seal_name_history()
+                .map_err(BodyLifecycleSessionError::Biography)?,
+        };
+        let Some(segment) = segment else {
+            return Err(BodyLifecycleSessionError::Biography(
+                BodyBiographyError::CapacityExhausted,
+            ));
+        };
+        pending_archives.push(segment);
+    }
+    Ok(())
 }
 
 fn sign(host: &HostId, boot: &BootId, sequence: u64) -> SignId {

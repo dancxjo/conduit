@@ -54,17 +54,73 @@ pub(super) enum HostCommand {
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,
+        /// Explicit authored Source closure to specialize the selected firmware.
+        #[arg(long, requires = "workset_entry")]
+        workset_source: Option<PathBuf>,
+        #[arg(long, requires = "workset_source")]
+        workset_entry: Vec<String>,
+        /// Captured typed compilation selections pinned to the authored Source.
+        #[arg(long, requires = "workset_source")]
+        workset_specializations: Option<PathBuf>,
+        /// Private local invitation/owner pin input, never part of public artifacts.
+        #[arg(long, requires = "private_seed_output")]
+        private_seed_input: Option<PathBuf>,
+        /// New private UF2 containing only the reserved immutable Seed sector.
+        #[arg(long, requires = "private_seed_input")]
+        private_seed_output: Option<PathBuf>,
     },
-    /// Compile and seal the reviewed generic existing-computer release bundles.
+    /// Prepare a checked RP2040 joining Seed for installation, without flashing.
+    PrepareSeed {
+        package: PathBuf,
+        /// Independently retained receipt from the Body's export operation.
+        #[arg(long)]
+        export_receipt: PathBuf,
+        /// Actual physical UID and independently selected current owner peer.
+        #[arg(
+            long,
+            required_unless_present = "retained_member",
+            conflicts_with = "retained_member"
+        )]
+        pins: Option<PathBuf>,
+        /// Existing Make private input with retained credential/key and physical/owner pins.
+        /// Uses ordinary member return instead of the package's first-admission invitation.
+        #[arg(long)]
+        retained_member: Option<PathBuf>,
+        /// New private directory; existing output is never overwritten.
+        #[arg(long)]
+        output: PathBuf,
+    },
+    /// Compile and seal an existing-computer release or one checked native Host.
     Release {
         #[arg(long, default_value = "target/creche-host-releases")]
         output: PathBuf,
         /// Native platform to compile on this runner.
         #[arg(long, value_enum, default_value_t = host_release::ReleasePlatform::Linux)]
         platform: host_release::ReleasePlatform,
+        /// Canonical checked Host Source; derives exact native target and features.
+        #[arg(long)]
+        configuration: Option<PathBuf>,
+        /// Target SDK library directories for a checked native build; no runtime rpath.
+        #[arg(long = "native-library-directory")]
+        native_library_directories: Vec<PathBuf>,
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,
+    },
+    /// Seal an operator-selected existing native executable without claiming a checked native compilation.
+    ReleaseArtifact {
+        #[arg(long)]
+        configuration: PathBuf,
+        #[arg(long)]
+        image: PathBuf,
+        #[arg(long)]
+        executable: PathBuf,
+        /// Exact independently reviewed executable SHA256 (with or without sha256:).
+        #[arg(long)]
+        sha256: String,
+        /// New output directory; existing artifacts are never overwritten.
+        #[arg(long)]
+        output: PathBuf,
     },
     /// Seal reviewed release manifests into the installed target catalog.
     ReleaseCatalog {
@@ -277,6 +333,32 @@ mod tests {
     struct Cli {
         #[command(flatten)]
         host: HostArgs,
+    }
+
+    #[test]
+    fn seed_preparation_requires_one_explicit_membership_entrance() {
+        let base = [
+            "host",
+            "prepare-seed",
+            "seed.zip",
+            "--export-receipt",
+            "export.json",
+            "--output",
+            "new-private",
+        ];
+        assert!(Cli::try_parse_from(base).is_err());
+        assert!(Cli::try_parse_from(base.into_iter().chain(["--pins", "pins.json"])).is_ok());
+        assert!(
+            Cli::try_parse_from(base.into_iter().chain(["--retained-member", "member.json"]))
+                .is_ok()
+        );
+        assert!(Cli::try_parse_from(base.into_iter().chain([
+            "--pins",
+            "pins.json",
+            "--retained-member",
+            "member.json"
+        ]))
+        .is_err());
     }
 
     #[test]

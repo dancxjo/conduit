@@ -1,12 +1,13 @@
 //! A reusable clock-only Play, driven by the containing machine's bounded quanta.
 //! This owns no delay policy; callers submit exact absolute clock requests.
-use super::{contract::*, dispatch::PreparedClockDispatch, installation::*, owner::*};
+use super::{dispatch::PreparedClockDispatch, installation::*};
 use crate::{
     protocol_host_calls::ProtocolCallRefusal, protocol_source::*,
     usb_base::hid_source_kernel::PreparedUsbSourceKernel,
 };
 use alloc::{collections::BTreeMap, vec, vec::Vec};
 use conduit_core::*;
+use conduit_monotonic_wait::clock_at::{contract::*, owner::*};
 
 #[derive(Debug)]
 pub enum ClockPlayRefusal {

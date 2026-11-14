@@ -3,6 +3,10 @@ mod controller;
 #[cfg(test)]
 pub(crate) use controller::published_todo_test_fixture;
 mod image;
+mod member_presentation;
+mod membership_receipt_document;
+pub(crate) use member_presentation::MemberPresentationBasis;
+pub(crate) use membership_receipt_document::MembershipReceiptDocument;
 mod native_observation;
 mod retained_source;
 mod state;
@@ -10,6 +14,13 @@ use conduit_body::ResidentPlot;
 use conduit_plot::ActivationSyntax;
 #[cfg(unix)]
 pub(crate) use controller::run_service_window;
+pub(crate) use controller::serve_member_presence;
+#[cfg(test)]
+pub(crate) use controller::serve_with_carrier;
+#[cfg(test)]
+pub(crate) use controller::serve_with_dispatch;
+#[cfg(target_os = "linux")]
+pub(crate) use controller::OwnedForeLineSelection;
 pub(crate) use controller::{
     clock_interval_action, is_clock_control_intent, BrowserAdmittedSnapshot,
     BrowserCarrierLineEvidence, BrowserWindowAuthorization, ClockAction, DirectSpokenStart,
@@ -29,6 +40,24 @@ const MAXIMUM_ADMISSION_REQUEST: u64 = super::MAXIMUM_BODY_ADMISSION_BYTES;
 pub(super) fn recover_retained_state(root: &Path) -> Result<(), String> {
     state::recover(root)
 }
+/// Select an exact old biography under exclusive OS continuity ownership;
+/// only the ordinary trusted restart transition may advance that basis before
+/// this one local File policy is consumed. No network proposal selects it.
+#[cfg(target_os = "linux")]
+pub(crate) fn resume_selected_source_service(
+    host: conduit_std_host::StdHost,
+    root: &Path,
+    expected: &conduit_body::BodyBiographyEvidence,
+) -> Result<(Owner, conduit_body::BodyBiographyEvidence), String> {
+    let retained = state::load(root)?.ok_or("selected File has no retained Body")?;
+    if &retained != expected {
+        return Err("selected File revision differs from exact retained Body basis".into());
+    }
+    let owner = resume_service(host, root)?;
+    let resumed = owner.selected_source_current_basis();
+    Ok((owner, resumed))
+}
+
 pub(crate) fn resume_service(
     host: conduit_std_host::StdHost,
     root: &Path,
@@ -219,6 +248,11 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                 .map(str::to_owned);
         super::write_json_atomic(&root.join("runtime.json"), &status)?;
         super::write_bytes_atomic(&root.join("body/source.conduit"), &source_bytes)?;
+        // Subsequent Plan/Run requests independently recheck retained Source.
+        // Retire this startup parse/catalog before another preparation begins.
+        drop(checked);
+        drop(canonical_source);
+        drop(source_bytes);
         emit(&owner.truth())?;
         let stdin = std::io::stdin();
         let mut input = stdin.lock();
@@ -286,11 +320,11 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                             let receipt = owner.admit_invited(&root, request, &expected_host_id)?;
                             emit(&serde_json::to_value(receipt).map_err(|e| e.to_string())?)?;
                         }
-                        Request::Plan => owner.plan_with_source(&canonical_source, &checked)?,
+                        Request::Plan => owner.plan_retained(&root)?,
                         Request::Run { maximum_millis } => {
                             owner.persist(&root)?;
                             state::require_execution_capacity(&root)?;
-                            owner.execute(maximum_millis)?;
+                            owner.execute_prepared(&root, maximum_millis)?;
                         }
                         Request::Lull => owner.lull()?,
                         Request::Close => {
@@ -340,6 +374,3 @@ pub(crate) use member_return_document::MemberReturnProofDocument;
 
 #[cfg(test)]
 pub(crate) use controller::member_return_owner_fixture;
-
-mod member_presentation;
-pub(crate) use member_presentation::MemberPresentationBasis;

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-resource-snapshot = { path = "../../mechanisms/io/resource-snapshot", default-features = false }
 conduit-kernel = { path = "../../architecture/kernel", optional = true, features = ["step-test-support"] }
 conduit-alife = { path = "../alife" }
 conduit-audio = { path = "../audio" }
@@ -29,6 +30,8 @@ conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
 conduit-planner = { path = "../../architecture/planner" }
 
 [features]
+execution-workspace = ["kernel-step", "conduit-kernel/execution-workspace"]
+schema-value-storage = ["kernel-step", "conduit-kernel/schema-value-storage", "conduit-plan-lowering/schema-value-storage"]
 kernel-step = ["dep:conduit-kernel"]
 prepared-expression-session = ["kernel-step", "conduit-kernel/alloc"]
 default = ["plot-catalog"]

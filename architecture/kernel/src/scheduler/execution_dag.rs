@@ -12,7 +12,9 @@ impl<
         const T: usize,
         const H: usize,
         const A: usize,
-    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>
+        const TERMINAL_ROWS: usize,
+        const PHASE_BYTES: usize,
+    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
 where
     D: StepBack<P>,
     S: ValueStorage,

@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 use std::time::{Duration, Instant};
 
 mod admission;
+mod image;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
 pub struct CrecheLimits {
@@ -126,12 +127,33 @@ enum Phase {
     Retired,
 }
 
+// Keep the reference path's existing inline ownership; boxing would add a
+// new allocation merely to represent a borrowed preparation.
+#[allow(clippy::large_enum_variant)]
+enum ExecutionContext<'a> {
+    Owned(CrecheExecutionContext),
+    Borrowed(&'a CrecheExecutionContext),
+}
+impl core::ops::Deref for ExecutionContext<'_> {
+    type Target = CrecheExecutionContext;
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Self::Owned(context) => context,
+            Self::Borrowed(context) => context,
+        }
+    }
+}
+
 /// Lives outside BodyKernel so every failure path can drain platform effects
 /// before the kernel's terminal cancellation. Drop is a last-resort drain attempt;
 /// callers must use `retire` and propagate its failure before kernel retirement.
 pub struct CrecheHost<'a> {
     adapter: &'a mut dyn HostedCrecheAdapter,
-    context: CrecheExecutionContext,
+    image_memory: Option<(
+        crate::body_execution::ImageMemoryRetention,
+        crate::body_execution::ImageMemoryRetention,
+    )>,
+    context: ExecutionContext<'a>,
     request: CrecheRequest,
     phase: Phase,
     polls: u32,
@@ -153,14 +175,39 @@ impl<'a> CrecheHost<'a> {
         plan: &BodyPlan,
         prospective: &BodyPlayIdentity,
     ) -> Result<Self, (String, bool)> {
+        let context = admission::context(
+            host,
+            plan,
+            prospective,
+            adapter.resource_offer(),
+            adapter.limits(),
+        )
+        .map(ExecutionContext::Owned);
+        Self::prepare_context(adapter, context)
+    }
+
+    /// Borrow an already validated immutable context without cloning its Plan
+    /// or advertisement. Borrowing an IMAGE-prepared value keeps its original
+    /// charge alive for this entire owner lifetime. The adapter's own preparation
+    /// workspace and effects still require independent admission and custody.
+    /// A prospective context never permits begin before actual Play confirmation.
+    pub fn prepare_from_context(
+        adapter: &'a mut dyn HostedCrecheAdapter,
+        context: &'a CrecheExecutionContext,
+    ) -> Result<Self, String> {
+        Self::prepare_context(adapter, Ok(ExecutionContext::Borrowed(context)))
+            .map_err(|(error, _)| error)
+    }
+
+    fn prepare_context(
+        adapter: &'a mut dyn HostedCrecheAdapter,
+        context: Result<ExecutionContext<'a>, String>,
+    ) -> Result<Self, (String, bool)> {
         let prepared = (|| {
-            let context = admission::context(
-                host,
-                plan,
-                prospective,
-                adapter.resource_offer(),
-                adapter.limits(),
-            )?;
+            let context = context?;
+            if adapter.resource_offer() != context.resource || adapter.limits() != context.limits {
+                return Err("Crèche context differs from its current adapter".into());
+            }
             let reviewed = adapter.prepare(&context)?;
             if adapter.resource_offer() != context.resource || adapter.limits() != context.limits {
                 return Err("Crèche preparation changed its admitted resource or limits".into());
@@ -171,6 +218,7 @@ impl<'a> CrecheHost<'a> {
         match prepared {
             Ok((context, request)) => Ok(Self {
                 adapter,
+                image_memory: None,
                 context,
                 request,
                 phase: Phase::Prepared,
@@ -186,6 +234,9 @@ impl<'a> CrecheHost<'a> {
                 )),
             },
         }
+    }
+    pub(crate) fn image_prepared(&self) -> bool {
+        self.image_memory.is_some()
     }
     pub fn request(&self) -> CrecheRequest {
         self.request

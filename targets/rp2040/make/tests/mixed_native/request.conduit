@@ -1,0 +1,5 @@
+with machine/i2c/transact/request as Request
+
+plot request (
+    request: Request...| >> result: Request...|
+) = (.)

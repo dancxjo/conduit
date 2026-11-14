@@ -46,6 +46,8 @@ conduit-robotics = { path = "../../semantics/robotics" }
 conduit-create-oi = { path = "../../mechanisms/devices/create-oi" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-host-make = { path = "../../make/host" }
+conduit-host-rp2040 = { path = "../../targets/rp2040/make" }
+conduit-rp2040-flash-layout = { path = "../../targets/rp2040/flash-layout" }
 conduit-embedded-build = { path = "../../make/embedded-build" }
 conduit-workspace-make = { path = "../../make/workspace" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }

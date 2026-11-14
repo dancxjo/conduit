@@ -34,7 +34,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .any(|placement| !placement.authority.is_empty()));
 
     let authorized = owner
-        .browser_authorize_window(host_id.as_str(), Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some(host_id.as_str()), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let Out::Challenge { challenge, .. } = owner
         .browser_begin(
@@ -74,7 +74,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         maximum_in_flight_items: 1,
         maximum_payload_bytes: 64 * 1024,
         maximum_buffered_bytes: 128 * 1024,
-        maximum_frame_bytes: 8 * 1024,
+        maximum_frame_bytes: 64 * 1024,
     };
     // Full SHA-length carrier identifiers retain realistic positive-envelope
     // pressure; the deliberately oversized seal below checks refusal separately.
@@ -237,20 +237,38 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .clear();
     assert!(seal.validate_mask_host_offer(&wrong_offer).is_err());
 
-    let receipt = conduit_body::PortableAdmissionReceipt {
-        schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
-        credential: snapshot.credential.clone(),
-        host_advertisement: native_offer.clone(),
-        membership_admitted: true,
-        current_offers_available: false,
-        plan_created: false,
-        play_created: false,
-    };
+    let receipt = crate::durable_host::owner::MemberPresentationBasis::new(
+        snapshot.credential.clone(),
+        native_offer.clone(),
+    )
+    .unwrap();
     let expires = crate::durable_host::current_time_millis().unwrap() + 60_000;
     let selected = owner
         .seal_native_mask_route(&receipt, &face_line, &return_line, expires)
         .unwrap();
-    assert_eq!(selected, seal);
+    // The owner now seals the actual supplied Fore Lines into the native Plan;
+    // the earlier unbound schema seal is deliberately a different Plan.
+    assert_eq!(selected.face_id, seal.face_id);
+    let fore = &selected.planned_mask.plan.fragments[0].fore_ports;
+    for (port, line) in [
+        (
+            &selected.planned_mask.mask.face_input.front_port_id,
+            &face_line,
+        ),
+        (
+            &selected.planned_mask.mask.show_output.front_port_id,
+            &return_line,
+        ),
+    ] {
+        assert_eq!(
+            fore.iter()
+                .find(|f| &f.front_port_id == port)
+                .unwrap()
+                .selected_line
+                .as_ref(),
+            Some(&line.admitted_line())
+        );
+    }
     let mut forged_receipt = receipt.clone();
     forged_receipt.host_advertisement = wrong_offer;
     assert_eq!(
@@ -318,7 +336,8 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .is_err());
     let inspected = owner.owner_wardrobe_report(None, 0, None).unwrap();
     assert_eq!(inspected["owner_plan_id"], serde_json::json!(plan_id));
-    assert_eq!(inspected["wardrobe_revision_decimal"], "0");
+    // The explicit native request has already selected this permitted route.
+    assert_eq!(inspected["wardrobe_revision_decimal"], "1");
     assert_eq!(
         inspected["route_descriptions"][0]["mask_name"],
         "native-graphical"
@@ -326,14 +345,14 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
     assert!(owner
         .owner_wardrobe_report(
             Some(&conduit_core::PlanId::from("plan/stale")),
-            0,
+            1,
             Some(conduit_face::MaskWardrobeAction::Doff(native_mask.clone())),
         )
         .is_err());
     owner
         .owner_wardrobe_report(
             Some(&plan_id),
-            0,
+            1,
             Some(conduit_face::MaskWardrobeAction::Doff(native_mask.clone())),
         )
         .unwrap();
@@ -341,14 +360,14 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
     assert!(owner
         .owner_wardrobe_report(
             Some(&plan_id),
-            0,
+            1,
             Some(conduit_face::MaskWardrobeAction::Wear(native_mask.clone())),
         )
         .is_err());
     owner
         .owner_wardrobe_report(
             Some(&plan_id),
-            1,
+            2,
             Some(conduit_face::MaskWardrobeAction::Wear(native_mask)),
         )
         .unwrap();
@@ -408,7 +427,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .resources
         .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     let browser = owner
-        .browser_authorize_window("host/browser-control", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-control"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let browser_binding = LinkBindingId::from("line/test/browser-control");
     let Out::Challenge { challenge, .. } = owner
@@ -574,7 +593,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
 fn exercise_independent_component_selection(
     owner: &mut Owner,
     request: &conduit_face::OwnerFaceSnapshotRequest,
-    receipt: &conduit_body::PortableAdmissionReceipt,
+    receipt: &crate::durable_host::owner::MemberPresentationBasis,
     mut previous: conduit_face::MaskShow,
 ) {
     use conduit_face::{ComponentMaskLook as Look, TodoComponentRecipe as Recipe};

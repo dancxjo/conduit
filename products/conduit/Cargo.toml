@@ -4,7 +4,22 @@ version = "0.1.0"
 edition = "2021"
 default-run = "conduit"
 
+[features]
+# Explicit diagnostics only; no memory grant or containment guarantee.
+root-allocation-observation = []
+default = []
+native-display = ["dep:conduit-linux-display", "conduit-std-host/linux-display"]
+base-linear-framebuffer = ["native-display"]
+# These hosted mechanisms are already compiled unconditionally. Keep Make's
+# explicit selection vocabulary without activating unrelated adapters.
+base-clock = []
+base-timer = []
+base-serial = []
+base-protected-file = []
+
 [dependencies]
+conduit-dht11-observation = { path = "../../mechanisms/devices/dht11" }
+base64 = { version = "0.22.1", default-features = false }
 conduit-commons-plot = { path = "../../plots/commons" }
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }
@@ -12,6 +27,7 @@ conduit-ai = { path = "../../semantics/ai" }
 conduit-core = { path = "../../architecture/core" }
 conduit-body = { path = "../../architecture/body" }
 conduit-body-make = { path = "../../make/body" }
+conduit-embedded-build = { path = "../../make/embedded-build" }
 conduit-birth-plot = { path = "../../plots/birth" }
 conduit-chat = { path = "../../semantics/chat", features = ["plot-catalog"] }
 conduit-plot = { path = "../../architecture/plot" }
@@ -21,6 +37,10 @@ conduit-thermostat-face = { path = "../../plots/thermostat/face" }
 conduit-thermostat-plot = { path = "../../plots/thermostat/model" }
 conduit-todo-face = { path = "../../plots/todo/face" }
 conduit-host-make = { path = "../../make/host" }
+conduit-i2c-transaction = { path = "../../mechanisms/io/i2c-transaction" }
+conduit-pulse-capture = { path = "../../mechanisms/io/pulse-capture", features = ["plot-catalog"] }
+conduit-tm1637-wire = { path = "../../mechanisms/io/tm1637", features = ["host-call"] }
+conduit-environment-runtime = { path = "../../bodies/environment/runtime", features = ["source-capture"] }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-language = { path = "../../semantics/language" }
 conduit-data = { path = "../../semantics/data" }
@@ -54,7 +74,11 @@ getrandom = "0.3"
 sha2 = "0.10"
 socket2 = "0.6"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+conduit-linux-display = { path = "../../targets/std/display", optional = true, features = ["sdl"] }
+
 [dev-dependencies]
+miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"] }
 conduit-composite = { path = "../../architecture/composite" }
 conduitos = { path = "../../targets/conduitos", features = ["native-compositor"] }
 rcgen = "0.14"

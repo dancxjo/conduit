@@ -1,7 +1,13 @@
 //! Finite fixed-integer/boolean tape; lowering happens before evaluation.
 use super::*;
 pub(super) const MAXIMUM_INSTRUCTIONS: usize = 128;
+pub(in crate::expression_prepared) mod projected;
 mod static_image;
+pub use projected::{
+    generate_static_projected_expression, StaticProjectedExpression,
+    StaticProjectedGenerationRefusal, StaticProjectedInput, StaticProjectedProgram,
+    StaticProjectedRefusal, StaticProjectedSource,
+};
 pub use static_image::{generate_static_scalar_expression, StaticScalarExpression};
 pub(super) struct ScalarTape {
     instructions: Cow<'static, [ScalarTapeInstruction]>,
@@ -52,6 +58,8 @@ pub enum ScalarTapeOperation {
     Input,
     Literal(Cow<'static, [u8]>),
     Unary(UnaryOperator, usize),
+    /// Exact whole-domain integer widening selected by checked preparation.
+    Widen(usize),
     Binary(BinaryOperator, bool, usize, usize),
     BranchFalse(usize, usize),
     Jump(usize),
@@ -78,12 +86,20 @@ pub(super) fn supported(kind: PrimitiveInfoKind) -> bool {
 }
 impl ScalarTape {
     pub(super) fn prepare(root: &PreparedNode) -> Result<Self, Refusal> {
+        Self::prepare_with_inputs(root, &mut |_, _| {
+            Err(Refusal::UnsupportedType("scalar-tape/operation@1".into()))
+        })
+    }
+    fn prepare_with_inputs(
+        root: &PreparedNode,
+        external: &mut impl FnMut(usize, &PreparedNode) -> Result<Operation, Refusal>,
+    ) -> Result<Self, Refusal> {
         let mut tape = Self {
             instructions: Cow::Owned(Vec::with_capacity(MAXIMUM_INSTRUCTIONS)),
             result: 0,
             scratch: ScratchProfile::Maximum,
         };
-        tape.result = tape.lower(root)?;
+        tape.result = tape.lower(root, external)?;
         tape.scratch = ScratchProfile::prepare(tape.instructions.len());
         Ok(tape)
     }
@@ -101,7 +117,11 @@ impl ScalarTape {
         });
         Ok(slot)
     }
-    fn lower(&mut self, node: &PreparedNode) -> Result<usize, Refusal> {
+    fn lower(
+        &mut self,
+        node: &PreparedNode,
+        external: &mut impl FnMut(usize, &PreparedNode) -> Result<Operation, Refusal>,
+    ) -> Result<usize, Refusal> {
         if !supported(node.kind) {
             return Err(Refusal::UnsupportedType(
                 "scalar-tape/fixed-integer-bool@1".into(),
@@ -112,8 +132,9 @@ impl ScalarTape {
             PreparedOperation::Literal(bytes) if bytes.len() <= 16 => {
                 Operation::Literal(Cow::Owned(bytes.clone()))
             }
+            PreparedOperation::Widen(operand) => Operation::Widen(self.lower(operand, external)?),
             PreparedOperation::Unary { operator, operand } => {
-                Operation::Unary(*operator, self.lower(operand)?)
+                Operation::Unary(*operator, self.lower(operand, external)?)
             }
             PreparedOperation::Binary {
                 operator,
@@ -123,28 +144,36 @@ impl ScalarTape {
             } => {
                 // The portable hint alone carries no retained range witness.
                 // Bind checked arithmetic, including for valid proven programs.
-                Operation::Binary(*operator, false, self.lower(left)?, self.lower(right)?)
+                Operation::Binary(
+                    *operator,
+                    false,
+                    self.lower(left, external)?,
+                    self.lower(right, external)?,
+                )
             }
             PreparedOperation::Conditional {
                 condition,
                 when_true,
                 when_false,
             } => {
-                let condition = self.lower(condition)?;
+                let condition = self.lower(condition, external)?;
                 let result = self.push(node.kind, Operation::BranchFalse(condition, 0))?;
-                let yes = self.lower(when_true)?;
+                let yes = self.lower(when_true, external)?;
                 let yes_move = self.push(node.kind, Operation::Move(yes))?;
                 self.instructions.to_mut()[yes_move].destination = result;
                 let jump = self.push(node.kind, Operation::Jump(0))?;
                 let no_start = self.instructions.len();
                 self.instructions.to_mut()[result].operation =
                     Operation::BranchFalse(condition, no_start);
-                let no = self.lower(when_false)?;
+                let no = self.lower(when_false, external)?;
                 let no_move = self.push(node.kind, Operation::Move(no))?;
                 self.instructions.to_mut()[no_move].destination = result;
                 self.instructions.to_mut()[jump].operation =
                     Operation::Jump(self.instructions.len());
                 return Ok(result);
+            }
+            PreparedOperation::Projection(_) | PreparedOperation::Inspection(_) => {
+                external(self.instructions.len(), node)?
             }
             _ => return Err(Refusal::UnsupportedType("scalar-tape/operation@1".into())),
         };
@@ -161,14 +190,23 @@ impl ScalarTape {
         input: &'a [u8],
         input_kind: Option<PrimitiveInfoKind>,
     ) -> Result<PrimitiveValue<'a>, Refusal> {
-        match self.scratch {
-            ScratchProfile::Tiny => self.evaluate_slots::<4>(input, input_kind),
-            ScratchProfile::Small => self.evaluate_slots::<8>(input, input_kind),
-            ScratchProfile::Medium => self.evaluate_slots::<32>(input, input_kind),
-            ScratchProfile::Large => self.evaluate_slots::<64>(input, input_kind),
-            ScratchProfile::Maximum => {
-                self.evaluate_slots::<MAXIMUM_INSTRUCTIONS>(input, input_kind)
+        self.evaluate_with_inputs(&|_, kind| {
+            if input_kind != Some(kind) {
+                return Err(Refusal::InvalidProgram);
             }
+            PrimitiveValue::borrowed(kind, input)
+        })
+    }
+    fn evaluate_with_inputs<'a>(
+        &'a self,
+        inputs: &impl Fn(usize, PrimitiveInfoKind) -> Result<PrimitiveValue<'a>, Refusal>,
+    ) -> Result<PrimitiveValue<'a>, Refusal> {
+        match self.scratch {
+            ScratchProfile::Tiny => self.evaluate_slots::<4>(inputs),
+            ScratchProfile::Small => self.evaluate_slots::<8>(inputs),
+            ScratchProfile::Medium => self.evaluate_slots::<32>(inputs),
+            ScratchProfile::Large => self.evaluate_slots::<64>(inputs),
+            ScratchProfile::Maximum => self.evaluate_slots::<MAXIMUM_INSTRUCTIONS>(inputs),
         }
     }
     // Keep each fixed array in its own stack frame. Inlining a maximum-size
@@ -176,8 +214,7 @@ impl ScalarTape {
     #[inline(never)]
     fn evaluate_slots<'a, const SLOTS: usize>(
         &'a self,
-        input: &'a [u8],
-        input_kind: Option<PrimitiveInfoKind>,
+        inputs: &impl Fn(usize, PrimitiveInfoKind) -> Result<PrimitiveValue<'a>, Refusal>,
     ) -> Result<PrimitiveValue<'a>, Refusal> {
         let mut slots: [Option<PrimitiveValue<'a>>; SLOTS] = core::array::from_fn(|_| None);
         let mut pc = 0;
@@ -190,14 +227,12 @@ impl ScalarTape {
                     .ok_or(Refusal::InvalidProgram)
             };
             let value = match &instruction.operation {
-                Operation::Input => {
-                    if input_kind != Some(instruction.kind) {
-                        return Err(Refusal::InvalidProgram);
-                    }
-                    PrimitiveValue::borrowed(instruction.kind, input)?
-                }
+                Operation::Input => inputs(pc, instruction.kind)?,
                 Operation::Literal(bytes) => PrimitiveValue::borrowed(instruction.kind, bytes)?,
                 Operation::Unary(op, index) => evaluate_unary(*op, instruction.kind, get(*index)?)?,
+                Operation::Widen(index) => {
+                    primitive::evaluate_widen(instruction.kind, get(*index)?)?
+                }
                 Operation::Binary(op, proven, left, right) => {
                     evaluate_binary(*op, *proven, instruction.kind, get(*left)?, get(*right)?)?
                 }

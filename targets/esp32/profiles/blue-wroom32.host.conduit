@@ -1,0 +1,30 @@
+# Physical construction; Root must initialize and admit the exact workset.
+# Shared Source declares 18624 Mask bytes; these are representation ceilings,
+# not extra arena RAM. Assignment input remains 18 KiB. The 116 KiB heap
+# includes the retained 8 KiB continuation prefix and is physically backed by
+# 96 KiB secondary + 20 KiB primary DRAM; the 224 KiB static ceiling includes both.
+host blue-wroom32 {
+  schema = 1
+  # Recording has finite preparation ceilings; physical heap/work bounds stay below.
+  # The measured full native Show fits its separately checked 2048-byte envelope.
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 38912}
+  # Declared ASG state totals 37121 bytes on Blue (under 38912).
+  # Its prepared group is 79702 bytes; complete services reach 98937 bytes.
+  # Allow at most 100 KiB for backing and admission bookkeeping within the
+  # unchanged physical heap; each actual admission remains checked.
+  # Explicit local continuation opt-in: signed installed intent plus fresh full admission required.
+  execution = {authorizer: "seed-owner", maximum_active_worksets: 1, continuation: {assignment_bytes: 18432, runtime_bytes: 102400, durable_bytes: 655360, operation_slots: 16, active_worksets: 1}}
+  target = {architecture: "xtensa-lx6", machine: "hw-463-esp-wroom-32", board: "hw-463-esp-wroom-32", make_descriptor: "sha256:3015c678e54e8ae4dc1d0552a30ebdcb118b5c55dfa372252a8a5b86847dc255"}
+  # Finite flash residence; these bytes are not a RAM need or write permission.
+  base = {kind: "resource/nor-record-residence", implementation: "esp32/nor-record-append@1", initialization: {prefix_bytes: 8192, slots: 1264}}
+  base = {kind: "serial/text", implementation: "esp32/uart0@1", initialization: {tx: 1, rx: 3, baud: 115200}}
+  base = {kind: "clock/monotonic", implementation: "esp32/monotonic-clock@1", initialization: {maximum_duration_ms: 60000, slots: 4}}
+  base = {kind: "sensor/environment", implementation: "esp32/dht11@1", initialization: {data: 27, start_low_us: 20000, maximum_transaction_us: 50000, maximum_interrupt_exclusion_us: 20000}}
+  base = {kind: "display/segmented", implementation: "esp32/tm1637@1", initialization: {clk: 18, dio: 19, brightness: 3, half_period_us: 50, settled_us: 100, maximum_clock_rise_us: 1000, maximum_transaction_us: 100000, pull: "up"}}
+  # Finite Face/Show envelopes also bound opaque Value queue planning.
+  # Six shared-reference Mask queues fit the existing 24576-byte ceiling.
+  base = {kind: "face/renderer", implementation: "esp32/seven-segment-renderer@1", initialization: {face_bytes: 3072, show_bytes: 2048, resource_bytes: 24576, maximum_frames: 65535, page_period_ms: 2000, show_lifetime_ms: 120000, temperature_unit: "fahrenheit"}}
+  need = {id: "pool/resident-step-work", class: "kernel/cooperative-step-work@1", slots: 5000, bytes: 16384}
+  # Recording adds two finite cord-value slots; byte/work/arena grants stay explicit above.
+  limits = {static_memory_bytes: 229376, heap_arena_bytes: 118784, queue_items: 18, buffered_bytes: 24576, active_instances: 32, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
+}

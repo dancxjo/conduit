@@ -16,6 +16,8 @@ const CLASS: &str = "conduit.resource/compute/shared-lane@1";
 
 #[path = "resource_admission/batch.rs"]
 mod batch;
+#[path = "resource_admission/borrowed_release.rs"]
+mod borrowed_release;
 #[path = "resource_admission/fallible.rs"]
 mod fallible;
 #[path = "resource_admission/scope.rs"]

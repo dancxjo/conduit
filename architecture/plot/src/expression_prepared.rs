@@ -8,6 +8,7 @@ use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
+mod canonical_input;
 mod equality;
 mod evaluate;
 mod fixed_projection;
@@ -17,12 +18,17 @@ mod scalar_tape;
 use evaluate::evaluate_node;
 pub use native_u64::PreparedNativeU64Expression;
 pub use scalar_tape::{
-    generate_static_scalar_expression, ScalarTapeInstruction, ScalarTapeOperation,
+    generate_static_projected_expression, generate_static_scalar_expression, ScalarTapeInstruction,
+    ScalarTapeOperation, StaticProjectedExpression, StaticProjectedGenerationRefusal,
+    StaticProjectedInput, StaticProjectedProgram, StaticProjectedRefusal, StaticProjectedSource,
     StaticScalarExpression,
 };
 mod inspection;
 mod shared_input;
 use shared_input::SharedBytes;
+mod resident_projection;
+pub(crate) mod resident_work;
+pub use resident_projection::StaticExpressionPathStep;
 mod member_selection;
 mod nominal;
 mod sequence_selection;
@@ -44,6 +50,14 @@ use primitive::{
     PrimitiveValue,
 };
 use structured::PreparedStructuredExpression;
+pub use structured::{
+    generate_borrowed_static_structured_expression_with_work,
+    generate_static_structured_expression, generate_static_structured_expression_with_work,
+    BorrowedStaticStructuredExpression, GeneratedStaticStructuredExpression,
+    StaticStructuredChildProgram, StaticStructuredChildTable, StaticStructuredExpression,
+    StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
+    StaticStructuredValue, StructuredExpressionImage, StructuredTapeInstruction,
+};
 
 fn prepare_info_kind(
     value_type: &conduit_core::StructuredInfoType,
@@ -448,5 +462,17 @@ impl PreparedPortableExpressionEvaluator {
 
     pub fn output_capacity(&self) -> usize {
         self.output.capacity()
+    }
+}
+
+impl PreparedPortableExpressionEvaluator {
+    fn direct_input_path(&self) -> Option<Vec<resident_projection::OwnedExpressionPathStep>> {
+        if self.input_value_contract.is_some() || self.output_value_contract.is_some() {
+            return None;
+        }
+        match &self.root {
+            PreparedRoot::Structured(value) => value.direct_input_path(),
+            _ => None,
+        }
     }
 }

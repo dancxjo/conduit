@@ -6,11 +6,15 @@
 mod bounded;
 mod native_contracts;
 mod prepared_native;
+pub(crate) use prepared_native::generate_native_with_work;
+pub(crate) mod resident_contract;
 pub use native_contracts::{validate_native_contracts_borrowed, BorrowedNativeContractRefusal};
 pub use prepared_native::{
-    AdmittedNativeCanonical, NativeContractOccurrence, NativeOccurrence, NativePathStep,
-    PreparedNativeAdmission, PreparedNativeBounds, PreparedNativeCapacityReport,
-    PreparedNativeProgress, PreparedNativeRefusal, MAXIMUM_PREPARED_NATIVE_OCCURRENCES,
+    generate_resident_native_validator, AdmittedNativeCanonical, NativeContractOccurrence,
+    NativeOccurrence, NativePathStep, PreparedNativeAdmission, PreparedNativeBounds,
+    PreparedNativeCapacityReport, PreparedNativeProgress, PreparedNativeRefusal,
+    ResidentNativeGenerationRefusal, ResidentNativeValidator, StaticNativeContract,
+    StaticNativePathStep, MAXIMUM_PREPARED_NATIVE_OCCURRENCES,
 };
 mod generate;
 mod generate_conversion;

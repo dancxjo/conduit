@@ -12,6 +12,8 @@ use crate::{
 };
 use alloc::boxed::Box;
 
+mod retained_backing;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResourceCordRefusal {
     NotResourceCord,

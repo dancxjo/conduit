@@ -1,0 +1,73 @@
+[package]
+name = "conduit-rp2040-host"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[workspace]
+[dependencies]
+conduit-tm1637-protocol = { path = "../../../../mechanisms/devices/tm1637" }
+conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
+conduit-rp2040-snapshot-nor = { path = "../../snapshot-nor", features = ["rp2040"] }
+conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
+conduit-i2c-transaction = { path = "../../../../mechanisms/io/i2c-transaction", default-features = false }
+conduit-rp2040-i2c = { path = "../../i2c", features = ["rp2040"] }
+conduit-body = { path = "../../../../architecture/body" }
+conduit-core = { path = "../../../../architecture/core", default-features = false }
+conduit-kernel = { path = "../../../../architecture/kernel", default-features = false, features = ["alloc"] }
+conduit-wire = { path = "../../../../architecture/wire", default-features = false }
+conduit-net = { path = "../../../../semantics/net", default-features = false }
+conduit-rp2040-flash-layout = { path = "../../flash-layout" }
+conduit-network-credential-journal = { path = "../../../../mechanisms/io/network-credential-journal" }
+conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
+conduit-ht16k33 = { path = "../../../../mechanisms/io/ht16k33" }
+conduit-face = { path = "../../../../semantics/face", default-features = false }
+conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
+conduit-plot = { path = "../../../../architecture/plot", default-features = false }
+conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", features = ["delegated-preparation"] }
+conduit-semantic-catalog = { path = "../../../../semantics/catalog", default-features = false, features = ["kernel-step"] }
+ed25519-dalek = { version = "2.2", default-features = false }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde-json-core = "0.6"
+sha2 = {version="0.10",default-features=false}
+linked_list_allocator = { version = "0.10.6", default-features = false }
+critical-section = "1.2"
+cortex-m = "0.7.7"
+cortex-m-rt = "0.7.6"
+panic-halt = "1.0.0"
+static_cell = "2"
+heapless = "0.8"
+aligned = "0.4.3"
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["platform-cortex-m", "executor-thread"] }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["critical-section-impl", "rp2040", "time-driver"] }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-usb = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["dhcpv4", "medium-ethernet", "proto-ipv4", "tcp", "udp"] }
+cyw43 = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", features = ["host-call"] }
+conduit-rp2040-pulse-capture = { path = "../../pulse-capture", features = ["host-call"] }
+conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637" }
+conduit-time = { path = "../../../../semantics/time", default-features = false }
+conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait" }
+conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", features = ["appliance", "face-projection", "display-mask"] }
+[build-dependencies]
+conduit-resource-snapshot = { path = "../../../../mechanisms/io/resource-snapshot", features = ["native-host-call"] }
+conduit-embedded-build = { path = "../../../../make/embedded-build" }
+conduit-host-make = { path = "../../../../make/host" }
+conduit-host-rp2040 = { path = "../../make" }
+conduit-rp2040-flash-layout = { path = "../../flash-layout" }
+sha2 = "0.10"
+conduit-core = { path = "../../../../architecture/core" }
+conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", features = ["host-call"] }
+conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637", features = ["host-call"] }
+conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait" }
+conduit-mcu-host-runtime = { path = "../../../mcu/host-runtime", features = ["execution"] }
+[profile.release]
+# Leave room for admitted durable residences; keep the same execution limits.
+opt-level = "s"
+lto = true
+codegen-units = 1
+
+# Body decoding has its own bounded cold phase; keep its code compact.
+[profile.release.package.conduit-body]
+opt-level = "s"

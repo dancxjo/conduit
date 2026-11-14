@@ -1,0 +1,44 @@
+{
+  "schema": "conduit.proof/native-encounter-member-lifetime@1",
+  "source": "3a87941da0ea9d0905485d75934e271f74c8fe4a",
+  "executable_sha256": "f02068ecd50f031929e1ec4a791a945b2830ced04022c9e539fb76b12b9cdd13",
+  "before": {
+    "observed_at_millis": 1793649155111,
+    "membership_revision": 75,
+    "part": {
+      "part_id": "b45f1ac25591ea54404c7f0a0d3a59bb5945c00b5776dffc4a7f2250996be098",
+      "state": "Admitted",
+      "current": {
+        "host_id": "host/installed/cc57fbea73ca7dda2995fab12b47aaf806ee2279c538a46ec11d52e4f98aefad",
+        "boot_id": "boot/installed/e8e198536714fc4add17a9097609ed8887912b07f8c4aed2e32a473d7f205e35",
+        "offer_generation": 1,
+        "proof_id": "27814999143d4fb01b4bf92cf4055a4a716c9a58fa83e66c553105eed90e3a03",
+        "sequence": 75
+      }
+    },
+    "receipt_count": 17
+  },
+  "after": {
+    "observed_at_millis": 1793649206533,
+    "membership_revision": 75,
+    "part": {
+      "part_id": "b45f1ac25591ea54404c7f0a0d3a59bb5945c00b5776dffc4a7f2250996be098",
+      "state": "Admitted",
+      "current": {
+        "host_id": "host/installed/cc57fbea73ca7dda2995fab12b47aaf806ee2279c538a46ec11d52e4f98aefad",
+        "boot_id": "boot/installed/e8e198536714fc4add17a9097609ed8887912b07f8c4aed2e32a473d7f205e35",
+        "offer_generation": 1,
+        "proof_id": "27814999143d4fb01b4bf92cf4055a4a716c9a58fa83e66c553105eed90e3a03",
+        "sequence": 75
+      }
+    },
+    "receipt_count": 17
+  },
+  "physical_host": "threebee",
+  "active_pid": 7887,
+  "service_restarts": 0,
+  "latest_submitted_face_revision": 147,
+  "encounter_ended_historical": true,
+  "continuing_show_renewal": false,
+  "optical_acceptance": false
+}

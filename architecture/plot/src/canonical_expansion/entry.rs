@@ -158,6 +158,7 @@ fn expand_with_environment(
                 gear_port_id: endpoint.port.port_id.clone(),
             });
     let mut gears = fragment.gears;
+    let front = inferred_boundary_contracts(front, &input_bindings, &output_bindings, &gears)?;
     super::construction::validate(
         &gears,
         &document.retained_native_types,
@@ -230,4 +231,67 @@ fn expand_with_environment(
         output_bindings,
         abnormal_export,
     })
+}
+
+/// Missing authored byte envelopes are inferred from the exact expanded Backs.
+/// Explicit authored predicates remain unchanged, and fanout must retain one
+/// identical contract; incompatible endpoints require an authored adapter.
+fn inferred_boundary_contracts(
+    front: conduit_core::CheckedFront,
+    inputs: &[AuthoringFrontBinding],
+    outputs: &[AuthoringFrontBinding],
+    gears: &[CheckedGear],
+) -> Result<conduit_core::CheckedFront, CanonicalExpansionDiagnostic> {
+    use conduit_core::{ConnectionTrack, FrontValueContract, FrontValueLocation as L};
+    let mut contracts = front.value_contracts().to_vec();
+    let mut inferred = BTreeMap::new();
+    for (input, bindings) in [(true, inputs), (false, outputs)] {
+        for binding in bindings {
+            if matches!(
+                binding.track,
+                ConnectionTrack::NormalClose | ConnectionTrack::Quiescence
+            ) {
+                continue;
+            }
+            let abnormal = binding.track == ConnectionTrack::AbnormalTerminal;
+            let location = |port| match (input, abnormal) {
+                (true, false) => L::Input(port),
+                (true, true) => L::InputAbnormal(port),
+                (false, false) => L::Output(port),
+                (false, true) => L::OutputAbnormal(port),
+            };
+            let outer = location(binding.front_port_id.clone());
+            let inner = location(binding.gear_port_id.clone());
+            let gear = gears
+                .iter()
+                .find(|g| g.gear_id == binding.gear_id)
+                .expect("expanded boundary endpoint has checked Gear");
+            let contract = gear
+                .semantic_contract
+                .value_contracts()
+                .iter()
+                .find(|c| c.location == inner)
+                .map(|c| c.contract.clone());
+            if contracts.iter().any(|c| c.location == outer) {
+                // Preserve authored meaning; ordinary planning still checks
+                // the exact selected endpoint against this original contract.
+                continue;
+            }
+            if let Some(previous) = inferred.insert(outer, contract.clone()) {
+                if previous != contract {
+                    return Err(CanonicalExpansionDiagnostic::new(
+                        "CND-FRM-046",
+                        format!(
+                            "Fore '{}' has incompatible expanded endpoint contracts",
+                            binding.front_port_id.as_str()
+                        ),
+                    ));
+                }
+            }
+        }
+    }
+    contracts.extend(inferred.into_iter().filter_map(|(location, contract)| {
+        contract.map(|contract| FrontValueContract { location, contract })
+    }));
+    Ok(front.with_value_contracts(contracts))
 }

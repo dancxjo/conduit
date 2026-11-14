@@ -85,6 +85,8 @@ impl StdHost {
                 None,
                 Some(&mut owner),
                 started,
+                None,
+                None,
             )
         })();
         // Also drain preparation/start refusals, before any borrowed owner is

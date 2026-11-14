@@ -1,5 +1,7 @@
 [workspace]
 members = [
+	"mechanisms/devices/dht11",
+	"mechanisms/devices/tm1637",
 	# Universal architectural substrate.
 	"architecture/body",
 	"architecture/assigned-plan",
@@ -41,6 +43,7 @@ members = [
 	# Generic make layers.
 	"make/body",
 	"make/embedded-build",
+	"targets/mcu/source-build",
 	"make/host",
 	"make/workspace",
 
@@ -48,8 +51,7 @@ members = [
 	"mechanisms/io/resource-snapshot",
 	"mechanisms/io/i2c-transaction",
 	"mechanisms/devices/create-oi",
-	"mechanisms/devices/dht11",
-	"mechanisms/devices/tm1637",
+
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
 	"mechanisms/implementations/linear-framebuffer-make",
@@ -130,9 +132,14 @@ members = [
 	"tools/xtask",
 ]
 exclude = [
+	"targets/rp2040/snapshot-nor",
+	"targets/esp32/snapshot-nor",
+	"targets/mcu/host-runtime",
+	"mechanisms/io/monotonic-wait",
+	"bodies/environment/runtime",
+	"plots/seven-segment-mask",
 	"mechanisms/io/pulse-capture",
 	"mechanisms/io/tm1637",
-	"plots/seven-segment-mask",
 	"targets/conduitos/mask-service",
 	"targets/conduitos/tls-service",
 	"targets/conduitos/network-service",
@@ -153,7 +160,16 @@ resolver = "2"
 opt-level = "z"
 strip = "symbols"
 
+# Keep installed CLI/control code within the native Seed artifact bound.
+# Execution/provider dependencies retain their normal release optimization.
+[profile.release.package.conduit]
+opt-level = "s"
+strip = "symbols"
+
+# Cross-crate deduplication keeps the complete native Host under its artifact bound.
+# Provider dependencies retain their existing release optimization levels.
 [profile.release]
+lto = "thin"
 strip = "symbols"
 
 # Source checking and binding generation also run inside build dependencies.

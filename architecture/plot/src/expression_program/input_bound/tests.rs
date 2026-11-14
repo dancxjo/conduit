@@ -31,7 +31,7 @@ fn checked() -> CheckedExpression {
 }
 
 #[test]
-fn checked_and_retained_encoders_agree_for_both_versions_and_invalid_bounds() {
+fn checked_and_retained_encoders_agree_for_compact_bounds_and_refuse_invalid_bounds() {
     let mut checked = checked();
     for bound in [None, Some(2048)] {
         checked.input_maximum_bytes = bound;
@@ -42,10 +42,7 @@ fn checked_and_retained_encoders_agree_for_both_versions_and_invalid_bounds() {
             PortableExpressionProgram::from_canonical_hex(&streamed).unwrap(),
             program
         );
-        assert!(program
-            .canonical_bytes()
-            .unwrap()
-            .starts_with(if bound.is_some() { V3 } else { V2 }));
+        assert!(program.canonical_bytes().unwrap().starts_with(V4));
     }
     let unbounded = conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32;
     for maximum in [unbounded + 1, u32::MAX] {
@@ -70,7 +67,7 @@ fn bounded_decoder_rejects_truncation_unknown_version_and_trailing_data() {
         assert!(PortableExpressionProgram::from_canonical_bytes(&bytes[..end]).is_err());
     }
     let mut unknown = bytes.clone();
-    unknown[V3.len() - 1] = b'4';
+    unknown[V4.len() - 1] = b'9';
     assert!(PortableExpressionProgram::from_canonical_bytes(&unknown).is_err());
     let mut trailing = bytes;
     trailing.push(0);
@@ -89,7 +86,38 @@ fn legacy_identity_program_bytes_do_not_gain_empty_predicate_envelopes() {
             input_type: ty.clone(), input_maximum_bytes: bound, output_type: ty.clone(),
             root: PortableExpressionNode { value_type: ty.clone(), operation: PortableExpressionOperation::Input },
         };
-        assert_eq!(program.canonical_hex().unwrap(), expected);
+        assert_eq!(program.canonical_legacy_bytes(expected.len() / 2).unwrap().iter().map(|b|format!("{b:02x}")).collect::<String>(), expected);
         assert_eq!(PortableExpressionProgram::from_canonical_hex(expected).unwrap(), program);
     }
+}
+
+#[test]
+fn nonidentity_expression_publishes_proven_output_transport_ceiling() {
+    let mut program = PortableExpressionProgram::from_checked(&checked()).unwrap();
+    let bytes =
+        conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/bytes")).unwrap();
+    program.output_type = bytes.clone();
+    program.root = PortableExpressionNode {
+        value_type: bytes,
+        operation: PortableExpressionOperation::CanonicalLiteral(vec![0; 300]),
+    };
+    let maximum = program.maximum_prepared_output_bytes().unwrap();
+    assert!(maximum > conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY);
+    let laws = program.semantic_laws().unwrap();
+    let contracts = laws
+        .iter()
+        .find_map(|law| match law {
+            KindSemanticLaw::ValueContracts(contracts) => Some(contracts),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(
+        contracts
+            .iter()
+            .find(|c| c.location == FrontValueLocation::Output(conduit_core::port_id("output")))
+            .unwrap()
+            .contract
+            .maximum_bytes,
+        maximum
+    );
 }

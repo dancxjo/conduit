@@ -1,0 +1,40 @@
+# Checked physical construction. Runtime admission is separate.
+# Yellow: exact attached sensor and display GPIO ownership.
+host pico-w-house-yellow {
+  schema = 1
+  # Assigned representation requires 19357 bytes; this excludes full kernel/Ready heap.
+  # Recording has finite preparation ceilings; physical heap/work bounds stay below.
+  # The measured full native Show fits its separately checked 2048-byte envelope.
+  preparation = {authorizer: "seed-owner", maximum_assignment_bytes: 18432, maximum_runtime_state_bytes: 38912}
+  # Declared ASG state totals 37121 bytes on Blue (under 38912).
+  # Its prepared group is 79702 bytes; complete services reach 98937 bytes.
+  # Allow at most 100 KiB for backing and admission bookkeeping within the
+  # unchanged physical heap; each actual admission remains checked.
+  # Explicit local continuation opt-in: signed installed intent plus fresh full admission required.
+  execution = {authorizer: "seed-owner", maximum_active_worksets: 1, continuation: {assignment_bytes: 18432, runtime_bytes: 102400, durable_bytes: 589824, operation_slots: 16, active_worksets: 1}}
+  target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
+  # Finite flash residence; these bytes are not a RAM need or write permission.
+  base = {kind: "resource/nor-record-residence", implementation: "rp2040/nor-record-append@1", initialization: {prefix_bytes: 8192, slots: 1136}}
+  base = {kind: "clock/monotonic", implementation: "rp2040/monotonic-clock@1", initialization: {slots: 4, maximum_duration_ms: 60000, maximum_call_operations: 0}}
+  base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
+  base = {kind: "sensor/environment", implementation: "rp2040/dht11@1", initialization: {data: 3, start_low_us: 20000, maximum_transaction_us: 50000}}
+  base = {kind: "display/segmented", implementation: "rp2040/tm1637@1", initialization: {clk: 7, dio: 6, brightness: 3, layout: "seven4", half_period_us: 50, settled_us: 100, maximum_clock_rise_us: 1000, maximum_transaction_us: 100000, pull: "up"}}
+  # This offline USB profile does not initialize or retain a network radio.
+  # Finite initialized renderer support; whole-workset admission still uses
+  # the separately reviewed IMAGE arena; Root still reserves before effects.
+  # Finite Face/Show envelopes also bound opaque Value queue planning.
+  # Six shared-reference Mask queues fit the existing 24576-byte ceiling.
+  base = {kind: "face/renderer", implementation: "rp2040/seven-segment-renderer@1", initialization: {face_bytes: 3072, show_bytes: 2048, resource_bytes: 24576, maximum_frames: 65535, page_period_ms: 2000, show_lifetime_ms: 120000, temperature_unit: "fahrenheit"}}
+  # Finite cooperative work pool; its existence installs no computation Back.
+  # 16 KiB bounds resident initialization/reservation metadata, not all kernels.
+  # Full execution backing has separate custody in the checked IMAGE arena.
+  # This is construction intent; Root still reserves original work units before Play.
+  need = {id: "pool/resident-step-work", class: "kernel/cooperative-step-work@1", slots: 5000, bytes: 16384}
+  # Ordinary checked Mask queue declarations require 18624 aggregate bytes;
+  # 24576 is the explicit queue ceiling, not measured physical heap use.
+  # Complete three-kernel preparation requires the explicit 108 KiB arena.
+  # The tested 80 KiB split refused kernel headroom before Play; stack fitting
+  # must be resolved independently rather than claiming that smaller arena fits.
+  # Recording adds two finite cord-value slots; byte/work/arena bounds remain explicit above.
+  limits = {static_memory_bytes: 229376, heap_arena_bytes: 110592, queue_items: 18, buffered_bytes: 24576, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 64}
+}

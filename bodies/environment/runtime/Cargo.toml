@@ -7,14 +7,18 @@ publish = false
 [workspace]
 
 [features]
+text-recording = ["dep:conduit-data"]
 member-receipts = ["dep:conduit-body", "conduit-body/authenticated-admission", "dep:serde", "dep:sha2", "dep:ed25519-dalek"]
 display-mask = ["dep:conduit-face", "dep:conduit-seven-segment-mask"]
+display-mask-ht16k33 = ["display-mask", "dep:conduit-ht16k33"]
 appliance = ["conduit-kernel/alloc", "dep:conduit-time", "conduit-time/kernel-step", "dep:conduit-pulse-capture"]
 construction = ["appliance", "dep:conduit-planner"]
 face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
 source-capture = ["conduit-dht11-observation/source-capture"]
 
 [dependencies]
+conduit-ht16k33 = { path = "../../../mechanisms/io/ht16k33", optional = true, features = ["canonical-frame"] }
+conduit-data = { path = "../../../semantics/data", default-features = false, optional = true }
 conduit-tm1637-protocol = { path = "../../../mechanisms/devices/tm1637" }
 conduit-dht11-observation = { path = "../../../mechanisms/devices/dht11", features = ["kernel-step"] }
 conduit-typed-retention = { path = "../../../mechanisms/implementations/typed-retention" }

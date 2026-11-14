@@ -1,12 +1,12 @@
 //! Exact canonical requests/results; all preparation precedes electrical effects.
+use super::contract::fixed_value_bound;
 use super::{
     CheckedPulseRead, PulseReadCapture, PulseReadContract, PulseReadDisposition, PulseReadLimits,
     PulseReadRefusal, PulseReadRequest, PULSE_READ_MAXIMUM_BYTES,
 };
 use conduit_core::{
-    validate_canonical_structured_value as validate, PreparedStructuredComposer as Composer,
-    PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoTypeShape,
+    BorrowedStructuredValue as V, BorrowedStructuredValueValidator,
+    PreparedLinkedStructuredComposer, StructuredInfoRefusal,
 };
 #[derive(Debug, PartialEq, Eq)]
 pub enum PulseCodecRefusal {
@@ -20,59 +20,35 @@ impl From<StructuredInfoRefusal> for PulseCodecRefusal {
     }
 }
 pub struct PreparedPulseCodec {
-    request: PreparedStructuredValueValidator,
-    octets: [Composer; 8],
-    length: Composer,
-    wire: Composer,
-    capture: Composer,
-    empty: Composer,
-    result: Composer,
-}
-fn field<'a>(
-    ty: &'a StructuredInfoType,
-    name: &str,
-) -> Result<&'a StructuredInfoType, StructuredInfoRefusal> {
-    let StructuredInfoTypeShape::Record { fields, .. } = ty.shape() else {
-        return Err(StructuredInfoRefusal::WrongType);
-    };
-    fields
-        .iter()
-        .find(|f| f.name() == name)
-        .map(|f| f.value_type())
-        .ok_or(StructuredInfoRefusal::WrongType)
+    request: BorrowedStructuredValueValidator<'static>,
+    writer: PreparedLinkedStructuredComposer<'static>,
+    output: alloc::vec::Vec<u8>,
 }
 impl PreparedPulseCodec {
+    /// Retained heap backing; linked immutable schemas occupy no heap.
+    /// Inline state and allocator overhead are separate.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        Some(self.output.capacity())
+    }
     pub fn prepare(contract: &PulseReadContract) -> Result<Self, StructuredInfoRefusal> {
-        let wire_type = field(&contract.capture, "wire")?;
-        let StructuredInfoTypeShape::Collection { element, length: 8 } = wire_type.shape() else {
+        const REQUEST_SCHEMA: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/request.type"));
+        const CAPTURE_SCHEMA: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/capture.type"));
+        const RESULT_SCHEMA: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/result.type"));
+        if contract.request.canonical_bytes()? != REQUEST_SCHEMA
+            || contract.capture.canonical_bytes()? != CAPTURE_SCHEMA
+            || contract.result.canonical_bytes()? != RESULT_SCHEMA
+        {
             return Err(StructuredInfoRefusal::WrongType);
-        };
-        let StructuredInfoTypeShape::Variant { cases, .. } = contract.result.shape() else {
-            return Err(StructuredInfoRefusal::WrongType);
-        };
-        let empty_type = cases
-            .iter()
-            .find(|c| c.tag() == "provider-failed")
-            .ok_or(StructuredInfoRefusal::WrongType)?
-            .payload_type();
-        // Array construction is fallible during preparation; never while playing.
-        let mut octets = alloc::vec::Vec::with_capacity(8);
-        for _ in 0..8 {
-            octets.push(Composer::new(element, 64)?);
         }
+        // One canonical cache funds the complete fixed-width result domain.
+        let maximum = fixed_value_bound(&contract.result)? as usize;
         Ok(Self {
-            request: PreparedStructuredValueValidator::new(
-                &contract.request,
+            request: BorrowedStructuredValueValidator::new(
+                REQUEST_SCHEMA,
                 PULSE_READ_MAXIMUM_BYTES as usize,
             )?,
-            octets: octets
-                .try_into()
-                .map_err(|_| StructuredInfoRefusal::WrongType)?,
-            length: Composer::new(field(&contract.capture, "length")?, 64)?,
-            wire: Composer::new(wire_type, 256)?,
-            capture: Composer::new(&contract.capture, 512)?,
-            empty: Composer::new(empty_type, 64)?,
-            result: Composer::new(&contract.result, PULSE_READ_MAXIMUM_BYTES as usize)?,
+            writer: PreparedLinkedStructuredComposer::new(RESULT_SCHEMA, maximum)?,
+            output: alloc::vec![0; maximum],
         })
     }
     pub fn request(
@@ -80,8 +56,7 @@ impl PreparedPulseCodec {
         input: &[u8],
         limits: PulseReadLimits,
     ) -> Result<CheckedPulseRead, PulseCodecRefusal> {
-        self.request.validate(input)?;
-        let value = validate(input)?;
+        let value = self.request.validate(input)?;
         let read = |name| -> Result<u32, StructuredInfoRefusal> {
             let child = value
                 .record_field(name)?
@@ -109,8 +84,16 @@ impl PreparedPulseCodec {
         CheckedPulseRead::admit(request, limits).map_err(PulseCodecRefusal::Geometry)
     }
     pub fn geometry_refused(&mut self) -> Result<&[u8], PulseCodecRefusal> {
-        let empty = validate(self.empty.leaf(&[])?)?;
-        Ok(self.result.variant("geometry-refused", empty)?)
+        self.encode("geometry-refused", V::Empty)
+    }
+    fn encode(&mut self, tag: &str, payload: V<'_>) -> Result<&[u8], PulseCodecRefusal> {
+        Ok(self.writer.encode_into(
+            V::Variant {
+                tag,
+                payload: &payload,
+            },
+            &mut self.output,
+        )?)
     }
     pub fn result(&mut self, capture: PulseReadCapture) -> Result<&[u8], PulseCodecRefusal> {
         let count = usize::from(capture.length);
@@ -124,27 +107,26 @@ impl PreparedPulseCodec {
             if count != 0 {
                 return Err(PulseCodecRefusal::InvalidCapture);
             }
-            let empty = validate(self.empty.leaf(&[])?)?;
-            return Ok(self.result.variant("provider-failed", empty)?);
+            return self.encode("provider-failed", V::Empty);
         }
-        for (encoder, byte) in self.octets.iter_mut().zip(capture.wire) {
-            encoder.leaf(&[byte])?;
-        }
-        let octets: [_; 8] =
-            core::array::from_fn(|i| validate(self.octets[i].encoded()).expect("prepared octet"));
-        self.wire.collection(&octets)?;
-        self.length.leaf(&[capture.length])?;
-        self.capture.record(&[
-            validate(self.length.encoded())?,
-            validate(self.wire.encoded())?,
-        ])?;
+        let wire = capture
+            .wire
+            .each_ref()
+            .map(|byte| V::Leaf(core::slice::from_ref(byte)));
+        let length = [capture.length];
+        let fields = [V::Leaf(&length), V::Collection(&wire)];
         let tag = if capture.disposition == PulseReadDisposition::Complete {
             "completed"
         } else {
             "timed-out"
         };
-        Ok(self
-            .result
-            .variant(tag, validate(self.capture.encoded())?)?)
+        self.encode(tag, V::Record(&fields))
     }
 }
+#[cfg(test)]
+#[allow(dead_code)]
+#[path = "codec_legacy.rs"]
+mod legacy;
+#[cfg(test)]
+#[path = "codec_tests.rs"]
+mod tests;

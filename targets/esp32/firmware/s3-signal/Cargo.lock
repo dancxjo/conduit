@@ -237,6 +237,7 @@ dependencies = [
  "portable-atomic-util",
  "postcard",
  "serde",
+ "serde-json-core",
  "sha2",
 ]
 
@@ -261,6 +262,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-composite"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
@@ -280,6 +291,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-dht11-observation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
@@ -292,11 +312,32 @@ dependencies = [
 name = "conduit-embedded-build"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "conduit-wire",
+ "miniz_oxide",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "conduit-environment-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-dht11-observation",
+ "conduit-kernel",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-time",
+ "conduit-tm1637-protocol",
+ "conduit-typed-retention",
 ]
 
 [[package]]
@@ -355,6 +396,7 @@ name = "conduit-host-esp32-make"
 version = "0.1.0"
 dependencies = [
  "conduit-host-make",
+ "conduit-mcu-source-build",
  "serde",
  "serde_json",
  "sha2",
@@ -389,6 +431,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-i2c-transaction"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-kernel"
 version = "0.1.0"
 dependencies = [
@@ -404,11 +456,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-mcu-source-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-composite",
+ "conduit-core",
+ "conduit-dht11-observation",
+ "conduit-embedded-build",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-host-make",
+ "conduit-i2c-transaction",
+ "conduit-monotonic-wait",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-time",
+ "conduit-tm1637-wire",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-midi"
 version = "0.1.0"
 dependencies = [
  "conduit-audio",
  "conduit-core",
+]
+
+[[package]]
+name = "conduit-monotonic-wait"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+ "conduit-time",
 ]
 
 [[package]]
@@ -457,11 +544,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-purpose"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-resource-snapshot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
 ]
 
 [[package]]
@@ -492,11 +594,13 @@ dependencies = [
  "conduit-education",
  "conduit-face",
  "conduit-human",
+ "conduit-kernel",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
  "conduit-process",
  "conduit-purpose",
+ "conduit-resource-snapshot",
  "conduit-robotics",
  "conduit-text",
  "conduit-time",
@@ -578,8 +682,27 @@ name = "conduit-time"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-tm1637-protocol"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -588,6 +711,14 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-web",
+]
+
+[[package]]
+name = "conduit-typed-retention"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]
@@ -605,6 +736,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+ "sha2",
 ]
 
 [[package]]

@@ -1,6 +1,8 @@
 //! Native finite pairing retains the exact schemas and Back offered before planning.
 use alloc::{boxed::Box, collections::BTreeMap, format, string::String, vec::Vec};
-use conduit_composite::{FlowZipBack, KernelOperationBudget, KernelOperationFactory};
+use conduit_composite::{
+    FlowZipBack, FlowZipExactBack, KernelOperationBudget, KernelOperationFactory,
+};
 use conduit_core::*;
 use conduit_kernel::{HostedValueStore, scheduler::StepBack};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -12,21 +14,28 @@ pub const MAXIMUM_INPUT_BYTES: u32 = 32768;
 pub const MAXIMUM_PAIR_BYTES: u32 = 65536;
 pub const MAXIMUM_SPECIALIZATIONS: usize = 16;
 
+#[derive(Clone, Copy)]
+enum PairMode {
+    Finite,
+    Feedback,
+    Exact,
+}
+
 fn offer(
     left: &CheckedValueContract,
     left_type: &StructuredInfoType,
     right: &CheckedValueContract,
     right_type: &StructuredInfoType,
-    feedback: bool,
+    mode: PairMode,
     typed: bool,
 ) -> Result<CapabilityOffer, String> {
     if left.maximum_bytes > MAXIMUM_INPUT_BYTES || right.maximum_bytes > MAXIMUM_INPUT_BYTES {
         return Err("native finite zip input exceeds its prepared profile".into());
     }
-    let semantic = if feedback {
-        conduit_semantic_catalog::flow_zip_feedback_semantic_contract
-    } else {
-        conduit_semantic_catalog::flow_zip_finite_semantic_contract
+    let semantic = match mode {
+        PairMode::Feedback => conduit_semantic_catalog::flow_zip_feedback_semantic_contract,
+        PairMode::Finite => conduit_semantic_catalog::flow_zip_finite_semantic_contract,
+        PairMode::Exact => conduit_semantic_catalog::flow_zip_exact_semantic_contract,
     };
     let mut kind = semantic(left, left_type, right, right_type).map_err(String::from)?;
     if typed {
@@ -53,10 +62,10 @@ fn offer(
     if encoder.maximum_bytes() > MAXIMUM_PAIR_BYTES {
         return Err("native finite zip pair exceeds its prepared profile".into());
     }
-    let kind_name = if feedback {
-        "flow-zip-feedback"
-    } else {
-        "flow-zip-finite"
+    let kind_name = match mode {
+        PairMode::Feedback => "flow-zip-feedback",
+        PairMode::Finite => "flow-zip-finite",
+        PairMode::Exact => "flow-zip-exact",
     };
     let instance_capability =
         typed.then(|| CapabilityId::from(format!("conduitos/{}@1", kind.kind_id.as_str())));
@@ -85,7 +94,7 @@ fn offer(
 }
 
 struct OfferedPair {
-    feedback: bool,
+    mode: PairMode,
     left: StructuredInfoType,
     right: StructuredInfoType,
     offer: CapabilityOffer,
@@ -113,7 +122,17 @@ impl FlowZipOperationFactory {
         right: &CheckedValueContract,
         right_type: &StructuredInfoType,
     ) -> Result<CapabilityOffer, String> {
-        self.install_mode(left, left_type, right, right_type, false, false)
+        self.install_mode(left, left_type, right, right_type, PairMode::Finite, false)
+    }
+
+    pub fn install_exact(
+        &mut self,
+        left: &CheckedValueContract,
+        left_type: &StructuredInfoType,
+        right: &CheckedValueContract,
+        right_type: &StructuredInfoType,
+    ) -> Result<CapabilityOffer, String> {
+        self.install_mode(left, left_type, right, right_type, PairMode::Exact, false)
     }
 
     pub fn install_feedback(
@@ -123,7 +142,14 @@ impl FlowZipOperationFactory {
         right: &CheckedValueContract,
         right_type: &StructuredInfoType,
     ) -> Result<CapabilityOffer, String> {
-        self.install_mode(left, left_type, right, right_type, true, false)
+        self.install_mode(
+            left,
+            left_type,
+            right,
+            right_type,
+            PairMode::Feedback,
+            false,
+        )
     }
 
     pub(crate) fn install_feedback_instance(
@@ -133,7 +159,7 @@ impl FlowZipOperationFactory {
         right: &CheckedValueContract,
         right_type: &StructuredInfoType,
     ) -> Result<CapabilityOffer, String> {
-        self.install_mode(left, left_type, right, right_type, true, true)
+        self.install_mode(left, left_type, right, right_type, PairMode::Feedback, true)
     }
 
     fn install_mode(
@@ -142,20 +168,20 @@ impl FlowZipOperationFactory {
         left_type: &StructuredInfoType,
         right: &CheckedValueContract,
         right_type: &StructuredInfoType,
-        feedback: bool,
+        mode: PairMode,
         typed: bool,
     ) -> Result<CapabilityOffer, String> {
         if self.pairs.len() == MAXIMUM_SPECIALIZATIONS {
             return Err("native finite zip exceeds its admitted offer count".into());
         }
-        let offer = offer(left, left_type, right, right_type, feedback, typed)?;
+        let offer = offer(left, left_type, right, right_type, mode, typed)?;
         if self.pairs.contains_key(&offer.capability_id) {
             return Err("native finite zip specialization is already installed".into());
         }
         self.pairs.insert(
             offer.capability_id.clone(),
             OfferedPair {
-                feedback,
+                mode,
                 left: left_type.clone(),
                 right: right_type.clone(),
                 offer: offer.clone(),
@@ -268,7 +294,13 @@ impl KernelOperationFactory for FlowZipOperationFactory {
         _: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<FIXED_KERNEL_STORAGE_PORTS_PER_NODE> + Send>, String> {
         let (types, left, right, _) = self.selected(gear)?;
-        let prepare = if types.feedback {
+        if matches!(types.mode, PairMode::Exact) {
+            return Ok(Box::new(
+                FlowZipExactBack::prepare(left, types.left.clone(), right, types.right.clone())
+                    .map_err(|error| format!("{error:?}"))?,
+            ));
+        }
+        let prepare = if matches!(types.mode, PairMode::Feedback) {
             FlowZipBack::prepare_typed_feedback
         } else {
             FlowZipBack::prepare_typed_finite
