@@ -10,6 +10,11 @@ fn add(a: usize, b: usize) -> Result<usize, String> {
 fn sum(values: &[usize]) -> Result<usize, String> {
     values.iter().try_fold(0, |total, value| add(total, *value))
 }
+/// Original incoming/cloned Face and checked Plan owners coexist with Scene
+/// preparation. Keep this same lower bound at reservation and envelope checks.
+pub(super) fn input_owner_bytes(plan: usize, face: usize) -> Result<usize, String> {
+    sum(&[face, face, plan, plan])
+}
 /// Conservative simultaneous lifetime envelope. Every multiplier below is an
 /// explicit set of named owners/overlaps from the actual standard constructors.
 pub(super) fn checked_invocation_bytes(
@@ -159,7 +164,7 @@ pub(super) fn checked_invocation_bytes(
     ])?;
     sum(&[
         scene,
-        face_bytes,
+        input_owner_bytes(plan, face_bytes)?,
         shows,
         buffers,
         fore_clones,

@@ -31,6 +31,193 @@ fn add(a: usize, b: usize) -> Result<usize, FaceSceneError> {
 fn mul(a: usize, b: usize) -> Result<usize, FaceSceneError> {
     a.checked_mul(b).ok_or(FaceSceneError::DocumentBound)
 }
+// Count the existing aural/document templates from borrowed semantic fields.
+// This is an upper-bound visitor, not another formatter or render model. All
+// source fields contribute per occurrence; no clause owns a whole Face clone.
+fn subject_name_bytes(face: &Face, identity: &str) -> Result<usize, FaceSceneError> {
+    face.subjects
+        .iter()
+        .find(|s| s.identity == identity)
+        .map(|s| s.name.len())
+        .ok_or(FaceSceneError::InvalidFace)
+}
+fn contract_text_bytes(
+    contract: &conduit_core::CheckedValueContract,
+) -> Result<usize, FaceSceneError> {
+    // constraints.rs: fixed wording/numbers, <=6-byte Debug escapes, <=2-byte
+    // hex expansion and joined clauses. Owned constraint slots/bytes contribute
+    // once here; 256 covers the kind/maximum/empty-constraint wording.
+    add(
+        add(
+            mul(
+                contract
+                    .retained_backing_bytes()
+                    .ok_or(FaceSceneError::DocumentBound)?,
+                8,
+            )?,
+            mul(contract.constraints.len(), 512)?,
+        )?,
+        256,
+    )
+}
+fn typed_text_bytes(
+    contract: &conduit_core::CheckedValueContract,
+) -> Result<usize, FaceSceneError> {
+    // typed_value.rs: decimal expansion <=256 places plus coefficient, built-in
+    // Unit spelling (UNIT_MAX_SOURCE_BYTES=128), or kind+byte-count fallback.
+    add(contract.value_kind.as_str().len(), 512)
+}
+fn document_text_bytes(face: &Face) -> Result<(usize, usize), FaceSceneError> {
+    use conduit_face::{FaceActionAvailability as Availability, FacePropertyValue as Value};
+    let (mut primary, mut details) = (0, 0);
+    for subject in &face.subjects {
+        let role = match &subject.role {
+            FaceRole::Semantic(id) => add(id.as_str().len(), 5)?,
+            _ => 16,
+        };
+        details = add(details, add(add(role, subject.name.len())?, 3)?)?;
+        // Heading, including the optional Item completion marker. Omissions
+        // from disclosure/named fields only decrease this bound.
+        primary = add(primary, add(subject.name.len(), "Incomplete · ".len())?)?;
+        if matches!(&subject.role, FaceRole::Semantic(id) if id.as_str() == conduit_data::MEASUREMENT_PLOT_FACE_KIND)
+        {
+            // Existing four-series labels: names<=64, three u64 counts<=20,
+            // fixed separators plus two axis labels and joining newlines.
+            primary = add(primary, 2 * 80 + 4 * (64 + 3 * 20 + 40) + 5)?;
+        }
+    }
+    for relation in &face.relationships {
+        let semantic = match &relation.kind {
+            conduit_face::FaceRelationshipKind::Semantic(id) => id.as_str().len(),
+            _ => 0,
+        };
+        details = add(
+            details,
+            add(
+                add(
+                    subject_name_bytes(face, &relation.source)?,
+                    subject_name_bytes(face, &relation.target)?,
+                )?,
+                add(semantic, 32)?,
+            )?,
+        )?;
+    }
+    for relation in &face.composition {
+        let semantic = match &relation.kind {
+            conduit_face::FaceCompositionKind::Semantic(value) => value.identity().len(),
+            _ => 0,
+        };
+        details = add(
+            details,
+            add(
+                add(
+                    subject_name_bytes(face, &relation.source)?,
+                    subject_name_bytes(face, &relation.target)?,
+                )?,
+                add(semantic, 64)?,
+            )?,
+        )?;
+    }
+    for property in &face.properties {
+        let value = match &property.value {
+            Value::Identity(value) => add(value.len(), 9)?,
+            Value::BaseImplementationId(value) => add(value.as_str().len(), 20)?,
+            Value::Text(value) => add(mul(value.len(), 6)?, 7)?,
+            Value::Count(_) => 26,
+            Value::Signed(_) => 34,
+            Value::Flag(_) => 10,
+            Value::TypedValue { contract, .. } => typed_text_bytes(contract)?,
+            Value::ValueContract(contract) => contract_text_bytes(contract)?,
+            Value::Content(bytes) => add(mul(bytes.len(), 6)?, 128)?,
+        };
+        details = add(
+            details,
+            add(
+                subject_name_bytes(face, &property.subject)?,
+                add(property.name.len(), add(value, 32)?)?,
+            )?,
+        )?;
+        if let Value::TypedValue { contract, .. } = &property.value {
+            // Ordinary typed Info uses two rows; other roles one joined row.
+            // Current-value and chart-series suppression can only reduce it.
+            primary = add(
+                primary,
+                add(property.name.len(), add(typed_text_bytes(contract)?, 2)?)?,
+            )?;
+        }
+    }
+    for text in &face.text {
+        primary = add(primary, text.text.len())?;
+        details = add(details, text.text.len())?;
+    }
+    for disclosure in &face.disclosures {
+        details = add(
+            details,
+            add(subject_name_bytes(face, &disclosure.subject)?, 24)?,
+        )?;
+    }
+    // These independent aural clauses have the existing 4096-byte admission
+    // limit. Keep that limit for temporal wording, not every other clause.
+    details = add(
+        details,
+        mul(
+            add(face.temporal_references.len(), face.temporal_facts.len())?,
+            conduit_face::MAX_FACE_UTTERANCE_CLAUSE_BYTES,
+        )?,
+    )?;
+    for action in &face.actions {
+        let target = subject_name_bytes(face, &action.target)?;
+        let reason = match &action.availability {
+            Availability::Unavailable {
+                reason_code,
+                explanation,
+            }
+            | Availability::Refused {
+                reason_code,
+                explanation,
+            } => add(reason_code.len(), explanation.len())?,
+            Availability::Available => 0,
+        };
+        details = add(
+            details,
+            add(add(action.name.len(), target)?, add(reason, 64)?)?,
+        )?;
+        primary = add(
+            primary,
+            add(action.name.len().max(target), add(reason, 32)?)?,
+        )?;
+        let current = face
+            .properties
+            .iter()
+            .filter(|p| p.subject == action.target && p.name == "current-value")
+            .filter_map(|p| match &p.value {
+                Value::TypedValue { bytes, .. } => Some(bytes.len()),
+                _ => None,
+            })
+            .max()
+            .unwrap_or(0);
+        for argument in &action.arguments {
+            details = add(
+                details,
+                add(
+                    add(action.name.len(), argument.value_name.len())?,
+                    add(
+                        argument.contract.value_kind.as_str().len(),
+                        add(contract_text_bytes(&argument.contract)?, 128)?,
+                    )?,
+                )?,
+            )?;
+            // Existing argument hint contains <=128 choice bytes, 7 separators,
+            // or fixed Boolean/entry wording. A current field instead prefixes
+            // its retained value with the actual target name and edit hint.
+            primary = add(
+                primary,
+                add(argument.value_name.len(), 160)?.max(add(target, add(current.max(7), 32)?)?),
+            )?;
+        }
+    }
+    Ok((primary, details))
+}
 impl NativeFaceScene {
     /// Pure checked arithmetic, not semantic Face validation/readiness. Qualifies only `NativeFaceScene::prepare` with
     /// its borrowed default keymap and no configured Look/local preference API.
@@ -84,27 +271,30 @@ impl NativeFaceScene {
         if clauses > conduit_face::MAX_FACE_UTTERANCE_CLAUSES {
             return Err(FaceSceneError::DocumentBound);
         }
-        // One semantic clause per item above. Primary may contain subject text,
-        // properties and action/argument rows; Details contains all clauses.
-        // All primary item families are subsets of this same count.
         let items = mul(clauses.max(1), 2)?;
-        // A primary field may include source name/current value rather than
-        // exactly one spoken clause. Eight source backings conservatively cover
-        // source UTF-8 plus worst Debug escaping (six ASCII bytes per byte),
-        // canonical numeric/unit wording and separators. The existing layout
-        // independently refuses each document over MAX_DOCUMENT_BYTES.
-        let item_text = add(
-            mul(face_bytes, 8)?,
-            conduit_face::MAX_FACE_UTTERANCE_CLAUSE_BYTES,
+        let (primary_text, details_text) = document_text_bytes(face)?;
+        // Successful layout has independent document/row hard limits. Every
+        // row consumes >=1 source UTF-8 byte. Count the TWO documents separately
+        // instead of projecting a worst-case entire Face into every clause.
+        let row_bytes = |text: usize| {
+            mul(
+                mul(
+                    text.min(layout::MAX_DOCUMENT_BYTES)
+                        .clamp(4, layout::MAX_ROWS),
+                    2,
+                )?,
+                size_of::<layout::Row>(),
+            )
+        };
+        let primary_rows = row_bytes(primary_text)?;
+        let details_rows = row_bytes(details_text)?;
+        let documents = add(
+            add(primary_rows, details_rows)?,
+            add(
+                primary_text.min(layout::MAX_DOCUMENT_BYTES),
+                details_text.min(layout::MAX_DOCUMENT_BYTES),
+            )?,
         )?;
-        let document_text = mul(items, item_text)?.min(layout::MAX_DOCUMENT_BYTES);
-        // Each output row consumes >=1 original UTF-8 byte, with existing
-        // independent layout MAX_ROWS and MAX_DOCUMENT_BYTES hard refusals.
-        let rows = document_text.min(layout::MAX_ROWS);
-        // Existing growable rows use doubling; charge old+new allocation at a
-        // growth boundary separately from retained capacity (two documents).
-        let retained_rows = mul(mul(rows.max(4), 2)?, size_of::<layout::Row>())?;
-        let documents = mul(add(retained_rows, document_text)?, 2)?;
         let values_table = mul(maximum_arguments, size_of::<Option<Vec<u8>>>())?;
         // At most one active action; its successful total bytes <=8192. Each
         // byte Vec can retain geometric spare capacity/minimum allocation.
@@ -151,29 +341,43 @@ impl NativeFaceScene {
         // derives fixed-size content IDs; all are within Face identifier limits.
         let submitted = add(submitted, mul(conduit_face::MAX_FACE_ID_BYTES, 8)?)?;
         let input = add(frame, add(editing, submitted)?)?;
-        // Aural planning has bounded clause text, clause/provenance objects and
-        // sort/promote tables. Document construction clones clauses and may
-        // format source values before layout rejects an oversized document.
-        // Each item formatting uses no more than eight complete Face backings
-        // plus its bounded clause text; retain this conservative per-item term.
-        let clause_objects = mul(items, size_of::<conduit_face::FaceUtteranceClause>())?;
+        // Aural sorts/promotes complete clause objects while each clause owns
+        // only its own text/provenance. Source IDs may repeat in provenance;
+        // bound two <=256-byte IDs per clause, independently of Face size.
+        let clause_objects = mul(
+            clauses.max(1),
+            size_of::<conduit_face::FaceUtteranceClause>(),
+        )?;
         let utterance = add(
             mul(clause_objects, 6)?,
-            add(mul(document_text, 2)?, mul(mul(items, face_bytes)?, 8)?)?,
+            add(
+                mul(details_text, 2)?,
+                mul(clauses, 2 * conduit_face::MAX_FACE_ID_BYTES)?,
+            )?,
         )?;
         let document_items = mul(mul(items, 4)?, size_of::<document::Item>())?;
-        let formatting = mul(
-            items,
-            add(
-                mul(face_bytes, 8)?,
-                conduit_face::MAX_FACE_UTTERANCE_CLAUSE_BYTES,
-            )?,
+        let document_strings = add(mul(primary_text, 2)?, details_text)?;
+        // Exactly one current formatting expression at a time in each phase,
+        // including a rejected oversized clause, quoted/hex source values and
+        // contract wording intermediates. No items*Face ownership cross-product.
+        let formatting_scratch = add(
+            mul(face_bytes, 8)?,
+            conduit_face::MAX_FACE_UTTERANCE_CLAUSE_BYTES,
         )?;
         let preparation = add(
             retained,
             add(
                 utterance,
-                add(document_items, add(formatting, add(retained_rows, frame)?)?)?,
+                add(
+                    document_items,
+                    add(
+                        document_strings,
+                        add(
+                            mul(formatting_scratch, 2)?,
+                            add(primary_rows.max(details_rows), frame)?,
+                        )?,
+                    )?,
+                )?,
             )?,
         )?;
         Ok(StandardNativeSceneBounds {
@@ -206,69 +410,5 @@ impl NativeFaceScene {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn ordinary_editing_rows_and_maximum_draft_fit_qualified_retained_bound() {
-        let face = super::super::tests::face(1);
-        let bounds = NativeFaceScene::standard_interactive_memory_bounds(&face).unwrap();
-        let show = super::super::tests::fixture::show(&face);
-        let mut scene = NativeFaceScene::prepare(face, 640, 480).unwrap();
-        assert!(
-            scene.standard_interactive_retained_backing_bytes().unwrap() <= bounds.retained_bytes
-        );
-        // The exact Source fixture permits 64 bytes on one active argument.
-        // Exercise that ordinary retained state, plus the complete local notice.
-
-        scene
-            .focus_named(&FaceFocusRequest {
-                action_id: "edit".into(),
-                argument_name: Some("value".into()),
-            })
-            .unwrap();
-        let key = conduit_human::KeyEvent::new(
-            4,
-            conduit_human::KeyTransition::Pressed,
-            conduit_human::KeyModifiers::NONE,
-        )
-        .unwrap();
-        for sequence in 1..=64 {
-            assert!(matches!(
-                scene.key(key, &show, sequence).unwrap(),
-                FaceSceneInput::Changed
-            ));
-        }
-        assert!(matches!(
-            scene.key(key, &show, 65),
-            Err(FaceSceneError::InputBound)
-        ));
-        scene.set_local_notice("A bounded local notice").unwrap();
-        assert!(
-            scene.standard_interactive_retained_backing_bytes().unwrap() <= bounds.retained_bytes
-        );
-        assert!(
-            scene.frame().unwrap().retained_backing_bytes().unwrap()
-                <= bounds.frame_transient_bytes
-        );
-        assert!(bounds.preparation_peak_bytes >= bounds.retained_bytes);
-        let mut graph = scene.face().clone();
-        graph.subjects[0].role = FaceRole::Gear;
-        // Use the same semantic constructor so the refusal is for genuine graph
-        // projection demand rather than a stale content identity.
-        let graph = Face::new_with_semantics(
-            graph.revision,
-            graph.basis,
-            graph.subjects,
-            graph.relationships,
-            graph.properties,
-            graph.text,
-            graph.actions,
-            graph.disclosures,
-        )
-        .unwrap();
-        assert_eq!(
-            NativeFaceScene::standard_interactive_memory_bounds(&graph),
-            Err(FaceSceneError::UnsupportedInput)
-        );
-    }
-}
+#[path = "interactive_backing/tests.rs"]
+mod tests;

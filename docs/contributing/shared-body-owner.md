@@ -272,3 +272,23 @@ and signed return for its new Boot.
 An unadmitted pending joining Seed remains pinned to its original configuration
 and IMAGE: incompatible replacement is refused until admission completes. The
 installer does not rewrite its invitation or remove historical Seed packages/keys.
+
+
+## Optional Linux SDL display
+
+`host service prepare-direct-display` emits the installed Host's standard
+PAM/VT system unit and its activation review. Complete the graphics runtime
+prerequisites before stopping an existing Host service. On Debian/Ubuntu the
+KMSDRM runtime uses these packages:
+
+```sh
+sudo apt-get install --no-install-recommends \
+  libsdl2-2.0-0 libgbm1 libgl1-mesa-dri libegl1 libegl-mesa0 libgles2
+python3 -c 'import ctypes; ctypes.CDLL("libEGL.so.1"); ctypes.CDLL("libGLESv2.so.2")'
+```
+
+Successful library loading checks a prerequisite; actual SDL preparation,
+provider admission and an owner-acknowledged Show still establish readiness.
+Inspect the current service MainPID and its `journalctl -b _PID=<pid>` output.
+PAM may place application logs in the login session rather than the system unit.
+Earlier PID output remains historical.

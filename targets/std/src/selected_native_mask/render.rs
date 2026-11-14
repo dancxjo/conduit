@@ -236,17 +236,15 @@ impl BoundReadOnlyMask {
         {
             return Err("native Mask front subject exceeds finite profile".into());
         }
-        native_mask_plan_backing_bytes(&self.plan).ok_or("unsupported selected Mask closure")?;
+        let plan_bytes = native_mask_plan_backing_bytes(&self.plan)
+            .ok_or("unsupported selected Mask closure")?;
         // Reserve only the remaining authored capacity. This is cooperative
         // preparation accounting, not physical allocator/RSS containment.
         let mut preparation = reserve_preparation(host, provider)?;
-        let input_bytes = face
+        let face_bytes = face
             .retained_backing_bytes()
-            .and_then(|bytes| bytes.checked_mul(2))
-            .and_then(|bytes| {
-                bytes.checked_add(native_mask_plan_backing_bytes(&self.plan)?.checked_mul(2)?)
-            })
-            .ok_or("native Mask finite input owners overflow")?;
+            .ok_or("native Mask finite Face backing overflow")?;
+        let input_bytes = super::outer_bound::input_owner_bytes(plan_bytes, face_bytes)?;
         if input_bytes > preparation.bytes() as usize {
             host.kernel_resources
                 .release_base_backing(preparation)
@@ -267,11 +265,12 @@ impl BoundReadOnlyMask {
             let minimum = input_bytes
                 .checked_add(scene_peak)
                 .ok_or("native input preparation sum overflow")?;
-            if bytes < minimum || bytes > preparation.bytes() as usize {
+            let available = preparation.bytes() as usize;
+            if bytes < minimum || bytes > available {
                 host.kernel_resources
                     .release_base_backing(preparation)
                     .map_err(|(_, error)| error)?;
-                return Err("native input lifetime envelope exceeds authored remaining pool or omits input owners".into());
+                return Err(format!("native input lifetime envelope refused: requested {bytes}, minimum input owners {minimum}, authored remaining pool {available}"));
             }
             host.kernel_resources
                 .retain_base_preparation_bytes(&mut preparation, bytes)?;
