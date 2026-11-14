@@ -36,3 +36,8 @@ The current generated exercise is one source string. Add an absolute `#[path = .
 Parent transferred ownership of existing `neutral_source.rs` and `exercise.rs` after its CPU measurement terminated. These files now expose the exact generated policy/resource/Base constants, construct CPU providers following the same configured identity rules as the physical constructors, publish the configured resident work pool, retain all original refusal assertions, and append the separate positive stage. `positive::measure_preparation` prepares and drops the complete original factory inside an allocation interval before positive preflight is asserted. The helper is included only in the generated executable.
 
 No compilation has yet run because the parent's active ARM build writes the generated OUT_DIR consumed by this test. Exact API compatibility and the positive result remain unproven until that writer releases its lease.
+
+
+## Final observed result before checkpoint
+
+The integrated fixture compiled and then failed at the original command Bounds gate. Exact projection29,018B + metadata7,267B + workset framing14B =36,299B, exceeding configured32,548B by3,751B. Resource metadata6,030B contains5,711B duplicated immutable placement/pool/class text; Fore metadata636B repeats12records. CPUABI inline kernel66,776B, Root33,768B, equipment648B,residents13,256B. No full factory preparation, admission, Start or physical proof occurred, and no limits were changed. The diagnostic alone uses a larger temporary CPU encoding buffer to count bytes; originalRoot buffer remains unchanged and refuses.

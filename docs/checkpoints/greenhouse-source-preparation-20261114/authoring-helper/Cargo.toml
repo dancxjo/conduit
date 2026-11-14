@@ -1,0 +1,13 @@
+[package]
+name="conduit-source-export-internal"
+version="0.0.0"
+edition="2021"
+[workspace]
+[dependencies]
+conduit-mcu-source-build={path="/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/mcu/source-build"}
+conduit-core={path="/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/core"}
+conduit-plot={path="/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/plot"}
+conduit-host-make={path="/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/make/host"}
+conduit-host-rp2040={path="/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/targets/rp2040/make"}
+sha2="0.10"
+serde_json="1"

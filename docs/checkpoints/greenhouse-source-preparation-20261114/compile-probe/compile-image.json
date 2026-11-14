@@ -1,0 +1,269 @@
+{
+  "payload": {
+    "declared_name": "pico-w-house-green-neutral-candidate",
+    "schema": "conduit.host/image@1",
+    "build_id": "build:sha256:b042387a7efbf259618f01f4ba54e0df31e5ea6b27ff043385ad4cf5feabc9f2",
+    "profile_id": "sha256:21bc58da11926c500fc0fbdbeba29e0b3bde03c9da918643735f1d0d4f8ca934",
+    "source_configuration_id": "sha256:547d4a34c80afdbd33249f11feaae89acd23daff40e83c0b08ab8c2521414a16",
+    "target": "conduitos/thumbv6m/pico-w",
+    "profile_fragments": [],
+    "implementations": [],
+    "host_calls": [],
+    "resources": [
+      "pool/resident-step-work"
+    ],
+    "resource_budgets": [
+      {
+        "id": "pool/resident-step-work",
+        "class": "kernel/cooperative-step-work@1",
+        "slots": 65000,
+        "bytes": 98304
+      }
+    ],
+    "bases": [
+      "base/0",
+      "base/1",
+      "base/2",
+      "base/3",
+      "base/4",
+      "base/5"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "bus/i2c",
+        "driver": "rp2040/i2c@1"
+      },
+      {
+        "id": "base/1",
+        "kind": "clock/monotonic",
+        "driver": "rp2040/monotonic-clock@1"
+      },
+      {
+        "id": "base/2",
+        "kind": "display/segmented",
+        "driver": "rp2040/ht16k33@1"
+      },
+      {
+        "id": "base/3",
+        "kind": "network/wifi",
+        "driver": "rp2040/cyw43-retained@1"
+      },
+      {
+        "id": "base/4",
+        "kind": "sensor/environment",
+        "driver": "rp2040/bosch-environment@1"
+      },
+      {
+        "id": "base/5",
+        "kind": "serial/text",
+        "driver": "pico/usb-cdc@1"
+      }
+    ],
+    "drivers": [
+      "driver/0",
+      "driver/1",
+      "driver/2",
+      "driver/3",
+      "driver/4",
+      "driver/5"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "rp2040/i2c@1"
+      },
+      {
+        "id": "driver/1",
+        "kind": "rp2040/monotonic-clock@1"
+      },
+      {
+        "id": "driver/2",
+        "kind": "rp2040/ht16k33@1"
+      },
+      {
+        "id": "driver/3",
+        "kind": "rp2040/cyw43-retained@1"
+      },
+      {
+        "id": "driver/4",
+        "kind": "rp2040/bosch-environment@1"
+      },
+      {
+        "id": "driver/5",
+        "kind": "pico/usb-cdc@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 229376,
+      "heap_arena_bytes": 131072,
+      "queue_items": 128,
+      "buffered_bytes": 203448,
+      "active_instances": 128,
+      "operation_slots": 32,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 267
+    }
+  },
+  "manifest": {
+    "declared_name": "pico-w-house-green-neutral-candidate",
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:21bc58da11926c500fc0fbdbeba29e0b3bde03c9da918643735f1d0d4f8ca934",
+    "source_configuration_id": "sha256:547d4a34c80afdbd33249f11feaae89acd23daff40e83c0b08ab8c2521414a16",
+    "build_id": "build:sha256:b042387a7efbf259618f01f4ba54e0df31e5ea6b27ff043385ad4cf5feabc9f2",
+    "image_id": "image:sha256:49408324ec1cdab5341021bc8612bb8459600f39fdea48cb47cb3b49bffcff29",
+    "source_identity": "compile-probe:3f363e6b4e:83291b6eac51ff63bcda99627b88e31a747cb83b660b310c2fea72af6cd1b07f",
+    "toolchain_identity": "rustc:1.98.1+thumbv6m-none-eabi",
+    "make_package_id": "conduit-host-rp2040@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-rp2040/build-uf2@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-rp2040/flash-uf2@1",
+    "output": "uf2",
+    "implementation_packages": [
+      {
+        "implementation_id": "pico/usb-cdc@1",
+        "package_id": "conduit-host-rp2040@1",
+        "package_revision": 1
+      },
+      {
+        "implementation_id": "rp2040/bosch-environment@1",
+        "package_id": "conduit-host-rp2040@1",
+        "package_revision": 1
+      },
+      {
+        "implementation_id": "rp2040/cyw43-retained@1",
+        "package_id": "conduit-host-rp2040@1",
+        "package_revision": 1
+      },
+      {
+        "implementation_id": "rp2040/ht16k33@1",
+        "package_id": "conduit-host-rp2040@1",
+        "package_revision": 1
+      },
+      {
+        "implementation_id": "rp2040/i2c@1",
+        "package_id": "conduit-host-rp2040@1",
+        "package_revision": 1
+      },
+      {
+        "implementation_id": "rp2040/monotonic-clock@1",
+        "package_id": "conduit-host-rp2040@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/thumbv6m/pico-w",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "flash",
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [],
+    "resources": [
+      "pool/resident-step-work"
+    ],
+    "resource_budgets": [
+      {
+        "id": "pool/resident-step-work",
+        "class": "kernel/cooperative-step-work@1",
+        "slots": 65000,
+        "bytes": 98304
+      }
+    ],
+    "bases": [
+      "base/0",
+      "base/1",
+      "base/2",
+      "base/3",
+      "base/4",
+      "base/5"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "bus/i2c",
+        "driver": "rp2040/i2c@1"
+      },
+      {
+        "id": "base/1",
+        "kind": "clock/monotonic",
+        "driver": "rp2040/monotonic-clock@1"
+      },
+      {
+        "id": "base/2",
+        "kind": "display/segmented",
+        "driver": "rp2040/ht16k33@1"
+      },
+      {
+        "id": "base/3",
+        "kind": "network/wifi",
+        "driver": "rp2040/cyw43-retained@1"
+      },
+      {
+        "id": "base/4",
+        "kind": "sensor/environment",
+        "driver": "rp2040/bosch-environment@1"
+      },
+      {
+        "id": "base/5",
+        "kind": "serial/text",
+        "driver": "pico/usb-cdc@1"
+      }
+    ],
+    "drivers": [
+      "driver/0",
+      "driver/1",
+      "driver/2",
+      "driver/3",
+      "driver/4",
+      "driver/5"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "rp2040/i2c@1"
+      },
+      {
+        "id": "driver/1",
+        "kind": "rp2040/monotonic-clock@1"
+      },
+      {
+        "id": "driver/2",
+        "kind": "rp2040/ht16k33@1"
+      },
+      {
+        "id": "driver/3",
+        "kind": "rp2040/cyw43-retained@1"
+      },
+      {
+        "id": "driver/4",
+        "kind": "rp2040/bosch-environment@1"
+      },
+      {
+        "id": "driver/5",
+        "kind": "pico/usb-cdc@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 229376,
+      "heap_arena_bytes": 131072,
+      "queue_items": 128,
+      "buffered_bytes": 203448,
+      "active_instances": 128,
+      "operation_slots": 32,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 267
+    },
+    "inclusion_paths": {}
+  }
+}
