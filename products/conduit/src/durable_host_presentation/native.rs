@@ -9,6 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[path = "native/input.rs"]
 mod input;
 
 const REFRESH_PERIOD: Duration = Duration::from_secs(10);
