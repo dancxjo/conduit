@@ -207,6 +207,12 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
     );
     let during = observed.load(std::sync::atomic::Ordering::Acquire);
     assert!(during > bound_bytes);
+    assert!(host.retire_selected_native_mask_plan().is_err());
+    assert_eq!(
+        observed.load(std::sync::atomic::Ordering::Acquire),
+        during,
+        "an active frame cannot release its Plan custody"
+    );
     assert!(
         host.render_selected_native_mask(
             &encounter,
@@ -243,6 +249,19 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
     assert_eq!(
         observed.load(std::sync::atomic::Ordering::Acquire),
         bound_bytes
+    );
+    host.retire_selected_native_mask_plan().unwrap();
+    assert!(host.ready_selected_native_mask().unwrap().plan().is_none());
+    assert_eq!(
+        observed.load(std::sync::atomic::Ordering::Acquire),
+        fixed.image_heap_charge,
+        "old Plan metadata is gone BEFORE any replacement admission"
+    );
+    host.retire_selected_native_mask_plan().unwrap();
+    assert_eq!(
+        observed.load(std::sync::atomic::Ordering::Acquire),
+        fixed.image_heap_charge,
+        "already-unbound retirement does not release fixed custody twice"
     );
     host.render_selected_native_mask(
         &next,
@@ -292,6 +311,24 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
     assert_eq!(
         observed.load(std::sync::atomic::Ordering::Acquire),
         bound_bytes
+    );
+    host.kernel_resources.quarantine_retirement(Vec::new());
+    assert!(host.retire_selected_native_mask_plan().is_err());
+    assert_eq!(
+        observed.load(std::sync::atomic::Ordering::Acquire),
+        bound_bytes,
+        "uncertain ledger custody blocks retirement and preserves its charge"
+    );
+    assert!(
+        host.selected_scanout
+            .as_ref()
+            .unwrap()
+            .native_mask
+            .as_ref()
+            .unwrap()
+            .plan()
+            .is_some(),
+        "quarantine cannot become an apparently reusable unbound Plan"
     );
     drop(host);
     assert_eq!(observed.load(std::sync::atomic::Ordering::Acquire), 0);

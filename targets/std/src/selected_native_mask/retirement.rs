@@ -1,6 +1,33 @@
 //! Explicit exact-Plan retirement before changed directional Lines are admitted.
 use super::*;
 
+impl StdHost {
+    /// Retire the exact completed Plan before preparing a replacement encounter.
+    /// Frame/interaction evidence must already be disposed through its original
+    /// ledger. Fixed stores, the physical provider and displayed pixels survive.
+    /// An uncertain retirement remains terminal, never reusable capacity.
+    pub fn retire_selected_native_mask_plan(&mut self) -> Result<(), String> {
+        self.kernel_resources.require_available()?;
+        let mut mask = self
+            .selected_scanout
+            .as_mut()
+            .and_then(|scanout| scanout.native_mask.take())
+            .ok_or("selected native Mask absent during Plan retirement")?;
+        let result = mask.validate_binding(self).and_then(|()| {
+            if matches!(&mask.stores, Stores::Unbound { .. }) {
+                Ok(())
+            } else {
+                mask.retire_bound_plan(self)
+            }
+        });
+        // Even failure must retain the original reservation/quarantine owners.
+        if let Some(scanout) = self.selected_scanout.as_mut() {
+            scanout.native_mask = Some(mask);
+        }
+        result
+    }
+}
+
 impl SelectedNativeMaskBase {
     pub(super) fn retire_bound_plan(&mut self, host: &mut StdHost) -> Result<(), String> {
         host.kernel_resources.require_available()?;
