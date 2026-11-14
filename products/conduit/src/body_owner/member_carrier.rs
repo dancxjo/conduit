@@ -24,11 +24,36 @@ pub(super) struct MemberCarrierCustody {
     active: Option<Active>,
     commands: Vec<preparation::PreparedRemoteBodyCommand>,
 }
+/// Compact reference into the owner's independently retained admitted offer.
+/// Actual current records are re-resolved for each use; no copied advertisement
+/// is retained by pending or authenticated carriers.
+struct RetainedMember {
+    credential: MembershipCredential,
+    offer: super::member_offers::PinnedMemberOffer,
+}
+impl RetainedMember {
+    fn prepare(owner: &Owner, member: &MemberPresentationBasis) -> Result<Self, String> {
+        owner.require_current_native_member(member)?;
+        Ok(Self {
+            credential: member.credential.clone(),
+            offer: owner.pin_admitted_member_offer(&member.host_advertisement)?,
+        })
+    }
+    fn presentation(&self, owner: &Owner) -> Result<MemberPresentationBasis, String> {
+        let offer = self
+            .offer
+            .current(&owner.current_host_offers, owner.session.evidence())
+            .ok_or("member carrier admitted offer custody changed")?;
+        // The existing public preparation ABI still owns its argument. This is
+        // a transient copy only, never a second retained runtime inventory.
+        MemberPresentationBasis::new(self.credential.clone(), offer.clone())
+    }
+}
 struct Pending {
     slot: CurrentMemberChallengeSlot,
     challenge: FederationChallenge,
     signature: [u8; 64],
-    member: MemberPresentationBasis,
+    member: RetainedMember,
     deadline: Instant,
     session_deadline: Instant,
 }
@@ -37,7 +62,7 @@ struct Active {
     expires_at_millis: u64,
     deadline: Instant,
     receiver: FederationPeer,
-    member: MemberPresentationBasis,
+    member: RetainedMember,
     presence: Option<Presence>,
     route: Option<conduit_core::PlanId>,
 }
@@ -104,6 +129,7 @@ impl Owner {
         }
         let member = MemberPresentationBasis::new(credential.clone(), advertisement.clone())?;
         self.require_current_native_member(&member)?;
+        let retained_member = RetainedMember::prepare(self, &member)?;
         let manager = self
             .admissions
             .as_ref()
@@ -193,7 +219,7 @@ impl Owner {
             slot,
             challenge: challenge.clone(),
             signature,
-            member,
+            member: retained_member,
             deadline: (started + Duration::from_secs(10)).min(session_deadline),
             session_deadline,
         });
@@ -222,7 +248,7 @@ impl Owner {
         if Instant::now() >= pending.deadline || Instant::now() >= pending.session_deadline {
             return Err("member carrier proof deadline expired".into());
         }
-        self.require_current_native_member(&pending.member)?;
+        self.require_current_native_member(&pending.member.presentation(self)?)?;
         let now = crate::durable_host::current_time_millis()?;
         if now >= challenge.expires_at_millis {
             return Err("member carrier session expired".into());
@@ -265,7 +291,7 @@ impl Owner {
             .as_ref()
             .and_then(|c| c.active.as_ref())
             .ok_or("carrier session absent")?;
-        self.require_current_native_member(&active.member)?;
+        self.require_current_native_member(&active.member.presentation(self)?)?;
         if active.receiver != receiver
             || Instant::now() >= active.deadline
             || crate::durable_host::current_time_millis()? >= active.expires_at_millis

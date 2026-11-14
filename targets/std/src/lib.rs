@@ -1,6 +1,16 @@
 pub mod allocation_observation;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod hosted_display;
+/// Capacity-based backing visitor for the supported native Mask Plan closure.
+/// Unsupported Plan owners refuse; this supplies no admission or authority.
+#[cfg(feature = "linux-display")]
+pub use conduitos::product_bases::native_mask_plan_backing_bytes;
+/// Native Plan backing is unsupported in builds without the native display
+/// implementation. This refuses accounting, never infers a zero-byte owner.
+#[cfg(not(feature = "linux-display"))]
+pub fn native_mask_plan_backing_bytes(_: &conduit_face::PlannedMaskPlot) -> Option<usize> {
+    None
+}
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod selected_native_mask;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]

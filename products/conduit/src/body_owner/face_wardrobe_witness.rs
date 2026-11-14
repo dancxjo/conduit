@@ -147,13 +147,16 @@ impl Owner {
         current
     }
 
+    // Preserve separate current offer custody in this test witness entrance.
     #[cfg(test)]
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn current_face_routes_with_native<'a>(
         owner_offer: &'a conduit_core::HostAdvertisement,
         browser: Option<&'a super::participants::BrowserWindow>,
         local: Option<&'a LocalOwnerMaskRouteSeal>,
         native: Option<&'a NativeMaskRoute>,
         session: &conduit_body::BodyLifecycleSession,
+        offers: &'a conduit_body::CurrentHostOffers,
         face: &conduit_face::Face,
         now_millis: u64,
     ) -> Vec<CurrentOwnerFaceRoute<'a>> {
@@ -165,6 +168,7 @@ impl Owner {
             None,
             None,
             session,
+            offers,
             face,
             now_millis,
         )
@@ -181,6 +185,7 @@ impl Owner {
         speech: Option<&'a LocalOwnerMaskRouteSeal>,
         llm_speech: Option<&'a LocalOwnerMaskRouteSeal>,
         session: &conduit_body::BodyLifecycleSession,
+        offers: &'a conduit_body::CurrentHostOffers,
         face: &conduit_face::Face,
         now_millis: u64,
     ) -> Vec<CurrentOwnerFaceRoute<'a>> {
@@ -192,7 +197,7 @@ impl Owner {
             current.push(CurrentOwnerFaceRoute::Local { seal, owner_offer });
         }
         if let Some((seal, mask_host_offer, face_line, return_line, interaction_line)) =
-            native.and_then(|route| route.current_witness(session, face, now_millis))
+            native.and_then(|route| route.current_witness(session, face, offers, now_millis))
         {
             if !Self::remote_route_has_prior_owner_generation(seal, owner_offer) {
                 current.push(CurrentOwnerFaceRoute::Remote {

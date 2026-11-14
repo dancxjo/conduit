@@ -24,10 +24,9 @@ impl Owner {
                 .rev()
                 .find(|admitted| admitted.credential.part_id == credential.part_id)
         });
-        let retained_offer_mismatch = self
-            .pending_native_mask
-            .as_ref()
-            .is_some_and(|route| route.credential == *credential && route.host_offer != *offered);
+        let retained_offer_mismatch = self.pending_native_mask.as_ref().is_some_and(|route| {
+            route.credential == *credential && !route.host_offer.matches(offered)
+        });
         if credential.body_id != self.session.evidence().body_id
             || !current
             || latest.is_none_or(|admitted| admitted.credential != *credential)

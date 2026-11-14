@@ -29,7 +29,7 @@ impl Owner {
             return Err("member carrier presence expired".into());
         }
         Ok((
-            active.member.clone(),
+            active.member.presentation(self)?,
             deadline.min(active.deadline),
             active.expires_at_millis,
         ))

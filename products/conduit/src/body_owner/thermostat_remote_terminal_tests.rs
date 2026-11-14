@@ -13,14 +13,22 @@ use std::os::unix::net::UnixStream;
 #[test]
 fn admitted_terminal_controls_the_same_running_thermostat_and_rejects_stale_show() {
     let (mut owner, root) = fixture(256);
-    let mut peer = StdHost::new_with_config(StdHostConfig {
-        host_id: "host/thermostat-terminal".into(),
-        boot_id: "boot/thermostat-terminal".into(),
-        offer_generation: OfferGeneration(1),
-    });
+    // This member supplies an actual attached terminal, not the entire std
+    // reference inventory. Construct that finite Host before signed admission;
+    // never trim a copied advertisement or enlarge candidate admission bounds.
+    let mut peer = StdHost::new_with_composition(
+        StdHostConfig {
+            host_id: "host/thermostat-terminal".into(),
+            boot_id: "boot/thermostat-terminal".into(),
+            offer_generation: OfferGeneration(1),
+        },
+        conduit_std_host::StdHostComposition::minimal(),
+    );
     let (provider, mut foreground) = UnixStream::pair().unwrap();
     peer.attach_terminal_mask(provider).unwrap();
     let peer_offer = peer.advertisement().clone();
+    assert!(peer_offer.capabilities.len() <= conduit_body::MAX_CANDIDATE_CAPABILITIES);
+    assert!(peer_offer.resources.len() <= conduit_body::MAX_CANDIDATE_RESOURCES);
     let invitation = owner.issue_invitation(&root, 60, None).unwrap();
     let secret = SpawnInvitationSecret::from_csprng_bytes(invitation.secret).unwrap();
     let receipt = owner
@@ -149,6 +157,7 @@ fn admitted_terminal_controls_the_same_running_thermostat_and_rejects_stale_show
         .current_witness(
             &owner.session,
             &face,
+            &owner.current_host_offers,
             crate::durable_host::current_time_millis().unwrap(),
         )
         .unwrap()

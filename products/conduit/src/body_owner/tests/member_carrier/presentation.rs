@@ -250,6 +250,7 @@ fn short_presence_expiry_withdraws_native_witness_without_member_departure() {
         .current_witness(
             &owner.session,
             &face,
+            &owner.current_host_offers,
             crate::durable_host::current_time_millis().unwrap()
         )
         .is_none());
@@ -376,6 +377,54 @@ fn graphical_carrier_binds_exact_third_line_without_selecting_terminal_mask() {
         )
         .unwrap();
     assert_eq!(seal.interaction_line, Some(interaction.admitted_line()));
+    // A compact pin resolves actual admitted custody, never a sorted index or
+    // a replacement inventory with matching Host/Boot/generation labels.
+    let pin = owner.pin_admitted_member_offer(&ad).unwrap();
+    assert!(pin
+        .current(&owner.current_host_offers, owner.session.evidence())
+        .is_some());
+    let saved_offers = owner.current_host_offers.clone();
+    let mut changed_ad = ad.clone();
+    changed_ad.profile = "fixture/replaced-same-generation".into();
+    owner
+        .current_host_offers
+        .observe(owner.session.evidence(), changed_ad)
+        .unwrap();
+    assert!(pin
+        .current(&owner.current_host_offers, owner.session.evidence())
+        .is_none());
+    assert!(owner
+        .inspect_current_member_carrier(&challenge.session_id)
+        .is_err());
+    owner.current_host_offers = saved_offers;
+    assert!(owner
+        .inspect_current_member_carrier(&challenge.session_id)
+        .is_ok());
+
+    #[cfg(feature = "native-display")]
+    {
+        // Capacity inspection is independent of wire size and semantic identity.
+        let initial = native_mask_route::backing::seal_payload_bytes(&seal).unwrap();
+        let mut enlarged = seal.clone();
+        let original = enlarged.owner_host.offer_digest.capacity();
+        enlarged.owner_host.offer_digest.reserve(193);
+        let delta = enlarged.owner_host.offer_digest.capacity() - original;
+        let cloned = native_mask_route::backing::seal_payload_bytes(&seal.clone()).unwrap();
+        assert!(cloned <= initial);
+        assert_eq!(
+            native_mask_route::backing::seal_payload_bytes(&enlarged),
+            Some(cloned + delta)
+        );
+        enlarged
+            .planned_mask
+            .plan
+            .fragments
+            .push(enlarged.planned_mask.plan.fragments[0].clone());
+        assert_eq!(
+            native_mask_route::backing::seal_payload_bytes(&enlarged),
+            None
+        );
+    }
     let input = seal
         .planned_mask
         .plan
@@ -400,6 +449,16 @@ fn graphical_carrier_binds_exact_third_line_without_selecting_terminal_mask() {
     )
     .unwrap();
     let shown = show(&mut owner, &seal, 1);
+    #[cfg(feature = "native-display")]
+    assert!(native_mask_route::backing::show_payload_bytes(&shown).unwrap() > 0);
+    let mut original = seal.clone();
+    original.face_basis.sign_ids.reserve(19);
+    // Non-IMAGE fixture must refuse rather than manufacture a new memory owner.
+    assert!(
+        native_mask_route::backing::prepare_seal_clone(owner.host.current_mut(), &original)
+            .is_err()
+    );
+
     owner
         .acknowledge_member_carrier_show(&challenge.session_id, &request(&credential), &shown)
         .unwrap();

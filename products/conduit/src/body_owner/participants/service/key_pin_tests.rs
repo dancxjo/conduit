@@ -50,6 +50,7 @@ fn key_pinned_window_learns_actual_identity_only_from_successful_signed_admissio
 fn key_pinned_window_refuses_wrong_advertised_key_and_signature_key_swap() {
     let (mut owner, root, _) = setup();
     let before = owner.session.evidence().membership.clone();
+    let before_offers = owner.current_host_offers.clone();
     let authorization = owner
         .browser_authorize_window(None, Some(BROWSER_KEY), 10_000)
         .unwrap();
@@ -79,6 +80,7 @@ fn key_pinned_window_refuses_wrong_advertised_key_and_signature_key_swap() {
         .browser_complete(&root, &authorization.window_id, proof(&challenge, 8))
         .is_err());
     assert_eq!(owner.session.evidence().membership, before);
+    assert_eq!(owner.current_host_offers, before_offers);
     assert!(owner.pending_browser.as_ref().unwrap().expected.is_none());
     owner
         .browser_complete(&root, &authorization.window_id, proof(&challenge, 7))
@@ -158,5 +160,43 @@ fn key_pinned_window_is_not_a_return_identity_selector() {
             .unwrap(),
         Out::ReturnChallenge { .. }
     ));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn signed_browser_offer_publishes_only_after_durable_membership_commit() {
+    let (mut owner, root, _) = setup();
+    let authorization = owner
+        .browser_authorize_window(None, Some(BROWSER_KEY), 10_000)
+        .unwrap();
+    let challenge = advertise(&mut owner, &authorization.window_id);
+    let biography = owner.session.evidence().clone();
+    let manager = owner.admissions.clone();
+    let offers = owner.current_host_offers.clone();
+    // Canonical proof succeeds, but the retained-state root cannot commit.
+    // The ordinary invitation/return tests use the same filesystem fault.
+    let blocked = root.join("blocked-browser-state");
+    std::fs::write(&blocked, b"occupied").unwrap();
+    assert!(owner
+        .browser_complete(&blocked, &authorization.window_id, proof(&challenge, 7))
+        .is_err());
+    assert_eq!(owner.session.evidence(), &biography);
+    assert_eq!(owner.admissions, manager);
+    assert_eq!(owner.current_host_offers, offers);
+    let snapshot = owner
+        .browser_complete(&root, &authorization.window_id, proof(&challenge, 7))
+        .unwrap();
+    let admitted = snapshot.browser_advertisement.as_deref().unwrap();
+    owner.require_observed_member_offer(admitted).unwrap();
+    let pin = owner.pin_admitted_member_offer(admitted).unwrap();
+    assert!(pin
+        .current(&owner.current_host_offers, owner.session.evidence())
+        .is_some());
+    assert_eq!(
+        crate::durable_host::owner::state::load(&root)
+            .unwrap()
+            .as_ref(),
+        Some(owner.session.evidence())
+    );
     std::fs::remove_dir_all(root).unwrap();
 }

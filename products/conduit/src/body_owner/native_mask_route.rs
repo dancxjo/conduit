@@ -8,6 +8,8 @@ use conduit_core::{HostAdvertisement, LineAvailability, LineOffer};
 use conduit_face::{Face, MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
 use conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection;
 
+#[path = "native_mask_route/backing.rs"]
+pub(super) mod backing;
 #[path = "native_mask_route/graphical_plan.rs"]
 mod graphical_plan;
 #[path = "native_mask_route/member_basis.rs"]
@@ -36,7 +38,7 @@ pub(super) struct NativeMaskRoute {
         conduit_face::TodoComponentRecipe,
     )>,
     credential: MembershipCredential,
-    host_offer: conduit_core::HostAdvertisement,
+    host_offer: super::member_offers::PinnedMemberOffer,
     face_line: LineOffer,
     return_line: LineOffer,
     interaction_line: Option<LineOffer>,
@@ -52,17 +54,18 @@ impl NativeMaskRoute {
     /// or observed unavailable Line withdraws this witness from the owner Plan.
     /// A purportedly Ready but malformed Line remains a witness so admission
     /// can refuse it instead of laundering that claim into ordinary loss.
-    pub(super) fn current_witness(
-        &self,
+    pub(super) fn current_witness<'a>(
+        &'a self,
         session: &BodyLifecycleSession,
         face: &Face,
+        offers: &'a conduit_body::CurrentHostOffers,
         now_millis: u64,
     ) -> Option<(
-        &RemoteOwnerMaskRouteSeal,
-        &HostAdvertisement,
-        &LineOffer,
-        &LineOffer,
-        Option<&LineOffer>,
+        &'a RemoteOwnerMaskRouteSeal,
+        &'a HostAdvertisement,
+        &'a LineOffer,
+        &'a LineOffer,
+        Option<&'a LineOffer>,
     )> {
         if self
             .carrier_presence_deadline
@@ -82,17 +85,18 @@ impl NativeMaskRoute {
         {
             return None;
         }
+        let offered = self.host_offer.current(offers, session.evidence())?;
         let current_part = session.evidence().membership.parts.iter().any(|part| {
             part.part_id == self.credential.part_id
                 && part.current.as_ref().is_some_and(|host| {
                     host.host_id == self.credential.host_id
                         && host.boot_id == self.credential.boot_id
-                        && host.offer_generation == self.host_offer.offer_generation
+                        && host.offer_generation == self.host_offer.generation()
                 })
         });
         current_part.then_some((
             &self.seal,
-            &self.host_offer,
+            offered,
             &self.face_line,
             &self.return_line,
             self.interaction_line.as_ref(),
@@ -323,7 +327,7 @@ impl Owner {
         let previous = self.pending_native_mask.replace(NativeMaskRoute {
             component_selection,
             credential: credential.clone(),
-            host_offer: native_offer.clone(),
+            host_offer: self.pin_admitted_member_offer(native_offer)?,
             face_line: face_line.clone(),
             return_line: return_line.clone(),
             interaction_line: interaction_line.cloned(),
@@ -354,7 +358,9 @@ impl Owner {
             .clone()
             .ok_or("native-mask-route-not-selected")?;
         if previous_route.credential != member.credential
-            || previous_route.host_offer != member.host_advertisement
+            || !previous_route
+                .host_offer
+                .matches(&member.host_advertisement)
         {
             return Err("native-mask-route-credential-mismatch".into());
         }
@@ -475,12 +481,16 @@ impl Owner {
             return Err("native-mask-route-credential-mismatch".into());
         }
         let face = self.face_snapshot(request)?;
+        let offered = route
+            .host_offer
+            .current(&self.current_host_offers, self.session.evidence())
+            .ok_or("native-mask-current-offer-custody-lost")?;
         (if let Some(interaction_line) = &route.interaction_line {
             route.seal.validate_available_show_with_interaction(
                 &self.session,
                 &face,
                 self.host.advertisement(),
-                &route.host_offer,
+                offered,
                 &route.face_line,
                 &route.return_line,
                 interaction_line,
@@ -491,7 +501,7 @@ impl Owner {
                 &self.session,
                 &face,
                 self.host.advertisement(),
-                &route.host_offer,
+                offered,
                 &route.face_line,
                 &route.return_line,
                 show,
