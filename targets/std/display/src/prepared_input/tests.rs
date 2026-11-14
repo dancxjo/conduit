@@ -26,7 +26,7 @@ fn settled_pointer_and_keyboard_share_exclusive_revocable_input_owner() {
     let down = |window_id| Event::MouseButtonDown {
         timestamp: 1,
         window_id,
-        which: u32::MAX,
+        which: 0,
         mouse_btn: MouseButton::Left,
         clicks: 1,
         x: 31,

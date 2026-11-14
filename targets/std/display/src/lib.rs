@@ -172,7 +172,11 @@ pub fn with_kmsdrm<T>(
     if !sdl2::hint::set("SDL_VIDEODRIVER", KMSDRM_DRIVER) {
         return Err("kmsdrm-driver-selection-refused".into());
     }
-    if !sdl2::hint::set("SDL_TOUCH_MOUSE_EVENTS", "1") {
+    // Direct finger events retain their actual window and contact identity.
+    // Disable SDL's synthetic cross-device events to avoid duplicate actions.
+    if !sdl2::hint::set("SDL_TOUCH_MOUSE_EVENTS", "0")
+        || !sdl2::hint::set("SDL_MOUSE_TOUCH_EVENTS", "0")
+    {
         return Err("touch-pointer-selection-refused".into());
     }
     let sdl = sdl2::init()?;
@@ -185,7 +189,21 @@ pub fn with_kmsdrm<T>(
         .fullscreen_desktop()
         .build()
         .map_err(|e| e.to_string())?;
-    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
+    // KMSDRM uses EGL. SDL's automatic desktop-OpenGL preference can create
+    // a nominal renderer with no usable scanout on GLES-only installations.
+    // Select the portable EGL renderer explicitly and observe the actual one.
+    let renderer = sdl2::render::drivers()
+        .position(|driver| driver.name == "opengles2")
+        .and_then(|index| u32::try_from(index).ok())
+        .ok_or("kmsdrm-gles2-renderer-unavailable")?;
+    let mut canvas = window
+        .into_canvas()
+        .index(renderer)
+        .build()
+        .map_err(|e| e.to_string())?;
+    if canvas.info().name != "opengles2" {
+        return Err("kmsdrm-renderer-selection-differed".into());
+    }
     let textures = canvas.texture_creator();
     let mut scanout = Scanout::prepare(&mut canvas, &textures, width, height)?;
     let mut events = sdl.event_pump()?;
