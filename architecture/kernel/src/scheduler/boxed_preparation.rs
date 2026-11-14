@@ -18,6 +18,7 @@ impl<
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
         const TERMINAL_ROWS: usize,
+        const PHASE_BYTES: usize,
     >
     FixedScheduler<
         D,
@@ -32,6 +33,7 @@ impl<
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
         TERMINAL_ROWS,
+        PHASE_BYTES,
     >
 where
     D: StepBack<PORTS>,
@@ -146,6 +148,7 @@ where
         contracts: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
         actual: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
     ) -> Result<PreparedKernelStorage<D, Self, NODES>, KernelPreparationError> {
+        phase_terminal::validate_capacity::<PHASE_BYTES, NODES, PORTS>(contracts)?;
         validate_active_capacity(active_nodes, NODES, active_cords, CORDS)?;
         if PORTS == 0
             || QUEUE_SLOTS == 0

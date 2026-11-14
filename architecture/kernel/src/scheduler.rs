@@ -57,6 +57,7 @@ mod queue_index;
 mod quiescence;
 use queue_index::queue_slot;
 mod payload_admission;
+mod phase_terminal;
 #[cfg(feature = "alloc")]
 pub mod prepared_session;
 #[cfg(feature = "linear-ready-reference-test")]
@@ -138,14 +139,14 @@ pub enum AssignedCancellationTransduction {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ActiveTerminalPhase {
+enum ActiveTerminalPhase<const BYTES: usize> {
     Normal {
         input: PortId,
         emitted: AssignedFiniteTerminalEmission,
     },
     Abnormal {
         input: PortId,
-        terminal: CanonicalValue,
+        terminal: phase_terminal::PhaseTerminal<BYTES>,
         emitted: AssignedFiniteTerminalEmission,
     },
 }
@@ -1044,6 +1045,9 @@ impl CordState {
 /// `TERMINAL_ROWS=NODES` retains the ordinary inline law profile plus a small
 /// immutable-storage handle. The explicit linked profile selects zero inline
 /// rows; its complete `size_of::<Self>()` is still charged by preparation.
+/// `PHASE_BYTES` funds retained abnormal-finalization bytes only. A smaller
+/// profile refuses any such selected finalizer; public abnormal values and
+/// Cord/unresolved storage retain their full independent100-byte envelope.
 pub struct FixedScheduler<
     D,
     S,
@@ -1057,6 +1061,7 @@ pub struct FixedScheduler<
     const HOST_BINDING_SLOTS: usize = 0,
     const PENDING_REQUESTS: usize = 0,
     const TERMINAL_ROWS: usize = NODES,
+    const PHASE_BYTES: usize = { CanonicalValue::MAXIMUM_BYTES },
 > where
     D: StepBack<PORTS>,
     S: ValueStorage,
@@ -1065,7 +1070,7 @@ pub struct FixedScheduler<
     node_specs: [NodeSpec<PORTS>; NODES],
     terminal_transductions: terminal_storage::TerminalContracts<NODES, PORTS, TERMINAL_ROWS>,
     terminal_inputs_consumed: [[bool; PORTS]; NODES],
-    terminal_phases: [Option<ActiveTerminalPhase>; NODES],
+    terminal_phases: [Option<ActiveTerminalPhase<PHASE_BYTES>>; NODES],
     terminal_cancellation_pending: [bool; NODES],
     unresolved_abnormal: [Option<UnresolvedAbnormal>; NODES],
     projected_recovery_source: [Option<NodeId>; NODES],
@@ -1126,6 +1131,7 @@ impl<
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
         const TERMINAL_ROWS: usize,
+        const PHASE_BYTES: usize,
     >
     FixedScheduler<
         D,
@@ -1140,6 +1146,7 @@ impl<
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
         TERMINAL_ROWS,
+        PHASE_BYTES,
     >
 where
     D: StepBack<PORTS>,
@@ -1323,6 +1330,7 @@ where
         &mut self,
         contracts: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
     ) -> Result<(), SchedulerError> {
+        phase_terminal::validate_capacity::<PHASE_BYTES, NODES, PORTS>(&contracts)?;
         for (node, contract) in contracts.iter().copied().enumerate() {
             #[cfg(feature = "alloc")]
             if (self.native_input_ports[node].is_some()
@@ -2509,7 +2517,7 @@ where
         node: usize,
         outcome: StepOutcome,
         io: &StepIo<PORTS>,
-    ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
+    ) -> Result<Option<ActiveTerminalPhase<PHASE_BYTES>>, SchedulerError> {
         let active_input = self.terminal_phases[node].map(|phase| match phase {
             ActiveTerminalPhase::Normal { input, .. }
             | ActiveTerminalPhase::Abnormal { input, .. } => input,
@@ -2633,7 +2641,7 @@ where
                         } if port == contract.output && propagated == terminal => Ok(None),
                         StepOutcome::Progress => Ok(Some(ActiveTerminalPhase::Abnormal {
                             input: contract.input,
-                            terminal,
+                            terminal: phase_terminal::PhaseTerminal::new(terminal)?,
                             emitted,
                         })),
                         StepOutcome::Fail(_) => Ok(None),
@@ -2757,10 +2765,10 @@ where
     fn advance_terminal_phase(
         &self,
         contract: AssignedTerminalTransduction,
-        phase: ActiveTerminalPhase,
+        phase: ActiveTerminalPhase<PHASE_BYTES>,
         outcome: StepOutcome,
         io: &StepIo<PORTS>,
-    ) -> Result<Option<ActiveTerminalPhase>, SchedulerError> {
+    ) -> Result<Option<ActiveTerminalPhase<PHASE_BYTES>>, SchedulerError> {
         match phase {
             ActiveTerminalPhase::Normal { input, emitted } => {
                 let bound = match contract.normal_close {
@@ -2793,7 +2801,11 @@ where
                     StepOutcome::Abnormal {
                         port,
                         terminal: propagated,
-                    } if port == contract.output && propagated == terminal => Ok(None),
+                    } if port == contract.output
+                        && propagated.as_slice() == terminal.as_slice() =>
+                    {
+                        Ok(None)
+                    }
                     StepOutcome::Progress | StepOutcome::Await | StepOutcome::Yield => {
                         Ok(Some(ActiveTerminalPhase::Abnormal {
                             input,

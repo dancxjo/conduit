@@ -75,12 +75,13 @@ pub struct PreparedKernelSession<
     const H: usize = 0,
     const A: usize = 0,
     const TERMINAL_ROWS: usize = N,
+    const PHASE_BYTES: usize = { crate::CanonicalValue::MAXIMUM_BYTES },
 > where
     D: ReusableStepBack<P>,
     S: ValueStorage,
     E: SignSink + SignQuery,
 {
-    kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+    kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
     phase: Phase,
     remote_sign_reservation: u16,
     has_owned_boundaries: bool,
@@ -100,7 +101,8 @@ impl<
         const H: usize,
         const A: usize,
         const TERMINAL_ROWS: usize,
-    > PreparedKernelSession<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
+        const PHASE_BYTES: usize,
+    > PreparedKernelSession<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
 where
     D: ReusableStepBack<P>,
     S: ValueStorage,
@@ -110,12 +112,12 @@ where
     /// transport epochs and remote acknowledgement are not inferred or reset.
     #[allow(clippy::type_complexity)]
     pub fn new(
-        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
     ) -> Result<
         Self,
         (
             SessionRefusal,
-            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
         ),
     > {
         Self::new_with_owned_value_boundaries(kernel, &[], 0)
@@ -127,14 +129,14 @@ where
     /// Remote payload sequences survive rearm; evidence storage is pre-admitted.
     #[allow(clippy::type_complexity)]
     pub fn new_with_owned_value_boundaries(
-        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
         boundaries: &[OwnedValueBoundary],
         remote_sign_reservation: u16,
     ) -> Result<
         Self,
         (
             SessionRefusal,
-            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
         ),
     > {
         Self::new_with_optional_owned_outputs(kernel, boundaries, &[], remote_sign_reservation)
@@ -144,7 +146,7 @@ where
     /// Inputs and other outputs retain the existing exactly-one-Value contract.
     #[allow(clippy::type_complexity)]
     pub fn new_with_optional_owned_outputs(
-        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
         boundaries: &[OwnedValueBoundary],
         optional_outputs: &[OwnedValueBoundary],
         remote_sign_reservation: u16,
@@ -152,7 +154,7 @@ where
         Self,
         (
             SessionRefusal,
-            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
         ),
     > {
         let storage = (!optional_outputs.is_empty()).then(OptionalOutputStorage::prepare);
@@ -169,7 +171,7 @@ where
     /// Refusal drops the unused tracking store; the untouched kernel is returned.
     #[allow(clippy::type_complexity)]
     pub fn new_with_preallocated_optional_outputs(
-        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
         boundaries: &[OwnedValueBoundary],
         optional_outputs: &[OwnedValueBoundary],
         remote_sign_reservation: u16,
@@ -178,7 +180,7 @@ where
         Self,
         (
             SessionRefusal,
-            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
         ),
     > {
         Self::new_with_optional_storage(
@@ -192,7 +194,7 @@ where
 
     #[allow(clippy::type_complexity)]
     fn new_with_optional_storage(
-        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
         boundaries: &[OwnedValueBoundary],
         optional_outputs: &[OwnedValueBoundary],
         remote_sign_reservation: u16,
@@ -201,7 +203,7 @@ where
         Self,
         (
             SessionRefusal,
-            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>>,
+            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>>,
         ),
     > {
         if optional_outputs.is_empty() != storage.is_none() {
@@ -283,7 +285,9 @@ where
             .as_ref()
             .is_some_and(|state| state.optional[index])
     }
-    pub fn kernel(&self) -> &FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS> {
+    pub fn kernel(
+        &self,
+    ) -> &FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES> {
         &self.kernel
     }
     /// Borrow the exact normally drained evidence before committing a rearm.

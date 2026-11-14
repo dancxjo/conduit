@@ -13,6 +13,7 @@ impl<
         const HOST_BINDING_SLOTS: usize,
         const PENDING_REQUESTS: usize,
         const TERMINAL_ROWS: usize,
+        const PHASE_BYTES: usize,
     >
     FixedScheduler<
         D,
@@ -27,6 +28,7 @@ impl<
         HOST_BINDING_SLOTS,
         PENDING_REQUESTS,
         TERMINAL_ROWS,
+        PHASE_BYTES,
     >
 where
     D: StepBack<PORTS>,
@@ -118,6 +120,8 @@ where
             &mut FixedHostCallBindings<HOST_BINDING_SLOTS>,
         ) -> Result<(usize, usize), Q>,
     ) -> Result<PreparedKernelStorage<D, Self, NODES>, Q> {
+        phase_terminal::validate_capacity::<PHASE_BYTES, NODES, PORTS>(contracts)
+            .map_err(|error| map_error(error.into()))?;
         let terminal_contracts = match linked {
             Some(table) if table == contracts => terminal_storage::TerminalContracts::linked(table),
             Some(_) => return Err(map_error(SchedulerError::InvalidPlan.into())),
