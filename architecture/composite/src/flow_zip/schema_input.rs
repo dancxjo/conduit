@@ -20,8 +20,8 @@ impl FlowZipBack {
             if parts.schema != schema || length != logical_length || length > maximum {
                 return Err(915 + side as u16);
             }
-            conduit_core::BorrowedStructuredValueValidator::new(schema, maximum)
-                .and_then(|validator| validator.validate_node(parts.node))
+            self.encoder
+                .validate_node(side, parts.node, maximum)
                 .map_err(|_| 915 + side as u16)?;
             let slot = if side == 0 {
                 &mut self.left

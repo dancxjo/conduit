@@ -117,6 +117,49 @@ impl<'a> SoftwareBack<'a> {
         let back = back.map_err(|_| "zip-definition")?;
         Ok(Self::Zip(Box::new(back)))
     }
+    /// Explicit flash schema profile; runtime workspace selection remains finite.
+    pub fn zip_static(
+        left: &conduit_core::CheckedValueContract,
+        left_type: conduit_core::StructuredInfoType,
+        right: &conduit_core::CheckedValueContract,
+        right_type: conduit_core::StructuredInfoType,
+        schemas: [&'static [u8]; 3],
+        feedback: bool,
+    ) -> Result<Self, &'static str> {
+        #[cfg(feature = "execution-workspace")]
+        {
+            let back = if feedback {
+                conduit_composite::FlowZipBack::prepare_typed_feedback_static_workspace(
+                    left, left_type, right, right_type, schemas,
+                )
+            } else {
+                conduit_composite::FlowZipBack::prepare_typed_finite_static_workspace(
+                    left, left_type, right, right_type, schemas,
+                )
+            }
+            .map_err(|_| "zip-static-definition")?;
+            Ok(Self::Zip(Box::new(back)))
+        }
+        #[cfg(not(feature = "execution-workspace"))]
+        {
+            if left_type
+                .canonical_bytes()
+                .map_err(|_| "zip-static-schema")?
+                != schemas[0]
+                || right_type
+                    .canonical_bytes()
+                    .map_err(|_| "zip-static-schema")?
+                    != schemas[1]
+                || conduit_core::tuple_info_type(alloc::vec![left_type.clone(), right_type.clone()])
+                    .and_then(|ty| ty.canonical_bytes())
+                    .map_err(|_| "zip-static-schema")?
+                    != schemas[2]
+            {
+                return Err("zip-static-schema");
+            }
+            Self::zip(left, left_type, right, right_type, feedback)
+        }
+    }
     pub fn merge(
         schema: &conduit_core::StructuredInfoType,
         maximum_bytes: u32,

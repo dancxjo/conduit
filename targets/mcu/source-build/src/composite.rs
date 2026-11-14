@@ -195,9 +195,31 @@ pub(crate) fn emit_definition(role: &Role) -> Result<String, String> {
         ))
     };
     Ok(match role {
-        Role::SeededUntil(v) => format!("D::SeededUntilStatic{{schema:{},maximum_bytes:{}}}", schema(v)?, v.contract.maximum_bytes),
-        Role::Merge(v) => format!("D::MergeStatic{{schema:{},maximum_bytes:{}}}", schema(v)?, v.contract.maximum_bytes),
-        Role::Zip { left, right, feedback } => format!("D::ZipStatic{{left_schema:{},left_maximum_bytes:{},right_schema:{},right_maximum_bytes:{},feedback:{feedback}}}", schema(left)?, left.contract.maximum_bytes, schema(right)?, right.contract.maximum_bytes),
+        Role::SeededUntil(v) => format!(
+            "D::SeededUntilStatic{{schema:{},maximum_bytes:{}}}",
+            schema(v)?,
+            v.contract.maximum_bytes
+        ),
+        Role::Merge(v) => format!(
+            "D::MergeStatic{{schema:{},maximum_bytes:{}}}",
+            schema(v)?,
+            v.contract.maximum_bytes
+        ),
+        Role::Zip {
+            left,
+            right,
+            feedback,
+        } => {
+            let pair = c::PreparedTypedTuplePairEncoder::new(
+                left.schema.clone(),
+                left.contract.maximum_bytes,
+                right.schema.clone(),
+                right.contract.maximum_bytes,
+            )
+            .map_err(debug)?;
+            let output = pair.value_type().canonical_bytes().map_err(debug)?;
+            format!("D::ZipStatic{{left_schema:{},left_maximum_bytes:{},right_schema:{},right_maximum_bytes:{},output_schema:&{output:?},feedback:{feedback}}}", schema(left)?, left.contract.maximum_bytes, schema(right)?, right.contract.maximum_bytes)
+        }
     })
 }
 

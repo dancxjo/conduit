@@ -144,6 +144,10 @@ fn check(specs: [Spec; 2]) {
         assert!(node.offer_image.is_some());
         let definition = emit_definition(role).unwrap();
         assert!(definition.contains("ZipStatic"));
+        assert!(definition.contains(&format!(
+            "output_schema:&{:?}",
+            pair.value_type().canonical_bytes().unwrap()
+        )));
         assert!(definition.contains(&format!("feedback:{}", spec.feedback)));
         let mut forged = entry
             .plot

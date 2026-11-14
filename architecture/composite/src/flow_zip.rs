@@ -8,6 +8,10 @@ mod encoder;
 mod exact;
 mod schema_input;
 #[cfg(feature = "execution-workspace")]
+mod static_prepare;
+#[cfg(feature = "execution-workspace")]
+mod static_workspace_encoder;
+#[cfg(feature = "execution-workspace")]
 mod workspace_encoder;
 use conduit_kernel::{
     scheduler::{
@@ -215,7 +219,7 @@ impl FlowZipBack {
         right: &CheckedValueContract,
         right_type: StructuredInfoType,
     ) -> Result<Self, StructuredInfoRefusal> {
-        Self::prepare_typed_mode(left, left_type, right, right_type, false)
+        Self::prepare_typed_mode(left, left_type, right, right_type, false, None)
     }
     #[cfg(feature = "execution-workspace")]
     pub fn prepare_typed_workspace(
@@ -224,7 +228,7 @@ impl FlowZipBack {
         right: &CheckedValueContract,
         right_type: StructuredInfoType,
     ) -> Result<Self, StructuredInfoRefusal> {
-        Self::prepare_typed_mode(left, left_type, right, right_type, true)
+        Self::prepare_typed_mode(left, left_type, right, right_type, true, None)
     }
     #[cfg(feature = "execution-workspace")]
     pub fn prepare_typed_finite_workspace(
@@ -255,6 +259,7 @@ impl FlowZipBack {
         right: &CheckedValueContract,
         right_type: StructuredInfoType,
         workspace: bool,
+        static_schemas: Option<[&'static [u8]; 3]>,
     ) -> Result<Self, StructuredInfoRefusal> {
         let transport_kind = |ty: &StructuredInfoType| match ty.shape() {
             StructuredInfoTypeShape::Leaf(kind) => Ok(kind.clone()),
@@ -283,16 +288,26 @@ impl FlowZipBack {
             encoder: {
                 #[cfg(feature = "execution-workspace")]
                 if workspace {
-                    PairEncoder::Workspace(Box::new(workspace_encoder::WorkspacePair::prepare(
-                        &encoder,
-                        [left.maximum_bytes, right.maximum_bytes],
-                    )?))
+                    if let Some(schemas) = static_schemas {
+                        PairEncoder::StaticWorkspace(Box::new(
+                            static_workspace_encoder::StaticWorkspacePair::prepare(
+                                &encoder,
+                                [left.maximum_bytes, right.maximum_bytes],
+                                schemas,
+                            )?,
+                        ))
+                    } else {
+                        PairEncoder::Workspace(Box::new(workspace_encoder::WorkspacePair::prepare(
+                            &encoder,
+                            [left.maximum_bytes, right.maximum_bytes],
+                        )?))
+                    }
                 } else {
                     PairEncoder::Typed(Box::new(encoder.into_runtime()))
                 }
                 #[cfg(not(feature = "execution-workspace"))]
                 {
-                    let _ = workspace;
+                    let _ = (workspace, static_schemas);
                     PairEncoder::Typed(Box::new(encoder.into_runtime()))
                 }
             },

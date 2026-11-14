@@ -50,14 +50,19 @@ use back::Back;
 
 #[test]
 fn actual_scheduler_pairs_mixed_inputs_with_pressure_and_canonical_fallback() {
-    run_schema_cases(false);
+    run_schema_cases(false, false);
 }
 #[cfg(feature = "execution-workspace")]
 #[test]
 fn workspace_scheduler_preserves_pending_sides_feedback_close_and_canonical_fallback() {
-    run_schema_cases(true);
+    run_schema_cases(true, false);
 }
-fn run_schema_cases(workspace: bool) {
+#[cfg(feature = "execution-workspace")]
+#[test]
+fn static_workspace_scheduler_preserves_pending_sides_feedback_close_and_canonical_fallback() {
+    run_schema_cases(true, true);
+}
+fn run_schema_cases(workspace: bool, linked: bool) {
     for (fallback, feedback, flush) in [
         (false, false, false),
         (true, false, false),
@@ -110,7 +115,29 @@ fn run_schema_cases(workspace: bool) {
         }
         routes.seal().unwrap();
         #[cfg(feature = "execution-workspace")]
-        let shared_back = if workspace {
+        let shared_back = if workspace && linked {
+            let output = &*Box::leak(output_schema.clone().into_boxed_slice());
+            Some(
+                if feedback {
+                    FlowZipBack::prepare_typed_feedback_static_workspace(
+                        &contract,
+                        ty.clone(),
+                        &contract,
+                        ty.clone(),
+                        [schema, schema, output],
+                    )
+                } else {
+                    FlowZipBack::prepare_typed_finite_static_workspace(
+                        &contract,
+                        ty.clone(),
+                        &contract,
+                        ty.clone(),
+                        [schema, schema, output],
+                    )
+                }
+                .unwrap(),
+            )
+        } else if workspace {
             Some(
                 if feedback {
                     FlowZipBack::prepare_typed_feedback_workspace(
@@ -149,7 +176,7 @@ fn run_schema_cases(workspace: bool) {
             back = shared;
         }
         #[cfg(not(feature = "execution-workspace"))]
-        let _ = workspace;
+        let _ = (workspace, linked);
         if flush {
             // Enter with one committed pair, then expose the source closes.
             // This exercises schema-backed finite terminal emission in the scheduler.

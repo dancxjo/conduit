@@ -97,4 +97,61 @@ mod tests {
             );
         }
     }
+    #[test]
+    fn static_zip_checks_all_flash_images_before_exposing_schema_hooks() {
+        use conduit_core::{kind_id, CheckedValueContract, StructuredInfoType};
+        let ty = StructuredInfoType::leaf(kind_id("value/u64")).unwrap();
+        let contract = CheckedValueContract::new(kind_id("value/u64"), 8, alloc::vec![]).unwrap();
+        let pair =
+            conduit_core::PreparedTypedTuplePairEncoder::new(ty.clone(), 8, ty.clone(), 8).unwrap();
+        let leaf = &*alloc::boxed::Box::leak(ty.canonical_bytes().unwrap().into_boxed_slice());
+        let output = &*alloc::boxed::Box::leak(
+            pair.value_type()
+                .canonical_bytes()
+                .unwrap()
+                .into_boxed_slice(),
+        );
+        for feedback in [false, true] {
+            let back = SoftwareBack::zip_static(
+                &contract,
+                ty.clone(),
+                &contract,
+                ty.clone(),
+                [leaf, leaf, output],
+                feedback,
+            )
+            .unwrap();
+            assert_eq!(
+                <SoftwareBack as StepBack<2>>::canonical_input_schema(&back, PortId(0)),
+                None
+            );
+            assert_eq!(
+                <SoftwareBack as StepBack<2>>::canonical_output_schema(&back, PortId(0)),
+                Some(output)
+            );
+            for index in 0..3 {
+                let mut schemas = [leaf, leaf, output];
+                schemas[index] = &[0];
+                assert!(SoftwareBack::zip_static(
+                    &contract,
+                    ty.clone(),
+                    &contract,
+                    ty.clone(),
+                    schemas,
+                    feedback
+                )
+                .is_err());
+                schemas[index] = if index == 2 { leaf } else { output };
+                assert!(SoftwareBack::zip_static(
+                    &contract,
+                    ty.clone(),
+                    &contract,
+                    ty.clone(),
+                    schemas,
+                    feedback
+                )
+                .is_err());
+            }
+        }
+    }
 }

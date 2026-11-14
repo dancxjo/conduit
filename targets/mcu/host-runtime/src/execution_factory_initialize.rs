@@ -262,6 +262,7 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
                     Some(SoftwareBack::merge_static(&decoded, schema, maximum_bytes)?)
                 }
                 Some(SoftwareDefinition::ZipStatic {
+                    output_schema,
                     left_schema,
                     left_maximum_bytes,
                     right_schema,
@@ -270,8 +271,13 @@ impl<'f, const N: usize> SoftwareInventory<'f, N> {
                 }) => {
                     let (left_type, left) = decode_composite(left_schema, left_maximum_bytes)?;
                     let (right_type, right) = decode_composite(right_schema, right_maximum_bytes)?;
-                    Some(SoftwareBack::zip(
-                        &left, left_type, &right, right_type, feedback,
+                    Some(SoftwareBack::zip_static(
+                        &left,
+                        left_type,
+                        &right,
+                        right_type,
+                        [left_schema, right_schema, output_schema],
+                        feedback,
                     )?)
                 }
 

@@ -248,6 +248,7 @@ pub enum SoftwareDefinition<'a> {
         maximum_bytes: u32,
     },
     ZipStatic {
+        output_schema: &'static [u8],
         left_schema: &'static [u8],
         left_maximum_bytes: u32,
         right_schema: &'static [u8],
