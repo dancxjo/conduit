@@ -119,6 +119,13 @@ impl NativeFaceScene {
             return Err(FaceSceneError::UnsupportedInput);
         }
         self.check_show(show)?;
+        if let Some(changed) = self.pointer_page(x, y)? {
+            return Ok(if changed {
+                FaceSceneInput::Changed
+            } else {
+                FaceSceneInput::Unchanged
+            });
+        }
         if self.showing_diagram {
             let mut drawing = GraphicsScene::empty();
             let hits = diagram::append(

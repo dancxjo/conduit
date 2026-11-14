@@ -6,8 +6,8 @@ use crate::display::{
 };
 use conduit_face::{GraphicsTextRole, LayoutRect};
 
-/// Background, heading, page marker, two separators and footer text.
-pub(super) const COMMANDS: usize = 6;
+/// Background, heading, marker, separators and up to two paging button pairs.
+pub(super) const COMMANDS: usize = 9;
 const EDGE: u16 = 8;
 pub(super) const HEADER: u16 = 56;
 pub(super) const FOOTER: u16 = 56;
