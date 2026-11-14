@@ -15,6 +15,26 @@ impl Bytes {
     fn vector<T>(&mut self, values: &Vec<T>) -> Option<()> {
         self.add(values.capacity().checked_mul(size_of::<T>())?)
     }
+    fn expression(&mut self, value: &conduit_face::AdmittedVisualExpression) -> Option<()> {
+        // Keep the owner inventory exhaustive: adding another expression field
+        // requires reviewing its retained payload rather than silently undercounting.
+        let conduit_face::AdmittedVisualExpression {
+            expression,
+            outcome: _,
+            accessibility_overrides: _,
+            platform_forced_colors: _,
+        } = value;
+        let conduit_face::VisualExpression {
+            version: _,
+            identity,
+            density: _,
+            palette: _,
+            text_scale_percent: _,
+            motion: _,
+            typography: _,
+        } = expression;
+        self.add(identity.capacity())
+    }
 }
 
 impl CompositionReceipt {
@@ -63,7 +83,7 @@ impl CompositionReceipt {
             bytes.add(capacity)?;
         }
         if let Some(expression) = visual_expression {
-            bytes.add(expression.expression.identity.capacity())?;
+            bytes.expression(expression)?;
         }
         Some(bytes.0)
     }
@@ -131,7 +151,7 @@ impl NativeCompositor {
                 return None;
             }
             if let Some(expression) = visual_expression {
-                bytes.add(expression.expression.identity.capacity())?;
+                bytes.expression(expression)?;
             }
             bytes.add(surface_id.capacity())?;
             bytes.vector(&buffer.pixels)?;
