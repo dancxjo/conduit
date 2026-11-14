@@ -1,0 +1,11 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/environment-extraction-integration-20261111/architecture/core)
+    Finished `test` profile [unoptimized] target(s) in 10.37s
+     Running tests/structured_selection.rs (/tmp/conduit-source-member-control-20261111/debug/deps/structured_selection-0e8023f870c2b2fb)
+
+running 3 tests
+test borrowed::full_validation_refuses_a_malformed_unselected_leaf_and_preserves_output ... ok
+test borrowed::linked_limits_short_sequences_and_wrong_schemas_refuse_without_growing ... ok
+test borrowed::all_four_linked_operations_match_owned_selection_without_allocating ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s
+

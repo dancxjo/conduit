@@ -2199,6 +2199,7 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-embedded-build",
+ "conduit-environment-runtime",
  "conduit-host-make",
  "conduit-i2c-transaction",
  "conduit-kernel",

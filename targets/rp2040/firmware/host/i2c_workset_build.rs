@@ -16,6 +16,9 @@ pub fn prepare(
     let Some(mut source) = workset::from_environment(None)? else {
         return Ok(None);
     };
+    if source.entries.len() != 1 {
+        return Err("RP2040 neutral Root installs exactly one complete pinned Source entry".into());
+    }
     let image = image_input::from_environment(checked, catalog, image_id, source_identity)?;
     let bus = conduit_host_rp2040::CheckedI2cConstruction::from_configuration(checked)?;
     if bus.maximum_call_operations == 0 || bus.call_address_range.is_none() {
@@ -25,6 +28,7 @@ pub fn prepare(
         checked,
         conduit_host_rp2040::CLOCK_IMPLEMENTATION,
     )?;
+    clock.deadline_call_operations()?;
     if clock.slots == 0 {
         return Err("selected Source requires an original clock slot".into());
     }
@@ -43,33 +47,17 @@ pub fn prepare(
         );
     }
     let work = conduit_host_rp2040::CheckedResidentWorkPool::from_configuration(checked)?;
-    let resident_count = source
-        .entries
-        .iter()
-        .flat_map(|entry| &entry.plot.expanded.gears)
-        .filter(|gear| gear.configuration.iter().any(|v| v.key == "program"))
-        .count();
-    // Uniform construction requirements stay within the original shared pool,
-    // including the resident commit allowance; actual code cost may refuse.
-    let per_resident = if resident_count == 0 {
-        4
-    } else {
-        work.capacity_units
-            .checked_div(u32::try_from(resident_count).map_err(|_| "resident count width")?)
-            .ok_or("resident work division")?
-    };
-    let private_work = per_resident
-        .checked_sub(3)
-        .filter(|n| *n != 0)
-        .ok_or("original work pool cannot fund resident requirements")?;
-    let mut resident_bounds = conduit_host_rp2040::source_build::resident_expression_bounds(
-        u16::try_from(private_work.min(u32::from(u16::MAX - 3)))
+    // Each exact compiler requirement is independently sealed; their aggregate
+    // must fit the original pool. Scheduler port/commit fuel is not pool usage.
+    let resident_bounds = conduit_host_rp2040::source_build::resident_expression_bounds(
+        u16::try_from(work.capacity_units.min(u32::from(u16::MAX - 3)))
             .map_err(|_| "private work width")?,
     );
-    resident_bounds.native.canonical_bytes =
-        usize::try_from(checked.configuration().limits.buffered_bytes)
-            .map_err(|_| "canonical buffer width")?;
-    let resident = source.prepare_selected_residents(resident_bounds)?;
+    let resident = source.prepare_selected_residents_with_exact_work(
+        resident_bounds,
+        conduit_embedded_build::ResidentExecutionStorage::SharedWorkspaceSchema,
+        work.capacity_units,
+    )?;
     let artifact = conduit_core::ArtifactId::from(image_id);
     let i2c = conduit_host_rp2040::checked_i2c_offer_definition(checked, image_id)?
         .ok_or("I2C definition unselected")?;

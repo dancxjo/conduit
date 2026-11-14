@@ -1,0 +1,13 @@
+{
+  "assurance": "Internal ARM link/static geometry only; complete preparation, execution peak/stack/admission and physical operation remain unproved",
+  "source_checkpoint": "8c2e04a5998b8b1e15ae3af10670038b9fe400c1",
+  "source_sha256": "83291b6eac51ff63bcda99627b88e31a747cb83b660b310c2fea72af6cd1b07f",
+  "elf_sha256": "6483edcb5d57b1dddb95ebac13191daf04cc69d9432126fab7d8fdc0ac38d778",
+  "flash_load_end": "0x1014f3ec",
+  "flash_margin": 121876,
+  "static_extent": 209088,
+  "stack_available": 61248,
+  "resident_owner_bytes": 9024,
+  "main_future_pool_bytes": 46520,
+  "physical_deployment": false
+}

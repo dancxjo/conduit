@@ -19,7 +19,7 @@ use ed25519_dalek::SigningKey;
 use sha2::{Digest, Sha256};
 static RECEIPT_DIGEST: critical_section::Mutex<Cell<Option<[u8; 32]>>> =
     critical_section::Mutex::new(Cell::new(None));
-#[cfg(sensor_dht11)]
+#[cfg(any(sensor_dht11, neutral_source_execution))]
 pub(crate) fn observe_receipt(digest:Option<[u8;32]>) {
     critical_section::with(|cs| RECEIPT_DIGEST.borrow(cs).set(digest));
 }
