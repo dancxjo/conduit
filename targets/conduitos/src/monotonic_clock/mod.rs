@@ -5,6 +5,7 @@ pub mod dispatch;
 pub mod factory;
 pub mod installation;
 pub mod owner;
+pub mod play;
 
 #[cfg(test)]
 mod tests;

@@ -131,6 +131,40 @@ fn source_feedback_plans_with_exact_retained_state_event_and_generation_contract
     );
 }
 
+#[test]
+fn combined_plan_validation_keeps_integrity_and_retained_selection_checks() {
+    let (plan, owners, _) = planned();
+    owners.validate_plan(&plan).unwrap();
+    assert!(
+        plan.fragments[0]
+            .placements
+            .iter()
+            .any(|gear| gear.implementation_id.as_str() == crate::flow_zip::IMPLEMENTATION)
+    );
+    let missing = ProtocolOperations::default()
+        .validate_plan(&plan)
+        .unwrap_err();
+    assert_eq!(
+        missing.family, "zip",
+        "a valid seal cannot invent retained owners"
+    );
+
+    let mut tampered = plan.clone();
+    tampered.fragments[0].placements[0].limits.max_queue_bytes += 1;
+    let refused = owners.validate_plan(&tampered).unwrap_err();
+    assert_eq!(
+        refused.family, "plan",
+        "integrity is checked before family selection"
+    );
+    // Standalone family APIs still reject an invalid seal even when that family
+    // has no selected gears; only the consolidated internal path shares proof.
+    assert!(owners.singletons.validate_plan(&tampered).is_err());
+    assert!(owners.joins.validate_plan(&tampered).is_err());
+    assert!(owners.states.validate_plan(&tampered).is_err());
+    assert!(owners.concats.validate_plan(&tampered).is_err());
+    assert!(owners.merges.validate_plan(&tampered).is_err());
+}
+
 mod execution;
 
 mod automatic_events;

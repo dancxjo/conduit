@@ -1,0 +1,31 @@
+# A checked descriptor prefix supplies this layout; input bytes carry no authority.
+# Reports for another Report ID are observations, never fabricated pointer samples.
+type UsbAbsoluteReportInput = {
+    layout: UsbAbsoluteHidLayout
+    frame: UsbHidReportFrame
+    state: UsbMousePointerState
+    ordinal: U64
+    queue-capacity: U64
+}
+type UsbAbsoluteReportPreparation =
+    point UsbAbsolutePointerInput
+    | short
+    | malformed
+    | other-report
+    | invalid-layout
+
+plot usb-hid-absolute-report-prepare (
+    input: UsbAbsoluteReportInput...| >> prepared: UsbAbsoluteReportPreparation...|
+) = (((((.layout.maximum-x == 0 || .layout.maximum-y == 0) || ((.layout.x-width != 1 && .layout.x-width != 2) || (.layout.y-width != 1 && .layout.y-width != 2))) || ((.layout.tip-byte > 63 || .layout.x-byte > 63) || (.layout.y-byte > 63 || !((((.layout.tip-mask == 1 || .layout.tip-mask == 2) || (.layout.tip-mask == 4 || .layout.tip-mask == 8)) || ((.layout.tip-mask == 16 || .layout.tip-mask == 32) || (.layout.tip-mask == 64 || .layout.tip-mask == 128)))))))) ? invalid-layout(empty) : (.frame.actual > 64 || .frame.actual != bytes/length(.frame.wire)) ? malformed(empty) : (.frame.actual <= .layout.tip-byte || .frame.actual < .layout.x-byte + value/u64(.layout.x-width) || .frame.actual < .layout.y-byte + value/u64(.layout.y-width)) ? short(empty) : (.layout.report-id != 0 && bytes/at(.frame.wire, 0) != .layout.report-id) ? other-report(empty) : point({ state: .state, ordinal: .ordinal, x: value/u16(bytes/at(.frame.wire, .layout.x-byte)) + (.layout.x-width == 2 ? value/u16(bytes/at(.frame.wire, .layout.x-byte + 1)) * 256 : 0), y: value/u16(bytes/at(.frame.wire, .layout.y-byte)) + (.layout.y-width == 2 ? value/u16(bytes/at(.frame.wire, .layout.y-byte + 1)) * 256 : 0), maximum-x: .layout.maximum-x, maximum-y: .layout.maximum-y, primary-pressed: (bytes/at(.frame.wire, .layout.tip-byte) & .layout.tip-mask) != 0, queue-capacity: .queue-capacity }))
+
+plot usb-hid-absolute-report-pointer (
+    >> input: UsbAbsoluteReportInput...|
+    observed: UsbAbsoluteReportPreparation...| >>
+    update: UsbMousePointerUpdate...| >>
+) {
+    decode: usb-hid-absolute-report-prepare()
+    normalize: usb-hid-absolute-pointer-advance()
+    input >> decode
+    decode >> observed
+    decode >> select(UsbAbsoluteReportPreparation.point, unmatched=drop) >> normalize >> update
+}

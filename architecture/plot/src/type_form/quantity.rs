@@ -32,6 +32,7 @@ pub(super) fn check(
     let integer = match declaration.storage {
         TypeFormStorageSyntax::I16Le => conduit_core::QuantityFormInteger::I16Le,
         TypeFormStorageSyntax::U16Le => conduit_core::QuantityFormInteger::U16Le,
+        TypeFormStorageSyntax::I128Le => conduit_core::QuantityFormInteger::I128Le,
         _ => return Err(failure("unsupported quantity Form storage")),
     };
     let form = conduit_core::DecimalQuantityForm {
@@ -49,9 +50,11 @@ pub(super) fn check(
         role.leaf_kind.as_str().as_bytes(),
         &unit.encode(),
         &parameters.exponent.to_le_bytes(),
-        &[u8::from(
-            integer == conduit_core::QuantityFormInteger::U16Le,
-        )],
+        &[match integer {
+            conduit_core::QuantityFormInteger::I16Le => 0,
+            conduit_core::QuantityFormInteger::U16Le => 1,
+            conduit_core::QuantityFormInteger::I128Le => 2,
+        }],
     ] {
         digest.update((part.len() as u64).to_le_bytes());
         digest.update(part);
@@ -65,8 +68,8 @@ pub(super) fn check(
         storage: CheckedTypeFormStorage::DecimalQuantity(alloc::boxed::Box::new(form)),
         mappings: Vec::new(),
         invalid_refusal: CheckedTypeFormRefusal::InvalidQuantity,
-        exact_bytes: 2,
-        maximum_bytes: 2,
+        exact_bytes: form.exact_bytes() as u16,
+        maximum_bytes: form.exact_bytes() as u16,
         maximum_decode_steps: 1024,
     })
 }
