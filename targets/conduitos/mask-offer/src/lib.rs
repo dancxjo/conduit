@@ -2,6 +2,11 @@
 //! Both the native guest and its installed Body owner use these exact definitions.
 #![no_std]
 extern crate alloc;
+mod canonical_template;
+pub use canonical_template::{
+    CanonicalNativeGraphicalTemplate, CanonicalNativeGraphicalTemplatePreparation,
+    canonical_native_graphical_template_preparation,
+};
 
 use alloc::{format, vec, vec::Vec};
 use conduit_core::{
