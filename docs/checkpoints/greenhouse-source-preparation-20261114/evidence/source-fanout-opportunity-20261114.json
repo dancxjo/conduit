@@ -1,0 +1,184 @@
+{
+  "assurance": "Read-only candidate opportunity, NOT a proved stock bound or measured runtime saving. No queue/resource/logical identity changes.",
+  "layout_sha256": "a87386b13ce7e42ab405ed8c6d9d03b938dc60f8667be99543772e86498a4879",
+  "projection_sha256": "fad14731eb625fb33b0385ff04c93ab15e8badb03d2106c495c37754fec18862",
+  "cords": 95,
+  "queue_slots": 97,
+  "schema_queue_slots": 81,
+  "eligible_fanout_groups": 10,
+  "candidate_duplicate_queue_reservations": 16,
+  "per_group_payload_estimate_bytes": 6616,
+  "groups": [
+    {
+      "source_node": 0,
+      "source_port": 0,
+      "cords": [
+        0,
+        1
+      ],
+      "schema_index": 0,
+      "full_maximum_bytes": 767,
+      "node_bytes": 330,
+      "original_queue_slots": 2,
+      "candidate_distinct_value_queue_stock": 1,
+      "duplicate_slot_reservations": 1,
+      "per_group_payload_estimate_bytes": 330
+    },
+    {
+      "source_node": 7,
+      "source_port": 0,
+      "cords": [
+        8,
+        9,
+        10
+      ],
+      "schema_index": 4,
+      "full_maximum_bytes": 1581,
+      "node_bytes": 255,
+      "original_queue_slots": 3,
+      "candidate_distinct_value_queue_stock": 1,
+      "duplicate_slot_reservations": 2,
+      "per_group_payload_estimate_bytes": 510
+    },
+    {
+      "source_node": 18,
+      "source_port": 0,
+      "cords": [
+        19,
+        20
+      ],
+      "schema_index": 7,
+      "full_maximum_bytes": 1594,
+      "node_bytes": 355,
+      "original_queue_slots": 2,
+      "candidate_distinct_value_queue_stock": 1,
+      "duplicate_slot_reservations": 1,
+      "per_group_payload_estimate_bytes": 355
+    },
+    {
+      "source_node": 22,
+      "source_port": 0,
+      "cords": [
+        24,
+        25,
+        26,
+        27
+      ],
+      "schema_index": 10,
+      "full_maximum_bytes": 3201,
+      "node_bytes": 321,
+      "original_queue_slots": 4,
+      "candidate_distinct_value_queue_stock": 1,
+      "duplicate_slot_reservations": 3,
+      "per_group_payload_estimate_bytes": 963
+    },
+    {
+      "source_node": 27,
+      "source_port": 0,
+      "cords": [
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "schema_index": 12,
+      "full_maximum_bytes": 3801,
+      "node_bytes": 690,
+      "original_queue_slots": 5,
+      "candidate_distinct_value_queue_stock": 1,
+      "duplicate_slot_reservations": 4,
+      "per_group_payload_estimate_bytes": 2760
+    },
+    {
+      "source_node": 30,
+      "source_port": 0,
+      "cords": [
+        38,
+        39
+      ],
+      "schema_index": 14,
+      "full_maximum_bytes": 975,
+      "node_bytes": 233,
+      "original_queue_slots": 3,
+      "candidate_distinct_value_queue_stock": 2,
+      "duplicate_slot_reservations": 1,
+      "per_group_payload_estimate_bytes": 233
+    },
+    {
+      "source_node": 60,
+      "source_port": 0,
+      "cords": [
+        68,
+        69
+      ],
+      "schema_index": 25,
+      "full_maximum_bytes": 1844,
+      "node_bytes": 278,
+      "original_queue_slots": 2,
+      "candidate_distinct_value_queue_stock": 1,
+      "duplicate_slot_reservations": 1,
+      "per_group_payload_estimate_bytes": 278
+    },
+    {
+      "source_node": 67,
+      "source_port": 0,
+      "cords": [
+        73,
+        74
+      ],
+      "schema_index": 21,
+      "full_maximum_bytes": 2248,
+      "node_bytes": 677,
+      "original_queue_slots": 2,
+      "candidate_distinct_value_queue_stock": 1,
+      "duplicate_slot_reservations": 1,
+      "per_group_payload_estimate_bytes": 677
+    },
+    {
+      "source_node": 70,
+      "source_port": 0,
+      "cords": [
+        76,
+        77
+      ],
+      "schema_index": 4,
+      "full_maximum_bytes": 1581,
+      "node_bytes": 255,
+      "original_queue_slots": 2,
+      "candidate_distinct_value_queue_stock": 1,
+      "duplicate_slot_reservations": 1,
+      "per_group_payload_estimate_bytes": 255
+    },
+    {
+      "source_node": 71,
+      "source_port": 0,
+      "cords": [
+        78,
+        79
+      ],
+      "schema_index": 4,
+      "full_maximum_bytes": 1581,
+      "node_bytes": 255,
+      "original_queue_slots": 2,
+      "candidate_distinct_value_queue_stock": 1,
+      "duplicate_slot_reservations": 1,
+      "per_group_payload_estimate_bytes": 255
+    }
+  ],
+  "guards": [
+    "same local source output",
+    "all siblings included",
+    "schema/node profile identical across siblings",
+    "all sinks local",
+    "payload track only",
+    "PreserveOrder only"
+  ],
+  "unproved": [
+    "suffix/lifetime invariant through commit/rollback/errors/cancellation and rearm",
+    "actual class-wide maximum capacity and retained-owner/native pin interaction",
+    "complete factory CPU/target measurements and full application fit"
+  ],
+  "production_edits": false,
+  "builds_run": false
+}

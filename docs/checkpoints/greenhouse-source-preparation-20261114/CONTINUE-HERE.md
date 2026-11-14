@@ -34,6 +34,10 @@ The exact local-only factory now reserves zero remote lifecycle entries, with al
 
 Read evidence/source76-ARM-heap-lower-bound-20261114.json: actual ARM kernel39592 + actual ARM Sign backing9006 + observed u8 canonical payload30449 + schema payload55524 =134571 B, exceeding the entire131072-byte heap by3499 B BEFORE slot/class metadata, software/workspace, original baseline and allocator overhead. This is a conservative selected-profile bound, not an actual runtime high-water mark. The CPU diagnostic copy observes stock only; original successful unmodified factory proof stays separate. Do not flash this profile or widen grants. Further real reduction is required.
 
+## Fanout candidate, not delivered savings
+
+Read source-fanout-opportunity-20261114.md/json:10 guarded local PreserveOrder schema groups,16 duplicate queue reservations,6616 B per-group payload estimate. No capacity changed. Lifetime/rollback/error/cancellation/rearm proof and class-wide packing effect remain unproved. Do not apply or count this estimate as a saving.
+
 ## Next substantive work
 
 Read evidence/source76-execution-handoff-audit-20261114.md first: exact three-input/nine-output component, intentional prepare/drop-only service, existing admission/Start APIs, existing shared bus and carrier limits. Do not remove the refusal without installing the actual services.
