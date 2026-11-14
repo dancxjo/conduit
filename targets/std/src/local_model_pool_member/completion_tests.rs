@@ -156,7 +156,9 @@ fn characterize_measurement_processing() {
             let elapsed = started.elapsed().as_nanos();
             assert_eq!(measured.input_digest, expected);
             assert_eq!(measured.input_bytes, bytes as u32);
-            println!("MEASUREMENT_PROCESSING bytes={bytes} trial={trial} cycles={CYCLES} elapsed_ns={elapsed}");
+            println!(
+                "MEASUREMENT_PROCESSING bytes={bytes} trial={trial} cycles={CYCLES} elapsed_ns={elapsed}"
+            );
         }
     }
 }

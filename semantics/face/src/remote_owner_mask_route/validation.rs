@@ -130,6 +130,42 @@ impl RemoteOwnerMaskRouteSeal {
             &self.face_line,
             &self.return_line,
         );
+        #[cfg(feature = "std")]
+        let bytes = {
+            let maximum = self.profile.maximum_bytes();
+            let encoded = match (&self.interaction_line, self.profile) {
+                (_, RemoteMaskRouteProfile::HostedPresentation) => crate::bounded_json::encode(
+                    &(
+                        "conduit.face/remote-owner-hosted-mask-route@1",
+                        &basis,
+                        &self.interaction_line,
+                    ),
+                    maximum,
+                ),
+                (Some(interaction_line), RemoteMaskRouteProfile::Native) => {
+                    crate::bounded_json::encode(
+                        &(
+                            "conduit.face/remote-owner-mask-route-with-interaction@1",
+                            &basis,
+                            interaction_line,
+                        ),
+                        maximum,
+                    )
+                }
+                (None, RemoteMaskRouteProfile::Native) => {
+                    crate::bounded_json::encode(&basis, maximum)
+                }
+            };
+            encoded.map_err(|error| match error {
+                crate::bounded_json::EncodingError::Invalid => {
+                    RemoteOwnerMaskRouteError::InvalidSeal
+                }
+                crate::bounded_json::EncodingError::Capacity { bytes, maximum } => {
+                    RemoteOwnerMaskRouteError::SealEncodingCapacityExceeded { bytes, maximum }
+                }
+            })?
+        };
+        #[cfg(not(feature = "std"))]
         let bytes = match (&self.interaction_line, self.profile) {
             (_, RemoteMaskRouteProfile::HostedPresentation) => serde_json::to_vec(&(
                 "conduit.face/remote-owner-hosted-mask-route@1",

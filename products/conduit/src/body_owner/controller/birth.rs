@@ -3,12 +3,12 @@
 //! Preparation does not make another Body. The service journals the prepared
 //! biography before it transfers its one live Host into `Owner`.
 
-use super::{state, Owner, OwnerHost};
+use super::{Owner, OwnerHost, state};
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, MembershipProofId, PartId, ResidentPlot,
 };
-use conduit_core::{bind_sign, HostAdvertisement};
+use conduit_core::{HostAdvertisement, bind_sign};
 use conduit_std_host::StdHost;
 use std::path::Path;
 
@@ -106,9 +106,12 @@ impl Owner {
             resident: prepared.resident,
             resident_name: None,
             clock_interval_ms: None,
+            owner_navigation: super::owner_navigation::OwnerNavigation::default(),
             last_execution: None,
+            runtime_face: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            wake_ingress_requirements: super::wake_readiness::WakeIngressRequirements::default(),
             local_fore_adapters: None,
             #[cfg(target_os = "linux")]
             selected_file_workset: None,

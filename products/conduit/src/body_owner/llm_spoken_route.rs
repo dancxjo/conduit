@@ -50,6 +50,7 @@ impl Owner {
             direct,
             Some(&seal),
             &self.session,
+            &self.current_host_offers,
             &face,
             super::super::super::current_time_millis()?,
         );
@@ -98,6 +99,7 @@ impl Owner {
             direct,
             Some(&seal),
             &self.session,
+            &self.current_host_offers,
             &face,
             super::super::super::current_time_millis()?,
         );
@@ -149,6 +151,7 @@ impl Owner {
             direct,
             Some(&seal),
             &self.session,
+            &self.current_host_offers,
             &face,
             super::super::super::current_time_millis()?,
         );
@@ -252,6 +255,7 @@ impl Owner {
             direct,
             Some(seal),
             &self.session,
+            &self.current_host_offers,
             &face,
             super::super::super::current_time_millis()?,
         );

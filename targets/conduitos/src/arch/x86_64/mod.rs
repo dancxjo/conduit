@@ -31,6 +31,7 @@ mod hid_pointer;
 mod hid_transfer_ring;
 mod i2c_pci;
 mod i2c_ports;
+#[cfg(any(feature = "conduitos-isolation-proof", target_os = "none"))]
 mod idt;
 mod interrupt_controller;
 mod io;
@@ -110,6 +111,7 @@ pub use xhci::{XhciReady, initialize_xhci};
 
 pub const TIMER_IRQ_VECTOR: u8 = 0x20;
 
+#[cfg(target_os = "none")]
 #[unsafe(no_mangle)]
 extern "C" fn conduitos_exception_handler(vector: u64) -> ! {
     serial::early_write(b"CONDUIT_MACHINE_EXCEPTION vector=");

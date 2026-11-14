@@ -2,6 +2,7 @@ use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use crate::machine::BaseError;
 
+#[cfg(target_os = "none")]
 use super::{TIMER_IRQ_VECTOR, interrupt_controller};
 
 const FACT_CAPACITY: u32 = 4;
@@ -11,6 +12,7 @@ static ENTRIES: [AtomicU32; FACT_CAPACITY as usize] =
     [const { AtomicU32::new(0) }; FACT_CAPACITY as usize];
 static OVERFLOWED: AtomicBool = AtomicBool::new(false);
 
+#[cfg(target_os = "none")]
 #[unsafe(no_mangle)]
 pub(super) extern "C" fn conduitos_timer_irq_handler() {
     let tail = TAIL.load(Ordering::Relaxed);

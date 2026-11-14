@@ -8,8 +8,8 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
-use conduit_core::bind_sign;
 use conduit_core::HostAdvertisement;
+use conduit_core::bind_sign;
 use conduit_face::{Face, OwnerFaceSnapshotRequest};
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
@@ -44,6 +44,8 @@ pub(crate) use checkpoint_once::tests::published_fixture as published_todo_test_
 mod continuing;
 #[path = "execution_retention.rs"]
 mod execution_retention;
+#[path = "runtime_face.rs"]
+mod runtime_face;
 pub(crate) use continuing::RunWorker;
 #[path = "admission_retirement.rs"]
 mod admission_retirement;
@@ -70,8 +72,12 @@ mod member_leave;
 mod member_offers;
 #[path = "member_return.rs"]
 mod member_return;
+#[path = "owner_navigation.rs"]
+mod owner_navigation;
 #[path = "planning.rs"]
 mod planning;
+#[path = "wake_readiness.rs"]
+mod wake_readiness;
 #[cfg(target_os = "linux")]
 pub(crate) use fore_line_planning::OwnedForeLineSelection;
 #[path = "remote_preparation.rs"]
@@ -100,7 +106,7 @@ mod remote_spoken_route;
 mod remote_terminal_route;
 #[path = "wardrobe_face.rs"]
 mod wardrobe_face;
-pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
+pub(crate) use clock_interval::{CLOCK_RUN_MAXIMUM_MILLIS, ClockAction, is_clock_control_intent};
 #[cfg(unix)]
 #[path = "terminal_route.rs"]
 mod terminal_route;
@@ -242,9 +248,11 @@ pub(crate) struct Owner {
     resident: Option<ResidentPlot>,
     resident_name: Option<String>,
     clock_interval_ms: Option<u64>,
+    owner_navigation: owner_navigation::OwnerNavigation,
     last_execution: Option<serde_json::Value>,
     execution_persistence_pending: bool,
     workset_recovery_required: bool,
+    wake_ingress_requirements: wake_readiness::WakeIngressRequirements,
     local_fore_adapters: Option<crate::durable_host::local_fore_policy::SelectedLocalForeSet>,
     #[cfg(target_os = "linux")]
     selected_file_workset: Option<crate::durable_host::source_revision::RetainedFileWorkset>,
@@ -264,6 +272,8 @@ pub(crate) struct Owner {
     /// Bounded projection cache from the configured initial Form and the exact
     /// current Thermostat scan Fore. The kernel owns its retained accumulator.
     thermostat_live: Option<thermostat_face::ThermostatLive>,
+    /// Latest opaque kernel-committed contribution for the exact current Play.
+    runtime_face: Option<conduit_std_host::body_execution::CommittedFaceContribution>,
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
@@ -364,9 +374,11 @@ impl Owner {
             resident: Some(resident),
             resident_name: None,
             clock_interval_ms: None,
+            owner_navigation: owner_navigation::OwnerNavigation::default(),
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            wake_ingress_requirements: wake_readiness::WakeIngressRequirements::default(),
             local_fore_adapters: None,
             #[cfg(target_os = "linux")]
             selected_file_workset: None,
@@ -383,6 +395,7 @@ impl Owner {
             llm_spoken_route: None,
             face_wardrobe: None,
             thermostat_live: None,
+            runtime_face: None,
             todo_live: None,
             todo_verified: None,
             notebook: None,
@@ -404,9 +417,11 @@ impl Owner {
             resident,
             resident_name: None,
             clock_interval_ms: None,
+            owner_navigation: owner_navigation::OwnerNavigation::default(),
             last_execution: None,
             execution_persistence_pending: false,
             workset_recovery_required: false,
+            wake_ingress_requirements: wake_readiness::WakeIngressRequirements::default(),
             local_fore_adapters: None,
             #[cfg(target_os = "linux")]
             selected_file_workset: None,
@@ -423,6 +438,7 @@ impl Owner {
             llm_spoken_route: None,
             face_wardrobe: None,
             thermostat_live: None,
+            runtime_face: None,
             todo_live: None,
             todo_verified: None,
             notebook: None,
@@ -460,6 +476,8 @@ impl Owner {
         }
         self.resident_name = Some(checked.expanded.name.clone());
         self.clock_interval_ms = clock_interval::recognized_interval(&resident);
+        self.wake_ingress_requirements
+            .observe(&self.session.evidence().body, checked)?;
         Ok(())
     }
     pub(super) fn restore_execution(&mut self, root: &Path) -> Result<(), String> {
@@ -503,8 +521,11 @@ impl Owner {
     /// The installed owner's current Face. Only the authenticated local
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
-    pub(crate) fn local_face_snapshot(&self) -> Result<Face, String> {
+    pub(super) fn local_face_snapshot_without_wake_input_readiness(&self) -> Result<Face, String> {
         self.require_workset_recovered()?;
+        if let Some(face) = self.project_runtime_face()? {
+            return Ok(face);
+        }
         if let Some(live) = &self.creche_live {
             if let Some(face) = live.controller.face()? {
                 if face.basis.active_play_id.as_ref() == self.current_play_id()
@@ -537,6 +558,7 @@ impl Owner {
         self.project_creche_products(face)
     }
     pub(crate) fn lull(&mut self) -> Result<(), String> {
+        self.runtime_face = None;
         if let Some(realization) = self.session.realization() {
             let play = realization.play.clone();
             let host = self.host.advertisement();

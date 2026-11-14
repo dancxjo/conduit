@@ -323,3 +323,8 @@ required-features = ["native-compositor"]
 name = "canonical_root_returns"
 path = "tests/canonical_root_returns.rs"
 required-features = ["native-compositor"]
+
+# Linux native invocation serialization uses a refusing std::io::Write adapter.
+# Firmware/no_std serde_json remains alloc-only; no package/version changes.
+[target.'cfg(target_os = "linux")'.dependencies]
+serde_json = { version = "1", default-features = false, features = ["alloc", "std"] }

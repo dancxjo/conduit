@@ -28,6 +28,25 @@ pub(super) fn read_installation_for_equipment_change(
     )
 }
 
+/// Explicit refabrication retires only the old equipment description. Original
+/// Host/Body/credential validation and equipment-reselection checks remain.
+pub(super) fn read_for_release_replacement(
+    path: &Path,
+    change: &selected_speech::Change,
+    todo: &selected_todo::Change,
+    configuration_replaced: bool,
+) -> Result<Installation, String> {
+    if !configuration_replaced {
+        return read_installation_for_equipment_change(path, change, todo);
+    }
+    read(
+        path,
+        !matches!(change, selected_speech::Change::Preserve),
+        !matches!(todo, selected_todo::Change::Preserve),
+        true,
+    )
+}
+
 pub(super) fn read_for_configuration_change(path: &Path) -> Result<Installation, String> {
     read(path, false, false, true)
 }

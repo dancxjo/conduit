@@ -158,7 +158,7 @@ impl HostedRelayCarrier {
                 }
                 OutcomeStatus::Pressure => return Err(RelayClientError::Pressure),
                 OutcomeStatus::Closed | OutcomeStatus::Lost => {
-                    return Err(RelayClientError::TransportLost)
+                    return Err(RelayClientError::TransportLost);
                 }
             }
         }

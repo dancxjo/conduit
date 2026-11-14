@@ -8,7 +8,8 @@ fn placement_for(error: &str) -> PlannedGear {
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles).unwrap();
     let document = conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(&format!(
-            "plot exact {{\n value: math/realize(request={{value:0.3,maximum-error:{error}}})\n}}\n")),
+            "plot exact {{\n value: math/realize(request={{value:0.3,maximum-error:{error}}})\n}}\n"
+        )),
         &startup,
     )
     .unwrap();

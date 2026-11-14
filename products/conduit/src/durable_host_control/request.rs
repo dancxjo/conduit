@@ -147,6 +147,8 @@ pub(super) enum Request {
         session: conduit_core::LinkBindingId,
         face_line: Box<conduit_core::LineOffer>,
         return_line: Box<conduit_core::LineOffer>,
+        #[serde(default)]
+        interaction_line: Option<Box<conduit_core::LineOffer>>,
     },
     BodyMemberCarrierShow {
         protocol: u16,
@@ -154,6 +156,14 @@ pub(super) enum Request {
         session: conduit_core::LinkBindingId,
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
+    },
+    BodyMemberCarrierInteraction {
+        protocol: u16,
+        token: Vec<u8>,
+        session: conduit_core::LinkBindingId,
+        request: OwnerFaceSnapshotRequest,
+        show: Box<MaskShow>,
+        interaction: conduit_face::FaceInteraction,
     },
     BodyMemberPresenceRenew {
         protocol: u16,
@@ -232,6 +242,8 @@ pub(super) enum Request {
         return_line: Box<LineOffer>,
         #[serde(default)]
         terminal_interaction_line: Option<Box<LineOffer>>,
+        #[serde(default)]
+        native_interaction_line: Option<Box<LineOffer>>,
         #[serde(default)]
         spoken_selection: Option<
             Box<conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection>,

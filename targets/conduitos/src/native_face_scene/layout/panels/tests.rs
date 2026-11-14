@@ -325,6 +325,8 @@ fn impossible_panel_width_refuses_without_an_overflow_scene() {
 #[test]
 fn panel_metadata_has_a_finite_preparation_storage_delta() {
     #[allow(dead_code)]
+    // Compare panel_bounds alone. Continuations, charts, spacing and icons
+    // are independent current Row owners and belong in both sides.
     struct BeforePanelMetadata {
         continuation: Option<LayoutContinuation>,
         text: String,

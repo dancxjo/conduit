@@ -73,7 +73,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ExperienceEvidenceBack {
                 return StepOutcome::Fail(Failure {
                     code: FailureCode::InvalidInput,
                     detail: refusal_detail(refusal),
-                })
+                });
             }
         };
         let length = match self.model_request.as_mut() {
@@ -87,7 +87,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ExperienceEvidenceBack {
                         return StepOutcome::Fail(Failure {
                             code: FailureCode::InvalidInput,
                             detail: refusal_detail(refusal),
-                        })
+                        });
                     }
                 }
             }

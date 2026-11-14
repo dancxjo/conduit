@@ -9,7 +9,13 @@ use conduit_host_make::{
 };
 use std::{collections::BTreeSet, io::Write};
 
+mod cpu;
 mod creche;
+mod recognition;
+#[cfg(all(test, target_os = "linux", target_pointer_width = "64"))]
+pub(crate) use cpu::test_fixture as cpu_image_test_fixture;
+pub(crate) use cpu::{prepare as prepare_cpu_from_configuration, InitialCpu};
+pub(crate) use recognition::InitialWhisper;
 #[cfg(target_os = "linux")]
 mod text_file;
 use creche::prepare_creche_entry;
@@ -21,6 +27,8 @@ const MAXIMUM_TIMER_POOLS: usize = 16;
 
 #[derive(Default)]
 struct InitialBases<'a> {
+    recognition: Option<InitialWhisper>,
+    cpu: Option<InitialCpu>,
     creche: Option<ResourceOffer>,
     source: Option<crate::selected_native_source::InitialNativeSource<'a>>,
     memory: Option<crate::kernel_preparation::StagedImageMemory<'a>>,
@@ -38,6 +46,38 @@ impl InitialBases<'_> {
             self.text_file.is_some()
         }
         #[cfg(not(target_os = "linux"))]
+        {
+            false
+        }
+    }
+    fn has_native_input(&self) -> bool {
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        {
+            self.native_mask
+                .as_ref()
+                .is_some_and(|mask| mask.input.is_some())
+        }
+        #[cfg(not(all(target_os = "linux", feature = "linux-display")))]
+        {
+            false
+        }
+    }
+    fn has_native_mask(&self) -> bool {
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        {
+            self.native_mask.is_some()
+        }
+        #[cfg(not(all(target_os = "linux", feature = "linux-display")))]
+        {
+            false
+        }
+    }
+    fn has_scanout(&self) -> bool {
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        {
+            self.scanout.is_some()
+        }
+        #[cfg(not(all(target_os = "linux", feature = "linux-display")))]
         {
             false
         }
@@ -65,26 +105,6 @@ impl InitialBases<'_> {
         #[cfg(not(target_os = "linux"))]
         {
             let _ = id;
-            false
-        }
-    }
-    fn has_native_mask(&self) -> bool {
-        #[cfg(all(target_os = "linux", feature = "linux-display"))]
-        {
-            self.native_mask.is_some()
-        }
-        #[cfg(not(all(target_os = "linux", feature = "linux-display")))]
-        {
-            false
-        }
-    }
-    fn has_scanout(&self) -> bool {
-        #[cfg(all(target_os = "linux", feature = "linux-display"))]
-        {
-            self.scanout.is_some()
-        }
-        #[cfg(not(all(target_os = "linux", feature = "linux-display")))]
-        {
             false
         }
     }
@@ -170,6 +190,7 @@ impl StdHost {
         catalog: &MakeCatalog,
         scanout: crate::selected_scanout::SelectedScanoutBase,
         native_mask: crate::selected_native_mask::InitialNativeMask,
+        recognition: Option<InitialWhisper>,
     ) -> Result<Self, String> {
         Self::from_selected_initial_bases(
             config,
@@ -178,20 +199,23 @@ impl StdHost {
             InitialBases {
                 scanout: Some(scanout),
                 native_mask: Some(native_mask),
+                recognition,
                 source: None,
                 creche: None,
                 memory: None,
-                #[cfg(target_os = "linux")]
                 text_file: None,
+                cpu: None,
             },
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn from_selected_source_initial_bases<'a>(
         config: StdHostConfig,
         image: &HostImage,
         catalog: &MakeCatalog,
         source: crate::selected_native_source::InitialNativeSource<'a>,
+        cpu: Option<InitialCpu>,
         creche: Option<ResourceOffer>,
         memory: Option<crate::kernel_preparation::StagedImageMemory<'a>>,
         #[cfg(target_os = "linux")] text_file: Option<crate::selected_text_file::InitialTextFile>,
@@ -202,6 +226,8 @@ impl StdHost {
             catalog,
             InitialBases {
                 source: Some(source),
+                recognition: None,
+                cpu,
                 creche,
                 memory,
                 #[cfg(target_os = "linux")]
@@ -256,6 +282,17 @@ impl StdHost {
         #[allow(unused_mut)]
         let mut expected_implementations =
             BTreeSet::from([conduit_std_offers::TICK_IMPLEMENTATION.to_owned()]);
+        if let Some(cpu) = &initial.cpu {
+            expected_implementations.extend(
+                cpu.entry
+                    .capabilities
+                    .iter()
+                    .map(|offer| offer.implementation.implementation_id.as_str().to_owned()),
+            );
+        }
+        if let Some(recognition) = &initial.recognition {
+            expected_implementations.insert(recognition.entry.implementation_id.as_str().into());
+        }
         if initial.creche.is_some() {
             expected_implementations.insert(CRECHE_IMPLEMENTATION.into());
         }
@@ -311,7 +348,15 @@ impl StdHost {
             .collect::<Vec<_>>();
         if timer.len() != 1
             || manifest.base_selections.iter().any(|base| {
-                !creche_entry.as_ref().is_some_and(|entry| {
+                !initial.recognition.as_ref().is_some_and(|recognition| {
+                    recognition.entry.base_id.as_str() == base.id
+                        && recognition.entry.mechanism_family.as_str() == base.kind
+                        && recognition.entry.implementation_id.as_str() == base.driver
+                }) && !initial.cpu.as_ref().is_some_and(|cpu| {
+                    cpu.entry.base_id.as_str() == base.id
+                        && cpu.entry.mechanism_family.as_str() == base.kind
+                        && cpu.entry.implementation_id.as_str() == base.driver
+                }) && !creche_entry.as_ref().is_some_and(|entry| {
                     entry.base_id.as_str() == base.id
                         && entry.mechanism_family.as_str() == base.kind
                         && entry.implementation_id.as_str() == base.driver
@@ -343,9 +388,12 @@ impl StdHost {
             || budgets.len()
                 > MAXIMUM_TIMER_POOLS
                     + usize::from(initial.creche.is_some())
+                    + usize::from(initial.recognition.is_some())
                     + usize::from(initial.has_text_file())
+                    + usize::from(initial.cpu.is_some())
                     + usize::from(initial.has_scanout())
                     + 2 * usize::from(initial.has_native_mask())
+                    + usize::from(initial.has_native_input())
                     + initial
                         .source
                         .as_ref()
@@ -357,6 +405,18 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
+            if initial.recognition.as_ref().is_some_and(|recognition| {
+                recognition.entry.resources[0].pool_id.as_str() == budget.id
+            }) {
+                continue;
+            }
+            if initial
+                .cpu
+                .as_ref()
+                .is_some_and(|cpu| cpu.entry.resources[0].pool_id.as_str() == budget.id)
+            {
+                continue;
+            }
             if initial.owns_text_file_pool(&budget.id) {
                 continue;
             }
@@ -379,7 +439,9 @@ impl StdHost {
                 || (initial.has_native_mask()
                     && matches!(
                         budget.class.as_str(),
-                        conduit_face::SHOW_RESOURCE_CLASS | RUNTIME_MEMORY_RESOURCE_CLASS
+                        conduit_face::SHOW_RESOURCE_CLASS
+                            | RUNTIME_MEMORY_RESOURCE_CLASS
+                            | "conduit.resource/conduitos-human-input@1"
                     ))
             {
                 continue;
@@ -445,6 +507,25 @@ impl StdHost {
             initialized_base_kinds.insert("display/scanout".into());
             initialized_driver_kinds.insert("display/linear-framebuffer@1".into());
         }
+        if let Some(cpu) = &initial.cpu {
+            registry
+                .register(cpu.entry.clone())
+                .map_err(|error| format!("selected CPU registry: {error:?}"))?;
+            candidates.push(cpu.entry.clone());
+            ready_resource_classes.insert(RUNTIME_MEMORY_RESOURCE_CLASS.into());
+            initialized_base_kinds.insert(cpu.entry.mechanism_family.as_str().into());
+            initialized_driver_kinds.insert(cpu.entry.implementation_id.as_str().into());
+        }
+        if let Some(recognition) = &initial.recognition {
+            registry
+                .register(recognition.entry.clone())
+                .map_err(|error| format!("selected recognition registry: {error:?}"))?;
+            candidates.push(recognition.entry.clone());
+            ready_resource_classes
+                .insert(conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS.into());
+            initialized_base_kinds.insert(recognition.entry.mechanism_family.as_str().into());
+            initialized_driver_kinds.insert(recognition.entry.implementation_id.as_str().into());
+        }
         #[cfg(target_os = "linux")]
         if let Some(file) = &initial.text_file {
             let entry = &file.definition.base;
@@ -504,14 +585,22 @@ impl StdHost {
                         .any(|owned| owned.capability_id == capability.capability_id)
                 })
                 .collect();
+            if mask.input.is_some() {
+                ready_resource_classes.insert("conduit.resource/conduitos-human-input@1".into());
+            }
             ready_resource_classes.insert(conduit_face::SHOW_RESOURCE_CLASS.into());
             ready_resource_classes.insert(RUNTIME_MEMORY_RESOURCE_CLASS.into());
             facilities.insert("compositor/native@1".into());
         }
         #[allow(unused_mut)]
         let mut expected_capabilities = 1
-            + usize::from(initial.has_text_file())
+            + usize::from(initial.recognition.is_some())
+            + initial
+                .cpu
+                .as_ref()
+                .map_or(0, |cpu| cpu.entry.capabilities.len())
             + usize::from(initial.creche.is_some())
+            + usize::from(initial.has_text_file())
             + mask_capabilities.len()
             + initial
                 .source
@@ -560,10 +649,17 @@ impl StdHost {
         if host.advertisement.capabilities.len() != expected_capabilities
             || host.advertisement.resources.len() != budgets.len()
         {
-            return Err(format!("selected IMAGE did not produce its complete qualified offer subset: capabilities {}/{expected_capabilities}, resources {}/{}",
-                host.advertisement.capabilities.len(), host.advertisement.resources.len(), budgets.len()));
+            return Err(format!(
+                "selected IMAGE did not produce its complete qualified offer subset: capabilities {}/{expected_capabilities}, resources {}/{}",
+                host.advertisement.capabilities.len(),
+                host.advertisement.resources.len(),
+                budgets.len()
+            ));
         }
         host.base_registry = registry;
+        if let Some(recognition) = initial.recognition {
+            host.speech_recognition = Some(recognition.adapter);
+        }
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         {
             host.selected_scanout = initial.scanout;

@@ -43,6 +43,7 @@ conduit-todo-face = { path = "../../plots/todo/face" }
 conduit-todo-plot = { path = "../../plots/todo/model", features = ["kernel-step"] }
 conduit-thermostat-plot = { path = "../../plots/thermostat/model" }
 conduit-host-make = { path = "../../make/host" }
+conduit-host-hosted = { path = "make" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-language = { path = "../../semantics/language" }
 conduit-data = { path = "../../semantics/data", features = ["kernel-step"] }
@@ -54,7 +55,7 @@ conduit-net = { path = "../../semantics/net", features = ["plot-catalog"] }
 conduit-rp2040-network-realization = { path = "../rp2040/network-realization" }
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
 conduit-planner = { path = "../../architecture/planner" }
-conduit-face = { path = "../../semantics/face" }
+conduit-face = { path = "../../semantics/face", features = ["std"] }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false, features = ["body-plan-binding"] }
 conduit-protected-line = { path = "../../architecture/protected-line" }
 conduit-signal = { path = "../../semantics/signal", features = ["host-profile"] }

@@ -24,6 +24,7 @@ use conduit_plan_lowering::{
 };
 use std::io::Write;
 
+mod chart_face_route;
 mod creche_route;
 use creche_route::CrecheRoute;
 mod clock_observation;
@@ -51,6 +52,7 @@ pub(crate) struct BodyKernel<'a> {
     error_diagnostic: Option<diagnostic::Diagnostic>,
     cleanup_diagnostic: Option<diagnostic::Diagnostic>,
     creche: Option<CrecheRoute>,
+    chart_face: Option<chart_face_route::ChartFaceRoute>,
     native_source: Option<native_source::NativeSourceRoute<'a>>,
     scheduler: Box<InstalledScheduler>,
     fore: BodyForeRoute<'a>,
@@ -419,6 +421,15 @@ impl<'a> BodyKernel<'a> {
             return Err("planned Creche has no scoped admitted encounter owner".into());
         }
         if self.operations.iter().any(|operation| {
+            operation.contract_id.as_str()
+                == crate::measurement_chart_offer::MEASUREMENT_CHART_FACE_HOST_CALL
+                || operation.contract_id.as_str()
+                    == crate::measurement_chart_flow_offer::MEASUREMENT_CHART_FLOW_FACE_HOST_CALL
+        }) && self.chart_face.is_none()
+        {
+            return Err("planned chart Face has no exact scoped committed observer route".into());
+        }
+        if self.operations.iter().any(|operation| {
             operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
         }) && self.todo_checkpoint.is_none()
         {
@@ -462,6 +473,7 @@ impl<'a> BodyKernel<'a> {
         admitted_clock_quality: Option<BodyTimeQuality>,
         mut terminal: Option<crate::body_execution::ParsecTerminalAttachment<'_>>,
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
+        mut face_observer: Option<&mut dyn crate::body_execution::BodyFaceContributionObserver>,
     ) -> BodyKernelResult {
         let mut keys = super::keyboard_input_host::KeyboardInputHost::new(
             input,
@@ -483,6 +495,7 @@ impl<'a> BodyKernel<'a> {
             loop {
                 if !cancelling && !control.stop_requested() {
                     self.poll_creche(creche.as_deref_mut())?;
+                    self.poll_chart_face(&mut face_observer)?;
                 }
                 self.fore.drain(
                     &mut self.scheduler,
@@ -544,6 +557,9 @@ impl<'a> BodyKernel<'a> {
                         )?;
                         owner.sync_prompt(map, &attachment.host, &keys, attachment.output)?;
                     }
+                }
+                if !cancelling && !control.stop_requested() {
+                    self.poll_chart_face(&mut face_observer)?;
                 }
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
@@ -664,6 +680,9 @@ impl<'a> BodyKernel<'a> {
                         }
                         self.requests.push(request);
                     }
+                    if self.chart_face_call(request)? {
+                        continue;
+                    }
                     if self.begin_native_source(request)? {
                         continue;
                     }
@@ -681,6 +700,20 @@ impl<'a> BodyKernel<'a> {
                         == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
                     {
                         self.begin_creche(request, creche.as_deref_mut())?;
+                        continue;
+                    }
+                    if super::measurement_chart_constructor_back::complete(
+                        operation,
+                        request,
+                        &mut self.scheduler,
+                    )? {
+                        continue;
+                    }
+                    if super::measurement_plot_back::complete(
+                        operation,
+                        request,
+                        &mut self.scheduler,
+                    )? {
                         continue;
                     }
                     if scalar_math::complete(operation, request, &mut self.scheduler)? {
@@ -1126,6 +1159,10 @@ impl<'a> BodyKernel<'a> {
                 keys.set_input_view_epoch(input_view_epoch);
                 match status {
                     SchedulerStatus::Drained => {
+                        if self.chart_face_pending() {
+                            std::thread::park_timeout(std::time::Duration::from_millis(1));
+                            continue;
+                        }
                         self.fore
                             .require_normal_terminal(&self.scheduler, &mut self.error_diagnostic)?;
                         return Ok(TerminalDisposition::Completed);
@@ -1155,14 +1192,21 @@ impl<'a> BodyKernel<'a> {
                         }
                         // A pending admitted keyboard request owns progress even
                         // when no command has reached the live Fore queue yet.
-                        if !keys.is_pending() && !self.creche_pending() {
+                        if !keys.is_pending()
+                            && !self.creche_pending()
+                            && !self.chart_face_pending()
+                        {
                             if let Some(observed) = live_observed {
                                 if self.fore.wait_for_activity(observed)? {
                                     continue;
                                 }
                             }
                         }
-                        if !keys.is_pending() && deadlines.is_empty() && !self.creche_pending() {
+                        if !keys.is_pending()
+                            && deadlines.is_empty()
+                            && !self.creche_pending()
+                            && !self.chart_face_pending()
+                        {
                             return Err(diagnostic::error(
                                 &mut self.error_diagnostic,
                                 format_args!("Body kernel has no admitted progress source"),
@@ -1174,6 +1218,9 @@ impl<'a> BodyKernel<'a> {
                                     owner.poll_wait().min(std::time::Duration::from_millis(10)),
                                 );
                             }
+                        }
+                        if self.chart_face_pending() {
+                            std::thread::park_timeout(std::time::Duration::from_millis(1));
                         }
                         std::thread::yield_now();
                     }

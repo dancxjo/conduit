@@ -21,7 +21,13 @@ mod microphone;
 mod playback;
 #[path = "selected_host_configuration/recognition.rs"]
 mod recognition;
+#[cfg(target_os = "linux")]
+#[path = "selected_host_configuration/text_file.rs"]
+mod text_file;
 pub(crate) use image::check_seed_image;
+#[path = "selected_host_configuration/replacement.rs"]
+mod replacement;
+pub(super) use replacement::replacement_for_release;
 const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -49,11 +55,22 @@ impl Selection {
         scanout_prepared: bool,
         source_prepared: bool,
     ) -> Result<(), String> {
+        self.require_image_equipment_initialization(scanout_prepared, source_prepared, false)
+    }
+    pub(super) fn require_image_equipment_initialization(
+        &self,
+        scanout_prepared: bool,
+        source_prepared: bool,
+        recognizer_prepared: bool,
+    ) -> Result<(), String> {
         for base in &self.checked()?.configuration().bases {
             if base.initialization.is_some()
                 && !(scanout_prepared && base.kind == "display/scanout")
+                && !(recognizer_prepared && base.kind == "speech/recognizer")
                 && !(source_prepared && base.kind == conduit_std_offers::SOURCE_CHECK_BASE_KIND)
                 && !(source_prepared && base.kind == "creche/encounter")
+                && base.kind != conduit_std_offers::DURABLE_TEXT_BASE_KIND
+                && base.kind != conduit_workspace_make::CPU_BASE_KIND
             {
                 return Err(
                     "selected IMAGE cannot initialize this physical equipment or Crèche provider"
@@ -81,13 +98,32 @@ impl Selection {
         }
         conduit_workspace_make::CheckedScanoutInitialization::from_configuration(&checked).map(Some)
     }
+    pub(super) fn has_cpu_initialization(&self) -> Result<bool, String> {
+        let checked = self.checked()?;
+        if !checked
+            .configuration()
+            .bases
+            .iter()
+            .any(|base| base.kind == conduit_workspace_make::CPU_BASE_KIND)
+        {
+            return Ok(false);
+        }
+        conduit_workspace_make::CheckedCpuInitialization::from_configuration(&checked)?;
+        Ok(true)
+    }
+    #[cfg(target_os = "linux")]
+    pub(super) fn text_file_parameters(
+        &self,
+    ) -> Result<Option<conduit_workspace_make::CheckedTextFileInitialization>, String> {
+        text_file::parameters(&self.checked()?)
+    }
     pub(super) fn host_image(&self) -> Option<&conduit_host_make::HostImage> {
         self.host_image.as_ref()
     }
     pub(super) fn configuration_id(&self) -> &str {
         &self.configuration_id
     }
-    fn from_source(source: &str, target: &str) -> Result<Self, String> {
+    pub(in crate::durable_host) fn from_source(source: &str, target: &str) -> Result<Self, String> {
         let checked = check(source)?;
         require_target(&checked, target)?;
         let source = canonical_host_configuration_conduit(checked.configuration())
@@ -129,6 +165,30 @@ impl Selection {
     }
     pub(super) fn validate(&self) -> Result<(), String> {
         self.checked().map(|_| ())
+    }
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    pub(super) fn prepare_recognizer(
+        &self,
+    ) -> Result<Option<conduit_std_host::hosted_speech_recognition::WhisperSpeechAdapter>, String>
+    {
+        let checked = self.checked()?;
+        let mut bases = checked
+            .configuration()
+            .bases
+            .iter()
+            .filter(|base| base.kind == "speech/recognizer" && base.initialization.is_some());
+        let Some(base) = bases.next() else {
+            return Ok(None);
+        };
+        if bases.next().is_some() {
+            return Err("selected IMAGE requires one exact recognizer".into());
+        }
+        recognition::initialize(
+            base.initialization
+                .as_ref()
+                .ok_or("recognizer lost initialization")?,
+        )
+        .map(Some)
     }
     pub(super) fn prepare_creche(
         &self,
@@ -206,6 +266,19 @@ impl Selection {
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     host.attach_whisper_clip_recognizer(recognition::initialize(initialization)?)?;
                 }
+                Some(conduit_workspace_make::CPU_IMPLEMENTATION) => {
+                    return Err(
+                        "selected CPU profile requires its checked IMAGE before Boot".into(),
+                    );
+                }
+                Some(
+                    conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION
+                    | conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION,
+                ) => {
+                    return Err(
+                        "immutable Text residence requires its checked IMAGE before Boot".into(),
+                    );
+                }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
         }
@@ -251,6 +324,16 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                     conduit_workspace_make::CheckedSourceCheckInitialization::from_configuration(
                         &checked,
                     )?;
+                }
+                Some(conduit_workspace_make::CPU_IMPLEMENTATION) => {
+                    conduit_workspace_make::CheckedCpuInitialization::from_configuration(&checked)?;
+                }
+                #[cfg(target_os = "linux")]
+                Some(
+                    conduit_std_offers::DURABLE_TEXT_SAVE_IMPLEMENTATION
+                    | conduit_std_offers::DURABLE_TEXT_LOAD_IMPLEMENTATION,
+                ) => {
+                    text_file::parameters(&checked)?;
                 }
                 Some("display/linear-framebuffer@1") => {
                     conduit_workspace_make::CheckedScanoutInitialization::from_configuration(

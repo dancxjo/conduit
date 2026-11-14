@@ -316,6 +316,58 @@ pub(super) fn build_advertisement(
         );
     }
     if composition.data {
+        for count in 1..=4 {
+            capabilities.push(crate::hosted_measurement_chart_constructor::measurement_chart_constructor_std_offer(count).expect("bounded constructor offer"));
+        }
+        for count in 2..=4 {
+            let (left, lb) = conduit_data::measurement_chart_constructor_input(count - 1)
+                .expect("bounded latest input");
+            let (right, rb) =
+                conduit_data::measurement_chart_constructor_input(1).expect("bounded series input");
+            let left = conduit_core::CheckedValueContract::new(
+                left.profile().unwrap().value_kind().clone(),
+                lb,
+                vec![],
+            )
+            .unwrap();
+            let right = conduit_core::CheckedValueContract::new(
+                right.profile().unwrap().value_kind().clone(),
+                rb,
+                vec![],
+            )
+            .unwrap();
+            capabilities.push(
+                conduit_std_offers::combine_latest_schema_offer(&left, &right)
+                    .expect("bounded latest specialization"),
+            );
+            if count <= 3 {
+                capabilities.push(
+                    conduit_std_offers::combine_latest_schema_offer_with_input_terminals(
+                        &left,
+                        &right,
+                        if count == 2 {
+                            [false, false]
+                        } else {
+                            [true, false]
+                        },
+                    )
+                    .expect("bounded authored ingress terminal policy"),
+                );
+            }
+        }
+        capabilities.push(
+            crate::measurement_chart_flow_offer::measurement_chart_flow_face_std_offer(
+                crate::installed_std::measurement_chart_face_back::workspace_bytes(),
+            )
+            .expect("finite terminal chart Face workspace"),
+        );
+        capabilities.push(crate::hosted_measurement::measurement_plot_std_offer());
+        capabilities.push(
+            crate::measurement_chart_offer::measurement_chart_face_std_offer(
+                crate::installed_std::measurement_chart_face_back::workspace_bytes(),
+            )
+            .expect("explicit finite chart Face workspace"),
+        );
         capabilities.extend([
             conduit_std_offers::data_save_text_std_offer(),
             conduit_std_offers::data_load_text_std_offer(),

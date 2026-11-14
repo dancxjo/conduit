@@ -3,7 +3,11 @@
 #[cfg(test)]
 mod encounter_fixture;
 mod initialization;
+mod input;
+mod outer_bound;
+mod reading;
 mod render;
+pub use reading::SelectedNativeReadingState;
 mod retirement;
 #[cfg(test)]
 mod tests;
@@ -26,7 +30,10 @@ use conduitos::{
 };
 pub(crate) use initialization::InitialNativeMask;
 use render::{BoundReadOnlyMask, PreparedReadOnlyBinding};
-pub use render::{SelectedNativeMaskEvidence, SelectedNativeMaskFrame};
+pub use render::{
+    SelectedNativeInteraction, SelectedNativeMaskEvidence, SelectedNativeMaskFrame,
+    SelectedNativeMaskInput,
+};
 
 pub(crate) const SURFACE: &str = "selected/native-mask";
 
@@ -99,6 +106,8 @@ pub struct SelectedNativeMaskBase {
     backing: BaseBackingReservation,
     _heap: ImageMemoryLease,
     receipt: NativeMaskFixedBackingReceipt,
+    input: Option<conduit_linux_display::NativeInputHostClaim>,
+    pointer: input::NativePointerState,
 }
 impl SelectedNativeMaskBase {
     pub fn fixed_backing(&self) -> NativeMaskFixedBackingReceipt {
@@ -137,10 +146,15 @@ impl SelectedNativeMaskBase {
         width: u32,
         height: u32,
         scanout_cpu_bytes: usize,
+        input: Option<conduit_linux_display::NativeInputHostClaim>,
     ) -> Result<Self, String> {
         let (kernel_bytes, raster_bytes) = Self::required_bytes(width, height)?;
+        let input_owner_bytes = input.as_ref().map_or(0, |_| {
+            conduit_linux_display::PreparedNativeInput::owned_backing_bytes()
+        });
         let runtime_pool_bytes = kernel_bytes
             .checked_add(raster_bytes)
+            .and_then(|bytes| bytes.checked_add(input_owner_bytes))
             .ok_or("selected Mask store sum")?;
         let image_heap_charge = runtime_pool_bytes
             .checked_add(scanout_cpu_bytes)
@@ -193,10 +207,13 @@ impl SelectedNativeMaskBase {
                 runtime_pool_bytes,
                 image_heap_charge,
             },
+            input,
+            pointer: input::NativePointerState::default(),
         })
     }
     fn validate_binding(&self, host: &StdHost) -> Result<(), String> {
         if !self.healthy()
+            || self.input.as_ref().is_some_and(|claim| !claim.is_live())
             || !self.backing.matches_ledger(&host.kernel_resources)
             || !host.base_registry.entries().contains(&self.provider.entry)
             || !host
@@ -240,12 +257,23 @@ impl SelectedNativeMaskBase {
         let input = inputs
             .next()
             .ok_or("selected Mask interaction Back absent")?;
-        if inputs.next().is_some()
-            || input.execution_profile_id.as_str() != READ_ONLY_INTERACTION_PROFILE
-            || !input.resources.is_empty()
-            || !input.authority.is_empty()
+        if inputs.next().is_some() {
+            return Err("selected Mask input Back ambiguous".into());
+        }
+        let read_only = input.execution_profile_id.as_str() == READ_ONLY_INTERACTION_PROFILE
+            && input.resources.is_empty()
+            && input.authority.is_empty();
+        let interactive = input.execution_profile_id.as_str() == "conduitos/bounded-interaction@1"
+            && input.resources.len() == 1
+            && input.resources[0].class_id.as_str() == "conduit.resource/conduitos-human-input@1"
+            && input.resources[0].units == 1
+            && input.authority.is_empty();
+        if !(read_only && self.input.is_none()
+            || interactive && self.input.as_ref().is_some_and(|input| input.is_live()))
         {
-            return Err("selected Mask requires its narrowed read-only interaction Back".into());
+            return Err(
+                "selected Mask input profile differs from genuine prepared provider".into(),
+            );
         }
         let input_plan_bytes = conduitos::product_bases::native_mask_plan_backing_bytes(planned)
             .ok_or("selected Mask Plan owns unsupported metadata")?;
@@ -351,6 +379,77 @@ impl StdHost {
         front_subject: &str,
         output: &mut conduit_linux_display::Scanout<'_>,
     ) -> Result<SelectedNativeMaskFrame, String> {
+        self.render_selected_native_mask_profile(
+            encounter,
+            route,
+            face,
+            play_sequence,
+            front_subject,
+            output,
+            None,
+            None,
+        )
+    }
+    /// Required per-invocation requested backing for this genuine provider and
+    /// exact standard routed closure. This neither reserves memory nor admits a
+    /// route/action; existing fixed Base/binding stores remain separate charges.
+    pub fn selected_native_mask_input_preparation_bytes(
+        &self,
+        route: &RemoteOwnerMaskRouteSeal,
+        face: &Face,
+        front_subject: &str,
+    ) -> Result<usize, String> {
+        let mask = self
+            .ready_selected_native_mask()
+            .ok_or("selected native Mask unavailable")?;
+        if !mask.input.as_ref().is_some_and(|claim| claim.is_live()) {
+            return Err("genuine prepared native input unavailable".into());
+        }
+        route
+            .validate_mask_host_offer(&self.advertisement)
+            .map_err(|error| format!("native input bound route:{error:?}"))?;
+        outer_bound::checked_invocation_bytes(
+            &route.planned_mask,
+            face,
+            front_subject,
+            &mask.provider.entry.base_id,
+        )
+    }
+    /// Computes its complete finite requested-backing envelope from the exact
+    /// standard Scene/Plan/provider; rejects unsupported owners before allocation.
+    #[allow(clippy::too_many_arguments)]
+    pub fn render_selected_interactive_native_mask(
+        &mut self,
+        encounter: &impl NativeMaskEncounter,
+        route: &RemoteOwnerMaskRouteSeal,
+        face: &Face,
+        play_sequence: u64,
+        front_subject: &str,
+        output: &mut conduit_linux_display::Scanout<'_>,
+    ) -> Result<SelectedNativeMaskFrame, String> {
+        self.render_selected_native_mask_profile(
+            encounter,
+            route,
+            face,
+            play_sequence,
+            front_subject,
+            output,
+            Some(()),
+            None,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn render_selected_native_mask_profile(
+        &mut self,
+        encounter: &impl NativeMaskEncounter,
+        route: &RemoteOwnerMaskRouteSeal,
+        face: &Face,
+        play_sequence: u64,
+        front_subject: &str,
+        output: &mut conduit_linux_display::Scanout<'_>,
+        input_bytes: Option<()>,
+        reading: Option<conduitos::native_face_scene::NativeReadingPosition>,
+    ) -> Result<SelectedNativeMaskFrame, String> {
         let scanout = self
             .ready_selected_scanout()
             .ok_or("selected physical output is lost")?;
@@ -376,6 +475,8 @@ impl StdHost {
                     play_sequence,
                     front_subject,
                     output,
+                    input_bytes,
+                    reading,
                 ),
                 _ => Err("selected Mask binding failed".into()),
             }

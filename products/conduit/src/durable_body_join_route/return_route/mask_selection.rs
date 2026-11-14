@@ -32,9 +32,16 @@ impl Grant {
         }
         let (face, show, interaction) = match self.mask {
             MaskSelection::Native => {
-                let (face, show) =
-                    super::super::native_lines::offer_pair(owner, &self.member, &binding);
-                (face, show, None)
+                let (face, show, interaction) =
+                    super::super::native_lines::offer_graphical(owner, &self.member, &binding)?;
+                return crate::durable_host_control::select_graphical_native_mask_route(
+                    state_dir,
+                    self.member.clone(),
+                    face,
+                    show,
+                    interaction,
+                    self.expires_at_millis,
+                );
             }
             MaskSelection::Terminal => {
                 let (face, show, interaction) =

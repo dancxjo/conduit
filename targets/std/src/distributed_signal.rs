@@ -444,10 +444,10 @@ impl DistributedSource {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Drained => return Ok(None),
                 SchedulerStatus::Idle => {
-                    return Err("std source became idle before remote terminal".to_string())
+                    return Err("std source became idle before remote terminal".to_string());
                 }
                 SchedulerStatus::Cancelled => {
-                    return Err("std source cancelled during successful proof".to_string())
+                    return Err("std source cancelled during successful proof".to_string());
                 }
             }
         }

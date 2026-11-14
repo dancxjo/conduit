@@ -61,7 +61,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ButtonBack {
                     return StepOutcome::Progress;
                 }
                 HostCallDisposition::Cancelled if outcome.output.is_none() => {
-                    return button_step_fail(FailureCode::Cancelled, 0)
+                    return button_step_fail(FailureCode::Cancelled, 0);
                 }
                 _ => return button_step_fail(FailureCode::InvalidLifecycle, 6),
             }

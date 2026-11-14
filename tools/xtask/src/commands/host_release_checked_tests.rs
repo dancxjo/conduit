@@ -198,3 +198,95 @@ fn native_receipt_matches_exact_checked_closure_and_observed_payload() {
         verify_native_release_build(&checked, &image, &verified(&changed), &selection).is_err()
     );
 }
+
+#[test]
+fn pi5_non_cxx_make_selection_retains_exact_target_adapter_and_toolchain_checks() {
+    let source =
+        include_str!("../../../../targets/std/profiles/raspberry-pi-3-tick-workset.host.conduit")
+            .replace(
+                "raspberry-pi-3-model-b-plus-rev-1.3",
+                "raspberry-pi-5-model-b-rev-1.1-8gb",
+            );
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(&source).unwrap(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .unwrap();
+    let selection = conduit_workspace_make::package_set()
+        .derive_build_selection(checked.profile(), &SporeOutputKind::NativeBundle)
+        .unwrap();
+    let target = "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb";
+    assert_eq!(
+        selection.toolchain_identity,
+        "rustc:1.98.1+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu"
+    );
+    let native = NativeTarget::select(target, &selection).unwrap();
+    assert_eq!(native.executable, "conduit-linux-aarch64");
+    assert!(!native.cxx);
+    let mut wrong = selection.clone();
+    wrong.builder_adapter = "conduit-host-hosted/build-native@1".into();
+    assert!(NativeTarget::select(target, &wrong).is_err());
+    let mut wrong = selection.clone();
+    wrong.toolchain_identity.push_str("+unreviewed");
+    assert!(NativeTarget::select(target, &wrong).is_err());
+}
+
+#[test]
+fn checked_release_seals_exact_image_and_refuses_changed_payload() {
+    let (checked, image, selection, _) = fixture();
+    let directory = std::env::temp_dir().join(format!(
+        "conduit-checked-image-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos(),
+    ));
+    fs::create_dir(&directory).unwrap();
+    fs::write(directory.join("conduit-linux-aarch64"), b"fixture!").unwrap();
+    finish_release(
+        &directory,
+        "fixture/source",
+        &checked,
+        &image,
+        selection.clone(),
+        "conduit-linux-aarch64",
+    )
+    .unwrap();
+    let image_bytes = fs::read(directory.join("host-image.json")).unwrap();
+    assert_eq!(image_bytes, serde_json::to_vec(&image).unwrap());
+    let retained: HostImage = serde_json::from_slice(&image_bytes).unwrap();
+    verify_image_binding(&retained, &image_bytes).unwrap();
+    verify_configuration_image(&checked, &retained, &conduit_workspace_make::catalog()).unwrap();
+    let manifest_bytes = fs::read(directory.join("checked-native.json")).unwrap();
+    let manifest: HostReleaseManifest = serde_json::from_slice(&manifest_bytes).unwrap();
+    assert_eq!(manifest.files.len(), 2);
+    assert_eq!(manifest.files[0].path, "conduit-linux-aarch64");
+    assert_eq!(manifest.files[1].path, "host-image.json");
+    let verify = || {
+        verify_host_release_bytes(
+            &manifest_bytes,
+            &ReleaseTargetProfile {
+                target_id: &manifest.target_id,
+                package_id: &manifest.make_package_id,
+                output: "native-bundle",
+                builder_adapter: &manifest.builder_adapter,
+                deployment_adapter: &manifest.deployment_adapter,
+            },
+            "fixture/source",
+            HostReleaseBounds {
+                maximum_manifest_bytes: 65536,
+                maximum_files: 2,
+                maximum_file_bytes: 65536,
+                maximum_bundle_bytes: 131072,
+            },
+            |file| fs::File::open(directory.join(file)).map_err(|error| error.to_string()),
+            || false,
+        )
+    };
+    verify_native_release_build(&checked, &retained, &verify().unwrap(), &selection).unwrap();
+    fs::write(directory.join("host-image.json"), b"{}").unwrap();
+    assert!(verify().is_err());
+    fs::remove_dir_all(directory).unwrap();
+}

@@ -196,3 +196,31 @@ impl SelectedLocalForeSet {
         self.entries.get(plot).map(|entry| &entry.host)
     }
 }
+
+impl SelectedLocalForeSet {
+    /// Borrow exact current planning evidence without cloning advertisements or
+    /// changing selection. This grants no provider, resource, input or execution.
+    pub(crate) fn contains_current_boundaries<'a>(
+        &self,
+        root: &c::HostAdvertisement,
+        plot: &ResidentPlot,
+        current: impl Iterator<Item = &'a c::HostAdvertisement>,
+    ) -> bool {
+        if self.root.0 != root.host_id
+            || self.root.1 != root.boot_id
+            || self.root.2 != root.offer_generation
+        {
+            return false;
+        }
+        let Some(entry) = self.entries.get(plot) else {
+            return false;
+        };
+        let mut matching = current.filter(|h| {
+            h.host_id == entry.host
+                && h.boot_id == entry.boot
+                && h.offer_generation == entry.generation
+                && h.profile == entry.configuration
+        });
+        matching.next().is_some() && matching.next().is_none()
+    }
+}

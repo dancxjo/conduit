@@ -44,6 +44,29 @@ pub(super) fn encounter_with_binding(
     revision: u64,
     binding: &str,
 ) -> (FixtureEncounter, RemoteOwnerMaskRouteSeal, Face) {
+    fixture_with_action(host, revision, binding, false, false)
+}
+pub(super) fn action_encounter(
+    host: &HostAdvertisement,
+    revision: u64,
+    binding: &str,
+) -> (FixtureEncounter, RemoteOwnerMaskRouteSeal, Face) {
+    fixture_with_action(host, revision, binding, true, false)
+}
+pub(super) fn reading_encounter(
+    host: &HostAdvertisement,
+    revision: u64,
+    binding: &str,
+) -> (FixtureEncounter, RemoteOwnerMaskRouteSeal, Face) {
+    fixture_with_action(host, revision, binding, true, true)
+}
+fn fixture_with_action(
+    host: &HostAdvertisement,
+    revision: u64,
+    binding: &str,
+    action: bool,
+    reading: bool,
+) -> (FixtureEncounter, RemoteOwnerMaskRouteSeal, Face) {
     let planned = conduit_conduitos_mask_offer::prepare_native_stage_with_profile(
         host,
         NativeMaskStorageProfile::Standard,
@@ -91,7 +114,7 @@ pub(super) fn encounter_with_binding(
         .append_membership_events(membership, &[(admitted, 2), (present, 3)])
         .unwrap();
     let session = BodyLifecycleSession::open(evidence).unwrap();
-    let face = Face::new(
+    let face = Face::new_with_semantics(
         revision,
         FaceBasis {
             body_id: Some(id),
@@ -110,6 +133,33 @@ pub(super) fn encounter_with_binding(
         }],
         vec![],
         vec![],
+        if reading {
+            (0..10)
+                .map(|index| conduit_face::FaceText {
+                    subject: "front/native-mask".into(),
+                    text: format!(
+                        "Reading paragraph {index}: {}",
+                        "Every original word remains available on its measured reading page. "
+                            .repeat(10)
+                    ),
+                })
+                .collect()
+        } else {
+            vec![]
+        },
+        if action {
+            vec![conduit_face::FaceAction {
+                identity: "fixture/activate".into(),
+                intent: "fixture/activate".into(),
+                target: "front/native-mask".into(),
+                name: "Activate".into(),
+                arguments: vec![],
+                disclosure: conduit_face::FaceDisclosureLevel::CurrentAction,
+                availability: conduit_face::FaceActionAvailability::Available,
+            }]
+        } else {
+            vec![]
+        },
         vec![],
     )
     .unwrap();

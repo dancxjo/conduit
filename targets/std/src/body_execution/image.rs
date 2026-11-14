@@ -3,10 +3,15 @@
 use super::*;
 use crate::kernel_preparation::ImageMemoryLease;
 mod prepared;
-pub use prepared::{ImageMemoryRetention, ImagePreparedValue, ImageRootPreparation};
+pub use prepared::{
+    ImageMemoryRetention, ImagePreparedValue, ImageRootPreparation, ImageRootPreparationOwner,
+};
 mod creche;
+mod face;
 mod input;
+mod live;
 pub use input::ImageForeInput;
+pub use live::ImageLiveForeQueue;
 
 pub struct ImageBodyRunReport {
     report: BodyRunReport,
@@ -124,6 +129,7 @@ impl StdHost {
             None,
             started,
             Some(&mut custody),
+            None,
             None,
         )?;
         Ok(ImageBodyRunReport {

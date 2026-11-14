@@ -173,13 +173,13 @@ impl<const PORTS: usize> StepBack<PORTS> for HttpClientBack {
                     return StepOutcome::Progress;
                 }
                 (HostCallDisposition::Denied, _, _) => {
-                    return http_step_fail(FailureCode::HostCallDenied, 1)
+                    return http_step_fail(FailureCode::HostCallDenied, 1);
                 }
                 (HostCallDisposition::Cancelled, _, _) => {
-                    return http_step_fail(FailureCode::Cancelled, 2)
+                    return http_step_fail(FailureCode::Cancelled, 2);
                 }
                 (HostCallDisposition::Failed, _, Some(failure)) => {
-                    return StepOutcome::Fail(failure)
+                    return StepOutcome::Fail(failure);
                 }
                 _ => return http_step_fail(FailureCode::InvalidLifecycle, 3),
             }
@@ -257,13 +257,13 @@ impl<const PORTS: usize> StepBack<PORTS> for HttpServerBack {
                     return StepOutcome::Progress;
                 }
                 (_, HostCallDisposition::Denied, _, _) => {
-                    return http_step_fail(FailureCode::HostCallDenied, 11)
+                    return http_step_fail(FailureCode::HostCallDenied, 11);
                 }
                 (_, HostCallDisposition::Cancelled, _, _) => {
-                    return http_step_fail(FailureCode::Cancelled, 12)
+                    return http_step_fail(FailureCode::Cancelled, 12);
                 }
                 (_, HostCallDisposition::Failed, _, Some(failure)) => {
-                    return StepOutcome::Fail(failure)
+                    return StepOutcome::Fail(failure);
                 }
                 _ => return http_step_fail(FailureCode::InvalidLifecycle, 13),
             }

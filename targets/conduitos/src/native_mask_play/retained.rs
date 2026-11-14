@@ -46,6 +46,8 @@ pub struct RetainedNativeMaskStorage {
     sequence: u64,
     request_base: u32,
     backing: NativeMaskBackingReceipt,
+    invocation: super::prepared::InvocationBinding,
+    metadata_bytes: usize,
 }
 impl RetainedNativeMaskStorage {
     pub fn required_store_bytes(
@@ -79,6 +81,11 @@ impl RetainedNativeMaskStorage {
         optional_storage: conduit_kernel::scheduler::prepared_session::OptionalOutputStorage<CORDS>,
         backing: NativeMaskBackingReceipt,
     ) -> Result<Self, NativeMaskPlayError> {
+        let invocation = super::prepared::InvocationBinding::prepare(planned, lowered)?;
+        let metadata_bytes = invocation
+            .backing_bytes()
+            .and_then(|bytes| bytes.checked_add(planned.plan.plan_id.0.len()))
+            .ok_or(NativeMaskPlayError::Pressure)?;
         let boundaries = lowered
             .fore_ports
             .iter()
@@ -120,6 +127,8 @@ impl RetainedNativeMaskStorage {
             sequence: 0,
             request_base: 0,
             backing,
+            invocation,
+            metadata_bytes,
         })
     }
     #[cfg(test)]
@@ -129,7 +138,10 @@ impl RetainedNativeMaskStorage {
 
     /// Owned Plan identity payload, separate from the fixed scheduler stores.
     pub fn retained_metadata_bytes(&self) -> usize {
-        self.plan_id.0.capacity()
+        self.metadata_bytes
+    }
+    pub(super) fn invocation_binding(&self) -> &super::prepared::InvocationBinding {
+        &self.invocation
     }
     pub fn backing(&self) -> NativeMaskBackingReceipt {
         self.backing
@@ -164,6 +176,9 @@ impl RetainedNativeMaskStorage {
 
 /// One-shot compatibility and retained invocations share the same kernel. This
 /// adapter exposes no mutable scheduler escape from PreparedKernelSession.
+// Transfer the already admitted affine owners inline; boxing here would add
+// an allocation at invocation/input rather than reuse the original stores.
+#[allow(clippy::large_enum_variant)]
 pub(super) enum MaskScheduler {
     Ephemeral(alloc::boxed::Box<Scheduler>),
     Retained(RetainedNativeMaskStorage),

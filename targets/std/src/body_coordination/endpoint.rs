@@ -417,7 +417,7 @@ impl CoordinationEndpoint {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle => return Err("coordination face idle".into()),
                 SchedulerStatus::Drained => {
-                    return Err("coordination face completed too early".into())
+                    return Err("coordination face completed too early".into());
                 }
                 SchedulerStatus::Cancelled => return Err("coordination endpoint cancelled".into()),
             }

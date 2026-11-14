@@ -98,6 +98,7 @@ impl BodyLiveForeQueue {
                 play_started: false,
                 started_at: None,
                 idle_stop: None,
+                image_admission: None,
             })),
         })
     }

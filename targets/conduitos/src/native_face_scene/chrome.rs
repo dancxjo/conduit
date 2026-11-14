@@ -6,7 +6,9 @@ use crate::display::{
 };
 use conduit_face::{GraphicsTextRole, LayoutRect};
 
-/// Background, heading, page marker, two separators and footer text.
+/// Background, heading, page marker and progress (four), followed by either
+/// separator + footer or two independently measured paging labels (two).
+/// Local reading controls therefore never reduce admitted document capacity.
 pub(super) const COMMANDS: usize = 6;
 const EDGE: u16 = 8;
 pub(super) const HEADER: u16 = 56;

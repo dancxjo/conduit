@@ -10,12 +10,17 @@ use std::{cell::RefCell, path::Path};
 #[path = "member_carrier_client/presence_deadline.rs"]
 mod presence_deadline;
 use presence_deadline::PresenceDeadline;
+pub(in crate::durable_host::presentation) const EXPIRED: &str =
+    "current-member presentation encounter expired";
 
 struct Carrier {
     line: SecureWebSocketClientLine,
     presence: PresenceDeadline,
     frames: usize,
     closed: bool,
+    input: Vec<u8>,
+    action_pending: bool,
+    action_reply: Option<Result<(), String>>,
 }
 
 pub(in crate::durable_host::presentation) struct MemberRoute {
@@ -149,6 +154,9 @@ impl MemberRoute {
             presence: PresenceDeadline::initial(anchor),
             frames: 0,
             closed: false,
+            input: vec![0; ADMISSION],
+            action_pending: false,
+            action_reply: None,
         };
         carrier.accept_presence(1, anchor, deadline)?;
         let request = request(credential);
@@ -174,7 +182,7 @@ impl MemberRoute {
             || Instant::now() >= carrier.presence.deadline
             || crate::durable_host::current_time_millis()? >= self.descriptor_expiry
         {
-            return Err("current-member presentation encounter expired".into());
+            return Err(EXPIRED.into());
         }
         Ok(())
     }
@@ -205,8 +213,54 @@ impl MemberRoute {
         carrier.accept_presence(sequence, anchor, self.deadline)
     }
 
+    /// One exact current Show occurrence on the existing authenticated member
+    /// carrier. No replay on timeout/loss; owner action success is asynchronous.
+    pub(in crate::durable_host::presentation) fn begin_action(
+        &self,
+        show: &MaskShow,
+        interaction: conduit_face::FaceInteraction,
+    ) -> Result<(), String> {
+        self.admitted.validate_show(show)?;
+        self.poll_presence()?;
+        let mut carrier = self.carrier.borrow_mut();
+        if carrier.action_pending {
+            return Err("member action already pending".into());
+        }
+        carrier.action_pending = true;
+        carrier.send(
+            &In::FaceInteractionRequest {
+                protocol: PROTOCOL,
+                request: self.request.clone(),
+                show: Box::new(show.clone()),
+                interaction,
+            },
+            self.deadline,
+        )
+    }
+    pub(in crate::durable_host::presentation) fn poll_action(
+        &self,
+    ) -> Result<Option<Result<(), String>>, String> {
+        self.poll_presence()?;
+        let mut carrier = self.carrier.borrow_mut();
+        if !carrier.action_pending {
+            return Ok(None);
+        }
+        if carrier.action_reply.is_none() {
+            if let Some(frame) = carrier.receive_polled(self.deadline, Duration::from_millis(1))? {
+                carrier.accept_action(frame)?;
+            }
+        }
+        let reply = carrier.action_reply.take();
+        if reply.is_some() {
+            carrier.action_pending = false;
+        }
+        Ok(reply)
+    }
     pub(in crate::durable_host::presentation) fn refresh(&mut self) -> Result<Snapshot, String> {
         self.poll_presence()?;
+        if self.carrier.borrow().action_pending {
+            return Err("member action pending; refresh must await outcome".into());
+        }
         let next = self
             .carrier
             .borrow_mut()
@@ -319,9 +373,46 @@ impl Carrier {
     }
     fn receive(&mut self, overall: Instant) -> Result<Out, String> {
         self.bound(overall)?;
-        let out = receive(&mut self.line, ADMISSION)?;
+        let bytes = self
+            .line
+            .receive_binary(&mut self.input)
+            .map_err(|e| format!("member response:{e:?}"))?;
+        let frame = serde_json::from_slice(&self.input[..bytes])
+            .map_err(|e| format!("member frame:{e}"))?;
         self.bound(overall)?;
-        Ok(out)
+        Ok(frame)
+    }
+    fn receive_polled(&mut self, overall: Instant, hint: Duration) -> Result<Option<Out>, String> {
+        self.bound(overall)?;
+        self.line
+            .set_read_timeout(Some(hint.max(Duration::from_millis(1))))
+            .map_err(|e| format!("member poll:{e:?}"))?;
+        let bytes = match self.line.receive_binary(&mut self.input) {
+            Ok(bytes) => bytes,
+            Err(conduit_std_host::secure_websocket::SecureWebSocketError::Transport(
+                std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut,
+            )) => return Ok(None),
+            Err(error) => return Err(format!("member response:{error:?}")),
+        };
+        self.bound(overall)?;
+        serde_json::from_slice(&self.input[..bytes])
+            .map(Some)
+            .map_err(|e| format!("member frame:{e}"))
+    }
+    fn accept_action(&mut self, frame: Out) -> Result<(), String> {
+        if !self.action_pending || self.action_reply.is_some() {
+            return Err("unexpected or duplicate member action outcome".into());
+        }
+        let Out::FaceInteractionResponse {
+            protocol: PROTOCOL,
+            accepted,
+            code,
+        } = frame
+        else {
+            return Err("member action outcome schema differs".into());
+        };
+        self.action_reply = Some(if accepted { Ok(()) } else { Err(code) });
+        Ok(())
     }
     fn accept_presence(
         &mut self,
@@ -329,7 +420,17 @@ impl Carrier {
         anchor: Instant,
         overall: Instant,
     ) -> Result<(), String> {
-        let frame = self.receive(overall)?;
+        let mut frame = self.receive(overall)?;
+        if matches!(
+            &frame,
+            Out::FaceInteractionResponse {
+                protocol: PROTOCOL,
+                ..
+            }
+        ) {
+            self.accept_action(frame)?;
+            frame = self.receive(overall)?;
+        }
         self.presence
             .accept(&frame, sequence, anchor, overall, Instant::now())
             .map_err(String::from)?;

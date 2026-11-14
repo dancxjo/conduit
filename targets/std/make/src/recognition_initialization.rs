@@ -44,3 +44,24 @@ pub(super) fn offer() -> ImplementationOffer {
         build_feature: None,
     }
 }
+
+/// Exact existing clip Gear metadata, separate from recognizer Base intent.
+pub(super) fn metadata() -> conduit_host_make::ImplementationMetadata {
+    let offer = conduit_std_offers::whisper_clip_speech_offer();
+    let mut prerequisites = offer
+        .host_calls
+        .iter()
+        .map(|call| conduit_host_make::PrerequisiteNode::HostCall(call.contract_id.as_str().into()))
+        .chain(offer.resource_requirements.iter().map(|resource| {
+            conduit_host_make::PrerequisiteNode::Resource(resource.class_id.as_str().into())
+        }))
+        .collect::<Vec<_>>();
+    prerequisites.sort();
+    prerequisites.dedup();
+    conduit_host_make::ImplementationMetadata {
+        kind: offer.kind_id.as_str().into(),
+        contract_revision: offer.kind_contract_revision.as_str().into(),
+        targets: self::offer().target_patterns,
+        prerequisites,
+    }
+}

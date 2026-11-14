@@ -28,6 +28,8 @@ pub(crate) struct Cli {
     pub(crate) command: Option<Command>,
 }
 
+// Parsed once at startup; keep CLI ownership inline rather than adding allocation.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Subcommand)]
 pub(crate) enum Command {
     /// Dedicated bounded compiler preparation child; not a Host admission command.
@@ -615,6 +617,9 @@ pub(crate) enum BodyCommand {
     /// Restore private signing custody from the original Seed and admission evidence.
     #[command(hide = true)]
     RestoreMemberKey(crate::durable_host::MemberKeyRecoveryArgs),
+    /// Restore only signing custody from independently pinned original private invitation bytes.
+    #[command(hide = true)]
+    RestoreMemberKeyFromInvitation(crate::durable_host::MemberInvitationRecoveryArgs),
     /// Retain the owner's exact admission receipt as this host's durable membership.
     #[command(hide = true)]
     CompleteJoin {

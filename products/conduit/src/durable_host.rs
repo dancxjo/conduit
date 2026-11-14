@@ -34,7 +34,7 @@ mod selection_recovery_tests;
 
 #[path = "durable_host/installation_read.rs"]
 mod installation_read;
-use installation_read::{read_installation, read_installation_for_equipment_change};
+use installation_read::read_installation;
 #[path = "durable_host/installation_configured.rs"]
 mod installation_configured;
 #[cfg(test)]
@@ -87,6 +87,9 @@ pub(crate) use usb_member_return::return_usb;
 #[path = "durable_host/membership_receipt_custody.rs"]
 mod membership_receipt_custody;
 pub(crate) use membership::leave_member_from_file;
+pub(crate) use membership::recovery::original_invitation::{
+    run as restore_member_key_from_invitation, Args as MemberInvitationRecoveryArgs,
+};
 pub(crate) use membership::recovery::{run as restore_member_key, Args as MemberKeyRecoveryArgs};
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
 pub(crate) use routed_join::PreparedAdmissionRoute;
@@ -166,21 +169,25 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
         HostServiceCommand::Install {
             manifest,
             host_image,
+            configuration,
             state_dir,
             no_start,
             speech,
             model,
             todo_checkpoint,
-        } => (if let Some(image) = host_image {
+        } => (if configuration.is_some() && host_image.is_none() {
+            Err("replacement configuration requires --host-image".into())
+        } else if let Some(image) = host_image {
             let _host = owner_lock::acquire(&state_dir)?;
             let _body = owner_lock::body(&state_dir)?;
-            let installation = installation_configured::install_configured_with_image(
+            let installation = installation_configured::install_configured_with_replacement(
                 &manifest,
                 &state_dir,
                 selected_speech::change(speech)?,
                 selected_model::change(model)?,
                 selected_todo::change(todo_checkpoint)?,
                 Some(&image),
+                configuration.as_deref(),
             )?;
             drop(_body);
             drop(_host);
@@ -529,16 +536,43 @@ fn run(state_dir: &Path) -> Result<(), String> {
                             }
                         }
                     };
+                    let mut reported_unsupported_key = false;
                     let mut progress =
                         |runtime: &mut crate::durable_host_control::DurableHostRuntime| {
-                            match scanout.poll_output_lifecycle(events, 16) {
-                                Ok(
-                                    conduit_linux_display::NativeInput::Idle
-                                    | conduit_linux_display::NativeInput::Pending,
-                                ) => (),
-                                Ok(_) => return Err("native output lifetime ended".into()),
+                            let observed = if presentation.is_some() {
+                                scanout.poll_input(events, 16)
+                            } else {
+                                scanout.poll_output_lifecycle(events, 16)
+                            };
+                            let input = match observed {
+                                Ok(input) => input,
+                                Err(conduit_linux_display::NativeInputRefusal::InvalidKey {
+                                    ..
+                                }) => {
+                                    // A consumer/media-page key is not a keyboard-page
+                                    // HID event. Refuse it without losing this live Show.
+                                    if !reported_unsupported_key {
+                                        eprintln!("native input refused: unsupported HID key; further unsupported keys remain refused");
+                                        reported_unsupported_key = true;
+                                    }
+                                    conduit_linux_display::NativeInput::Pending
+                                }
                                 Err(error) => {
-                                    return Err(format!("native output lifetime lost: {error:?}"));
+                                    return Err(format!(
+                                        "native input/output lifetime lost:{error:?}"
+                                    ))
+                                }
+                            };
+                            match input {
+                                conduit_linux_display::NativeInput::Quit => {
+                                    return Err("native output lifetime ended".into())
+                                }
+                                conduit_linux_display::NativeInput::Idle
+                                | conduit_linux_display::NativeInput::Pending => (),
+                                event => {
+                                    if let Some(presentation) = &mut presentation {
+                                        presentation.input(runtime, scanout, event)?;
+                                    }
                                 }
                             }
                             if let Some(presentation) = &mut presentation {
@@ -1252,6 +1286,7 @@ mod tests {
         dispatch(HostServiceCommand::Install {
             manifest: manifest.clone(),
             host_image: None,
+            configuration: None,
             state_dir: state.clone(),
             no_start: true,
             speech: Default::default(),

@@ -31,6 +31,7 @@ conduit-time = { path = "../time", default-features = false }
 
 [features]
 default = ["plot-catalog"]
+std = ["serde_json/std"]
 plot-catalog = []
 assigned-renderer = ["conduit-body/authenticated-admission"]
 postcard-wire = ["dep:postcard"]

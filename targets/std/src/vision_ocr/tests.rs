@@ -1,7 +1,6 @@
 use super::*;
 
-const HEADER: &str =
-    "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n";
+const HEADER: &str = "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n";
 
 #[test]
 fn graymap_framing_is_exact_and_never_grows() {

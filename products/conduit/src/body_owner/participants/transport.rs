@@ -128,6 +128,38 @@ impl Socket {
         Ok(pair)
     }
 
+    /// Third logical direction is supplied only while this same TLS socket and
+    /// its original initialized bounded buffers remain held and live.
+    pub(crate) fn native_graphical_lines(
+        &self,
+        owner: &conduit_core::HostAdvertisement,
+        member: &crate::durable_host::owner::MemberPresentationBasis,
+    ) -> Result<(LineOffer, LineOffer, Option<LineOffer>), String> {
+        let (face, show) = self.native_lines(owner, member)?;
+        let offers = crate::durable_host::routed_join::native_lines::offer_graphical(
+            owner,
+            member,
+            self.binding.as_str(),
+        )?;
+        if face != offers.0 || show != offers.1 {
+            return Err("native graphical carrier changed".into());
+        }
+        if let Some(offer) = &offers.2 {
+            let Carrier::Secure(line) = &self.line else {
+                return Err("native interaction requires held TLS carrier".into());
+            };
+            let needed = offer.binding.limits.maximum_frame_bytes as usize;
+            if self.closed
+                || needed > line.maximum_message_bytes()
+                || needed > self.input.len()
+                || needed > self.output.len()
+            {
+                return Err("native interaction Line exceeds actual carrier custody".into());
+            }
+        }
+        Ok(offers)
+    }
+
     pub(crate) fn binding(&self) -> &LinkBindingId {
         &self.binding
     }

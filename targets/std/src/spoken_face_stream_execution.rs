@@ -72,7 +72,9 @@ pub struct SpokenStreamExecution {
 /// text; adding `speech/commit-generated-text` here would commit it twice.
 pub fn spoken_segment_plot(language: &conduit_language::LanguageRequest) -> String {
     let language_request = crate::hosted_language::language_request_literal(language);
-    format!("plot spoken_face_stream (\n >> segments: SpeakableText...|\n) {{\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}}.\n")
+    format!(
+        "plot spoken_face_stream (\n >> segments: SpeakableText...|\n) {{\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\", maximum-blocks = 32768, maximum-audio-millis = 30000)\n artifact: audio/play(maximum-blocks = 32768, maximum-audio-millis = 30000)\n segments >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n}}.\n"
+    )
 }
 
 pub fn execute_real_spoken_batch(

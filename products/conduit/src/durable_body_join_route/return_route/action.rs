@@ -33,6 +33,7 @@ pub(super) fn apply(
     more_actions: bool,
 ) -> Response {
     let request = action.request;
+    let action_id: String = action.interaction.action_id.chars().take(128).collect();
     let result = crate::durable_host_control::submit_native_guest_face_interaction_until(
         state_dir,
         request.clone(),
@@ -40,6 +41,16 @@ pub(super) fn apply(
         action.interaction,
         grant.expires_at_millis,
     );
+    // Operator evidence stays local and bounded; the authenticated wire still
+    // returns its finite public refusal category. Never log action arguments,
+    // membership/control secrets, or the submitted Show/biography.
+    if let Err(error) = &result {
+        eprintln!(
+            "native owner interaction refused: {}: {:.512}",
+            action_id.escape_debug(),
+            error
+        );
+    }
     let (accepted, code) = match &result {
         Ok(_) => (true, "accepted"),
         Err(error) if error == "control-outcome-unknown" => (false, "control-outcome-unknown"),

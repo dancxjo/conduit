@@ -5,7 +5,9 @@ use super::{MaskPlot, PlannedMaskPlot};
 use alloc::{string::String, vec, vec::Vec};
 use conduit_core::{Plan, PlanId};
 use miniz_oxide::{
-    deflate::compress_to_vec_zlib,
+    deflate::core::{
+        compress, create_comp_flags_from_zip_params, CompressorOxide, TDEFLFlush, TDEFLStatus,
+    },
     inflate::{
         core::{decompress, inflate_flags, DecompressorOxide},
         TINFLStatus,
@@ -49,14 +51,16 @@ impl Serialize for PlannedMaskPlot {
             }
             .serialize(serializer);
         }
+        #[cfg(feature = "std")]
+        let bytes = crate::bounded_json::encode(&self.plan, MAX_EXPANDED_BYTES)
+            .map_err(|_| S::Error::custom("expanded Mask Plan capacity"))?;
+        #[cfg(not(feature = "std"))]
         let bytes = serde_json::to_vec(&self.plan).map_err(S::Error::custom)?;
         if bytes.is_empty() || bytes.len() > MAX_EXPANDED_BYTES {
             return Err(S::Error::custom("expanded Mask Plan capacity"));
         }
-        let compressed = compress_to_vec_zlib(&bytes, 6);
-        if compressed.len() > MAX_COMPRESSED_BYTES {
-            return Err(S::Error::custom("compressed Mask Plan capacity"));
-        }
+        let compressed = bounded_compress(&bytes)
+            .ok_or_else(|| S::Error::custom("compressed Mask Plan capacity"))?;
         let mut zlib_hex = String::with_capacity(compressed.len() * 2);
         const DIGITS: &[u8] = b"0123456789abcdef";
         for byte in compressed {
@@ -135,3 +139,51 @@ impl<'de> Deserialize<'de> for PlannedMaskPlot {
         })
     }
 }
+
+/// Same pinned level6/zlib/Finish encoder and accepted extent, with the existing
+/// compressed maximum enforced during construction rather than after uncapped
+/// Vec doubling. Buffer capacity cannot grow, even for incompressible input.
+fn bounded_compress(mut input: &[u8]) -> Option<Vec<u8>> {
+    let flags = create_comp_flags_from_zip_params(6, 1, 0);
+    let mut compressor = CompressorOxide::new(flags);
+    let mut output = vec![0; MAX_COMPRESSED_BYTES];
+    // Preserve the original wrapper's logical slice progression without
+    // reallocating its backing or ever exposing more than the accepted cap.
+    let mut extent = (input.len() / 2).clamp(2, MAX_COMPRESSED_BYTES);
+    let mut position = 0usize;
+    loop {
+        let (status, consumed, written) = compress(
+            &mut compressor,
+            input,
+            &mut output[position..extent],
+            TDEFLFlush::Finish,
+        );
+        if consumed > input.len() || written > output.len().checked_sub(position)? {
+            return None;
+        }
+        input = &input[consumed..];
+        position = position.checked_add(written)?;
+        match status {
+            TDEFLStatus::Done if input.is_empty() => {
+                output.truncate(position);
+                return Some(output);
+            }
+            TDEFLStatus::Okay if consumed != 0 || written != 0 => {
+                if extent.saturating_sub(position) < 30 {
+                    extent = extent.saturating_mul(2).min(MAX_COMPRESSED_BYTES);
+                }
+            }
+            _ => return None,
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "wire/compression_tests.rs"]
+mod compression_tests;
+
+#[cfg(feature = "std")]
+#[path = "wire/backing.rs"]
+mod backing;
+#[cfg(feature = "std")]
+pub use backing::PlannedMaskJsonWorkspace;

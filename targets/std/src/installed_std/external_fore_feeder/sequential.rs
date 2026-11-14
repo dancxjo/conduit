@@ -160,7 +160,7 @@ impl<'a> SequentialForeFeeder<'a> {
                 other => {
                     return Err(format!(
                         "external Fore sequence was not admitted: {other:?}"
-                    ))
+                    ));
                 }
             }
         }

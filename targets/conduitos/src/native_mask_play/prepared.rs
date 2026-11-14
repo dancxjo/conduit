@@ -192,89 +192,52 @@ impl PreparedNativeMaskPlay {
             SignId::from("conduitos/mask/render-prepared"),
         )
         .map_err(|_| NativeMaskPlayError::Face)?;
+        #[cfg(target_os = "linux")]
+        let face_bytes = super::bounded_json::encode(face, profile.bytes() as usize)?;
+        #[cfg(not(target_os = "linux"))]
         let face_bytes = serde_json::to_vec(face).map_err(|_| NativeMaskPlayError::Value)?;
         if face_bytes.len() > profile.bytes() as usize {
             return Err(NativeMaskPlayError::Value);
         }
         let show_value_id = show_value_id(planned, face, &active);
-        let show_bytes = serde_json::to_vec(&ShowValue {
+        let show_value = ShowValue {
             schema: "conduit.face/show-value@1",
             mask_plan_id: planned.plan.plan_id.as_str(),
             active_play_id: active.active_play_id.as_str(),
             face_id: face.identity.as_str(),
             face_revision: face.revision,
             show_value_id: &show_value_id,
-        })
-        .map_err(|_| NativeMaskPlayError::Value)?;
+        };
+        #[cfg(target_os = "linux")]
+        let show_bytes = super::bounded_json::encode(&show_value, profile.bytes() as usize)?;
+        #[cfg(not(target_os = "linux"))]
+        let show_bytes = serde_json::to_vec(&show_value).map_err(|_| NativeMaskPlayError::Value)?;
         if show_bytes.len() > profile.bytes() as usize {
             return Err(NativeMaskPlayError::Value);
         }
-        let lowered = lower_plan_fragment(fragment).map_err(|_| NativeMaskPlayError::Plan)?;
-        let renderer_node = lowered
-            .nodes
-            .iter()
-            .find(|node| node.placement_id == planned.show_placement().placement_id)
-            .ok_or(NativeMaskPlayError::Shape)?;
-        // Only this exact renderer effect is implemented here. Other advertised
-        // effects cannot be acknowledged with renderer bytes.
-        let mut renderer_calls = lowered
-            .host_calls
-            .iter()
-            .filter(|call| call.node == renderer_node.node);
-        let call = renderer_calls.next().ok_or(NativeMaskPlayError::Shape)?;
-        if renderer_calls.next().is_some() {
-            return Err(NativeMaskPlayError::Shape);
-        }
-        if call.node != renderer_node.node
-            || call.call != HostCallId(0)
-            || call.contract_id.as_str() != "conduit.host/present@1"
-            || call.target_kind.as_ref().map(|kind| kind.as_str())
-                != Some("face/base/conduitos-surface@1")
-        {
-            return Err(NativeMaskPlayError::Shape);
-        }
-        let interaction_node = lowered
-            .nodes
-            .iter()
-            .find(|node| {
-                fragment.placements.iter().any(|placement| {
-                    placement.placement_id == node.placement_id
-                        && placement.kind_id.as_str() == conduit_face::FACE_INTERACTION_KIND
-                })
-            })
-            .ok_or(NativeMaskPlayError::Shape)?
-            .node;
-        let mut interaction_calls = lowered
-            .host_calls
-            .iter()
-            .filter(|call| call.node == interaction_node);
-        let interaction_call = interaction_calls.next().ok_or(NativeMaskPlayError::Shape)?;
-        if interaction_calls.next().is_some()
-            || interaction_call.call != HostCallId(0)
-            || interaction_call.contract_id.as_str() != "conduit.host/face-interaction@1"
-            || interaction_call
-                .target_kind
-                .as_ref()
-                .map(|kind| kind.as_str())
-                != Some(conduit_face::FACE_INTERACTION_VALUE_KIND)
-        {
-            return Err(NativeMaskPlayError::Shape);
-        }
-        let fore = |name: &str, direction| {
-            lowered
-                .fore_ports
-                .iter()
-                .find(|port| port.front_port_id.as_str() == name && port.direction == direction)
-                .cloned()
-                .ok_or(NativeMaskPlayError::Shape)
+        let ephemeral_lowered = if storage.is_none() {
+            Some(lower_plan_fragment(fragment).map_err(|_| NativeMaskPlayError::Plan)?)
+        } else {
+            None
         };
-        let face_fore = fore("face", PortDirection::Input)?;
-        let show_fore = fore("show", PortDirection::Output)?;
-        let interaction_fore = fore("interaction", PortDirection::Output)?;
+        let binding = if let Some(storage) = storage.as_ref() {
+            storage.invocation_binding().clone()
+        } else {
+            InvocationBinding::prepare(
+                planned,
+                ephemeral_lowered
+                    .as_ref()
+                    .ok_or(NativeMaskPlayError::Plan)?,
+            )?
+        };
         let scheduler = match storage {
             Some(storage) => MaskScheduler::retained(storage, planned, profile)?,
             None => MaskScheduler::Ephemeral(alloc::boxed::Box::new(scheduler_for_profile(
-                fragment, &lowered, profile,
+                fragment,
+                ephemeral_lowered
+                    .as_ref()
+                    .ok_or(NativeMaskPlayError::Plan)?,
+                profile,
             )?)),
         };
         let storage_budget = storage::admit_budget(&scheduler, profile)?;
@@ -291,18 +254,18 @@ impl PreparedNativeMaskPlay {
         let renderer_show_value_bytes = show_bytes.len() as u32;
         Ok(ColdNativeMaskInvocation::new(ColdMaskFields {
             scheduler,
-            renderer_node: call.node,
-            renderer_call: call.call,
-            face_fore,
+            renderer_node: binding.renderer_node,
+            renderer_call: binding.renderer_call,
+            face_fore: binding.face_fore,
             face_bytes,
             renderer: NativeMaskRendererRequest {
                 face: face.clone(),
                 prepared_show,
                 display_base_id: display_base_id.clone(),
             },
-            show_fore,
-            interaction_fore,
-            interaction_node,
+            show_fore: binding.show_fore,
+            interaction_fore: binding.interaction_fore,
+            interaction_node: binding.interaction_node,
             show_bytes,
             read_only: fragment.placements.iter().any(|placement| placement.kind_id.as_str() == conduit_face::FACE_INTERACTION_KIND && matches!(placement.execution_profile_id.as_str(), conduit_conduitos_mask_offer::READ_ONLY_INTERACTION_PROFILE | conduit_conduitos_mask_offer::READ_ONLY_COLLECTION_INTERACTION_PROFILE)),
             available_show: Some(available_show),
@@ -319,7 +282,7 @@ impl PreparedNativeMaskPlay {
                 display_base_id,
                 surface_id: surface_id.into(),
                 kernel_signs: 0,
-                fore_endpoints: lowered.fore_ports.len() as u16,
+                fore_endpoints: binding.fore_endpoints,
                 collection_storage: (profile == NativeMaskStorageProfile::Collection)
                     .then_some(storage_budget),
             }),
@@ -472,5 +435,106 @@ impl Drop for PreparedNativeMaskPlay {
         if !self.retired {
             let _ = self.scheduler.cancel();
         }
+    }
+}
+
+#[derive(Clone)]
+pub(super) struct InvocationBinding {
+    renderer_node: NodeId,
+    renderer_call: HostCallId,
+    interaction_node: NodeId,
+    face_fore: LoweredForePort,
+    show_fore: LoweredForePort,
+    interaction_fore: LoweredForePort,
+    fore_endpoints: u16,
+}
+impl InvocationBinding {
+    pub(super) fn prepare(
+        planned: &PlannedMaskPlot,
+        lowered: &LoweredPlanFragment,
+    ) -> Result<Self, NativeMaskPlayError> {
+        let fragment = planned
+            .plan
+            .fragments
+            .first()
+            .ok_or(NativeMaskPlayError::Plan)?;
+        let renderer_node = lowered
+            .nodes
+            .iter()
+            .find(|node| node.placement_id == planned.show_placement().placement_id)
+            .ok_or(NativeMaskPlayError::Shape)?;
+        // Only this exact renderer effect is implemented here. Other advertised
+        // effects cannot be acknowledged with renderer bytes.
+        let mut renderer_calls = lowered
+            .host_calls
+            .iter()
+            .filter(|call| call.node == renderer_node.node);
+        let call = renderer_calls.next().ok_or(NativeMaskPlayError::Shape)?;
+        if renderer_calls.next().is_some() {
+            return Err(NativeMaskPlayError::Shape);
+        }
+        if call.node != renderer_node.node
+            || call.call != HostCallId(0)
+            || call.contract_id.as_str() != "conduit.host/present@1"
+            || call.target_kind.as_ref().map(|kind| kind.as_str())
+                != Some("face/base/conduitos-surface@1")
+        {
+            return Err(NativeMaskPlayError::Shape);
+        }
+        let interaction_node = lowered
+            .nodes
+            .iter()
+            .find(|node| {
+                fragment.placements.iter().any(|placement| {
+                    placement.placement_id == node.placement_id
+                        && placement.kind_id.as_str() == conduit_face::FACE_INTERACTION_KIND
+                })
+            })
+            .ok_or(NativeMaskPlayError::Shape)?
+            .node;
+        let mut interaction_calls = lowered
+            .host_calls
+            .iter()
+            .filter(|call| call.node == interaction_node);
+        let interaction_call = interaction_calls.next().ok_or(NativeMaskPlayError::Shape)?;
+        if interaction_calls.next().is_some()
+            || interaction_call.call != HostCallId(0)
+            || interaction_call.contract_id.as_str() != "conduit.host/face-interaction@1"
+            || interaction_call
+                .target_kind
+                .as_ref()
+                .map(|kind| kind.as_str())
+                != Some(conduit_face::FACE_INTERACTION_VALUE_KIND)
+        {
+            return Err(NativeMaskPlayError::Shape);
+        }
+        let fore = |name: &str, direction| {
+            lowered
+                .fore_ports
+                .iter()
+                .find(|port| port.front_port_id.as_str() == name && port.direction == direction)
+                .cloned()
+                .ok_or(NativeMaskPlayError::Shape)
+        };
+        let face_fore = fore("face", PortDirection::Input)?;
+        let show_fore = fore("show", PortDirection::Output)?;
+        let interaction_fore = fore("interaction", PortDirection::Output)?;
+
+        Ok(Self {
+            renderer_node: call.node,
+            renderer_call: call.call,
+            interaction_node,
+            face_fore,
+            show_fore,
+            interaction_fore,
+            fore_endpoints: lowered.fore_ports.len() as u16,
+        })
+    }
+    pub(super) fn backing_bytes(&self) -> Option<usize> {
+        let mut bytes = 0usize;
+        for port in [&self.face_fore, &self.show_fore, &self.interaction_fore] {
+            bytes = bytes.checked_add(super::owned_backing::lowered_fore_backing_bytes(port)?)?;
+        }
+        Some(bytes)
     }
 }

@@ -93,6 +93,8 @@ impl<'a> BodyKernel<'a> {
                 .as_ref()
                 .is_some_and(|source| source.matches_call(operation.node, operation.call))
                 && !scalar_math::supports(operation)
+                && !super::super::measurement_plot_back::supports(operation)
+                && !super::super::measurement_chart_constructor_back::supports(operation)
                 && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
@@ -102,6 +104,10 @@ impl<'a> BodyKernel<'a> {
                 && !todo_checkpoint(operation)
                 && !todo_checkpoint_read(operation)
                 && !face(operation)
+                && operation.contract_id.as_str()
+                    != crate::measurement_chart_offer::MEASUREMENT_CHART_FACE_HOST_CALL
+                && operation.contract_id.as_str()
+                    != crate::measurement_chart_flow_offer::MEASUREMENT_CHART_FLOW_FACE_HOST_CALL
                 && operation.contract_id.as_str()
                     != conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
             {
@@ -249,7 +255,14 @@ impl<'a> BodyKernel<'a> {
         let mut face_labels = vec![None; MAX_NODES];
         for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
             for placement in &fragment.placements {
-                if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+                // The chart provider validates and retains the same canonical
+                // construction label in its scoped contribution route; this
+                // table belongs only to the stdout presentation dispatcher.
+                if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str())
+                    && placement.implementation_id.as_str()
+                        != crate::measurement_chart_offer::MEASUREMENT_CHART_FACE_IMPLEMENTATION
+                    && placement.implementation_id.as_str() != crate::measurement_chart_flow_offer::MEASUREMENT_CHART_FLOW_FACE_IMPLEMENTATION
+                {
                     let node = partition
                         .identity
                         .node_for_placement(&placement.placement_id)
@@ -282,6 +295,7 @@ impl<'a> BodyKernel<'a> {
             error_diagnostic: None,
             cleanup_diagnostic: None,
             creche: None,
+            chart_face: None,
             native_source,
             scheduler,
             face_labels,

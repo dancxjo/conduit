@@ -73,6 +73,35 @@ impl PendingAction {
         })
     }
 
+    pub(super) fn begin_member(
+        &mut self,
+        state: &Path,
+        binding: LinkBindingId,
+        command: (OwnerFaceSnapshotRequest, Box<MaskShow>, FaceInteraction),
+    ) -> Result<(), String> {
+        let state = state.to_path_buf();
+        self.start_operation(move || {
+            let (request, show, interaction) = command;
+            let action_id: String = interaction.action_id.chars().take(128).collect();
+            let result = crate::durable_host_control::carrier_interaction(
+                &state,
+                binding,
+                request,
+                *show,
+                interaction,
+            );
+            // Keep the detailed current-member gate local. The public response
+            // remains its existing finite category; no arguments or keys log.
+            if let Err(error) = &result {
+                eprintln!(
+                    "current-member face interaction refused: {}: {:.512}",
+                    action_id.escape_debug(),
+                    error
+                );
+            }
+            result.map(|_| ())
+        })
+    }
     fn start_operation(
         &mut self,
         operation: impl FnOnce() -> Result<(), String> + Send + 'static,

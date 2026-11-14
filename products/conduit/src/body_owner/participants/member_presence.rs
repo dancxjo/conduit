@@ -24,7 +24,7 @@ pub(crate) fn serve_member_presence(
     binding: LinkBindingId,
     member: &MemberPresentationBasis,
 ) -> Result<(), String> {
-    serve_with_dispatch(
+    serve_with_member_dispatch(
         line,
         binding.clone(),
         &member.credential,
@@ -32,6 +32,7 @@ pub(crate) fn serve_member_presence(
             crate::durable_host_control::renew_carrier_presence(state, binding.clone(), sequence)
         },
         |socket, frame| dispatch(state, socket, member, frame),
+        Some((state, member)),
     )
 }
 
@@ -47,12 +48,24 @@ pub(crate) fn serve_with_carrier(
     })
 }
 
+#[cfg(test)]
 pub(crate) fn serve_with_dispatch(
+    line: SecureWebSocketLine,
+    binding: LinkBindingId,
+    credential: &MembershipCredential,
+    renew: impl FnMut(u64) -> Result<HostPresenceLease, String>,
+    dispatch: impl FnMut(&Socket, In) -> Result<Out, String>,
+) -> Result<(), String> {
+    serve_with_member_dispatch(line, binding, credential, renew, dispatch, None)
+}
+#[allow(clippy::too_many_arguments)]
+fn serve_with_member_dispatch(
     mut line: SecureWebSocketLine,
     binding: LinkBindingId,
     credential: &MembershipCredential,
     mut renew: impl FnMut(u64) -> Result<HostPresenceLease, String>,
     mut dispatch: impl FnMut(&Socket, In) -> Result<Out, String>,
+    member_action: Option<(&Path, &MemberPresentationBasis)>,
 ) -> Result<(), String> {
     line.complete_bounded_input();
     let mut socket = Socket::from_secure(line, binding)?;
@@ -63,13 +76,47 @@ pub(crate) fn serve_with_dispatch(
         let overall = anchor + Duration::from_secs(60);
         let mut pump =
             PresencePump::start(&mut socket, credential, lease, anchor, overall, 128, true)?;
+        let mut pending = super::pending_action::PendingAction::default();
         while !pump.wait_remaining().is_zero() {
-            let Some((frame, _)) = pump.receive(&mut socket, None, None)? else {
+            if let Some(response) = pending.take_response() {
+                socket.send(&response)?;
+            }
+            let hint = pending.is_pending().then_some(Duration::from_millis(50));
+            let deferred = pending.take_deferred();
+            let Some((frame, bytes)) = pump.receive(&mut socket, hint, deferred)? else {
                 continue;
             };
+            if pending.is_pending()
+                && !matches!(
+                    &frame,
+                    In::PresenceRenewal { .. } | In::PresenceLeave { .. }
+                )
+            {
+                pending.defer((frame, bytes))?;
+                continue;
+            }
             match pump.handle_presence(&mut socket, frame, &mut renew)? {
                 PresenceEvent::Continue => {}
                 PresenceEvent::Leave => return Ok(()),
+                PresenceEvent::Other(In::FaceInteractionRequest {
+                    protocol: PROTOCOL,
+                    request,
+                    show,
+                    interaction,
+                }) => {
+                    let (state, member) =
+                        member_action.ok_or("member action lacks installed owner context")?;
+                    if !matches_request(&request, member) {
+                        return Err("member interaction credential mismatch".into());
+                    }
+                    if let Err(error) = pending.begin_member(
+                        state,
+                        socket.binding().clone(),
+                        (request, show, interaction),
+                    ) {
+                        socket.send(&super::pending_action::response(Err(error)))?;
+                    }
+                }
                 PresenceEvent::Other(frame) => {
                     let response = dispatch(&socket, frame)?;
                     socket.send(&response)?;
@@ -160,12 +207,14 @@ fn prepare_face(
     request.last_seen_identity = None;
     for _ in 0..3 {
         let (_, owner) = crate::durable_host_control::local_face_snapshot(state)?;
-        let (face_line, return_line) = socket.native_lines(&owner, member)?;
+        let (face_line, return_line, interaction_line) =
+            socket.native_graphical_lines(&owner, member)?;
         let seal = crate::durable_host_control::carrier_mask_route(
             state,
             socket.binding().clone(),
             face_line,
             return_line,
+            interaction_line,
         )?;
         let response = crate::durable_host_control::face_snapshot(state, request.clone())?;
         let OwnerFaceSnapshotResponse::Snapshot { schema, face, .. } = response else {
@@ -181,7 +230,7 @@ fn prepare_face(
             return Ok(OwnerFaceSnapshotResponse::Snapshot {
                 schema,
                 face,
-                interactions_admitted: false,
+                interactions_admitted: seal.interaction_line.is_some(),
                 route: Some(Box::new(seal)),
             });
         }

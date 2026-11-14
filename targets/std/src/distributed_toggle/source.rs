@@ -87,7 +87,10 @@ impl DistributedToggleSource {
         {
             return Err(format!(
                 "source fragment did not lower to two nodes with one local and one remote cord: nodes={} cords={} remote_endpoints={} host_ops={}",
-                lowered.nodes.len(), lowered.cords.len(), lowered.remote_endpoints.len(), lowered.host_calls.len()
+                lowered.nodes.len(),
+                lowered.cords.len(),
+                lowered.remote_endpoints.len(),
+                lowered.host_calls.len()
             ));
         }
 
@@ -401,10 +404,10 @@ impl DistributedToggleSource {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Drained => return Ok(None),
                 SchedulerStatus::Idle => {
-                    return Err("std source became idle before remote terminal".to_string())
+                    return Err("std source became idle before remote terminal".to_string());
                 }
                 SchedulerStatus::Cancelled => {
-                    return Err("std source cancelled during successful proof".to_string())
+                    return Err("std source cancelled during successful proof".to_string());
                 }
             }
         }
@@ -464,13 +467,13 @@ impl DistributedToggleSource {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Drained => return Ok(None),
                 SchedulerStatus::Idle if !press && self.scheduler.next_host_request().is_some() => {
-                    return Err("planned light switch awaits a physical press".to_owned())
+                    return Err("planned light switch awaits a physical press".to_owned());
                 }
                 SchedulerStatus::Idle => {
-                    return Err("planned light switch became idle before output".to_owned())
+                    return Err("planned light switch became idle before output".to_owned());
                 }
                 SchedulerStatus::Cancelled => {
-                    return Err("planned light switch was cancelled".to_owned())
+                    return Err("planned light switch was cancelled".to_owned());
                 }
             }
         };

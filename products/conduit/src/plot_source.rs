@@ -231,6 +231,7 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profiles)?;
     conduit_data::install_data_text_catalogs(&mut startup, &mut profiles)?;
+    conduit_data::install_measurement_plot_catalog(&mut startup, &mut profiles)?;
     conduit_speech::kernel::install(&mut startup, &mut profiles)?;
     conduit_speech::authoring::install(&mut startup)?;
     conduit_speech::ipa_constructors::install(&mut startup, &mut profiles)?;

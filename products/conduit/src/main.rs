@@ -499,6 +499,9 @@ fn main() {
             command: Some(cli::BodyCommand::RestoreMemberKey(args)),
         }) => durable_host::restore_member_key(args),
         Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::RestoreMemberKeyFromInvitation(args)),
+        }) => durable_host::restore_member_key_from_invitation(args),
+        Some(cli::Command::Body {
             command: Some(command),
         }) => match command {
             #[cfg(target_os = "linux")]

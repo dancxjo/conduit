@@ -132,7 +132,7 @@ impl Worker {
             Ok(slot) => slot,
             Err(TryRecvError::Empty) => return None,
             Err(TryRecvError::Disconnected) => {
-                return Some(LocalModelAdapterTerminal::ProviderLost)
+                return Some(LocalModelAdapterTerminal::ProviderLost);
             }
         };
         let terminal = if self.cancelled {

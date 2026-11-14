@@ -117,6 +117,36 @@ pub(super) fn subject(part: layout::NativePart) -> Option<usize> {
         _ => None,
     }
 }
+/// Maximum requested backing live during one chart decode/label/append. Charts
+/// are projected one at a time; graphics commands/polyline points are inline.
+/// Borrowed encoded values, Face/row text, and stack are counted by their owners.
+pub(super) fn transient_backing_bound() -> Option<usize> {
+    use core::mem::size_of;
+    // Prior series remain live while decode's input Vec is copied into the
+    // BoundedSequence growable Vec. Include source and old+new growth backing
+    // for that current series, independently of the four retained point arrays.
+    let points = (MAX_SERIES + 3)
+        .checked_mul(conduit_data::MAXIMUM_MEASUREMENT_PLOT_POINTS)?
+        .checked_mul(size_of::<conduit_data::MeasurementPlotPoint>())?;
+    let series = MAX_SERIES.checked_mul(size_of::<Series<'static>>())?;
+    // Label uses name<=64 plus three u64 decimal counts (<=20 each), and
+    // existing literal separators. The two fixed labels fit the same ceiling.
+    let label_bytes = MAX_LABEL_BYTES
+        .checked_add(" ·  of  points ·  omitted".len())?
+        .checked_add(3 * 20)?;
+    let count = MAX_SERIES + 2;
+    let labels = count
+        .checked_mul(size_of::<String>())?
+        .checked_add(count.checked_mul(label_bytes)?.checked_mul(2)?)?;
+    // labels.join("\n") coexists with all labels; format! growth is included
+    // above, and the complete joined document is also charged by Scene rows.
+    let joined = count.checked_mul(label_bytes)?.checked_add(count - 1)?;
+    points
+        .checked_add(series)?
+        .checked_add(labels)?
+        .checked_add(joined)
+}
+
 fn label_height(
     text: &str,
     width: u16,

@@ -55,11 +55,21 @@ impl DurableHostRuntime {
         session: &LinkBindingId,
         face_line: &conduit_core::LineOffer,
         return_line: &conduit_core::LineOffer,
+        interaction_line: Option<&conduit_core::LineOffer>,
     ) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("current-member presentation requires the live installed owner".into());
         };
-        owner.select_member_carrier_mask_route(session, face_line, return_line)
+        if interaction_line.is_some() {
+            owner.select_member_carrier_mask_route_with_interaction(
+                session,
+                face_line,
+                return_line,
+                interaction_line,
+            )
+        } else {
+            owner.select_member_carrier_mask_route(session, face_line, return_line)
+        }
     }
     pub(in crate::durable_host_control) fn owned_body_member_carrier_show(
         &mut self,
@@ -71,6 +81,21 @@ impl DurableHostRuntime {
             return Err("current-member presentation requires the live installed owner".into());
         };
         owner.acknowledge_member_carrier_show(session, request, show)
+    }
+    pub(in crate::durable_host_control) fn owned_body_member_carrier_interaction(
+        &mut self,
+        session: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        interaction: &conduit_face::FaceInteraction,
+    ) -> Result<serde_json::Value, String> {
+        {
+            let HostSource::Body { owner, .. } = &mut self.host else {
+                return Err("member interaction requires live installed owner".into());
+            };
+            owner.validate_member_carrier_interaction(session, request, show, interaction)?;
+        }
+        self.owned_body_native_guest_interaction(request, show, interaction)
     }
     pub(in crate::durable_host_control) fn owned_body_member_presence_renew(
         &mut self,
@@ -212,6 +237,7 @@ pub(crate) fn carrier_mask_route(
     session: LinkBindingId,
     face_line: conduit_core::LineOffer,
     return_line: conduit_core::LineOffer,
+    interaction_line: Option<conduit_core::LineOffer>,
 ) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
     match exchange(state, |token| Request::BodyMemberCarrierMaskRoute {
         protocol: PROTOCOL,
@@ -219,6 +245,7 @@ pub(crate) fn carrier_mask_route(
         session,
         face_line: Box::new(face_line),
         return_line: Box::new(return_line),
+        interaction_line: interaction_line.map(Box::new),
     })? {
         Response::BodyNativeMaskRoute {
             protocol: PROTOCOL,
@@ -304,3 +331,28 @@ fn attest_member_document(
 #[cfg(test)]
 #[path = "member_carrier/tests.rs"]
 mod tests;
+
+/// Protected local IPC only, reached from the authenticated current-member
+/// participant carrier. A lost result is unknown and does not permit replay.
+pub(crate) fn carrier_interaction(
+    state: &Path,
+    session: LinkBindingId,
+    request: OwnerFaceSnapshotRequest,
+    show: MaskShow,
+    interaction: conduit_face::FaceInteraction,
+) -> Result<serde_json::Value, String> {
+    match exchange(state, |token| Request::BodyMemberCarrierInteraction {
+        protocol: PROTOCOL,
+        token,
+        session,
+        request,
+        show: Box::new(show),
+        interaction,
+    })? {
+        Response::BodyInteraction {
+            protocol: PROTOCOL,
+            result,
+        } => Ok(*result),
+        other => Err(wrong(other)),
+    }
+}

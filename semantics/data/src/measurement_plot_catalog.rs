@@ -24,6 +24,7 @@ pub fn install_measurement_plot_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), alloc::string::String> {
+    crate::install_measurement_chart_catalog(startup, profile)?;
     startup
         .insert_structured_type("MeasurementPlotSeries", measurement_plot_series_type())
         .map_err(|error| error.to_string())?;

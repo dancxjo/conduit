@@ -1,8 +1,12 @@
-use core::{arch::global_asm, cell::UnsafeCell, mem::size_of};
+use core::cell::UnsafeCell;
+#[cfg(target_os = "none")]
+use core::{arch::global_asm, mem::size_of};
 
+#[cfg(target_os = "none")]
 use super::TIMER_IRQ_VECTOR;
 
 const KERNEL_CODE_SELECTOR: u16 = 0x08;
+#[cfg(target_os = "none")]
 const INTERRUPT_GATE: u8 = 0x8e;
 #[cfg(any(feature = "conduitos-isolation-proof", target_os = "none"))]
 pub(super) const USER_INTERRUPT_GATE: u8 = 0xee;
@@ -63,12 +67,15 @@ unsafe impl Sync for SharedTable {}
 
 static TABLE: SharedTable = SharedTable(UnsafeCell::new(Table([Entry::MISSING; 256])));
 
+#[cfg(target_os = "none")]
 #[repr(C, packed)]
 struct Descriptor {
     limit: u16,
     base: u64,
 }
 
+// Kernel interrupt entry ABI is emitted only by the freestanding image.
+#[cfg(target_os = "none")]
 unsafe extern "C" {
     fn conduitos_unhandled_exception_stub();
     fn conduitos_invalid_opcode_stub();
@@ -78,6 +85,7 @@ unsafe extern "C" {
     fn conduitos_timer_irq_stub();
 }
 
+#[cfg(target_os = "none")]
 pub(super) fn initialize() {
     let table = TABLE.0.get();
     unsafe {
@@ -106,6 +114,7 @@ pub(super) fn initialize() {
     }
 }
 
+#[cfg(target_os = "none")]
 global_asm!(
     r#"
     .global conduitos_unhandled_exception_stub

@@ -45,7 +45,9 @@ fn outbound(
         None => session.encode_outbound_hello(&mut actual[..capacity]),
     };
     let borrowed_allocations = guard.finish();
-    eprintln!("remote Cord encode: cloned-binding allocations={cloned_allocations}, borrowed-binding allocations={borrowed_allocations}, result={encoded:?}");
+    eprintln!(
+        "remote Cord encode: cloned-binding allocations={cloned_allocations}, borrowed-binding allocations={borrowed_allocations}, result={encoded:?}"
+    );
     assert_eq!(borrowed_allocations, 0);
     assert_eq!(encoded, result);
     assert_eq!(actual, expected);

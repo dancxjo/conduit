@@ -57,6 +57,10 @@ fn observe_numerical_preparation_cost() {
     }
     let owner_allocations = allocations.finish();
     let owner_ns = start.elapsed().as_nanos();
-    println!("OWNER_COST {{\"calls\":33,\"allocation_requests\":{owner_allocations},\"elapsed_ns_uncalibrated\":{owner_ns}}}");
-    println!("PREPARATION_COST {{\"schema\":\"conduit.numeric-preparation-observation@1\",\"repetitions\":32,\"ordinary_cold_allocations\":{cold_allocations},\"ordinary_cold_ns_uncalibrated\":{cold_ns},\"ordinary_warm_allocations\":{warm_allocations},\"ordinary_warm_ns_uncalibrated\":{warm_ns},\"fragment_allocations\":{fragment_allocations},\"fragment_ns_uncalibrated\":{fragment_ns}}}");
+    println!(
+        "OWNER_COST {{\"calls\":33,\"allocation_requests\":{owner_allocations},\"elapsed_ns_uncalibrated\":{owner_ns}}}"
+    );
+    println!(
+        "PREPARATION_COST {{\"schema\":\"conduit.numeric-preparation-observation@1\",\"repetitions\":32,\"ordinary_cold_allocations\":{cold_allocations},\"ordinary_cold_ns_uncalibrated\":{cold_ns},\"ordinary_warm_allocations\":{warm_allocations},\"ordinary_warm_ns_uncalibrated\":{warm_ns},\"fragment_allocations\":{fragment_allocations},\"fragment_ns_uncalibrated\":{fragment_ns}}}"
+    );
 }

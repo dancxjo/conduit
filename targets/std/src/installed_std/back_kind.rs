@@ -120,6 +120,14 @@ pub(super) enum InstalledBack {
     KeyboardInput(KeyboardInputBack),
     ButtonInput(super::keyboard_input_back::button::ButtonBack),
     ButtonMapper(Box<super::keyboard_input_back::button::indicator::Mapper>),
+    MeasurementChartConstructor(
+        Box<super::measurement_chart_constructor_back::MeasurementChartConstructorBack>,
+    ),
+    MeasurementPlot(Box<super::measurement_plot_back::MeasurementPlotBack>),
+    MeasurementChartFace(super::measurement_chart_face_back::MeasurementChartFaceBack),
+    MeasurementChartFlowFace(
+        super::measurement_chart_face_back::flow::MeasurementChartFlowFaceBack,
+    ),
     SelectedNativeSource(conduit_kernel::scheduler::HostCallBack),
     Tick(TickBack),
     PulseObserve(conduit_time::PulseObservationBack),

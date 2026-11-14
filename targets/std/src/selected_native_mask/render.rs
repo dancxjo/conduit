@@ -11,6 +11,11 @@ use conduitos::{
     },
 };
 
+mod completion;
+mod interactive;
+use interactive::PreparedSelectedScene;
+pub use interactive::{SelectedNativeInteraction, SelectedNativeMaskInput};
+
 pub(super) struct PreparedReadOnlyBinding {
     plan: PlannedMaskPlot,
     compositor: NativeCompositor,
@@ -80,6 +85,7 @@ impl PreparedReadOnlyBinding {
             frame: None,
             failed: false,
             last_play: None,
+            scene: None,
         })
     }
 }
@@ -149,6 +155,7 @@ pub(super) struct BoundReadOnlyMask {
     height: u16,
     failed: bool,
     last_play: Option<u64>,
+    pub(super) scene: Option<conduitos::native_face_scene::NativeFaceScene>,
 }
 impl BoundReadOnlyMask {
     #[cfg(test)]
@@ -189,6 +196,8 @@ impl BoundReadOnlyMask {
         play_sequence: u64,
         front_subject: &str,
         output: &mut conduit_linux_display::Scanout<'_>,
+        interaction_bytes: Option<()>,
+        reading: Option<conduitos::native_face_scene::NativeReadingPosition>,
     ) -> Result<SelectedNativeMaskFrame, String> {
         if self.failed || self.session.is_some() || self.frame.is_some() || self.storage.is_none() {
             return Err(
@@ -198,42 +207,102 @@ impl BoundReadOnlyMask {
         if self.last_play.is_some_and(|last| play_sequence <= last) {
             return Err("native Mask child Play sequence is stale".into());
         }
+        let interactive = self.interactive();
+        if interactive != interaction_bytes.is_some() {
+            return Err(
+                "selected input profile requires its qualified per-frame preparation envelope"
+                    .into(),
+            );
+        }
+        let scene_bounds = if interactive {
+            Some(
+                conduitos::native_face_scene::NativeFaceScene::visual_fallback_memory_bounds(face)
+                    .map_err(|error| format!("native interactive Scene qualification:{error:?}"))?,
+            )
+        } else {
+            None
+        };
         let format = output.format();
         if format.width != u32::from(self.width) || format.height != u32::from(self.height) {
             return Err("native Mask actual output geometry changed".into());
         }
-        face.validate()
-            .map_err(|error| format!("native Face validation: {error:?}"))?;
+        if !interactive {
+            face.validate()
+                .map_err(|error| format!("native Face validation: {error:?}"))?;
+        }
         if front_subject.is_empty()
             || front_subject.len() > conduit_face::MAX_MANIFESTATION_TARGET_BYTES
         {
             return Err("native Mask front subject exceeds finite profile".into());
         }
-        native_mask_plan_backing_bytes(&self.plan).ok_or("unsupported selected Mask closure")?;
+        let plan_bytes = native_mask_plan_backing_bytes(&self.plan)
+            .ok_or("unsupported selected Mask closure")?;
         // Reserve only the remaining authored capacity. This is cooperative
         // preparation accounting, not physical allocator/RSS containment.
         let mut preparation = reserve_preparation(host, provider)?;
-        let input_bytes = face
+        let face_bytes = face
             .retained_backing_bytes()
-            .and_then(|bytes| bytes.checked_mul(2))
-            .and_then(|bytes| {
-                bytes.checked_add(native_mask_plan_backing_bytes(&self.plan)?.checked_mul(2)?)
-            })
-            .ok_or("native Mask finite input owners overflow")?;
+            .ok_or("native Mask finite Face backing overflow")?;
+        let input_bytes = super::outer_bound::input_owner_bytes(plan_bytes, face_bytes)?;
         if input_bytes > preparation.bytes() as usize {
             host.kernel_resources
                 .release_base_backing(preparation)
                 .map_err(|(_, error)| error)?;
             return Err("native Mask input owners exceed authored preparation ceiling".into());
         }
+        let mut interaction_heap = if interaction_bytes.is_some() {
+            let bytes = super::outer_bound::checked_invocation_bytes(
+                &self.plan,
+                face,
+                front_subject,
+                &self.base,
+            )?;
+            let scene_peak = scene_bounds
+                .as_ref()
+                .and_then(|bounds| bounds.lifetime_peak_bytes())
+                .ok_or("native input Scene lifetime peak overflow")?;
+            let minimum = input_bytes
+                .checked_add(scene_peak)
+                .ok_or("native input preparation sum overflow")?;
+            let available = preparation.bytes() as usize;
+            if bytes < minimum || bytes > available {
+                host.kernel_resources
+                    .release_base_backing(preparation)
+                    .map_err(|(_, error)| error)?;
+                return Err(format!("native input lifetime envelope refused: requested {bytes}, minimum input owners {minimum}, authored remaining pool {available}"));
+            }
+            host.kernel_resources
+                .retain_base_preparation_bytes(&mut preparation, bytes)?;
+            Some(host.kernel_resources.reserve_managed_base_memory(bytes)?)
+        } else {
+            None
+        };
         let before = self
             .compositor
             .ordinary_retained_backing_bytes()
             .ok_or("unsupported native compositor owner")?;
         let result = (|| {
-            let scene =
-                PreparedStaticNativeFaceScene::prepare(face.clone(), self.width, self.height)
-                    .map_err(|error| format!("native semantic scene: {error:?}"))?;
+            // Interactive validation can inspect typed/content contracts; its
+            // temporary owners belong under the pre-reserved invocation lease.
+            if interactive {
+                face.validate()
+                    .map_err(|error| format!("native Face validation: {error:?}"))?;
+            }
+            // Construct the preference only under the original invocation lease.
+            let expression = if interactive {
+                Some(super::outer_bound::interactive_expression()?)
+            } else {
+                None
+            };
+            let mut scene = PreparedSelectedScene::prepare(
+                face.clone(),
+                self.width,
+                self.height,
+                interactive,
+                expression.as_ref(),
+            )
+            .map_err(|error| format!("native semantic scene: {error:?}"))?;
+            scene.restore_reading_position(reading);
             let frame = scene
                 .frame()
                 .map_err(|error| format!("native semantic frame: {error:?}"))?;
@@ -267,16 +336,25 @@ impl BoundReadOnlyMask {
             possession.authorize().map_err(|error| {
                 format!("native Mask actual resource-Cord authority refused: {error:?}")
             })?;
-            let composition = self
-                .compositor
-                .update_pending_mask_surface(
+            // The same admitted metrics govern hit targets and painted text.
+            let composition = if let Some(expression) = expression.as_ref() {
+                self.compositor.update_pending_configured_mask_surface(
+                    request.face(),
+                    request.prepared_show(),
+                    request.display_base_id(),
+                    &frame.scene,
+                    expression,
+                )
+            } else {
+                self.compositor.update_pending_mask_surface(
                     request.face(),
                     request.prepared_show(),
                     request.display_base_id(),
                     &frame.scene,
                 )
-                .map_err(|error| format!("native Mask offscreen raster: {error:?}"))?
-                .clone();
+            }
+            .map_err(|error| format!("native Mask offscreen raster: {error:?}"))?
+            .clone();
             let bytes = cold
                 .retained_metadata_bytes()
                 .and_then(|bytes| bytes.checked_add(possession.retained_backing_bytes()?))
@@ -292,9 +370,26 @@ impl BoundReadOnlyMask {
                 })
                 .and_then(|bytes| bytes.checked_add(ImageMemoryLease::owned_backing_bytes()))
                 .ok_or("native Mask actual per-frame backing unsupported or overflowing")?;
-            host.kernel_resources
-                .retain_base_preparation_bytes(&mut preparation, bytes)?;
-            let heap = host.kernel_resources.reserve_managed_base_memory(bytes)?;
+            let heap = if let Some(heap) = interaction_heap.take() {
+                let transient = scene_bounds
+                    .as_ref()
+                    .ok_or("interactive Scene bound absent")?
+                    .input_transient_bytes;
+                let actual_peak = bytes
+                    .checked_add(transient)
+                    .ok_or("native observed input peak overflow")?;
+                if actual_peak > preparation.bytes() as usize {
+                    return Err(
+                        "native actual cold/input owners exceed checked invocation bound".into(),
+                    );
+                }
+                heap
+            } else {
+                host.kernel_resources
+                    .retain_base_preparation_bytes(&mut preparation, bytes)?;
+                host.kernel_resources.reserve_managed_base_memory(bytes)?
+            };
+            drop(frame);
             // Recheck the actual authenticated encounter after preparation.
             validate_encounter(encounter, route, &host.advertisement, face)?;
             // No kernel Step or physical effect precedes the actual owner lease.
@@ -316,16 +411,44 @@ impl BoundReadOnlyMask {
             let session = pending
                 .complete_render(&ack)
                 .map_err(|error| format!("native Mask renderer completion: {error:?}"))?;
-            Ok((session, composition, possession, heap))
+            if interactive {
+                // As in the shared NativeFaceMask, focus only an actually
+                // acknowledged surface; prepared pixels cannot receive input.
+                self.compositor
+                    .focus_surface(SURFACE)
+                    .map_err(|error| format!("native input focus:{error:?}"))?;
+                self.compositor
+                    .compose_frame(output)
+                    .map_err(|error| format!("native focus compose:{error:?}"))?;
+                validate_encounter(encounter, route, &host.advertisement, face)?;
+                output
+                    .commit_frame()
+                    .map_err(|error| format!("native focus commit:{error:?}"))?;
+                if self
+                    .compositor
+                    .scanout_acknowledgement(&composition, face.revision)
+                    .is_none()
+                {
+                    return Err("native focus lacks physical acknowledgement".into());
+                }
+            }
+            Ok((
+                session,
+                composition,
+                possession,
+                heap,
+                scene.into_interactive(),
+            ))
         })();
         match result {
-            Ok((session, composition, possession, heap)) => {
+            Ok((session, composition, possession, heap, scene)) => {
                 let frame = SelectedNativeMaskFrame {
                     face_revision: face.revision,
                     play_sequence,
                     scanout_frame_sequence: self.compositor.frame_sequence(),
                 };
                 self.session = Some(session);
+                self.scene = scene;
                 self.frame = Some(ActiveFrameCustody {
                     composition,
                     possession,
@@ -349,51 +472,7 @@ impl BoundReadOnlyMask {
             return Ok(None);
         };
         match session.retire_retained() {
-            Ok((storage, evidence)) => {
-                self.storage = Some(storage);
-                // The completed local Show no longer owns an input route. Drop
-                // its compositor identity heaps before transferring the frame
-                // lease, while retaining/reusing the actual raster allocation.
-                self.compositor
-                    .remove_surface(SURFACE)
-                    .and_then(|()| {
-                        self.compositor.admit_surface(
-                            SURFACE,
-                            conduit_face::LayoutRect {
-                                x: 0,
-                                y: 0,
-                                width: self.width,
-                                height: self.height,
-                            },
-                            0,
-                        )
-                    })
-                    .map_err(|error| {
-                        self.failed = true;
-                        format!("native Mask surface retirement: {error:?}")
-                    })?;
-                let frame = self
-                    .frame
-                    .take()
-                    .ok_or("native Mask frame custody absent")?;
-                let ActiveFrameCustody {
-                    composition,
-                    possession,
-                    _heap,
-                    pool,
-                } = frame;
-                let possession = possession.complete_and_retire().map_err(|error| {
-                    self.failed = true;
-                    format!("native Mask resource-Cord retirement refused: {error:?}")
-                })?;
-                let frame = FrameCustody {
-                    composition,
-                    possession,
-                    _heap,
-                    pool,
-                };
-                Ok(Some(SelectedNativeMaskEvidence { evidence, frame }))
-            }
+            Ok((storage, evidence)) => self.complete_frame(storage, evidence).map(Some),
             Err(error) => {
                 self.failed = true;
                 Err(format!("native Mask evidence handoff: {error:?}"))

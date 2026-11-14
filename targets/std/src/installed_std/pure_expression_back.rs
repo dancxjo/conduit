@@ -68,7 +68,7 @@ impl PureExpressionHost {
                     Vec::with_capacity(MAXIMUM_STRUCTURED_CANONICAL_BYTES),
                 ),
                 conduit_core::PortTemporal::Current => {
-                    return Err("when filter does not admit current-value temporal input".into())
+                    return Err("when filter does not admit current-value temporal input".into());
                 }
             })
         } else {

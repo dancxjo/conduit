@@ -37,6 +37,7 @@ impl StdHost {
             started,
             None,
             None,
+            None,
         )
     }
 
@@ -64,6 +65,7 @@ impl StdHost {
         mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
         mut started: F,
         mut image_result: Option<&mut Option<crate::kernel_preparation::ImageMemoryLease>>,
+        face_observer: Option<&mut dyn BodyFaceContributionObserver>,
         issuing_scope: Option<&issuing_host::IssuingHostScope<'_>>,
     ) -> Result<BodyRunReport, String>
     where
@@ -84,7 +86,9 @@ impl StdHost {
                 || request.plan.body_time_requirement.is_some()
                 || correlation.is_some()
                 || execution_bounds.is_some()
-                || live.is_some()
+                || live
+                    .as_ref()
+                    .is_some_and(|(queue, _)| !queue.has_image_admission())
                 || checkpoint.is_some()
                 || terminal.is_some()
                 || creche.as_ref().is_some_and(|owner| !owner.image_prepared()))
@@ -93,6 +97,11 @@ impl StdHost {
         }
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         let prospective_play = self.prospective_body_play(request.wake, request.plan)?;
+        if selected_memory {
+            if let Some((queue, _)) = &live {
+                queue.verify_image_admission(self, &prospective_play, request.control)?;
+            }
+        }
         if let Some(scope) = issuing_scope {
             scope.recheck(&request, &prospective_play, &self.advertisement)?;
         }
@@ -203,6 +212,13 @@ impl StdHost {
             )?
         };
         kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
+        kernel.attach_chart_face(
+            request.wake,
+            request.plan,
+            &prospective_play,
+            &self.advertisement,
+            face_observer.is_some(),
+        )?;
         if let Some(terminal) = &terminal {
             kernel.attach_parsec_terminal(
                 request.plan,
@@ -245,6 +261,11 @@ impl StdHost {
                     .prepare_and_reserve_plans(&self.advertisement, &plans)?,
                 None,
             )
+        };
+        let escaped_face_bytes = if selected_memory {
+            kernel.escaped_face_backing_bytes()?
+        } else {
+            0
         };
         drop(plans);
         drop(whole_plans);
@@ -333,6 +354,7 @@ impl StdHost {
                 admitted_clock_quality,
                 terminal,
                 creche.as_deref_mut(),
+                face_observer,
             );
             if let Some(queue) = live_queue {
                 queue.mark_play_terminal();
@@ -384,7 +406,9 @@ impl StdHost {
         if let (Some(slot), Some(mut lease), Ok(report)) =
             (image_result.as_mut(), memory_lease.take(), result.as_ref())
         {
-            let bytes = crate::installed_std::body_kernel::memory::result_bytes(report)?;
+            let bytes = crate::installed_std::body_kernel::memory::result_bytes(report)?
+                .checked_add(escaped_face_bytes)
+                .ok_or("IMAGE escaped Face result charge overflow")?;
             lease.retain_result(bytes);
             **slot = Some(lease);
         }

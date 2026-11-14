@@ -206,7 +206,13 @@ fn selected_tick_completes_without_poststart_allocation_and_result_holds_only_by
         )
         .unwrap();
     let allocations = probe.take().unwrap().finish();
-    eprintln!("selected tick outcome={:?}, failure={:?}, cleanup={:?}, kernel={:?}, allocations={allocations}",result.report().terminal,result.report().failure,result.report().cleanup_failure,result.report().kernel_failure);
+    eprintln!(
+        "selected tick outcome={:?}, failure={:?}, cleanup={:?}, kernel={:?}, allocations={allocations}",
+        result.report().terminal,
+        result.report().failure,
+        result.report().cleanup_failure,
+        result.report().kernel_failure
+    );
     eprintln!("allocation samples={:?}", &timer.samples[..timer.count]);
     assert_eq!(allocations, 0);
     assert_eq!(
@@ -395,7 +401,13 @@ fn provider_loss_uses_admitted_diagnostic_and_result_backing() {
         )
         .unwrap();
     let allocations = probe.take().unwrap().finish();
-    eprintln!("selected tick outcome={:?}, failure={:?}, cleanup={:?}, kernel={:?}, allocations={allocations}",result.report().terminal,result.report().failure,result.report().cleanup_failure,result.report().kernel_failure);
+    eprintln!(
+        "selected tick outcome={:?}, failure={:?}, cleanup={:?}, kernel={:?}, allocations={allocations}",
+        result.report().terminal,
+        result.report().failure,
+        result.report().cleanup_failure,
+        result.report().kernel_failure
+    );
     assert_eq!(allocations, 0);
     assert!(matches!(
         result.report().terminal,

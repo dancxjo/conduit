@@ -44,7 +44,9 @@ impl HostedTerminalMaskExecution {
             || actual.connections != local.connections
             || route.interaction_line.is_none()
         {
-            return Err(error("remote terminal route differs from the attached Mask or lacks its typed return Line"));
+            return Err(error(
+                "remote terminal route differs from the attached Mask or lacks its typed return Line",
+            ));
         }
         let mut execution = Self::with_plan(host, route.planned_mask.clone(), false)?;
         execution.remote_face = Some(RemoteFaceBasis {

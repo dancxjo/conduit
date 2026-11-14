@@ -104,7 +104,7 @@ impl<const PORTS: usize> conduit_kernel::scheduler::StepBack<PORTS> for TestLoca
                         return StepOutcome::Complete;
                     }
                     (conduit_kernel::HostCallDisposition::Denied, _, _) => {
-                        return local_model_fixture_fail(143)
+                        return local_model_fixture_fail(143);
                     }
                     _ => return local_model_fixture_fail(144),
                 }

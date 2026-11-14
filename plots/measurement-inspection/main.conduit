@@ -1,0 +1,8 @@
+plot measurement-inspection (
+    label: Text = "Measurements"
+    maximum-updates: Count = 128
+    >> chart: MeasurementChart...|
+) {
+    view: face/measurement-chart(label, maximum-updates)
+    chart >> view.chart
+}

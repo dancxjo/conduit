@@ -30,6 +30,10 @@ mod lifecycle_evidence;
 
 #[path = "native_face_mask/input.rs"]
 mod input;
+pub use input::{
+    route_acknowledged_native_key, route_acknowledged_native_pointer,
+    route_acknowledged_native_pointer_motion,
+};
 #[path = "native_face_mask/scanout.rs"]
 mod scanout;
 

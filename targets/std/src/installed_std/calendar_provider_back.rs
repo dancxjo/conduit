@@ -59,13 +59,13 @@ impl<const PORTS: usize> StepBack<PORTS> for CalendarProviderBack {
                     return StepOutcome::Progress;
                 }
                 (HostCallDisposition::Denied, _, _) => {
-                    return step_fail(FailureCode::HostCallDenied, 241)
+                    return step_fail(FailureCode::HostCallDenied, 241);
                 }
                 (HostCallDisposition::Cancelled, _, _) => {
-                    return step_fail(FailureCode::Cancelled, 242)
+                    return step_fail(FailureCode::Cancelled, 242);
                 }
                 (HostCallDisposition::Failed, _, Some(failure)) => {
-                    return StepOutcome::Fail(failure)
+                    return StepOutcome::Fail(failure);
                 }
                 _ => return step_fail(FailureCode::InvalidLifecycle, 243),
             }

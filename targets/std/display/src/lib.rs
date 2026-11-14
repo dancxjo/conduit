@@ -3,9 +3,12 @@
 // SDL is an explicitly selected hosted adapter, never a default Host dependency.
 #![cfg_attr(not(feature = "sdl"), no_std)]
 #![cfg(feature = "sdl")]
+mod cursor;
 mod initialized;
 mod input;
+mod prepared_input;
 pub use input::{NativeInput, NativeInputRefusal};
+pub use prepared_input::{NativeInputClaimRefusal, NativeInputHostClaim, PreparedNativeInput};
 mod preparation;
 mod surface;
 use conduit_face::GraphicsScene;
@@ -31,6 +34,8 @@ pub struct Scanout<'a> {
     surface: Surface,
     live: bool,
     input_ready: bool,
+    input_owner: Option<PreparedNativeInput>,
+    pointer: input::pointer::Pointer,
     initialized: InitializedDisplay,
 }
 impl<'a> Scanout<'a> {
@@ -53,6 +58,8 @@ impl<'a> Scanout<'a> {
             surface,
             live: true,
             input_ready: false,
+            input_owner: None,
+            pointer: input::pointer::Pointer::default(),
             initialized,
         })
     }
@@ -109,6 +116,9 @@ impl<'a> Scanout<'a> {
     /// Revocation is terminal for this prepared scanout. Reacquisition requires
     /// a new preparation; device availability alone cannot restore authority.
     pub fn lose(&mut self) {
+        if let Some(input) = &self.input_owner {
+            input.revoke();
+        }
         self.initialized.revoke();
         self.live = false;
         self.surface.lose();
@@ -163,20 +173,61 @@ pub fn with_kmsdrm<T>(
     if !sdl2::hint::set("SDL_VIDEODRIVER", KMSDRM_DRIVER) {
         return Err("kmsdrm-driver-selection-refused".into());
     }
+    // Direct finger events retain their actual window and contact identity.
+    // Disable SDL's synthetic cross-device events to avoid duplicate actions.
+    if !sdl2::hint::set("SDL_TOUCH_MOUSE_EVENTS", "0")
+        || !sdl2::hint::set("SDL_MOUSE_TOUCH_EVENTS", "0")
+    {
+        return Err("touch-pointer-selection-refused".into());
+    }
     let sdl = sdl2::init()?;
     let video = sdl.video()?;
     if !is_kmsdrm_backend(video.current_video_driver()) {
         return Err("kmsdrm-driver-unavailable".into());
     }
+    // Declared after the live video subsystem: Drop restores visibility on
+    // normal/error/unwind return before the subsystem or SDL can retire.
+    let _cursor_visibility = cursor::HiddenCursor::prepare(&sdl)?;
     let window = video
         .window("Conduit", width, height)
         .fullscreen_desktop()
         .build()
         .map_err(|e| e.to_string())?;
-    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
+    // KMSDRM uses EGL. SDL's automatic desktop-OpenGL preference can create
+    // a nominal renderer with no usable scanout on GLES-only installations.
+    // Select the portable EGL renderer explicitly and observe the actual one.
+    let renderer = sdl2::render::drivers()
+        .position(|driver| driver.name == "opengles2")
+        .and_then(|index| u32::try_from(index).ok())
+        .ok_or("kmsdrm-gles2-renderer-unavailable")?;
+    let mut canvas = window
+        .into_canvas()
+        .index(renderer)
+        .build()
+        .map_err(|e| e.to_string())?;
+    if canvas.info().name != "opengles2" {
+        return Err("kmsdrm-renderer-selection-differed".into());
+    }
     let textures = canvas.texture_creator();
     let mut scanout = Scanout::prepare(&mut canvas, &textures, width, height)?;
     let mut events = sdl.event_pump()?;
+    let mut settled = false;
+    for _ in 0..16 {
+        match scanout
+            .prepare_input(&mut events, 16)
+            .map_err(|e| format!("input-preparation:{e:?}"))?
+        {
+            NativeInput::Idle => {
+                settled = true;
+                break;
+            }
+            NativeInput::Pending => (),
+            _ => return Err("input-preparation-lifetime-ended".into()),
+        }
+    }
+    if !settled {
+        return Err("input-preparation-event-pressure".into());
+    }
     run(&mut scanout, &mut events)
 }
 

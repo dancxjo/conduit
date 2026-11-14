@@ -60,19 +60,21 @@ impl NativeFaceMask {
             return Err(NativeFaceMaskError::InputUnavailable);
         }
         self.input_refusal = None;
-        if !self.route_keyboard()? {
-            return Err(NativeFaceMaskError::Face);
-        }
         let show = self.show().ok_or(NativeFaceMaskError::Face)?.clone();
-        let scene = self.scene.as_mut().ok_or(NativeFaceMaskError::Face)?;
-        let cleared_notice = event.transition() == KeyTransition::Pressed
-            && !(0xe0..=0xe7).contains(&event.usage())
-            && scene.clear_local_notice();
-        let result = scene.key(event, &show, sequence);
-        let result = self.present_input_result(result, display)?;
-        if cleared_notice && matches!(result, FaceSceneInput::Unchanged) {
-            return self.repaint(display).map(NativeFaceMaskInput::Redrawn);
-        }
+        let result = route_acknowledged_native_key(
+            &self.compositor,
+            self.scene.as_mut().ok_or(NativeFaceMaskError::Face)?,
+            &show,
+            event,
+            sequence,
+        );
+        let result = match result {
+            Ok(result) => self.present_input_result(Ok(result), display)?,
+            Err(NativeFaceMaskError::Scene(error)) => {
+                self.present_input_result(Err(error), display)?
+            }
+            Err(error) => return Err(error),
+        };
         self.accept_scene_input(result, display)
     }
 
@@ -92,18 +94,7 @@ impl NativeFaceMask {
             .as_ref()
             .ok_or(NativeFaceMaskError::Face)?
             .show();
-        let route = self
-            .compositor
-            .route_pointer(x, y, false)
-            .map_err(NativeFaceMaskError::Compositor)?;
-        if let InputRoute::Delivered(route) = route {
-            self.compositor
-                .validate_pointer_route(&route)
-                .map_err(NativeFaceMaskError::Compositor)?;
-            if route.manifestation_id != show.show.manifestation_id {
-                return Err(NativeFaceMaskError::Face);
-            }
-        }
+        route_acknowledged_native_pointer_motion(&mut self.compositor, show, x, y)?;
         self.compose_and_commit(display)?;
         Ok(())
     }
@@ -119,26 +110,22 @@ impl NativeFaceMask {
             return Err(NativeFaceMaskError::InputUnavailable);
         }
         self.input_refusal = None;
-        let route = self
-            .compositor
-            .route_pointer(x, y, true)
-            .map_err(NativeFaceMaskError::Compositor)?;
-        let InputRoute::Delivered(route) = route else {
-            return Ok(NativeFaceMaskInput::Unchanged);
-        };
-        self.compositor
-            .validate_pointer_route(&route)
-            .map_err(NativeFaceMaskError::Compositor)?;
         let show = self.show().ok_or(NativeFaceMaskError::Face)?.clone();
-        if route.manifestation_id != show.show.manifestation_id {
-            return Err(NativeFaceMaskError::Face);
-        }
-        let result = self
-            .scene
-            .as_mut()
-            .ok_or(NativeFaceMaskError::Face)?
-            .pointer(route.local_x as i16, route.local_y as i16, &show, sequence);
-        let result = self.present_input_result(result, display)?;
+        let result = route_acknowledged_native_pointer(
+            &mut self.compositor,
+            self.scene.as_mut().ok_or(NativeFaceMaskError::Face)?,
+            &show,
+            x,
+            y,
+            sequence,
+        );
+        let result = match result {
+            Ok(result) => self.present_input_result(Ok(result), display)?,
+            Err(NativeFaceMaskError::Scene(error)) => {
+                self.present_input_result(Err(error), display)?
+            }
+            Err(error) => return Err(error),
+        };
         self.accept_scene_input(result, display)
     }
 
@@ -203,3 +190,79 @@ fn refusal_notice(error: FaceSceneError) -> Option<&'static str> {
 #[cfg(test)]
 #[path = "refusal_tests.rs"]
 mod refusal_tests;
+
+/// Reusable native compositor routing over this exact physically acknowledged
+/// manifestation. The caller still owns current input admission/session/owner.
+pub fn route_acknowledged_native_pointer_motion(
+    compositor: &mut NativeCompositor,
+    show: &MaskShow,
+    x: u32,
+    y: u32,
+) -> Result<(), NativeFaceMaskError> {
+    if let InputRoute::Delivered(route) = compositor
+        .route_pointer(x, y, false)
+        .map_err(NativeFaceMaskError::Compositor)?
+    {
+        compositor
+            .validate_pointer_route(&route)
+            .map_err(NativeFaceMaskError::Compositor)?;
+        if route.manifestation_id != show.show.manifestation_id {
+            return Err(NativeFaceMaskError::Face);
+        }
+    }
+    Ok(())
+}
+pub fn route_acknowledged_native_pointer(
+    compositor: &mut NativeCompositor,
+    scene: &mut NativeFaceScene,
+    show: &MaskShow,
+    x: u32,
+    y: u32,
+    sequence: u64,
+) -> Result<FaceSceneInput, NativeFaceMaskError> {
+    let InputRoute::Delivered(route) = compositor
+        .route_pointer(x, y, true)
+        .map_err(NativeFaceMaskError::Compositor)?
+    else {
+        return Ok(FaceSceneInput::Unchanged);
+    };
+    compositor
+        .validate_pointer_route(&route)
+        .map_err(NativeFaceMaskError::Compositor)?;
+    if route.manifestation_id != show.show.manifestation_id {
+        return Err(NativeFaceMaskError::Face);
+    }
+    scene
+        .pointer(route.local_x as i16, route.local_y as i16, show, sequence)
+        .map_err(NativeFaceMaskError::Scene)
+}
+
+/// Route the original normalized HID event through the current acknowledged
+/// manifestation, preserving the ordinary Scene focus, editing and submit rules.
+pub fn route_acknowledged_native_key(
+    compositor: &NativeCompositor,
+    scene: &mut NativeFaceScene,
+    show: &MaskShow,
+    event: KeyEvent,
+    sequence: u64,
+) -> Result<FaceSceneInput, NativeFaceMaskError> {
+    if !matches!(
+        compositor
+            .route_keyboard(&show.show.manifestation_id)
+            .map_err(NativeFaceMaskError::Compositor)?,
+        InputRoute::Delivered(_)
+    ) {
+        return Err(NativeFaceMaskError::Face);
+    }
+    let cleared = event.transition() == KeyTransition::Pressed
+        && !(0xe0..=0xe7).contains(&event.usage())
+        && scene.clear_local_notice();
+    let result = scene
+        .key(event, show, sequence)
+        .map_err(NativeFaceMaskError::Scene)?;
+    Ok(if cleared && matches!(result, FaceSceneInput::Unchanged) {
+        FaceSceneInput::Changed
+    } else {
+        result
+    })
+}

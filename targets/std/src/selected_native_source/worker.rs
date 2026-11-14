@@ -173,7 +173,7 @@ impl NativeWorker {
                 return Err((
                     control.state.lock().unwrap().provider.take().unwrap(),
                     WorkerFailure::Lost,
-                ))
+                ));
             }
         };
         let mut worker = Self {

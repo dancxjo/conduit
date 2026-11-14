@@ -58,7 +58,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TextApplyEditBack {
             match conduit_semantic_catalog::apply_document_edit(document, edit, &mut self.output) {
                 Ok(length) => length,
                 Err(refusal) => {
-                    return StepOutcome::Fail(super::text_state_back::edit_failure(refusal))
+                    return StepOutcome::Fail(super::text_state_back::edit_failure(refusal));
                 }
             };
         io.consume(PortId(0)).expect("present document");

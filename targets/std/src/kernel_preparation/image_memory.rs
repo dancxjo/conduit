@@ -213,3 +213,40 @@ impl KernelResourceLedger {
 #[cfg(test)]
 #[path = "staged_image_memory_tests.rs"]
 mod staged_tests;
+
+/// Opaque memory-only access to one verified counter, never a provider lease.
+#[derive(Clone)]
+pub(crate) struct ImagePreparationCounter {
+    used: Arc<AtomicUsize>,
+    limit: usize,
+}
+impl ImagePreparationCounter {
+    pub(crate) fn reserve(&self, bytes: usize) -> Result<ImageMemoryLease, String> {
+        reserve_image_memory(&self.used, self.limit, bytes)
+    }
+    pub(crate) fn same_owner(&self, other: &Self) -> bool {
+        self.limit == other.limit && Arc::ptr_eq(&self.used, &other.used)
+    }
+    pub(crate) fn owns(&self, lease: &ImageMemoryLease) -> bool {
+        Arc::ptr_eq(&self.used, &lease.inner.used)
+    }
+}
+impl KernelResourceLedger {
+    pub(crate) fn image_preparation_counter(&self) -> Result<ImagePreparationCounter, String> {
+        self.require_available()?;
+        let bounds = self
+            .image_bounds
+            .as_ref()
+            .ok_or("managed Base requires checked IMAGE bounds")?;
+        let used = self
+            .image_memory
+            .as_ref()
+            .ok_or("original IMAGE counter absent")?;
+        let limit = usize::try_from(bounds.heap_arena_bytes)
+            .map_err(|_| "IMAGE heap exceeds local size")?;
+        Ok(ImagePreparationCounter {
+            used: used.clone(),
+            limit,
+        })
+    }
+}

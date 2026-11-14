@@ -9,6 +9,7 @@ use super::acpi::InterruptTopology;
 
 const LOCAL_ID: u64 = 0x20;
 const LOCAL_TASK_PRIORITY: u64 = 0x80;
+#[cfg(target_os = "none")]
 const LOCAL_EOI: u64 = 0xb0;
 const LOCAL_SPURIOUS_VECTOR: u64 = 0xf0;
 const LOCAL_TIMER: u64 = 0x320;
@@ -89,6 +90,7 @@ pub(super) fn cancel_timer() {
     local_write(LOCAL_TIMER, MASKED | TIMER_VECTOR);
 }
 
+#[cfg(target_os = "none")]
 pub(super) fn end_timer_interrupt() {
     if LEGACY.load(Ordering::Acquire) {
         super::pic::end_timer_interrupt();

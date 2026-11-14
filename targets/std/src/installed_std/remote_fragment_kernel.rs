@@ -513,7 +513,7 @@ impl InstalledRemoteFragment {
         });
         let outcome = match poll {
             crate::hosted_body_conversation_context::BodyConversationContextPoll::Pending => {
-                return Ok(false)
+                return Ok(false);
             }
             crate::hosted_body_conversation_context::BodyConversationContextPoll::Lost => {
                 HostCallOutcome {

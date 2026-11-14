@@ -303,7 +303,10 @@ fn installed_espeak_streaming_mask_acknowledges_substantive_chapter() {
         .unwrap();
     }
     std::fs::write(directory.join("words.txt"), words).unwrap();
-    eprintln!("Actual streamed Mask audio retained at {} (fixture wording; no live model or playback claim)", directory.display());
+    eprintln!(
+        "Actual streamed Mask audio retained at {} (fixture wording; no live model or playback claim)",
+        directory.display()
+    );
 }
 
 #[test]

@@ -35,8 +35,8 @@ mod row_chrome;
 pub(super) use row_chrome::{RowChromeMetrics, append_panel_chrome, append_row_chrome};
 
 pub(super) const MAX_PAGE_ROWS: usize = 20;
-const MAX_ROWS: usize = 32_768;
-const MAX_DOCUMENT_BYTES: usize = 2 * 1024 * 1024;
+pub(super) const MAX_ROWS: usize = 32_768;
+pub(super) const MAX_DOCUMENT_BYTES: usize = 2 * 1024 * 1024;
 const INDENT_STEP: u16 = 14;
 
 pub(super) struct Row {

@@ -38,6 +38,7 @@ pub(super) fn mask_timer() {
     unsafe { outb(MASTER_DATA, mask | 1) };
 }
 
+#[cfg(target_os = "none")]
 pub(super) fn end_timer_interrupt() {
     unsafe { outb(MASTER_COMMAND, 0x20) };
 }

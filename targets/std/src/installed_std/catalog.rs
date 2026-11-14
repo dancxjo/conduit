@@ -210,6 +210,10 @@ use super::whisper_speech_back::{
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
+    &super::measurement_chart_constructor_back::FACTORY,
+    &super::measurement_plot_back::FACTORY,
+    &super::measurement_chart_face_back::FACTORY,
+    &super::measurement_chart_face_back::flow::FACTORY,
     &super::temporal_evidence_back::FACTORY,
     &super::experience_evidence_back::FACTORY,
     &super::experience_evidence_back::MODEL_REQUEST_FACTORY,
@@ -510,6 +514,16 @@ const FACTORIES: &[&BackFactory] = &[
 ];
 
 pub(super) fn factory(implementation_id: &ImplementationId) -> Option<&'static BackFactory> {
+    if implementation_id
+        .as_str()
+        .starts_with("std/kernel-combine-latest-schema-")
+    {
+        // Selection only; prepare recomputes the complete canonical schema identity.
+        return Some(&super::combine_latest_back::FACTORY);
+    }
+    if (1..=4).any(|count| implementation_id.as_str() == format!("{}/{count}", crate::hosted_measurement_chart_constructor::MEASUREMENT_CHART_CONSTRUCTOR_IMPLEMENTATION)) {
+        return Some(&super::measurement_chart_constructor_back::FACTORY);
+    }
     FACTORIES
         .iter()
         .copied()

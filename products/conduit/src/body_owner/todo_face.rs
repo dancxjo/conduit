@@ -211,6 +211,14 @@ impl Owner {
     /// The ordinary owner Face, optionally including current Todo Play truth.
     /// A Plot contribution cannot be projected from an idle or retired Play.
     pub(super) fn project_face(&self, todo: Option<(&TodoState, bool)>) -> Result<Face, String> {
+        let face = self.project_body_face(todo)?;
+        clock_interval::with_clock_action(self, face.face)
+    }
+
+    pub(super) fn project_body_face(
+        &self,
+        todo: Option<(&TodoState, bool)>,
+    ) -> Result<BodyFace, String> {
         let plot_name = self
             .resident
             .as_ref()
@@ -237,8 +245,9 @@ impl Owner {
             self.session
                 .realization()
                 .map(|realization| &realization.wake),
-            self.session.evidence().last_sequence(),
-            FaceContext::Overview,
+            self.owner_navigation
+                .face_revision(self.session.evidence().last_sequence())?,
+            self.owner_navigation.context(),
             FaceFocus::Body,
             contributions,
             FaceNames {
@@ -250,7 +259,7 @@ impl Owner {
         face.face
             .validate()
             .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
-        clock_interval::with_clock_action(self, face.face)
+        Ok(face)
     }
 }
 

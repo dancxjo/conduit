@@ -162,15 +162,29 @@ impl ParsecTerminalOwner {
         let input_view_epoch = shown.epoch;
         let prompt_text_sha256 = Sha256::digest(prompt_text.as_bytes()).into();
         let (face, show) = self.current_face_show(map, host)?;
-        Ok(Some(crate::body_execution::ParsecInputInstructionObservation {
-            proof_class: "installed software input scope + checked policy + original internal Source Fore + supplementary terminal write/flush and effect ACK; no physical or other-Mask receipt",
-            face: face.clone(), show: show.clone(), body_play: map.current_play()?.clone(),
-            host: conduit_core::PreparationHostIdentity { host_id: host.host_id.clone(),
-                boot_id: host.boot_id.clone(), offer_generation: host.offer_generation },
-            binding, producer_plan_id, producer_plot, prompt_text, prompt_text_sha256,
-            input_view_epoch,
-            effect: self.instruction_effect.clone().ok_or("actual instruction effect observation is absent")?,
-        }))
+        Ok(Some(
+            crate::body_execution::ParsecInputInstructionObservation {
+                proof_class: "installed software input scope + checked policy + original internal Source Fore + supplementary terminal write/flush and effect ACK; no physical or other-Mask receipt",
+                face: face.clone(),
+                show: show.clone(),
+                body_play: map.current_play()?.clone(),
+                host: conduit_core::PreparationHostIdentity {
+                    host_id: host.host_id.clone(),
+                    boot_id: host.boot_id.clone(),
+                    offer_generation: host.offer_generation,
+                },
+                binding,
+                producer_plan_id,
+                producer_plot,
+                prompt_text,
+                prompt_text_sha256,
+                input_view_epoch,
+                effect: self
+                    .instruction_effect
+                    .clone()
+                    .ok_or("actual instruction effect observation is absent")?,
+            },
+        ))
     }
 
     fn current_prompt(

@@ -285,7 +285,8 @@ fn graphics_command_pressure_moves_whole_field_before_global_limit() {
         width: 1280,
         height: 1024,
     };
-    let mut items = (0..13)
+    const PREFIX_COUNT: usize = (conduit_face::MAX_GRAPHICS_COMMANDS - chrome::COMMANDS - 2) / 3;
+    let mut items = (0..PREFIX_COUNT)
         .map(|_| {
             let mut row = item("Prefix", None, None);
             row.checkbox = Some(false);
@@ -295,13 +296,13 @@ fn graphics_command_pressure_moves_whole_field_before_global_limit() {
         .collect::<Vec<_>>();
     items.extend(field());
     const {
-        assert!(13 * 3 + chrome::COMMANDS + 1 < conduit_face::MAX_GRAPHICS_COMMANDS);
-        assert!(13 * 3 + chrome::COMMANDS + 1 + 5 > conduit_face::MAX_GRAPHICS_COMMANDS);
+        assert!(PREFIX_COUNT * 3 + chrome::COMMANDS + 1 < conduit_face::MAX_GRAPHICS_COMMANDS);
+        assert!(PREFIX_COUNT * 3 + chrome::COMMANDS + 1 + 5 > conduit_face::MAX_GRAPHICS_COMMANDS);
     }
     let rows = admit_with_expression(items, screen, 12, 1, 100, SPACE_SM).unwrap();
-    check_field(&rows, 13);
-    assert_eq!(rows[12].page, 0);
-    assert_eq!(rows[13].page, 1);
+    check_field(&rows, PREFIX_COUNT);
+    assert_eq!(rows[PREFIX_COUNT - 1].page, 0);
+    assert_eq!(rows[PREFIX_COUNT].page, 1);
 }
 
 #[test]

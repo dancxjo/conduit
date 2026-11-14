@@ -305,6 +305,13 @@ impl Owner {
                 },
             )
             .map_err(debug)?;
+            // Stage only the advertisement whose exact ambient/return proof
+            // just passed. Publish current planning evidence only after the
+            // same membership/continuity transition is durably retained.
+            let offers = self.next_member_offers(
+                session.evidence(),
+                pending.observation.advertisement.clone(),
+            )?;
             let before_session = std::mem::replace(&mut self.session, session);
             let before_manager = self.admissions.replace(manager);
             if let Err(error) = self.persist(root) {
@@ -312,6 +319,7 @@ impl Owner {
                 self.admissions = before_manager;
                 return Err(error);
             }
+            self.current_host_offers = offers;
             let line_authorization =
                 BrowserLineAuthorization::issue(&window.id, &pending.binding, &credential);
             let snapshot = BrowserAdmittedSnapshot {

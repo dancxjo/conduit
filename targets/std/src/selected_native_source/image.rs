@@ -183,11 +183,14 @@ impl StdHost {
             prepare: Box::new(prepare),
         };
         source.validate_image(image)?;
+        let cpu =
+            crate::image_initialization::prepare_cpu_from_configuration(&config, image, checked)?;
         Self::from_selected_source_initial_bases(
             config,
             image,
             catalog,
             source,
+            cpu,
             creche_resource,
             None,
             #[cfg(target_os = "linux")]
@@ -271,11 +274,17 @@ impl StdHost {
             prepare: Box::new(prepare),
         };
         source.validate_image(image)?;
+        let cpu = crate::image_initialization::prepare_cpu_from_configuration(
+            &final_config,
+            image,
+            checked,
+        )?;
         Self::from_selected_source_initial_bases(
             final_config,
             image,
             catalog,
             source,
+            cpu,
             creche_resource,
             Some(memory),
             #[cfg(target_os = "linux")]

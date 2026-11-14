@@ -78,16 +78,16 @@ impl<const PORTS: usize> StepBack<PORTS> for LocalModelBack {
                     return StepOutcome::Complete;
                 }
                 (HostCallDisposition::Denied, _, _) => {
-                    return step_fail(FailureCode::HostCallDenied, 2)
+                    return step_fail(FailureCode::HostCallDenied, 2);
                 }
                 (HostCallDisposition::Cancelled, _, _) => {
-                    return step_fail(FailureCode::Cancelled, 3)
+                    return step_fail(FailureCode::Cancelled, 3);
                 }
                 (HostCallDisposition::Failed, _, _) => {
                     return StepOutcome::Fail(outcome.failure.unwrap_or(Failure {
                         code: FailureCode::HostCallFailed,
                         detail: 4,
-                    }))
+                    }));
                 }
                 _ => return step_fail(FailureCode::InvalidLifecycle, 5),
             }

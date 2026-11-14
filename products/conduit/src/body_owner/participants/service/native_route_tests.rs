@@ -69,6 +69,9 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
             },
         )
         .unwrap();
+    // The ordinary signed admission entrance retains the actual offer; this
+    // fixture must not populate the current offer table by hand.
+    owner.require_observed_member_offer(&native_offer).unwrap();
     let owner_offer = owner.host.advertisement().clone();
     let limits = conduit_core::LinkLimits {
         maximum_in_flight_items: 1,
@@ -316,6 +319,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         None,
         owner.pending_native_mask.as_ref(),
         &owner.session,
+        &owner.current_host_offers,
         &face,
         expires - 1,
     );
@@ -383,6 +387,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         None,
         owner.pending_native_mask.as_ref(),
         &owner.session,
+        &owner.current_host_offers,
         &face,
         expires,
     );

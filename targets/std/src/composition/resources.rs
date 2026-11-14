@@ -41,6 +41,21 @@ pub(super) fn offers(
         ));
     }
     if composition.data {
+        // One explicitly sized Host-shared pool. Each selected operation still
+        // reserves its own finite requirement; multiple same-class anonymous
+        // pools would make Base provenance ambiguous rather than add capacity.
+        let workspace = crate::hosted_measurement::measurement_plot_workspace_bytes()
+            .checked_add(crate::installed_std::measurement_chart_face_back::workspace_bytes())
+            .and_then(|bytes| bytes.checked_add(
+                crate::hosted_measurement_chart_constructor::measurement_chart_constructor_workspace(4)
+                    .expect("bounded chart construction"),
+            ))
+            .expect("bounded standard data workspace");
+        resources.push(resource_offer(
+            "std/hosted-preparation",
+            conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS,
+            workspace,
+        ));
         resources.push(resource_offer(
             "std/text-data-generations",
             conduit_std_offers::DATA_TEXT_GENERATION_RESOURCE_CLASS,

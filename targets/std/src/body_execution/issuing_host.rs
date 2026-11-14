@@ -249,6 +249,7 @@ impl StdHost {
                 )
             },
             memory,
+            None,
             Some(&scope),
         )?;
         Ok(IssuingHostRunReport { local })

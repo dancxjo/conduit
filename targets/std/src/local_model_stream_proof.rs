@@ -124,7 +124,9 @@ fn run_with_adapter(
             conduit_core::kind_id(conduit_ai::GENERATED_TEXT_CHUNK_VALUE_KIND),
         )
         .map_err(|e| e.to_string())?;
-    let source = format!("plot stream-proof (\n >> request: ProofRequest\n chunks: ProofChunk...| >>\n) {{\n model: llm/generate-stream(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = {MAXIMUM_TEXT_BYTES}, maximum-work-units = 4096, maximum-history-items = 0)\n request >> model.request\n model.result >> chunks\n}}.\n");
+    let source = format!(
+        "plot stream-proof (\n >> request: ProofRequest\n chunks: ProofChunk...| >>\n) {{\n model: llm/generate-stream(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = {MAXIMUM_TEXT_BYTES}, maximum-work-units = 4096, maximum-history-items = 0)\n request >> model.request\n model.result >> chunks\n}}.\n"
+    );
     let checked = conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(&source),
         &startup,

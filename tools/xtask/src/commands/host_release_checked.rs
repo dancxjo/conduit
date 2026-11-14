@@ -2,8 +2,8 @@
 //! Repository build operation, not an admitted runtime builder or confinement.
 use super::*;
 use conduit_host_make::{
-    build_host_image, BuildInputs, MakeBuildSelection, ReviewedNativeBuild, SporeOutputKind,
-    REVIEWED_NATIVE_BUILD_SCHEMA,
+    build_host_image, verify_image_binding, BuildInputs, HostImage, MakeBuildSelection,
+    ReviewedNativeBuild, SporeOutputKind, REVIEWED_NATIVE_BUILD_SCHEMA,
 };
 
 pub(super) fn build(
@@ -55,6 +55,33 @@ pub(super) fn build(
         cargo_release_artifact(target.rust_target, "conduit"),
         &output.join(target.executable),
     )?;
+    finish_release(
+        output,
+        source_identity,
+        &checked,
+        &image,
+        selection,
+        target.executable,
+    )
+}
+
+/// Seal the exact compiled IMAGE beside its executable. Configuration still
+/// supplies no initialized equipment, directory custody or execution authority.
+fn finish_release(
+    output: &Path,
+    source_identity: &str,
+    checked: &conduit_host_make::CheckedHostConfiguration,
+    image: &HostImage,
+    selection: MakeBuildSelection,
+    executable: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let image_bytes = serde_json::to_vec(image)?;
+    if image_bytes.len() > 64 * 1024 {
+        return Err("checked release IMAGE exceeds its finite manifest bound".into());
+    }
+    verify_image_binding(image, &image_bytes)
+        .map_err(|error| format!("checked release IMAGE: {error:?}"))?;
+    fs::write(output.join("host-image.json"), image_bytes)?;
     seal(
         output,
         "checked-native.json",
@@ -67,7 +94,10 @@ pub(super) fn build(
             .as_deref()
             .ok_or("native deployment adapter absent")?,
         source_identity,
-        &[(target.executable, "application/vnd.conduit.host+executable")],
+        &[
+            (executable, "application/vnd.conduit.host+executable"),
+            ("host-image.json", "application/vnd.conduit.host-image+json"),
+        ],
     )?;
     let path = output.join("checked-native.json");
     let mut manifest: conduit_host_make::HostReleaseManifest =
@@ -76,9 +106,9 @@ pub(super) fn build(
     manifest.reviewed_native_build = Some(ReviewedNativeBuild {
         schema: REVIEWED_NATIVE_BUILD_SCHEMA.into(),
         configuration_id: checked.configuration_id().into(),
-        profile_id: image.manifest.profile_id,
-        build_id: image.manifest.build_id,
-        image_id: image.manifest.image_id,
+        profile_id: image.manifest.profile_id.clone(),
+        build_id: image.manifest.build_id.clone(),
+        image_id: image.manifest.image_id.clone(),
         source_identity: source_identity.into(),
         selection,
         executable_path: file.path.clone(),
@@ -174,7 +204,8 @@ impl NativeTarget {
             ("std/x86_64/computer", "conduit-host-hosted/build-native@1", "rustc:1.98.1") => Self {
                 rust_target: Some("x86_64-unknown-linux-gnu"), executable: "conduit-linux-x86_64", cross: false, cxx: false,
             },
-            ("std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3",
+            ("std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3"
+                | "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb",
              "conduit-host-raspberry-pi/build-raspios-native@1",
              "rustc:1.98.1+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu") => Self {
                 rust_target: Some("aarch64-unknown-linux-gnu"), executable: "conduit-linux-aarch64", cross: true, cxx: false,

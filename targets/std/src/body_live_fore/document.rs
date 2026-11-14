@@ -98,6 +98,7 @@ impl BodyLiveForeQueue {
                 idle_stop: Some(crate::RunControlRequestId::new(
                     "body/document-idle-timeout",
                 )?),
+                image_admission: None,
             })),
         })
     }
@@ -184,6 +185,7 @@ impl BodyLiveForeQueue {
                 play_started: false,
                 started_at: None,
                 idle_stop: None,
+                image_admission: None,
             })),
         })
     }

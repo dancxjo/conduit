@@ -10,6 +10,10 @@
 //! do not define the Face boundary.
 
 extern crate alloc;
+#[cfg(feature = "std")]
+extern crate std;
+#[cfg(feature = "std")]
+mod bounded_json;
 mod host_attribution;
 #[cfg(feature = "postcard-wire")]
 pub mod postcard_wire;

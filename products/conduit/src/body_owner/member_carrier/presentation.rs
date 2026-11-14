@@ -29,7 +29,7 @@ impl Owner {
             return Err("member carrier presence expired".into());
         }
         Ok((
-            active.member.clone(),
+            active.member.presentation(self)?,
             deadline.min(active.deadline),
             active.expires_at_millis,
         ))
@@ -60,6 +60,41 @@ impl Owner {
         Ok(seal)
     }
 
+    pub(crate) fn select_member_carrier_mask_route_with_interaction(
+        &mut self,
+        session: &LinkBindingId,
+        face_line: &LineOffer,
+        return_line: &LineOffer,
+        interaction_line: Option<&LineOffer>,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        let (member, deadline, expires) = self.present_member_carrier(session)?;
+        let expected = crate::durable_host::routed_join::native_lines::offer_graphical(
+            self.host.advertisement(),
+            &member,
+            session.as_str(),
+        )?;
+        if expected.0 != *face_line
+            || expected.1 != *return_line
+            || expected.2.as_ref() != interaction_line
+        {
+            return Err("member carrier Lines differ from actual session profile".into());
+        }
+        let seal = self.seal_graphical_native_mask_route(
+            &member,
+            face_line,
+            return_line,
+            interaction_line,
+            expires,
+        )?;
+        self.bind_native_carrier_presence(&seal.route_plan_id, deadline)?;
+        self.member_carrier
+            .as_mut()
+            .and_then(|c| c.active.as_mut())
+            .ok_or("member carrier absent")?
+            .route = Some(seal.route_plan_id.clone());
+        Ok(seal)
+    }
+
     pub(crate) fn acknowledge_member_carrier_show(
         &mut self,
         session: &LinkBindingId,
@@ -76,6 +111,37 @@ impl Owner {
             .clone();
         self.bind_native_carrier_presence(&route, deadline)?;
         self.acknowledge_native_mask_show(request, show)
+    }
+
+    /// Current member transport scope and actual presence remain distinct from
+    /// the exact acknowledged Show and the semantic owner's action checks.
+    pub(crate) fn validate_member_carrier_interaction(
+        &mut self,
+        session: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+        interaction: &conduit_face::FaceInteraction,
+    ) -> Result<(), String> {
+        let (member, deadline, _) = self.present_member_carrier(session)?;
+        let c = &member.credential;
+        if !request.has_exact_basis()
+            || request.credential_id != c.credential_id.as_str()
+            || request.body_id != c.body_id
+            || request.part_id != c.part_id
+            || request.host_id != c.host_id
+            || request.boot_id != c.boot_id
+        {
+            return Err("member interaction credential differs from actual carrier".into());
+        }
+        let route = self
+            .member_carrier
+            .as_ref()
+            .and_then(|c| c.active.as_ref())
+            .and_then(|active| active.route.as_ref())
+            .ok_or("member carrier Mask not selected")?
+            .clone();
+        self.bind_native_carrier_presence(&route, deadline)?;
+        self.validate_native_mask_interaction(request, show, interaction)
     }
 
     pub(super) fn refresh_member_carrier_route_presence(&mut self) -> Result<(), String> {

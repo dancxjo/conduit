@@ -46,6 +46,7 @@ impl Owner {
             speech,
             llm_speech,
             &self.session,
+            &self.current_host_offers,
             &face,
             super::super::super::current_time_millis()?,
         );

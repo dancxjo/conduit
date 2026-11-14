@@ -123,6 +123,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyMemberCarrierComplete { token, .. }
         | Request::BodyMemberCarrierMaskRoute { token, .. }
         | Request::BodyMemberCarrierShow { token, .. }
+        | Request::BodyMemberCarrierInteraction { token, .. }
         | Request::BodyMemberPresenceRenew { token, .. }
         | Request::BodyMemberCarrierInspect { token, .. }
         | Request::BodyMemberCarrierRetire { token, .. }

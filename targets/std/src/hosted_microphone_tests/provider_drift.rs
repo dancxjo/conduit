@@ -3,7 +3,10 @@ use super::*;
 #[test]
 fn changed_provider_refuses_before_replacement_execution_and_clears_old_receipt() {
     let _process = microphone_process();
-    let script = format!("#!/bin/sh\nif [ \"$2\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n",listing().replace('\n',"\\n"));
+    let script = format!(
+        "#!/bin/sh\nif [ \"$2\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n",
+        listing().replace('\n', "\\n")
+    );
     let (root, executable) = fixture(&script, "changed-provider");
     let discovery = AlsaMicrophoneDiscovery::inspect(&executable).unwrap();
     let selected = discovery.observations[0].clone();

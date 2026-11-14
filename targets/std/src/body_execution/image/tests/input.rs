@@ -277,3 +277,100 @@ fn generic_preparation_refuses_before_effects_and_releases_failed_workspace() {
     assert!(panic.is_err());
     assert_eq!(counter.load(Ordering::Acquire), before);
 }
+
+#[test]
+fn host_borrowing_preparation_reserves_original_counter_before_factory() {
+    let (mut host, _, _) = fixture(1_048_576);
+    let counter = host.kernel_resources.image_memory_observer();
+    let before = counter.load(Ordering::Acquire);
+    let metadata = ImageMemoryLease::owned_backing_bytes();
+    // SAFETY: cloning the bounded fixture Host identity fits the named4096B
+    // peak and128B retained envelope. No workers or escaping borrowed Host.
+    let prepared = unsafe {
+        host.prepare_selected_image_value_with_host(4096, 128, |actual| {
+            assert_eq!(counter.load(Ordering::Acquire), before + 4096 + metadata);
+            Ok(actual.advertisement().host_id.clone())
+        })
+    }
+    .unwrap();
+    assert_eq!(prepared.value(), &host.advertisement().host_id);
+    host.verify_selected_image_prepared_value(&prepared)
+        .unwrap();
+    assert_eq!(counter.load(Ordering::Acquire), before + 128 + metadata);
+    drop(prepared);
+    assert_eq!(counter.load(Ordering::Acquire), before);
+    // SAFETY: pressure must refuse before calling this side-effect sentinel.
+    assert!(unsafe {
+        host.prepare_selected_image_value_with_host::<Vec<u8>>(1_048_576, 128, |_| {
+            panic!("unadmitted Host borrowing factory")
+        })
+    }
+    .is_err());
+    assert_eq!(counter.load(Ordering::Acquire), before);
+    // SAFETY: the failed synchronous factory has no escaping effects.
+    assert!(unsafe {
+        host.prepare_selected_image_value_with_host::<Vec<u8>>(4096, 128, |_| {
+            Err("borrowed Host preparation refused".into())
+        })
+    }
+    .is_err());
+    assert_eq!(counter.load(Ordering::Acquire), before);
+}
+
+#[test]
+fn root_preparation_owner_shares_loaned_hosts_counter_and_revokes_without_early_refund() {
+    let (mut host, _, _) = fixture(1_048_576);
+    let (other, _, _) = fixture(1_048_576);
+    let observer = host.kernel_resources.image_memory_observer();
+    let root = host.image_root_preparation_owner().unwrap();
+    root.verify_host(&host).unwrap();
+    assert!(
+        root.verify_host(&other).is_err(),
+        "matching IMAGE labels cannot transfer the original counter"
+    );
+    let (ready, received) = std::sync::mpsc::sync_channel(1);
+    let (release, released) = std::sync::mpsc::sync_channel(1);
+    // The ONLY actual Host moves to this worker. The main thread retains only
+    // a memory-only owner and independently funded test synchronization objects.
+    let worker = std::thread::spawn(move || {
+        // SAFETY: the fixed Vec owns600000B and has no worker/effect descendants.
+        let playing = unsafe {
+            host.prepare_selected_image_value(600_000, 600_000, || {
+                Ok(Vec::<u8>::with_capacity(599_000))
+            })
+        }
+        .unwrap();
+        ready.send(()).unwrap();
+        released.recv().unwrap();
+        drop(playing);
+        host
+    });
+    received.recv().unwrap();
+    // SAFETY: pressure must refuse before the sentinel factory executes.
+    assert!(unsafe {
+        root.prepare_value::<Vec<u8>>(500_000, 500_000, || {
+            panic!("Root bypassed loaned Host's original IMAGE counter")
+        })
+    }
+    .is_err());
+    // SAFETY: a64000B Vec and fixed inline metadata fit the qualified envelope.
+    let retained =
+        unsafe { root.prepare_value(64_000, 64_000, || Ok(Vec::<u8>::with_capacity(63_000))) }
+            .unwrap();
+    root.verify_prepared(&retained).unwrap();
+    root.invalidate();
+    // Withdrawal does not refund already owned data or permit new preparation.
+    let charged = observer.load(Ordering::Acquire);
+    assert!(
+        unsafe { root.prepare_value::<Vec<u8>>(128, 128, || panic!("retired Root lifetime")) }
+            .is_err()
+    );
+    assert_eq!(observer.load(Ordering::Acquire), charged);
+    drop(root);
+    assert!(observer.load(Ordering::Acquire) >= 664_000);
+    release.send(()).unwrap();
+    let host = worker.join().unwrap();
+    drop(retained);
+    drop(host);
+    assert_eq!(observer.load(Ordering::Acquire), 0);
+}

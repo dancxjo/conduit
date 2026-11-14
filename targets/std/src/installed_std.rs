@@ -96,6 +96,9 @@ mod local_vision_back;
 mod logic_backs;
 mod math_backs;
 mod math_host;
+mod measurement_chart_constructor_back;
+pub(crate) mod measurement_chart_face_back;
+mod measurement_plot_back;
 mod microphone_clip_back;
 mod microphone_host;
 mod midi_input_back;
@@ -1106,6 +1109,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     &mut host_calls,
                     maximum_output_bytes,
                 )?;
+                continue;
+            }
+            let operation = host_calls
+                .get(request.node, request.call)
+                .ok_or("measurement dispatch has no lowered operation")?;
+            if measurement_chart_constructor_back::complete(operation, request, &mut scheduler)? {
+                host_calls.record(request).map_err(str::to_string)?;
+                continue;
+            }
+            if measurement_plot_back::complete(operation, request, &mut scheduler)? {
+                host_calls.record(request).map_err(str::to_string)?;
                 continue;
             }
             let input = scheduler

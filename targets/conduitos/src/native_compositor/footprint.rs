@@ -1,6 +1,6 @@
 //! Actual owned payload of the ordinary retained CPU compositor.
 //!
-//! Configured visual-expression/Look owners are deliberately unsupported here.
+//! Expression identity storage is counted; configured Look owners remain unsupported.
 //! This does not account allocator overhead, stack, GPU/SDL storage, or peak
 //! preparation workspace. A caller must not add the fixed raster receipt twice.
 use super::*;
@@ -15,13 +15,33 @@ impl Bytes {
     fn vector<T>(&mut self, values: &Vec<T>) -> Option<()> {
         self.add(values.capacity().checked_mul(size_of::<T>())?)
     }
+    fn expression(&mut self, value: &conduit_face::AdmittedVisualExpression) -> Option<()> {
+        // Keep the owner inventory exhaustive: adding another expression field
+        // requires reviewing its retained payload rather than silently undercounting.
+        let conduit_face::AdmittedVisualExpression {
+            expression,
+            outcome: _,
+            accessibility_overrides: _,
+            platform_forced_colors: _,
+        } = value;
+        let conduit_face::VisualExpression {
+            version: _,
+            identity,
+            density: _,
+            palette: _,
+            text_scale_percent: _,
+            motion: _,
+            typography: _,
+        } = expression;
+        self.add(identity.capacity())
+    }
 }
 
 impl CompositionReceipt {
-    /// Exact heap payload for an ordinary unconfigured presentation receipt.
-    /// Inline fields are excluded; configured visual owners refuse explicitly.
+    /// Exact heap payload for a presentation receipt, including its expression.
+    /// Inline fields are excluded; configured Look owners refuse explicitly.
     pub fn ordinary_retained_backing_bytes(&self) -> Option<usize> {
-        if self.visual_expression.is_some() || self.visual_look.is_some() {
+        if self.visual_look.is_some() {
             return None;
         }
         let Self {
@@ -41,7 +61,7 @@ impl CompositionReceipt {
             display_base_id,
             surface_id,
             display: _,
-            visual_expression: _,
+            visual_expression,
             visual_look: _,
         } = self;
         let mut bytes = Bytes(0);
@@ -61,6 +81,9 @@ impl CompositionReceipt {
             surface_id.capacity(),
         ] {
             bytes.add(capacity)?;
+        }
+        if let Some(expression) = visual_expression {
+            bytes.expression(expression)?;
         }
         Some(bytes.0)
     }
@@ -124,8 +147,11 @@ impl NativeCompositor {
                 receipt,
                 input_ready: _,
             } = surface;
-            if visual_expression.is_some() || visual_look.is_some() {
+            if visual_look.is_some() {
                 return None;
+            }
+            if let Some(expression) = visual_expression {
+                bytes.expression(expression)?;
             }
             bytes.add(surface_id.capacity())?;
             bytes.vector(&buffer.pixels)?;
@@ -184,6 +210,98 @@ mod tests {
         assert_eq!(
             compositor.ordinary_retained_backing_bytes(),
             Some(before + added)
+        );
+    }
+
+    #[test]
+    fn expression_identity_counts_allocated_capacity_on_each_surface() {
+        let raster = PreparedCompositorBacking::prepare("surface", 8, 8, usize::MAX).unwrap();
+        let admission = CompositorAdmission::new(
+            "host".into(),
+            "boot".into(),
+            conduit_core::OfferGeneration(1),
+            "renderer".into(),
+            "display".into(),
+            alloc::vec!["placement".into()],
+            alloc::vec!["surface".into()],
+        )
+        .unwrap();
+        let mut compositor = raster.bind(admission).unwrap();
+        let before = compositor.ordinary_retained_backing_bytes().unwrap();
+        let mut expression = conduit_face::admit_visual_expression(
+            Ok(conduit_face::VisualExpression::phosphor()),
+            conduit_face::VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 150,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        expression.expression.identity.reserve_exact(257);
+        let capacity = expression.expression.identity.capacity();
+        compositor.surfaces[0].visual_expression = Some(expression);
+        assert_eq!(
+            compositor.ordinary_retained_backing_bytes(),
+            Some(before + capacity)
+        );
+        compositor.surfaces[0].visual_expression = None;
+        assert_eq!(compositor.ordinary_retained_backing_bytes(), Some(before));
+    }
+
+    #[allow(dead_code)]
+    mod fixture {
+        use crate as conduitos;
+        include!("../../tests/common/native_compositor_fixture.rs");
+    }
+
+    #[test]
+    fn retained_receipt_clone_has_its_own_expression_charge() {
+        let (face, plan, main, _, mut compositor) = fixture::fixture(1);
+        fixture::update(&mut compositor, &face, &plan, &main, fixture::MAIN);
+        let surface = compositor
+            .surfaces
+            .iter_mut()
+            .find(|surface| surface.surface_id == fixture::MAIN)
+            .unwrap();
+        let receipt = surface.receipt.as_mut().unwrap();
+        let receipt_before = receipt.ordinary_retained_backing_bytes().unwrap();
+        let mut expression = conduit_face::admit_visual_expression(
+            Ok(conduit_face::VisualExpression::phosphor()),
+            conduit_face::VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 150,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        expression.expression.identity.reserve_exact(257);
+        receipt.visual_expression = Some(expression.clone());
+        let cloned_capacity = receipt
+            .visual_expression
+            .as_ref()
+            .unwrap()
+            .expression
+            .identity
+            .capacity();
+        assert_eq!(
+            receipt.ordinary_retained_backing_bytes(),
+            Some(receipt_before + cloned_capacity)
+        );
+        let surface_capacity = expression.expression.identity.capacity();
+        surface.visual_expression = Some(expression);
+        let before = compositor.ordinary_retained_backing_bytes().unwrap();
+        let surface = compositor
+            .surfaces
+            .iter_mut()
+            .find(|surface| surface.surface_id == fixture::MAIN)
+            .unwrap();
+        surface.visual_expression = None;
+        surface.receipt.as_mut().unwrap().visual_expression = None;
+        assert_eq!(
+            compositor.ordinary_retained_backing_bytes(),
+            Some(before - surface_capacity - cloned_capacity)
         );
     }
 }

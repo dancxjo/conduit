@@ -109,7 +109,9 @@ fn unrelated_source_keeps_the_advertisement_unchanged() {
 
 #[test]
 fn an_unused_native_record_input_is_not_automatically_advertised() {
-    let plot = authored("type Small = U64 in 0..=10\ntype Envelope = {\n value: Small\n}\nplot arithmetic (\n >> value: Envelope\n result: U64 >>\n) = (7)\n");
+    let plot = authored(
+        "type Small = U64 in 0..=10\ntype Envelope = {\n value: Small\n}\nplot arithmetic (\n >> value: Envelope\n result: U64 >>\n) = (7)\n",
+    );
     let mut host = StdHost::new();
     let before = host.advertisement().clone();
     let why = host

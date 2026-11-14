@@ -178,7 +178,7 @@ impl TripleSource {
                     }));
                 }
                 (Some(_), None) | (None, Some(_)) => {
-                    return Err("only one remote branch received an atomic emission".to_owned())
+                    return Err("only one remote branch received an atomic emission".to_owned());
                 }
                 (None, None) => {}
             }
@@ -243,7 +243,7 @@ impl TripleSource {
             {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Drained => {
-                    return Err("kernel completed before stdout manifested".to_owned())
+                    return Err("kernel completed before stdout manifested".to_owned());
                 }
                 SchedulerStatus::Idle => return Err("stdout branch became idle".to_owned()),
                 SchedulerStatus::Cancelled => return Err("stdout branch cancelled".to_owned()),
@@ -274,7 +274,7 @@ impl TripleSource {
                 }
                 SchedulerStatus::Drained => break,
                 SchedulerStatus::Idle => {
-                    return Err("triple kernel idle before terminal".to_owned())
+                    return Err("triple kernel idle before terminal".to_owned());
                 }
                 SchedulerStatus::Cancelled => return Err("triple kernel cancelled".to_owned()),
             }

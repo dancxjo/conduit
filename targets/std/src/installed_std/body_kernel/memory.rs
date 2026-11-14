@@ -1,4 +1,4 @@
-//! Closed cooperative tick, one-shot immediate-Source and single-Crèche kernel receipts. Shared immutable Body/workset inputs
+//! Closed cooperative tick, one-shot Source, finite projection and Crèche receipts. Shared immutable Body/workset inputs
 //! retain their existing owner; this accounts newly owned execution backing.
 use super::*;
 
@@ -77,9 +77,22 @@ fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
 }
 fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
     match driver {
+        InstalledBack::CombineLatest(back) => back
+            .retained_backing_bytes()
+            .ok_or_else(|| "latest-value backing overflow".into()),
+        InstalledBack::MeasurementChartConstructor(back) => back
+            .retained_backing_bytes()
+            .checked_add(back.workspace_bytes() as usize)
+            .ok_or_else(|| "chart constructor backing overflow".into()),
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
             .ok_or_else(|| "tick backing overflow".into()),
+        InstalledBack::MeasurementPlot(back) => back
+            .retained_backing_bytes()
+            .checked_add(crate::hosted_measurement::measurement_plot_workspace_bytes() as usize)
+            .ok_or_else(|| "measurement projection prepared workspace overflow".into()),
+        InstalledBack::MeasurementChartFace(back) => Ok(back.retained_backing_bytes()),
+        InstalledBack::MeasurementChartFlowFace(back) => Ok(back.retained_backing_bytes()),
         InstalledBack::Creche(back) => Ok(back.retained_backing_bytes()),
         // These Backs retain only inline state; the complete receipt separately
         // requires and counts the actual selected native/file route owner.
@@ -96,6 +109,14 @@ impl BodyKernel<'_> {
         lease: &crate::kernel_preparation::ImageMemoryLease,
     ) {
         self.fore.attach_image_memory(lease);
+        if let Some(route) = &mut self.chart_face {
+            route.attach_image_memory(lease);
+        }
+    }
+    pub(crate) fn escaped_face_backing_bytes(&self) -> Result<usize, String> {
+        self.chart_face
+            .as_ref()
+            .map_or(Ok(0), |route| route.escaped_backing_bytes())
     }
     pub(crate) fn prepare_memory<T: TimerAdapter>(
         &mut self,
@@ -127,8 +148,10 @@ impl BodyKernel<'_> {
             crate::kernel_preparation::ImageMemoryLease::owned_backing_bytes(),
         )?;
         let mut ticks = 0;
+        let mut measurements = 0;
         let mut sources = 0;
         let mut creches = 0;
+        let mut chart_faces = 0;
         let mut files = 0;
         for (index, driver) in self.scheduler.drivers().iter().enumerate() {
             if matches!(driver, InstalledBack::SelectedNativeSource(_)) {
@@ -158,6 +181,15 @@ impl BodyKernel<'_> {
                 )?;
                 creches += 1;
             }
+            if matches!(
+                driver,
+                InstalledBack::MeasurementChartFace(_) | InstalledBack::MeasurementChartFlowFace(_)
+            ) {
+                chart_faces += 1;
+            }
+            if matches!(driver, InstalledBack::MeasurementPlot(_)) {
+                measurements += 1;
+            }
             if matches!(driver, InstalledBack::Tick(_)) {
                 ticks += 1;
             }
@@ -180,28 +212,49 @@ impl BodyKernel<'_> {
             }
             add(&mut bytes, back_bytes(driver)?)?;
         }
-        if sources > 1
+        if chart_faces > 1
+            || (self.chart_face.is_some() != (chart_faces == 1))
+            || (chart_faces == 1 && (creches != 0 || sources != 0 || ticks != 0))
+            || sources > 1
             || creches > 1
             || files > 1
-            || (files == 1 && (ticks != 0 || sources != 0 || creches != 0))
+            || (files == 1
+                && (ticks != 0
+                    || sources != 0
+                    || creches != 0
+                    || measurements != 0
+                    || chart_faces != 0))
             || (creches == 1 && (ticks != 0 || sources != 0))
-            || (ticks == 0 && sources == 0 && creches == 0 && files == 0)
+            || measurements > 1
+            || (measurements == 1 && (ticks != 0 || sources != 0 || creches != 0))
+            || (ticks == 0
+                && sources == 0
+                && creches == 0
+                && measurements == 0
+                && chart_faces == 0
+                && files == 0)
             || (self.creche.is_some() != (creches == 1))
             || (self.native_source.is_some() != (sources == 1))
         {
             return Err(
-                "IMAGE memory receipt requires exact tick, immediate Source, single Crèche or one funded file operation".into(),
+                "IMAGE memory receipt requires exact tick, one-shot Source, single projection, chart, Crèche or funded file ownership".into(),
             );
         }
         add(
             &mut bytes,
-            if sources == 1 || creches == 1 || files == 1 {
-                self.fore.finite_one_shot_backing_bytes()
+            if sources == 1 || creches == 1 || measurements == 1 || chart_faces == 1 || files == 1 {
+                self.fore
+                    .finite_one_shot_backing_bytes()
+                    .or_else(|| self.fore.image_live_backing_bytes())
             } else {
                 self.fore.tick_backing_bytes()
             }
             .ok_or("IMAGE memory receipt does not support this Fore/input/live contract")?,
         )?;
+        if let Some(route) = &self.chart_face {
+            add(&mut bytes, route.additional_backing_bytes()?)?;
+            add(&mut bytes, route.escaped_backing_bytes()?)?;
+        }
         for host in &self.data_text_hosts {
             add(
                 &mut bytes,

@@ -40,19 +40,26 @@ pub use parsec_instruction_effect_observation::ParsecInstructionEffectObservatio
 
 mod image;
 pub use image::{
-    ImageBodyRunReport, ImageForeInput, ImageMemoryRetention, ImagePreparedValue,
-    ImageRootPreparation,
+    ImageBodyRunReport, ImageForeInput, ImageLiveForeQueue, ImageMemoryRetention,
+    ImagePreparedValue, ImageRootPreparation, ImageRootPreparationOwner,
 };
 mod creche;
 #[cfg(test)]
 mod creche_tests;
 mod execution;
+mod face_route;
 mod issuing_host;
 pub use issuing_host::{ImageIssuingHostRunReport, IssuingHostRunReport};
 mod fore;
 mod fore_custody;
 pub use fore_custody::{
     BodyForeDeliveryStage, BodyForePendingOutput, BodyForePendingOutputMetadata,
+};
+
+pub(crate) mod face_contribution;
+pub use face_contribution::{
+    BodyFaceContributionObserver, CommittedFaceContribution, FaceContributionRefusal,
+    FaceContributionScope, ReturnedFaceContribution,
 };
 
 mod parsec_terminal;

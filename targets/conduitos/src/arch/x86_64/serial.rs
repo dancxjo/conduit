@@ -66,6 +66,7 @@ fn write_byte(byte: u8) -> Result<(), BaseError> {
     Ok(())
 }
 
+#[cfg(target_os = "none")]
 pub(super) fn write_decimal(mut value: u64) {
     let mut digits = [0u8; 20];
     let mut index = digits.len();

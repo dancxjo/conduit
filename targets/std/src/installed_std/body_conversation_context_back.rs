@@ -53,10 +53,10 @@ impl<const PORTS: usize> StepBack<PORTS> for BodyConversationContextBack {
                     return StepOutcome::Progress;
                 }
                 (HostCallDisposition::Denied, _, _) => {
-                    return step_fail(FailureCode::HostCallDenied, 3)
+                    return step_fail(FailureCode::HostCallDenied, 3);
                 }
                 (HostCallDisposition::Cancelled, None, None) => {
-                    return step_fail(FailureCode::Cancelled, 4)
+                    return step_fail(FailureCode::Cancelled, 4);
                 }
                 (_, _, Some(failure)) => return StepOutcome::Fail(failure),
                 _ => return step_fail(FailureCode::HostCallFailed, 4),
@@ -142,7 +142,7 @@ impl<'a> BodyConversationContextHost<'a> {
         });
         let outcome = match poll {
             crate::hosted_body_conversation_context::BodyConversationContextPoll::Pending => {
-                return Ok(false)
+                return Ok(false);
             }
             crate::hosted_body_conversation_context::BodyConversationContextPoll::Lost => {
                 HostCallOutcome {

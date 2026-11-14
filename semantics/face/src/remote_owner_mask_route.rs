@@ -49,15 +49,32 @@ impl RemoteMaskHostBasis {
         {
             return Err(RemoteOwnerMaskRouteError::InvalidHost);
         }
-        let bytes = serde_json::to_vec(host).map_err(|_| RemoteOwnerMaskRouteError::InvalidHost)?;
-        if bytes.len() > MAX_HOST_OFFER_BYTES {
-            return Err(RemoteOwnerMaskRouteError::SealCapacityExceeded);
-        }
+        #[cfg(feature = "std")]
+        let digest =
+            crate::bounded_json::digest(host, MAX_HOST_OFFER_BYTES).map_err(
+                |error| match error {
+                    crate::bounded_json::EncodingError::Invalid => {
+                        RemoteOwnerMaskRouteError::InvalidHost
+                    }
+                    crate::bounded_json::EncodingError::Capacity { .. } => {
+                        RemoteOwnerMaskRouteError::SealCapacityExceeded
+                    }
+                },
+            )?;
+        #[cfg(not(feature = "std"))]
+        let digest: [u8; 32] = {
+            let bytes =
+                serde_json::to_vec(host).map_err(|_| RemoteOwnerMaskRouteError::InvalidHost)?;
+            if bytes.len() > MAX_HOST_OFFER_BYTES {
+                return Err(RemoteOwnerMaskRouteError::SealCapacityExceeded);
+            }
+            Sha256::digest(&bytes).into()
+        };
         Ok(Self {
             host_id: host.host_id.clone(),
             boot_id: host.boot_id.clone(),
             offer_generation: host.offer_generation,
-            offer_digest: hex(&Sha256::digest(&bytes)),
+            offer_digest: hex(&digest),
         })
     }
 
