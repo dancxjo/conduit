@@ -158,3 +158,39 @@ fn stale_show_cannot_turn_a_local_page() {
     ));
     assert_eq!(scene.page(), 0);
 }
+
+#[test]
+fn replacement_keeps_exact_reading_page_without_retaining_old_show() {
+    let face = library();
+    let mut first = NativeFaceScene::prepare(face.clone(), 1024, 600).unwrap();
+    first.turn_page(true);
+    let page = first.page();
+    assert!(page > 0);
+    let position = first.reading_position().unwrap();
+    assert!(!core::mem::needs_drop::<
+        conduitos::native_face_scene::NativeReadingPosition,
+    >());
+    drop(first);
+    let mut fresh = NativeFaceScene::prepare(face.clone(), 1024, 600).unwrap();
+    assert!(fresh.restore_reading_position(position));
+    assert_eq!(fresh.page(), page);
+    assert_eq!(fresh.face(), &face);
+    assert!(!fresh.has_pending_input());
+    let mut changed_extent = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+    assert!(!changed_extent.restore_reading_position(position));
+    assert_eq!(changed_extent.page(), 0);
+    let changed_face = Face::new_with_semantics(
+        face.revision + 1,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
+        face.actions,
+        face.disclosures,
+    )
+    .unwrap();
+    let mut changed = NativeFaceScene::prepare(changed_face, 1024, 600).unwrap();
+    assert!(!changed.restore_reading_position(position));
+    assert_eq!(changed.page(), 0);
+}
