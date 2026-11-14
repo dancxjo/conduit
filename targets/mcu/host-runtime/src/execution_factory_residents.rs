@@ -37,6 +37,15 @@ pub unsafe trait PreparedResidents<const E: usize> {
         None
     }
 
+    /// None is uninspectable/out of bounds; Some(None) is an unselected slot.
+    /// A report describes only the same exact loan later returned by bind.
+    fn retained_inputs_at<const P: usize>(
+        &self,
+        _slot: usize,
+    ) -> Option<Option<crate::execution::RetainedInputs<P>>> {
+        None
+    }
+
     fn retained_backing_bytes(&self) -> Option<usize>;
     fn bind(self) -> [Option<(u16, Self::Back)>; E];
 }
@@ -64,6 +73,11 @@ pub unsafe trait PreparedResidentEntry {
         &self,
     ) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
         None
+    }
+
+    /// Unknown is the default until this exact implementation is audited.
+    fn retained_inputs<const P: usize>(&self) -> crate::execution::RetainedInputs<P> {
+        crate::execution::RetainedInputs::Unknown
     }
 
     fn retained_backing_bytes(&self) -> Option<usize>;
@@ -111,6 +125,12 @@ unsafe impl<L: PreparedResidentEntry, const E: usize> PreparedResidents<E>
             Some(loan) => loan.execution_workspace_requirements::<P>(),
             None => Some(None),
         }
+    }
+    fn retained_inputs_at<const P: usize>(
+        &self,
+        slot: usize,
+    ) -> Option<Option<crate::execution::RetainedInputs<P>>> {
+        Some(self.0.get(slot)?.as_ref().map(L::retained_inputs::<P>))
     }
     fn retained_backing_bytes(&self) -> Option<usize> {
         self.0
@@ -202,6 +222,27 @@ mod tests {
             assert_eq!(cost.allocations, 0);
             assert_eq!(cost.reallocations, 0);
         }
+        // Unknown selected custody must remain distinct from no selected owner.
+        // Inspection cannot consume the affine loan or allocate a report.
+        let (retention, cost) =
+            crate::member_return_tests::return_allocation_probe::observe(|| {
+                (
+                    subset.retained_inputs_at::<2>(0),
+                    subset.retained_inputs_at::<2>(1),
+                    subset.retained_inputs_at::<2>(2),
+                    subset.retained_inputs_at::<2>(3),
+                )
+            });
+        assert_eq!(
+            retention,
+            (
+                Some(Some(crate::execution::RetainedInputs::Unknown)),
+                Some(None),
+                Some(Some(crate::execution::RetainedInputs::Unknown)),
+                None,
+            )
+        );
+        assert_eq!(cost.allocation_attempts, 0);
         assert!(available.get());
         // A different uninspectable selected slot prevents a full report, but
         // cannot force this per-slot entrance to materialize/query all E rows.

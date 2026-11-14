@@ -11,3 +11,7 @@ SharedSchemaValueStore preserves original logical references, generations and re
 Devices remain on their earlier firmware. This checkpoint does not establish new admitted sensing/display Plays or overnight history. Neutral service still refuses structured-fore-mask-unavailable. Keep physical devices working until a replacement is qualified.
 
 Private credentials, Body keys, and journals are intentionally excluded. Evidence and reproduction scripts are retained alongside this note. Draft PR6902 preserves experiments; PR6837 carries shared integration work.
+
+## Latest retention evidence
+
+Shared parent 5f8cf38bf35dbe1b7fcf2e376abdaadee820448e adds default-unknown retained-input reports on exact prepared owners, resident loan delegation, and audited software variants. Full runtime library suite: 135 passed, one ignored; strict all-feature library Clippy passes; exact native/resident mapping inspection passes without allocation or binding. Native pending pins and unaudited resident implementations remain Unknown. This does not yet select the compact store or establish a complete lifetime certificate. Next implement the checked physical-stock calculation and exact compiled-resident reports, then construct/select values only after actual prepared owners are available.
