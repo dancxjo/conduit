@@ -5,6 +5,7 @@ use super::*;
 use crate::durable_host_control as control;
 use conduit_face::{FaceInteraction, MaskShow};
 use conduit_std_host::{StdHost, StdHostConfig};
+use std::path::Path;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
