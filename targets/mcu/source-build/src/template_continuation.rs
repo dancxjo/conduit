@@ -25,6 +25,9 @@ pub struct ResourcePin {
 pub struct ContinuationPins {
     pub fore: Vec<ForePin>,
     pub resources: Vec<ResourcePin>,
+    /// Canonical plain rows from the same checked bindings. Content-bearing
+    /// resources cannot use the plain installed-table representation.
+    pub plain_resource_bindings: Option<Vec<u8>>,
 }
 pub(super) fn capture(
     fragment: &c::PlanFragment,
@@ -92,6 +95,7 @@ pub(super) fn capture(
         });
     }
     let mut resources = Vec::new();
+    let mut plain_resource_bindings = Some(Vec::new());
     for pin in &kernel.resources {
         let node = kernel
             .nodes
@@ -110,6 +114,20 @@ pub(super) fn capture(
         if binding.units != pin.units || binding.protected.is_some() || binding.compute.is_some() {
             return Err("continuation unsupported or inconsistent resource".into());
         }
+        if binding.content.is_some() {
+            plain_resource_bindings = None;
+        } else if let Some(bytes) = &mut plain_resource_bindings {
+            conduit_body::PlainFragmentResource {
+                node: pin.node,
+                resource: pin.resource,
+                placement: placement.placement_id.as_str(),
+                pool: binding.pool_id.as_str(),
+                class: binding.class_id.as_str(),
+                units: binding.units,
+            }
+            .append_to(bytes)
+            .map_err(|_| "installed plain resource encoding")?;
+        }
         resources.push(ResourcePin {
             node: pin.node,
             resource: pin.resource,
@@ -122,6 +140,7 @@ pub(super) fn capture(
     Ok(ContinuationPins {
         fore: rows,
         resources,
+        plain_resource_bindings,
     })
 }
 impl ContinuationPins {
@@ -142,6 +161,16 @@ impl ContinuationPins {
             .unwrap();
         }
         text.push_str("];\n");
+        match &self.plain_resource_bindings {
+            Some(bytes) => writeln!(
+                text,
+                "pub const INSTALLED_PLAIN_RESOURCE_BINDINGS:Option<&[u8]>=Some(&{bytes:?});"
+            )
+            .unwrap(),
+            None => {
+                text.push_str("pub const INSTALLED_PLAIN_RESOURCE_BINDINGS:Option<&[u8]>=None;\n")
+            }
+        }
         text
     }
 }

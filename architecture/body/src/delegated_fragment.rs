@@ -80,8 +80,22 @@ impl<'a> BodyFragmentApprovalMetadata<'a> {
         metadata.check()?;
         Ok(metadata)
     }
+    /// Schema4 wire data references independently installed canonical plain rows.
+    /// The explicit installed-table receiver remains separately required.
+    pub fn from_prepared_with_resource_reference(
+        scope: PreparedBodyFragment<'a>,
+        projection: &[u8],
+        reference: &'a [u8; PLAIN_RESOURCE_REFERENCE_BYTES],
+        fore_ports: &'a [u8],
+    ) -> Result<Self, BodyFragmentDocumentRefusal> {
+        let mut metadata = Self::from_prepared(scope, projection, reference, fore_ports)?;
+        metadata.schema = 4;
+        metadata.check()?;
+        Ok(metadata)
+    }
     pub(super) fn check(&self) -> Result<(), BodyFragmentDocumentRefusal> {
-        if self.schema != 3
+        if !matches!(self.schema, 3 | 4)
+            || (self.schema == 4 && !resources::installed::check_reference(self.resource_bindings))
             || self.offer_generation == 0
             || self.local_fragment_count == 0
             || self.projection_length == 0
@@ -197,3 +211,11 @@ pub fn local_fragment_set_commitment(
 ) -> Result<(u16, [u8; 32]), BodyFragmentDocumentRefusal> {
     workset::fragment_set_commitment(ids)
 }
+
+#[cfg(feature = "authenticated-admission")]
+mod installed_receiving;
+#[cfg(feature = "authenticated-admission")]
+pub use installed_receiving::{
+    receive_delegated_body_fragment_with_installed_plain_resources,
+    AssignedBodyInstalledPlainResourcesProfile,
+};

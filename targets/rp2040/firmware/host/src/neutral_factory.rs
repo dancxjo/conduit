@@ -66,12 +66,29 @@ pub fn prepare<'a, 'f: 'a, 'w, I: I2cProvider + 'a, D: MonotonicDeadlineProvider
     Refusal<&'static str>,
 > {
     let fore = layout::fore();
-    let selected_profile = profile(context.actual, &fore);
-    PreparedLocalWorkset::prepare::<{ crate::config::MAX_ASSIGNMENT_BYTES }, FORE_PORTS, _>(
+    let resources = b::InstalledPlainResourceTable::new(
+        layout::INSTALLED_PLAIN_RESOURCE_BINDINGS.ok_or(Refusal::Back("plain-resource-profile"))?,
+    )
+    .map_err(|_| Refusal::Back("installed-resource-table"))?;
+    PreparedLocalWorkset::prepare_selected_profiles::<
+        { crate::config::MAX_ASSIGNMENT_BYTES },
+        FORE_PORTS,
+        _,
+    >(
         workspace,
         context,
         policy,
-        [selected_profile],
+        |index, _| {
+            if index != 0 {
+                return Err("neutral-profile-index");
+            }
+            Ok(conduit_mcu_host_runtime::execution_workset::AssignedPreparationProfile::InstalledPlainResources(
+                b::AssignedBodyInstalledPlainResourcesProfile {
+                    preparation: profile(context.actual, &fore),
+                    resources,
+                },
+            ))
+        },
         move |[approved], [approved_fore]| {
             let approved_fore = approved_fore.as_slice();
             let metadata = approved.metadata();

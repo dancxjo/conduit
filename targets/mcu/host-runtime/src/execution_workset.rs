@@ -25,6 +25,9 @@ use conduit_core as c;
 pub enum AssignedPreparationProfile<'a> {
     Legacy(b::AssignedBodyPreparationProfile<'a>),
     LineFore(b::AssignedBodyLineForePreparationProfile<'a>),
+    /// Explicit installed canonical resource rows; the command carries their
+    /// exact reference. Resolution creates no admission or provider custody.
+    InstalledPlainResources(b::AssignedBodyInstalledPlainResourcesProfile<'a>),
 }
 
 /// Prepared concrete kernels and their actual exclusive provider loans.

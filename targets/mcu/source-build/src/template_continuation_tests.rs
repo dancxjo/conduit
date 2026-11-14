@@ -5,6 +5,43 @@ pub(super) fn assert_unchanged_fore(
     host: &c::HostAdvertisement,
     restarted: &c::HostAdvertisement,
 ) {
+    // Both emitted representations describe the original checked bindings.
+    let plain = layout
+        .continuation
+        .plain_resource_bindings
+        .as_deref()
+        .expect("this fixture has only plain resources");
+    let decoded = conduit_body::PlainFragmentResources::new(plain)
+        .collect::<Result<Vec<_>, _>>()
+        .unwrap();
+    assert_eq!(decoded.len(), layout.continuation.resources.len());
+    let mut canonical = Vec::new();
+    for (row, pin) in decoded.iter().zip(&layout.continuation.resources) {
+        assert_eq!(
+            (
+                row.node,
+                row.resource,
+                row.placement,
+                row.pool,
+                row.class,
+                row.units
+            ),
+            (
+                pin.node,
+                pin.resource,
+                pin.placement.as_str(),
+                pin.pool.as_str(),
+                pin.class.as_str(),
+                pin.units
+            )
+        );
+        row.append_to(&mut canonical).unwrap();
+    }
+    assert_eq!(canonical, plain);
+    assert!(layout
+        .continuation
+        .emit()
+        .contains("INSTALLED_PLAIN_RESOURCE_BINDINGS:Option<&[u8]>=Some("));
     // Emitted named Fore pins preserve the canonical connection when only
     // Boot changes; those names are not runtime capabilities or epochs.
     let fresh_fore: Vec<_> = layout

@@ -260,8 +260,15 @@ fn payload(
     }
     let (local_fragment_count, local_fragment_digest) =
         b::local_fragment_set_commitment(&[&fragment]).unwrap();
+    // Reference only the independently emitted exact plain table. The receiver
+    // must resolve this through its installed profile before normal admission.
+    assert_eq!(
+        resources.as_slice(),
+        layout::INSTALLED_PLAIN_RESOURCE_BINDINGS.unwrap()
+    );
+    let resource_reference = b::plain_resource_table_reference(&resources).unwrap();
     let metadata = b::BodyFragmentApprovalMetadata {
-        schema: 3,
+        schema: 4,
         body: context.member.body_id.as_str(),
         wake,
         body_plan: &body_plan,
@@ -278,7 +285,7 @@ fn payload(
         offer_generation: actual.offer_generation.0,
         local_fragment_count,
         local_fragment_digest,
-        resource_bindings: &resources,
+        resource_bindings: &resource_reference,
         fore_ports: &fore,
         projection_length: projection.len().try_into().unwrap(),
         projection_digest: c::assigned_plan_payload_digest(&projection),
@@ -290,9 +297,9 @@ fn payload(
     let diagnostic = b::encode_body_fragment_document(&metadata, &projection, 65_535).unwrap();
     let header = diagnostic.len() - projection.len();
     drop(diagnostic);
-    println!("cpu_signed_assignment_projection_bytes={} cpu_signed_assignment_metadata_bytes={header} cpu_signed_assignment_workset_bytes={} installed_assignment_bytes={} resource_metadata_bytes={} fore_metadata_bytes={} no_limit_change",
+    println!("cpu_signed_assignment_projection_bytes={} cpu_signed_assignment_metadata_bytes={header} cpu_signed_assignment_workset_bytes={} installed_assignment_bytes={} resource_reference_bytes={} installed_resource_bytes={} fore_metadata_bytes={} no_limit_change",
         projection.len(), header + projection.len() + 14, crate::config::MAX_ASSIGNMENT_BYTES,
-        resources.len(), fore.len());
+        resource_reference.len(), resources.len(), fore.len());
     let document = b::encode_body_fragment_document(
         &metadata,
         &projection,
