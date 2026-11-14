@@ -167,8 +167,15 @@ fn run_schema_cases(workspace: bool, linked: bool) {
         .unwrap();
         #[cfg(feature = "execution-workspace")]
         if let Some(shared) = shared_back {
-            assert_eq!(shared.left.capacity(), back.left.capacity());
-            assert_eq!(shared.right.capacity(), back.right.capacity());
+            let prefix = if linked { schema.len() } else { 0 };
+            assert_eq!(
+                shared.left.capacity(),
+                back.left.capacity().checked_sub(prefix).unwrap()
+            );
+            assert_eq!(
+                shared.right.capacity(),
+                back.right.capacity().checked_sub(prefix).unwrap()
+            );
             assert_eq!(
                 core::mem::size_of_val(&shared),
                 core::mem::size_of_val(&back)

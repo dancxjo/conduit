@@ -8,6 +8,8 @@ mod encoder;
 mod exact;
 mod schema_input;
 #[cfg(feature = "execution-workspace")]
+mod static_input;
+#[cfg(feature = "execution-workspace")]
 mod static_prepare;
 #[cfg(feature = "execution-workspace")]
 mod static_workspace_encoder;
@@ -168,8 +170,12 @@ impl FlowZipBack {
         self.encode_pair_into(None)
     }
     fn encode_pair_into(&mut self, output: Option<&mut [u8]>) -> Option<usize> {
-        let left = &self.left[..self.left_len?];
-        let right = &self.right[..self.right_len?];
+        let left = self
+            .left
+            .get(..self.encoder.pending_length(0, self.left_len?)?)?;
+        let right = self
+            .right
+            .get(..self.encoder.pending_length(1, self.right_len?)?)?;
         #[cfg(feature = "execution-workspace")]
         if let Some(output) = output {
             return self
@@ -278,39 +284,43 @@ impl FlowZipBack {
             right_type,
             right.maximum_bytes,
         )?;
+        let output_maximum = encoder.maximum_encoded_bytes();
+        let encoder = {
+            #[cfg(feature = "execution-workspace")]
+            if workspace {
+                if let Some(schemas) = static_schemas {
+                    PairEncoder::StaticWorkspace(Box::new(
+                        static_workspace_encoder::StaticWorkspacePair::prepare(
+                            &encoder,
+                            [left.maximum_bytes, right.maximum_bytes],
+                            schemas,
+                        )?,
+                    ))
+                } else {
+                    PairEncoder::Workspace(Box::new(workspace_encoder::WorkspacePair::prepare(
+                        &encoder,
+                        [left.maximum_bytes, right.maximum_bytes],
+                    )?))
+                }
+            } else {
+                PairEncoder::Typed(Box::new(encoder.into_runtime()))
+            }
+            #[cfg(not(feature = "execution-workspace"))]
+            {
+                let _ = (workspace, static_schemas);
+                PairEncoder::Typed(Box::new(encoder.into_runtime()))
+            }
+        };
+        let left_backing = encoder.pending_capacity(0, left_backing)?;
+        let right_backing = encoder.pending_capacity(1, right_backing)?;
         Ok(Self {
             left: vec![0; left_backing],
             left_len: None,
             right: vec![0; right_backing],
             right_len: None,
             candidate_side: None,
-            output_maximum: encoder.maximum_encoded_bytes(),
-            encoder: {
-                #[cfg(feature = "execution-workspace")]
-                if workspace {
-                    if let Some(schemas) = static_schemas {
-                        PairEncoder::StaticWorkspace(Box::new(
-                            static_workspace_encoder::StaticWorkspacePair::prepare(
-                                &encoder,
-                                [left.maximum_bytes, right.maximum_bytes],
-                                schemas,
-                            )?,
-                        ))
-                    } else {
-                        PairEncoder::Workspace(Box::new(workspace_encoder::WorkspacePair::prepare(
-                            &encoder,
-                            [left.maximum_bytes, right.maximum_bytes],
-                        )?))
-                    }
-                } else {
-                    PairEncoder::Typed(Box::new(encoder.into_runtime()))
-                }
-                #[cfg(not(feature = "execution-workspace"))]
-                {
-                    let _ = (workspace, static_schemas);
-                    PairEncoder::Typed(Box::new(encoder.into_runtime()))
-                }
-            },
+            output_maximum,
+            encoder,
             output_staged: false,
             finish_after_commit: false,
             closing: false,

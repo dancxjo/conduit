@@ -91,7 +91,7 @@ fn linked_pair_matches_owned_values_and_refusals_without_execution_allocations()
     }
 }
 #[test]
-fn static_zip_keeps_original_pending_sizes_and_feedback_lifecycle_flags() {
+fn static_zip_removes_only_schema_prefix_capacity_and_keeps_lifecycle_flags() {
     let (record, bytes, leaf, schemas) = fixture();
     let left = CheckedValueContract::new(
         record.profile().unwrap().value_kind().clone(),
@@ -133,7 +133,7 @@ fn static_zip_keeps_original_pending_sizes_and_feedback_lifecycle_flags() {
         assert_eq!(
             (linked.left.len(), linked.right.len(), linked.output_maximum),
             (
-                ordinary.left.len(),
+                ordinary.left.len().checked_sub(schemas[0].len()).unwrap(),
                 ordinary.right.len(),
                 ordinary.output_maximum
             )
@@ -190,4 +190,143 @@ fn static_pending_sides_survive_missing_workspace_and_cancel_retires_them() {
     <FlowZipBack as StepBack<2>>::cancel(&mut back);
     assert_eq!((back.left_len, back.right_len), (None, None));
     assert!(<FlowZipBack as StepBack<2>>::prepared_output(&back, PortId(0)).is_none());
+}
+
+#[test]
+fn node_pending_refuses_bad_envelopes_and_survives_failed_step_pressure_and_retry() {
+    let (record, bytes, leaf, schemas) = fixture();
+    let left = CheckedValueContract::new(
+        record.profile().unwrap().value_kind().clone(),
+        bytes.len() as u32,
+        vec![],
+    )
+    .unwrap();
+    let right = CheckedValueContract::new(kind_id("value/u64"), 8, vec![]).unwrap();
+    let mut back = FlowZipBack::prepare_typed_finite_static_workspace(
+        &left,
+        record.clone(),
+        &right,
+        leaf.clone(),
+        schemas,
+    )
+    .unwrap();
+    let mut wrong = bytes.clone();
+    wrong[0] ^= 1;
+    let mut malformed = bytes.clone();
+    malformed[schemas[0].len()] = 255;
+    let mut oversized = bytes.clone();
+    oversized.push(0);
+    back.left.fill(0xa5);
+    for invalid in [
+        wrong.as_slice(),
+        &bytes[..bytes.len() - 1],
+        &bytes[..schemas[0].len() - 1],
+        malformed.as_slice(),
+        &[],
+        oversized.as_slice(),
+    ] {
+        let mut io = StepIo::test_frame(
+            [
+                Some(conduit_kernel::ValueRef {
+                    slot: 0,
+                    generation: 1,
+                    byte_len: invalid.len() as u32,
+                }),
+                None,
+            ],
+            [false; 2],
+            [None; 2],
+            None,
+            16,
+        );
+        assert!(matches!(
+            back.step(
+                &mut io,
+                &StepInputBytes::test_frame([Some(invalid), None], None)
+            ),
+            StepOutcome::Fail(_)
+        ));
+        assert!(!io.test_consumed(PortId(0)));
+        assert_eq!(back.left_len, None);
+        assert!(back.left.iter().all(|n| *n == 0xa5));
+    }
+    let right = 9u64.to_le_bytes();
+    for (side, data) in [bytes.as_slice(), right.as_slice()].into_iter().enumerate() {
+        let mut refs = [None; 2];
+        let mut inputs = [None; 2];
+        refs[side] = Some(conduit_kernel::ValueRef {
+            slot: side as u16,
+            generation: 1,
+            byte_len: data.len() as u32,
+        });
+        inputs[side] = Some(data);
+        let mut io = StepIo::test_frame(refs, [false; 2], [None; 2], None, 16);
+        assert_eq!(
+            back.step(&mut io, &StepInputBytes::test_frame(inputs, None)),
+            StepOutcome::Progress
+        );
+        assert!(if side == 0 {
+            back.left_len.is_none()
+        } else {
+            back.right_len.is_none()
+        });
+        <FlowZipBack as StepBack<2>>::step_committed(&mut back);
+    }
+    assert_eq!(back.left_len, Some(bytes.len()));
+    assert_eq!(back.left, bytes[schemas[0].len()..]);
+    assert!(
+        back.left_len.unwrap() > back.left.len(),
+        "logical ceiling is never the smaller node backing"
+    );
+    let mut original =
+        PreparedTypedTuplePairEncoder::new(record, left.maximum_bytes, leaf, 8).unwrap();
+    let expected = original.encode(&bytes, &right).unwrap().to_vec();
+    let mut output = vec![0xa5; expected.len()];
+    let pending = (back.left_len, back.right_len);
+    let allocations = crate::test_support::allocation::allocations_during(|| {
+        let mut io = StepIo::test_frame(
+            [None; 2],
+            [false; 2],
+            [Some(expected.len() as u32), None],
+            None,
+            16,
+        );
+        assert!(matches!(
+            back.step_inner(
+                &mut io,
+                &StepInputBytes::test_frame([None; 2], None),
+                Some(&mut output[..1])
+            ),
+            StepOutcome::Fail(_)
+        ));
+        assert!(output.iter().all(|n| *n == 0xa5));
+        assert_eq!((back.left_len, back.right_len), pending);
+        for close in [false, true] {
+            let mut io = StepIo::test_frame(
+                [None; 2],
+                [close, false],
+                [Some(expected.len() as u32 - 1), None],
+                None,
+                16,
+            );
+            assert_eq!(
+                back.step_inner(
+                    &mut io,
+                    &StepInputBytes::test_frame([None; 2], None),
+                    Some(&mut output)
+                ),
+                StepOutcome::Await
+            );
+            assert!(!io.test_consumed_closed(PortId(0)));
+            assert_eq!((back.left_len, back.right_len), pending);
+        }
+        assert_eq!(
+            back.encode_pair_into(Some(&mut output)),
+            Some(expected.len())
+        );
+        assert_eq!(output, expected);
+    });
+    assert_eq!(allocations, 0);
+    <FlowZipBack as StepBack<2>>::cancel(&mut back);
+    assert_eq!((back.left_len, back.right_len), (None, None));
 }

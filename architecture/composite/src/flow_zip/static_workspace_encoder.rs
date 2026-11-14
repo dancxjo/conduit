@@ -73,7 +73,45 @@ impl StaticWorkspacePair {
             .validate_node(node)
             .map(|_| ())
     }
+    pub(super) fn logical_maximum(&self, side: usize) -> usize {
+        self.maxima[side] as usize
+    }
+    pub(super) fn pending_length(&self, side: usize, logical: usize) -> Option<usize> {
+        logical.checked_sub(
+            self.members
+                .get(side)?
+                .as_ref()
+                .map_or(0, |v| v.type_bytes().len()),
+        )
+    }
+    pub(super) fn input_node<'a>(
+        &self,
+        side: usize,
+        input: &'a [u8],
+    ) -> Result<&'a [u8], StructuredInfoRefusal> {
+        if input.len() > self.logical_maximum(side) {
+            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        match &self.members[side] {
+            Some(validator) => validator.validate(input).map(|value| value.value_node()),
+            None => Ok(input),
+        }
+    }
+    #[cfg(test)]
     pub(super) fn encode_into<'out>(
+        &self,
+        inputs: [&[u8]; 2],
+        output: &'out mut [u8],
+    ) -> Result<&'out [u8], StructuredInfoRefusal> {
+        self.encode_pending_into(
+            [
+                self.input_node(0, inputs[0])?,
+                self.input_node(1, inputs[1])?,
+            ],
+            output,
+        )
+    }
+    pub(super) fn encode_pending_into<'out>(
         &self,
         inputs: [&[u8]; 2],
         output: &'out mut [u8],
@@ -84,7 +122,7 @@ impl StaticWorkspacePair {
             }
             match &self.members[side] {
                 Some(validator) => validator
-                    .validate(inputs[side])
+                    .validate_node(inputs[side])
                     .map(BorrowedStructuredValue::Canonical),
                 None => Ok(BorrowedStructuredValue::Leaf(inputs[side])),
             }

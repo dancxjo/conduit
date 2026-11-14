@@ -74,7 +74,7 @@ impl PairEncoder {
     ) -> Result<&'out [u8], StructuredInfoRefusal> {
         match self {
             Self::Workspace(encoder) => encoder.encode_into([left, right], output),
-            Self::StaticWorkspace(encoder) => encoder.encode_into([left, right], output),
+            Self::StaticWorkspace(encoder) => encoder.encode_pending_into([left, right], output),
             _ => Err(StructuredInfoRefusal::WrongType),
         }
     }
@@ -98,5 +98,48 @@ impl PairEncoder {
         conduit_core::BorrowedStructuredValueValidator::new(schema, maximum)?
             .validate_node(node)
             .map(|_| ())
+    }
+}
+
+impl PairEncoder {
+    pub(super) fn pending_capacity(
+        &self,
+        side: usize,
+        logical: usize,
+    ) -> Result<usize, StructuredInfoRefusal> {
+        #[cfg(feature = "execution-workspace")]
+        if let Self::StaticWorkspace(encoder) = self {
+            return encoder
+                .pending_length(side, logical)
+                .ok_or(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        let _ = side;
+        Ok(logical)
+    }
+    pub(super) fn pending_length(&self, side: usize, logical: usize) -> Option<usize> {
+        #[cfg(feature = "execution-workspace")]
+        if let Self::StaticWorkspace(encoder) = self {
+            return encoder.pending_length(side, logical);
+        }
+        let _ = side;
+        Some(logical)
+    }
+    pub(super) fn logical_maximum(&self, side: usize, backing: usize) -> usize {
+        #[cfg(feature = "execution-workspace")]
+        if let Self::StaticWorkspace(encoder) = self {
+            return encoder.logical_maximum(side);
+        }
+        let _ = side;
+        backing
+    }
+    #[cfg(feature = "execution-workspace")]
+    pub(super) fn static_pair(
+        &self,
+    ) -> Option<&super::static_workspace_encoder::StaticWorkspacePair> {
+        if let Self::StaticWorkspace(encoder) = self {
+            Some(encoder)
+        } else {
+            None
+        }
     }
 }

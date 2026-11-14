@@ -8,6 +8,10 @@ impl FlowZipBack {
         logical_length: usize,
         maximum: usize,
     ) -> Result<usize, u16> {
+        #[cfg(feature = "execution-workspace")]
+        if let Some(result) = self.copy_static_input(inputs, port, logical_length, maximum) {
+            return result;
+        }
         let side = usize::from(port.0);
         #[cfg(feature = "schema-value-storage")]
         if let Some(parts) = inputs.canonical_parts(port) {

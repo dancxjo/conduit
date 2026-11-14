@@ -143,8 +143,18 @@ impl FlowZipBack {
         }
 
         for (side, port, pending, maximum) in [
-            (0, PortId(0), self.left_len, self.left.len()),
-            (1, PortId(1), self.right_len, self.right.len()),
+            (
+                0,
+                PortId(0),
+                self.left_len,
+                self.encoder.logical_maximum(0, self.left.len()),
+            ),
+            (
+                1,
+                PortId(1),
+                self.right_len,
+                self.encoder.logical_maximum(1, self.right.len()),
+            ),
         ] {
             if pending.is_some() {
                 continue;
