@@ -1,0 +1,72 @@
+{
+  "status": "qualified shared-kernel retained phase-byte specialization; no device/fit/admission claim",
+  "API": {
+    "FixedScheduler": "PHASE_BYTES appended AFTER TERMINAL_ROWS; default CanonicalValue::MAXIMUM_BYTES100",
+    "PreparedKernelSession": "same appended const/default",
+    "storage": "Only ActiveTerminalPhase::Abnormal stores private PhaseTerminal<B>; public CanonicalValue, StepIo, StepOutcome, CordState and unresolved_abnormal retain full100 bytes",
+    "gates": "B<100 refuses ANY selected FinalizeThenPropagate contract in boxed/table-writer/bind before writer/allocation/provider transfer; no smaller per-port abnormal envelope is inferred"
+  },
+  "tests": {
+    "all_kernel_lib": {
+      "passed": 258,
+      "ignored": 3,
+      "log": "outputs/kernel-phase-terminal-all-tests-20261114.log"
+    },
+    "focused_phase": {
+      "passed": 3,
+      "log": "outputs/kernel-phase-terminal-tests-20261114.log"
+    },
+    "noalloc_check": {
+      "passed": true,
+      "log": "outputs/kernel-phase-terminal-noalloc-check-20261114.log"
+    },
+    "strict_kernel_lib_tests_clippy": {
+      "passed": true,
+      "log": "outputs/kernel-phase-terminal-clippy-20261114.log"
+    }
+  },
+  "evidence": [
+    "normal closure and full100B incoming abnormal traces match B100/B0",
+    "full100B spontaneous outcome preserves sibling CordState and unresolved truth; routed value and Sign traces match",
+    "B0/B99 reject matching Finalize before writer or allocation, dropping owned values once",
+    "B100 complete Finalize trace tested with4B and100B terminal, retry/output pressure and cancellation",
+    "size_ofSelf exact physical budget and one-byte-short refusal",
+    "zero execution allocations/reallocations"
+  ],
+  "actual_cpu64_fixture": {
+    "B100_kernel_bytes": 4168,
+    "B0_kernel_bytes": 4064,
+    "saved_per_node_phase_bytes": 104,
+    "not_arm_measurement": true
+  },
+  "files": {
+    "architecture/kernel/src/scheduler.rs": "a0e5df061ccfe9f31122b1729838ee569db4cdff3133d988c5d4705f1b40b2bc",
+    "architecture/kernel/src/scheduler/boxed_preparation.rs": "f640f04b19d6fece3a973cd261265f17e8edceb711af544e7648284186d90994",
+    "architecture/kernel/src/scheduler/boxed_preparation/fixed_signs.rs": "462038dc61aabde92abd65e851be00fd53a7f1611f48202ac8c4e53feb2d9878",
+    "architecture/kernel/src/scheduler/boxed_preparation/table_writer.rs": "b1ea164801228ddca4e1d65d97413cb7e339e914ae32940b5df64a3f1acd0208",
+    "architecture/kernel/src/scheduler/compact_f32.rs": "44b5b91c8863ba25ad3a34dc995ac081f9e3f9c3376261474939a7b0333f3fa4",
+    "architecture/kernel/src/scheduler/execution_dag.rs": "bcc9b6f38d073afbaf42bdab6a475460487678ee68749950506a0b89131a6522",
+    "architecture/kernel/src/scheduler/execution_region.rs": "0c73ca89b3daa1c043656ec128b8d53934290c1d4182e54c1fafea482dd6e216",
+    "architecture/kernel/src/scheduler/execution_workspace.rs": "c1f523e11390ba38e644c35c4e0d5a23863308aa4f99cc3d0aaf86eec8aca91c",
+    "architecture/kernel/src/scheduler/host_call_index.rs": "99e5f85e9d563a069e2f3146f12882f2334edac2dbd31fb29b866e178a877555",
+    "architecture/kernel/src/scheduler/host_call_settlement.rs": "86a2508d66eb1b029086a62638d2bfb1004ef97110578b838fe87ba34c7e9aac",
+    "architecture/kernel/src/scheduler/host_dispatch.rs": "90abd75c4004786ae7698408a0368a41bf8e34ed0b067a873b35083933e2c155",
+    "architecture/kernel/src/scheduler/host_input_ownership.rs": "e3c364efb82b2b37a7530fcc8da354c857496fdd3c3e2fe583d13c81ba058974",
+    "architecture/kernel/src/scheduler/host_values.rs": "7369ea3c043e250956f2b849affab33041cddff05c4ce17daf4bf4b9d2e878f7",
+    "architecture/kernel/src/scheduler/linked_terminal_tests.rs": "a1b7579476965b9fca119104d26cdd1d65309de74cb1cf64527778abbd345b0f",
+    "architecture/kernel/src/scheduler/local_fore.rs": "010dce52fbc249d24ac5a704648e3aa9d7e1b826a589b173e3fd897e31a85c89",
+    "architecture/kernel/src/scheduler/native_region.rs": "2f2c52e5141745c20c3df64bf55cd7495f39825f36795a6bb26ac2a3aa61f3d9",
+    "architecture/kernel/src/scheduler/payload_admission.rs": "ea854ca2fd59a1cef57d198974e0e35860632efce0f35c8de0e38ce78d2d53b0",
+    "architecture/kernel/src/scheduler/prepared_session.rs": "3b08412bbd85e0cce683110181d823017f3461d77b8942bdb8d719e8b8938028",
+    "architecture/kernel/src/scheduler/prepared_session/owned_boundaries.rs": "85c7b35b77487f4a349ad395ceac9a1763a8ed92b45914df971562166a747888",
+    "architecture/kernel/src/scheduler/quiescence.rs": "0aa11b0ce0b2d26d12c87da5f601bc6baf645a0a915331eb7ea329f28dbc2c3c",
+    "architecture/kernel/src/scheduler/remote_fanout.rs": "26b5c0e13ad8c97e37cda6b366bcdda21d1939223f19c7a05508985b39bf31b3",
+    "architecture/kernel/src/scheduler/retirement.rs": "32bb1286fb5223197968e62769c4d78bd4647d6f1c44c82dd2aea05915493f2d",
+    "architecture/kernel/src/scheduler/schema_region.rs": "0aa7c922a1857acd37aa4640bdbb3d998716d8fe6eb50a19f6e8285db7c8abbc",
+    "architecture/kernel/src/scheduler/terminal_admission.rs": "66499b54a6e4ee2526a3699f78594d0119d92c47e2072e0e9c5a4104f1bf0095",
+    "architecture/kernel/src/scheduler/tests.rs": "ca9df8b5bd92f04508043a69f5ab10bf405f162211c722e1b9d29bc2d36a0403",
+    "architecture/kernel/src/scheduler/phase_terminal.rs": "09a27a8e4ede909faeed5a316d665f654f60c02475d57f1135fe42c0f7ba9bcd",
+    "architecture/kernel/src/scheduler/phase_terminal_tests.rs": "05b43bcc686953a868f70da3f5ce4fe6a8fa0a92729675c223b5ec64e4ea69c0"
+  },
+  "source_cache_barrier": "released; all builds terminal0; no pending changes"
+}

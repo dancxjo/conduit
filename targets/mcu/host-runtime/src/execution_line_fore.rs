@@ -106,7 +106,8 @@ impl<
         V: ExecutionValues,
         const Q: usize,
         const M: usize,
-    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M>
+        const F: usize,
+    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M, F>
 {
     /// Explicit schema-8 producer factory entrance with independently pinned
     /// Line/Fore and borrowed immutable terminal laws. Exact table/layout checks

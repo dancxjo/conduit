@@ -16,12 +16,22 @@ static CONTRACTS: [[Option<AssignedTerminalTransduction>; 2]; 1] = [[law(0), law
 struct Back {
     first_closed: bool,
     changed_law: bool,
+    finalizes: bool,
 }
 impl StepBack<2> for Back {
     fn terminal_transductions(&self) -> [Option<AssignedTerminalTransduction>; 2] {
         let mut contracts = CONTRACTS[0];
         if self.changed_law {
             contracts[0].as_mut().unwrap().normal_close = AssignedNormalCloseTransduction::Consume;
+        }
+        if self.finalizes {
+            contracts[0].as_mut().unwrap().abnormal =
+                AssignedAbnormalTransduction::FinalizeThenPropagate(
+                    AssignedFiniteTerminalEmission {
+                        maximum_items: 1,
+                        maximum_bytes: 1,
+                    },
+                );
         }
         contracts
     }
@@ -47,9 +57,9 @@ impl StepBack<2> for Back {
         StepOutcome::Await
     }
 }
-type Kernel<const M: usize> =
-    FixedScheduler<Back, FixedValueStore<2, 8>, FixedSignLog<64>, 1, 2, 2, 2, 1, 1, 0, 1, M>;
-type Prepared<const M: usize> = PreparedKernelStorage<Back, Kernel<M>, 1>;
+type Kernel<const M: usize, const B: usize = 100> =
+    FixedScheduler<Back, FixedValueStore<2, 8>, FixedSignLog<64>, 1, 2, 2, 2, 1, 1, 0, 1, M, B>;
+type Prepared<const M: usize, const B: usize = 100> = PreparedKernelStorage<Back, Kernel<M, B>, 1>;
 fn write(
     nodes: &mut [NodeSpec<2>; 1],
     cords: &mut [CordSpec; 2],
@@ -90,9 +100,16 @@ fn prepare<const M: usize>(
     maximum: usize,
     actual: &[[Option<AssignedTerminalTransduction>; 2]; 1],
 ) -> Result<Prepared<M>, KernelPreparationError> {
+    prepare_profile::<M, 100>(linked, maximum, actual)
+}
+fn prepare_profile<const M: usize, const B: usize>(
+    linked: bool,
+    maximum: usize,
+    actual: &[[Option<AssignedTerminalTransduction>; 2]; 1],
+) -> Result<Prepared<M, B>, KernelPreparationError> {
     let values = FixedValueStore::new(16).unwrap();
     if linked {
-        Kernel::<M>::prepare_boxed_with_linked_table_writer(
+        Kernel::<M, B>::prepare_boxed_with_linked_table_writer(
             values,
             signs(),
             maximum,
@@ -102,7 +119,7 @@ fn prepare<const M: usize>(
             write,
         )
     } else {
-        Kernel::<M>::prepare_boxed_with_table_writer(
+        Kernel::<M, B>::prepare_boxed_with_table_writer(
             values,
             signs(),
             maximum,
@@ -119,8 +136,12 @@ fn bound<const M: usize>(linked: bool) -> Box<Kernel<M>> {
         .bind([Back {
             first_closed: false,
             changed_law: false,
+            finalizes: false,
         }])
 }
+
+#[path = "phase_terminal_tests.rs"]
+mod phase_terminal_tests;
 #[test]
 fn linked_terminal_normal_and_abnormal_execution_matches_inline_without_allocating() {
     let mut inline = bound::<1>(false);
@@ -155,7 +176,7 @@ fn linked_terminal_normal_and_abnormal_execution_matches_inline_without_allocati
 trait NormalTerminal {
     fn close_and_drain(&mut self);
 }
-impl<const M: usize> NormalTerminal for Kernel<M> {
+impl<const M: usize, const B: usize> NormalTerminal for Kernel<M, B> {
     fn close_and_drain(&mut self) {
         self.close_remote_input(RemoteEndpointId(0), CordId(0))
             .unwrap();

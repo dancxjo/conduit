@@ -64,3 +64,30 @@ pub fn profile<'a>(
         fore: Some(fore),
     }
 }
+
+/// Retained abnormal finalization is needed only when a checked contract asks
+/// for it. The same exact actual-owner table is checked again before prepare.
+const fn phase_bytes<const W: usize>(
+    table: &[[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; W]; N],
+) -> usize {
+    let mut node = 0;
+    while node < N {
+        let mut port = 0;
+        while port < W {
+            if let Some(contract) = table[node][port] {
+                if matches!(
+                    contract.abnormal,
+                    conduit_kernel::scheduler::AssignedAbnormalTransduction::FinalizeThenPropagate(
+                        _
+                    )
+                ) {
+                    return conduit_kernel::scheduler::CanonicalValue::MAXIMUM_BYTES;
+                }
+            }
+            port += 1;
+        }
+        node += 1;
+    }
+    0
+}
+pub const PHASE_BYTES: usize = phase_bytes(&layout::GENERATED_TERMINAL_TRANSDUCTIONS);

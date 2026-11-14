@@ -1637,6 +1637,11 @@ fn cancellation_request_remains_pending_until_typed_disposition_after_multiple_s
 
 #[test]
 fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
+    exercise_abnormal_finalization::<4>(CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap(), false);
+    exercise_abnormal_finalization::<100>(CanonicalValue::new(&[7; 100]).unwrap(), false);
+    exercise_abnormal_finalization::<100>(CanonicalValue::new(&[7; 100]).unwrap(), true);
+}
+fn exercise_abnormal_finalization<const CAP: usize>(terminal: CanonicalValue, cancel: bool) {
     let ingress = RemoteEndpointId(0);
     let egress = RemoteEndpointId(1);
     let abnormal_egress = RemoteEndpointId(2);
@@ -1662,7 +1667,7 @@ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
     let ingress_capacity = CordCapacity {
         slot_start: 0,
         item_capacity: 1,
-        byte_capacity: 4,
+        byte_capacity: CAP as u32,
         pressure_policy: Default::default(),
     };
     let egress_capacity = CordCapacity {
@@ -1674,7 +1679,7 @@ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
     let abnormal_capacity = CordCapacity {
         slot_start: 2,
         item_capacity: 1,
-        byte_capacity: 4,
+        byte_capacity: CAP as u32,
         pressure_policy: Default::default(),
     };
     let mut scheduler = FixedScheduler::<_, _, _, 1, 3, PORTS, 3, 2, 2>::new(
@@ -1695,7 +1700,7 @@ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
             phase: 0,
             terminal: None,
         }],
-        FixedValueStore::<2, 4>::new(4).unwrap(),
+        FixedValueStore::<2, CAP>::new(CAP as u32).unwrap(),
         FixedSignLog::<16>::new_with_remote_storage(
             (16 * core::mem::size_of::<crate::KernelEvent>()) as u32,
             12,
@@ -1708,7 +1713,6 @@ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
     scheduler
         .bind_terminal_transductions([[Some(contract), None]])
         .unwrap();
-    let terminal = CanonicalValue::new(&[1, 0, 0x34, 0x12]).unwrap();
     scheduler
         .close_remote_input_abnormal(ingress, CordId(0), terminal)
         .unwrap();
@@ -1717,6 +1721,12 @@ fn abnormal_finalization_is_finite_across_steps_and_output_pressure() {
         scheduler.step().unwrap(),
         SchedulerStatus::Progress { .. }
     ));
+    if cancel {
+        scheduler.cancel().unwrap();
+        assert_eq!(scheduler.step(), Ok(SchedulerStatus::Cancelled));
+        assert_eq!(scheduler.values().used_items(), 0);
+        return;
+    }
     let first = scheduler
         .remote_egress_offer(egress, CordId(1))
         .unwrap()

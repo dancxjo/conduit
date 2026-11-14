@@ -44,7 +44,8 @@ impl<
         const H: usize,
         const A: usize,
         const TERMINAL_ROWS: usize,
-    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS>
+        const PHASE_BYTES: usize,
+    > FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A, TERMINAL_ROWS, PHASE_BYTES>
 {
     /// Representation selection only. Every payload recipient must accept the
     /// exact immutable schema; remote/canonical boundaries retain full bytes.

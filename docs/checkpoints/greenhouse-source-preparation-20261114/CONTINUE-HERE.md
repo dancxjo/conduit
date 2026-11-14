@@ -1,8 +1,14 @@
 # Continue the greenhouse MCU work
 
-Shared qualified source parent: c7e14f11e214d0bb55ae837228b543e5278acbe1. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+Shared qualified source parent: 4c3999e4e47b04ecccf23447afa9daa5153268be. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
 
-## Current verified preparation
+## Latest change: qualification boundary
+
+The shared kernel now also includes PHASE_BYTES specialization (258 kernel tests passed/3 ignored; no_alloc and strict lib/testsClippy pass). Default remains100. The new MCU adapter forwards this dimension, and the RP2040 prototype derives0 from the exact Source terminal matrix. Those NEW adapter/factory edits have NOT been compiled or measured as a whole. No new build was started after the user requested final preservation.
+
+All complete MCU/factory/ARM measurements below belong to c7e14f11e2, BEFORE phase-byte specialization was selected. Do not extrapolate the tiny phase test's104-byte saving to Source76 or ARM. First resume by compiling the new adapter, repeating the whole factory test and actual ARM qualification. Public abnormal values, CordState and unresolved abnormal truth remain100-byte capacity.
+
+## Last complete verified preparation (c7e14f11e2)
 
 The uninstrumented original factory and original no_std modules prepare the exact signed Source76 component through the existing Root entrance:76 Gears,95 Cords,97 queue slots;27 software,47 resident,2 native owners. Assignment30314 B fits the unchanged32548 B input. All native loans return and native calls stay0. No admission/Start occurs.
 
@@ -22,7 +28,7 @@ The firmware entrance still prepares/drops and refuses structured-fore-mask-unav
 
 ## Next substantive work
 
-Continue substantial immutable metadata/preparation-custody reduction under existing6341, then qualify actual target heap/stack including original Root, equipment, allocator and startup overlap. Mutable queues, phases, pending calls, refs and history stay funded in RAM. Do not widen grants or replace Source behavior with bespoke task loops to conceal refusal. Root command workspace and other immutable topology are candidates, not implemented savings.
+First qualify the newly saved phase-byte integration, then continue substantial metadata/preparation-custody reduction under existing6341 and qualify actual target heap/stack including original Root, equipment, allocator and startup overlap. Mutable queues, phases, pending calls, refs and history stay funded in RAM. Do not widen grants or replace Source behavior with bespoke task loops to conceal refusal. Root command workspace and other immutable topology are candidates, not implemented savings.
 
 Complete autonomous Source composition and actual admitted Fore/Face/Mask execution, durable history and restart/owner-loss recovery. Qualify the whole reachable executable and actual hardware before replacing working firmware. Preserve Body identity, observations and independent logical sampling/display. Seed fabrication must not hold this up.
 

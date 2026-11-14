@@ -1,0 +1,87 @@
+{
+  "assurance": "Compile-only ARM type-layout diagnostic of c7e14f11e2 baseline before phase-byte specialization; not execution/heap/stack proof",
+  "source_checkpoint": "c7e14f11e214d0bb55ae837228b543e5278acbe1",
+  "kernel_bytes": 47192,
+  "fields": {
+    "cords": 13680,
+    "drivers": 4864,
+    "last_host_request": 608,
+    "pending_host_calls": 104,
+    "values": 120,
+    "node_specs": 760,
+    "unresolved_abnormal": 8056,
+    "projected_recovery_source": 304,
+    "region_successors": 304,
+    "native_input_ports": 304,
+    "native_output_ports": 304,
+    "cord_specs": 3800,
+    "terminal_inputs_consumed": 152,
+    "terminal_phases": 8512,
+    "pending_host_slots": 304,
+    "logical_invocations": 8,
+    "signs": 76,
+    "queue_slots": 1164,
+    "host_bindings": 1220,
+    "execution_workspace": 20,
+    "recovery_for_cord": 380,
+    "routes": 1652,
+    "terminal_cancellation_pending": 76,
+    "completed": 76,
+    "terminal_transductions": 4,
+    "active_nodes": 4,
+    "active_cords": 4,
+    "quiescence_cord_end": 4,
+    "armed_quiescence_count": 4,
+    "pending_host_count": 4,
+    "host_slot_search_start": 4,
+    "cancellation_search_start": 4,
+    "undispatched_host_count": 4,
+    "undispatched_cancellation_count": 4,
+    "ready": 76,
+    "cursor": 4,
+    "host_request_cursor": 4,
+    "decisions": 4,
+    "compact_f32_bindings": 4,
+    "debug_control": 210,
+    "unmet_execution_workspace": 1,
+    "cancelled": 1
+  },
+  "largest_fields": [
+    [
+      "cords",
+      13680
+    ],
+    [
+      "terminal_phases",
+      8512
+    ],
+    [
+      "unresolved_abnormal",
+      8056
+    ],
+    [
+      "drivers",
+      4864
+    ],
+    [
+      "cord_specs",
+      3800
+    ],
+    [
+      "routes",
+      1652
+    ],
+    [
+      "host_bindings",
+      1220
+    ],
+    [
+      "queue_slots",
+      1164
+    ]
+  ],
+  "sum_fields": 47192,
+  "type_diagnostic_only": true,
+  "RUSTC_BOOTSTRAP_used_only_for_compile_layout_diagnostic": true,
+  "log_sha256": "eb2e655c7badda39c29e8b2c2a7c42d88ad9bda8a39604e70aac0ef53f3a5edb"
+}
