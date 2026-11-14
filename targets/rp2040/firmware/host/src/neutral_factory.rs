@@ -25,8 +25,10 @@ use conduit_plan_lowering::{
     },
 };
 
-pub type Values =
-    conduit_plan_lowering::schema_value_store::SchemaValueStore<'static, HostedValueStore>;
+pub type Values = conduit_plan_lowering::shared_schema_value_store::SharedSchemaValueStore<
+    'static,
+    HostedValueStore,
+>;
 
 pub type Kernel<'a, 'f> = conduit_mcu_host_runtime::execution::ExecutionKernel<
     conduit_mcu_host_runtime::execution_factory::Driver<'f, resident::BorrowedBack<'a>>,
@@ -61,7 +63,6 @@ pub fn prepare<'a, 'f: 'a, 'w, I: I2cProvider + 'a, D: MonotonicDeadlineProvider
     bus_issuer: &mut Issuer,
     clock_issuer: &mut Issuer,
     operations: &super::neutral_authority::Operations,
-    values: Values,
 ) -> Result<
     PreparedLocalWorkset<'w, impl PreparedLocalKernels<Bound = Bound<'a, 'f, I, D>> + 'a, 1>,
     Refusal<&'static str>,
@@ -250,6 +251,20 @@ pub fn prepare<'a, 'f: 'a, 'w, I: I2cProvider + 'a, D: MonotonicDeadlineProvider
                     clocks: [clock],
                 },
             )?;
+            // Construct values only after inspecting the exact affine owners
+            // selected by this authenticated assignment. The original logical
+            // slots and canonical/native capacities remain unchanged.
+            let (values, _, _stock) =
+                conduit_mcu_host_runtime::native_values::prepare_shared_schema::<0, N, P>(
+                    layout::CORD_VALUE_PROFILES,
+                    layout::CORD_VALUE_SINKS,
+                    layout::STEP_VALUE_PROFILES,
+                    layout::STEP_VALUE_OUTPUTS,
+                    layout::HOST_CALL_VALUE_SLOT_CAPACITIES,
+                    &[],
+                    policy.maximum_retained_bytes,
+                    &backs,
+                )?;
             // Kernel events and the Plan's named mandatory-Sign receipts are
             // separate representations. Fund the actual numeric event log as
             // in the shared Source execution entrance; do not reinterpret or

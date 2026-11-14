@@ -70,6 +70,11 @@ pub unsafe trait PreparedBacks<const N: usize, const P: usize> {
     fn retained_inputs(&self, _node: usize) -> RetainedInputs<P> {
         RetainedInputs::Unknown
     }
+    /// Input ports whose values the kernel may pin after this node's Step,
+    /// separately from Back-held references. None is an unaudited lifecycle.
+    fn pending_input_pins(&self, _node: usize) -> Option<[bool; P]> {
+        None
+    }
     fn retained_backing_bytes(&self) -> Option<usize>;
     fn bind(self) -> ([Self::Driver; N], Self::Calls);
 }

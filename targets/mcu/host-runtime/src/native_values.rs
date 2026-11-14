@@ -143,3 +143,9 @@ pub fn prepare_schema<const W: usize>(
 #[cfg(all(test, feature = "schema-value-storage"))]
 #[path = "native_value_profile_tests.rs"]
 mod profile_tests;
+
+#[cfg(feature = "schema-value-storage")]
+#[path = "native_value_stock.rs"]
+mod stock;
+#[cfg(feature = "schema-value-storage")]
+pub use stock::{prepare_shared_schema, PreparedSharedSchemaValues, SharedStockReport};

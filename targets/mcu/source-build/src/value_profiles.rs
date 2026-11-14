@@ -24,8 +24,12 @@ pub enum Slot<'a> {
 pub struct Profiles<'a> {
     /// Original generated Cord order and original per-Cord item counts.
     pub cords: Vec<Slot<'a>>,
+    /// Sink aligned with each original queue slot, including external sinks.
+    pub cord_sinks: Vec<Endpoint>,
     /// Original routed-output order, independent of occupied Cord slots.
     pub steps: Vec<Slot<'a>>,
+    /// Exact routed output aligned with each Step profile (fanout appears once).
+    pub step_outputs: Vec<(u16, u16)>,
 }
 
 impl Profiles<'_> {
@@ -65,6 +69,20 @@ impl Profiles<'_> {
             }
             text.push_str("];\n");
         }
+        text.push_str("pub const CORD_VALUE_SINKS:&[Option<(u16,u16)>]=&[\n");
+        for sink in &self.cord_sinks {
+            match sink {
+                Endpoint::Local { node, port } => writeln!(text, "Some(({node},{port})),").unwrap(),
+                Endpoint::Remote { .. } => writeln!(text, "None,").unwrap(),
+            }
+        }
+        text.push_str("];\n");
+        writeln!(
+            text,
+            "pub const STEP_VALUE_OUTPUTS:&[(u16,u16)]=&{:?};",
+            self.step_outputs
+        )
+        .unwrap();
         text
     }
 }
@@ -151,14 +169,20 @@ pub fn select<'a>(
         }
     };
     let mut cords = Vec::new();
+    let mut cord_sinks = Vec::new();
     for cord in &kernel.cords {
         let selected = slot(compatible(cord.source), cord.maximum_value_bytes.max(1))?;
+        cord_sinks.extend(core::iter::repeat_n(
+            cord.sink,
+            usize::from(cord.item_capacity),
+        ));
         cords.extend(core::iter::repeat_n(
             selected,
             usize::from(cord.item_capacity),
         ));
     }
     let mut steps = Vec::new();
+    let mut step_outputs = Vec::new();
     for output in &kernel.output_ports {
         let source = Endpoint::Local {
             node: output.node,
@@ -172,9 +196,15 @@ pub fn select<'a>(
             .max()
         {
             steps.push(slot(compatible(source), maximum.max(1))?);
+            step_outputs.push((output.node, output.port));
         }
     }
-    Ok(Profiles { cords, steps })
+    Ok(Profiles {
+        cords,
+        cord_sinks,
+        steps,
+        step_outputs,
+    })
 }
 
 #[cfg(test)]

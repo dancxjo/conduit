@@ -1,0 +1,15 @@
+{
+  "assurance": "Actual ARM link/static geometry only; no runtime heap/stack/admission/physical proof",
+  "qualified_shared_source_checkpoint": "021c6e39eb59e6ea90e08909db993696f122255a",
+  "source_sha256": "83291b6eac51ff63bcda99627b88e31a747cb83b660b310c2fea72af6cd1b07f",
+  "elf_sha256": "03e7cfcdff0ddfad4e9abbb7bfb695efc4c8597397f8631562772c4bf1113807",
+  "flash_load_end": "0x10160d4c",
+  "flash_margin": 49844,
+  "static_extent": 209088,
+  "stack_available": 61248,
+  "resident_owner_bytes": 9024,
+  "main_future_pool_bytes": 46520,
+  "physical_deployment": false,
+  "bss_and_data_extent": 208576,
+  "static_extent_definition": "__sheap - __sdata, includes 512-byte uninitialized region, same convention as baseline"
+}

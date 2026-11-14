@@ -464,14 +464,6 @@ pub fn measure_preparation<
             )
             .unwrap();
     }
-    let (values, _) = conduit_mcu_host_runtime::native_values::prepare_schema(
-        layout::CORD_VALUE_PROFILES,
-        layout::STEP_VALUE_PROFILES,
-        layout::HOST_CALL_VALUE_SLOT_CAPACITIES,
-        &[],
-        maximum,
-    )
-    .unwrap();
     let prepared = crate::neutral_factory::prepare(
         parts.workspace,
         context,
@@ -483,7 +475,6 @@ pub fn measure_preparation<
         &mut issuers.bus,
         &mut issuers.clock,
         operations,
-        values,
     )
     .unwrap_or_else(|error| panic!("positive whole factory preparation: {error:?}"));
     let retained = crate::probe::current();

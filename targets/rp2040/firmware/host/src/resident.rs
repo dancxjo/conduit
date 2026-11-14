@@ -119,8 +119,23 @@ unsafe impl<'a>
         Some(generated::PreparedResidentLoans::terminal_transductions::<P>(self))
     }
     #[cfg(neutral_source_execution)]
-    fn execution_workspace_requirements_at<const P: usize>(&self, slot: usize) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
-        generated::PreparedResidentLoans::execution_workspace_requirements_at::<P>(self,slot)
+    fn execution_workspace_requirements_at<const P: usize>(
+        &self,
+        slot: usize,
+    ) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
+        generated::PreparedResidentLoans::execution_workspace_requirements_at::<P>(self, slot)
+    }
+    fn retained_inputs_at<const P: usize>(
+        &self,
+        slot: usize,
+    ) -> Option<Option<conduit_mcu_host_runtime::execution::RetainedInputs<P>>> {
+        // All entries in this generated inventory are compiled expression
+        // engines over borrowed bytes/workspace, with no retained ValueRef.
+        Some(
+            self.nodes()
+                .get(slot)?
+                .map(|_| conduit_mcu_host_runtime::execution::RetainedInputs::NONE),
+        )
     }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(0)
@@ -145,8 +160,17 @@ unsafe impl<'a> conduit_mcu_host_runtime::execution_factory::PreparedResidentEnt
         Some(generated::PreparedResidentEntryLoan::terminal_transductions::<P>(self))
     }
     #[cfg(neutral_source_execution)]
-    fn execution_workspace_requirements<const P: usize>(&self) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
+    fn execution_workspace_requirements<const P: usize>(
+        &self,
+    ) -> Option<Option<conduit_kernel::scheduler::StepWorkspaceRequirements>> {
         Some(generated::PreparedResidentEntryLoan::execution_workspace_requirements::<P>(self))
+    }
+    fn retained_inputs<const P: usize>(
+        &self,
+    ) -> conduit_mcu_host_runtime::execution::RetainedInputs<P> {
+        // Same pure compiled-expression engine as this exact initialized loan;
+        // its validator/scratch state contains no kernel-pool references.
+        conduit_mcu_host_runtime::execution::RetainedInputs::NONE
     }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(0)

@@ -173,8 +173,22 @@ where
                     .unwrap_or(RetainedInputs::Unknown);
             }
         }
-        // Native pending input pins need their own kernel lifetime proof.
+        // The exact HostCallBack owns RequestId only; the kernel pins its input.
+        if self.native.nodes().any(|n| usize::from(n.node) == node) {
+            return RetainedInputs::NONE;
+        }
         RetainedInputs::Unknown
+    }
+    fn pending_input_pins(&self, node: usize) -> Option<[bool; P]> {
+        if node >= N {
+            return None;
+        }
+        let mut pins = [false; P];
+        if self.native.nodes().any(|n| usize::from(n.node) == node) {
+            // HostCallBack has one input and at most one outstanding request.
+            *pins.first_mut()? = true;
+        }
+        Some(pins)
     }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
@@ -327,7 +341,23 @@ mod tests {
             <_ as PreparedBacks<2, 1>>::execution_workspace_requirements(&prepared),
             None
         );
-        for node in [0, 1, 2] {
+        assert_eq!(
+            <_ as PreparedBacks<2, 1>>::retained_inputs(&prepared, 0),
+            RetainedInputs::NONE
+        );
+        assert_eq!(
+            <_ as PreparedBacks<2, 1>>::pending_input_pins(&prepared, 0),
+            Some([true])
+        );
+        assert_eq!(
+            <_ as PreparedBacks<2, 1>>::pending_input_pins(&prepared, 1),
+            Some([false])
+        );
+        assert_eq!(
+            <_ as PreparedBacks<2, 1>>::pending_input_pins(&prepared, 2),
+            None
+        );
+        for node in [1, 2] {
             assert_eq!(
                 <_ as PreparedBacks<2, 1>>::retained_inputs(&prepared, node),
                 RetainedInputs::Unknown,

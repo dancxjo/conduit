@@ -85,13 +85,6 @@ pub fn preflight<I: I2cProvider, D: MonotonicDeadlineProvider>(
             None,
         )?;
     }
-    let (values, _) = conduit_mcu_host_runtime::native_values::prepare_schema(
-        layout::CORD_VALUE_PROFILES,
-        layout::STEP_VALUE_PROFILES,
-        layout::HOST_CALL_VALUE_SLOT_CAPACITIES,
-        &[],
-        maximum_bytes,
-    )?;
     let prepared = crate::neutral_factory::prepare(
         parts.workspace,
         context,
@@ -103,7 +96,6 @@ pub fn preflight<I: I2cProvider, D: MonotonicDeadlineProvider>(
         &mut issuers.bus,
         &mut issuers.clock,
         operations,
-        values,
     )
     .map_err(|_| "neutral-preparation-refused")?;
     // No Fore service -> no admission and no provider bind. Parent Fore bridge

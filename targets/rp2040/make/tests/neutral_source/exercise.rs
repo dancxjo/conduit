@@ -322,14 +322,6 @@ fn exercise() {
     let software_measurement = probe::snapshot();
     let empty = conduit_body::HostCommandInput::<{ config::MAX_ASSIGNMENT_BYTES }>::new();
     for maximum in [0, 1024 * 1024] {
-        let (values, _) = conduit_mcu_host_runtime::native_values::prepare_schema(
-            neutral_workset::layout::CORD_VALUE_PROFILES,
-            neutral_workset::layout::STEP_VALUE_PROFILES,
-            neutral_workset::layout::HOST_CALL_VALUE_SLOT_CAPACITIES,
-            &[],
-            1024 * 1024,
-        )
-        .unwrap();
         let policy = Policy {
             preparation: None,
             execution: None,
@@ -347,7 +339,6 @@ fn exercise() {
             &mut issuers.bus,
             &mut issuers.clock,
             &operations,
-            values,
         );
         assert!(matches!(
             result,
