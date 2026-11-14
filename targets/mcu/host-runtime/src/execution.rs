@@ -16,6 +16,10 @@ use conduit_kernel::{
 };
 use line_fore::ForeProfile;
 
+#[path = "execution_value_retention.rs"]
+mod value_retention;
+pub use value_retention::RetainedInputs;
+
 /// A trusted native Source factory must validate every selected node against its
 /// independently installed implementation/configuration and keep all actual
 /// initialized owners borrowed until bind. Refusal/drop must return the owners.
@@ -58,6 +62,13 @@ pub unsafe trait PreparedBacks<const N: usize, const P: usize> {
         &self,
     ) -> Option<[Option<conduit_kernel::scheduler::StepWorkspaceRequirements>; N]> {
         None
+    }
+    /// Pool references held by this exact prepared Back between committed Steps.
+    /// Unknown forbids deriving a compact pool from this report. Queue custody,
+    /// transient Step outputs and kernel-owned pending native pins are separate.
+    /// A bounded report must remain true for every retry, cancellation and bind.
+    fn retained_inputs(&self, _node: usize) -> RetainedInputs<P> {
+        RetainedInputs::Unknown
     }
     fn retained_backing_bytes(&self) -> Option<usize>;
     fn bind(self) -> ([Self::Driver; N], Self::Calls);

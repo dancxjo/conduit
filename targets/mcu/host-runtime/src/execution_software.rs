@@ -64,6 +64,29 @@ pub enum SoftwareBack<'a> {
     Publication(Box<PublicationFaceBack<'a>>),
 }
 impl<'a> SoftwareBack<'a> {
+    /// Audited against these concrete implementations' retained fields and
+    /// commit/rollback paths. Other variants deliberately remain uninspectable.
+    pub fn retained_inputs<const P: usize>(&self) -> crate::execution::RetainedInputs<P> {
+        use crate::execution::RetainedInputs;
+        match self {
+            Self::LinkedSource(_) | Self::Zip(_) | Self::Merge(_) | Self::Selector(_) => {
+                RetainedInputs::NONE
+            }
+            #[cfg(feature = "execution-workspace")]
+            Self::WorkspaceSelector(_) => RetainedInputs::NONE,
+            Self::SeededState(_) if P >= 2 => {
+                let mut possible_ports = [false; P];
+                possible_ports[0] = true;
+                possible_ports[1] = true;
+                RetainedInputs::Bounded {
+                    maximum_values: 1,
+                    possible_ports,
+                }
+            }
+            _ => RetainedInputs::Unknown,
+        }
+    }
+
     /// Borrow immutable checked material from the installed image. Root still
     /// selects the exact Kind/identity and funds this owner before Start.
     pub fn linked_source_static(

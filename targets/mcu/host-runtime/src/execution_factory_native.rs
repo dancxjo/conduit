@@ -1,5 +1,6 @@
 //! Complete Source inventories with independently prepared unary native calls.
 use super::*;
+use crate::execution::RetainedInputs;
 use conduit_kernel::scheduler::AssignedTerminalTransduction;
 
 #[derive(Clone, Copy)]
@@ -157,6 +158,24 @@ where
         }
         Some(actual)
     }
+    fn retained_inputs(&self, node: usize) -> RetainedInputs<P> {
+        if self.software.selected.get(node) == Some(&true) {
+            return self.software.owner.slots[node]
+                .as_ref()
+                .map_or(RetainedInputs::Unknown, SoftwareBack::retained_inputs::<P>);
+        }
+        for (slot, selected) in self.resident_nodes.iter().enumerate() {
+            if selected.is_some_and(|n| usize::from(n) == node) {
+                return self
+                    .residents
+                    .retained_inputs_at::<P>(slot)
+                    .flatten()
+                    .unwrap_or(RetainedInputs::Unknown);
+            }
+        }
+        // Native pending input pins need their own kernel lifetime proof.
+        RetainedInputs::Unknown
+    }
     fn retained_backing_bytes(&self) -> Option<usize> {
         Some(self.backing)
     }
@@ -308,6 +327,12 @@ mod tests {
             <_ as PreparedBacks<2, 1>>::execution_workspace_requirements(&prepared),
             None
         );
+        for node in [0, 1, 2] {
+            assert_eq!(
+                <_ as PreparedBacks<2, 1>>::retained_inputs(&prepared, node),
+                RetainedInputs::Unknown,
+            );
+        }
         let (drivers, ()) = <_ as PreparedBacks<2, 1>>::bind(prepared);
         assert!(matches!(drivers[0], Driver::Native(_)));
         assert!(matches!(drivers[1], Driver::Resident(_)));
