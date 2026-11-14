@@ -28,6 +28,8 @@ The firmware entrance still prepares/drops and refuses structured-fore-mask-unav
 
 ## Next substantive work
 
+Read evidence/source76-execution-handoff-audit-20261114.md first: exact three-input/nine-output component, intentional prepare/drop-only service, existing admission/Start APIs, existing shared bus and carrier limits. Do not remove the refusal without installing the actual services.
+
 First qualify the newly saved phase-byte integration on target, then continue substantial metadata/preparation-custody reduction under existing6341 and qualify actual target heap/stack including original Root, equipment, allocator and startup overlap. Mutable queues, phases, pending calls, refs and history stay funded in RAM. Do not widen grants or replace Source behavior with bespoke task loops to conceal refusal. Root command workspace and other immutable topology are candidates, not implemented savings.
 
 Complete autonomous Source composition and actual admitted Fore/Face/Mask execution, durable history and restart/owner-loss recovery. Qualify the whole reachable executable and actual hardware before replacing working firmware. Preserve Body identity, observations and independent logical sampling/display. Seed fabrication must not hold this up.
