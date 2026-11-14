@@ -248,4 +248,60 @@ mod tests {
         compositor.surfaces[0].visual_expression = None;
         assert_eq!(compositor.ordinary_retained_backing_bytes(), Some(before));
     }
+
+    #[allow(dead_code)]
+    mod fixture {
+        use crate as conduitos;
+        include!("../../tests/common/native_compositor_fixture.rs");
+    }
+
+    #[test]
+    fn retained_receipt_clone_has_its_own_expression_charge() {
+        let (face, plan, main, _, mut compositor) = fixture::fixture(1);
+        fixture::update(&mut compositor, &face, &plan, &main, fixture::MAIN);
+        let surface = compositor
+            .surfaces
+            .iter_mut()
+            .find(|surface| surface.surface_id == fixture::MAIN)
+            .unwrap();
+        let receipt = surface.receipt.as_mut().unwrap();
+        let receipt_before = receipt.ordinary_retained_backing_bytes().unwrap();
+        let mut expression = conduit_face::admit_visual_expression(
+            Ok(conduit_face::VisualExpression::phosphor()),
+            conduit_face::VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 150,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        expression.expression.identity.reserve_exact(257);
+        receipt.visual_expression = Some(expression.clone());
+        let cloned_capacity = receipt
+            .visual_expression
+            .as_ref()
+            .unwrap()
+            .expression
+            .identity
+            .capacity();
+        assert_eq!(
+            receipt.ordinary_retained_backing_bytes(),
+            Some(receipt_before + cloned_capacity)
+        );
+        let surface_capacity = expression.expression.identity.capacity();
+        surface.visual_expression = Some(expression);
+        let before = compositor.ordinary_retained_backing_bytes().unwrap();
+        let surface = compositor
+            .surfaces
+            .iter_mut()
+            .find(|surface| surface.surface_id == fixture::MAIN)
+            .unwrap();
+        surface.visual_expression = None;
+        surface.receipt.as_mut().unwrap().visual_expression = None;
+        assert_eq!(
+            compositor.ordinary_retained_backing_bytes(),
+            Some(before - surface_capacity - cloned_capacity)
+        );
+    }
 }
