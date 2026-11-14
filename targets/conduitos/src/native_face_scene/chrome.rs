@@ -6,8 +6,10 @@ use crate::display::{
 };
 use conduit_face::{GraphicsTextRole, LayoutRect};
 
-/// Background, heading, marker, separators and up to two paging button pairs.
-pub(super) const COMMANDS: usize = 9;
+/// Background, heading, page marker and progress (four), followed by either
+/// separator + footer or two independently measured paging labels (two).
+/// Local reading controls therefore never reduce admitted document capacity.
+pub(super) const COMMANDS: usize = 6;
 const EDGE: u16 = 8;
 pub(super) const HEADER: u16 = 56;
 pub(super) const FOOTER: u16 = 56;

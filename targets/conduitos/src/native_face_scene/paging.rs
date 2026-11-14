@@ -128,16 +128,9 @@ impl NativeFaceScene {
             if height > u32::from(text.height) {
                 return Err(FaceSceneError::InputBound);
             }
-            push(
-                scene,
-                GraphicsCommand::rect(
-                    bounds,
-                    self.screen,
-                    paint,
-                    GraphicsShapeStyle::RoundedStroke,
-                )
-                .and_then(|command| corners::apply(command, self.look_corners.map(|c| c.control))),
-            )?;
+            // The two measured labels replace the ordinary separator/footer
+            // pair. Hit bounds remain the full independently admitted controls;
+            // decorative outlines would consume document command capacity.
             push(
                 scene,
                 GraphicsCommand::text(text, self.screen, paint, label)

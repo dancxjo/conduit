@@ -149,3 +149,58 @@ fn pointer_selection_survives_keyboard_details_and_return() {
     }
     assert_eq!(scene.face(), &face);
 }
+
+#[test]
+fn local_pager_reuses_footer_budget_without_reducing_document_capacity() {
+    let face = crowded_face();
+    let mut scene = NativeFaceScene::prepare(face, 640, 480).unwrap();
+    assert!(scene.pages() > 1);
+    let original_rows: Vec<_> = scene
+        .primary
+        .iter()
+        .map(|row| (row.page, row.bounds, row.text.clone()))
+        .collect();
+    for page in [0, scene.pages() - 1] {
+        scene.page = page;
+        let controls = scene.page_controls().unwrap().unwrap();
+        let mut graphics = GraphicsScene::empty();
+        scene
+            .append_page_controls(&mut graphics, controls, false)
+            .unwrap();
+        // Four common chrome commands plus these two labelled controls use
+        // precisely the same budget as ordinary separator + footer chrome.
+        assert_eq!(4 + graphics.commands().len(), chrome::COMMANDS);
+        for (command, (bounds, enabled, label)) in graphics.commands().iter().zip([
+            (controls.previous, controls.can_previous, "Previous page"),
+            (controls.next, controls.can_next, "Next page"),
+        ]) {
+            assert_eq!(command.kind, GraphicsCommandKind::Text);
+            assert_eq!(command.payload(), label);
+            assert_eq!(
+                command.paint,
+                if enabled {
+                    GraphicsPaintRole::Accent
+                } else {
+                    GraphicsPaintRole::Muted
+                }
+            );
+            assert!(command.bounds.x >= bounds.x && command.bounds.y >= bounds.y);
+            assert!(
+                i32::from(command.bounds.x) + i32::from(command.bounds.width)
+                    <= i32::from(bounds.x) + i32::from(bounds.width)
+            );
+            assert!(
+                i32::from(command.bounds.y) + i32::from(command.bounds.height)
+                    <= i32::from(bounds.y) + i32::from(bounds.height)
+            );
+        }
+        assert!(scene.frame().unwrap().scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
+    }
+    // Painting/navigation does not reflow or remove the already admitted rows.
+    assert_eq!(scene.primary.len(), original_rows.len());
+    for (actual, original) in scene.primary.iter().zip(original_rows) {
+        assert_eq!(actual.page, original.0);
+        assert_eq!(actual.bounds, original.1);
+        assert_eq!(actual.text, original.2);
+    }
+}

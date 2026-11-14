@@ -256,24 +256,24 @@ impl NativeFaceScene {
                     "PgUp/PgDn pages · Tab next · Enter act · F2 inspect".into()
                 }
             });
-        chrome.admit_footer(&footer, self.text_scale_percent)?;
-        push(
-            &mut scene,
-            GraphicsCommand::rect(
-                LayoutRect {
-                    x: SPACE_XL as i16,
-                    y: (chrome.bottom + 2) as i16,
-                    width: self.screen.width - SPACE_XL * 2,
-                    height: 2,
-                },
-                self.screen,
-                GraphicsPaintRole::Border,
-                GraphicsShapeStyle::Fill,
-            ),
-        )?;
         if let Some(controls) = self.page_controls()? {
             self.append_page_controls(&mut scene, controls, chrome.compact)?;
         } else {
+            chrome.admit_footer(&footer, self.text_scale_percent)?;
+            push(
+                &mut scene,
+                GraphicsCommand::rect(
+                    LayoutRect {
+                        x: SPACE_XL as i16,
+                        y: (chrome.bottom + 2) as i16,
+                        width: self.screen.width - SPACE_XL * 2,
+                        height: 2,
+                    },
+                    self.screen,
+                    GraphicsPaintRole::Border,
+                    GraphicsShapeStyle::Fill,
+                ),
+            )?;
             let bounds = chrome.footer;
             push(
                 &mut scene,

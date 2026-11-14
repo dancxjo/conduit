@@ -63,6 +63,7 @@ fn touch_pages_reach_named_plots_without_submitting_body_actions() {
     for (width, height, scale, interactive) in [
         (1024, 600, 150, true),
         (320, 240, 100, true),
+        (320, 240, 150, true),
         (640, 480, 200, false),
     ] {
         let face = library();
