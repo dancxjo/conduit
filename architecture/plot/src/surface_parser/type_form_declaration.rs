@@ -23,7 +23,7 @@ pub(super) fn parse_type_form(
         .split_once(" as ")
         .ok_or_else(|| parser.invalid_statement(header, start))?;
     let quantity = if let Some((integer, details)) = storage.split_once('(') {
-        if !matches!(integer, "i16le" | "u16le") {
+        if !matches!(integer, "i16le" | "u16le" | "i128le") {
             return Err(parser.invalid_statement(header, start));
         }
         let details = details
@@ -88,6 +88,8 @@ pub(super) fn parse_type_form(
             TypeFormStorageSyntax::I16Le
         } else if storage.starts_with("u16le(") {
             TypeFormStorageSyntax::U16Le
+        } else if storage.starts_with("i128le(") {
+            TypeFormStorageSyntax::I128Le
         } else {
             TypeFormStorageSyntax::U8
         },
