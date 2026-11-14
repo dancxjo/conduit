@@ -153,6 +153,7 @@ unsafe impl ExecutionSigns for HostedSignLog {
 }
 /// `H` funds sparse binding addresses; `K` independently funds pending calls.
 /// `Q` independently funds queue slots, including multi-item Cord queues.
+/// `M` selects inline terminal rows; `F` funds retained abnormal-phase bytes.
 /// Defaults preserve existing inventories. Source may supply its checked
 /// callable-node bound without changing operation identities or authority.
 pub type ExecutionKernel<
@@ -169,7 +170,8 @@ pub type ExecutionKernel<
     V = HostedValueStore,
     const Q: usize = C,
     const M: usize = N,
-> = StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V, Q, M>;
+    const F: usize = { CanonicalValue::MAXIMUM_BYTES },
+> = StoredExecutionKernel<D, L, N, C, P, R, T, H, K, V, Q, M, F>;
 /// The same scheduler independent of its prepared Sign representation.
 pub type StoredExecutionKernel<
     D,
@@ -184,7 +186,8 @@ pub type StoredExecutionKernel<
     V = HostedValueStore,
     const Q: usize = C,
     const M: usize = N,
-> = FixedScheduler<D, V, L, N, C, P, Q, R, T, H, K, M>;
+    const F: usize = { CanonicalValue::MAXIMUM_BYTES },
+> = FixedScheduler<D, V, L, N, C, P, Q, R, T, H, K, M, F>;
 type Storage<
     B,
     const N: usize,
@@ -199,9 +202,10 @@ type Storage<
     V,
     const Q: usize = C,
     const M: usize = N,
+    const F: usize = { CanonicalValue::MAXIMUM_BYTES },
 > = PreparedKernelStorage<
     <B as PreparedBacks<N, P>>::Driver,
-    ExecutionKernel<<B as PreparedBacks<N, P>>::Driver, N, C, P, R, T, H, S, L, K, V, Q, M>,
+    ExecutionKernel<<B as PreparedBacks<N, P>>::Driver, N, C, P, R, T, H, S, L, K, V, Q, M, F>,
     N,
 >;
 #[derive(Clone, Copy)]
@@ -270,8 +274,9 @@ pub struct PreparedFragment<
     V: ExecutionValues = HostedValueStore,
     const Q: usize = C,
     const M: usize = N,
+    const F: usize = { CanonicalValue::MAXIMUM_BYTES },
 > {
-    storage: Storage<B, N, C, P, R, T, H, S, L, K, V, Q, M>,
+    storage: Storage<B, N, C, P, R, T, H, S, L, K, V, Q, M, F>,
     backs: B,
     retained: usize,
     #[cfg(feature = "execution-workspace")]
@@ -291,7 +296,8 @@ impl<
         V: ExecutionValues,
         const Q: usize,
         const M: usize,
-    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M>
+        const F: usize,
+    > PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M, F>
 {
     #[allow(clippy::too_many_arguments)]
     #[inline(never)] // Per-kernel table scratch must end before the next constructor.
@@ -503,9 +509,9 @@ impl<
             ))
         };
         let storage = match linked {
-            Some(table) => ExecutionKernel::<B::Driver,N,C,P,R,T,H,S,L,K,V,Q,M>::prepare_boxed_with_linked_table_writer(
+            Some(table) => ExecutionKernel::<B::Driver,N,C,P,R,T,H,S,L,K,V,Q,M,F>::prepare_boxed_with_linked_table_writer(
                 values,signs,remaining,table,expected,Refusal::Storage,write),
-            None => ExecutionKernel::<B::Driver,N,C,P,R,T,H,S,L,K,V,Q,M>::prepare_boxed_with_table_writer(
+            None => ExecutionKernel::<B::Driver,N,C,P,R,T,H,S,L,K,V,Q,M,F>::prepare_boxed_with_table_writer(
                 values,signs,remaining,expected,expected,Refusal::Storage,write),
         }?;
         let retained = backing
@@ -536,11 +542,12 @@ unsafe impl<
         V: ExecutionValues,
         const Q: usize,
         const M: usize,
+        const F: usize,
     > super::execution_workset::PreparedLocalKernels
-    for PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M>
+    for PreparedFragment<B, N, C, P, R, T, H, S, L, K, V, Q, M, F>
 {
     type Bound = (
-        Box<ExecutionKernel<B::Driver, N, C, P, R, T, H, S, L, K, V, Q, M>>,
+        Box<ExecutionKernel<B::Driver, N, C, P, R, T, H, S, L, K, V, Q, M, F>>,
         B::Calls,
     );
     fn retained_backing_bytes(&self) -> Option<usize> {
