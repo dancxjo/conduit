@@ -1,0 +1,12 @@
+{
+  "bytes": 4194304,
+  "sha256": "7156bb81dfe406916bc7e43bf55cba36ae13bb4caa5df57466804bf83a573692",
+  "physical_mac": "b0:a7:32:28:61:78",
+  "operation": "ROM read-flash only, hard reset into existing application afterward",
+  "flash_writes": false,
+  "local_copy_sha256_verified": true,
+  "captured_unix": 1794813281.5339265,
+  "actual_application_matches_reviewed_image": true,
+  "actual_application_sha256": "225c3fd5476e826890e987fabcb360fda6dd92c36e7be127a1b437938c0c1727",
+  "actual_configuration_independently_pinned_by_reviewed_image": "sha256:97fc8423fb98a953d2882d35d8ee5802386ca73c354aa7a4927e39867f702976"
+}

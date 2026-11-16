@@ -1,0 +1,47 @@
+    Finished `test` profile [unoptimized] target(s) in 0.21s
+     Running unittests src/lib.rs (/tmp/conduit-source-member-control-20261111/debug/deps/conduit_resource_snapshot-4e9ffaed6e3b72ff)
+
+running 40 tests
+test append::tests::read_window_tests::read_window_refuses_unrecovered_foreign_and_invalid_scopes ... ok
+test nor::tests::geometry_capacity_and_authority_refuse_before_media_effects ... ok
+test append::tests::read_window_tests::reading_and_cancellation_allocate_nothing_and_do_not_move_append_tail ... ok
+test nor::tests::logical_slot_shares_erase_block_without_erasing_neighbor ... ok
+test append::tests::acknowledged_wrong_program_never_reports_a_durable_append ... ok
+test append::tests::read_window_tests::read_refusal_does_not_advance_range_or_supply_automatic_retry_work ... ok
+test nor::tests::acknowledged_wrong_program_is_detected_before_marker_and_marker_itself_is_verified ... ok
+test append::tests::read_window_tests::read_window_exposes_every_physical_gap_and_never_programs_media ... ok
+test append::tests::read_window_tests::read_window_captures_tail_and_allows_appends_without_extending_scan ... ok
+test append::tests::geometry_capacity_and_no_per_record_allocation_are_bounded ... ok
+test append::tests::corruption_foreign_residence_and_vacant_holes_never_become_exact_history ... ok
+test read_contract::tests::read_source_contract_is_exact_finite_count_to_linked_media_result ... ok
+test read_contract::tests::read_contract_does_not_invent_authored_cancellation_or_extra_control_port ... ok
+test nor::tests::lost_response_reopen_validates_exact_record_and_never_overwrites_existing_generation ... ok
+test read_scan::tests::empty_ranges_largest_admitted_index_and_bound_overflow ... ok
+test nor::tests::publication_only_writer_drops_read_workspace_without_changing_committed_bytes ... ok
+test read_result::tests::worst_case_wire_and_prepared_storage_are_explicit_measured_profiles ... ok
+test read_result::encoder::tests::failure_keeps_exact_previous_retry_bytes_and_encoding_allocates_nothing ... ok
+test read_result::tests::recorded_payload_is_borrowed_and_cancelled_is_prelinked_without_data ... ok
+test record::selected::tests::original_local_grant_must_match_operation_scope_subject_capability_and_reference_grant ... ok
+test read_scan::tests::every_gap_advances_once_and_is_returned_explicitly ... ok
+test service_contract::tests::all_inputs_close_together_and_no_authored_cancellation_is_promised ... ok
+test read_result::tests::invalid_indices_and_oversized_payload_refuse_without_replacing_last_result ... ok
+test service_contract::tests::combined_source_keeps_original_append_abi_and_independent_read_pair ... ok
+test read_result::tests::decoder_refuses_count_overflow_and_semantically_invalid_order ... ok
+test read_scan::tests::refused_results_do_not_advance_or_pin ... ok
+test tests::snapshot_binding_refuses_wrong_bounds_authority_and_lifetime ... ok
+test tests::snapshot_generation_key_cannot_be_changed_by_claiming_a_different_extent ... ok
+test read_scan::tests::tail_regression_replay_and_early_end_refuse_after_progress ... ok
+test read_scan::tests::growing_tail_does_not_extend_scan_and_payload_is_borrowed ... ok
+test tests::snapshot_owner_metadata_must_fit_the_prepared_record_envelope ... ok
+test record::selected::tests::independent_reference_grant_refuses_stale_lost_identity_and_ceiling_mismatches ... ok
+test tests::snapshot_record_preserves_generation_across_new_boot_but_requires_new_authority ... ok
+test read_scan::tests::existing_typed_decoder_feeds_cursor_without_copying_record ... ok
+test record::selected::tests::compact_write_read_preserve_rich_record_key_bytes_and_new_boot_recovery ... ok
+test tests::snapshot_maximum_record_is_bounded_and_rejects_an_unrelated_authority_contract ... ok
+test read_result::tests::all_media_outcomes_round_trip_without_changing_prepared_backing ... ok
+test nor::tests::every_partial_program_cut_refuses_publication_after_fresh_boot_reopen ... ok
+test append::tests::every_data_and_commit_cut_preserves_previous_records_and_exposes_uncertain_tail ... ok
+test read_result::encoder::tests::entire_read_domain_parity_keeps_original_canonical_bytes_with_one_cache ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+

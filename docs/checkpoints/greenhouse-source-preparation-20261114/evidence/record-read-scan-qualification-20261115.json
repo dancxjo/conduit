@@ -1,0 +1,49 @@
+{
+  "assurance": "CPU package qualification of allocation-free no_std cursor; no live route, record authenticity, durable recording or retirement claim",
+  "base_head": "80a7229e0456e265e2c5dea725ecb1d612f1c278",
+  "files": {
+    "mechanisms/io/resource-snapshot/src/lib.rs": "903f73897b5a40a5f4cf61a3886fdeb311e69ff077ff97f0c0bd2dbcf1e16e2b",
+    "mechanisms/io/resource-snapshot/src/read_scan.rs": "ff22feb8041cfd3de6c516e0a21aeaec4fe578bb033be81d085690cd7429a874",
+    "mechanisms/io/resource-snapshot/src/read_scan/tests.rs": "3996cd26c60bc91f7ad52fb21c87ecf0e0f2c53057adf6182ac9bec6f95eccfb"
+  },
+  "checks": [
+    {
+      "command": "cargo +1.98.1 test --locked -p conduit-resource-snapshot --lib",
+      "exit": 0,
+      "log": "outputs/record-read-scan-lib-20261115.log",
+      "sha256": "6cb929ebb189af6292866d27c51187f5d7cd30fa773820b3a6b45e7148085fb2"
+    },
+    {
+      "command": "cargo +1.98.1 check --locked -p conduit-resource-snapshot --no-default-features",
+      "exit": 0,
+      "log": "outputs/record-read-scan-noalloc-20261115.log",
+      "sha256": "3c0e30f485d037d25996a3432762b467032830c765e886b013a3dc1c16be7965"
+    },
+    {
+      "command": "cargo +1.98.1 clippy --locked -p conduit-resource-snapshot --lib --tests -- -D warnings",
+      "exit": 0,
+      "log": "outputs/record-read-scan-clippy-20261115.log",
+      "sha256": "5e43240ec7db011aefe092d1ba838aeea97f9b2df2244c77ad137ff593871ee7"
+    }
+  ],
+  "results": {
+    "focused_cursor_cases": 6,
+    "complete_library_passed": 40,
+    "failed": 0,
+    "no_default_features_check": "passed",
+    "strict_lib_tests_clippy": "passed",
+    "rustfmt_check": "passed",
+    "diff_check": "passed"
+  },
+  "contract": "Exact outstanding index; first end pinned within checked first+maximum_records bound; later tails may grow but never regress; Recorded/Gap advance once; borrowed bytes, explicit gaps; stop at pinned ceiling; all refusals leave cursor unchanged",
+  "authority": "Caller retains authenticated same residence/generation/Line provenance and retry/work/deadline budget. Cursor grants no media/read/recording/reclamation permission.",
+  "source_frozen": true,
+  "cpu_cache_released": true,
+  "production_edits": [
+    "mechanisms/io/resource-snapshot/src/lib.rs",
+    "mechanisms/io/resource-snapshot/src/read_scan.rs",
+    "mechanisms/io/resource-snapshot/src/read_scan/tests.rs"
+  ],
+  "device_io": false,
+  "committed_by_worker": false
+}

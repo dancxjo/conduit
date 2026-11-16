@@ -1,0 +1,20 @@
+{
+  "boots": 10,
+  "checked_profile_sha256": "48f948a3b87413dbc82b7af39f436ff9653f2f65aed81276f22f8db6e584c04f",
+  "committed_records": 1264,
+  "context_records": 40,
+  "corrupt": 0,
+  "decoded_samples": 1224,
+  "durable_sha256": "5eb1df3c99a249232391d5dff26134d11d896545dc721944672e095c9dd38772",
+  "independent_presentation_sha256": "d7c485c59d1af07c429a1d623750cbe52d8f6bbc85baad6dfb3d96cdbd7c6113",
+  "input_sha256": "7156bb81dfe406916bc7e43bf55cba36ae13bb4caa5df57466804bf83a573692",
+  "next_index": 1264,
+  "no_media_writes": true,
+  "remaining_slots": 0,
+  "reported_gaps": 0,
+  "residence_sha256": "a672a3dacd87604486e5aabe20e1a5d27fe93437a9235cc762a7fe10c42731b8",
+  "scope": "offline production parser content recovery; no ACK or retirement",
+  "total_slots": 1264,
+  "unpublished_or_damaged": 0,
+  "vacant_gaps": 0
+}

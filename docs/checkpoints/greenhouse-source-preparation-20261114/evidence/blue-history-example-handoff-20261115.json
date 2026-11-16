@@ -1,0 +1,14 @@
+{
+  "scope": "historical Nov11 offline content recovery example, NOT a current authenticated Line feed",
+  "body": "28fb79351715c5837393add72c705a7dda8e7a4abd81468ece08380adaf21d3a",
+  "samples_recovered": 88,
+  "original_log_sha256": "c03d764be3ae23c9e271ec45b231e9a9eb8eb0cf520b7b3ca3571665e9269b0d",
+  "recovery_input_sha256": "ed85ef00502b3f6efaa49a9ce1d5d806c6681f4dcef579e01f01b61132c448af",
+  "corrupt": 0,
+  "unpublished_or_damaged": 0,
+  "reported_gaps": 0,
+  "original_context_and_sequence_preserved": true,
+  "clock_basis": "producer-acceptance-boot-ms@1; not wall time or physical acquisition time",
+  "private_example_available": true,
+  "no_ack_or_retirement": true
+}

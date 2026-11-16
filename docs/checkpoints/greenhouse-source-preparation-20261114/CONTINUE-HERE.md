@@ -1,6 +1,12 @@
 # Continue the greenhouse MCU work
 
-Shared qualified source parent: 80a7229e0456e265e2c5dea725ecb1d612f1c278. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+Shared qualified source parent: b56608372dbb45d12dca6c60f20ce1165d2758b1. This recovery commit preserves all current experimental MCU source byte-for-byte alongside public evidence. Qualified shared changes are in PR6837; this draft PR6902 is not a deployable release.
+
+## Fresh physical Blue recovery — 2026-11-15
+
+Fresh MAC-bound 4MiB read-only flash backup matches reviewed application225c3fd5...c1727. Original production parser recovered1264committedrecords/1224observations/40contextfragments across10Boots, no corruption/gaps, remaining0. Private observations remain excluded; this is offline content recovery, not current admitted network/Face feed or recording ACK. Existing application hard-reset after ROMread, no flash writes. Explicit operatortrustSeed prepared against current canonical Make/Seed libs preserves sameBody/Part/key/latestcredential, but NOT installed. Currentownerpeer must be rechecked before any installation; Root-owned Source/return/adoption transition still coordinated separately.
+
+Shared cursor b56608372d bounds decoded typed record exchange by firstcaptured_end, checksindex/tail/bounds, preserves gaps and borrowedpayload.6focused/40lib/no-default/strictClippy PASS. No readauthority, recorderACK or NORerase/reclaim granted. This slice depends on read-result foundation missing from dev, so delivery queue must preserve dependencies.
 
 ## Production execution handoff — 2026-11-15
 
