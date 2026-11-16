@@ -186,10 +186,10 @@ impl HidKeyboardSession {
     ) -> Result<HidProof, HidError> {
         if self.initial_count != 1
             || followup.len() != 1
-            || self.initial[0].usage != 4
-            || !self.initial[0].pressed
-            || followup[0].usage != 4
-            || followup[0].pressed
+            || self.initial[0].usage() != 4
+            || !self.initial[0].pressed()
+            || followup[0].usage() != 4
+            || followup[0].pressed()
         {
             return Err(HidError::ProofSequenceMismatch);
         }
