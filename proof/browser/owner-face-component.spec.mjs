@@ -1659,16 +1659,17 @@ for (const palette of ['editorial', 'phosphor']) {
 for (const selectedLook of [false, true]) {
   for (const forcedColors of ['none', 'active']) {
     test(`pressed feedback follows completed native activation (${selectedLook ? 'selected Look' : 'default'}, ${forcedColors})`, async ({ page }) => {
+      const current = structuredClone(view);
+      if (selectedLook) {
+        const hex = await readFile('proof/conformance/face-look/phosphor-look-v2.hex', 'utf8');
+        current.component = { subject_regions: [null], groups: [],
+          selected_look: { canonical_value: Array.from(Buffer.from(hex.replace(/\s/gu, ''), 'hex')) } };
+      }
       await page.emulateMedia({ forcedColors });
       await page.goto('/proof/browser/signal-dom-host.test.html');
-      await page.evaluate(async ({ view, selectedLook }) => {
+      await page.evaluate(async view => {
         await import('/targets/browser/handbook/owner-face-component.mjs');
         const element = document.createElement('conduit-owner-face');
-        if (selectedLook) {
-          element.dataset.componentExpression = 'fixture';
-          element.dataset.componentPalette = 'phosphor';
-          element.dataset.componentLook = 'fixture';
-        }
         globalThis.calls = [];
         globalThis.showFeedbackFixture = () => element.show(view, {
           invoke: async call => { globalThis.calls.push(call); },
@@ -1680,8 +1681,12 @@ for (const selectedLook of [false, true]) {
           look.addEventListener('load', resolve, { once: true });
           look.addEventListener('error', reject, { once: true });
         });
-      }, { view, selectedLook });
+      }, current);
       const face = page.locator('conduit-owner-face');
+      const expectSelectedLook = async () => {
+        if (selectedLook) await expect(face).toHaveAttribute('data-component-look', 'conduit.look/phosphor@1');
+      };
+      await expectSelectedLook();
       const button = face.getByRole('button', { name: 'Complete task', exact: true });
       const callCount = () => page.evaluate(() => globalThis.calls.length);
       const box = await button.boundingBox();
@@ -1690,30 +1695,34 @@ for (const selectedLook of [false, true]) {
       await page.mouse.move(x, y);
       await expect(button).not.toHaveCSS('outline-offset', '-4px');
       await page.mouse.down();
+      await expectSelectedLook();
       await expect(button).toHaveCSS('outline-style', 'solid');
       await expect(button).toHaveCSS('outline-width', '2px');
       await expect(button).toHaveCSS('outline-offset', '-4px');
       expect(await callCount()).toBe(0);
       await page.mouse.move(box.x + box.width + 30, box.y + box.height + 30);
       await page.mouse.up();
+      await expectSelectedLook();
       expect(await callCount()).toBe(0);
       await expect(button).not.toHaveCSS('outline-offset', '-4px');
       await button.click();
       expect(await page.evaluate(() => globalThis.calls)).toEqual([
-        { view, action: view.actions[0], arguments: [] },
+        { view: current, action: current.actions[0], arguments: [] },
       ]);
       await page.evaluate(() => globalThis.showFeedbackFixture());
       await button.focus();
       await page.keyboard.down('Space');
+      await expectSelectedLook();
       await expect(button).toBeFocused();
       await expect(button).toHaveCSS('outline-style', 'solid');
       await expect(button).toHaveCSS('outline-width', '2px');
       await expect(button).toHaveCSS('outline-offset', '-4px');
       expect(await callCount()).toBe(1);
       await page.keyboard.up('Space');
+      await expectSelectedLook();
       expect(await page.evaluate(() => globalThis.calls)).toEqual([
-        { view, action: view.actions[0], arguments: [] },
-        { view, action: view.actions[0], arguments: [] },
+        { view: current, action: current.actions[0], arguments: [] },
+        { view: current, action: current.actions[0], arguments: [] },
       ]);
       await expect(button).toBeDisabled();
       await expect(button).not.toHaveCSS('outline-offset', '-4px');
