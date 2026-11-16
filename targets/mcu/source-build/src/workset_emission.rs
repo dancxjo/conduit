@@ -34,6 +34,11 @@ pub(super) fn emit(workset: &Workset, out: &Path, legacy_roles: bool) -> Result<
             include_str!("source_composition/native_i2c_clock.rs"),
         )
         .map_err(|e| e.to_string())?;
+        std::fs::write(
+            out.join("source_native_i2c_clock_factory.rs"),
+            include_str!("source_composition/native_i2c_clock_factory.rs"),
+        )
+        .map_err(|e| e.to_string())?;
     }
     std::fs::write(out.join("workset.rs"), index).map_err(|e| e.to_string())
 }
@@ -83,7 +88,7 @@ fn index(workset: &Workset, legacy_roles: bool) -> Result<String, String> {
         // software module: calibration may permute Source nodes into kernel
         // slots, so original expanded-gear indices are not executable nodes.
         if i2c_clock(entry) {
-            writeln!(index, "pub mod entry_{i}_native{{\nuse super::entry_{i}_layout as layout;\nuse super::entry_{i} as source;\ninclude!(concat!(env!(\"OUT_DIR\"),\"/source_native_i2c_clock.rs\"));\n}}").unwrap();
+            writeln!(index, "pub mod entry_{i}_native{{\nuse super::entry_{i}_layout as layout;\nuse super::entry_{i} as source;\ninclude!(concat!(env!(\"OUT_DIR\"),\"/source_native_i2c_clock.rs\"));\ninclude!(concat!(env!(\"OUT_DIR\"),\"/source_native_i2c_clock_factory.rs\"));\n}}").unwrap();
         }
     }
     Ok(index)

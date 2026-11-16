@@ -10,6 +10,7 @@ mod continuation_binding_tests;
 
 pub fn emit_to(out: &Path) -> std::io::Result<()> {
     for (name, source) in [
+        ("native_i2c_clock_factory", include_str!("source_composition/native_i2c_clock_factory.rs")),
         (
             "native_i2c_clock",
             include_str!("source_composition/native_i2c_clock.rs"),

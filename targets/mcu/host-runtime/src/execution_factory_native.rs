@@ -71,7 +71,7 @@ impl<'o, 'f, R: PreparedResidents<E>, Q: PreparedCallSet, const E: usize, const 
         let backing = residents
             .retained_backing_bytes()
             .ok_or("resident-backing")?
-            .checked_add(software.owner.backing)
+            .checked_add(software.retained_backing_bytes())
             .ok_or("backing")?
             .checked_add(native.retained_backing_bytes().ok_or("native-backing")?)
             .ok_or("backing")?;

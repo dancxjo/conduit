@@ -1,15 +1,19 @@
 //! Compile the actual emitted constructor against original native APIs. The
 //! inventory test uses calibrated (permuted) kernel nodes, not Source ordinals.
 mod layout {
+    pub const CONFIGURATIONS: &[conduit_core::AssignedRecordRequirement] = &[];
     pub const SOURCE_DOCUMENT_ID: &str = "test/source";
     pub const CHECKED_PLOT_ID: &str = "test/checked";
     pub const EXPANDED_PLOT_ID: &str = "test/expanded";
 }
 mod source {
+    pub const NODE_COUNT: usize = 20;
+    pub const CORD_COUNT: usize = 1;
     pub static NATIVE_KINDS: &[(u16, &str)] =
         &[(19, "machine/clock/at"), (7, "machine/i2c/transact")];
 }
 include!("native_i2c_clock.rs");
+include!("native_i2c_clock_factory.rs");
 
 #[test]
 fn exact_native_pair_uses_remapped_kernel_nodes() {

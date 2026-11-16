@@ -162,6 +162,12 @@ pub struct PreparedSoftware<'o, 'f, const N: usize> {
     selected: [bool; N],
 }
 impl<'f, const N: usize> PreparedSoftware<'_, 'f, N> {
+    /// Actual backing of this same borrowed inventory, also charged by the
+    /// complete driver owner. Inspection neither selects nor transfers a Back.
+    pub fn retained_backing_bytes(&self) -> usize {
+        self.owner.backing
+    }
+
     #[cfg(feature = "execution-workspace")]
     fn workspace_requirements<const P: usize>(
         &self,

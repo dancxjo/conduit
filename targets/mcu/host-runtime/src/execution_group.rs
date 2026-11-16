@@ -44,6 +44,17 @@ pub struct EntryPin<'a> {
     pub expanded: &'a str,
 }
 impl EntryPin<'_> {
+    /// Reuse the original independently installed Source/configuration gate
+    /// before preparing an alternative native equipment family. This grants no
+    /// possession, resource reservation or execution authority.
+    pub fn check_configuration(
+        &self,
+        fragment: &b::DelegatedBodyFragment<'_>,
+        expected: &[c::AssignedRecordRequirement],
+    ) -> Result<(), Refusal<&'static str>> {
+        self.check(fragment)?;
+        check_configuration(fragment, expected)
+    }
     fn matches(&self, actual: &b::BodyFragmentApprovalMetadata<'_>) -> bool {
         !self.source.is_empty()
             && !self.checked.is_empty()
@@ -151,8 +162,8 @@ impl<
         approved: &b::DelegatedBodyFragment<'_>,
         fore: &[c::AssignedForeRequirement],
     ) -> Result<Self::Prepared, Refusal<&'static str>> {
-        self.entry.check(approved)?;
-        check_configuration(approved, self.configuration)?;
+        self.entry
+            .check_configuration(approved, self.configuration)?;
         PreparedFragment::prepare(
             approved,
             self.profile,
@@ -206,8 +217,7 @@ impl<
         fore: &[c::AssignedForeRequirement],
     ) -> Result<Self::Prepared, Refusal<&'static str>> {
         let f = self.fragment;
-        f.entry.check(approved)?;
-        check_configuration(approved, f.configuration)?;
+        f.entry.check_configuration(approved, f.configuration)?;
         PreparedFragment::prepare_with_terminal_transductions(
             approved,
             f.profile,
@@ -241,8 +251,8 @@ impl<'o, 'p> FragmentFactory<'p> for MaskConstruction<'o, 'p> {
         approved: &b::DelegatedBodyFragment<'_>,
         fore: &[c::AssignedForeRequirement],
     ) -> Result<Self::Prepared, Refusal<&'static str>> {
-        self.entry.check(approved)?;
-        check_configuration(approved, self.configuration)?;
+        self.entry
+            .check_configuration(approved, self.configuration)?;
         if fore != self.layout.fore {
             return Err(Refusal::Scope);
         }
