@@ -33,6 +33,29 @@ pub(super) const SP: usize = source::sampling_layout::PORTS_PER_NODE;
 pub(super) const OP: usize = source::output_layout::PORTS_PER_NODE;
 pub(super) const SS: usize = source::sampling_layout::SIGN_ITEMS;
 pub(super) const OS: usize = source::output_layout::SIGN_ITEMS;
+// Stock is derived from the complete independently emitted entry, not from
+// thermometer behavior. Linked terminal matrices are checked against actual Backs.
+use conduit_mcu_host_runtime::execution_profile as storage;
+pub(super) const SQ: usize = source::sampling_layout::CORD_VALUE_SLOT_CAPACITIES.len();
+pub(super) const OQ: usize = source::output_layout::CORD_VALUE_SLOT_CAPACITIES.len();
+pub(super) const SF: usize =
+    storage::phase_bytes(&source::sampling_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
+pub(super) const OF: usize =
+    storage::phase_bytes(&source::output_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
+pub(super) const SU: usize =
+    storage::unresolved_nodes(SN, source::sampling_layout::ABNORMAL_CORD_COUNT);
+pub(super) const OU: usize =
+    storage::unresolved_nodes(ON, source::output_layout::ABNORMAL_CORD_COUNT);
+pub(super) const SZ: usize = storage::cord_terminals(
+    SC,
+    source::sampling_layout::ABNORMAL_CORD_COUNT,
+    source::sampling_layout::EXTERNAL_INGRESS_CORD_COUNT,
+);
+pub(super) const OZ: usize = storage::cord_terminals(
+    OC,
+    source::output_layout::ABNORMAL_CORD_COUNT,
+    source::output_layout::EXTERNAL_INGRESS_CORD_COUNT,
+);
 #[cfg(not(record_service))]
 type RecordingDriver = conduit_mcu_host_runtime::execution_factory::NoExtraBack;
 #[cfg(record_service)]
@@ -51,6 +74,12 @@ pub type SamplingKernel<'a, 'f> = ExecutionKernel<
     SS,
     HostedSignLog,
     SK,
+    HostedValueStore,
+    SQ,
+    0,
+    SF,
+    SU,
+    SZ,
 >;
 pub type OutputKernel<'a, 'f> = ExecutionKernel<
     Driver<'f, resident::BorrowedBack<'a>>,
@@ -63,6 +92,12 @@ pub type OutputKernel<'a, 'f> = ExecutionKernel<
     OS,
     HostedSignLog,
     OK,
+    HostedValueStore,
+    OQ,
+    0,
+    OF,
+    OU,
+    OZ,
 >;
 #[used]
 #[no_mangle]

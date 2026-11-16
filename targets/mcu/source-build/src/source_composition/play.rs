@@ -45,6 +45,7 @@ mod shapes {
 pub(crate) use shapes::FORE_PORTS;
 use shapes::{
     OutputBound, SamplingBound, OC, OH, OK, ON, OP, OR, OS, OT, SC, SH, SK, SN, SP, SR, SS, ST,
+    OQ, OF, OU, OZ, SQ, SF, SU, SZ,
 };
 pub use shapes::{OutputKernel, SamplingCalls, SamplingKernel, CONDUIT_EXECUTION_KERNEL_BYTES};
 pub mod fore {
@@ -72,13 +73,13 @@ const fn terminal_contracts<const N: usize, const P: usize, const WIDE: usize>(
     }
     result
 }
-const SAMPLING_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; SP];
+static SAMPLING_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; SP];
     SN] = terminal_contracts(&source::sampling_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
-const OUTPUT_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; OP];
+static OUTPUT_TERMINALS: [[Option<conduit_kernel::scheduler::AssignedTerminalTransduction>; OP];
     ON] = terminal_contracts(&source::output_layout::GENERATED_TERMINAL_TRANSDUCTIONS);
 
 pub const CONTINUATION_FORE_PORTS: usize = FORE_PORTS;
-pub type ContinuationStarted<'a, 'f> =
+pub type StartedWorkset<'a, 'f> =
     conduit_mcu_host_runtime::execution_workset::StartedLocalWorkset<(
         (
             fore::BoundSampling<'a, 'a, SamplingBound<'a, 'f>>,
@@ -87,6 +88,8 @@ pub type ContinuationStarted<'a, 'f> =
         ),
         conduit_mcu_host_runtime::execution_mask::RendererService<'a, crate::renderer::Clock>,
     )>;
+// The same physical owner shape serves ordinary Start and continuation.
+pub type ContinuationStarted<'a, 'f> = StartedWorkset<'a, 'f>;
 macro_rules! profile {
     ($module:ident,$host:expr,$boot:expr,$fore:expr) => {{
         use crate::workset::generated::$module as f;
@@ -356,7 +359,7 @@ pub fn prepare<'a, 'f: 'a, 'w: 'scope, 'context, 'scope>(
             let sample = fore::prepare_kernel(sampling,sampling_profile(),sampling_fore,line.map(|l|l.profile),sampling_values,policy.maximum_retained_bytes,sample_backs)
                 .map_err(|error| kernel_refusal(diagnostic,error,"sampling-kernel"))?;
             let sample=match carriage {Some(carriage)=>carriage.wrap(sample),None=>fore::PreparedSampling::Local(sample,core::marker::PhantomData)};
-            let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog, OK>::prepare_with_terminal_transductions_ref(
+            let output = PreparedFragment::<_, ON, OC, OP, OR, OT, OH, OS, HostedSignLog, OK, HostedValueStore, OQ, 0, OF, OU, OZ>::prepare_with_linked_terminal_transductions(
                 output,
                 output_profile,
                 output_fore,
