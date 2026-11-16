@@ -82,9 +82,13 @@ impl Io<'_, '_, '_, '_, '_> {
         }
     }
 }
+#[cfg(dictionary_sign_archive)]
+type EvidenceWindow = conduit_mcu_host_runtime::fore_bridge::DictionaryEvidenceWindow;
+#[cfg(not(dictionary_sign_archive))]
+type EvidenceWindow = conduit_mcu_host_runtime::fore_bridge::NoArchive;
 pub(super) enum SampleObserverMode<'a, 'io, 'bridge, 'pins> {
     Local(SampleObserver<'a>),
-    Line(ForeObserver<'io, 'bridge, 'pins, SampleObserver<'a>>),
+    Line(ForeObserver<'io, 'bridge, 'pins, SampleObserver<'a>, EvidenceWindow>),
 }
 impl<'a, 'io, 'bridge, 'pins> SampleObserverMode<'a, 'io, 'bridge, 'pins> {
     pub(super) fn new(
@@ -93,8 +97,9 @@ impl<'a, 'io, 'bridge, 'pins> SampleObserverMode<'a, 'io, 'bridge, 'pins> {
     ) -> Self {
         match port {
             Some(port) => {
-                #[cfg(fore_carrier)] { Self::Line(ForeObserver::with_duplex_evidence_window(existing, port, crate::play::SAMPLING_LINE_SIGNS)) }
-                #[cfg(not(fore_carrier))] { Self::Line(ForeObserver::new(existing, port)) }
+                #[cfg(dictionary_sign_archive)] { Self::Line(ForeObserver::with_archived_duplex_evidence_window(existing, port, crate::play::SAMPLING_LINE_SIGNS)) }
+                #[cfg(all(fore_carrier, not(dictionary_sign_archive)))] { Self::Line(ForeObserver::with_duplex_evidence_window(existing, port, crate::play::SAMPLING_LINE_SIGNS)) }
+                #[cfg(not(any(fore_carrier, dictionary_sign_archive)))] { Self::Line(ForeObserver::new(existing, port)) }
             },
             None => Self::Local(existing),
         }

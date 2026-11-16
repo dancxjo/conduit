@@ -1,5 +1,7 @@
 // Independently compiled finite kernel/storage geometry.
 use super::*;
+#[cfg(all(dictionary_sign_archive, not(all(fore_carrier, record_service))))]
+compile_error!("archived duplex execution requires the checked single-result record service and Fore carrier");
 pub(crate) const FORE_PORTS: usize = {
     let a = source::sampling_layout::FORE_PORTS;
     let b = source::mask_layout::FORE_PORTS;
@@ -72,6 +74,27 @@ type RecordingDriver = conduit_mcu_host_runtime::execution_factory::BoxedRecordS
     SP,
     { conduit_resource_snapshot::read_result::READ_RESULT_BYTES },
 >;
+#[cfg(not(dictionary_sign_archive))]
+pub(crate) type SamplingSignLog = HostedSignLog;
+#[cfg(dictionary_sign_archive)]
+type SamplingArchive = conduit_kernel::dictionary_live_sign_archive::LivePrefixArchive<
+    { crate::config::DICTIONARY_ARCHIVE_EVENTS },
+    { crate::config::DICTIONARY_ARCHIVE_TEMPLATES },
+    { crate::config::DICTIONARY_ARCHIVE_SEGMENTS },
+    { crate::config::DICTIONARY_ARCHIVE_REQUEST_LANES },
+    { crate::config::DICTIONARY_ARCHIVE_REMOTE_STREAMS },
+>;
+#[cfg(dictionary_sign_archive)]
+pub(crate) type SamplingSignLog = conduit_kernel::dictionary_live_sign_archive::DictionaryLiveSignLog<
+    { crate::config::DICTIONARY_ARCHIVE_EVENTS },
+    { crate::config::DICTIONARY_ARCHIVE_TEMPLATES },
+    { crate::config::DICTIONARY_ARCHIVE_SEGMENTS },
+    { crate::config::DICTIONARY_ARCHIVE_REQUEST_LANES },
+    { crate::config::DICTIONARY_ARCHIVE_REMOTE_STREAMS },
+>;
+#[cfg(dictionary_sign_archive)]
+const _: () = assert!(SamplingSignLog::required_archive_backing_bytes()
+    <= crate::config::DICTIONARY_ARCHIVE_LIMITS.archive_backing_bytes);
 pub type SamplingKernel<'a, 'f> = ExecutionKernel<
     Driver<'f, resident::BorrowedBack<'a>, RecordingDriver>,
     SN,
@@ -81,7 +104,7 @@ pub type SamplingKernel<'a, 'f> = ExecutionKernel<
     ST,
     SH,
     SS,
-    HostedSignLog,
+    SamplingSignLog,
     SK,
     HostedValueStore,
     SQ,
@@ -111,13 +134,24 @@ pub type OutputKernel<'a, 'f> = ExecutionKernel<
 #[used]
 #[no_mangle]
 pub static CONDUIT_EXECUTION_KERNEL_BYTES: [usize; 3] = [
-    core::mem::size_of::<SamplingKernel<'static, 'static>>() + {
-        #[cfg(fore_carrier)] { match SAMPLING_LINE_SIGNS.backing_bytes() { Some(n) => n, None => panic!("finite Sign geometry") } }
-        #[cfg(not(fore_carrier))] { sign_bytes(SS, 0) }
-    },
+    core::mem::size_of::<SamplingKernel<'static, 'static>>() + sampling_sign_external_bytes(),
     core::mem::size_of::<conduit_seven_segment_mask::native_kernel::Kernel>(),
     core::mem::size_of::<OutputKernel<'static, 'static>>() + sign_bytes(OS, OS),
 ];
+const fn sampling_sign_external_bytes() -> usize {
+    let active = {
+        #[cfg(fore_carrier)] { match SAMPLING_LINE_SIGNS.backing_bytes() { Some(n) => n, None => panic!("finite Sign geometry") } }
+        #[cfg(not(fore_carrier))] { sign_bytes(SS, 0) }
+    };
+    // The wrapper/Box pointer is already part of SamplingKernel. Count only
+    // the separately allocated codec, in addition to the active Sign backing.
+    #[cfg(dictionary_sign_archive)]
+    { match active.checked_add(core::mem::size_of::<SamplingArchive>()) {
+        Some(bytes) => bytes, None => panic!("archive Sign geometry"),
+    } }
+    #[cfg(not(dictionary_sign_archive))]
+    { active }
+}
 #[cfg(not(record_service))]
 pub type SamplingCalls = conduit_mcu_host_runtime::execution_factory::CallsWithOptionalAppender<
     conduit_mcu_host_runtime::execution_factory::Calls<Pulse, Wire, MonotonicTimer, WAIT_SLOTS>,

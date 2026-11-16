@@ -637,3 +637,6 @@ fn exercise_finite_budget(budget: crate::execution_sign_budget::DuplexSignBudget
         "normal terminal/drained retirement needs no evidence reset"
     );
 }
+
+#[path = "tests/archive_window.rs"]
+mod archive_window;

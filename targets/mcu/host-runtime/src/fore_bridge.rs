@@ -22,6 +22,9 @@ pub use mailbox::{CarrierPort, Event};
 #[path = "fore_bridge/observer.rs"]
 mod observer;
 pub use observer::{ForeObserver, ObserverRefusal};
+#[path = "fore_bridge/archive_policy.rs"]
+mod archive_policy;
+pub use archive_policy::{DictionaryEvidenceWindow, NoArchive};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Refusal {

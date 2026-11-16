@@ -231,3 +231,4 @@ mod tests {
 mod bme_sampling_build_tests;
 
 pub mod sign_archive;
+pub mod dictionary_sign_archive;
