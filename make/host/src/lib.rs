@@ -84,3 +84,4 @@ mod preparation_delegation_rust;
 pub use preparation_delegation_rust::{rust_execution_delegation, rust_preparation_delegation};
 
 pub mod sign_archive;
+pub mod dictionary_sign_archive;
