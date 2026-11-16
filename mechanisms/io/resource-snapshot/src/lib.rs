@@ -10,6 +10,7 @@ pub mod append_result;
 pub mod nor;
 pub mod read_contract;
 pub mod read_result;
+pub mod read_scan;
 mod record;
 pub mod service_contract;
 pub use record::*;
