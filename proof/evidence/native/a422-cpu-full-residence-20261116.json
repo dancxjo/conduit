@@ -1,0 +1,113 @@
+{
+  "schema": "conduit.proof/original-source-full-residence@1",
+  "tested_fixture_commit": "fdef1aadfd",
+  "production_source_commit": "8cebe9cddd",
+  "fixture_branch": "investigate/a422-cpu-full-residence-20261116",
+  "result": "PASS: original Source keeps measuring/displaying under full-residence Capacity; no new recording claimed",
+  "preexisting_state": {
+    "committed_generic_records": 1264,
+    "creation": "Actual public PreparedNorRecordResidence::append/recover APIs before current Source Start; no raw header forging",
+    "seed_program_units": 2528,
+    "payloads": "Deterministic generic PREEXISTING/index fixture data, not current Source observations or actual Blue history",
+    "media_bytes": 655360,
+    "before_and_after_sha256": "b7a25aeeb0b66428467018868f9717fc1af994d4084459f1e4be6238cec7f288"
+  },
+  "original_pipeline": {
+    "public_Root_ingress": true,
+    "complete_factory": true,
+    "renderer_preparation": true,
+    "complete_resource_admission": true,
+    "genuine_authenticated_Start": true,
+    "original_run_started_and_play_run": true,
+    "provider_effects_require_genuine_Start": true
+  },
+  "outage": {
+    "transport_read_timeout_ms": 30000,
+    "read_failures": 1,
+    "original_Fore_actor_retired": true,
+    "incoming_peer_frames": 0,
+    "durable_history_acknowledgments": 0
+  },
+  "current_Source_effects": {
+    "captures": 6,
+    "waits_started": 7,
+    "Face_sequence": 6,
+    "display_transactions": 154,
+    "display_ACKs": 1386,
+    "display_frame_age_ms": 850,
+    "display_fresh": true,
+    "program_units": 0,
+    "new_committed_records": 0,
+    "typed_actual_native_append_result": "Capacity",
+    "append_result_observation": "Standard append_result::decode of actual original native-service scratch bytes after actors and affine preparation owners quiesce; no injected status/peer frame",
+    "capacity_added_to_visible_Face": false
+  },
+  "preservation": {
+    "every_old_generic_payload_verified": true,
+    "entire_media_bytes_identical": true,
+    "old_records_after": 1264,
+    "corruption": 0,
+    "gaps": 0,
+    "eviction": 0,
+    "Root_retained_input_digest_unchanged": true,
+    "original_admissions_retained": true
+  },
+  "CPU_heap": {
+    "Source_steady": 105240,
+    "peak": 105647,
+    "original_limit": 118784,
+    "measurement": "GlobalAlloc Layout byte totals; no physical target-fit inference",
+    "excluded_external_NOR_array": 655360
+  },
+  "unchanged_limits": {
+    "assignment": 18432,
+    "runtime": 38912,
+    "Source_period_count": 960,
+    "record_slots": 1264
+  },
+  "feature_parity": {
+    "runtime": [
+      "execution"
+    ],
+    "kernel": [
+      "alloc",
+      "default",
+      "step-test-support"
+    ],
+    "execution_workspace": false
+  },
+  "empty_residence_regression_same_binary": {
+    "result": "PASS",
+    "new_committed_records": 10,
+    "recovered_observations": 6,
+    "new_program_units": 20
+  },
+  "scope_limits": [
+    "CPU platform emulation only; physical full Blue not modified",
+    "Capacity was observed as typed native append result, not added as a new Face warning",
+    "No new observations are durably retained when full",
+    "No remote history transfer, storage reclamation or restart continuity proved"
+  ],
+  "witnesses": {
+    "compile.log": {
+      "retained_path": "target/qualification/Source-full-residence/compile.log",
+      "sha256": "382ee118da1899195b6dd4383ab461e587efe565d4adf5b051f89760df88ce8f"
+    },
+    "run.log": {
+      "retained_path": "target/qualification/Source-full-residence/run.log",
+      "sha256": "bc74573d4fa499a857643cb357eb0ccba7e5fac06c6b90e1ef3b84e4c66f8dfa"
+    },
+    "empty-residence-regression.log": {
+      "retained_path": "target/qualification/Source-full-residence/empty-residence-regression.log",
+      "sha256": "189b07d8d8ebe3131d2895cd691f0ccf1600e8eb04880ec58069135a6a66ee3b"
+    },
+    "full-residence-before.bin": {
+      "retained_path": "target/qualification/Source-full-residence/full-residence-before.bin",
+      "sha256": "b7a25aeeb0b66428467018868f9717fc1af994d4084459f1e4be6238cec7f288"
+    },
+    "full-residence-after.bin": {
+      "retained_path": "target/qualification/Source-full-residence/full-residence-after.bin",
+      "sha256": "b7a25aeeb0b66428467018868f9717fc1af994d4084459f1e4be6238cec7f288"
+    }
+  }
+}
