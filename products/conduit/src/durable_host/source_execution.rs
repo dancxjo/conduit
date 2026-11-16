@@ -254,6 +254,32 @@ pub(crate) struct RetainedExecution {
     pub(crate) outcomes: Vec<String>,
 }
 
+/// The metadata describes the original exact Fore; it grants no Start/Ready.
+pub(crate) use super::carriage::AuthorizedForeProbe;
+#[allow(dead_code)]
+impl RetainedExecution {
+    /// Borrow one exact current Host's authorized probe synchronously. The
+    /// callback cannot detach or clone the descriptor; no IO occurs on selection.
+    pub(crate) fn probe<R>(
+        &mut self,
+        owner: &owner::Owner,
+        host: &conduit_core::HostId,
+        operation: impl for<'probe> FnOnce(&mut AuthorizedForeProbe<'probe>) -> Result<R, String>,
+    ) -> Result<R, String> {
+        let mut selected = self
+            .carriers
+            .iter_mut()
+            .filter(|carrier| carrier.matches_host(host));
+        let carrier = selected
+            .next()
+            .ok_or("no retained original Fore carrier for Host")?;
+        if selected.next().is_some() {
+            return Err("retained Fore Host selection is ambiguous".into());
+        }
+        carrier.probe(owner, operation)
+    }
+}
+
 /// Called only by the serving local runtime, with original retained File guards.
 /// No network request selects a path or manufactures this verified basis.
 #[allow(dead_code)]

@@ -33,6 +33,63 @@ impl PreparedRemoteBodyCommand {
     }
 }
 impl Owner {
+    /// Reborrow only an original retained approval under current owner truth.
+    /// This authorizes no Start claim and never reconstructs a command from IO.
+    #[cfg(target_os = "linux")]
+    pub(crate) fn verify_selected_fore_probe(
+        &self,
+        member: &MemberPresentationBasis,
+        transcript: &[u8; 32],
+    ) -> Result<&PreparedRemoteBodyCommand, String> {
+        self.require_workset_recovered()?;
+        self.selected_file_workset
+            .as_ref()
+            .ok_or("original retained File workset absent")?
+            .verify_planning(&self.host, self.session.evidence())?;
+        self.require_retained_local_fore()?;
+        self.require_current_native_member(member)?;
+        self.require_observed_member_offer(&member.host_advertisement)?;
+        let current = self.session.evidence();
+        let realization = self
+            .session
+            .realization()
+            .ok_or("current Body proposal absent for Fore probe")?;
+        realization
+            .plan
+            .validate_for(&realization.wake)
+            .map_err(|error| format!("current Fore probe Plan: {error:?}"))?;
+        if realization.plan.body_id != current.body_id
+            || realization.plan.workset != current.body.workset
+            || realization.plan.workload_revision != current.body.workload_revision
+        {
+            return Err("Fore probe proposal differs from current Body workset".into());
+        }
+        let expected_play = match &realization.play {
+            Some(play) => play.clone(),
+            None => self
+                .host
+                .prospective_body_play(&realization.wake, &realization.plan)?,
+        };
+        let mut matching = self
+            .member_carrier
+            .as_ref()
+            .ok_or("original member carrier custody absent")?
+            .commands
+            .iter()
+            .filter(|command| {
+                command.part == member.credential.part_id
+                    && command.host == member.host_advertisement.host_id
+                    && command.transcript() == transcript
+            });
+        let command = matching
+            .next()
+            .ok_or("original Fore approval absent or changed")?;
+        if matching.next().is_some() || command.play() != &expected_play {
+            return Err("original Fore approval is ambiguous or pins another current Play".into());
+        }
+        Ok(command)
+    }
+
     pub(crate) fn require_remote_workset_retired(&self) -> Result<(), String> {
         if self
             .member_carrier

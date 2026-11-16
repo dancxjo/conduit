@@ -567,5 +567,6 @@ pub(super) use fore_provider::{select_direct_fore_lines, DirectForeCarrierSelect
 #[cfg(target_os = "linux")]
 #[path = "source_revision_fore_client.rs"]
 mod fore_client;
+pub(crate) use fore_client::AuthorizedForeProbe;
 #[cfg(target_os = "linux")]
 pub(super) use fore_client::{negotiate_selected_fore, RetainedForeClient};

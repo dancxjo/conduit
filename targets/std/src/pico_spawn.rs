@@ -20,8 +20,8 @@ mod member_return;
 mod offer_images;
 mod preparation;
 pub use fore_carriage::{
-    ForeCarriageBounds, ForeCarriageError, ForeCarriageFrame, PicoForeCarriage,
-    PreparedForeCarriage,
+    ForeCarriageBounds, ForeCarriageError, ForeCarriageFrame, ForeExchangeOutcome,
+    PicoForeCarriage, PreparedForeCarriage,
 };
 pub use member_return::{MemberReturnObservation, MemberReturnPresentation, PicoMemberReturnBasis};
 pub use offer_images::resolve_member_offer_images;

@@ -269,3 +269,4 @@ mod tests;
 #[path = "source_revision_fore_binding.rs"]
 mod binding;
 pub(super) use binding::DirectForeMaterial;
+pub(crate) use binding::ForeProbeBinding;

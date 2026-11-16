@@ -231,7 +231,7 @@ fn no_selected_carrier_is_not_descriptive_line_availability() {
 fn client_binding_uses_original_child_bytes_custody_and_installed_image() {
     use sha2::{Digest, Sha256};
     let fixture = Fixture::new();
-    let (rows, sessions, material) = describe(
+    let (rows, sessions, mut material) = describe(
         &fixture.policy,
         &fixture.member,
         &fixture.peer,
@@ -305,8 +305,44 @@ fn client_binding_uses_original_child_bytes_custody_and_installed_image() {
     };
     let child = conduit_body::encode_body_fragment_document(&metadata, &projection, 65536).unwrap();
     let payload = conduit_body::encode_body_workset_document(&[&child], 65536).unwrap();
+    assert!(material.approval_transcript().is_err());
+    assert!(material.verify_probe_binding(&payload, &[8; 32]).is_err());
     let bindings = material.bindings(&payload, [8; 32]).unwrap();
     material.prepare_carriage(&payload, [8; 32]).unwrap();
+    let probe = material.verify_probe_binding(&payload, &[8; 32]).unwrap();
+    assert_eq!(probe.sessions, &bindings);
+    assert_eq!(probe.original_approval_transcript, &[8; 32]);
+    assert_eq!(probe.body, fixture.member.credential.body_id.as_str());
+    assert_eq!(
+        probe.host,
+        fixture.member.host_advertisement.host_id.as_str()
+    );
+    assert_eq!(
+        probe.boot,
+        fixture.member.host_advertisement.boot_id.as_str()
+    );
+    assert_eq!(
+        probe.generation,
+        fixture.member.host_advertisement.offer_generation.0
+    );
+    assert_eq!(
+        probe.configuration,
+        fixture.member.host_advertisement.profile.as_str()
+    );
+    assert_eq!(probe.image, fixture.policy.installed_image_id);
+    assert_eq!(probe.usb_serial, fixture.policy.usb_serial);
+    assert_eq!(probe.plot, &fixture.policy.plot);
+    assert_eq!(
+        probe.request.fore().direction(),
+        c::AssignedForeDirection::Input
+    );
+    assert_eq!(
+        probe.result.fore().direction(),
+        c::AssignedForeDirection::Output
+    );
+    assert!(material.verify_probe_binding(&payload, &[9; 32]).is_err());
+    assert!(material.prepare_carriage(&payload, [9; 32]).is_err());
+    assert!(material.verify_probe_binding(&payload, &[8; 32]).is_ok());
     assert_ne!(bindings[0].scope_commitment, bindings[1].scope_commitment);
     let input = generated
         .profile()
@@ -346,6 +382,7 @@ fn client_binding_uses_original_child_bytes_custody_and_installed_image() {
     let mut damaged = payload.clone();
     *damaged.last_mut().unwrap() ^= 1;
     assert!(material.bindings(&damaged, [8; 32]).is_err());
+    assert!(material.verify_probe_binding(&damaged, &[8; 32]).is_err());
     assert!(material
         .bindings(&payload[..payload.len() - 1], [8; 32])
         .is_err());
