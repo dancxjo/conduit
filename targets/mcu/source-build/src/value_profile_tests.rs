@@ -221,3 +221,22 @@ fn topology_associations_preserve_fanout_multioutput_queue_order_and_external_si
     assert!(emitted.contains("pub const CORD_VALUE_SINKS:&[Option<(u16,u16)>]=&[\nSome((1,0)),\nSome((1,0)),\nSome((1,0)),\nSome((2,0)),\nNone,\nNone,\n];"));
     assert!(emitted.contains("pub const STEP_VALUE_OUTPUTS:&[(u16,u16)]=&[(0, 0), (0, 1)];"));
 }
+
+#[test]
+fn abnormal_topology_stock_fact_counts_tracks_without_changing_value_profiles() {
+    let schema = schema();
+    let mut graph = graph(&schema);
+    let ordinary = select(&graph, &declarations(&schema)).unwrap();
+    assert_eq!(ordinary.abnormal_cord_count, 0);
+    assert!(ordinary
+        .emit_rust()
+        .contains("pub const ABNORMAL_CORD_COUNT:usize=0;"));
+    graph.cords[1].track = AssignedConnectionTrack::AbnormalTerminal;
+    let abnormal = select(&graph, &declarations(&schema)).unwrap();
+    assert_eq!(abnormal.abnormal_cord_count, 1);
+    assert_eq!(abnormal.cords, ordinary.cords);
+    assert_eq!(abnormal.steps, ordinary.steps);
+    assert!(abnormal
+        .emit_rust()
+        .contains("pub const ABNORMAL_CORD_COUNT:usize=1;"));
+}

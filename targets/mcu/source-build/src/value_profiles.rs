@@ -30,6 +30,8 @@ pub struct Profiles<'a> {
     pub steps: Vec<Slot<'a>>,
     /// Exact routed output aligned with each Step profile (fanout appears once).
     pub step_outputs: Vec<(u16, u16)>,
+    /// Source topology fact, not authority or a trusted runtime capacity claim.
+    pub abnormal_cord_count: usize,
 }
 
 impl Profiles<'_> {
@@ -81,6 +83,12 @@ impl Profiles<'_> {
             text,
             "pub const STEP_VALUE_OUTPUTS:&[(u16,u16)]=&{:?};",
             self.step_outputs
+        )
+        .unwrap();
+        writeln!(
+            text,
+            "pub const ABNORMAL_CORD_COUNT:usize={};",
+            self.abnormal_cord_count
         )
         .unwrap();
         text
@@ -204,6 +212,13 @@ pub fn select<'a>(
         cord_sinks,
         steps,
         step_outputs,
+        abnormal_cord_count: kernel
+            .cords
+            .iter()
+            .filter(|cord| {
+                cord.track == conduit_kernel::scheduler::AssignedConnectionTrack::AbnormalTerminal
+            })
+            .count(),
     })
 }
 
