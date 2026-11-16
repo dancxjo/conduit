@@ -218,6 +218,11 @@ pub(crate) fn measurement_chart_fixture_source() -> String {
 }
 
 #[cfg(test)]
+pub(crate) fn measurement_history_fixture_source() -> &'static str {
+    include_str!("../../../semantics/data/tests/fixtures/measurement-history.conduit")
+}
+
+#[cfg(test)]
 #[allow(dead_code)] // Only the separately instrumented integration test calls this hook.
 pub(crate) fn install_measurement_catalog_for_cost_observation(
     startup: &mut StartupCatalog,

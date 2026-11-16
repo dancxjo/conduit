@@ -11,13 +11,25 @@ use conduit_plot::{ProfileCatalog, StartupCatalog};
 #[test]
 fn ordinary_and_bounded_product_contexts_check_the_same_three_series_source() {
     let text = plot_source::measurement_chart_fixture_source();
-    let canonical = plot_source::parse(&text).unwrap();
+    check_both_contexts(&text, "inspection/three-series");
+}
+
+#[test]
+fn ordinary_and_bounded_product_contexts_check_the_same_history_pipeline() {
+    check_both_contexts(
+        plot_source::measurement_history_fixture_source(),
+        "inspection/history",
+    );
+}
+
+fn check_both_contexts(text: &str, entry: &str) {
+    let canonical = plot_source::parse(text).unwrap();
     let expanded = canonical.expand_entry_for_authoring().unwrap();
     let context = conduit::source_check_worker::standard_context().unwrap();
     let mut projection = conduit_plot::SourceCheckProjection::new(
         "diagnostic/measurement-authoring",
         1,
-        &text,
+        text,
         context,
     )
     .unwrap();
@@ -25,7 +37,7 @@ fn ordinary_and_bounded_product_contexts_check_the_same_three_series_source() {
         .project(&conduit_plot::SourceCheckRequest {
             snapshot: projection.snapshot().clone(),
             context: projection.context().clone(),
-            entry: "inspection/three-series".into(),
+            entry: entry.into(),
             limits: conduit_plot::SourceCheckLimits::default(),
         })
         .unwrap();
