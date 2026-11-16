@@ -48,7 +48,8 @@ pub enum CheckSuite {
     SemanticEffects,
     /// Check fixed-profile DSP, conversion, closing-Flow and owned-memory contracts.
     FixedNumericDsp,
-    /// Check ordinary Crèche preparation and bounded reviewed Linux source building.
+    /// Check Crib/Womb preparation and bounded reviewed Linux source building.
+    #[value(name = "crib-preparation", alias = "creche-preparation")]
     CrechePreparation,
     /// Recheck bounded Native declaration and law custody across actual package/family boundaries.
     NativeLawCustody,

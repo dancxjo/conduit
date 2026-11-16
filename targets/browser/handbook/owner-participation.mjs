@@ -288,6 +288,7 @@ export async function startOwnerParticipation(application, root) {
       shadow.append(look, surface);
       const presentation = new OwnerFacePresentation(element, surface);
       Object.defineProperty(element, 'disabled', { set: value => { presentation.disabled = value; } });
+      Object.defineProperty(element, 'busy', { set: value => { presentation.busy = value; } });
       const retireRemoved = records => {
         if (records.some(record => [...record.removedNodes].some(node => node === element || node.contains?.(element)))) {
           presentation.retire();
@@ -306,6 +307,10 @@ export async function startOwnerParticipation(application, root) {
     return element;
   };
   let faceComponent = createFaceSurface(false);
+  const reflectFaceBusy = (routeEpoch = faceRouteEpoch) => {
+    faceComponent.busy = faceBusy && routeEpoch === faceRouteEpoch
+      && participation?.presenceState() === 'available';
+  };
   const renderFace = view => {
     const artifact = view.mask_renderer_artifact_id;
     const selected = componentBack.selected && artifact === componentBack.artifactId;
@@ -321,7 +326,9 @@ export async function startOwnerParticipation(application, root) {
     faceComponent.show(view, { projectCollections: projectFaceCollections,
       invoke: async ({ view, action, arguments: actionArguments }) => {
         if (faceBusy || !participation || faceView?.show_id !== view.show_id) return;
+        const routeEpoch = faceRouteEpoch;
         faceBusy = true;
+        reflectFaceBusy(routeEpoch);
         lookControls.setDisabled(true);
         try {
           const outcome = await participation.submitOwnerFaceInteraction({
@@ -336,11 +343,13 @@ export async function startOwnerParticipation(application, root) {
           actionResult.dataset.refused = 'true';
         } finally {
           faceBusy = false;
+          reflectFaceBusy(routeEpoch);
           faceView = null;
           await refreshFace();
         }
       },
     });
+    reflectFaceBusy();
     faceDocument.dataset.faceId = view.face_id;
     faceDocument.dataset.faceRevision = view.face_revision;
     faceDocument.dataset.showId = view.show_id;
@@ -350,6 +359,7 @@ export async function startOwnerParticipation(application, root) {
     faceBusy = true; faceRefresh.disabled = true;
     lookControls.setDisabled(true);
     const routeEpoch = faceRouteEpoch;
+    reflectFaceBusy(routeEpoch);
     const requireCurrentRoute = () => {
       if (routeEpoch !== faceRouteEpoch || participation.presenceState() !== 'available') {
         throw new Error('The owner route changed during Face preparation. Refresh this Face after reconnecting.');
@@ -400,6 +410,7 @@ export async function startOwnerParticipation(application, root) {
       }, null, 2) : 'No current sealed browser Show. Previous route evidence is historical.';
     } finally {
       faceBusy = false;
+      reflectFaceBusy(routeEpoch);
       faceRefresh.disabled = participation?.presenceState() !== 'available';
       speechControls();
       if (!wardrobeReport) queueMicrotask(refreshWardrobe);
@@ -417,6 +428,7 @@ export async function startOwnerParticipation(application, root) {
       // Presence can recover before a pending response completes. That response
       // still belongs to the interrupted route and cannot restore current agency.
       faceRouteEpoch++;
+      faceComponent.busy = false;
       delete root.dataset.ownerFaceShown;
       delete root.dataset.ownerShowAcknowledged;
       wardrobeReport = null;
