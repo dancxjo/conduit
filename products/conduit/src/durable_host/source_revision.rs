@@ -245,10 +245,20 @@ pub(crate) struct AuthorizedFileRevision {
     caller: ImagePreparedValue<()>,
 }
 
+#[cfg(target_os = "linux")]
+#[path = "source_revision_retained.rs"]
+mod retained_planning;
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) use retained_planning::tests::real_owner_custody;
+#[cfg(target_os = "linux")]
+pub(crate) use retained_planning::RetainedSourcePreparation;
+
 /// Actual original captures and the checked workset move together. This is
 /// retained planning custody after admission, never fresh Source authority.
 #[cfg(target_os = "linux")]
 pub(crate) struct RetainedFileWorkset {
+    body_id: conduit_body::BodyId,
+    local_fore_adapters: Vec<super::local_fore_policy::LocalForeAdapterIntent>,
     // Field order releases all derived backing before its original guards.
     pub(crate) checked: CheckedFileRevision,
     source: ImagePreparedValue<OwnedSourceCheckInput>,
@@ -291,6 +301,8 @@ impl AuthorizedFileRevision {
 
     pub(crate) fn into_retained(self) -> RetainedFileWorkset {
         RetainedFileWorkset {
+            body_id: self.selection.expected.body_id,
+            local_fore_adapters: self.selection.local_fore_adapters,
             source: self.source,
             caller: self.caller,
             checked: self.checked,
@@ -444,6 +456,7 @@ pub(crate) fn retained(state_dir: &Path) -> Result<Option<Selection>, String> {
 
 #[cfg(target_os = "linux")]
 pub(crate) struct PreparedFileSource {
+    caller_workspace_bytes: usize,
     pub(crate) host: conduit_std_host::StdHost,
     pub(crate) source: ImagePreparedValue<OwnedSourceCheckInput>,
     pub(crate) caller: ImagePreparedValue<()>,
@@ -556,6 +569,7 @@ pub(super) fn prepare(
     let shared_custody = CATALOG_CUSTODY.get_or_init(|| caller.retain_memory());
     host.verify_selected_image_memory_retention(shared_custody)?;
     Ok(PreparedFileSource {
+        caller_workspace_bytes: selection.caller_workspace_bytes,
         host,
         source: initialized.source,
         caller,

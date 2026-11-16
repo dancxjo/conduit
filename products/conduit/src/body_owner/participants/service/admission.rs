@@ -312,6 +312,8 @@ impl Owner {
                 self.admissions = before_manager;
                 return Err(error);
             }
+            #[cfg(target_os = "linux")]
+            self.refresh_retained_local_fore();
             let line_authorization =
                 BrowserLineAuthorization::issue(&window.id, &pending.binding, &credential);
             let snapshot = BrowserAdmittedSnapshot {

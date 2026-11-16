@@ -73,6 +73,9 @@ mod member_return;
 #[path = "planning.rs"]
 mod planning;
 #[cfg(target_os = "linux")]
+#[path = "retained_local_fore.rs"]
+mod retained_local_fore;
+#[cfg(target_os = "linux")]
 pub(crate) use fore_line_planning::OwnedForeLineSelection;
 #[path = "remote_preparation.rs"]
 mod remote_preparation;
