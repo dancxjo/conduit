@@ -135,6 +135,7 @@
     ],
     "host_runtime_check": "passed",
     "whole_source_factory": "pending",
-    "target_firmware": "not_built"
+    "target_firmware": "not_built",
+    "strict_clippy": "assigned-plan, kernel, MCU host-runtime full-feature libraries passed pinned1.98.1 -D warnings"
   }
 }

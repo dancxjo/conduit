@@ -479,7 +479,7 @@ impl<
             approved,
             profile,
             fore,
-            layout.into(),
+            layout,
             values,
             signs,
             maximum_retained_bytes,
