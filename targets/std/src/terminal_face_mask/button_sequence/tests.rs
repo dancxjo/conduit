@@ -161,23 +161,32 @@ fn absent_focus_and_unacknowledged_or_forged_show_refuse_preparation() {
 #[test]
 fn broken_shortcut_source_preserves_the_ordinary_keyboard_alternative() {
     let (mut mask, show) = focused();
-    let mut shortcut = TerminalButtonSequence::prepare(&mask, &show, &PATTERN).unwrap();
-    shortcut.observe(&mut mask, &event(true, 0), 1).unwrap();
-    let gap = shortcut.observe(&mut mask, &event(false, 2), 1).unwrap();
-    assert_eq!(
-        gap.recognition,
-        ButtonSequenceOutcome::Rejected(ButtonSequenceRefusal::InputGap)
-    );
-    assert!(gap.interaction.is_none());
-    assert!(shortcut
-        .observe(&mut mask, &event(true, 3), 1)
-        .unwrap()
-        .interaction
-        .is_none());
+    let double = [PATTERN[0], PATTERN[1], PATTERN[0], PATTERN[1]];
+    let mut shortcut = TerminalButtonSequence::prepare(&mask, &show, &double).unwrap();
+    for (sequence, pressed) in [
+        (0, true),
+        (1, false),
+        (3, true),
+        (4, true),
+        (5, false),
+        (6, true),
+        (7, false),
+    ] {
+        let outcome = shortcut
+            .observe(&mut mask, &event(pressed, sequence), 1)
+            .unwrap();
+        if sequence >= 3 {
+            assert_eq!(
+                outcome.recognition,
+                ButtonSequenceOutcome::Rejected(ButtonSequenceRefusal::InputGap)
+            );
+        }
+        assert!(outcome.interaction.is_none());
+    }
     let enter = TerminalKeyboard::default().push(b'\r').unwrap().unwrap();
     let TerminalInputOutcome::Interaction(ordinary) = mask.input(enter, &show, 1).unwrap() else {
         panic!("keyboard alternative must remain available")
     };
     assert_eq!(ordinary.action_id, "complete");
-    assert!(shortcut.observe(&mut mask, &event(false, 4), 2).is_err());
+    assert!(shortcut.observe(&mut mask, &event(false, 8), 2).is_err());
 }
