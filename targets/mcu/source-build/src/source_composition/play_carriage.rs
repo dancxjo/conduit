@@ -92,7 +92,10 @@ impl<'a, 'io, 'bridge, 'pins> SampleObserverMode<'a, 'io, 'bridge, 'pins> {
         port: Option<ObserverPort<'io, 'bridge, 'pins>>,
     ) -> Self {
         match port {
-            Some(port) => Self::Line(ForeObserver::new(existing, port)),
+            Some(port) => {
+                #[cfg(fore_carrier)] { Self::Line(ForeObserver::with_duplex_evidence_window(existing, port, crate::play::SAMPLING_LINE_SIGNS)) }
+                #[cfg(not(fore_carrier))] { Self::Line(ForeObserver::new(existing, port)) }
+            },
             None => Self::Local(existing),
         }
     }

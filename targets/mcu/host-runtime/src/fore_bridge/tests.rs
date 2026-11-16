@@ -109,29 +109,21 @@ impl StepBack<1> for Echo {
             let value = io.consume(PortId(0)).unwrap();
             io.send(PortId(0), value).unwrap();
             StepOutcome::Progress
+        } else if io.input_closed(PortId(0)) {
+            io.consume_closed(PortId(0)).unwrap();
+            StepOutcome::Complete
         } else {
             StepOutcome::Await
         }
     }
 }
-type ProfileKernel<const M: usize, const F: usize, const U: usize, const Z: usize> =
-    StoredExecutionKernel<
-        Echo,
-        FixedSignLog<32>,
-        1,
-        2,
-        1,
-        1,
-        1,
-        0,
-        1,
-        HostedValueStore,
-        2,
-        M,
-        F,
-        U,
-        Z,
-    >;
+type ProfileKernel<
+    const M: usize,
+    const F: usize,
+    const U: usize,
+    const Z: usize,
+    L = FixedSignLog<32>,
+> = StoredExecutionKernel<Echo, L, 1, 2, 1, 1, 1, 0, 1, HostedValueStore, 2, M, F, U, Z>;
 type Kernel = ProfileKernel<1, 100, 1, 2>;
 fn kernel(remote: u16) -> Kernel {
     kernel_with_capacity(remote, 8)
@@ -143,6 +135,26 @@ fn profile_kernel<const M: usize, const F: usize, const U: usize, const Z: usize
     remote: u16,
     byte_capacity: u32,
 ) -> ProfileKernel<M, F, U, Z> {
+    profile_kernel_with_signs(
+        byte_capacity,
+        FixedSignLog::new_with_remote_storage(
+            (32 * size_of::<KernelEvent>()) as u32,
+            remote,
+            remote_sign_storage_bytes(remote).unwrap(),
+        )
+        .unwrap(),
+    )
+}
+fn profile_kernel_with_signs<
+    const M: usize,
+    const F: usize,
+    const U: usize,
+    const Z: usize,
+    L: SignSink,
+>(
+    byte_capacity: u32,
+    signs: L,
+) -> ProfileKernel<M, F, U, Z, L> {
     let capacity = |slot_start| CordCapacity {
         slot_start,
         item_capacity: 1,
@@ -179,12 +191,7 @@ fn profile_kernel<const M: usize, const F: usize, const U: usize, const Z: usize
     static TERMINALS: [[Option<AssignedTerminalTransduction>; 1]; 1] = [[None]];
     let prepared = ProfileKernel::prepare_boxed_with_linked_table_writer(
         HostedValueStore::new_with_slot_capacities(&[byte_capacity; 2], 2 * byte_capacity).unwrap(),
-        FixedSignLog::new_with_remote_storage(
-            (32 * size_of::<KernelEvent>()) as u32,
-            remote,
-            remote_sign_storage_bytes(remote).unwrap(),
-        )
-        .unwrap(),
+        signs,
         usize::MAX,
         &TERMINALS,
         &TERMINALS,
@@ -204,16 +211,16 @@ fn profile_kernel<const M: usize, const F: usize, const U: usize, const Z: usize
     *prepared.bind([Echo])
 }
 struct Existing;
-impl<const M: usize, const F: usize, const U: usize, const Z: usize>
-    Observer<ProfileKernel<M, F, U, Z>> for Existing
+impl<const M: usize, const F: usize, const U: usize, const Z: usize, L: SignSink>
+    Observer<ProfileKernel<M, F, U, Z, L>> for Existing
 {
     type Error = Infallible;
-    fn before_step(&mut self, _: &mut ProfileKernel<M, F, U, Z>) -> Result<(), Self::Error> {
+    fn before_step(&mut self, _: &mut ProfileKernel<M, F, U, Z, L>) -> Result<(), Self::Error> {
         Ok(())
     }
     fn completed(
         &mut self,
-        _: &mut ProfileKernel<M, F, U, Z>,
+        _: &mut ProfileKernel<M, F, U, Z, L>,
         _: Dispatch,
     ) -> Result<(), Self::Error> {
         Ok(())
@@ -511,3 +518,122 @@ mod egress_policy;
 
 #[path = "tests/structured_ingress.rs"]
 mod structured_ingress;
+
+#[test]
+fn hosted_finite_duplex_window_repeats_ack_then_pressures_without_spending_local_closure() {
+    let budget = crate::execution_sign_budget::DuplexSignBudget::select(16, 26, 24576).unwrap();
+    assert_eq!(budget.ingress_items(), 2);
+    exercise_finite_budget(budget);
+}
+#[test]
+fn source55_local_reserve_and64_ceiling_fund_one_probe_and_both_normal_closures() {
+    let budget = crate::execution_sign_budget::DuplexSignBudget::select(55, 64, 24576).unwrap();
+    assert_eq!(
+        (
+            budget.ingress_items(),
+            budget.remote_items(),
+            budget.total_items()
+        ),
+        (1, 6, 61)
+    );
+    exercise_finite_budget(budget);
+}
+fn exercise_finite_budget(budget: crate::execution_sign_budget::DuplexSignBudget) {
+    let count = u64::from(budget.ingress_items());
+    let pins = Pins::new(c::COUNT_INFO_ID);
+    let mut input = [0; 8];
+    let mut output = [0; 8];
+    let bound = make_bound(&pins, &mut input, &mut output);
+    let (observer, port) = bound.activate(pins.activation()).unwrap();
+    let mut observer = ForeObserver::with_duplex_evidence_window(Existing, observer, budget);
+    let mut kernel = profile_kernel_with_signs::<0, 0, 0, 1, _>(8, budget.prepare().unwrap());
+    let (_, cost) = crate::member_return_tests::return_allocation_probe::observe(|| {
+        for sequence in 0..count {
+            port.stage_ingress(sequence, &(sequence + 10).to_le_bytes())
+                .unwrap();
+            observer.before_step(&mut kernel).unwrap();
+            delivered_input(&port, sequence);
+            kernel.step().unwrap();
+            observer.before_step(&mut kernel).unwrap();
+            let event = Event::EgressOffered {
+                sequence,
+                length: 8,
+            };
+            assert_eq!(port.next_event().unwrap(), Some(event));
+            port.with_egress(sequence, |bytes| {
+                assert_eq!(bytes, &(sequence + 10).to_le_bytes())
+            })
+            .unwrap();
+            port.sent(event).unwrap();
+            port.peer_accepted(sequence).unwrap();
+            observer.before_step(&mut kernel).unwrap();
+            port.peer_delivered(sequence).unwrap();
+            observer.before_step(&mut kernel).unwrap();
+            assert_eq!(kernel.values().used_items(), 0);
+        }
+        let before = kernel.signs().events().count();
+        let remote_before = kernel
+            .signs()
+            .events()
+            .filter(|e| kernel.signs().remote_identity(e.sequence).is_some())
+            .count();
+        assert_eq!(remote_before, count as usize * 4);
+        port.stage_ingress(count, &(count + 10).to_le_bytes())
+            .unwrap();
+        observer.before_step(&mut kernel).unwrap();
+        assert_eq!(
+            port.next_event().unwrap(),
+            Some(Event::IngressPressure(count))
+        );
+        assert_eq!(kernel.signs().events().count(), before);
+        assert_eq!(kernel.cord_usage(CordId(0)).unwrap(), (0, 0));
+        assert_eq!(kernel.values().used_items(), 0);
+        kernel
+            .signs()
+            .ensure_capacity(budget.local_items())
+            .unwrap();
+        kernel.signs().ensure_remote_capacity(2).unwrap();
+        // Explicit trusted terminal input, distinct from accepting the pressured
+        // request. Both closure sidecars remain available; no cancellation/rearm.
+        kernel
+            .close_remote_input(RemoteEndpointId(0), CordId(0))
+            .unwrap();
+        kernel.step().unwrap();
+        assert!(kernel
+            .signs()
+            .events()
+            .any(|e| e.kind == KernelEventKind::BackCompleted));
+        assert_eq!(
+            kernel
+                .signs()
+                .events()
+                .filter(|e| kernel.signs().remote_identity(e.sequence).is_some())
+                .count(),
+            count as usize * 4 + 2
+        );
+        for sequence in 0..count {
+            for kind in [
+                KernelEventKind::RemoteInputAdmitted,
+                KernelEventKind::RemoteValueOffered,
+                KernelEventKind::RemoteValueAccepted,
+                KernelEventKind::RemoteValueDelivered,
+            ] {
+                assert!(kernel.signs().events().any(|e| e.kind == kind
+                    && kernel
+                        .signs()
+                        .remote_identity(e.sequence)
+                        .is_some_and(|id| id.sequence == sequence)));
+            }
+        }
+        assert_eq!(
+            port.next_event().unwrap(),
+            Some(Event::IngressPressure(count)),
+            "never ACK an unaccepted request"
+        );
+    });
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    assert!(
+        kernel.try_retire().is_ok(),
+        "normal terminal/drained retirement needs no evidence reset"
+    );
+}
