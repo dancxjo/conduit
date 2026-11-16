@@ -208,6 +208,11 @@ pub fn probe(
             .map(Some)
         },
     );
+    println!(
+        "CPU_FACTORY_RETURN original_complete_factory_called=true error={:?} detail={}",
+        result.as_ref().err(),
+        diagnostic
+    );
     match result {
         Err(error) => {
             assert!(

@@ -6,6 +6,7 @@ composition modules. --fingerprint must name a completed Cargo test graph.
 import argparse,hashlib,json,os,re,subprocess
 from pathlib import Path
 p=argparse.ArgumentParser(description=__doc__)
+p.add_argument('--compile-only',action='store_true')
 p.add_argument('--generated',type=Path,required=True)
 p.add_argument('--fingerprint',type=Path,required=True)
 p.add_argument('--output',type=Path,required=True)
@@ -54,6 +55,7 @@ for name,lib in sorted(selected.items()):command+=['--extern',f'{name}={lib}']
 with (a.output/'compile.log').open('w') as log:result=subprocess.run(command,env=env,stdout=log,stderr=subprocess.STDOUT)
 print(json.dumps({'phase':'compile','exit':result.returncode,'log':str(a.output/'compile.log')}),flush=True)
 if result.returncode:raise SystemExit(result.returncode)
+if a.compile_only:raise SystemExit(0)
 with (a.output/'run.log').open('w') as log:result=subprocess.run([str(a.output/'probe')],env=env,stdout=log,stderr=subprocess.STDOUT)
 print(json.dumps({'phase':'cpu-factory','exit':result.returncode,'log':str(a.output/'run.log')}),flush=True)
 digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
