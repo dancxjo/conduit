@@ -152,6 +152,13 @@ pub fn verify_public_admission() {
     );
     assert!(equipment.recording.recovery().unwrap().is_ok());
     equipment.publish(&mut actual).unwrap();
+    actual.resources.push(c::ResourceOffer {
+        pool_id: crate::config::RESIDENT_WORK_POOL.into(),
+        class_id: "kernel/cooperative-step-work@1".into(),
+        capacity_units: crate::config::WORK_UNITS,
+        compute: None,
+        content: None,
+    });
     let mut root: Root<'_, { crate::config::MAX_ASSIGNMENT_BYTES }> = Root::new(
         Seed::parse(
             &seed,

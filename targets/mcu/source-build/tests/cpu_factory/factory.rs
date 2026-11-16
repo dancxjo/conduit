@@ -45,7 +45,7 @@ pub fn probe(
     let face = LocalPublicationFace::from_backing(
         RetainedPublicationBacking::prepare(events, display::RENDERER_SHOW_LIFETIME_MS).unwrap(),
     );
-    let (publisher, _reader) = face.claim().unwrap();
+    let (publisher, reader) = face.claim().unwrap();
     let publisher = RefCell::new(Some(publisher));
     let sequence = PublicationSequence::prepare(events as u64);
     let mut software = None;
@@ -124,6 +124,46 @@ pub fn probe(
     let mut diagnostic = heapless::String::new();
     // Original complete factory consumes actual retained signed command and
     // prepared native owners; this baseline expects the structural Layout refusal.
+    let identity = conduit_core::AssignedIdentity::from_text;
+    let held_pools = heapless::Vec::<_, 6>::from_slice(&[
+        identity(crate::config::RESIDENT_WORK_POOL),
+        identity(
+            equipment
+                .pulse
+                .as_ref()
+                .unwrap()
+                .identity()
+                .resource_pool_id
+                .as_str(),
+        ),
+        identity(
+            equipment
+                .display
+                .as_ref()
+                .unwrap()
+                .native_identity()
+                .resource_pool_id
+                .as_str(),
+        ),
+        identity(
+            equipment.waits[0]
+                .as_ref()
+                .unwrap()
+                .native_identity()
+                .resource_pool_id
+                .as_str(),
+        ),
+        identity(
+            equipment
+                .renderer
+                .native_identity()
+                .resource_pool_id
+                .as_str(),
+        ),
+        identity(equipment.recording.held_pool().unwrap().as_str()),
+    ])
+    .unwrap();
+    let original_input = parts.workspace.payload_digest().unwrap();
     let result = crate::play::prepare(
         &*parts.workspace,
         context.into(),
@@ -168,13 +208,70 @@ pub fn probe(
             .map(Some)
         },
     );
-    assert!(matches!(
-        result,
-        Err(conduit_mcu_host_runtime::execution::Refusal::Back(
-            conduit_mcu_host_runtime::execution::Refusal::Back("sampling-kernel")
-        ))
-    ));
-    assert_eq!(diagnostic.as_str(), "Tables(Layout)");
-    println!("CPU_FACTORY_NEGATIVE original_complete_factory_called=true supplied_recording_output={} result=sampling-kernel/Tables(Layout) retained_input=true admission=false Start=false",crate::play::RECORDING_OUTPUT_BYTES);
+    match result {
+        Err(error) => {
+            assert!(
+                std::env::var_os("CPU_EXPECT_PREPARED").is_none(),
+                "expected successful factory, got {error:?}: {diagnostic}"
+            );
+            assert!(matches!(
+                error,
+                conduit_mcu_host_runtime::execution::Refusal::Back(
+                    conduit_mcu_host_runtime::execution::Refusal::Back("sampling-kernel")
+                )
+            ));
+            assert_eq!(diagnostic.as_str(), "Tables(Layout)");
+            assert_eq!(parts.workspace.payload_digest(), Some(original_input));
+            assert!(parts.resources.admissions().is_empty());
+            assert!(parts.resources.assignments().is_empty());
+            println!("CPU_FACTORY_NEGATIVE original_complete_factory_called=true supplied_recording_output={} result=sampling-kernel/Tables(Layout) retained_input=true renderer_prepared=false admission=false Start=false",crate::play::RECORDING_OUTPUT_BYTES);
+        }
+        Ok(prepared) => {
+            assert!(
+                std::env::var_os("CPU_EXPECT_PREPARED").is_some(),
+                "baseline unexpectedly prepared; explicitly qualify corrected case"
+            );
+            let presentation = crate::play_service::prepare_presentation(
+                &prepared,
+                context.into(),
+                policy,
+                &mut equipment.renderer,
+                &mut issuers.renderer,
+                &operations.renderer,
+                reader,
+                &face,
+            )
+            .expect("original renderer preparation");
+            let mut started = None;
+            let mut scopes = None;
+            crate::play_service::start_prepared_into(
+                prepared,
+                &*parts.workspace,
+                parts.bootstrap,
+                parts.member,
+                parts.configuration,
+                parts.resources,
+                policy,
+                presentation,
+                &face,
+                &held_pools,
+                crate::play::RECORDING_OUTPUT_BYTES
+                    + core::mem::size_of::<
+                        conduit_mcu_host_runtime::execution_inspection::PreparedAppendStatus,
+                    >()
+                    + core::mem::size_of::<Option<crate::play::fore::installation::Hot>>()
+                    + core::mem::size_of::<crate::play::fore::Buffers>(),
+                &mut started,
+                &mut scopes,
+            )
+            .expect("original complete admission and Start");
+            assert!(started.is_some());
+            assert!(scopes.is_some());
+            assert_eq!(parts.workspace.payload_digest(), Some(original_input));
+            assert!(!parts.resources.assignments().is_empty());
+            println!("CPU_FACTORY_STARTED original_complete_factory_called=true renderer_prepared=true admission=true Start=true provider_effects=0 retained_input=true");
+            core::hint::black_box((&started, &scopes));
+        }
+    }
     println!("CPU_RAM charged_retained={} available={} original_limit={} simulated_nor_bytes={} fixture_metadata_and_sender_included=true",allocator_used(),crate::runtime::remaining(),crate::config::HEAP_BYTES,crate::config::RECORDING_PREFIX_BYTES as usize+crate::config::RECORDING_SLOTS as usize*512);
 }
