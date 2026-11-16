@@ -1,0 +1,5 @@
+# Blue same-session execution continuity
+
+Read-only Root inspections at 0, 30 and 60 seconds held one exclusive UART descriptor throughout. Opening UART can reset ESP32; no subsequent reopen or reset occurred. The same custody digest persisted. At 60 seconds sampling reported seven completed calls, middle fragment nine events, final fragment one completed call, with no fragment refusal. This proves execution advances after startup, not numerical observation correctness or visible display correctness.
+
+The append observer reported zero newly recorded observations and four Capacity outcomes. The capacity field is a refusal counter, not storage-slot count (execution_append_status.rs::delivered). Existing flash records were neither exported nor acknowledged nor erased. Recovery must obtain actual typed retained history and durable custody before reclamation; transport delivery cannot substitute for recording acknowledgement. Inspection is unsigned and cannot establish current Body membership or independently authorize a Play.

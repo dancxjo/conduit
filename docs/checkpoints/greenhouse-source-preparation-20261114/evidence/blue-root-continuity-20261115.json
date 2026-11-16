@@ -1,0 +1,21 @@
+{
+  "captured_unix": 1794811450.9592717,
+  "host": "victus.local",
+  "device": "blue",
+  "exit": 0,
+  "query": "Root Inspect only; no provisioning/admission/Start",
+  "inspections": [
+    {
+      "elapsed_seconds": 0,
+      "value": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"d57ff35021d7736eb6b7f127ecdb079c2fe3ec6624b608a39b90b371bf3ec1b3\",\"fragments\":[{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null},{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null},{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":0,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":null},\"control_refusal\":null}"
+    },
+    {
+      "elapsed_seconds": 30,
+      "value": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"d57ff35021d7736eb6b7f127ecdb079c2fe3ec6624b608a39b90b371bf3ec1b3\",\"fragments\":[{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null},{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null},{\"observed_events\":0,\"completed_calls\":0,\"overwritten_slots\":0,\"last\":null,\"condition\":null,\"refusal\":null}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":0,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":null},\"control_refusal\":null}"
+    },
+    {
+      "elapsed_seconds": 60,
+      "value": "{\"schema\":\"conduit.host/execution-inspection@1\",\"assurance\":\"unsigned-inspection\",\"start\":\"authenticated-start-observed\",\"custody_sha256\":\"d57ff35021d7736eb6b7f127ecdb079c2fe3ec6624b608a39b90b371bf3ec1b3\",\"fragments\":[{\"observed_events\":7,\"completed_calls\":7,\"overwritten_slots\":6,\"last\":{\"sequence\":129,\"node\":0,\"port\":null,\"request\":4,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null},{\"observed_events\":9,\"completed_calls\":0,\"overwritten_slots\":8,\"last\":{\"sequence\":27,\"node\":0,\"port\":null,\"request\":null,\"kind\":\"BackCompleted\"},\"condition\":null,\"refusal\":null},{\"observed_events\":1,\"completed_calls\":1,\"overwritten_slots\":0,\"last\":{\"sequence\":17,\"node\":3,\"port\":null,\"request\":0,\"kind\":\"HostCallCompleted\"},\"condition\":null,\"refusal\":null}],\"selected\":null,\"append\":{\"recorded\":0,\"capacity\":4,\"uncertain\":0,\"recovery_required\":0,\"last_recorded_index\":null,\"last\":\"capacity\"},\"control_refusal\":null}"
+    }
+  ]
+}
