@@ -1,0 +1,45 @@
+{
+  "at_utc": "2026-11-16T18:48:50.904039+00:00",
+  "owner_boot": "boot/installed/43496b36176fda31182eb9f52154c6309279b4a4dbf43ae301dac56d0c47bd38",
+  "same_canonical_face_and_revision": true,
+  "ordinary_authorized_member_returns": true,
+  "live_readings_proved": false,
+  "remaining_gate": "Original remote operation remains unresolved; no qualified current observation path under recovered Source effect denial.",
+  "schema": "conduit.evidence/recovered-owner-two-physical-masks@1",
+  "deployed_source": "980999cfa400aade3c134cc09573530675a25476",
+  "owner_recovered_claim_preserved": true,
+  "owner_effects_still_denied": true,
+  "description": "Existing standard Linux service and ordinary authenticated contact selection; physical primary-plane readback of same canonical Body Face. No sensor graph is claimed.",
+  "displays": [
+    {
+      "host": "threebee",
+      "active": "active",
+      "enabled": "enabled",
+      "restarts": "0",
+      "face": "8dc5904e43a49863df5c831ca4d97cb7fdf5146ab897031b17e2cdee7e978f7f",
+      "revision": "720",
+      "png_sha256": "488fd6df52eb35c935012b474fc2de15fab4c64f16c08357bfef8c18c3a1dde1",
+      "client_body_part_identity_preserved": true,
+      "continuity_key_executable_unit_preserved_by_checked_refresh": true,
+      "physical_dimensions": [
+        1024,
+        600
+      ]
+    },
+    {
+      "host": "motherbrain",
+      "active": "active",
+      "enabled": "enabled",
+      "restarts": "0",
+      "face": "8dc5904e43a49863df5c831ca4d97cb7fdf5146ab897031b17e2cdee7e978f7f",
+      "revision": "720",
+      "png_sha256": "488fd6df52eb35c935012b474fc2de15fab4c64f16c08357bfef8c18c3a1dde1",
+      "client_body_part_identity_preserved": true,
+      "continuity_key_executable_unit_preserved_by_checked_refresh": true,
+      "physical_dimensions": [
+        1024,
+        600
+      ]
+    }
+  ]
+}
