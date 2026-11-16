@@ -32,6 +32,8 @@ use backs::{Back, Sampling, Sink};
 #[path = "live_sign_archive/workload.rs"]
 mod workload;
 use workload::Workload;
+#[path = "live_sign_archive/dictionary.rs"]
+mod dictionary;
 
 fn payload(index: u32) -> [u8; 200] {
     let mut record = [0; 200];
