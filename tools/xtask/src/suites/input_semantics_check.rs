@@ -138,6 +138,24 @@ pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
         &["test", "-p", "conduit-human", "--test", "input_semantics"],
     ),
     Step::new(
+        "check.input-semantics.button-sequence",
+        "test bounded ordered button recognition and cancellation",
+        "cargo",
+        &["test", "--locked", "-p", "conduit-human", "--test", "button_sequence"],
+    ),
+    Step::new(
+        "check.input-semantics.terminal-button-sequence",
+        "test ordered button shortcuts against current terminal encounters",
+        "cargo",
+        &["test", "--locked", "-p", "conduit-std-host", "--lib", "terminal_face_mask::button_sequence"],
+    ),
+    Step::new(
+        "check.input-semantics.gesture-owner",
+        "test keyboard and ordered button inputs through the same terminal Mask and real owner",
+        "cargo",
+        &["test", "--locked", "-p", "conduit", "--bin", "conduit", "gesture_and_keyboard_terminal_inputs_reach_the_same_running_owner_action"],
+    ),
+    Step::new(
         "check.input-semantics.std-host",
         "test ordinary std Host input Plots and bounded operations",
         "cargo",

@@ -223,3 +223,10 @@ fn installed_thermostat_terminal_drain_observes_final_fore() {
 #[cfg(unix)]
 #[path = "thermostat_remote_terminal_tests.rs"]
 mod remote_terminal;
+
+#[cfg(unix)]
+#[path = "thermostat_gesture_tests.rs"]
+mod gesture;
+#[cfg(unix)]
+#[path = "thermostat_test_common.rs"]
+mod terminal_fixture;
