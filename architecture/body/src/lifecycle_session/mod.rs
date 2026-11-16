@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 mod browser_admission;
 mod continuity;
 mod flow;
+mod local_birth;
 mod membership;
 #[cfg(feature = "authenticated-admission")]
 mod naming;
