@@ -144,6 +144,7 @@ Reproduce CPU proof with the selected generated OUT_DIR from the ordinary target
 Current dev was refreshed and is already included. Threebee/owner UI is a separate coordinated lane (PR6895); use outputs/threebee-admission-handoff-20261111.md in the task workspace before touching its services or current owner context.
 """
  put('CONTINUE-HERE.md',note.encode())
+ put('deployment-tools/verify-flash-replacement.py',(root/'work/deployment-tools/verify-flash-replacement.py').read_bytes())
  tree=git('write-tree');commit=git('commit-tree',tree,'-p',old,'-p',head,input=b'Preserve selected shared-stock Source factory and measured preparation savings\n')
  for p in paths:
   if (repo/p).is_file():assert run('show',f'{commit}:{p}')==(repo/p).read_bytes(),p
