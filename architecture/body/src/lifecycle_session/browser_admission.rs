@@ -139,6 +139,73 @@ impl BodyLifecycleSession {
         authority_boot: &BootId,
     ) -> Result<MembershipCredential, Error> {
         self.require_lulled_admission(authority_host, authority_boot)?;
+        self.complete_return_transition(
+            admissions,
+            advertisement,
+            proof,
+            now_millis,
+            authority_host,
+            authority_boot,
+        )
+    }
+
+    /// Authenticate an unused member's replacement without changing the current
+    /// realization. External owner obligations must be checked by the caller;
+    /// this Core transition is not permission to release pending remote work.
+    #[allow(clippy::too_many_arguments)]
+    pub fn admit_returning_unused_host(
+        &mut self,
+        admissions: &mut AdmissionManager,
+        advertisement: &HostAdvertisement,
+        proof: &PartReturnProof,
+        now_millis: u64,
+        authority_host: &HostId,
+        authority_boot: &BootId,
+    ) -> Result<MembershipCredential, Error> {
+        self.check_unused_member_return(
+            &proof.part_id,
+            advertisement,
+            authority_host,
+            authority_boot,
+        )?;
+        let mut next = self.clone();
+        let current = next
+            .evidence
+            .membership
+            .parts
+            .iter()
+            .find(|part| part.part_id == proof.part_id)
+            .and_then(|part| part.current.as_ref())
+            .ok_or(Error::StaleHost)?
+            .clone();
+        next.observe_host_lost(
+            &current.host_id,
+            &current.boot_id,
+            authority_host,
+            authority_boot,
+        )?;
+        let credential = next.complete_return_transition(
+            admissions,
+            advertisement,
+            proof,
+            now_millis,
+            authority_host,
+            authority_boot,
+        )?;
+        *self = next;
+        Ok(credential)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn complete_return_transition(
+        &mut self,
+        admissions: &mut AdmissionManager,
+        advertisement: &HostAdvertisement,
+        proof: &PartReturnProof,
+        now_millis: u64,
+        authority_host: &HostId,
+        authority_boot: &BootId,
+    ) -> Result<MembershipCredential, Error> {
         let mut next = self.clone();
         next.make_membership_room(1)?;
         let sequence = next.next_sequence()?;
