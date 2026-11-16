@@ -13,6 +13,7 @@ pub(crate) struct RetainedSourcePreparation {
     )]
     caller_workspace_bytes: usize,
     adapters: Vec<super::super::local_fore_policy::LocalForeAdapterIntent>,
+    original_policy_fingerprint: [u8; 32],
     // Drop derived metadata before returning its original IMAGE backing.
     source: ImagePreparedValue<OwnedSourceCheckInput>,
     caller: ImagePreparedValue<()>,
@@ -37,6 +38,7 @@ impl PreparedFileSource {
         Ok((
             self.host,
             RetainedSourcePreparation {
+                original_policy_fingerprint: selection.execution_policy_fingerprint()?,
                 source: self.source,
                 caller: self.caller,
                 body: selection.expected.body_id.clone(),
@@ -113,6 +115,7 @@ impl RetainedSourcePreparation {
     ) -> Result<RetainedFileWorkset, String> {
         let checked = self.check_current(host, biography)?;
         let retained = RetainedFileWorkset {
+            original_policy_fingerprint: self.original_policy_fingerprint,
             body_id: self.body,
             checked,
             source: self.source,

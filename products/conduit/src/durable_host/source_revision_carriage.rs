@@ -1,5 +1,6 @@
 //! Finite attended admission, return and preparation selected by File policy.
 use super::*;
+use std::path::PathBuf;
 /// Original independently selected member basis and sole opened carrier.
 /// Possessing this socket does not establish membership, a Ready Line or Start.
 #[cfg(target_os = "linux")]
@@ -24,10 +25,7 @@ impl SelectedPlayCarrier {
     pub(super) fn authenticated_return(&self) -> bool {
         self.completed_return.is_some()
     }
-    pub(super) fn consume_for_selected_play(
-        self,
-        selected: &UsbPlaySelection,
-    ) -> Result<Self, String> {
+    fn validate_for_selected_play(&self, selected: &UsbPlaySelection) -> Result<(), String> {
         if !self.authenticated_return() {
             return Err("selected carrier has no completed authenticated return".into());
         }
@@ -36,8 +34,7 @@ impl SelectedPlayCarrier {
             .port
             .canonicalize()
             .map_err(|e| format!("selected Play carrier path: {e}"))?;
-        check_retained_selection(&self.canonical_port, &self.member, &canonical, &expected)?;
-        Ok(self)
+        check_retained_selection(&self.canonical_port, &self.member, &canonical, &expected)
     }
 }
 #[cfg(target_os = "linux")]
@@ -51,6 +48,16 @@ fn check_retained_selection(
         return Err("selected Play differs from original authenticated return carrier or actual member basis; refusing reopen".into());
     }
     Ok(())
+}
+
+/// Preflight both independently selected reader sets before any Return effects.
+/// A Return and its subsequent Play may intentionally share the same descriptor.
+pub(super) fn validate_execution_carrier_paths(
+    plays: &[UsbPlaySelection],
+    returns: &[UsbReturnSelection],
+) -> Result<(), String> {
+    unique_carrier_paths(plays.iter().map(|play| play.port.as_path()))?;
+    unique_carrier_paths(returns.iter().map(|selected| selected.port.as_path()))
 }
 
 /// Refuse aliases before opening any reader, including two symlinks to one TTY.
@@ -87,7 +94,9 @@ pub(super) fn open_selected_play_carriers(
                 .iter()
                 .position(|carrier| carrier.canonical_port() == canonical.as_path())
             {
-                returned.remove(index).consume_for_selected_play(play)
+                // Refusal must leave the original descriptor in its owner.
+                returned[index].validate_for_selected_play(play)?;
+                Ok(returned.remove(index))
             } else {
                 open_selected_play_carrier(play)
             }
@@ -229,6 +238,60 @@ pub(super) fn return_selected_basis_owned(
     basis: &conduit_std_host::pico_spawn::PicoMemberReturnBasis,
     recover_retained_key: bool,
 ) -> Result<SelectedPlayCarrier, String> {
+    return_selected_basis_retained(
+        owner,
+        state_dir,
+        port,
+        carrier,
+        receipt_output,
+        basis,
+        recover_retained_key,
+    )?
+    .map_err(|failure| failure.error)
+}
+
+/// An uncertain return retains the sole opened descriptor. Dropping this value
+/// does not revoke any approval or prove remote retirement.
+pub(super) struct RetainedReturnFailure {
+    _socket: conduit_std_host::pico_spawn::PicoSpawnSocket,
+    _canonical_port: PathBuf,
+    pub(super) error: String,
+}
+
+pub(super) fn return_selected_member_retained(
+    owner: &mut owner::Owner,
+    state_dir: &Path,
+    selected: &UsbReturnSelection,
+) -> Result<Result<SelectedPlayCarrier, RetainedReturnFailure>, String> {
+    let basis: conduit_std_host::pico_spawn::PicoMemberReturnBasis =
+        serde_json::from_slice(&bounded_read(&selected.basis, 8192)?)
+            .map_err(|e| format!("selected member return basis: {e}"))?;
+    basis
+        .validate()
+        .map_err(|e| format!("selected return basis: {e:?}"))?;
+    if basis.credential.part_id != selected.part_id {
+        return Err("selected return Part differs from basis".into());
+    }
+    return_selected_basis_retained(
+        owner,
+        state_dir,
+        &selected.port,
+        selected.carrier,
+        &selected.receipt_output,
+        &basis,
+        selected.recover_retained_key,
+    )
+}
+
+fn return_selected_basis_retained(
+    owner: &mut owner::Owner,
+    state_dir: &Path,
+    port: &Path,
+    carrier: conduit_std_host::pico_spawn::ProvisioningCarrier,
+    receipt_output: &Path,
+    basis: &conduit_std_host::pico_spawn::PicoMemberReturnBasis,
+    recover_retained_key: bool,
+) -> Result<Result<SelectedPlayCarrier, RetainedReturnFailure>, String> {
     use conduit_body::MemberReturnImageAcknowledgement;
     use std::time::Duration;
     // Resolve the actual owner again instead of trusting a copied peer argument.
@@ -245,89 +308,101 @@ pub(super) fn return_selected_basis_owned(
     let mut socket = carrier
         .open(canonical_port.to_str().ok_or("USB path is not UTF-8")?)
         .map_err(|e| format!("open selected member return: {e:?}"))?;
-    let observed = socket
-        .request_member_return(basis, timeout)
-        .map_err(|e| format!("observe selected member: {e:?}"))?;
-    let resolved = conduit_std_host::pico_spawn::resolve_member_offer_images(
-        &observed.presentation.projection,
-        &observed.images,
-    )
-    .map_err(|e| format!("resolve selected member images: {e:?}"))?;
-    if resolved != observed.advertisement {
-        return Err("selected member image resolution differs from observed advertisement".into());
-    }
-    let challenge = if recover_retained_key {
-        owner.begin_recovered_member_image_return(
-            &basis.credential,
-            &observed.advertisement,
-            observed.presentation.clone(),
-        )?
-    } else {
-        owner.begin_member_image_return(
-            &basis.credential,
-            &observed.advertisement,
-            Some(observed.presentation.clone()),
-        )?
-    };
-    let proof = socket
-        .prove_member_return(basis, &observed.advertisement, &challenge, timeout)
-        .map_err(|e| format!("selected member continuity proof: {e:?}"))?;
-    let credential = owner.complete_member_return(state_dir, &proof)?;
-    let post_commit = |error: String| {
-        format!("return committed; original receipt/member state may be retained: {error}")
-    };
-    let signed = owner
-        .attest_current_member_receipt(
-            &owner::MembershipReceiptDocument::ImageReturn {
-                receipt: MemberReturnImageAcknowledgement::new(
-                    credential.clone(),
-                    observed.presentation.projection.clone(),
-                ),
-                images: observed.images,
-            },
-            &peer,
-        )
-        .map_err(post_commit)?;
-    signed
-        .verify_image_return(
-            &peer,
-            &basis.member_verifying_key,
-            &basis.credential,
+    let completion = (|| {
+        let observed = socket
+            .request_member_return(basis, timeout)
+            .map_err(|e| format!("observe selected member: {e:?}"))?;
+        let resolved = conduit_std_host::pico_spawn::resolve_member_offer_images(
             &observed.presentation.projection,
+            &observed.images,
         )
-        .map_err(|e| format!("return committed; verify selected member receipt: {e:?}"))?;
-    membership_receipt_custody::retain(&mut receipt, &signed).map_err(post_commit)?;
-    membership_receipt_custody::retain_return_basis(
-        &mut next_basis,
-        basis,
-        &signed,
-        &observed.presentation.projection,
-    )?;
-    socket
-        .deliver_member_return(&signed, basis, &observed.presentation.projection, timeout)
-        .map_err(|e| {
-            format!("return committed and receipt retained; member delivery uncertain: {e:?}")
-        })?;
-    owner
-        .retire_completed_selected_return(&credential)
+        .map_err(|e| format!("resolve selected member images: {e:?}"))?;
+        if resolved != observed.advertisement {
+            return Err(
+                "selected member image resolution differs from observed advertisement".into(),
+            );
+        }
+        let challenge = if recover_retained_key {
+            owner.begin_recovered_member_image_return(
+                &basis.credential,
+                &observed.advertisement,
+                observed.presentation.clone(),
+            )?
+        } else {
+            owner.begin_member_image_return(
+                &basis.credential,
+                &observed.advertisement,
+                Some(observed.presentation.clone()),
+            )?
+        };
+        let proof = socket
+            .prove_member_return(basis, &observed.advertisement, &challenge, timeout)
+            .map_err(|e| format!("selected member continuity proof: {e:?}"))?;
+        let credential = owner.complete_member_return(state_dir, &proof)?;
+        let post_commit = |error: String| {
+            format!("return committed; original receipt/member state may be retained: {error}")
+        };
+        let signed = owner
+            .attest_current_member_receipt(
+                &owner::MembershipReceiptDocument::ImageReturn {
+                    receipt: MemberReturnImageAcknowledgement::new(
+                        credential.clone(),
+                        observed.presentation.projection.clone(),
+                    ),
+                    images: observed.images,
+                },
+                &peer,
+            )
+            .map_err(post_commit)?;
+        signed
+            .verify_image_return(
+                &peer,
+                &basis.member_verifying_key,
+                &basis.credential,
+                &observed.presentation.projection,
+            )
+            .map_err(|e| format!("return committed; verify selected member receipt: {e:?}"))?;
+        membership_receipt_custody::retain(&mut receipt, &signed).map_err(post_commit)?;
+        membership_receipt_custody::retain_return_basis(
+            &mut next_basis,
+            basis,
+            &signed,
+            &observed.presentation.projection,
+        )?;
+        socket
+            .deliver_member_return(&signed, basis, &observed.presentation.projection, timeout)
+            .map_err(|e| {
+                format!("return committed and receipt retained; member delivery uncertain: {e:?}")
+            })?;
+        owner
+            .retire_completed_selected_return(&credential)
+            .map_err(post_commit)?;
+        // Descriptive convenience for this same Root's later checked preparation.
+        // Every use still rechecks actual current membership and observed offers.
+        let presentation = owner::MemberPresentationBasis::new(credential, observed.advertisement)
+            .map_err(post_commit)?;
+        write_json_atomic(
+            &receipt_output.with_extension("presentation.json"),
+            &presentation,
+        )
         .map_err(post_commit)?;
-    // Descriptive convenience for this same Root's later checked preparation.
-    // Every use still rechecks actual current membership and observed offers.
-    let presentation = owner::MemberPresentationBasis::new(credential, observed.advertisement)
-        .map_err(post_commit)?;
-    write_json_atomic(
-        &receipt_output.with_extension("presentation.json"),
-        &presentation,
-    )
-    .map_err(post_commit)?;
-    Ok(SelectedPlayCarrier {
-        member: presentation,
-        socket,
-        canonical_port,
-        completed_return: Some(CompletedMemberReturn),
-        fore_material: None,
-        prepared_fore: None,
-        fore_input_reported: false,
+        Ok(presentation)
+    })();
+    Ok(match completion {
+        Ok(presentation) => Ok(SelectedPlayCarrier {
+            member: presentation,
+            socket,
+            canonical_port,
+            completed_return: Some(CompletedMemberReturn),
+            fore_material: None,
+            prepared_fore: None,
+            fore_input_reported: false,
+        }),
+        Err(error) => Err(RetainedReturnFailure {
+            _socket: socket,
+            _canonical_port: canonical_port,
+            error,
+        }),
     })
 }
 
@@ -493,4 +568,4 @@ pub(super) use fore_provider::{select_direct_fore_lines, DirectForeCarrierSelect
 #[path = "source_revision_fore_client.rs"]
 mod fore_client;
 #[cfg(target_os = "linux")]
-pub(super) use fore_client::negotiate_selected_fore;
+pub(super) use fore_client::{negotiate_selected_fore, RetainedForeClient};

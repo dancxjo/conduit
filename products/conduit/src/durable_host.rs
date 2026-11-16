@@ -155,6 +155,17 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
             prepare_only,
             state_dir,
         } => source_revision::adopt(&state_dir, &selection, prepare_only),
+        HostServiceCommand::ExecuteSource { request, state_dir } => {
+            #[cfg(target_os = "linux")]
+            {
+                source_revision::source_execution::submit(&state_dir, &request)
+            }
+            #[cfg(not(target_os = "linux"))]
+            {
+                let _ = (request, state_dir);
+                Err("selected Source execution requires Linux".into())
+            }
+        }
         HostServiceCommand::ReselectSource { request, state_dir } => {
             source_revision::reselect(&state_dir, &request)
         }

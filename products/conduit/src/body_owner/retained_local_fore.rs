@@ -1,6 +1,18 @@
 //! Reselect planning boundaries from original retained File custody only.
 use super::Owner;
 impl Owner {
+    /// Recheck the original retained File and caller guards before a local
+    /// execution request can open any physical carrier.
+    pub(crate) fn verify_selected_source_execution_basis(
+        &self,
+        basis: &crate::durable_host::source_revision::source_execution::VerifiedExecutionBasis,
+    ) -> Result<(), String> {
+        let original = self
+            .selected_file_workset
+            .as_ref()
+            .ok_or("original retained File workset absent")?;
+        basis.verify_original(self, original)
+    }
     pub(crate) fn restore_selected_file_planning(
         &mut self,
         custody: crate::durable_host::source_revision::RetainedSourcePreparation,
