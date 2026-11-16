@@ -103,50 +103,24 @@ impl ProductJourney {
             .map_err(|_| JourneyError::Membership)?;
         let proof = MembershipProofId::bind("conduitos/product/local-birth")
             .map_err(|_| JourneyError::Membership)?;
-        let mut membership =
+        let membership =
             BodyMembership::new(body.body_id.clone()).map_err(|_| JourneyError::Membership)?;
-        let mut biography = conduit_body::BodyBiographyEvidence::born(
-            body.clone(),
-            membership.clone(),
-            name.clone(),
+        let biography = conduit_body::BodyBiographyEvidence::born(body, membership, name)
+            .map_err(|_| JourneyError::InvalidTransition)?;
+        let mut session = BodyLifecycleSession::prepare_first_host(
+            &biography,
+            part,
+            AuthenticatedHostObservation {
+                host_id: self.host_id.clone(),
+                boot_id: self.boot_id.clone(),
+                offer_generation: self.offer_generation,
+                proof_id: proof,
+                sequence: 0,
+            },
+            SignId::from("conduitos/product/part-admitted"),
+            SignId::from("conduitos/product/host-attached"),
         )
-        .map_err(|_| JourneyError::InvalidTransition)?;
-        membership
-            .admit(
-                &body.body_id,
-                membership.revision,
-                part.clone(),
-                proof.clone(),
-                SignId::from("conduitos/product/part-admitted"),
-            )
-            .map_err(|_| JourneyError::Membership)?;
-        membership
-            .observe_present(
-                &body.body_id,
-                membership.revision,
-                &part,
-                AuthenticatedHostObservation {
-                    host_id: self.host_id.clone(),
-                    boot_id: self.boot_id.clone(),
-                    offer_generation: self.offer_generation,
-                    proof_id: proof,
-                    sequence: 0,
-                },
-                SignId::from("conduitos/product/host-attached"),
-            )
-            .map_err(|_| JourneyError::Membership)?;
-        let events = membership
-            .events
-            .iter()
-            .enumerate()
-            .map(|(index, event)| (event.change_id.clone(), sequence + index as u64 + 1))
-            .collect::<Vec<_>>();
-        biography
-            .append_membership_events(membership, &events)
-            .map_err(JourneyError::Biography)?;
-        let mut session =
-            BodyLifecycleSession::open_admitted(biography, &self.host_id, &self.boot_id)
-                .map_err(JourneyError::Lifecycle)?;
+        .map_err(JourneyError::Lifecycle)?;
         let selected = session.evidence().body.workset.plots()[foreground].clone();
         session
             .select_plot(&selected)
