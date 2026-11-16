@@ -13,6 +13,9 @@ const HELLO_LIGHT: &str = r#"plot hello-light {
 
 fn manifestation(effect: TourHostEffect) -> TourEffect {
     match effect {
+        TourHostEffect::WombPrepare(_) => {
+            panic!("non-Womb fixture requested member Seed preparation")
+        }
         TourHostEffect::ClockObservation(_)
         | TourHostEffect::AudioCue(_)
         | TourHostEffect::AudioIo(_)
@@ -619,6 +622,9 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
     let mut trace = Vec::new();
     loop {
         match effect {
+            TourHostEffect::WombPrepare(_) => {
+                panic!("non-Womb fixture requested member Seed preparation")
+            }
             TourHostEffect::Manifestation(ref manifestation) => trace.push(format!(
                 "manifestation:{}:{}",
                 manifestation.text.as_deref().unwrap_or("missing"),

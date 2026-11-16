@@ -157,11 +157,21 @@ pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
 pub(crate) fn execution_capability_ids() -> Vec<conduit_core::CapabilityId> {
     let machinery = BrowserMachinery::from_selected(&selected_human_machinery())
         .expect("ordinary browser profile contains reviewed machinery");
-    INSTALLATIONS
+    let result: Vec<_> = INSTALLATIONS
         .iter()
         .filter(|entry| machinery.admits(entry))
         .map(|entry| (entry.offer)().capability_id)
-        .collect()
+        .collect();
+    #[cfg(feature = "creche-surface")]
+    {
+        let mut result = result;
+        if crate::workspace_runtime::womb_provision::has_scoped_offer() {
+            result.push(super::womb::offer().capability_id);
+        }
+        result
+    }
+    #[cfg(not(feature = "creche-surface"))]
+    result
 }
 
 pub(crate) use super::catalogs::{backs, catalogs, catalogs_for_face};
@@ -169,12 +179,20 @@ mod lookup;
 pub(crate) use lookup::factory;
 
 pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
-    advertisement_for_machinery(
+    let host = advertisement_for_machinery(
         host_id,
         boot_id,
         BrowserMachinery::from_selected(&selected_human_machinery())
             .expect("ordinary browser profile contains reviewed machinery"),
-    )
+    );
+    #[cfg(feature = "creche-surface")]
+    {
+        let mut host = host;
+        crate::workspace_runtime::womb_provision::augment_advertisement(&mut host);
+        host
+    }
+    #[cfg(not(feature = "creche-surface"))]
+    host
 }
 
 pub(crate) fn advertisement_for_face(

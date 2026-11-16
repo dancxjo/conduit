@@ -1,0 +1,51 @@
+{
+  "schema": "conduit.browser/bundle-image@1",
+  "build_id": "build:sha256:ecd8f91d745f7cf081db7ab7868dec7ce10b142dab984c524252df3bfd8e24e7",
+  "target_id": "browser/wasm32/page",
+  "profile_id": "sha256:7acdfa2a12e05fa1ca833fdb242fc23b0f473f4b01c0dd793dfd4aba727cb3e7",
+  "source_configuration_id": "sha256:2f59787dedccb89670ae86e24df2ba762775e3fcb1fd68aee2abfade4c1a1f39",
+  "reviewed_distribution": {
+    "distribution_id": "conduit.browser/reviewed-distribution@1",
+    "distribution_digest": "sha256:61d0a33625be358ce972847d82a941e0180021d46261c24b90dd48f8c5f2acf4",
+    "runtime_abi": "conduit.browser/runtime-abi@1",
+    "toolchain_identity": "toolchain/conformance",
+    "source_commit": "source/conformance"
+  },
+  "implementations": [
+    {
+      "id": "browser/dom@1",
+      "revision": 1,
+      "artifact": "browser-runtime-superset.wasm"
+    },
+    {
+      "id": "browser/keyboard-events@1",
+      "revision": 1,
+      "artifact": "browser-runtime-superset.wasm"
+    },
+    {
+      "id": "browser/pointer-events@1",
+      "revision": 1,
+      "artifact": "browser-runtime-superset.wasm"
+    }
+  ],
+  "boot_module": {
+    "role": "profile-gated-boot",
+    "path": "browser-boot-profile.mjs",
+    "sha256": "sha256:7776e321976f2e306eaf074bc244953a71013c5165cbe4f5491f6bdd55470468"
+  },
+  "files": [
+    {
+      "path": "runtime.wasm",
+      "bytes": 8,
+      "sha256": "sha256:93a44bbb96c751218e4c00d479e4c14358122a389acca16205b1e4d0dc5f9476",
+      "media_type": "application/wasm"
+    },
+    {
+      "path": "browser-boot-profile.mjs",
+      "bytes": 8,
+      "sha256": "sha256:7776e321976f2e306eaf074bc244953a71013c5165cbe4f5491f6bdd55470468",
+      "media_type": "text/javascript"
+    }
+  ],
+  "image_id": "image:sha256:0ba357cfafe4a4aad1a9488e2391acf008bd8d57eee7f86e0d305da2c0ea0a5b"
+}
