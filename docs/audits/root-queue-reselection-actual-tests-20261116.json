@@ -1,0 +1,12 @@
+{
+  "at_utc": "2026-11-16T22:52:04.541456+00:00",
+  "source_commit": "0b07493780ded2876856d443dd7fa75ff1326f8c",
+  "original_compile_filter_matched_tests": 0,
+  "corrected_filter": "durable_host::source_revision::reselection",
+  "passed": 25,
+  "failed": 0,
+  "compiled_test_executable_sha256": "8618c2f2d55209245206769992b87dda2af9db44b92773e18c4cdd2193c4cf0d",
+  "result_log_sha256": "592b5d0e8afe2ab3e4d700f552b017ed87ca0811d16061cf59408578d4c320c6",
+  "deployment_proved": false,
+  "live_claim_released": false
+}
