@@ -37,6 +37,15 @@ const MAXIMUM_SOURCE: u64 = 256 * 1024;
 const MAXIMUM_CONTROL_REQUEST: u64 = 4096;
 const MAXIMUM_ADMISSION_REQUEST: u64 = super::MAXIMUM_BODY_ADMISSION_BYTES;
 
+/// OS-private recovered evidence can only deny effects, never authorize them.
+pub(crate) fn require_no_recovered_source_claim(root: &Path) -> Result<(), String> {
+    if controller::recovered_source_claim::inspect(root)? {
+        Err("recovered-source-claim-unresolved: effects remain denied; receiver retirement unproved".into())
+    } else {
+        Ok(())
+    }
+}
+
 pub(super) fn recover_retained_state(root: &Path) -> Result<(), String> {
     state::recover(root)
 }
@@ -217,7 +226,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
         .map_err(|e| format!("installed Host state: {e}"))?;
     let _ownership = super::owner_lock::acquire(&root)?;
     let _body_ownership = super::owner_lock::body(&root)?;
-    let recovered_claim = controller::recovered_source_claim::inspect(&root)?;
+    require_no_recovered_source_claim(&root)?;
     state::recover(&root)?;
     image::verify(&root)?;
     let source_bytes = super::bounded_read(source, MAXIMUM_SOURCE)?;
@@ -248,7 +257,6 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
     let result = (|| {
         let mut owner =
             controller::Owner::open(runtime.into_owner_host(), resident, retained, name)?;
-        owner.hold_recovered_source_claim(recovered_claim);
         owner.set_resident_plot_name(&checked)?;
         owner.restore_execution(&root)?;
         owner.persist(&root)?;
