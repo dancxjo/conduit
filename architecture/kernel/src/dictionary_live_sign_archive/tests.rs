@@ -159,8 +159,169 @@ fn explicit_candidate_fits_original_backing_limits_and_transfers_same_owner() {
         )
         .unwrap();
     let before = log.events().collect::<Vec<_>>();
-    drop(log.prepare_prefix_transfer().unwrap());
+    {
+        let _uncommitted = log.prepare_prefix_transfer().unwrap();
+    }
     assert_eq!(log.events().collect::<Vec<_>>(), before);
     log.prepare_prefix_transfer().unwrap().commit();
     assert_eq!(log.events().collect::<Vec<_>>(), [event]);
+}
+
+#[test]
+fn three_request_lanes_preserve_distinct_source_node_identities_across_prefixes() {
+    // These are the three persistent request-bearing node identities in the
+    // checked sampling Source, not evidence that its complete trace fits here.
+    let mut archive = LivePrefixArchive::<128, 4, 44, 3, 2>::new();
+    let mut expected = Vec::new();
+    for round in 0..128_u32 {
+        let requests = [
+            (0, 100 + round * 3),
+            (4, 1000 + round),
+            (9, 10000 + round * 11),
+        ];
+        let mut signs = Vec::new();
+        for (node, request) in requests {
+            for kind in [
+                KernelEventKind::HostCallRequested,
+                KernelEventKind::HostCallCompleted,
+            ] {
+                signs.push(ArchivedSign {
+                    event: KernelEvent {
+                        sequence: signs.len() as u32,
+                        node: NodeId(node),
+                        port: None,
+                        request: Some(RequestId(request)),
+                        kind,
+                    },
+                    remote: None,
+                });
+            }
+        }
+        let evidence = Evidence { signs, gap: None };
+        archive.append(&evidence, 6).unwrap();
+        expected.push(evidence);
+    }
+    assert_eq!(archive.template_count(), 1);
+    assert_eq!(archive.template_event_count(), 6);
+    assert_eq!(archive.tape_run_count(), 1);
+    for (index, evidence) in expected.iter().enumerate() {
+        assert_eq!(
+            archive.prefix(index as u32).unwrap().collect::<Vec<_>>(),
+            evidence.signs
+        );
+    }
+}
+
+#[cfg(feature = "alloc")]
+#[test]
+fn two_lanes_refuse_third_source_node_without_losing_active_or_archived_evidence() {
+    use crate::{
+        live_sign_archive::{ArchiveLimits, TransferRefusal},
+        HostedSignLog, SignSink,
+    };
+    type Log = DictionaryLiveSignLog<128, 4, 48, 2, 2>;
+    let active = HostedSignLog::new(61, 61 * core::mem::size_of::<KernelEvent>() as u32).unwrap();
+    let mut log = Log::try_prepare_dictionary(
+        active,
+        ArchiveLimits {
+            retained_events: 32768,
+            retained_bytes: 2 * 1024 * 1024,
+            archive_backing_bytes: 8192,
+            transfer_overlap_bytes: 12288,
+        },
+    )
+    .unwrap();
+    let mut expected = Vec::new();
+    for node in [0, 4] {
+        expected.push(
+            log.record(
+                NodeId(node),
+                None,
+                Some(RequestId(100 + u32::from(node))),
+                KernelEventKind::HostCallRequested,
+            )
+            .unwrap(),
+        );
+        log.prepare_prefix_transfer().unwrap().commit();
+    }
+    let archived = log.archived_event_count();
+    let backing = log.owned_backing_bytes();
+    expected.push(
+        log.record(
+            NodeId(9),
+            None,
+            Some(RequestId(900)),
+            KernelEventKind::HostCallRequested,
+        )
+        .unwrap(),
+    );
+    assert!(matches!(
+        log.prepare_prefix_transfer(),
+        Err(TransferRefusal::ArchiveCapacity)
+    ));
+    assert_eq!(log.archived_event_count(), archived);
+    assert_eq!(log.owned_backing_bytes(), backing);
+    assert_eq!(log.events().collect::<Vec<_>>(), expected);
+    // The refusal leaves the SAME live owner usable, including its original
+    // pending request identity and monotonically advancing event sequence.
+    expected.push(
+        log.record(
+            NodeId(9),
+            None,
+            Some(RequestId(900)),
+            KernelEventKind::HostCallCompleted,
+        )
+        .unwrap(),
+    );
+    assert!(matches!(
+        log.prepare_prefix_transfer(),
+        Err(TransferRefusal::ArchiveCapacity)
+    ));
+    assert_eq!(log.archived_event_count(), archived);
+    assert_eq!(log.events().collect::<Vec<_>>(), expected);
+}
+
+#[cfg(feature = "alloc")]
+#[test]
+fn three_lane_candidates_report_backing_under_unchanged_resource_ceilings() {
+    use crate::{
+        live_sign_archive::{ArchiveLimits, TransferRefusal},
+        HostedSignLog,
+    };
+    fn check<const G: usize>() {
+        type Active = HostedSignLog;
+        let active = Active::new_with_remote_storage(
+            61,
+            61 * core::mem::size_of::<KernelEvent>() as u32,
+            6,
+            crate::remote_sign_storage_bytes(6).unwrap(),
+        )
+        .unwrap();
+        let bytes = DictionaryLiveSignLog::<128, 4, G, 3, 2>::required_archive_backing_bytes();
+        let overlap =
+            DictionaryLiveSignLog::<128, 4, G, 3, 2>::required_transfer_overlap_bytes(&active)
+                .unwrap();
+        let fits = bytes <= 8192 && overlap <= 12288;
+        std::println!("DICTIONARY_THREE_LANE_PROFILE {{\"event_stock\":128,\"template_stock\":4,\"tape_stock\":{G},\"request_lanes\":3,\"remote_lanes\":2,\"archive_backing_bytes\":{bytes},\"overlap_bytes\":{overlap},\"fits_original_bounds\":{fits}}}");
+        let result = DictionaryLiveSignLog::<128, 4, G, 3, 2>::try_prepare_dictionary(
+            active,
+            ArchiveLimits {
+                retained_events: 32768,
+                retained_bytes: 2 * 1024 * 1024,
+                archive_backing_bytes: 8192,
+                transfer_overlap_bytes: 12288,
+            },
+        );
+        if fits {
+            assert!(result.is_ok());
+        } else {
+            assert!(matches!(result, Err(rejected) if rejected.reason == TransferRefusal::Bounds));
+        }
+    }
+    check::<48>();
+    check::<46>();
+    check::<45>();
+    check::<44>();
+    check::<42>();
+    check::<40>();
 }
