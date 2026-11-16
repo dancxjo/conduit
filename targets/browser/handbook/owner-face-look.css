@@ -81,3 +81,4 @@ textarea:focus-visible{outline:3px solid var(--face-focus,#247c85);outline-offse
 :host([data-component-look]) .owner-face-choices{gap:var(--look-space-unit)}
 :host([data-component-look]) .owner-face-subject[data-face-role=Info] .owner-face-value{font-size:calc(max(1rem,var(--look-type-body))*2*var(--face-text-scale,1));line-height:var(--look-line-height)}
 :host([data-component-look]) .owner-face-subject[data-face-role]>p{font-size:calc(max(1rem,var(--look-type-body))*var(--face-text-scale,1));letter-spacing:normal}
+button:active:not(:disabled){outline:2px solid currentColor;outline-offset:-4px}

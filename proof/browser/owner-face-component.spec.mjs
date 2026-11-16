@@ -1655,3 +1655,68 @@ for (const palette of ['editorial', 'phosphor']) {
       muted: 'CanvasText', line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
   });
 }
+
+for (const selectedLook of [false, true]) {
+  for (const forcedColors of ['none', 'active']) {
+    test(`pressed feedback follows completed native activation (${selectedLook ? 'selected Look' : 'default'}, ${forcedColors})`, async ({ page }) => {
+      await page.emulateMedia({ forcedColors });
+      await page.goto('/proof/browser/signal-dom-host.test.html');
+      await page.evaluate(async ({ view, selectedLook }) => {
+        await import('/targets/browser/handbook/owner-face-component.mjs');
+        const element = document.createElement('conduit-owner-face');
+        if (selectedLook) {
+          element.dataset.componentExpression = 'fixture';
+          element.dataset.componentPalette = 'phosphor';
+          element.dataset.componentLook = 'fixture';
+        }
+        globalThis.calls = [];
+        globalThis.showFeedbackFixture = () => element.show(view, {
+          invoke: async call => { globalThis.calls.push(call); },
+        });
+        globalThis.showFeedbackFixture();
+        document.body.replaceChildren(element);
+        const look = element.shadowRoot.querySelector('link');
+        if (!look.sheet) await new Promise((resolve, reject) => {
+          look.addEventListener('load', resolve, { once: true });
+          look.addEventListener('error', reject, { once: true });
+        });
+      }, { view, selectedLook });
+      const face = page.locator('conduit-owner-face');
+      const button = face.getByRole('button', { name: 'Complete task', exact: true });
+      const callCount = () => page.evaluate(() => globalThis.calls.length);
+      const box = await button.boundingBox();
+      expect(box).not.toBeNull();
+      const x = box.x + box.width / 2, y = box.y + box.height / 2;
+      await page.mouse.move(x, y);
+      await expect(button).not.toHaveCSS('outline-offset', '-4px');
+      await page.mouse.down();
+      await expect(button).toHaveCSS('outline-style', 'solid');
+      await expect(button).toHaveCSS('outline-width', '2px');
+      await expect(button).toHaveCSS('outline-offset', '-4px');
+      expect(await callCount()).toBe(0);
+      await page.mouse.move(box.x + box.width + 30, box.y + box.height + 30);
+      await page.mouse.up();
+      expect(await callCount()).toBe(0);
+      await expect(button).not.toHaveCSS('outline-offset', '-4px');
+      await button.click();
+      expect(await page.evaluate(() => globalThis.calls)).toEqual([
+        { view, action: view.actions[0], arguments: [] },
+      ]);
+      await page.evaluate(() => globalThis.showFeedbackFixture());
+      await button.focus();
+      await page.keyboard.down('Space');
+      await expect(button).toBeFocused();
+      await expect(button).toHaveCSS('outline-style', 'solid');
+      await expect(button).toHaveCSS('outline-width', '2px');
+      await expect(button).toHaveCSS('outline-offset', '-4px');
+      expect(await callCount()).toBe(1);
+      await page.keyboard.up('Space');
+      expect(await page.evaluate(() => globalThis.calls)).toEqual([
+        { view, action: view.actions[0], arguments: [] },
+        { view, action: view.actions[0], arguments: [] },
+      ]);
+      await expect(button).toBeDisabled();
+      await expect(button).not.toHaveCSS('outline-offset', '-4px');
+    });
+  }
+}
