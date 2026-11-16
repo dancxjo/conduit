@@ -337,7 +337,7 @@ fn encode(
             u64::from(maximum),
         )?;
     }
-    let runtime_state_bytes = runtime_state_bytes(plan)?;
+    let runtime_state_bytes = assigned_runtime_state_bytes(plan)?;
     bound(
         "assigned runtime state bytes",
         u64::from(runtime_state_bytes),
@@ -378,7 +378,10 @@ fn encode(
     Ok(bytes)
 }
 
-fn runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u32, GenerationError> {
+/// Current canonical runtime-state estimate used by the original encoder.
+/// Host-only inspection may read this before encoding; it is not physical
+/// allocator evidence or a capacity grant for another storage representation.
+pub fn assigned_runtime_state_bytes(plan: &GeneratedEmbeddedPlan) -> Result<u32, GenerationError> {
     let table_state = plan.nodes.len() * 8
         + plan.cords.len() * 12
         + plan.route_targets.len() * 6

@@ -13,6 +13,60 @@ pub fn prepare(
     source_identity: &str,
     out: &Path,
 ) -> Result<Option<Vec<conduit_embedded_build::PreparedResidentExpression>>, String> {
+    with_inputs(
+        checked,
+        catalog,
+        image_id,
+        source_identity,
+        out,
+        conduit_embedded_build::ResidentExecutionStorage::Owned,
+        |source, input, physical| {
+            native_build::calibrate_and_emit_neutral(source, None, out, input, physical)
+        },
+    )
+    .map(|result| result.map(|(_, residents)| residents))
+}
+
+/// Host-only schema inspection. This creates no assigned document or qualified
+/// artifact: HOST_TOOLING limits bound metadata generation, not target resources.
+#[allow(dead_code)] // Used by host-only inspection; ordinary firmware preparation stays Owned.
+pub fn inspect_schema(
+    checked: &conduit_host_make::CheckedHostConfiguration,
+    catalog: &conduit_host_make::MakeCatalog,
+    image_id: &str,
+    source_identity: &str,
+    out: &Path,
+) -> Result<Option<Vec<conduit_host_rp2040::source_build::template_calibration::InertEntry>>, String>
+{
+    with_inputs(
+        checked,
+        catalog,
+        image_id,
+        source_identity,
+        out,
+        conduit_embedded_build::ResidentExecutionStorage::SharedWorkspaceSchema,
+        |source, mut input, physical| {
+            input.bounds.image = conduit_embedded_build::EmbeddedImageBounds::HOST_TOOLING;
+            calibration::inspect_with_physical_bases(source, input, physical)
+        },
+    )
+    .map(|result| result.map(|(inspection, _)| inspection))
+}
+
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+fn with_inputs<T>(
+    checked: &conduit_host_make::CheckedHostConfiguration,
+    catalog: &conduit_host_make::MakeCatalog,
+    image_id: &str,
+    source_identity: &str,
+    out: &Path,
+    storage: conduit_embedded_build::ResidentExecutionStorage,
+    finish: impl FnOnce(
+        &mut workset::Workset,
+        calibration::Input<'_>,
+        &[calibration::NativeBaseSelection<'_>],
+    ) -> Result<T, String>,
+) -> Result<Option<(T, Vec<conduit_embedded_build::PreparedResidentExpression>)>, String> {
     let Some(mut source) = workset::from_environment(None)? else {
         return Ok(None);
     };
@@ -56,7 +110,7 @@ pub fn prepare(
             .map_err(|_| "canonical buffer width")?;
     let resident = source.prepare_selected_residents_with_exact_work(
         resident_bounds,
-        conduit_embedded_build::ResidentExecutionStorage::Owned,
+        storage,
         work.capacity_units,
     )?;
     let artifact = conduit_core::ArtifactId::from(image_id);
@@ -126,10 +180,8 @@ pub fn prepare(
             maximum_total_program_bytes: resident_bounds.maximum_program_bytes,
         },
     )?;
-    native_build::calibrate_and_emit_neutral(
+    let inspection = finish(
         &mut source,
-        None,
-        out,
         calibration::Input {
             checked,
             image: &image,
@@ -142,5 +194,5 @@ pub fn prepare(
         },
         &physical,
     )?;
-    Ok(Some(resident))
+    Ok(Some((inspection, resident)))
 }

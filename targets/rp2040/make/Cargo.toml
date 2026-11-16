@@ -42,3 +42,15 @@ path = "../../mcu/source-build/tests/i2c_clock_factory/profile_gate.rs"
 [[example]]
 name = "source-i2c-calibration"
 path = "../../mcu/source-build/tests/i2c_clock_factory/calibration_gate.rs"
+
+[[example]]
+name = "source-schema-generate"
+path = "../../mcu/source-build/tests/i2c_clock_factory/schema_generate.rs"
+
+[features]
+schema-storage-measurement = ["conduit-mcu-host-runtime/schema-value-storage", "conduit-plan-lowering/schema-value-storage"]
+
+[[example]]
+name = "source-schema-measure"
+path = "../../mcu/source-build/tests/i2c_clock_factory/schema_measure.rs"
+required-features = ["schema-storage-measurement"]

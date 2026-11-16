@@ -58,8 +58,8 @@ pub use assigned_layout::{
     assigned_resident_native_layout_requirements,
 };
 pub use assigned_plan::{
-    encode_assigned_kernel_plan, encode_assigned_native_plan, encode_assigned_plan,
-    encode_assigned_resident_native_plan,
+    assigned_runtime_state_bytes, encode_assigned_kernel_plan, encode_assigned_native_plan,
+    encode_assigned_plan, encode_assigned_resident_native_plan,
 };
 pub use configuration_record::assigned_computation_requirements;
 pub use generate::{generate_embedded_plan, generate_embedded_plan_with_computations};
