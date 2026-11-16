@@ -19,13 +19,10 @@ pub(super) type Kernel = FixedScheduler<
 >;
 pub(super) enum Back {
     Wake(Option<ValueRef>),
-    Chime {
-        pending: Option<RequestId>,
-        next: u32,
-    },
+    Chime(conduit_semantic_catalog::StartupChimeBack),
 }
 impl StepBack<PORTS> for Back {
-    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+    fn step(&mut self, io: &mut StepIo<PORTS>, _inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         match self {
             Self::Wake(value) => {
                 let Some(current) = *value else {
@@ -40,66 +37,15 @@ impl StepBack<PORTS> for Back {
                 *value = None;
                 StepOutcome::Complete
             }
-            Self::Chime { pending, next } => {
-                if let Some((request, outcome)) = io.host_completion() {
-                    if Some(request) != *pending
-                        || outcome.output.is_some()
-                        || !match outcome.disposition {
-                            HostCallDisposition::Completed => outcome.failure.is_none(),
-                            HostCallDisposition::Denied => outcome
-                                .failure
-                                .is_some_and(|f| f.code == FailureCode::HostCallDenied),
-                            HostCallDisposition::Failed => outcome
-                                .failure
-                                .is_some_and(|f| f.code == FailureCode::HostCallFailed),
-                            HostCallDisposition::Cancelled => false,
-                        }
-                    {
-                        return invalid();
-                    }
-                    if io.consume_host_completion().is_err() {
-                        return invalid();
-                    }
-                    *pending = None;
-                    let Some(value) = next.checked_add(1) else {
-                        return invalid();
-                    };
-                    *next = value;
-                    return StepOutcome::Progress;
-                }
-                if let Some(value) = io.input(PortId(0)) {
-                    if pending.is_some() {
-                        return invalid();
-                    }
-                    let Ok(input) =
-                        BoundedValueRef::new(value, conduit_core::BOOL_ENCODED_LEN as u32)
-                    else {
-                        return invalid();
-                    };
-                    if io.consume(PortId(0)).is_err()
-                        || io
-                            .request_host_call(RequestId(*next), HostCallId(0), input)
-                            .is_err()
-                    {
-                        return invalid();
-                    }
-                    *pending = Some(RequestId(*next));
-                    return StepOutcome::Progress;
-                }
-                if pending.is_none() && io.input_closed(PortId(0)) {
-                    if io.consume_closed(PortId(0)).is_err() {
-                        return invalid();
-                    }
-                    return StepOutcome::Complete;
-                }
-                StepOutcome::Await
-            }
+            Self::Chime(back) => back.step(io, _inputs),
         }
     }
     fn cancel(&mut self) {
         match self {
             Self::Wake(v) => *v = None,
-            Self::Chime { pending, .. } => *pending = None,
+            Self::Chime(back) => {
+                <conduit_semantic_catalog::StartupChimeBack as StepBack<PORTS>>::cancel(back)
+            }
         }
     }
 }
@@ -128,10 +74,7 @@ pub(super) fn prepare(
     for (index, placement) in fragment.placements.iter().enumerate() {
         backs[index] = Some(match placement.implementation_id.as_str() {
             super::plan::WAKE => Back::Wake(pulse),
-            super::plan::CHIME => Back::Chime {
-                pending: None,
-                next: 0,
-            },
+            super::plan::CHIME => Back::Chime(conduit_semantic_catalog::StartupChimeBack::new()),
             _ => return Err("startup-back"),
         });
     }
