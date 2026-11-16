@@ -371,6 +371,10 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
                 Some(crate::installed_browser::pointer_selector::PreparedSelector::new(placement)?);
         }
     }
+    // Womb's trusted Fore consumes the binding established by the selected
+    // Back factory above; it cannot precede actual Back initialization.
+    let womb_fore =
+        super::womb::prepare(partitions, application.as_ref().map(|context| context.plan))?;
     while operations.len() < MAXIMUM_BROWSER_GEARS {
         operations.push(BrowserBack::inactive());
     }
@@ -446,7 +450,8 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
         signs,
     )
     .map_err(debug_error)?;
-    Ok(TourScheduler {
+    let mut scheduler = TourScheduler {
+        womb_fore,
         failure: None,
         kernel: Box::new(kernel),
         _prepared_storage: prepared_storage,
@@ -475,5 +480,7 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
         attempts,
         comparisons,
         snapshots,
-    })
+    };
+    super::womb::inject(&mut scheduler)?;
+    Ok(scheduler)
 }

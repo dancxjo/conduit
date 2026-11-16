@@ -5,6 +5,9 @@ pub(in crate::plot_runner) fn complete_host_effect(
     scheduler: &mut TourScheduler,
     pending: &PendingHostEffect,
 ) -> Result<(), String> {
+    if matches!(pending.effect, BrowserHostEffect::WombPrepare) {
+        return Err("Womb requires its exact retained typed completion".into());
+    }
     if matches!(pending.effect, BrowserHostEffect::ClockObservation) {
         return Err("clock observation requires an exact timestamp".into());
     }
@@ -33,6 +36,9 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
         return resource_effect::complete(scheduler, pending, Ok(Some(output)));
     }
     let maximum_output_bytes = match &pending.effect {
+        BrowserHostEffect::WombPrepare => {
+            super::womb::validate_completion(scheduler, pending, output)?
+        }
         BrowserHostEffect::ClockObservation => {
             return attempt::complete_clock(scheduler, pending, output)
         }

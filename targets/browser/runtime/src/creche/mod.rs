@@ -18,8 +18,36 @@ pub(crate) use initial_plots::inventory_application_subjects;
 #[cfg(feature = "plot-runner")]
 pub(crate) use workspace::{
     handoff_workspace, plan_workspace_plots, require_workspace_plot, workspace_evidence,
-    workspace_library,
+    workspace_library, WorkspaceIssuerCustody,
 };
+#[cfg(feature = "plot-runner")]
+pub(crate) fn check_womb_configuration(
+    selection: BrowserConfigurationSelection,
+) -> Result<conduit_host_make::CheckedHostConfiguration, String> {
+    browser_configuration::review(selection).map(|(_, checked, _)| checked)
+}
+
+#[cfg(feature = "plot-runner")]
+pub(crate) fn womb_configuration_review(
+    configuration: &conduit_host_make::CheckedHostConfiguration,
+) -> Result<serde_json::Value, String> {
+    let mut implementations = std::collections::BTreeSet::new();
+    for base in &configuration.configuration().bases {
+        if let Some(id) = &base.implementation {
+            implementations.insert(id.clone());
+        }
+        implementations.extend(base.implementations.iter().cloned());
+    }
+    let (review, checked, _) = browser_configuration::review(BrowserConfigurationSelection {
+        catalog_generation: 1,
+        implementations: implementations.into_iter().collect(),
+    })?;
+    if checked.configuration_id() != configuration.configuration_id() {
+        return Err("Womb configuration review changed its canonical identity".into());
+    }
+    serde_json::to_value(review).map_err(|error| error.to_string())
+}
+
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct JoinedLineObservation {
