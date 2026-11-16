@@ -105,7 +105,17 @@ pub use measurement_threshold::*;
 pub use measurement_threshold_catalog::*;
 pub use measurement_threshold_wire::*;
 pub use measurement_window::*;
+mod measurement_window_resources;
+pub use measurement_window_resources::*;
+#[cfg(feature = "kernel-step")]
+mod measurement_window_step;
+#[cfg(feature = "kernel-step")]
+pub use measurement_window_step::*;
+#[cfg(feature = "kernel-step")]
+mod measurement_window_provider;
 pub use measurement_window_catalog::*;
+#[cfg(feature = "kernel-step")]
+pub use measurement_window_provider::*;
 pub use measurement_wire::*;
 pub use sampled_signal::*;
 pub use scientific_alignment::*;
