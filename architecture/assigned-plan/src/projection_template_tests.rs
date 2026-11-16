@@ -413,3 +413,8 @@ fn duplicate_template_native_record_cannot_hide_an_unmatched_extra_slot() {
         .is_err());
     assert!(output.iter().all(|b| *b == 0x5a));
 }
+
+mod line_layout_tests {
+use super::*;
+include!("projection_line_layout_tests.rs");
+}

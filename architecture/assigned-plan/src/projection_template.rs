@@ -303,3 +303,7 @@ fn fore_slot<'a>(
 #[cfg(test)]
 #[path = "projection_template_tests.rs"]
 mod tests;
+
+#[path = "projection_line_layout.rs"]
+mod line_layout;
+pub use line_layout::AssignedLineLayoutRecipe;
