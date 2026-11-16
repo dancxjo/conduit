@@ -1,10 +1,6 @@
 //! Source checking contract for the ordinary Crèche operation.
 use crate::deployment_runtime::*;
-use conduit_core::{
-    kind_id, port_id, CapabilityLimits, CheckedValueContract, FrontValueContract,
-    FrontValueLocation, Kind, KindIdentity, KindSemanticLaw, KindTerminalBehavior, PortDescriptor,
-    PortDirection, PortTemporal,
-};
+use conduit_core::Kind;
 
 pub fn install_creche_catalogs(
     startup: &mut conduit_plot::StartupCatalog,
@@ -19,43 +15,12 @@ pub fn install_creche_catalogs(
         .map_err(|e| e.to_string())
 }
 pub fn creche_kind() -> Kind {
-    let port = |name: &str, kind: &str, direction| PortDescriptor {
-        port_id: port_id(name),
-        value_kind: kind_id(kind),
-        direction,
-        temporal: PortTemporal::Value,
-        abnormal_kind: None,
-    };
-    let contract = |name: &str, kind: &str, bound: usize, input| FrontValueContract {
-        location: if input {
-            FrontValueLocation::Input(port_id(name))
-        } else {
-            FrontValueLocation::Output(port_id(name))
-        },
-        contract: CheckedValueContract::new(kind_id(kind), bound as u32, vec![])
-            .expect("finite Creche value bounds"),
-    };
-    Kind {
-        startup_parameters: vec![],
-        shorthand: None,
-        kind_id: kind_id(CRECHE_KIND),
-        kind_contract_revision: KindIdentity::from("conduit.creche/prepare@1"),
-        inputs: vec![port("request", CRECHE_REQUEST_KIND, PortDirection::Input)],
-        outputs: vec![port("outcome", CRECHE_OUTCOME_KIND, PortDirection::Output)],
-        configuration: vec![],
-        semantic_laws: vec![
-            KindSemanticLaw::ValueContracts(vec![
-                contract("request", CRECHE_REQUEST_KIND, CRECHE_REQUEST_BYTES, true),
-                contract("outcome", CRECHE_OUTCOME_KIND, CRECHE_OUTCOME_BYTES, false),
-            ]),
-            KindSemanticLaw::Terminal(KindTerminalBehavior::CompletesAfterFixedCount { count: 1 }),
-        ],
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 2,
-            max_queue_bytes: (CRECHE_REQUEST_BYTES + CRECHE_OUTCOME_BYTES) as u32,
-        },
-    }
+    crate::preparation_catalog::digest_preparation_kind(
+        CRECHE_KIND,
+        "conduit.creche/prepare@1",
+        CRECHE_REQUEST_KIND,
+        CRECHE_OUTCOME_KIND,
+    )
 }
 
 pub const CRECHE_HOST_CALL: &str = "conduit.host/creche-prepare@1";
