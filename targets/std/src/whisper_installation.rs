@@ -132,6 +132,7 @@ impl StdHost {
     /// Attaches one bounded recorded clip as an explicit proof-only source.
     #[cfg(feature = "local-model-proof")]
     pub fn attach_proof_pcm_clip_source(&mut self, clip: Vec<u8>) -> Result<(), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         self.speech_recognition
             .as_mut()
             .ok_or_else(|| "std Host has no initialized Whisper recognizer".to_string())?
@@ -156,7 +157,7 @@ impl StdHost {
                 .as_str()
                 .cmp(right.capability_id.as_str())
         });
-        self.kernel_resources = kernel_preparation::KernelResourceLedger::new(&self.advertisement)?;
+        self.kernel_resources = self.kernel_resources.replacement_for(&self.advertisement)?;
         Ok(())
     }
 
@@ -167,6 +168,7 @@ impl StdHost {
         mut adapter: hosted_speech_recognition::WhisperSpeechAdapter,
         clip: Vec<u8>,
     ) -> Result<(), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         if self.speech_recognition.is_some() {
             return Err("std Host already has an initialized speech recognizer".into());
         }
@@ -207,7 +209,7 @@ impl StdHost {
                 .as_str()
                 .cmp(right.capability_id.as_str())
         });
-        let kernel_resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        let kernel_resources = self.kernel_resources.replacement_for(&advertisement)?;
         self.advertisement = advertisement;
         self.speech_recognition = Some(adapter);
         self.kernel_resources = kernel_resources;

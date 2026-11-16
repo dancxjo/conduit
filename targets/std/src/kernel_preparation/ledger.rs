@@ -3,6 +3,7 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub(crate) struct KernelResourceLedger {
+    pub(super) image_bounds: Option<conduit_host_make::HostBounds>,
     // Exact charged tokens retained after uncertain platform retirement.
     // Terminal quarantine: there is deliberately no automatic recovery API.
     pub(super) retirement_hold: Option<Vec<KernelResourceReservation>>,
@@ -72,6 +73,7 @@ impl KernelResourceLedger {
             instances.push((capability.capability_id.clone(), 0));
         }
         Ok(Self {
+            image_bounds: None,
             retirement_hold: None,
             identity: (
                 advertisement.host_id.clone(),

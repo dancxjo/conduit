@@ -67,6 +67,13 @@ impl StdHost {
     {
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         let prospective_play = self.prospective_body_play(request.wake, request.plan)?;
+        self.kernel_resources.preflight_image_workset(
+            request
+                .plan
+                .plots
+                .iter()
+                .flat_map(|part| part.plan.fragments.iter()),
+        )?;
         let admitted_clock_quality = if let Some(requirement) = &request.plan.body_time_requirement
         {
             let correlation = correlation.ok_or_else(|| {

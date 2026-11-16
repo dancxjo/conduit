@@ -1,5 +1,5 @@
 //! Transactional source-specific offer preparation before the ordinary planner.
-use crate::{installed_std, kernel_preparation, normalize_capability_offers, StdHost};
+use crate::{installed_std, normalize_capability_offers, StdHost};
 use conduit_core::{
     ConfigurationValue, ExactNumericWork, NumericalRealizationRequest, OfferGeneration,
 };
@@ -68,6 +68,7 @@ impl StdHost {
         }
         plot.validate_expansion()
             .map_err(|why| format!("numeric source identity: {why}"))?;
+        self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() {
             return Err("numeric offers cannot change active reservations".into());
         }
@@ -135,7 +136,7 @@ impl StdHost {
                 .checked_add(1)
                 .ok_or("numeric offer generation exhausted")?,
         );
-        let resources = kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        let resources = self.kernel_resources.replacement_for(&advertisement)?;
         self.advertisement = advertisement;
         self.kernel_resources = resources;
         Ok(())
