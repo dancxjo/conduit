@@ -163,3 +163,60 @@ fn worst_case_wire_and_prepared_storage_are_explicit_measured_profiles() {
     // traversal carry no heap tables or nested intermediate outputs.
     assert_eq!(encoder.backing(), Some(READ_RESULT_BYTES));
 }
+
+#[test]
+fn selected_physical_index_is_required_for_records_and_gaps() {
+    let mut encoder = Encoder::new().unwrap();
+    for outcome in [
+        ReadResult::Recorded {
+            index: 3,
+            captured_end: 9,
+            record: &[1, 2],
+        },
+        ReadResult::Gap {
+            index: 3,
+            captured_end: 9,
+            reason: GapReason::Corrupt,
+        },
+    ] {
+        let bytes = encoder.encode(outcome).unwrap();
+        assert_eq!(decode_for_index(3, bytes), Ok(outcome));
+        assert_eq!(
+            decode_for_index(4, bytes),
+            Err(CorrelatedReadRefusal::WrongIndex {
+                requested: 4,
+                received: 3
+            })
+        );
+    }
+}
+
+#[test]
+fn end_cannot_skip_requested_records_and_refusals_are_preserved() {
+    let mut encoder = Encoder::new().unwrap();
+    let bytes = encoder.encode(ReadResult::End(9)).unwrap();
+    assert_eq!(
+        decode_for_index(8, bytes),
+        Err(CorrelatedReadRefusal::InconsistentEnd {
+            requested: 8,
+            captured_end: 9
+        })
+    );
+    assert_eq!(decode_for_index(9, bytes), Ok(ReadResult::End(9)));
+    assert_eq!(decode_for_index(10, bytes), Ok(ReadResult::End(9)));
+    for outcome in [
+        ReadResult::Cancelled,
+        ReadResult::Busy,
+        ReadResult::RecoveryRequired,
+        ReadResult::Unavailable,
+    ] {
+        assert_eq!(
+            decode_for_index(0, encoder.encode(outcome).unwrap()),
+            Ok(outcome)
+        );
+    }
+    assert!(matches!(
+        decode_for_index(0, b"not a canonical record"),
+        Err(CorrelatedReadRefusal::Schema(_))
+    ));
+}
