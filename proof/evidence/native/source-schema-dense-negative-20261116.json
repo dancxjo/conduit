@@ -1,0 +1,187 @@
+{
+  "phase": 1,
+  "implementation_commit": "537a6ceed0a4851d819611856dabb899ff42a326",
+  "base": "7a8484e5ac8991ae5ce4485dd61ee37ded8f7d5e",
+  "scope": "Host-only inert lowering and independent DENSE store probe. Same open-Fore BME/HT protocol service, not an autonomous thermometer or standard Face/Mask.",
+  "method": [
+    "Existing ordinary planner/checked descriptions/resident selection are shared by normal encoding and inspection. Inspection stops before assignment encoding; HOST_TOOLING bounds apply to metadata only.",
+    "Generator exits before measurement. Measurement compiles generated immutable schema arrays directly into a separate process; no authoring compiler/AST remains and no Box::leak or heap subtraction is used.",
+    "Original dense schema store receives every original logical queue/staging declaration. No fabricated PreparedBacks, owner-lifetime proof or physical-stock reduction.",
+    "Both case outcomes remain stack-only until all observed phases finish. JSON/report allocations occur afterward. Constructor descriptors and actual canonical/native-result buffers are inside observed phases; all mutable allocations drop to zero."
+  ],
+  "geometry": {
+    "assignment_encoded": false,
+    "configuration": "sha256:dfa15fad0649c38006041211b8df60ec816d6630dab06bee78d0b90d5bf8a478",
+    "cords": 95,
+    "entry": "shared-environment",
+    "hardware_effects": false,
+    "host_assigned_runtime_unchanged": 16384,
+    "host_buffered_bytes_unchanged": 8192,
+    "host_heap_unchanged": 49152,
+    "image": "image:sha256:fc648a33059c5444e0c0f2e18d25e13052ea309024b79f02fbdd2bf4646c9049",
+    "legacy_canonical_runtime_state_estimate": 182811,
+    "logical_cord_bytes": 164818,
+    "logical_cord_slots": 97,
+    "metadata_bounds": "existing HOST_TOOLING only; not a target resource grant",
+    "native_calls": 2,
+    "nodes": 76,
+    "route_targets": 92,
+    "runtime_admission": false,
+    "scope": "inert open-Fore protocol service only; no autonomous sampling or Face/Mask",
+    "sign_bytes": 15277,
+    "sign_items": 237,
+    "source": "a09969cbfb143ec00ad3bcd03b1cfc925f9d86141991db93d5195d8b74192987"
+  },
+  "measurement": {
+    "all_profile_canonical_extent": 287396,
+    "allocator_counter": "requested Layout bytes; allocator overhead and stack highwater not measured",
+    "assigned_cord_logical_bytes": 164818,
+    "assigned_cord_slots": 97,
+    "backing_cap": 49152,
+    "canonical": {
+      "independent_live_at_store": null,
+      "inline_owner_bytes": 136,
+      "live_after_drop": 0,
+      "peak_including_preparation_temporaries": 700,
+      "prepared": false,
+      "refusal": "Capacity { required: 297604, available: 49152 }",
+      "required_by_ctor": 297604,
+      "retained_backing": null
+    },
+    "canonical_schema_bytes_repeated_per_slot": 186634,
+    "cord_canonical_payload": 15632,
+    "cord_profiles": 97,
+    "cord_repeated_schema_headers": 109878,
+    "cord_schema_node_payload": 41050,
+    "cpu_readonly_profile_table_bytes": 4160,
+    "dense_mutable_payload_floor_before_metadata": 105370,
+    "dense_schema": {
+      "available_after_canonical": 17711,
+      "canonical_backend_bytes": null,
+      "canonical_backing_before_refusal": 31441,
+      "combined_minimum_required_by_ctor": 113946,
+      "independent_live_at_store": null,
+      "inline_owner_bytes": 224,
+      "live_after_drop": 0,
+      "logical_store_bytes": null,
+      "logical_store_items": null,
+      "observed_attempt_peak_within_cap": true,
+      "peak_including_preparation_temporaries": 37677,
+      "prepared": false,
+      "refusal": "Capacity { required: 82505, available: 17711 }",
+      "required_schema_by_ctor": 82505,
+      "retained_backing": null,
+      "schema_metadata_bytes": null,
+      "schema_payload_bytes": null
+    },
+    "dense_schema_node_payload_extent": 74921,
+    "hardware_effects": false,
+    "missing_whole_host_costs": [
+      "Root retained input/transport",
+      "Ready providers/native tickets",
+      "software/resident Back owners",
+      "kernel/queues/Signs",
+      "execution workspace",
+      "allocator overhead and stack"
+    ],
+    "native_result_capacities": [
+      4096,
+      512
+    ],
+    "runtime_admission": false,
+    "schema_logical_slots": 144,
+    "scope": "CPU dense store representation only; no application/Root/Play/target fit claim",
+    "static_schema_source": "compile-linked read-only arrays, no heap leak or counter subtraction",
+    "step_canonical_payload": 10209,
+    "step_profiles": 76,
+    "step_repeated_schema_headers": 76756,
+    "step_schema_node_payload": 33871,
+    "unique_linked_schema_bytes": 39536,
+    "unique_linked_schemas": 28,
+    "word_bits": 64
+  },
+  "interpretation": {
+    "49KiB_both_refuse": true,
+    "canonical_constructor_minimum": 297604,
+    "schema_combined_constructor_minimum": 113946,
+    "schema_minimum_is_not_allocated_retained_bytes": true,
+    "failed_schema_attempt_peak_including_temporaries": 37677,
+    "actual_canonical_backing_before_schema_refusal": 31441,
+    "schema_payload_extent": 74921,
+    "schema_metadata_preflight_minimum": 7584,
+    "queued_cord_plus_native_result_payload_floor": 61290,
+    "dense_all_mutable_payload_floor_before_metadata": 105370,
+    "note": "Payload extents are wire-schema dimensions, not pointer-sized metadata. Dense payload alone exceeds49KiB. No successful full-store allocation, whole-MCU fit, execution or target ABI claim is made.",
+    "readonly_cost": "39536 unique schema bytes plus4160 CPU profile-table bytes are separate linked readonly data, not hidden heap. Actual target flash/ABI remains unmeasured.",
+    "runtime_model": "Original encoder estimate182811 still includes164818 logical Cord bytes+15277 Sign bytes+2716 table estimate; profile runtime16384 remains unchanged. No signed-header rewrite bypasses this refusal."
+  },
+  "normal_calibration_golden": {
+    "assignment_byte_ceiling": 4096,
+    "bookkeeping_bytes": 16384,
+    "calibration_refusal": "native lowering: BoundExceeded { table: \"cord value bytes\", actual: 164818, maximum: 8192 }",
+    "configuration": "sha256:dfa15fad0649c38006041211b8df60ec816d6630dab06bee78d0b90d5bf8a478",
+    "hardware_effects": false,
+    "heap_bytes": 49152,
+    "image": "image:sha256:fc648a33059c5444e0c0f2e18d25e13052ea309024b79f02fbdd2bf4646c9049",
+    "logical_queue_item_ceiling": 97,
+    "prepared_resident_count": 0,
+    "resident_work_units": 15117,
+    "runtime_admission": false,
+    "runtime_state_byte_ceiling": 16384,
+    "scope": "fresh checked Host IMAGE and open-Fore BME/HT protocol service calibration; emit-only",
+    "whole_runtime_factory_called": false
+  },
+  "qualification": {
+    "toolchain": "1.98.1",
+    "coherent_cargo": true,
+    "jobs": 1,
+    "incremental": false,
+    "source_regression": "Original authored resident/Fore test PASS; now also verifies lower(inspect) succeeds under zero encoding maxima while normal compile still refuses, and public estimate equals actual original encoded header.",
+    "lint": "Source lib/tests and probe RP Make examples strict --no-deps -D warnings PASS. Existing unrelated dependency lint fix remains parent-owned, not applied here.",
+    "probe_feature": "Host-example-only schema-storage-measurement forwards existing schema-value-storage; no firmware features, Host limits, authority or runtime header changed.",
+    "logs": {
+      "generate.log": {
+        "path": "/tmp/conduit-source-schema-measurement-20261116/generate.log",
+        "sha256": "8be4fc7a83ea8b1fe8aa7f71dfa76e9556fbf09b6ba2103e069ae4e50fb735a8"
+      },
+      "measure.log": {
+        "path": "/tmp/conduit-source-schema-measurement-20261116/measure.log",
+        "sha256": "35e0fea97dbcb14c290aae36e69e0aba3f8d1b1e18c5eaef29bc15a30410ceb6"
+      },
+      "golden-normal-calibration.log": {
+        "path": "/tmp/conduit-source-schema-measurement-20261116/golden-normal-calibration.log",
+        "sha256": "715dc244662a90dec05c02659536626f442d8a5d193a43316ed74dba4559cfb0"
+      },
+      "lowering-regression.log": {
+        "path": "/tmp/conduit-source-schema-measurement-20261116/lowering-regression.log",
+        "sha256": "7f3693ec5f8e037112e100561141600013a5a6ea035f21b026522777a7a270e3"
+      },
+      "source-clippy.log": {
+        "path": "/tmp/conduit-source-schema-measurement-20261116/source-clippy.log",
+        "sha256": "e40d5f78a0cbce6c7a762de2cc1c3f34c72a89d866b31609ec181eab4ffee3ba"
+      },
+      "probe-clippy.log": {
+        "path": "/tmp/conduit-source-schema-measurement-20261116/probe-clippy.log",
+        "sha256": "62984d9fd7d5a1ac3c21837f015f02ff21e93ba4b869d45947c91b723115b1b9"
+      }
+    },
+    "generated_profiles": {
+      "path": "/tmp/conduit-source-schema-measurement-20261116/generated/schema_profiles.rs",
+      "sha256": "65b53d52d36d18e2a9e6cb4ad10b730435698ccc776c5802985edea693994a7e"
+    }
+  },
+  "missing_whole_MCU_costs": [
+    "Root retained input/transport",
+    "Ready providers/native tickets",
+    "software/resident Back owners",
+    "kernel/queues/Signs",
+    "execution workspace",
+    "allocator overhead",
+    "stack highwater and target32bit ABI"
+  ],
+  "authority_changes": false,
+  "assignment_encoded": false,
+  "runtime_admission": false,
+  "hardware_effects": false,
+  "target_build": false
+}
