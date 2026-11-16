@@ -37,6 +37,42 @@ pub enum ReadResult<'a> {
     RecoveryRequired,
     Unavailable,
 }
+/// A schema-valid outcome may still answer a different physical read request.
+#[derive(Debug, PartialEq, Eq)]
+pub enum CorrelatedReadRefusal {
+    Schema(conduit_core::StructuredInfoRefusal),
+    WrongIndex { requested: u32, received: u32 },
+    InconsistentEnd { requested: u32, captured_end: u32 },
+}
+
+/// Decode and correlate one explicitly requested physical index without allocating.
+/// This does not authenticate media provenance, freeze a multi-read prefix, commit
+/// a recording, or grant acknowledgment/retirement authority. Non-record outcomes
+/// remain visible to the caller; they never cause an implicit retry.
+pub fn decode_for_index(
+    requested: u32,
+    bytes: &[u8],
+) -> Result<ReadResult<'_>, CorrelatedReadRefusal> {
+    let result = decode(bytes).map_err(CorrelatedReadRefusal::Schema)?;
+    match result {
+        ReadResult::Recorded { index, .. } | ReadResult::Gap { index, .. }
+            if index != requested =>
+        {
+            Err(CorrelatedReadRefusal::WrongIndex {
+                requested,
+                received: index,
+            })
+        }
+        ReadResult::End(captured_end) if captured_end > requested => {
+            Err(CorrelatedReadRefusal::InconsistentEnd {
+                requested,
+                captured_end,
+            })
+        }
+        _ => Ok(result),
+    }
+}
+
 /// Linked canonical cancellation contains no record payload and needs no allocator.
 pub fn cancelled() -> &'static [u8] {
     include_bytes!(concat!(env!("OUT_DIR"), "/read-cancelled.value"))
