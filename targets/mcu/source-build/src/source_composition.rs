@@ -122,6 +122,10 @@ mod tests {
                 .unwrap(),
             include_str!("source_composition/play_continuation_bindings.rs")
         );
+        assert_eq!(
+            std::fs::read_to_string(directory.join("source_native_i2c_clock.rs")).unwrap(),
+            include_str!("source_composition/native_i2c_clock.rs")
+        );
         let material =
             std::fs::read_to_string(directory.join("source_play_continuation.rs")).unwrap();
         assert!(material.contains("binding_count::distinct_fields(recipe)"));

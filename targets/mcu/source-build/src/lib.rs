@@ -229,3 +229,9 @@ mod tests {
 
 #[cfg(test)]
 mod bme_sampling_build_tests;
+
+#[cfg(test)]
+use crate as source_build;
+#[cfg(test)]
+#[path = "../tests/fixtures/environmental_exchange_source.rs"]
+mod environmental_exchange_fixture;

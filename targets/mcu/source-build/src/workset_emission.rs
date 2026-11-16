@@ -90,15 +90,9 @@ fn index(workset: &Workset, legacy_roles: bool) -> Result<String, String> {
 }
 
 #[cfg(test)]
-use crate as source_build;
-#[cfg(test)]
-#[allow(dead_code)]
-#[path = "../tests/fixtures/environmental_exchange_source.rs"]
-mod environmental_source;
-
-#[cfg(test)]
 mod tests {
     use super::*;
+    use crate::environmental_exchange_fixture as environmental_source;
     use sha2::{Digest, Sha256};
     fn workset() -> Workset {
         let source = b"plot value (\n input: U64...| >> output: U64...|\n) = (.)\n";

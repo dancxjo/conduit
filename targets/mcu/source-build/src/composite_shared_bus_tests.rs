@@ -1,9 +1,7 @@
 //! Actual combined authored protocol construction, not admission or hardware proof.
 use super::*;
 
-use crate as source_build;
-#[path = "../tests/fixtures/environmental_exchange_source.rs"]
-mod environmental_exchange_source;
+use crate::environmental_exchange_fixture as environmental_exchange_source;
 
 #[test]
 fn actual_environment_protocols_share_one_correlated_controller_and_clock() {
