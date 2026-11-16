@@ -121,9 +121,13 @@
   },
   "source_canonical_placement_proof": {
     "exact_actual_sampling_matches": 3,
-    "ambiguous_initialized_offer_refuses": true,
-    "wrong_artifact_refuses": true,
-    "wrong_kind_refuses": true
+    "decoded_capabilities_empty": true,
+    "uses_existing_compact_base_capability_ids": true,
+    "duplicate_capability_refuses": true,
+    "wrong_base_implementation_refuses": true,
+    "base_not_ready_refuses": true,
+    "missing_capability_refuses": true,
+    "resident_only_fore_without_compact_native_binding": "explicit refusal; initialized resident identity integration deferred"
   },
   "native_qualification": {
     "assigned_plan_tests_passed": 43,
