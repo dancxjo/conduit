@@ -65,6 +65,33 @@ fn subordinate_wording_stays_queryable_without_occupying_the_opening() {
         .subjects
         .iter()
         .any(|subject| subject.identity == "photo-caption"));
+
+    let show = common::available_mask_show(&face);
+    let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(&face, &show, ReaderCommand::Summary, 1)
+        .unwrap();
+    let opening = reader.next_segment().unwrap().unwrap();
+    assert!(opening.segment.text.contains("Home"));
+    assert!(!opening.segment.text.contains("mountain"));
+    reader
+        .acknowledge(SpokenDelivery::Completed(receipt(&opening)))
+        .unwrap();
+    assert!(reader.next_segment().unwrap().is_none());
+    reader
+        .command(&face, &show, ReaderCommand::ReadAll, 2)
+        .unwrap();
+    let mut described = false;
+    while let Some(packet) = reader.next_segment().unwrap() {
+        described |= packet.segment.text.contains("A mountain at dusk");
+        reader
+            .acknowledge(SpokenDelivery::Completed(receipt(&packet)))
+            .unwrap();
+    }
+    assert!(
+        described,
+        "Explicit reading must retain subordinate content"
+    );
 }
 
 fn long_list() -> Face {

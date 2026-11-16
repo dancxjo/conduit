@@ -5,6 +5,19 @@ use super::*;
 fn repeated_accepted_updates_are_silent_and_explicit_reading_uses_current_truth() {
     let (mut face, mut show) = face_with_action();
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
+    reader
+        .command(
+            &face,
+            &show,
+            ReaderCommand::FocusSubject("arrival".into()),
+            0,
+        )
+        .unwrap();
+    let initial = reader.next_segment().unwrap().unwrap();
+    reader
+        .acknowledge(SpokenDelivery::Completed(receipt(&initial)))
+        .unwrap();
+    assert!(reader.next_segment().unwrap().is_none());
     for revision in 2..12 {
         face.revision = revision;
         face.subjects
@@ -26,6 +39,10 @@ fn repeated_accepted_updates_are_silent_and_explicit_reading_uses_current_truth(
         .unwrap();
         show = common::available_mask_show(&face);
         reader.refresh(face.clone(), show.clone()).unwrap();
+        assert_eq!(
+            reader.focused_clause().provenance,
+            FaceUtteranceProvenance::Subject("arrival".into())
+        );
         assert!(reader.next_segment().unwrap().is_none());
     }
     reader

@@ -16,6 +16,8 @@ mod parser_scorer;
 mod physical_values;
 #[path = "../../xtask/src/suites/print_pool.rs"]
 mod print_pool;
+#[path = "../../xtask/src/suites/todo_speech.rs"]
+mod todo_speech;
 
 #[path = "../../xtask/src/suites/prosody_commitment.rs"]
 mod prosody_commitment;
@@ -43,6 +45,11 @@ struct Suite {
 
 fn selected(arguments: &[String]) -> Option<Suite> {
     match arguments {
+        [check, suite] if check == "check" && suite == "todo-speech" => Some(Suite {
+            steps: todo_speech::STEPS,
+            path: "tools/xtask/src/suites/todo_speech.rs",
+            source: include_bytes!("../../xtask/src/suites/todo_speech.rs"),
+        }),
         [check, suite] if check == "check" && suite == "action-prompt-i1" => Some(Suite {
             steps: action_prompt_i1::STEPS,
             path: "tools/xtask/src/suites/action_prompt_i1.rs",
@@ -187,6 +194,7 @@ mod tests {
             ("linux-snapshot", linux_snapshot::STEPS),
             ("acoustic-flow", acoustic_flow::STEPS),
             ("acoustic-control", acoustic_control::STEPS),
+            ("todo-speech", todo_speech::STEPS),
             ("angle-reference", angle_reference::STEPS),
             ("dsp-shared-compositions", dsp_shared_compositions::STEPS),
             ("inverse-angle", inverse_angle::STEPS),
