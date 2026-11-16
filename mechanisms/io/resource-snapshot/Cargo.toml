@@ -15,6 +15,7 @@ conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-
 conduit-web = { path = "../../../semantics/web", default-features = false, optional = true }
 
 [dev-dependencies]
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false }
 conduit-embedded-build = { path = "../../../make/embedded-build" }
 

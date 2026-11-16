@@ -3,6 +3,8 @@ use super::*;
 #[path = "tests/fixture.rs"]
 pub(super) mod fixture;
 use fixture::*;
+#[path = "tests/live_sign_archive.rs"]
+mod live_sign_archive;
 fn invoke(
     owner: &mut RecordServiceHostCall<Storage>,
     read: bool,
