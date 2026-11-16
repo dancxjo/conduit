@@ -110,14 +110,17 @@ pub fn select_spoken_outline(face: &Face) -> Result<SpokenOutline, SpokenFaceRef
     FaceReadingCursor::new(face).map_err(reading_refusal)?;
     let mut text_indices = Vec::new();
     let mut action_ids = Vec::new();
+    let subordinate = subordinate_subjects(face);
     let level = |identity: &str| {
         face.disclosures
             .iter()
             .find(|disclosure| disclosure.subject == identity)
             .map(|disclosure| disclosure.level)
     };
-    let primary =
-        |identity: &str| matches!(level(identity), None | Some(FaceDisclosureLevel::Primary));
+    let primary = |identity: &str| {
+        !subordinate.contains(identity)
+            && matches!(level(identity), None | Some(FaceDisclosureLevel::Primary))
+    };
     let subject_role = |identity: &str| {
         face.subjects
             .iter()
@@ -125,20 +128,27 @@ pub fn select_spoken_outline(face: &Face) -> Result<SpokenOutline, SpokenFaceRef
             .map(|subject| &subject.role)
     };
     let has_application_wording = face.text.iter().any(|wording| {
-        (primary(&wording.subject) || level(&wording.subject) == Some(FaceDisclosureLevel::Context))
+        !subordinate.contains(wording.subject.as_str())
+            && (primary(&wording.subject)
+                || level(&wording.subject) == Some(FaceDisclosureLevel::Context))
             && !matches!(subject_role(&wording.subject), Some(FaceRole::Body))
     });
     let mut result = Vec::new();
     let title = face.subjects.iter().find(|subject| {
-        matches!(
-            level(&subject.identity),
-            Some(FaceDisclosureLevel::Context | FaceDisclosureLevel::Primary)
-        ) && matches!(subject.role, FaceRole::Collection | FaceRole::Document)
+        !subordinate.contains(subject.identity.as_str())
+            && matches!(
+                level(&subject.identity),
+                Some(FaceDisclosureLevel::Context | FaceDisclosureLevel::Primary)
+            )
+            && matches!(subject.role, FaceRole::Collection | FaceRole::Document)
     });
     if let Some(subject) = title {
         result.push(format!("{}.", subject.name));
     }
-    let mut omitted = false;
+    let mut omitted = face
+        .text
+        .iter()
+        .any(|text| subordinate.contains(text.subject.as_str()));
     // Face Context is the encounter's orientation, so it precedes the result
     // even if it was serialized after primary wording in the Face.
     for expected in [
@@ -148,6 +158,7 @@ pub fn select_spoken_outline(face: &Face) -> Result<SpokenOutline, SpokenFaceRef
     ] {
         for (index, wording) in face.text.iter().enumerate().filter(|(_, wording)| {
             level(&wording.subject) == expected
+                && !subordinate.contains(wording.subject.as_str())
                 && !title.is_some_and(|subject| {
                     wording.subject == subject.identity && wording.text == subject.name
                 })
@@ -194,6 +205,7 @@ pub fn select_spoken_outline(face: &Face) -> Result<SpokenOutline, SpokenFaceRef
         // Body or Plot navigation prompt from the same Face.
         let mut offered = face.actions.iter().filter(|action| {
             action.availability.is_available()
+                && !subordinate.contains(action.target.as_str())
                 && action.disclosure == FaceDisclosureLevel::CurrentAction
                 && (!has_application_wording
                     || matches!(
@@ -229,4 +241,29 @@ pub fn select_spoken_outline(face: &Face) -> Result<SpokenOutline, SpokenFaceRef
         text_indices,
         action_ids,
     })
+}
+
+/// Opening speech follows the Face's existing rhetorical composition. Full
+/// reading and explicit subject navigation retain the exact original tree.
+/// Containment closure terminates even when relationships contain cycles.
+fn subordinate_subjects(face: &Face) -> std::collections::BTreeSet<&str> {
+    let mut subjects = face
+        .composition
+        .iter()
+        .filter(|relation| relation.kind == conduit_face::FaceCompositionKind::Subordinate)
+        .map(|relation| relation.source.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    loop {
+        let before = subjects.len();
+        for relation in &face.relationships {
+            if relation.kind == conduit_face::FaceRelationshipKind::Contains
+                && subjects.contains(relation.source.as_str())
+            {
+                subjects.insert(relation.target.as_str());
+            }
+        }
+        if subjects.len() == before {
+            return subjects;
+        }
+    }
 }
