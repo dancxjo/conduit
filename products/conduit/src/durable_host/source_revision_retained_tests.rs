@@ -5,12 +5,14 @@ use conduit_host_make as h;
 use conduit_std_host::{ImmediateSourcePreparationBudget, RunControl, StdHost, StdHostConfig};
 const SOURCE: &str = include_str!("../../../../make/body/tests/source_check_call/check.conduit");
 const CALLER: usize = 16 * 1024 * 1024;
-fn real_capture() -> (
-    PreparedFileSource,
-    Selection,
-    BodyBiographyEvidence,
-    std::path::PathBuf,
-) {
+struct RealCapture {
+    prepared: PreparedFileSource,
+    selection: Selection,
+    biography: BodyBiographyEvidence,
+    path: std::path::PathBuf,
+    configuration: super::super::selected_host_configuration::Selection,
+}
+fn real_capture() -> RealCapture {
     let executable = std::path::PathBuf::from(
         std::env::var_os("CONDUIT_RETAINED_SOURCE_TEST_COMPILER")
             .expect("explicit independently selected Source worker executable"),
@@ -52,7 +54,7 @@ fn real_capture() -> (
     .0;
     let config = StdHostConfig {
         host_id: "host/retained-source-test".into(),
-        boot_id: "boot/current-retained-source".into(),
+        boot_id: super::super::fresh_identity("boot/retained-source", "test").into(),
         offer_generation: c::OfferGeneration(1),
     };
     let source = crate::plot_source::parse(SOURCE).unwrap();
@@ -165,8 +167,8 @@ fn real_capture() -> (
         )
     }
     .unwrap();
-    (
-        PreparedFileSource {
+    RealCapture {
+        prepared: PreparedFileSource {
             host: initialized.host,
             source: initialized.source,
             caller: initialized.caller.unwrap(),
@@ -175,12 +177,22 @@ fn real_capture() -> (
         selection,
         biography,
         path,
-    )
+        configuration: serde_json::from_value(serde_json::json!({
+            "source": text, "configuration_id": checked.configuration_id(), "host_image": image,
+        }))
+        .unwrap(),
+    }
 }
 #[test]
 #[ignore = "requires explicit digest-pinned product Source worker artifact"]
 fn retained_fore_original_image_custody_restores_current_workset_and_reselects_fresh_offers() {
-    let (prepared, selection, biography, path) = real_capture();
+    let RealCapture {
+        prepared,
+        selection,
+        biography,
+        path,
+        ..
+    } = real_capture();
     let (host, mut custody) = prepared.retain_for_restart(&selection).unwrap();
     let other = StdHost::new_with_config(StdHostConfig {
         host_id: host.advertisement().host_id.clone(),
@@ -257,7 +269,59 @@ pub(crate) fn real_owner_custody() -> (
     BodyBiographyEvidence,
     std::path::PathBuf,
 ) {
-    let (prepared, selection, biography, path) = real_capture();
+    let RealCapture {
+        prepared,
+        selection,
+        biography,
+        path,
+        ..
+    } = real_capture();
     let (host, custody) = prepared.retain_for_restart(&selection).unwrap();
     (host, custody, biography, path)
+}
+
+/// Genuine original IMAGE/worker fixture with its exact OS-selected policy.
+/// Configuration JSON is correspondence data, never a substitute for guards.
+pub(crate) fn real_owner_state() -> (
+    crate::durable_host::owner::Owner,
+    std::path::PathBuf,
+    std::path::PathBuf,
+) {
+    use std::os::unix::fs::PermissionsExt;
+    let RealCapture {
+        prepared,
+        selection,
+        biography,
+        path,
+        configuration,
+    } = real_capture();
+    let root = path.with_extension("execution-state");
+    fs::create_dir(&root).unwrap();
+    fs::set_permissions(&root, fs::Permissions::from_mode(0o700)).unwrap();
+    let biography_path = root.join("original-biography.json");
+    let biography_bytes = serde_json::to_vec(&biography).unwrap();
+    fs::write(&biography_path, &biography_bytes).unwrap();
+    let installation = super::super::Installation {
+        schema: super::super::INSTALL_SCHEMA.into(),
+        host_id: selection.host_id.clone(),
+        release_source_identity: "fixture/retained-source-image".into(),
+        release_bundle_sha256: selection.release_bundle_sha256.clone(),
+        product_executable: "fixture-unused".into(),
+        body_state: Some(super::super::BodyBinding {
+            body_id: biography.body_id.as_str().into(),
+            biography_sha256: super::super::digest(&biography_bytes),
+            biography_path: biography_path.to_str().unwrap().into(),
+        }),
+        joined_body_state: None,
+        selected_speech: None,
+        selected_model: None,
+        selected_host_configuration: Some(configuration),
+        selected_todo_checkpoint: None,
+    };
+    super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
+    super::super::write_json_atomic(&root.join(SELECTION_FILE), &selection).unwrap();
+    let (host, custody) = prepared.retain_for_restart(&selection).unwrap();
+    let mut owner = crate::durable_host::owner::resume_retained_source_test_owner(host, biography).unwrap();
+    owner.restore_selected_file_planning(custody).unwrap();
+    (owner, root, path)
 }

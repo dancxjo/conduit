@@ -35,6 +35,12 @@ pub(crate) enum HostServiceCommand {
         #[arg(long)]
         state_dir: PathBuf,
     },
+    /// Enqueue one fresh local Source execution request for the serving Root.
+    ExecuteSource {
+        request: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+    },
     /// Verify and install one reviewed release bundle without replacing durable identity.
     Install {
         manifest: PathBuf,

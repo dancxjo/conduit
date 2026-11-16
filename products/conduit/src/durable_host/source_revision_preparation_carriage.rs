@@ -59,7 +59,7 @@ pub(in crate::durable_host::source_revision) fn submit_selected_play(
                 }
             }
             let (payload, signature) = approved.as_ref().expect("just approved");
-            if let Some(material) = fore_material.as_ref() {
+            if let Some(material) = fore_material.as_mut() {
                 let bound = conduit_body::host_command_attribution_transcript(challenge, payload)
                     .map_err(|e| format!("original native custody transcript: {e:?}"))
                     .and_then(|custody| material.prepare_carriage(payload, custody));

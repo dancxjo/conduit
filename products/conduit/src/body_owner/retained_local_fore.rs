@@ -1,6 +1,39 @@
 //! Reselect planning boundaries from original retained File custody only.
 use super::Owner;
 impl Owner {
+    pub(crate) fn execute_selected_source(
+        &mut self,
+        state: &std::path::Path,
+    ) -> Result<
+        Option<crate::durable_host::source_revision::source_execution::RetainedExecution>,
+        String,
+    > {
+        use crate::durable_host::source_revision::source_execution;
+        let original = self
+            .selected_file_workset
+            .as_ref()
+            .ok_or("original retained File workset absent")?;
+        let basis = source_execution::verify_retained(state, self, original)?;
+        // The opaque witness is consumed synchronously while the ORIGINAL field
+        // remains installed. No await, cached witness or disk-Source fallback.
+        source_execution::claim_and_execute(state, self, basis)
+    }
+    /// Recheck the original retained File and caller guards before a local
+    /// execution request can open any physical carrier.
+    pub(crate) fn verify_selected_source_execution_basis(
+        &self,
+        basis: &crate::durable_host::source_revision::source_execution::VerifiedExecutionBasis,
+    ) -> Result<(), String> {
+        self.require_workset_recovered()?;
+        if self.host.is_playing() || self.session.realization().is_some() {
+            return Err("fresh Source execution requires an idle owner".into());
+        }
+        let original = self
+            .selected_file_workset
+            .as_ref()
+            .ok_or("original retained File workset absent")?;
+        basis.verify_original(self, original)
+    }
     pub(crate) fn restore_selected_file_planning(
         &mut self,
         custody: crate::durable_host::source_revision::RetainedSourcePreparation,

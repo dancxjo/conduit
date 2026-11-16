@@ -19,6 +19,10 @@ use carriage::{
     return_selected_member, select_direct_fore_lines, submit_selected_play,
 };
 
+#[cfg(target_os = "linux")]
+#[path = "source_execution.rs"]
+pub(crate) mod source_execution;
+
 const SELECTION_FILE: &str = "source-check-selection.json";
 
 #[cfg(target_os = "linux")]
@@ -64,6 +68,32 @@ pub(crate) struct Selection {
     #[cfg(target_os = "linux")]
     #[serde(default)]
     text_generation: Option<super::text_file_policy::Selection>,
+}
+
+#[cfg(target_os = "linux")]
+impl Selection {
+    /// Immutable preparation identity, excluding pre-adoption biography and all
+    /// one-shot operations. This is retained with the actual original guards.
+    fn execution_policy_fingerprint(&self) -> Result<[u8; 32], String> {
+        let bytes = serde_json::to_vec(&(
+            "conduit.original-file-preparation@1",
+            &self.host_id,
+            &self.configuration_id,
+            &self.release_bundle_sha256,
+            &self.file,
+            &self.snapshot,
+            &self.entries,
+            self.maximum_source_bytes,
+            &self.resident_preparation,
+            self.capture_preparation_bytes,
+            self.capture_retained_bytes,
+            self.caller_workspace_bytes,
+            &self.local_fore_adapters,
+            &self.text_generation,
+        ))
+        .map_err(|e| format!("original Source policy fingerprint: {e}"))?;
+        Ok(Sha256::digest(bytes).into())
+    }
 }
 
 /// Finite attended deployment request selected by the local installer.
@@ -235,6 +265,7 @@ impl UsbAdmissionSelection {
 /// original-counter preparation and exact checked entries all succeed.
 #[cfg(target_os = "linux")]
 pub(crate) struct AuthorizedFileRevision {
+    original_policy_fingerprint: [u8; 32],
     selection: Selection,
     current_expected: BodyBiographyEvidence,
     host: conduit_core::HostId,
@@ -250,6 +281,8 @@ pub(crate) struct AuthorizedFileRevision {
 mod retained_planning;
 #[cfg(all(test, target_os = "linux"))]
 pub(crate) use retained_planning::tests::real_owner_custody;
+#[cfg(all(test, target_os = "linux"))]
+pub(crate) use retained_planning::tests::real_owner_state;
 #[cfg(target_os = "linux")]
 pub(crate) use retained_planning::RetainedSourcePreparation;
 
@@ -257,6 +290,7 @@ pub(crate) use retained_planning::RetainedSourcePreparation;
 /// retained planning custody after admission, never fresh Source authority.
 #[cfg(target_os = "linux")]
 pub(crate) struct RetainedFileWorkset {
+    original_policy_fingerprint: [u8; 32],
     body_id: conduit_body::BodyId,
     local_fore_adapters: Vec<super::local_fore_policy::LocalForeAdapterIntent>,
     // Field order releases all derived backing before its original guards.
@@ -301,6 +335,7 @@ impl AuthorizedFileRevision {
 
     pub(crate) fn into_retained(self) -> RetainedFileWorkset {
         RetainedFileWorkset {
+            original_policy_fingerprint: self.original_policy_fingerprint,
             body_id: self.selection.expected.body_id,
             local_fore_adapters: self.selection.local_fore_adapters,
             source: self.source,
@@ -710,6 +745,7 @@ pub(crate) fn adopt(state_dir: &Path, policy: &Path, prepare_only: bool) -> Resu
     // Source authority remains the same selected File/workset transition.
     let current_expected = owner.selected_source_current_basis();
     let authorization = AuthorizedFileRevision {
+        original_policy_fingerprint: selection.execution_policy_fingerprint()?,
         selection: selection.clone(),
         current_expected,
         host: host_id,

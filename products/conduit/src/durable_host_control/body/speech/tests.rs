@@ -452,6 +452,8 @@ fn selected_direct_readout_stops_and_restores_the_one_current_host() {
 
 fn runtime(owner: Owner, root: &std::path::Path) -> DurableHostRuntime {
     DurableHostRuntime {
+        #[cfg(target_os = "linux")]
+        source_execution: Default::default(),
         target_id: "std/x86_64/computer".into(),
         image_content_digest: "fixture".into(),
         host: HostSource::Body {

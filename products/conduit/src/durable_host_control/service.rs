@@ -37,6 +37,11 @@ fn serve_inner(
     let token = read_secret(&state_dir.join("control.token"))?;
     let mut polling_play = false;
     loop {
+        #[cfg(target_os = "linux")]
+        if let Err(error) = runtime.progress_selected_source_execution(state_dir) {
+            // A refused OS request must not retire unrelated Body/viewer custody.
+            eprintln!("local Source execution refused or uncertain: {error}");
+        }
         terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
         if let Some(poll) = foreground.as_deref_mut() {
             poll(&mut runtime)?;

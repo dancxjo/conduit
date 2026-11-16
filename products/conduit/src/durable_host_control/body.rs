@@ -353,6 +353,8 @@ impl DurableHostRuntime {
     pub(crate) fn with_owned_body(self, root: &Path) -> Result<Self, String> {
         let Self {
             #[cfg(target_os = "linux")]
+            source_execution,
+            #[cfg(target_os = "linux")]
             mut _source_preparation,
             target_id,
             image_content_digest,
@@ -399,6 +401,8 @@ impl DurableHostRuntime {
             equipment.advance_offer_generation(owner.host.current())?;
         }
         Ok(Self {
+            #[cfg(target_os = "linux")]
+            source_execution,
             #[cfg(target_os = "linux")]
             _source_preparation,
             target_id,

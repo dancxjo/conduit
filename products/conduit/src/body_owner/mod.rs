@@ -374,3 +374,11 @@ pub(crate) use member_return_document::MemberReturnProofDocument;
 
 #[cfg(test)]
 pub(crate) use controller::member_return_owner_fixture;
+
+#[cfg(test)]
+pub(crate) fn resume_retained_source_test_owner(
+    host: conduit_std_host::StdHost,
+    biography: conduit_body::BodyBiographyEvidence,
+) -> Result<Owner, String> {
+    Owner::resume(host, biography)
+}

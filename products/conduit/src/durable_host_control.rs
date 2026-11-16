@@ -179,6 +179,8 @@ use remote_fragment_driver::drive_remote_fragment;
 
 pub(crate) struct DurableHostRuntime {
     #[cfg(target_os = "linux")]
+    source_execution: source_execution::SourceExecutionProgress,
+    #[cfg(target_os = "linux")]
     _source_preparation: Option<crate::durable_host::source_revision::RetainedSourcePreparation>,
     target_id: String,
     image_content_digest: String,
@@ -247,6 +249,8 @@ impl DurableHostRuntime {
 
     fn from_host_source(target_id: String, image_content_digest: String, host: HostSource) -> Self {
         Self {
+            #[cfg(target_os = "linux")]
+            source_execution: source_execution::SourceExecutionProgress::default(),
             #[cfg(target_os = "linux")]
             _source_preparation: None,
             target_id,
@@ -716,6 +720,12 @@ impl DurableHostRuntime {
         }
     }
 }
+
+#[cfg(target_os = "linux")]
+#[path = "durable_host_control/source_execution.rs"]
+mod source_execution;
+#[cfg(target_os = "linux")]
+pub(crate) use source_execution::wake_selected_source_execution;
 
 fn exchange_admitted_pool_member_frame(
     host: &mut StdHost,
