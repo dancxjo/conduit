@@ -7,7 +7,7 @@ use core::{
     future::Future,
     task::{Context, Poll, Waker},
 };
-use std::{future::pending, vec, vec::Vec};
+use std::{future::pending, vec::Vec};
 struct Recording<'a> {
     writes: &'a RefCell<Vec<Vec<u8>>>,
     fail: bool,
@@ -131,7 +131,7 @@ fn only_initial_refusal_ends_original_loan_before_one_diagnostic() {
                                     )?;
                                 let owned = carrier.attach(Ticket(&bound));
                                 if phase == Phase::PreparationRefusal {
-                                    drop(owned); // EXACT original failed factory cleanup.
+                                    // Returning Err drops the same original partial wrapper.
                                     return Err(ForeCarrierRefusal::Bounds);
                                 }
                                 Ok(owned)
@@ -202,9 +202,20 @@ fn only_initial_refusal_ends_original_loan_before_one_diagnostic() {
                 assert!(matches!(poll, Poll::Ready(result) if result.is_err()==send_fails));
                 assert_eq!(bound.get(), 0);
                 let messages = writes.borrow();
-                assert_eq!(messages.len(), if send_fails { 1 } else { 2 });
-                if !send_fails {
-                    let json: serde_json::Value = serde_json::from_slice(&messages[1]).unwrap();
+                if send_fails {
+                    assert_eq!(messages.len(), 1, "one failed header write, no retry");
+                } else {
+                    let length = usize::from(u16::from_be_bytes(
+                        messages[0].as_slice().try_into().unwrap(),
+                    ));
+                    assert_eq!(
+                        messages.len(),
+                        1 + length.div_ceil(crate::transport::PACKET_BYTES)
+                            + usize::from(length.is_multiple_of(crate::transport::PACKET_BYTES))
+                    );
+                    let payload: Vec<_> = messages[1..].iter().flatten().copied().collect();
+                    assert_eq!(payload.len(), length);
+                    let json: serde_json::Value = serde_json::from_slice(&payload).unwrap();
                     assert_eq!(json["phase"], "refused-before-play");
                     assert_eq!(json["reason"], "complete-source-preparation");
                 }
