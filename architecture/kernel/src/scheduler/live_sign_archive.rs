@@ -1,8 +1,11 @@
 //! Only the selected archive-backed sink exposes this lossless owner transfer.
 use super::*;
-use crate::live_sign_archive::{LiveSignLog, PreparedPrefixTransfer, TransferRefusal};
+use crate::live_sign_archive::{
+    ArchiveBacking, LiveSignLog, PreparedPrefixTransfer, TransferRefusal,
+};
 
 impl<
+        A: ArchiveBacking<E, RUNS, STREAMS>,
         D: StepBack<P>,
         V: ValueStorage,
         const N: usize,
@@ -20,14 +23,14 @@ impl<
         const E: usize,
         const RUNS: usize,
         const STREAMS: usize,
-    > FixedScheduler<D, V, LiveSignLog<E, RUNS, STREAMS>, N, C, P, Q, R, T, H, K, M, F, U, Z>
+    > FixedScheduler<D, V, LiveSignLog<E, RUNS, STREAMS, A>, N, C, P, Q, R, T, H, K, M, F, U, Z>
 {
     /// Exclusively borrow this kernel while the preflighted exact Sign prefix
     /// moves into its separately admitted archive. No Back, value, queue,
     /// request counter, readiness, cancellation or execution origin changes.
     pub fn prepare_sign_prefix_transfer(
         &mut self,
-    ) -> Result<PreparedPrefixTransfer<'_, E, RUNS, STREAMS>, TransferRefusal> {
+    ) -> Result<PreparedPrefixTransfer<'_, E, RUNS, STREAMS, A>, TransferRefusal> {
         self.signs.prepare_prefix_transfer()
     }
 }

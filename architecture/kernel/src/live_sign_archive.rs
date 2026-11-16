@@ -9,7 +9,11 @@ use crate::{
     HostedSignLog, KernelEvent, KernelEventKind, NodeId, PortId, RemoteLifecycleIdentity,
     RequestId, SignError, SignQuery, SignRetentionGap, SignSink,
 };
-use core::mem::size_of;
+use alloc::boxed::Box;
+use core::{
+    alloc::Layout,
+    mem::{size_of, MaybeUninit},
+};
 
 /// An additional finite archive selection, never inferred from active-log stock.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -29,6 +33,7 @@ pub enum TransferRefusal {
     Sequence,
     ArchiveCapacity,
     ObserverBacking,
+    Allocation,
 }
 /// Refused preparation returns the exact original owner, including its Signs.
 pub struct RejectedPreparation {
@@ -55,14 +60,62 @@ pub struct TransferredPrefix {
     pub events: u32,
 }
 
+mod backing_sealed {
+    pub trait Sealed {}
+    impl<const E: usize, const R: usize, const S: usize> Sealed for super::InvocationArchive<E, R, S> {}
+    impl<const E: usize, const R: usize, const S: usize> Sealed
+        for super::Box<super::InvocationArchive<E, R, S>>
+    {
+    }
+}
+/// Sealed finite storage profiles retain the SAME archive across exclusive
+/// preflight/commit. External implementations cannot substitute another owner.
+pub trait ArchiveBacking<const E: usize, const R: usize, const S: usize>:
+    backing_sealed::Sealed
+{
+    const ALLOCATION_BYTES: usize;
+    fn archive(&self) -> &InvocationArchive<E, R, S>;
+    fn archive_mut(&mut self) -> &mut InvocationArchive<E, R, S>;
+}
+impl<const E: usize, const R: usize, const S: usize> ArchiveBacking<E, R, S>
+    for InvocationArchive<E, R, S>
+{
+    const ALLOCATION_BYTES: usize = 0;
+    fn archive(&self) -> &InvocationArchive<E, R, S> {
+        self
+    }
+    fn archive_mut(&mut self) -> &mut InvocationArchive<E, R, S> {
+        self
+    }
+}
+impl<const E: usize, const R: usize, const S: usize> ArchiveBacking<E, R, S>
+    for Box<InvocationArchive<E, R, S>>
+{
+    const ALLOCATION_BYTES: usize = size_of::<InvocationArchive<E, R, S>>();
+    fn archive(&self) -> &InvocationArchive<E, R, S> {
+        self
+    }
+    fn archive_mut(&mut self) -> &mut InvocationArchive<E, R, S> {
+        self
+    }
+}
+/// Explicit allocated profile. The default LiveSignLog remains inline.
+pub type BoxedLiveSignLog<const E: usize, const R: usize, const S: usize> =
+    LiveSignLog<E, R, S, Box<InvocationArchive<E, R, S>>>;
+
 /// The same active log remains owned here across every prefix transfer. There
 /// is no API to substitute another log using copied identities or counters.
-pub struct LiveSignLog<const EVENTS: usize, const RUNS: usize, const STREAMS: usize> {
+pub struct LiveSignLog<
+    const EVENTS: usize,
+    const RUNS: usize,
+    const STREAMS: usize,
+    A = InvocationArchive<EVENTS, RUNS, STREAMS>,
+> {
     active: HostedSignLog,
     // Reuse exact template/affine encoding for opaque trace SEGMENTS. The
     // internal metadata's decisions field carries sequence span; these are
     // not claims about completed kernel invocations or a prepared-session rearm.
-    archive: InvocationArchive<EVENTS, RUNS, STREAMS>,
+    archive: A,
     limits: ArchiveLimits,
     next_archived_sequence: u32,
     archived_events: u32,
@@ -71,49 +124,32 @@ pub struct LiveSignLog<const EVENTS: usize, const RUNS: usize, const STREAMS: us
     last_archived: Option<ArchivedSign>,
     archived_kinds: u64,
 }
-impl<const E: usize, const R: usize, const S: usize> LiveSignLog<E, R, S> {
+impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
+    LiveSignLog<E, R, S, A>
+{
     pub const fn required_archive_backing_bytes() -> usize {
-        size_of::<InvocationArchive<E, R, S>>()
+        size_of::<A>() + A::ALLOCATION_BYTES
     }
     pub fn required_transfer_overlap_bytes(active: &HostedSignLog) -> Option<usize> {
         size_of::<Self>()
+            .checked_add(A::ALLOCATION_BYTES)?
             .checked_add(active.reserved_storage_bytes())?
-            .checked_add(size_of::<PreparedPrefixTransfer<'_, E, R, S>>())
+            .checked_add(size_of::<PreparedPrefixTransfer<'_, E, R, S, A>>())
     }
-    /// No allocation, grant or effects. The supplied active owner is moved once.
-    pub fn prepare(
-        active: HostedSignLog,
-        limits: ArchiveLimits,
-    ) -> Result<Self, RejectedPreparation> {
+    fn preflight(active: &HostedSignLog, limits: ArchiveLimits) -> Result<(), TransferRefusal> {
         if limits.retained_events == 0
             || limits.retained_bytes == 0
             || Self::required_archive_backing_bytes() > limits.archive_backing_bytes
-            || Self::required_transfer_overlap_bytes(&active)
+            || Self::required_transfer_overlap_bytes(active)
                 .is_none_or(|n| n > limits.transfer_overlap_bytes)
         {
-            return Err(RejectedPreparation {
-                reason: TransferRefusal::Bounds,
-                active,
-            });
+            return Err(TransferRefusal::Bounds);
         }
         // Its external allocation is deliberately not guessed by this owner.
         if active.debug_observer.is_some() {
-            return Err(RejectedPreparation {
-                reason: TransferRefusal::ObserverBacking,
-                active,
-            });
+            return Err(TransferRefusal::ObserverBacking);
         }
-        Ok(Self {
-            active,
-            archive: InvocationArchive::new(),
-            limits,
-            next_archived_sequence: 0,
-            archived_events: 0,
-            archived_bytes: 0,
-            archived_gap: None,
-            last_archived: None,
-            archived_kinds: 0,
-        })
+        Ok(())
     }
     pub fn archived_event_count(&self) -> u32 {
         self.archived_events
@@ -122,13 +158,15 @@ impl<const E: usize, const R: usize, const S: usize> LiveSignLog<E, R, S> {
         self.archived_bytes
     }
     pub fn owned_backing_bytes(&self) -> Option<usize> {
-        size_of::<Self>().checked_add(self.active.reserved_storage_bytes())
+        size_of::<Self>()
+            .checked_add(A::ALLOCATION_BYTES)?
+            .checked_add(self.active.reserved_storage_bytes())
     }
     /// Read-only admission followed by an exclusive borrow of the SAME owner.
     /// Dropping the token changes neither active nor archived evidence.
     pub fn prepare_prefix_transfer(
         &mut self,
-    ) -> Result<PreparedPrefixTransfer<'_, E, R, S>, TransferRefusal> {
+    ) -> Result<PreparedPrefixTransfer<'_, E, R, S, A>, TransferRefusal> {
         let events = u32::from(self.active.len);
         if events == 0 {
             return Err(TransferRefusal::Empty);
@@ -181,6 +219,7 @@ impl<const E: usize, const R: usize, const S: usize> LiveSignLog<E, R, S> {
             origin: first,
         };
         self.archive
+            .archive()
             .can_append(&prefix, span, 0)
             .map_err(|_| TransferRefusal::ArchiveCapacity)?;
         Ok(PreparedPrefixTransfer {
@@ -194,7 +233,7 @@ impl<const E: usize, const R: usize, const S: usize> LiveSignLog<E, R, S> {
             gap,
         })
     }
-    pub fn events_with_remote(&self) -> Entries<'_, E, R, S> {
+    pub fn events_with_remote(&self) -> Entries<'_, E, R, S, A> {
         Entries {
             owner: self,
             next_segment: 0,
@@ -211,9 +250,80 @@ impl<const E: usize, const R: usize, const S: usize> LiveSignLog<E, R, S> {
     }
 }
 
+impl<const E: usize, const R: usize, const S: usize> LiveSignLog<E, R, S> {
+    /// Inline default: no allocation, grant or effects; original owner moves once.
+    pub fn prepare(
+        active: HostedSignLog,
+        limits: ArchiveLimits,
+    ) -> Result<Self, RejectedPreparation> {
+        if let Err(reason) = Self::preflight(&active, limits) {
+            return Err(RejectedPreparation { reason, active });
+        }
+        Ok(Self {
+            active,
+            archive: InvocationArchive::new(),
+            limits,
+            next_archived_sequence: 0,
+            archived_events: 0,
+            archived_bytes: 0,
+            archived_gap: None,
+            last_archived: None,
+            archived_kinds: 0,
+        })
+    }
+}
+impl<const E: usize, const R: usize, const S: usize> BoxedLiveSignLog<E, R, S> {
+    /// Allocate ONLY the archive, then initialize in-place. Bounds and observer
+    /// refusal precede allocation; OOM returns the unchanged original Sign owner.
+    /// Charges are exact requested Layout bytes plus Box metadata, not hidden
+    /// allocator headers or a compiler stack-depth upper bound.
+    pub fn try_prepare(
+        active: HostedSignLog,
+        limits: ArchiveLimits,
+    ) -> Result<Self, RejectedPreparation> {
+        if let Err(reason) = Self::preflight(&active, limits) {
+            return Err(RejectedPreparation { reason, active });
+        }
+        let layout = Layout::new::<InvocationArchive<E, R, S>>();
+        // Counters make even zero-stock archives nonzero-sized.
+        // SAFETY: valid nonzero layout; null handled before Box construction.
+        let pointer = unsafe { alloc::alloc::alloc(layout) };
+        if pointer.is_null() {
+            return Err(RejectedPreparation {
+                reason: TransferRefusal::Allocation,
+                active,
+            });
+        }
+        // SAFETY: the allocation has Self's archive layout; MaybeUninit drops
+        // no fields. The initializer fills every field without callbacks or
+        // fallible operations, then assume_init publishes the SAME allocation.
+        let mut storage =
+            unsafe { Box::from_raw(pointer.cast::<MaybeUninit<InvocationArchive<E, R, S>>>()) };
+        unsafe { InvocationArchive::initialize_at(storage.as_mut_ptr()) };
+        let archive = unsafe { storage.assume_init() };
+        Ok(Self {
+            active,
+            archive,
+            limits,
+            next_archived_sequence: 0,
+            archived_events: 0,
+            archived_bytes: 0,
+            archived_gap: None,
+            last_archived: None,
+            archived_kinds: 0,
+        })
+    }
+}
+
 /// Opaque affine loan: all fallible checks precede archive publication or reuse.
-pub struct PreparedPrefixTransfer<'a, const E: usize, const R: usize, const S: usize> {
-    owner: &'a mut LiveSignLog<E, R, S>,
+pub struct PreparedPrefixTransfer<
+    'a,
+    const E: usize,
+    const R: usize,
+    const S: usize,
+    A = InvocationArchive<E, R, S>,
+> {
+    owner: &'a mut LiveSignLog<E, R, S, A>,
     first: u32,
     next: u32,
     span: u32,
@@ -222,7 +332,9 @@ pub struct PreparedPrefixTransfer<'a, const E: usize, const R: usize, const S: u
     retained_bytes: u64,
     gap: Option<SignRetentionGap>,
 }
-impl<const E: usize, const R: usize, const S: usize> PreparedPrefixTransfer<'_, E, R, S> {
+impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>>
+    PreparedPrefixTransfer<'_, E, R, S, A>
+{
     pub fn commit(self) -> TransferredPrefix {
         let owner = self.owner;
         let prefix = NormalizedPrefix {
@@ -233,6 +345,7 @@ impl<const E: usize, const R: usize, const S: usize> PreparedPrefixTransfer<'_, 
         // this identical exact append. No user callback or allocation intervenes.
         owner
             .archive
+            .archive_mut()
             .append(&prefix, self.span, 0)
             .expect("same exclusively borrowed preflighted prefix");
         owner.last_archived = owner.active.events().last().map(|event| ArchivedSign {
@@ -311,8 +424,14 @@ fn merge_gap(
     })
 }
 
-pub struct Entries<'a, const E: usize, const R: usize, const S: usize> {
-    owner: &'a LiveSignLog<E, R, S>,
+pub struct Entries<
+    'a,
+    const E: usize,
+    const R: usize,
+    const S: usize,
+    A = InvocationArchive<E, R, S>,
+> {
+    owner: &'a LiveSignLog<E, R, S, A>,
     next_segment: u32,
     current: Option<ArchivedInvocation<'a, S>>,
     current_origin: u32,
@@ -320,7 +439,9 @@ pub struct Entries<'a, const E: usize, const R: usize, const S: usize> {
     active_index: usize,
     remaining: u64,
 }
-impl<const E: usize, const R: usize, const S: usize> Iterator for Entries<'_, E, R, S> {
+impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>> Iterator
+    for Entries<'_, E, R, S, A>
+{
     type Item = ArchivedSign;
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -334,7 +455,7 @@ impl<const E: usize, const R: usize, const S: usize> Iterator for Entries<'_, E,
                 self.remaining -= 1;
                 return Some(entry);
             }
-            if let Some(segment) = self.owner.archive.invocation(self.next_segment) {
+            if let Some(segment) = self.owner.archive.archive().invocation(self.next_segment) {
                 self.next_segment += 1;
                 self.current_origin = self.next_origin;
                 self.next_origin = self
@@ -377,7 +498,9 @@ impl<const E: usize, const R: usize, const S: usize> Iterator for Entries<'_, E,
         self.owner.last_archived
     }
 }
-impl<const E: usize, const R: usize, const S: usize> SignQuery for LiveSignLog<E, R, S> {
+impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>> SignQuery
+    for LiveSignLog<E, R, S, A>
+{
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.active.contains_kind(kind)
             || match 1_u64.checked_shl(kind as u32) {
@@ -401,12 +524,16 @@ impl<const E: usize, const R: usize, const S: usize> SignQuery for LiveSignLog<E
             .expect("disjoint gaps within original global sequence clock")
     }
 }
-impl<const E: usize, const R: usize, const S: usize> InvocationEvidence for LiveSignLog<E, R, S> {
+impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>> InvocationEvidence
+    for LiveSignLog<E, R, S, A>
+{
     fn events(&self) -> impl Iterator<Item = KernelEvent> {
         self.events()
     }
 }
-impl<const E: usize, const R: usize, const S: usize> SignSink for LiveSignLog<E, R, S> {
+impl<const E: usize, const R: usize, const S: usize, A: ArchiveBacking<E, R, S>> SignSink
+    for LiveSignLog<E, R, S, A>
+{
     // The original active window keeps its EXACT quota. Archive custody has
     // separate explicit limits; no method silently rotates or enlarges this log.
     fn item_capacity(&self) -> u16 {
