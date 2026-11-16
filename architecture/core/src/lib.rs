@@ -2,6 +2,8 @@
 
 extern crate alloc;
 mod canonical_bytes;
+mod placement_identity;
+pub use placement_identity::planned_placement_identity_bytes;
 mod plan_connection_verification;
 use plan_connection_verification::verify_plan_connections;
 
