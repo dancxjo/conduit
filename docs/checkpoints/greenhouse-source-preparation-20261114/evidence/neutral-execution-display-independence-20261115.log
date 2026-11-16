@@ -1,0 +1,19 @@
+    Finished `test` profile [unoptimized] target(s) in 0.18s
+     Running tests/neutral_execution.rs (/tmp/conduit-source-member-control-20261111/debug/deps/neutral_execution-7ee1e0fc2c8785ce)
+
+running 2 tests
+test actual_checked_source_admits_starts_and_executes_complete_local_fore ... original_build_cfg_witness="/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-1c5d21540636c3c8/output" original_build_cfg_witness_sha256=a7a5c8429e6df908c03ddd836e31b911c2e01e4ce4a41cc0a4020ac2e021d03d propagated_cfg=neutral_source_execution
+cpu_original_projection_resource_requirements=49 cpu_original_projection_host_call_requirements=2 cpu_original_projection_remote_requirements=0 cpu_original_projection_validation=Ok("validated")
+cpu_signed_assignment_projection_bytes=29018 cpu_signed_assignment_metadata_bytes=1282 cpu_signed_assignment_workset_bytes=30314 installed_assignment_bytes=32548 resource_reference_bytes=46 installed_resource_bytes=6030 fore_metadata_bytes=636 no_limit_change
+whole_source76 authenticated_Start=true typed_inputs=3 typed_outputs=9 display_nack=false frame_sent=true outputs=[1, 1, 0, 0, 1, 0, 1, 0, 0] all_outputs_closed=true native_dispatch=true execution_allocations=0 finite_component_only
+
+ok
+test display_nack_preserves_source_measurement_and_complete_fore_closure ... original_build_cfg_witness="/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/cache-backing/rp2040-source-fit-20261113/thumbv6m-none-eabi/release/build/conduit-rp2040-host-1c5d21540636c3c8/output" original_build_cfg_witness_sha256=a7a5c8429e6df908c03ddd836e31b911c2e01e4ce4a41cc0a4020ac2e021d03d propagated_cfg=neutral_source_execution
+cpu_original_projection_resource_requirements=49 cpu_original_projection_host_call_requirements=2 cpu_original_projection_remote_requirements=0 cpu_original_projection_validation=Ok("validated")
+cpu_signed_assignment_projection_bytes=29018 cpu_signed_assignment_metadata_bytes=1282 cpu_signed_assignment_workset_bytes=30314 installed_assignment_bytes=32548 resource_reference_bytes=46 installed_resource_bytes=6030 fore_metadata_bytes=636 no_limit_change
+whole_source76 authenticated_Start=true typed_inputs=3 typed_outputs=9 display_nack=true frame_sent=false outputs=[1, 1, 0, 0, 0, 1, 0, 0, 0] all_outputs_closed=true native_dispatch=true execution_allocations=0 finite_component_only
+
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 59.26s
+
