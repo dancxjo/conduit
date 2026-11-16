@@ -44,11 +44,11 @@ pub(super) fn derive_transitions(
             push(
                 &mut output,
                 &mut count,
-                HidKeyTransition {
-                    usage: 0xe0 + bit,
-                    pressed: current.modifiers & mask != 0,
-                    modifiers: current.modifiers,
-                },
+                HidKeyTransition::from_validated_physical(
+                    0xe0 + bit,
+                    current.modifiers & mask != 0,
+                    current.modifiers,
+                ),
             )?;
         }
     }
@@ -57,11 +57,7 @@ pub(super) fn derive_transitions(
             push(
                 &mut output,
                 &mut count,
-                HidKeyTransition {
-                    usage,
-                    pressed: false,
-                    modifiers: current.modifiers,
-                },
+                HidKeyTransition::from_validated_physical(usage, false, current.modifiers),
             )?;
         }
     }
@@ -70,11 +66,7 @@ pub(super) fn derive_transitions(
             push(
                 &mut output,
                 &mut count,
-                HidKeyTransition {
-                    usage,
-                    pressed: true,
-                    modifiers: current.modifiers,
-                },
+                HidKeyTransition::from_validated_physical(usage, true, current.modifiers),
             )?;
         }
     }
