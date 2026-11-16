@@ -1,5 +1,7 @@
 # SOURCE-ONLY candidate; not deployed. Memory/operation bounds unchanged.
-# The measured complete BME/HT closure requires 15117 conservative work units;
+# PROVISIONAL: 15117 measures SharedWorkspaceSchema; current Owned storage
+# must be measured independently before this candidate can qualify.
+# The measured shared-schema BME/HT closure requires 15117 conservative work units;
 # these are compiler operation fuel, not RAM bytes or measured microseconds.
 # Explicit monotonic hardware attachment enables checked absolute-clock calls.
 # Physical construction only. Runtime initialization and admission are separate.

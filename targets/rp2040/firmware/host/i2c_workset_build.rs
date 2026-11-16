@@ -43,33 +43,22 @@ pub fn prepare(
         );
     }
     let work = conduit_host_rp2040::CheckedResidentWorkPool::from_configuration(checked)?;
-    let resident_count = source
-        .entries
-        .iter()
-        .flat_map(|entry| &entry.plot.expanded.gears)
-        .filter(|gear| gear.configuration.iter().any(|v| v.key == "program"))
-        .count();
-    // Uniform construction requirements stay within the original shared pool,
-    // including the resident commit allowance; actual code cost may refuse.
-    let per_resident = if resident_count == 0 {
-        4
-    } else {
-        work.capacity_units
-            .checked_div(u32::try_from(resident_count).map_err(|_| "resident count width")?)
-            .ok_or("resident work division")?
-    };
-    let private_work = per_resident
-        .checked_sub(3)
-        .filter(|n| *n != 0)
-        .ok_or("original work pool cannot fund resident requirements")?;
+    // Each Source-selected owner retains its exact compiler requirement. A
+    // shared pool is an aggregate limit, not an equal per-owner allowance.
+    // This BSP still selects Owned storage; workspace/schema storage requires
+    // a separate explicit runtime/profile choice and memory qualification.
     let mut resident_bounds = conduit_host_rp2040::source_build::resident_expression_bounds(
-        u16::try_from(private_work.min(u32::from(u16::MAX - 3)))
+        u16::try_from(work.capacity_units.min(u32::from(u16::MAX - 3)))
             .map_err(|_| "private work width")?,
     );
     resident_bounds.native.canonical_bytes =
         usize::try_from(checked.configuration().limits.buffered_bytes)
             .map_err(|_| "canonical buffer width")?;
-    let resident = source.prepare_selected_residents(resident_bounds)?;
+    let resident = source.prepare_selected_residents_with_exact_work(
+        resident_bounds,
+        conduit_embedded_build::ResidentExecutionStorage::Owned,
+        work.capacity_units,
+    )?;
     let artifact = conduit_core::ArtifactId::from(image_id);
     let i2c = conduit_host_rp2040::checked_i2c_offer_definition(checked, image_id)?
         .ok_or("I2C definition unselected")?;

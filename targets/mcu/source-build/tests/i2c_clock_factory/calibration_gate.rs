@@ -14,14 +14,16 @@ fn main() {
     std::fs::create_dir_all(&out).unwrap();
     let packages = h::MakePackageSet::compose(&[&conduit_host_rp2040::Rp2040MakePackage]).unwrap();
     let catalog = h::MakeCatalog::canonical().with_packages(&packages);
-    let checked = h::check_host_configuration(
-        h::parse_host_configuration_conduit(
-            &std::fs::read_to_string(root.join(
+    let profile = std::env::args_os()
+        .nth(3)
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| {
+            root.join(
                 "targets/rp2040/profiles/pico-w-house-green-source-work-candidate.host.conduit",
-            ))
-            .unwrap(),
-        )
-        .unwrap(),
+            )
+        });
+    let checked = h::check_host_configuration(
+        h::parse_host_configuration_conduit(&std::fs::read_to_string(&profile).unwrap()).unwrap(),
         &catalog,
         &packages,
     )
@@ -93,10 +95,13 @@ fn main() {
     println!(
         "{}",
         serde_json::json!({
-            "scope":"fresh checked Host IMAGE and ordinary BME Source calibration; emit-only",
+            "scope":"fresh checked Host IMAGE and open-Fore BME/HT protocol service calibration; emit-only",
             "configuration":checked.configuration_id(), "image":image.manifest.image_id,
             "resident_work_units":work.capacity_units, "bookkeeping_bytes":work.bookkeeping_bytes,
             "heap_bytes":checked.configuration().limits.heap_arena_bytes,
+        "logical_queue_item_ceiling":checked.configuration().limits.queue_items,
+        "assignment_byte_ceiling":checked.configuration().preparation.as_ref().unwrap().maximum_assignment_bytes,
+        "runtime_state_byte_ceiling":checked.configuration().preparation.as_ref().unwrap().maximum_runtime_state_bytes,
             "prepared_resident_count":prepared, "calibration_refusal":refusal,
             "whole_runtime_factory_called":false, "runtime_admission":false, "hardware_effects":false,
         })

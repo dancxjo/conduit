@@ -112,6 +112,24 @@ fn main() {
         ),
         Err(error) => (None, None, None, Some(error)),
     };
+    let owned = source.prepare_selected_residents_with_storage(
+        source_build::resident_expression_bounds(u16::MAX - 3),
+        conduit_embedded_build::ResidentExecutionStorage::Owned,
+    );
+    let (owned_required, owned_count, owned_largest, owned_refusal) = match owned {
+        Ok(residents) => (
+            Some(
+                residents
+                    .iter()
+                    .map(|r| u32::from(r.computation_work()))
+                    .sum::<u32>(),
+            ),
+            Some(residents.len()),
+            residents.iter().map(|r| r.computation_work()).max(),
+            None,
+        ),
+        Err(error) => (None, None, None, Some(error)),
+    };
     let (prepared, refusal) = match result {
         Ok(residents) => (residents.len(), None),
         Err(error) => (0, Some(error)),
@@ -119,7 +137,7 @@ fn main() {
     println!(
         "{}",
         serde_json::json!({
-            "scope":"fresh checked BME/HT Source and new clock attachment; no runtime Play",
+            "scope":"fresh checked open-Fore BME/HT protocol service; no autonomous sampling or Face/Mask",
             "baseline_configuration":baseline.configuration_id(),
             "candidate_configuration":candidate.configuration_id(),
             "baseline_missing_clock":missing,
@@ -136,11 +154,16 @@ fn main() {
         "full_compiler_only_resident_count":full_count,
         "full_compiler_only_largest_owner":largest,
         "full_compiler_only_refusal":full_refusal,
+        "owned_compiler_only_work_requirement":owned_required,
+        "owned_compiler_only_resident_count":owned_count,
+        "owned_compiler_only_largest_owner":owned_largest,
+        "owned_compiler_only_refusal":owned_refusal,
             "prepared_resident_count":prepared,
             "resident_preparation_refusal":refusal,
             "whole_factory_called":false,
             "runtime_admission":false,
             "hardware_effects":false,
+        "autonomous_sampling":false, "standard_Face_Mask":false,
         })
     );
 }
